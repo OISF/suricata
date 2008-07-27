@@ -1,4 +1,6 @@
-/* Address part of the detection engine. */
+/* Address part of the detection engine.
+ *
+ * Copyright 2008 Victor Julien */
 
 #include "decode.h"
 #include "detect.h"
