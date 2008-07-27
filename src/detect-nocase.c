@@ -1,0 +1,58 @@
+/* NOCASE part of the detection engine. */
+
+#include "decode.h"
+#include "detect.h"
+#include "flow-var.h"
+
+#include <pcre.h>
+#include "detect-content.h"
+#include "detect-uricontent.h"
+#include "detect-pcre.h"
+
+int DetectNocaseSetup (Signature *s, SigMatch *m, char *depthstr);
+
+void DetectNocaseRegister (void) {
+    sigmatch_table[DETECT_NOCASE].name = "nocase";
+    sigmatch_table[DETECT_NOCASE].Match = NULL;
+    sigmatch_table[DETECT_NOCASE].Setup = DetectNocaseSetup;
+    sigmatch_table[DETECT_NOCASE].Free  = NULL;
+    sigmatch_table[DETECT_NOCASE].RegisterTests = NULL;
+
+    sigmatch_table[DETECT_NOCASE].flags |= SIGMATCH_NOOPT;
+}
+
+int DetectNocaseSetup (Signature *s, SigMatch *m, char *nullstr)
+{
+    //printf("DetectNocaseSetup: s->match:%p,m:%p\n", s->match, m);
+
+    if (nullstr != NULL) {
+        printf("DetectNocaseSetup: nocase has no value\n");
+        return -1;
+    }
+
+    SigMatch *pm = m;
+    if (pm != NULL) {
+#if 0
+        if (pm->type == DETECT_PCRE) {
+            DetectPcreData *pe = (DetectPcreData *)pm->ctx;
+            printf("DetectNocaseSetup: set depth %u for previous pcre\n", pe->depth);
+        } else 
+#endif
+        if (pm->type == DETECT_CONTENT) {
+            DetectContentData *cd = (DetectContentData *)pm->ctx;
+            //printf("DetectNocaseSetup: set nocase for previous content\n");
+            cd->flags |= DETECT_CONTENT_NOCASE;
+        } else if (pm->type == DETECT_URICONTENT) {
+            DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
+            //printf("DetectNocaseSetup: set nocase for previous content\n");
+            cd->flags |= DETECT_URICONTENT_NOCASE;
+        } else {
+            printf("DetectNocaseSetup: Unknown previous keyword!\n");
+        }
+    } else {
+        printf("DetectNocaseSetup: No previous match!\n");
+    }
+
+    return 0;
+}
+

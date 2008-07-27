@@ -1,0 +1,8 @@
+default: all
+
+all:
+	aclocal
+	autoheader
+	automake
+	autoconf
+
