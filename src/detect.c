@@ -403,7 +403,7 @@ void SigLoadSignatures (void)
     Signature *prevsig = NULL, *sig;
     SigParsePrepare();
 
-    sig = SigInit("alert tcp 192.168.0.0 any -> 0.0.0.0 any (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; depth:400; sid:1;)");
+    sig = SigInit("alert tcp 192.168.0.0 any -> 0.0.0.0 any (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; depth:400; sid:1;)");
     if (sig) {
         prevsig = sig;
         sig_list = sig;
