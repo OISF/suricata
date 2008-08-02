@@ -66,14 +66,14 @@ am_vips_OBJECTS = vips-vips.$(OBJEXT) vips-config.$(OBJEXT) \
 	vips-detect-threshold.$(OBJEXT) vips-detect-metadata.$(OBJEXT) \
 	vips-detect-msg.$(OBJEXT) vips-detect-flow.$(OBJEXT) \
 	vips-detect-dsize.$(OBJEXT) vips-detect-address.$(OBJEXT) \
-	vips-util-mpm-trie.$(OBJEXT) vips-util-mpm.$(OBJEXT) \
-	vips-util-binsearch.$(OBJEXT) vips-util-mpm-wumanber.$(OBJEXT) \
-	vips-util-cidr.$(OBJEXT) vips-util-unittest.$(OBJEXT) \
-	vips-tm-modules.$(OBJEXT) vips-tm-queues.$(OBJEXT) \
-	vips-tm-queuehandlers.$(OBJEXT) vips-tm-threads.$(OBJEXT) \
-	vips-tmqh-simple.$(OBJEXT) vips-tmqh-nfq.$(OBJEXT) \
-	vips-tmqh-packetpool.$(OBJEXT) vips-alert-fastlog.$(OBJEXT) \
-	vips-alert-unified-log.$(OBJEXT) \
+	vips-detect-address2.$(OBJEXT) vips-util-mpm-trie.$(OBJEXT) \
+	vips-util-mpm.$(OBJEXT) vips-util-binsearch.$(OBJEXT) \
+	vips-util-mpm-wumanber.$(OBJEXT) vips-util-cidr.$(OBJEXT) \
+	vips-util-unittest.$(OBJEXT) vips-tm-modules.$(OBJEXT) \
+	vips-tm-queues.$(OBJEXT) vips-tm-queuehandlers.$(OBJEXT) \
+	vips-tm-threads.$(OBJEXT) vips-tmqh-simple.$(OBJEXT) \
+	vips-tmqh-nfq.$(OBJEXT) vips-tmqh-packetpool.$(OBJEXT) \
+	vips-alert-fastlog.$(OBJEXT) vips-alert-unified-log.$(OBJEXT) \
 	vips-alert-unified-alert.$(OBJEXT)
 vips_OBJECTS = $(am_vips_OBJECTS)
 vips_DEPENDENCIES =
@@ -246,6 +246,7 @@ detect-msg.c detect-msg.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
 detect-address.c detect-address.h \
+detect-address2.c detect-address2.h \
 util-mpm-trie.c util-mpm-trie.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \
@@ -354,6 +355,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vips-decode-tcp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vips-decode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vips-detect-address.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vips-detect-address2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vips-detect-classtype.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vips-detect-content.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vips-detect-depth.Po@am__quote@
@@ -994,6 +996,20 @@ vips-detect-address.obj: detect-address.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='detect-address.c' object='vips-detect-address.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vips_CFLAGS) $(CFLAGS) -c -o vips-detect-address.obj `if test -f 'detect-address.c'; then $(CYGPATH_W) 'detect-address.c'; else $(CYGPATH_W) '$(srcdir)/detect-address.c'; fi`
+
+vips-detect-address2.o: detect-address2.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vips_CFLAGS) $(CFLAGS) -MT vips-detect-address2.o -MD -MP -MF $(DEPDIR)/vips-detect-address2.Tpo -c -o vips-detect-address2.o `test -f 'detect-address2.c' || echo '$(srcdir)/'`detect-address2.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/vips-detect-address2.Tpo $(DEPDIR)/vips-detect-address2.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='detect-address2.c' object='vips-detect-address2.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vips_CFLAGS) $(CFLAGS) -c -o vips-detect-address2.o `test -f 'detect-address2.c' || echo '$(srcdir)/'`detect-address2.c
+
+vips-detect-address2.obj: detect-address2.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vips_CFLAGS) $(CFLAGS) -MT vips-detect-address2.obj -MD -MP -MF $(DEPDIR)/vips-detect-address2.Tpo -c -o vips-detect-address2.obj `if test -f 'detect-address2.c'; then $(CYGPATH_W) 'detect-address2.c'; else $(CYGPATH_W) '$(srcdir)/detect-address2.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/vips-detect-address2.Tpo $(DEPDIR)/vips-detect-address2.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='detect-address2.c' object='vips-detect-address2.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vips_CFLAGS) $(CFLAGS) -c -o vips-detect-address2.obj `if test -f 'detect-address2.c'; then $(CYGPATH_W) 'detect-address2.c'; else $(CYGPATH_W) '$(srcdir)/detect-address2.c'; fi`
 
 vips-util-mpm-trie.o: util-mpm-trie.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vips_CFLAGS) $(CFLAGS) -MT vips-util-mpm-trie.o -MD -MP -MF $(DEPDIR)/vips-util-mpm-trie.Tpo -c -o vips-util-mpm-trie.o `test -f 'util-mpm-trie.c' || echo '$(srcdir)/'`util-mpm-trie.c

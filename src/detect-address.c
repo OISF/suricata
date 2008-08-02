@@ -1,6 +1,8 @@
 /* Address part of the detection engine.
  *
- * Copyright 2008 Victor Julien */
+ * Copyright (c) 2008 Victor Julien
+ *
+ * TODO move this out of the detection plugin structure */
 
 #include "decode.h"
 #include "detect.h"
@@ -26,6 +28,27 @@ typedef struct DetectAddressData_ {
     u_int32_t mask[4];
 } DetectAddressData;
 
+typedef struct DetectAddressGroup_ {
+    /* address data for this group */
+    DetectAddressData *ad;
+
+    /* XXX ptr to rules, or PortGroup or whatever */
+
+
+    /* double linked list */
+    struct DetectAddressGroup_ *prev;
+    struct DetectAddressGroup_ *next;
+
+} DetectAddressGroup;
+
+/* list head */
+static DetectAddressGroup *head = NULL;
+
+/* prototypes */
+DetectAddressData *DetectAddressParse(char *);
+void DetectAddressDataPrint(DetectAddressData *);
+
+
 /* a is ... than b */
 enum {
     ADDRESS_ER = -1, /* error e.g. compare ipv4 and ipv6 */
@@ -35,6 +58,138 @@ enum {
     ADDRESS_EB,      /* completely overlaps  [aa[bbb]aa] and [[baba]aaa] and [aaa[baba]] */
     ADDRESS_GT,      /* bigger               [bbb] [aaa] */
 };
+
+DetectAddressGroup *DetectAddressGroupInit(void) {
+    DetectAddressGroup *ag = malloc(sizeof(DetectAddressGroup));
+    if (ag == NULL) {
+        return NULL;
+    }
+    memset(ag,0,sizeof(DetectAddressGroup));
+
+    return ag;
+}
+
+void DetectAddressGroupFree(DetectAddressGroup *ag) {
+    if (ag != NULL) {
+        if (ag->ad != NULL) {
+            DetectAddressFree(ag->ad);
+        }
+        free(ag);
+    }
+}
+
+void DetectAddressGroupCleanupList (void) {
+    if (head == NULL)
+        return;
+
+    DetectAddressGroup *cur, *next;
+
+    for (cur = head; cur != NULL; ) {
+         next = cur->next;
+
+         DetectAddressGroupFree(cur);
+         cur = next;
+    }
+
+    head = NULL;
+}
+
+int DetectAddressGroupSetup(char *s) {
+    DetectAddressGroup *ag = NULL, *cur = NULL, *next = NULL, *prev = NULL;
+    DetectAddressData  *ad = NULL;
+    int r = 0;
+
+    /* parse the address */
+    ad = DetectAddressParse(s);
+    if (ad == NULL) {
+        goto error;
+    }
+
+    /* see if it already exists or overlaps with existing ag's */
+    if (head != NULL) {
+        for (cur = head; cur != NULL; cur = cur->next) {
+            r = AddressCmp(ad, cur->ad);
+            if (r == ADDRESS_ER) {
+                goto error;
+            } 
+            /* if so, handle that */
+            if (r == ADDRESS_EQ) {
+                /* exact overlap/match, we don't need to do a thing
+                 */
+                return 0;
+            } else if (r == ADDRESS_ES) {
+                /* we are within another ad, now it gets interesting
+                 * we need to cut up the 'cur' ad.
+                 *
+                 * we can be like this:
+                 * [[ababa]aaa]
+                 * [aa[bbb]aaa]
+                 * [aaa[ababa]]
+                 *
+                 * XXX */
+                printf ("overlapped!\n");
+                DetectAddressDataPrint(ad);
+                DetectAddressDataPrint(cur->ad);
+            } else if (r == ADDRESS_EB) {
+                /* we fully overlap and extend 'cur'
+                 * we need to add the none overlapping part(s)
+                 * and we need to see if we overlap other parts too
+                 * XXX */
+                printf("overlapping!\n");
+            } else if (r == ADDRESS_LT) {
+                /* see if we need to insert the ag anywhere */
+
+                ag = DetectAddressGroupInit();
+                if (ag == NULL) {
+                    goto error;
+                }
+                ag->ad = ad;
+
+                /* put in the list */
+                ag->prev = cur->prev;
+                ag->next = cur;
+                cur->prev = ag;
+
+                /* update head if required */
+                if (head == cur) {
+                    head = ag;
+                }
+
+                return 0;
+            } else if (r == ADDRESS_GT) {
+                /* only add it now if we are bigger than the last
+                 * group. Otherwise we'll handle it later. */
+                if (cur->next == NULL) {
+                    /* append */
+                    ag = DetectAddressGroupInit();
+                    if (ag == NULL) {
+                        goto error;
+                    }
+                    ag->ad = ad;
+
+                    /* put in the list */
+                    ag->prev = cur;
+                    cur->next = ag;
+                } else {
+
+                }
+            }
+        }
+    } else {
+        head = ag = DetectAddressGroupInit();
+        if (ag == NULL) {
+            goto error;
+        }
+
+        ag->ad = ad;
+    }
+
+    return 0;
+
+error:
+    /* cleanup */
+    return -1;
+}
 
 int AddressCmpIPv4(DetectAddressData *a, DetectAddressData *b) {
     u_int32_t net_a, net_b, brd_a, brd_b;
@@ -418,6 +573,25 @@ int DetectAddressMatch (DetectAddressData *dd, Address *a) {
     }
 
     return 0;
+}
+
+void DetectAddressDataPrint(DetectAddressData *ad) {
+    if (ad == NULL)
+        return;
+
+    if (ad->family == AF_INET) {
+        struct in_addr in;
+        char s[16];
+
+        memcpy(&in, &ad->ip[0], sizeof(in));
+        inet_ntop(AF_INET, &in, s, sizeof(s));
+        printf("%s/", s);
+        memcpy(&in, &ad->mask[0], sizeof(in));
+        inet_ntop(AF_INET, &in, s, sizeof(s));
+        printf("%s\n", s);
+    } else if (ad->family == AF_INET6) {
+
+    }
 }
 
 
@@ -1448,6 +1622,131 @@ int AddressTestIPv6Ge04 (void) {
     return result;
 }
 
+int AddressTestAddressGroupSetup01 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("1.2.3.4");
+    if (r == 0) {
+        result = 1;
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup02 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("1.2.3.4");
+    if (r == 0 && head != NULL) {
+        result = 1;
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup03 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("1.2.3.4");
+    if (r == 0 && head != NULL) {
+        DetectAddressGroup *prev_head = head;
+
+        r = DetectAddressGroupSetup("1.2.3.3");
+        if (r == 0 && head != prev_head && head != NULL && head->next == prev_head) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup04 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("1.2.3.4");
+    if (r == 0 && head != NULL) {
+        DetectAddressGroup *prev_head = head;
+
+        r = DetectAddressGroupSetup("1.2.3.3");
+        if (r == 0 && head != prev_head && head != NULL && head->next == prev_head) {
+            prev_head = head;
+
+            r = DetectAddressGroupSetup("1.2.3.2");
+            if (r == 0 && head != prev_head && head != NULL && head->next == prev_head) {
+                result = 1;
+            }
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup05 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("1.2.3.2");
+    if (r == 0 && head != NULL) {
+        DetectAddressGroup *prev_head = head;
+
+        r = DetectAddressGroupSetup("1.2.3.3");
+        if (r == 0 && head == prev_head && head != NULL && head->next != prev_head) {
+            prev_head = head;
+
+            r = DetectAddressGroupSetup("1.2.3.4");
+            if (r == 0 && head == prev_head && head != NULL && head->next != prev_head) {
+                result = 1;
+            }
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup06 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("1.2.3.2");
+    if (r == 0 && head != NULL) {
+        DetectAddressGroup *prev_head = head;
+
+        r = DetectAddressGroupSetup("1.2.3.2");
+        if (r == 0 && head == prev_head && head != NULL && head->next == NULL) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup07 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("10.0.0.0/8");
+    if (r == 0 && head != NULL) {
+        r = DetectAddressGroupSetup("10.10.10.10");
+        if (r == 0 && head != NULL && head->next != NULL && head->next->next != NULL) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup08 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("10.10.10.10");
+    if (r == 0 && head != NULL) {
+        r = DetectAddressGroupSetup("10.0.0.0/8");
+        if (r == 0 && head != NULL && head->next != NULL && head->next->next != NULL) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+
 void DetectAddressTests(void) {
     UtRegisterTest("AddressTestParse01", AddressTestParse01, 1);
     UtRegisterTest("AddressTestParse02", AddressTestParse02, 1);
@@ -1516,6 +1815,15 @@ void DetectAddressTests(void) {
     UtRegisterTest("AddressTestIPv6Ge02",   AddressTestIPv6Ge02, 1);
     UtRegisterTest("AddressTestIPv6Ge03",   AddressTestIPv6Ge03, 1);
     UtRegisterTest("AddressTestIPv6Ge04",   AddressTestIPv6Ge04, 1);
+
+    UtRegisterTest("AddressTestAddressGroupSetup01", AddressTestAddressGroupSetup01, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup02", AddressTestAddressGroupSetup02, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup03", AddressTestAddressGroupSetup03, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup04", AddressTestAddressGroupSetup04, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup05", AddressTestAddressGroupSetup05, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup06", AddressTestAddressGroupSetup06, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup07", AddressTestAddressGroupSetup07, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup08", AddressTestAddressGroupSetup08, 1);
 }
 
 

@@ -85,6 +85,7 @@ enum {
     DETECT_DSIZE,
     DETECT_FLOWVAR,
     DETECT_ADDRESS,
+    DETECT_ADDRESS2,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

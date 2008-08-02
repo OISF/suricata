@@ -8,6 +8,7 @@
 #include "flow.h"
 
 #include "detect-address.h"
+#include "detect-address2.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
@@ -702,6 +703,7 @@ void SigTableSetup(void) {
     DetectDsizeRegister();
     DetectFlowvarRegister();
     DetectAddressRegister();
+    DetectAddress2Register();
 
     /* register the tests */
     u_int8_t i = 0;
