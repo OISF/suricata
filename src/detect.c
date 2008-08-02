@@ -752,7 +752,7 @@ int SigTest01 (void) {
 
     SigParsePrepare();
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
     if (sig_list == NULL) {
         result = 0;
         goto end;
@@ -967,7 +967,7 @@ int SigTest06 (void) {
 
     SigParsePrepare();
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
     if (sig_list == NULL) {
         result = 0;
         goto end;
@@ -1012,7 +1012,7 @@ int SigTest07 (void) {
 
     SigParsePrepare();
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
     if (sig_list == NULL) {
         result = 0;
         goto end;
@@ -1059,7 +1059,7 @@ int SigTest08 (void) {
 
     SigParsePrepare();
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?<http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
     if (sig_list == NULL) {
         result = 0;
         goto end;
@@ -1104,7 +1104,7 @@ int SigTest09 (void) {
 
     SigParsePrepare();
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?<http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
     if (sig_list == NULL) {
         result = 0;
         goto end;

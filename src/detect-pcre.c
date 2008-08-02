@@ -11,7 +11,7 @@
 
 #include "detect-mpm.h"
 
-#define PARSE_CAPTURE_REGEX "\\(\\?\\<([A-z0-9_]+)\\>"
+#define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*)(?<!\\\\)/([A-z]*)"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
