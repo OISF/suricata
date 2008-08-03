@@ -7,7 +7,6 @@
 #include "detect.h"
 #include "flow.h"
 
-#include "detect-address.h"
 #include "detect-address2.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
@@ -702,7 +701,6 @@ void SigTableSetup(void) {
     DetectFlowRegister();
     DetectDsizeRegister();
     DetectFlowvarRegister();
-    DetectAddressRegister();
     DetectAddress2Register();
 
     /* register the tests */
