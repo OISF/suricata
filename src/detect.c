@@ -328,21 +328,21 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
     return 0;
 }
 
-int SigParseAction(Signature *s, const char *action){
-    if(strcasecmp(action, "alert") == 0){
-       s->action = ACTION_ALERT;
-       return 0;
-    } else if(strcasecmp(action, "drop") == 0){
-       s->action = ACTION_DROP;
-       return 0;
-    } else if(strcasecmp(action, "pass") == 0){
-       s->action = ACTION_PASS;
-       return 0;
-    } else if(strcasecmp(action, "reject") == 0){
-       s->action = ACTION_REJECT;
-       return 0;
+int SigParseAction(Signature *s, const char *action) {
+    if (strcasecmp(action, "alert") == 0) {
+        s->action = ACTION_ALERT;
+        return 0;
+    } else if(strcasecmp(action, "drop") == 0) {
+        s->action = ACTION_DROP;
+        return 0;
+    } else if(strcasecmp(action, "pass") == 0) {
+        s->action = ACTION_PASS;
+        return 0;
+    } else if(strcasecmp(action, "reject") == 0) {
+        s->action = ACTION_REJECT;
+        return 0;
     } else {
-       return -1;
+        return -1;
     }
 }
 
