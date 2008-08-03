@@ -39,7 +39,7 @@ detect-metadata.c detect-metadata.h \
 detect-msg.c detect-msg.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
-detect-address2.c detect-address2.h \
+detect-address.c detect-address.h \
 util-mpm-trie.c util-mpm-trie.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \
