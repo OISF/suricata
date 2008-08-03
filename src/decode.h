@@ -30,6 +30,7 @@
 #include "source-nfq.h"
 #endif /* NFQ */
 
+#include "action-globals.h"
 #include "decode-ethernet.h"
 #include "decode-ipv4.h"
 #include "decode-ipv6.h"
@@ -265,9 +266,6 @@ typedef struct _Packet
     (p)->http_uri.cnt = 0; \
 }
 
-#define ACTION_ACCEPT          0
-#define ACTION_DROP            1
-#define ACTION_REJECT          2
 
 /* macro's for setting the action
  * handle the case of a root packet

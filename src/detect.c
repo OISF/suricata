@@ -28,7 +28,7 @@
 #include "detect-flow.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
-
+#include "action-globals.h"
 #include "detect-mpm.h"
 #include "tm-modules.h"
 
@@ -328,6 +328,24 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
     return 0;
 }
 
+int SigParseAction(Signature *s, const char *action){
+    if(strcasecmp(action, "alert") == 0){
+       s->action = ACTION_ALERT;
+       return 0;
+    } else if(strcasecmp(action, "drop") == 0){
+       s->action = ACTION_DROP;
+       return 0;
+    } else if(strcasecmp(action, "pass") == 0){
+       s->action = ACTION_PASS;
+       return 0;
+    } else if(strcasecmp(action, "reject") == 0){
+       s->action = ACTION_REJECT;
+       return 0;
+    } else {
+       return -1;
+    }
+}
+
 int SigParseBasics(Signature *s, char *sigstr, char ***result) {
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
@@ -350,6 +368,11 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
     }
     arr[i-1]=NULL;
 
+    /* Parse Action */
+    if (SigParseAction(s, arr[CONFIG_ACTION]) < 0)
+        goto error;
+ 
+    /* Parse Ports */
     if (SigParsePort(s, arr[CONFIG_SP], 0) < 0)
         goto error;
     if (SigParsePort(s, arr[CONFIG_DP], 1) < 0)
@@ -498,11 +521,9 @@ void SigLoadSignatures (void)
         prevsig->next = sig;
         prevsig = sig;
     }
-    
-
 //#if 0
     int good = 0, bad = 0;
-    FILE *fp = fopen("/home/victor/rules/bleeding-all.rules", "r");
+    FILE *fp = fopen("/etc/vips/rules/bleeding-all.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/vips-http.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/vips-all.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/eml.rules", "r");
@@ -531,6 +552,7 @@ void SigLoadSignatures (void)
     printf("SigLoadSignatures: %d successfully loaded from file. %d sigs failed to load\n", good, bad);
 //#endif
     /* Setup the pattern matcher */
+
     PatternMatchPrepare(sig_list);
 
 }
@@ -607,7 +629,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                             /* only add once */
                             if (rmatch == 0)
                                 PacketAlertAppend(p, 1, s->id, s->rev, s->msg);
-
+                                /* set verdict on packet */
+                                p->action = s->action;
                             //printf("%u Signature %u matched: %s\n", th_v->pkt_cnt, s->id, s->msg ? s->msg : "");
                             rmatch = fmatch = 1;
                             pmt->pkt_cnt++;
@@ -635,6 +658,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                         fmatch = 1;
 
                         PacketAlertAppend(p, 1, s->id, s->rev, s->msg);
+                        /* set verdict on packet */
+                        p->action = s->action;
                     }
                 } else {
                     /* done with this sig */

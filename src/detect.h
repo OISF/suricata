@@ -33,7 +33,7 @@ typedef struct _Signature {
     u_int8_t rev;
     char *msg;
     u_int8_t flags;
-
+    u_int8_t action; 
     SigAddress src, dst;
     SigPort sp, dp;
 

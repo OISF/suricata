@@ -12,7 +12,7 @@
 #include "tm-modules.h"
 #include "source-nfq.h"
 #include "source-nfq-prototypes.h"
-
+#include "action-globals.h"
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
 
@@ -240,9 +240,24 @@ int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data) {
 
 void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     int ret;
+    u_int32_t verdict;
+
+    if(p->action == ACTION_ALERT){
+       verdict = NF_ACCEPT;
+    } else if(p->action == ACTION_PASS){
+       verdict = NF_ACCEPT;
+    } else if(p->action == ACTION_DROP){
+       verdict = NF_DROP;
+    } else if(p->action == ACTION_REJECT){
+       verdict = NF_DROP;
+       /* reject code will be called from here */
+    } else {
+       /* wtf? a verdict we don't know about */
+       verdict = NF_DROP;
+    }
 
     mutex_lock(&t->mutex_qh);
-    ret = nfq_set_verdict(t->qh, p->nfq_v.id, NF_ACCEPT, 0, NULL);
+    ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
     mutex_unlock(&t->mutex_qh);
 
     if (ret < 0)
