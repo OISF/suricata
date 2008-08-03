@@ -49,6 +49,7 @@ DetectAddressData *DetectAddressParse(char *);
 void DetectAddressDataPrint(DetectAddressData *);
 void DetectAddressFree(DetectAddressData *);
 int AddressCmp(DetectAddressData *, DetectAddressData *);
+int AddressCut(DetectAddressData *, DetectAddressData *, DetectAddressData **);
 
 
 /* a is ... than b */
@@ -110,6 +111,68 @@ void DetectAddressGroupCleanupList (void) {
     head = NULL;
 }
 
+/* return: 1 lt, 0 not lt */
+static int AddressIPv6Lt(u_int32_t *a, u_int32_t *b) {
+    int i = 0;
+
+    for (i = 0; i < 4; i++) {
+        if (ntohl(a[i]) < ntohl(b[i]))
+            return 1;
+        if (ntohl(a[i]) > ntohl(b[i]))
+            break;
+    }
+
+    return 0;
+}
+
+/* return: 1 gt, 0 not gt */
+static int AddressIPv6Gt(u_int32_t *a, u_int32_t *b) {
+    int i = 0;
+
+    for (i = 0; i < 4; i++) {
+        if (ntohl(a[i]) > ntohl(b[i]))
+            return 1;
+        if (ntohl(a[i]) < ntohl(b[i]))
+            break;
+    }
+
+    return 0;
+}
+
+/* return: 1 eq, 0 not eq */
+static int AddressIPv6Eq(u_int32_t *a, u_int32_t *b) {
+    int i = 0;
+
+    for (i = 0; i < 4; i++) {
+        if (a[i] != b[i])
+            return 0;
+    }
+
+    return 1;
+}
+
+/* return: 1 le, 0 not le */
+static int AddressIPv6Le(u_int32_t *a, u_int32_t *b) {
+
+    if (AddressIPv6Eq(a,b) == 1)
+        return 1;
+    if (AddressIPv6Lt(a,b) == 1)
+        return 1;
+
+    return 0;
+}
+
+/* return: 1 ge, 0 not ge */
+static int AddressIPv6Ge(u_int32_t *a, u_int32_t *b) {
+
+    if (AddressIPv6Eq(a,b) == 1)
+        return 1;
+    if (AddressIPv6Gt(a,b) == 1)
+        return 1;
+
+    return 0;
+}
+
 int DetectAddressGroupInsert(DetectAddressData *new) {
     DetectAddressGroup *ag = NULL,*cur = NULL;
     int r = 0;
@@ -128,7 +191,7 @@ int DetectAddressGroupInsert(DetectAddressData *new) {
 
             r = AddressCmp(new,cur->ad);
             if (r == ADDRESS_ER) {
-                //printf("ADDRESS_ER\n");
+                printf("ADDRESS_ER\n");
                 goto error;
             } 
             /* if so, handle that */
@@ -182,28 +245,28 @@ int DetectAddressGroupInsert(DetectAddressData *new) {
 
             } else if (r == ADDRESS_ES) {
                 DetectAddressData *c = NULL;
-                r = AddressCutIPv4(cur->ad,new,&c);
+                r = AddressCut(cur->ad,new,&c);
                 //printf("ADDRESS_ES: r = %d: ", r);
                 //DetectAddressDataPrint(cur->ad);
                 DetectAddressGroupInsert(new);
                 if (c) DetectAddressGroupInsert(c);
             } else if (r == ADDRESS_EB) {
                 DetectAddressData *c = NULL;
-                r = AddressCutIPv4(cur->ad,new,&c);
+                r = AddressCut(cur->ad,new,&c);
                 //printf("ADDRESS_EB: r = %d: ", r);
                 //DetectAddressDataPrint(cur->ad);
                 DetectAddressGroupInsert(new);
                 if (c) DetectAddressGroupInsert(c);
             } else if (r == ADDRESS_LE) {
                 DetectAddressData *c = NULL;
-                r = AddressCutIPv4(cur->ad,new,&c);
+                r = AddressCut(cur->ad,new,&c);
                 //printf("ADDRESS_LE: r = %d: ", r);
                 //DetectAddressDataPrint(cur->ad);
                 DetectAddressGroupInsert(new);
                 if (c) DetectAddressGroupInsert(c);
             } else if (r == ADDRESS_GE) {
                 DetectAddressData *c = NULL;
-                r = AddressCutIPv4(cur->ad,new,&c);
+                r = AddressCut(cur->ad,new,&c);
                 //printf("ADDRESS_GE: r = %d: ", r);
                 //DetectAddressDataPrint(cur->ad);
                 DetectAddressGroupInsert(new);
@@ -226,9 +289,9 @@ error:
 }
 
 int DetectAddressGroupSetup(char *s) {
-    DetectAddressGroup *ag = NULL, *cur = NULL, *next = NULL, *prev = NULL;
+    //DetectAddressGroup *ag = NULL, *cur = NULL, *next = NULL, *prev = NULL;
     DetectAddressData  *ad = NULL;
-    int r = 0;
+    //int r = 0;
 
     /* parse the address */
     ad = DetectAddressParse(s);
@@ -288,115 +351,6 @@ int AddressCmpIPv4(DetectAddressData *a, DetectAddressData *b) {
     DetectAddressDataPrint(b);
     printf ("ADDRESS_ER\n");
     return ADDRESS_ER;
-}
-
-int AddressCutIPv42(DetectAddressData *a, DetectAddressData *b) {
-    u_int32_t a_ip1 = ntohl(a->ip[0]);
-    u_int32_t a_ip2 = ntohl(a->mask[0]);
-    u_int32_t b_ip1 = ntohl(b->ip[0]);
-    u_int32_t b_ip2 = ntohl(b->mask[0]);
-
-    int r = AddressCmp(a,b);
-    if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
-        goto error;
-    }
-
-    /* we have 3 parts: [aaa[abab]bbb]
-     * part a: a_ip1 <-> b_ip1 - 1
-     * part b: b_ip1 <-> a_ip2
-     * part c: a_ip2 + 1 <-> b_ip2
-     */
-    if (r == ADDRESS_LE) {
-        a->ip[0]   = htonl(a_ip1);
-        a->mask[0] = htonl(b_ip1 - 1);
-
-        b->ip[0]   = htonl(b_ip1);
-        b->mask[0] = htonl(b_ip2);
-    /* we have 3 parts: [bbb[baba]aaa]
-     * part a: b_ip1 <-> a_ip1 - 1
-     * part b: a_ip1 <-> b_ip2
-     * part c: b_ip2 + 1 <-> a_ip2
-     */ 
-    } else if (r == ADDRESS_GE) {
-        a->ip[0]   = htonl(b_ip1);
-        a->mask[0] = htonl(a_ip1 - 1);
-
-        b->ip[0]   = htonl(a_ip1);
-        b->mask[0] = htonl(a_ip2);
-    /* we have 2 or three parts:
-     *
-     * 2 part: [[abab]bbb] or [bbb[baba]]
-     * part a: a_ip1 <-> a_ip2
-     * part b: a_ip2 + 1 <-> b_ip2
-     *
-     * part a: b_ip1 <-> a_ip1 - 1
-     * part b: a_ip1 <-> a_ip2
-     * 
-     * 3 part [bbb[aaa]bbb]
-     * part a: b_ip1 <-> a_ip1 - 1
-     * part b: a_ip1 <-> a_ip2
-     * part c: a_ip2 + 1 <-> b_ip2
-     */
-    } else if (r == ADDRESS_ES) {
-        if (a_ip1 == b_ip1) {
-            a->ip[0]   = htonl(a_ip1);
-            a->mask[0] = htonl(a_ip2);
-
-            b->ip[0]   = htonl(a_ip2 + 1);
-            b->mask[0] = htonl(b_ip2);
-        } else if (a_ip2 == b_ip2) {
-            a->ip[0]   = htonl(b_ip1);
-            a->mask[0] = htonl(a_ip1 - 1);
-
-            b->ip[0]   = htonl(a_ip1);
-            b->mask[0] = htonl(a_ip2);
-        } else {
-            a->ip[0]   = htonl(b_ip1);
-            a->mask[0] = htonl(a_ip1 - 1);
-
-            b->ip[0]   = htonl(a_ip1);
-            b->mask[0] = htonl(b_ip2);
-        }
-    /* we have 2 or three parts:
-     *
-     * 2 part: [[baba]aaa] or [aaa[abab]]
-     * part a: b_ip1 <-> b_ip2
-     * part b: b_ip2 + 1 <-> a_ip2
-     *
-     * part a: a_ip1 <-> b_ip1 - 1
-     * part b: b_ip1 <-> b_ip2
-     * 
-     * 3 part [aaa[bbb]aaa]
-     * part a: a_ip1 <-> b_ip2 - 1
-     * part b: b_ip1 <-> b_ip2
-     * part c: b_ip2 + 1 <-> a_ip2
-     */
-    } else if (r == ADDRESS_EB) {
-        if (a_ip1 == b_ip1) {
-            a->ip[0]   = htonl(b_ip1);
-            a->mask[0] = htonl(b_ip2);
-
-            b->ip[0]   = htonl(b_ip2 + 1);
-            b->mask[0] = htonl(a_ip2);
-        } else if (a_ip2 == b_ip2) {
-            a->ip[0]   = htonl(a_ip1);
-            a->mask[0] = htonl(b_ip1 - 1);
-
-            b->ip[0]   = htonl(b_ip1);
-            b->mask[0] = htonl(b_ip2);
-        } else {
-            a->ip[0]   = htonl(a_ip1);
-            a->mask[0] = htonl(b_ip1 - 1);
-
-            b->ip[0]   = htonl(b_ip1);
-            b->mask[0] = htonl(a_ip2);
-        }
-    }
-
-    return 0;
-
-error:
-    return -1;
 }
 
 /* a = 1.2.3.4, b = 1.2.3.4-1.2.3.5
@@ -565,126 +519,277 @@ error:
     return -1;
 }
 
+/* address is in host order! */
+void AddressCutIPv6CopySubOne(u_int32_t *a, u_int32_t *b) {
+    u_int32_t t = a[3];
 
-/* return: 1 lt, 0 not lt */
-static int AddressIPv6Lt(u_int32_t *a, u_int32_t *b) {
-    int i = 0;
+    b[0] = a[0];
+    b[1] = a[1];
+    b[2] = a[2];
+    b[3] = a[3];
 
-    for (i = 0; i < 4; i++) {
-        if (a[i] < b[i])
-            return 1;
+    //printf("start: 0x%08X 0x%08X 0x%08X 0x%08X\n", a[0], a[1], a[2], a[3]);
+    b[3] --;
+    if (b[3] > t) {
+        t = b[2];
+        b[2] --;
+        if (b[2] > t) {
+            t = b[1];
+            b[1] --;
+            if (b[1] > t) {
+                b[0] --;
+            }
+        }
+    }
+
+    b[0] = htonl(b[0]);
+    b[1] = htonl(b[1]);
+    b[2] = htonl(b[2]);
+    b[3] = htonl(b[3]);
+
+    //printf("result: 0x%08X 0x%08X 0x%08X 0x%08X\n", a[0], a[1], a[2], a[3]);
+}
+
+void AddressCutIPv6CopyAddOne(u_int32_t *a, u_int32_t *b) {
+    u_int32_t t = a[3];
+
+    b[0] = a[0];
+    b[1] = a[1];
+    b[2] = a[2];
+    b[3] = a[3];
+
+    //printf("start: 0x%08X 0x%08X 0x%08X 0x%08X\n", a[0], a[1], a[2], a[3]);
+    b[3] ++;
+    if (b[3] < t) {
+        t = b[2];
+        b[2] ++;
+        if (b[2] < t) {
+            t = b[1];
+            b[1] ++;
+            if (b[1] < t) {
+                b[0] ++;
+            }
+        }
+    }
+
+    b[0] = htonl(b[0]);
+    b[1] = htonl(b[1]);
+    b[2] = htonl(b[2]);
+    b[3] = htonl(b[3]);
+
+    //printf("result: 0x%08X 0x%08X 0x%08X 0x%08X\n", a[0], a[1], a[2], a[3]);
+}
+
+static void AddressCutIPv6Copy(u_int32_t *a, u_int32_t *b) {
+    b[0] = htonl(a[0]);
+    b[1] = htonl(a[1]);
+    b[2] = htonl(a[2]);
+    b[3] = htonl(a[3]);
+}
+
+int AddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
+    u_int32_t a_ip1[4] = { ntohl(a->ip[0]), ntohl(a->ip[1]), ntohl(a->ip[2]), ntohl(a->ip[3]) };
+    u_int32_t a_ip2[4] = { ntohl(a->mask[0]), ntohl(a->mask[1]), ntohl(a->mask[2]), ntohl(a->mask[3]) };
+    u_int32_t b_ip1[4] = { ntohl(b->ip[0]), ntohl(b->ip[1]), ntohl(b->ip[2]), ntohl(b->ip[3]) };
+    u_int32_t b_ip2[4] = { ntohl(b->mask[0]), ntohl(b->mask[1]), ntohl(b->mask[2]), ntohl(b->mask[3]) };
+
+    /* default to NULL */
+    *c = NULL;
+
+    int r = AddressCmp(a,b);
+    if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
+        goto error;
+    }
+
+    /* we have 3 parts: [aaa[abab]bbb]
+     * part a: a_ip1 <-> b_ip1 - 1
+     * part b: b_ip1 <-> a_ip2
+     * part c: a_ip2 + 1 <-> b_ip2
+     */
+    if (r == ADDRESS_LE) {
+        AddressCutIPv6Copy(a_ip1, a->ip);
+        AddressCutIPv6CopySubOne(b_ip1, a->mask);
+
+        AddressCutIPv6Copy(b_ip1, b->ip);
+        AddressCutIPv6Copy(a_ip2, b->mask);
+
+        DetectAddressData *tmp_c;
+        tmp_c = malloc(sizeof(DetectAddressData));
+        if (tmp_c == NULL) {
+            goto error;
+        }
+        tmp_c->family  = AF_INET6;
+        AddressCutIPv6CopyAddOne(a_ip2, tmp_c->ip);
+        AddressCutIPv6Copy(b_ip2, tmp_c->mask);
+        *c = tmp_c;
+
+    /* we have 3 parts: [bbb[baba]aaa]
+     * part a: b_ip1 <-> a_ip1 - 1
+     * part b: a_ip1 <-> b_ip2
+     * part c: b_ip2 + 1 <-> a_ip2
+     */ 
+    } else if (r == ADDRESS_GE) {
+        AddressCutIPv6Copy(b_ip1, a->ip);
+        AddressCutIPv6CopySubOne(a_ip1, a->mask);
+
+        AddressCutIPv6Copy(a_ip1, b->ip);
+        AddressCutIPv6Copy(b_ip2, b->mask);
+
+        DetectAddressData *tmp_c;
+        tmp_c = malloc(sizeof(DetectAddressData));
+        if (tmp_c == NULL) {
+            goto error;
+        }
+        tmp_c->family  = AF_INET6;
+        AddressCutIPv6CopyAddOne(b_ip2, tmp_c->ip);
+        AddressCutIPv6Copy(a_ip2, tmp_c->mask);
+        *c = tmp_c;
+
+    /* we have 2 or three parts:
+     *
+     * 2 part: [[abab]bbb] or [bbb[baba]]
+     * part a: a_ip1 <-> a_ip2
+     * part b: a_ip2 + 1 <-> b_ip2
+     *
+     * part a: b_ip1 <-> a_ip1 - 1
+     * part b: a_ip1 <-> a_ip2
+     * 
+     * 3 part [bbb[aaa]bbb]
+     * part a: b_ip1 <-> a_ip1 - 1
+     * part b: a_ip1 <-> a_ip2
+     * part c: a_ip2 + 1 <-> b_ip2
+     */
+    } else if (r == ADDRESS_ES) {
+        if (AddressIPv6Eq(a_ip1,b_ip1) == 1) {
+            AddressCutIPv6Copy(a_ip1, a->ip);
+            AddressCutIPv6Copy(a_ip2, a->mask);
+
+            AddressCutIPv6CopyAddOne(a_ip2, b->ip);
+            AddressCutIPv6Copy(b_ip2, b->mask);
+        } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
+            AddressCutIPv6Copy(b_ip1, a->ip);
+            AddressCutIPv6CopySubOne(a_ip1, a->mask);
+
+            AddressCutIPv6Copy(a_ip1, b->ip);
+            AddressCutIPv6Copy(a_ip2, b->mask);
+        } else {
+            AddressCutIPv6Copy(b_ip1, a->ip);
+            AddressCutIPv6CopySubOne(a_ip1, a->mask);
+
+            AddressCutIPv6Copy(a_ip1, b->ip);
+            AddressCutIPv6Copy(a_ip2, b->mask);
+
+            DetectAddressData *tmp_c;
+            tmp_c = malloc(sizeof(DetectAddressData));
+            if (tmp_c == NULL) {
+                goto error;
+            }
+            tmp_c->family  = AF_INET6;
+            AddressCutIPv6CopyAddOne(a_ip2, tmp_c->ip);
+            AddressCutIPv6Copy(b_ip2, tmp_c->mask);
+            *c = tmp_c;
+        }
+    /* we have 2 or three parts:
+     *
+     * 2 part: [[baba]aaa] or [aaa[abab]]
+     * part a: b_ip1 <-> b_ip2
+     * part b: b_ip2 + 1 <-> a_ip2
+     *
+     * part a: a_ip1 <-> b_ip1 - 1
+     * part b: b_ip1 <-> b_ip2
+     * 
+     * 3 part [aaa[bbb]aaa]
+     * part a: a_ip1 <-> b_ip2 - 1
+     * part b: b_ip1 <-> b_ip2
+     * part c: b_ip2 + 1 <-> a_ip2
+     */
+    } else if (r == ADDRESS_EB) {
+        if (AddressIPv6Eq(a_ip1, b_ip1) == 1) {
+            AddressCutIPv6Copy(b_ip1, a->ip);
+            AddressCutIPv6Copy(b_ip2, a->mask);
+
+            AddressCutIPv6CopyAddOne(b_ip2, b->ip);
+            AddressCutIPv6Copy(a_ip2, b->mask);
+        } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
+            AddressCutIPv6Copy(a_ip1, a->ip);
+            AddressCutIPv6CopySubOne(b_ip1, a->mask);
+
+            AddressCutIPv6Copy(b_ip1, b->ip);
+            AddressCutIPv6Copy(b_ip2, b->mask);
+        } else {
+            AddressCutIPv6Copy(a_ip1, a->ip);
+            AddressCutIPv6CopySubOne(b_ip1, a->mask);
+
+            AddressCutIPv6Copy(b_ip1, b->ip);
+            AddressCutIPv6Copy(b_ip2, b->mask);
+
+            DetectAddressData *tmp_c;
+            tmp_c = malloc(sizeof(DetectAddressData));
+            if (tmp_c == NULL) {
+                goto error;
+            }
+            tmp_c->family  = AF_INET6;
+            AddressCutIPv6CopyAddOne(b_ip2, tmp_c->ip);
+            AddressCutIPv6Copy(a_ip2, tmp_c->mask);
+            *c = tmp_c;
+        }
     }
 
     return 0;
+
+error:
+    return -1;
 }
 
-/* return: 1 gt, 0 not gt */
-static int AddressIPv6Gt(u_int32_t *a, u_int32_t *b) {
-    int i = 0;
-
-    for (i = 0; i < 4; i++) {
-        if (a[i] > b[i])
-            return 1;
+int AddressCut(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
+    if (a->family == AF_INET) {
+        return AddressCutIPv4(a,b,c);
+    } else if (a->family == AF_INET6) {
+        return AddressCutIPv6(a,b,c);
     }
 
-    return 0;
-}
-
-/* return: 1 eq, 0 not eq */
-static int AddressIPv6Eq(u_int32_t *a, u_int32_t *b) {
-    int i = 0;
-
-    for (i = 0; i < 4; i++) {
-        if (a[i] != b[i])
-            return 0;
-    }
-
-    return 1;
-}
-
-/* return: 1 le, 0 not le */
-static int AddressIPv6Le(u_int32_t *a, u_int32_t *b) {
-    int i = 0;
-
-    if (AddressIPv6Eq(a,b) == 1)
-        return 1;
-
-    for (i = 0; i < 4; i++) {
-        if (a[i] < b[i])
-            return 1;
-    }
-
-    return 0;
-}
-
-/* return: 1 ge, 0 not ge */
-static int AddressIPv6Ge(u_int32_t *a, u_int32_t *b) {
-    int i = 0;
-
-    if (AddressIPv6Eq(a,b) == 1)
-        return 1;
-
-    for (i = 0; i < 4; i++) {
-        if (a[i] > b[i])
-            return 1;
-    }
-
-    return 0;
+    return -1;
 }
 
 int AddressCmpIPv6(DetectAddressData *a, DetectAddressData *b) {
-    u_int32_t net_a[4], net_b[4], brd_a[4], brd_b[4];
-
-    brd_a[0] = net_a[0] = a->ip[0] & a->mask[0];
-    brd_a[1] = net_a[1] = a->ip[1] & a->mask[1];
-    brd_a[2] = net_a[2] = a->ip[2] & a->mask[2];
-    brd_a[3] = net_a[3] = a->ip[3] & a->mask[3];
-
-    brd_a[0] |=~ a->mask[0];
-    brd_a[1] |=~ a->mask[1];
-    brd_a[2] |=~ a->mask[2];
-    brd_a[3] |=~ a->mask[3];
-
-    brd_b[0] = net_b[0] = b->ip[0] & b->mask[0];
-    brd_b[1] = net_b[1] = b->ip[1] & b->mask[1];
-    brd_b[2] = net_b[2] = b->ip[2] & b->mask[2];
-    brd_b[3] = net_b[3] = b->ip[3] & b->mask[3];
-
-    brd_b[0] |=~ b->mask[0];
-    brd_b[1] |=~ b->mask[1];
-    brd_b[2] |=~ b->mask[2];
-    brd_b[3] |=~ b->mask[3];
-
     /* ADDRESS_EQ */
     if (AddressIPv6Eq(a->ip, b->ip) == 1 &&
         AddressIPv6Eq(a->mask, b->mask) == 1) {
-//        printf("ADDRESS_EQ\n");
-        return ADDRESS_EQ;
-    } else if (AddressIPv6Eq(net_a, net_b) == 1 &&
-               AddressIPv6Eq(brd_a, brd_b) == 1) {
-//        printf("ADDRESS_EQ\n");
+        //printf("ADDRESS_EQ\n");
         return ADDRESS_EQ;
     /* ADDRESS_ES */
-    } else if (AddressIPv6Ge(net_a, net_b) == 1 &&
-               AddressIPv6Lt(net_a, brd_b) == 1 &&
-               AddressIPv6Le(brd_a, brd_b) == 1) {
-//        printf("ADDRESS_ES\n");
+    } else if (AddressIPv6Ge(a->ip, b->ip) == 1 &&
+               AddressIPv6Lt(a->ip, b->mask) == 1 &&
+               AddressIPv6Le(a->mask, b->mask) == 1) {
+        //printf("ADDRESS_ES\n");
         return ADDRESS_ES;
     /* ADDRESS_EB */
-    } else if (AddressIPv6Le(net_a, net_b) == 1 &&
-               AddressIPv6Ge(brd_a, brd_b) == 1) {
-//        printf("ADDRESS_EB\n");
+    } else if (AddressIPv6Le(a->ip, b->ip) == 1 &&
+               AddressIPv6Ge(a->mask, b->mask) == 1) {
+        //printf("ADDRESS_EB\n");
         return ADDRESS_EB;
-    } else if (AddressIPv6Lt(net_a, net_b) == 1 &&
-               AddressIPv6Le(brd_a, net_b) == 1) {
-//        printf("ADDRESS_LT\n");
+    } else if (AddressIPv6Lt(a->ip, b->ip) == 1 &&
+               AddressIPv6Lt(a->mask, b->mask) == 1 &&
+               AddressIPv6Gt(a->mask, b->ip) == 1) {
+        //printf("ADDRESS_LE\n");
+        return ADDRESS_LE;
+    } else if (AddressIPv6Lt(a->ip, b->ip) == 1 &&
+               AddressIPv6Lt(a->mask, b->mask) == 1) {
+        //printf("ADDRESS_LT\n");
         return ADDRESS_LT;
-    } else if (AddressIPv6Ge(net_a, brd_b) == 1) {
-//        printf("ADDRESS_GT\n");
+    } else if (AddressIPv6Gt(a->ip, b->ip) == 1 &&
+               AddressIPv6Lt(a->ip, b->mask) == 1 &&
+               AddressIPv6Gt(a->mask, b->mask) == 1) {
+        //printf("ADDRESS_GE\n");
+        return ADDRESS_GE;
+    } else if (AddressIPv6Gt(a->ip, b->mask) == 1) {
+        //printf("ADDRESS_GT\n");
         return ADDRESS_GT;
     } else {
         /* should be unreachable */
-//        printf("Internal Error: should be unreachable\n");
+        printf("Internal Error: should be unreachable\n");
+#if 0
+#endif
     }
 
 //    printf ("ADDRESS_ER\n");
@@ -807,6 +912,7 @@ int AddressParse(DetectAddressData *dd, char *str) {
     } else {
         /* IPv6 Address */
         struct in6_addr in6, mask6;
+        u_int32_t ip6addr[4], netmask[4];
 
         dd->family = AF_INET6;
 
@@ -818,22 +924,42 @@ int AddressParse(DetectAddressData *dd, char *str) {
             if (r <= 0) {
                 goto error;
             }
-            memcpy(&dd->ip, &in6.s6_addr, sizeof(dd->ip));
+            memcpy(&ip6addr, &in6.s6_addr, sizeof(ip6addr));
 
             DetectAddressParseIPv6CIDR(atoi(mask), &mask6);
-            memcpy(&dd->mask, &mask6.s6_addr, sizeof(dd->mask));
-/*
-            int i;
-            printf("ip6   0x");
-            for (i = 0; i < 16; i++)
-                printf("%02X", in6.s6_addr[i]);
-            printf("\n");
+            memcpy(&netmask, &mask6.s6_addr, sizeof(netmask));
 
-            printf("mask6 0x");
-            for (i = 0; i < 16; i++)
-                printf("%02X", mask6.s6_addr[i]);
-            printf("\n");
-*/
+            dd->mask[0] = dd->ip[0] = ip6addr[0] & netmask[0];
+            dd->mask[1] = dd->ip[1] = ip6addr[1] & netmask[1];
+            dd->mask[2] = dd->ip[2] = ip6addr[2] & netmask[2];
+            dd->mask[3] = dd->ip[3] = ip6addr[3] & netmask[3];
+
+            dd->mask[0] |=~ netmask[0];
+            dd->mask[1] |=~ netmask[1];
+            dd->mask[2] |=~ netmask[2];
+            dd->mask[3] |=~ netmask[3];
+        } else if ((ip2 = strchr(ip, '-')) != NULL)  {
+            /* 2001::1-2001::4 range format */
+            ip[ip2 - ip] = '\0';
+            ip2++;
+
+            r = inet_pton(AF_INET6, ip, &in6);
+            if (r <= 0) {
+                goto error;
+            }
+            memcpy(dd->ip, &in6.s6_addr, sizeof(ip6addr));
+
+            r = inet_pton(AF_INET6, ip2, &in6);
+            if (r <= 0) {
+                goto error;
+            }
+            memcpy(dd->mask, &in6.s6_addr, sizeof(ip6addr));
+
+            /* a>b is illegal, a=b is ok */
+            if (AddressIPv6Gt(dd->ip, dd->mask)) {
+                goto error;
+            }
+
         } else {
             r = inet_pton(AF_INET6, ip, &in6);
             if (r <= 0) {
@@ -841,10 +967,7 @@ int AddressParse(DetectAddressData *dd, char *str) {
             }
 
             memcpy(&dd->ip, &in6.s6_addr, sizeof(dd->ip));
-            dd->mask[0] = 0xffffffff;
-            dd->mask[1] = 0xffffffff;
-            dd->mask[2] = 0xffffffff;
-            dd->mask[3] = 0xffffffff;
+            memcpy(&dd->mask, &in6.s6_addr, sizeof(dd->mask));
         }
 
     }
@@ -903,24 +1026,16 @@ int DetectAddressMatch (DetectAddressData *dd, Address *a) {
 
     switch (a->family) {
         case AF_INET:
-            //printf("a->addr_data32[0] %u dd->ip[0] %u, dd->mask[0] %u", a->addr_data32[0], dd->ip[0], dd->mask[0]);
-            if (a->addr_data32[0] >= dd->ip[0] && a->addr_data32[0] <= dd->mask[0]) {
+            if (a->addr_data32[0] >= dd->ip[0] &&
+                a->addr_data32[0] <= dd->mask[0]) {
                 return 1;
             } else {
                 return 0;
             }
             break;
         case AF_INET6:
-            //printf("\n0x%08X 0x%08X\n", dd->ip[0] & dd->mask[0], a->addr_data32[0] & dd->mask[0]);
-            //printf("0x%08X 0x%08X\n", dd->ip[1] & dd->mask[1], a->addr_data32[1] & dd->mask[1]);
-            //printf("0x%08X 0x%08X\n", dd->ip[2] & dd->mask[2], a->addr_data32[2] & dd->mask[2]);
-            //printf("0x%08X 0x%08X\n", dd->ip[3] & dd->mask[3], a->addr_data32[3] & dd->mask[3]);
-
-            if ((dd->ip[0] & dd->mask[0]) == (a->addr_data32[0] & dd->mask[0]) &&
-                (dd->ip[1] & dd->mask[1]) == (a->addr_data32[1] & dd->mask[1]) &&
-                (dd->ip[2] & dd->mask[2]) == (a->addr_data32[2] & dd->mask[2]) &&
-                (dd->ip[3] & dd->mask[3]) == (a->addr_data32[3] & dd->mask[3]))
-            {
+            if (AddressIPv6Ge(a->addr_data32, dd->ip) == 1 &&
+                AddressIPv6Le(a->addr_data32, dd->mask) == 1) {
                 return 1;
             } else {
                 return 0;
@@ -946,7 +1061,15 @@ void DetectAddressDataPrint(DetectAddressData *ad) {
         inet_ntop(AF_INET, &in, s, sizeof(s));
         printf("%s\n", s);
     } else if (ad->family == AF_INET6) {
+        struct in6_addr in6;
+        char s[66];
 
+        memcpy(&in6, &ad->ip, sizeof(in6));
+        inet_ntop(AF_INET6, &in6, s, sizeof(s));
+        printf("%s/", s);
+        memcpy(&in6, &ad->mask, sizeof(in6));
+        inet_ntop(AF_INET6, &in6, s, sizeof(s));
+        printf("%s\n", s);
     }
 }
 
@@ -1057,12 +1180,13 @@ int AddressTestParse08 (void) {
     if (dd) {
         int result = 1;
 
-        if (dd->ip[0] != 0x00000120 || dd->ip[1] != 0x00000000 ||
+        if (dd->ip[0] != 0x00000020 || dd->ip[1] != 0x00000000 ||
             dd->ip[2] != 0x00000000 || dd->ip[3] != 0x00000000 ||
 
-            dd->mask[0] != 0x000000E0 || dd->mask[1] != 0x00000000 ||
-            dd->mask[2] != 0x00000000 || dd->mask[3] != 0x00000000)
+            dd->mask[0] != 0xFFFFFF3F || dd->mask[1] != 0xFFFFFFFF ||
+            dd->mask[2] != 0xFFFFFFFF || dd->mask[3] != 0xFFFFFFFF)
         {
+            DetectAddressDataPrint(dd);
             result = 0;
         }
 
@@ -1093,9 +1217,10 @@ int AddressTestParse10 (void) {
         if (dd->ip[0] != 0x00000120 || dd->ip[1] != 0x00000000 ||
             dd->ip[2] != 0x00000000 || dd->ip[3] != 0x00000000 ||
 
-            dd->mask[0] != 0xFFFFFFFF || dd->mask[1] != 0xFFFFFFFF ||
-            dd->mask[2] != 0xFFFFFFFF || dd->mask[3] != 0xFFFFFFFF)
+            dd->mask[0] != 0x00000120 || dd->mask[1] != 0x00000000 ||
+            dd->mask[2] != 0x00000000 || dd->mask[3] != 0x00000000)
         {
+            DetectAddressDataPrint(dd);
             result = 0;
         }
 
@@ -1126,9 +1251,10 @@ int AddressTestParse12 (void) {
         if (dd->ip[0] != 0x00000120 || dd->ip[1] != 0x00000000 ||
             dd->ip[2] != 0x00000000 || dd->ip[3] != 0x00000000 ||
 
-            dd->mask[0] != 0xFFFFFFFF || dd->mask[1] != 0x0000FFFF ||
-            dd->mask[2] != 0x00000000 || dd->mask[3] != 0x00000000)
+            dd->mask[0] != 0x00000120 || dd->mask[1] != 0xFFFF0000 ||
+            dd->mask[2] != 0xFFFFFFFF || dd->mask[3] != 0xFFFFFFFF)
         {
+            DetectAddressDataPrint(dd);
             result = 0;
         }
 
@@ -1158,8 +1284,8 @@ int AddressTestParse14 (void) {
         if (dd->ip[0] != 0x00000120 || dd->ip[1] != 0x00000000 ||
             dd->ip[2] != 0x00000000 || dd->ip[3] != 0x00000000 ||
 
-            dd->mask[0] != 0x0000FFFF || dd->mask[1] != 0x00000000 ||
-            dd->mask[2] != 0x00000000 || dd->mask[3] != 0x00000000)
+            dd->mask[0] != 0xFFFF0120 || dd->mask[1] != 0xFFFFFFFF ||
+            dd->mask[2] != 0xFFFFFFFF || dd->mask[3] != 0xFFFFFFFF)
         {
             result = 0;
         }
@@ -1188,11 +1314,11 @@ int AddressTestParse16 (void) {
     if (dd) {
         int result = 1;
 
-        if (dd->ip[0] != 0x00000120 || dd->ip[1] != 0x00000000 ||
+        if (dd->ip[0] != 0x00000000 || dd->ip[1] != 0x00000000 ||
             dd->ip[2] != 0x00000000 || dd->ip[3] != 0x00000000 ||
 
-            dd->mask[0] != 0x00000000 || dd->mask[1] != 0x00000000 ||
-            dd->mask[2] != 0x00000000 || dd->mask[3] != 0x00000000)
+            dd->mask[0] != 0xFFFFFFFF || dd->mask[1] != 0xFFFFFFFF ||
+            dd->mask[2] != 0xFFFFFFFF || dd->mask[3] != 0xFFFFFFFF)
         {
             result = 0;
         }
@@ -1236,6 +1362,50 @@ int AddressTestParse18 (void) {
 int AddressTestParse19 (void) {
     DetectAddressData *dd = NULL;
     dd = DetectAddressParse("1.2.3.6-1.2.3.4");
+    if (dd) {
+        DetectAddressFree(dd);
+        return 0;
+    }
+
+    return 1;
+}
+
+int AddressTestParse20 (void) {
+    DetectAddressData *dd = NULL;
+    dd = DetectAddressParse("2001::1-2001::4");
+    if (dd) {
+        DetectAddressFree(dd);
+        return 1;
+    }
+
+    return 0;
+}
+
+int AddressTestParse21 (void) {
+    DetectAddressData *dd = NULL;
+    int result = 1;
+
+    dd = DetectAddressParse("2001::1-2001::4");
+    if (dd) {
+        if (dd->ip[0] != 0x00000120 || dd->ip[1] != 0x00000000 ||
+            dd->ip[2] != 0x00000000 || dd->ip[3] != 0x01000000 ||
+
+            dd->mask[0] != 0x00000120 || dd->mask[1] != 0x00000000 ||
+            dd->mask[2] != 0x00000000 || dd->mask[3] != 0x04000000)
+        {
+            result = 0;
+        }
+
+        DetectAddressFree(dd);
+        return result;
+    }
+
+    return 0;
+}
+
+int AddressTestParse22 (void) {
+    DetectAddressData *dd = NULL;
+    dd = DetectAddressParse("2001::4-2001::1");
     if (dd) {
         DetectAddressFree(dd);
         return 0;
@@ -1432,9 +1602,9 @@ int AddressTestMatch08 (void) {
 
     dd = DetectAddressParse("2001::/3");
     if (dd) {
-        if (DetectAddressMatch(dd,&a) == 1)
+        if (DetectAddressMatch(dd,&a) == 1) {
             result = 0;
-
+        }
         DetectAddressFree(dd);
         return result;
     }
@@ -2014,6 +2184,25 @@ int AddressTestIPv6Le04 (void) {
     return result;
 }
 
+int AddressTestIPv6Le05 (void) {
+    int result = 0;
+
+    u_int32_t a[4];
+    u_int32_t b[4];
+    struct in6_addr in6;
+
+    inet_pton(AF_INET6, "1999:ffff:ffff:ffff:ffff:ffff:ffff:ffff", &in6);
+    memcpy(&a, &in6.s6_addr, sizeof(in6.s6_addr));
+
+    inet_pton(AF_INET6, "2000::0", &in6);
+    memcpy(&b, &in6.s6_addr, sizeof(in6.s6_addr));
+
+    if (AddressIPv6Le(a,b) == 1)
+        result = 1;
+
+    return result;
+}
+
 int AddressTestIPv6Ge01 (void) {
     int result = 0;
 
@@ -2058,6 +2247,72 @@ int AddressTestIPv6Ge04 (void) {
 
     if (AddressIPv6Ge(a,b) == 0)
         result = 1;
+
+    return result;
+}
+
+int AddressTestIPv6Ge05 (void) {
+    int result = 0;
+
+    u_int32_t a[4];
+    u_int32_t b[4];
+    struct in6_addr in6;
+
+    inet_pton(AF_INET6, "1999:ffff:ffff:ffff:ffff:ffff:ffff:ffff", &in6);
+    memcpy(&a, &in6.s6_addr, sizeof(in6.s6_addr));
+
+    inet_pton(AF_INET6, "2000::0", &in6);
+    memcpy(&b, &in6.s6_addr, sizeof(in6.s6_addr));
+
+    if (AddressIPv6Ge(a,b) == 0)
+        result = 1;
+
+    return result;
+}
+
+int AddressTestIPv6SubOne01 (void) {
+    int result = 0;
+
+    u_int32_t a[4], b[4];
+    struct in6_addr in6;
+
+    inet_pton(AF_INET6, "2000::1", &in6);
+    memcpy(&a, &in6.s6_addr, sizeof(in6.s6_addr));
+
+    a[0] = ntohl(a[0]);
+    a[1] = ntohl(a[1]);
+    a[2] = ntohl(a[2]);
+    a[3] = ntohl(a[3]);
+
+    AddressCutIPv6CopySubOne(a,b);
+
+    if (b[0] == 0x00000020 && b[1] == 0x00000000 &&
+        b[2] == 0x00000000 && b[3] == 0x00000000) {
+        result = 1;
+    }
+    return result;
+}
+
+int AddressTestIPv6SubOne02 (void) {
+    int result = 0;
+
+    u_int32_t a[4],b[4];
+    struct in6_addr in6;
+
+    inet_pton(AF_INET6, "2000::0", &in6);
+    memcpy(&a, &in6.s6_addr, sizeof(in6.s6_addr));
+
+    a[0] = ntohl(a[0]);
+    a[1] = ntohl(a[1]);
+    a[2] = ntohl(a[2]);
+    a[3] = ntohl(a[3]);
+
+    AddressCutIPv6CopySubOne(a,b);
+
+    if (b[0] == 0xffffff1f && b[1] == 0xffffffff &&
+        b[2] == 0xffffffff && b[3] == 0xffffffff) {
+        result = 1;
+    }
 
     return result;
 }
@@ -2306,6 +2561,356 @@ int AddressTestAddressGroupSetup13 (void) {
                     three->ad->ip[0] == 0x0A0A0A0A && three->ad->mask[0] == 0xFF0A0A0A &&
                     four->ad->ip[0]  == 0x000B0A0A && four->ad->mask[0]  == 0x010B0A0A &&
                     five->ad->ip[0]  == 0x020B0A0A && five->ad->mask[0]  == 0xFFFFFFFF) {
+                    result = 1;
+                }
+            }
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup14 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::1");
+    if (r == 0) {
+        result = 1;
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup15 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::1");
+    if (r == 0 && head != NULL) {
+        result = 1;
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup16 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::4");
+    if (r == 0 && head != NULL) {
+        DetectAddressGroup *prev_head = head;
+
+        r = DetectAddressGroupSetup("2001::3");
+        if (r == 0 && head != prev_head && head != NULL && head->next == prev_head) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup17 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::4");
+    if (r == 0 && head != NULL) {
+        DetectAddressGroup *prev_head = head;
+
+        r = DetectAddressGroupSetup("2001::3");
+        if (r == 0 && head != prev_head && head != NULL && head->next == prev_head) {
+            prev_head = head;
+
+            r = DetectAddressGroupSetup("2001::2");
+            if (r == 0 && head != prev_head && head != NULL && head->next == prev_head) {
+                result = 1;
+            }
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup18 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::2");
+    if (r == 0 && head != NULL) {
+        DetectAddressGroup *prev_head = head;
+
+        r = DetectAddressGroupSetup("2001::3");
+        if (r == 0 && head == prev_head && head != NULL && head->next != prev_head) {
+            prev_head = head;
+
+            r = DetectAddressGroupSetup("2001::4");
+            if (r == 0 && head == prev_head && head != NULL && head->next != prev_head) {
+                result = 1;
+            }
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup19 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::2");
+    if (r == 0 && head != NULL) {
+        DetectAddressGroup *prev_head = head;
+
+        r = DetectAddressGroupSetup("2001::2");
+        if (r == 0 && head == prev_head && head != NULL && head->next == NULL) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup20 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2000::/3");
+    if (r == 0 && head != NULL) {
+        r = DetectAddressGroupSetup("2001::4");
+        if (r == 0 && head != NULL && head->next != NULL && head->next->next != NULL) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup21 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::4");
+    if (r == 0 && head != NULL) {
+        r = DetectAddressGroupSetup("2000::/3");
+        if (r == 0 && head != NULL && head->next != NULL && head->next->next != NULL) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup22 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2000::/3");
+    if (r == 0 && head != NULL) {
+        r = DetectAddressGroupSetup("2001::4-2001::6");
+        if (r == 0 && head != NULL && head->next != NULL && head->next->next != NULL) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup23 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::4-2001::6");
+    if (r == 0 && head != NULL) {
+        r = DetectAddressGroupSetup("2000::/3");
+        if (r == 0 && head != NULL && head->next != NULL && head->next->next != NULL) {
+            result = 1;
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup24 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::4-2001::6");
+    if (r == 0) {
+        r = DetectAddressGroupSetup("2001::/3");
+        if (r == 0) {
+            r = DetectAddressGroupSetup("::/0");
+            if (r == 0) {
+                DetectAddressGroup *one = head, *two = one->next,
+                                    *three = two->next, *four = three->next,
+                                    *five = four->next;
+
+                if (one->ad->ip[0]   == 0x00000000 &&
+                    one->ad->ip[1]   == 0x00000000 &&
+                    one->ad->ip[2]   == 0x00000000 &&
+                    one->ad->ip[3]   == 0x00000000 &&
+                    one->ad->mask[0]   == 0xFFFFFF1F &&
+                    one->ad->mask[1]   == 0xFFFFFFFF &&
+                    one->ad->mask[2]   == 0xFFFFFFFF &&
+                    one->ad->mask[3]   == 0xFFFFFFFF &&
+
+                    two->ad->ip[0]   == 0x00000020 &&
+                    two->ad->ip[1]   == 0x00000000 &&
+                    two->ad->ip[2]   == 0x00000000 &&
+                    two->ad->ip[3]   == 0x00000000 &&
+                    two->ad->mask[0]   == 0x00000120 &&
+                    two->ad->mask[1]   == 0x00000000 &&
+                    two->ad->mask[2]   == 0x00000000 &&
+                    two->ad->mask[3]   == 0x03000000 &&
+
+                    three->ad->ip[0] == 0x00000120 &&
+                    three->ad->ip[1] == 0x00000000 &&
+                    three->ad->ip[2] == 0x00000000 &&
+                    three->ad->ip[3] == 0x04000000 &&
+                    three->ad->mask[0] == 0x00000120 &&
+                    three->ad->mask[1] == 0x00000000 &&
+                    three->ad->mask[2] == 0x00000000 &&
+                    three->ad->mask[3] == 0x06000000 &&
+
+                    four->ad->ip[0]  == 0x00000120 &&
+                    four->ad->ip[1]  == 0x00000000 &&
+                    four->ad->ip[2]  == 0x00000000 &&
+                    four->ad->ip[3]  == 0x07000000 &&
+                    four->ad->mask[0]  == 0xFFFFFF3F &&
+                    four->ad->mask[1]  == 0xFFFFFFFF &&
+                    four->ad->mask[2]  == 0xFFFFFFFF &&
+                    four->ad->mask[3]  == 0xFFFFFFFF &&
+
+                    five->ad->ip[0]  == 0x00000040 && 
+                    five->ad->ip[1]  == 0x00000000 && 
+                    five->ad->ip[2]  == 0x00000000 && 
+                    five->ad->ip[3]  == 0x00000000 && 
+                    five->ad->mask[0]  == 0xFFFFFFFF &&
+                    five->ad->mask[1]  == 0xFFFFFFFF &&
+                    five->ad->mask[2]  == 0xFFFFFFFF &&
+                    five->ad->mask[3]  == 0xFFFFFFFF) {
+                    result = 1;
+                }
+            }
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup25 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("2001::4-2001::6");
+    if (r == 0) {
+        r = DetectAddressGroupSetup("::/0");
+        if (r == 0) {
+            r = DetectAddressGroupSetup("2001::/3");
+            if (r == 0) {
+                DetectAddressGroup *one = head, *two = one->next,
+                                    *three = two->next, *four = three->next,
+                                    *five = four->next;
+
+                if (one->ad->ip[0]   == 0x00000000 &&
+                    one->ad->ip[1]   == 0x00000000 &&
+                    one->ad->ip[2]   == 0x00000000 &&
+                    one->ad->ip[3]   == 0x00000000 &&
+                    one->ad->mask[0]   == 0xFFFFFF1F &&
+                    one->ad->mask[1]   == 0xFFFFFFFF &&
+                    one->ad->mask[2]   == 0xFFFFFFFF &&
+                    one->ad->mask[3]   == 0xFFFFFFFF &&
+
+                    two->ad->ip[0]   == 0x00000020 &&
+                    two->ad->ip[1]   == 0x00000000 &&
+                    two->ad->ip[2]   == 0x00000000 &&
+                    two->ad->ip[3]   == 0x00000000 &&
+                    two->ad->mask[0]   == 0x00000120 &&
+                    two->ad->mask[1]   == 0x00000000 &&
+                    two->ad->mask[2]   == 0x00000000 &&
+                    two->ad->mask[3]   == 0x03000000 &&
+
+                    three->ad->ip[0] == 0x00000120 &&
+                    three->ad->ip[1] == 0x00000000 &&
+                    three->ad->ip[2] == 0x00000000 &&
+                    three->ad->ip[3] == 0x04000000 &&
+                    three->ad->mask[0] == 0x00000120 &&
+                    three->ad->mask[1] == 0x00000000 &&
+                    three->ad->mask[2] == 0x00000000 &&
+                    three->ad->mask[3] == 0x06000000 &&
+
+                    four->ad->ip[0]  == 0x00000120 &&
+                    four->ad->ip[1]  == 0x00000000 &&
+                    four->ad->ip[2]  == 0x00000000 &&
+                    four->ad->ip[3]  == 0x07000000 &&
+                    four->ad->mask[0]  == 0xFFFFFF3F &&
+                    four->ad->mask[1]  == 0xFFFFFFFF &&
+                    four->ad->mask[2]  == 0xFFFFFFFF &&
+                    four->ad->mask[3]  == 0xFFFFFFFF &&
+
+                    five->ad->ip[0]  == 0x00000040 && 
+                    five->ad->ip[1]  == 0x00000000 && 
+                    five->ad->ip[2]  == 0x00000000 && 
+                    five->ad->ip[3]  == 0x00000000 && 
+                    five->ad->mask[0]  == 0xFFFFFFFF &&
+                    five->ad->mask[1]  == 0xFFFFFFFF &&
+                    five->ad->mask[2]  == 0xFFFFFFFF &&
+                    five->ad->mask[3]  == 0xFFFFFFFF) {
+                    result = 1;
+                }
+            }
+        }
+    }
+
+    DetectAddressGroupCleanupList();
+    return result;
+}
+
+int AddressTestAddressGroupSetup26 (void) {
+    int result = 0;
+    int r = DetectAddressGroupSetup("::/0");
+    if (r == 0) {
+        r = DetectAddressGroupSetup("2001::4-2001::6");
+        if (r == 0) {
+            r = DetectAddressGroupSetup("2001::/3");
+            if (r == 0) {
+                DetectAddressGroup *one = head, *two = one->next,
+                                    *three = two->next, *four = three->next,
+                                    *five = four->next;
+
+                if (one->ad->ip[0]   == 0x00000000 &&
+                    one->ad->ip[1]   == 0x00000000 &&
+                    one->ad->ip[2]   == 0x00000000 &&
+                    one->ad->ip[3]   == 0x00000000 &&
+                    one->ad->mask[0]   == 0xFFFFFF1F &&
+                    one->ad->mask[1]   == 0xFFFFFFFF &&
+                    one->ad->mask[2]   == 0xFFFFFFFF &&
+                    one->ad->mask[3]   == 0xFFFFFFFF &&
+
+                    two->ad->ip[0]   == 0x00000020 &&
+                    two->ad->ip[1]   == 0x00000000 &&
+                    two->ad->ip[2]   == 0x00000000 &&
+                    two->ad->ip[3]   == 0x00000000 &&
+                    two->ad->mask[0]   == 0x00000120 &&
+                    two->ad->mask[1]   == 0x00000000 &&
+                    two->ad->mask[2]   == 0x00000000 &&
+                    two->ad->mask[3]   == 0x03000000 &&
+
+                    three->ad->ip[0] == 0x00000120 &&
+                    three->ad->ip[1] == 0x00000000 &&
+                    three->ad->ip[2] == 0x00000000 &&
+                    three->ad->ip[3] == 0x04000000 &&
+                    three->ad->mask[0] == 0x00000120 &&
+                    three->ad->mask[1] == 0x00000000 &&
+                    three->ad->mask[2] == 0x00000000 &&
+                    three->ad->mask[3] == 0x06000000 &&
+
+                    four->ad->ip[0]  == 0x00000120 &&
+                    four->ad->ip[1]  == 0x00000000 &&
+                    four->ad->ip[2]  == 0x00000000 &&
+                    four->ad->ip[3]  == 0x07000000 &&
+                    four->ad->mask[0]  == 0xFFFFFF3F &&
+                    four->ad->mask[1]  == 0xFFFFFFFF &&
+                    four->ad->mask[2]  == 0xFFFFFFFF &&
+                    four->ad->mask[3]  == 0xFFFFFFFF &&
+
+                    five->ad->ip[0]  == 0x00000040 && 
+                    five->ad->ip[1]  == 0x00000000 && 
+                    five->ad->ip[2]  == 0x00000000 && 
+                    five->ad->ip[3]  == 0x00000000 && 
+                    five->ad->mask[0]  == 0xFFFFFFFF &&
+                    five->ad->mask[1]  == 0xFFFFFFFF &&
+                    five->ad->mask[2]  == 0xFFFFFFFF &&
+                    five->ad->mask[3]  == 0xFFFFFFFF) {
                     result = 1;
                 }
             }
@@ -2608,6 +3213,9 @@ void DetectAddressTests(void) {
     UtRegisterTest("AddressTestParse17", AddressTestParse17, 1);
     UtRegisterTest("AddressTestParse18", AddressTestParse18, 1);
     UtRegisterTest("AddressTestParse19", AddressTestParse19, 1);
+    UtRegisterTest("AddressTestParse20", AddressTestParse20, 1);
+    UtRegisterTest("AddressTestParse21", AddressTestParse21, 1);
+    UtRegisterTest("AddressTestParse22", AddressTestParse22, 1);
 
     UtRegisterTest("AddressTestMatch01", AddressTestMatch01, 1);
     UtRegisterTest("AddressTestMatch02", AddressTestMatch02, 1);
@@ -2656,11 +3264,16 @@ void DetectAddressTests(void) {
     UtRegisterTest("AddressTestIPv6Le02",   AddressTestIPv6Le02, 1);
     UtRegisterTest("AddressTestIPv6Le03",   AddressTestIPv6Le03, 1);
     UtRegisterTest("AddressTestIPv6Le04",   AddressTestIPv6Le04, 1);
+    UtRegisterTest("AddressTestIPv6Le05",   AddressTestIPv6Le05, 1);
 
     UtRegisterTest("AddressTestIPv6Ge01",   AddressTestIPv6Ge01, 1);
     UtRegisterTest("AddressTestIPv6Ge02",   AddressTestIPv6Ge02, 1);
     UtRegisterTest("AddressTestIPv6Ge03",   AddressTestIPv6Ge03, 1);
     UtRegisterTest("AddressTestIPv6Ge04",   AddressTestIPv6Ge04, 1);
+    UtRegisterTest("AddressTestIPv6Ge05",   AddressTestIPv6Ge05, 1);
+
+    UtRegisterTest("AddressTestIPv6SubOne01",   AddressTestIPv6SubOne01, 1);
+    UtRegisterTest("AddressTestIPv6SubOne02",   AddressTestIPv6SubOne02, 1);
 
     UtRegisterTest("AddressTestAddressGroupSetup01", AddressTestAddressGroupSetup01, 1);
     UtRegisterTest("AddressTestAddressGroupSetup02", AddressTestAddressGroupSetup02, 1);
@@ -2675,7 +3288,21 @@ void DetectAddressTests(void) {
     UtRegisterTest("AddressTestAddressGroupSetup11", AddressTestAddressGroupSetup11, 1);
     UtRegisterTest("AddressTestAddressGroupSetup12", AddressTestAddressGroupSetup12, 1);
     UtRegisterTest("AddressTestAddressGroupSetup13", AddressTestAddressGroupSetup13, 1);
-/*
+
+    UtRegisterTest("AddressTestAddressGroupSetup14", AddressTestAddressGroupSetup14, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup15", AddressTestAddressGroupSetup15, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup16", AddressTestAddressGroupSetup16, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup17", AddressTestAddressGroupSetup17, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup18", AddressTestAddressGroupSetup18, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup19", AddressTestAddressGroupSetup19, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup20", AddressTestAddressGroupSetup20, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup21", AddressTestAddressGroupSetup21, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup22", AddressTestAddressGroupSetup22, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup23", AddressTestAddressGroupSetup23, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup24", AddressTestAddressGroupSetup24, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup25", AddressTestAddressGroupSetup25, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup26", AddressTestAddressGroupSetup26, 1);
+
     UtRegisterTest("AddressTestCutIPv401", AddressTestCutIPv401, 1);
     UtRegisterTest("AddressTestCutIPv402", AddressTestCutIPv402, 1);
     UtRegisterTest("AddressTestCutIPv403", AddressTestCutIPv403, 1);
@@ -2686,7 +3313,6 @@ void DetectAddressTests(void) {
     UtRegisterTest("AddressTestCutIPv408", AddressTestCutIPv408, 1);
     UtRegisterTest("AddressTestCutIPv409", AddressTestCutIPv409, 1);
     UtRegisterTest("AddressTestCutIPv410", AddressTestCutIPv410, 1);
-*/
 }
 
 
