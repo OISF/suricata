@@ -35,5 +35,10 @@ typedef struct DetectAddressGroup_ {
 
 } DetectAddressGroup;
 
+typedef struct DetectAddressGroups_ {
+    DetectAddressGroup *ipv4_head;
+    DetectAddressGroup *ipv6_head;
+} DetectAddressGroups;
+
 #endif /* __DETECT_ADDRESS_H__ */
 

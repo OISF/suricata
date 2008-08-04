@@ -47,11 +47,6 @@ int AddressCmpIPv4(DetectAddressData *a, DetectAddressData *b) {
         printf("Internal Error: should be unreachable\n");
     }
 
-    printf("a->ip[0] %u, a->ip2[0] %u\n", ntohl(a->ip[0]), ntohl(a->ip2[0]));
-    DetectAddressDataPrint(a);
-    printf("b->ip[0] %u, b->ip2[0] %u\n", ntohl(b->ip[0]), ntohl(b->ip2[0]));
-    DetectAddressDataPrint(b);
-    printf ("ADDRESS_ER\n");
     return ADDRESS_ER;
 }
 
@@ -76,7 +71,7 @@ int AddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddressData
     /* default to NULL */
     *c = NULL;
 
-    int r = AddressCmp(a,b);
+    int r = AddressCmpIPv4(a,b);
     if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
         goto error;
     }

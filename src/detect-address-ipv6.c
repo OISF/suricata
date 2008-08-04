@@ -75,6 +75,49 @@ int AddressIPv6Ge(u_int32_t *a, u_int32_t *b) {
     return 0;
 }
 
+int AddressCmpIPv6(DetectAddressData *a, DetectAddressData *b) {
+    /* ADDRESS_EQ */
+    if (AddressIPv6Eq(a->ip, b->ip) == 1 &&
+        AddressIPv6Eq(a->ip2, b->ip2) == 1) {
+        //printf("ADDRESS_EQ\n");
+        return ADDRESS_EQ;
+    /* ADDRESS_ES */
+    } else if (AddressIPv6Ge(a->ip, b->ip) == 1 &&
+               AddressIPv6Lt(a->ip, b->ip2) == 1 &&
+               AddressIPv6Le(a->ip2, b->ip2) == 1) {
+        //printf("ADDRESS_ES\n");
+        return ADDRESS_ES;
+    /* ADDRESS_EB */
+    } else if (AddressIPv6Le(a->ip, b->ip) == 1 &&
+               AddressIPv6Ge(a->ip2, b->ip2) == 1) {
+        //printf("ADDRESS_EB\n");
+        return ADDRESS_EB;
+    } else if (AddressIPv6Lt(a->ip, b->ip) == 1 &&
+               AddressIPv6Lt(a->ip2, b->ip2) == 1 &&
+               AddressIPv6Gt(a->ip2, b->ip) == 1) {
+        //printf("ADDRESS_LE\n");
+        return ADDRESS_LE;
+    } else if (AddressIPv6Lt(a->ip, b->ip) == 1 &&
+               AddressIPv6Lt(a->ip2, b->ip2) == 1) {
+        //printf("ADDRESS_LT\n");
+        return ADDRESS_LT;
+    } else if (AddressIPv6Gt(a->ip, b->ip) == 1 &&
+               AddressIPv6Lt(a->ip, b->ip2) == 1 &&
+               AddressIPv6Gt(a->ip2, b->ip2) == 1) {
+        //printf("ADDRESS_GE\n");
+        return ADDRESS_GE;
+    } else if (AddressIPv6Gt(a->ip, b->ip2) == 1) {
+        //printf("ADDRESS_GT\n");
+        return ADDRESS_GT;
+    } else {
+        /* should be unreachable */
+        printf("Internal Error: should be unreachable\n");
+    }
+
+//    printf ("ADDRESS_ER\n");
+    return ADDRESS_ER;
+}
+
 /* address is in host order! */
 static void AddressCutIPv6CopySubOne(u_int32_t *a, u_int32_t *b) {
     u_int32_t t = a[3];
@@ -152,7 +195,7 @@ int AddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData
     /* default to NULL */
     *c = NULL;
 
-    int r = AddressCmp(a,b);
+    int r = AddressCmpIPv6(a,b);
     if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
         goto error;
     }
@@ -295,49 +338,6 @@ int AddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData
 
 error:
     return -1;
-}
-
-int AddressCmpIPv6(DetectAddressData *a, DetectAddressData *b) {
-    /* ADDRESS_EQ */
-    if (AddressIPv6Eq(a->ip, b->ip) == 1 &&
-        AddressIPv6Eq(a->ip2, b->ip2) == 1) {
-        //printf("ADDRESS_EQ\n");
-        return ADDRESS_EQ;
-    /* ADDRESS_ES */
-    } else if (AddressIPv6Ge(a->ip, b->ip) == 1 &&
-               AddressIPv6Lt(a->ip, b->ip2) == 1 &&
-               AddressIPv6Le(a->ip2, b->ip2) == 1) {
-        //printf("ADDRESS_ES\n");
-        return ADDRESS_ES;
-    /* ADDRESS_EB */
-    } else if (AddressIPv6Le(a->ip, b->ip) == 1 &&
-               AddressIPv6Ge(a->ip2, b->ip2) == 1) {
-        //printf("ADDRESS_EB\n");
-        return ADDRESS_EB;
-    } else if (AddressIPv6Lt(a->ip, b->ip) == 1 &&
-               AddressIPv6Lt(a->ip2, b->ip2) == 1 &&
-               AddressIPv6Gt(a->ip2, b->ip) == 1) {
-        //printf("ADDRESS_LE\n");
-        return ADDRESS_LE;
-    } else if (AddressIPv6Lt(a->ip, b->ip) == 1 &&
-               AddressIPv6Lt(a->ip2, b->ip2) == 1) {
-        //printf("ADDRESS_LT\n");
-        return ADDRESS_LT;
-    } else if (AddressIPv6Gt(a->ip, b->ip) == 1 &&
-               AddressIPv6Lt(a->ip, b->ip2) == 1 &&
-               AddressIPv6Gt(a->ip2, b->ip2) == 1) {
-        //printf("ADDRESS_GE\n");
-        return ADDRESS_GE;
-    } else if (AddressIPv6Gt(a->ip, b->ip2) == 1) {
-        //printf("ADDRESS_GT\n");
-        return ADDRESS_GT;
-    } else {
-        /* should be unreachable */
-        printf("Internal Error: should be unreachable\n");
-    }
-
-//    printf ("ADDRESS_ER\n");
-    return ADDRESS_ER;
 }
 
 
