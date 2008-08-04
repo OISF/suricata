@@ -50,15 +50,25 @@ void UtRegisterTest(char *name, int(*testfn)(void), int evalue) {
 int UtRunTests(void) {
     UtTest *ut;
     int result = 0;
+    u_int32_t good = 0, bad = 0;
 
     for (ut = ut_list; ut != NULL; ut = ut->next) {
         printf("Test %-60s : ", ut->name);
         fflush(stdout); /* flush so in case of a segv we see the testname */
         int ret = ut->testfn();
         printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
-        if (ret != ut->evalue) result = 1;
+        if (ret != ut->evalue) {
+            result = 1;
+            bad++;
+        } else {
+            good++;
+        }
     }
 
+    printf("==== TEST RESULTS ====\n");
+    printf("PASSED: %u\n", good);
+    printf("FAILED: %u\n", bad);
+    printf("======================\n");
     return result;
 }
 
