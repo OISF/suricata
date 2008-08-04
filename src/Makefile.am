@@ -40,6 +40,8 @@ detect-msg.c detect-msg.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
 detect-address.c detect-address.h \
+detect-address-ipv4.c detect-address-ipv4.h \
+detect-address-ipv6.c detect-address-ipv6.h \
 util-mpm-trie.c util-mpm-trie.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \
