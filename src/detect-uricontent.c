@@ -227,7 +227,11 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
     u_int8_t instance = pmt->mpm_instance + MPM_INSTANCE_URIOFFSET;
     //printf("instance %u\n", instance);
 
-    //printf("scanning uricontent have %u scan %u\n", t->de_have_httpuri, t->de_scanned_httpuri);
+    //printf("scanning uricontent have %u scan %u\n", pmt->de_have_httpuri, pmt->de_scanned_httpuri);
+
+    /* if we don't have a uri, don't bother scanning */
+    if (pmt->de_have_httpuri == 0)
+        return 0;
 
     if (pmt->de_have_httpuri == 1 && pmt->de_scanned_httpuri == 0) {
         /* Scan http uri now */
