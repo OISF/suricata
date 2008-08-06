@@ -1,9 +1,6 @@
 #ifndef __DETECT_ADDRESS_H__
 #define __DETECT_ADDRESS_H__
 
-/* prototypes */
-void DetectAddressRegister (void);
-
 /* a is ... than b */
 enum {
     ADDRESS_ER = -1, /* error e.g. compare ipv4 and ipv6 */
@@ -35,10 +32,15 @@ typedef struct DetectAddressGroup_ {
 
 } DetectAddressGroup;
 
-typedef struct DetectAddressGroups_ {
+typedef struct DetectAddressGroupsHead_ {
     DetectAddressGroup *ipv4_head;
     DetectAddressGroup *ipv6_head;
-} DetectAddressGroups;
+} DetectAddressGroupsHead;
+
+/* prototypes */
+void DetectAddressRegister (void);
+DetectAddressGroupsHead *DetectAddressGroupsHeadInit();
+void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *);
 
 #endif /* __DETECT_ADDRESS_H__ */
 
