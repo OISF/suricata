@@ -302,6 +302,33 @@ error:
     return -1;
 }
 
+int SigParseAddress(Signature *s, const char *addrstr, char flag) {
+    if (strcmp(addrstr,"$HOME_NET") == 0) {
+    } else if (strcmp(addrstr,"$EXTERNAL_NET") == 0) {
+    } else if (strcmp(addrstr,"$HTTP_SERVERS") == 0) {
+    } else if (strcmp(addrstr,"$SMTP_SERVERS") == 0) {
+    } else if (strcmp(addrstr,"$SQL_SERVERS") == 0) {
+    } else if (strcmp(addrstr,"$DNS_SERVERS") == 0) {
+    } else if (strcmp(addrstr,"any") == 0) {
+
+    } else {
+        printf("addr \"%s\"\n", addrstr);
+    }
+
+    return 0;
+}
+
+int SigParseProto(Signature *s, const char *protostr) {
+    if (strcasecmp(protostr,"tcp") == 0) {
+    } else if (strcasecmp(protostr,"udp") == 0) {
+    } else if (strcasecmp(protostr,"ip") == 0) {
+    } else {
+        printf("protostr \"%s\"\n", protostr);
+    }
+
+    return 0;
+}
+
 /* src: flag = 0, dst: flag = 1
  *
  */
@@ -372,9 +399,17 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
     /* Parse Action */
     if (SigParseAction(s, arr[CONFIG_ACTION]) < 0)
         goto error;
- 
-    /* Parse Ports */
+
+    /* Parse Proto */
+    if (SigParseProto(s, arr[CONFIG_PROTO]) < 0)
+        goto error;
+
+    /* Parse Address & Ports */
+    if (SigParseAddress(s, arr[CONFIG_SRC], 0) < 0)
+        goto error;
     if (SigParsePort(s, arr[CONFIG_SP], 0) < 0)
+        goto error;
+    if (SigParseAddress(s, arr[CONFIG_DST], 1) < 0)
         goto error;
     if (SigParsePort(s, arr[CONFIG_DP], 1) < 0)
         goto error;
