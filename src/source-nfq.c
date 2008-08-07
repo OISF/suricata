@@ -28,6 +28,7 @@ void TmModuleReceiveNFQRegister (void) {
     tmm_modules[TMM_RECEIVENFQ].Init = NULL;
     tmm_modules[TMM_RECEIVENFQ].Func = ReceiveNFQ;
     tmm_modules[TMM_RECEIVENFQ].Deinit = NULL;
+    tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
 }
 
 void TmModuleVerdictNFQRegister (void) {
@@ -35,6 +36,7 @@ void TmModuleVerdictNFQRegister (void) {
     tmm_modules[TMM_VERDICTNFQ].Init = NULL;
     tmm_modules[TMM_VERDICTNFQ].Func = VerdictNFQ;
     tmm_modules[TMM_VERDICTNFQ].Deinit = NULL;
+    tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
 }
 
 void TmModuleDecodeNFQRegister (void) {
@@ -42,6 +44,7 @@ void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].Init = NULL;
     tmm_modules[TMM_DECODENFQ].Func = DecodeNFQ;
     tmm_modules[TMM_DECODENFQ].Deinit = NULL;
+    tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
 }
 
 void NFQSetupPkt (Packet *p, void *data)

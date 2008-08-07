@@ -6,6 +6,7 @@ typedef struct _TmModule {
     int (*Init)(ThreadVars *, void **);
     int (*Func)(ThreadVars *, Packet *, void *);
     int (*Deinit)(ThreadVars *, void *);
+    void (*RegisterTests)(void);
 } TmModule;
 
 enum {
@@ -27,6 +28,7 @@ TmModule tmm_modules[TMM_SIZE];
 TmModule *TmModuleGetByName(char *name);
 int TmModuleRegister(char *name, int (*module_func)(ThreadVars *, Packet *, void *));
 void TmModuleDebugList(void);
+void TmModuleRegisterTests(void);
 
 #endif /* __TM_MODULES_H__ */
 

@@ -42,6 +42,7 @@ void TmModuleAlertUnifiedLogRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDLOG].Init = AlertUnifiedLogThreadInit;
     tmm_modules[TMM_ALERTUNIFIEDLOG].Func = AlertUnifiedLog;
     tmm_modules[TMM_ALERTUNIFIEDLOG].Deinit = AlertUnifiedLogThreadDeinit;
+    tmm_modules[TMM_ALERTUNIFIEDLOG].RegisterTests = NULL;
 }
 
 typedef struct _AlertUnifiedLogThread {

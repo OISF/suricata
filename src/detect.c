@@ -75,6 +75,7 @@ void TmModuleDetectRegister (void) {
     tmm_modules[TMM_DETECT].Init = DetectThreadInit;
     tmm_modules[TMM_DETECT].Func = Detect;
     tmm_modules[TMM_DETECT].Deinit = DetectThreadDeinit;
+    tmm_modules[TMM_DETECT].RegisterTests = NULL;
 }
 
 Signature *sig_tree_proto[256];

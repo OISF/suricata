@@ -289,18 +289,6 @@ int main(int argc, char **argv)
     BinSearchInit();
     CIDRInit();
 
-    /* test and initialize the unittesting subsystem */
-    UtRunSelftest(); /* inits and cleans up again */
-    UtInitialize();
-    MpmRegisterTests();
-    SigTableRegisterTests();
-    SigRegisterTests();
-    UtRunTests();
-    exit(1);
-
-    //LoadConfig();
-    //exit(1);
-
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
     TmModuleDecodeNFQRegister();
@@ -311,6 +299,19 @@ int main(int argc, char **argv)
     TmModuleAlertUnifiedLogRegister();
     TmModuleAlertUnifiedAlertRegister();
     TmModuleDebugList();
+
+    /* test and initialize the unittesting subsystem */
+    UtRunSelftest(); /* inits and cleans up again */
+    UtInitialize();
+    TmModuleRegisterTests();
+    MpmRegisterTests();
+    SigTableRegisterTests();
+    SigRegisterTests();
+    UtRunTests();
+    exit(1);
+
+    //LoadConfig();
+    //exit(1);
 
     /* initialize packet queues */
     memset(&packet_q,0,sizeof(packet_q));

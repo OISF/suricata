@@ -42,6 +42,7 @@ void TmModuleAlertUnifiedAlertRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDALERT].Init = AlertUnifiedAlertThreadInit;
     tmm_modules[TMM_ALERTUNIFIEDALERT].Func = AlertUnifiedAlert;
     tmm_modules[TMM_ALERTUNIFIEDALERT].Deinit = AlertUnifiedAlertThreadDeinit;
+    tmm_modules[TMM_ALERTUNIFIEDALERT].RegisterTests = NULL;
 }
 
 typedef struct _AlertUnifiedAlertThread {

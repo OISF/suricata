@@ -32,3 +32,19 @@ TmModule *TmModuleGetByName(char *name) {
     return NULL;
 }
 
+void TmModuleRegisterTests(void) {
+    TmModule *t;
+    u_int16_t i;
+
+    for (i = 0; i < TMM_SIZE; i++) {
+        t = &tmm_modules[i];
+
+        if (t->RegisterTests == NULL) {
+            printf("Warning: threading module %s has no unittest "
+                   "registration function.\n", t->name);
+        } else {
+            t->RegisterTests();
+        }
+    }
+}
+

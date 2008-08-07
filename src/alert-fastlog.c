@@ -44,6 +44,7 @@ void TmModuleAlertFastlogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].Init = AlertFastlogThreadInit;
     tmm_modules[TMM_ALERTFASTLOG].Func = AlertFastlog;
     tmm_modules[TMM_ALERTFASTLOG].Deinit = AlertFastlogThreadDeinit;
+    tmm_modules[TMM_ALERTFASTLOG].RegisterTests = NULL;
 }
 
 void TmModuleAlertFastlogIPv4Register (void) {
@@ -51,6 +52,7 @@ void TmModuleAlertFastlogIPv4Register (void) {
     tmm_modules[TMM_ALERTFASTLOG4].Init = AlertFastlogThreadInit;
     tmm_modules[TMM_ALERTFASTLOG4].Func = AlertFastlogIPv4;
     tmm_modules[TMM_ALERTFASTLOG4].Deinit = AlertFastlogThreadDeinit;
+    tmm_modules[TMM_ALERTFASTLOG4].RegisterTests = NULL;
 }
 
 void TmModuleAlertFastlogIPv6Register (void) {
@@ -58,6 +60,7 @@ void TmModuleAlertFastlogIPv6Register (void) {
     tmm_modules[TMM_ALERTFASTLOG6].Init = AlertFastlogThreadInit;
     tmm_modules[TMM_ALERTFASTLOG6].Func = AlertFastlogIPv6;
     tmm_modules[TMM_ALERTFASTLOG6].Deinit = AlertFastlogThreadDeinit;
+    tmm_modules[TMM_ALERTFASTLOG6].RegisterTests = NULL;
 }
 
 typedef struct _AlertFastlogThread {
