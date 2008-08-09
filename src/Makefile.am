@@ -18,6 +18,7 @@ flow-util.c flow-util.h \
 flow-var.c flow-var.h \
 host.c host.h \
 detect.c detect.h \
+detect-parse.c detect-parse.h \
 detect-mpm.c detect-mpm.h \
 detect-content.c detect-content.h \
 detect-uricontent.c detect-uricontent.h \
