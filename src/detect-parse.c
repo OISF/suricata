@@ -47,6 +47,7 @@ void SigMatchFree(SigMatch *sm) {
     free(sm);
 }
 
+/* Get the detection module by name */
 SigTableElmt *SigTableGet(char *name) {
     SigTableElmt *st = NULL;
     int i = 0;
@@ -55,7 +56,7 @@ SigTableElmt *SigTableGet(char *name) {
         st = &sigmatch_table[i];
 
         if (st->name != NULL) {
-            if (strcmp(name,st->name) == 0)
+            if (strcasecmp(name,st->name) == 0)
                 return st;
         }
     }
