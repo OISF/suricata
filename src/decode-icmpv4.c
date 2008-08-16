@@ -15,6 +15,7 @@ void DecodeICMPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len )
     printf("ICMPV4 TYPE %u CODE %u\n", p->icmpv4h->type, p->icmpv4h->code);
 #endif
 
+    p->proto = IPPROTO_ICMP;
     return;
 }
 

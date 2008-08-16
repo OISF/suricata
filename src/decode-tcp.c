@@ -129,6 +129,8 @@ static int DecodeTCPPacket(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t le
     p->tcp_payload = pkt + p->tcpvars.hlen;
     p->tcp_payload_len = len - p->tcpvars.hlen;
 
+    p->proto = IPPROTO_TCP;
+
     return 0;
 }
 

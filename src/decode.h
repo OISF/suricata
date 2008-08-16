@@ -122,6 +122,12 @@ typedef u_int16_t Port;
 
 #define PKT_IS_IPV4(p) (((p)->ip4h != NULL))
 #define PKT_IS_IPV6(p) (((p)->ip6h != NULL))
+#define PKT_IS_TCP(p)  (((p)->tcph != NULL))
+/* XXX */
+#define PKT_IS_UDP(p)  (0)
+#define PKT_IS_ICMPV4  (((p)->icmpv4 != NULL))
+#define PKT_IS_ICMPV6  (((p)->icmpv6 != NULL))
+
 
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
@@ -294,8 +300,6 @@ typedef struct _Packet
 #define IS_TUNNEL_ROOT_PKT(p)  (((p)->root == NULL && (p)->tunnel_pkt == 1))
 #define IS_TUNNEL_PKT(p)       (((p)->tunnel_pkt == 1))
 #define SET_TUNNEL_PKT(p)      ((p)->tunnel_pkt = 1)
-#define IS_IPV4_PKT(p)         ((p)->ip4h ? 1 : 0)
-#define IS_IPV6_PKT(p)         ((p)->ip6h ? 1 : 0)
 
 
 /* decoder functions */
