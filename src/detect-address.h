@@ -13,10 +13,14 @@ enum {
     ADDRESS_GT,      /* bigger               [bbb] [aaa] */
 };
 
+#define ADDRESS_FLAG_ANY 0x1
+#define ADDRESS_FLAG_NOT 0x2
+
 typedef struct DetectAddressData_ {
     u_int8_t family;
     u_int32_t ip[4];
     u_int32_t ip2[4];
+    u_int8_t flags;
 } DetectAddressData;
 
 typedef struct DetectAddressGroup_ {
@@ -33,6 +37,7 @@ typedef struct DetectAddressGroup_ {
 } DetectAddressGroup;
 
 typedef struct DetectAddressGroupsHead_ {
+    DetectAddressGroup *any_head;
     DetectAddressGroup *ipv4_head;
     DetectAddressGroup *ipv6_head;
 } DetectAddressGroupsHead;
@@ -41,6 +46,8 @@ typedef struct DetectAddressGroupsHead_ {
 void DetectAddressRegister (void);
 DetectAddressGroupsHead *DetectAddressGroupsHeadInit();
 void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *);
+DetectAddressData *DetectAddressDataInit(void);
+void DetectAddressDataFree(DetectAddressData *);
 
 #endif /* __DETECT_ADDRESS_H__ */
 

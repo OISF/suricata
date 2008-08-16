@@ -213,7 +213,7 @@ int AddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData
         AddressCutIPv6Copy(a_ip2, b->ip2);
 
         DetectAddressData *tmp_c;
-        tmp_c = malloc(sizeof(DetectAddressData));
+        tmp_c = DetectAddressDataInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -235,7 +235,7 @@ int AddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData
         AddressCutIPv6Copy(b_ip2, b->ip2);
 
         DetectAddressData *tmp_c;
-        tmp_c = malloc(sizeof(DetectAddressData));
+        tmp_c = DetectAddressDataInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -279,7 +279,7 @@ int AddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData
             AddressCutIPv6Copy(a_ip2, b->ip2);
 
             DetectAddressData *tmp_c;
-            tmp_c = malloc(sizeof(DetectAddressData));
+            tmp_c = DetectAddressDataInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -323,7 +323,7 @@ int AddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData
             AddressCutIPv6Copy(b_ip2, b->ip2);
 
             DetectAddressData *tmp_c;
-            tmp_c = malloc(sizeof(DetectAddressData));
+            tmp_c = DetectAddressDataInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -340,6 +340,68 @@ error:
     return -1;
 }
 
+/* a = 1.2.3.4
+ * must result in: a == 0.0.0.0-1.2.3.3, b == 1.2.3.5-255.255.255.255
+ *
+ * a = 0.0.0.0/32
+ * must result in: a == 0.0.0.1-255.255.255.255, b == NULL
+ *
+ * a = 255.255.255.255
+ * must result in: a == 0.0.0.0-255.255.255.254, b == NULL
+ *
+ */
+int AddressCutNotIPv6(DetectAddressData *a, DetectAddressData **b) {
+    u_int32_t a_ip1[4] = { ntohl(a->ip[0]), ntohl(a->ip[1]), ntohl(a->ip[2]), ntohl(a->ip[3]) };
+    u_int32_t a_ip2[4] = { ntohl(a->ip2[0]), ntohl(a->ip2[1]), ntohl(a->ip2[2]), ntohl(a->ip2[3]) };
+    u_int32_t ip_nul[4] = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
+    u_int32_t ip_max[4] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+
+    /* default to NULL */
+    *b = NULL;
+
+    if (a_ip1[0] != 0x00000000 && a_ip1[1] != 0x00000000 &&
+        a_ip1[2] != 0x00000000 && a_ip1[3] != 0x00000000 &&
+        a_ip2[0] != 0xFFFFFFFF && a_ip2[1] != 0xFFFFFFFF &&
+        a_ip2[2] != 0xFFFFFFFF && a_ip2[3] != 0xFFFFFFFF)
+    {
+        AddressCutIPv6Copy(ip_nul, a->ip);
+        AddressCutIPv6CopySubOne(a_ip1, a->ip2);
+
+        DetectAddressData *tmp_b;
+        tmp_b = DetectAddressDataInit();
+        if (tmp_b == NULL) {
+            goto error;
+        }
+        tmp_b->family  = AF_INET6;
+        AddressCutIPv6CopyAddOne(a_ip2, tmp_b->ip);
+        AddressCutIPv6Copy(ip_max, tmp_b->ip2);
+        *b = tmp_b;
+
+    } else if (a_ip1[0] == 0x00000000 && a_ip1[1] == 0x00000000 &&
+        a_ip1[2] == 0x00000000 && a_ip1[3] == 0x00000000 &&
+        a_ip2[0] != 0xFFFFFFFF && a_ip2[1] != 0xFFFFFFFF &&
+        a_ip2[2] != 0xFFFFFFFF && a_ip2[3] != 0xFFFFFFFF)
+    {
+        AddressCutIPv6CopyAddOne(a_ip2, a->ip);
+        AddressCutIPv6Copy(ip_max, a->ip2);
+
+    } else if (a_ip1[0] != 0x00000000 && a_ip1[1] != 0x00000000 &&
+        a_ip1[2] != 0x00000000 && a_ip1[3] != 0x00000000 &&
+        a_ip2[0] == 0xFFFFFFFF && a_ip2[1] == 0xFFFFFFFF &&
+        a_ip2[2] == 0xFFFFFFFF && a_ip2[3] == 0xFFFFFFFF)
+    {
+        AddressCutIPv6Copy(ip_nul, a->ip);
+        AddressCutIPv6CopyAddOne(a_ip2, a->ip2);
+
+    } else {
+        goto error;
+    }
+
+    return 0;
+
+error:
+    return -1;
+}
 
 /* TESTS */
 

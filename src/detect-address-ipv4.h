@@ -8,6 +8,7 @@
 
 int AddressCmpIPv4(DetectAddressData *, DetectAddressData *);
 int AddressCutIPv4(DetectAddressData *, DetectAddressData *, DetectAddressData **);
+int AddressCutNotIPv4(DetectAddressData *, DetectAddressData **);
 
 #endif /* __DETECT_ADDRESS_IPV4_H__ */
 

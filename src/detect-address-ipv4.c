@@ -89,7 +89,7 @@ int AddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddressData
         b->ip2[0] = htonl(a_ip2);
 
         DetectAddressData *tmp_c;
-        tmp_c = malloc(sizeof(DetectAddressData));
+        tmp_c = DetectAddressDataInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -111,7 +111,7 @@ int AddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddressData
         b->ip2[0] = htonl(b_ip2);
 
         DetectAddressData *tmp_c;
-        tmp_c = malloc(sizeof(DetectAddressData));
+        tmp_c = DetectAddressDataInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -155,7 +155,7 @@ int AddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddressData
             b->ip2[0] = htonl(a_ip2);
 
             DetectAddressData *tmp_c;
-            tmp_c = malloc(sizeof(DetectAddressData));
+            tmp_c = DetectAddressDataInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -199,7 +199,7 @@ int AddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddressData
             b->ip2[0] = htonl(b_ip2);
 
             DetectAddressData *tmp_c;
-            tmp_c = malloc(sizeof(DetectAddressData));
+            tmp_c = DetectAddressDataInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -216,5 +216,53 @@ error:
     return -1;
 }
 
+
+/* a = 1.2.3.4
+ * must result in: a == 0.0.0.0-1.2.3.3, b == 1.2.3.5-255.255.255.255
+ *
+ * a = 0.0.0.0/32
+ * must result in: a == 0.0.0.1-255.255.255.255, b == NULL
+ *
+ * a = 255.255.255.255
+ * must result in: a == 0.0.0.0-255.255.255.254, b == NULL
+ *
+ */
+int AddressCutNotIPv4(DetectAddressData *a, DetectAddressData **b) {
+    u_int32_t a_ip1 = ntohl(a->ip[0]);
+    u_int32_t a_ip2 = ntohl(a->ip2[0]);
+
+    /* default to NULL */
+    *b = NULL;
+
+    if (a_ip1 != 0x00000000 && a_ip2 != 0xFFFFFFFF) {
+        a->ip[0]  = htonl(0x00000000);
+        a->ip2[0] = htonl(a_ip1 - 1);
+
+        DetectAddressData *tmp_b;
+        tmp_b = DetectAddressDataInit();
+        if (tmp_b == NULL) {
+            goto error;
+        }
+        tmp_b->family = AF_INET;
+        tmp_b->ip[0]  = htonl(a_ip2 + 1);
+        tmp_b->ip2[0] = htonl(0xFFFFFFFF);
+        *b = tmp_b;
+
+    } else if (a_ip1 == 0x00000000 && a_ip2 != 0xFFFFFFFF) {
+        a->ip[0]   = htonl(a_ip2 + 1);
+        a->ip2[0] = htonl(0xFFFFFFFF);
+
+    } else if (a_ip1 != 0x00000000 && a_ip2 == 0xFFFFFFFF) {
+        a->ip[0]   = htonl(0x00000000);
+        a->ip2[0] = htonl(a_ip1 - 1);
+    } else {
+        goto error;
+    }
+
+    return 0;
+
+error:
+    return -1;
+}
 
 

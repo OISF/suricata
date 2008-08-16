@@ -195,9 +195,16 @@ error:
     return -1;
 }
 
+/* XXX implement this for real
+ *
+ */
 int SigParseAddress(Signature *s, const char *addrstr, char flag) {
+    char *addr = NULL;
+
     if (strcmp(addrstr,"$HOME_NET") == 0) {
+        addr = "192.168.0.0/16";
     } else if (strcmp(addrstr,"$EXTERNAL_NET") == 0) {
+        addr = "!192.168.0.0/16";
     } else if (strcmp(addrstr,"$HTTP_SERVERS") == 0) {
     } else if (strcmp(addrstr,"$SMTP_SERVERS") == 0) {
     } else if (strcmp(addrstr,"$SQL_SERVERS") == 0) {
