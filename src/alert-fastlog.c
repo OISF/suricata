@@ -133,9 +133,9 @@ int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data)
 int AlertFastlog (ThreadVars *tv, Packet *p, void *data)
 {
     if (PKT_IS_IPV4(p)) {
-        return(AlertFastlogIPv4(tv, p, data));
+        return AlertFastlogIPv4(tv, p, data);
     } else if (PKT_IS_IPV6(p)) {
-        return(AlertFastlogIPv6(tv, p, data));
+        return AlertFastlogIPv6(tv, p, data);
     }
 
     return 0;
