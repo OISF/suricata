@@ -10,6 +10,7 @@
  * - Support classifications
  * - Support priorities
  * - Support more than just IPv4/IPv4 TCP/UDP.
+ * - Print [drop] as well if appropriate
  */
 
 #include <stdio.h>
