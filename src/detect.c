@@ -32,6 +32,7 @@
 #include "detect-flow.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
+#include "detect-noalert.h"
 
 #include "action-globals.h"
 #include "detect-mpm.h"
@@ -62,7 +63,7 @@ void SigLoadSignatures (void)
 {
     Signature *prevsig = NULL, *sig;
 
-    sig = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; depth:400; sid:1;)");
+    sig = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; depth:400; noalert; sid:1;)");
     if (sig) {
         prevsig = sig;
         sig_list = sig;
@@ -163,7 +164,7 @@ void SigLoadSignatures (void)
     //FILE *fp = fopen("/home/victor/rules/vips-http.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/vips-all.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/all.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/eml.rules", "r");
+    //FILE *fp = fopen("/etc/vips/rules/zango.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/vips-vrt-all.sigs", "r");
     if (fp == NULL) {
         printf("ERROR, could not open sigs file\n");
@@ -278,12 +279,14 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
                         /* only if the last matched as well, we have a hit */
                         if (sm == NULL) {
-                            /* only add once */
-                            if (rmatch == 0) {
-                                PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+                            if (!(s->flags & SIG_FLAG_NOALERT)) {
+                                /* only add once */
+                                if (rmatch == 0) {
+                                    PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
 
-                                /* set verdict on packet */
-                                p->action = s->action;
+                                    /* set verdict on packet */
+                                    p->action = s->action;
+                                }
                             }
                             rmatch = fmatch = 1;
                             pmt->pkt_cnt++;
@@ -312,10 +315,12 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                         //printf("Signature %u matched: %s\n", s->id, s->msg ? s->msg : "");
                         fmatch = 1;
 
-                        PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+                        if (!(s->flags & SIG_FLAG_NOALERT)) {
+                            PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
 
-                        /* set verdict on packet */
-                        p->action = s->action;
+                            /* set verdict on packet */
+                            p->action = s->action;
+                        }
                     }
                 } else {
                     /* done with this sig */
@@ -1348,6 +1353,7 @@ void SigTableSetup(void) {
     DetectDsizeRegister();
     DetectFlowvarRegister();
     DetectAddressRegister();
+    DetectNoalertRegister();
 
     u_int8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

@@ -6,6 +6,7 @@
 #define SIG_FLAG_RECURSIVE 0x01
 #define SIG_FLAG_SP_ANY    0x02
 #define SIG_FLAG_DP_ANY    0x04
+#define SIG_FLAG_NOALERT   0x08
 
 typedef struct _PatternMatcherThread {
     /* detection engine variables */
@@ -151,6 +152,7 @@ enum {
     DETECT_DSIZE,
     DETECT_FLOWVAR,
     DETECT_ADDRESS,
+    DETECT_NOALERT,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
