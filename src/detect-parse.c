@@ -420,6 +420,10 @@ Signature *SigInit(char *sigstr) {
     if (sig == NULL)
         goto error;
 
+    /* XXX one day we will support this the way Snort does,
+     * through classifications.config */
+    sig->prio = 3;
+
     if (SigParse(sig, sigstr) < 0)
         goto error;
 
