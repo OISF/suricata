@@ -109,7 +109,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
             if (ret) {
                 if (strcmp(pe->capname,"http_uri") == 0) {
                     if (pmt->de_scanned_httpuri == 1)
-                        PacketPatternCleanup(t, pmt, pmt->mpm_instance+MPM_INSTANCE_URIOFFSET);
+                        PacketPatternCleanup(t, pmt);
 
                     pmt->de_have_httpuri = 1;
                     pmt->de_scanned_httpuri = 0;
@@ -164,6 +164,10 @@ int DetectPcreSetup (Signature *s, SigMatch *m, char *regexstr)
     //printf("DetectPcreSetup: \'%s\'\n", capture_str_ptr ? capture_str_ptr : "NULL");
 
     ret = pcre_exec(parse_regex, parse_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
+    if (ret < 0) {
+        goto error;
+    }
+
     if (ret > 1) {
         const char *str_ptr;
         res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
@@ -199,47 +203,49 @@ int DetectPcreSetup (Signature *s, SigMatch *m, char *regexstr)
     }
     //printf("DetectPcreSetup: pd->capname %s\n", pd->capname ? pd->capname : "NULL");
 
-    while (*op) {
-        DEBUGPRINT("DetectPcreSetup: regex option %c", *op);
+    if (op != NULL) {
+        while (*op) {
+            DEBUGPRINT("DetectPcreSetup: regex option %c", *op);
 
-        switch (*op) {
-            case 'A':
-                opts |= PCRE_ANCHORED;
-                break;
-            case 'E':
-                opts |= PCRE_DOLLAR_ENDONLY;
-                break;
-            case 'G':
-                opts |= PCRE_UNGREEDY;
-                break;
+            switch (*op) {
+                case 'A':
+                    opts |= PCRE_ANCHORED;
+                    break;
+                case 'E':
+                    opts |= PCRE_DOLLAR_ENDONLY;
+                    break;
+                case 'G':
+                    opts |= PCRE_UNGREEDY;
+                    break;
 
-            case 'i':
-                opts |= PCRE_CASELESS;
-                break;
-            case 'm':
-                opts |= PCRE_MULTILINE;
-                break;
-            case 's':
-                opts |= PCRE_DOTALL;
-                break;
-            case 'x':
-                opts |= PCRE_EXTENDED;
-                break;
+                case 'i':
+                    opts |= PCRE_CASELESS;
+                    break;
+                case 'm':
+                    opts |= PCRE_MULTILINE;
+                    break;
+                case 's':
+                    opts |= PCRE_DOTALL;
+                    break;
+                case 'x':
+                    opts |= PCRE_EXTENDED;
+                    break;
 
-            case 'B': /* snort's option */
-                pd->flags |= DETECT_PCRE_RAWBYTES;
-                break;
-            case 'R': /* snort's option */
-                pd->flags |= DETECT_PCRE_RELATIVE;
-                break;
-            case 'U': /* snort's option */
-                pd->flags |= DETECT_PCRE_URI;
-                break;
-            default:
-                printf("DetectPcreSetup: unknown regex modifier '%c'\n", *op);
-                break;
+                case 'B': /* snort's option */
+                    pd->flags |= DETECT_PCRE_RAWBYTES;
+                    break;
+                case 'R': /* snort's option */
+                    pd->flags |= DETECT_PCRE_RELATIVE;
+                    break;
+                case 'U': /* snort's option */
+                    pd->flags |= DETECT_PCRE_URI;
+                    break;
+                default:
+                    printf("DetectPcreSetup: unknown regex modifier '%c'\n", *op);
+                    break;
+            }
+            op++;
         }
-        op++;
     }
 
     //printf("DetectPcreSetup: \"%s\"\n", re);

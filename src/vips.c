@@ -22,6 +22,7 @@
 #include "threadvars.h"
 #include "util-binsearch.h"
 
+#include "detect-parse.h"
 #include "detect-mpm.h"
 
 #include "tm-queuehandlers.h"
@@ -288,6 +289,8 @@ int main(int argc, char **argv)
 
     BinSearchInit();
     CIDRInit();
+    SigParsePrepare();
+    PatternMatchPrepare(mpm_ctx);
 
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
@@ -307,8 +310,8 @@ int main(int argc, char **argv)
     MpmRegisterTests();
     SigTableRegisterTests();
     SigRegisterTests();
-    UtRunTests();
-    exit(1);
+    //UtRunTests();
+    //exit(1);
 
     //LoadConfig();
     //exit(1);
@@ -316,7 +319,6 @@ int main(int argc, char **argv)
     /* initialize packet queues */
     memset(&packet_q,0,sizeof(packet_q));
     memset(&trans_q, 0,sizeof(trans_q));
-    //memset(&th_v, 0,sizeof(th_v));
 
     /* pre allocate packets */
     printf("Preallocating packets... packet size %u\n", sizeof(Packet));
@@ -345,6 +347,7 @@ int main(int argc, char **argv)
 
     SigLoadSignatures();
 
+    /* create the threads */
     ThreadVars *tv_receivenfq = TmThreadCreate("ReceiveNFQ","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
     if (tv_receivenfq == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
@@ -530,7 +533,6 @@ int main(int argc, char **argv)
     }
     TmThreadAppend(&tv_flowmgr);
 
-
     while(1) {
         if (sigflags) {
             printf("signal received\n");
@@ -573,6 +575,7 @@ int main(int argc, char **argv)
     FlowPrintFlows();
     FlowShutdown();
 
+    SigGroupCleanup();
     SigCleanSignatures();
 
     pthread_exit(NULL);

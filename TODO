@@ -1,1 +1,19 @@
-Test more
+DETECTION ENGINE:
+- create a detection_engine_ctx for storing the sig list, packet entry point, other stuff
+- many group heads seem to have the same number of sigs. See if we can save memory by detecting similars... the savings are in the pattern matcher.
+ -> this is done, and works. However it can be taken further. It's not the group heads that should be compared, but the mpm contexts...
+
+- implement flow as a prefilter
+- implement protocol as a prefilter
+- implement src and dst ports as prefilters
+
+
+WU-MANBER:
+
+- Consider using dynamic/variable hash sizes. A wm_ctx is quite big (512kb) even for small pattern sets.
+
+
+MAIN:
+- move packet preallocation into it's own function
+- create a cleanup function
+

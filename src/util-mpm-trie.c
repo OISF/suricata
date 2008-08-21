@@ -24,7 +24,7 @@
 
 /* prototypes to be exported */
 void TrieInitCtx(MpmCtx *mpm_ctx);
-void TrieThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx);
+void TrieThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int32_t);
 int TrieAddPattern(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t id);
 int TrieAddPatternNocase(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t id);
 u_int32_t TrieSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int8_t *buf, u_int16_t buflen);
@@ -784,7 +784,7 @@ void TrieDestroyCtx(MpmCtx *mpm_ctx) {
     }
 }
 
-void TrieThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
+void TrieThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int32_t max_id) {
     memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
     mpm_thread_ctx->ctx = malloc(sizeof(TrieThreadCtx));
@@ -800,7 +800,8 @@ void TrieThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
      * this is done so the detect engine won't have to care about
      * what instance it's looking up in. The matches all have a
      * unique id and is the array lookup key at the same time */
-    u_int32_t keys = mpm_ctx->max_pattern_id + 1;
+    //u_int32_t keys = mpm_ctx->max_pattern_id + 1;
+    u_int32_t keys = max_id + 1;
     if (keys) {
         mpm_thread_ctx->match = malloc(keys * sizeof(MpmMatchBucket));
         if (mpm_thread_ctx->match == NULL) {
@@ -881,7 +882,7 @@ int TrieTestThreadInitCtx01 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     if (mpm_thread_ctx.memory_cnt == 2)
         result = 1;
@@ -897,7 +898,7 @@ int TrieTestThreadInitCtx02 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     TrieThreadCtx *trie_thread_ctx = (TrieThreadCtx *)mpm_thread_ctx.ctx;
 
@@ -915,7 +916,7 @@ int TrieTestInitAddPattern01 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     int ret = TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
     if (ret == 0)
@@ -932,7 +933,7 @@ int TrieTestInitAddPattern02 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
@@ -951,7 +952,7 @@ int TrieTestInitAddPattern03 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
@@ -970,7 +971,7 @@ int TrieTestInitAddPattern04 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
     TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
@@ -989,7 +990,7 @@ int TrieTestInitAddPattern05 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"Abcd", 4, 1234);
@@ -1008,7 +1009,7 @@ int TrieTestInitAddPattern06 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
@@ -1030,7 +1031,7 @@ int TrieTestInitAddPattern07 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
 
@@ -1050,7 +1051,7 @@ int TrieTestSearch01 (void) {
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcd", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1070,7 +1071,7 @@ int TrieTestSearch02 (void) {
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abce", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1090,7 +1091,7 @@ int TrieTestSearch03 (void) {
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1110,7 +1111,7 @@ int TrieTestSearch04 (void) {
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"bcde", 4, 0);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1130,7 +1131,7 @@ int TrieTestSearch05 (void) {
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"efgh", 4, 0);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1150,7 +1151,7 @@ int TrieTestSearch06 (void) {
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
     TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"eFgH", 4, 0);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdEfGh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1171,7 +1172,7 @@ int TrieTestSearch07 (void) {
 
     TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"abcd", 4, 0);
     TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"eFgH", 4, 1);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdEfGh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1192,7 +1193,7 @@ int TrieTestSearch08 (void) {
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcde", 5, 0);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"bcde",  4, 1);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1212,7 +1213,7 @@ int TrieTestSearch09 (void) {
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"ab", 2, 0);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"ab", 2);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1233,7 +1234,7 @@ int TrieTestSearch10 (void) {
 
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"bc", 2, 0);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"gh", 2, 1);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1255,7 +1256,7 @@ int TrieTestSearch11 (void) {
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 1);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 2);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1277,7 +1278,7 @@ int TrieTestSearch12 (void) {
     TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"A", 1, 0);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 1);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1299,7 +1300,7 @@ int TrieTestSearch13 (void) {
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 2);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1321,7 +1322,7 @@ int TrieTestSearch14 (void) {
     TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"A", 1, 0);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
     u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1343,7 +1344,7 @@ int TrieTestSearch15 (void) {
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"A", 1, 0);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
     TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
 
@@ -1368,7 +1369,7 @@ int TrieTestSearch16 (void) {
     TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"A", 1, 0);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1);
     TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2);
-    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
     TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
 

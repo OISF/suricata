@@ -30,14 +30,16 @@
 
 #include "util-unittest.h"
 
-MpmCtx mpm_ctx[MPM_INSTANCE_MAX];
-
 int DetectUricontentMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
 int DetectUricontentSetup (Signature *, SigMatch *, char *);
 void HttpUriRegisterTests(void);
 
 u_int8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
+
+/* we use a global id for uricontent matches to be able to
+ * use just one pattern matcher thread context per thread. */
+static u_int32_t uricontent_max_id = 0;
 
 void DetectUricontentRegister (void) {
     sigmatch_table[DETECT_URICONTENT].name = "uricontent";
@@ -62,6 +64,12 @@ void DetectUricontentRegister (void) {
             printf("nocasetable[%c]: %c\n", c, nocasetable[c]);
     }
 #endif /* DEBUG */
+}
+
+/* pass on the uricontent_max_id */
+u_int32_t DetectUricontentMaxId(void) {
+    printf("DetectUricontentMaxId: %u\n", uricontent_max_id);
+    return uricontent_max_id;
 }
 
 /* Normalize http buffer
@@ -120,7 +128,7 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch
         return 1;
 
     DetectUricontentData *co = (DetectUricontentData *)nsm->ctx;
-    MpmMatch *nm = pmt->mpm_ctx[pmt->mpm_instance + MPM_INSTANCE_URIOFFSET].match[co->id].top;
+    MpmMatch *nm = pmt->mtcu.match[co->id].top;
 
     for (; nm; nm = nm->next) {
         //printf("test_nextsigmatch: (nm->offset+1) %u, (m->offset+1) %u\n", (nm->offset+1), (m->offset+1));
@@ -152,7 +160,7 @@ DoDetectUricontent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, SigMatch
     char match = 0;
 
     /* Get the top match, we already know we have one. */
-    MpmMatch *m = pmt->mpm_ctx[pmt->mpm_instance + MPM_INSTANCE_URIOFFSET].match[co->id].top;
+    MpmMatch *m = pmt->mtcu.match[co->id].top;
 
     /*  if we have within or distance coming up next, check this match
      *  for distance and/or within and check the rest of this match
@@ -224,8 +232,6 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
 {
     u_int32_t len = 0;
     u_int32_t ret = 0;
-    u_int8_t instance = pmt->mpm_instance + MPM_INSTANCE_URIOFFSET;
-    //printf("instance %u\n", instance);
 
     //printf("scanning uricontent have %u scan %u\n", pmt->de_have_httpuri, pmt->de_scanned_httpuri);
 
@@ -241,8 +247,8 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
         u_int8_t i;
         for (i = 0; i <= p->http_uri.cnt; i++) {
             //printf("p->http_uri.raw_size[%u] %u, %p, %s\n", i, p->http_uri.raw_size[i], p->http_uri.raw[i], p->http_uri.raw[i]);
-
-            ret += mpm_ctx[instance].Search(&mpm_ctx[instance], &pmt->mpm_ctx[instance], p->http_uri.raw[i], p->http_uri.raw_size[i]);
+            //printf("pmt->mcu %p\n", pmt->mcu);
+            ret += pmt->mcu->Search(pmt->mcu, &pmt->mtcu, p->http_uri.raw[i], p->http_uri.raw_size[i]);
             //printf("DetectUricontentMatch: ret %u\n", ret);
         }
         pmt->de_scanned_httpuri = 1;
@@ -255,7 +261,7 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
     DetectUricontentData *co = (DetectUricontentData *)m->ctx;
 
     /* see if we had a match */
-    len = pmt->mpm_ctx[instance].match[co->id].len;
+    len = pmt->mtcu.match[co->id].len;
     if (len == 0)
         return 0;
 
@@ -263,7 +269,7 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
     printf("uricontent \'%s\' matched %u time(s) at offsets: ", co->uricontent, len);
 
     MpmMatch *tmpm = NULL;
-    for (tmpm = pmt->mpm_ctx[mpm_instance].match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
+    for (tmpm = pmt->mtcu.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
         printf("%u ", tmpm->offset);
     }
     printf("\n");
@@ -382,6 +388,9 @@ int DetectUricontentSetup (Signature *s, SigMatch *m, char *contentstr)
     sm->ctx = (void *)cd;
 
     SigMatchAppend(s,m,sm);
+
+    cd->id = uricontent_max_id;
+    uricontent_max_id++;
 
     if (dubbed) free(str);
     return 0;

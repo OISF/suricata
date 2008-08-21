@@ -12,7 +12,7 @@
 
 #include "detect-address.h"
 
-int AddressCmpIPv4(DetectAddressData *a, DetectAddressData *b) {
+int DetectAddressCmpIPv4(DetectAddressData *a, DetectAddressData *b) {
     u_int32_t a_ip1 = ntohl(a->ip[0]);
     u_int32_t a_ip2 = ntohl(a->ip2[0]);
     u_int32_t b_ip1 = ntohl(b->ip[0]);
@@ -23,7 +23,7 @@ int AddressCmpIPv4(DetectAddressData *a, DetectAddressData *b) {
         //printf("ADDRESS_EQ\n");
         return ADDRESS_EQ;
     /* ADDRESS_ES */
-    } else if (a_ip1 >= b_ip1 && a_ip1 < b_ip2 && a_ip2 <= b_ip2) {
+    } else if (a_ip1 >= b_ip1 && a_ip1 <= b_ip2 && a_ip2 <= b_ip2) {
         //printf("ADDRESS_ES\n");
         return ADDRESS_ES;
     /* ADDRESS_EB */
@@ -62,7 +62,7 @@ int AddressCmpIPv4(DetectAddressData *a, DetectAddressData *b) {
  * a = 1.2.3.4, b = 1.2.3.0/24
  * must result in: a == 1.2.3.0-1.2.3.3, b == 1.2.3.4, c == 1.2.3.5-1.2.3.255
  */
-int AddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
+int DetectAddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
     u_int32_t a_ip1 = ntohl(a->ip[0]);
     u_int32_t a_ip2 = ntohl(a->ip2[0]);
     u_int32_t b_ip1 = ntohl(b->ip[0]);
@@ -71,7 +71,7 @@ int AddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddressData
     /* default to NULL */
     *c = NULL;
 
-    int r = AddressCmpIPv4(a,b);
+    int r = DetectAddressCmpIPv4(a,b);
     if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
         goto error;
     }
@@ -227,7 +227,7 @@ error:
  * must result in: a == 0.0.0.0-255.255.255.254, b == NULL
  *
  */
-int AddressCutNotIPv4(DetectAddressData *a, DetectAddressData **b) {
+int DetectAddressCutNotIPv4(DetectAddressData *a, DetectAddressData **b) {
     u_int32_t a_ip1 = ntohl(a->ip[0]);
     u_int32_t a_ip2 = ntohl(a->ip2[0]);
 

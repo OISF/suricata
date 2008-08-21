@@ -7,6 +7,8 @@
 #include "detect.h"
 #include "flow.h"
 
+#include "util-unittest.h"
+
 static pcre *config_pcre = NULL;
 static pcre *option_pcre = NULL;
 static pcre_extra *config_pcre_extra = NULL;
@@ -141,8 +143,8 @@ int SigParseOptions(Signature *s, SigMatch *m, char *optstr) {
         printf("pcre_exec failed: ret %d, optstr \"%s\"\n", ret, optstr);
         goto error;
     }
-    //printf("SigParseOptions: pcre_exec returned %d\n", ret);
 
+    /* extract the substrings */
     for (i = 1; i <= ret-1; i++) {
         pcre_get_substring(optstr, ov, MAX_SUBSTRINGS, i, &arr[i-1]);
         //printf("SigParseOptions: arr[%d] = \"%s\"\n", i-1, arr[i-1]);
@@ -165,32 +167,43 @@ int SigParseOptions(Signature *s, SigMatch *m, char *optstr) {
     } else {
         optname = (char *)arr[0];
         optvalue = (char *)arr[1];
-        if (ret > 3) optmore = (char *)arr[2];
+        if (ret == 4) optmore = (char *)arr[2];
         else optmore = NULL;
     }
 
     /* setup may or may not add a new SigMatch to the list */
     if (st->Setup(s, m, optvalue) < 0)
         goto error;
-    //printf("SigParseOptions: s->match:%p,m:%p\n", s->match, m);
+
     /* thats why we check for that here */
-    if (m && m->next)
+    if (m != NULL && m->next != NULL)
         m = m->next;
     else if (m == NULL && s->match != NULL)
         m = s->match;
 
-    //printf("SigParseOptions: s->match:%p,m:%p\n", s->match, m);
     if (ret == 4 && optmore != NULL) {
         //printf("SigParseOptions: recursive call for more options... (s:%p,m:%p)\n", s, m);
 
+        if (optname) pcre_free_substring(optname);
+        if (optvalue) pcre_free_substring(optvalue);
+        if (optstr) free(optstr);
+        //if (optmore) pcre_free_substring(optmore);
         if (arr != NULL) free(arr);
-        return(SigParseOptions(s, m, optmore));
+        return SigParseOptions(s, m, optmore);
     }
 
+    if (optname) pcre_free_substring(optname);
+    if (optvalue) pcre_free_substring(optvalue);
+    if (optmore) pcre_free_substring(optmore);
+    if (optstr) free(optstr);
     if (arr != NULL) free(arr);
     return 0;
 
 error:
+    if (optname) pcre_free_substring(optname);
+    if (optvalue) pcre_free_substring(optvalue);
+    if (optmore) pcre_free_substring(optmore);
+    if (optstr) free(optstr);
     if (arr != NULL) free(arr);
     return -1;
 }
@@ -206,16 +219,34 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
     } else if (strcmp(addrstr,"$EXTERNAL_NET") == 0) {
         addr = "!192.168.0.0/16";
     } else if (strcmp(addrstr,"$HTTP_SERVERS") == 0) {
+        addr = "192.168.0.1-192.168.0.16";
     } else if (strcmp(addrstr,"$SMTP_SERVERS") == 0) {
+        addr = "192.168.0.17-192.168.0.32";
     } else if (strcmp(addrstr,"$SQL_SERVERS") == 0) {
+        addr = "192.168.0.33-192.168.0.48";
     } else if (strcmp(addrstr,"$DNS_SERVERS") == 0) {
+        addr = "any";
     } else if (strcmp(addrstr,"any") == 0) {
-
+        addr = "any";
     } else {
+        addr = (char *)addrstr;
         printf("addr \"%s\"\n", addrstr);
     }
 
+    if (flag == 0) {
+        if (DetectAddressGroupSetup(&s->src,addr) < 0) {
+            goto error;
+        }
+    } else {
+        if (DetectAddressGroupSetup(&s->dst,addr) < 0) {
+            goto error;
+        }
+    }
+
+
     return 0;
+error:
+    return -1;
 }
 
 int SigParseProto(Signature *s, const char *protostr) {
@@ -341,7 +372,7 @@ int SigParse(Signature *s, char *sigstr) {
 
     /* we can have no options, so make sure we have them */
     if (basics[CONFIG_OPTS] != NULL) {
-        ret = SigParseOptions(s, NULL, basics[CONFIG_OPTS]);
+        ret = SigParseOptions(s, NULL, strdup(basics[CONFIG_OPTS]));
     }
 
     /* cleanup */
@@ -376,7 +407,11 @@ void SigFree(Signature *s) {
         sm = nsm;
     }
 
-    if (s->msg) free(s->msg);
+    DetectAddressGroupsHeadCleanup(&s->src);
+    DetectAddressGroupsHeadCleanup(&s->dst);
+
+    if (s->msg != NULL) free(s->msg);
+
     free(s);
 }
 
@@ -394,5 +429,30 @@ error:
     SigFree(sig);
     return NULL;
 
+}
+
+/*
+ * TESTS
+ */
+
+int SigParseTest01 (void) {
+    int result = 1;
+    Signature *sig = NULL;
+
+    SigParsePrepare();
+
+    sig = SigInit("alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
+    if (sig == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigFree(sig);
+end:
+    return result;
+}
+
+void SigParseRegisterTests(void) {
+    UtRegisterTest("SigParseTest01", SigParseTest01, 1);
 }
 

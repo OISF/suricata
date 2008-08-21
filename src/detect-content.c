@@ -47,6 +47,10 @@ int DetectContentSetup (Signature *, SigMatch *, char *);
 u_int8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
 
+/* we use a global id for content matches to be able to use
+ * just one pattern matcher thread context per thread. */
+static u_int32_t content_max_id = 0;
+
 void DetectContentRegister (void) {
     sigmatch_table[DETECT_CONTENT].name = "content";
     sigmatch_table[DETECT_CONTENT].Match = DetectContentMatch;
@@ -70,6 +74,12 @@ void DetectContentRegister (void) {
             printf("nocasetable[%c]: %c\n", c, nocasetable[c]);
     }
 #endif /* DEBUG */
+}
+
+/* pass on the content_max_id */
+u_int32_t DetectContentMaxId(void) {
+    printf("DetectContentMaxId: %u\n", content_max_id);
+    return content_max_id;
 }
 
 static inline int
@@ -105,7 +115,7 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch
         return 1;
 
     DetectContentData *co = (DetectContentData *)nsm->ctx;
-    MpmMatch *nm = pmt->mpm_ctx[pmt->mpm_instance].match[co->id].top;
+    MpmMatch *nm = pmt->mtc.match[co->id].top;
 
     for (; nm; nm = nm->next) {
         //printf("TestWithinDistanceOffsetDepth: nm->offset %u, m->offset %u\n", nm->offset, m->offset);
@@ -150,7 +160,7 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
     char match = 0;
 
     /* Get the top match, we already know we have one. */
-    MpmMatch *m = pmt->mpm_ctx[pmt->mpm_instance].match[co->id].top;
+    MpmMatch *m = pmt->mtc.match[co->id].top;
 
     /*  if we have within or distance coming up next, check this match
      *  for distance and/or within and check the rest of this match
@@ -243,7 +253,7 @@ int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
     DetectContentData *co = (DetectContentData *)m->ctx;
 
     /* see if we had a match */
-    len = pmt->mpm_ctx[pmt->mpm_instance].match[co->id].len;
+    len = pmt->mtc.match[co->id].len;
     if (len == 0)
         return 0;
 
@@ -251,7 +261,7 @@ int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
     printf("content \'%s\' matched %u time(s) at offsets: ", co->content, len);
 
     MpmMatch *tmpm = NULL;
-    for (tmpm = pmt->mpm_ctx[pmt->mpm_instance].match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
+    for (tmpm = pmt->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
         printf("%u ", tmpm->offset);
     }
     printf("\n");
@@ -367,6 +377,9 @@ int DetectContentSetup (Signature *s, SigMatch *m, char *contentstr)
     sm->ctx = (void *)cd;
 
     SigMatchAppend(s,m,sm);
+
+    cd->id = content_max_id;
+    content_max_id++;
 
     if (dubbed) free(str);
     return 0;

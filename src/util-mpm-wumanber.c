@@ -20,7 +20,7 @@
 #include "util-unittest.h"
 
 void WmInitCtx (MpmCtx *mpm_ctx);
-void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx);
+void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int32_t);
 void WmDestroyCtx(MpmCtx *mpm_ctx);
 void WmThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx);
 int WmAddPatternCI(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen, u_int32_t id);
@@ -217,6 +217,8 @@ void WmFreePattern(MpmCtx *mpm_ctx, WmPattern *p) {
 
 int WmAddPattern(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen, char nocase, u_int32_t id) {
     WmCtx *wm_ctx = (WmCtx *)mpm_ctx->ctx;
+
+    //printf("WmAddPattern: ctx %p \"", mpm_ctx); prt(pat, patlen); printf("\" id %u\n", id);
 
     if (patlen == 0)
         return 0;
@@ -422,7 +424,7 @@ int WmPreparePatterns(MpmCtx *mpm_ctx) {
     wm_ctx->parray = malloc(mpm_ctx->pattern_cnt * sizeof(WmPattern));
     if (wm_ctx->parray == NULL) goto error;
     memset(wm_ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(WmPattern));
-
+    //printf("mpm_ctx %p, parray %p\n", mpm_ctx,wm_ctx->parray);
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (mpm_ctx->pattern_cnt * sizeof(WmPattern));
 
@@ -507,7 +509,6 @@ u_int32_t WmSearch2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int8_t *buf
             prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
             prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
             //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
-
             for (thi = hi; thi != NULL; thi = thi->nxt) {
                 p = &wm_ctx->parray[thi->idx];
 
@@ -624,6 +625,8 @@ u_int32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int8_t *buf
 }
 
 void WmInitCtx (MpmCtx *mpm_ctx) {
+    //printf("WmInitCtx: mpm_ctx %p\n", mpm_ctx);
+
     memset(mpm_ctx, 0, sizeof(MpmCtx));
 
     mpm_ctx->ctx = malloc(sizeof(WmCtx));
@@ -661,7 +664,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
     }
 }
 
-void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
+void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int32_t matchsize) {
     memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
     mpm_thread_ctx->ctx = malloc(sizeof(WmThreadCtx));
@@ -677,7 +680,8 @@ void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
      * this is done so the detect engine won't have to care about
      * what instance it's looking up in. The matches all have a
      * unique id and is the array lookup key at the same time */
-    u_int32_t keys = mpm_ctx->max_pattern_id + 1;
+    //u_int32_t keys = mpm_ctx->max_pattern_id + 1;
+    u_int32_t keys = matchsize + 1;
     if (keys) {
         mpm_thread_ctx->match = malloc(keys * sizeof(MpmMatchBucket));
         if (mpm_thread_ctx->match == NULL) {
@@ -758,7 +762,7 @@ int WmTestThreadInitCtx01 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     if (mpm_thread_ctx.memory_cnt == 2)
         result = 1;
@@ -774,7 +778,7 @@ int WmTestThreadInitCtx02 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     WmThreadCtx *wm_thread_ctx = (WmThreadCtx *)mpm_thread_ctx.ctx;
 
@@ -792,7 +796,7 @@ int WmTestInitAddPattern01 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     int ret = WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1, 1234);
     if (ret == 0)
@@ -809,7 +813,7 @@ int WmTestInitAddPattern02 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *wm_ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1, 1234);
@@ -828,7 +832,7 @@ int WmTestInitAddPattern03 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *wm_ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1, 1234);
@@ -849,7 +853,7 @@ int WmTestInitAddPattern04 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *wm_ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1, 1234);
@@ -870,7 +874,7 @@ int WmTestInitAddPattern05 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *wm_ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 1234);
@@ -891,7 +895,7 @@ int WmTestInitAddPattern06 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *wm_ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1, 1234);
@@ -912,7 +916,7 @@ int WmTestInitAddPattern07 (void) {
     MpmThreadCtx mpm_thread_ctx;
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1, 1234);
 
@@ -948,7 +952,7 @@ int WmTestSearch01 (void) {
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1, 0);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcd", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -969,7 +973,7 @@ int WmTestSearch02 (void) {
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1, 0);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abce", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -990,7 +994,7 @@ int WmTestSearch03 (void) {
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1, 0);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1011,7 +1015,7 @@ int WmTestSearch04 (void) {
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"bcde", 4, 1, 0);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1032,7 +1036,7 @@ int WmTestSearch05 (void) {
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"efgh", 4, 1, 0);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1053,7 +1057,7 @@ int WmTestSearch06 (void) {
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"eFgH", 4, 1, 0);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdEfGh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1075,7 +1079,7 @@ int WmTestSearch07 (void) {
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0);
     WmAddPattern(&mpm_ctx, (u_int8_t *)"eFgH", 4, 1, 1);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdEfGh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1097,7 +1101,7 @@ int WmTestSearch08 (void) {
     WmAddPattern(&mpm_ctx, (u_int8_t *)"abcde", 5, 1, 0);
     WmAddPattern(&mpm_ctx, (u_int8_t *)"bcde",  4, 1, 1);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1118,7 +1122,7 @@ int WmTestSearch09 (void) {
 
     WmAddPattern(&mpm_ctx, (u_int8_t *)"ab", 2, 1, 0);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"ab", 2);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1140,7 +1144,7 @@ int WmTestSearch10 (void) {
     WmAddPattern(&mpm_ctx, (u_int8_t *)"bc", 2, 1, 0);
     WmAddPattern(&mpm_ctx, (u_int8_t *)"gh", 2, 1, 1);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
     u_int32_t cnt = WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1163,7 +1167,7 @@ int WmTestSearch11 (void) {
     WmAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 1, 1);
     WmAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 1, 2);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
     u_int32_t cnt = WmSearch1(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1186,7 +1190,7 @@ int WmTestSearch12 (void) {
     WmAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 1, 1);
     WmAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 1, 2);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
     u_int32_t cnt = WmSearch1(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1209,7 +1213,7 @@ int WmTestSearch13 (void) {
     WmAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1, 1);
     WmAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 1, 2);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
     u_int32_t cnt = WmSearch1(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1232,7 +1236,7 @@ int WmTestSearch14 (void) {
     WmAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1, 1);
     WmAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 1, 2);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
     u_int32_t cnt = WmSearch1(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
@@ -1255,7 +1259,7 @@ int WmTestSearch15 (void) {
     WmAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1, 1);
     WmAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 1, 2);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
     WmSearch1(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
 
@@ -1281,7 +1285,7 @@ int WmTestSearch16 (void) {
     WmAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1, 1);
     WmAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 1, 2);
     WmPreparePatterns(&mpm_ctx);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
     WmSearch1(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
 

@@ -7,6 +7,7 @@ Signature *SigAlloc (void);
 void SigFree(Signature *s);
 Signature *SigInit(char *sigstr);
 void SigParsePrepare(void);
+void SigParseRegisterTests(void);
 
 #endif /* __DETECT_PARSE_H__ */
 

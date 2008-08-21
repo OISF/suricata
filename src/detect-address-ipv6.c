@@ -75,7 +75,7 @@ int AddressIPv6Ge(u_int32_t *a, u_int32_t *b) {
     return 0;
 }
 
-int AddressCmpIPv6(DetectAddressData *a, DetectAddressData *b) {
+int DetectAddressCmpIPv6(DetectAddressData *a, DetectAddressData *b) {
     /* ADDRESS_EQ */
     if (AddressIPv6Eq(a->ip, b->ip) == 1 &&
         AddressIPv6Eq(a->ip2, b->ip2) == 1) {
@@ -83,7 +83,7 @@ int AddressCmpIPv6(DetectAddressData *a, DetectAddressData *b) {
         return ADDRESS_EQ;
     /* ADDRESS_ES */
     } else if (AddressIPv6Ge(a->ip, b->ip) == 1 &&
-               AddressIPv6Lt(a->ip, b->ip2) == 1 &&
+               AddressIPv6Le(a->ip, b->ip2) == 1 &&
                AddressIPv6Le(a->ip2, b->ip2) == 1) {
         //printf("ADDRESS_ES\n");
         return ADDRESS_ES;
@@ -186,7 +186,7 @@ static void AddressCutIPv6Copy(u_int32_t *a, u_int32_t *b) {
     b[3] = htonl(a[3]);
 }
 
-int AddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
+int DetectAddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
     u_int32_t a_ip1[4] = { ntohl(a->ip[0]), ntohl(a->ip[1]), ntohl(a->ip[2]), ntohl(a->ip[3]) };
     u_int32_t a_ip2[4] = { ntohl(a->ip2[0]), ntohl(a->ip2[1]), ntohl(a->ip2[2]), ntohl(a->ip2[3]) };
     u_int32_t b_ip1[4] = { ntohl(b->ip[0]), ntohl(b->ip[1]), ntohl(b->ip[2]), ntohl(b->ip[3]) };
@@ -195,7 +195,7 @@ int AddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData
     /* default to NULL */
     *c = NULL;
 
-    int r = AddressCmpIPv6(a,b);
+    int r = DetectAddressCmpIPv6(a,b);
     if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
         goto error;
     }
@@ -350,7 +350,7 @@ error:
  * must result in: a == 0.0.0.0-255.255.255.254, b == NULL
  *
  */
-int AddressCutNotIPv6(DetectAddressData *a, DetectAddressData **b) {
+int DetectAddressCutNotIPv6(DetectAddressData *a, DetectAddressData **b) {
     u_int32_t a_ip1[4] = { ntohl(a->ip[0]), ntohl(a->ip[1]), ntohl(a->ip[2]), ntohl(a->ip[3]) };
     u_int32_t a_ip2[4] = { ntohl(a->ip2[0]), ntohl(a->ip2[1]), ntohl(a->ip2[2]), ntohl(a->ip2[3]) };
     u_int32_t ip_nul[4] = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };

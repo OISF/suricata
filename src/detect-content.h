@@ -25,6 +25,7 @@ typedef struct _DetectContentData {
 
 /* prototypes */
 void DetectContentRegister (void);
+u_int32_t DetectContentMaxId(void);
 
 #endif /* __DETECT_CONTENT_H__ */
 

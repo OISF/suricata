@@ -27,11 +27,9 @@ void DetectAddressRegister (void) {
 }
 
 /* prototypes */
-DetectAddressData *DetectAddressParse(char *);
 void DetectAddressDataPrint(DetectAddressData *);
-int AddressCmp(DetectAddressData *, DetectAddressData *);
-int AddressCut(DetectAddressData *, DetectAddressData *, DetectAddressData **);
-int AddressCutNot(DetectAddressData *, DetectAddressData **);
+int DetectAddressCut(DetectAddressData *, DetectAddressData *, DetectAddressData **);
+int DetectAddressCutNot(DetectAddressData *, DetectAddressData **);
 
 
 DetectAddressGroup *DetectAddressGroupInit(void) {
@@ -122,9 +120,11 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressData *new
         int r = 0;
 
         for (cur = head; cur != NULL; cur = cur->next) {
-            r = AddressCmp(new,cur->ad);
+            r = DetectAddressCmp(new,cur->ad);
             if (r == ADDRESS_ER) {
-                printf("ADDRESS_ER\n");
+                printf("ADDRESS_ER DetectAddressCmp compared:\n");
+                DetectAddressDataPrint(new);
+                DetectAddressDataPrint(cur->ad);
                 goto error;
             } 
             /* if so, handle that */
@@ -178,22 +178,22 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressData *new
 
             } else if (r == ADDRESS_ES) {
                 DetectAddressData *c = NULL;
-                r = AddressCut(cur->ad,new,&c);
+                r = DetectAddressCut(cur->ad,new,&c);
                 DetectAddressGroupInsert(gh, new);
                 if (c) DetectAddressGroupInsert(gh, c);
             } else if (r == ADDRESS_EB) {
                 DetectAddressData *c = NULL;
-                r = AddressCut(cur->ad,new,&c);
+                r = DetectAddressCut(cur->ad,new,&c);
                 DetectAddressGroupInsert(gh, new);
                 if (c) DetectAddressGroupInsert(gh, c);
             } else if (r == ADDRESS_LE) {
                 DetectAddressData *c = NULL;
-                r = AddressCut(cur->ad,new,&c);
+                r = DetectAddressCut(cur->ad,new,&c);
                 DetectAddressGroupInsert(gh, new);
                 if (c) DetectAddressGroupInsert(gh, c);
             } else if (r == ADDRESS_GE) {
                 DetectAddressData *c = NULL;
-                r = AddressCut(cur->ad,new,&c);
+                r = DetectAddressCut(cur->ad,new,&c);
                 DetectAddressGroupInsert(gh, new);
                 if (c) DetectAddressGroupInsert(gh, c);
             }
@@ -232,7 +232,7 @@ int DetectAddressGroupSetup(DetectAddressGroupsHead *gh, char *s) {
     if (ad->flags & ADDRESS_FLAG_NOT) {
         DetectAddressData *ad2 = NULL;
 
-        if (AddressCutNot(ad,&ad2) < 0) {
+        if (DetectAddressCutNot(ad,&ad2) < 0) {
             goto error;
         }
 
@@ -249,6 +249,22 @@ int DetectAddressGroupSetup(DetectAddressGroupsHead *gh, char *s) {
     if (DetectAddressGroupInsert(gh, ad) < 0)
         goto error;
 
+    /* if any, insert 0.0.0.0/0 and ::/0 as well */
+    if (ad->flags & ADDRESS_FLAG_ANY) {
+        ad = DetectAddressParse("0.0.0.0/0");
+        if (ad == NULL)
+            goto error;
+
+	if (DetectAddressGroupInsert(gh, ad) < 0)
+	    goto error;
+
+        ad = DetectAddressParse("::/0");
+        if (ad == NULL)
+            goto error;
+
+	if (DetectAddressGroupInsert(gh, ad) < 0)
+	    goto error;
+    }
     return 0;
 
 error:
@@ -267,42 +283,52 @@ DetectAddressGroupsHead *DetectAddressGroupsHeadInit(void) {
     return gh;
 }
 
-void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *gh) {
+void DetectAddressGroupsHeadCleanup(DetectAddressGroupsHead *gh) {
     if (gh != NULL) {
+        DetectAddressGroupCleanupList(gh->any_head);
         DetectAddressGroupCleanupList(gh->ipv4_head);
         DetectAddressGroupCleanupList(gh->ipv6_head);
+    }
+}
+
+void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *gh) {
+    if (gh != NULL) {
+        DetectAddressGroupsHeadCleanup(gh);
         free(gh);
     }
 }
 
-int AddressCut(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
+int DetectAddressCut(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
     if (a->family == AF_INET) {
-        return AddressCutIPv4(a,b,c);
+        return DetectAddressCutIPv4(a,b,c);
     } else if (a->family == AF_INET6) {
-        return AddressCutIPv6(a,b,c);
+        return DetectAddressCutIPv6(a,b,c);
     }
 
     return -1;
 }
 
-int AddressCutNot(DetectAddressData *a, DetectAddressData **b) {
+int DetectAddressCutNot(DetectAddressData *a, DetectAddressData **b) {
     if (a->family == AF_INET) {
-        return AddressCutNotIPv4(a,b);
+        return DetectAddressCutNotIPv4(a,b);
     } else if (a->family == AF_INET6) {
-        return AddressCutNotIPv6(a,b);
+        return DetectAddressCutNotIPv6(a,b);
     }
 
     return -1;
 }
 
-int AddressCmp(DetectAddressData *a, DetectAddressData *b) {
+int DetectAddressCmp(DetectAddressData *a, DetectAddressData *b) {
     if (a->family != b->family)
         return ADDRESS_ER;
 
-    if (a->family == AF_INET)
-        return AddressCmpIPv4(a,b);
+    /* check any */
+    if (a->flags & ADDRESS_FLAG_ANY && b->flags & ADDRESS_FLAG_ANY)
+        return ADDRESS_EQ;
+    else if (a->family == AF_INET)
+        return DetectAddressCmpIPv4(a,b);
     else if (a->family == AF_INET6)
-        return AddressCmpIPv6(a,b);
+        return DetectAddressCmpIPv6(a,b);
 
     return ADDRESS_ER;
 }
@@ -531,6 +557,18 @@ error:
     return NULL;
 }
 
+DetectAddressData *DetectAddressDataCopy(DetectAddressData *src) {
+    DetectAddressData *dst = DetectAddressDataInit();
+    if (dst == NULL) {
+        goto error;
+    }
+
+    memcpy(dst,src,sizeof(DetectAddressData));
+
+    return dst;
+error:
+    return NULL;
+}
 
 int DetectAddressSetup (Signature *s, SigMatch *m, char *addressstr)
 {
@@ -550,7 +588,9 @@ int DetectAddressSetup (Signature *s, SigMatch *m, char *addressstr)
 }
 
 void DetectAddressDataFree(DetectAddressData *dd) {
-    if (dd) free(dd);
+    if (dd != NULL) {
+        free(dd);
+    }
 }
 
 int DetectAddressMatch (DetectAddressData *dd, Address *a) {
@@ -559,8 +599,11 @@ int DetectAddressMatch (DetectAddressData *dd, Address *a) {
 
     switch (a->family) {
         case AF_INET:
-            if (a->addr_data32[0] >= dd->ip[0] &&
-                a->addr_data32[0] <= dd->ip2[0]) {
+            /* XXX figure out a way to not need to do this ntohl
+             * if we switch to Address inside DetectAddressData
+             * we can do u_int8_t checks */
+            if (ntohl(a->addr_data32[0]) >= ntohl(dd->ip[0]) &&
+                ntohl(a->addr_data32[0]) <= ntohl(dd->ip2[0])) {
                 return 1;
             } else {
                 return 0;
@@ -583,7 +626,9 @@ void DetectAddressDataPrint(DetectAddressData *ad) {
     if (ad == NULL)
         return;
 
-    if (ad->family == AF_INET) {
+    if (ad->flags & ADDRESS_FLAG_ANY) {
+        printf("ANY\n");
+    } else if (ad->family == AF_INET) {
         struct in_addr in;
         char s[16];
 
@@ -606,6 +651,28 @@ void DetectAddressDataPrint(DetectAddressData *ad) {
     }
 }
 
+/* find the group matching address in a group head */
+DetectAddressGroup *
+DetectAddressLookupGroup(DetectAddressGroupsHead *gh, Address *a) {
+    DetectAddressGroup *g;
+
+    /* XXX should we really do this check every time we run
+     * this function? */
+    if (a->family == AF_INET)
+        g = gh->ipv4_head;
+    else if (a->family == AF_INET6)
+        g = gh->ipv6_head;
+    else
+        g = gh->any_head;
+
+    for ( ; g != NULL; g = g->next) {
+        if (DetectAddressMatch(g->ad,a) == 1) {
+            return g;
+        }
+    }
+
+    return NULL;
+}
 
 /* TESTS */
 
@@ -1404,7 +1471,7 @@ int AddressTestCmp01 (void) {
     db = DetectAddressParse("192.168.0.0/255.255.255.0");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_EQ)
+    if (DetectAddressCmp(da,db) != ADDRESS_EQ)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1426,7 +1493,7 @@ int AddressTestCmp02 (void) {
     db = DetectAddressParse("192.168.0.0/255.255.255.0");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_EB)
+    if (DetectAddressCmp(da,db) != ADDRESS_EB)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1448,7 +1515,7 @@ int AddressTestCmp03 (void) {
     db = DetectAddressParse("192.168.0.0/255.255.0.0");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_ES)
+    if (DetectAddressCmp(da,db) != ADDRESS_ES)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1470,7 +1537,7 @@ int AddressTestCmp04 (void) {
     db = DetectAddressParse("192.168.1.0/255.255.255.0");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_LT)
+    if (DetectAddressCmp(da,db) != ADDRESS_LT)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1492,7 +1559,7 @@ int AddressTestCmp05 (void) {
     db = DetectAddressParse("192.168.0.0/255.255.255.0");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_GT)
+    if (DetectAddressCmp(da,db) != ADDRESS_GT)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1514,7 +1581,7 @@ int AddressTestCmp06 (void) {
     db = DetectAddressParse("192.168.0.0/255.255.0.0");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_EQ)
+    if (DetectAddressCmp(da,db) != ADDRESS_EQ)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1536,7 +1603,7 @@ int AddressTestCmpIPv407 (void) {
     db = DetectAddressParse("192.168.1.128-192.168.2.128");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_LE)
+    if (DetectAddressCmp(da,db) != ADDRESS_LE)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1558,7 +1625,7 @@ int AddressTestCmpIPv408 (void) {
     db = DetectAddressParse("192.168.1.0/255.255.255.0");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_GE)
+    if (DetectAddressCmp(da,db) != ADDRESS_GE)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1580,7 +1647,7 @@ int AddressTestCmp07 (void) {
     db = DetectAddressParse("2001::1/3");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_EQ)
+    if (DetectAddressCmp(da,db) != ADDRESS_EQ)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1602,7 +1669,7 @@ int AddressTestCmp08 (void) {
     db = DetectAddressParse("2001::/8");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_EB)
+    if (DetectAddressCmp(da,db) != ADDRESS_EB)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1624,7 +1691,7 @@ int AddressTestCmp09 (void) {
     db = DetectAddressParse("2001::/3");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_ES)
+    if (DetectAddressCmp(da,db) != ADDRESS_ES)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1646,7 +1713,7 @@ int AddressTestCmp10 (void) {
     db = DetectAddressParse("2001:1:2:4:0:0:0:0/64");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_LT)
+    if (DetectAddressCmp(da,db) != ADDRESS_LT)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1668,7 +1735,7 @@ int AddressTestCmp11 (void) {
     db = DetectAddressParse("2001:1:2:3:0:0:0:0/64");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_GT)
+    if (DetectAddressCmp(da,db) != ADDRESS_GT)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -1690,7 +1757,7 @@ int AddressTestCmp12 (void) {
     db = DetectAddressParse("2001:1:2:3:2:0:0:0/64");
     if (db == NULL) goto error;
 
-    if (AddressCmp(da,db) != ADDRESS_EQ)
+    if (DetectAddressCmp(da,db) != ADDRESS_EQ)
         result = 0;
 
     DetectAddressDataFree(da);
@@ -2536,12 +2603,18 @@ int AddressTestCutIPv401(void) {
     a = DetectAddressParse("1.2.3.0/255.255.255.0");
     b = DetectAddressParse("1.2.2.0-1.2.3.4");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 
@@ -2550,7 +2623,7 @@ int AddressTestCutIPv402(void) {
     a = DetectAddressParse("1.2.3.0/255.255.255.0");
     b = DetectAddressParse("1.2.2.0-1.2.3.4");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
@@ -2558,8 +2631,14 @@ int AddressTestCutIPv402(void) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 
@@ -2568,7 +2647,7 @@ int AddressTestCutIPv403(void) {
     a = DetectAddressParse("1.2.3.0/255.255.255.0");
     b = DetectAddressParse("1.2.2.0-1.2.3.4");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
@@ -2586,8 +2665,14 @@ int AddressTestCutIPv403(void) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 
@@ -2596,7 +2681,7 @@ int AddressTestCutIPv404(void) {
     a = DetectAddressParse("1.2.3.3-1.2.3.6");
     b = DetectAddressParse("1.2.3.0-1.2.3.5");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
@@ -2614,8 +2699,14 @@ int AddressTestCutIPv404(void) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 
@@ -2624,7 +2715,7 @@ int AddressTestCutIPv405(void) {
     a = DetectAddressParse("1.2.3.3-1.2.3.6");
     b = DetectAddressParse("1.2.3.0-1.2.3.9");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
@@ -2642,8 +2733,14 @@ int AddressTestCutIPv405(void) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 
@@ -2652,7 +2749,7 @@ int AddressTestCutIPv406(void) {
     a = DetectAddressParse("1.2.3.0-1.2.3.9");
     b = DetectAddressParse("1.2.3.3-1.2.3.6");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
@@ -2670,8 +2767,14 @@ int AddressTestCutIPv406(void) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 
@@ -2680,7 +2783,7 @@ int AddressTestCutIPv407(void) {
     a = DetectAddressParse("1.2.3.0-1.2.3.6");
     b = DetectAddressParse("1.2.3.0-1.2.3.9");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
@@ -2695,8 +2798,14 @@ int AddressTestCutIPv407(void) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 
@@ -2705,7 +2814,7 @@ int AddressTestCutIPv408(void) {
     a = DetectAddressParse("1.2.3.3-1.2.3.9");
     b = DetectAddressParse("1.2.3.0-1.2.3.9");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
@@ -2720,8 +2829,14 @@ int AddressTestCutIPv408(void) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 
@@ -2730,7 +2845,7 @@ int AddressTestCutIPv409(void) {
     a = DetectAddressParse("1.2.3.0-1.2.3.9");
     b = DetectAddressParse("1.2.3.0-1.2.3.6");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
@@ -2745,8 +2860,14 @@ int AddressTestCutIPv409(void) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 
@@ -2755,7 +2876,7 @@ int AddressTestCutIPv410(void) {
     a = DetectAddressParse("1.2.3.0-1.2.3.9");
     b = DetectAddressParse("1.2.3.3-1.2.3.9");
 
-    if (AddressCut(a,b,&c) == -1) {
+    if (DetectAddressCut(a,b,&c) == -1) {
         goto error;
     }
 
@@ -2770,8 +2891,14 @@ int AddressTestCutIPv410(void) {
         goto error;
     }
 
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 1;
 error:
+    DetectAddressDataFree(a);
+    DetectAddressDataFree(b);
+    DetectAddressDataFree(c);
     return 0;
 }
 

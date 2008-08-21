@@ -1,6 +1,8 @@
 #ifndef __DETECT_H__
 #define __DETECT_H__
 
+#include "detect-address.h"
+
 #define SIG_FLAG_RECURSIVE 0x01
 #define SIG_FLAG_SP_ANY    0x02
 #define SIG_FLAG_DP_ANY    0x04
@@ -11,16 +13,22 @@ typedef struct _PatternMatcherThread {
     u_int16_t pkt_off;
     u_int8_t pkt_cnt;
 
-    /* multipattern matcher ctx */
-    MpmThreadCtx mpm_ctx[MPM_INSTANCE_MAX];
     char de_checking_distancewithin;
 
     /* http_uri stuff for uricontent */
     char de_have_httpuri;
     char de_scanned_httpuri;
 
-    /* instance of the mpm */
-    u_int8_t mpm_instance;
+    /* pointer to the current mpm ctx that is stored
+     * in a rule group head -- can be either a content
+     * or uricontent ctx.
+     *
+     * XXX rename to mpm_ctx as soon as the threading
+     * thing above is renamed as well  */
+    MpmCtx *mc;
+    MpmCtx *mcu;
+    MpmThreadCtx mtc;
+    MpmThreadCtx mtcu;
 } PatternMatcherThread;
 
 /* for now typedef them to known types, we will implement
@@ -34,9 +42,10 @@ typedef struct _Signature {
     char *msg;
     u_int8_t flags;
     u_int8_t action; 
-    SigAddress src, dst;
+    DetectAddressGroupsHead src, dst;
     SigPort sp, dp;
 
+    u_int32_t rulegroup_refcnt;
     struct _SigMatch *match;
     struct _Signature *next;
 } Signature;
@@ -57,6 +66,61 @@ typedef struct SigTableElmt {
     void (*RegisterTests)(void);
     u_int8_t flags;
 } SigTableElmt;
+
+#define SIGGROUP_PROTO 1
+#define SIGGROUP_SP    2
+#define SIGGROUP_DP    3
+#define SIGGROUP_SRC   4
+#define SIGGROUP_DST   5
+#define SIGGROUP_FLOW  6
+#define SIGGROUP_DSIZE 7
+/* XXX more? */
+
+/* list container for signatures in the rule groups */
+typedef struct _SigGroupContainer {
+    /* ptr to the signature */
+    Signature *s;
+
+    /* list */
+    struct _SigGroupContainer *next;
+} SigGroupContainer;
+
+typedef struct _SigGroupType {
+    u_int8_t type;
+} SigGroupType;
+
+#define SIG_GROUP_HAVECONTENT    0x1
+#define SIG_GROUP_HAVEURICONTENT 0x2
+#define SIG_GROUP_INITIALIZED    0x4
+#define SIG_GROUP_COPY           0x8
+
+/* head of the list of containers, contains
+ * the pattern matcher context for the sigs
+ * that follow. */
+typedef struct _SigGroupHead {
+    u_int8_t type;
+
+    /* pattern matcher instance */
+    MpmCtx *mpm_ctx;
+    MpmCtx *mpm_uri_ctx;
+    u_int8_t flags;
+
+    /* list of signature containers */
+    SigGroupContainer *head;
+    u_int32_t sig_cnt;
+    u_int32_t refcnt;
+
+    struct _SigGroupHead *next;
+} SigGroupHead;
+
+typedef struct _SigGroupAddress {
+    u_int8_t type;
+    DetectAddressGroupsHead gh;
+} SigGroupAddress;
+
+typedef struct _SigGroupEntry {
+    SigGroupType *next;
+} SigGroupEntry;
 
 #define SIGMATCH_NOOPT  0x01
 
@@ -101,6 +165,8 @@ void SigCleanSignatures(void);
 void SigTableRegisterTests(void);
 void SigRegisterTests(void);
 void TmModuleDetectRegister (void);
+
+int SigGroupBuild(Signature *);
 
 #endif /* __DETECT_H__ */
 
