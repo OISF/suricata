@@ -3,7 +3,7 @@
 #ifndef __THREADVARS_H__
 #define __THREADVARS_H__
 
-#include "source-nfq.h"
+//#include "source-nfq.h"
 #include "util-mpm.h"
 #include "tm-queues.h"
 
@@ -29,9 +29,9 @@ typedef struct _ThreadVars {
     void *(*tm_func)(void *);
     void *tm_slots;
 
-#ifdef NFQ
-    NFQThreadVars *nfq_t;
-#endif
+//#ifdef NFQ
+//    NFQThreadVars *nfq_t;
+//#endif
 
     struct _ThreadVars *next;
     struct _ThreadVars *prev;

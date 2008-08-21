@@ -7,6 +7,8 @@
 #include <linux/netfilter.h>		/* for NF_ACCEPT */
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
+#define NFQ_MAX_QUEUE 16
+
 /* idea: set the recv-thread id in the packet to
  * select an verdict-queue */
 
@@ -39,6 +41,7 @@ typedef struct _NFQThreadVars
     u_int32_t pkts;
     u_int32_t errs;
 
+    ThreadVars *tv;
 } NFQThreadVars;
 
 typedef struct _NFQGlobalVars

@@ -1,5 +1,12 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+/* TODO
+ * - test in Receive and Verdict if both are present
+ *
+ *
+ *
+ */
+
 #include <pthread.h>
 #include <sys/signal.h>
 
@@ -13,19 +20,27 @@
 #include "source-nfq.h"
 #include "source-nfq-prototypes.h"
 #include "action-globals.h"
+
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
+static NFQThreadVars nfq_t[NFQ_MAX_QUEUE];
+static u_int16_t receive_queue_num = 0;
+static u_int16_t verdict_queue_num = 0;
 
 int ReceiveNFQ(ThreadVars *, Packet *, void *);
+int ReceiveNFQThreadInit(ThreadVars *, void **);
 int VerdictNFQ(ThreadVars *, Packet *, void *);
+int VerdictNFQThreadInit(ThreadVars *, void **);
+int VerdictNFQThreadDeinit(ThreadVars *, void *);
 int DecodeNFQ(ThreadVars *, Packet *, void *);
 
 void TmModuleReceiveNFQRegister (void) {
     /* XXX create a general NFQ setup function */
     memset(&nfq_g, 0, sizeof(nfq_g));
+    memset(&nfq_t, 0, sizeof(nfq_t));
 
     tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
-    tmm_modules[TMM_RECEIVENFQ].Init = NULL;
+    tmm_modules[TMM_RECEIVENFQ].Init = ReceiveNFQThreadInit;
     tmm_modules[TMM_RECEIVENFQ].Func = ReceiveNFQ;
     tmm_modules[TMM_RECEIVENFQ].Deinit = NULL;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
@@ -33,9 +48,9 @@ void TmModuleReceiveNFQRegister (void) {
 
 void TmModuleVerdictNFQRegister (void) {
     tmm_modules[TMM_VERDICTNFQ].name = "VerdictNFQ";
-    tmm_modules[TMM_VERDICTNFQ].Init = NULL;
+    tmm_modules[TMM_VERDICTNFQ].Init = VerdictNFQThreadInit;
     tmm_modules[TMM_VERDICTNFQ].Func = VerdictNFQ;
-    tmm_modules[TMM_VERDICTNFQ].Deinit = NULL;
+    tmm_modules[TMM_VERDICTNFQ].Deinit = VerdictNFQThreadDeinit;
     tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
 }
 
@@ -87,21 +102,22 @@ void NFQSetupPkt (Packet *p, void *data)
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	      struct nfq_data *nfa, void *data)
 {
-    ThreadVars *th_v = (ThreadVars *)data;
+    NFQThreadVars *ntv = (NFQThreadVars *)data;
+    ThreadVars *tv = ntv->tv;
 
     /* grab a packet */
-    Packet *p = th_v->tmqh_in(th_v);
+    Packet *p = tv->tmqh_in(tv);
     NFQSetupPkt(p, (void *)nfa);
 
-    p->pickup_q_id = th_v->pickup_q_id;
-    p->verdict_q_id = th_v->verdict_q_id;
+    p->pickup_q_id = tv->pickup_q_id;
+    p->verdict_q_id = tv->verdict_q_id;
 
 #ifdef COUNTERS
-    th_v->nfq_t->pkts++;
+    nfq_t->pkts++;
 #endif /* COUNTERS */
 
     /* pass on... */
-    th_v->tmqh_out(th_v, p);
+    tv->tmqh_out(tv, p);
 
     mutex_lock(&mutex_pending);
     pending++;
@@ -113,14 +129,13 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     return 0;
 }
 
-int NFQInitThread(ThreadVars *t, NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_maxlen)
+int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_maxlen)
 {
     struct timeval tv;
 
-    t->nfq_t = nfq_t;
+    nfq_t->queue_num = queue_num;
 
     printf("NFQInitThread: opening library handle\n");
-
     nfq_t->h = nfq_open();
     if (!nfq_t->h) {
         printf("error during nfq_open()\n");
@@ -134,11 +149,11 @@ int NFQInitThread(ThreadVars *t, NFQThreadVars *nfq_t, u_int16_t queue_num, u_in
         printf("NFQInitThread: unbinding existing nf_queue handler for AF_INET (if any)\n");
         if (nfq_unbind_pf(nfq_t->h, AF_INET) < 0) {
             printf("error during nfq_unbind_pf()\n");
-            // return -1;
+            //return -1;
         }
         if (nfq_unbind_pf(nfq_t->h, AF_INET6) < 0) {
             printf("error during nfq_unbind_pf()\n");
-            // return -1;
+            //return -1;
         }
         nfq_g.unbind = 1;
 
@@ -158,7 +173,7 @@ int NFQInitThread(ThreadVars *t, NFQThreadVars *nfq_t, u_int16_t queue_num, u_in
 
     /* pass the thread memory as a void ptr so the
      * callback function has access to it. */
-    nfq_t->qh = nfq_create_queue(nfq_t->h, queue_num, &cb, (void *)t);
+    nfq_t->qh = nfq_create_queue(nfq_t->h, queue_num, &cb, (void *)nfq_t);
     if (nfq_t->qh == NULL)
     {
         printf("error during nfq_create_queue()\n");
@@ -177,8 +192,9 @@ int NFQInitThread(ThreadVars *t, NFQThreadVars *nfq_t, u_int16_t queue_num, u_in
 /* XXX detect this at configure time & make it an option */
 #define HAVE_NFQ_MAXLEN
 #ifdef HAVE_NFQ_MAXLEN
-    printf("NFQInitThread: setting queue length to %d\n", queue_maxlen);
     if (queue_maxlen > 0) {
+        printf("NFQInitThread: setting queue length to %d\n", queue_maxlen);
+
         /* non-fatal if it fails */
         if (nfq_set_queue_maxlen(nfq_t->qh, queue_maxlen) < 0) {
             printf("NFQInitThread: can't set queue maxlen: your kernel probably "
@@ -200,6 +216,48 @@ int NFQInitThread(ThreadVars *t, NFQThreadVars *nfq_t, u_int16_t queue_num, u_in
     }
 
     printf("NFQInitThread: nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %d\n", nfq_t->h, nfq_t->nh, nfq_t->qh, nfq_t->fd);
+
+    return 0;
+}
+
+int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
+    printf("ReceiveNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
+
+    NFQThreadVars *ntv = &nfq_t[receive_queue_num];
+
+    /* store the ThreadVars pointer in our NFQ thread context
+     * as we will need it in our cb function */
+    ntv->tv = tv;
+
+    int r = NFQInitThread(ntv,receive_queue_num,0);
+    if (r < 0) {
+        printf("NFQInitThread failed\n");
+        //return -1;
+        exit(1);
+    }
+
+    *data = (void *)ntv;
+    receive_queue_num++;
+    return 0;
+}
+
+int VerdictNFQThreadInit(ThreadVars *tv, void **data) {
+    printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
+
+    /* no initialization, ReceiveNFQ takes care of that */
+    NFQThreadVars *ntv = &nfq_t[verdict_queue_num];
+
+    *data = (void *)ntv;
+    verdict_queue_num++;
+    return 0;
+}
+
+int VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
+    NFQThreadVars *ntv = (NFQThreadVars *)data;
+
+    printf("VerdictNFQThreadDeinit: starting... will close queuenum %u\n", ntv->queue_num);
+
+    nfq_destroy_queue(ntv->qh);
 
     return 0;
 }
@@ -233,11 +291,14 @@ void NFQRecvPkt(NFQThreadVars *t) {
 }
 
 int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data) {
+    NFQThreadVars *ntv = (NFQThreadVars *)data;
+
+    /* XXX can we move this to initialization? */
     sigset_t sigs;
     sigfillset(&sigs);
     pthread_sigmask(SIG_BLOCK, &sigs, NULL);
 
-    NFQRecvPkt(tv->nfq_t);
+    NFQRecvPkt(ntv);
     return 0;
 }
 
@@ -253,9 +314,8 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
        verdict = NF_DROP;
     } else if(p->action == ACTION_REJECT){
        verdict = NF_DROP;
-       /* reject code will be called from here */
     } else {
-       /* wtf? a verdict we don't know about */
+       /* a verdict we don't know about, drop to be sure */
        verdict = NF_DROP;
     }
 
@@ -268,8 +328,9 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
 }
 
 int VerdictNFQ(ThreadVars *tv, Packet *p, void *data) {
+    NFQThreadVars *ntv = (NFQThreadVars *)data;
 
-    NFQSetVerdict(tv->nfq_t, p);
+    NFQSetVerdict(ntv, p);
     return 0;
 }
 

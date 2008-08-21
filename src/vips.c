@@ -270,9 +270,6 @@ void *DetectThread(void *td) {
 int main(int argc, char **argv)
 {
     int rc;
-#ifdef NFQ
-    NFQThreadVars nfq_t[2];
-#endif
     sigset_t set;
 
     sigaddset(&set, SIGINT); 
@@ -343,8 +340,6 @@ int main(int argc, char **argv)
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-    memset(&nfq_t, 0, sizeof(nfq_t));
-
     SigLoadSignatures();
 
     /* create the threads */
@@ -359,10 +354,6 @@ int main(int argc, char **argv)
         exit(1);
     }
     Tm1SlotSetFunc(tv_receivenfq,tm_module);
-
-    /* XXX this needs an api way of doing this */
-    if (NFQInitThread(tv_receivenfq, &nfq_t[0], 0, MAX_PENDING) < 0)
-        exit(1);
 
     if (TmThreadSpawn(tv_receivenfq) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -455,8 +446,6 @@ int main(int argc, char **argv)
     }
     Tm1SlotSetFunc(tv_verdict,tm_module);
 
-    /* XXX this needs an api way of doing this */
-    tv_verdict->nfq_t = &nfq_t[0];
     if (TmThreadSpawn(tv_verdict) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
@@ -566,11 +555,6 @@ int main(int argc, char **argv)
 
         sleep(1);
     }
-
-    printf("unbinding from queue 0\n");
-    nfq_destroy_queue(tv_receivenfq->nfq_t->qh);
-    //printf("unbinding from queue 1\n");
-    //nfq_destroy_queue(th_v[1].nfq_t->qh);
 
     FlowPrintFlows();
     FlowShutdown();
