@@ -33,6 +33,7 @@ detect-within.c detect-within.h \
 detect-distance.c detect-distance.h \
 detect-offset.c detect-offset.h \
 detect-sid.c detect-sid.h \
+detect-priority.c detect-priority.h \
 detect-rev.c detect-rev.h \
 detect-classtype.c detect-classtype.h \
 detect-reference.c detect-reference.h \

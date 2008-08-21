@@ -22,6 +22,7 @@
 #include "detect-distance.h"
 #include "detect-offset.h"
 #include "detect-sid.h"
+#include "detect-priority.h"
 #include "detect-classtype.h"
 #include "detect-reference.h"
 #include "detect-threshold.h"
@@ -207,13 +208,14 @@ int PacketAlertCheck(Packet *p, u_int32_t sid)
     return match;
 }
 
-int PacketAlertAppend(Packet *p, u_int8_t gid, u_int32_t sid, u_int8_t rev, char *msg)
+int PacketAlertAppend(Packet *p, u_int8_t gid, u_int32_t sid, u_int8_t rev, u_int8_t prio, char *msg)
 {
     /* XXX overflow check? */
 
     p->alerts.alerts[p->alerts.cnt].gid = gid;
     p->alerts.alerts[p->alerts.cnt].sid = sid;
     p->alerts.alerts[p->alerts.cnt].rev = rev;
+    p->alerts.alerts[p->alerts.cnt].prio = prio;
     p->alerts.alerts[p->alerts.cnt].msg = msg;
     p->alerts.cnt++;
 
@@ -278,7 +280,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                         if (sm == NULL) {
                             /* only add once */
                             if (rmatch == 0) {
-                                PacketAlertAppend(p, 1, s->id, s->rev, s->msg);
+                                PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
 
                                 /* set verdict on packet */
                                 p->action = s->action;
@@ -310,7 +312,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                         //printf("Signature %u matched: %s\n", s->id, s->msg ? s->msg : "");
                         fmatch = 1;
 
-                        PacketAlertAppend(p, 1, s->id, s->rev, s->msg);
+                        PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
 
                         /* set verdict on packet */
                         p->action = s->action;
@@ -1325,6 +1327,7 @@ void SigTableSetup(void) {
     memset(sigmatch_table, 0, sizeof(sigmatch_table));
 
     DetectSidRegister();
+    DetectPriorityRegister();
     DetectRevRegister();
     DetectClasstypeRegister();
     DetectReferenceRegister();

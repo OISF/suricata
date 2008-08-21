@@ -8,7 +8,6 @@
  * TODO
  * - Print the protocol as a string
  * - Support classifications
- * - Support priorities
  * - Support more than just IPv4/IPv4 TCP/UDP.
  * - Print [drop] as well if appropriate
  */
@@ -97,8 +96,8 @@ int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data)
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->fp, "%s  [**] [%u:%u:%u] %s [**] [Classification: fixme] [Priority: 1] {%u} %s:%u -> %s:%u\n",
-            timebuf, pa->gid, pa->sid, pa->rev, pa->msg, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
+        fprintf(aft->fp, "%s  [**] [%u:%u:%u] %s [**] [Classification: fixme] [Priority: %u] {%u} %s:%u -> %s:%u\n",
+            timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
         fflush(aft->fp);
     }
     return 0;
@@ -122,8 +121,8 @@ int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data)
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->fp, "%s  [**] [%u:%u:%u] %s [**] [Classification: fixme] [Priority: 1] {%u} %s:%u -> %s:%u\n",
-            timebuf, pa->gid, pa->sid, pa->rev, pa->msg, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
+        fprintf(aft->fp, "%s  [**] [%u:%u:%u] %s [**] [Classification: fixme] [Priority: %u] {%u} %s:%u -> %s:%u\n",
+            timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         fflush(aft->fp);
     }
 

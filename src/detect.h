@@ -39,6 +39,7 @@ typedef Address SigAddress;
 typedef struct _Signature {
     u_int32_t id;
     u_int8_t rev;
+    u_int8_t prio;
     char *msg;
     u_int8_t flags;
     u_int8_t action; 
@@ -129,6 +130,7 @@ void SigTableSetup(void);
 
 enum {
     DETECT_SID,
+    DETECT_PRIORITY,
     DETECT_REV,
     DETECT_CLASSTYPE,
     DETECT_THRESHOLD,
