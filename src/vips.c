@@ -34,6 +34,8 @@
 #include "alert-unified-log.h"
 #include "alert-unified-alert.h"
 
+#include "log-httplog.h"
+
 #ifdef NFQ
 #include "source-nfq.h"
 #include "source-nfq-prototypes.h"
@@ -298,6 +300,9 @@ int main(int argc, char **argv)
     TmModuleAlertFastlogIPv6Register();
     TmModuleAlertUnifiedLogRegister();
     TmModuleAlertUnifiedAlertRegister();
+    TmModuleLogHttplogRegister();
+    TmModuleLogHttplogIPv4Register();
+    TmModuleLogHttplogIPv6Register();
     TmModuleDebugList();
 
     /* test and initialize the unittesting subsystem */
@@ -451,7 +456,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    ThreadVars *tv_alert = TmThreadCreate("AlertFastlog","alert-queue1","simple","alert-queue2","simple","1slot");
+    ThreadVars *tv_alert = TmThreadCreate("AlertFastlog&Httplog","alert-queue1","simple","alert-queue2","simple","2slot");
     if (tv_alert == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
@@ -461,7 +466,14 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_alert,tm_module);
+    Tm2SlotSetFunc1(tv_alert,tm_module);
+
+    tm_module = TmModuleGetByName("LogHttplog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(1);
+    }
+    Tm2SlotSetFunc2(tv_alert,tm_module);
 
     if (TmThreadSpawn(tv_alert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");

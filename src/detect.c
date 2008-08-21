@@ -63,11 +63,28 @@ void SigLoadSignatures (void)
 {
     Signature *prevsig = NULL, *sig;
 
+    /* The next 3 rules handle HTTP header capture. */
+
+    /* http_uri -- for uricontent */
     sig = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; depth:400; noalert; sid:1;)");
     if (sig) {
         prevsig = sig;
         sig_list = sig;
     }
+
+    /* http_host -- for the log-httplog module */
+    sig = SigInit("alert tcp any any -> any any (msg:\"HTTP host cap\"; flow:to_server; content:\"Host:\"; depth:400; pcre:\"/^Host: (?P<http_host>.*)\\r\\n/m\"; noalert; sid:2;)");
+    if (sig == NULL)
+        return;
+    prevsig->next = sig;
+    prevsig = sig;
+
+    /* http_ua -- for the log-httplog module */
+    sig = SigInit("alert tcp any any -> any any (msg:\"HTTP UA cap\"; flow:to_server; content:\"User-Agent:\"; depth:400; pcre:\"/^User-Agent: (?P<http_ua>.*)\\r\\n/m\"; noalert; sid:3;)");
+    if (sig == NULL)
+        return;
+    prevsig->next = sig;
+    prevsig = sig;
 /*
     sig = SigInit("alert ip 192.168.0.0/24 any -> 80.126.224.247 any (msg:\"ViCtOr nocase test\"; sid:2000; rev:13; content:ViCtOr; nocase; depth:150;)");
     if (sig == NULL)
@@ -136,11 +153,6 @@ void SigLoadSignatures (void)
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert tcp 192.168.0.10 any -> 0.0.0.0/0 any (msg:\"HTTP host code cap\"; flow:to_server; content:Host:; depth:300; pcre:\"/^Host: (?<http_host>.*)\\r\\n/m\"; sid:6;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
     sig = SigInit("alert tcp 192.168.0.12 any -> 0.0.0.0/0 any (msg:\"HTTP http_host flowvar www.inliniac.net\"; flow:to_server; flowvar:http_host,\"www.inliniac.net\"; sid:7;)");
     if (sig) {
         prevsig->next = sig;

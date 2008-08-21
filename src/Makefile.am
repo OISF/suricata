@@ -60,6 +60,7 @@ tmqh-simple.c tmqh-simple.h \
 tmqh-nfq.c tmqh-nfq.h \
 tmqh-packetpool.c tmqh-packetpool.h \
 alert-fastlog.c alert-fastlog.h \
+log-httplog.c log-httplog.h \
 alert-unified-log.c alert-unified-log.h \
 alert-unified-alert.c alert-unified-alert.h
 
