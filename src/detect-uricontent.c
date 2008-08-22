@@ -245,7 +245,7 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
 
         /* scan all buffers we have */
         u_int8_t i;
-        for (i = 0; i <= p->http_uri.cnt; i++) {
+        for (i = 0; i < p->http_uri.cnt; i++) {
             //printf("p->http_uri.raw_size[%u] %u, %p, %s\n", i, p->http_uri.raw_size[i], p->http_uri.raw[i], p->http_uri.raw[i]);
             //printf("pmt->mcu %p\n", pmt->mcu);
             ret += pmt->mcu->Search(pmt->mcu, &pmt->mtcu, p->http_uri.raw[i], p->http_uri.raw_size[i]);

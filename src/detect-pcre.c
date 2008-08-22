@@ -116,7 +116,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
 
                     p->http_uri.raw[pmt->pkt_cnt] = (u_int8_t *)str_ptr;
                     p->http_uri.raw_size[pmt->pkt_cnt] = ret;
-                    p->http_uri.cnt = pmt->pkt_cnt;
+                    p->http_uri.cnt = pmt->pkt_cnt + 1;
                 } else {
                     FlowVarAdd(p->flow, pe->capname, (u_int8_t *)str_ptr, ret);
                 }

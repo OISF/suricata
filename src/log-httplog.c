@@ -82,7 +82,7 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data)
     u_int16_t size;
 
     /* XXX add a better check for this */
-    if (p->http_uri.raw_size[0] == 0)
+    if (p->http_uri.cnt == 0)
         return 0;
 
     /* we need a lock */
@@ -112,7 +112,7 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data)
     inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
     inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
-    for (i = 0; i <= p->http_uri.cnt; i++) {
+    for (i = 0; i < p->http_uri.cnt; i++) {
         fprintf(aft->fp, "%s %s [**] %s [**] %s [**] %s:%u -> %s:%u\n",
             timebuf, hostname, p->http_uri.raw[i], ua, srcip, p->sp, dstip, p->dp);
         fflush(aft->fp);
@@ -129,7 +129,7 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data)
     u_int16_t size;
 
     /* XXX add a better check for this */
-    if (p->http_uri.raw_size[0] == 0)
+    if (p->http_uri.cnt == 0)
         return 0;
 
     /* we need a lock */
@@ -159,7 +159,7 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data)
     inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
     inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-    for (i = 0; i <= p->http_uri.cnt; i++) {
+    for (i = 0; i < p->http_uri.cnt; i++) {
         fprintf(aft->fp, "%s %s [**] %s [**] %s [**] %s:%u -> %s:%u\n",
             timebuf, hostname, p->http_uri.raw[i], ua, srcip, p->sp, dstip, p->dp);
         fflush(aft->fp);
@@ -169,6 +169,9 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data)
 
 int LogHttplog (ThreadVars *tv, Packet *p, void *data)
 {
+    if (!(PKT_IS_TCP(p)))
+        return 0;
+
     if (PKT_IS_IPV4(p)) {
         return LogHttplogIPv4(tv, p, data);
     } else if (PKT_IS_IPV6(p)) {
