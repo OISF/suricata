@@ -215,31 +215,30 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
     char *addr = NULL;
 
     if (strcmp(addrstr,"$HOME_NET") == 0) {
-        addr = "10.8.0.0/24";
-        //addr = "192.168.0.0/16";
+        addr = "192.168.0.0/16";
     } else if (strcmp(addrstr,"$EXTERNAL_NET") == 0) {
         addr = "!192.168.0.0/16";
     } else if (strcmp(addrstr,"$HTTP_SERVERS") == 0) {
-        addr = "192.168.0.1-192.168.0.16";
+        addr = "!192.168.0.0/16";
     } else if (strcmp(addrstr,"$SMTP_SERVERS") == 0) {
-        addr = "192.168.0.17-192.168.0.32";
+        addr = "!192.168.0.0/16";
     } else if (strcmp(addrstr,"$SQL_SERVERS") == 0) {
-        addr = "192.168.0.33-192.168.0.48";
+        addr = "!192.168.0.0/16";
     } else if (strcmp(addrstr,"$DNS_SERVERS") == 0) {
         addr = "any";
     } else if (strcmp(addrstr,"any") == 0) {
         addr = "any";
     } else {
         addr = (char *)addrstr;
-        printf("addr \"%s\"\n", addrstr);
+        //printf("addr \"%s\"\n", addrstr);
     }
 
     if (flag == 0) {
-        if (DetectAddressGroupSetup(&s->src,addr) < 0) {
+        if (DetectAddressGroupParse(&s->src,addr) < 0) {
             goto error;
         }
     } else {
-        if (DetectAddressGroupSetup(&s->dst,addr) < 0) {
+        if (DetectAddressGroupParse(&s->dst,addr) < 0) {
             goto error;
         }
     }

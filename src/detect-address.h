@@ -60,6 +60,7 @@ int DetectAddressGroupSetup(DetectAddressGroupsHead *, char *);
 int DetectAddressCmp(DetectAddressData *, DetectAddressData *);
 DetectAddressData *DetectAddressParse(char *);
 DetectAddressGroup *DetectAddressLookupGroup(DetectAddressGroupsHead *, Address *);
+int DetectAddressGroupParse(DetectAddressGroupsHead *gh, char *s);
 
 #endif /* __DETECT_ADDRESS_H__ */
 

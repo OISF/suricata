@@ -273,6 +273,190 @@ error:
     return -1;
 }
 
+/* XXX error handling */
+int DetectAddressGroupParse2(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *ghn, char *s,int negate) {
+    int i, x;
+    int o_set = 0, n_set = 0;
+    int depth = 0;
+    size_t size = strlen(s);
+    char address[1024] = "";
+
+    for (i = 0, x = 0; i < size && x < sizeof(address); i++) {
+        address[x] = s[i];
+        x++;
+
+        if (!o_set && s[i] == '!') {
+            n_set = 1;
+            x--;
+        } else if (s[i] == '[') {
+            if (!o_set) {
+                o_set = 1;
+                x = 0;
+            }
+            depth++;
+        } else if (s[i] == ']') {
+            if (depth == 1) { 
+                address[x-1] = '\0';
+                x = 0;
+
+                DetectAddressGroupParse2(gh,ghn,address,negate ? negate : n_set);
+                n_set = 0;
+            }
+            depth--;
+        } else if (depth == 0 && s[i] == ',') {
+            if (o_set == 1) {
+                o_set = 0;
+            } else {
+                address[x-1] = '\0';
+
+                if (negate == 0 && n_set == 0) {
+                    DetectAddressGroupSetup(gh,address);
+                } else {
+                    DetectAddressGroupSetup(ghn,address);
+                }
+                n_set = 0;
+            }
+            x = 0;
+        } else if (depth == 0 && i == size-1) {
+            address[x] = '\0';
+            x = 0;
+
+            if (negate == 0 && n_set == 0) {
+                DetectAddressGroupSetup(gh,address);
+            } else {
+                DetectAddressGroupSetup(ghn,address);
+            }
+            n_set = 0;
+        }
+    }
+
+    return 0;
+//error:
+//    return -1;
+}
+
+int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *ghn) {
+    DetectAddressData *ad;
+    DetectAddressGroup *ag, *ag2;
+    int r = 0;
+
+    /* step 0: if the gh list is empty, but the ghn list isn't
+     * we have a pure not thingy. In that case we add a 0.0.0.0/0
+     * first. */
+    if (gh->ipv4_head == NULL && ghn->ipv4_head != NULL) {
+        r = DetectAddressGroupSetup(gh,"0.0.0.0/0");
+        if (r < 0) {
+            goto error;
+        }
+    }
+    /* ... or ::/0 for ipv6 */
+    if (gh->ipv6_head == NULL && ghn->ipv6_head != NULL) {
+        r = DetectAddressGroupSetup(gh,"::/0");
+        if (r < 0) {
+            goto error;
+        }
+    }
+
+    /* step 1: insert our ghn members into the gh list */
+    for (ag = ghn->ipv4_head; ag != NULL; ag = ag->next) {
+        /* work with a copy of the ad so we can easily clean up
+         * the ghn group later. */
+        ad = DetectAddressDataCopy(ag->ad);
+        if (ad == NULL) {
+            goto error;
+        }
+        r = DetectAddressGroupInsert(gh,ad);
+        if (r < 0) {
+            goto error;
+        }
+    }
+    /* ... and the same for ipv6 */
+    for (ag = ghn->ipv6_head; ag != NULL; ag = ag->next) {
+        /* work with a copy of the ad so we can easily clean up
+         * the ghn group later. */
+        ad = DetectAddressDataCopy(ag->ad);
+        if (ad == NULL) {
+            goto error;
+        }
+        r = DetectAddressGroupInsert(gh,ad);
+        if (r < 0) {
+            goto error;
+        }
+    }
+
+    /* step 2: pull the address blocks that match our 'not' blocks */
+    for (ag = ghn->ipv4_head; ag != NULL; ag = ag->next) {
+        for (ag2 = gh->ipv4_head; ag2 != NULL; ag2 = ag2->next) {
+            r = DetectAddressCmp(ag->ad,ag2->ad);
+            if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
+                if (ag2->prev == NULL) {
+                    gh->ipv4_head = ag2->next;
+                } else {
+                    ag2->prev->next = ag2->next;
+                }
+
+                if (ag2->next != NULL) {
+                    ag2->next->prev = ag2->prev;
+                }
+
+                DetectAddressGroupFree(ag2);
+            }
+        }
+    }
+    /* ... and the same for ipv6 */
+    for (ag = ghn->ipv6_head; ag != NULL; ag = ag->next) {
+        for (ag2 = gh->ipv6_head; ag2 != NULL; ag2 = ag2->next) {
+            r = DetectAddressCmp(ag->ad,ag2->ad);
+            if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
+                if (ag2->prev == NULL) {
+                    gh->ipv4_head = ag2->next;
+                } else {
+                    ag2->prev->next = ag2->next;
+                }
+
+                if (ag2->next != NULL) {
+                    ag2->next->prev = ag2->prev;
+                }
+
+                DetectAddressGroupFree(ag2);
+            }
+        }
+    }
+
+    return 0;
+error:
+    return -1;
+}
+
+int DetectAddressGroupParse(DetectAddressGroupsHead *gh, char *s) {
+    int r;
+
+    DetectAddressGroupsHead *ghn = DetectAddressGroupsHeadInit();
+    if (ghn == NULL) {
+        goto error;
+    }
+
+    r = DetectAddressGroupParse2(gh,ghn,s,/* start with negate no */0);
+    if (r < 0) {
+        goto error;
+    }
+
+    /* merge the 'not' address groups */
+    if (DetectAddressGroupMergeNot(gh,ghn) < 0) {
+        goto error;
+    }
+
+    //DetectAddressGroupPrintList(gh->ipv4_head);
+    //DetectAddressGroupPrintList(gh->ipv6_head);
+
+    /* free the temp negate head */
+    DetectAddressGroupsHeadFree(ghn);
+    return 0;
+error:
+    DetectAddressGroupsHeadFree(ghn);
+    return -1;
+}
+
 DetectAddressGroupsHead *DetectAddressGroupsHeadInit(void) {
     DetectAddressGroupsHead *gh = malloc(sizeof(DetectAddressGroupsHead));
     if (gh == NULL) {
@@ -1775,7 +1959,7 @@ int AddressTestAddressGroupSetup01 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "1.2.3.4");
+        int r = DetectAddressGroupParse(gh, "1.2.3.4");
         if (r == 0) {
             result = 1;
         }
@@ -1790,7 +1974,7 @@ int AddressTestAddressGroupSetup02 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "1.2.3.4");
+        int r = DetectAddressGroupParse(gh, "1.2.3.4");
         if (r == 0 && gh->ipv4_head != NULL) {
             result = 1;
         }
@@ -1805,11 +1989,11 @@ int AddressTestAddressGroupSetup03 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "1.2.3.4");
+        int r = DetectAddressGroupParse(gh, "1.2.3.4");
         if (r == 0 && gh->ipv4_head != NULL) {
             DetectAddressGroup *prev_head = gh->ipv4_head;
 
-            r = DetectAddressGroupSetup(gh, "1.2.3.3");
+            r = DetectAddressGroupParse(gh, "1.2.3.3");
             if (r == 0 && gh->ipv4_head != prev_head &&
                 gh->ipv4_head != NULL && gh->ipv4_head->next == prev_head)
             {
@@ -1827,17 +2011,17 @@ int AddressTestAddressGroupSetup04 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "1.2.3.4");
+        int r = DetectAddressGroupParse(gh, "1.2.3.4");
         if (r == 0 && gh->ipv4_head != NULL) {
             DetectAddressGroup *prev_head = gh->ipv4_head;
 
-            r = DetectAddressGroupSetup(gh, "1.2.3.3");
+            r = DetectAddressGroupParse(gh, "1.2.3.3");
             if (r == 0 && gh->ipv4_head != prev_head &&
                 gh->ipv4_head != NULL && gh->ipv4_head->next == prev_head)
             {
                 DetectAddressGroup *prev_head = gh->ipv4_head;
 
-                r = DetectAddressGroupSetup(gh, "1.2.3.2");
+                r = DetectAddressGroupParse(gh, "1.2.3.2");
                 if (r == 0 && gh->ipv4_head != prev_head &&
                     gh->ipv4_head != NULL && gh->ipv4_head->next == prev_head)
                 {
@@ -1856,17 +2040,17 @@ int AddressTestAddressGroupSetup05 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "1.2.3.2");
+        int r = DetectAddressGroupParse(gh, "1.2.3.2");
         if (r == 0 && gh->ipv4_head != NULL) {
             DetectAddressGroup *prev_head = gh->ipv4_head;
 
-            r = DetectAddressGroupSetup(gh, "1.2.3.3");
+            r = DetectAddressGroupParse(gh, "1.2.3.3");
             if (r == 0 && gh->ipv4_head == prev_head &&
                 gh->ipv4_head != NULL && gh->ipv4_head->next != prev_head)
             {
                 DetectAddressGroup *prev_head = gh->ipv4_head;
 
-                r = DetectAddressGroupSetup(gh, "1.2.3.4");
+                r = DetectAddressGroupParse(gh, "1.2.3.4");
                 if (r == 0 && gh->ipv4_head == prev_head &&
                     gh->ipv4_head != NULL && gh->ipv4_head->next != prev_head)
                 {
@@ -1885,11 +2069,11 @@ int AddressTestAddressGroupSetup06 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "1.2.3.2");
+        int r = DetectAddressGroupParse(gh, "1.2.3.2");
         if (r == 0 && gh->ipv4_head != NULL) {
             DetectAddressGroup *prev_head = gh->ipv4_head;
 
-            r = DetectAddressGroupSetup(gh, "1.2.3.2");
+            r = DetectAddressGroupParse(gh, "1.2.3.2");
             if (r == 0 && gh->ipv4_head == prev_head &&
                 gh->ipv4_head != NULL && gh->ipv4_head->next == NULL)
             {
@@ -1907,9 +2091,9 @@ int AddressTestAddressGroupSetup07 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "10.0.0.0/8");
+        int r = DetectAddressGroupParse(gh, "10.0.0.0/8");
         if (r == 0 && gh->ipv4_head != NULL) {
-            r = DetectAddressGroupSetup(gh, "10.10.10.10");
+            r = DetectAddressGroupParse(gh, "10.10.10.10");
             if (r == 0 && gh->ipv4_head != NULL &&
                 gh->ipv4_head->next != NULL &&
                 gh->ipv4_head->next->next != NULL)
@@ -1928,9 +2112,9 @@ int AddressTestAddressGroupSetup08 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "10.10.10.10");
+        int r = DetectAddressGroupParse(gh, "10.10.10.10");
         if (r == 0 && gh->ipv4_head != NULL) {
-            r = DetectAddressGroupSetup(gh, "10.0.0.0/8");
+            r = DetectAddressGroupParse(gh, "10.0.0.0/8");
             if (r == 0 && gh->ipv4_head != NULL &&
                 gh->ipv4_head->next != NULL &&
                 gh->ipv4_head->next->next != NULL)
@@ -1949,9 +2133,9 @@ int AddressTestAddressGroupSetup09 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "10.10.10.0/24");
+        int r = DetectAddressGroupParse(gh, "10.10.10.0/24");
         if (r == 0 && gh->ipv4_head != NULL) {
-            r = DetectAddressGroupSetup(gh, "10.10.10.10-10.10.11.1");
+            r = DetectAddressGroupParse(gh, "10.10.10.10-10.10.11.1");
             if (r == 0 && gh->ipv4_head != NULL &&
                 gh->ipv4_head->next != NULL &&
                 gh->ipv4_head->next->next != NULL)
@@ -1970,9 +2154,9 @@ int AddressTestAddressGroupSetup10 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "10.10.10.10-10.10.11.1");
+        int r = DetectAddressGroupParse(gh, "10.10.10.10-10.10.11.1");
         if (r == 0 && gh->ipv4_head != NULL) {
-            r = DetectAddressGroupSetup(gh, "10.10.10.0/24");
+            r = DetectAddressGroupParse(gh, "10.10.10.0/24");
             if (r == 0 && gh->ipv4_head != NULL &&
                 gh->ipv4_head->next != NULL &&
                 gh->ipv4_head->next->next != NULL)
@@ -1991,11 +2175,11 @@ int AddressTestAddressGroupSetup11 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "10.10.10.10-10.10.11.1");
+        int r = DetectAddressGroupParse(gh, "10.10.10.10-10.10.11.1");
         if (r == 0) {
-            r = DetectAddressGroupSetup(gh, "10.10.10.0/24");
+            r = DetectAddressGroupParse(gh, "10.10.10.0/24");
             if (r == 0) {
-                r = DetectAddressGroupSetup(gh, "0.0.0.0/0");
+                r = DetectAddressGroupParse(gh, "0.0.0.0/0");
                 if (r == 0) {
                     DetectAddressGroup *one = gh->ipv4_head, *two = one->next,
                                        *three = two->next, *four = three->next,
@@ -2029,11 +2213,11 @@ int AddressTestAddressGroupSetup12 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "10.10.10.10-10.10.11.1");
+        int r = DetectAddressGroupParse(gh, "10.10.10.10-10.10.11.1");
         if (r == 0) {
-            r = DetectAddressGroupSetup(gh, "0.0.0.0/0");
+            r = DetectAddressGroupParse(gh, "0.0.0.0/0");
             if (r == 0) {
-                r = DetectAddressGroupSetup(gh, "10.10.10.0/24");
+                r = DetectAddressGroupParse(gh, "10.10.10.0/24");
                 if (r == 0) {
                     DetectAddressGroup *one = gh->ipv4_head, *two = one->next,
                                        *three = two->next, *four = three->next,
@@ -2067,11 +2251,11 @@ int AddressTestAddressGroupSetup13 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "0.0.0.0/0");
+        int r = DetectAddressGroupParse(gh, "0.0.0.0/0");
         if (r == 0) {
-            r = DetectAddressGroupSetup(gh, "10.10.10.10-10.10.11.1");
+            r = DetectAddressGroupParse(gh, "10.10.10.10-10.10.11.1");
             if (r == 0) {
-                r = DetectAddressGroupSetup(gh, "10.10.10.0/24");
+                r = DetectAddressGroupParse(gh, "10.10.10.0/24");
                 if (r == 0) {
                     DetectAddressGroup *one = gh->ipv4_head, *two = one->next,
                                        *three = two->next, *four = three->next,
@@ -2105,7 +2289,7 @@ int AddressTestAddressGroupSetupIPv414 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "!1.2.3.4");
+        int r = DetectAddressGroupParse(gh, "!1.2.3.4");
         if (r == 0) {
             DetectAddressGroup *one = gh->ipv4_head;
             DetectAddressGroup *two = one ? one->next : NULL;
@@ -2132,7 +2316,7 @@ int AddressTestAddressGroupSetupIPv415 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "!0.0.0.0");
+        int r = DetectAddressGroupParse(gh, "!0.0.0.0");
         if (r == 0) {
             DetectAddressGroup *one = gh->ipv4_head;
 
@@ -2156,7 +2340,7 @@ int AddressTestAddressGroupSetupIPv416 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "!255.255.255.255");
+        int r = DetectAddressGroupParse(gh, "!255.255.255.255");
         if (r == 0) {
             DetectAddressGroup *one = gh->ipv4_head;
 
@@ -2180,7 +2364,7 @@ int AddressTestAddressGroupSetup14 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::1");
+        int r = DetectAddressGroupParse(gh, "2001::1");
         if (r == 0) {
             result = 1;
         }
@@ -2195,7 +2379,7 @@ int AddressTestAddressGroupSetup15 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::1");
+        int r = DetectAddressGroupParse(gh, "2001::1");
         if (r == 0 && gh->ipv6_head != NULL) {
             result = 1;
         }
@@ -2210,11 +2394,11 @@ int AddressTestAddressGroupSetup16 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::4");
+        int r = DetectAddressGroupParse(gh, "2001::4");
         if (r == 0 && gh->ipv6_head != NULL) {
             DetectAddressGroup *prev_head = gh->ipv6_head;
 
-            r = DetectAddressGroupSetup(gh, "2001::3");
+            r = DetectAddressGroupParse(gh, "2001::3");
             if (r == 0 && gh->ipv6_head != prev_head &&
                 gh->ipv6_head != NULL && gh->ipv6_head->next == prev_head)
             {
@@ -2232,17 +2416,17 @@ int AddressTestAddressGroupSetup17 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::4");
+        int r = DetectAddressGroupParse(gh, "2001::4");
         if (r == 0 && gh->ipv6_head != NULL) {
             DetectAddressGroup *prev_head = gh->ipv6_head;
 
-            r = DetectAddressGroupSetup(gh, "2001::3");
+            r = DetectAddressGroupParse(gh, "2001::3");
             if (r == 0 && gh->ipv6_head != prev_head &&
                 gh->ipv6_head != NULL && gh->ipv6_head->next == prev_head)
             {
                 DetectAddressGroup *prev_head = gh->ipv6_head;
 
-                r = DetectAddressGroupSetup(gh, "2001::2");
+                r = DetectAddressGroupParse(gh, "2001::2");
                 if (r == 0 && gh->ipv6_head != prev_head &&
                     gh->ipv6_head != NULL && gh->ipv6_head->next == prev_head)
                 {
@@ -2261,17 +2445,17 @@ int AddressTestAddressGroupSetup18 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::2");
+        int r = DetectAddressGroupParse(gh, "2001::2");
         if (r == 0 && gh->ipv6_head != NULL) {
             DetectAddressGroup *prev_head = gh->ipv6_head;
 
-            r = DetectAddressGroupSetup(gh, "2001::3");
+            r = DetectAddressGroupParse(gh, "2001::3");
             if (r == 0 && gh->ipv6_head == prev_head &&
                 gh->ipv6_head != NULL && gh->ipv6_head->next != prev_head)
             {
                 DetectAddressGroup *prev_head = gh->ipv6_head;
 
-                r = DetectAddressGroupSetup(gh, "2001::4");
+                r = DetectAddressGroupParse(gh, "2001::4");
                 if (r == 0 && gh->ipv6_head == prev_head &&
                     gh->ipv6_head != NULL && gh->ipv6_head->next != prev_head)
                 {
@@ -2290,11 +2474,11 @@ int AddressTestAddressGroupSetup19 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::2");
+        int r = DetectAddressGroupParse(gh, "2001::2");
         if (r == 0 && gh->ipv6_head != NULL) {
             DetectAddressGroup *prev_head = gh->ipv6_head;
 
-            r = DetectAddressGroupSetup(gh, "2001::2");
+            r = DetectAddressGroupParse(gh, "2001::2");
             if (r == 0 && gh->ipv6_head == prev_head &&
                 gh->ipv6_head != NULL && gh->ipv6_head->next == NULL)
             {
@@ -2312,9 +2496,9 @@ int AddressTestAddressGroupSetup20 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2000::/3");
+        int r = DetectAddressGroupParse(gh, "2000::/3");
         if (r == 0 && gh->ipv6_head != NULL) {
-            r = DetectAddressGroupSetup(gh, "2001::4");
+            r = DetectAddressGroupParse(gh, "2001::4");
             if (r == 0 && gh->ipv6_head != NULL &&
                 gh->ipv6_head->next != NULL &&
                 gh->ipv6_head->next->next != NULL)
@@ -2333,9 +2517,9 @@ int AddressTestAddressGroupSetup21 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::4");
+        int r = DetectAddressGroupParse(gh, "2001::4");
         if (r == 0 && gh->ipv6_head != NULL) {
-            r = DetectAddressGroupSetup(gh, "2000::/3");
+            r = DetectAddressGroupParse(gh, "2000::/3");
             if (r == 0 && gh->ipv6_head != NULL &&
                 gh->ipv6_head->next != NULL &&
                 gh->ipv6_head->next->next != NULL)
@@ -2354,9 +2538,9 @@ int AddressTestAddressGroupSetup22 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2000::/3");
+        int r = DetectAddressGroupParse(gh, "2000::/3");
         if (r == 0 && gh->ipv6_head != NULL) {
-            r = DetectAddressGroupSetup(gh, "2001::4-2001::6");
+            r = DetectAddressGroupParse(gh, "2001::4-2001::6");
             if (r == 0 && gh->ipv6_head != NULL &&
                 gh->ipv6_head->next != NULL &&
                 gh->ipv6_head->next->next != NULL)
@@ -2375,9 +2559,9 @@ int AddressTestAddressGroupSetup23 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::4-2001::6");
+        int r = DetectAddressGroupParse(gh, "2001::4-2001::6");
         if (r == 0 && gh->ipv6_head != NULL) {
-            r = DetectAddressGroupSetup(gh, "2000::/3");
+            r = DetectAddressGroupParse(gh, "2000::/3");
             if (r == 0 && gh->ipv6_head != NULL &&
                 gh->ipv6_head->next != NULL &&
                 gh->ipv6_head->next->next != NULL)
@@ -2396,11 +2580,11 @@ int AddressTestAddressGroupSetup24 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::4-2001::6");
+        int r = DetectAddressGroupParse(gh, "2001::4-2001::6");
         if (r == 0) {
-            r = DetectAddressGroupSetup(gh, "2001::/3");
+            r = DetectAddressGroupParse(gh, "2001::/3");
             if (r == 0) {
-                r = DetectAddressGroupSetup(gh, "::/0");
+                r = DetectAddressGroupParse(gh, "::/0");
                 if (r == 0) {
                     DetectAddressGroup *one = gh->ipv6_head, *two = one->next,
                                        *three = two->next, *four = three->next,
@@ -2465,11 +2649,11 @@ int AddressTestAddressGroupSetup25 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "2001::4-2001::6");
+        int r = DetectAddressGroupParse(gh, "2001::4-2001::6");
         if (r == 0) {
-            r = DetectAddressGroupSetup(gh, "::/0");
+            r = DetectAddressGroupParse(gh, "::/0");
             if (r == 0) {
-                r = DetectAddressGroupSetup(gh, "2001::/3");
+                r = DetectAddressGroupParse(gh, "2001::/3");
                 if (r == 0) {
                     DetectAddressGroup *one = gh->ipv6_head, *two = one->next,
                                        *three = two->next, *four = three->next,
@@ -2534,11 +2718,11 @@ int AddressTestAddressGroupSetup26 (void) {
 
     DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
     if (gh != NULL) {
-        int r = DetectAddressGroupSetup(gh, "::/0");
+        int r = DetectAddressGroupParse(gh, "::/0");
         if (r == 0) {
-            r = DetectAddressGroupSetup(gh, "2001::4-2001::6");
+            r = DetectAddressGroupParse(gh, "2001::4-2001::6");
             if (r == 0) {
-                r = DetectAddressGroupSetup(gh, "2001::/3");
+                r = DetectAddressGroupParse(gh, "2001::/3");
                 if (r == 0) {
                     DetectAddressGroup *one = gh->ipv6_head, *two = one->next,
                                        *three = two->next, *four = three->next,
@@ -2598,6 +2782,170 @@ int AddressTestAddressGroupSetup26 (void) {
     return result;
 }
 
+int AddressTestAddressGroupSetup27 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[1.2.3.4]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup28 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[1.2.3.4,4.3.2.1]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup29 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[1.2.3.4,4.3.2.1,10.10.10.10]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup30 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[[1.2.3.4,2.3.4.5],4.3.2.1,[10.10.10.10,11.11.11.11]]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup31 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[[1.2.3.4,[2.3.4.5,3.4.5.6]],4.3.2.1,[10.10.10.10,[11.11.11.11,12.12.12.12]]]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup32 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[[1.2.3.4,[2.3.4.5,[3.4.5.6,4.5.6.7]]],4.3.2.1,[10.10.10.10,[11.11.11.11,[12.12.12.12,13.13.13.13]]]]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup33 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "![1.1.1.1,[2.2.2.2,[3.3.3.3,4.4.4.4]]]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup34 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[1.0.0.0/8,![1.1.1.1,[1.2.1.1,1.3.1.1]]]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup35 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[1.0.0.0/8,[2.0.0.0/8,![1.1.1.1,2.2.2.2]]]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup36 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[1.0.0.0/8,[2.0.0.0/8,[3.0.0.0/8,!1.1.1.1]]]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
+
+int AddressTestAddressGroupSetup37 (void) {
+    int result = 0;
+
+    DetectAddressGroupsHead *gh = DetectAddressGroupsHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressGroupParse(gh, "[0.0.0.0/0,::/0]");
+        if (r == 0) {
+            result = 1;
+        }
+
+        DetectAddressGroupsHeadFree(gh);
+    }
+    return result;
+}
 int AddressTestCutIPv401(void) {
     DetectAddressData *a, *b, *c;
     a = DetectAddressParse("1.2.3.0/255.255.255.0");
@@ -2999,6 +3347,18 @@ void DetectAddressTests(void) {
     UtRegisterTest("AddressTestAddressGroupSetup24", AddressTestAddressGroupSetup24, 1);
     UtRegisterTest("AddressTestAddressGroupSetup25", AddressTestAddressGroupSetup25, 1);
     UtRegisterTest("AddressTestAddressGroupSetup26", AddressTestAddressGroupSetup26, 1);
+
+    UtRegisterTest("AddressTestAddressGroupSetup27", AddressTestAddressGroupSetup27, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup28", AddressTestAddressGroupSetup28, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup29", AddressTestAddressGroupSetup29, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup30", AddressTestAddressGroupSetup30, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup31", AddressTestAddressGroupSetup31, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup32", AddressTestAddressGroupSetup32, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup33", AddressTestAddressGroupSetup33, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup34", AddressTestAddressGroupSetup34, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup35", AddressTestAddressGroupSetup35, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup36", AddressTestAddressGroupSetup36, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup37", AddressTestAddressGroupSetup37, 1);
 
     UtRegisterTest("AddressTestCutIPv401", AddressTestCutIPv401, 1);
     UtRegisterTest("AddressTestCutIPv402", AddressTestCutIPv402, 1);
