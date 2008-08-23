@@ -218,7 +218,8 @@ void WmFreePattern(MpmCtx *mpm_ctx, WmPattern *p) {
 int WmAddPattern(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen, char nocase, u_int32_t id) {
     WmCtx *wm_ctx = (WmCtx *)mpm_ctx->ctx;
 
-    //printf("WmAddPattern: ctx %p \"", mpm_ctx); prt(pat, patlen); printf("\" id %u\n", id);
+    //printf("WmAddPattern: ctx %p \"", mpm_ctx); prt(pat, patlen);
+    //printf("\" id %u, nocase %s\n", id, nocase ? "true" : "false");
 
     if (patlen == 0)
         return 0;
@@ -245,8 +246,7 @@ int WmAddPattern(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen, char nocase, 
         if (p->ci == NULL) goto error;
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += patlen;
-        if (nocase) memcpy_tolower(p->ci, pat, patlen);
-        else        memcpy(p->ci, pat, patlen);
+        memcpy_tolower(p->ci, pat, patlen);
 
         if (p->len > 1) {
             p->prefix_cs = (u_int16_t)(*(p->cs)+*(p->cs+1));
@@ -292,11 +292,11 @@ error:
 }
 
 int WmAddPatternCI(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen, u_int32_t id) {
-    return WmAddPattern(mpm_ctx, pat, patlen, 0, id);
+    return WmAddPattern(mpm_ctx, pat, patlen, 1, id);
 }
 
 int WmAddPatternCS(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen, u_int32_t id) {
-    return WmAddPattern(mpm_ctx, pat, patlen, 1, id);
+    return WmAddPattern(mpm_ctx, pat, patlen, 0, id);
 }
 
 #define HASH_SIZE 65536
@@ -355,27 +355,7 @@ static void WmPrepareHash(MpmCtx *mpm_ctx) {
 error:
     return;
 }
-/*
-static int WmCmpSort(const void *a, const void *b) {
-    WmPattern *p1 = (WmPattern *)a;
-    WmPattern *p2 = (WmPattern *)b;
-    int r = 0;
 
-    if (p1->len == p2->len)
-        return memcmp(p1->ci, p2->ci, p1->len);
-    else if(p1->len < p2->len ) {
-       if ((r = memcmp(p1->ci, p2->ci, p1->len)) != 0)
-           return r;
-
-       return -1;
-    } else {
-        if ((r = memcmp(p1->ci, p2->ci, p2->len)) != 0)
-            return r;
-
-        return 1;
-    }
-}
-*/
 static void WmPrepareShiftTable(MpmCtx *mpm_ctx)
 {
     WmCtx *wm_ctx = (WmCtx *)mpm_ctx->ctx;
@@ -436,8 +416,6 @@ int WmPreparePatterns(MpmCtx *mpm_ctx) {
         memcpy(&wm_ctx->parray[i], node, sizeof(WmPattern));
         node = node->next; i++;
     }
-    /* Sort the patterns as Wu-Manber wants a sorted list */
-    //qsort(wm_ctx->parray, mpm_ctx->pattern_cnt, sizeof(WmPattern), WmCmpSort);
 
     WmPrepareShiftTable(mpm_ctx);
     WmPrepareHash(mpm_ctx);
@@ -1301,6 +1279,126 @@ int WmTestSearch16 (void) {
     return result;
 }
 
+int WmTestSearch17 (void) {
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
+
+    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0);
+    WmPreparePatterns(&mpm_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
+
+    WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28);
+
+    u_int32_t len = mpm_thread_ctx.match[0].len;
+
+    MpmMatchCleanup(&mpm_thread_ctx);
+
+    if (len == 1)
+        result = 1;
+
+    WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmDestroyCtx(&mpm_ctx);
+    return result;
+}
+
+int WmTestSearch18 (void) {
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
+
+    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0);
+    WmPreparePatterns(&mpm_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
+
+    WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+
+    u_int32_t len = mpm_thread_ctx.match[0].len;
+
+    MpmMatchCleanup(&mpm_thread_ctx);
+
+    if (len == 0)
+        result = 1;
+
+    WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmDestroyCtx(&mpm_ctx);
+    return result;
+}
+
+int WmTestSearch19 (void) {
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
+
+    WmAddPatternCI(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0);
+    WmPreparePatterns(&mpm_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
+
+    WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+
+    u_int32_t len = mpm_thread_ctx.match[0].len;
+
+    MpmMatchCleanup(&mpm_thread_ctx);
+
+    if (len == 1)
+        result = 1;
+
+    WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmDestroyCtx(&mpm_ctx);
+    return result;
+}
+
+int WmTestSearch20 (void) {
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
+
+    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0);
+    WmPreparePatterns(&mpm_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
+
+    WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28);
+
+    u_int32_t len = mpm_thread_ctx.match[0].len;
+
+    MpmMatchCleanup(&mpm_thread_ctx);
+
+    if (len == 0)
+        result = 1;
+
+    WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmDestroyCtx(&mpm_ctx);
+    return result;
+}
+
+int WmTestSearch21 (void) {
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
+
+    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0);
+    WmPreparePatterns(&mpm_ctx);
+    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
+
+    WmSearch2(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28);
+
+    u_int32_t len = mpm_thread_ctx.match[0].len;
+
+    MpmMatchCleanup(&mpm_thread_ctx);
+
+    if (len == 1)
+        result = 1;
+
+    WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
+    WmDestroyCtx(&mpm_ctx);
+    return result;
+}
+
 void WmRegisterTests(void) {
     UtRegisterTest("WmTestInitCtx01", WmTestInitCtx01, 1);
     UtRegisterTest("WmTestInitCtx02", WmTestInitCtx02, 1);
@@ -1335,5 +1433,10 @@ void WmRegisterTests(void) {
     UtRegisterTest("WmTestSearch14", WmTestSearch14, 1);
     UtRegisterTest("WmTestSearch15", WmTestSearch15, 1);
     UtRegisterTest("WmTestSearch16", WmTestSearch16, 1);
+    UtRegisterTest("WmTestSearch17", WmTestSearch17, 1);
+    UtRegisterTest("WmTestSearch18", WmTestSearch18, 1);
+    UtRegisterTest("WmTestSearch19", WmTestSearch19, 1);
+    UtRegisterTest("WmTestSearch20", WmTestSearch20, 1);
+    UtRegisterTest("WmTestSearch21", WmTestSearch21, 1);
 }
 
