@@ -47,10 +47,12 @@ int DetectNocaseSetup (Signature *s, SigMatch *m, char *nullstr)
             //printf("DetectNocaseSetup: set nocase for previous content\n");
             cd->flags |= DETECT_URICONTENT_NOCASE;
         } else {
-            printf("DetectNocaseSetup: Unknown previous keyword!\n");
+            printf("DetectNocaseSetup: Unknown previous keyword! (type %u)\n", pm->type);
+            return -1;
         }
     } else {
-        printf("DetectNocaseSetup: No previous match!\n");
+        printf("DetectNocaseSetup: No previous match! (pm == NULL)\n");
+        return -1;
     }
 
     return 0;
