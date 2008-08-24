@@ -40,8 +40,9 @@
 
 #include "util-unittest.h"
 
+/* XXX store all this in a DetectionEngineCtx one day */
 static Signature *sig_list = NULL;
-static DetectAddressGroupsHead *g_src_gh = NULL;
+static DetectAddressGroupsHead *g_src_gh = NULL, *g_tmp_gh = NULL;
 
 SigMatch *SigMatchAlloc(void);
 void SigMatchFree(SigMatch *sm);
@@ -178,6 +179,7 @@ void SigLoadSignatures (void)
     //FILE *fp = fopen("/home/victor/rules/all.rules", "r");
     //FILE *fp = fopen("/etc/vips/rules/zango.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/vips-vrt-all.sigs", "r");
+    //FILE *fp = fopen("/home/victor/rules/test-many-ips.rules", "r");
     if (fp == NULL) {
         printf("ERROR, could not open sigs file\n");
         exit(1);
@@ -373,22 +375,145 @@ void SigCleanSignatures()
     }
 }
 
-/* fill the global src group head */
-int SigAddressPrepareStage1(Signature *s) {
+/* add all signatures to their own source address group
+ * XXX not currently used */
+int SigAddressPrepareStage0(Signature *s) {
     Signature *tmp_s = NULL;
-    DetectAddressGroup *gr = NULL;
-    DetectAddressData *ad = NULL;
+    DetectAddressGroup *gr = NULL;//, *grnew = NULL;
+    //DetectAddressData *ad = NULL;
 
-    printf("* Building signature grouping structure, stage 1: building source address list\n");
+    printf("* Building signature grouping structure, stage 0: adding signatures to sig source addresses...\n");
+
+    /* now for every rule add the source group */
+    for (tmp_s = s; tmp_s != NULL; tmp_s = tmp_s->next) {
+        for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
+            if (SigGroupAppend(gr,tmp_s) < 0) {
+                goto error;
+            }
+        }
+        for (gr = tmp_s->src.ipv6_head; gr != NULL; gr = gr->next) {
+            if (SigGroupAppend(gr,tmp_s) < 0) {
+                goto error;
+            }
+        }
+        for (gr = tmp_s->src.any_head; gr != NULL; gr = gr->next) {
+            if (SigGroupAppend(gr,tmp_s) < 0) {
+                goto error;
+            }
+        }
+    }
+    printf("* Building signature grouping structure, stage 0: adding signatures to sig source addresses... done\n");
+
+    return 0;
+error:
+    printf("SigAddressPrepareStage0 error\n");
+    return -1;
+}
+
+/* fill the global src group head, with the sigs included
+ * XXX WIP code, not working & not used */
+int SigAddressPrepareStage0a(Signature *s) {
+    Signature *tmp_s = NULL;
+    DetectAddressGroup *gr = NULL, *lookup_gr = NULL;
+    //DetectAddressData *ad = NULL;
+
+    printf("* Building signature grouping structure, stage 0a: building source address list\n");
 
     g_src_gh = DetectAddressGroupsHeadInit();
     if (g_src_gh == NULL) {
         goto error;
     }
+    g_tmp_gh = DetectAddressGroupsHeadInit();
+    if (g_tmp_gh == NULL) {
+        goto error;
+    }
+
+    u_int32_t i = 0;
+
+    /* now for every rule add the source group to our temp list */
+    for (tmp_s = s; tmp_s != NULL; tmp_s = tmp_s->next, i++) {
+//        printf("* %6u: Signature %u\n", i, tmp_s->id);
+        for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
+//            printf("Group has address: "); DetectAddressDataPrint(gr->ad);
+            if ((lookup_gr = DetectAddressGroupLookup(g_tmp_gh->ipv4_head,gr->ad)) == NULL) {
+//                printf("New group, appending and inserting\n");
+
+                DetectAddressGroup *grtmp = DetectAddressGroupInit();
+                if (grtmp == NULL) {
+                    goto error;
+                }
+                DetectAddressData *adtmp = DetectAddressDataCopy(gr->ad);
+                if (adtmp == NULL) {
+                    goto error;
+                }
+                grtmp->ad = adtmp;
+                DetectAddressGroupAppend(&g_tmp_gh->ipv4_head,grtmp);
+
+                SigGroupAppend(grtmp,tmp_s);
+            } else {
+//                printf("Existing group, not inserting but we will merge sigs with %p\n", lookup_gr);
+
+                /* our group will only have one sig, this one. So add that. */
+                SigGroupAppend(lookup_gr,tmp_s);
+            }
+        }
+    }
+    printf("g_tmp_gh strt\n");
+    DetectAddressGroupPrintList(g_tmp_gh->ipv4_head);
+    printf("g_tmp_gh end\n");
+
+    u_int32_t cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
+
+    for (gr = g_src_gh->any_head; gr != NULL; gr = gr->next) {
+       cnt_any++;
+    }
+    for (gr = g_src_gh->ipv4_head; gr != NULL; gr = gr->next) {
+       cnt_ipv4++;
+    }
+    for (gr = g_src_gh->ipv6_head; gr != NULL; gr = gr->next) {
+       cnt_ipv6++;
+    }
+
+    printf("* Source any: %u address blocks.\n", cnt_any);
+    printf("* Source ipv4: %u address blocks.\n", cnt_ipv4);
+    printf("* Source ipv6: %u address blocks.\n", cnt_ipv6);
+    printf("* Building signature grouping structure, stage 0a: building source address list... done\n");
+
+    return 0;
+error:
+    printf("SigAddressPrepareStage0a error\n");
+    return -1;
+}
+/* fill the global src group head */
+int SigAddressPrepareStage1(Signature *s) {
+    Signature *tmp_s = NULL;
+    DetectAddressGroup *gr = NULL;
+    DetectAddressData *ad = NULL;
+    u_int32_t i = 0;
+
+    printf("* Building signature grouping structure, stage 1: building source address list\n");
+
+    /* initializet the global lookup group head for source addresses */
+    g_src_gh = DetectAddressGroupsHeadInit();
+    if (g_src_gh == NULL) {
+        goto error;
+    }
+    /* initialize a temporary group head for speeding up initialization */
+    g_tmp_gh = DetectAddressGroupsHeadInit();
+    if (g_tmp_gh == NULL) {
+        goto error;
+    }
 
     /* now for every rule add the source group */
-    for (tmp_s = s; tmp_s != NULL; tmp_s = tmp_s->next) {
-        for (gr = tmp_s->src.any_head; gr != NULL; gr = gr->next) {
+    for (tmp_s = s; tmp_s != NULL; tmp_s = tmp_s->next, i++) {
+        //printf("* %6u: Signature %u\n", i, tmp_s->id);
+
+        //for (gr = tmp_s->src.any_head; gr != NULL; gr = gr->next) {
+        /* the 'any' list will contain max 1, so no need to loop
+         * and no need to try the insertion every single time */
+        if (tmp_s->src.any_head != NULL && g_src_gh->any_head == NULL) {
+            gr = tmp_s->src.any_head;
+
             ad = DetectAddressDataCopy(gr->ad);
             if (ad == NULL) {
                 goto error;
@@ -399,16 +524,37 @@ int SigAddressPrepareStage1(Signature *s) {
             }
         }
         for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
-            ad = DetectAddressDataCopy(gr->ad);
-            if (ad == NULL) {
-                goto error;
-            }
+            /* For every address block we want to insert into the global
+             * source list, we first check if we already did this. Many
+             * sigs use the same blocks, and this check is a hell of a lot
+             * cheaper than doing the actual pointless insert. */
+            if (DetectAddressGroupLookup(g_tmp_gh->ipv4_head,gr->ad) == 0) {
+                /* first add a copy of the group to the tmp list */
+                DetectAddressGroup *grtmp = DetectAddressGroupInit();
+                if (grtmp == NULL) {
+                    goto error;
+                }
+                DetectAddressData *adtmp = DetectAddressDataCopy(gr->ad);
+                if (adtmp == NULL) {
+                    goto error;
+                }
+                grtmp->ad = adtmp;
 
-            if (DetectAddressGroupInsert(g_src_gh,ad) < 0) {
-                goto error;
+                DetectAddressGroupAppend(&g_tmp_gh->ipv4_head,grtmp);
+
+                /* next insert this address block */
+                ad = DetectAddressDataCopy(gr->ad);
+                if (ad == NULL) {
+                    goto error;
+                }
+
+                if (DetectAddressGroupInsert(g_src_gh,ad) < 0) {
+                    goto error;
+                }
             }
         }
         for (gr = tmp_s->src.ipv6_head; gr != NULL; gr = gr->next) {
+            /* XXX apply the same speedup trick as the ipv4 one */
             ad = DetectAddressDataCopy(gr->ad);
             if (ad == NULL) {
                 goto error;
@@ -1081,6 +1227,10 @@ int SigAddressCleanupStage4(void) {
     return 0;
 }
 
+/* shortcut for debugging. If enabled Stage5 will
+ * print sigid's for all groups */
+//#define PRINTSIGS
+
 /* just printing */
 int SigAddressPrepareStage5(void) {
     DetectAddressGroupsHead *global_dst_gh = NULL;
@@ -1112,7 +1262,7 @@ int SigAddressPrepareStage5(void) {
                     }
                 }
             }
-/*
+#ifdef PRINTSIGS
             if (global_dst_gr->sh && global_dst_gr->sh->head) {
                 printf ("  - ");
                 SigGroupContainer *sg; 
@@ -1122,7 +1272,7 @@ int SigAddressPrepareStage5(void) {
                     else printf("\n");
                 }
             }
-*/
+#endif
         }
         for (global_dst_gr = global_dst_gh->any_head;
              global_dst_gr != NULL;
@@ -1139,7 +1289,7 @@ int SigAddressPrepareStage5(void) {
                     }
                 }
             }
-/*
+#ifdef PRINTSIGS
             if (global_dst_gr->sh && global_dst_gr->sh->head) {
                 printf ("  - ");
                 SigGroupContainer *sg; 
@@ -1149,7 +1299,7 @@ int SigAddressPrepareStage5(void) {
                     else printf("\n");
                 }
             }
-*/
+#endif
         }
     }
 
@@ -1177,7 +1327,7 @@ int SigAddressPrepareStage5(void) {
                     }
                 }
             }
-/*
+#ifdef PRINTSIGS
             if (global_dst_gr->sh && global_dst_gr->sh->head) {
                 printf ("  - ");
                 SigGroupContainer *sg; 
@@ -1187,7 +1337,7 @@ int SigAddressPrepareStage5(void) {
                     else printf("\n");
                 }
             }
-*/
+#endif
         }
         for (global_dst_gr = global_dst_gh->any_head;
              global_dst_gr != NULL;
@@ -1204,7 +1354,7 @@ int SigAddressPrepareStage5(void) {
                     }
                 }
             }
-/*
+#ifdef PRINTSIGS
             if (global_dst_gr->sh && global_dst_gr->sh->head) {
                 printf ("  - ");
                 SigGroupContainer *sg; 
@@ -1214,7 +1364,7 @@ int SigAddressPrepareStage5(void) {
                     else printf("\n");
                 }
             }
-*/
+#endif
         }
     }
 
@@ -1242,7 +1392,7 @@ int SigAddressPrepareStage5(void) {
                     }
                 }
             }
-/*
+#ifdef PRINTSIGS
             if (global_dst_gr->sh && global_dst_gr->sh->head) {
                 printf ("  - ");
                 SigGroupContainer *sg; 
@@ -1252,7 +1402,7 @@ int SigAddressPrepareStage5(void) {
                     else printf("\n");
                 }
             }
-*/
+#endif
         } 
         for (global_dst_gr = global_dst_gh->ipv4_head;
              global_dst_gr != NULL;
@@ -1269,7 +1419,7 @@ int SigAddressPrepareStage5(void) {
                     }
                 }
             }
-/*
+#ifdef PRINTSIGS
             if (global_dst_gr->sh && global_dst_gr->sh->head) {
                 printf ("  - ");
                 SigGroupContainer *sg; 
@@ -1279,7 +1429,7 @@ int SigAddressPrepareStage5(void) {
                     else printf("\n");
                 }
             }
-*/
+#endif
         }
         for (global_dst_gr = global_dst_gh->ipv6_head;
              global_dst_gr != NULL;
@@ -1296,7 +1446,7 @@ int SigAddressPrepareStage5(void) {
                     }
                 }
             }
-/*
+#ifdef PRINTSIGS
             if (global_dst_gr->sh && global_dst_gr->sh->head) {
                 printf ("  - ");
                 SigGroupContainer *sg; 
@@ -1306,7 +1456,7 @@ int SigAddressPrepareStage5(void) {
                     else printf("\n");
                 }
             }
-*/
+#endif
         }
     }
     printf("* Building signature grouping structure, stage 5: print... done\n");
@@ -1314,11 +1464,14 @@ int SigAddressPrepareStage5(void) {
 }
 
 int SigGroupBuild (Signature *s) {
+    //SigAddressPrepareStage0(s);
+    //SigAddressPrepareStage0a(s);
     SigAddressPrepareStage1(s);
     SigAddressPrepareStage2(s);
     SigAddressPrepareStage3(s);
     SigAddressPrepareStage4();
-    SigAddressPrepareStage5();
+    /* Stage 5 is just for debug output */
+    //SigAddressPrepareStage5();
 
     return 0;
 }

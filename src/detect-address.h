@@ -64,6 +64,7 @@ int DetectAddressGroupParse(DetectAddressGroupsHead *, char *);
 DetectAddressGroup *DetectAddressGroupInit(void);
 int DetectAddressGroupAppend(DetectAddressGroup **head, DetectAddressGroup *ag);
 DetectAddressGroup *DetectAddressGroupLookup(DetectAddressGroup *head, DetectAddressData *ad);
+void DetectAddressGroupPrintList(DetectAddressGroup *);
 
 #endif /* __DETECT_ADDRESS_H__ */
 
