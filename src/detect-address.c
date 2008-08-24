@@ -51,12 +51,29 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
     }
 }
 
+/* used to see if the exact same address group exists in the list
+ * returns a ptr to the match, or NULL if no match
+ */
+DetectAddressGroup *DetectAddressGroupLookup(DetectAddressGroup *head, DetectAddressData *ad) {
+    DetectAddressGroup *cur;
+
+    if (head != NULL) {
+        for (cur = head; cur != NULL; cur = cur->next) {
+             if (DetectAddressCmp(cur->ad, ad) == ADDRESS_EQ)
+                 return cur;
+        }
+    }
+
+    return NULL;
+}
+
 void DetectAddressGroupPrintList(DetectAddressGroup *head) {
     DetectAddressGroup *cur;
 
     printf("list:\n");
     if (head != NULL) {
         for (cur = head; cur != NULL; cur = cur->next) {
+             printf("SIGS %6u ", cur->sh ? cur->sh->sig_cnt : 0);
              DetectAddressDataPrint(cur->ad);
         }
     }
@@ -77,6 +94,22 @@ void DetectAddressGroupCleanupList (DetectAddressGroup *head) {
     }
 
     head = NULL;
+}
+
+int DetectAddressGroupAppend(DetectAddressGroup **head, DetectAddressGroup *ag) {
+    DetectAddressGroup *cur, *prev_cur = NULL;
+
+    if (*head != NULL) {
+        for (cur = *head; cur != NULL; cur = cur->next) {
+            prev_cur = cur;
+        }
+        ag->prev = prev_cur;
+        prev_cur->next = ag;
+    } else {
+        *head = ag;
+    }
+
+    return 0;
 }
 
 /* helper functions for DetectAddressGroupInsert:
@@ -386,7 +419,7 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
 
     /* step 2: pull the address blocks that match our 'not' blocks */
     for (ag = ghn->ipv4_head; ag != NULL; ag = ag->next) {
-        for (ag2 = gh->ipv4_head; ag2 != NULL; ag2 = ag2->next) {
+        for (ag2 = gh->ipv4_head; ag2 != NULL; ) {
             r = DetectAddressCmp(ag->ad,ag2->ad);
             if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
                 if (ag2->prev == NULL) {
@@ -398,8 +431,12 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
                 if (ag2->next != NULL) {
                     ag2->next->prev = ag2->prev;
                 }
-
+                /* store the next ptr and remove the group */
+                DetectAddressGroup *next_ag2 = ag2->next;
                 DetectAddressGroupFree(ag2);
+                ag2 = next_ag2;
+            } else {
+                ag2 = ag2->next;
             }
         }
     }
@@ -428,7 +465,7 @@ error:
     return -1;
 }
 
-int DetectAddressGroupParse(DetectAddressGroupsHead *gh, char *s) {
+int DetectAddressGroupParse(DetectAddressGroupsHead *gh, char *str) {
     int r;
 
     DetectAddressGroupsHead *ghn = DetectAddressGroupsHeadInit();
@@ -436,7 +473,7 @@ int DetectAddressGroupParse(DetectAddressGroupsHead *gh, char *s) {
         goto error;
     }
 
-    r = DetectAddressGroupParse2(gh,ghn,s,/* start with negate no */0);
+    r = DetectAddressGroupParse2(gh,ghn,str,/* start with negate no */0);
     if (r < 0) {
         goto error;
     }

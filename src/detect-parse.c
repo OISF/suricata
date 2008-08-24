@@ -233,6 +233,7 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
         //printf("addr \"%s\"\n", addrstr);
     }
 
+    /* pass on to the address(list) parser */
     if (flag == 0) {
         if (DetectAddressGroupParse(&s->src,addr) < 0) {
             goto error;
