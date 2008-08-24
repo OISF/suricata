@@ -109,6 +109,7 @@ typedef struct _SigGroupHead {
 
     /* list of signature containers */
     SigGroupContainer *head;
+    SigGroupContainer *tail;
     u_int32_t sig_cnt;
     u_int32_t refcnt;
 
@@ -138,9 +139,9 @@ enum {
     DETECT_METADATA,
     DETECT_REFERENCE,
     DETECT_MSG,
-    DETECT_CONTENT,
-    DETECT_URICONTENT,
-    DETECT_PCRE,
+    DETECT_CONTENT,    /* 8 */
+    DETECT_URICONTENT, /* 9 */
+    DETECT_PCRE,       /* 10 */
     DETECT_DEPTH,
     DETECT_DISTANCE,
     DETECT_WITHIN,

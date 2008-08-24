@@ -81,14 +81,11 @@ int SigGroupAppend(DetectAddressGroup *ag, Signature *s) {
     if (ag->sh->head == NULL) {
         /* put it as first in the list */
         ag->sh->head = sg;
+        ag->sh->tail = sg;
     } else {
         /* append to the list */
-        tmp_sg = ag->sh->head;
-        while (tmp_sg->next != NULL) {
-            tmp_sg = tmp_sg->next;
-        }
-
-        tmp_sg->next = sg;
+        tmp_sg = ag->sh->tail;
+        ag->sh->tail = tmp_sg->next = sg;
     }
     ag->sh->sig_cnt++;
     return 0;
