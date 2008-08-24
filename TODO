@@ -7,11 +7,13 @@ DETECTION ENGINE:
 - implement protocol as a prefilter
 - implement src and dst ports as prefilters
 
+- speed up initialization with many address groups present
 
 WU-MANBER:
-
 - Consider using dynamic/variable hash sizes. A wm_ctx is quite big (512kb) even for small pattern sets.
 
+ADDRESSES:
+- support [1.2.3.4,2.3.4.5] notation: cleanup (memory!) and unittest
 
 MAIN:
 - move packet preallocation into it's own function
