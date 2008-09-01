@@ -17,18 +17,24 @@ void DetectMsgRegister (void) {
 int DetectMsgSetup (Signature *s, SigMatch *m, char *msgstr)
 {
     char *str = msgstr;
-    char dubbed = 0;
 
     /* strip "'s */
     if (msgstr[0] == '\"' && msgstr[strlen(msgstr)-1] == '\"') {
         str = strdup(msgstr+1);
         str[strlen(msgstr)-2] = '\0';
-        dubbed = 1;
+    } else if (msgstr[1] == '\"' && msgstr[strlen(msgstr)-1] == '\"') {
+        /* XXX do this parsing in a better way */
+        str = strdup(msgstr+2);
+        str[strlen(msgstr)-3] = '\0';
+        //printf("DetectMsgSetup: format hack applied: \'%s\'\n", str);
+    } else {
+        printf("DetectMsgSetup: format error \'%s\'\n", msgstr);
+        return -1;
     }
 
     s->msg = strdup(str);
 
-    if (dubbed) free(str);
+    free(str);
     return 0;
 }
 
