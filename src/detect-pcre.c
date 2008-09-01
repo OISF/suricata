@@ -20,12 +20,13 @@ static pcre_extra *parse_capture_regex_study;
 
 int DetectPcreMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
 int DetectPcreSetup (Signature *, SigMatch *, char *);
+int DetectPcreFree(SigMatch *);
 
 void DetectPcreRegister (void) {
     sigmatch_table[DETECT_PCRE].name = "pcre";
     sigmatch_table[DETECT_PCRE].Match = DetectPcreMatch;
     sigmatch_table[DETECT_PCRE].Setup = DetectPcreSetup;
-    sigmatch_table[DETECT_PCRE].Free  = NULL;
+    sigmatch_table[DETECT_PCRE].Free  = DetectPcreFree;
     sigmatch_table[DETECT_PCRE].RegisterTests  = NULL;
 
     const char *eb;
@@ -144,7 +145,7 @@ int DetectPcreSetup (Signature *s, SigMatch *m, char *regexstr)
     int opts = 0;
     DetectPcreData *pd = NULL;
     SigMatch *sm = NULL;
-    char *re = NULL, *op = NULL;
+    char *re = NULL, *op_ptr = NULL, *op = NULL;
     char dubbed = 0;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
@@ -183,7 +184,7 @@ int DetectPcreSetup (Signature *s, SigMatch *m, char *regexstr)
                 printf("DetectPcreSetup: pcre_get_substring failed\n");
                 return -1;
             }
-            op = (char *)str_ptr;
+            op_ptr = op = (char *)str_ptr;
         }
     }
     //printf("ret %d re \'%s\', op \'%s\'\n", ret, re, op);
@@ -275,13 +276,31 @@ int DetectPcreSetup (Signature *s, SigMatch *m, char *regexstr)
 
     SigMatchAppend(s,m,sm);
 
-    if (dubbed) free(re);
+    if (capture_str_ptr != NULL) pcre_free((char *)capture_str_ptr);
+    if (re != NULL) free(re);
+    if (op_ptr != NULL) free(op_ptr);
     return 0;
 
 error:
+    if (re != NULL) free(re);
+    if (op_ptr != NULL) free(op_ptr);
+    if (pd != NULL && pd->capname != NULL) free(pd->capname);
+    if (pd != NULL && pd->re != NULL) pcre_free(pd->re);
+    if (pd != NULL && pd->sd != NULL) pcre_free(pd->sd);
     if (dubbed) free(re);
     if (pd) free(pd);
     if (sm) free(sm);
     return -1;
+}
+
+int DetectPcreFree(SigMatch *sm) {
+    DetectPcreData *pd = (DetectPcreData *)sm->ctx;
+
+    if (pd->capname != NULL) free(pd->capname);
+    if (pd->re != NULL) pcre_free(pd->re);
+    if (pd->sd != NULL) pcre_free(pd->sd);
+
+    free(sm->ctx);
+    return 0;
 }
 
