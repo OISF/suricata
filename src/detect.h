@@ -2,6 +2,8 @@
 #define __DETECT_H__
 
 #include "detect-address.h"
+#include "detect-content.h"
+#include "detect-uricontent.h"
 
 #define SIG_FLAG_RECURSIVE 0x01
 #define SIG_FLAG_SP_ANY    0x02
@@ -87,43 +89,57 @@ typedef struct _SigGroupContainer {
     struct _SigGroupContainer *next;
 } SigGroupContainer;
 
-typedef struct _SigGroupType {
-    u_int8_t type;
-} SigGroupType;
+/* container for content matches... we use this to compare
+ * group heads for contents
+ * XXX name */
+typedef struct _SigGroupContent {
+    DetectContentData *content;
+    struct _SigGroupContent *next;
+} SigGroupContent;
+
+/* container for content matches... we use this to compare
+ * group heads for contents
+ * XXX name */
+typedef struct _SigGroupUricontent {
+    DetectUricontentData *content;
+    struct _SigGroupUricontent *next;
+} SigGroupUricontent;
 
 #define SIG_GROUP_HAVECONTENT    0x1
 #define SIG_GROUP_HAVEURICONTENT 0x2
+
+/* XXX rename */
 #define SIG_GROUP_INITIALIZED    0x4
 #define SIG_GROUP_COPY           0x8
 
-/* head of the list of containers, contains
- * the pattern matcher context for the sigs
- * that follow. */
+#define SIG_GROUP_HEAD_MPM_COPY      0x4
+#define SIG_GROUP_HEAD_MPM_URI_COPY  0x8
+
+/* head of the list of containers. */
 typedef struct _SigGroupHead {
-    u_int8_t type;
+    u_int8_t flags;
 
     /* pattern matcher instance */
     MpmCtx *mpm_ctx;
     MpmCtx *mpm_uri_ctx;
-    u_int8_t flags;
+
+    /* list of content containers
+     * XXX move into a separate data struct
+     * with only a ptr to it. Saves some memory
+     * after initialization
+     * XXX use a bitarray to save 7/8 of the mem*/
+    u_int32_t *content_array;
+    u_int32_t content_size;
+    u_int32_t *uri_content_array;
+    u_int32_t uri_content_size;
 
     /* list of signature containers */
     SigGroupContainer *head;
     SigGroupContainer *tail;
     u_int32_t sig_cnt;
-    u_int32_t refcnt;
 
     struct _SigGroupHead *next;
 } SigGroupHead;
-
-typedef struct _SigGroupAddress {
-    u_int8_t type;
-    DetectAddressGroupsHead gh;
-} SigGroupAddress;
-
-typedef struct _SigGroupEntry {
-    SigGroupType *next;
-} SigGroupEntry;
 
 #define SIGMATCH_NOOPT  0x01
 
@@ -172,6 +188,7 @@ void SigRegisterTests(void);
 void TmModuleDetectRegister (void);
 
 int SigGroupBuild(Signature *);
+int SigGroupCleanup();
 
 #endif /* __DETECT_H__ */
 

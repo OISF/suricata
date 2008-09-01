@@ -33,6 +33,7 @@ typedef struct DetectAddressGroup_ {
 
     /* signatures that belong in this group */
     struct _SigGroupHead *sh;
+    u_int8_t flags;
 
     /* double linked list */
     struct DetectAddressGroup_ *prev;
@@ -55,16 +56,18 @@ DetectAddressData *DetectAddressDataInit(void);
 void DetectAddressDataFree(DetectAddressData *);
 void DetectAddressDataPrint(DetectAddressData *);
 DetectAddressData *DetectAddressDataCopy(DetectAddressData *);
-int DetectAddressGroupInsert(DetectAddressGroupsHead *, DetectAddressData *);
 int DetectAddressGroupSetup(DetectAddressGroupsHead *, char *);
 int DetectAddressCmp(DetectAddressData *, DetectAddressData *);
 DetectAddressData *DetectAddressParse(char *);
 DetectAddressGroup *DetectAddressLookupGroup(DetectAddressGroupsHead *, Address *);
 int DetectAddressGroupParse(DetectAddressGroupsHead *, char *);
 DetectAddressGroup *DetectAddressGroupInit(void);
-int DetectAddressGroupAppend(DetectAddressGroup **head, DetectAddressGroup *ag);
-DetectAddressGroup *DetectAddressGroupLookup(DetectAddressGroup *head, DetectAddressData *ad);
+int DetectAddressGroupAdd(DetectAddressGroup **, DetectAddressGroup *);
+DetectAddressGroup *DetectAddressGroupLookup(DetectAddressGroup *, DetectAddressData *);
 void DetectAddressGroupPrintList(DetectAddressGroup *);
+void DetectAddressGroupFree(DetectAddressGroup *);
+int DetectAddressGroupInsert(DetectAddressGroupsHead *, DetectAddressGroup *);
+void DetectAddressGroupPrintMemory(void);
 
 #endif /* __DETECT_ADDRESS_H__ */
 

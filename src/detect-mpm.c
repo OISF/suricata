@@ -62,7 +62,8 @@ void PatternMatchPrepare(MpmCtx *mc)
 /* free the pattern matcher part of a SigGroupHead */
 void PatternMatchDestroyGroup(SigGroupHead *sh) {
     /* content */
-    if (sh->flags & SIG_GROUP_HAVECONTENT && sh->mpm_ctx != NULL) {
+    if (sh->flags & SIG_GROUP_HAVECONTENT && sh->mpm_ctx != NULL &&
+        !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
         sh->mpm_ctx->DestroyCtx(sh->mpm_ctx);
         free(sh->mpm_ctx);
 
@@ -72,7 +73,8 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
     }
 
     /* uricontent */
-    if (sh->flags & SIG_GROUP_HAVEURICONTENT && sh->mpm_uri_ctx != NULL) {
+    if (sh->flags & SIG_GROUP_HAVEURICONTENT && sh->mpm_uri_ctx != NULL &&
+        !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         sh->mpm_uri_ctx->DestroyCtx(sh->mpm_uri_ctx);
         free(sh->mpm_uri_ctx);
 
@@ -89,6 +91,7 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
  *
  *
  * XXX do error checking
+ * XXX rewrite the COPY stuff
  */
 int PatternMatchPrepareGroup(SigGroupHead *sh)
 {
@@ -122,14 +125,14 @@ int PatternMatchPrepareGroup(SigGroupHead *sh)
     }
 
     /* intialize contexes */
-    if (sh->flags & SIG_GROUP_HAVECONTENT) {
+    if (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
         sh->mpm_ctx = malloc(sizeof(MpmCtx));
         if (sh->mpm_ctx == NULL)
             goto error;
 
         MpmInitCtx(sh->mpm_ctx, MPM_WUMANBER);
     }
-    if (sh->flags & SIG_GROUP_HAVEURICONTENT) {
+    if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         sh->mpm_uri_ctx = malloc(sizeof(MpmCtx));
         if (sh->mpm_uri_ctx == NULL)
             goto error;
@@ -145,7 +148,7 @@ int PatternMatchPrepareGroup(SigGroupHead *sh)
         /* find flow setting of this rule */
         SigMatch *sm;
         for (sm = s->match; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
+            if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
 
                 if (cd->flags & DETECT_CONTENT_NOCASE) {
@@ -153,7 +156,7 @@ int PatternMatchPrepareGroup(SigGroupHead *sh)
                 } else {
                     sh->mpm_ctx->AddPattern(sh->mpm_ctx, cd->content, cd->content_len, cd->id);
                 }
-            } else if (sm->type == DETECT_URICONTENT) {
+            } else if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
 
                 if (ud->flags & DETECT_URICONTENT_NOCASE) {
@@ -166,16 +169,18 @@ int PatternMatchPrepareGroup(SigGroupHead *sh)
     }
 
     /* content */
-    if (sh->flags & SIG_GROUP_HAVECONTENT) {
+    if (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
         if (sh->mpm_ctx->Prepare != NULL) {
             sh->mpm_ctx->Prepare(sh->mpm_ctx);
         }
+        //sh->mpm_ctx->PrintCtx(sh->mpm_ctx);
     }
     /* uricontent */
-    if (sh->flags & SIG_GROUP_HAVEURICONTENT) {
+    if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         if (sh->mpm_uri_ctx->Prepare != NULL) {
             sh->mpm_uri_ctx->Prepare(sh->mpm_uri_ctx);
         }
+        //sh->mpm_uri_ctx->PrintCtx(sh->mpm_uri_ctx);
     }
 
     //printf("Printing info...\n");

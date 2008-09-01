@@ -313,6 +313,7 @@ int main(int argc, char **argv)
     SigTableRegisterTests();
     SigRegisterTests();
     //UtRunTests();
+    UtCleanup();
     //exit(1);
 
     //LoadConfig();

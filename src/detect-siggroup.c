@@ -12,6 +12,12 @@
 
 int SigGroupHeadCmp(SigGroupHead *, SigGroupHead *);
 
+static u_int32_t detect_siggroup_memory = 0;
+static u_int32_t detect_siggroup_append_cnt = 0;
+static u_int32_t detect_siggroup_free_cnt = 0;
+
+
+/* XXX eeewww global! move to DetectionEngineCtx once we have that! */
 static SigGroupHead *sgh_list = NULL;
 
 /* return the first SigGroupHead that matches
@@ -23,6 +29,116 @@ SigGroupHead* SigGroupHeadListGet(SigGroupHead *a) {
         if (SigGroupHeadCmp(a,b) == 1 && a != b) {
             return b;
         }
+    }
+    return NULL;
+}
+
+void SigGroupHeadFreeMpmArrays(void) {
+    SigGroupHead *b = sgh_list;
+
+    for ( ; b != NULL; b = b->next) {
+        if (b->content_array != NULL) {
+            free(b->content_array);
+            b->content_array = NULL;
+            b->content_size = 0;
+        }
+        if (b->uri_content_array != NULL) {
+            free(b->uri_content_array);
+            b->uri_content_array = NULL;
+            b->uri_content_size = 0;
+        }
+    }
+}
+
+int SigGroupContentCmp(SigGroupContent *a, SigGroupContent *b);
+
+/* return the first SigGroupHead that matches
+ * the lookup one. */
+SigGroupHead* SigGroupHeadListGetMpm(SigGroupHead *a) {
+    SigGroupHead *b = sgh_list;
+
+    for ( ; b != NULL; b = b->next) {
+        //printf("a->content_size %u, b->content_size %u\n", a->content_size, b->content_size);
+
+        if (a->content_size != b->content_size)
+            continue;
+
+        if (memcmp(a->content_array,b->content_array,a->content_size) == 0)
+            return b;
+
+        //printf("a->content_cnt %u, b->content_cnt %u\n", a->content_cnt, b->content_cnt);
+#if 0
+        if (a->content_cnt != b->content_cnt)
+            continue;
+
+        //printf("a->content_head %p, b->content_head %p\n", a->content_head, b->content_head);
+        for (sc_a = a->content_head, sc_b = b->content_head;
+             sc_a != NULL && sc_b != NULL;
+             sc_a = sc_a->next, sc_b = sc_b->next)
+        {
+            found = 1;
+
+            if (SigGroupContentCmp(sc_a,sc_b) != 0) {
+                found = 0;
+                break;
+            } else if ((sc_a->next == NULL && sc_b->next != NULL) ||
+                       (sc_a->next != NULL && sc_b->next == NULL)) {
+                found = 0;
+                break;
+            }
+            //printf("so far so good\n");
+        }
+
+        if (found) {
+            //printf("returning b %p\n", b);
+            return b;
+        }
+#endif
+    }
+    return NULL;
+}
+
+/* return the first SigGroupHead that matches
+ * the lookup one. */
+SigGroupHead* SigGroupHeadListGetMpmUri(SigGroupHead *a) {
+    SigGroupHead *b = sgh_list;
+
+    for ( ; b != NULL; b = b->next) {
+//        SigGroupUricontent *sc_a, *sc_b;
+//        int found = 0;
+
+        if (a->content_size != b->content_size)
+            continue;
+
+        if (memcmp(a->content_array,b->content_array,a->content_size) == 0)
+            return b;
+#if 0
+        if (a->uri_content_cnt != b->uri_content_cnt)
+            continue;
+
+        //printf("a->content_head %p, b->content_head %p\n", a->content_head, b->content_head);
+        for (sc_a = a->uri_content_head, sc_b = b->uri_content_head;
+             sc_a != NULL && sc_b != NULL;
+             sc_a = sc_a->next, sc_b = sc_b->next)
+        {
+            found = 1;
+
+            if (SigGroupUricontentCmp(sc_a,sc_b) != 0) {
+                found = 0;
+                break;
+            } else if ((sc_a->next == NULL && sc_b->next != NULL) ||
+                       (sc_a->next != NULL && sc_b->next == NULL)) {
+                found = 0;
+                break;
+            }
+            //printf("so far so good\n");
+        }
+
+        if (found) {
+            //printf("returning b %p\n", b);
+            return b;
+        }
+#endif
     }
     return NULL;
 }
@@ -66,6 +182,9 @@ int SigGroupAppend(DetectAddressGroup *ag, Signature *s) {
     }
     memset(sg,0,sizeof(SigGroupContainer));
 
+    detect_siggroup_append_cnt++;
+    detect_siggroup_memory += sizeof(SigGroupContainer);
+
     /* connect the signature to the container */
     sg->s = s;
 
@@ -93,30 +212,88 @@ error:
     return -1;
 }
 
-/* XXX function name */
-int SigGroupClean(DetectAddressGroup *ag) {
+int SigGroupListClean(SigGroupHead *sh) {
     SigGroupContainer *sg = NULL, *next_sg = NULL;
 
-    if (ag->sh == NULL)
-        return 0;
+    if (sh == NULL)
+	return 0;
 
-    if (!(ag->sh->flags & SIG_GROUP_COPY))
-        PatternMatchDestroyGroup(ag->sh);
-
-    sg = ag->sh->head;
+    sg = sh->head;
 
     while (sg != NULL) {
-        next_sg = sg->next;
+        detect_siggroup_free_cnt++;
+        detect_siggroup_memory -= sizeof(SigGroupContainer);
 
-        sg->s->rulegroup_refcnt--;
-        sg->s = NULL;
-        free(sg);
+	next_sg = sg->next;
 
-        sg = next_sg;        
+	sg->s->rulegroup_refcnt--;
+	sg->s = NULL;
+	free(sg);
+
+        sh->sig_cnt--;
+
+	sg = next_sg;
+    }
+    sh->head = NULL;
+    sh->tail = NULL;
+
+    return 0;
+}
+
+
+int SigGroupListCopyPrepend(DetectAddressGroup *src, DetectAddressGroup *dst) {
+    SigGroupContainer *sg = NULL;
+
+    if (src->sh == NULL)
+        return 0;
+
+    if (dst->sh == NULL) {
+        dst->sh = malloc(sizeof(SigGroupHead));
+        if (dst->sh == NULL) {
+            goto error;
+        }
+        memset(dst->sh, 0, sizeof(SigGroupHead));
     }
 
-    free(ag->sh);
+    /* save the head & tail */
+    SigGroupContainer *dsthead = dst->sh->head;
+    SigGroupContainer *dsttail = dst->sh->tail;
+    /* reset dst head */
+    dst->sh->head = NULL;
+    dst->sh->tail = NULL;
+    /* append the sigs into the now cleared dst */
+    for (sg = src->sh->head; sg != NULL; sg = sg->next) {
+        SigGroupAppend(dst,sg->s);
+    }
+
+    dst->sh->tail->next = dsthead;
+    dst->sh->tail = dsttail;
     return 0;
+error:
+    return -1;
+}
+
+int SigGroupListCopyAppend(DetectAddressGroup *src, DetectAddressGroup *dst) {
+    SigGroupContainer *sg = NULL;
+
+    if (src->sh == NULL)
+        return 0;
+
+    if (dst->sh == NULL) {
+        dst->sh = malloc(sizeof(SigGroupHead));
+        if (dst->sh == NULL) {
+            goto error;
+        }
+        memset(dst->sh, 0, sizeof(SigGroupHead));
+    }
+
+    for (sg = src->sh->head; sg != NULL; sg = sg->next) {
+        SigGroupAppend(dst,sg->s);
+    }
+
+    return 0;
+error:
+    return -1;
 }
 
 int SigGroupHeadCmp(SigGroupHead *a, SigGroupHead *b) {
@@ -133,5 +310,156 @@ int SigGroupHeadCmp(SigGroupHead *a, SigGroupHead *b) {
     }
 
     return 1;
+}
+
+void SigGroupHeadFree(SigGroupHead *sh) {
+    if (sh == NULL)
+        return;
+
+    PatternMatchDestroyGroup(sh);
+
+    SigGroupListClean(sh);
+
+    free(sh);
+}
+
+void DetectSigGroupPrintMemory(void) {
+    printf(" * Sig group memory stats:\n");
+    printf("  - detect_siggroup_memory %u\n", detect_siggroup_memory);
+    printf("  - detect_siggroup_append_cnt %u\n", detect_siggroup_append_cnt);
+    printf("  - detect_siggroup_free_cnt %u\n", detect_siggroup_free_cnt);
+    printf("  - outstanding sig containers %u\n", detect_siggroup_append_cnt - detect_siggroup_free_cnt);
+    printf(" * Sig group memory stats done\n");
+}
+
+
+/* -1: a is smaller
+ *  0: equal
+ *  1: a is bigger
+ */
+int SigGroupContentCmp(SigGroupContent *a, SigGroupContent *b) {
+
+    //printf("a->content->id %u, b->content->id %u\n", a->content->id, b->content->id);
+    if (a->content->id < b->content->id)
+        return -1;
+    else if (a->content->id > b->content->id)
+        return 1;
+
+    /* implied equal */
+    return 0;
+}
+
+/* load all pattern id's into a single bitarray that we can memcmp
+ * with other bitarrays. A fast and efficient way of comparing pattern
+ * sets. */
+int SigGroupContentLoad(SigGroupHead *sgh) {
+    SigGroupContainer *sgc = sgh->head;
+    Signature *s;
+    SigMatch *sm;
+
+    if (DetectContentMaxId() == 0)
+        return 0;
+
+    sgh->content_size = (DetectContentMaxId() / 8) + 1;
+    sgh->content_array = malloc(sgh->content_size * sizeof(u_int32_t));
+    if (sgh->content_array == NULL)
+        return -1;
+
+    memset(sgh->content_array,0, sgh->content_size * sizeof(u_int32_t));
+
+    for ( ; sgc != NULL; sgc = sgc->next) {
+        s = sgc->s;
+        if (s == NULL)
+            continue;
+
+        sm = s->match;
+        if (sm == NULL)
+            continue;
+
+        for ( ; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_CONTENT) {
+                DetectContentData *co = (DetectContentData *)sm->ctx;
+
+                sgh->content_array[(co->id/8)] |= 1<<(co->id%8);
+            }
+        }
+    }
+    return 0;
+}
+
+int SigGroupListContentClean(SigGroupHead *sh) {
+    if (sh == NULL)
+	return 0;
+
+    if (sh->content_array != NULL) {
+        free(sh->content_array);
+        sh->content_array = NULL;
+        sh->content_size = 0;
+    }
+    return 0;
+}
+
+/* -1: a is smaller
+ *  0: equal
+ *  1: a is bigger
+ */
+int SigGroupUricontentCmp(SigGroupUricontent *a, SigGroupUricontent *b) {
+    //printf("a->content->id %u, b->content->id %u\n", a->content->id, b->content->id);
+
+    if (a->content->id < b->content->id)
+        return -1;
+    else if (a->content->id > b->content->id)
+        return 1;
+
+    /* implied equal */
+    return 0;
+}
+
+int SigGroupUricontentLoad(SigGroupHead *sgh) {
+    SigGroupContainer *sgc = sgh->head;
+    Signature *s;
+    SigMatch *sm;
+
+    if (DetectUricontentMaxId() == 0)
+        return 0;
+
+    sgh->uri_content_size = (DetectUricontentMaxId() / 8) + 1;
+    sgh->uri_content_array = malloc(sgh->uri_content_size * sizeof(u_int32_t));
+    if (sgh->uri_content_array == NULL)
+        return -1;
+
+    memset(sgh->uri_content_array,0, sgh->uri_content_size * sizeof(u_int32_t));
+
+    for ( ; sgc != NULL; sgc = sgc->next) {
+        s = sgc->s;
+        if (s == NULL)
+            continue;
+
+        sm = s->match;
+        if (sm == NULL)
+            continue;
+
+        for ( ; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_URICONTENT) {
+                DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
+
+                sgh->uri_content_array[(co->id/8)] |= 1<<(co->id%8);
+            }
+        }
+    }
+    return 0;
+}
+
+int SigGroupListUricontentClean(SigGroupHead *sh) {
+    if (sh == NULL)
+	return 0;
+
+    if (sh->uri_content_array != NULL) {
+        free(sh->uri_content_array);
+        sh->uri_content_array = NULL;
+        sh->uri_content_size = 0;
+    }
+
+    return 0;
 }
 

@@ -11,6 +11,7 @@
 #include "util-unittest.h"
 
 #include "detect-address.h"
+#include "detect-siggroup.h"
 
 
 /* return: 1 lt, 0 not lt */
@@ -94,7 +95,7 @@ int DetectAddressCmpIPv6(DetectAddressData *a, DetectAddressData *b) {
         return ADDRESS_EB;
     } else if (AddressIPv6Lt(a->ip, b->ip) == 1 &&
                AddressIPv6Lt(a->ip2, b->ip2) == 1 &&
-               AddressIPv6Gt(a->ip2, b->ip) == 1) {
+               AddressIPv6Ge(a->ip2, b->ip) == 1) {
         //printf("ADDRESS_LE\n");
         return ADDRESS_LE;
     } else if (AddressIPv6Lt(a->ip, b->ip) == 1 &&
@@ -102,7 +103,7 @@ int DetectAddressCmpIPv6(DetectAddressData *a, DetectAddressData *b) {
         //printf("ADDRESS_LT\n");
         return ADDRESS_LT;
     } else if (AddressIPv6Gt(a->ip, b->ip) == 1 &&
-               AddressIPv6Lt(a->ip, b->ip2) == 1 &&
+               AddressIPv6Le(a->ip, b->ip2) == 1 &&
                AddressIPv6Gt(a->ip2, b->ip2) == 1) {
         //printf("ADDRESS_GE\n");
         return ADDRESS_GE;
@@ -184,6 +185,237 @@ static void AddressCutIPv6Copy(u_int32_t *a, u_int32_t *b) {
     b[1] = htonl(a[1]);
     b[2] = htonl(a[2]);
     b[3] = htonl(a[3]);
+}
+
+int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, DetectAddressGroup **c) {
+    u_int32_t a_ip1[4] = { ntohl(a->ad->ip[0]),  ntohl(a->ad->ip[1]),
+                           ntohl(a->ad->ip[2]),  ntohl(a->ad->ip[3]) };
+    u_int32_t a_ip2[4] = { ntohl(a->ad->ip2[0]), ntohl(a->ad->ip2[1]),
+                           ntohl(a->ad->ip2[2]), ntohl(a->ad->ip2[3]) };
+    u_int32_t b_ip1[4] = { ntohl(b->ad->ip[0]),  ntohl(b->ad->ip[1]),
+                           ntohl(b->ad->ip[2]),  ntohl(b->ad->ip[3]) };
+    u_int32_t b_ip2[4] = { ntohl(b->ad->ip2[0]), ntohl(b->ad->ip2[1]),
+                           ntohl(b->ad->ip2[2]), ntohl(b->ad->ip2[3]) };
+
+    /* default to NULL */
+    *c = NULL;
+
+    int r = DetectAddressCmpIPv6(a->ad,b->ad);
+    if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
+        goto error;
+    }
+
+    /* get a place to temporary put sigs lists */
+    DetectAddressGroup *tmp;
+    tmp = DetectAddressGroupInit();
+    if (tmp == NULL) {
+        goto error;
+    }
+    memset(tmp,0,sizeof(DetectAddressGroup));
+
+    /* we have 3 parts: [aaa[abab]bbb]
+     * part a: a_ip1 <-> b_ip1 - 1
+     * part b: b_ip1 <-> a_ip2
+     * part c: a_ip2 + 1 <-> b_ip2
+     */
+    if (r == ADDRESS_LE) {
+        AddressCutIPv6Copy(a_ip1, a->ad->ip);
+        AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
+
+        AddressCutIPv6Copy(b_ip1, b->ad->ip);
+        AddressCutIPv6Copy(a_ip2, b->ad->ip2);
+
+        DetectAddressGroup *tmp_c;
+        tmp_c = DetectAddressGroupInit();
+        if (tmp_c == NULL) {
+            goto error;
+        }
+        tmp_c->ad = DetectAddressDataInit();
+        if (tmp_c->ad == NULL) {
+            goto error;
+        }
+        tmp_c->ad->family  = AF_INET6;
+        AddressCutIPv6CopyAddOne(a_ip2, tmp_c->ad->ip);
+        AddressCutIPv6Copy(b_ip2, tmp_c->ad->ip2);
+        *c = tmp_c;
+
+        SigGroupListCopyAppend(b,tmp_c); /* copy old b to c */
+        SigGroupListCopyPrepend(a,b); /* copy old b to a */
+
+    /* we have 3 parts: [bbb[baba]aaa]
+     * part a: b_ip1 <-> a_ip1 - 1
+     * part b: a_ip1 <-> b_ip2
+     * part c: b_ip2 + 1 <-> a_ip2
+     */
+    } else if (r == ADDRESS_GE) {
+        AddressCutIPv6Copy(b_ip1, a->ad->ip);
+        AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
+
+        AddressCutIPv6Copy(a_ip1, b->ad->ip);
+        AddressCutIPv6Copy(b_ip2, b->ad->ip2);
+
+        DetectAddressGroup *tmp_c;
+        tmp_c = DetectAddressGroupInit();
+        if (tmp_c == NULL) {
+            goto error;
+        }
+        tmp_c->ad = DetectAddressDataInit();
+        if (tmp_c->ad == NULL) {
+            goto error;
+        }
+        tmp_c->ad->family  = AF_INET6;
+        AddressCutIPv6CopyAddOne(b_ip2, tmp_c->ad->ip);
+        AddressCutIPv6Copy(a_ip2, tmp_c->ad->ip2);
+        *c = tmp_c;
+
+        /* 'a' gets clean and then 'b' sigs
+         * 'b' gets clean, then 'a' then 'b' sigs
+         * 'c' gets 'a' sigs */
+        SigGroupListCopyAppend(a,tmp); /* store old a list */
+        SigGroupListClean(a->sh); /* clean a list */
+        SigGroupListCopyAppend(tmp,tmp_c); /* copy old b to c */
+        SigGroupListCopyAppend(b,a); /* copy old b to a */
+        SigGroupListCopyPrepend(tmp,b); /* prepend old a before b */
+
+        SigGroupListClean(tmp->sh); /* clean tmp list */
+
+    /* we have 2 or three parts:
+     *
+     * 2 part: [[abab]bbb] or [bbb[baba]]
+     * part a: a_ip1 <-> a_ip2
+     * part b: a_ip2 + 1 <-> b_ip2
+     *
+     * part a: b_ip1 <-> a_ip1 - 1
+     * part b: a_ip1 <-> a_ip2
+     *
+     * 3 part [bbb[aaa]bbb]
+     * part a: b_ip1 <-> a_ip1 - 1
+     * part b: a_ip1 <-> a_ip2
+     * part c: a_ip2 + 1 <-> b_ip2
+     */
+    } else if (r == ADDRESS_ES) {
+        if (AddressIPv6Eq(a_ip1,b_ip1) == 1) {
+            AddressCutIPv6Copy(a_ip1, a->ad->ip);
+            AddressCutIPv6Copy(a_ip2, a->ad->ip2);
+
+            AddressCutIPv6CopyAddOne(a_ip2, b->ad->ip);
+            AddressCutIPv6Copy(b_ip2, b->ad->ip2);
+
+            /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
+            SigGroupListCopyAppend(b,a);
+        } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
+            AddressCutIPv6Copy(b_ip1, a->ad->ip);
+            AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
+
+            AddressCutIPv6Copy(a_ip1, b->ad->ip);
+            AddressCutIPv6Copy(a_ip2, b->ad->ip2);
+
+            /* 'a' overlaps 'b' so a needs the 'a' sigs */
+            SigGroupListCopyPrepend(a,b);
+        } else {
+            AddressCutIPv6Copy(b_ip1, a->ad->ip);
+            AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
+
+            AddressCutIPv6Copy(a_ip1, b->ad->ip);
+            AddressCutIPv6Copy(a_ip2, b->ad->ip2);
+
+            DetectAddressGroup *tmp_c;
+            tmp_c = DetectAddressGroupInit();
+            if (tmp_c == NULL) {
+                goto error;
+            }
+            tmp_c->ad = DetectAddressDataInit();
+            if (tmp_c->ad == NULL) {
+                goto error;
+            }
+            tmp_c->ad->family  = AF_INET6;
+            AddressCutIPv6CopyAddOne(a_ip2, tmp_c->ad->ip);
+            AddressCutIPv6Copy(b_ip2, tmp_c->ad->ip2);
+            *c = tmp_c;
+
+            /* 'a' gets clean and then 'b' sigs
+             * 'b' gets clean, then 'a' then 'b' sigs
+             * 'c' gets 'b' sigs */
+            SigGroupListCopyAppend(a,tmp); /* store old a list */
+            SigGroupListClean(a->sh); /* clean a list */
+            SigGroupListCopyAppend(b,tmp_c); /* copy old b to c */
+            SigGroupListCopyAppend(b,a); /* copy old b to a */
+            SigGroupListCopyPrepend(tmp,b); /* prepend old a before b */
+
+            SigGroupListClean(tmp->sh); /* clean tmp list */
+        }
+    /* we have 2 or three parts:
+     *
+     * 2 part: [[baba]aaa] or [aaa[abab]]
+     * part a: b_ip1 <-> b_ip2
+     * part b: b_ip2 + 1 <-> a_ip2
+     *
+     * part a: a_ip1 <-> b_ip1 - 1
+     * part b: b_ip1 <-> b_ip2
+     *
+     * 3 part [aaa[bbb]aaa]
+     * part a: a_ip1 <-> b_ip2 - 1
+     * part b: b_ip1 <-> b_ip2
+     * part c: b_ip2 + 1 <-> a_ip2
+     */
+    } else if (r == ADDRESS_EB) {
+        if (AddressIPv6Eq(a_ip1, b_ip1) == 1) {
+            AddressCutIPv6Copy(b_ip1, a->ad->ip);
+            AddressCutIPv6Copy(b_ip2, a->ad->ip2);
+
+            AddressCutIPv6CopyAddOne(b_ip2, b->ad->ip);
+            AddressCutIPv6Copy(a_ip2, b->ad->ip2);
+
+            /* 'b' overlaps 'a' so a needs the 'b' sigs */
+            SigGroupListCopyAppend(b,tmp);
+            SigGroupListClean(b->sh);
+            SigGroupListCopyAppend(a,b);
+            SigGroupListCopyAppend(tmp,a);
+            SigGroupListClean(tmp->sh);
+        } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
+            AddressCutIPv6Copy(a_ip1, a->ad->ip);
+            AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
+
+            AddressCutIPv6Copy(b_ip1, b->ad->ip);
+            AddressCutIPv6Copy(b_ip2, b->ad->ip2);
+
+            /* 'a' overlaps 'b' so a needs the 'a' sigs */
+            SigGroupListCopyPrepend(a,b);
+        } else {
+            AddressCutIPv6Copy(a_ip1, a->ad->ip);
+            AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
+
+            AddressCutIPv6Copy(b_ip1, b->ad->ip);
+            AddressCutIPv6Copy(b_ip2, b->ad->ip2);
+
+            DetectAddressGroup *tmp_c;
+            tmp_c = DetectAddressGroupInit();
+            if (tmp_c == NULL) {
+                goto error;
+            }
+            tmp_c->ad = DetectAddressDataInit();
+            if (tmp_c->ad == NULL) {
+                goto error;
+            }
+            tmp_c->ad->family  = AF_INET6;
+            AddressCutIPv6CopyAddOne(b_ip2, tmp_c->ad->ip);
+            AddressCutIPv6Copy(a_ip2, tmp_c->ad->ip2);
+            *c = tmp_c;
+
+            /* 'a' stays the same wrt sigs
+             * 'b' keeps it's own sigs and gets a's sigs prepended
+             * 'c' gets 'a' sigs */
+            SigGroupListCopyPrepend(a,b);
+            SigGroupListCopyAppend(a,tmp_c);
+        }
+    }
+
+    DetectAddressGroupFree(tmp);
+    return 0;
+
+error:
+    DetectAddressGroupFree(tmp);
+    return -1;
 }
 
 int DetectAddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {

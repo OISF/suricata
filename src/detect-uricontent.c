@@ -68,7 +68,7 @@ void DetectUricontentRegister (void) {
 
 /* pass on the uricontent_max_id */
 u_int32_t DetectUricontentMaxId(void) {
-    printf("DetectUricontentMaxId: %u\n", uricontent_max_id);
+    //printf("DetectUricontentMaxId: %u\n", uricontent_max_id);
     return uricontent_max_id;
 }
 

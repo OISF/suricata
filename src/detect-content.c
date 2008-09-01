@@ -78,7 +78,7 @@ void DetectContentRegister (void) {
 
 /* pass on the content_max_id */
 u_int32_t DetectContentMaxId(void) {
-    printf("DetectContentMaxId: %u\n", content_max_id);
+    //printf("DetectContentMaxId: %u\n", content_max_id);
     return content_max_id;
 }
 
