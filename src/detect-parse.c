@@ -25,10 +25,10 @@ static pcre_extra *option_pcre_extra = NULL;
 #define CONFIG_DP     6
 #define CONFIG_OPTS   7
 
-//                    action       protocol       src                                  sp                       dir                   dst                                 dp                            options
-#define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9]+)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!,//]+)\\s+([\\:A-z0-9_\\$\\!]+)\\s+(\\<-|-\\>|\\<\\>)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!,/]+)\\s+([\\:A-z0-9_\\$\\!]+)(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?$"
+//                    action       protocol       src                                      sp                       dir                   dst                                    dp                            options
+#define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9]+)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/]+)\\s+([\\:A-z0-9_\\$\\!]+)\\s+(\\<-|-\\>|\\<\\>)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,/]+)\\s+([\\:A-z0-9_\\$\\!]+)(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?$"
 #define OPTION_PARTS 3
-#define OPTION_PCRE "^\\s*([A-z_0-9]+)(?:\\s*\\:(.*)(?<!\\\\))?;\\s*(?:\\s*(.*))?$"
+#define OPTION_PCRE "^\\s*([A-z_0-9]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
 SigMatch *SigMatchAlloc(void) {
     SigMatch *sm = malloc(sizeof(SigMatch));
@@ -215,9 +215,9 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
     char *addr = NULL;
 
     if (strcmp(addrstr,"$HOME_NET") == 0) {
-        addr = "192.168.0.0/16";
+        addr = "[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]";
     } else if (strcmp(addrstr,"$EXTERNAL_NET") == 0) {
-        addr = "!192.168.0.0/16";
+        addr = "[!192.168.0.0/16,2000::/3]";
     } else if (strcmp(addrstr,"$HTTP_SERVERS") == 0) {
         addr = "!192.168.0.0/16";
     } else if (strcmp(addrstr,"$SMTP_SERVERS") == 0) {
@@ -225,6 +225,10 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
     } else if (strcmp(addrstr,"$SQL_SERVERS") == 0) {
         addr = "!192.168.0.0/16";
     } else if (strcmp(addrstr,"$DNS_SERVERS") == 0) {
+        addr = "any";
+    } else if (strcmp(addrstr,"$TELNET_SERVERS") == 0) {
+        addr = "any";
+    } else if (strcmp(addrstr,"$AIM_SERVERS") == 0) {
         addr = "any";
     } else if (strcmp(addrstr,"any") == 0) {
         addr = "any";
@@ -444,7 +448,7 @@ int SigParseTest01 (void) {
     int result = 1;
     Signature *sig = NULL;
 
-    SigParsePrepare();
+    //SigParsePrepare();
 
     sig = SigInit("alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
     if (sig == NULL) {
