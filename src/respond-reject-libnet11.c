@@ -1,5 +1,9 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+/* Authors: William Metcalf and Victor Julien
+ *
+ */
+
 /*  RespondRejectLibnet11 used to send out libnet based
  *  TCP resets and ICMP unreachables.
  */
@@ -36,7 +40,7 @@ typedef struct _Libnet11Packet
     u_int16_t sp, dp;
 } Libnet11Packet;
 
-int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir){
+int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) {
 
     Libnet11Packet lpacket;
 
@@ -67,7 +71,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir){
     /* save payload len */
     lpacket.dsize = p->tcp_payload_len;
 
-    if(dir == REJECT_DIR_SRC){
+    if (dir == REJECT_DIR_SRC) {
         printf ("sending a tcp reset to src\n");
         lpacket.seq = TCP_GET_ACK(p);
         lpacket.ack = TCP_GET_SEQ(p) + lpacket.dsize;
@@ -78,7 +82,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir){
         lpacket.src4 = GET_IPV4_DST_ADDR_U32(p);
         lpacket.dst4 = GET_IPV4_SRC_ADDR_U32(p);
     }
-    else if(dir == REJECT_DIR_DST){
+    else if (dir == REJECT_DIR_DST) {
         printf ("sending a tcp reset to dst\n");
         lpacket.seq = TCP_GET_SEQ(p);
         lpacket.ack = TCP_GET_ACK(p);
@@ -90,8 +94,8 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir){
         lpacket.dst4 = GET_IPV4_DST_ADDR_U32(p);
 
     } else {
-      printf ("reset not src or dst returning\n");
-      return 1;
+        printf ("reset not src or dst returning\n");
+        return 1;
     }
 
     lpacket.window = TCP_GET_WINDOW(p);
@@ -101,38 +105,38 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir){
     lpacket.ttl = 64;
 
     /* build the package */
-    if ((t = libnet_build_tcp (lpacket.sp,                      /* source port */
-                               lpacket.dp,                      /* dst port */
-                               lpacket.seq,                     /* seq number */
-                               lpacket.ack,                     /* ack number */
-                               TH_RST|TH_ACK,                    /* flags */
-                               lpacket.window,                  /* window size */
-                               0,                                /* checksum */
-                               0,                                /* urgent flag */
-                               LIBNET_TCP_H,                     /* header length */
-                               NULL,                             /* payload */
-                               0,                                /* payload length */
-                               c,                                /* libnet context */
-                               0)) < 0)                          /* libnet ptag */
+    if ((t = libnet_build_tcp (lpacket.sp,            /* source port */
+                               lpacket.dp,            /* dst port */
+                               lpacket.seq,           /* seq number */
+                               lpacket.ack,           /* ack number */
+                               TH_RST|TH_ACK,         /* flags */
+                               lpacket.window,        /* window size */
+                               0,                     /* checksum */
+                               0,                     /* urgent flag */
+                               LIBNET_TCP_H,          /* header length */
+                               NULL,                  /* payload */
+                               0,                     /* payload length */
+                               c,                     /* libnet context */
+                               0)) < 0)               /* libnet ptag */
     {
         printf("RejectSendLibnet11IPv4TCP libnet_build_tcp %s\n", libnet_geterror(c));
         goto cleanup;
     }
 
     if((t = libnet_build_ipv4(
-                        LIBNET_TCP_H + LIBNET_IPV4_H,   /* entire packet length */
-                        0,                              /* tos */
-                        lpacket.id,                    /* ID */
-                        0,                              /* fragmentation flags and offset */
-                        lpacket.ttl,                   /* TTL */
-                        IPPROTO_TCP,                    /* protocol */
-                        0,                              /* checksum */
+                        LIBNET_TCP_H + LIBNET_IPV4_H, /* entire packet length */
+                        0,                            /* tos */
+                        lpacket.id,                   /* ID */
+                        0,                            /* fragmentation flags and offset */
+                        lpacket.ttl,                  /* TTL */
+                        IPPROTO_TCP,                  /* protocol */
+                        0,                            /* checksum */
                         lpacket.src4,                 /* source address */
                         lpacket.dst4,                 /* destination address */
-                        NULL,                           /* pointer to packet data (or NULL) */
-                        0,                              /* payload length */
-                        c,                              /* libnet context pointer */
-                        0)) < 0)                        /* packet id */
+                        NULL,                         /* pointer to packet data (or NULL) */
+                        0,                            /* payload length */
+                        c,                            /* libnet context pointer */
+                        0)) < 0)                      /* packet id */
     {
         printf("RejectSendLibnet11IPv4TCP libnet_build_ipv4 %s\n", libnet_geterror(c));
         goto cleanup;
@@ -144,7 +148,8 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir){
         goto cleanup;
     }
 
-    cleanup:
-       libnet_destroy (c);
-       return 0;
+cleanup:
+    libnet_destroy (c);
+    return 0;
 }
+
