@@ -209,19 +209,12 @@ void SigLoadSignatures (void)
     fclose(fp);
     printf("SigLoadSignatures: %d successfully loaded from file. %d sigs failed to load\n", good, bad);
 
-    /* http_ua -- for the log-httplog module */
-    sig = SigInit("alert tcp any any -> any any (msg:\"HTTP UA cap\"; flow:to_server; content:\"User-Agent:\"; depth:400; pcre:\"/^User-Agent: (?P<http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
 //#endif
 
     /* Setup the signature group lookup structure and
      * pattern matchers */
     SigGroupBuild(sig_list);
-abort();
+//abort();
 }
 
 /* check if a certain sid alerted, this is used in the test functions */
