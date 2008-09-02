@@ -24,7 +24,7 @@ AC_DEFUN([FAIL_MESSAGE],[
 ])
 
 LIBS="-lpthread -lpcre"
-CFLAGS="-Wall -fno-strict-aliasing"
+CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
 
 AC_ARG_WITH(libnfnetlink_includes,
     [  --with-libnfnetlink-includes=DIR  libnfnetlink include directory],
