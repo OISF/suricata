@@ -279,6 +279,8 @@ typedef struct _Packet
 #define ACCEPT_PACKET(p)       ((p)->root ? ((p)->root->action = ACTION_ACCEPT) : ((p)->action = ACTION_ACCEPT))
 #define DROP_PACKET(p)         ((p)->root ? ((p)->root->action = ACTION_DROP) : ((p)->action = ACTION_DROP))
 #define REJECT_PACKET(p)       ((p)->root ? ((p)->root->action = ACTION_REJECT) : ((p)->action = ACTION_REJECT))
+#define REJECT_PACKET_DST(p)   ((p)->root ? ((p)->root->action = ACTION_REJECT_DST) : ((p)->action = ACTION_REJECT_DST))
+#define REJECT_PACKET_BOTH(p)  ((p)->root ? ((p)->root->action = ACTION_REJECT_BOTH) : ((p)->action = ACTION_REJECT_BOTH))
 
 #define INCR_PKT_RTV(p) \
 { \

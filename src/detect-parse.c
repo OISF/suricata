@@ -305,6 +305,15 @@ int SigParseAction(Signature *s, const char *action) {
     } else if(strcasecmp(action, "reject") == 0) {
         s->action = ACTION_REJECT;
         return 0;
+    } else if(strcasecmp(action, "rejectsrc") == 0) {
+        s->action = ACTION_REJECT;
+        return 0;
+    } else if(strcasecmp(action, "rejectdst") == 0) {
+        s->action = ACTION_REJECT_DST;
+        return 0;
+    } else if(strcasecmp(action, "rejectboth") == 0) {
+        s->action = ACTION_REJECT_BOTH;
+        return 0;
     } else {
         return -1;
     }

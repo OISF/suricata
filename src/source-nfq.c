@@ -312,7 +312,8 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
        verdict = NF_ACCEPT;
     } else if(p->action == ACTION_DROP){
        verdict = NF_DROP;
-    } else if(p->action == ACTION_REJECT){
+    } else if(p->action == ACTION_REJECT||p->action == ACTION_REJECT_DST||
+	      p->action == ACTION_REJECT_BOTH){
        verdict = NF_DROP;
     } else {
        /* a verdict we don't know about, drop to be sure */

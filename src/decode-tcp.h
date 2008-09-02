@@ -48,10 +48,18 @@
 #define TCP_SET_RAW_TCP_OFFSET(tcph, value)  ((tcph)->th_offx2 = (unsigned char)(((tcph)->th_offx2 & 0x0f) | (value << 4)))
 #define TCP_SET_RAW_TCP_X2(tcph, value)      ((tcph)->th_offx2 = (unsigned char)(((tcph)->th_offx2 & 0xf0) | (value & 0x0f)))
 
+#define TCP_GET_RAW_SEQ(tcph)                ntohl((tcph)->th_seq)
+#define TCP_GET_RAW_ACK(tcph)                ntohl((tcph)->th_ack)
+
+#define TCP_GET_RAW_WINDOW(tcph)             ntohs((tcph)->th_win)
+
 #define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET(p->tcph)
 #define TCP_GET_HLEN(p)                      TCP_GET_OFFSET(p) << 2
 #define TCP_GET_SRC_PORT(p)                  TCP_GET_RAW_SRC_PORT(p->tcph)
 #define TCP_GET_DST_PORT(p)                  TCP_GET_RAW_DST_PORT(p->tcph)
+#define TCP_GET_SEQ(p)                       TCP_GET_RAW_SEQ(p->tcph) 
+#define TCP_GET_ACK(p)                       TCP_GET_RAW_ACK(p->tcph)
+#define TCP_GET_WINDOW(p)                    TCP_GET_RAW_WINDOW(p->tcph)
 
 typedef struct _TCPOpt {
     u_int8_t type;

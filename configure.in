@@ -1,3 +1,5 @@
+#TODO test for pcre and a better test for lpthread? A better place for default CFLAGS?
+
 AC_INIT(configure.in)
 
 AM_CONFIG_HEADER(config.h)
@@ -7,4 +9,136 @@ AC_LANG_C
 AC_PROG_CC
 AM_PROG_LIBTOOL
 
+AC_DEFUN([FAIL_MESSAGE],[
+    echo
+    echo
+    echo "**********************************************"
+    echo "  ERROR: unable to find" $1
+    echo "  checked in the following places"
+    for i in `echo $2`; do
+        echo "        $i"
+    done
+    echo "**********************************************"
+    echo
+    exit 1
+])
+
+LIBS="-lpthread -lpcre"
+CFLAGS="-Wall -fno-strict-aliasing"
+
+AC_ARG_WITH(libnfnetlink_includes,
+    [  --with-libnfnetlink-includes=DIR  libnfnetlink include directory],
+    [with_libnfnetlink_includes="$withval"],[with_libnfnetlink_includes=no])
+AC_ARG_WITH(libnfnetlink_libraries,
+    [  --with-libnfnetlink-libraries=DIR    libnfnetlink library directory],
+    [with_libnfnetlink_libraries="$withval"],[with_libnfnetlink_libraries="no"])
+
+if test "$with_libnfnetlink_includes" != "no"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_libnfnetlink_includes}"
+fi
+
+AC_CHECK_HEADER(libnfnetlink/libnfnetlink.h,,[AC_ERROR(libnfnetlink.h not found ...)])
+
+if test "$with_libnfnetlink_libraries" != "no"; then
+    LDFLAGS="${LDFLAGS}  -L${with_libnfnetlink_libraries}"
+fi
+
+NFNL=""
+AC_CHECK_LIB(nfnetlink, nfnl_fd,, NFNL="no")
+
+if test "$NFNL" = "no"; then
+    echo
+    echo "   ERROR!  nfnetlink library not found, go get it"
+    echo "   from www.netfilter.org."
+    echo "   we automatically append libnetfilter_queue/ when searching"
+    echo "   for headers etc. when the --with-libnfnetlink-inlcudes directive"
+    echo "   is used"
+    echo
+    exit 
+fi
+
+AC_ARG_WITH(libnetfilter_queue_includes,
+    [  --with-libnetfilter_queue-includes=DIR  libnetfilter_queue include directory],
+    [with_libnetfilter_queue_includes="$withval"],[with_libnetfilter_queue_includes=no])
+AC_ARG_WITH(libnetfilter_queue_libraries,
+    [  --with-libnetfilter_queue-libraries=DIR    libnetfilter_queue library directory],
+    [with_libnetfilter_queue_libraries="$withval"],[with_libnetfilter_queue_libraries="no"])
+
+if test "$with_libnetfilter_queue_includes" != "no"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_queue_includes}"
+fi
+
+AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,[AC_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)])
+
+if test "$with_libnetfilter_queue_libraries" != "no"; then
+    LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_queue_libraries}"
+fi
+
+#LDFLAGS="${LDFLAGS} -lnetfilter_queue"
+
+NFQ=""
+AC_CHECK_LIB(netfilter_queue, nfq_open,, NFQ="no",)
+
+if test "$NFQ" = "no"; then
+    echo
+    echo "   ERROR!  libnetfilter_queue library not found, go get it"
+    echo "   from www.netfilter.org."
+    echo "   we automatically append libnetfilter_queue/ when searching"
+    echo "   for headers etc. when the --with-libnfq-inlcudes directive"
+    echo "   is used"
+    echo
+    exit 1 
+fi
+
+AC_ARG_WITH(libnet_includes,
+    [  --with-libnet-includes=DIR     libnet include directory],
+    [with_libnet_includes="$withval"],[with_libnet_includes="no"])
+    
+AC_ARG_WITH(libnet_libraries,
+    [  --with-libnet-libraries=DIR    libnet library directory],
+    [with_libnet_libraries="$withval"],[with_libnet_libraries="no"])
+    
+if test "x$with_libnet_includes" != "xno"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_libnet_includes}"
+fi  
+
+if test "x$with_libnet_libraries" != "xno"; then
+    LDFLAGS="${LDFLAGS} -L${with_libnet_libraries}"
+fi
+
+LIBNET_INC_DIR=""
+AC_MSG_CHECKING("for libnet.h version 1.1.x")
+libnet_dir="/usr/include /usr/local/include"
+for i in $libnet_dir; do
+     if test -r "$i/libnet.h"; then
+         LIBNET_INC_DIR="$i"
+     fi
+done
+
+if test "$LIBNET_INC_DIR" != ""; then
+    if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v 1.1 >/dev/null"; then
+        FAIL_MESSAGE("libnet 1.1.x (libnet.h)", $tmp)
+    fi
+    CFLAGS="${CFLAGS} `libnet-config --defines` `libnet-config --cflags`"
+    LIBS="${LIBS} `libnet-config --libs`"
+    CPPFLAGS="${CPPFLAGS} -I${LIBNET_INC_DIR}"
+    AC_MSG_RESULT($i)
+else
+    AC_MSG_RESULT(no)
+    AC_MSG_ERROR("libnet 1.1.x could not be found.  please download and install the library from http://www.packetfactory.net/libnet/")
+fi
+
+# see if we have the patched libnet 1.1
+# http://www.inliniac.net/blog/2007/10/16/libnet-11-ipv6-fixes-and-additions.html
+LLIBNET=""
+AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
+    if test "$LLIBNET" != "no"; then
+        CFLAGS="$CFLAGS -DHAVE_LIBNET_ICMPV6_UNREACH"
+    fi
+
+AC_SUBST(CFLAGS)
+AC_SUBST(LDFLAGS)
+AC_SUBST(CPPFLAGS)
+
 AC_OUTPUT(Makefile src/Makefile)
+

@@ -62,13 +62,15 @@ tmqh-packetpool.c tmqh-packetpool.h \
 alert-fastlog.c alert-fastlog.h \
 log-httplog.c log-httplog.h \
 alert-unified-log.c alert-unified-log.h \
-alert-unified-alert.c alert-unified-alert.h
+alert-unified-alert.c alert-unified-alert.h \
+respond-reject.c respond-reject.h \
+respond-reject-libnet11.h respond-reject-libnet11.c
 
 # set the include path found by configure
 INCLUDES= $(all_includes)
 
 # the library search path.
 vips_LDFLAGS = $(all_libraries) 
-vips_LDADD = -lnetfilter_queue -lpthread -lpcre
-vips_CFLAGS = -Wall -fno-strict-aliasing
+#vips_LDADD = -lnetfilter_queue -lpthread -lpcre 
+#vips_CFLAGS = -Wall -fno-strict-aliasing 
 
