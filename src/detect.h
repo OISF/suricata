@@ -48,7 +48,7 @@ typedef struct _Signature {
     u_int8_t action; 
     DetectAddressGroupsHead src, dst;
     SigPort sp, dp;
-
+    u_int8_t ip_proto;
     u_int32_t rulegroup_refcnt;
     struct _SigMatch *match;
     struct _Signature *next;

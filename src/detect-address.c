@@ -1124,6 +1124,9 @@ DetectAddressGroup *
 DetectAddressLookupGroup(DetectAddressGroupsHead *gh, Address *a) {
     DetectAddressGroup *g;
 
+    if (gh == NULL)
+        return NULL;
+
     /* XXX should we really do this check every time we run
      * this function? */
     if (a->family == AF_INET)

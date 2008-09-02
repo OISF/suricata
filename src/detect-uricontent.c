@@ -240,7 +240,11 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
         return 0;
 
     if (pmt->de_have_httpuri == 1 && pmt->de_scanned_httpuri == 0) {
-        /* Scan http uri now */
+        /* don't bother scanning if we don't have a pattern matcher ctx
+         * which means we don't have uricontent sigs */
+        if (pmt->mcu == NULL)
+            return 0;
+
         //printf("DetectUricontentMatch: going to scan uri buffer(s)\n");
 
         /* scan all buffers we have */
