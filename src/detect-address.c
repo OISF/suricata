@@ -1095,7 +1095,7 @@ void DetectAddressDataPrint(DetectAddressData *ad) {
         return;
 
     if (ad->flags & ADDRESS_FLAG_ANY) {
-        printf("ANY\n");
+        printf("ANY");
     } else if (ad->family == AF_INET) {
         struct in_addr in;
         char s[16];

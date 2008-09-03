@@ -71,6 +71,19 @@ typedef struct SigTableElmt {
     u_int8_t flags;
 } SigTableElmt;
 
+typedef struct DetectEngineCtx_ {
+    Signature *sig_list;
+    u_int32_t sig_cnt;
+
+    DetectAddressGroupsHead *src_gh[256];
+    DetectAddressGroupsHead *tmp_gh[256];
+
+    u_int32_t mpm_unique, mpm_reuse, mpm_none,
+              mpm_uri_unique, mpm_uri_reuse, mpm_uri_none;
+    u_int32_t gh_unique, gh_reuse;
+
+} DetectEngineCtx;
+
 #define SIGGROUP_PROTO 1
 #define SIGGROUP_SP    2
 #define SIGGROUP_DP    3
@@ -187,7 +200,7 @@ void SigTableRegisterTests(void);
 void SigRegisterTests(void);
 void TmModuleDetectRegister (void);
 
-int SigGroupBuild(Signature *);
+int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup();
 
 #endif /* __DETECT_H__ */

@@ -8,6 +8,7 @@
 #include "flow.h"
 
 #include "detect-parse.h"
+#include "detect-engine.h"
 #include "detect-siggroup.h"
 
 #include "detect-address.h"
@@ -40,9 +41,7 @@
 
 #include "util-unittest.h"
 
-/* XXX store all this in a DetectionEngineCtx one day */
-static Signature *sig_list = NULL;
-static DetectAddressGroupsHead *g_src_gh[256], *g_tmp_gh[256];
+static DetectEngineCtx *g_de_ctx = NULL;
 
 SigMatch *SigMatchAlloc(void);
 void SigMatchFree(SigMatch *sm);
@@ -64,13 +63,17 @@ void SigLoadSignatures (void)
 {
     Signature *prevsig = NULL, *sig;
 
+    /* intialize the de_ctx */
+    g_de_ctx = DetectEngineCtxInit();
+
+
     /* The next 3 rules handle HTTP header capture. */
 
     /* http_uri -- for uricontent */
     sig = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; depth:400; noalert; sid:1;)");
     if (sig) {
         prevsig = sig;
-        sig_list = sig;
+        g_de_ctx->sig_list = sig;
     }
 
     /* http_host -- for the log-httplog module */
@@ -165,13 +168,13 @@ void SigLoadSignatures (void)
         prevsig->next = sig;
         prevsig = sig;
     }
-
-    sig = SigInit("alert tcp 0.0.0.0/0 any -> 0.0.0.0/0 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VJ\"; sid:9;)");
+*/
+    sig = SigInit("alert tcp 0.0.0.0/0 any -> 0.0.0.0/0 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:9;)");
     if (sig) {
         prevsig->next = sig;
         prevsig = sig;
     }
-*/
+
 //#if 0
     int good = 0, bad = 0;
     FILE *fp = fopen("/etc/vips/rules/bleeding-all.rules", "r");
@@ -213,7 +216,7 @@ void SigLoadSignatures (void)
 
     /* Setup the signature group lookup structure and
      * pattern matchers */
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
 //abort();
 }
 
@@ -257,7 +260,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
     pmt->de_scanned_httpuri = 0;
 
     /* find the right mpm instance */
-    DetectAddressGroup *g = DetectAddressLookupGroup(g_src_gh[p->proto],&p->src);
+    DetectAddressGroup *g = DetectAddressLookupGroup(g_de_ctx->src_gh[p->proto],&p->src);
     if (g != NULL) {
         /* source group found, lets try a dst group */
         g = DetectAddressLookupGroup(g->dst_gh,&p->dst);
@@ -377,7 +380,7 @@ void SigCleanSignatures()
 {
     Signature *s = NULL, *ns;
 
-    for (s = sig_list; s != NULL;) {
+    for (s = g_de_ctx->sig_list; s != NULL;) {
         ns = s->next;
         SigFree(s);
         s = ns;
@@ -387,15 +390,15 @@ void SigCleanSignatures()
 
 /* add all signatures to their own source address group
  * XXX not currently used */
-int SigAddressPrepareStage1(Signature *s) {
+int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL;
-    u_int32_t cnt = 0, sigs = 0;
+    u_int32_t cnt = 0;
 
     printf("* Building signature grouping structure, stage 1: adding signatures to signature source addresses...\n");
 
     /* now for every rule add the source group */
-    for (tmp_s = s; tmp_s != NULL; tmp_s = tmp_s->next) {
+    for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
         for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
             if (SigGroupAppend(gr,tmp_s) < 0) {
                 goto error;
@@ -414,10 +417,10 @@ int SigAddressPrepareStage1(Signature *s) {
             }
             cnt++;
         }
-        sigs++;
+        de_ctx->sig_cnt++;
     }
     //DetectSigGroupPrintMemory();
-    printf("* %u signatures appended %u times to the source addresses\n", sigs, cnt);
+    printf(" * %u signatures appended %u times to the source addresses\n", de_ctx->sig_cnt, cnt);
     printf("* Building signature grouping structure, stage 1: adding signatures to signature source addresses... done\n");
 
     return 0;
@@ -427,7 +430,7 @@ error:
 }
 
 /* fill the global src group head, with the sigs included */
-int SigAddressPrepareStage2(Signature *s) {
+int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL, *lookup_gr = NULL;
     u_int32_t cnt = 0, sigs = 0, insert = 0;
@@ -436,20 +439,20 @@ int SigAddressPrepareStage2(Signature *s) {
 
     int i;
     for (i = 0; i < 256; i++) {
-        g_src_gh[i] = DetectAddressGroupsHeadInit();
-        if (g_src_gh[i] == NULL) {
+        de_ctx->src_gh[i] = DetectAddressGroupsHeadInit();
+        if (de_ctx->src_gh[i] == NULL) {
             goto error;
         }
-        g_tmp_gh[i] = DetectAddressGroupsHeadInit();
-        if (g_tmp_gh[i] == NULL) {
+        de_ctx->tmp_gh[i] = DetectAddressGroupsHeadInit();
+        if (de_ctx->tmp_gh[i] == NULL) {
             goto error;
         }
     }
 
     /* now for every rule add the source group to our temp list */
-    for (tmp_s = s; tmp_s != NULL; tmp_s = tmp_s->next) {
+    for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
         for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
-            if ((lookup_gr = DetectAddressGroupLookup(g_tmp_gh[tmp_s->ip_proto]->ipv4_head,gr->ad)) == NULL) {
+            if ((lookup_gr = DetectAddressGroupLookup(de_ctx->tmp_gh[tmp_s->ip_proto]->ipv4_head,gr->ad)) == NULL) {
                 DetectAddressGroup *grtmp = DetectAddressGroupInit();
                 if (grtmp == NULL) {
                     goto error;
@@ -459,7 +462,7 @@ int SigAddressPrepareStage2(Signature *s) {
                     goto error;
                 }
                 grtmp->ad = adtmp;
-                DetectAddressGroupAdd(&g_tmp_gh[tmp_s->ip_proto]->ipv4_head,grtmp);
+                DetectAddressGroupAdd(&de_ctx->tmp_gh[tmp_s->ip_proto]->ipv4_head,grtmp);
 
                 SigGroupAppend(grtmp,tmp_s);
                 cnt++;
@@ -471,7 +474,7 @@ int SigAddressPrepareStage2(Signature *s) {
             }
         }
         for (gr = tmp_s->src.ipv6_head; gr != NULL; gr = gr->next) {
-            if ((lookup_gr = DetectAddressGroupLookup(g_tmp_gh[tmp_s->ip_proto]->ipv6_head,gr->ad)) == NULL) {
+            if ((lookup_gr = DetectAddressGroupLookup(de_ctx->tmp_gh[tmp_s->ip_proto]->ipv6_head,gr->ad)) == NULL) {
                 DetectAddressGroup *grtmp = DetectAddressGroupInit();
                 if (grtmp == NULL) {
                     goto error;
@@ -481,7 +484,7 @@ int SigAddressPrepareStage2(Signature *s) {
                     goto error;
                 }
                 grtmp->ad = adtmp;
-                DetectAddressGroupAdd(&g_tmp_gh[tmp_s->ip_proto]->ipv6_head,grtmp);
+                DetectAddressGroupAdd(&de_ctx->tmp_gh[tmp_s->ip_proto]->ipv6_head,grtmp);
 
                 SigGroupAppend(grtmp,tmp_s);
                 cnt++;
@@ -494,7 +497,7 @@ int SigAddressPrepareStage2(Signature *s) {
         }
         /* XXX review 'any' usage here */
         for (gr = tmp_s->src.any_head; gr != NULL; gr = gr->next) {
-            if ((lookup_gr = DetectAddressGroupLookup(g_tmp_gh[tmp_s->ip_proto]->any_head,gr->ad)) == NULL) {
+            if ((lookup_gr = DetectAddressGroupLookup(de_ctx->tmp_gh[tmp_s->ip_proto]->any_head,gr->ad)) == NULL) {
                 DetectAddressGroup *grtmp = DetectAddressGroupInit();
                 if (grtmp == NULL) {
                     goto error;
@@ -504,7 +507,7 @@ int SigAddressPrepareStage2(Signature *s) {
                     goto error;
                 }
                 grtmp->ad = adtmp;
-                DetectAddressGroupAdd(&g_tmp_gh[tmp_s->ip_proto]->any_head,grtmp);
+                DetectAddressGroupAdd(&de_ctx->tmp_gh[tmp_s->ip_proto]->any_head,grtmp);
 
                 SigGroupAppend(grtmp,tmp_s);
                 cnt++;
@@ -526,38 +529,44 @@ int SigAddressPrepareStage2(Signature *s) {
     //printf("g_tmp_gh end\n");
 
     for (i = 0; i < 256; i++) {
-        for (gr = g_tmp_gh[i]->ipv4_head; gr != NULL; ) {
+        for (gr = de_ctx->tmp_gh[i]->ipv4_head; gr != NULL; ) {
             //printf("Inserting2'ing: "); DetectAddressDataPrint(gr->ad);
             DetectAddressGroup *grnext = gr->next;
 
             gr->next = NULL;
-            if (DetectAddressGroupInsert(g_src_gh[i],gr) < 0)
+            if (DetectAddressGroupInsert(de_ctx->src_gh[i],gr) < 0)
                 goto error;
 
             gr = grnext;
         }
-        for (gr = g_tmp_gh[i]->ipv6_head; gr != NULL; ) {
+        for (gr = de_ctx->tmp_gh[i]->ipv6_head; gr != NULL; ) {
             //printf("Inserting2'ing: "); DetectAddressDataPrint(gr->ad);
             DetectAddressGroup *grnext = gr->next;
 
             gr->next = NULL;
-            if (DetectAddressGroupInsert(g_src_gh[i],gr) < 0)
+            if (DetectAddressGroupInsert(de_ctx->src_gh[i],gr) < 0)
                 goto error;
 
             gr = grnext;
         }
         /* XXX whats the point of the any temp list if any is always just
          * one object.... ??? */
-        for (gr = g_tmp_gh[i]->any_head; gr != NULL; ) {
+        for (gr = de_ctx->tmp_gh[i]->any_head; gr != NULL; ) {
             //printf("Inserting2'ing: "); DetectAddressDataPrint(gr->ad);
             DetectAddressGroup *grnext = gr->next;
 
             gr->next = NULL;
-            if (DetectAddressGroupInsert(g_src_gh[i],gr) < 0)
+            if (DetectAddressGroupInsert(de_ctx->src_gh[i],gr) < 0)
                 goto error;
 
             gr = grnext;
         }
+
+       //printf("g_src_gh[%d] strt\n", i);
+       //DetectAddressGroupPrintList(g_src_gh[i]->ipv4_head);
+       //DetectAddressGroupPrintList(g_src_gh[i]->ipv6_head);
+       //DetectAddressGroupPrintList(g_src_gh[i]->any_head);
+       //printf("g_src_gh[%d] end\n", i);
     }
 
 
@@ -573,60 +582,60 @@ int SigAddressPrepareStage2(Signature *s) {
 
     /* TCP */
     u_int32_t cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
-    for (gr = g_src_gh[6]->any_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[6]->any_head; gr != NULL; gr = gr->next) {
         cnt_any++;
     }
-    for (gr = g_src_gh[6]->ipv4_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[6]->ipv4_head; gr != NULL; gr = gr->next) {
         cnt_ipv4++;
     }
-    for (gr = g_src_gh[6]->ipv6_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[6]->ipv6_head; gr != NULL; gr = gr->next) {
         cnt_ipv6++;
     }
-    printf("* TCP Source any: %u address blocks.\n", cnt_any);
-    printf("* TCP Source ipv4: %u address blocks.\n", cnt_ipv4);
-    printf("* TCP Source ipv6: %u address blocks.\n", cnt_ipv6);
+    printf(" * TCP Source any: %u address blocks.\n", cnt_any);
+    printf(" * TCP Source ipv4: %u address blocks.\n", cnt_ipv4);
+    printf(" * TCP Source ipv6: %u address blocks.\n", cnt_ipv6);
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
-    for (gr = g_src_gh[17]->any_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[17]->any_head; gr != NULL; gr = gr->next) {
         cnt_any++;
     }
-    for (gr = g_src_gh[17]->ipv4_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[17]->ipv4_head; gr != NULL; gr = gr->next) {
         cnt_ipv4++;
     }
-    for (gr = g_src_gh[17]->ipv6_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[17]->ipv6_head; gr != NULL; gr = gr->next) {
         cnt_ipv6++;
     }
-    printf("* UDP Source any: %u address blocks.\n", cnt_any);
-    printf("* UDP Source ipv4: %u address blocks.\n", cnt_ipv4);
-    printf("* UDP Source ipv6: %u address blocks.\n", cnt_ipv6);
+    printf(" * UDP Source any: %u address blocks.\n", cnt_any);
+    printf(" * UDP Source ipv4: %u address blocks.\n", cnt_ipv4);
+    printf(" * UDP Source ipv6: %u address blocks.\n", cnt_ipv6);
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
-    for (gr = g_src_gh[1]->any_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[1]->any_head; gr != NULL; gr = gr->next) {
         cnt_any++;
     }
-    for (gr = g_src_gh[1]->ipv4_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[1]->ipv4_head; gr != NULL; gr = gr->next) {
         cnt_ipv4++;
     }
-    for (gr = g_src_gh[1]->ipv6_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[1]->ipv6_head; gr != NULL; gr = gr->next) {
         cnt_ipv6++;
     }
-    printf("* ICMP Source any: %u address blocks.\n", cnt_any);
-    printf("* ICMP Source ipv4: %u address blocks.\n", cnt_ipv4);
-    printf("* ICMP Source ipv6: %u address blocks.\n", cnt_ipv6);
+    printf(" * ICMP Source any: %u address blocks.\n", cnt_any);
+    printf(" * ICMP Source ipv4: %u address blocks.\n", cnt_ipv4);
+    printf(" * ICMP Source ipv6: %u address blocks.\n", cnt_ipv6);
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
-    for (gr = g_src_gh[4]->any_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[4]->any_head; gr != NULL; gr = gr->next) {
         cnt_any++;
     }
-    for (gr = g_src_gh[4]->ipv4_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[4]->ipv4_head; gr != NULL; gr = gr->next) {
         cnt_ipv4++;
     }
-    for (gr = g_src_gh[4]->ipv6_head; gr != NULL; gr = gr->next) {
+    for (gr = de_ctx->src_gh[4]->ipv6_head; gr != NULL; gr = gr->next) {
         cnt_ipv6++;
     }
-    printf("* IP Source any: %u address blocks.\n", cnt_any);
-    printf("* IP Source ipv4: %u address blocks.\n", cnt_ipv4);
-    printf("* IP Source ipv6: %u address blocks.\n", cnt_ipv6);
+    printf(" * IP Source any: %u address blocks.\n", cnt_any);
+    printf(" * IP Source ipv4: %u address blocks.\n", cnt_ipv4);
+    printf(" * IP Source ipv6: %u address blocks.\n", cnt_ipv6);
     printf("* Building signature grouping structure, stage 2: building source address list... done\n");
 
     return 0;
@@ -635,437 +644,227 @@ error:
     return -1;
 }
 
-int SigAddressPrepareStage3(Signature *s) {
+static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *head, int family) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
     SigGroupContainer *sgc = NULL;
-    u_int32_t cnt = 0, copy = 0, real = 0, mpm_unique = 0, mpm_reuse = 0, mpm_none = 0,
-              mpm_uri_unique = 0, mpm_uri_reuse = 0, mpm_uri_none = 0;
+    u_int32_t cnt = 0;
+
+    DetectAddressGroup *grhead = NULL, *grdsthead = NULL, *grtmphead = NULL, *grsighead = NULL;
+
+    /* based on the family, select the list we are using in the head */
+    if (family == AF_INET) {
+        grhead = head->ipv4_head;
+    } else if (family == AF_INET6) {
+        grhead = head->ipv6_head;
+    } else {
+        grhead = head->any_head;
+    }
+
+    /* loop through the global source address list */
+    for (gr = grhead; gr != NULL; gr = gr->next) {
+        //printf(" * Source group: "); DetectAddressDataPrint(gr->ad); printf("\n");
+
+        /* initialize the destination group head */
+        gr->dst_gh = DetectAddressGroupsHeadInit();
+        if (gr->dst_gh == NULL) {
+            goto error;
+        }
+
+        /* use a tmp list for speeding up insertions */
+        DetectAddressGroup *tmp_gr_list = NULL;
+
+        /* loop through all signatures in this source address group
+         * and build the temporary destination address list for it */
+        for (sgc = gr->sh->head; sgc != NULL; sgc = sgc->next) {
+            tmp_s = sgc->s;
+
+            if (family == AF_INET) {
+                grsighead = tmp_s->dst.ipv4_head;
+            } else if (family == AF_INET6) {
+                grsighead = tmp_s->dst.ipv6_head;
+            } else {
+                grsighead = tmp_s->dst.any_head;
+            }
+
+            /* build the temp list */
+            for (sgr = grsighead; sgr != NULL; sgr = sgr->next) {
+                if ((lookup_gr = DetectAddressGroupLookup(tmp_gr_list,sgr->ad)) == NULL) {
+                    DetectAddressGroup *grtmp = DetectAddressGroupInit();
+                    if (grtmp == NULL) {
+                        goto error;
+                    }
+                    DetectAddressData *adtmp = DetectAddressDataCopy(sgr->ad);
+                    if (adtmp == NULL) {
+                        goto error;
+                    }
+                    grtmp->ad = adtmp;
+
+                    DetectAddressGroupAdd(&tmp_gr_list,grtmp);
+
+                    SigGroupAppend(grtmp,tmp_s);
+                } else {
+                    /* our group will only have one sig, this one. So add that. */
+                    SigGroupAppend(lookup_gr,tmp_s);
+                }
+            }
+        }
+
+        /* for each address in the tmp list, insert a copy */
+        for (sgr = tmp_gr_list; sgr != NULL; sgr = sgr->next) {
+            DetectAddressGroup *grtmp = DetectAddressGroupInit();
+            if (grtmp == NULL) {
+                goto error;
+            }
+            DetectAddressData *adtmp = DetectAddressDataCopy(sgr->ad);
+            if (adtmp == NULL) {
+                goto error;
+            }
+            grtmp->ad = adtmp;
+
+            SigGroupListCopyAppend(sgr,grtmp);
+
+            int r = DetectAddressGroupInsert(gr->dst_gh,grtmp);
+            if (r < 0) {
+                printf("DetectAddressGroupInsert failed\n");
+                goto error;
+            }
+        }
+
+        /* set the right dst ptr to work with */
+        if (family == AF_INET) {
+            grdsthead = gr->dst_gh->ipv4_head;
+        } else if (family == AF_INET6) {
+            grdsthead = gr->dst_gh->ipv6_head;
+        } else {
+            grdsthead = gr->dst_gh->any_head;
+        }
+
+        /* see if the sig group head of each address group is the
+         * same as an earlier one. If it is, free our head and use
+         * a pointer to the earlier one. This saves _a lot_ of memory.
+         */
+        for (sgr = grdsthead; sgr != NULL; sgr = sgr->next) {
+            /* Because a pattern matcher context uses quite some
+             * memory, we first check if we can reuse it from
+             * another group head. */
+            SigGroupHead *sgh = SigGroupHeadListGet(sgr->sh);
+            if (sgh == NULL) {
+                /* put the contents in our head */
+                SigGroupContentLoad(sgr->sh);
+                SigGroupUricontentLoad(sgr->sh);
+
+                //SigGroupContentListPrint(sgr->sh);
+                //SigGroupUricontentListPrint(sgr->sh);
+
+                if (sgr->sh->content_size == 0) {
+                    de_ctx->mpm_none++;
+                } else {
+                    /* now have a look if we can reuse a mpm ctx */
+                    SigGroupHead *mpmsh = SigGroupHeadListGetMpm(sgr->sh);
+                    if (mpmsh == NULL) {
+                        de_ctx->mpm_unique++;
+                    } else {
+                        de_ctx->mpm_reuse++;
+
+                        sgr->sh->mpm_ctx = mpmsh->mpm_ctx;
+                        sgr->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
+                        SigGroupListContentClean(sgr->sh);
+                    }
+                }
+
+                if (sgr->sh->uri_content_size == 0) {
+                    de_ctx->mpm_uri_none++;
+                } else {
+                    /* now have a look if we can reuse a uri mpm ctx */
+                    SigGroupHead *mpmsh = SigGroupHeadListGetMpmUri(sgr->sh);
+                    if (mpmsh == NULL) {
+                        de_ctx->mpm_uri_unique++;
+                    } else {
+                        de_ctx->mpm_uri_reuse++;
+
+                       sgr->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
+                       sgr->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
+                       SigGroupListUricontentClean(sgr->sh);
+                    }
+                }
+
+                /* init the pattern matcher, this will respect the copy
+                 * setting */
+                if (PatternMatchPrepareGroup(sgr->sh) < 0) {
+                    printf("PatternMatchPrepareGroup failed\n");
+                    goto error;
+                }
+
+                SigGroupHeadAppend(sgr->sh);
+                de_ctx->gh_unique++;
+            } else {
+                SigGroupHeadFree(sgr->sh);
+                sgr->sh = sgh;
+                de_ctx->gh_reuse++;
+                sgr->flags |= SIG_GROUP_COPY;
+            }
+        }
+
+        /* free the temp list */
+        DetectAddressGroupCleanupList(tmp_gr_list);
+        /* clear now unneeded sig group head */
+        SigGroupHeadFree(gr->sh);
+        gr->sh = NULL;
+
+        DetectAddressGroup *tgr;
+        for (tgr = grdsthead; tgr != NULL; tgr = tgr->next) {
+            cnt++;
+        }
+
+        printf(" * Source group: "); DetectAddressDataPrint(gr->ad); printf(": %d destination groups.\n", cnt);
+        cnt = 0;
+    }
+
+    return 0;
+error:
+    return -1;
+}
+
+int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
+    Signature *tmp_s = NULL;
+    DetectAddressGroup *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
+    SigGroupContainer *sgc = NULL;
+    int i,r;
 
     printf("* Building signature grouping structure, stage 3: building destination address lists...\n");
 
     SigGroupHeadListClean();
 
-    int i;
     for (i = 0; i < 256; i++) {
-        /* loop through the global source address list */
-        for (gr = g_src_gh[i]->ipv4_head; gr != NULL; gr = gr->next) {
-            //printf(" * Source group: "); DetectAddressDataPrint(gr->ad); printf("\n");
-
-            /* use a tmp list for speeding up insertions */
-            DetectAddressGroupsHead *tmp_gh = DetectAddressGroupsHeadInit();
-            if (tmp_gh == NULL) {
-                goto error;
-            }
-
-            /* loop through all signatures in this source address group */
-            for (sgc = gr->sh->head; sgc != NULL; sgc = sgc->next) {
-                tmp_s = sgc->s;
-
-                /* build the temp list */
-                for (sgr = tmp_s->dst.ipv4_head; sgr != NULL; sgr = sgr->next) {
-                    if ((lookup_gr = DetectAddressGroupLookup(tmp_gh->ipv4_head,sgr->ad)) == NULL) {
-                        DetectAddressGroup *grtmp = DetectAddressGroupInit();
-                        if (grtmp == NULL) {
-                            goto error;
-                        }
-                        DetectAddressData *adtmp = DetectAddressDataCopy(sgr->ad);
-                        if (adtmp == NULL) {
-                            goto error;
-                        }
-                        grtmp->ad = adtmp;
-                        DetectAddressGroupAdd(&tmp_gh->ipv4_head,grtmp);
-
-                        SigGroupAppend(grtmp,tmp_s);
-                    } else {
-                        /* our group will only have one sig, this one. So add that. */
-                        SigGroupAppend(lookup_gr,tmp_s);
-                    }
-                }
-            }
-
-            /* for each address in the tmp list, insert a copy */
-            for (sgr = tmp_gh->ipv4_head; sgr != NULL; sgr = sgr->next) {
-                DetectAddressGroup *grtmp = DetectAddressGroupInit();
-                if (grtmp == NULL) {
-                    goto error;
-                }
-                DetectAddressData *adtmp = DetectAddressDataCopy(sgr->ad);
-                if (adtmp == NULL) {
-                    goto error;
-                }
-                grtmp->ad = adtmp;
-
-                SigGroupListCopyAppend(sgr,grtmp);
-
-                if (gr->dst_gh == NULL) {
-                    gr->dst_gh = DetectAddressGroupsHeadInit();
-                }
-
-                int r = DetectAddressGroupInsert(gr->dst_gh,grtmp);
-                if (r < 0) goto error;
-            }
-
-            /* see if the sig group head of each address group is the
-             * same as an earlier one. If it is, free our head and use
-             * a pointer to the earlier one. This saves _a lot_ of memory.
-             */
-            for (sgr = gr->dst_gh->ipv4_head; sgr != NULL; sgr = sgr->next) {
-                /* Because a pattern matcher context uses quite some
-                 * memory, we first check if we can reuse it from
-                 * another group head. */
-                SigGroupHead *sgh = SigGroupHeadListGet(sgr->sh);
-                if (sgh == NULL) {
-                    /* put the contents in our head */
-                    SigGroupContentLoad(sgr->sh);
-                    SigGroupUricontentLoad(sgr->sh);
-
-                    //SigGroupContentListPrint(sgr->sh);
-                    //SigGroupUricontentListPrint(sgr->sh);
-
-                    if (sgr->sh->content_size == 0) {
-                        mpm_none++;
-                    } else {
-                        /* now have a look if we can reuse a mpm ctx */
-                        SigGroupHead *mpmsh = SigGroupHeadListGetMpm(sgr->sh);
-                        if (mpmsh == NULL) {
-                            mpm_unique++;
-                        } else {
-                            mpm_reuse++;
-
-                            sgr->sh->mpm_ctx = mpmsh->mpm_ctx;
-                            sgr->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
-                            SigGroupListContentClean(sgr->sh);
-                        }
-                    }
-
-                    if (sgr->sh->uri_content_size == 0) {
-                        mpm_uri_none++;
-                    } else {
-                        /* now have a look if we can reuse a uri mpm ctx */
-                        SigGroupHead *mpmsh = SigGroupHeadListGetMpmUri(sgr->sh);
-                        if (mpmsh == NULL) {
-                            mpm_uri_unique++;
-                        } else {
-                            mpm_uri_reuse++;
-
-                            sgr->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
-                            sgr->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
-                            SigGroupListUricontentClean(sgr->sh);
-                        }
-                    }
-
-                    /* init the pattern matcher, this will respect the copy
-                     * setting */
-                    if (PatternMatchPrepareGroup(sgr->sh) < 0)
-                        goto error;
-
-                    SigGroupHeadAppend(sgr->sh);
-                    real++;
-                } else {
-                    SigGroupHeadFree(sgr->sh);
-                    sgr->sh = sgh;
-                    copy++;
-                    sgr->flags |= SIG_GROUP_COPY;
-                }
-            }
-
-            /* free the temp list */
-            DetectAddressGroupsHeadFree(tmp_gh);
-            /* clear now unneeded sig group head */
-            SigGroupHeadFree(gr->sh);
-            gr->sh = NULL;
-
-            DetectAddressGroup *tgr;
-            for (tgr = gr->dst_gh->ipv4_head; tgr != NULL; tgr = tgr->next) {
-                cnt++;
-            }
-
-            //printf(" * Source group: "); DetectAddressDataPrint(gr->ad); printf(": %d destination groups.\n", cnt);
-            cnt = 0;
+        r = BuildDestinationAddressHeads(de_ctx, de_ctx->src_gh[i],AF_INET);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[%d],AF_INET) failed\n", i);
+            goto error;
         }
-
-        for (gr = g_src_gh[i]->ipv6_head; gr != NULL; gr = gr->next) {
-            //printf(" * Source group: "); DetectAddressDataPrint(gr->ad); printf("\n");
-
-            /* use a tmp list for speeding up insertions */
-            DetectAddressGroupsHead *tmp_gh = DetectAddressGroupsHeadInit();
-            if (tmp_gh == NULL) {
-                goto error;
-            }
-
-            /* loop through all signatures in this source address group */
-            for (sgc = gr->sh->head; sgc != NULL; sgc = sgc->next) {
-                tmp_s = sgc->s;
-
-                /* build the temp list */
-                for (sgr = tmp_s->dst.ipv6_head; sgr != NULL; sgr = sgr->next) {
-                    if ((lookup_gr = DetectAddressGroupLookup(tmp_gh->ipv6_head,sgr->ad)) == NULL) {
-                        DetectAddressGroup *grtmp = DetectAddressGroupInit();
-                        if (grtmp == NULL) {
-                            goto error;
-                        }
-                        DetectAddressData *adtmp = DetectAddressDataCopy(sgr->ad);
-                        if (adtmp == NULL) {
-                            goto error;
-                        }
-                        grtmp->ad = adtmp;
-                        DetectAddressGroupAdd(&tmp_gh->ipv6_head,grtmp);
-
-                        SigGroupAppend(grtmp,tmp_s);
-                    } else {
-                        /* our group will only have one sig, this one. So add that. */
-                        SigGroupAppend(lookup_gr,tmp_s);
-                    }
-                }
-            }
-
-            /* for each address in the tmp list, insert a copy */
-            for (sgr = tmp_gh->ipv6_head; sgr != NULL; sgr = sgr->next) {
-                DetectAddressGroup *grtmp = DetectAddressGroupInit();
-                if (grtmp == NULL) {
-                    goto error;
-                }
-                DetectAddressData *adtmp = DetectAddressDataCopy(sgr->ad);
-                if (adtmp == NULL) {
-                    goto error;
-                }
-                grtmp->ad = adtmp;
-
-                SigGroupListCopyAppend(sgr,grtmp);
-
-                if (gr->dst_gh == NULL) {
-                    gr->dst_gh = DetectAddressGroupsHeadInit();
-                }
-
-                int r = DetectAddressGroupInsert(gr->dst_gh,grtmp);
-                if (r < 0) goto error;
-            }
-
-            /* see if the sig group head of each address group is the
-             * same as an earlier one. If it is, free our head and use
-             * a pointer to the earlier one. This saves _a lot_ of memory.
-             */
-            for (sgr = gr->dst_gh->ipv6_head; sgr != NULL; sgr = sgr->next) {
-                /* Because a pattern matcher context uses quite some
-                 * memory, we first check if we can reuse it from
-                 * another group head. */
-                SigGroupHead *sgh = SigGroupHeadListGet(sgr->sh);
-                if (sgh == NULL) {
-                    /* put the contents in our head */
-                    SigGroupContentLoad(sgr->sh);
-                    SigGroupUricontentLoad(sgr->sh);
-
-                    //SigGroupContentListPrint(sgr->sh);
-                    //SigGroupUricontentListPrint(sgr->sh);
-
-                    if (sgr->sh->content_size == 0) {
-                        mpm_none++;
-                    } else {
-                        /* now have a look if we can reuse a mpm ctx */
-                        SigGroupHead *mpmsh = SigGroupHeadListGetMpm(sgr->sh);
-                        if (mpmsh == NULL) {
-                            mpm_unique++;
-                        } else {
-                            mpm_reuse++;
-
-                            sgr->sh->mpm_ctx = mpmsh->mpm_ctx;
-                            sgr->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
-                            SigGroupListContentClean(sgr->sh);
-                        }
-                    }
-
-                    if (sgr->sh->uri_content_size == 0) {
-                        mpm_uri_none++;
-                    } else {
-                        /* now have a look if we can reuse a uri mpm ctx */
-                        SigGroupHead *mpmsh = SigGroupHeadListGetMpmUri(sgr->sh);
-                        if (mpmsh == NULL) {
-                            mpm_uri_unique++;
-                        } else {
-                            mpm_uri_reuse++;
-
-                            sgr->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
-                            sgr->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
-                            SigGroupListUricontentClean(sgr->sh);
-                        }
-                    }
-
-                    /* init the pattern matcher, this will respect the copy
-                     * setting */
-                    if (PatternMatchPrepareGroup(sgr->sh) < 0)
-                        goto error;
-
-                    SigGroupHeadAppend(sgr->sh);
-                    real++;
-                } else {
-                    SigGroupHeadFree(sgr->sh);
-                    sgr->sh = sgh;
-                    copy++;
-                    sgr->flags |= SIG_GROUP_COPY;
-                }
-            }
-
-            /* free the temp list */
-            DetectAddressGroupsHeadFree(tmp_gh);
-            /* clear now unneeded sig group head */
-            SigGroupHeadFree(gr->sh);
-            gr->sh = NULL;
-
-            DetectAddressGroup *tgr;
-            for (tgr = gr->dst_gh->ipv6_head; tgr != NULL; tgr = tgr->next) {
-                cnt++;
-            }
-
-            //printf(" * Source group: "); DetectAddressDataPrint(gr->ad); printf(": %d destination groups.\n", cnt);
-            cnt = 0;
+        r = BuildDestinationAddressHeads(de_ctx, de_ctx->src_gh[i],AF_INET6);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[%d],AF_INET6) failed\n", i);
+            goto error;
         }
-        for (gr = g_src_gh[i]->any_head; gr != NULL; gr = gr->next) {
-            //printf(" * Source group: "); DetectAddressDataPrint(gr->ad); printf("\n");
-
-            /* use a tmp list for speeding up insertions */
-            DetectAddressGroupsHead *tmp_gh = DetectAddressGroupsHeadInit();
-            if (tmp_gh == NULL) {
-                goto error;
-            }
-
-            /* loop through all signatures in this source address group */
-            for (sgc = gr->sh->head; sgc != NULL; sgc = sgc->next) {
-                tmp_s = sgc->s;
-
-                /* build the temp list */
-                for (sgr = tmp_s->dst.any_head; sgr != NULL; sgr = sgr->next) {
-                    if ((lookup_gr = DetectAddressGroupLookup(tmp_gh->any_head,sgr->ad)) == NULL) {
-                        DetectAddressGroup *grtmp = DetectAddressGroupInit();
-                        if (grtmp == NULL) {
-                            goto error;
-                        }
-                        DetectAddressData *adtmp = DetectAddressDataCopy(sgr->ad);
-                        if (adtmp == NULL) {
-                            goto error;
-                        }
-                        grtmp->ad = adtmp;
-                        DetectAddressGroupAdd(&tmp_gh->any_head,grtmp);
-
-                        SigGroupAppend(grtmp,tmp_s);
-                    } else {
-                        /* our group will only have one sig, this one. So add that. */
-                        SigGroupAppend(lookup_gr,tmp_s);
-                    }
-                }
-            }
-
-            /* for each address in the tmp list, insert a copy */
-            for (sgr = tmp_gh->any_head; sgr != NULL; sgr = sgr->next) {
-                DetectAddressGroup *grtmp = DetectAddressGroupInit();
-                if (grtmp == NULL) {
-                    goto error;
-                }
-                DetectAddressData *adtmp = DetectAddressDataCopy(sgr->ad);
-                if (adtmp == NULL) {
-                    goto error;
-                }
-                grtmp->ad = adtmp;
-
-                SigGroupListCopyAppend(sgr,grtmp);
-
-                if (gr->dst_gh == NULL) {
-                    gr->dst_gh = DetectAddressGroupsHeadInit();
-                }
-
-                int r = DetectAddressGroupInsert(gr->dst_gh,grtmp);
-                if (r < 0) goto error;
-            }
-
-            /* see if the sig group head of each address group is the
-             * same as an earlier one. If it is, free our head and use
-             * a pointer to the earlier one. This saves _a lot_ of memory.
-             */
-            for (sgr = gr->dst_gh->any_head; sgr != NULL; sgr = sgr->next) {
-                /* Because a pattern matcher context uses quite some
-                 * memory, we first check if we can reuse it from
-                 * another group head. */
-                SigGroupHead *sgh = SigGroupHeadListGet(sgr->sh);
-                if (sgh == NULL) {
-                    /* put the contents in our head */
-                    SigGroupContentLoad(sgr->sh);
-                    SigGroupUricontentLoad(sgr->sh);
-
-                    //SigGroupContentListPrint(sgr->sh);
-                    //SigGroupUricontentListPrint(sgr->sh);
-
-                    if (sgr->sh->content_size == 0) {
-                        mpm_none++;
-                    } else {
-                        /* now have a look if we can reuse a mpm ctx */
-                        SigGroupHead *mpmsh = SigGroupHeadListGetMpm(sgr->sh);
-                        if (mpmsh == NULL) {
-                            mpm_unique++;
-                        } else {
-                            mpm_reuse++;
-
-                            sgr->sh->mpm_ctx = mpmsh->mpm_ctx;
-                            sgr->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
-                            SigGroupListContentClean(sgr->sh);
-                        }
-                    }
-
-                    if (sgr->sh->uri_content_size == 0) {
-                        mpm_uri_none++;
-                    } else {
-                        /* now have a look if we can reuse a uri mpm ctx */
-                        SigGroupHead *mpmsh = SigGroupHeadListGetMpmUri(sgr->sh);
-                        if (mpmsh == NULL) {
-                            mpm_uri_unique++;
-                        } else {
-                            mpm_uri_reuse++;
-
-                            sgr->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
-                            sgr->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
-                            SigGroupListUricontentClean(sgr->sh);
-                        }
-                    }
-
-                    /* init the pattern matcher, this will respect the copy
-                     * setting */
-                    if (PatternMatchPrepareGroup(sgr->sh) < 0)
-                        goto error;
-
-                    SigGroupHeadAppend(sgr->sh);
-                    real++;
-                } else {
-                    SigGroupHeadFree(sgr->sh);
-                    sgr->sh = sgh;
-                    copy++;
-                    sgr->flags |= SIG_GROUP_COPY;
-                }
-            }
-
-            /* free the temp list */
-            DetectAddressGroupsHeadFree(tmp_gh);
-            /* clear now unneeded sig group head */
-            SigGroupHeadFree(gr->sh);
-            gr->sh = NULL;
-
-            DetectAddressGroup *tgr;
-            for (tgr = gr->dst_gh->any_head; tgr != NULL; tgr = tgr->next) {
-                cnt++;
-            }
-
-            //printf(" * Source group: "); DetectAddressDataPrint(gr->ad); printf(": %d destination groups.\n", cnt);
-            cnt = 0;
+        r = BuildDestinationAddressHeads(de_ctx, de_ctx->src_gh[i],AF_UNSPEC); /* for any */
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[%d],AF_UNSPEC) failed\n", i);
+            goto error;
         }
     }
 
-    /* XXX cleanup group head (uri)content_array's */
+    /* cleanup group head (uri)content_array's */
     SigGroupHeadFreeMpmArrays();
 
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
 
-    printf("* Signature group heads: unique %u, copies %u.\n", real,copy);
-    printf("* MPM instances: %u unique, copies %u (none %u).\n", mpm_unique, mpm_reuse, mpm_none);
-    printf("* MPM (URI) instances: %u unique, copies %u (none %u).\n", mpm_uri_unique, mpm_uri_reuse, mpm_uri_none);
+    printf("* Signature group heads: unique %u, copies %u.\n", de_ctx->gh_unique, de_ctx->gh_reuse);
+    printf("* MPM instances: %u unique, copies %u (none %u).\n",
+        de_ctx->mpm_unique, de_ctx->mpm_reuse, de_ctx->mpm_none);
+    printf("* MPM (URI) instances: %u unique, copies %u (none %u).\n",
+        de_ctx->mpm_uri_unique, de_ctx->mpm_uri_reuse, de_ctx->mpm_uri_none);
     printf("* Building signature grouping structure, stage 3: building destination address lists... done\n");
 
     return 0;
@@ -1074,32 +873,29 @@ error:
     return -1;
 }
 
-int SigAddressCleanupStage1(void) {
-    DetectAddressGroup *global_src_gr = NULL;
+int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
+    DetectAddressGroup *gr = NULL;
 
     printf("* Cleaning up signature grouping structure, stage 1...\n");
 
     int i;
     for (i = 0; i < 256; i++) {
-        for (global_src_gr = g_src_gh[i]->ipv4_head; global_src_gr != NULL;
-                global_src_gr = global_src_gr->next)
+        for (gr = de_ctx->src_gh[i]->ipv4_head; gr != NULL; gr = gr->next)
         {
-            DetectAddressGroupsHeadCleanup(global_src_gr->dst_gh);
+            DetectAddressGroupsHeadCleanup(gr->dst_gh);
         }
 
-        for (global_src_gr = g_src_gh[i]->ipv6_head; global_src_gr != NULL;
-                global_src_gr = global_src_gr->next)
+        for (gr = de_ctx->src_gh[i]->ipv6_head; gr != NULL; gr = gr->next)
         {
-            DetectAddressGroupsHeadCleanup(global_src_gr->dst_gh);
+            DetectAddressGroupsHeadCleanup(gr->dst_gh);
         }
 
-        for (global_src_gr = g_src_gh[i]->any_head; global_src_gr != NULL;
-                global_src_gr = global_src_gr->next)
+        for (gr = de_ctx->src_gh[i]->any_head; gr != NULL; gr = gr->next)
         {
-            DetectAddressGroupsHeadCleanup(global_src_gr->dst_gh);
+            DetectAddressGroupsHeadCleanup(gr->dst_gh);
         }
 
-        DetectAddressGroupsHeadCleanup(g_src_gh[i]);
+        DetectAddressGroupsHeadCleanup(de_ctx->src_gh[i]);
     }
 
     printf("* Cleaning up signature grouping structure, stage 1... done\n");
@@ -1119,7 +915,7 @@ int SigAddressPrepareStage5(void) {
 
     int i;
     for (i = 0; i < 256; i++) {
-        for (global_src_gr = g_src_gh[i]->ipv4_head; global_src_gr != NULL;
+        for (global_src_gr = g_de_ctx->src_gh[i]->ipv4_head; global_src_gr != NULL;
                 global_src_gr = global_src_gr->next)
         {
             printf("- "); DetectAddressDataPrint(global_src_gr->ad);
@@ -1184,7 +980,7 @@ int SigAddressPrepareStage5(void) {
             }
         }
 
-        for (global_src_gr = g_src_gh[i]->ipv6_head; global_src_gr != NULL;
+        for (global_src_gr = g_de_ctx->src_gh[i]->ipv6_head; global_src_gr != NULL;
                 global_src_gr = global_src_gr->next)
         {
             printf("- "); DetectAddressDataPrint(global_src_gr->ad);
@@ -1249,7 +1045,7 @@ int SigAddressPrepareStage5(void) {
             }
         }
 
-        for (global_src_gr = g_src_gh[i]->any_head; global_src_gr != NULL;
+        for (global_src_gr = g_de_ctx->src_gh[i]->any_head; global_src_gr != NULL;
                 global_src_gr = global_src_gr->next)
         {
             printf("- "); DetectAddressDataPrint(global_src_gr->ad);
@@ -1345,15 +1141,15 @@ int SigAddressPrepareStage5(void) {
     return 0;
 }
 
-int SigGroupBuild (Signature *s) {
-    SigAddressPrepareStage1(s);
-    SigAddressPrepareStage2(s);
-    SigAddressPrepareStage3(s);
+int SigGroupBuild (DetectEngineCtx *de_ctx) {
+    SigAddressPrepareStage1(de_ctx);
+    SigAddressPrepareStage2(de_ctx);
+    SigAddressPrepareStage3(de_ctx);
     return 0;
 }
 
 int SigGroupCleanup (void) {
-    SigAddressCleanupStage1();
+    SigAddressCleanupStage1(g_de_ctx);
     return 0;
 }
 
@@ -1441,13 +1237,18 @@ int SigTest01 (void) {
     p.tcp_payload = buf;
     p.tcp_payload_len = buflen;
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
-    if (sig_list == NULL) {
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)&pmt);
 
@@ -1497,13 +1298,18 @@ int SigTest02 (void) {
     p.tcp_payload = buf;
     p.tcp_payload_len = buflen;
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)");
-    if (sig_list == NULL) {
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)&pmt);
 
@@ -1540,13 +1346,18 @@ int SigTest03 (void) {
     p.tcp_payload = buf;
     p.tcp_payload_len = buflen;
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:40; sid:1;)");
-    if (sig_list == NULL) {
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:40; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
 
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)&pmt);
@@ -1585,13 +1396,18 @@ int SigTest04 (void) {
     p.tcp_payload = buf;
     p.tcp_payload_len = buflen;
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:47; within:52; sid:1;)");
-    if (sig_list == NULL) {
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:47; within:52; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)&pmt);
     SigMatchSignatures(&th_v, pmt, &p);
@@ -1628,13 +1444,18 @@ int SigTest05 (void) {
     p.tcp_payload = buf;
     p.tcp_payload_len = buflen;
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
-    if (sig_list == NULL) {
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)&pmt);
     SigMatchSignatures(&th_v, pmt, &p);
@@ -1671,18 +1492,23 @@ int SigTest06 (void) {
     p.tcp_payload = buf;
     p.tcp_payload_len = buflen;
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
-    if (sig_list == NULL) {
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
-    if (sig_list->next == NULL) {
+    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)&pmt);
     SigMatchSignatures(&th_v, pmt, &p);
@@ -1719,18 +1545,23 @@ int SigTest07 (void) {
     p.tcp_payload = buf;
     p.tcp_payload_len = buflen;
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
-    if (sig_list == NULL) {
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)");
-    if (sig_list->next == NULL) {
+    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)");
+    if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)&pmt);
     SigMatchSignatures(&th_v, pmt, &p);
@@ -1769,18 +1600,23 @@ int SigTest08 (void) {
     p.tcp_payload = buf;
     p.tcp_payload_len = buflen;
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
-    if (sig_list == NULL) {
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)");
-    if (sig_list->next == NULL) {
+    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)");
+    if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)&pmt);
     SigMatchSignatures(&th_v, pmt, &p);
@@ -1817,18 +1653,23 @@ int SigTest09 (void) {
     p.tcp_payload = buf;
     p.tcp_payload_len = buflen;
 
-    sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
-    if (sig_list == NULL) {
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
-    if (sig_list->next == NULL) {
+    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(sig_list);
+    SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)&pmt);
     SigMatchSignatures(&th_v, pmt, &p);
