@@ -268,7 +268,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
             pmt->mc = g->sh->mpm_ctx;
             pmt->mcu = g->sh->mpm_uri_ctx;
 
-//            printf("SigMatchSignatures: mc %p, mcu %p\n", pmt->mc, pmt->mcu);
+            //printf("SigMatchSignatures: mc %p, mcu %p\n", pmt->mc, pmt->mcu);
 
             /* point this sig list to sg */
             sg = g->sh->head;
@@ -563,9 +563,9 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         }
 
        //printf("g_src_gh[%d] strt\n", i);
-       //DetectAddressGroupPrintList(g_src_gh[i]->ipv4_head);
-       //DetectAddressGroupPrintList(g_src_gh[i]->ipv6_head);
-       //DetectAddressGroupPrintList(g_src_gh[i]->any_head);
+       //DetectAddressGroupPrintList(de_ctx->src_gh[i]->ipv4_head);
+       //DetectAddressGroupPrintList(de_ctx->src_gh[i]->ipv6_head);
+       //DetectAddressGroupPrintList(de_ctx->src_gh[i]->any_head);
        //printf("g_src_gh[%d] end\n", i);
     }
 

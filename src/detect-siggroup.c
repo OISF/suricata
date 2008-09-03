@@ -58,42 +58,11 @@ SigGroupHead* SigGroupHeadListGetMpm(SigGroupHead *a) {
     SigGroupHead *b = sgh_list;
 
     for ( ; b != NULL; b = b->next) {
-        //printf("a->content_size %u, b->content_size %u\n", a->content_size, b->content_size);
-
         if (a->content_size != b->content_size)
             continue;
 
         if (memcmp(a->content_array,b->content_array,a->content_size) == 0)
             return b;
-
-        //printf("a->content_cnt %u, b->content_cnt %u\n", a->content_cnt, b->content_cnt);
-#if 0
-        if (a->content_cnt != b->content_cnt)
-            continue;
-
-        //printf("a->content_head %p, b->content_head %p\n", a->content_head, b->content_head);
-        for (sc_a = a->content_head, sc_b = b->content_head;
-             sc_a != NULL && sc_b != NULL;
-             sc_a = sc_a->next, sc_b = sc_b->next)
-        {
-            found = 1;
-
-            if (SigGroupContentCmp(sc_a,sc_b) != 0) {
-                found = 0;
-                break;
-            } else if ((sc_a->next == NULL && sc_b->next != NULL) ||
-                       (sc_a->next != NULL && sc_b->next == NULL)) {
-                found = 0;
-                break;
-            }
-            //printf("so far so good\n");
-        }
-
-        if (found) {
-            //printf("returning b %p\n", b);
-            return b;
-        }
-#endif
     }
     return NULL;
 }
@@ -104,41 +73,11 @@ SigGroupHead* SigGroupHeadListGetMpmUri(SigGroupHead *a) {
     SigGroupHead *b = sgh_list;
 
     for ( ; b != NULL; b = b->next) {
-//        SigGroupUricontent *sc_a, *sc_b;
-//        int found = 0;
-
-        if (a->content_size != b->content_size)
+        if (a->uri_content_size != b->uri_content_size)
             continue;
 
-        if (memcmp(a->content_array,b->content_array,a->content_size) == 0)
+        if (memcmp(a->uri_content_array,b->uri_content_array,a->uri_content_size) == 0)
             return b;
-#if 0
-        if (a->uri_content_cnt != b->uri_content_cnt)
-            continue;
-
-        //printf("a->content_head %p, b->content_head %p\n", a->content_head, b->content_head);
-        for (sc_a = a->uri_content_head, sc_b = b->uri_content_head;
-             sc_a != NULL && sc_b != NULL;
-             sc_a = sc_a->next, sc_b = sc_b->next)
-        {
-            found = 1;
-
-            if (SigGroupUricontentCmp(sc_a,sc_b) != 0) {
-                found = 0;
-                break;
-            } else if ((sc_a->next == NULL && sc_b->next != NULL) ||
-                       (sc_a->next != NULL && sc_b->next == NULL)) {
-                found = 0;
-                break;
-            }
-            //printf("so far so good\n");
-        }
-
-        if (found) {
-            //printf("returning b %p\n", b);
-            return b;
-        }
-#endif
     }
     return NULL;
 }
