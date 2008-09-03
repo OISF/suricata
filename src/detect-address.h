@@ -68,6 +68,7 @@ void DetectAddressGroupPrintList(DetectAddressGroup *);
 void DetectAddressGroupFree(DetectAddressGroup *);
 int DetectAddressGroupInsert(DetectAddressGroupsHead *, DetectAddressGroup *);
 void DetectAddressGroupPrintMemory(void);
+void DetectAddressGroupCleanupList (DetectAddressGroup *);
 
 #endif /* __DETECT_ADDRESS_H__ */
 

@@ -650,7 +650,7 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
     SigGroupContainer *sgc = NULL;
     u_int32_t cnt = 0;
 
-    DetectAddressGroup *grhead = NULL, *grdsthead = NULL, *grtmphead = NULL, *grsighead = NULL;
+    DetectAddressGroup *grhead = NULL, *grdsthead = NULL, *grsighead = NULL;
 
     /* based on the family, select the list we are using in the head */
     if (family == AF_INET) {
@@ -827,9 +827,6 @@ error:
 }
 
 int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
-    Signature *tmp_s = NULL;
-    DetectAddressGroup *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
-    SigGroupContainer *sgc = NULL;
     int i,r;
 
     printf("* Building signature grouping structure, stage 3: building destination address lists...\n");
