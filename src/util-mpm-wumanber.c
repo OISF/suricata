@@ -612,6 +612,9 @@ void WmInitCtx (MpmCtx *mpm_ctx) {
         return;
 
     memset(mpm_ctx->ctx, 0, sizeof(WmCtx));
+
+    mpm_ctx->memory_cnt++;
+    mpm_ctx->memory_size += sizeof(WmCtx);
 }
 
 void WmDestroyCtx(MpmCtx *mpm_ctx) {

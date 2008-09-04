@@ -38,6 +38,14 @@ static u_int32_t detect_address_group_memory = 0;
 static u_int32_t detect_address_group_init_cnt = 0;
 static u_int32_t detect_address_group_free_cnt = 0;
 
+static u_int32_t detect_address_group_head_memory = 0;
+static u_int32_t detect_address_group_head_init_cnt = 0;
+static u_int32_t detect_address_group_head_free_cnt = 0;
+
+static u_int32_t detect_address_memory = 0;
+static u_int32_t detect_address_init_cnt = 0;
+static u_int32_t detect_address_free_cnt = 0;
+
 DetectAddressGroup *DetectAddressGroupInit(void) {
     DetectAddressGroup *ag = malloc(sizeof(DetectAddressGroup));
     if (ag == NULL) {
@@ -76,12 +84,25 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
 }
 
 void DetectAddressGroupPrintMemory(void) {
-    printf(" * Address group memory stats:\n");
+    printf(" * Address group memory stats (DetectAddressGroup %u):\n", sizeof(DetectAddressGroup));
     printf("  - detect_address_group_memory %u\n", detect_address_group_memory);
     printf("  - detect_address_group_init_cnt %u\n", detect_address_group_init_cnt);
     printf("  - detect_address_group_free_cnt %u\n", detect_address_group_free_cnt);
     printf("  - outstanding groups %u\n", detect_address_group_init_cnt - detect_address_group_free_cnt);
     printf(" * Address group memory stats done\n");
+    printf(" * Address group head memory stats (DetectAddressGroupsHead %u):\n", sizeof(DetectAddressGroupsHead));
+    printf("  - detect_address_group_head_memory %u\n", detect_address_group_head_memory);
+    printf("  - detect_address_group_head_init_cnt %u\n", detect_address_group_head_init_cnt);
+    printf("  - detect_address_group_head_free_cnt %u\n", detect_address_group_head_free_cnt);
+    printf("  - outstanding groups %u\n", detect_address_group_head_init_cnt - detect_address_group_head_free_cnt);
+    printf(" * Address group head memory stats done\n");
+    printf(" * Address memory stats (DetectAddressData %u):\n", sizeof(DetectAddressData));
+    printf("  - detect_address_memory %u\n", detect_address_memory);
+    printf("  - detect_address_init_cnt %u\n", detect_address_init_cnt);
+    printf("  - detect_address_free_cnt %u\n", detect_address_free_cnt);
+    printf("  - outstanding addresses %u\n", detect_address_init_cnt - detect_address_free_cnt);
+    printf(" * Address memory stats done\n");
+    printf(" X Total %u\n", detect_address_group_memory + detect_address_group_head_memory + detect_address_memory);
 }
 
 /* used to see if the exact same address group exists in the list
@@ -736,6 +757,9 @@ DetectAddressGroupsHead *DetectAddressGroupsHeadInit(void) {
     }
     memset(gh,0,sizeof(DetectAddressGroupsHead));
 
+    detect_address_group_head_init_cnt++;
+    detect_address_group_head_memory += sizeof(DetectAddressGroupsHead);
+
     return gh;
 }
 
@@ -752,6 +776,9 @@ void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *gh) {
     if (gh != NULL) {
         DetectAddressGroupsHeadCleanup(gh);
         free(gh);
+
+        detect_address_group_head_free_cnt++;
+        detect_address_group_head_memory -= sizeof(DetectAddressGroupsHead);
     }
 }
 
@@ -1018,6 +1045,9 @@ DetectAddressData *DetectAddressDataInit(void) {
     }
     memset(dd,0,sizeof(DetectAddressData));
 
+    detect_address_init_cnt++;
+    detect_address_memory += sizeof(DetectAddressData);
+
     return dd;
 
 error:
@@ -1058,6 +1088,9 @@ int DetectAddressSetup (Signature *s, SigMatch *m, char *addressstr)
 void DetectAddressDataFree(DetectAddressData *dd) {
     if (dd != NULL) {
         free(dd);
+
+        detect_address_free_cnt++;
+        detect_address_memory -= sizeof(DetectAddressData);
     }
 }
 

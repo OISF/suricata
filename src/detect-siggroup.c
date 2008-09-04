@@ -16,6 +16,9 @@ static u_int32_t detect_siggroup_memory = 0;
 static u_int32_t detect_siggroup_append_cnt = 0;
 static u_int32_t detect_siggroup_free_cnt = 0;
 
+static u_int32_t detect_siggroup_head_memory = 0;
+static u_int32_t detect_siggroup_head_init_cnt = 0;
+static u_int32_t detect_siggroup_head_free_cnt = 0;
 
 /* XXX eeewww global! move to DetectionEngineCtx once we have that! */
 static SigGroupHead *sgh_list = NULL;
@@ -134,6 +137,9 @@ int SigGroupAppend(DetectAddressGroup *ag, Signature *s) {
             goto error;
         }
         memset(ag->sh, 0, sizeof(SigGroupHead));
+
+        detect_siggroup_head_init_cnt++;
+        detect_siggroup_head_memory += sizeof(SigGroupHead);
     }
 
     if (ag->sh->head == NULL) {
@@ -163,15 +169,15 @@ int SigGroupListClean(SigGroupHead *sh) {
         detect_siggroup_free_cnt++;
         detect_siggroup_memory -= sizeof(SigGroupContainer);
 
-	next_sg = sg->next;
+        next_sg = sg->next;
 
-	sg->s->rulegroup_refcnt--;
-	sg->s = NULL;
-	free(sg);
+        sg->s->rulegroup_refcnt--;
+        sg->s = NULL;
+        free(sg);
 
         sh->sig_cnt--;
 
-	sg = next_sg;
+        sg = next_sg;
     }
     sh->head = NULL;
     sh->tail = NULL;
@@ -192,6 +198,9 @@ int SigGroupListCopyPrepend(DetectAddressGroup *src, DetectAddressGroup *dst) {
             goto error;
         }
         memset(dst->sh, 0, sizeof(SigGroupHead));
+
+        detect_siggroup_head_init_cnt++;
+        detect_siggroup_head_memory += sizeof(SigGroupHead);
     }
 
     /* save the head & tail */
@@ -224,6 +233,9 @@ int SigGroupListCopyAppend(DetectAddressGroup *src, DetectAddressGroup *dst) {
             goto error;
         }
         memset(dst->sh, 0, sizeof(SigGroupHead));
+
+        detect_siggroup_head_init_cnt++;
+        detect_siggroup_head_memory += sizeof(SigGroupHead);
     }
 
     for (sg = src->sh->head; sg != NULL; sg = sg->next) {
@@ -260,15 +272,25 @@ void SigGroupHeadFree(SigGroupHead *sh) {
     SigGroupListClean(sh);
 
     free(sh);
+
+    detect_siggroup_head_free_cnt++;
+    detect_siggroup_head_memory -= sizeof(SigGroupHead);
 }
 
 void DetectSigGroupPrintMemory(void) {
-    printf(" * Sig group memory stats:\n");
+    printf(" * Sig group memory stats (SigGroupContainer %u):\n", sizeof(SigGroupContainer));
     printf("  - detect_siggroup_memory %u\n", detect_siggroup_memory);
     printf("  - detect_siggroup_append_cnt %u\n", detect_siggroup_append_cnt);
     printf("  - detect_siggroup_free_cnt %u\n", detect_siggroup_free_cnt);
     printf("  - outstanding sig containers %u\n", detect_siggroup_append_cnt - detect_siggroup_free_cnt);
     printf(" * Sig group memory stats done\n");
+    printf(" * Sig group head memory stats (SigGroupHead %u):\n", sizeof(SigGroupHead));
+    printf("  - detect_siggroup_head_memory %u\n", detect_siggroup_head_memory);
+    printf("  - detect_siggroup_head_init_cnt %u\n", detect_siggroup_head_init_cnt);
+    printf("  - detect_siggroup_head_free_cnt %u\n", detect_siggroup_head_free_cnt);
+    printf("  - outstanding sig containers %u\n", detect_siggroup_head_init_cnt - detect_siggroup_head_free_cnt);
+    printf(" * Sig group head memory stats done\n");
+    printf(" X Total %u\n", detect_siggroup_memory + detect_siggroup_head_memory);
 }
 
 
@@ -295,6 +317,8 @@ int SigGroupContentLoad(SigGroupHead *sgh) {
     SigGroupContainer *sgc = sgh->head;
     Signature *s;
     SigMatch *sm;
+    u_int16_t min_depth = 65535;
+    u_int16_t min_offset = 65535;
 
     if (DetectContentMaxId() == 0)
         return 0;
@@ -320,9 +344,13 @@ int SigGroupContentLoad(SigGroupHead *sgh) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
 
                 sgh->content_array[(co->id/8)] |= 1<<(co->id%8);
+
+                if (co->depth < min_depth) min_depth = co->depth;
+                if (co->offset < min_offset) min_offset = co->offset;
             }
         }
     }
+    //printf("  * min_depth %u, min_offset %u\n", min_depth, min_offset);
     return 0;
 }
 

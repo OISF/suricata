@@ -19,6 +19,7 @@ flow-var.c flow-var.h \
 host.c host.h \
 detect.c detect.h \
 detect-engine.c detect-engine.h \
+detect-engine-proto.c detect-engine-proto.h \
 detect-siggroup.c detect-siggroup.h \
 detect-parse.c detect-parse.h \
 detect-mpm.c detect-mpm.h \

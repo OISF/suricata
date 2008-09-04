@@ -258,16 +258,8 @@ error:
  *
  */
 int SigParseProto(Signature *s, const char *protostr) {
-    if (strcasecmp(protostr,"tcp") == 0) {
-        s->ip_proto = 6;
-    } else if (strcasecmp(protostr,"udp") == 0) {
-        s->ip_proto = 17;
-    } else if (strcasecmp(protostr,"icmp") == 0) {
-        s->ip_proto = 1;
-    } else if (strcasecmp(protostr,"ip") == 0) {
-        s->ip_proto = 4; /* XXX VJ does this make sense? */
-    } else {
-        printf("Error: protostr \"%s\" not supported\n", protostr);
+    int r = DetectProtoParse(&s->proto,protostr);
+    if (r < 0) {
         return -1;
     }
 

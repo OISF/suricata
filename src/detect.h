@@ -1,6 +1,7 @@
 #ifndef __DETECT_H__
 #define __DETECT_H__
 
+#include "detect-engine-proto.h"
 #include "detect-address.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
@@ -9,6 +10,7 @@
 #define SIG_FLAG_SP_ANY    0x02
 #define SIG_FLAG_DP_ANY    0x04
 #define SIG_FLAG_NOALERT   0x08
+#define SIG_FLAG_IPONLY    0x10 /* ip only signature */
 
 typedef struct _PatternMatcherThread {
     /* detection engine variables */
@@ -48,7 +50,7 @@ typedef struct _Signature {
     u_int8_t action; 
     DetectAddressGroupsHead src, dst;
     SigPort sp, dp;
-    u_int8_t ip_proto;
+    DetectProto proto;
     u_int32_t rulegroup_refcnt;
     struct _SigMatch *match;
     struct _Signature *next;
@@ -75,6 +77,13 @@ typedef struct DetectEngineCtx_ {
     Signature *sig_list;
     u_int32_t sig_cnt;
 
+    /* ip only sigs: we only add 'alert ip' without
+     * an ip_proto setting here, so no need to look
+     * at the proto */
+    DetectAddressGroupsHead *io_src_gh;
+    DetectAddressGroupsHead *io_tmp_gh;
+
+    /* main sigs */
     DetectAddressGroupsHead *src_gh[256];
     DetectAddressGroupsHead *tmp_gh[256];
 
@@ -182,6 +191,7 @@ enum {
     DETECT_DSIZE,
     DETECT_FLOWVAR,
     DETECT_ADDRESS,
+    DETECT_PROTO,
     DETECT_NOALERT,
 
     /* make sure this stays last */
