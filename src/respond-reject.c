@@ -4,7 +4,7 @@
  *
  */
 
-/* RespondReject is a threaded wrapper for sending Rejects 
+/* RespondReject is a threaded wrapper for sending Rejects
  *
  * TODO
  * - RespondRejectFunc returns 1 on error, 0 on ok... why? For now it should
@@ -42,13 +42,13 @@ void TmModuleRespondRejectRegister (void) {
 }
 
 int RespondRejectFunc(ThreadVars *tv, Packet *p, void *data) {
- 
-    /* ACTION_REJECT defaults to rejecting the SRC */ 
+
+    /* ACTION_REJECT defaults to rejecting the SRC */
     if (p->action != ACTION_REJECT && p->action != ACTION_REJECT_DST &&
         p->action != ACTION_REJECT_BOTH) {
         return 0;
     }
-    
+
     if (PKT_IS_IPV4(p)) {
         if (PKT_IS_TCP(p)) {
             return RejectSendIPv4TCP(tv, p, data);
@@ -87,10 +87,20 @@ int RejectSendIPv4TCP(ThreadVars *tv, Packet *p, void *data) {
     return 0;
 }
 
-/* XXX VJ implement this when we have UDP decoding implemented */
 int RejectSendIPv4ICMP(ThreadVars *tv, Packet *p, void *data) {
-    printf ("we would send a ipv4 icmp reset here\n");
-    return 1;
+    if (p->action == ACTION_REJECT) {
+        return RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_SRC);
+    } else if (p->action == ACTION_REJECT_DST) {
+        return RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_DST);
+    } else if(p->action == ACTION_REJECT_BOTH) {
+        if (RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_SRC) == 0 &&
+            RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_DST) == 0) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int RejectSendIPv6TCP(ThreadVars *tv, Packet *p, void *data) {

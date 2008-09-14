@@ -88,6 +88,7 @@ void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
             break;
         case IPPROTO_UDP:
             //printf("DecodeIPV4: next layer is UDP\n");
+        	return(DecodeUDP(t, p, pkt + IPV4_GET_HLEN(p), len - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_ICMP:
             //printf("DecodeIPV4: next layer is ICMP\n");

@@ -30,6 +30,11 @@ enum {
     TCP_OPT_INVALID_LEN,
     TCP_OPT_DUPLICATE, /* option length isn't right */
 
+    /* UDP EVENTS */
+    UDP_PKT_TOO_SMALL,
+    UDP_HLEN_TOO_SMALL,
+    UDP_HLEN_INVALID,
+
 };
 
 #endif /* __DECODE_EVENTS_H__ */

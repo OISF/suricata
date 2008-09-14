@@ -38,6 +38,7 @@
 #include "decode-icmpv4.h"
 #include "decode-icmpv6.h"
 #include "decode-tcp.h"
+#include "decode-udp.h"
 
 /* Address */
 typedef struct _Address
@@ -50,8 +51,8 @@ typedef struct _Address
     } address;
 } Address;
 
-#define addr_data32 address.address_un_data32 
-#define addr_data16 address.address_un_data16 
+#define addr_data32 address.address_un_data32
+#define addr_data16 address.address_un_data16
 #define addr_data8  address.address_un_data8
 
 /* Set the IPv4 addressesinto the Addrs of the Packet.
@@ -97,6 +98,14 @@ typedef struct _Address
 #define SET_TCP_DST_PORT(pkt,prt) { \
     SET_PORT(TCP_GET_DST_PORT((pkt)), *prt); \
 }
+/* Set the UDP ports into the Ports of the Packet.
+ * Make sure p->udph is initialized and validated. */
+#define SET_UDP_SRC_PORT(pkt,prt) { \
+    SET_PORT(UDP_GET_SRC_PORT((pkt)), *prt); \
+}
+#define SET_UDP_DST_PORT(pkt,prt) { \
+    SET_PORT(UDP_GET_DST_PORT((pkt)), *prt); \
+}
 
 #define GET_IPV4_SRC_ADDR_U32(p) ((p)->src.addr_data32[0])
 #define GET_IPV4_DST_ADDR_U32(p) ((p)->dst.addr_data32[0])
@@ -123,8 +132,7 @@ typedef u_int16_t Port;
 #define PKT_IS_IPV4(p) (((p)->ip4h != NULL))
 #define PKT_IS_IPV6(p) (((p)->ip6h != NULL))
 #define PKT_IS_TCP(p)  (((p)->tcph != NULL))
-/* XXX */
-#define PKT_IS_UDP(p)  (0)
+#define PKT_IS_UDP(p)  (((p)->udph != NULL))
 #define PKT_IS_ICMPV4  (((p)->icmpv4 != NULL))
 #define PKT_IS_ICMPV6  (((p)->icmpv6 != NULL))
 
@@ -164,7 +172,7 @@ typedef struct _HttpUri {
 
 typedef struct _Packet
 {
-    /* Addresses, Ports and protocol 
+    /* Addresses, Ports and protocol
      * these are on top so we can use
      * the Packet as a hash key */
     Address src;
@@ -224,6 +232,11 @@ typedef struct _Packet
     u_int8_t *tcp_payload;
     u_int16_t tcp_payload_len;
 
+    UDPHdr *udph;
+    UDPVars udpvars;
+    u_int8_t *udp_payload;
+    u_int16_t udp_payload_len;
+
     /* decoder events: review how many events we have */
     u_int8_t events[65535/8];
 
@@ -248,7 +261,7 @@ typedef struct _Packet
 } Packet;
 
 /* clear key vars so we don't need to call the expensive
- * memset or bzero 
+ * memset or bzero
  */
 #define CLEAR_PACKET(p) { \
     if ((p)->tcph != NULL) { \
@@ -311,6 +324,7 @@ void DecodeIPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 void DecodeICMPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 void DecodeICMPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 void DecodeTCP(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
+void DecodeUDP(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 void DecodeHTTP(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 
 Packet *SetupPkt (void);
