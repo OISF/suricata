@@ -1,18 +1,13 @@
 DETECTION ENGINE:
-- create a detection_engine_ctx for storing the sig list, packet entry point, other stuff
-- many group heads seem to have the same number of sigs. See if we can save memory by detecting similars... the savings are in the pattern matcher.
- -> this is done, and works. However it can be taken further. It's not the group heads that should be compared, but the mpm contexts...
-
 - implement flow as a prefilter
 - implement protocol as a prefilter
-- implement src and dst ports as prefilters
-
-- speed up initialization with many address groups present
-- do a sort-insert for the temp address lists: sort it big to small to speed up later inserts
-- siggroup(uri)content comparison can benefit from a list size counter
+- implement src ports as prefilters
+- do a sort-insert for the temp address lists: sort it big to small to speed up later inserts: partly done
+- deal with icmp & icmpv6 sigs
+- ip only sigs only need to be checked once per flow direction, so put flags in packet to deal with that
+- store a ptr to the rule group in the flow (the src,dst,sp,dp,proto will never change in a flow, so we can use that as a starting point)
 
 WU-MANBER:
-- Consider using dynamic/variable hash sizes. A wm_ctx is quite big (512kb) even for small pattern sets.
 
 ADDRESSES:
 - support [1.2.3.4,2.3.4.5] notation: unittest
@@ -20,6 +15,7 @@ ADDRESSES:
 MAIN:
 - move packet preallocation into it's own function
 - create a cleanup function
+- consider a api for per module init/deinit functions per packet, for example to clean up flowvars & http_uri
 
 THREADING
 - Add pre-threading initialization API e.g. for Sig loading on Detect.
