@@ -9,7 +9,7 @@
 
 #include "detect-pcre.h"
 
-#include "detect-mpm.h"
+#include "detect-engine-mpm.h"
 
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*)(?<!\\\\)/([A-z]*)"

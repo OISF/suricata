@@ -7,8 +7,8 @@
 
 #include "decode.h"
 #include "detect.h"
-#include "detect-siggroup.h"
-#include "detect-mpm.h"
+#include "detect-engine-siggroup.h"
+#include "detect-engine-mpm.h"
 #include "util-mpm.h"
 
 #include "flow.h"

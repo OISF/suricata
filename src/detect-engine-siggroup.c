@@ -8,7 +8,7 @@
 
 #include "detect.h"
 #include "detect-engine-address.h"
-#include "detect-mpm.h"
+#include "detect-engine-mpm.h"
 
 /* prototypes */
 int SigGroupHeadClearSigs(SigGroupHead *);

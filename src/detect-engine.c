@@ -6,9 +6,9 @@
 #include "flow.h"
 
 #include "detect-parse.h"
-#include "detect-siggroup.h"
 
-#include "detect-address.h"
+#include "detect-engine-siggroup.h"
+#include "detect-engine-address.h"
 
 DetectEngineCtx *DetectEngineCtxInit(void) {
     DetectEngineCtx *de_ctx;
@@ -23,5 +23,9 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     return de_ctx;
 error:
     return NULL;
+}
+
+void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
+    free(de_ctx);
 }
 

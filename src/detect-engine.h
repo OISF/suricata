@@ -2,7 +2,8 @@
 #define __DETECT_ENGINE_H__
 
 /* prototypes */
-DetectEngineCtx *DetectEngineCtxInit();
+DetectEngineCtx *DetectEngineCtxInit(void);
+void DetectEngineCtxFree(DetectEngineCtx *);
 
 #endif /* __DETECT_ENGINE_H__ */
 

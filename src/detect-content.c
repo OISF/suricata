@@ -32,7 +32,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
-#include "detect-mpm.h"
+#include "detect-engine-mpm.h"
 #include "util-mpm.h"
 
 #include "flow.h"

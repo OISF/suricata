@@ -21,7 +21,7 @@
 #include "decode.h"
 #include "detect.h"
 #include "detect-uricontent.h"
-#include "detect-mpm.h"
+#include "detect-engine-mpm.h"
 #include "flow.h"
 #include "detect-flow.h"
 #include "flow-var.h"

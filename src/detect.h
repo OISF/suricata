@@ -2,7 +2,9 @@
 #define __DETECT_H__
 
 #include "detect-engine-proto.h"
-#include "detect-address.h"
+#include "detect-engine-port.h"
+#include "detect-engine-address.h"
+
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
@@ -11,6 +13,8 @@
 #define SIG_FLAG_DP_ANY    0x04
 #define SIG_FLAG_NOALERT   0x08
 #define SIG_FLAG_IPONLY    0x10 /* ip only signature */
+
+#define DE_QUIET           0x01
 
 typedef struct _PatternMatcherThread {
     /* detection engine variables */
@@ -36,22 +40,20 @@ typedef struct _PatternMatcherThread {
     MpmThreadCtx mtcu;
 } PatternMatcherThread;
 
-/* for now typedef them to known types, we will implement
- * our types later... */
-typedef Port SigPort;
-typedef Address SigAddress;
-
 typedef struct _Signature {
+    u_int32_t num; /* signature number */
     u_int32_t id;
     u_int8_t rev;
     u_int8_t prio;
     char *msg;
     u_int8_t flags;
     u_int8_t action; 
+
     DetectAddressGroupsHead src, dst;
-    SigPort sp, dp;
     DetectProto proto;
-    u_int32_t rulegroup_refcnt;
+    DetectPort *sp, *dp;
+
+    //u_int32_t rulegroup_refcnt;
     struct _SigMatch *match;
     struct _Signature *next;
 } Signature;
@@ -74,8 +76,14 @@ typedef struct SigTableElmt {
 } SigTableElmt;
 
 typedef struct DetectEngineCtx_ {
+    u_int8_t flags;
+
     Signature *sig_list;
     u_int32_t sig_cnt;
+
+    Signature **sig_array;
+    u_int32_t sig_array_size; /* size in bytes */
+    u_int32_t sig_array_len;  /* size in array members */
 
     /* ip only sigs: we only add 'alert ip' without
      * an ip_proto setting here, so no need to look
@@ -92,24 +100,6 @@ typedef struct DetectEngineCtx_ {
     u_int32_t gh_unique, gh_reuse;
 
 } DetectEngineCtx;
-
-#define SIGGROUP_PROTO 1
-#define SIGGROUP_SP    2
-#define SIGGROUP_DP    3
-#define SIGGROUP_SRC   4
-#define SIGGROUP_DST   5
-#define SIGGROUP_FLOW  6
-#define SIGGROUP_DSIZE 7
-/* XXX more? */
-
-/* list container for signatures in the rule groups */
-typedef struct _SigGroupContainer {
-    /* ptr to the signature */
-    Signature *s;
-
-    /* list */
-    struct _SigGroupContainer *next;
-} SigGroupContainer;
 
 /* container for content matches... we use this to compare
  * group heads for contents
@@ -131,11 +121,12 @@ typedef struct _SigGroupUricontent {
 #define SIG_GROUP_HAVEURICONTENT 0x2
 
 /* XXX rename */
-#define SIG_GROUP_INITIALIZED    0x4
-#define SIG_GROUP_COPY           0x8
+//#define SIG_GROUP_INITIALIZED    0x4
+//#define SIG_GROUP_COPY           0x8
 
 #define SIG_GROUP_HEAD_MPM_COPY      0x4
 #define SIG_GROUP_HEAD_MPM_URI_COPY  0x8
+#define SIG_GROUP_HEAD_FREE          0x10
 
 /* head of the list of containers. */
 typedef struct _SigGroupHead {
@@ -145,21 +136,30 @@ typedef struct _SigGroupHead {
     MpmCtx *mpm_ctx;
     MpmCtx *mpm_uri_ctx;
 
+    /* number of sigs in this head */
+    u_int32_t sig_cnt;
+
+    u_int8_t *sig_array; /* bit array of sig nums */
+    u_int32_t sig_size; /* size in bytes */
+
+    /* array with sig nums... size is sig_cnt * sizeof(u_int32_t) */
+    u_int32_t *match_array;
+
     /* list of content containers
      * XXX move into a separate data struct
      * with only a ptr to it. Saves some memory
      * after initialization
-     * XXX use a bitarray to save 7/8 of the mem*/
+     */
     u_int32_t *content_array;
     u_int32_t content_size;
     u_int32_t *uri_content_array;
     u_int32_t uri_content_size;
 
-    /* list of signature containers */
-    SigGroupContainer *head;
-    SigGroupContainer *tail;
-    u_int32_t sig_cnt;
+    /* port ptr */
+    struct DetectPort_ *port;
 
+    struct _SigGroupHead *mpm_next; /* mpm and mpm_uri hash */
+    struct _SigGroupHead *mpm_uri_next; /* mpm and mpm_uri hash */
     struct _SigGroupHead *next;
 } SigGroupHead;
 
@@ -190,9 +190,11 @@ enum {
     DETECT_FLOW,
     DETECT_DSIZE,
     DETECT_FLOWVAR,
+    DETECT_NOALERT,
+
     DETECT_ADDRESS,
     DETECT_PROTO,
-    DETECT_NOALERT,
+    DETECT_PORT,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

@@ -14,6 +14,9 @@ static pcre *option_pcre = NULL;
 static pcre_extra *config_pcre_extra = NULL;
 static pcre_extra *option_pcre_extra = NULL;
 
+/* XXX this should be part of the DE */
+static u_int32_t signum = 0;
+
 #define CONFIG_PARTS 8
 
 #define CONFIG_ACTION 0
@@ -29,6 +32,14 @@ static pcre_extra *option_pcre_extra = NULL;
 #define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9]+)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/]+)\\s+([\\:A-z0-9_\\$\\!]+)\\s+(\\<-|-\\>|\\<\\>)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,/]+)\\s+([\\:A-z0-9_\\$\\!]+)(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?$"
 #define OPTION_PARTS 3
 #define OPTION_PCRE "^\\s*([A-z_0-9]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
+
+u_int32_t SigGetMaxId(void) {
+    return signum;
+}
+
+void SigResetMaxId(void) {
+    signum = 0;
+}
 
 SigMatch *SigMatchAlloc(void) {
     SigMatch *sm = malloc(sizeof(SigMatch));
@@ -258,7 +269,7 @@ error:
  *
  */
 int SigParseProto(Signature *s, const char *protostr) {
-    int r = DetectProtoParse(&s->proto,protostr);
+    int r = DetectProtoParse(&s->proto,(char *)protostr);
     if (r < 0) {
         return -1;
     }
@@ -270,24 +281,32 @@ int SigParseProto(Signature *s, const char *protostr) {
  *
  */
 int SigParsePort(Signature *s, const char *portstr, char flag) {
-    SigPort p;
+    int r = 0;
+    char *port;
 
-    if (strcasecmp(portstr, "any") == 0) {
-        if (flag == 0) {
-            s->sp = 0;
-            s->flags |= SIG_FLAG_SP_ANY;
-        } else {
-            s->dp = 0;
-            s->flags |= SIG_FLAG_DP_ANY;
-        }
+    /* XXX VJ exclude handling this for none UDP/TCP proto's */
+
+    if (strcmp(portstr,"$HTTP_PORTS") == 0) {
+        port = "80:81,88";
+    } else if (strcmp(portstr,"$SHELLCODE_PORTS") == 0) {
+        port = "!80";
+    } else if (strcmp(portstr,"$ORACLE_PORTS") == 0) {
+        port = "1521";
+    } else if (strcmp(portstr,"$SSH_PORTS") == 0) {
+        port = "22";
     } else {
-        p = atoi(portstr);
+        port = (char *)portstr;
+    }
 
-        if (flag == 0) {
-            s->sp = p;
-        } else {
-            s->dp = p;
-        }
+    if (flag == 0) {
+        r = DetectPortParse(&s->sp,(char *)port);
+    } else if (flag == 1) {
+        r = DetectPortParse(&s->dp,(char *)port);
+        //DetectPortPrintList(s->dp);
+    }
+    if (r < 0) {
+        printf("SigParsePort: DetectPortParse \"%s\" failed\n", portstr);
+        return -1;
     }
 
     return 0;
@@ -442,6 +461,8 @@ Signature *SigInit(char *sigstr) {
     if (SigParse(sig, sigstr) < 0)
         goto error;
 
+    sig->num = signum;
+    signum++;
     return sig;
 
 error:

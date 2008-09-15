@@ -11,7 +11,7 @@
 #include "util-cidr.h"
 #include "util-unittest.h"
 
-#include "detect-siggroup.h"
+#include "detect-engine-siggroup.h"
 
 int DetectProtoSetup (Signature *s, SigMatch *m, char *sidstr);
 void DetectProtoTests (void);
@@ -75,15 +75,14 @@ int DetectProtoSetup (Signature *s, SigMatch *m, char *str)
 /* TESTS */
 
 int ProtoTestParse01 (void) {
-/*
     DetectProto dp;
+    memset(&dp,0,sizeof(DetectProto));
 
-    dp = DetectProtoParse("6");
-    if (dp) {
-        DetectProtoFree(dp);
+    int r = DetectProtoParse(&dp, "6");
+    if (r == 0) {
         return 1;
     }
-*/
+
     return 0;
 }
 

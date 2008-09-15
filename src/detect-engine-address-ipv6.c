@@ -10,8 +10,8 @@
 #include "util-cidr.h"
 #include "util-unittest.h"
 
-#include "detect-address.h"
-#include "detect-siggroup.h"
+#include "detect-engine-address.h"
+#include "detect-engine-siggroup.h"
 
 
 /* return: 1 lt, 0 not lt */
@@ -238,8 +238,8 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
         AddressCutIPv6Copy(b_ip2, tmp_c->ad->ip2);
         *c = tmp_c;
 
-        SigGroupListCopy(b->sh,&tmp_c->sh); /* copy old b to c */
-        SigGroupListCopy(a->sh,&b->sh); /* copy old b to a */
+        SigGroupHeadCopySigs(b->sh,&tmp_c->sh); /* copy old b to c */
+        SigGroupHeadCopySigs(a->sh,&b->sh); /* copy old b to a */
 
     /* we have 3 parts: [bbb[baba]aaa]
      * part a: b_ip1 <-> a_ip1 - 1
@@ -270,13 +270,13 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
         /* 'a' gets clean and then 'b' sigs
          * 'b' gets clean, then 'a' then 'b' sigs
          * 'c' gets 'a' sigs */
-        SigGroupListCopy(a->sh,&tmp->sh); /* store old a list */
-        SigGroupListClean(a->sh); /* clean a list */
-        SigGroupListCopy(tmp->sh,&tmp_c->sh); /* copy old b to c */
-        SigGroupListCopy(b->sh,&a->sh); /* copy old b to a */
-        SigGroupListCopy(tmp->sh,&b->sh); /* prepend old a before b */
+        SigGroupHeadCopySigs(a->sh,&tmp->sh); /* store old a list */
+        SigGroupHeadClearSigs(a->sh); /* clean a list */
+        SigGroupHeadCopySigs(tmp->sh,&tmp_c->sh); /* copy old b to c */
+        SigGroupHeadCopySigs(b->sh,&a->sh); /* copy old b to a */
+        SigGroupHeadCopySigs(tmp->sh,&b->sh); /* prepend old a before b */
 
-        SigGroupListClean(tmp->sh); /* clean tmp list */
+        SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
 
     /* we have 2 or three parts:
      *
@@ -301,7 +301,7 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             AddressCutIPv6Copy(b_ip2, b->ad->ip2);
 
             /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
-            SigGroupListCopy(b->sh,&a->sh);
+            SigGroupHeadCopySigs(b->sh,&a->sh);
         } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
             AddressCutIPv6Copy(b_ip1, a->ad->ip);
             AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
@@ -310,7 +310,7 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             AddressCutIPv6Copy(a_ip2, b->ad->ip2);
 
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
-            SigGroupListCopy(a->sh,&b->sh);
+            SigGroupHeadCopySigs(a->sh,&b->sh);
         } else {
             AddressCutIPv6Copy(b_ip1, a->ad->ip);
             AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
@@ -335,13 +335,13 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             /* 'a' gets clean and then 'b' sigs
              * 'b' gets clean, then 'a' then 'b' sigs
              * 'c' gets 'b' sigs */
-            SigGroupListCopy(a->sh,&tmp->sh); /* store old a list */
-            SigGroupListClean(a->sh); /* clean a list */
-            SigGroupListCopy(b->sh,&tmp_c->sh); /* copy old b to c */
-            SigGroupListCopy(b->sh,&a->sh); /* copy old b to a */
-            SigGroupListCopy(tmp->sh,&b->sh); /* prepend old a before b */
+            SigGroupHeadCopySigs(a->sh,&tmp->sh); /* store old a list */
+            SigGroupHeadClearSigs(a->sh); /* clean a list */
+            SigGroupHeadCopySigs(b->sh,&tmp_c->sh); /* copy old b to c */
+            SigGroupHeadCopySigs(b->sh,&a->sh); /* copy old b to a */
+            SigGroupHeadCopySigs(tmp->sh,&b->sh); /* prepend old a before b */
 
-            SigGroupListClean(tmp->sh); /* clean tmp list */
+            SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
         }
     /* we have 2 or three parts:
      *
@@ -366,11 +366,11 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             AddressCutIPv6Copy(a_ip2, b->ad->ip2);
 
             /* 'b' overlaps 'a' so a needs the 'b' sigs */
-            SigGroupListCopy(b->sh,&tmp->sh);
-            SigGroupListClean(b->sh);
-            SigGroupListCopy(a->sh,&b->sh);
-            SigGroupListCopy(tmp->sh,&a->sh);
-            SigGroupListClean(tmp->sh);
+            SigGroupHeadCopySigs(b->sh,&tmp->sh);
+            SigGroupHeadClearSigs(b->sh);
+            SigGroupHeadCopySigs(a->sh,&b->sh);
+            SigGroupHeadCopySigs(tmp->sh,&a->sh);
+            SigGroupHeadClearSigs(tmp->sh);
         } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
             AddressCutIPv6Copy(a_ip1, a->ad->ip);
             AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
@@ -379,7 +379,7 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             AddressCutIPv6Copy(b_ip2, b->ad->ip2);
 
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
-            SigGroupListCopy(a->sh,&b->sh);
+            SigGroupHeadCopySigs(a->sh,&b->sh);
         } else {
             AddressCutIPv6Copy(a_ip1, a->ad->ip);
             AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
@@ -404,8 +404,8 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             /* 'a' stays the same wrt sigs
              * 'b' keeps it's own sigs and gets a's sigs prepended
              * 'c' gets 'a' sigs */
-            SigGroupListCopy(a->sh,&b->sh);
-            SigGroupListCopy(a->sh,&tmp_c->sh);
+            SigGroupHeadCopySigs(a->sh,&b->sh);
+            SigGroupHeadCopySigs(a->sh,&tmp_c->sh);
         }
     }
 

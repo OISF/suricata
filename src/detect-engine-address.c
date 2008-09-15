@@ -15,10 +15,10 @@
 #include "util-cidr.h"
 #include "util-unittest.h"
 
-#include "detect-siggroup.h"
-#include "detect-address.h"
-#include "detect-address-ipv4.h"
-#include "detect-address-ipv6.h"
+#include "detect-engine-siggroup.h"
+#include "detect-engine-address.h"
+#include "detect-engine-address-ipv4.h"
+#include "detect-engine-address-ipv6.h"
 
 int DetectAddressSetup (Signature *s, SigMatch *m, char *sidstr);
 void DetectAddressTests (void);
@@ -277,7 +277,7 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressGroup *ne
                     for ( ; port != NULL; port = port->next) {
                         DetectPortInsertCopy(&cur->port,port);
                     }
-                    SigGroupListCopy(new->sh,&cur->sh);
+                    SigGroupHeadCopySigs(new->sh,&cur->sh);
                     DetectAddressGroupFree(new);
                     return 0;
                 }

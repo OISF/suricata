@@ -3,22 +3,6 @@
 #ifndef __UTIL_MPM_H__
 #define __UTIL_MPM_H__
 
-#define MPM_INSTANCE_CONTENT      0 /* content match */
-#define MPM_INSTANCE_URICONTENT   1
-#define MPM_INSTANCE_MAX          2
-
-#define MPM_INSTANCE_URIOFFSET    1
-
-#if 0
-#define MPM_INSTANCE_TOSERVER     0 /* content match */
-#define MPM_INSTANCE_TOCLIENT     1
-#define MPM_INSTANCE_URI_TOSERVER 2 /* uricontent match */
-#define MPM_INSTANCE_URI_TOCLIENT 3
-#define MPM_INSTANCE_MAX          4
-#define MPM_INSTANCE_BOTH         5
-
-#define MPM_INSTANCE_URIOFFSET    2
-#endif
 #define MPM_ENDMATCH_SINGLE 0x01 /* A single match is sufficient */
 #define MPM_ENDMATCH_OFFSET 0x02 /* has offset setting */
 #define MPM_ENDMATCH_DEPTH  0x04 /* has depth setting */
@@ -27,7 +11,7 @@ enum {
     MPM_TRIE,
     MPM_WUMANBER,
 
-    /* tble size */
+    /* table size */
     MPM_TABLE_SIZE,
 };
 
