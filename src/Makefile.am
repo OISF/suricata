@@ -19,10 +19,14 @@ flow-var.c flow-var.h \
 host.c host.h \
 detect.c detect.h \
 detect-engine.c detect-engine.h \
+detect-engine-address.c detect-engine-address.h \
+detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
+detect-engine-address-ipv6.c detect-engine-address-ipv6.h \
 detect-engine-proto.c detect-engine-proto.h \
-detect-siggroup.c detect-siggroup.h \
+detect-engine-port.c detect-engine-port.h \
+detect-engine-siggroup.c detect-engine-siggroup.h \
+detect-engine-mpm.c detect-engine-mpm.h \
 detect-parse.c detect-parse.h \
-detect-mpm.c detect-mpm.h \
 detect-content.c detect-content.h \
 detect-uricontent.c detect-uricontent.h \
 detect-flowvar.c detect-flowvar.h \
@@ -45,9 +49,6 @@ detect-msg.c detect-msg.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
 detect-noalert.c detect-noalert.h \
-detect-address.c detect-address.h \
-detect-address-ipv4.c detect-address-ipv4.h \
-detect-address-ipv6.c detect-address-ipv6.h \
 util-mpm-trie.c util-mpm-trie.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \
