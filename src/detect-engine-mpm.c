@@ -41,21 +41,13 @@ void PacketPatternCleanup(ThreadVars *t, PatternMatcherThread *pmt) {
 
 /* XXX remove this once we got rid of the global mpm_ctx */
 void PatternMatchDestroy(MpmCtx *mc) {
-    u_int8_t instance = 0;
-
-    for (instance = 0; instance < MPM_INSTANCE_MAX; instance++)
-        mc[instance].DestroyCtx(&mc[instance]);
+    mc->DestroyCtx(mc);
 }
 
 /* TODO remove this when we move to the rule groups completely */
 void PatternMatchPrepare(MpmCtx *mc)
 {
-    u_int8_t instance = 0;
-
-    /* intialize contexes */
-    for (instance = 0; instance < MPM_INSTANCE_MAX; instance++) {
-        MpmInitCtx(&mc[instance], MPM_WUMANBER);
-    }
+    MpmInitCtx(mc, MPM_WUMANBER);
 }
 
 
@@ -93,17 +85,21 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
  * XXX do error checking
  * XXX rewrite the COPY stuff
  */
-int PatternMatchPrepareGroup(SigGroupHead *sh)
+int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
     Signature *s;
-    SigGroupContainer *sc;
     u_int32_t co_cnt = 0;
     u_int32_t ur_cnt = 0;
     u_int32_t cnt = 0;
+    u_int32_t sig;
 
     /* see if this head has content and/or uricontent */
-    for (sc = sh->head; sc != NULL; sc = sc->next) {
-        s = sc->s;
+    for (sig = 0; sig < sh->sig_cnt; sig++) {
+        u_int32_t num = sh->match_array[sig];
+
+        s = de_ctx->sig_array[num];
+        if (s == NULL)
+            continue;
 
         /* find flow setting of this rule */
         SigMatch *sm;
@@ -141,8 +137,13 @@ int PatternMatchPrepareGroup(SigGroupHead *sh)
     }
 
     /* for each signature in this group do */
-    for (sc = sh->head; sc != NULL; sc = sc->next) {
-        s = sc->s;
+    for (sig = 0; sig < sh->sig_cnt; sig++) {
+        u_int32_t num = sh->match_array[sig];
+
+        s = de_ctx->sig_array[num];
+        if (s == NULL)
+            continue;
+
         cnt++;
 
         /* find flow setting of this rule */

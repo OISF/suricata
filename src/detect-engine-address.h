@@ -16,6 +16,9 @@ enum {
 #define ADDRESS_FLAG_ANY 0x1
 #define ADDRESS_FLAG_NOT 0x2
 
+#define ADDRESS_GROUP_SIGGROUPHEAD_COPY  0x01
+#define ADDRESS_GROUP_PORTS_COPY         0x02
+
 typedef struct DetectAddressData_ {
     /* XXX convert to use a Address datatype to replace family, ip,ip2*/
     u_int8_t family;
@@ -30,7 +33,7 @@ typedef struct DetectAddressGroup_ {
 
     /* XXX ptr to rules, or PortGroup or whatever */
     struct DetectAddressGroupsHead_ *dst_gh;
-
+    struct DetectPort_ *port;
     /* signatures that belong in this group */
     struct _SigGroupHead *sh;
     u_int8_t flags;

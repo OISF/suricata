@@ -2,7 +2,11 @@
  *
  * Copyright (c) 2008 Victor Julien
  *
- * TODO move this out of the detection plugin structure */
+ * TODO move this out of the detection plugin structure
+ *      rename to detect-engine-address.c
+ *
+ * 
+ */
 
 #include "decode.h"
 #include "detect.h"
@@ -20,7 +24,7 @@ int DetectAddressSetup (Signature *s, SigMatch *m, char *sidstr);
 void DetectAddressTests (void);
 
 void DetectAddressRegister (void) {
-    sigmatch_table[DETECT_ADDRESS].name = "address";
+    sigmatch_table[DETECT_ADDRESS].name = "__address__";
     sigmatch_table[DETECT_ADDRESS].Match = NULL;
     sigmatch_table[DETECT_ADDRESS].Setup = DetectAddressSetup;
     sigmatch_table[DETECT_ADDRESS].Free = NULL;
@@ -69,13 +73,18 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
     }
 
     /* only free the head if we have the original */
-    if (ag->sh != NULL && !(ag->flags & SIG_GROUP_COPY)) {
+    if (ag->sh != NULL && !(ag->flags & ADDRESS_GROUP_SIGGROUPHEAD_COPY)) {
         SigGroupHeadFree(ag->sh);
     }
     ag->sh = NULL;
 
     if (ag->dst_gh != NULL) {
         DetectAddressGroupsHeadFree(ag->dst_gh);
+    }
+
+    if (ag->port != NULL && !(ag->flags & ADDRESS_GROUP_PORTS_COPY)) {
+        DetectPortCleanupList(ag->port);
+        ag->port = NULL;
     }
 
     detect_address_group_memory -= sizeof(DetectAddressGroup);
@@ -131,13 +140,6 @@ void DetectAddressGroupPrintList(DetectAddressGroup *head) {
 
              DetectAddressDataPrint(cur->ad);
 
-             if (cur->sh != NULL) {
-                 SigGroupContainer *sg;
-                 for (sg = cur->sh->head; sg != NULL; sg = sg->next) {
-                     printf(" %u", sg->s->id);
-                 }
-             }
-
              printf("\n");
         }
     }
@@ -168,22 +170,28 @@ int DetectAddressGroupAdd(DetectAddressGroup **head, DetectAddressGroup *ag) {
     DetectAddressGroup *cur, *prev_cur = NULL;
 
     //printf("DetectAddressGroupAdd: adding "); DetectAddressDataPrint(ag->ad); printf("\n");
-
     if (*head != NULL) {
         for (cur = *head; cur != NULL; cur = cur->next) {
             prev_cur = cur;
+
             int r = DetectAddressCmp(ag->ad,cur->ad);
             if (r == ADDRESS_EB) {
+                //printf("r == EB, inserting here\n");
+
                 /* insert here */
                 ag->prev = cur->prev;
                 ag->next = cur;
 
+                cur->prev = ag;
                 if (*head == cur) {
                     *head = ag;
+                } else {
+                    ag->prev->next = ag;
                 }
                 return 0;
             }
         }
+        //printf("default append\n");
         ag->prev = prev_cur;
         prev_cur->next = ag;
     } else {
@@ -234,6 +242,10 @@ static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *gh, DetectAddress
  * */
 int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressGroup *new) {
     DetectAddressGroup *head = NULL;
+
+    if (new == NULL)
+        return 0;
+
 #ifdef DBG
     printf("DetectAddressGroupInsert: inserting (sig %u) ", new->sh?new->sh->sig_cnt:0); DetectAddressDataPrint(new->ad); printf("\n");
     DetectAddressGroupPrintList(gh->ipv4_head);
@@ -257,24 +269,28 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressGroup *ne
             /* if so, handle that */
             if (r == ADDRESS_EQ) {
 #ifdef DBG
-                printf("ADDRESS_EQ %p %p\n", cur, new);
+                printf("DetectAddressGroupInsert: ADDRESS_EQ %p %p\n", cur, new);
 #endif
                 /* exact overlap/match */
                 if (cur != new) {
-                    SigGroupListCopyAppend(new,cur);
+                    DetectPort *port = new->port;
+                    for ( ; port != NULL; port = port->next) {
+                        DetectPortInsertCopy(&cur->port,port);
+                    }
+                    SigGroupListCopy(new->sh,&cur->sh);
                     DetectAddressGroupFree(new);
                     return 0;
                 }
                 return 1;
             } else if (r == ADDRESS_GT) {
 #ifdef DBG
-                printf("ADDRESS_GT\n");
+                printf("DetectAddressGroupInsert: ADDRESS_GT\n");
 #endif
                 /* only add it now if we are bigger than the last
                  * group. Otherwise we'll handle it later. */
                 if (cur->next == NULL) {
 #ifdef DBG
-                    printf("adding GT\n");
+                    printf("DetectAddressGroupInsert: adding GT\n");
 #endif
                     /* put in the list */
                     new->prev = cur;
@@ -283,7 +299,7 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressGroup *ne
                 }
             } else if (r == ADDRESS_LT) {
 #ifdef DBG
-                printf("ADDRESS_LT\n");
+                printf("DetectAddressGroupInsert: ADDRESS_LT\n");
 #endif
                 /* see if we need to insert the ag anywhere */
                 /* put in the list */
@@ -307,7 +323,7 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressGroup *ne
 
             } else if (r == ADDRESS_ES) {
 #ifdef DBG
-                printf("ADDRESS_ES\n");
+                printf("DetectAddressGroupInsert: ADDRESS_ES\n");
 #endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(cur,new,&c);
@@ -350,7 +366,7 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressGroup *ne
                 return 1;
             } else if (r == ADDRESS_GE) {
 #ifdef DBG
-                printf("ADDRESS_GE\n");
+                printf("DetectAddressGroupInsert: ADDRESS_GE\n");
 #endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(cur,new,&c);
@@ -368,10 +384,9 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressGroup *ne
     /* head is NULL, so get a group and set head to it */
     } else {
 #ifdef DBG
-printf("Setting new head\n");
+        printf("DetectAddressGroupInsert: Setting new head\n");
 #endif
         head = new;
-
         if (SetHeadPtr(gh,head) < 0)
             goto error;
     }
@@ -1157,8 +1172,12 @@ DetectAddressGroup *
 DetectAddressLookupGroup(DetectAddressGroupsHead *gh, Address *a) {
     DetectAddressGroup *g;
 
+    //printf("DetectAddressLookupGroup: start %p\n", gh);
+
     if (gh == NULL)
         return NULL;
+
+    //printf("DetectAddressLookupGroup: gh 4%p 6%p a%p\n", gh->ipv4_head, gh->ipv6_head, gh->any_head);
 
     /* XXX should we really do this check every time we run
      * this function? */
@@ -1169,7 +1188,10 @@ DetectAddressLookupGroup(DetectAddressGroupsHead *gh, Address *a) {
     else
         g = gh->any_head;
 
+    //printf("g %p\n", g);
+
     for ( ; g != NULL; g = g->next) {
+        //printf("DetectAddressLookupGroup: checking \n"); DetectAddressDataPrint(g->ad); printf("\n");
         if (DetectAddressMatch(g->ad,a) == 1) {
             return g;
         }

@@ -71,16 +71,17 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
     u_int32_t a_ip2 = ntohl(a->ad->ip2[0]);
     u_int32_t b_ip1 = ntohl(b->ad->ip[0]);
     u_int32_t b_ip2 = ntohl(b->ad->ip2[0]);
+    DetectPort *port = NULL;
 
     /* default to NULL */
     *c = NULL;
 #ifdef DBG
-    printf("a "); DetectAddressDataPrint(a->ad); printf("\n");
-    printf("b "); DetectAddressDataPrint(b->ad); printf("\n");
-    printf("a sigs: ");
+    printf("DetectAddressGroupCutIPv4: a "); DetectAddressDataPrint(a->ad); printf("\n");
+    printf("DetectAddressGroupCutIPv4: b "); DetectAddressDataPrint(b->ad); printf("\n");
+    printf("DetectAddressGroupCutIPv4: a sigs: ");
     SigGroupContainer *sgc = a->sh ? a->sh->head : NULL;
     for ( ; sgc != NULL; sgc = sgc->next) printf("%u ",sgc->s->id);
-    printf("\nb sigs: ");
+    printf("\nDetectAddressGroupCutIPv4: b sigs: ");
     sgc = b->sh ? b->sh->head : NULL;
     for ( ; sgc != NULL; sgc = sgc->next) printf("%u ",sgc->s->id);
     printf("\n");
@@ -92,8 +93,7 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
     }
 
     /* get a place to temporary put sigs lists */
-    DetectAddressGroup *tmp;
-    tmp = DetectAddressGroupInit();
+    DetectAddressGroup *tmp = DetectAddressGroupInit();
     if (tmp == NULL) {
         goto error;
     }
@@ -106,7 +106,7 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
      */
     if (r == ADDRESS_LE) {
 #ifdef DBG
-        printf("cut r == ADDRESS_LE\n");
+        printf("DetectAddressGroupCutIPv4: r == ADDRESS_LE\n");
 #endif
         a->ad->ip[0]  = htonl(a_ip1);
         a->ad->ip2[0] = htonl(b_ip1 - 1);
@@ -129,16 +129,23 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
         tmp_c->ad->ip2[0]  = htonl(b_ip2);
         *c = tmp_c;
 
-        SigGroupListCopyAppend(b,tmp_c); /* copy old b to c */
-        SigGroupListCopyPrepend(a,b); /* copy old b to a */
+        SigGroupListCopy(b->sh,&tmp_c->sh);
+        SigGroupListCopy(a->sh,&b->sh);
+
+        for (port = b->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&tmp_c->port, port);
+        }
+        for (port = a->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&b->port, port);
+        }
 
 #ifdef DBG
 SigGroupContainer *sg;
-printf("A "); DetectAddressDataPrint(a->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: A "); DetectAddressDataPrint(a->ad); printf(" ");
 for(sg = a->sh ? a->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("B "); DetectAddressDataPrint(b->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: B "); DetectAddressDataPrint(b->ad); printf(" ");
 for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("C "); DetectAddressDataPrint(tmp_c->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: C "); DetectAddressDataPrint(tmp_c->ad); printf(" ");
 for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n\n");
 #endif
     /* we have 3 parts: [bbb[baba]aaa]
@@ -148,7 +155,7 @@ for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u "
      */
     } else if (r == ADDRESS_GE) {
 #ifdef DBG
-        printf("cut r == ADDRESS_GE\n");
+        printf("DetectAddressGroupCutIPv4: r == ADDRESS_GE\n");
 #endif
         a->ad->ip[0]   = htonl(b_ip1);
         a->ad->ip2[0] = htonl(a_ip1 - 1);
@@ -174,13 +181,33 @@ for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u "
         /* 'a' gets clean and then 'b' sigs
          * 'b' gets clean, then 'a' then 'b' sigs
          * 'c' gets 'a' sigs */
-        SigGroupListCopyAppend(a,tmp); /* store old a list */
+        SigGroupListCopy(a->sh,&tmp->sh); /* store old a list */
         SigGroupListClean(a->sh); /* clean a list */
-        SigGroupListCopyAppend(tmp,tmp_c); /* copy old b to c */
-        SigGroupListCopyAppend(b,a); /* copy old b to a */
-        SigGroupListCopyPrepend(tmp,b); /* prepend old a before b */
-
+        SigGroupListCopy(tmp->sh,&tmp_c->sh); /* copy old b to c */
+        SigGroupListCopy(b->sh,&a->sh); /* copy old b to a */
+        SigGroupListCopy(tmp->sh,&b->sh); /* prepend old a before b */
         SigGroupListClean(tmp->sh); /* clean tmp list */
+
+        //SigGroupListCopy(a->sh,&tmp->sh); /* store old a list */
+        //SigGroupListClean(a->sh); /* clean a list */
+        //SigGroupListCopy(tmp->sh,&tmp_c->sh); /* copy old b to c */
+        //SigGroupListCopy(b->sh,&a->sh); /* copy old b to a */
+        //SigGroupListCopy(tmp->sh,&b->sh); /* prepend old a before b */
+        //SigGroupListClean(tmp->sh); /* clean tmp list */
+
+        for (port = a->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&tmp->port, port);
+        }
+        for (port = b->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&a->port, port);
+        }
+        for (port = tmp->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&b->port, port);
+        }
+        for (port = tmp->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&tmp_c->port, port);
+        }
+
     /* we have 2 or three parts:
      *
      * 2 part: [[abab]bbb] or [bbb[baba]]
@@ -199,11 +226,11 @@ for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u "
      */
     } else if (r == ADDRESS_ES) {
 #ifdef DBG
-        printf("cut r == ADDRESS_ES\n");
+        printf("DetectAddressGroupCutIPv4: r == ADDRESS_ES\n");
 #endif
         if (a_ip1 == b_ip1) {
 #ifdef DBG
-            printf("1\n");
+            printf("DetectAddressGroupCutIPv4: 1\n");
 #endif
             a->ad->ip[0]   = htonl(a_ip1);
             a->ad->ip2[0] = htonl(a_ip2);
@@ -212,17 +239,22 @@ for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u "
             b->ad->ip2[0] = htonl(b_ip2);
 
             /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
-            SigGroupListCopyAppend(b,a);
+            SigGroupListCopy(b->sh,&a->sh);
+
+            for (port = b->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&a->port, port);
+            }
+
 #ifdef DBG
 SigGroupContainer *sg;
-printf("A "); DetectAddressDataPrint(a->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: A "); DetectAddressDataPrint(a->ad); printf(" ");
 for(sg = a->sh ? a->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("B "); DetectAddressDataPrint(b->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: B "); DetectAddressDataPrint(b->ad); printf(" ");
 for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n\n");
 #endif
         } else if (a_ip2 == b_ip2) {
 #ifdef DBG
-            printf("2\n");
+            printf("DetectAddressGroupCutIPv4: 2\n");
 #endif
             a->ad->ip[0]   = htonl(b_ip1);
             a->ad->ip2[0] = htonl(a_ip1 - 1);
@@ -231,12 +263,16 @@ for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg
             b->ad->ip2[0] = htonl(a_ip2);
 
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
-            SigGroupListCopyPrepend(a,b);
+            SigGroupListCopy(a->sh,&b->sh);
+
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
 #ifdef DBG
 SigGroupContainer *sg;
-printf("A "); DetectAddressDataPrint(a->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: A "); DetectAddressDataPrint(a->ad); printf(" ");
 for(sg = a->sh ? a->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("B "); DetectAddressDataPrint(b->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: B "); DetectAddressDataPrint(b->ad); printf(" ");
 for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n\n");
 #endif
         } else {
@@ -267,20 +303,39 @@ for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg
             /* 'a' gets clean and then 'b' sigs
              * 'b' gets clean, then 'a' then 'b' sigs
              * 'c' gets 'b' sigs */
-            SigGroupListCopyAppend(a,tmp); /* store old a list */
+            SigGroupListCopy(a->sh,&tmp->sh); /* store old a list */
             SigGroupListClean(a->sh); /* clean a list */
-            SigGroupListCopyAppend(b,tmp_c); /* copy old b to c */
-            SigGroupListCopyAppend(b,a); /* copy old b to a */
-            SigGroupListCopyPrepend(tmp,b); /* prepend old a before b */
-
+            SigGroupListCopy(b->sh,&tmp_c->sh); /* copy old b to c */
+            SigGroupListCopy(b->sh,&a->sh); /* copy old b to a */
+            SigGroupListCopy(tmp->sh,&b->sh); /* prepend old a before b */
             SigGroupListClean(tmp->sh); /* clean tmp list */
+
+            //SigGroupListCopy(a->sh,&tmp->sh); /* store old a list */
+            //SigGroupListClean(a->sh); /* clean a list */
+            //SigGroupListCopy(b->sh,&tmp_c->sh); /* copy old b to c */
+            //SigGroupListCopy(b->sh,&a->sh); /* copy old b to a */
+            //SigGroupListCopy(tmp->sh,&b->sh); /* prepend old a before b */
+            //SigGroupListClean(tmp->sh); /* clean tmp list */
+
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&tmp->port, port);
+            }
+            for (port = b->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&tmp_c->port, port);
+            }
+            for (port = b->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&a->port, port);
+            }
+            for (port = tmp->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
 #ifdef DBG
 SigGroupContainer *sg;
-printf("A "); DetectAddressDataPrint(a->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: A "); DetectAddressDataPrint(a->ad); printf(" ");
 for(sg = a->sh ? a->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("B "); DetectAddressDataPrint(b->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: B "); DetectAddressDataPrint(b->ad); printf(" ");
 for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("C "); DetectAddressDataPrint(tmp_c->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: C "); DetectAddressDataPrint(tmp_c->ad); printf(" ");
 for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n\n");
 #endif
         }
@@ -302,11 +357,11 @@ for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u "
      */
     } else if (r == ADDRESS_EB) {
 #ifdef DBG
-        printf("cut r == ADDRESS_EB\n");
+        printf("DetectAddressGroupCutIPv4: r == ADDRESS_EB\n");
 #endif
         if (a_ip1 == b_ip1) {
 #ifdef DBG
-            printf("1\n");
+            printf("DetectAddressGroupCutIPv4: 1\n");
 #endif
             a->ad->ip[0]   = htonl(b_ip1);
             a->ad->ip2[0] = htonl(b_ip2);
@@ -315,21 +370,31 @@ for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u "
             b->ad->ip2[0] = htonl(a_ip2);
 
             /* 'b' overlaps 'a' so a needs the 'b' sigs */
-            SigGroupListCopyAppend(b,tmp);
+            SigGroupListCopy(b->sh,&tmp->sh);
             SigGroupListClean(b->sh);
-            SigGroupListCopyAppend(a,b);
-            SigGroupListCopyAppend(tmp,a);
+            SigGroupListCopy(a->sh,&b->sh);
+            SigGroupListCopy(tmp->sh,&a->sh);
             SigGroupListClean(tmp->sh);
+
+            for (port = b->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&tmp->port, b->port);
+            }
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
+            for (port = tmp->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&a->port, port);
+            }
 #ifdef DBG
 SigGroupContainer *sg;
-printf("A "); DetectAddressDataPrint(a->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: A "); DetectAddressDataPrint(a->ad); printf(" ");
 for(sg = a->sh ? a->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("B "); DetectAddressDataPrint(b->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: B "); DetectAddressDataPrint(b->ad); printf(" ");
 for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n\n");
 #endif
         } else if (a_ip2 == b_ip2) {
 #ifdef DBG
-            printf("2\n");
+            printf("DetectAddressGroupCutIPv4: 2\n");
 #endif
             a->ad->ip[0]   = htonl(a_ip1);
             a->ad->ip2[0] = htonl(b_ip1 - 1);
@@ -338,17 +403,21 @@ for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg
             b->ad->ip2[0] = htonl(b_ip2);
 
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
-            SigGroupListCopyPrepend(a,b);
+            SigGroupListCopy(a->sh,&b->sh);
+
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
 #ifdef DBG
 SigGroupContainer *sg;
-printf("A "); DetectAddressDataPrint(a->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: A "); DetectAddressDataPrint(a->ad); printf(" ");
 for(sg = a->sh ? a->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("B "); DetectAddressDataPrint(b->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: B "); DetectAddressDataPrint(b->ad); printf(" ");
 for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n\n");
 #endif
         } else {
 #ifdef DBG
-            printf("3\n");
+            printf("DetectAddressGroupCutIPv4: 3\n");
 #endif
             a->ad->ip[0]   = htonl(a_ip1);
             a->ad->ip2[0] = htonl(b_ip1 - 1);
@@ -374,15 +443,22 @@ for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg
             /* 'a' stays the same wrt sigs
              * 'b' keeps it's own sigs and gets a's sigs prepended
              * 'c' gets 'a' sigs */
-            SigGroupListCopyPrepend(a,b);
-            SigGroupListCopyAppend(a,tmp_c);
+            SigGroupListCopy(a->sh,&b->sh);
+            SigGroupListCopy(a->sh,&tmp_c->sh);
+
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&tmp_c->port, port);
+            }
 #ifdef DBG
 SigGroupContainer *sg;
-printf("A "); DetectAddressDataPrint(a->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: A "); DetectAddressDataPrint(a->ad); printf(" ");
 for(sg = a->sh ? a->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("B "); DetectAddressDataPrint(b->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: B "); DetectAddressDataPrint(b->ad); printf(" ");
 for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("C "); DetectAddressDataPrint(tmp_c->ad); printf(" ");
+printf("DetectAddressGroupCutIPv4: C "); DetectAddressDataPrint(tmp_c->ad); printf(" ");
 for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n\n");
 #endif
         }
