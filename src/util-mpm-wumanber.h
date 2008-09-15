@@ -25,20 +25,22 @@ typedef struct _WmHashItem_ {
 } WmHashItem;
 
 typedef struct _WmCtx {
+    /* hash used during ctx initialization */
+    WmPattern **init_hash;
+
     u_int16_t shiftlen;
 
-    WmHashItem *hash;
+    u_int32_t hash_size;
+    WmHashItem **hash;
     WmHashItem hash1[256];
+    /* we store our own multi byte search ptr here for WmSearch1 */
+    u_int32_t (*MBSearch)(struct _MpmCtx *, struct _MpmThreadCtx *, u_int8_t *, u_int16_t);
 
     /* pattern arrays */
-    WmPattern *parray;
+    WmPattern **parray;
 
     /* only used for multibyte pattern search */
-    u_int16_t shifttable[65536];
-
-    /* pattern list */
-    WmPattern *head;
-    WmPattern *tail;
+    u_int16_t *shifttable;
 } WmCtx;
 
 typedef struct _WmThreadCtx {
