@@ -31,13 +31,13 @@
 #endif /* NFQ */
 
 #include "action-globals.h"
+
 #include "decode-ethernet.h"
 #include "decode-ipv4.h"
 #include "decode-ipv6.h"
 #include "decode-icmpv4.h"
 #include "decode-icmpv6.h"
 #include "decode-tcp.h"
-#include "decode-http.h"
 
 /* Address */
 typedef struct _Address

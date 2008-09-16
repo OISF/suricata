@@ -151,7 +151,6 @@ void DecodeTCP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
     /* Flow is an integral part of us */
     FlowHandlePacket(t, p);
 
-    DecodeHTTP(t, p, pkt + p->tcpvars.hlen, len - p->tcpvars.hlen);
     return;
 }
 
