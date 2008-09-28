@@ -9,6 +9,10 @@
  */
 
 /*TODO calculate TTL base on average from stream tracking*/
+/*TODO come up with a way for users to specify icmp unreachable type
+ * Possibly default to port unreachable for UDP traffic this seems
+ * to be the default in flexresp and iptables
+ */
 
 #include <pthread.h>
 #include <sys/signal.h>
@@ -152,7 +156,7 @@ cleanup:
 }
 
 int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir) {
-    printf("going to send a ICMP host unreachable\n");
+    //printf("going to send a ICMP host unreachable\n");
     Libnet11Packet lpacket;
 
     libnet_t *c; /* libnet context */
@@ -190,13 +194,13 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     /* build the package */
     if ((t = libnet_build_icmpv4_unreach (
-                               3,                       /* type */
-                               10,                      /* code */
-                               0,                       /* checksum */
-                               p->ip4h,                 /* payload */
-                               lpacket.len,             /* payload length */
-                               c,                       /* libnet context */
-                               0)) < 0)                 /* libnet ptag */
+    		                   ICMP_DEST_UNREACH,        /* type */
+    		                   ICMP_HOST_ANO,            /* code */
+                               0,                        /* checksum */
+                               p->ip4h,                  /* payload */
+                               lpacket.len,              /* payload length */
+                               c,                        /* libnet context */
+                               0)) < 0)                  /* libnet ptag */
     {
         printf("RejectSendLibnet11L3IPv4ICMP libnet_build_icmpv4_unreach %s\n", libnet_geterror(c));
         goto cleanup;
