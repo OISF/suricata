@@ -18,6 +18,7 @@ enum {
 
 #define ADDRESS_GROUP_SIGGROUPHEAD_COPY  0x01
 #define ADDRESS_GROUP_PORTS_COPY         0x02
+#define ADDRESS_GROUP_PORTS_NOTUNIQ      0x04
 
 typedef struct DetectAddressData_ {
     /* XXX convert to use a Address datatype to replace family, ip,ip2*/
@@ -34,6 +35,7 @@ typedef struct DetectAddressGroup_ {
     /* XXX ptr to rules, or PortGroup or whatever */
     struct DetectAddressGroupsHead_ *dst_gh;
     struct DetectPort_ *port;
+
     /* signatures that belong in this group */
     struct _SigGroupHead *sh;
     u_int8_t flags;
@@ -42,6 +44,7 @@ typedef struct DetectAddressGroup_ {
     struct DetectAddressGroup_ *prev;
     struct DetectAddressGroup_ *next;
 
+    u_int32_t cnt;
 } DetectAddressGroup;
 
 typedef struct DetectAddressGroupsHead_ {
@@ -72,6 +75,7 @@ void DetectAddressGroupFree(DetectAddressGroup *);
 int DetectAddressGroupInsert(DetectAddressGroupsHead *, DetectAddressGroup *);
 void DetectAddressGroupPrintMemory(void);
 void DetectAddressGroupCleanupList (DetectAddressGroup *);
+int DetectAddressGroupJoin(DetectAddressGroup *target, DetectAddressGroup *source);
 
 #endif /* __DETECT_ADDRESS_H__ */
 

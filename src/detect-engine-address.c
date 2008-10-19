@@ -81,11 +81,12 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
     if (ag->dst_gh != NULL) {
         DetectAddressGroupsHeadFree(ag->dst_gh);
     }
+    ag->dst_gh = NULL;
 
-    if (ag->port != NULL && !(ag->flags & ADDRESS_GROUP_PORTS_COPY)) {
+    if (ag->port != NULL && !(ag->flags & PORT_GROUP_PORTS_COPY)) {
         DetectPortCleanupList(ag->port);
-        ag->port = NULL;
     }
+    ag->port = NULL;
 
     detect_address_group_memory -= sizeof(DetectAddressGroup);
     detect_address_group_free_cnt++;
@@ -154,12 +155,9 @@ void DetectAddressGroupCleanupList (DetectAddressGroup *head) {
 
     for (cur = head; cur != NULL; ) {
          next = cur->next;
-
          DetectAddressGroupFree(cur);
          cur = next;
     }
-
-    head = NULL;
 }
 
 /* do a sorted insert, where the top of the list should be the biggest
@@ -278,6 +276,7 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressGroup *ne
                         DetectPortInsertCopy(&cur->port,port);
                     }
                     SigGroupHeadCopySigs(new->sh,&cur->sh);
+                    cur->cnt += new->cnt;
                     DetectAddressGroupFree(new);
                     return 0;
                 }
@@ -394,6 +393,30 @@ int DetectAddressGroupInsert(DetectAddressGroupsHead *gh, DetectAddressGroup *ne
     return 1;
 error:
     /* XXX */
+    return -1;
+}
+
+int DetectAddressGroupJoin(DetectAddressGroup *target, DetectAddressGroup *source) {
+    if (target == NULL || source == NULL)
+        return -1;
+
+    if (target->ad->family != source->ad->family)
+        return -1;
+
+    target->cnt += source->cnt;
+    SigGroupHeadCopySigs(source->sh,&target->sh);
+
+    DetectPort *port = source->port;
+    for ( ; port != NULL; port = port->next) {
+        DetectPortInsertCopy(&target->port, port);
+    }
+
+    if (target->ad->family == AF_INET) {
+        return DetectAddressGroupJoinIPv4(target,source);
+    } else if (target->ad->family == AF_INET6) {
+        return DetectAddressGroupJoinIPv6(target,source);
+    }
+
     return -1;
 }
 
@@ -781,9 +804,11 @@ DetectAddressGroupsHead *DetectAddressGroupsHeadInit(void) {
 void DetectAddressGroupsHeadCleanup(DetectAddressGroupsHead *gh) {
     if (gh != NULL) {
         DetectAddressGroupCleanupList(gh->any_head);
+        gh->any_head = NULL;
         DetectAddressGroupCleanupList(gh->ipv4_head);
+        gh->ipv4_head = NULL;
         DetectAddressGroupCleanupList(gh->ipv6_head);
-        gh->any_head = gh->ipv4_head = gh->ipv6_head = NULL;
+        gh->ipv6_head = NULL;
     }
 }
 

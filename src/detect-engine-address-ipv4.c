@@ -129,6 +129,9 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             DetectPortInsertCopy(&b->port, port);
         }
 
+        tmp_c->cnt += b->cnt;
+        b->cnt += a->cnt;
+
     /* we have 3 parts: [bbb[baba]aaa]
      * part a: b_ip1 <-> a_ip1 - 1
      * part b: a_ip1 <-> b_ip2
@@ -182,6 +185,13 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             DetectPortInsertCopy(&tmp_c->port, port);
         }
 
+        tmp->cnt += a->cnt;
+        a->cnt = 0;
+        tmp_c->cnt += tmp->cnt;
+        a->cnt += b->cnt;
+        b->cnt += tmp->cnt;
+        tmp->cnt = 0;
+
     /* we have 2 or three parts:
      *
      * 2 part: [[abab]bbb] or [bbb[baba]]
@@ -218,6 +228,7 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             for (port = b->port; port != NULL; port = port->next) {
                 DetectPortInsertCopy(&a->port, port);
             }
+            a->cnt += b->cnt;
 
         } else if (a_ip2 == b_ip2) {
 #ifdef DBG
@@ -235,6 +246,7 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             for (port = a->port; port != NULL; port = port->next) {
                 DetectPortInsertCopy(&b->port, port);
             }
+            b->cnt += a->cnt;
         } else {
 #ifdef DBG
             printf("3\n");
@@ -282,15 +294,12 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             for (port = tmp->port; port != NULL; port = port->next) {
                 DetectPortInsertCopy(&b->port, port);
             }
-#ifdef DBG
-SigGroupContainer *sg;
-printf("DetectAddressGroupCutIPv4: A "); DetectAddressDataPrint(a->ad); printf(" ");
-for(sg = a->sh ? a->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("DetectAddressGroupCutIPv4: B "); DetectAddressDataPrint(b->ad); printf(" ");
-for(sg = b->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n");
-printf("DetectAddressGroupCutIPv4: C "); DetectAddressDataPrint(tmp_c->ad); printf(" ");
-for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u ", sg->s->id); printf("\n\n");
-#endif
+            tmp->cnt += a->cnt;
+            a->cnt = 0;
+            tmp_c->cnt += b->cnt;
+            a->cnt += b->cnt;
+            b->cnt += tmp->cnt;
+            tmp->cnt = 0;
         }
     /* we have 2 or three parts:
      *
@@ -338,6 +347,11 @@ for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u "
             for (port = tmp->port; port != NULL; port = port->next) {
                 DetectPortInsertCopy(&a->port, port);
             }
+            tmp->cnt += b->cnt;
+            b->cnt = 0;
+            b->cnt += a->cnt;
+            a->cnt += tmp->cnt;
+            tmp->cnt = 0;
         } else if (a_ip2 == b_ip2) {
 #ifdef DBG
             printf("DetectAddressGroupCutIPv4: 2\n");
@@ -354,6 +368,8 @@ for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u "
             for (port = a->port; port != NULL; port = port->next) {
                 DetectPortInsertCopy(&b->port, port);
             }
+
+            b->cnt += a->cnt;
         } else {
 #ifdef DBG
             printf("DetectAddressGroupCutIPv4: 3\n");
@@ -391,6 +407,9 @@ for(sg = tmp_c->sh ? b->sh->head : NULL; sg != NULL; sg = sg->next) printf("%u "
             for (port = a->port; port != NULL; port = port->next) {
                 DetectPortInsertCopy(&tmp_c->port, port);
             }
+
+            b->cnt += a->cnt;
+            tmp_c->cnt += a->cnt;
         }
     }
 
@@ -617,4 +636,13 @@ error:
     return -1;
 }
 
+int DetectAddressGroupJoinIPv4(DetectAddressGroup *target, DetectAddressGroup *source) {
+    if (ntohl(source->ad->ip[0]) < ntohl(target->ad->ip[0]))
+        target->ad->ip[0] = source->ad->ip[0];
+
+    if (ntohl(source->ad->ip2[0]) > ntohl(target->ad->ip2[0]))
+        target->ad->ip2[0] = source->ad->ip2[0];
+
+    return 0;
+}
 

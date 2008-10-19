@@ -23,7 +23,7 @@
 #include "util-binsearch.h"
 
 #include "detect-parse.h"
-#include "detect-mpm.h"
+#include "detect-engine-mpm.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"

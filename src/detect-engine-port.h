@@ -17,6 +17,7 @@ enum {
 #define PORT_FLAG_NOT 0x2
 
 #define PORT_SIGGROUPHEAD_COPY 0x04
+#define PORT_GROUP_PORTS_COPY  0x08
 
 typedef struct DetectPort_ {
     u_int8_t flags;
@@ -27,13 +28,16 @@ typedef struct DetectPort_ {
     /* signatures that belong in this group */
     struct _SigGroupHead *sh;
 
+    struct DetectPort_ *dst_ph;
+
     /* double linked list */
     union {
         struct DetectPort_ *prev;
-        struct DetectPort_ *hnext;
+        struct DetectPort_ *hnext; /* hash next */
     };
     struct DetectPort_ *next;
 
+    u_int32_t cnt;
 } DetectPort;
 
 /* prototypes */
@@ -62,6 +66,17 @@ int DetectPortHashInit(void);
 void DetectPortHashFree(void);
 int DetectPortHashAdd(DetectPort *p);
 void DetectPortHashReset(void);
+
+DetectPort *DetectPortSpHashLookup(DetectPort *p);
+DetectPort **DetectPortSpHashGetPtr(void);
+DetectPort *DetectPortSpHashGetListPtr(void);
+u_int32_t DetectPortSpHashGetSize(void);
+int DetectPortSpHashInit(void);
+void DetectPortSpHashFree(void);
+int DetectPortSpHashAdd(DetectPort *p);
+void DetectPortSpHashReset(void);
+
+int DetectPortJoin(DetectPort *target, DetectPort *source);
 
 #endif /* __DETECT_PORT_H__ */
 

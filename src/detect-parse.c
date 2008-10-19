@@ -17,6 +17,9 @@ static pcre_extra *option_pcre_extra = NULL;
 /* XXX this should be part of the DE */
 static u_int32_t signum = 0;
 
+static u_int32_t dbg_srcportany_cnt = 0;
+static u_int32_t dbg_dstportany_cnt = 0;
+
 #define CONFIG_PARTS 8
 
 #define CONFIG_ACTION 0
@@ -35,6 +38,14 @@ static u_int32_t signum = 0;
 
 u_int32_t SigGetMaxId(void) {
     return signum;
+}
+
+u_int32_t DbgGetSrcPortAnyCnt(void) {
+    return dbg_srcportany_cnt;
+}
+
+u_int32_t DbgGetDstPortAnyCnt(void) {
+    return dbg_dstportany_cnt;
 }
 
 void SigResetMaxId(void) {
@@ -250,10 +261,16 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
 
     /* pass on to the address(list) parser */
     if (flag == 0) {
+        if (strcasecmp(addrstr,"any") == 0)
+            s->flags |= SIG_FLAG_SRC_ANY;
+
         if (DetectAddressGroupParse(&s->src,addr) < 0) {
             goto error;
         }
     } else {
+        if (strcasecmp(addrstr,"any") == 0)
+            s->flags |= SIG_FLAG_DST_ANY;
+
         if (DetectAddressGroupParse(&s->dst,addr) < 0) {
             goto error;
         }
@@ -299,10 +316,15 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
     }
 
     if (flag == 0) {
+        if (strcasecmp(port,"any") == 0)
+            s->flags |= SIG_FLAG_SP_ANY;
+
         r = DetectPortParse(&s->sp,(char *)port);
     } else if (flag == 1) {
+        if (strcasecmp(port,"any") == 0)
+            s->flags |= SIG_FLAG_DP_ANY;
+
         r = DetectPortParse(&s->dp,(char *)port);
-        //DetectPortPrintList(s->dp);
     }
     if (r < 0) {
         printf("SigParsePort: DetectPortParse \"%s\" failed\n", portstr);
@@ -372,11 +394,14 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
     /* Parse Address & Ports */
     if (SigParseAddress(s, arr[CONFIG_SRC], 0) < 0)
         goto error;
-    if (SigParsePort(s, arr[CONFIG_SP], 0) < 0)
-        goto error;
+    if (strcasecmp(arr[CONFIG_PROTO],"tcp") == 0 ||
+        strcasecmp(arr[CONFIG_PROTO],"udp") == 0) {
+        if (SigParsePort(s, arr[CONFIG_SP], 0) < 0)
+            goto error;
+        if (SigParsePort(s, arr[CONFIG_DP], 1) < 0)
+            goto error;
+    }
     if (SigParseAddress(s, arr[CONFIG_DST], 1) < 0)
-        goto error;
-    if (SigParsePort(s, arr[CONFIG_DP], 1) < 0)
         goto error;
 
     *result = (char **)arr;
@@ -478,8 +503,6 @@ error:
 int SigParseTest01 (void) {
     int result = 1;
     Signature *sig = NULL;
-
-    //SigParsePrepare();
 
     sig = SigInit("alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
     if (sig == NULL) {

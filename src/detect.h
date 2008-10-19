@@ -9,10 +9,12 @@
 #include "detect-uricontent.h"
 
 #define SIG_FLAG_RECURSIVE 0x01
-#define SIG_FLAG_SP_ANY    0x02
-#define SIG_FLAG_DP_ANY    0x04
-#define SIG_FLAG_NOALERT   0x08
-#define SIG_FLAG_IPONLY    0x10 /* ip only signature */
+#define SIG_FLAG_SRC_ANY   0x02
+#define SIG_FLAG_DST_ANY   0x04
+#define SIG_FLAG_SP_ANY    0x08
+#define SIG_FLAG_DP_ANY    0x10
+#define SIG_FLAG_NOALERT   0x20
+#define SIG_FLAG_IPONLY    0x40 /* ip only signature */
 
 #define DE_QUIET           0x01
 
@@ -41,12 +43,13 @@ typedef struct _PatternMatcherThread {
 } PatternMatcherThread;
 
 typedef struct _Signature {
+    u_int8_t flags;
+
     u_int32_t num; /* signature number */
     u_int32_t id;
     u_int8_t rev;
     u_int8_t prio;
     char *msg;
-    u_int8_t flags;
     u_int8_t action; 
 
     DetectAddressGroupsHead src, dst;
@@ -99,7 +102,29 @@ typedef struct DetectEngineCtx_ {
               mpm_uri_unique, mpm_uri_reuse, mpm_uri_none;
     u_int32_t gh_unique, gh_reuse;
 
+    u_int32_t mpm_max_patcnt,
+              mpm_min_patcnt,
+              mpm_tot_patcnt,
+              mpm_uri_max_patcnt,
+              mpm_uri_min_patcnt,
+              mpm_uri_tot_patcnt;
+
 } DetectEngineCtx;
+
+typedef struct SignatureTuple_ {
+    DetectAddressGroup *src;
+    DetectAddressGroup *dst;
+    DetectPort *sp;
+    DetectPort *dp;
+    u_int8_t proto;
+
+    struct _SigGroupHead *sgh;
+
+    struct SignatureTuple_ *hnext;
+    struct SignatureTuple_ *next;
+
+    u_int32_t cnt;
+} SignatureTuple;
 
 /* container for content matches... we use this to compare
  * group heads for contents

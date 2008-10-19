@@ -196,6 +196,7 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
                            ntohl(b->ad->ip[2]),  ntohl(b->ad->ip[3]) };
     u_int32_t b_ip2[4] = { ntohl(b->ad->ip2[0]), ntohl(b->ad->ip2[1]),
                            ntohl(b->ad->ip2[2]), ntohl(b->ad->ip2[3]) };
+    DetectPort *port = NULL;
 
     /* default to NULL */
     *c = NULL;
@@ -241,6 +242,16 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
         SigGroupHeadCopySigs(b->sh,&tmp_c->sh); /* copy old b to c */
         SigGroupHeadCopySigs(a->sh,&b->sh); /* copy old b to a */
 
+        for (port = b->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&tmp_c->port, port);
+        }
+        for (port = a->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&b->port, port);
+        }
+
+        tmp_c->cnt += b->cnt;
+        b->cnt += a->cnt;
+
     /* we have 3 parts: [bbb[baba]aaa]
      * part a: b_ip1 <-> a_ip1 - 1
      * part b: a_ip1 <-> b_ip2
@@ -278,6 +289,26 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
 
         SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
 
+        for (port = a->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&tmp->port, port);
+        }
+        for (port = b->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&a->port, port);
+        }
+        for (port = tmp->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&b->port, port);
+        }
+        for (port = tmp->port; port != NULL; port = port->next) {
+            DetectPortInsertCopy(&tmp_c->port, port);
+        }
+
+        tmp->cnt += a->cnt;
+        a->cnt = 0;
+        tmp_c->cnt += tmp->cnt;
+        a->cnt += b->cnt;
+        b->cnt += tmp->cnt;
+        tmp->cnt = 0;
+
     /* we have 2 or three parts:
      *
      * 2 part: [[abab]bbb] or [bbb[baba]]
@@ -302,6 +333,12 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
 
             /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
             SigGroupHeadCopySigs(b->sh,&a->sh);
+
+            for (port = b->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&a->port, port);
+            }
+            a->cnt += b->cnt;
+
         } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
             AddressCutIPv6Copy(b_ip1, a->ad->ip);
             AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
@@ -311,6 +348,11 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
 
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
             SigGroupHeadCopySigs(a->sh,&b->sh);
+
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
+            b->cnt += a->cnt;
         } else {
             AddressCutIPv6Copy(b_ip1, a->ad->ip);
             AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
@@ -342,6 +384,25 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             SigGroupHeadCopySigs(tmp->sh,&b->sh); /* prepend old a before b */
 
             SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
+
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&tmp->port, port);
+            }
+            for (port = b->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&tmp_c->port, port);
+            }
+            for (port = b->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&a->port, port);
+            }
+            for (port = tmp->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
+            tmp->cnt += a->cnt;
+            a->cnt = 0;
+            tmp_c->cnt += b->cnt;
+            a->cnt += b->cnt;
+            b->cnt += tmp->cnt;
+            tmp->cnt = 0;
         }
     /* we have 2 or three parts:
      *
@@ -371,6 +432,21 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             SigGroupHeadCopySigs(a->sh,&b->sh);
             SigGroupHeadCopySigs(tmp->sh,&a->sh);
             SigGroupHeadClearSigs(tmp->sh);
+
+            for (port = b->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&tmp->port, b->port);
+            }
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
+            for (port = tmp->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&a->port, port);
+            }
+            tmp->cnt += b->cnt;
+            b->cnt = 0;
+            b->cnt += a->cnt;
+            a->cnt += tmp->cnt;
+            tmp->cnt = 0;
         } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
             AddressCutIPv6Copy(a_ip1, a->ad->ip);
             AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
@@ -380,6 +456,12 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
 
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
             SigGroupHeadCopySigs(a->sh,&b->sh);
+
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
+
+            b->cnt += a->cnt;
         } else {
             AddressCutIPv6Copy(a_ip1, a->ad->ip);
             AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
@@ -406,6 +488,16 @@ int DetectAddressGroupCutIPv6(DetectAddressGroup *a, DetectAddressGroup *b, Dete
              * 'c' gets 'a' sigs */
             SigGroupHeadCopySigs(a->sh,&b->sh);
             SigGroupHeadCopySigs(a->sh,&tmp_c->sh);
+
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&b->port, port);
+            }
+            for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&tmp_c->port, port);
+            }
+
+            b->cnt += a->cnt;
+            tmp_c->cnt += a->cnt;
         }
     }
 
@@ -632,6 +724,24 @@ int DetectAddressCutNotIPv6(DetectAddressData *a, DetectAddressData **b) {
 
 error:
     return -1;
+}
+
+int DetectAddressGroupJoinIPv6(DetectAddressGroup *target, DetectAddressGroup *source) {
+    if (AddressIPv6Lt(source->ad->ip,target->ad->ip)) {
+        target->ad->ip[0] = source->ad->ip[0];
+        target->ad->ip[1] = source->ad->ip[1];
+        target->ad->ip[2] = source->ad->ip[2];
+        target->ad->ip[3] = source->ad->ip[3];
+    }
+
+    if (AddressIPv6Gt(source->ad->ip,target->ad->ip)) {
+        target->ad->ip2[0] = source->ad->ip2[0];
+        target->ad->ip2[1] = source->ad->ip2[1];
+        target->ad->ip2[2] = source->ad->ip2[2];
+        target->ad->ip2[3] = source->ad->ip2[3];
+    }
+
+    return 0;
 }
 
 /* TESTS */

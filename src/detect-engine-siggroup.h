@@ -18,22 +18,26 @@ void SigGroupHeadFreeMpmArrays(void);
 
 SigGroupHead *SigGroupHeadHashLookup(SigGroupHead *sgh);
 SigGroupHead *SigGroupHeadPortHashLookup(SigGroupHead *sgh);
+SigGroupHead *SigGroupHeadSPortHashLookup(SigGroupHead *sgh);
 SigGroupHead *SigGroupHeadMpmHashLookup(SigGroupHead *sgh);
 SigGroupHead *SigGroupHeadMpmUriHashLookup(SigGroupHead *sgh);
 
 int SigGroupHeadPortHashAdd(SigGroupHead *sgh);
+int SigGroupHeadSPortHashAdd(SigGroupHead *sgh);
 int SigGroupHeadMpmHashAdd(SigGroupHead *sgh);
 int SigGroupHeadMpmUriHashAdd(SigGroupHead *sgh);
 int SigGroupHeadHashAdd(SigGroupHead *sgh);
 
 void SigGroupHeadHashFree(void);
 void SigGroupHeadPortHashFree(void);
+void SigGroupHeadSPortHashFree(void);
 void SigGroupHeadMpmHashFree(void);
 void SigGroupHeadMpmUriHashFree(void);
 
 int SigGroupHeadMpmHashInit(void);
 int SigGroupHeadMpmUriHashInit(void);
 int SigGroupHeadPortHashInit(void);
+int SigGroupHeadSPortHashInit(void);
 int SigGroupHeadHashInit(void);
 
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, u_int32_t max_idx);

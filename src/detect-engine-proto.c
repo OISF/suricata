@@ -74,7 +74,7 @@ int DetectProtoSetup (Signature *s, SigMatch *m, char *str)
 
 /* TESTS */
 
-int ProtoTestParse01 (void) {
+static int ProtoTestParse01 (void) {
     DetectProto dp;
     memset(&dp,0,sizeof(DetectProto));
 
@@ -86,8 +86,34 @@ int ProtoTestParse01 (void) {
     return 0;
 }
 
+static int ProtoTestParse02 (void) {
+    DetectProto dp;
+    memset(&dp,0,sizeof(DetectProto));
+
+    int r = DetectProtoParse(&dp, "tcp");
+    if (r == 0 && dp.proto[(IPPROTO_TCP/8)] & (1<<(IPPROTO_TCP%8))) {
+        return 1;
+    }
+
+    return 0;
+}
+
+static int ProtoTestParse03 (void) {
+    DetectProto dp;
+    memset(&dp,0,sizeof(DetectProto));
+
+    int r = DetectProtoParse(&dp, "ip");
+    if (r == 0 && dp.flags & DETECT_PROTO_ANY) {
+        return 1;
+    }
+
+    return 0;
+}
+
 
 void DetectProtoTests(void) {
     UtRegisterTest("ProtoTestParse01", ProtoTestParse01, 1);
+    UtRegisterTest("ProtoTestParse02", ProtoTestParse02, 1);
+    UtRegisterTest("ProtoTestParse03", ProtoTestParse03, 1);
 }
 

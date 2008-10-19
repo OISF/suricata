@@ -12,5 +12,7 @@ int DetectAddressCutNotIPv4(DetectAddressData *, DetectAddressData **);
 
 int DetectAddressGroupCutIPv4(DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
 
+int DetectAddressGroupJoinIPv4(DetectAddressGroup *target, DetectAddressGroup *source);
+
 #endif /* __DETECT_ADDRESS_IPV4_H__ */
 

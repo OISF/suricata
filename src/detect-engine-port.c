@@ -75,6 +75,11 @@ void DetectPortFree(DetectPort *dp) {
     }
     dp->sh = NULL;
 
+    if (dp->dst_ph != NULL && !(dp->flags & PORT_GROUP_PORTS_COPY)) {
+        DetectPortCleanupList(dp->dst_ph);
+    }
+    dp->dst_ph = NULL;
+
     detect_port_memory -= sizeof(DetectPort);
     detect_port_free_cnt++;
     free(dp);
@@ -186,6 +191,9 @@ int DetectPortAdd(DetectPort **head, DetectPort *dp) {
 int DetectPortInsertCopy(DetectPort **head, DetectPort *new) {
     DetectPort *copy = DetectPortCopySingle(new);
 
+    //printf("new  (%p): ", new); DetectPortPrint(new);  printf(" "); DbgPrintSigs2(new->sh);
+    //printf("copy (%p): ",copy); DetectPortPrint(copy); printf(" "); DbgPrintSigs2(copy->sh);
+
     if (copy != NULL) {
         //printf("DetectPortInsertCopy: "); DetectPortPrint(copy); printf("\n");
     }
@@ -206,7 +214,9 @@ int DetectPortInsert(DetectPort **head, DetectPort *new) {
     if (new == NULL)
         return 0;
 
+
 #ifdef DBG
+    printf("DetectPortInsert: head %p, new %p, new->dp %p\n", head, new, new->dp);
     printf("DetectPortInsert: inserting (sig %u) ", new->sh ? new->sh->sig_cnt : 0); DetectPortPrint(new); printf("\n");
     //DetectPortPrintList(*head);
 #endif
@@ -235,6 +245,7 @@ int DetectPortInsert(DetectPort **head, DetectPort *new) {
                 /* exact overlap/match */
                 if (cur != new) {
                     SigGroupHeadCopySigs(new->sh,&cur->sh);
+                    cur->cnt += new->cnt;
                     DetectPortFree(new);
                     return 0;
                 }
@@ -563,6 +574,9 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
     /* default to NULL */
     *c = NULL;
 
+    //printf("a (%p): ",a); DetectPortPrint(a); printf(" "); DbgPrintSigs2(a->sh);
+    //printf("b (%p): ",b); DetectPortPrint(b); printf(" "); DbgPrintSigs2(b->sh);
+
     int r = DetectPortCmp(a,b);
     if (r != PORT_ES && r != PORT_EB && r != PORT_LE && r != PORT_GE) {
         printf("DetectPortCut: we shouldn't be here\n");
@@ -605,6 +619,9 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
         SigGroupHeadCopySigs(b->sh,&tmp_c->sh); /* copy old b to c */
         SigGroupHeadCopySigs(a->sh,&b->sh); /* copy old b to a */
 
+        tmp_c->cnt += b->cnt;
+        b->cnt += a->cnt; 
+
     /* we have 3 parts: [bbb[baba]aaa]
      * part a: b_port1 <-> a_port1 - 1
      * part b: a_port1 <-> b_port2
@@ -640,6 +657,14 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
         SigGroupHeadCopySigs(tmp->sh,&b->sh); /* prepend old a before b */
 
         SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
+
+        tmp->cnt += a->cnt;
+        a->cnt = 0;
+        tmp_c->cnt += tmp->cnt;
+        a->cnt += b->cnt;
+        b->cnt += tmp->cnt;
+        tmp->cnt = 0;
+
     /* we have 2 or three parts:
      *
      * 2 part: [[abab]bbb] or [bbb[baba]]
@@ -672,6 +697,7 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
 
             /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
             SigGroupHeadCopySigs(b->sh,&a->sh);
+            a->cnt += b->cnt;
 
         } else if (a_port2 == b_port2) {
 #ifdef DBG
@@ -685,6 +711,8 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
 
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
             SigGroupHeadCopySigs(a->sh,&b->sh);
+            b->cnt += a->cnt;
+
         } else {
 #ifdef DBG
             printf("DetectPortCut: 3\n");
@@ -715,6 +743,13 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             SigGroupHeadCopySigs(tmp->sh,&b->sh); /* prepend old a before b */
 
             SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
+
+            tmp->cnt += a->cnt;
+            a->cnt = 0;
+            tmp_c->cnt += b->cnt;
+            a->cnt += b->cnt;
+            b->cnt += tmp->cnt;
+            tmp->cnt = 0;
         }
     /* we have 2 or three parts:
      *
@@ -753,6 +788,15 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             SigGroupHeadCopySigs(tmp->sh,&a->sh);
 
             SigGroupHeadClearSigs(tmp->sh);
+
+            tmp->cnt += b->cnt;
+            b->cnt = 0;
+            b->cnt += a->cnt;
+            a->cnt += tmp->cnt;
+            tmp->cnt = 0;
+
+            //printf("2a (%p): ",a); DetectPortPrint(a); printf(" "); DbgPrintSigs2(a->sh);
+            //printf("2b (%p): ",b); DetectPortPrint(b); printf(" "); DbgPrintSigs2(b->sh);
         } else if (a_port2 == b_port2) {
 #ifdef DBG
             printf("DetectPortCut: 2\n");
@@ -765,6 +809,9 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
 
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
             SigGroupHeadCopySigs(a->sh,&b->sh);
+
+            b->cnt += a->cnt;
+
         } else {
 #ifdef DBG
             printf("DetectPortCut: 3\n");
@@ -787,6 +834,9 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
 
             SigGroupHeadCopySigs(a->sh,&b->sh);
             SigGroupHeadCopySigs(a->sh,&tmp_c->sh);
+
+            b->cnt += a->cnt;
+            tmp_c->cnt += a->cnt;
         }
     }
 
@@ -1028,15 +1078,15 @@ DetectPortLookupGroup(DetectPort *dp, u_int16_t port) {
 /* XXX eeewww global! move to DetectionEngineCtx once we have that! */
 static DetectPort **port_hash;
 static DetectPort *port_list;
-#define HASH_SIZE 65536
+#define PORT_HASH_SIZE 1024
 
 /* XXX dynamic size based on number of sigs? */
 int DetectPortHashInit(void) {
-    port_hash = (DetectPort **)malloc(sizeof(DetectPort) * HASH_SIZE);
+    port_hash = (DetectPort **)malloc(sizeof(DetectPort *) * PORT_HASH_SIZE);
     if (port_hash == NULL) {
         goto error;
     }
-    memset(port_hash,0,sizeof(DetectPort) * HASH_SIZE);
+    memset(port_hash,0,sizeof(DetectPort *) * PORT_HASH_SIZE);
 
     port_list = NULL;
 
@@ -1052,7 +1102,7 @@ void DetectPortHashFree(void) {
 
 void DetectPortHashReset(void) {
     if (port_hash != NULL) {
-        memset(port_hash,0,sizeof(DetectPort) * HASH_SIZE);
+        memset(port_hash,0,sizeof(DetectPort *) * PORT_HASH_SIZE);
     }
     port_list = NULL;
 }
@@ -1066,13 +1116,13 @@ DetectPort *DetectPortHashGetListPtr(void) {
 }
 
 u_int32_t DetectPortHashGetSize(void) {
-    return HASH_SIZE;
+    return PORT_HASH_SIZE;
 }
 
 static inline u_int32_t DetectPortHash(DetectPort *p) {
     u_int32_t hash = p->port * p->port2;
 
-    return (hash % HASH_SIZE);
+    return (hash % PORT_HASH_SIZE);
 }
 
 int DetectPortHashAdd(DetectPort *p) {
@@ -1149,6 +1199,147 @@ DetectPort *DetectPortHashLookup(DetectPort *p) {
 
     //printf("DetectPortHashLookup: not found\n");
     return NULL;
+}
+
+/* XXX eeewww global! move to DetectionEngineCtx once we have that! */
+static DetectPort **sport_hash;
+static DetectPort *sport_list;
+#define SPORT_HASH_SIZE 1024
+
+/* XXX dynamic size based on number of sigs? */
+int DetectPortSpHashInit(void) {
+    sport_hash = (DetectPort **)malloc(sizeof(DetectPort *) * SPORT_HASH_SIZE);
+    if (sport_hash == NULL) {
+        goto error;
+    }
+    memset(sport_hash,0,sizeof(DetectPort *) * SPORT_HASH_SIZE);
+
+    sport_list = NULL;
+    //printf("DetectSPortHashInit: sport_hash %p\n", sport_hash);
+    return 0;
+error:
+    printf("DetectSPortHashInit: error sport_hash %p\n", sport_hash);
+    return -1;
+}
+
+void DetectPortSpHashFree(void) {
+    free(sport_hash);
+    sport_hash = NULL;
+}
+
+void DetectPortSpHashReset(void) {
+    if (sport_hash != NULL) {
+        memset(sport_hash,0,sizeof(DetectPort *) * SPORT_HASH_SIZE);
+    }
+    sport_list = NULL;
+}
+
+DetectPort **DetectPortSpHashGetPtr(void) {
+    return sport_hash;
+}
+
+DetectPort *DetectPortSpHashGetListPtr(void) {
+    return sport_list;
+}
+
+u_int32_t DetectPortSpHashGetSize(void) {
+    return SPORT_HASH_SIZE;
+}
+
+static inline u_int32_t DetectPortSpHash(DetectPort *p) {
+    u_int32_t hash = p->port * p->port2;
+
+    return (hash % SPORT_HASH_SIZE);
+}
+
+int DetectPortSpHashAdd(DetectPort *p) {
+    u_int32_t hash = DetectPortSpHash(p);
+
+    //printf("DetectSPortHashAdd: hash %u\n", hash);
+    detect_port_hash_add_cnt++;
+
+    /* list */
+    p->next = sport_list;
+    sport_list = p;
+
+    /* easy: no collision */
+    if (sport_hash[hash] == NULL) {
+        sport_hash[hash] = p;
+        return 0;
+    }
+
+    detect_port_hash_add_coll_cnt++;
+
+    /* harder: collision */
+    DetectPort *h = sport_hash[hash], *ph = NULL;
+    for ( ; h != NULL; h = h->hnext) {
+#if 0
+        if (DetectPortCmp(p,h) == PORT_EB) {
+            if (h == port_hash[hash]) {
+                p->hnext = h;
+                port_hash[hash] = p;
+            } else {
+                p->hnext = ph->hnext;
+                ph->hnext = p;
+            }
+            detect_port_hash_add_insert_cnt++;
+            return 0;
+        }
+#endif
+        ph = h;
+    }
+    ph->hnext = p;
+
+    return 0;
+}
+
+DetectPort *DetectPortSpHashLookup(DetectPort *p) {
+    u_int32_t hash = DetectPortSpHash(p);
+
+    //printf("DetectSPortHashLookup: hash %u, sport_hash %p, size %u port %p\n", hash, sport_hash, SPORT_HASH_SIZE, p);
+    detect_port_hash_lookup_cnt++;
+
+    /* easy: no sgh at our hash */
+    if (sport_hash[hash] == NULL) {
+        detect_port_hash_lookup_miss_cnt++;
+        //printf("DetectSPortHashLookup: not found\n");
+        return NULL;
+    }
+
+    /* see if we have the sgh we're looking for */
+    DetectPort *h = sport_hash[hash];
+    for ( ; h != NULL; h = h->hnext) {
+        detect_port_hash_lookup_loop_cnt++;
+        if (DetectPortHashCmp(p,h) == 1) {
+            //printf("DetectSPortHashLookup: found at %p\n", h);
+            detect_port_hash_lookup_hit_cnt++;
+            return h;
+        }
+    }
+
+    //printf("DetectSPortHashLookup: not found\n");
+    return NULL;
+}
+
+int DetectPortJoin(DetectPort *target, DetectPort *source) {
+    if (target == NULL || source == NULL)
+        return -1;
+
+    target->cnt += source->cnt;
+    SigGroupHeadCopySigs(source->sh,&target->sh);
+
+    //DetectPort *port = source->port;
+    //for ( ; port != NULL; port = port->next) {
+    //    DetectPortInsertCopy(&target->port, port);
+    //}
+
+    if (source->port < target->port)
+        target->port = source->port;
+
+    if (source->port2 > target->port2)
+        target->port2 = source->port2;
+
+    return -1;
 }
 
 /* TESTS */
