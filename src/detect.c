@@ -401,7 +401,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                     continue;
             }
         }
-        /* XXX maybe a (re)set function? */
+        /* reset pkt ptr and offset */
         pmt->pkt_ptr = NULL;
         pmt->pkt_off = 0;
 
@@ -1894,7 +1894,8 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
                 de_ctx->mpm_uri_unique, de_ctx->mpm_uri_reuse, de_ctx->mpm_uri_none);
         //u_int32_t mpm_uri_cnt = de_ctx->mpm_uri_unique + de_ctx->mpm_uri_reuse + de_ctx->mpm_uri_none;
         printf("* MPM max patcnt %u, avg %u\n", de_ctx->mpm_max_patcnt, de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique);
-        printf("* MPM (URI) max patcnt %u, avg %u\n", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique);
+        if (de_ctx->mpm_uri_tot_patcnt && de_ctx->mpm_uri_unique)
+            printf("* MPM (URI) max patcnt %u, avg %u\n", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique);
         printf("* Building signature grouping structure, stage 3: building destination address lists... done\n");
     }
     return 0;
