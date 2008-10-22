@@ -22,36 +22,29 @@ void PacketEnqueue (PacketQueue *q, Packet *p) {
 #endif /* DBG_PERF */
 }
 
-static u_int32_t dbg_packetdequeue = 0;
-
 Packet *PacketDequeue (PacketQueue *q) {
-    Packet *p = q->bot;
-    if (p == NULL) {
-        /* queue empty, alloc a new packet */
-        p = malloc(sizeof(Packet));
-        if (p == NULL) {
-            printf("ERROR: malloc failed: %s\n", strerror(errno));
-            return NULL;
-        }
-
-        CLEAR_TCP_PACKET(p);
-        CLEAR_PACKET(p);
-
-        dbg_packetdequeue++;
-        printf("PacketDequeue: alloced a new packet. MAX_PENDING %u, extra alloc: %u\n", MAX_PENDING, dbg_packetdequeue);
-    } else {
-        /* more packets in queue */
-        if (q->bot->prev != NULL) {
-            q->bot = q->bot->prev;
-            q->bot->next = NULL;
-            /* just the one we remove, so now empty */
-        } else {
-            q->top = NULL;
-            q->bot = NULL;
-        }
-
-        q->len--;
+    /* if the queue is empty there are no packets left.
+     * In that case we sleep and try again. */
+    if (q->len == 0) {
+        printf("PacketDequeue: queue is empty, waiting...\n");
+        usleep(100000); /* sleep 100ms */
+        return PacketDequeue(q);
     }
+
+    /* pull the bottom packet from the queue */
+    Packet *p = q->bot;
+
+    /* more packets in queue */
+    if (q->bot->prev != NULL) {
+        q->bot = q->bot->prev;
+        q->bot->next = NULL;
+        /* just the one we remove, so now empty */
+    } else {
+        q->top = NULL;
+        q->bot = NULL;
+    }
+    q->len--;
+
     p->next = NULL;
     p->prev = NULL;
     return p;
