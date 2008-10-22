@@ -1,5 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#include "vips.h"
 #include "decode.h"
 #include "packet-queue.h"
 
@@ -21,21 +22,36 @@ void PacketEnqueue (PacketQueue *q, Packet *p) {
 #endif /* DBG_PERF */
 }
 
+static u_int32_t dbg_packetdequeue = 0;
+
 Packet *PacketDequeue (PacketQueue *q) {
     Packet *p = q->bot;
+    if (p == NULL) {
+        /* queue empty, alloc a new packet */
+        Packet *p = malloc(sizeof(Packet));
+        if (p == NULL) {
+            printf("ERROR: malloc failed: %s\n", strerror(errno));
+            return NULL;
+        }
 
-    /* more packets in queue */
-    if (q->bot->prev != NULL) {
-        q->bot = q->bot->prev;
-        q->bot->next = NULL;
-    /* just the one we remove, so now empty */
+        CLEAR_TCP_PACKET(p);
+        CLEAR_PACKET(p);
+
+        dbg_packetdequeue++;
+        printf("PacketDequeue: alloced a new packet. MAX_PENDING %u, extra alloc: %u\n", MAX_PENDING, dbg_packetdequeue);
     } else {
-        q->top = NULL;
-        q->bot = NULL;
+        /* more packets in queue */
+        if (q->bot->prev != NULL) {
+            q->bot = q->bot->prev;
+            q->bot->next = NULL;
+            /* just the one we remove, so now empty */
+        } else {
+            q->top = NULL;
+            q->bot = NULL;
+        }
+
+        q->len--;
     }
-
-    q->len--;
-
     p->next = NULL;
     p->prev = NULL;
     return p;
