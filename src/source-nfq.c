@@ -242,7 +242,7 @@ int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
 }
 
 int VerdictNFQThreadInit(ThreadVars *tv, void **data) {
-    printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
+    printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", verdict_queue_num);
 
     /* no initialization, ReceiveNFQ takes care of that */
     NFQThreadVars *ntv = &nfq_t[verdict_queue_num];

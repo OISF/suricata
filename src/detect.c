@@ -777,7 +777,7 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
         }
 
         /* insert it */
-        DetectAddressGroup *tmpgr = tmplist, *prevtmpgr;
+        DetectAddressGroup *tmpgr = tmplist, *prevtmpgr = NULL;
         if (tmplist == NULL) {
             /* empty list, set head */
             tmplist = newtmp;
@@ -934,7 +934,7 @@ int CreateGroupedPortList(DetectPort *srchead, DetectPort **newhead, u_int32_t u
         }
 
         /* insert it */
-        DetectPort *tmpgr = tmplist, *prevtmpgr;
+        DetectPort *tmpgr = tmplist, *prevtmpgr = NULL;
         if (tmplist == NULL) {
             /* empty list, set head */
             tmplist = newtmp;
