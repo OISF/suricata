@@ -28,7 +28,7 @@ Packet *PacketDequeue (PacketQueue *q) {
     Packet *p = q->bot;
     if (p == NULL) {
         /* queue empty, alloc a new packet */
-        Packet *p = malloc(sizeof(Packet));
+        p = malloc(sizeof(Packet));
         if (p == NULL) {
             printf("ERROR: malloc failed: %s\n", strerror(errno));
             return NULL;
