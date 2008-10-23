@@ -14,11 +14,11 @@
 
 typedef struct _NFQPacketVars
 {
-    struct nfqnl_msg_packet_hdr *ph;
+    int id; /* this nfq packets id */
+
     u_int32_t mark;
     u_int32_t ifi;
     u_int32_t ifo;
-    int id;
     u_int16_t hw_protocol;
 } NFQPacketVars;
 

@@ -180,6 +180,9 @@ typedef struct _Packet
     Port sp;
     Port dp;
     u_int8_t proto;
+    u_int8_t recursion_level;
+/* XXX make sure we can't be attacked on when the tunneled packet
+ * has the exact same tuple as the lower levels */
 
     struct timeval ts;
 
@@ -192,17 +195,16 @@ typedef struct _Packet
     /* tunnel packet ref count */
     u_int8_t tpr_cnt;
     pthread_mutex_t mutex_rtv_cnt;
-
+    /* tunnel stuff */
+    u_int8_t tunnel_proto;
     /* tunnel XXX convert to bitfield*/
-    int tunnel_pkt;
+    char tunnel_pkt;
+    char tunnel_verdicted;
 
     /* nfq stuff */
 #ifdef NFQ
     NFQPacketVars nfq_v;
 #endif /* NFQ */
-
-    /* tunnel stuff */
-    u_int8_t tunnel_proto;
 
     /* storage */
     u_int8_t pkt[65536];
@@ -295,22 +297,32 @@ typedef struct _Packet
 #define REJECT_PACKET_DST(p)   ((p)->root ? ((p)->root->action = ACTION_REJECT_DST) : ((p)->action = ACTION_REJECT_DST))
 #define REJECT_PACKET_BOTH(p)  ((p)->root ? ((p)->root->action = ACTION_REJECT_BOTH) : ((p)->action = ACTION_REJECT_BOTH))
 
-#define INCR_PKT_RTV(p) \
+#define TUNNEL_INCR_PKT_RTV(p) \
 { \
     mutex_lock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
     ((p)->root ? (p)->root->rtv_cnt++ : (p)->rtv_cnt++); \
     mutex_unlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
 }
 
-#define INCR_PKT_TPR(p) \
+#define TUNNEL_INCR_PKT_TPR(p) \
 { \
     mutex_lock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
     ((p)->root ? (p)->root->tpr_cnt++ : (p)->tpr_cnt++); \
     mutex_unlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
 }
+#define TUNNEL_DECR_PKT_TPR(p) \
+{ \
+    mutex_lock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+    ((p)->root ? (p)->root->tpr_cnt-- : (p)->tpr_cnt--); \
+    mutex_unlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+}
+#define TUNNEL_DECR_PKT_TPR_NOLOCK(p) \
+{ \
+    ((p)->root ? (p)->root->tpr_cnt-- : (p)->tpr_cnt--); \
+}
 
-#define PKT_RTV(p)             ((p)->root ? (p)->root->rtv_cnt : (p)->rtv_cnt)
-#define PKT_TPR(p)             ((p)->root ? (p)->root->tpr_cnt : (p)->tpr_cnt)
+#define TUNNEL_PKT_RTV(p)             ((p)->root ? (p)->root->rtv_cnt : (p)->rtv_cnt)
+#define TUNNEL_PKT_TPR(p)             ((p)->root ? (p)->root->tpr_cnt : (p)->tpr_cnt)
 
 #define IS_TUNNEL_ROOT_PKT(p)  (((p)->root == NULL && (p)->tunnel_pkt == 1))
 #define IS_TUNNEL_PKT(p)       (((p)->tunnel_pkt == 1))
@@ -328,7 +340,7 @@ void DecodeUDP(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 void DecodeHTTP(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 
 Packet *SetupPkt (void);
-void SetupTunnelPkt(ThreadVars *, Packet *, u_int8_t *, u_int16_t, u_int8_t);
+Packet *TunnelPktSetup(ThreadVars *, Packet *, u_int8_t *, u_int16_t, u_int8_t);
 
 #define DECODER_SET_EVENT(p, e)   ((p)->events[(e/8)] |= (1<<(e%8)))
 #define DECODER_ISSET_EVENT(p, e) ((p)->events[(e/8)] & (1<<(e%8)))

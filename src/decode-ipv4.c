@@ -95,14 +95,19 @@ void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
             return(DecodeICMPV4(t, p, pkt + IPV4_GET_HLEN(p), len - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_IPV6:
-            //printf("DecodeIPV4: next layer is IPV6\n");
-            //printf("DecodeIPV4: we are p %p\n", p);
+            {
+                //printf("DecodeIPV4: next layer is IPV6\n");
+                //printf("DecodeIPV4: we are p %p\n", p);
 
-            /* spawn off tunnel packet */
-            SetupTunnelPkt(t, p, pkt + IPV4_GET_HLEN(p), len - IPV4_GET_HLEN(p), IPV4_GET_IPPROTO(p));
-            /* this is now a tunnel packet */
-            SET_TUNNEL_PKT(p);
-            break;
+                /* spawn off tunnel packet */
+                Packet *tp = TunnelPktSetup(t, p, pkt + IPV4_GET_HLEN(p), len - IPV4_GET_HLEN(p), IPV4_GET_IPPROTO(p));
+                /* send that to the Tunnel decoder */
+                DecodeTunnel(t, tp, tp->pkt, tp->pktlen);
+
+                /* the current packet is now a tunnel packet */
+                SET_TUNNEL_PKT(p);
+                break;
+            }
     }
 
     return;

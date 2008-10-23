@@ -67,12 +67,13 @@ void NFQSetupPkt (Packet *p, void *data)
     struct nfq_data *tb = (struct nfq_data *)data;
     int ret;
     char *pktdata;
+    struct nfqnl_msg_packet_hdr *ph;
 
-    p->nfq_v.ph = nfq_get_msg_packet_hdr(tb);
-    if (p->nfq_v.ph != NULL) {
-        p->nfq_v.id = ntohl(p->nfq_v.ph->packet_id);
+    ph = nfq_get_msg_packet_hdr(tb);
+    if (ph != NULL) {
+        p->nfq_v.id = ntohl(ph->packet_id);
         //p->nfq_v.hw_protocol = ntohs(p->nfq_v.ph->hw_protocol);
-        p->nfq_v.hw_protocol = p->nfq_v.ph->hw_protocol;
+        p->nfq_v.hw_protocol = ph->hw_protocol;
     }
     p->nfq_v.mark = nfq_get_nfmark(tb);
     p->nfq_v.ifi  = nfq_get_indev(tb);
@@ -265,7 +266,8 @@ int VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
 void NFQRecvPkt(NFQThreadVars *t) {
     int rv, ret;
     char buf[70000];
-/* XXX what happens on rv == 0? */
+
+    /* XXX what happens on rv == 0? */
     rv = recv(t->fd, buf, sizeof(buf), 0);
     if (rv < 0) {
         if (errno == EINTR || errno == EWOULDBLOCK) {
@@ -306,14 +308,14 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     int ret;
     u_int32_t verdict;
 
-    if(p->action == ACTION_ALERT){
+    if (p->action == ACTION_ALERT) {
        verdict = NF_ACCEPT;
-    } else if(p->action == ACTION_PASS){
+    } else if (p->action == ACTION_PASS) {
        verdict = NF_ACCEPT;
-    } else if(p->action == ACTION_DROP){
+    } else if (p->action == ACTION_DROP) {
        verdict = NF_DROP;
-    } else if(p->action == ACTION_REJECT||p->action == ACTION_REJECT_DST||
-	      p->action == ACTION_REJECT_BOTH){
+    } else if (p->action == ACTION_REJECT || p->action == ACTION_REJECT_DST ||
+               p->action == ACTION_REJECT_BOTH){
        verdict = NF_DROP;
     } else {
        /* a verdict we don't know about, drop to be sure */
@@ -331,7 +333,28 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
 int VerdictNFQ(ThreadVars *tv, Packet *p, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
-    NFQSetVerdict(ntv, p);
+    /* if this is a tunnel packet we check if we are ready to verdict
+     * already. */
+    if (IS_TUNNEL_PKT(p)) {
+        char verdict = 1;
+
+        pthread_mutex_t *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
+        mutex_lock(m);
+        /* if there are more tunnel packets than ready to verdict packets,
+         * we won't verdict this one */
+        if ((TUNNEL_PKT_TPR(p)+1) > TUNNEL_PKT_RTV(p)) {
+            verdict = 0;
+        }
+        mutex_unlock(m);
+
+        /* don't verdict if we are not ready */
+        if (verdict == 1) {
+            NFQSetVerdict(ntv, p);
+        }
+    } else {
+        /* no tunnel, verdict normally */
+        NFQSetVerdict(ntv, p);
+    }
     return 0;
 }
 

@@ -90,12 +90,13 @@ Packet *SetupPkt (void)
     return p;
 }
 
-void SetupTunnelPkt(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t len, u_int8_t proto)
+Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t len, u_int8_t proto)
 {
     /* get us a packet */
     mutex_lock(&packet_q.mutex_q);
     Packet *p = PacketDequeue(&packet_q);
     mutex_unlock(&packet_q.mutex_q);
+
     CLEAR_PACKET(p);
 
     /* set the root ptr to the lowest layer */
@@ -109,24 +110,10 @@ void SetupTunnelPkt(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t len,
     p->pktlen = len;
     memcpy(&p->pkt, pkt, len);
 
-    /* copy queue id's */
-/* XXX review how to insert tunnel packets into the queue decoders use */
-    p->pickup_q_id = parent->pickup_q_id;
-    p->verdict_q_id = parent->verdict_q_id;
-
     /* set tunnel flags */
     SET_TUNNEL_PKT(p);
-    INCR_PKT_TPR(p);
-
-    /* enqueue the packet in the pickup_q */
-    PacketQueue *pq = &trans_q[p->pickup_q_id];
-
-    /* lock mutex and add the packet to the queue */
-    mutex_lock(&pq->mutex_q);
-    PacketEnqueue(pq, p);
-    pthread_cond_signal(&pq->cond_q);
-    mutex_unlock(&pq->mutex_q);
-    return;
+    TUNNEL_INCR_PKT_TPR(p);
+    return p;
 }
 
 /* this function should only be called for tunnel packets
@@ -146,6 +133,7 @@ void SetupTunnelPkt(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t len,
  * one.
  *
  */
+#if 0
 static Packet * VerdictTunnelPacket(Packet *p) {
     char verdict = 1;
     Packet *vp = NULL;
@@ -189,44 +177,8 @@ static Packet * VerdictTunnelPacket(Packet *p) {
     mutex_unlock(&packet_q.mutex_q);
     return vp;
 }
+#endif
 #if 0
-void *DecoderThread(void *td) {
-    ThreadVars *th_v = (ThreadVars *)td;
-    int run = 1;
-    u_int32_t cnt = 0;
-
-    printf("DecoderThread[%d] started...\n", th_v->tid);
-
-    while(run) {
-        Packet *p = th_v->tmqh_in(th_v);
-        if (p == NULL) {
-            if (threadflags & VIPS_KILLDECODE)
-                run = 0;
-        } else {
-#ifdef COUNTERS
-            cnt++;
-#endif /* COUNTERS */
-
-            if ((IS_TUNNEL_PKT(p))) {
-                DecodeTunnel(th_v, p, p->pkt, p->pktlen);
-            }
-            else {
-#ifdef NFQ
-                DecodeNFQ(th_v, p);
-#endif /* NFQ */
-            }
-
-            /* lock mutex and add the packet to the queue */
-            th_v->tmqh_out(th_v,p);
-        }
-    }
-
-    printf("DecoderThread[%d] cnt %u\n", th_v->tid, cnt);
-
-    printf("DecoderThread[%d] ended...\n", th_v->tid);
-    pthread_exit((void *) 0);
-}
-
 void *DetectThread(void *td) {
     ThreadVars *th_v = (ThreadVars *)td;
     int run = 1;
@@ -268,7 +220,6 @@ void *DetectThread(void *td) {
 }
 #endif
 
-//ThreadVars th_v[NUM_THREADS];
 
 int main(int argc, char **argv)
 {
