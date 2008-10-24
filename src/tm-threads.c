@@ -215,10 +215,10 @@ void *TmThreadsSlot2(void *td) {
         }
     }
     if (s2->Slot2Init != NULL) {
-	r = s2->Slot2Init(tv, &s2->slot2_data);
-	if (r != 0) {
-	    pthread_exit((void *) -1);
-	}
+        r = s2->Slot2Init(tv, &s2->slot2_data);
+        if (r != 0) {
+            pthread_exit((void *) -1);
+        }
     }
 
     while(run) {
