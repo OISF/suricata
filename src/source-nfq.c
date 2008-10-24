@@ -337,19 +337,24 @@ int VerdictNFQ(ThreadVars *tv, Packet *p, void *data) {
      * already. */
     if (IS_TUNNEL_PKT(p)) {
         char verdict = 1;
+        printf("VerdictNFQ: tunnel pkt: %p %s\n", p, p->root ? "upper layer" : "root");
 
         pthread_mutex_t *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
         mutex_lock(m);
         /* if there are more tunnel packets than ready to verdict packets,
          * we won't verdict this one */
-        if ((TUNNEL_PKT_TPR(p)+1) > TUNNEL_PKT_RTV(p)) {
+        if (TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p)) {
+            printf("VerdictNFQ: not ready to verdict yet: TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %d > %d\n", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
             verdict = 0;
         }
         mutex_unlock(m);
 
         /* don't verdict if we are not ready */
         if (verdict == 1) {
-            NFQSetVerdict(ntv, p);
+            printf("VerdictNFQ: setting verdict\n");
+            NFQSetVerdict(ntv, p->root ? p->root : p);
+        } else {
+            TUNNEL_INCR_PKT_RTV(p);
         }
     } else {
         /* no tunnel, verdict normally */

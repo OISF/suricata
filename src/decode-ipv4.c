@@ -96,17 +96,24 @@ void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
             break;
         case IPPROTO_IPV6:
             {
-                //printf("DecodeIPV4: next layer is IPV6\n");
-                //printf("DecodeIPV4: we are p %p\n", p);
+//            #if 0
+                printf("DecodeIPV4: next layer is IPV6\n");
+                printf("DecodeIPV4: we are p %p\n", p);
 
                 /* spawn off tunnel packet */
                 Packet *tp = TunnelPktSetup(t, p, pkt + IPV4_GET_HLEN(p), len - IPV4_GET_HLEN(p), IPV4_GET_IPPROTO(p));
+                printf("DecodeIPV4: tunnel is tp %p\n", tp);
+
                 /* send that to the Tunnel decoder */
                 DecodeTunnel(t, tp, tp->pkt, tp->pktlen);
+                printf("DecodeIPV4: DecodeTunnel done, outputing\n");
+                t->tmqh_out(t,tp);
 
                 /* the current packet is now a tunnel packet */
                 SET_TUNNEL_PKT(p);
+                printf("DecodeIPV4: packet is now a tunnel (root) packet: %p\n", p);
                 break;
+//            #endif
             }
     }
 

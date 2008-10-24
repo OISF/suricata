@@ -5,6 +5,7 @@
 
 #ifdef DBG_THREADS
 
+#include <pthread.h>
 int mutex_lock_dbg (pthread_mutex_t *);
 int mutex_trylock_dbg (pthread_mutex_t *);
 int mutex_unlock_dbg (pthread_mutex_t *);

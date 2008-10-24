@@ -35,7 +35,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
 
             case IPPROTO_UDP:
                 IPV6_SET_L4PROTO(p,nh);
-                //DecodeUDP(t, p, pkt, plen);
+                DecodeUDP(t, p, pkt, plen);
                 return;
 
             case IPPROTO_ICMPV6:
@@ -365,12 +365,12 @@ void DecodeIPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
         return;
 
     /* now process the L4 Layer */
-    switch(IPV6_GET_L4PROTO(p)) {
+    switch(IPV6_GET_NH(p)) {
         case IPPROTO_TCP:
             return(DecodeTCP(t, p, pkt + IPV6_HEADER_LEN, len - IPV6_HEADER_LEN));
             break;
         case IPPROTO_UDP:
-            //return(DecodeUDP(p, pkt + IPV6_HEADER_LEN, len - IPV6_HEADER_LEN));
+            return(DecodeUDP(t, p, pkt + IPV6_HEADER_LEN, len - IPV6_HEADER_LEN));
             break;
         case IPPROTO_ICMPV6:
             return(DecodeICMPV6(t, p, pkt + IPV6_HEADER_LEN, len - IPV6_HEADER_LEN));

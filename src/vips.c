@@ -85,13 +85,13 @@ Packet *SetupPkt (void)
     mutex_unlock(&packet_q.mutex_q);
 
     CLEAR_PACKET(p);
-
-    //printf("p %p\n", p);
     return p;
 }
 
 Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t len, u_int8_t proto)
 {
+    printf("TunnelPktSetup: pkt %p, len %u, proto %u\n", pkt, len, proto);
+
     /* get us a packet */
     mutex_lock(&packet_q.mutex_q);
     Packet *p = PacketDequeue(&packet_q);
