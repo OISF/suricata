@@ -7,6 +7,6 @@
 #define REJECT_DIR_DST 1
 
 void TmModuleRespondRejectRegister (void);
-int RespondRejectFunc(ThreadVars *, Packet *, void *);
+int RespondRejectFunc(ThreadVars *, Packet *, void *, PacketQueue *);
 
 #endif /* __RESPOND_REJECT_H__ */

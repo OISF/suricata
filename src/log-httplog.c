@@ -28,9 +28,9 @@
 
 #include "util-unittest.h"
 
-int LogHttplog (ThreadVars *, Packet *, void *);
-int LogHttplogIPv4(ThreadVars *, Packet *, void *);
-int LogHttplogIPv6(ThreadVars *, Packet *, void *);
+int LogHttplog (ThreadVars *, Packet *, void *, PacketQueue *);
+int LogHttplogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
+int LogHttplogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 int LogHttplogThreadInit(ThreadVars *, void **);
 int LogHttplogThreadDeinit(ThreadVars *, void *);
 
@@ -73,7 +73,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (u_int32_t) ts->tv_usec);
 }
 
-int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data)
+int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     LogHttplogThread *aft = (LogHttplogThread *)data;
     int i;
@@ -120,7 +120,7 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data)
     return 0;
 }
 
-int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data)
+int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     LogHttplogThread *aft = (LogHttplogThread *)data;
     int i;
@@ -167,15 +167,15 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data)
     return 0;
 }
 
-int LogHttplog (ThreadVars *tv, Packet *p, void *data)
+int LogHttplog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     if (!(PKT_IS_TCP(p)))
         return 0;
 
     if (PKT_IS_IPV4(p)) {
-        return LogHttplogIPv4(tv, p, data);
+        return LogHttplogIPv4(tv, p, data, pq);
     } else if (PKT_IS_IPV6(p)) {
-        return LogHttplogIPv6(tv, p, data);
+        return LogHttplogIPv6(tv, p, data, pq);
     }
 
     return 0;

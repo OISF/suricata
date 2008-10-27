@@ -41,7 +41,7 @@ void TmModuleRespondRejectRegister (void) {
     tmm_modules[TMM_RESPONDREJECT].RegisterTests = NULL;
 }
 
-int RespondRejectFunc(ThreadVars *tv, Packet *p, void *data) {
+int RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
     /* ACTION_REJECT defaults to rejecting the SRC */
     if (p->action != ACTION_REJECT && p->action != ACTION_REJECT_DST &&

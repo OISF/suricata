@@ -4,14 +4,14 @@
 
 #include "decode.h"
 
-void DecodeTunnel(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+void DecodeTunnel(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
 {
     switch (p->tunnel_proto) {
         case IPPROTO_IP:
-            return DecodeIPV4(t, p, pkt, len);
+            return DecodeIPV4(t, p, pkt, len, pq);
             break;
         case IPPROTO_IPV6:
-            printf("DecodeTunnel: IPv6 packet\n");
+            //printf("DecodeTunnel: IPv6 packet\n");
             return DecodeIPV6(t, p, pkt, len);
             break;
         default:

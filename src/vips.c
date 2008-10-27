@@ -90,12 +90,20 @@ Packet *SetupPkt (void)
 
 Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t len, u_int8_t proto)
 {
-    printf("TunnelPktSetup: pkt %p, len %u, proto %u\n", pkt, len, proto);
+    //printf("TunnelPktSetup: pkt %p, len %u, proto %u\n", pkt, len, proto);
 
     /* get us a packet */
     mutex_lock(&packet_q.mutex_q);
     Packet *p = PacketDequeue(&packet_q);
     mutex_unlock(&packet_q.mutex_q);
+
+    mutex_lock(&mutex_pending);
+    pending++;
+#ifdef DBG_PERF
+    if (pending > dbg_maxpending)
+        dbg_maxpending = pending;
+#endif /* DBG_PERF */
+    mutex_unlock(&mutex_pending);
 
     CLEAR_PACKET(p);
 

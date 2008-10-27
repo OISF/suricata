@@ -27,12 +27,12 @@ static NFQThreadVars nfq_t[NFQ_MAX_QUEUE];
 static u_int16_t receive_queue_num = 0;
 static u_int16_t verdict_queue_num = 0;
 
-int ReceiveNFQ(ThreadVars *, Packet *, void *);
+int ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 int ReceiveNFQThreadInit(ThreadVars *, void **);
-int VerdictNFQ(ThreadVars *, Packet *, void *);
+int VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 int VerdictNFQThreadInit(ThreadVars *, void **);
 int VerdictNFQThreadDeinit(ThreadVars *, void *);
-int DecodeNFQ(ThreadVars *, Packet *, void *);
+int DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 
 void TmModuleReceiveNFQRegister (void) {
     /* XXX create a general NFQ setup function */
@@ -292,7 +292,7 @@ void NFQRecvPkt(NFQThreadVars *t) {
     }
 }
 
-int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data) {
+int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     /* XXX can we move this to initialization? */
@@ -330,28 +330,28 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
         printf("NFQSetVerdict: nfq_set_verdict of %p failed %d\n", p, ret);
 }
 
-int VerdictNFQ(ThreadVars *tv, Packet *p, void *data) {
+int VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     /* if this is a tunnel packet we check if we are ready to verdict
      * already. */
     if (IS_TUNNEL_PKT(p)) {
         char verdict = 1;
-        printf("VerdictNFQ: tunnel pkt: %p %s\n", p, p->root ? "upper layer" : "root");
+        //printf("VerdictNFQ: tunnel pkt: %p %s\n", p, p->root ? "upper layer" : "root");
 
         pthread_mutex_t *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
         mutex_lock(m);
         /* if there are more tunnel packets than ready to verdict packets,
          * we won't verdict this one */
         if (TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p)) {
-            printf("VerdictNFQ: not ready to verdict yet: TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %d > %d\n", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
+            //printf("VerdictNFQ: not ready to verdict yet: TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %d > %d\n", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
             verdict = 0;
         }
         mutex_unlock(m);
 
         /* don't verdict if we are not ready */
         if (verdict == 1) {
-            printf("VerdictNFQ: setting verdict\n");
+            //printf("VerdictNFQ: setting verdict\n");
             NFQSetVerdict(ntv, p->root ? p->root : p);
         } else {
             TUNNEL_INCR_PKT_RTV(p);
@@ -368,7 +368,7 @@ int VerdictNFQ(ThreadVars *tv, Packet *p, void *data) {
  *
  *
  */
-int DecodeNFQ(ThreadVars *t, Packet *p, void *data)
+int DecodeNFQ(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
     IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
     IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
@@ -378,7 +378,7 @@ int DecodeNFQ(ThreadVars *t, Packet *p, void *data)
 #endif
 
     if (IPV4_GET_RAW_VER(ip4h) == 4)
-        DecodeIPV4(t, p, p->pkt, p->pktlen);
+        DecodeIPV4(t, p, p->pkt, p->pktlen, pq);
     else if(IPV6_GET_RAW_VER(ip6h) == 6)
         DecodeIPV6(t, p, p->pkt, p->pktlen);
 

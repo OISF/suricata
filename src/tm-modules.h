@@ -4,7 +4,7 @@
 typedef struct _TmModule {
     char *name;
     int (*Init)(ThreadVars *, void **);
-    int (*Func)(ThreadVars *, Packet *, void *);
+    int (*Func)(ThreadVars *, Packet *, void *, PacketQueue *);
     int (*Deinit)(ThreadVars *, void *);
     void (*RegisterTests)(void);
 } TmModule;

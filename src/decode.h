@@ -262,6 +262,16 @@ typedef struct _Packet
 
 } Packet;
 
+typedef struct _PacketQueue {
+    Packet *top;
+    Packet *bot;
+    u_int16_t len;
+    pthread_mutex_t mutex_q;
+    pthread_cond_t cond_q;
+#ifdef DBG_PERF
+    u_int16_t dbg_maxlen;
+#endif /* DBG_PERF */
+} PacketQueue;
 /* clear key vars so we don't need to call the expensive
  * memset or bzero
  */
@@ -332,8 +342,8 @@ typedef struct _Packet
 
 
 /* decoder functions */
-void DecodeTunnel(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
-void DecodeIPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
+void DecodeTunnel(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
+void DecodeIPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeIPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 void DecodeICMPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 void DecodeICMPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t);

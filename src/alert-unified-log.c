@@ -33,7 +33,7 @@
 
 #include "util-unittest.h"
 
-int AlertUnifiedLog (ThreadVars *, Packet *, void *);
+int AlertUnifiedLog (ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertUnifiedLogThreadInit(ThreadVars *, void **);
 int AlertUnifiedLogThreadDeinit(ThreadVars *, void *);
 
@@ -147,7 +147,7 @@ int AlertUnifiedLogRotateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
     return 0;
 }
 
-int AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data)
+int AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertUnifiedLogThread *aun = (AlertUnifiedLogThread *)data;
     AlertUnifiedLogPacketHeader hdr;

@@ -33,9 +33,9 @@
 
 #include "util-unittest.h"
 
-int AlertFastlog (ThreadVars *, Packet *, void *);
-int AlertFastlogIPv4(ThreadVars *, Packet *, void *);
-int AlertFastlogIPv6(ThreadVars *, Packet *, void *);
+int AlertFastlog (ThreadVars *, Packet *, void *, PacketQueue *);
+int AlertFastlogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
+int AlertFastlogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertFastlogThreadInit(ThreadVars *, void **);
 int AlertFastlogThreadDeinit(ThreadVars *, void *);
 
@@ -78,7 +78,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (u_int32_t) ts->tv_usec);
 }
 
-int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data)
+int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertFastlogThread *aft = (AlertFastlogThread *)data;
     int i;
@@ -103,7 +103,7 @@ int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data)
     return 0;
 }
 
-int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data)
+int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertFastlogThread *aft = (AlertFastlogThread *)data;
     int i;
@@ -129,12 +129,12 @@ int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data)
     return 0;
 }
 
-int AlertFastlog (ThreadVars *tv, Packet *p, void *data)
+int AlertFastlog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     if (PKT_IS_IPV4(p)) {
-        return AlertFastlogIPv4(tv, p, data);
+        return AlertFastlogIPv4(tv, p, data, pq);
     } else if (PKT_IS_IPV6(p)) {
-        return AlertFastlogIPv6(tv, p, data);
+        return AlertFastlogIPv6(tv, p, data, pq);
     }
 
     return 0;

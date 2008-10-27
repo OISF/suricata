@@ -364,7 +364,17 @@ void DecodeIPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
     if (ret < 0)
         return;
 
-    /* now process the L4 Layer */
+#ifdef DEBUG
+    /* debug print */
+    char s[46], d[46];
+    inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), s, sizeof(s));
+    inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), d, sizeof(d));
+    printf("IPV6 %s->%s - CLASS: %u FLOW: %u NH: %u PLEN: %u HLIM: %u\n", s,d,
+        IPV6_GET_CLASS(p), IPV6_GET_FLOW(p), IPV6_GET_NH(p), IPV6_GET_PLEN(p),
+        IPV6_GET_HLIM(p));
+#endif /* DEBUG */
+
+    /* now process the Ext headers and/or the L4 Layer */
     switch(IPV6_GET_NH(p)) {
         case IPPROTO_TCP:
             return(DecodeTCP(t, p, pkt + IPV6_HEADER_LEN, len - IPV6_HEADER_LEN));
@@ -387,14 +397,6 @@ void DecodeIPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
     }
 
 #ifdef DEBUG
-    /* debug print */
-    char s[46], d[46];
-    inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), s, sizeof(s));
-    inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), d, sizeof(d));
-    printf("IPV6 %s->%s - CLASS: %u FLOW: %u NH: %u PLEN: %u HLIM: %u\n", s,d,
-        IPV6_GET_CLASS(p), IPV6_GET_FLOW(p), IPV6_GET_NH(p), IPV6_GET_PLEN(p),
-        IPV6_GET_HLIM(p));
-
     if (IPV6_EXTHDR_ISSET_FH(p)) {
         printf("IPV6 FRAG - HDRLEN: %u NH: %u OFFSET: %u ID: %u\n",
             IPV6_EXTHDR_GET_FH_HDRLEN(p), IPV6_EXTHDR_GET_FH_NH(p),

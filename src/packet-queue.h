@@ -5,7 +5,7 @@
 
 #include <pthread.h>
 #include "decode.h"
-
+#if 0
 typedef struct _PacketQueue {
     Packet *top;
     Packet *bot;
@@ -16,7 +16,7 @@ typedef struct _PacketQueue {
     u_int16_t dbg_maxlen;
 #endif /* DBG_PERF */
 } PacketQueue;
-
+#endif
 void PacketEnqueue (PacketQueue *, Packet *);
 Packet *PacketDequeue (PacketQueue *);
 

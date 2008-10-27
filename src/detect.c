@@ -53,7 +53,7 @@ int SignatureTupleCmp(SignatureTuple *a, SignatureTuple *b);
 int SignatureTupleCmpRaw(DetectAddressGroup *src, DetectAddressGroup *dst, DetectPort *sp, DetectPort *dp, u_int8_t proto, SignatureTuple *b);
 
 /* tm module api functions */
-int Detect(ThreadVars *, Packet *, void *);
+int Detect(ThreadVars *, Packet *, void *, PacketQueue *);
 int DetectThreadInit(ThreadVars *, void **);
 int DetectThreadDeinit(ThreadVars *, void *);
 
@@ -476,7 +476,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 }
 
 /* tm module api functions */
-int Detect(ThreadVars *t, Packet *p, void *data) {
+int Detect(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
     PatternMatcherThread *pmt = (PatternMatcherThread *)data;
 
     return SigMatchSignatures(t,pmt,p);
