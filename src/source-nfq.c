@@ -82,10 +82,9 @@ void NFQSetupPkt (Packet *p, void *data)
     ret = nfq_get_payload(tb, &pktdata);
     if (ret > 0) {
         /* nfq_get_payload returns a pointer to a part of memory
-         * that is not preserved over the lifetime of out packet.
+         * that is not preserved over the lifetime of our packet.
          * So we need to copy it. */
         memcpy(p->pkt, pktdata, ret);
-        //bcopy(pktdata, p->pkt, ret);
         p->pktlen = (size_t)ret;
     }
 /* XXX what if ret <= 0 ? */
@@ -230,7 +229,7 @@ int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
      * as we will need it in our cb function */
     ntv->tv = tv;
 
-    int r = NFQInitThread(ntv,receive_queue_num,0);
+    int r = NFQInitThread(ntv,receive_queue_num,MAX_PENDING);
     if (r < 0) {
         printf("NFQInitThread failed\n");
         //return -1;
@@ -277,6 +276,8 @@ void NFQRecvPkt(NFQThreadVars *t) {
             t->errs++;
 #endif /* COUNTERS */
         }
+    } else if(rv == 0) {
+        printf("NFQRecvPkt: rv = 0\n");
     } else {
 #ifdef DBG_PERF
         if (rv > t->dbg_maxreadsize)
