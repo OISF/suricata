@@ -16,6 +16,7 @@ flow-queue.c flow-queue.h \
 flow-hash.c flow-hash.h \
 flow-util.c flow-util.h \
 flow-var.c flow-var.h \
+pkt-var.c pkt-var.h \
 host.c host.h \
 detect.c detect.h \
 detect-engine.c detect-engine.h \
@@ -30,6 +31,7 @@ detect-parse.c detect-parse.h \
 detect-content.c detect-content.h \
 detect-uricontent.c detect-uricontent.h \
 detect-flowvar.c detect-flowvar.h \
+detect-pktvar.c detect-pktvar.h \
 detect-pcre.c detect-pcre.h \
 detect-depth.c detect-depth.h \
 detect-nocase.c detect-nocase.h \

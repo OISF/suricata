@@ -37,6 +37,7 @@
 #include "detect-flow.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
+#include "detect-pktvar.h"
 #include "detect-noalert.h"
 
 #include "action-globals.h"
@@ -76,21 +77,21 @@ void SigLoadSignatures (void)
     /* The next 3 rules handle HTTP header capture. */
 
     /* http_uri -- for uricontent */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
+    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
     if (sig) {
         prevsig = sig;
         g_de_ctx->sig_list = sig;
     }
 
     /* http_host -- for the log-httplog module */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"Host:\"; pcre:\"/^Host: (?P<http_host>.*)\\r\\n/m\"; noalert; sid:2;)");
+    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:2;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_ua -- for the log-httplog module */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"User-Agent:\"; pcre:\"/^User-Agent: (?P<http_ua>.*)\\r\\n/m\"; noalert; sid:3;)");
+    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:3;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
@@ -740,7 +741,7 @@ static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *head, int family)
     return grhead;
 }
 
-#define MAX_UNIQ_GROUPS 5
+#define MAX_UNIQ_GROUPS 8
 
 /* set unique_groups to 0 for no grouping.
  *
@@ -2279,6 +2280,7 @@ void SigTableSetup(void) {
     DetectFlowRegister();
     DetectDsizeRegister();
     DetectFlowvarRegister();
+    DetectPktvarRegister();
     DetectNoalertRegister();
 
     u_int8_t i = 0;

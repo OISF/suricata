@@ -5,13 +5,15 @@
 #include "debug.h"
 #include "decode.h"
 #include "detect.h"
+
+#include "pkt-var.h"
 #include "flow-var.h"
 
 #include "detect-pcre.h"
 
 #include "detect-engine-mpm.h"
 
-#define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z0-9_]+)\\>"
+#define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*)(?<!\\\\)/([A-z]*)"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -47,6 +49,7 @@ void DetectPcreRegister (void) {
         goto error;
     }
 
+    opts |= PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
     parse_capture_regex = pcre_compile(PARSE_CAPTURE_REGEX, opts, &eb, &eo, NULL);
     if(parse_capture_regex == NULL)
     {
@@ -119,7 +122,11 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
                     p->http_uri.raw_size[pmt->pkt_cnt] = ret;
                     p->http_uri.cnt = pmt->pkt_cnt + 1;
                 } else {
-                    FlowVarAdd(p->flow, pe->capname, (u_int8_t *)str_ptr, ret);
+                    if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
+                        PktVarAdd(p, pe->capname, (u_int8_t *)str_ptr, ret);
+                    } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
+                        FlowVarAdd(p->flow, pe->capname, (u_int8_t *)str_ptr, ret);
+                    }
                 }
             }
         }
@@ -150,19 +157,25 @@ int DetectPcreSetup (Signature *s, SigMatch *m, char *regexstr)
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
-    const char *capture_str_ptr = NULL;
+    const char *capture_str_ptr = NULL, *type_str_ptr = NULL;
 
     //printf("DetectPcreSetup: \'%s\'\n", regexstr);
 
     ret = pcre_exec(parse_capture_regex, parse_capture_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret > 1) {
-        res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, &capture_str_ptr);
+        res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, &type_str_ptr);
+        if (res < 0) {
+            printf("DetectPcreSetup: pcre_get_substring failed\n");
+            return -1;
+        }
+        res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 2, &capture_str_ptr);
         if (res < 0) {
             printf("DetectPcreSetup: pcre_get_substring failed\n");
             return -1;
         }
     }
-    //printf("DetectPcreSetup: \'%s\'\n", capture_str_ptr ? capture_str_ptr : "NULL");
+    //printf("DetectPcreSetup: type \'%s\'\n", type_str_ptr ? type_str_ptr : "NULL");
+    //printf("DetectPcreSetup: capture \'%s\'\n", capture_str_ptr ? capture_str_ptr : "NULL");
 
     ret = pcre_exec(parse_regex, parse_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 0) {
@@ -201,6 +214,13 @@ int DetectPcreSetup (Signature *s, SigMatch *m, char *regexstr)
 
     if (capture_str_ptr != NULL) {
         pd->capname = strdup((char *)capture_str_ptr);
+    }
+    if (type_str_ptr != NULL) {
+        if (strcmp(type_str_ptr,"pkt") == 0) {
+            pd->flags |= DETECT_PCRE_CAPTURE_PKT;
+        } else if (strcmp(type_str_ptr,"flow") == 0) {
+            pd->flags |= DETECT_PCRE_CAPTURE_FLOW;
+        }
     }
     //printf("DetectPcreSetup: pd->capname %s\n", pd->capname ? pd->capname : "NULL");
 
@@ -276,6 +296,7 @@ int DetectPcreSetup (Signature *s, SigMatch *m, char *regexstr)
 
     SigMatchAppend(s,m,sm);
 
+    if (type_str_ptr != NULL) pcre_free((char *)type_str_ptr);
     if (capture_str_ptr != NULL) pcre_free((char *)capture_str_ptr);
     if (re != NULL) free(re);
     if (op_ptr != NULL) free(op_ptr);

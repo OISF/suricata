@@ -170,6 +170,15 @@ typedef struct _HttpUri {
     u_int8_t cnt;
 } HttpUri;
 
+typedef struct _PktVar {
+    char *name;
+    u_int8_t *value;
+    u_int16_t value_len;
+    struct _PktVar *next; /* right now just implement this as a list,
+                            * in the long run we have thing of something
+                            * faster. */
+} PktVar;
+
 typedef struct _Packet
 {
     /* Addresses, Ports and protocol
@@ -213,6 +222,9 @@ typedef struct _Packet
     /* flow */
     struct _Flow *flow;
     u_int8_t flowflags;
+
+    /* pkt vars */
+    PktVar *pktvar;
 
     /* header pointers */
     EthernetHdr *ethh;
@@ -272,6 +284,8 @@ typedef struct _PacketQueue {
     u_int16_t dbg_maxlen;
 #endif /* DBG_PERF */
 } PacketQueue;
+
+
 /* clear key vars so we don't need to call the expensive
  * memset or bzero
  */
@@ -297,6 +311,8 @@ typedef struct _PacketQueue {
     (p)->flowflags = 0; \
     (p)->alerts.cnt = 0; \
     (p)->http_uri.cnt = 0; \
+    PktVarFree((p)->pktvar); \
+    (p)->pktvar = NULL; \
 }
 
 

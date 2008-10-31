@@ -18,8 +18,7 @@
 #include "vips.h"
 #include "debug.h"
 #include "detect.h"
-#include "flow.h"
-#include "flow-var.h"
+#include "pkt-var.h"
 
 #include "threadvars.h"
 #include "tm-modules.h"
@@ -78,33 +77,29 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     LogHttplogThread *aft = (LogHttplogThread *)data;
     int i;
     char timebuf[64], hostname[256] = "unknown", ua[256] = "unknown";
-    FlowVar *fv;
+    PktVar *pv;
     u_int16_t size;
 
     /* XXX add a better check for this */
     if (p->http_uri.cnt == 0)
         return 0;
 
-    /* we need a lock */
-    mutex_lock(&p->flow->m);
-
-    fv = FlowVarGet(p->flow, "http_host");
-    if (fv != NULL) {
-        size = fv->value_len;
+    pv = PktVarGet(p, "http_host");
+    if (pv != NULL) {
+        size = pv->value_len;
         if (size >= sizeof(hostname))
             size = sizeof(hostname) - 1;
 
-        strncpy(hostname,(char *)fv->value,size);
+        strncpy(hostname,(char *)pv->value,size);
     }
-    fv = FlowVarGet(p->flow, "http_ua");
-    if (fv != NULL) {
-        size = fv->value_len;
+    pv = PktVarGet(p, "http_ua");
+    if (pv != NULL) {
+        size = pv->value_len;
         if (size >= sizeof(ua))
             size = sizeof(ua) - 1;
 
-        strncpy(ua,(char *)fv->value,size);
+        strncpy(ua,(char *)pv->value,size);
     }
-    mutex_unlock(&p->flow->m);
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -125,33 +120,29 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     LogHttplogThread *aft = (LogHttplogThread *)data;
     int i;
     char timebuf[64], hostname[256] = "unknown", ua[256] = "unknown";
-    FlowVar *fv;
+    PktVar *pv;
     u_int16_t size;
 
     /* XXX add a better check for this */
     if (p->http_uri.cnt == 0)
         return 0;
 
-    /* we need a lock */
-    mutex_lock(&p->flow->m);
-
-    fv = FlowVarGet(p->flow, "http_host");
-    if (fv != NULL) {
-        size = fv->value_len;
+    pv = PktVarGet(p, "http_host");
+    if (pv != NULL) {
+        size = pv->value_len;
         if (size >= sizeof(hostname))
             size = sizeof(hostname) - 1;
 
-        strncpy(hostname,(char *)fv->value,size);
+        strncpy(hostname,(char *)pv->value,size);
     }
-    fv = FlowVarGet(p->flow, "http_ua");
-    if (fv != NULL) {
-        size = fv->value_len;
+    pv = PktVarGet(p, "http_ua");
+    if (pv != NULL) {
+        size = pv->value_len;
         if (size >= sizeof(ua))
             size = sizeof(ua) - 1;
 
-        strncpy(ua,(char *)fv->value,size);
+        strncpy(ua,(char *)pv->value,size);
     }
-    mutex_unlock(&p->flow->m);
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
