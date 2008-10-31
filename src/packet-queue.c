@@ -27,9 +27,11 @@ Packet *PacketDequeue (PacketQueue *q) {
     /* if the queue is empty there are no packets left.
      * In that case we sleep and try again. */
     if (q->len == 0) {
-        printf("PacketDequeue: queue is empty, waiting...\n");
-        usleep(100000); /* sleep 100ms */
-        return PacketDequeue(q);
+//        printf("PacketDequeue: queue is empty, waiting...\n");
+//        TmqDebugList();
+//        usleep(100000); /* sleep 100ms */
+//        return PacketDequeue(q);
+        return NULL;
     }
 
     /* pull the bottom packet from the queue */

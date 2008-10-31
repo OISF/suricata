@@ -1,4 +1,6 @@
 #include "vips.h"
+#include "threads.h"
+
 #include "tm-queues.h"
 
 #define TMQ_MAX_QUEUES 256
@@ -40,5 +42,15 @@ Tmq* TmqGetQueueByName(char *name) {
     }
 
     return NULL;
+}
+
+void TmqDebugList(void) {
+    u_int16_t i = 0;
+    for (i = 0; i < tmq_id; i++) {
+        /* get a lock accessing the len */
+        mutex_lock(&trans_q[tmqs[i].id].mutex_q);
+        printf("TmqDebugList: id %u, name \'%s\', len %u\n", tmqs[i].id, tmqs[i].name, trans_q[tmqs[i].id].len);
+        mutex_unlock(&trans_q[tmqs[i].id].mutex_q);
+    }
 }
 

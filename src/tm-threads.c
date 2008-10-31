@@ -186,19 +186,23 @@ void *TmThreadsSlot1(void *td) {
     memset(&s1->slot1_pq, 0, sizeof(PacketQueue));
 
     while(run) {
+        /* input a packet */
         p = tv->tmqh_in(tv);
+
         if (p == NULL) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
             r = s1->Slot1Func(tv, p, s1->slot1_data, &s1->slot1_pq);
             while (s1->slot1_pq.len > 0) {
-                Packet *extra = PacketDequeue(&s1->slot1_pq);
-                tv->tmqh_out(tv, extra);
+                /* handle new packets from this func */
+                Packet *extra_p = PacketDequeue(&s1->slot1_pq);
+                tv->tmqh_out(tv, extra_p);
             }
 
             //printf("%s: TmThreadsSlot1: p %p, r %d\n", tv->name, p, r);
             /* XXX handle error */
 
+            /* output the packet */
             tv->tmqh_out(tv, p);
         }
 
@@ -242,15 +246,36 @@ void *TmThreadsSlot2(void *td) {
     }
 
     while(run) {
+        /* input a packet */
         p = tv->tmqh_in(tv);
+
         if (p == NULL) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
             r = s2->Slot1Func(tv, p, s2->slot1_data, &s2->slot1_pq);
+            while (s2->slot1_pq.len > 0) {
+                /* handle new packets from this func */
+                Packet *extra_p = PacketDequeue(&s2->slot1_pq);
+
+                r = s2->Slot2Func(tv, extra_p, s2->slot2_data, &s2->slot2_pq);
+                while (s2->slot2_pq.len > 0) {
+                    /* handle new packets from this func */
+                    Packet *extra_p2 = PacketDequeue(&s2->slot2_pq);
+                    tv->tmqh_out(tv, extra_p2);
+                }
+                tv->tmqh_out(tv, extra_p);
+            }
             r = s2->Slot2Func(tv, p, s2->slot2_data, &s2->slot2_pq);
+            while (s2->slot2_pq.len > 0) {
+                /* handle new packets from this func */
+                Packet *extra_p = PacketDequeue(&s2->slot2_pq);
+                tv->tmqh_out(tv, extra_p);
+            }
+
             //printf("%s: TmThreadsSlot1: p %p, r %d\n", tv->name, p, r);
             /* XXX handle error */
 
+            /* output the packet */
             tv->tmqh_out(tv, p);
         }
 
@@ -306,16 +331,61 @@ void *TmThreadsSlot3(void *td) {
     }
 
     while(run) {
+        /* input a packet */
         p = tv->tmqh_in(tv);
+
         if (p == NULL) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
+            /* slot 1 */
             r = s3->Slot1Func(tv, p, s3->slot1_data, &s3->slot1_pq);
+            while (s3->slot1_pq.len > 0) {
+                /* handle new packets from this func */
+                Packet *extra_p = PacketDequeue(&s3->slot1_pq);
+
+                r = s3->Slot2Func(tv, extra_p, s3->slot2_data, &s3->slot2_pq);
+                while (s3->slot2_pq.len > 0) {
+                    /* handle new packets from this func */
+                    Packet *extra_p2 = PacketDequeue(&s3->slot2_pq);
+
+                    r = s3->Slot3Func(tv, extra_p2, s3->slot3_data, &s3->slot3_pq);
+                    while (s3->slot3_pq.len > 0) {
+                        /* handle new packets from this func */
+                        Packet *extra_p3 = PacketDequeue(&s3->slot3_pq);
+                        tv->tmqh_out(tv, extra_p3);
+                    }
+                    tv->tmqh_out(tv, extra_p2);
+                }
+                tv->tmqh_out(tv, extra_p);
+            }
+
+            /* slot 2 */
             r = s3->Slot2Func(tv, p, s3->slot2_data, &s3->slot2_pq);
+            while (s3->slot2_pq.len > 0) {
+                /* handle new packets from this func */
+                Packet *extra_p = PacketDequeue(&s3->slot2_pq);
+
+                r = s3->Slot3Func(tv, extra_p, s3->slot3_data, &s3->slot3_pq);
+                while (s3->slot3_pq.len > 0) {
+                    /* handle new packets from this func */
+                    Packet *extra_p2 = PacketDequeue(&s3->slot3_pq);
+                    tv->tmqh_out(tv, extra_p2);
+                }
+                tv->tmqh_out(tv, extra_p);
+            }
+
+            /* slot 3 */
             r = s3->Slot3Func(tv, p, s3->slot3_data, &s3->slot3_pq);
+            while (s3->slot3_pq.len > 0) {
+                /* handle new packets from this func */
+                Packet *extra_p = PacketDequeue(&s3->slot3_pq);
+                tv->tmqh_out(tv, extra_p);
+            }
+
             //printf("%s: TmThreadsSlot1: p %p, r %d\n", tv->name, p, r);
             /* XXX handle error */
 
+            /* output the packet */
             tv->tmqh_out(tv, p);
         }
 
