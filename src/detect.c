@@ -566,15 +566,15 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
 
         de_ctx->sig_array[tmp_s->num] = tmp_s;
-        printf(" + Signature %u, internal id %u, ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
+        //printf(" + Signature %u, internal id %u, ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
 
         /* see if the sig is ip only */
         if (SignatureIsIPOnly(tmp_s) == 1) {
             tmp_s->flags |= SIG_FLAG_IPONLY;
             cnt_iponly++;
-            printf("(IP only)\n");
+            //printf("(IP only)\n");
         } else {
-            printf("\n");
+            //printf("\n");
         }
 
         for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
@@ -907,8 +907,8 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
             for ( ; sgr != NULL; sgr = sgr->next) {
                 int r = DetectAddressCmp(agr->ad,sgr->ad);
                 if (r == ADDRESS_ES || r == ADDRESS_EB) {
-                    printf("AGR "); DetectAddressDataPrint(agr->ad);printf(" -> ");
-                    printf(" sgr "); DetectAddressDataPrint(sgr->ad);printf("\n");
+//                    printf("AGR "); DetectAddressDataPrint(agr->ad);printf(" -> ");
+//                    printf(" sgr "); DetectAddressDataPrint(sgr->ad);printf("\n");
                 }
             }
         }
@@ -1890,13 +1890,11 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
         printf("* Signature group heads: unique %u, copies %u.\n", de_ctx->gh_unique, de_ctx->gh_reuse);
         printf("* MPM instances: %u unique, copies %u (none %u).\n",
                 de_ctx->mpm_unique, de_ctx->mpm_reuse, de_ctx->mpm_none);
-        //u_int32_t mpm_cnt = de_ctx->mpm_unique + de_ctx->mpm_reuse + de_ctx->mpm_none;
         printf("* MPM (URI) instances: %u unique, copies %u (none %u).\n",
                 de_ctx->mpm_uri_unique, de_ctx->mpm_uri_reuse, de_ctx->mpm_uri_none);
-        //u_int32_t mpm_uri_cnt = de_ctx->mpm_uri_unique + de_ctx->mpm_uri_reuse + de_ctx->mpm_uri_none;
         printf("* MPM max patcnt %u, avg %u\n", de_ctx->mpm_max_patcnt, de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique);
         if (de_ctx->mpm_uri_tot_patcnt && de_ctx->mpm_uri_unique)
-            printf("* MPM (URI) max patcnt %u, avg %u\n", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique);
+            printf("* MPM (URI) max patcnt %u, avg %u (%u/%u)\n", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
         printf("* Building signature grouping structure, stage 3: building destination address lists... done\n");
     }
     return 0;

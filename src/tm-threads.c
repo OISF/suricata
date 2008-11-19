@@ -136,7 +136,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
     char run = 1;
     int r = 0;
 
-    printf("TmThreadsSlot1NoInOut: %s starting\n", tv->name);
+    //printf("TmThreadsSlot1NoInOut: %s starting\n", tv->name);
 
     if (s1->Slot1Init != NULL) {
         r = s1->Slot1Init(tv, &s1->slot1_data);
@@ -164,7 +164,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
         }
     }
 
-    printf("TmThreadsSlot1NoInOut: %s ending\n", tv->name);
+    //printf("TmThreadsSlot1NoInOut: %s ending\n", tv->name);
     pthread_exit((void *) 0);
 }
 
@@ -175,7 +175,7 @@ void *TmThreadsSlot1(void *td) {
     char run = 1;
     int r = 0;
 
-    printf("TmThreadsSlot1: %s starting\n", tv->name);
+    //printf("TmThreadsSlot1: %s starting\n", tv->name);
 
     if (s1->Slot1Init != NULL) {
         r = s1->Slot1Init(tv, &s1->slot1_data);
@@ -219,7 +219,7 @@ void *TmThreadsSlot1(void *td) {
         }
     }
 
-    printf("TmThreadsSlot1: %s ending\n", tv->name);
+    //printf("TmThreadsSlot1: %s ending\n", tv->name);
     pthread_exit((void *) 0);
 }
 
@@ -230,7 +230,7 @@ void *TmThreadsSlot2(void *td) {
     char run = 1;
     int r = 0;
 
-    printf("TmThreadsSlot2: %s starting\n", tv->name);
+    //printf("TmThreadsSlot2: %s starting\n", tv->name);
 
     if (s2->Slot1Init != NULL) {
         r = s2->Slot1Init(tv, &s2->slot1_data);
@@ -298,7 +298,7 @@ void *TmThreadsSlot2(void *td) {
         }
     }
 
-    printf("TmThreadsSlot2: %s ending\n", tv->name);
+    //printf("TmThreadsSlot2: %s ending\n", tv->name);
     pthread_exit((void *) 0);
 }
 
@@ -309,7 +309,7 @@ void *TmThreadsSlot3(void *td) {
     char run = 1;
     int r = 0;
 
-    printf("TmThreadsSlot3: %s starting\n", tv->name);
+    //printf("TmThreadsSlot3: %s starting\n", tv->name);
 
     if (s3->Slot1Init != NULL) {
         r = s3->Slot1Init(tv, &s3->slot1_data);
@@ -414,7 +414,7 @@ void *TmThreadsSlot3(void *td) {
         }
     }
 
-    printf("TmThreadsSlot3: %s ending\n", tv->name);
+    //printf("TmThreadsSlot3: %s ending\n", tv->name);
     pthread_exit((void *) 0);
 }
 
@@ -546,14 +546,14 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name, char *ou
 
         tv->inq = tmq;
         tv->inq->usecnt++;
-        printf("TmThreadCreate: tv->inq->id %u\n", tv->inq->id);
+        //printf("TmThreadCreate: tv->inq->id %u\n", tv->inq->id);
     }
     if (inqh_name != NULL) {
         tmqh = TmqhGetQueueHandlerByName(inqh_name);
         if (tmqh == NULL) goto error;
 
         tv->tmqh_in = tmqh->InHandler;
-        printf("TmThreadCreate: tv->tmqh_in %p\n", tv->tmqh_in);
+        //printf("TmThreadCreate: tv->tmqh_in %p\n", tv->tmqh_in);
     }
 
     /* set the outgoing queue */
@@ -566,14 +566,14 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name, char *ou
 
         tv->outq = tmq;
         tv->outq->usecnt++;
-        printf("TmThreadCreate: tv->outq->id %u\n", tv->outq->id);
+        //printf("TmThreadCreate: tv->outq->id %u\n", tv->outq->id);
     }
     if (outqh_name != NULL) {
         tmqh = TmqhGetQueueHandlerByName(outqh_name);
         if (tmqh == NULL) goto error;
 
         tv->tmqh_out = tmqh->OutHandler;
-        printf("TmThreadCreate: tv->tmqh_out %p\n", tv->tmqh_out);
+        //printf("TmThreadCreate: tv->tmqh_out %p\n", tv->tmqh_out);
     }
 
     if (TmThreadSetSlots(tv, slots) != 0) {
@@ -592,7 +592,7 @@ void TmThreadAppend(ThreadVars *tv) {
         tv->next = NULL;
         tv->prev = NULL;
 
-        printf("TmThreadAppend: thread \'%s\' is the first thread in the list.\n", tv->name);
+        //printf("TmThreadAppend: thread \'%s\' is the first thread in the list.\n", tv->name);
         return;
     }
 
@@ -609,7 +609,7 @@ void TmThreadAppend(ThreadVars *tv) {
         t = t->next;
     }
 
-    printf("TmThreadAppend: thread \'%s\' is added to the list.\n", tv->name);
+    //printf("TmThreadAppend: thread \'%s\' is added to the list.\n", tv->name);
 }
 
 void TmThreadKillThreads(void) {
