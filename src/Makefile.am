@@ -57,6 +57,9 @@ util-binsearch.c util-binsearch.h \
 util-mpm-wumanber.c util-mpm-wumanber.h \
 util-cidr.c util-cidr.h \
 util-unittest.c util-unittest.h \
+util-hash.c util-hash.h \
+util-bloomfilter.c util-bloomfilter.h \
+util-bloomfilter-counting.c util-bloomfilter-counting.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
