@@ -20,7 +20,11 @@
 #include "packet-queue.h"
 #include "threads.h"
 #include "threadvars.h"
+
 #include "util-binsearch.h"
+#include "util-hash.h"
+#include "util-bloomfilter.h"
+#include "util-bloomfilter-counting.h"
 
 #include "detect-parse.h"
 #include "detect-engine-mpm.h"
@@ -193,9 +197,12 @@ int main(int argc, char **argv)
     MpmRegisterTests();
     SigTableRegisterTests();
     SigRegisterTests();
-    //UtRunTests();
+    HashTableRegisterTests();
+    BloomFilterRegisterTests();
+    BloomFilterCountingRegisterTests();
+    UtRunTests();
     UtCleanup();
-    //exit(1);
+    exit(1);
 
     //LoadConfig();
     //exit(1);
