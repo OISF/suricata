@@ -20,5 +20,7 @@ int BloomFilterCountingAdd(BloomFilterCounting *, void *, u_int16_t);
 int BloomFilterCountingRemove(BloomFilterCounting *, void *, u_int16_t);
 int BloomFilterCountingTest(BloomFilterCounting *, void *, u_int16_t);
 
+void BloomFilterCountingRegisterTests(void);
+
 #endif /* __BLOOMFILTERCOUNTING_H__ */
 

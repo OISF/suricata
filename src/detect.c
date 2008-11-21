@@ -193,13 +193,15 @@ void SigLoadSignatures (void)
     }
 */
 
-//#if 0
+#define LOADSIGS
+#ifdef LOADSIGS
     int good = 0, bad = 0;
     //FILE *fp = fopen("/etc/vips/rules/bleeding-all.rules", "r");
-    FILE *fp = fopen("/home/victor/rules/all.rules", "r");
+    //FILE *fp = fopen("/home/victor/rules/all.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/vips-http.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-dshield.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-web.rules", "r");
+    FILE *fp = fopen("/home/victor/rules/emerging-p2p.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-web-small.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/web-misc.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-malware.rules", "r");
@@ -234,7 +236,7 @@ void SigLoadSignatures (void)
     printf("SigLoadSignatures: %d successfully loaded from file. %d sigs failed to load\n", good, bad);
     printf("SigLoadSignatures: %u sigs with dstportany\n", DbgGetDstPortAnyCnt());
 
-//#endif
+#endif
 
     /* Setup the signature group lookup structure and
      * pattern matchers */
@@ -453,7 +455,9 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
                     /* only if the last matched as well, we have a hit */
                     if (sm == NULL) {
-                        //printf("Signature %u matched: %s\n", s->id, s->msg ? s->msg : "");
+                        printf("Signature %u matched: %s, flow: toserver %s toclient %s\n", s->id, s->msg ? s->msg : "",
+                             p->flowflags & FLOW_PKT_TOSERVER ? "TRUE":"FALSE",
+                             p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE":"FALSE");
                         fmatch = 1;
 
                         if (!(s->flags & SIG_FLAG_NOALERT)) {
@@ -915,6 +919,10 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
 
     }
 
+    //for (gr = newhead->ipv4_head; gr != NULL; gr = gr->next) {
+    //    printf(" -= Address "); DetectAddressDataPrint(gr->ad); printf("\n");
+    //}
+
     return 0;
 error:
     return -1;
@@ -1014,6 +1022,10 @@ int CreateGroupedPortList(DetectPort *srchead, DetectPort **newhead, u_int32_t u
     if (joingr != NULL) {
         DetectPortInsert(newhead,joingr);
     }
+
+    //for (gr = *newhead; gr != NULL; gr = gr->next) {
+    //    printf("  -= Port "); DetectPortPrint(gr); printf("\n");
+    //}
 
     return 0;
 error:
@@ -1953,7 +1965,7 @@ void DbgPrintSigs2(SigGroupHead *sgh) {
 
 /* shortcut for debugging. If enabled Stage5 will
  * print sigid's for all groups */
-//#define PRINTSIGS
+#define PRINTSIGS
 
 /* just printing */
 int SigAddressPrepareStage5(void) {

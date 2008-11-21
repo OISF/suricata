@@ -27,6 +27,7 @@ int HashTableRemove(HashTable *, void *, u_int16_t);
 void *HashTableLookup(HashTable *, void *, u_int16_t);
 u_int32_t HashTableGenericHash(HashTable *, void *, u_int16_t);
 
+void HashTableRegisterTests(void);
 
 #endif /* __HASH_H__ */
 

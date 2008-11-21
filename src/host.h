@@ -3,10 +3,28 @@
 
 #include "decode.h"
 
+#include "util-hash.h"
+#include "util-bloomfilter-counting.h"
+
+typedef struct _HostTable {
+    pthread_mutex_t m;
+
+    /* storage & lookup */
+    HashTable *hash;
+    BloomFilterCounting *bf;
+
+    u_int32_t cnt;
+} HostTable;
+
 typedef struct _Host {
+    pthread_mutex_t m;
+
     Address addr;
     u_int8_t os;
     u_int8_t reputation;
+
+    u_int64_t bytes;
+    u_int32_t pkts;
 } Host;
 
 #define HOST_OS_UNKNOWN 0

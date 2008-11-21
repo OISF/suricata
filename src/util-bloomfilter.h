@@ -18,5 +18,7 @@ void BloomFilterPrint(BloomFilter *);
 int BloomFilterAdd(BloomFilter *, void *, u_int16_t);
 int BloomFilterTest(BloomFilter *, void *, u_int16_t);
 
+void BloomFilterRegisterTests(void);
+
 #endif /* __BLOOMFILTER_H__ */
 

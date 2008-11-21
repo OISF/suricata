@@ -202,7 +202,7 @@ int main(int argc, char **argv)
     BloomFilterCountingRegisterTests();
     UtRunTests();
     UtCleanup();
-    exit(1);
+    //exit(1);
 
     //LoadConfig();
     //exit(1);
