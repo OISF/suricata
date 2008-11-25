@@ -197,11 +197,11 @@ void SigLoadSignatures (void)
 #ifdef LOADSIGS
     int good = 0, bad = 0;
     //FILE *fp = fopen("/etc/vips/rules/bleeding-all.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/all.rules", "r");
+    FILE *fp = fopen("/home/victor/rules/all.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/vips-http.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-dshield.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-web.rules", "r");
-    FILE *fp = fopen("/home/victor/rules/emerging-p2p.rules", "r");
+    //FILE *fp = fopen("/home/victor/rules/emerging-p2p.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-web-small.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/web-misc.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-malware.rules", "r");
