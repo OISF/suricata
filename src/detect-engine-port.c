@@ -566,10 +566,10 @@ error:
 }
 
 int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
-    u_int32_t a_port1 = a->port;//ntohl(a->port);
-    u_int32_t a_port2 = a->port2;//ntohl(a->port2);
-    u_int32_t b_port1 = b->port;//ntohl(b->port);
-    u_int32_t b_port2 = b->port2;//ntohl(b->port2);
+    u_int32_t a_port1 = a->port;
+    u_int32_t a_port2 = a->port2;
+    u_int32_t b_port1 = b->port;
+    u_int32_t b_port2 = b->port2;
 
     /* default to NULL */
     *c = NULL;
@@ -901,10 +901,10 @@ int DetectPortCmp(DetectPort *a, DetectPort *b) {
     if (!(a->flags & PORT_FLAG_ANY) && b->flags & PORT_FLAG_ANY)
         return PORT_GT;
 
-    u_int16_t a_port1 = a->port; //ntohl(a->port);
-    u_int16_t a_port2 = a->port2; //ntohl(a->port2);
-    u_int16_t b_port1 = b->port; //ntohl(b->port);
-    u_int16_t b_port2 = b->port2; //ntohl(b->port2);
+    u_int16_t a_port1 = a->port;
+    u_int16_t a_port2 = a->port2;
+    u_int16_t b_port1 = b->port;
+    u_int16_t b_port2 = b->port2;
 
     /* PORT_EQ */
     if (a_port1 == b_port1 && a_port2 == b_port2) {
@@ -1035,11 +1035,8 @@ int DetectPortSetupTmp (Signature *s, SigMatch *m, char *addressstr)
 
 
 int DetectPortMatch (DetectPort *dp, u_int16_t port) {
-    /* XXX figure out a way to not need to do this ntohl
-     * if we switch to Address inside DetectPort
-     * we can do u_int8_t checks */
-    if (ntohl(port) >= ntohl(dp->port) &&
-        ntohl(port) <= ntohl(dp->port2)) {
+    if (port >= dp->port &&
+        port <= dp->port2) {
         return 1;
     }
 
