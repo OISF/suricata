@@ -37,6 +37,7 @@
 #include "alert-fastlog.h"
 #include "alert-unified-log.h"
 #include "alert-unified-alert.h"
+#include "alert-debuglog.h"
 
 #include "log-httplog.h"
 
@@ -180,6 +181,7 @@ int main(int argc, char **argv)
     TmModuleDecodeNFQRegister();
     TmModuleDetectRegister();
     TmModuleAlertFastlogRegister();
+    TmModuleAlertDebuglogRegister();
     TmModuleRespondRejectRegister();
     TmModuleAlertFastlogIPv4Register();
     TmModuleAlertFastlogIPv6Register();
@@ -382,7 +384,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    ThreadVars *tv_unified = TmThreadCreate("AlertUnifiedLog","alert-queue2","simple","packetpool","packetpool","2slot");
+    //ThreadVars *tv_unified = TmThreadCreate("AlertUnifiedLog","alert-queue2","simple","packetpool","packetpool","2slot");
+    ThreadVars *tv_unified = TmThreadCreate("AlertUnifiedLog","alert-queue2","simple","alert-queue3","simple","2slot");
     if (tv_unified == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
@@ -407,24 +410,24 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-/*
-    ThreadVars *tv_unifiedalert = TmThreadCreate("AlertUnifiedAlert","alert-queue3","simple","packetpool","packetpool","1slot");
-    if (tv_unifiedalert == NULL) {
+
+    ThreadVars *tv_debugalert = TmThreadCreate("AlertDebuglog","alert-queue3","simple","packetpool","packetpool","1slot");
+    if (tv_debugalert == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    tm_module = TmModuleGetByName("AlertUnifiedAlert");
+    tm_module = TmModuleGetByName("AlertDebuglog");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_unifiedalert,tm_module);
+    Tm1SlotSetFunc(tv_debugalert,tm_module);
 
-    if (TmThreadSpawn(tv_unifiedalert) != 0) {
+    if (TmThreadSpawn(tv_debugalert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
-*/
+
     ThreadVars tv_flowmgr;
     memset(&tv_flowmgr, 0, sizeof(ThreadVars));
     printf("Creating FlowManagerThread...\n");

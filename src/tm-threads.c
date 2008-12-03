@@ -13,6 +13,7 @@ static ThreadVars *tv_root;
 typedef struct _Tm1Slot {
     int (*Slot1Init)(ThreadVars *, void **);
     int (*Slot1Func)(ThreadVars *, Packet *, void *, PacketQueue *);
+    void (*Slot1ExitPrintStats)(ThreadVars *, void *);
     int (*Slot1Deinit)(ThreadVars *, void *);
     void *slot1_data;
     PacketQueue slot1_pq;
@@ -22,12 +23,14 @@ typedef struct _Tm1Slot {
 typedef struct _Tm2Slot {
     int (*Slot1Init)(ThreadVars *, void **);
     int (*Slot1Func)(ThreadVars *, Packet *, void *, PacketQueue *);
+    void (*Slot1ExitPrintStats)(ThreadVars *, void *);
     int (*Slot1Deinit)(ThreadVars *, void *);
     void *slot1_data;
     PacketQueue slot1_pq;
 
     int (*Slot2Init)(ThreadVars *, void **);
     int (*Slot2Func)(ThreadVars *, Packet *, void *, PacketQueue *);
+    void (*Slot2ExitPrintStats)(ThreadVars *, void *);
     int (*Slot2Deinit)(ThreadVars *, void *);
     void *slot2_data;
     PacketQueue slot2_pq;
@@ -37,18 +40,21 @@ typedef struct _Tm2Slot {
 typedef struct _Tm3Slot {
     int (*Slot1Init)(ThreadVars *, void **);
     int (*Slot1Func)(ThreadVars *, Packet *, void *, PacketQueue *);
+    void (*Slot1ExitPrintStats)(ThreadVars *, void *);
     int (*Slot1Deinit)(ThreadVars *, void *);
     void *slot1_data;
     PacketQueue slot1_pq;
 
     int (*Slot2Init)(ThreadVars *, void **);
     int (*Slot2Func)(ThreadVars *, Packet *, void *, PacketQueue *);
+    void (*Slot2ExitPrintStats)(ThreadVars *, void *);
     int (*Slot2Deinit)(ThreadVars *, void *);
     void *slot2_data;
     PacketQueue slot2_pq;
 
     int (*Slot3Init)(ThreadVars *, void **);
     int (*Slot3Func)(ThreadVars *, Packet *, void *, PacketQueue *);
+    void (*Slot3ExitPrintStats)(ThreadVars *, void *);
     int (*Slot3Deinit)(ThreadVars *, void *);
     void *slot3_data;
     PacketQueue slot3_pq;
@@ -83,6 +89,10 @@ void *TmThreadsSlot1NoIn(void *td) {
 
         if (tv->flags & THV_KILL)
             run = 0;
+    }
+
+    if (s1->Slot1ExitPrintStats != NULL) {
+        s1->Slot1ExitPrintStats(tv, s1->slot1_data);
     }
 
     if (s1->Slot1Deinit != NULL) {
@@ -120,6 +130,10 @@ void *TmThreadsSlot1NoOut(void *td) {
             run = 0;
     }
 
+    if (s1->Slot1ExitPrintStats != NULL) {
+        s1->Slot1ExitPrintStats(tv, s1->slot1_data);
+    }
+
     if (s1->Slot1Deinit != NULL) {
         r = s1->Slot1Deinit(tv, s1->slot1_data);
         if (r != 0) {
@@ -155,6 +169,10 @@ void *TmThreadsSlot1NoInOut(void *td) {
             //printf("%s: TmThreadsSlot1NoInOut: KILL is set\n", tv->name);
             run = 0;
         }
+    }
+
+    if (s1->Slot1ExitPrintStats != NULL) {
+        s1->Slot1ExitPrintStats(tv, s1->slot1_data);
     }
 
     if (s1->Slot1Deinit != NULL) {
@@ -210,6 +228,10 @@ void *TmThreadsSlot1(void *td) {
             //printf("%s: TmThreadsSlot1: KILL is set\n", tv->name);
             run = 0;
         }
+    }
+
+    if (s1->Slot1ExitPrintStats != NULL) {
+        s1->Slot1ExitPrintStats(tv, s1->slot1_data);
     }
 
     if (s1->Slot1Deinit != NULL) {
@@ -285,12 +307,21 @@ void *TmThreadsSlot2(void *td) {
         }
     }
 
+    if (s2->Slot1ExitPrintStats != NULL) {
+        s2->Slot1ExitPrintStats(tv, s2->slot1_data);
+    }
+
     if (s2->Slot1Deinit != NULL) {
         r = s2->Slot1Deinit(tv, s2->slot1_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
+
+    if (s2->Slot2ExitPrintStats != NULL) {
+        s2->Slot2ExitPrintStats(tv, s2->slot2_data);
+    }
+
     if (s2->Slot2Deinit != NULL) {
         r = s2->Slot2Deinit(tv, s2->slot2_data);
         if (r != 0) {
@@ -395,18 +426,32 @@ void *TmThreadsSlot3(void *td) {
         }
     }
 
+    if (s3->Slot1ExitPrintStats != NULL) {
+        s3->Slot1ExitPrintStats(tv, s3->slot1_data);
+    }
+
     if (s3->Slot1Deinit != NULL) {
         r = s3->Slot1Deinit(tv, s3->slot1_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
+
+    if (s3->Slot2ExitPrintStats != NULL) {
+        s3->Slot2ExitPrintStats(tv, s3->slot2_data);
+    }
+
     if (s3->Slot2Deinit != NULL) {
         r = s3->Slot2Deinit(tv, s3->slot2_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
+
+    if (s3->Slot3ExitPrintStats != NULL) {
+        s3->Slot3ExitPrintStats(tv, s3->slot3_data);
+    }
+
     if (s3->Slot3Deinit != NULL) {
         r = s3->Slot3Deinit(tv, s3->slot3_data);
         if (r != 0) {
@@ -459,6 +504,7 @@ void Tm1SlotSetFunc(ThreadVars *tv, TmModule *tm) {
 
     s1->Slot1Init = tm->Init;
     s1->Slot1Func = tm->Func;
+    s1->Slot1ExitPrintStats = tm->ExitPrintStats;
     s1->Slot1Deinit = tm->Deinit;
 }
 
@@ -471,6 +517,7 @@ void Tm2SlotSetFunc1(ThreadVars *tv, TmModule *tm) {
 
     s2->Slot1Init = tm->Init;
     s2->Slot1Func = tm->Func;
+    s2->Slot1ExitPrintStats = tm->ExitPrintStats;
     s2->Slot1Deinit = tm->Deinit;
 }
 
@@ -483,6 +530,7 @@ void Tm2SlotSetFunc2(ThreadVars *tv, TmModule *tm) {
 
     s2->Slot2Init = tm->Init;
     s2->Slot2Func = tm->Func;
+    s2->Slot2ExitPrintStats = tm->ExitPrintStats;
     s2->Slot2Deinit = tm->Deinit;
 }
 
@@ -495,6 +543,7 @@ void Tm3SlotSetFunc1(ThreadVars *tv, TmModule *tm) {
 
     s3->Slot1Init = tm->Init;
     s3->Slot1Func = tm->Func;
+    s3->Slot1ExitPrintStats = tm->ExitPrintStats;
     s3->Slot1Deinit = tm->Deinit;
 }
 
@@ -507,6 +556,7 @@ void Tm3SlotSetFunc2(ThreadVars *tv, TmModule *tm) {
 
     s3->Slot2Init = tm->Init;
     s3->Slot2Func = tm->Func;
+    s3->Slot2ExitPrintStats = tm->ExitPrintStats;
     s3->Slot2Deinit = tm->Deinit;
 }
 
@@ -514,12 +564,13 @@ void Tm3SlotSetFunc3(ThreadVars *tv, TmModule *tm) {
     Tm3Slot *s3 = (Tm3Slot *)tv->tm_slots;
 
     if (s3->Slot2Func != NULL)
-        printf("Warning: slot 2 is already set tp %p, "
+        printf("Warning: slot 3 is already set tp %p, "
                "overwriting with %p\n", s3->Slot2Func, tm->Func);
 
-    s3->Slot2Init = tm->Init;
-    s3->Slot2Func = tm->Func;
-    s3->Slot2Deinit = tm->Deinit;
+    s3->Slot3Init = tm->Init;
+    s3->Slot3Func = tm->Func;
+    s3->Slot3ExitPrintStats = tm->ExitPrintStats;
+    s3->Slot3Deinit = tm->Deinit;
 }
 
 ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name, char *outq_name, char *outqh_name, char *slots) {

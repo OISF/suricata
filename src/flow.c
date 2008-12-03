@@ -278,6 +278,7 @@ void FlowInitConfig (void)
 /* Not Thread safe */
 void FlowPrintFlows (void)
 {
+/*
     int i;
     printf("Flows:\n");
     for (i = 0; i < flow_config.hash_size; i++) {
@@ -301,6 +302,7 @@ void FlowPrintFlows (void)
             }
         }
     }
+*/
     printf("Flow Queue info:\n");
     printf("SPARE       %u\n", flow_spare_q.len);
 #ifdef DBG_PERF

@@ -25,6 +25,7 @@
 
 #include "threads.h"
 
+#include "util-print.h"
 #include "util-unittest.h"
 
 int LogHttplog (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -32,11 +33,13 @@ int LogHttplogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
 int LogHttplogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 int LogHttplogThreadInit(ThreadVars *, void **);
 int LogHttplogThreadDeinit(ThreadVars *, void *);
+void LogHttplogExitPrintStats(ThreadVars *, void *);
 
 void TmModuleLogHttplogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].name = "LogHttplog";
     tmm_modules[TMM_LOGHTTPLOG].Init = LogHttplogThreadInit;
     tmm_modules[TMM_LOGHTTPLOG].Func = LogHttplog;
+    tmm_modules[TMM_LOGHTTPLOG].ExitPrintStats = LogHttplogExitPrintStats;
     tmm_modules[TMM_LOGHTTPLOG].Deinit = LogHttplogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG].RegisterTests = NULL;
 }
@@ -59,6 +62,7 @@ void TmModuleLogHttplogIPv6Register (void) {
 
 typedef struct _LogHttplogThread {
     FILE *fp;
+    u_int32_t uri_cnt;
 } LogHttplogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
@@ -76,30 +80,14 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     LogHttplogThread *aft = (LogHttplogThread *)data;
     int i;
-    char timebuf[64], hostname[256] = "unknown", ua[256] = "unknown";
-    PktVar *pv;
-    u_int16_t size;
+    char timebuf[64];
 
     /* XXX add a better check for this */
     if (p->http_uri.cnt == 0)
         return 0;
 
-    pv = PktVarGet(p, "http_host");
-    if (pv != NULL) {
-        size = pv->value_len;
-        if (size >= sizeof(hostname))
-            size = sizeof(hostname) - 1;
-
-        strncpy(hostname,(char *)pv->value,size);
-    }
-    pv = PktVarGet(p, "http_ua");
-    if (pv != NULL) {
-        size = pv->value_len;
-        if (size >= sizeof(ua))
-            size = sizeof(ua) - 1;
-
-        strncpy(ua,(char *)pv->value,size);
-    }
+    PktVar *pv_hn = PktVarGet(p, "http_host");
+    PktVar *pv_ua = PktVarGet(p, "http_ua");
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -108,10 +96,24 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
     for (i = 0; i < p->http_uri.cnt; i++) {
-        fprintf(aft->fp, "%s %s [**] %s [**] %s [**] %s:%u -> %s:%u\n",
-            timebuf, hostname, p->http_uri.raw[i], ua, srcip, p->sp, dstip, p->dp);
-        fflush(aft->fp);
+        /* time */
+        fprintf(aft->fp, "%s ", timebuf);
+        /* hostname */
+        if (pv_hn != NULL) PrintRawUriFp(aft->fp, pv_hn->value, pv_hn->value_len);
+        else fprintf(aft->fp, "<hostname unknown>");
+        fprintf(aft->fp, " [**] ");
+        /* uri */
+        PrintRawUriFp(aft->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
+        fprintf(aft->fp, " [**] ");
+        /* user agent */
+        if (pv_ua != NULL) PrintRawUriFp(aft->fp, pv_ua->value, pv_ua->value_len);
+        else fprintf(aft->fp, "<useragent unknown>");
+        /* ip/tcp header info */
+        fprintf(aft->fp, " [**] %s:%u -> %s:%u\n", srcip, p->sp, dstip, p->dp);
     }
+    fflush(aft->fp);
+
+    aft->uri_cnt += p->http_uri.cnt;
     return 0;
 }
 
@@ -119,30 +121,14 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     LogHttplogThread *aft = (LogHttplogThread *)data;
     int i;
-    char timebuf[64], hostname[256] = "unknown", ua[256] = "unknown";
-    PktVar *pv;
-    u_int16_t size;
+    char timebuf[64];
 
     /* XXX add a better check for this */
     if (p->http_uri.cnt == 0)
         return 0;
 
-    pv = PktVarGet(p, "http_host");
-    if (pv != NULL) {
-        size = pv->value_len;
-        if (size >= sizeof(hostname))
-            size = sizeof(hostname) - 1;
-
-        strncpy(hostname,(char *)pv->value,size);
-    }
-    pv = PktVarGet(p, "http_ua");
-    if (pv != NULL) {
-        size = pv->value_len;
-        if (size >= sizeof(ua))
-            size = sizeof(ua) - 1;
-
-        strncpy(ua,(char *)pv->value,size);
-    }
+    PktVar *pv_hn = PktVarGet(p, "http_host");
+    PktVar *pv_ua = PktVarGet(p, "http_ua");
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -151,10 +137,24 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
     for (i = 0; i < p->http_uri.cnt; i++) {
-        fprintf(aft->fp, "%s %s [**] %s [**] %s [**] %s:%u -> %s:%u\n",
-            timebuf, hostname, p->http_uri.raw[i], ua, srcip, p->sp, dstip, p->dp);
-        fflush(aft->fp);
+        /* time */
+        fprintf(aft->fp, "%s ", timebuf);
+        /* hostname */
+        if (pv_hn != NULL) PrintRawUriFp(aft->fp, pv_hn->value, pv_hn->value_len);
+        else fprintf(aft->fp, "<hostname unknown>");
+        fprintf(aft->fp, " [**] ");
+        /* uri */
+        PrintRawUriFp(aft->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
+        fprintf(aft->fp, " [**] ");
+        /* user agent */
+        if (pv_ua != NULL) PrintRawUriFp(aft->fp, pv_ua->value, pv_ua->value_len);
+        else fprintf(aft->fp, "<useragent unknown>");
+        /* ip/tcp header info */
+        fprintf(aft->fp, " [**] %s:%u -> %s:%u\n", srcip, p->sp, dstip, p->dp);
     }
+    fflush(aft->fp);
+
+    aft->uri_cnt += p->http_uri.cnt;
     return 0;
 }
 
@@ -205,5 +205,14 @@ int LogHttplogThreadDeinit(ThreadVars *t, void *data)
 
     free(aft);
     return 0;
+}
+
+void LogHttplogExitPrintStats(ThreadVars *tv, void *data) {
+    LogHttplogThread *aft = (LogHttplogThread *)data;
+    if (aft == NULL) {
+        return;
+    }
+
+    printf(" - (%s) HTTP requests %u.\n", tv->name, aft->uri_cnt);
 }
 

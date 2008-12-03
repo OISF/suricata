@@ -5,6 +5,7 @@ typedef struct _TmModule {
     char *name;
     int (*Init)(ThreadVars *, void **);
     int (*Func)(ThreadVars *, Packet *, void *, PacketQueue *);
+    void (*ExitPrintStats)(ThreadVars *, void *);
     int (*Deinit)(ThreadVars *, void *);
     void (*RegisterTests)(void);
 } TmModule;
@@ -19,6 +20,7 @@ enum {
     TMM_ALERTFASTLOG6,
     TMM_ALERTUNIFIEDLOG,
     TMM_ALERTUNIFIEDALERT,
+    TMM_ALERTDEBUGLOG,
     TMM_RESPONDREJECT,
     TMM_LOGHTTPLOG,
     TMM_LOGHTTPLOG4,

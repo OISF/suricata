@@ -38,11 +38,13 @@ int AlertFastlogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertFastlogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertFastlogThreadInit(ThreadVars *, void **);
 int AlertFastlogThreadDeinit(ThreadVars *, void *);
+void AlertFastlogExitPrintStats(ThreadVars *, void *);
 
 void TmModuleAlertFastlogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].name = "AlertFastlog";
     tmm_modules[TMM_ALERTFASTLOG].Init = AlertFastlogThreadInit;
     tmm_modules[TMM_ALERTFASTLOG].Func = AlertFastlog;
+    tmm_modules[TMM_ALERTFASTLOG].ExitPrintStats = AlertFastlogExitPrintStats;
     tmm_modules[TMM_ALERTFASTLOG].Deinit = AlertFastlogThreadDeinit;
     tmm_modules[TMM_ALERTFASTLOG].RegisterTests = NULL;
 }
@@ -65,6 +67,7 @@ void TmModuleAlertFastlogIPv6Register (void) {
 
 typedef struct _AlertFastlogThread {
     FILE *fp;
+    u_int32_t alerts;
 } AlertFastlogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
@@ -86,6 +89,8 @@ int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     if (p->alerts.cnt == 0)
         return 0;
+
+    aft->alerts += p->alerts.cnt;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -111,6 +116,8 @@ int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     if (p->alerts.cnt == 0)
         return 0;
+
+    aft->alerts += p->alerts.cnt;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -173,5 +180,14 @@ int AlertFastlogThreadDeinit(ThreadVars *t, void *data)
 
     free(aft);
     return 0;
+}
+
+void AlertFastlogExitPrintStats(ThreadVars *tv, void *data) {
+    AlertFastlogThread *aft = (AlertFastlogThread *)data;
+    if (aft == NULL) {
+        return;
+    }
+
+    printf(" - (%s) Alerts %u.\n", tv->name, aft->alerts);
 }
 

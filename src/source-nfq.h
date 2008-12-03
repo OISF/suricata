@@ -39,7 +39,10 @@ typedef struct _NFQThreadVars
 
     /* counters */
     u_int32_t pkts;
+    u_int64_t bytes;
     u_int32_t errs;
+    u_int32_t accepted;
+    u_int32_t dropped;
 
     ThreadVars *tv;
 } NFQThreadVars;

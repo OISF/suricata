@@ -77,21 +77,26 @@ void SigLoadSignatures (void)
     /* The next 3 rules handle HTTP header capture. */
 
     /* http_uri -- for uricontent */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
+    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP GET URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
     if (sig) {
         prevsig = sig;
         g_de_ctx->sig_list = sig;
     }
+    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
+    if (sig == NULL)
+        return;
+    prevsig->next = sig;
+    prevsig = sig;
 
     /* http_host -- for the log-httplog module */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:2;)");
+    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_ua -- for the log-httplog module */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:3;)");
+    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
@@ -455,9 +460,16 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
                     /* only if the last matched as well, we have a hit */
                     if (sm == NULL) {
-                        printf("Signature %u matched: %s, flow: toserver %s toclient %s\n", s->id, s->msg ? s->msg : "",
-                             p->flowflags & FLOW_PKT_TOSERVER ? "TRUE":"FALSE",
-                             p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE":"FALSE");
+                        if (s->id > 100) {
+                            printf("Signature %u matched: %s, flow: toserver %s toclient %s proto %u, SP %s (%u) DP %s (%u) sig sp: ",
+                                    s->id, s->msg ? s->msg : "",
+                                    p->flowflags & FLOW_PKT_TOSERVER ? "TRUE":"FALSE",
+                                    p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE":"FALSE",
+                                    p->proto, s->flags & SIG_FLAG_SP_ANY ? "ANY":"NOTANY", p->sp,
+                                    s->flags & SIG_FLAG_DP_ANY ? "ANY":"NOTANY", p->dp);
+                            DetectPortPrint(s->sp); printf(" dp: ");
+                            DetectPortPrint(s->dp); printf("\n");
+                        }
                         fmatch = 1;
 
                         if (!(s->flags & SIG_FLAG_NOALERT)) {
@@ -518,7 +530,7 @@ static int SignatureIsIPOnly(Signature *s) {
 
     sm = s->match;
     if (sm == NULL)
-        return 1;
+        goto iponly;
 
     for ( ; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_CONTENT) {
@@ -536,6 +548,8 @@ static int SignatureIsIPOnly(Signature *s) {
         }
     }
 
+iponly:
+    printf("IP-ONLY (%u): source %s, dest %s\n", s->id, s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET", s->flags & SIG_FLAG_DST_ANY ? "ANY" : "SET");
     return 1;
 }
 

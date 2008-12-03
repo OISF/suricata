@@ -51,6 +51,7 @@ detect-msg.c detect-msg.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
 detect-noalert.c detect-noalert.h \
+util-print.c util-print.h \
 util-mpm-trie.c util-mpm-trie.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \
@@ -68,6 +69,7 @@ tmqh-simple.c tmqh-simple.h \
 tmqh-nfq.c tmqh-nfq.h \
 tmqh-packetpool.c tmqh-packetpool.h \
 alert-fastlog.c alert-fastlog.h \
+alert-debuglog.c alert-debuglog.h \
 log-httplog.c log-httplog.h \
 alert-unified-log.c alert-unified-log.h \
 alert-unified-alert.c alert-unified-alert.h \

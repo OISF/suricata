@@ -29,9 +29,13 @@ static u_int16_t verdict_queue_num = 0;
 
 int ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 int ReceiveNFQThreadInit(ThreadVars *, void **);
+void ReceiveNFQThreadExitStats(ThreadVars *, void *);
+
 int VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 int VerdictNFQThreadInit(ThreadVars *, void **);
+void VerdictNFQThreadExitStats(ThreadVars *, void *);
 int VerdictNFQThreadDeinit(ThreadVars *, void *);
+
 int DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 
 void TmModuleReceiveNFQRegister (void) {
@@ -42,6 +46,7 @@ void TmModuleReceiveNFQRegister (void) {
     tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
     tmm_modules[TMM_RECEIVENFQ].Init = ReceiveNFQThreadInit;
     tmm_modules[TMM_RECEIVENFQ].Func = ReceiveNFQ;
+    tmm_modules[TMM_RECEIVENFQ].ExitPrintStats = ReceiveNFQThreadExitStats;
     tmm_modules[TMM_RECEIVENFQ].Deinit = NULL;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
 }
@@ -50,6 +55,7 @@ void TmModuleVerdictNFQRegister (void) {
     tmm_modules[TMM_VERDICTNFQ].name = "VerdictNFQ";
     tmm_modules[TMM_VERDICTNFQ].Init = VerdictNFQThreadInit;
     tmm_modules[TMM_VERDICTNFQ].Func = VerdictNFQ;
+    tmm_modules[TMM_VERDICTNFQ].ExitPrintStats = VerdictNFQThreadExitStats;
     tmm_modules[TMM_VERDICTNFQ].Deinit = VerdictNFQThreadDeinit;
     tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
 }
@@ -58,6 +64,7 @@ void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].name = "DecodeNFQ";
     tmm_modules[TMM_DECODENFQ].Init = NULL;
     tmm_modules[TMM_DECODENFQ].Func = DecodeNFQ;
+    tmm_modules[TMM_DECODENFQ].ExitPrintStats = NULL;
     tmm_modules[TMM_DECODENFQ].Deinit = NULL;
     tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
 }
@@ -114,6 +121,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
 #ifdef COUNTERS
     nfq_t->pkts++;
+    nfq_t->bytes += p->pktlen;
 #endif /* COUNTERS */
 
     /* pass on... */
@@ -221,7 +229,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
 }
 
 int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
-    printf("ReceiveNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
+    //printf("ReceiveNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
 
     NFQThreadVars *ntv = &nfq_t[receive_queue_num];
 
@@ -242,7 +250,7 @@ int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
 }
 
 int VerdictNFQThreadInit(ThreadVars *tv, void **data) {
-    printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", verdict_queue_num);
+    //printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", verdict_queue_num);
 
     /* no initialization, ReceiveNFQ takes care of that */
     NFQThreadVars *ntv = &nfq_t[verdict_queue_num];
@@ -255,7 +263,7 @@ int VerdictNFQThreadInit(ThreadVars *tv, void **data) {
 int VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
-    printf("VerdictNFQThreadDeinit: starting... will close queuenum %u\n", ntv->queue_num);
+    //printf("VerdictNFQThreadDeinit: starting... will close queuenum %u\n", ntv->queue_num);
 
     nfq_destroy_queue(ntv->qh);
 
@@ -305,6 +313,20 @@ int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     return 0;
 }
 
+void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
+    NFQThreadVars *ntv = (NFQThreadVars *)data;
+#ifdef COUNTERS
+    printf(" - (%s) Pkts %u, Bytes %llu, Errors %u\n", tv->name, ntv->pkts, ntv->bytes, ntv->errs);
+#endif
+}
+
+void VerdictNFQThreadExitStats(ThreadVars *tv, void *data) {
+    NFQThreadVars *ntv = (NFQThreadVars *)data;
+#ifdef COUNTERS
+    printf(" - (%s) Pkts accepted %u, dropped %u\n", tv->name, ntv->accepted, ntv->dropped);
+#endif
+}
+
 void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     int ret;
     u_int32_t verdict;
@@ -322,6 +344,11 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
        /* a verdict we don't know about, drop to be sure */
        verdict = NF_DROP;
     }
+
+#ifdef COUNTERS
+    if (verdict == NF_ACCEPT) t->accepted++;
+    if (verdict == NF_DROP) t->dropped++;
+#endif /* COUNTERS */
 
     mutex_lock(&t->mutex_qh);
     ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
