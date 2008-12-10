@@ -1064,6 +1064,8 @@ DetectPortLookupGroup(DetectPort *dp, u_int16_t port) {
 
     for ( ; p != NULL; p = p->next) {
         if (DetectPortMatch(p,port) == 1) {
+            //printf("DetectPortLookupGroup: match, port %u, dp ", port);
+            //DetectPortPrint(p); printf("\n");
             return p;
         }
     }

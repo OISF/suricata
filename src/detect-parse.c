@@ -300,17 +300,26 @@ int SigParseProto(Signature *s, const char *protostr) {
 int SigParsePort(Signature *s, const char *portstr, char flag) {
     int r = 0;
     char *port;
+    char negate = 0;
 
     /* XXX VJ exclude handling this for none UDP/TCP proto's */
 
+    if (portstr[0] == '!') {
+        portstr++;
+        negate = 1;
+    }
+
     if (strcmp(portstr,"$HTTP_PORTS") == 0) {
-        port = "80:81,88";
+        if (negate) port = "![80:81,88]";
+        else port = "80:81,88";
     } else if (strcmp(portstr,"$SHELLCODE_PORTS") == 0) {
         port = "!80";
     } else if (strcmp(portstr,"$ORACLE_PORTS") == 0) {
-        port = "1521";
+        if (negate) port = "!1521";
+        else port = "1521";
     } else if (strcmp(portstr,"$SSH_PORTS") == 0) {
-        port = "22";
+        if (negate) port = "!22";
+        else port = "22";
     } else {
         port = (char *)portstr;
     }
@@ -325,6 +334,8 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
             s->flags |= SIG_FLAG_DP_ANY;
 
         r = DetectPortParse(&s->dp,(char *)port);
+
+        //DetectPortPrint(s->dp);
     }
     if (r < 0) {
         printf("SigParsePort: DetectPortParse \"%s\" failed\n", portstr);

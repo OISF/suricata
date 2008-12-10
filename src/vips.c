@@ -198,10 +198,10 @@ int main(int argc, char **argv)
     TmModuleRegisterTests();
     MpmRegisterTests();
     SigTableRegisterTests();
-    SigRegisterTests();
     HashTableRegisterTests();
     BloomFilterRegisterTests();
     BloomFilterCountingRegisterTests();
+    SigRegisterTests();
     UtRunTests();
     UtCleanup();
     //exit(1);

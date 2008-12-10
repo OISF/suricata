@@ -421,6 +421,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                 DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
                 if (dport == NULL)
                     continue;
+
             }
             if (!(s->flags & SIG_FLAG_SP_ANY)) {
                 DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
@@ -440,6 +441,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
             if (daddr == NULL)
                 continue;
         }
+
         /* reset pkt ptr and offset */
         pmt->pkt_ptr = NULL;
         pmt->pkt_off = 0;
@@ -2002,7 +2004,7 @@ void DbgPrintSigs2(SigGroupHead *sgh) {
 
 /* shortcut for debugging. If enabled Stage5 will
  * print sigid's for all groups */
-//#define PRINTSIGS
+#define PRINTSIGS
 
 /* just printing */
 int SigAddressPrepareStage5(void) {
@@ -3130,6 +3132,106 @@ end:
     return result;
 }
 
+int SigTest15 (void) {
+    u_int8_t *buf = (u_int8_t *)
+                    "CONNECT 213.92.8.7:31204 HTTP/1.1";
+    u_int16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    PatternMatcherThread *pmt;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.tcp_payload = buf;
+    p.tcp_payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+    p.dp = 80;
+
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->flags |= DE_QUIET;
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(g_de_ctx);
+    PatternMatchPrepare(mpm_ctx);
+    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+
+    SigMatchSignatures(&th_v, pmt, &p);
+    if (PacketAlertCheck(&p, 2008284))
+        result = 0;
+    else
+        result = 1;
+
+    SigGroupCleanup();
+    SigCleanSignatures();
+    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(g_de_ctx);
+end:
+    return result;
+}
+
+int SigTest16 (void) {
+    u_int8_t *buf = (u_int8_t *)
+                    "CONNECT 213.92.8.7:31204 HTTP/1.1";
+    u_int16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    PatternMatcherThread *pmt;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.tcp_payload = buf;
+    p.tcp_payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+    p.dp = 1234;
+
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->flags |= DE_QUIET;
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(g_de_ctx);
+    PatternMatchPrepare(mpm_ctx);
+    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+
+    SigMatchSignatures(&th_v, pmt, &p);
+    if (PacketAlertCheck(&p, 2008284))
+        result = 1;
+    else
+        result = 0;
+
+    SigGroupCleanup();
+    SigCleanSignatures();
+    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(g_de_ctx);
+end:
+    return result;
+}
+
 void SigRegisterTests(void) {
     SigParseRegisterTests();
     UtRegisterTest("SigTest01 -- HTTP URI cap", SigTest01, 1);
@@ -3146,5 +3248,7 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTest12 -- content order matching, normal", SigTest12, 1);
     UtRegisterTest("SigTest13 -- content order matching, diff order", SigTest13, 1);
     UtRegisterTest("SigTest14 -- content order matching, distance 0", SigTest14, 1);
+    UtRegisterTest("SigTest15 -- port negation sig (no match)", SigTest15, 1);
+    UtRegisterTest("SigTest16 -- port negation sig (match)", SigTest16, 1);
 }
 
