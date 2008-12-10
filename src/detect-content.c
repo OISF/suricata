@@ -102,7 +102,7 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, u_int16_t pktoff) {
 }
 
 /* This function is called recursively (if nescessary) to be able
- * to determite whether or not a chain of content matches connected
+ * to determine whether or not a chain of content matches connected
  * with 'within' and 'distance' options fully matches. The reason it
  * was done like this is to make sure we can handle partial matches
  * that turn out to fail being followed by full matches later in the
@@ -118,9 +118,9 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch
     MpmMatch *nm = pmt->mtc.match[co->id].top;
 
     for (; nm; nm = nm->next) {
-        //printf("TestWithinDistanceOffsetDepth: nm->offset %u, m->offset %u\n", nm->offset, m->offset);
+        //printf("TestWithinDistanceOffsetDepth: nm->offset %u, m->offset %u, pktoff %u\n", nm->offset, m->offset, pktoff);
         if (nm->offset >= pktoff) {
-            if ((co->within == 0 || (co->within &&
+            if ((!(co->flags & DETECT_CONTENT_WITHIN) || (co->within > 0 &&
                 (nm->offset > m->offset) &&
                 ((nm->offset - m->offset + co->content_len) <= co->within))))
             {
@@ -128,13 +128,13 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch
                 //    "nm->offset %u, m->offset %u\n", nm->offset - m->offset + co->content_len,
                 //    co->within, nm->offset, m->offset);
 
-                if (co->distance == 0 || (co->distance &&
-                    (nm->offset > m->offset) &&
+                if (!(co->flags & DETECT_CONTENT_DISTANCE) ||
+                    ((nm->offset > m->offset) &&
                     ((nm->offset - m->offset) >= co->distance)))
                 {
                     //printf("TestWithinDistanceOffsetDepth: MATCH: %u >= DISTANCE(%u), "
-                    //     "nm->offset %u, m->offset %u\n", nm->offset - m->offset,
-                    //     co->distance, nm->offset, m->offset);
+                    //    "nm->offset %u, m->offset %u\n", nm->offset - m->offset,
+                    //    co->distance, nm->offset, m->offset);
                     if (TestOffsetDepth(nm, co, pktoff) == 1) {
                         return TestWithinDistanceOffsetDepth(t, pmt, nm, nsm->next, pktoff);
                     }
@@ -169,6 +169,9 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
          co->flags & DETECT_CONTENT_DISTANCE_NEXT) &&
          pmt->de_checking_distancewithin == 0)
     {
+        //printf("DoDetectContent: Content \""); PrintRawUriFp(stdout, co->content, co->content_len);
+        //printf("\" DETECT_CONTENT_WITHIN_NEXT or DETECT_CONTENT_DISTANCE_NEXT is true\n");
+
         /* indicate to the detection engine the next sigmatch(es)
          * are part of this match chain */
         pmt->de_checking_distancewithin = 1;
@@ -176,10 +179,10 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
         for (; m != NULL; m = m->next) {
             /* first check our match for offset and depth */
             if (TestOffsetDepth(m, co, pmt->pkt_off) == 1) {
+                //printf("DoDetectContent: TestOffsetDepth returned 1\n");
                 ret = TestWithinDistanceOffsetDepth(t, pmt, m, sm->next, pmt->pkt_off);
                 if (ret == 1) {
-                    /* update pkt ptrs, content doesn't use this,
-                     * but pcre does */
+                    //printf("DoDetectContent: TestWithinDistanceOffsetDepth returned 1\n");
                     pmt->pkt_ptr = p->tcp_payload + m->offset;
                     pmt->pkt_off = m->offset;
                     match = 1;
@@ -187,6 +190,7 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
                 }
             }
         }
+
     /* Okay, this is complicated... on the first match of a match chain,
      * we do the whole match of that chain (a chain here means a number
      * of consecutive content matches that relate to each other with
@@ -200,6 +204,7 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
     {
         pmt->de_checking_distancewithin = 0;
         match = 1;
+
     /* Getting here means we are not in checking an within/distance chain.
      * This means we can just inspect this content match on it's own. So
      * Let's see if at least one of the matches within the offset and depth
@@ -221,10 +226,11 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
             }
         } else {
             for (; m != NULL; m = m->next) {
-                ret = TestOffsetDepth(m,co, pmt->pkt_off);
+                ret = TestOffsetDepth(m,co, 0); /* no offset as we inspect each
+                                                 * match on it's own */
                 if (ret == 1) {
-                    /* update pkt ptrs, content doesn't use this,
-                     * but pcre does */
+                    /* update pkt ptrs, this content run doesn't
+                     * use this, but pcre does */
                     pmt->pkt_ptr = p->tcp_payload + m->offset;
                     pmt->pkt_off = m->offset;
                     match = 1;
@@ -258,7 +264,8 @@ int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
         return 0;
 
 #ifdef DEBUG
-    printf("content \'%s\' matched %u time(s) at offsets: ", co->content, len);
+    printf("content \""); PrintRawUriFp(stdout, co->content, co->content_len);
+    printf("\" matched %u time(s) at offsets: ", len);
 
     MpmMatch *tmpm = NULL;
     for (tmpm = pmt->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {

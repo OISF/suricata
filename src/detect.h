@@ -36,10 +36,16 @@ typedef struct _PatternMatcherThread {
      *
      * XXX rename to mpm_ctx as soon as the threading
      * thing above is renamed as well  */
-    MpmCtx *mc;
+    MpmCtx *mc;       /* search ctx */
+    MpmCtx *mc_scan;  /* scan ctx */
     MpmCtx *mcu;
+    //MpmCtx *mcu_scan;
     MpmThreadCtx mtc;
     MpmThreadCtx mtcu;
+
+    u_int32_t pkts;
+    u_int32_t pkts_scanned;
+    u_int32_t pkts_searched;
 } PatternMatcherThread;
 
 typedef struct _Signature {
@@ -158,8 +164,11 @@ typedef struct _SigGroupHead {
     u_int8_t flags;
 
     /* pattern matcher instance */
-    MpmCtx *mpm_ctx;
+    MpmCtx *mpm_ctx;      /* search */
+    MpmCtx *mpm_scan_ctx; /* scan */
+    u_int16_t mpm_content_minlen;
     MpmCtx *mpm_uri_ctx;
+    u_int16_t mpm_uricontent_minlen;
 
     /* number of sigs in this head */
     u_int32_t sig_cnt;
