@@ -194,10 +194,10 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     /* build the package */
     if ((t = libnet_build_icmpv4_unreach (
-    		                   ICMP_DEST_UNREACH,        /* type */
-    		                   ICMP_HOST_ANO,            /* code */
+    		               ICMP_DEST_UNREACH,        /* type */
+    		               ICMP_HOST_ANO,            /* code */
                                0,                        /* checksum */
-                               p->ip4h,                  /* payload */
+                               (u_int8_t *)p->ip4h,      /* payload */
                                lpacket.len,              /* payload length */
                                c,                        /* libnet context */
                                0)) < 0)                  /* libnet ptag */
