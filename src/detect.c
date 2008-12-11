@@ -73,11 +73,36 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
     if (pmt == NULL)
         return;
 
-    printf(" - (%s) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f).\n", tv->name,
+    printf(" - (%s) (1byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->pkts, pmt->pkts_scanned1,
+        (float)(pmt->pkts_scanned1/(float)(pmt->pkts)*100),
+        pmt->pkts_searched1,
+        (float)(pmt->pkts_searched1/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_searched1/(float)(pmt->pkts_scanned1)*100));
+    printf(" - (%s) (2byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->pkts, pmt->pkts_scanned2,
+        (float)(pmt->pkts_scanned2/(float)(pmt->pkts)*100),
+        pmt->pkts_searched2,
+        (float)(pmt->pkts_searched2/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_searched2/(float)(pmt->pkts_scanned2)*100));
+    printf(" - (%s) (3byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->pkts, pmt->pkts_scanned3,
+        (float)(pmt->pkts_scanned3/(float)(pmt->pkts)*100),
+        pmt->pkts_searched3,
+        (float)(pmt->pkts_searched3/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_searched3/(float)(pmt->pkts_scanned3)*100));
+    printf(" - (%s) (4byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->pkts, pmt->pkts_scanned4,
+        (float)(pmt->pkts_scanned4/(float)(pmt->pkts)*100),
+        pmt->pkts_searched4,
+        (float)(pmt->pkts_searched4/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_searched4/(float)(pmt->pkts_scanned4)*100));
+    printf(" - (%s) (+byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
         pmt->pkts, pmt->pkts_scanned,
         (float)(pmt->pkts_scanned/(float)(pmt->pkts)*100),
         pmt->pkts_searched,
-        (float)(pmt->pkts_searched/(float)(pmt->pkts)*100));
+        (float)(pmt->pkts_searched/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_searched/(float)(pmt->pkts_scanned)*100));
 }
 
 void SigLoadSignatures (void)
@@ -395,14 +420,24 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
     if (p->tcp_payload_len > 0 && pmt->mc != NULL) {
         /* run the pattern matcher against the packet */
-        if (sgh->mpm_content_minlen > p->tcp_payload_len) {
-            //printf("Not scanning as pkt payload is smaller than the min content length.\n");
+        if (sgh->mpm_content_maxlen > p->tcp_payload_len) {
+            //printf("Not scanning as pkt payload is smaller than the largest content length we need to match");
         } else {
-            pmt->pkts_scanned++;
+            if (sgh->mpm_content_maxlen == 1)      pmt->pkts_scanned1++;
+            else if (sgh->mpm_content_maxlen == 2) pmt->pkts_scanned2++;
+            else if (sgh->mpm_content_maxlen == 3) pmt->pkts_scanned3++;
+            else if (sgh->mpm_content_maxlen == 4) pmt->pkts_scanned4++;
+            else                                   pmt->pkts_scanned++;
+
             u_int32_t cnt = PacketPatternScan(th_v, pmt, p);
             //printf("scan: cnt %u\n", cnt);
             if (cnt > 0) {
-                pmt->pkts_searched++;
+                if (sgh->mpm_content_maxlen == 1)      pmt->pkts_searched1++;
+                else if (sgh->mpm_content_maxlen == 2) pmt->pkts_searched2++;
+                else if (sgh->mpm_content_maxlen == 3) pmt->pkts_searched3++;
+                else if (sgh->mpm_content_maxlen == 4) pmt->pkts_searched4++;
+                else                                   pmt->pkts_searched++;
+
                 cnt += PacketPatternMatch(th_v, pmt, p);
                 //printf("search: cnt %u\n", cnt);
             }

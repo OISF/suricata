@@ -174,7 +174,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         MpmInitCtx(sh->mpm_uri_ctx, MPM_WUMANBER);
     }
 
-    u_int16_t mpm_content_maxlen = 0, mpm_uricontent_maxlen = 0;
+    u_int16_t mpm_content_scan_maxlen = 65535, mpm_uricontent_scan_maxlen = 65535;
     u_int32_t mpm_content_cnt = 0, mpm_uricontent_cnt = 0;
     u_int16_t mpm_content_maxdepth = 65535, mpm_content_minoffset = 65535;
     u_int16_t mpm_content_maxdepth_one = 65535, mpm_content_minoffset_one = 65535;
@@ -302,25 +302,22 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             mpm_content_minoffset_one = content_minoffset_one;
 
         if (content_cnt) {
-            if (mpm_content_maxlen == 0) mpm_content_maxlen = content_maxlen;
-            if (mpm_content_maxlen > content_maxlen)
-                mpm_content_maxlen = content_maxlen;
-
-            if (sh->mpm_content_minlen == 0) sh->mpm_content_minlen = content_minlen;
-            if (sh->mpm_content_minlen > content_minlen)
-                sh->mpm_content_minlen = content_minlen;
+            if (sh->mpm_content_maxlen == 0) sh->mpm_content_maxlen = content_maxlen;
+            if (sh->mpm_content_maxlen > content_maxlen)
+                sh->mpm_content_maxlen = content_maxlen;
         }
         if (uricontent_maxlen) {
-            if (mpm_uricontent_maxlen == 0) mpm_uricontent_maxlen = uricontent_maxlen;
-            if (mpm_uricontent_maxlen > uricontent_maxlen)
-                mpm_uricontent_maxlen = uricontent_maxlen;
+            if (sh->mpm_uricontent_maxlen == 0) sh->mpm_uricontent_maxlen = uricontent_maxlen;
+            if (sh->mpm_uricontent_maxlen > uricontent_maxlen)
+                sh->mpm_uricontent_maxlen = uricontent_maxlen;
         }
 //#if 0
         /* scan ctx */
         for (sm = s->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if (mpm_content_maxlen == cd->content_len) {
+                if (sh->mpm_content_maxlen >= cd->content_len) {
+
                     if (cd->flags & DETECT_CONTENT_NOCASE) {
                         sh->mpm_scan_ctx->AddPatternNocase(sh->mpm_scan_ctx, cd->content, cd->content_len, cd->id);
                     } else {
@@ -375,13 +372,13 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             sh->mpm_scan_ctx->Prepare(sh->mpm_scan_ctx);
         }
 
-        if (mpm_content_cnt && mpm_content_maxlen > 1) {
+        if (mpm_content_cnt && sh->mpm_content_maxlen > 1) {
             //printf("mpm_content_cnt %u, mpm_content_maxlen %d\n", mpm_content_cnt, mpm_content_maxlen);
             g_content_scan++;
         } else {
             g_content_search++;
         }
-//        printf("(sh %p) mpm_content_cnt %u, mpm_content_maxlen %u, mpm_content_minlen %u\n", sh, mpm_content_cnt, mpm_content_maxlen, sh->mpm_content_minlen);
+        //printf("(sh %p) mpm_content_cnt %u, mpm_content_maxlen %u, mpm_content_minlen %u, mpm_content_scan_maxlen %u\n", sh, mpm_content_cnt, mpm_content_maxlen, sh->mpm_content_minlen, mpm_content_scan_maxlen);
 
         if (mpm_content_maxdepth) {
 //            printf("mpm_content_maxdepth %u\n", mpm_content_maxdepth);
@@ -403,7 +400,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (sh->mpm_uri_ctx->Prepare != NULL) {
             sh->mpm_uri_ctx->Prepare(sh->mpm_uri_ctx);
         }
-        if (mpm_uricontent_cnt && mpm_uricontent_maxlen > 1) {
+        if (mpm_uricontent_cnt && sh->mpm_uricontent_maxlen > 1) {
 //            printf("mpm_uricontent_cnt %u, mpm_uricontent_maxlen %d\n", mpm_uricontent_cnt, mpm_uricontent_maxlen);
             g_uricontent_scan++;
         } else {
