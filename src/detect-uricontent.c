@@ -231,7 +231,7 @@ DoDetectUricontent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, SigMatch
 int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
 {
     u_int32_t len = 0;
-    u_int32_t ret = 0;
+    u_int32_t ret = 0, scan = 0;
 
     //printf("scanning uricontent have %u scan %u\n", pmt->de_have_httpuri, pmt->de_scanned_httpuri);
 
@@ -251,9 +251,27 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
         u_int8_t i;
         for (i = 0; i < p->http_uri.cnt; i++) {
             //printf("p->http_uri.raw_size[%u] %u, %p, %s\n", i, p->http_uri.raw_size[i], p->http_uri.raw[i], p->http_uri.raw[i]);
-            //printf("pmt->mcu %p\n", pmt->mcu);
-            ret += pmt->mcu->Search(pmt->mcu, &pmt->mtcu, p->http_uri.raw[i], p->http_uri.raw_size[i]);
-            //printf("DetectUricontentMatch: ret %u\n", ret);
+            //printf("pmt->mcu %p, pmt->mcu_scan %p\n", pmt->mcu, pmt->mcu_scan);
+
+            if (pmt->sgh->mpm_uricontent_maxlen <= p->http_uri.raw_size[i]) {
+                if (pmt->sgh->mpm_uricontent_maxlen == 1)      pmt->pkts_uri_scanned1++;
+                else if (pmt->sgh->mpm_uricontent_maxlen == 2) pmt->pkts_uri_scanned2++;
+                else if (pmt->sgh->mpm_uricontent_maxlen == 3) pmt->pkts_uri_scanned3++;
+                else if (pmt->sgh->mpm_uricontent_maxlen == 4) pmt->pkts_uri_scanned4++;
+                else                                           pmt->pkts_uri_scanned++;
+
+                scan = pmt->mcu_scan->Search(pmt->mcu_scan, &pmt->mtcu, p->http_uri.raw[i], p->http_uri.raw_size[i]);
+                if (scan > 0) {
+                    if (pmt->sgh->mpm_uricontent_maxlen == 1)      pmt->pkts_uri_searched1++;
+                    else if (pmt->sgh->mpm_uricontent_maxlen == 2) pmt->pkts_uri_searched2++;
+                    else if (pmt->sgh->mpm_uricontent_maxlen == 3) pmt->pkts_uri_searched3++;
+                    else if (pmt->sgh->mpm_uricontent_maxlen == 4) pmt->pkts_uri_searched4++;
+                    else                                           pmt->pkts_uri_searched++;
+
+                    ret += pmt->mcu->Search(pmt->mcu, &pmt->mtcu, p->http_uri.raw[i], p->http_uri.raw_size[i]);
+                }
+                //printf("DetectUricontentMatch: ret %u\n", ret);
+            }
         }
         pmt->de_scanned_httpuri = 1;
 

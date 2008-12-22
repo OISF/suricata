@@ -172,6 +172,13 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             goto error;
 
         MpmInitCtx(sh->mpm_uri_ctx, MPM_WUMANBER);
+
+        /* scan */
+        sh->mpm_uri_scan_ctx = malloc(sizeof(MpmCtx));
+        if (sh->mpm_uri_scan_ctx == NULL)
+            goto error;
+
+        MpmInitCtx(sh->mpm_uri_scan_ctx, MPM_WUMANBER);
     }
 
     u_int16_t mpm_content_scan_maxlen = 65535, mpm_uricontent_scan_maxlen = 65535;
@@ -326,16 +333,20 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                     break; /* just add one per sig,
                             * TODO see if we can select the best one */
                 }
-/*
-            } else if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
+            }
+        }
+        for (sm = s->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                if (sh->mpm_uricontent_maxlen >= ud->uricontent_len) {
 
-                if (ud->flags & DETECT_URICONTENT_NOCASE) {
-                    sh->mpm_uri_ctx->AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, ud->id);
-                } else {
-                    sh->mpm_uri_ctx->AddPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, ud->id);
+                    if (ud->flags & DETECT_URICONTENT_NOCASE) {
+                        sh->mpm_uri_ctx->AddPatternNocase(sh->mpm_uri_scan_ctx, ud->uricontent, ud->uricontent_len, ud->id);
+                    } else {
+                        sh->mpm_uri_ctx->AddPattern(sh->mpm_uri_scan_ctx, ud->uricontent, ud->uricontent_len, ud->id);
+                    }
+                    break;
                 }
-*/
             }
         }
 //#endif
@@ -399,6 +410,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         if (sh->mpm_uri_ctx->Prepare != NULL) {
             sh->mpm_uri_ctx->Prepare(sh->mpm_uri_ctx);
+        }
+        if (sh->mpm_uri_scan_ctx->Prepare != NULL) {
+            sh->mpm_uri_scan_ctx->Prepare(sh->mpm_uri_scan_ctx);
         }
         if (mpm_uricontent_cnt && sh->mpm_uricontent_maxlen > 1) {
 //            printf("mpm_uricontent_cnt %u, mpm_uricontent_maxlen %d\n", mpm_uricontent_cnt, mpm_uricontent_maxlen);

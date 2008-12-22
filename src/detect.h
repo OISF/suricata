@@ -39,9 +39,12 @@ typedef struct _PatternMatcherThread {
     MpmCtx *mc;       /* search ctx */
     MpmCtx *mc_scan;  /* scan ctx */
     MpmCtx *mcu;
-    //MpmCtx *mcu_scan;
+    MpmCtx *mcu_scan;
+
     MpmThreadCtx mtc;
     MpmThreadCtx mtcu;
+
+    struct _SigGroupHead *sgh;
 
     u_int32_t pkts;
     u_int32_t pkts_scanned;
@@ -54,6 +57,17 @@ typedef struct _PatternMatcherThread {
     u_int32_t pkts_searched3;
     u_int32_t pkts_scanned4;
     u_int32_t pkts_searched4;
+
+    u_int32_t pkts_uri_scanned;
+    u_int32_t pkts_uri_searched;
+    u_int32_t pkts_uri_scanned1;
+    u_int32_t pkts_uri_searched1;
+    u_int32_t pkts_uri_scanned2;
+    u_int32_t pkts_uri_searched2;
+    u_int32_t pkts_uri_scanned3;
+    u_int32_t pkts_uri_searched3;
+    u_int32_t pkts_uri_scanned4;
+    u_int32_t pkts_uri_searched4;
 } PatternMatcherThread;
 
 typedef struct _Signature {
@@ -176,7 +190,7 @@ typedef struct _SigGroupHead {
     MpmCtx *mpm_scan_ctx; /* scan */
     u_int16_t mpm_content_maxlen;
     MpmCtx *mpm_uri_ctx;
-    MpmCtx *mpm_scan_uri_ctx;
+    MpmCtx *mpm_uri_scan_ctx;
     u_int16_t mpm_uricontent_maxlen;
 
     /* number of sigs in this head */

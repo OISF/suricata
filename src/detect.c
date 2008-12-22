@@ -103,6 +103,37 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         pmt->pkts_searched,
         (float)(pmt->pkts_searched/(float)(pmt->pkts)*100),
         (float)(pmt->pkts_searched/(float)(pmt->pkts_scanned)*100));
+
+    printf(" - (%s) URI (1byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->pkts, pmt->pkts_uri_scanned1,
+        (float)(pmt->pkts_uri_scanned1/(float)(pmt->pkts)*100),
+        pmt->pkts_uri_searched1,
+        (float)(pmt->pkts_uri_searched1/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched1/(float)(pmt->pkts_uri_scanned1)*100));
+    printf(" - (%s) URI (2byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->pkts, pmt->pkts_uri_scanned2,
+        (float)(pmt->pkts_uri_scanned2/(float)(pmt->pkts)*100),
+        pmt->pkts_uri_searched2,
+        (float)(pmt->pkts_uri_searched2/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched2/(float)(pmt->pkts_uri_scanned2)*100));
+    printf(" - (%s) URI (3byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->pkts, pmt->pkts_uri_scanned3,
+        (float)(pmt->pkts_uri_scanned3/(float)(pmt->pkts)*100),
+        pmt->pkts_uri_searched3,
+        (float)(pmt->pkts_uri_searched3/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched3/(float)(pmt->pkts_uri_scanned3)*100));
+    printf(" - (%s) URI (4byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->pkts, pmt->pkts_uri_scanned4,
+        (float)(pmt->pkts_uri_scanned4/(float)(pmt->pkts)*100),
+        pmt->pkts_uri_searched4,
+        (float)(pmt->pkts_uri_searched4/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched4/(float)(pmt->pkts_uri_scanned4)*100));
+    printf(" - (%s) (+byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->pkts, pmt->pkts_uri_scanned,
+        (float)(pmt->pkts_uri_scanned/(float)(pmt->pkts)*100),
+        pmt->pkts_uri_searched,
+        (float)(pmt->pkts_uri_searched/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched/(float)(pmt->pkts_uri_scanned)*100));
 }
 
 void SigLoadSignatures (void)
@@ -367,7 +398,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     u_int32_t idx,sig;
-    SigGroupHead *sgh = NULL;
+    //SigGroupHead *sgh = NULL;
 
     pmt->pkts++;
 
@@ -379,6 +410,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
     pmt->mc = NULL;
     pmt->mc_scan = NULL;
     pmt->mcu = NULL;
+    pmt->mcu_scan = NULL;
+    pmt->sgh = NULL;
 
     /* find the right mpm instance */
     DetectAddressGroup *ag = DetectAddressLookupGroup(g_de_ctx->src_gh[p->proto],&p->src);
@@ -390,7 +423,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                 pmt->mc = ag->sh->mpm_ctx;
                 pmt->mc_scan = ag->sh->mpm_scan_ctx;
                 pmt->mcu = ag->sh->mpm_uri_ctx;
-                sgh = ag->sh;
+                pmt->mcu_scan = ag->sh->mpm_uri_scan_ctx;
+                pmt->sgh = ag->sh;
 
                 //printf("SigMatchSignatures: mc %p, mcu %p\n", pmt->mc, pmt->mcu);
                 //printf("sigs %u\n", ag->sh->sig_cnt);
@@ -404,7 +438,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                         pmt->mc = dport->sh->mpm_ctx;
                         pmt->mc_scan = dport->sh->mpm_scan_ctx;
                         pmt->mcu = dport->sh->mpm_uri_ctx;
-                        sgh = dport->sh;
+                        pmt->mcu_scan = dport->sh->mpm_uri_scan_ctx;
+                        pmt->sgh = dport->sh;
                     }
                 }
             }
@@ -413,30 +448,30 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
-    if (sgh == NULL) {
+    if (pmt->sgh == NULL) {
         //printf("SigMatchSignatures: no sgh\n");
         return 0;
     }
 
     if (p->tcp_payload_len > 0 && pmt->mc != NULL) {
         /* run the pattern matcher against the packet */
-        if (sgh->mpm_content_maxlen > p->tcp_payload_len) {
+        if (pmt->sgh->mpm_content_maxlen > p->tcp_payload_len) {
             //printf("Not scanning as pkt payload is smaller than the largest content length we need to match");
         } else {
-            if (sgh->mpm_content_maxlen == 1)      pmt->pkts_scanned1++;
-            else if (sgh->mpm_content_maxlen == 2) pmt->pkts_scanned2++;
-            else if (sgh->mpm_content_maxlen == 3) pmt->pkts_scanned3++;
-            else if (sgh->mpm_content_maxlen == 4) pmt->pkts_scanned4++;
-            else                                   pmt->pkts_scanned++;
+            if (pmt->sgh->mpm_content_maxlen == 1)      pmt->pkts_scanned1++;
+            else if (pmt->sgh->mpm_content_maxlen == 2) pmt->pkts_scanned2++;
+            else if (pmt->sgh->mpm_content_maxlen == 3) pmt->pkts_scanned3++;
+            else if (pmt->sgh->mpm_content_maxlen == 4) pmt->pkts_scanned4++;
+            else                                        pmt->pkts_scanned++;
 
             u_int32_t cnt = PacketPatternScan(th_v, pmt, p);
             //printf("scan: cnt %u\n", cnt);
             if (cnt > 0) {
-                if (sgh->mpm_content_maxlen == 1)      pmt->pkts_searched1++;
-                else if (sgh->mpm_content_maxlen == 2) pmt->pkts_searched2++;
-                else if (sgh->mpm_content_maxlen == 3) pmt->pkts_searched3++;
-                else if (sgh->mpm_content_maxlen == 4) pmt->pkts_searched4++;
-                else                                   pmt->pkts_searched++;
+                if (pmt->sgh->mpm_content_maxlen == 1)      pmt->pkts_searched1++;
+                else if (pmt->sgh->mpm_content_maxlen == 2) pmt->pkts_searched2++;
+                else if (pmt->sgh->mpm_content_maxlen == 3) pmt->pkts_searched3++;
+                else if (pmt->sgh->mpm_content_maxlen == 4) pmt->pkts_searched4++;
+                else                                        pmt->pkts_searched++;
 
                 cnt += PacketPatternMatch(th_v, pmt, p);
                 //printf("search: cnt %u\n", cnt);
@@ -445,8 +480,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
     }
 
     /* inspect the sigs against the packet */
-    for (idx = 0; idx < sgh->sig_cnt; idx++) {
-        sig = sgh->match_array[idx];
+    for (idx = 0; idx < pmt->sgh->sig_cnt; idx++) {
+        sig = pmt->sgh->match_array[idx];
         s = g_de_ctx->sig_array[sig];
         //printf("Sig %u\n", s->id);
 
