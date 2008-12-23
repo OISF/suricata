@@ -313,7 +313,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (sh->mpm_content_maxlen > content_maxlen)
                 sh->mpm_content_maxlen = content_maxlen;
         }
-        if (uricontent_maxlen) {
+        if (uricontent_cnt) {
             if (sh->mpm_uricontent_maxlen == 0) sh->mpm_uricontent_maxlen = uricontent_maxlen;
             if (sh->mpm_uricontent_maxlen > uricontent_maxlen)
                 sh->mpm_uricontent_maxlen = uricontent_maxlen;
@@ -341,9 +341,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 if (sh->mpm_uricontent_maxlen >= ud->uricontent_len) {
 
                     if (ud->flags & DETECT_URICONTENT_NOCASE) {
-                        sh->mpm_uri_ctx->AddPatternNocase(sh->mpm_uri_scan_ctx, ud->uricontent, ud->uricontent_len, ud->id);
+                        sh->mpm_uri_scan_ctx->AddPatternNocase(sh->mpm_uri_scan_ctx, ud->uricontent, ud->uricontent_len, ud->id);
                     } else {
-                        sh->mpm_uri_ctx->AddPattern(sh->mpm_uri_scan_ctx, ud->uricontent, ud->uricontent_len, ud->id);
+                        sh->mpm_uri_scan_ctx->AddPattern(sh->mpm_uri_scan_ctx, ud->uricontent, ud->uricontent_len, ud->id);
                     }
                     break;
                 }
@@ -423,11 +423,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
         //sh->mpm_uri_ctx->PrintCtx(sh->mpm_uri_ctx);
     }
-
-    //printf("Printing info...\n");
-    //sh->mpm_ctx.PrintCtx(&sh->mpm_ctx);
-    //sh->mpm_uri_ctx.PrintCtx(&sh->mpm_uri_ctx);
-    //printf("mpm_ctx %p\n", &sh->mpm_uri_ctx);
 
     return 0;
 error:

@@ -240,9 +240,13 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
         return 0;
 
     if (pmt->de_have_httpuri == 1 && pmt->de_scanned_httpuri == 0) {
+        pmt->de_scanned_httpuri = 1;
+
+        //printf("DetectUricontentMatch: pmt->sgh %p, pmt->mcu %p, pmt->mcu_scan %p\n", pmt->sgh, pmt->mcu, pmt->mcu_scan);
+
         /* don't bother scanning if we don't have a pattern matcher ctx
          * which means we don't have uricontent sigs */
-        if (pmt->mcu == NULL)
+        if (pmt->mcu == NULL || pmt->mcu_scan == NULL)
             return 0;
 
         //printf("DetectUricontentMatch: going to scan uri buffer(s)\n");
@@ -251,7 +255,6 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
         u_int8_t i;
         for (i = 0; i < p->http_uri.cnt; i++) {
             //printf("p->http_uri.raw_size[%u] %u, %p, %s\n", i, p->http_uri.raw_size[i], p->http_uri.raw[i], p->http_uri.raw[i]);
-            //printf("pmt->mcu %p, pmt->mcu_scan %p\n", pmt->mcu, pmt->mcu_scan);
 
             if (pmt->sgh->mpm_uricontent_maxlen <= p->http_uri.raw_size[i]) {
                 if (pmt->sgh->mpm_uricontent_maxlen == 1)      pmt->pkts_uri_scanned1++;
@@ -273,7 +276,6 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
                 //printf("DetectUricontentMatch: ret %u\n", ret);
             }
         }
-        pmt->de_scanned_httpuri = 1;
 
         //printf("DetectUricontentMatch: final ret %u\n", ret);
         if (ret == 0)

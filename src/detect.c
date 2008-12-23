@@ -1410,6 +1410,7 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
                         de_ctx->mpm_uri_unique++;
                     } else {
                         sgr->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
+                        sgr->sh->mpm_uri_scan_ctx = mpmsh->mpm_uri_scan_ctx;
                         sgr->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
                         SigGroupHeadClearUricontent(sgr->sh);
 
@@ -1809,6 +1810,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                         de_ctx->mpm_uri_unique++;
                                     } else {
                                         dp->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
+                                        dp->sh->mpm_uri_scan_ctx = mpmsh->mpm_uri_scan_ctx;
                                         dp->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
                                         SigGroupHeadClearUricontent(dp->sh);
 
