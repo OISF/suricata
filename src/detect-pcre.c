@@ -87,8 +87,6 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
     if (p->tcp_payload_len == 0)
         return 0;
 
-    //printf("DetectPcre: pre match: t->pkt_ptr %p t->pkt_off %u\n", t->pkt_ptr, t->pkt_off);
-
     DetectPcreData *pe = (DetectPcreData *)m->ctx;
     if (s->flags & SIG_FLAG_RECURSIVE) {
         ptr = pmt->pkt_ptr ? pmt->pkt_ptr : p->tcp_payload;
@@ -112,15 +110,45 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
             ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
             if (ret) {
                 if (strcmp(pe->capname,"http_uri") == 0) {
-                    if (pmt->de_scanned_httpuri == 1)
-                        PacketPatternCleanup(t, pmt);
-
-                    pmt->de_have_httpuri = 1;
-                    pmt->de_scanned_httpuri = 0;
-
                     p->http_uri.raw[pmt->pkt_cnt] = (u_int8_t *)str_ptr;
                     p->http_uri.raw_size[pmt->pkt_cnt] = ret;
                     p->http_uri.cnt = pmt->pkt_cnt + 1;
+
+                    /* count how many uri's we handle for stats */
+                    pmt->uris++;
+
+                    //printf("DetectPcre: URI pmt->sgh %p, pmt->mcu %p\n", pmt->sgh, pmt->mcu);
+                    //PrintRawUriFp(stdout,p->http_uri.raw[pmt->pkt_cnt],p->http_uri.raw_size[pmt->pkt_cnt]);
+                    //printf(" (pkt_cnt %u, mcu %p)\n", pmt->pkt_cnt, pmt->mcu);
+
+                    /* don't bother scanning if we don't have a pattern matcher ctx
+                     * which means we don't have uricontent sigs */
+                    if (pmt->mcu != NULL) {
+                        if (pmt->sgh->mpm_uricontent_maxlen <= p->http_uri.raw_size[pmt->pkt_cnt]) {
+                            if (pmt->sgh->mpm_uricontent_maxlen == 1)      pmt->pkts_uri_scanned1++;
+                            else if (pmt->sgh->mpm_uricontent_maxlen == 2) pmt->pkts_uri_scanned2++;
+                            else if (pmt->sgh->mpm_uricontent_maxlen == 3) pmt->pkts_uri_scanned3++;
+                            else if (pmt->sgh->mpm_uricontent_maxlen == 4) pmt->pkts_uri_scanned4++;
+                            else                                           pmt->pkts_uri_scanned++;
+
+                            pmt->pmq.mode = PMQ_MODE_SCAN;
+                            ret = pmt->mcu->Scan(pmt->mcu, &pmt->mtcu, &pmt->pmq, p->http_uri.raw[pmt->pkt_cnt], p->http_uri.raw_size[pmt->pkt_cnt]);
+                            if (ret > 0) {
+                                if (pmt->sgh->mpm_uricontent_maxlen == 1)      pmt->pkts_uri_searched1++;
+                                else if (pmt->sgh->mpm_uricontent_maxlen == 2) pmt->pkts_uri_searched2++;
+                                else if (pmt->sgh->mpm_uricontent_maxlen == 3) pmt->pkts_uri_searched3++;
+                                else if (pmt->sgh->mpm_uricontent_maxlen == 4) pmt->pkts_uri_searched4++;
+                                else                                           pmt->pkts_uri_searched++;
+
+                                pmt->pmq.mode = PMQ_MODE_SEARCH;
+                                ret += pmt->mcu->Search(pmt->mcu, &pmt->mtcu, &pmt->pmq, p->http_uri.raw[pmt->pkt_cnt], p->http_uri.raw_size[pmt->pkt_cnt]);
+
+                                /* indicate to uricontent that we have a uri,
+                                 * we scanned it _AND_ we found pattern matches. */
+                                pmt->de_have_httpuri = 1;
+                            }
+                        }
+                    }
                 } else {
                     if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
                         PktVarAdd(p, pe->capname, (u_int8_t *)str_ptr, ret);

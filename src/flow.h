@@ -33,6 +33,8 @@ typedef struct _FlowKey
 {
     Address src, dst;
     Port sp, dp;
+    u_int8_t proto;
+    u_int8_t recursion_level;
 
 } FlowKey;
 
@@ -40,6 +42,8 @@ typedef struct _Flow
 {
     Address src, dst;
     Port sp, dp;
+    u_int8_t proto;
+    u_int8_t recursion_level;
 
     u_int8_t flags;
 

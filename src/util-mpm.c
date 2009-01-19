@@ -44,6 +44,7 @@ MpmMatchCleanup(MpmThreadCtx *thread_ctx) {
 
         m = nxt;
     }
+
 }
 
 /* allocate a match
@@ -68,12 +69,29 @@ MpmMatchAlloc(MpmThreadCtx *thread_ctx) {
 /* append a match to a bucket
  *
  * used at search runtime */
-inline void
-MpmMatchAppend(MpmThreadCtx *thread_ctx, MpmEndMatch *em, MpmMatchBucket *mb, u_int16_t offset)
+inline int
+MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *em, MpmMatchBucket *mb, u_int16_t offset, u_int16_t patlen)
 {
-    if (em->flags & MPM_ENDMATCH_SINGLE && mb->len)
-        return;
+    /* don't bother looking at sigs that didn't match
+     * when we scanned. There's not matching anyway. */
+    if (pmq != NULL && pmq->mode == PMQ_MODE_SEARCH) {
+        if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8))))
+            return 0;
+    }
 
+    /* XXX is this correct? */
+    if (em->flags & MPM_ENDMATCH_SINGLE && mb->len)
+        return 0;
+
+    /* check offset */
+    if (offset < em->offset)
+        return 0;
+
+    /* check depth */
+    if (em->depth && (offset+patlen) > em->depth)
+        return 0;
+
+    /* ok all checks passed, now append the match */
     MpmMatch *m;
     /* pull a match from the spare list */
     if (thread_ctx->sparelist != NULL) {
@@ -82,7 +100,7 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, MpmEndMatch *em, MpmMatchBucket *mb, u_
     } else {
         m = MpmMatchAlloc(thread_ctx);
         if (m == NULL)
-            return;
+            return 0;
     }
 
     m->offset = offset;
@@ -108,6 +126,18 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, MpmEndMatch *em, MpmMatchBucket *mb, u_
         m->qnext = thread_ctx->qlist;
         thread_ctx->qlist = m;
     }
+
+    if (pmq != NULL) {
+        /* make sure we only append a sig with a matching pattern once,
+         * so we won't inspect it more than once. For this we keep a
+         * bitarray of sig internal id's and flag each sig that matched */
+        if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8)))) {
+            pmq->sig_bitarray[(em->sig_id / 8)] |= (1<<(em->sig_id % 8));
+            pmq->sig_id_array[pmq->sig_id_array_cnt] = em->sig_id;
+            pmq->sig_id_array_cnt++;
+        }
+    }
+
 #ifdef DEBUG
     printf("MpmMatchAppend: len %u (offset %u)\n", mb->len, m->offset);
 
@@ -117,6 +147,8 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, MpmEndMatch *em, MpmMatchBucket *mb, u_
         tmp = tmp->qnext;
     }
 #endif
+
+    return 1;
 }
 
 void MpmMatchFree(MpmThreadCtx *ctx, MpmMatch *m) {
@@ -167,24 +199,27 @@ void MpmEndMatchFreeAll(MpmCtx *mpm_ctx, MpmEndMatch *em) {
 void MpmInitCtx (MpmCtx *mpm_ctx, u_int16_t matcher) {
     mpm_table[matcher].InitCtx(mpm_ctx);
 
-    mpm_ctx->InitCtx          = mpm_table[matcher].InitCtx;
-    mpm_ctx->InitThreadCtx    = mpm_table[matcher].InitThreadCtx;
-    mpm_ctx->DestroyCtx       = mpm_table[matcher].DestroyCtx;
-    mpm_ctx->DestroyThreadCtx = mpm_table[matcher].DestroyThreadCtx;
-    mpm_ctx->AddPattern       = mpm_table[matcher].AddPattern;
-    mpm_ctx->AddPatternNocase = mpm_table[matcher].AddPatternNocase;
-    mpm_ctx->Prepare          = mpm_table[matcher].Prepare;
-    mpm_ctx->Search           = mpm_table[matcher].Search;
-    mpm_ctx->PrintCtx         = mpm_table[matcher].PrintCtx;
-    mpm_ctx->PrintThreadCtx   = mpm_table[matcher].PrintThreadCtx;
-    mpm_ctx->Cleanup          = mpm_table[matcher].Cleanup;
+    mpm_ctx->InitCtx              = mpm_table[matcher].InitCtx;
+    mpm_ctx->InitThreadCtx        = mpm_table[matcher].InitThreadCtx;
+    mpm_ctx->DestroyCtx           = mpm_table[matcher].DestroyCtx;
+    mpm_ctx->DestroyThreadCtx     = mpm_table[matcher].DestroyThreadCtx;
+    mpm_ctx->AddScanPattern       = mpm_table[matcher].AddScanPattern;
+    mpm_ctx->AddScanPatternNocase = mpm_table[matcher].AddScanPatternNocase;
+    mpm_ctx->AddPattern           = mpm_table[matcher].AddPattern;
+    mpm_ctx->AddPatternNocase     = mpm_table[matcher].AddPatternNocase;
+    mpm_ctx->Prepare              = mpm_table[matcher].Prepare;
+    mpm_ctx->Scan                 = mpm_table[matcher].Scan;
+    mpm_ctx->Search               = mpm_table[matcher].Search;
+    mpm_ctx->PrintCtx             = mpm_table[matcher].PrintCtx;
+    mpm_ctx->PrintThreadCtx       = mpm_table[matcher].PrintThreadCtx;
+    mpm_ctx->Cleanup              = mpm_table[matcher].Cleanup;
 }
 
 
 void MpmTableSetup(void) {
     memset(mpm_table, 0, sizeof(mpm_table));
 
-    MpmTrieRegister();
+    //MpmTrieRegister();
     MpmWuManberRegister();
 }
 

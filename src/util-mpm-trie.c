@@ -13,7 +13,7 @@
 #include "util-mpm-trie.h"
 
 #include "util-unittest.h"
-
+#if 0
 /*
  * TODO/IDEAS/XXX
  * - we know if we are interested in just the first match (simple content of
@@ -25,9 +25,9 @@
 /* prototypes to be exported */
 void TrieInitCtx(MpmCtx *mpm_ctx);
 void TrieThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int32_t);
-int TrieAddPattern(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t id);
-int TrieAddPatternNocase(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t id);
-u_int32_t TrieSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int8_t *buf, u_int16_t buflen);
+int TrieAddPattern(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t pid, u_int32_t sid);
+int TrieAddPatternNocase(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t pid, u_int32_t sid);
+u_int32_t TrieSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
 void TriePrintInfo(MpmCtx *mpm_ctx);
 void TriePrintThreadInfo(MpmThreadCtx *mpm_ctx);
 void TrieRegisterTests(void);
@@ -44,6 +44,7 @@ void MpmTrieRegister (void) {
     mpm_table[MPM_TRIE].AddPattern = TrieAddPattern;
     mpm_table[MPM_TRIE].AddPatternNocase = TrieAddPatternNocase;
     mpm_table[MPM_TRIE].Prepare = NULL;
+    mpm_table[MPM_TRIE].Scan = TrieSearch;
     mpm_table[MPM_TRIE].Search = TrieSearch;
     mpm_table[MPM_TRIE].Cleanup = MpmMatchCleanup;
     mpm_table[MPM_TRIE].PrintCtx = TriePrintInfo;
@@ -68,7 +69,7 @@ void MpmTrieRegister (void) {
 /* append an endmatch to a character node
  *
  * Only used in the initialization phase */
-static void TrieEndMatchAppend(MpmCtx *mpm_ctx, TrieCharacter *c, u_int32_t id)
+static void TrieEndMatchAppend(MpmCtx *mpm_ctx, TrieCharacter *c, u_int32_t pid, u_int32_t sid)
 {
     MpmEndMatch *em = MpmAllocEndMatch(mpm_ctx);
     if (em == NULL) {
@@ -76,7 +77,8 @@ static void TrieEndMatchAppend(MpmCtx *mpm_ctx, TrieCharacter *c, u_int32_t id)
         return;
     }
 
-    em->id = id;
+    em->id = pid;
+    em->sig_id = sid;
 
     if (c->em == NULL) {
         c->em = em;
@@ -128,8 +130,9 @@ static void TrieFreeCharacter (MpmCtx *mpm_ctx, TrieCharacter *c) {
 /* add a keyword to the search tree
  *
  * Only used in the initialization phase */
-static int DoTrieAddPattern(MpmCtx *mpm_ctx, TrieCharacter *c,
-            u_int8_t *key, u_int16_t keylen, u_int32_t id, char nocase)
+static int DoTrieAddPattern(MpmCtx *mpm_ctx, TrieCharacter *c, u_int8_t *key,
+                            u_int16_t keylen, u_int32_t pid, u_int32_t sid,
+                            char nocase)
 {
 #ifdef DEBUG
     /* DEBUG */
@@ -145,12 +148,12 @@ static int DoTrieAddPattern(MpmCtx *mpm_ctx, TrieCharacter *c,
     }
 #endif
 
-    if (keylen > mpm_ctx->maxlen)
-        mpm_ctx->maxlen = keylen;
-    if (mpm_ctx->minlen == 0)
-        mpm_ctx->minlen = keylen;
-    if (keylen < mpm_ctx->minlen)
-        mpm_ctx->minlen = keylen;
+    if (keylen > mpm_ctx->search_maxlen)
+        mpm_ctx->search_maxlen = keylen;
+    if (mpm_ctx->search_minlen == 0)
+        mpm_ctx->search_minlen = keylen;
+    if (keylen < mpm_ctx->search_minlen)
+        mpm_ctx->search_minlen = keylen;
 
     u_int16_t i;
     u_int8_t ch;
@@ -181,32 +184,32 @@ static int DoTrieAddPattern(MpmCtx *mpm_ctx, TrieCharacter *c,
         /* set the endmatch */
         if (i == keylen - 1) {
             // printf("TrieAddPattern: last char of keyword, now append an EndMatch\n");
-            TrieEndMatchAppend(mpm_ctx, c->nc[ch], id);
+            TrieEndMatchAppend(mpm_ctx, c->nc[ch], pid, sid);
         }
 
         c = c->nc[ch];
     }
 
-    if (id > mpm_ctx->max_pattern_id)
-        mpm_ctx->max_pattern_id = id;
+    if (pid > mpm_ctx->max_pattern_id)
+        mpm_ctx->max_pattern_id = pid;
 
     return 0;
 }
 
-int TrieAddPattern(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t id) {
+int TrieAddPattern(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t pid, u_int32_t sid) {
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx->ctx;
 
     trie_ctx->keywords++;
 
-    return(DoTrieAddPattern(mpm_ctx, &trie_ctx->root, key, keylen, id, 0 /* no nocase */));
+    return(DoTrieAddPattern(mpm_ctx, &trie_ctx->root, key, keylen, pid, sid, 0 /* no nocase */));
 }
 
-int TrieAddPatternNocase(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t id) {
+int TrieAddPatternNocase(MpmCtx *mpm_ctx, u_int8_t *key, u_int16_t keylen, u_int32_t pid, u_int32_t sid) {
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx->ctx;
 
     trie_ctx->nocase_keywords++;
 
-    return(DoTrieAddPattern(mpm_ctx, &trie_ctx->nocase_root, key, keylen, id, 1 /* nocase */));
+    return(DoTrieAddPattern(mpm_ctx, &trie_ctx->nocase_root, key, keylen, pid, sid, 1 /* nocase */));
 }
 
 static void TrieDoPrint(TrieCharacter *c, int depth)
@@ -313,8 +316,8 @@ TrieSpareDequeue (MpmThreadCtx *mpm_thread_ctx, TriePartialMatchList *q)
 
 static inline u_int32_t
 TrieSearchCharNocase(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                     TrieThreadCtx *trie_thread_ctx, TrieCharacter *c,
-                     TriePartialMatch **qpm, u_int8_t ch)
+                     TrieThreadCtx *trie_thread_ctx, PatternMatcherQueue *pmq,
+                     TrieCharacter *c, TriePartialMatch **qpm, u_int8_t ch)
 {
     TriePartialMatch *tmppm, *tpm;
 
@@ -339,7 +342,7 @@ TrieSearchCharNocase(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
             MpmEndMatch *em = tmppm->c->nc[ch]->em;
             if (em != NULL) {
                 for (; em != NULL; em = em->next) {
-                    MpmMatchAppend(mpm_thread_ctx, em, &mpm_thread_ctx->match[em->id],
+                    MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],
                                    trie_thread_ctx->buf - trie_thread_ctx->bufmin);
 
                     //printf("NOCASE MATCH! id %u, matched at offset %u, char %c\n", em->id,
@@ -380,7 +383,7 @@ TrieSearchCharNocase(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
             #endif /* MPM_DBG_PERF */
 
             for (; em != NULL; em = em->next) {
-                MpmMatchAppend(mpm_thread_ctx, em, &mpm_thread_ctx->match[em->id],
+                MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],
                                trie_thread_ctx->buf - trie_thread_ctx->bufmin);
                 //printf("NOCASE MATCH @search root! id %u, matched at offset %u, char %c\n", em->id,
                 //    trie_thread_ctx->buf - mpm_thread_ctx->bufmin, *mpm_thread_ctx->buf);
@@ -411,7 +414,7 @@ TrieSearchCharNocase(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     #endif /* MPM_DBG_PERF */
 
                     for (; nem != NULL; nem = nem->next) {
-                         MpmMatchAppend(mpm_thread_ctx, nem, &mpm_thread_ctx->match[nem->id],
+                         MpmMatchAppend(mpm_thread_ctx, pmq, nem, &mpm_thread_ctx->match[nem->id],
                                         trie_thread_ctx->buf - trie_thread_ctx->bufmin);
                          //printf("MATCH! id %u, matched at offset %u\n", nem->id,
                          //    trie_thread_ctx->buf - mpm_thread_ctx->bufmin);
@@ -454,8 +457,8 @@ TrieSearchCharNocase(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
 static inline u_int32_t
 TrieSearchChar(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-               TrieThreadCtx *trie_thread_ctx, TrieCharacter *c,
-               TriePartialMatch **qpm, u_int8_t ch)
+               TrieThreadCtx *trie_thread_ctx, PatternMatcherQueue *pmq,
+               TrieCharacter *c, TriePartialMatch **qpm, u_int8_t ch)
 {
     TriePartialMatch *tmppm, *tpm;
 
@@ -480,7 +483,7 @@ TrieSearchChar(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
             MpmEndMatch *em = tmppm->c->nc[ch]->em;
             if (em != NULL) {
                 for (; em != NULL; em = em->next) {
-                    MpmMatchAppend(mpm_thread_ctx, em, &mpm_thread_ctx->match[em->id],
+                    MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],
                                    trie_thread_ctx->buf - trie_thread_ctx->bufmin);
 
                     //printf("MATCH! id %u, matched at offset %u, char %c\n", em->id,
@@ -521,7 +524,7 @@ TrieSearchChar(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
             #endif /* DBG_MPM_PERF */
 
             for (; em != NULL; em = em->next) {
-                MpmMatchAppend(mpm_thread_ctx, em, &mpm_thread_ctx->match[em->id],
+                MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],
                                trie_thread_ctx->buf - trie_thread_ctx->bufmin);
 //                printf("MATCH! @search root id %u, matched at offset %u, char %c\n", em->id,
 //                    trie_thread_ctx->buf - mpm_thread_ctx->bufmin, *mpm_thread_ctx->buf);
@@ -557,7 +560,7 @@ TrieSearchChar(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     #endif /* MPM_DBG_PERF */
 
                     for (; nem != NULL; nem = nem->next) {
-                         MpmMatchAppend(mpm_thread_ctx, nem, &mpm_thread_ctx->match[nem->id],
+                         MpmMatchAppend(mpm_thread_ctx, pmq, nem, &mpm_thread_ctx->match[nem->id],
                                         trie_thread_ctx->buf - trie_thread_ctx->bufmin);
 //                         printf("MATCH! id %u, matched at offset %u\n", nem->id,
 //                             trie_thread_ctx->buf - mpm_thread_ctx->bufmin);
@@ -607,7 +610,7 @@ TrieSearchChar(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
  *
  */
 u_int32_t
-TrieSearchOffsetDepth(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
+TrieSearchOffsetDepth(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq,
            u_int8_t *buf, u_int16_t buflen, u_int16_t offset, u_int16_t depth)
 {
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx->ctx;
@@ -632,10 +635,10 @@ TrieSearchOffsetDepth(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
      * to prevent having to go through the buf twice */
     for ( ; trie_thread_ctx->buf != trie_thread_ctx->bufmax;
             trie_thread_ctx->buf++) {
-        TrieSearchChar(mpm_ctx, mpm_thread_ctx, trie_thread_ctx,
+        TrieSearchChar(mpm_ctx, mpm_thread_ctx, trie_thread_ctx, pmq,
                    &trie_ctx->root, &trie_thread_ctx->pmqueue,
                    *trie_thread_ctx->buf);
-        TrieSearchCharNocase(mpm_ctx, mpm_thread_ctx, trie_thread_ctx,
+        TrieSearchCharNocase(mpm_ctx, mpm_thread_ctx, trie_thread_ctx, pmq,
                    &trie_ctx->nocase_root, &trie_thread_ctx->nocase_pmqueue,
                    trie_tolower(*trie_thread_ctx->buf));
     }
@@ -667,7 +670,7 @@ TrieSearchOffsetDepth(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
  *
  */
 u_int32_t
-TrieSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
+TrieSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq,
            u_int8_t *buf, u_int16_t buflen)
 {
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx->ctx;
@@ -689,10 +692,10 @@ TrieSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
      * to prevent having to go through the buf twice */
     for ( ; trie_thread_ctx->buf != trie_thread_ctx->bufmax;
             trie_thread_ctx->buf++) {
-        TrieSearchChar(mpm_ctx, mpm_thread_ctx, trie_thread_ctx,
+        TrieSearchChar(mpm_ctx, mpm_thread_ctx, trie_thread_ctx, pmq,
                    &trie_ctx->root, &trie_thread_ctx->pmqueue,
                    *trie_thread_ctx->buf);
-        TrieSearchCharNocase(mpm_ctx, mpm_thread_ctx, trie_thread_ctx,
+        TrieSearchCharNocase(mpm_ctx, mpm_thread_ctx, trie_thread_ctx, pmq,
                    &trie_ctx->nocase_root, &trie_thread_ctx->nocase_pmqueue,
                    trie_tolower(*trie_thread_ctx->buf));
     }
@@ -749,8 +752,8 @@ void TriePrintInfo(MpmCtx *mpm_ctx) {
     printf("\nMPM Trie stats:\n");
     printf("Patterns:        %u\n", trie_ctx->keywords);
     printf("Patterns Nocase: %u\n", trie_ctx->nocase_keywords);
-    printf(" -shortest len:  %u\n", mpm_ctx->minlen);
-    printf(" -longest len:   %u\n", mpm_ctx->maxlen);
+    printf(" -shortest len:  %u\n", mpm_ctx->search_minlen);
+    printf(" -longest len:   %u\n", mpm_ctx->search_maxlen);
     printf("Characters:      %u\n", trie_ctx->characters);
     printf("EndMatches:      %u\n", mpm_ctx->endmatches);
     printf("Memory blocks:   %u\n", mpm_ctx->memory_cnt);
@@ -918,7 +921,7 @@ int TrieTestInitAddPattern01 (void) {
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    int ret = TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
+    int ret = TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234, 0);
     if (ret == 0)
         result = 1;
 
@@ -936,7 +939,7 @@ int TrieTestInitAddPattern02 (void) {
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234, 0);
 
     if (trie_ctx->root.nc['a'] != NULL)
         result = 1;
@@ -955,7 +958,7 @@ int TrieTestInitAddPattern03 (void) {
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234, 0);
 
     if (trie_ctx->root.nc['a']->min_matchlen_left == 4)
         result = 1;
@@ -974,7 +977,7 @@ int TrieTestInitAddPattern04 (void) {
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
-    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
+    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234, 0);
 
     if (trie_ctx->nocase_root.nc['a'] != NULL)
         result = 1;
@@ -993,7 +996,7 @@ int TrieTestInitAddPattern05 (void) {
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Abcd", 4, 1234);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Abcd", 4, 1234, 0);
 
     if (trie_ctx->root.nc['A'] != NULL)
         result = 1;
@@ -1012,7 +1015,7 @@ int TrieTestInitAddPattern06 (void) {
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     TrieCtx *trie_ctx = (TrieCtx *)mpm_ctx.ctx;
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234, 0);
 
     if (trie_ctx->root.nc['a'] != NULL &&
         trie_ctx->root.nc['a']->nc['b'] != NULL &&
@@ -1033,7 +1036,7 @@ int TrieTestInitAddPattern07 (void) {
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 1234, 0);
 
     if (mpm_ctx.max_pattern_id == 1234)
         result = 1;
@@ -1050,10 +1053,10 @@ int TrieTestSearch01 (void) {
 
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcd", 4);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcd", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -1070,10 +1073,10 @@ int TrieTestSearch02 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abce", 4);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abce", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 0)
@@ -1090,10 +1093,10 @@ int TrieTestSearch03 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -1110,10 +1113,10 @@ int TrieTestSearch04 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"bcde", 4, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"bcde", 4, 0, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -1130,10 +1133,10 @@ int TrieTestSearch05 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"efgh", 4, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"efgh", 4, 0, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -1150,10 +1153,10 @@ int TrieTestSearch06 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"eFgH", 4, 0);
+    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"eFgH", 4, 0, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdEfGh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdEfGh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -1170,11 +1173,11 @@ int TrieTestSearch07 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"abcd", 4, 0);
-    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"eFgH", 4, 1);
+    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0);
+    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"eFgH", 4, 1, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdEfGh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdEfGh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
@@ -1191,11 +1194,11 @@ int TrieTestSearch08 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcde", 5, 0);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"bcde",  4, 1);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"abcde", 5, 0, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"bcde",  4, 1, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
@@ -1212,10 +1215,10 @@ int TrieTestSearch09 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"ab", 2, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"ab", 2, 0, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"ab", 2);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"ab", 2);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -1232,11 +1235,11 @@ int TrieTestSearch10 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"bc", 2, 0);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"gh", 2, 1);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"bc", 2, 0, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"gh", 2, 1, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
@@ -1253,12 +1256,12 @@ int TrieTestSearch11 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 1);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 2);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 1, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 2, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 3)
@@ -1275,12 +1278,12 @@ int TrieTestSearch12 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"A", 1, 0);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 1);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2);
+    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 1, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
@@ -1297,12 +1300,12 @@ int TrieTestSearch13 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 2);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 2, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 3)
@@ -1319,12 +1322,12 @@ int TrieTestSearch14 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"A", 1, 0);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2);
+    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
-    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    u_int32_t cnt = TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
@@ -1341,12 +1344,12 @@ int TrieTestSearch15 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"A", 1, 0);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
-    TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
 
     u_int32_t len = mpm_thread_ctx.match[1].len;
 
@@ -1366,12 +1369,12 @@ int TrieTestSearch16 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_TRIE);
 
-    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"A", 1, 0);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1);
-    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2);
+    TrieAddPatternNocase(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 1, 0);
+    TrieAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 2, 0);
     TrieThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
-    TrieSearch(&mpm_ctx, &mpm_thread_ctx, (u_int8_t *)"abcdefgh", 8);
+    TrieSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
 
     u_int32_t len = mpm_thread_ctx.match[0].len;
 
@@ -1418,3 +1421,4 @@ void TrieRegisterTests(void) {
     UtRegisterTest("TrieTestSearch15", TrieTestSearch15, 1);
     UtRegisterTest("TrieTestSearch16", TrieTestSearch16, 1);
 }
+#endif

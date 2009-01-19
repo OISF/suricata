@@ -89,19 +89,30 @@ setup_signal_handler(int sig, void (*handler)())
 Packet *SetupPkt (void)
 {
     Packet *p = NULL;
-    do {
+//    do {
         mutex_lock(&packet_q.mutex_q);
         p = PacketDequeue(&packet_q);
         mutex_unlock(&packet_q.mutex_q);
 
         if (p == NULL) {
+            p = malloc(sizeof(Packet));
+            if (p == NULL) {
+                printf("ERROR: malloc failed: %s\n", strerror(errno));
+                exit(1);
+            }
+
+            p->pktvar = NULL;
+            CLEAR_TCP_PACKET(p);
+
             //TmqDebugList();
-            usleep(1000); /* sleep 1ms */
+            //usleep(1000); /* sleep 1ms */
 
             /* XXX check for recv'd signals, so
              * we can exit on signals received */
+
+            printf("SetupPkt: allocated a new packet...\n");
         }
-    } while (p == NULL);
+//    } while (p == NULL);
 
     CLEAR_PACKET(p);
     return p;
@@ -147,6 +158,7 @@ Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t l
     p->tunnel_proto = proto;
     p->pktlen = len;
     memcpy(&p->pkt, pkt, len);
+    p->recursion_level = parent->recursion_level + 1;
 
     /* set tunnel flags */
     SET_TUNNEL_PKT(p);
@@ -257,7 +269,8 @@ int main(int argc, char **argv)
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
-
+#define MANY_THREADS
+#ifdef MANY_THREADS
     ThreadVars *tv_decode1 = TmThreadCreate("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
     if (tv_decode1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
@@ -427,6 +440,81 @@ int main(int argc, char **argv)
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
+#else /* MANY_THREADS */
+    ThreadVars *tv_main = TmThreadCreate("MainThread","pickup-queue","simple","packetpool","packetpool","varslot");
+    if (tv_main == NULL) {
+        printf("ERROR: TmThreadsCreate failed for MainThread\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("DecodeNFQ");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv_main,tm_module);
+
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName Detect failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv_main,tm_module);
+
+    tm_module = TmModuleGetByName("VerdictNFQ");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv_main,tm_module);
+
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv_main,tm_module);
+
+    tm_module = TmModuleGetByName("AlertFastlog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv_main,tm_module);
+
+    tm_module = TmModuleGetByName("LogHttplog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv_main,tm_module);
+
+    tm_module = TmModuleGetByName("AlertUnifiedLog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv_main,tm_module);
+
+    tm_module = TmModuleGetByName("AlertUnifiedAlert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv_main,tm_module);
+
+    tm_module = TmModuleGetByName("AlertDebuglog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv_main,tm_module);
+
+    if (TmThreadSpawn(tv_main) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+#endif /* MANY_THREADS */
 
     ThreadVars tv_flowmgr;
     memset(&tv_flowmgr, 0, sizeof(ThreadVars));

@@ -43,6 +43,8 @@
 #include "action-globals.h"
 #include "tm-modules.h"
 
+#include "pkt-var.h"
+
 #include "util-unittest.h"
 
 static DetectEngineCtx *g_de_ctx = NULL;
@@ -50,8 +52,6 @@ static u_int32_t mpm_memory_size = 0;
 
 SigMatch *SigMatchAlloc(void);
 void SigMatchFree(SigMatch *sm);
-int SignatureTupleCmp(SignatureTuple *a, SignatureTuple *b);
-int SignatureTupleCmpRaw(DetectAddressGroup *src, DetectAddressGroup *dst, DetectPort *sp, DetectPort *dp, u_int8_t proto, SignatureTuple *b);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
 
 /* tm module api functions */
@@ -104,35 +104,35 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         (float)(pmt->pkts_searched/(float)(pmt->pkts)*100),
         (float)(pmt->pkts_searched/(float)(pmt->pkts_scanned)*100));
 
-    printf(" - (%s) URI (1byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_uri_scanned1,
-        (float)(pmt->pkts_uri_scanned1/(float)(pmt->pkts)*100),
+    printf(" - (%s) URI (1byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->uris, pmt->pkts_uri_scanned1,
+        (float)(pmt->pkts_uri_scanned1/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched1,
-        (float)(pmt->pkts_uri_searched1/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched1/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched1/(float)(pmt->pkts_uri_scanned1)*100));
-    printf(" - (%s) URI (2byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) URI (2byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
         pmt->pkts, pmt->pkts_uri_scanned2,
-        (float)(pmt->pkts_uri_scanned2/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_scanned2/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched2,
-        (float)(pmt->pkts_uri_searched2/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched2/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched2/(float)(pmt->pkts_uri_scanned2)*100));
-    printf(" - (%s) URI (3byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_uri_scanned3,
-        (float)(pmt->pkts_uri_scanned3/(float)(pmt->pkts)*100),
+    printf(" - (%s) URI (3byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->uris, pmt->pkts_uri_scanned3,
+        (float)(pmt->pkts_uri_scanned3/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched3,
-        (float)(pmt->pkts_uri_searched3/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched3/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched3/(float)(pmt->pkts_uri_scanned3)*100));
-    printf(" - (%s) URI (4byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_uri_scanned4,
-        (float)(pmt->pkts_uri_scanned4/(float)(pmt->pkts)*100),
+    printf(" - (%s) URI (4byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->uris, pmt->pkts_uri_scanned4,
+        (float)(pmt->pkts_uri_scanned4/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched4,
-        (float)(pmt->pkts_uri_searched4/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched4/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched4/(float)(pmt->pkts_uri_scanned4)*100));
-    printf(" - (%s) (+byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_uri_scanned,
-        (float)(pmt->pkts_uri_scanned/(float)(pmt->pkts)*100),
+    printf(" - (%s) URI (+byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+        pmt->uris, pmt->pkts_uri_scanned,
+        (float)(pmt->pkts_uri_scanned/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched,
-        (float)(pmt->pkts_uri_searched/(float)(pmt->pkts)*100),
+        (float)(pmt->pkts_uri_searched/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched/(float)(pmt->pkts_uri_scanned)*100));
 }
 
@@ -142,7 +142,6 @@ void SigLoadSignatures (void)
 
     /* intialize the de_ctx */
     g_de_ctx = DetectEngineCtxInit();
-
 
     /* The next 3 rules handle HTTP header capture. */
 
@@ -159,14 +158,14 @@ void SigLoadSignatures (void)
     prevsig = sig;
 
     /* http_host -- for the log-httplog module */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
+    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"|0d 0a|Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_ua -- for the log-httplog module */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
+    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"|0d 0a|User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
@@ -276,6 +275,7 @@ void SigLoadSignatures (void)
     //FILE *fp = fopen("/home/victor/rules/vips-http.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-dshield.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-web.rules", "r");
+    //FILE *fp = fopen("/home/victor/rules/emerging-policy.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-p2p.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-web-small.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/web-misc.rules", "r");
@@ -310,8 +310,6 @@ void SigLoadSignatures (void)
     }
     fclose(fp);
     printf("SigLoadSignatures: %d successfully loaded from file. %d sigs failed to load\n", good, bad);
-    printf("SigLoadSignatures: %u sigs with dstportany\n", DbgGetDstPortAnyCnt());
-
 #endif
 
     /* Setup the signature group lookup structure and
@@ -406,11 +404,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
     /* we assume we don't have an uri when we start inspection */
     pmt->de_have_httpuri = 0;
-    pmt->de_scanned_httpuri = 0;
     pmt->mc = NULL;
-    pmt->mc_scan = NULL;
     pmt->mcu = NULL;
-    pmt->mcu_scan = NULL;
     pmt->sgh = NULL;
 
     /* find the right mpm instance */
@@ -421,9 +416,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
         if (ag != NULL) {
             if (ag->port == NULL) {
                 pmt->mc = ag->sh->mpm_ctx;
-                pmt->mc_scan = ag->sh->mpm_scan_ctx;
                 pmt->mcu = ag->sh->mpm_uri_ctx;
-                pmt->mcu_scan = ag->sh->mpm_uri_scan_ctx;
                 pmt->sgh = ag->sh;
 
                 //printf("SigMatchSignatures: mc %p, mcu %p\n", pmt->mc, pmt->mcu);
@@ -436,9 +429,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                     DetectPort *dport = DetectPortLookupGroup(sport->dst_ph,p->dp);
                     if (dport != NULL) {
                         pmt->mc = dport->sh->mpm_ctx;
-                        pmt->mc_scan = dport->sh->mpm_scan_ctx;
                         pmt->mcu = dport->sh->mpm_uri_ctx;
-                        pmt->mcu_scan = dport->sh->mpm_uri_scan_ctx;
                         pmt->sgh = dport->sh;
                     }
                 }
@@ -474,7 +465,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                 else                                        pmt->pkts_searched++;
 
                 cnt += PacketPatternMatch(th_v, pmt, p);
-                //printf("search: cnt %u\n", cnt);
+
+                //printf("RAW: cnt %u, pmt->pmq.sig_id_array_cnt %u\n", cnt, pmt->pmq.sig_id_array_cnt);
             }
         }
     }
@@ -483,6 +475,14 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
     for (idx = 0; idx < pmt->sgh->sig_cnt; idx++) {
         sig = pmt->sgh->match_array[idx];
         s = g_de_ctx->sig_array[sig];
+
+        /* filter out sigs that want pattern matches, but
+         * have no matches */
+        if (!(pmt->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
+            (s->flags & SIG_FLAG_MPM))
+            continue;
+
+        //printf("idx %u, pmt->pmq.sig_id_array_cnt %u, s->id %u (MPM? %s)\n", idx, pmt->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
         //printf("Sig %u\n", s->id);
 
         /* check the source & dst port in the sig */
@@ -564,7 +564,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                     /* only if the last matched as well, we have a hit */
                     if (sm == NULL) {
                         fmatch = 1;
-
+//printf("DE : sig %u matched\n", s->id);
                         if (!(s->flags & SIG_FLAG_NOALERT)) {
                             PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
 
@@ -1390,7 +1390,6 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
                         de_ctx->mpm_unique++;
                     } else {
                         sgr->sh->mpm_ctx = mpmsh->mpm_ctx;
-                        sgr->sh->mpm_scan_ctx = mpmsh->mpm_scan_ctx;
                         sgr->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
                         SigGroupHeadClearContent(sgr->sh);
 
@@ -1410,7 +1409,6 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
                         de_ctx->mpm_uri_unique++;
                     } else {
                         sgr->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
-                        sgr->sh->mpm_uri_scan_ctx = mpmsh->mpm_uri_scan_ctx;
                         sgr->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
                         SigGroupHeadClearUricontent(sgr->sh);
 
@@ -1790,7 +1788,6 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                         de_ctx->mpm_unique++;
                                     } else {
                                         dp->sh->mpm_ctx = mpmsh->mpm_ctx;
-                                        dp->sh->mpm_scan_ctx = mpmsh->mpm_scan_ctx;
                                         dp->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
                                         SigGroupHeadClearContent(dp->sh);
 
@@ -1810,7 +1807,6 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                         de_ctx->mpm_uri_unique++;
                                     } else {
                                         dp->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
-                                        dp->sh->mpm_uri_scan_ctx = mpmsh->mpm_uri_scan_ctx;
                                         dp->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
                                         SigGroupHeadClearUricontent(dp->sh);
 
@@ -2005,9 +2001,10 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
 //    DetectPortPrintMemory();
 //#endif
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* MPM memory %u (dynamic %u, ctxs %u)\n",
+        printf("* MPM memory %u (dynamic %u, ctxs %u, avg per ctx %u)\n",
             mpm_memory_size + ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * sizeof(MpmCtx)),
-            mpm_memory_size, ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * sizeof(MpmCtx)));
+            mpm_memory_size, ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * sizeof(MpmCtx)),
+            mpm_memory_size / de_ctx->mpm_unique);
 
         printf(" * Max sig id %u, array size %u\n", SigGetMaxId(), SigGetMaxId() / 8 + 1);
         printf("* Signature group heads: unique %u, copies %u.\n", de_ctx->gh_unique, de_ctx->gh_reuse);
@@ -2761,6 +2758,10 @@ int SigTest06 (void) {
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
+    else
+        printf("sid:1 %s, sid:2 %s: ",
+            PacketAlertCheck(&p, 1) ? "OK" : "FAIL",
+            PacketAlertCheck(&p, 2) ? "OK" : "FAIL");
 
     SigGroupCleanup();
     SigCleanSignatures();
@@ -2879,6 +2880,10 @@ int SigTest08 (void) {
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
+    else
+        printf("sid:1 %s, sid:2 %s: ",
+            PacketAlertCheck(&p, 1) ? "OK" : "FAIL",
+            PacketAlertCheck(&p, 2) ? "OK" : "FAIL");
 
     SigGroupCleanup();
     SigCleanSignatures();
@@ -3304,6 +3309,121 @@ end:
     return result;
 }
 
+int SigTest17 (void) {
+    u_int8_t *buf = (u_int8_t *)
+                    "GET /one/ HTTP/1.1\r\n"    /* 20 */
+                    "Host: one.example.org\r\n" /* 23, 43 */
+                    "\r\n\r\n"                  /* 4,  47 */
+                    "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
+                    "Host: two.example.org\r\n" /* 23, 90 */
+                    "\r\n\r\n";                 /* 4,  94 */
+    u_int16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    PatternMatcherThread *pmt;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.tcp_payload = buf;
+    p.tcp_payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+    p.dp = 80;
+
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->flags |= DE_QUIET;
+
+    g_de_ctx->sig_list = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(g_de_ctx);
+    PatternMatchPrepare(mpm_ctx);
+    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+
+    SigMatchSignatures(&th_v, pmt, &p);
+    PktVar *pv_hn = PktVarGet(&p, "http_host");
+    if (pv_hn != NULL) {
+        if (memcmp(pv_hn->value, "one.example.org", pv_hn->value_len < 15 ? pv_hn->value_len : 15) == 0)
+            result = 1;
+        else {
+            printf("\"");
+            PrintRawUriFp(stdout, pv_hn->value, pv_hn->value_len);
+            printf("\" != \"one.example.org\": ");
+        }
+    } else {
+        printf("Pkt var http_host not captured: ");
+    }
+
+    SigGroupCleanup();
+    SigCleanSignatures();
+
+    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(g_de_ctx);
+end:
+    return result;
+}
+
+int SigTest18 (void) {
+    u_int8_t *buf = (u_int8_t *)
+                    "220 (vsFTPd 2.0.5)\r\n";
+    u_int16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    PatternMatcherThread *pmt;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.tcp_payload = buf;
+    p.tcp_payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+    p.dp = 34260;
+    p.sp = 21;
+
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->flags |= DE_QUIET;
+
+    g_de_ctx->sig_list = SigInit("alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(g_de_ctx);
+    PatternMatchPrepare(mpm_ctx);
+    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+
+    SigMatchSignatures(&th_v, pmt, &p);
+    if (!PacketAlertCheck(&p, 2003055))
+        result = 1;
+    else
+        printf("signature shouldn't match, but did: ");
+
+    SigGroupCleanup();
+    SigCleanSignatures();
+    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(g_de_ctx);
+end:
+    return result;
+}
+
 void SigRegisterTests(void) {
     SigParseRegisterTests();
     UtRegisterTest("SigTest01 -- HTTP URI cap", SigTest01, 1);
@@ -3322,5 +3442,7 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTest14 -- content order matching, distance 0", SigTest14, 1);
     UtRegisterTest("SigTest15 -- port negation sig (no match)", SigTest15, 1);
     UtRegisterTest("SigTest16 -- port negation sig (match)", SigTest16, 1);
+    UtRegisterTest("SigTest17 -- HTTP Host Pkt var capture", SigTest17, 1);
+    UtRegisterTest("SigTest18 -- Ftp negation sig test", SigTest18, 1);
 }
 

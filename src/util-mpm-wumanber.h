@@ -5,7 +5,10 @@
 
 #include "util-mpm.h"
 
-#define NOCASE 0x01
+#define WUMANBER_NOCASE 0x01
+#define WUMANBER_SCAN   0x02
+
+//#define WUMANBER_COUNTERS
 
 typedef struct _WmPattern {
     u_int8_t *cs; /* case sensitive */
@@ -28,27 +31,43 @@ typedef struct _WmCtx {
     /* hash used during ctx initialization */
     WmPattern **init_hash;
 
-    u_int16_t shiftlen;
+    u_int16_t scan_shiftlen;
+    u_int16_t search_shiftlen;
 
-    u_int32_t hash_size;
-    WmHashItem **hash;
-    WmHashItem hash1[256];
+    u_int32_t scan_hash_size;
+    WmHashItem **scan_hash;
+    WmHashItem scan_hash1[256];
+    u_int32_t search_hash_size;
+    WmHashItem **search_hash;
+    WmHashItem search_hash1[256];
+
+    /* we store our own multi byte scan ptr here for WmSearch1 */
+    u_int32_t (*MBScan)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
     /* we store our own multi byte search ptr here for WmSearch1 */
-    u_int32_t (*MBSearch)(struct _MpmCtx *, struct _MpmThreadCtx *, u_int8_t *, u_int16_t);
+    u_int32_t (*MBSearch)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
 
     /* pattern arrays */
     WmPattern **parray;
 
     /* only used for multibyte pattern search */
-    u_int16_t *shifttable;
+    u_int16_t *scan_shifttable;
+    u_int16_t *search_shifttable;
 } WmCtx;
 
 typedef struct _WmThreadCtx {
-    u_int32_t stat_shift_null;
-    u_int32_t stat_loop_match;
-    u_int32_t stat_loop_no_match;
-    u_int32_t stat_num_shift;
-    u_int32_t stat_total_shift;
+#ifdef WUMANBER_COUNTERS
+    u_int32_t scan_stat_shift_null;
+    u_int32_t scan_stat_loop_match;
+    u_int32_t scan_stat_loop_no_match;
+    u_int32_t scan_stat_num_shift;
+    u_int32_t scan_stat_total_shift;
+
+    u_int32_t search_stat_shift_null;
+    u_int32_t search_stat_loop_match;
+    u_int32_t search_stat_loop_no_match;
+    u_int32_t search_stat_num_shift;
+    u_int32_t search_stat_total_shift;
+#endif /* WUMANBER_COUNTERS */
 } WmThreadCtx;
 
 void MpmWuManberRegister(void);

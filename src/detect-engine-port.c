@@ -946,6 +946,8 @@ DetectPort *PortParse(char *str) {
     if (dp == NULL)
         goto error;
 
+    /* XXX better input validation */
+
     /* we dup so we can put a nul-termination in it later */
     char *port = portdup;
 
@@ -957,10 +959,10 @@ DetectPort *PortParse(char *str) {
 
     /* see if the address is an ipv4 or ipv6 address */
     if ((port2 = strchr(port, ':')) != NULL)  {
-        /* 1.2.3.4-1.2.3.6 range format */
+        /* 80:81 range format */
         port[port2 - port] = '\0';
         port2++;
-        dp->port  = atoi(port);
+        dp->port = atoi(port);
         if (strcmp(port2,"") != 0)
             dp->port2 = atoi(port2);
         else
@@ -1472,6 +1474,29 @@ end:
     return result;
 }
 
+int PortTestParse07 (void) {
+    DetectPort *dd = NULL;
+    int result = 0;
+
+    int r = DetectPortParse(&dd,"!21:902");
+    if (r != 0)
+        goto end;
+
+    if (dd->next == NULL)
+        goto end;
+
+    if (dd->port != 0 || dd->port2 != 20)
+        goto end;
+
+    if (dd->next->port != 903 || dd->next->port2 != 65535)
+        goto end;
+
+    DetectPortCleanupList(dd);
+    result = 1;
+end:
+    return result;
+}
+
 
 void DetectPortTests(void) {
     UtRegisterTest("PortTestParse01", PortTestParse01, 1);
@@ -1480,5 +1505,6 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestParse04", PortTestParse04, 1);
     UtRegisterTest("PortTestParse05", PortTestParse05, 1);
     UtRegisterTest("PortTestParse06", PortTestParse06, 1);
+    UtRegisterTest("PortTestParse07", PortTestParse07, 1);
 }
 

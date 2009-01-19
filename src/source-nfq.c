@@ -250,20 +250,23 @@ int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
 }
 
 int VerdictNFQThreadInit(ThreadVars *tv, void **data) {
-    //printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", verdict_queue_num);
+    printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", verdict_queue_num);
 
     /* no initialization, ReceiveNFQ takes care of that */
     NFQThreadVars *ntv = &nfq_t[verdict_queue_num];
 
     *data = (void *)ntv;
     verdict_queue_num++;
+
+    printf("VerdictNFQThreadInit: ntv %p\n", ntv);
     return 0;
 }
 
 int VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
-    //printf("VerdictNFQThreadDeinit: starting... will close queuenum %u\n", ntv->queue_num);
+    printf("VerdictNFQThreadDeinit: ntv %p\n", ntv);
+    printf("VerdictNFQThreadDeinit: starting... will close queuenum %u\n", ntv->queue_num);
 
     nfq_destroy_queue(ntv->qh);
 
@@ -309,7 +312,16 @@ int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     sigfillset(&sigs);
     pthread_sigmask(SIG_BLOCK, &sigs, NULL);
 
+    /* do our nfq magic */
     NFQRecvPkt(ntv);
+
+    /* check if we have too many packets in the system
+     * so we will wait for some to free up */
+    mutex_lock(&mutex_pending);
+    if (pending > MAX_PENDING) {
+        pthread_cond_wait(&cond_pending, &mutex_pending);
+    }
+    mutex_unlock(&mutex_pending);
     return 0;
 }
 

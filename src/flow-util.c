@@ -49,9 +49,14 @@ void FlowFree(Flow *f)
     free(f);
 }
 
+/* initialize the flow from the first packet
+ * we see from it. */
 void FlowInit(Flow *f, Packet *p)
 {
     CLEAR_FLOW(f);
+
+    f->proto = p->proto;
+    f->recursion_level = p->recursion_level;
 
     if (p->ip4h != NULL) { /* XXX MACRO */
         SET_IPV4_SRC_ADDR(p,&f->src);
@@ -67,6 +72,9 @@ void FlowInit(Flow *f, Packet *p)
     if (p->tcph != NULL) { /* XXX MACRO */
         SET_TCP_SRC_PORT(p,&f->sp);
         SET_TCP_DST_PORT(p,&f->dp);
+    } else if (p->udph != NULL) { /* XXX MACRO */
+        SET_UDP_SRC_PORT(p,&f->sp);
+        SET_UDP_DST_PORT(p,&f->dp);
     } /* XXX handle default */
     else {
         printf("FIXME: %s:%s:%d\n", __FILE__, __FUNCTION__, __LINE__);

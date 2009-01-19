@@ -8,15 +8,18 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
-#define SIG_FLAG_RECURSIVE 0x01
-#define SIG_FLAG_SRC_ANY   0x02
-#define SIG_FLAG_DST_ANY   0x04
-#define SIG_FLAG_SP_ANY    0x08
-#define SIG_FLAG_DP_ANY    0x10
-#define SIG_FLAG_NOALERT   0x20
-#define SIG_FLAG_IPONLY    0x40 /* ip only signature */
+/* Signature flags */
+#define SIG_FLAG_RECURSIVE 0x0001 /* recurive capturing enabled */
+#define SIG_FLAG_SRC_ANY   0x0002 /* source is any */
+#define SIG_FLAG_DST_ANY   0x0004 /* destination is any */
+#define SIG_FLAG_SP_ANY    0x0008 /* source port is any */
+#define SIG_FLAG_DP_ANY    0x0010 /* destination port is any */
+#define SIG_FLAG_NOALERT   0x0020 /* no alert flag is set */
+#define SIG_FLAG_IPONLY    0x0040 /* ip only signature */
+#define SIG_FLAG_MPM       0x0080 /* sig has mpm portion (content, uricontent, etc) */
 
-#define DE_QUIET           0x01
+/* Detection Engine flags */
+#define DE_QUIET           0x01   /* DE is quiet (esp for unittests) */
 
 typedef struct _PatternMatcherThread {
     /* detection engine variables */
@@ -28,24 +31,18 @@ typedef struct _PatternMatcherThread {
 
     /* http_uri stuff for uricontent */
     char de_have_httpuri;
-    char de_scanned_httpuri;
 
     /* pointer to the current mpm ctx that is stored
      * in a rule group head -- can be either a content
-     * or uricontent ctx.
-     *
-     * XXX rename to mpm_ctx as soon as the threading
-     * thing above is renamed as well  */
-    MpmCtx *mc;       /* search ctx */
-    MpmCtx *mc_scan;  /* scan ctx */
-    MpmCtx *mcu;
-    MpmCtx *mcu_scan;
-
+     * or uricontent ctx. */
+    MpmCtx *mc;  /* content */
+    MpmCtx *mcu; /* uricontent */
     MpmThreadCtx mtc;
     MpmThreadCtx mtcu;
-
     struct _SigGroupHead *sgh;
+    PatternMatcherQueue pmq;
 
+    /* counters */
     u_int32_t pkts;
     u_int32_t pkts_scanned;
     u_int32_t pkts_searched;
@@ -58,6 +55,7 @@ typedef struct _PatternMatcherThread {
     u_int32_t pkts_scanned4;
     u_int32_t pkts_searched4;
 
+    u_int32_t uris;
     u_int32_t pkts_uri_scanned;
     u_int32_t pkts_uri_searched;
     u_int32_t pkts_uri_scanned1;
@@ -68,12 +66,13 @@ typedef struct _PatternMatcherThread {
     u_int32_t pkts_uri_searched3;
     u_int32_t pkts_uri_scanned4;
     u_int32_t pkts_uri_searched4;
+
 } PatternMatcherThread;
 
 typedef struct _Signature {
-    u_int8_t flags;
+    u_int16_t flags;
 
-    u_int32_t num; /* signature number */
+    u_int32_t num; /* signature number, internal id */
     u_int32_t id;
     u_int8_t rev;
     u_int8_t prio;
@@ -138,7 +137,7 @@ typedef struct DetectEngineCtx_ {
               mpm_uri_tot_patcnt;
 
 } DetectEngineCtx;
-
+/*
 typedef struct SignatureTuple_ {
     DetectAddressGroup *src;
     DetectAddressGroup *dst;
@@ -153,7 +152,7 @@ typedef struct SignatureTuple_ {
 
     u_int32_t cnt;
 } SignatureTuple;
-
+*/
 /* container for content matches... we use this to compare
  * group heads for contents
  * XXX name */
@@ -187,10 +186,8 @@ typedef struct _SigGroupHead {
 
     /* pattern matcher instance */
     MpmCtx *mpm_ctx;      /* search */
-    MpmCtx *mpm_scan_ctx; /* scan */
     u_int16_t mpm_content_maxlen;
     MpmCtx *mpm_uri_ctx;
-    MpmCtx *mpm_uri_scan_ctx;
     u_int16_t mpm_uricontent_maxlen;
 
     /* number of sigs in this head */

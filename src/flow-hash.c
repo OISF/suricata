@@ -9,19 +9,32 @@
 #include "flow-util.h"
 #include "flow-private.h"
 
+/* calculate the hash key for this packet
+ *
+ * we're using:
+ *  hash_rand -- set at init time
+ *  source port
+ *  destination port
+ *  source address
+ *  destination address
+ *  recursion level -- for tunnels, make sure different tunnel layers can
+ *                     never get mixed up.
+ */
 u_int32_t FlowGetKey(Packet *p) {
     FlowKey *k = (FlowKey *)p;
     u_int32_t key;
 
     if (p->ip4h != NULL)
-        key = (flow_config.hash_rand + k->sp + k->dp + \
-               k->src.addr_data32[0] + k->dst.addr_data32[0]) % flow_config.hash_size;
+        key = (flow_config.hash_rand + k->proto + k->sp + k->dp + \
+               k->src.addr_data32[0] + k->dst.addr_data32[0] + \
+               k->recursion_level) % flow_config.hash_size;
     else if (p->ip6h != NULL)
-        key = (flow_config.hash_rand + k->sp + k->dp + \
+        key = (flow_config.hash_rand + k->proto + k->sp + k->dp + \
                k->src.addr_data32[0] + k->src.addr_data32[1] + \
                k->src.addr_data32[2] + k->src.addr_data32[3] + \
                k->dst.addr_data32[0] + k->dst.addr_data32[1] + \
-               k->dst.addr_data32[2] + k->dst.addr_data32[3]) % flow_config.hash_size;
+               k->dst.addr_data32[2] + k->dst.addr_data32[3] + \
+               k->recursion_level) % flow_config.hash_size;
     else
         key = 0;
 
@@ -31,12 +44,14 @@ u_int32_t FlowGetKey(Packet *p) {
 /* Since two or more flows can have the same hash key, we need to compare
  * the flow with the current flow key. */
 #define CMP_FLOW(f1,f2) \
-    ((CMP_ADDR(&(f1)->src, &(f2)->src) && \
-      CMP_ADDR(&(f1)->dst, &(f2)->dst) && \
-      CMP_PORT((f1)->sp, (f2)->sp) && CMP_PORT((f1)->dp, (f2)->dp)) || \
-     (CMP_ADDR(&(f1)->src, &(f2)->dst) && \
-      CMP_ADDR(&(f1)->dst, &(f2)->src) && \
-      CMP_PORT((f1)->sp, (f2)->dp) && CMP_PORT((f1)->dp, (f2)->sp)))
+    (((CMP_ADDR(&(f1)->src, &(f2)->src) && \
+       CMP_ADDR(&(f1)->dst, &(f2)->dst) && \
+       CMP_PORT((f1)->sp, (f2)->sp) && CMP_PORT((f1)->dp, (f2)->dp)) || \
+      (CMP_ADDR(&(f1)->src, &(f2)->dst) && \
+       CMP_ADDR(&(f1)->dst, &(f2)->src) && \
+       CMP_PORT((f1)->sp, (f2)->dp) && CMP_PORT((f1)->dp, (f2)->sp))) && \
+     (f1)->proto == (f2)->proto && \
+     (f1)->recursion_level == (f2)->recursion_level)
 
 /* FlowGetFlowFromHash
  *

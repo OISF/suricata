@@ -21,16 +21,18 @@
 u_int32_t PacketPatternScan(ThreadVars *t, PatternMatcherThread *pmt, Packet *p) {
     u_int32_t ret;
 
-    ret = pmt->mc->Search(pmt->mc_scan, &pmt->mtc, p->tcp_payload, p->tcp_payload_len);
+    pmt->pmq.mode = PMQ_MODE_SCAN;
+    ret = pmt->mc->Scan(pmt->mc, &pmt->mtc, &pmt->pmq, p->tcp_payload, p->tcp_payload_len);
 
-    //printf("PacketPatternMatch: ret %u\n", ret);
+    //printf("PacketPatternScan: ret %u\n", ret);
     return ret;
 }
 
 u_int32_t PacketPatternMatch(ThreadVars *t, PatternMatcherThread *pmt, Packet *p) {
     u_int32_t ret;
 
-    ret = pmt->mc->Search(pmt->mc, &pmt->mtc, p->tcp_payload, p->tcp_payload_len);
+    pmt->pmq.mode = PMQ_MODE_SEARCH;
+    ret = pmt->mc->Search(pmt->mc, &pmt->mtc, &pmt->pmq, p->tcp_payload, p->tcp_payload_len);
 
     //printf("PacketPatternMatch: ret %u\n", ret);
     return ret;
@@ -38,6 +40,12 @@ u_int32_t PacketPatternMatch(ThreadVars *t, PatternMatcherThread *pmt, Packet *p
 
 /* cleans up the mpm instance after a match */
 void PacketPatternCleanup(ThreadVars *t, PatternMatcherThread *pmt) {
+    int i;
+    for (i = 0; i < pmt->pmq.sig_id_array_cnt; i++) {
+        pmt->pmq.sig_bitarray[(pmt->pmq.sig_id_array[i] / 8)] &= ~(1<<(pmt->pmq.sig_id_array[i] % 8));
+    }
+    pmt->pmq.sig_id_array_cnt = 0;
+
     /* content */
     if (pmt->mc != NULL && pmt->mc->Cleanup != NULL) {
         pmt->mc->Cleanup(&pmt->mtc);
@@ -137,8 +145,10 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         for (sm = s->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 co_cnt++;
+                s->flags |= SIG_FLAG_MPM;
             } else if (sm->type == DETECT_URICONTENT) {
                 ur_cnt++;
+                s->flags |= SIG_FLAG_MPM;
             }
         }
     }
@@ -158,13 +168,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             goto error;
 
         MpmInitCtx(sh->mpm_ctx, MPM_WUMANBER);
-
-        /* scan */
-        sh->mpm_scan_ctx = malloc(sizeof(MpmCtx));
-        if (sh->mpm_scan_ctx == NULL)
-            goto error;
-
-        MpmInitCtx(sh->mpm_scan_ctx, MPM_WUMANBER);
     }
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         sh->mpm_uri_ctx = malloc(sizeof(MpmCtx));
@@ -172,13 +175,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             goto error;
 
         MpmInitCtx(sh->mpm_uri_ctx, MPM_WUMANBER);
-
-        /* scan */
-        sh->mpm_uri_scan_ctx = malloc(sizeof(MpmCtx));
-        if (sh->mpm_uri_scan_ctx == NULL)
-            goto error;
-
-        MpmInitCtx(sh->mpm_uri_scan_ctx, MPM_WUMANBER);
     }
 
     u_int16_t mpm_content_scan_maxlen = 65535, mpm_uricontent_scan_maxlen = 65535;
@@ -318,58 +314,51 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (sh->mpm_uricontent_maxlen > uricontent_maxlen)
                 sh->mpm_uricontent_maxlen = uricontent_maxlen;
         }
-//#if 0
-        /* scan ctx */
+
+        char content_scanadded = 0, uricontent_scanadded = 0;
         for (sm = s->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if (sh->mpm_content_maxlen >= cd->content_len) {
 
+                u_int16_t offset = s->flags & SIG_FLAG_RECURSIVE ? 0 : cd->offset;
+                u_int16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : cd->depth;
+
+                if (!content_scanadded && content_maxlen == cd->content_len) {
                     if (cd->flags & DETECT_CONTENT_NOCASE) {
-                        sh->mpm_scan_ctx->AddPatternNocase(sh->mpm_scan_ctx, cd->content, cd->content_len, cd->id);
+                        sh->mpm_ctx->AddScanPatternNocase(sh->mpm_ctx, cd->content, cd->content_len, offset, depth, cd->id, s->num);
                     } else {
-                        sh->mpm_scan_ctx->AddPattern(sh->mpm_scan_ctx, cd->content, cd->content_len, cd->id);
+                        sh->mpm_ctx->AddScanPattern(sh->mpm_ctx, cd->content, cd->content_len, offset, depth, cd->id, s->num);
                     }
-                    break; /* just add one per sig,
-                            * TODO see if we can select the best one */
-                }
-            }
-        }
-        for (sm = s->match; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
-                DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
-                if (sh->mpm_uricontent_maxlen >= ud->uricontent_len) {
-
-                    if (ud->flags & DETECT_URICONTENT_NOCASE) {
-                        sh->mpm_uri_scan_ctx->AddPatternNocase(sh->mpm_uri_scan_ctx, ud->uricontent, ud->uricontent_len, ud->id);
-                    } else {
-                        sh->mpm_uri_scan_ctx->AddPattern(sh->mpm_uri_scan_ctx, ud->uricontent, ud->uricontent_len, ud->id);
-                    }
-                    break;
-                }
-            }
-        }
-//#endif
-        /* search ctx */
-        for (sm = s->match; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-
-                if (cd->flags & DETECT_CONTENT_NOCASE) {
-                    sh->mpm_ctx->AddPatternNocase(sh->mpm_ctx, cd->content, cd->content_len, cd->id);
+                    content_scanadded = 1;
                 } else {
-                    sh->mpm_ctx->AddPattern(sh->mpm_ctx, cd->content, cd->content_len, cd->id);
+                    if (cd->flags & DETECT_CONTENT_NOCASE) {
+                        sh->mpm_ctx->AddPatternNocase(sh->mpm_ctx, cd->content, cd->content_len, offset, depth, cd->id, s->num);
+                    } else {
+                        sh->mpm_ctx->AddPattern(sh->mpm_ctx, cd->content, cd->content_len, offset, depth, cd->id, s->num);
+                    }
                 }
             } else if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
 
-                if (ud->flags & DETECT_URICONTENT_NOCASE) {
-                    sh->mpm_uri_ctx->AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, ud->id);
+                if (!uricontent_scanadded && uricontent_maxlen == ud->uricontent_len) {
+                    if (ud->flags & DETECT_URICONTENT_NOCASE) {
+                        sh->mpm_uri_ctx->AddScanPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
+                    } else {
+                        sh->mpm_uri_ctx->AddScanPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
+                    }
+                    uricontent_scanadded = 1;
                 } else {
-                    sh->mpm_uri_ctx->AddPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, ud->id);
+                    if (ud->flags & DETECT_URICONTENT_NOCASE) {
+                        sh->mpm_uri_ctx->AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
+                    } else {
+                        sh->mpm_uri_ctx->AddPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
+                    }
                 }
             }
         }
+
+        content_scanadded = 0;
+        uricontent_scanadded = 0;
     }
 
     /* content */
@@ -378,10 +367,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (sh->mpm_ctx->Prepare != NULL) {
             sh->mpm_ctx->Prepare(sh->mpm_ctx);
         }
-        /* scan ctx */
-        if (sh->mpm_scan_ctx->Prepare != NULL) {
-            sh->mpm_scan_ctx->Prepare(sh->mpm_scan_ctx);
-        }
 
         if (mpm_content_cnt && sh->mpm_content_maxlen > 1) {
             //printf("mpm_content_cnt %u, mpm_content_maxlen %d\n", mpm_content_cnt, mpm_content_maxlen);
@@ -389,7 +374,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         } else {
             g_content_search++;
         }
-        //printf("(sh %p) mpm_content_cnt %u, mpm_content_maxlen %u, mpm_content_minlen %u, mpm_content_scan_maxlen %u\n", sh, mpm_content_cnt, mpm_content_maxlen, sh->mpm_content_minlen, mpm_content_scan_maxlen);
+        //printf("(sh %p) mpm_content_cnt %u, mpm_content_maxlen %u, mpm_content_scan_maxlen %u\n", sh, mpm_content_cnt, sh->mpm_content_maxlen, mpm_content_scan_maxlen);
 
         if (mpm_content_maxdepth) {
 //            printf("mpm_content_maxdepth %u\n", mpm_content_maxdepth);
@@ -406,13 +391,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
         //sh->mpm_ctx->PrintCtx(sh->mpm_ctx);
     }
+
     /* uricontent */
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         if (sh->mpm_uri_ctx->Prepare != NULL) {
             sh->mpm_uri_ctx->Prepare(sh->mpm_uri_ctx);
-        }
-        if (sh->mpm_uri_scan_ctx->Prepare != NULL) {
-            sh->mpm_uri_scan_ctx->Prepare(sh->mpm_uri_scan_ctx);
         }
         if (mpm_uricontent_cnt && sh->mpm_uricontent_maxlen > 1) {
 //            printf("mpm_uricontent_cnt %u, mpm_uricontent_maxlen %d\n", mpm_uricontent_cnt, mpm_uricontent_maxlen);
@@ -445,6 +428,23 @@ int PatternMatcherThreadInit(ThreadVars *t, void **data) {
      */
     mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtc, DetectContentMaxId());
     mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtcu, DetectUricontentMaxId());
+    u_int32_t max_sig_id = SigGetMaxId();
+
+    /* sig callback testing stuff below */
+    pmt->pmq.sig_id_array = malloc(max_sig_id * sizeof(u_int32_t));
+    if (pmt->pmq.sig_id_array == NULL) {
+        printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
+        exit(1);
+    }
+    memset(pmt->pmq.sig_id_array, 0, max_sig_id * sizeof(u_int32_t));
+    pmt->pmq.sig_id_array_cnt = 0;
+    /* lookup bitarray */
+    pmt->pmq.sig_bitarray = malloc(max_sig_id / 8 + 1);
+    if (pmt->pmq.sig_bitarray == NULL) {
+        printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
+        exit(1);
+    }
+    memset(pmt->pmq.sig_bitarray, 0, max_sig_id / 8 + 1);
 
     *data = (void *)pmt;
     //printf("PatternMatcherThreadInit: data %p pmt %p\n", *data, pmt);

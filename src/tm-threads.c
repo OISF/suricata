@@ -9,77 +9,62 @@
 /* root of the threadvars list */
 static ThreadVars *tv_root;
 
+typedef struct _TmSlot {
+    /* function pointers */
+    int (*SlotInit)(ThreadVars *, void **);
+    int (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
+    void (*SlotExitPrintStats)(ThreadVars *, void *);
+    int (*SlotDeinit)(ThreadVars *, void *);
+
+    /* data storage */
+    void *slot_data;
+    PacketQueue slot_pq;
+
+    /* linked list, only used by TmVarSlot */
+    struct _TmSlot *slot_next;
+} TmSlot;
+
 /* 1 function slot */
 typedef struct _Tm1Slot {
-    int (*Slot1Init)(ThreadVars *, void **);
-    int (*Slot1Func)(ThreadVars *, Packet *, void *, PacketQueue *);
-    void (*Slot1ExitPrintStats)(ThreadVars *, void *);
-    int (*Slot1Deinit)(ThreadVars *, void *);
-    void *slot1_data;
-    PacketQueue slot1_pq;
+    TmSlot s;
 } Tm1Slot;
 
 /* 2 function slot */
 typedef struct _Tm2Slot {
-    int (*Slot1Init)(ThreadVars *, void **);
-    int (*Slot1Func)(ThreadVars *, Packet *, void *, PacketQueue *);
-    void (*Slot1ExitPrintStats)(ThreadVars *, void *);
-    int (*Slot1Deinit)(ThreadVars *, void *);
-    void *slot1_data;
-    PacketQueue slot1_pq;
-
-    int (*Slot2Init)(ThreadVars *, void **);
-    int (*Slot2Func)(ThreadVars *, Packet *, void *, PacketQueue *);
-    void (*Slot2ExitPrintStats)(ThreadVars *, void *);
-    int (*Slot2Deinit)(ThreadVars *, void *);
-    void *slot2_data;
-    PacketQueue slot2_pq;
+    TmSlot s1, s2;
 } Tm2Slot;
 
 /* 3 function slot */
 typedef struct _Tm3Slot {
-    int (*Slot1Init)(ThreadVars *, void **);
-    int (*Slot1Func)(ThreadVars *, Packet *, void *, PacketQueue *);
-    void (*Slot1ExitPrintStats)(ThreadVars *, void *);
-    int (*Slot1Deinit)(ThreadVars *, void *);
-    void *slot1_data;
-    PacketQueue slot1_pq;
-
-    int (*Slot2Init)(ThreadVars *, void **);
-    int (*Slot2Func)(ThreadVars *, Packet *, void *, PacketQueue *);
-    void (*Slot2ExitPrintStats)(ThreadVars *, void *);
-    int (*Slot2Deinit)(ThreadVars *, void *);
-    void *slot2_data;
-    PacketQueue slot2_pq;
-
-    int (*Slot3Init)(ThreadVars *, void **);
-    int (*Slot3Func)(ThreadVars *, Packet *, void *, PacketQueue *);
-    void (*Slot3ExitPrintStats)(ThreadVars *, void *);
-    int (*Slot3Deinit)(ThreadVars *, void *);
-    void *slot3_data;
-    PacketQueue slot3_pq;
+    TmSlot s1, s2, s3;
 } Tm3Slot;
 
+/* Variable number of function slots */
+typedef struct _TmVarSlot {
+    TmSlot *s;
+} TmVarSlot;
+
+/* 1 slot functions */
 
 void *TmThreadsSlot1NoIn(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
-    Tm1Slot *s1 = (Tm1Slot *)tv->tm_slots;
+    Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
     int r = 0;
 
-    if (s1->Slot1Init != NULL) {
-        r = s1->Slot1Init(tv, &s1->slot1_data);
+    if (s->s.SlotInit != NULL) {
+        r = s->s.SlotInit(tv, &s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
-    memset(&s1->slot1_pq, 0, sizeof(PacketQueue));
+    memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
     while(run) {
-        r = s1->Slot1Func(tv, p, s1->slot1_data, &s1->slot1_pq);
-        while (s1->slot1_pq.len > 0) {
-            Packet *extra = PacketDequeue(&s1->slot1_pq);
+        r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pq);
+        while (s->s.slot_pq.len > 0) {
+            Packet *extra = PacketDequeue(&s->s.slot_pq);
             tv->tmqh_out(tv, extra);
         }
 
@@ -91,12 +76,12 @@ void *TmThreadsSlot1NoIn(void *td) {
             run = 0;
     }
 
-    if (s1->Slot1ExitPrintStats != NULL) {
-        s1->Slot1ExitPrintStats(tv, s1->slot1_data);
+    if (s->s.SlotExitPrintStats != NULL) {
+        s->s.SlotExitPrintStats(tv, s->s.slot_data);
     }
 
-    if (s1->Slot1Deinit != NULL) {
-        r = s1->Slot1Deinit(tv, s1->slot1_data);
+    if (s->s.SlotDeinit != NULL) {
+        r = s->s.SlotDeinit(tv, s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -107,35 +92,35 @@ void *TmThreadsSlot1NoIn(void *td) {
 
 void *TmThreadsSlot1NoOut(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
-    Tm1Slot *s1 = (Tm1Slot *)tv->tm_slots;
+    Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
     int r = 0;
 
-    if (s1->Slot1Init != NULL) {
-        r = s1->Slot1Init(tv, &s1->slot1_data);
+    if (s->s.SlotInit != NULL) {
+        r = s->s.SlotInit(tv, &s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
-    memset(&s1->slot1_pq, 0, sizeof(PacketQueue));
+    memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
     while(run) {
         p = tv->tmqh_in(tv);
 
-        r = s1->Slot1Func(tv, p, s1->slot1_data, /* no outqh no pq */NULL);
+        r = s->s.SlotFunc(tv, p, s->s.slot_data, /* no outqh no pq */NULL);
         /* XXX handle error */
 
         if (tv->flags & THV_KILL)
             run = 0;
     }
 
-    if (s1->Slot1ExitPrintStats != NULL) {
-        s1->Slot1ExitPrintStats(tv, s1->slot1_data);
+    if (s->s.SlotExitPrintStats != NULL) {
+        s->s.SlotExitPrintStats(tv, s->s.slot_data);
     }
 
-    if (s1->Slot1Deinit != NULL) {
-        r = s1->Slot1Deinit(tv, s1->slot1_data);
+    if (s->s.SlotDeinit != NULL) {
+        r = s->s.SlotDeinit(tv, s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -146,22 +131,22 @@ void *TmThreadsSlot1NoOut(void *td) {
 
 void *TmThreadsSlot1NoInOut(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
-    Tm1Slot *s1 = (Tm1Slot *)tv->tm_slots;
+    Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     char run = 1;
     int r = 0;
 
     //printf("TmThreadsSlot1NoInOut: %s starting\n", tv->name);
 
-    if (s1->Slot1Init != NULL) {
-        r = s1->Slot1Init(tv, &s1->slot1_data);
+    if (s->s.SlotInit != NULL) {
+        r = s->s.SlotInit(tv, &s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
-    memset(&s1->slot1_pq, 0, sizeof(PacketQueue));
+    memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
     while(run) {
-        r = s1->Slot1Func(tv, NULL, s1->slot1_data, /* no outqh, no pq */NULL);
+        r = s->s.SlotFunc(tv, NULL, s->s.slot_data, /* no outqh, no pq */NULL);
         //printf("%s: TmThreadsSlot1NoInNoOut: r %d\n", tv->name, r);
         /* XXX handle error */
 
@@ -171,12 +156,12 @@ void *TmThreadsSlot1NoInOut(void *td) {
         }
     }
 
-    if (s1->Slot1ExitPrintStats != NULL) {
-        s1->Slot1ExitPrintStats(tv, s1->slot1_data);
+    if (s->s.SlotExitPrintStats != NULL) {
+        s->s.SlotExitPrintStats(tv, s->s.slot_data);
     }
 
-    if (s1->Slot1Deinit != NULL) {
-        r = s1->Slot1Deinit(tv, s1->slot1_data);
+    if (s->s.SlotDeinit != NULL) {
+        r = s->s.SlotDeinit(tv, s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -188,20 +173,20 @@ void *TmThreadsSlot1NoInOut(void *td) {
 
 void *TmThreadsSlot1(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
-    Tm1Slot *s1 = (Tm1Slot *)tv->tm_slots;
+    Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
     int r = 0;
 
     //printf("TmThreadsSlot1: %s starting\n", tv->name);
 
-    if (s1->Slot1Init != NULL) {
-        r = s1->Slot1Init(tv, &s1->slot1_data);
+    if (s->s.SlotInit != NULL) {
+        r = s->s.SlotInit(tv, &s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
-    memset(&s1->slot1_pq, 0, sizeof(PacketQueue));
+    memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
     while(run) {
         /* input a packet */
@@ -210,10 +195,10 @@ void *TmThreadsSlot1(void *td) {
         if (p == NULL) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
-            r = s1->Slot1Func(tv, p, s1->slot1_data, &s1->slot1_pq);
-            while (s1->slot1_pq.len > 0) {
+            r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pq);
+            while (s->s.slot_pq.len > 0) {
                 /* handle new packets from this func */
-                Packet *extra_p = PacketDequeue(&s1->slot1_pq);
+                Packet *extra_p = PacketDequeue(&s->s.slot_pq);
                 tv->tmqh_out(tv, extra_p);
             }
 
@@ -230,12 +215,12 @@ void *TmThreadsSlot1(void *td) {
         }
     }
 
-    if (s1->Slot1ExitPrintStats != NULL) {
-        s1->Slot1ExitPrintStats(tv, s1->slot1_data);
+    if (s->s.SlotExitPrintStats != NULL) {
+        s->s.SlotExitPrintStats(tv, s->s.slot_data);
     }
 
-    if (s1->Slot1Deinit != NULL) {
-        r = s1->Slot1Deinit(tv, s1->slot1_data);
+    if (s->s.SlotDeinit != NULL) {
+        r = s->s.SlotDeinit(tv, s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -247,21 +232,21 @@ void *TmThreadsSlot1(void *td) {
 
 void *TmThreadsSlot2(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
-    Tm2Slot *s2 = (Tm2Slot *)tv->tm_slots;
+    Tm2Slot *s = (Tm2Slot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
     int r = 0;
 
     //printf("TmThreadsSlot2: %s starting\n", tv->name);
 
-    if (s2->Slot1Init != NULL) {
-        r = s2->Slot1Init(tv, &s2->slot1_data);
+    if (s->s1.SlotInit != NULL) {
+        r = s->s1.SlotInit(tv, &s->s1.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
-    if (s2->Slot2Init != NULL) {
-        r = s2->Slot2Init(tv, &s2->slot2_data);
+    if (s->s2.SlotInit != NULL) {
+        r = s->s2.SlotInit(tv, &s->s2.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -274,23 +259,23 @@ void *TmThreadsSlot2(void *td) {
         if (p == NULL) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
-            r = s2->Slot1Func(tv, p, s2->slot1_data, &s2->slot1_pq);
-            while (s2->slot1_pq.len > 0) {
+            r = s->s1.SlotFunc(tv, p, s->s1.slot_data, &s->s1.slot_pq);
+            while (s->s1.slot_pq.len > 0) {
                 /* handle new packets from this func */
-                Packet *extra_p = PacketDequeue(&s2->slot1_pq);
+                Packet *extra_p = PacketDequeue(&s->s1.slot_pq);
 
-                r = s2->Slot2Func(tv, extra_p, s2->slot2_data, &s2->slot2_pq);
-                while (s2->slot2_pq.len > 0) {
+                r = s->s2.SlotFunc(tv, extra_p, s->s2.slot_data, &s->s2.slot_pq);
+                while (s->s2.slot_pq.len > 0) {
                     /* handle new packets from this func */
-                    Packet *extra_p2 = PacketDequeue(&s2->slot2_pq);
+                    Packet *extra_p2 = PacketDequeue(&s->s2.slot_pq);
                     tv->tmqh_out(tv, extra_p2);
                 }
                 tv->tmqh_out(tv, extra_p);
             }
-            r = s2->Slot2Func(tv, p, s2->slot2_data, &s2->slot2_pq);
-            while (s2->slot2_pq.len > 0) {
+            r = s->s2.SlotFunc(tv, p, s->s2.slot_data, &s->s2.slot_pq);
+            while (s->s2.slot_pq.len > 0) {
                 /* handle new packets from this func */
-                Packet *extra_p = PacketDequeue(&s2->slot2_pq);
+                Packet *extra_p = PacketDequeue(&s->s2.slot_pq);
                 tv->tmqh_out(tv, extra_p);
             }
 
@@ -307,23 +292,23 @@ void *TmThreadsSlot2(void *td) {
         }
     }
 
-    if (s2->Slot1ExitPrintStats != NULL) {
-        s2->Slot1ExitPrintStats(tv, s2->slot1_data);
+    if (s->s1.SlotExitPrintStats != NULL) {
+        s->s1.SlotExitPrintStats(tv, s->s1.slot_data);
     }
 
-    if (s2->Slot1Deinit != NULL) {
-        r = s2->Slot1Deinit(tv, s2->slot1_data);
+    if (s->s1.SlotDeinit != NULL) {
+        r = s->s1.SlotDeinit(tv, s->s1.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
 
-    if (s2->Slot2ExitPrintStats != NULL) {
-        s2->Slot2ExitPrintStats(tv, s2->slot2_data);
+    if (s->s2.SlotExitPrintStats != NULL) {
+        s->s2.SlotExitPrintStats(tv, s->s2.slot_data);
     }
 
-    if (s2->Slot2Deinit != NULL) {
-        r = s2->Slot2Deinit(tv, s2->slot2_data);
+    if (s->s2.SlotDeinit != NULL) {
+        r = s->s2.SlotDeinit(tv, s->s2.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -335,27 +320,27 @@ void *TmThreadsSlot2(void *td) {
 
 void *TmThreadsSlot3(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
-    Tm3Slot *s3 = (Tm3Slot *)tv->tm_slots;
+    Tm3Slot *s = (Tm3Slot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
     int r = 0;
 
     //printf("TmThreadsSlot3: %s starting\n", tv->name);
 
-    if (s3->Slot1Init != NULL) {
-        r = s3->Slot1Init(tv, &s3->slot1_data);
+    if (s->s1.SlotInit != NULL) {
+        r = s->s1.SlotInit(tv, &s->s1.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
-    if (s3->Slot2Init != NULL) {
-        r = s3->Slot2Init(tv, &s3->slot2_data);
+    if (s->s2.SlotInit != NULL) {
+        r = s->s2.SlotInit(tv, &s->s2.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
-    if (s3->Slot3Init != NULL) {
-        r = s3->Slot3Init(tv, &s3->slot3_data);
+    if (s->s3.SlotInit != NULL) {
+        r = s->s3.SlotInit(tv, &s->s3.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -369,20 +354,20 @@ void *TmThreadsSlot3(void *td) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
             /* slot 1 */
-            r = s3->Slot1Func(tv, p, s3->slot1_data, &s3->slot1_pq);
-            while (s3->slot1_pq.len > 0) {
+            r = s->s1.SlotFunc(tv, p, s->s1.slot_data, &s->s1.slot_pq);
+            while (s->s1.slot_pq.len > 0) {
                 /* handle new packets from this func */
-                Packet *extra_p = PacketDequeue(&s3->slot1_pq);
+                Packet *extra_p = PacketDequeue(&s->s1.slot_pq);
 
-                r = s3->Slot2Func(tv, extra_p, s3->slot2_data, &s3->slot2_pq);
-                while (s3->slot2_pq.len > 0) {
+                r = s->s2.SlotFunc(tv, extra_p, s->s2.slot_data, &s->s2.slot_pq);
+                while (s->s2.slot_pq.len > 0) {
                     /* handle new packets from this func */
-                    Packet *extra_p2 = PacketDequeue(&s3->slot2_pq);
+                    Packet *extra_p2 = PacketDequeue(&s->s2.slot_pq);
 
-                    r = s3->Slot3Func(tv, extra_p2, s3->slot3_data, &s3->slot3_pq);
-                    while (s3->slot3_pq.len > 0) {
+                    r = s->s3.SlotFunc(tv, extra_p2, s->s3.slot_data, &s->s3.slot_pq);
+                    while (s->s3.slot_pq.len > 0) {
                         /* handle new packets from this func */
-                        Packet *extra_p3 = PacketDequeue(&s3->slot3_pq);
+                        Packet *extra_p3 = PacketDequeue(&s->s3.slot_pq);
                         tv->tmqh_out(tv, extra_p3);
                     }
                     tv->tmqh_out(tv, extra_p2);
@@ -391,25 +376,25 @@ void *TmThreadsSlot3(void *td) {
             }
 
             /* slot 2 */
-            r = s3->Slot2Func(tv, p, s3->slot2_data, &s3->slot2_pq);
-            while (s3->slot2_pq.len > 0) {
+            r = s->s2.SlotFunc(tv, p, s->s2.slot_data, &s->s2.slot_pq);
+            while (s->s2.slot_pq.len > 0) {
                 /* handle new packets from this func */
-                Packet *extra_p = PacketDequeue(&s3->slot2_pq);
+                Packet *extra_p = PacketDequeue(&s->s2.slot_pq);
 
-                r = s3->Slot3Func(tv, extra_p, s3->slot3_data, &s3->slot3_pq);
-                while (s3->slot3_pq.len > 0) {
+                r = s->s3.SlotFunc(tv, extra_p, s->s3.slot_data, &s->s3.slot_pq);
+                while (s->s3.slot_pq.len > 0) {
                     /* handle new packets from this func */
-                    Packet *extra_p2 = PacketDequeue(&s3->slot3_pq);
+                    Packet *extra_p2 = PacketDequeue(&s->s3.slot_pq);
                     tv->tmqh_out(tv, extra_p2);
                 }
                 tv->tmqh_out(tv, extra_p);
             }
 
             /* slot 3 */
-            r = s3->Slot3Func(tv, p, s3->slot3_data, &s3->slot3_pq);
-            while (s3->slot3_pq.len > 0) {
+            r = s->s3.SlotFunc(tv, p, s->s3.slot_data, &s->s3.slot_pq);
+            while (s->s3.slot_pq.len > 0) {
                 /* handle new packets from this func */
-                Packet *extra_p = PacketDequeue(&s3->slot3_pq);
+                Packet *extra_p = PacketDequeue(&s->s3.slot_pq);
                 tv->tmqh_out(tv, extra_p);
             }
 
@@ -426,40 +411,122 @@ void *TmThreadsSlot3(void *td) {
         }
     }
 
-    if (s3->Slot1ExitPrintStats != NULL) {
-        s3->Slot1ExitPrintStats(tv, s3->slot1_data);
+    if (s->s1.SlotExitPrintStats != NULL) {
+        s->s1.SlotExitPrintStats(tv, s->s1.slot_data);
     }
 
-    if (s3->Slot1Deinit != NULL) {
-        r = s3->Slot1Deinit(tv, s3->slot1_data);
+    if (s->s1.SlotDeinit != NULL) {
+        r = s->s1.SlotDeinit(tv, s->s1.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
 
-    if (s3->Slot2ExitPrintStats != NULL) {
-        s3->Slot2ExitPrintStats(tv, s3->slot2_data);
+    if (s->s2.SlotExitPrintStats != NULL) {
+        s->s2.SlotExitPrintStats(tv, s->s2.slot_data);
     }
 
-    if (s3->Slot2Deinit != NULL) {
-        r = s3->Slot2Deinit(tv, s3->slot2_data);
+    if (s->s2.SlotDeinit != NULL) {
+        r = s->s2.SlotDeinit(tv, s->s2.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
 
-    if (s3->Slot3ExitPrintStats != NULL) {
-        s3->Slot3ExitPrintStats(tv, s3->slot3_data);
+    if (s->s3.SlotExitPrintStats != NULL) {
+        s->s3.SlotExitPrintStats(tv, s->s3.slot_data);
     }
 
-    if (s3->Slot3Deinit != NULL) {
-        r = s3->Slot3Deinit(tv, s3->slot3_data);
+    if (s->s3.SlotDeinit != NULL) {
+        r = s->s3.SlotDeinit(tv, s->s3.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
 
     //printf("TmThreadsSlot3: %s ending\n", tv->name);
+    pthread_exit((void *) 0);
+}
+
+/* separate run function so we can call it recursively */
+static inline int TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot) {
+    int r = 0;
+    TmSlot *s = NULL;
+
+    for (s = slot; s != NULL; s = s->slot_next) {
+        r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pq);
+        /* XXX handle error */
+
+        /* handle new packets */
+        while (s->slot_pq.len > 0) {
+            Packet *extra_p = PacketDequeue(&s->slot_pq);
+
+            /* see if we need to process the packet */
+            if (s->slot_next != NULL) {
+                TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
+                /* XXX handle error */
+            }
+            tv->tmqh_out(tv, extra_p);
+        }
+    }
+
+    return 0;
+}
+
+void *TmThreadsSlotVar(void *td) {
+    ThreadVars *tv = (ThreadVars *)td;
+    TmVarSlot *s = (TmVarSlot *)tv->tm_slots;
+    Packet *p = NULL;
+    char run = 1;
+    int r = 0;
+    TmSlot *slot = NULL;
+
+    //printf("TmThreadsSlot1: %s starting\n", tv->name);
+
+    for (slot = s->s; slot != NULL; slot = slot->slot_next) {
+        if (slot->SlotInit != NULL) {
+            r = slot->SlotInit(tv, &slot->slot_data);
+            if (r != 0) {
+                pthread_exit((void *) -1);
+            }
+        }
+        memset(&slot->slot_pq, 0, sizeof(PacketQueue));
+    }
+
+    while(run) {
+        /* input a packet */
+        p = tv->tmqh_in(tv);
+
+        if (p == NULL) {
+            //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
+        } else {
+            r = TmThreadsSlotVarRun(tv, p, s->s);
+            /* XXX handle error */
+
+            /* output the packet */
+            tv->tmqh_out(tv, p);
+        }
+
+        if (tv->flags & THV_KILL) {
+            //printf("%s: TmThreadsSlot1: KILL is set\n", tv->name);
+            run = 0;
+        }
+    }
+
+    for (slot = s->s; slot != NULL; slot = slot->slot_next) {
+        if (slot->SlotExitPrintStats != NULL) {
+            slot->SlotExitPrintStats(tv, slot->slot_data);
+        }
+
+        if (slot->SlotDeinit != NULL) {
+            r = slot->SlotDeinit(tv, slot->slot_data);
+            if (r != 0) {
+                pthread_exit((void *) -1);
+            }
+        }
+    }
+
+    //printf("TmThreadsSlot1: %s ending\n", tv->name);
     pthread_exit((void *) 0);
 }
 
@@ -484,6 +551,9 @@ int TmThreadSetSlots(ThreadVars *tv, char *name) {
     } else if (strcmp(name, "3slot") == 0) {
         size = sizeof(Tm3Slot);
         tv->tm_func = TmThreadsSlot3;
+    } else if (strcmp(name, "varslot") == 0) {
+        size = sizeof(TmVarSlot);
+        tv->tm_func = TmThreadsSlotVar;
     }
 
     tv->tm_slots = malloc(size);
@@ -498,79 +568,108 @@ error:
 void Tm1SlotSetFunc(ThreadVars *tv, TmModule *tm) {
     Tm1Slot *s1 = (Tm1Slot *)tv->tm_slots;
 
-    if (s1->Slot1Func != NULL)
+    if (s1->s.SlotFunc != NULL)
         printf("Warning: slot 1 is already set tp %p, "
-               "overwriting with %p\n", s1->Slot1Func, tm->Func);
+               "overwriting with %p\n", s1->s.SlotFunc, tm->Func);
 
-    s1->Slot1Init = tm->Init;
-    s1->Slot1Func = tm->Func;
-    s1->Slot1ExitPrintStats = tm->ExitPrintStats;
-    s1->Slot1Deinit = tm->Deinit;
+    s1->s.SlotInit = tm->Init;
+    s1->s.SlotFunc = tm->Func;
+    s1->s.SlotExitPrintStats = tm->ExitPrintStats;
+    s1->s.SlotDeinit = tm->Deinit;
 }
 
 void Tm2SlotSetFunc1(ThreadVars *tv, TmModule *tm) {
-    Tm2Slot *s2 = (Tm2Slot *)tv->tm_slots;
+    Tm2Slot *s = (Tm2Slot *)tv->tm_slots;
 
-    if (s2->Slot1Func != NULL)
+    if (s->s1.SlotFunc != NULL)
         printf("Warning: slot 1 is already set tp %p, "
-               "overwriting with %p\n", s2->Slot1Func, tm->Func);
+               "overwriting with %p\n", s->s1.SlotFunc, tm->Func);
 
-    s2->Slot1Init = tm->Init;
-    s2->Slot1Func = tm->Func;
-    s2->Slot1ExitPrintStats = tm->ExitPrintStats;
-    s2->Slot1Deinit = tm->Deinit;
+    s->s1.SlotInit = tm->Init;
+    s->s1.SlotFunc = tm->Func;
+    s->s1.SlotExitPrintStats = tm->ExitPrintStats;
+    s->s1.SlotDeinit = tm->Deinit;
 }
 
 void Tm2SlotSetFunc2(ThreadVars *tv, TmModule *tm) {
-    Tm2Slot *s2 = (Tm2Slot *)tv->tm_slots;
+    Tm2Slot *s = (Tm2Slot *)tv->tm_slots;
 
-    if (s2->Slot2Func != NULL)
+    if (s->s2.SlotFunc != NULL)
         printf("Warning: slot 2 is already set tp %p, "
-               "overwriting with %p\n", s2->Slot2Func, tm->Func);
+               "overwriting with %p\n", s->s2.SlotFunc, tm->Func);
 
-    s2->Slot2Init = tm->Init;
-    s2->Slot2Func = tm->Func;
-    s2->Slot2ExitPrintStats = tm->ExitPrintStats;
-    s2->Slot2Deinit = tm->Deinit;
+    s->s2.SlotInit = tm->Init;
+    s->s2.SlotFunc = tm->Func;
+    s->s2.SlotExitPrintStats = tm->ExitPrintStats;
+    s->s2.SlotDeinit = tm->Deinit;
 }
 
 void Tm3SlotSetFunc1(ThreadVars *tv, TmModule *tm) {
-    Tm3Slot *s3 = (Tm3Slot *)tv->tm_slots;
+    Tm3Slot *s = (Tm3Slot *)tv->tm_slots;
 
-    if (s3->Slot1Func != NULL)
+    if (s->s1.SlotFunc != NULL)
         printf("Warning: slot 1 is already set tp %p, "
-               "overwriting with %p\n", s3->Slot1Func, tm->Func);
+               "overwriting with %p\n", s->s1.SlotFunc, tm->Func);
 
-    s3->Slot1Init = tm->Init;
-    s3->Slot1Func = tm->Func;
-    s3->Slot1ExitPrintStats = tm->ExitPrintStats;
-    s3->Slot1Deinit = tm->Deinit;
+    s->s1.SlotInit = tm->Init;
+    s->s1.SlotFunc = tm->Func;
+    s->s1.SlotExitPrintStats = tm->ExitPrintStats;
+    s->s1.SlotDeinit = tm->Deinit;
 }
 
 void Tm3SlotSetFunc2(ThreadVars *tv, TmModule *tm) {
-    Tm3Slot *s3 = (Tm3Slot *)tv->tm_slots;
+    Tm3Slot *s = (Tm3Slot *)tv->tm_slots;
 
-    if (s3->Slot2Func != NULL)
+    if (s->s2.SlotFunc != NULL)
         printf("Warning: slot 2 is already set tp %p, "
-               "overwriting with %p\n", s3->Slot2Func, tm->Func);
+               "overwriting with %p\n", s->s2.SlotFunc, tm->Func);
 
-    s3->Slot2Init = tm->Init;
-    s3->Slot2Func = tm->Func;
-    s3->Slot2ExitPrintStats = tm->ExitPrintStats;
-    s3->Slot2Deinit = tm->Deinit;
+    s->s2.SlotInit = tm->Init;
+    s->s2.SlotFunc = tm->Func;
+    s->s2.SlotExitPrintStats = tm->ExitPrintStats;
+    s->s2.SlotDeinit = tm->Deinit;
 }
 
 void Tm3SlotSetFunc3(ThreadVars *tv, TmModule *tm) {
-    Tm3Slot *s3 = (Tm3Slot *)tv->tm_slots;
+    Tm3Slot *s = (Tm3Slot *)tv->tm_slots;
 
-    if (s3->Slot2Func != NULL)
+    if (s->s3.SlotFunc != NULL)
         printf("Warning: slot 3 is already set tp %p, "
-               "overwriting with %p\n", s3->Slot2Func, tm->Func);
+               "overwriting with %p\n", s->s3.SlotFunc, tm->Func);
 
-    s3->Slot3Init = tm->Init;
-    s3->Slot3Func = tm->Func;
-    s3->Slot3ExitPrintStats = tm->ExitPrintStats;
-    s3->Slot3Deinit = tm->Deinit;
+    s->s3.SlotInit = tm->Init;
+    s->s3.SlotFunc = tm->Func;
+    s->s3.SlotExitPrintStats = tm->ExitPrintStats;
+    s->s3.SlotDeinit = tm->Deinit;
+}
+
+void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm) {
+    TmVarSlot *s = (TmVarSlot *)tv->tm_slots;
+    TmSlot *slot = malloc(sizeof(TmSlot));
+    if (slot == NULL) 
+        return;
+
+    memset(slot, 0, sizeof(TmSlot));
+
+    slot->SlotInit = tm->Init;
+    slot->SlotFunc = tm->Func;
+    slot->SlotExitPrintStats = tm->ExitPrintStats;
+    slot->SlotDeinit = tm->Deinit;
+
+    if (s->s == NULL) {
+        s->s = slot;
+    } else {
+        TmSlot *a = s->s, *b = NULL;
+
+        /* get the last slot */
+        for ( ; a != NULL; a = a->slot_next) {
+             b = a;
+        }
+        /* append the new slot */
+        if (b != NULL) {
+            b->slot_next = slot;
+        }
+    }
 }
 
 ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name, char *outq_name, char *outqh_name, char *slots) {
@@ -668,22 +767,26 @@ void TmThreadKillThreads(void) {
 
     while (t) {
         t->flags |= THV_KILL;
-        //printf("TmThreadKillThreads: told thread %s to stop\n", t->name);
+        printf("TmThreadKillThreads: told thread %s to stop\n", t->name);
 
         if (t->inq != NULL) {
             int i;
 
-            //printf("TmThreadKillThreads: t->inq->usecnt %u\n", t->inq->usecnt);
+            printf("TmThreadKillThreads: t->inq->usecnt %u\n", t->inq->usecnt);
 
             /* signal the queue for the number of users */
             for (i = 0; i < t->inq->usecnt; i++)
                 pthread_cond_signal(&trans_q[t->inq->id].cond_q);
+            /* to be sure, signal more */
+            for (i = 0; i < 1000; i++)
+                pthread_cond_signal(&trans_q[t->inq->id].cond_q);
+
+            printf("TmThreadKillThreads: signalled t->inq->id %u\n", t->inq->id);
         }
-        //printf("TmThreadKillThreads: signalled t->inq->id %u\n", t->inq->id);
 
         /* join it */
         pthread_join(t->t, NULL);
-        //printf("TmThreadKillThreads: thread %s stopped\n", t->name);
+        printf("TmThreadKillThreads: thread %s stopped\n", t->name);
 
         t = t->next;
     }

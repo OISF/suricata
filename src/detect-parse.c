@@ -304,7 +304,8 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
 
     /* XXX VJ exclude handling this for none UDP/TCP proto's */
 
-    if (portstr[0] == '!') {
+    /* XXX hack, fix this */
+    if (portstr[0] == '!' && portstr[1] == '$') {
         portstr++;
         negate = 1;
     }
@@ -526,7 +527,31 @@ end:
     return result;
 }
 
+int SigParseTest02 (void) {
+    int result = 0;
+    Signature *sig = NULL;
+
+    sig = SigInit("alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
+    if (sig == NULL) {
+        goto end;
+    }
+
+    DetectPort *port = NULL;
+    int r = DetectPortParse(&port, "0:20");
+
+    if (DetectPortCmp(sig->sp, port) == PORT_EQ) {
+        result = 1;
+    } else {
+        DetectPortPrint(port); printf(" != "); DetectPortPrint(sig->sp); printf(": ");
+    }
+
+    SigFree(sig);
+end:
+    return result;
+}
+
 void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest01", SigParseTest01, 1);
+    UtRegisterTest("SigParseTest02", SigParseTest02, 1);
 }
 
