@@ -170,6 +170,7 @@ void SigLoadSignatures (void)
         return;
     prevsig->next = sig;
     prevsig = sig;
+
 /*
     sig = SigInit("alert udp any any -> any any (msg:\"ViCtOr nocase test\"; sid:4; rev:13; content:\"ViCtOr!!\"; offset:100; depth:150; nocase; content:\"ViCtOr!!\"; nocase; offset:99; depth:150;)");
     if (sig == NULL)
@@ -852,7 +853,7 @@ static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *head, int family)
     return grhead;
 }
 
-#define MAX_UNIQ_GROUPS 3
+#define MAX_UNIQ_GROUPS 2
 
 /* set unique_groups to 0 for no grouping.
  *
@@ -868,6 +869,7 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
     /* insert the addresses into the tmplist, where it will
      * be sorted descending on 'cnt'. */
     for (gr = srchead; gr != NULL; gr = gr->next) {
+//        printf(" 1 -= Address "); DetectAddressDataPrint(gr->ad); printf(" :  "); DbgPrintSigs2(gr->sh);
         groups++;
 
         /* alloc a copy */
@@ -981,6 +983,7 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
      *
      * Start with inserting the unique groups */
     for (gr = tmplist2; gr != NULL; ) {
+//        printf(" 2 -= U Address "); DetectAddressDataPrint(gr->ad); printf(" :  "); DbgPrintSigs2(gr->sh);
         DetectAddressGroup *newtmp = DetectAddressGroupInit();
         if (newtmp == NULL) {
             goto error;
@@ -1007,6 +1010,7 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
     }
     /* if present, insert the joingr that covers the rest */
     if (joingr != NULL) {
+//        printf(" 3 -= J Address "); DetectAddressDataPrint(joingr->ad); printf(" :  "); DbgPrintSigs2(joingr->sh);
         DetectAddressGroupInsert(newhead,joingr);
 
         /* mark the groups that are not unique */
@@ -1026,9 +1030,9 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
 
     }
 
-    //for (gr = newhead->ipv4_head; gr != NULL; gr = gr->next) {
-    //    printf(" -= Address "); DetectAddressDataPrint(gr->ad); printf("\n");
-    //}
+    for (gr = newhead->ipv4_head; gr != NULL; gr = gr->next) {
+//        printf(" 4 -= R Address "); DetectAddressDataPrint(gr->ad); printf(" :  "); DbgPrintSigs2(gr->sh);
+    }
 
     return 0;
 error:
@@ -1130,9 +1134,9 @@ int CreateGroupedPortList(DetectPort *srchead, DetectPort **newhead, u_int32_t u
         DetectPortInsert(newhead,joingr);
     }
 
-    //for (gr = *newhead; gr != NULL; gr = gr->next) {
-    //    printf("  -= Port "); DetectPortPrint(gr); printf("\n");
-    //}
+    for (gr = *newhead; gr != NULL; gr = gr->next) {
+        //printf("  -= Port "); DetectPortPrint(gr); printf(" : "); DbgPrintSigs2(gr->sh);
+    }
 
     return 0;
 error:
@@ -2352,7 +2356,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
     SigAddressPrepareStage1(de_ctx);
     SigAddressPrepareStage2(de_ctx);
     SigAddressPrepareStage3(de_ctx);
-//    SigAddressPrepareStage5();
+    //SigAddressPrepareStage5();
     DbgPrintScanSearchStats();
 //    DetectAddressGroupPrintMemory();
 //    DetectSigGroupPrintMemory();

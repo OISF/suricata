@@ -72,6 +72,7 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
     u_int32_t b_ip1 = ntohl(b->ad->ip[0]);
     u_int32_t b_ip2 = ntohl(b->ad->ip2[0]);
     DetectPort *port = NULL;
+    DetectAddressGroup *tmp = NULL;
 
     /* default to NULL */
     *c = NULL;
@@ -83,7 +84,7 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
     }
 
     /* get a place to temporary put sigs lists */
-    DetectAddressGroup *tmp = DetectAddressGroupInit();
+    tmp = DetectAddressGroupInit();
     if (tmp == NULL) {
         goto error;
     }
@@ -225,6 +226,9 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
             /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
             SigGroupHeadCopySigs(b->sh,&a->sh);
 
+            //printf("a: "); DetectAddressDataPrint(a->ad); printf(": "); DbgPrintSigs2(a->sh);
+            //printf("b: "); DetectAddressDataPrint(b->ad); printf(": "); DbgPrintSigs2(b->sh);
+
             for (port = b->port; port != NULL; port = port->next) {
                 DetectPortInsertCopy(&a->port, port);
             }
@@ -234,19 +238,35 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
 #ifdef DBG
             printf("DetectAddressGroupCutIPv4: 2\n");
 #endif
+            //printf("1a: "); DetectAddressDataPrint(a->ad); printf(": "); DbgPrintSigs2(a->sh);
+            //printf("1b: "); DetectAddressDataPrint(b->ad); printf(": "); DbgPrintSigs2(b->sh);
             a->ad->ip[0]   = htonl(b_ip1);
             a->ad->ip2[0] = htonl(a_ip1 - 1);
 
             b->ad->ip[0]   = htonl(a_ip1);
             b->ad->ip2[0] = htonl(a_ip2);
 
-            /* 'a' overlaps 'b' so a needs the 'a' sigs */
-            SigGroupHeadCopySigs(a->sh,&b->sh);
+            /* 'a' overlaps 'b' so 'b' needs the 'a' sigs */
+            SigGroupHeadCopySigs(a->sh,&tmp->sh);
+            SigGroupHeadClearSigs(a->sh);
+            SigGroupHeadCopySigs(b->sh,&a->sh);
+            SigGroupHeadCopySigs(tmp->sh,&b->sh);
+            SigGroupHeadClearSigs(tmp->sh);
 
             for (port = a->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&tmp->port, a->port);
+            }
+            for (port = b->port; port != NULL; port = port->next) {
+                DetectPortInsertCopy(&a->port, port);
+            }
+            for (port = tmp->port; port != NULL; port = port->next) {
                 DetectPortInsertCopy(&b->port, port);
             }
-            b->cnt += a->cnt;
+            tmp->cnt += a->cnt;
+            a->cnt = 0;
+            a->cnt += b->cnt;
+            b->cnt += tmp->cnt;
+            tmp->cnt = 0;
         } else {
 #ifdef DBG
             printf("3\n");
@@ -413,11 +433,13 @@ int DetectAddressGroupCutIPv4(DetectAddressGroup *a, DetectAddressGroup *b, Dete
         }
     }
 
-    DetectAddressGroupFree(tmp);
+    if (tmp != NULL)
+        DetectAddressGroupFree(tmp);
     return 0;
 
 error:
-    DetectAddressGroupFree(tmp);
+    if (tmp != NULL)
+        DetectAddressGroupFree(tmp);
     return -1;
 }
 

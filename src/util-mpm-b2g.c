@@ -463,11 +463,11 @@ static void B2gPrepareScanHash(MpmCtx *mpm_ctx) {
                 hi->idx = i;
                 hi->flags |= 0x01;
 
-                if (ctx->parray[i]->len < hi->p_min_len)
-                    hi->p_min_len = ctx->parray[i]->len;
-
                 /* Append this HashItem to the list */
                 B2gHashItem *thi = ctx->scan_hash[idx];
+                if (ctx->parray[i]->len < thi->p_min_len)
+                    thi->p_min_len = ctx->parray[i]->len;
+
                 while (thi->nxt) thi = thi->nxt;
                 thi->nxt = hi;
             }

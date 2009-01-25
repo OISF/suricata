@@ -214,11 +214,10 @@ int DetectPortInsert(DetectPort **head, DetectPort *new) {
     if (new == NULL)
         return 0;
 
-
 #ifdef DBG
-    printf("DetectPortInsert: head %p, new %p, new->dp %p\n", head, new, new->dp);
+    printf("DetectPortInsert: head %p, new %p\n", head, new);
     printf("DetectPortInsert: inserting (sig %u) ", new->sh ? new->sh->sig_cnt : 0); DetectPortPrint(new); printf("\n");
-    //DetectPortPrintList(*head);
+    DetectPortPrintList(*head);
 #endif
 
     /* see if it already exists or overlaps with existing ag's */
@@ -570,6 +569,7 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
     u_int32_t a_port2 = a->port2;
     u_int32_t b_port1 = b->port;
     u_int32_t b_port2 = b->port2;
+    DetectPort *tmp = NULL;
 
     /* default to NULL */
     *c = NULL;
@@ -584,7 +584,6 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
     }
 
     /* get a place to temporary put sigs lists */
-    DetectPort *tmp = NULL;
     tmp = DetectPortInit();
     if (tmp == NULL) {
         goto error;
@@ -709,7 +708,7 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             b->port  = a_port1;
             b->port2 = a_port2;
 
-            /* 'a' overlaps 'b' so a needs the 'a' sigs */
+            /* 'a' overlaps 'b' so 'b' needs the 'a' sigs */
             SigGroupHeadCopySigs(a->sh,&b->sh);
             b->cnt += a->cnt;
 
@@ -740,7 +739,7 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             SigGroupHeadClearSigs(a->sh); /* clean a list */
             SigGroupHeadCopySigs(b->sh,&tmp_c->sh); /* copy old b to c */
             SigGroupHeadCopySigs(b->sh,&a->sh); /* copy old b to a */
-            SigGroupHeadCopySigs(tmp->sh,&b->sh); /* prepend old a before b */
+            SigGroupHeadCopySigs(tmp->sh,&b->sh); /* merge old a with b */
 
             SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
 
@@ -781,7 +780,7 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             b->port  = b_port2 + 1;
             b->port2 = a_port2;
 
-            /* 'b' overlaps 'a' so a needs the 'b' sigs */
+            /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
             SigGroupHeadCopySigs(b->sh,&tmp->sh);
             SigGroupHeadClearSigs(b->sh);
             SigGroupHeadCopySigs(a->sh,&b->sh);
@@ -807,7 +806,7 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             b->port  = b_port1;
             b->port2 = b_port2;
 
-            /* 'a' overlaps 'b' so a needs the 'a' sigs */
+            /* 'a' overlaps 'b' so 'b' needs the 'a' sigs */
             SigGroupHeadCopySigs(a->sh,&b->sh);
 
             b->cnt += a->cnt;
@@ -841,12 +840,14 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
     }
 
     /* XXX free tmp */
-    DetectPortFree(tmp);
+    if (tmp != NULL)
+        DetectPortFree(tmp);
     return 0;
 
 error:
     /* XXX free tmp */
-    DetectPortFree(tmp);
+    if (tmp != NULL)
+        DetectPortFree(tmp);
     return -1;
 
     return -1;
