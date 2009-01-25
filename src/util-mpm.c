@@ -10,6 +10,7 @@
 /* include pattern matchers */
 #include "util-mpm-trie.h"
 #include "util-mpm-wumanber.h"
+#include "util-mpm-b2g.h"
 
 /* cleanup list with all matches
  *
@@ -221,6 +222,7 @@ void MpmTableSetup(void) {
 
     //MpmTrieRegister();
     MpmWuManberRegister();
+    MpmB2gRegister();
 }
 
 void MpmRegisterTests(void) {

@@ -64,7 +64,8 @@ void PatternMatchDestroy(MpmCtx *mc) {
 /* TODO remove this when we move to the rule groups completely */
 void PatternMatchPrepare(MpmCtx *mc)
 {
-    MpmInitCtx(mc, MPM_WUMANBER);
+    //MpmInitCtx(mc, MPM_WUMANBER);
+    MpmInitCtx(mc, MPM_B2G);
 }
 
 
@@ -167,14 +168,16 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (sh->mpm_ctx == NULL)
             goto error;
 
-        MpmInitCtx(sh->mpm_ctx, MPM_WUMANBER);
+        //MpmInitCtx(sh->mpm_ctx, MPM_WUMANBER);
+        MpmInitCtx(sh->mpm_ctx, MPM_B2G);
     }
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         sh->mpm_uri_ctx = malloc(sizeof(MpmCtx));
         if (sh->mpm_uri_ctx == NULL)
             goto error;
 
-        MpmInitCtx(sh->mpm_uri_ctx, MPM_WUMANBER);
+        //MpmInitCtx(sh->mpm_uri_ctx, MPM_WUMANBER);
+        MpmInitCtx(sh->mpm_uri_ctx, MPM_B2G);
     }
 
     u_int16_t mpm_content_scan_maxlen = 65535, mpm_uricontent_scan_maxlen = 65535;

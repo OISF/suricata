@@ -231,13 +231,7 @@ DoDetectUricontent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, SigMatch
 int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
 {
     u_int32_t len = 0;
-/*
-    if (s->id == 2008238) {
-        printf("scanning uricontent have %u\n", pmt->de_have_httpuri);
-        PrintRawUriFp(stdout,p->http_uri.raw[0],p->http_uri.raw_size[0]);
-        printf("\n");
-    }
-*/
+
     /* if we don't have a uri, don't bother scanning */
     if (pmt->de_have_httpuri == 0)
         return 0;
@@ -246,15 +240,10 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
 
     /* see if we had a match */
     len = pmt->mtcu.match[co->id].len;
-/*
-    if (s->id == 2008238)
-        printf("len %u\n", len);
-*/
     if (len == 0)
         return 0;
 
 #ifdef DEBUG
-    if (s->id == 2008238) {
     printf("uricontent \'");
     PrintRawUriFp(stdout, co->uricontent, co->uricontent_len);    
     printf("\' matched %u time(s) at offsets: ", len);
@@ -264,7 +253,6 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
         printf("%u ", tmpm->offset);
     }
     printf("\n");
-    }
 #endif
 
     return DoDetectUricontent(t, pmt, p, m, co);

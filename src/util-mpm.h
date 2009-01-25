@@ -10,6 +10,7 @@
 enum {
     MPM_TRIE,
     MPM_WUMANBER,
+    MPM_B2G,
 
     /* table size */
     MPM_TABLE_SIZE,

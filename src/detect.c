@@ -111,7 +111,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         (float)(pmt->pkts_uri_searched1/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched1/(float)(pmt->pkts_uri_scanned1)*100));
     printf(" - (%s) URI (2byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_uri_scanned2,
+        pmt->uris, pmt->pkts_uri_scanned2,
         (float)(pmt->pkts_uri_scanned2/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched2,
         (float)(pmt->pkts_uri_searched2/(float)(pmt->uris)*100),
@@ -852,7 +852,7 @@ static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *head, int family)
     return grhead;
 }
 
-#define MAX_UNIQ_GROUPS 8
+#define MAX_UNIQ_GROUPS 3
 
 /* set unique_groups to 0 for no grouping.
  *

@@ -32,10 +32,10 @@ BloomFilter *BloomFilterInit(u_int32_t size, u_int8_t iter, u_int32_t (*Hash)(vo
     bf->Hash = Hash;
 
     /* setup the bitarray */
-    bf->bitarray = malloc(bf->bitarray_size/8);
+    bf->bitarray = malloc((bf->bitarray_size/8)+1);
     if (bf->bitarray == NULL)
         goto error;
-    memset(bf->bitarray,0,bf->bitarray_size/8);
+    memset(bf->bitarray,0,(bf->bitarray_size/8)+1);
 
     return bf;
 
