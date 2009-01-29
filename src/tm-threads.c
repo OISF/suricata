@@ -1,10 +1,20 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#include <sys/types.h> /* for gettid(2) */
+#define _GNU_SOURCE
+#define __USE_GNU
+#include <sys/syscall.h>
+#include <sched.h>     /* for sched_setaffinity(2) */
+
 #include "vips.h"
 #include "threadvars.h"
 #include "tm-queues.h"
 #include "tm-queuehandlers.h"
 #include "tm-modules.h"
+
+/* prototypes */
+static int SetCPUAffinity(int cpu);
+
 
 /* root of the threadvars list */
 static ThreadVars *tv_root;
@@ -53,6 +63,9 @@ void *TmThreadsSlot1NoIn(void *td) {
     char run = 1;
     int r = 0;
 
+    if (tv->set_cpu_affinity == 1)
+        SetCPUAffinity(tv->cpu_affinity);
+
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, &s->s.slot_data);
         if (r != 0) {
@@ -97,6 +110,9 @@ void *TmThreadsSlot1NoOut(void *td) {
     char run = 1;
     int r = 0;
 
+    if (tv->set_cpu_affinity == 1)
+        SetCPUAffinity(tv->cpu_affinity);
+
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, &s->s.slot_data);
         if (r != 0) {
@@ -134,6 +150,9 @@ void *TmThreadsSlot1NoInOut(void *td) {
     Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     char run = 1;
     int r = 0;
+
+    if (tv->set_cpu_affinity == 1)
+        SetCPUAffinity(tv->cpu_affinity);
 
     //printf("TmThreadsSlot1NoInOut: %s starting\n", tv->name);
 
@@ -177,6 +196,9 @@ void *TmThreadsSlot1(void *td) {
     Packet *p = NULL;
     char run = 1;
     int r = 0;
+
+    if (tv->set_cpu_affinity == 1)
+        SetCPUAffinity(tv->cpu_affinity);
 
     //printf("TmThreadsSlot1: %s starting\n", tv->name);
 
@@ -236,6 +258,9 @@ void *TmThreadsSlot2(void *td) {
     Packet *p = NULL;
     char run = 1;
     int r = 0;
+
+    if (tv->set_cpu_affinity == 1)
+        SetCPUAffinity(tv->cpu_affinity);
 
     //printf("TmThreadsSlot2: %s starting\n", tv->name);
 
@@ -324,6 +349,9 @@ void *TmThreadsSlot3(void *td) {
     Packet *p = NULL;
     char run = 1;
     int r = 0;
+
+    if (tv->set_cpu_affinity == 1)
+        SetCPUAffinity(tv->cpu_affinity);
 
     //printf("TmThreadsSlot3: %s starting\n", tv->name);
 
@@ -480,6 +508,9 @@ void *TmThreadsSlotVar(void *td) {
     char run = 1;
     int r = 0;
     TmSlot *slot = NULL;
+
+    if (tv->set_cpu_affinity == 1)
+        SetCPUAffinity(tv->cpu_affinity);
 
     //printf("TmThreadsSlot1: %s starting\n", tv->name);
 
@@ -670,6 +701,31 @@ void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm) {
             b->slot_next = slot;
         }
     }
+}
+
+/* called from the thread */
+static int SetCPUAffinity(int cpu) {
+    //pthread_t tid = pthread_self();
+    pid_t tid = syscall(SYS_gettid);
+    cpu_set_t cs;
+
+    printf("Setting CPU Affinity for thread %u to CPU %d\n", tid, cpu);
+
+    CPU_ZERO(&cs);
+    CPU_SET(cpu,&cs);
+
+    int r = sched_setaffinity(tid,sizeof(cpu_set_t),&cs); 
+    if (r != 0) {
+        printf("Warning: sched_setaffinity failed (%d): %s\n", r, strerror(errno));
+    }
+
+    return 0;
+}
+
+int TmThreadSetCPUAffinity(ThreadVars *tv, int cpu) {
+    tv->set_cpu_affinity = 1;
+    tv->cpu_affinity = cpu;
+    return 0;
 }
 
 ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name, char *outq_name, char *outqh_name, char *slots) {

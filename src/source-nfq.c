@@ -26,6 +26,8 @@ static NFQGlobalVars nfq_g;
 static NFQThreadVars nfq_t[NFQ_MAX_QUEUE];
 static u_int16_t receive_queue_num = 0;
 static u_int16_t verdict_queue_num = 0;
+static pthread_mutex_t nfq_init_lock;
+
 
 int ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 int ReceiveNFQThreadInit(ThreadVars *, void **);
@@ -42,6 +44,7 @@ void TmModuleReceiveNFQRegister (void) {
     /* XXX create a general NFQ setup function */
     memset(&nfq_g, 0, sizeof(nfq_g));
     memset(&nfq_t, 0, sizeof(nfq_t));
+    pthread_mutex_init(&nfq_init_lock, NULL);
 
     tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
     tmm_modules[TMM_RECEIVENFQ].Init = ReceiveNFQThreadInit;
@@ -177,11 +180,11 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
         }
     }
 
-    printf("NFQInitThread: binding this socket to queue '%u'\n", queue_num);
+    printf("NFQInitThread: binding this socket to queue '%u'\n", nfq_t->queue_num);
 
     /* pass the thread memory as a void ptr so the
      * callback function has access to it. */
-    nfq_t->qh = nfq_create_queue(nfq_t->h, queue_num, &cb, (void *)nfq_t);
+    nfq_t->qh = nfq_create_queue(nfq_t->h, nfq_t->queue_num, &cb, (void *)nfq_t);
     if (nfq_t->qh == NULL)
     {
         printf("error during nfq_create_queue()\n");
@@ -229,7 +232,8 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
 }
 
 int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
-    //printf("ReceiveNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
+    mutex_lock(&nfq_init_lock);
+    printf("ReceiveNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
 
     NFQThreadVars *ntv = &nfq_t[receive_queue_num];
 
@@ -241,15 +245,18 @@ int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
     if (r < 0) {
         printf("NFQInitThread failed\n");
         //return -1;
+        mutex_unlock(&nfq_init_lock);
         exit(1);
     }
 
     *data = (void *)ntv;
     receive_queue_num++;
+    mutex_unlock(&nfq_init_lock);
     return 0;
 }
 
 int VerdictNFQThreadInit(ThreadVars *tv, void **data) {
+    mutex_lock(&nfq_init_lock);
     printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", verdict_queue_num);
 
     /* no initialization, ReceiveNFQ takes care of that */
@@ -259,6 +266,7 @@ int VerdictNFQThreadInit(ThreadVars *tv, void **data) {
     verdict_queue_num++;
 
     printf("VerdictNFQThreadInit: ntv %p\n", ntv);
+    mutex_unlock(&nfq_init_lock);
     return 0;
 }
 
@@ -307,6 +315,8 @@ void NFQRecvPkt(NFQThreadVars *t) {
 int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
+    //printf("%p receiving on queue %u\n", ntv, ntv->queue_num);
+
     /* XXX can we move this to initialization? */
     sigset_t sigs;
     sigfillset(&sigs);
@@ -342,6 +352,8 @@ void VerdictNFQThreadExitStats(ThreadVars *tv, void *data) {
 void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     int ret;
     u_int32_t verdict;
+
+    //printf("%p verdicting on queue %u\n", t, t->queue_num);
 
     if (p->action == ACTION_ALERT) {
        verdict = NF_ACCEPT;

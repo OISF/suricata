@@ -42,22 +42,22 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     char proot = 0;
 
     if (IS_TUNNEL_PKT(p)) {
-        printf("TmqhOutputPacketpool: tunnel packet: %p %s\n", p,p->root ? "upper layer":"root");
+        //printf("TmqhOutputPacketpool: tunnel packet: %p %s\n", p,p->root ? "upper layer":"root");
 
         /* get a lock */
         pthread_mutex_t *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
         mutex_lock(m);
 
         if (IS_TUNNEL_ROOT_PKT(p)) {
-            printf("TmqhOutputPacketpool: IS_TUNNEL_ROOT_PKT\n");
+            //printf("TmqhOutputPacketpool: IS_TUNNEL_ROOT_PKT\n");
             if (TUNNEL_PKT_TPR(p) == 0) {
-                printf("TmqhOutputPacketpool: TUNNEL_PKT_TPR(p) == 0\n");
+                //printf("TmqhOutputPacketpool: TUNNEL_PKT_TPR(p) == 0\n");
                 /* if this packet is the root and there are no
                  * more tunnel packets, enqueue it */
 
                 /* fall through */
             } else {
-                printf("TmqhOutputPacketpool: TUNNEL_PKT_TPR(p) > 0\n");
+                //printf("TmqhOutputPacketpool: TUNNEL_PKT_TPR(p) > 0\n");
                 /* if this is the root and there are more tunnel
                  * packets, don't add this. It's still referenced
                  * by the tunnel packets, and we will enqueue it
@@ -67,7 +67,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 return;
             }
         } else {
-            printf("TmqhOutputPacketpool: NOT IS_TUNNEL_ROOT_PKT\n");
+            //printf("TmqhOutputPacketpool: NOT IS_TUNNEL_ROOT_PKT\n");
             if (p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1) {
                 //printf("TmqhOutputPacketpool: p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1\n");
                 /* the root is ready and we are the last tunnel packet,
@@ -75,19 +75,19 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 TUNNEL_DECR_PKT_TPR_NOLOCK(p);
 
                 /* handle the root */
-                printf("TmqhOutputPacketpool: calling PacketEnqueue for root pkt\n");
+                //printf("TmqhOutputPacketpool: calling PacketEnqueue for root pkt\n");
                 proot = 1;
 
                 /* fall through */
             } else {
-                printf("TmqhOutputPacketpool: NOT p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1 (%u)\n", TUNNEL_PKT_TPR(p));
+                //printf("TmqhOutputPacketpool: NOT p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1 (%u)\n", TUNNEL_PKT_TPR(p));
                 TUNNEL_DECR_PKT_TPR_NOLOCK(p);
 
                  /* fall through */
             }
         }
         mutex_unlock(m);
-        printf("TmqhOutputPacketpool: tunnel stuff done, move on\n");
+        //printf("TmqhOutputPacketpool: tunnel stuff done, move on\n");
     }
 
     mutex_lock(&q->mutex_q);

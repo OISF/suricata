@@ -4,9 +4,12 @@
 #define __UTIL_MPM_WUMANBER_H__
 
 #include "util-mpm.h"
+#include "util-bloomfilter.h"
 
 #define WUMANBER_NOCASE 0x01
 #define WUMANBER_SCAN   0x02
+
+#define WUMANBER_BLOOMSIZE 1024
 
 //#define WUMANBER_COUNTERS
 
@@ -36,6 +39,10 @@ typedef struct _WmCtx {
 
     u_int32_t scan_hash_size;
     WmHashItem **scan_hash;
+    BloomFilter **scan_bloom;
+    u_int8_t *scan_pminlen; /* array containing the minimal length
+                               of the patters in a hash bucket. Used
+                               for the BloomFilter. */
     WmHashItem scan_hash1[256];
     u_int32_t search_hash_size;
     WmHashItem **search_hash;
@@ -56,6 +63,10 @@ typedef struct _WmCtx {
 
 typedef struct _WmThreadCtx {
 #ifdef WUMANBER_COUNTERS
+    u_int32_t scan_stat_pminlen_calls;
+    u_int32_t scan_stat_pminlen_total;
+    u_int32_t scan_stat_bloom_calls;
+    u_int32_t scan_stat_bloom_hits;
     u_int32_t scan_stat_shift_null;
     u_int32_t scan_stat_loop_match;
     u_int32_t scan_stat_loop_no_match;

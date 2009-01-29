@@ -29,6 +29,8 @@ typedef struct _ThreadVars {
     void *(*tm_func)(void *);
     void *tm_slots;
 
+    char set_cpu_affinity; /* bool: 0 no, 1 yes */
+    int cpu_affinity; /* cpu or core to set affinity to */
 //#ifdef NFQ
 //    NFQThreadVars *nfq_t;
 //#endif

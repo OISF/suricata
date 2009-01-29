@@ -57,6 +57,7 @@ util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \
 util-mpm-wumanber.c util-mpm-wumanber.h \
 util-mpm-b2g.c util-mpm-b2g.h \
+util-mpm-b3g.c util-mpm-b3g.h \
 util-cidr.c util-cidr.h \
 util-unittest.c util-unittest.h \
 util-hash.c util-hash.h \

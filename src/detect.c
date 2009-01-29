@@ -271,8 +271,8 @@ void SigLoadSignatures (void)
 #define LOADSIGS
 #ifdef LOADSIGS
     int good = 0, bad = 0;
-    //FILE *fp = fopen("/etc/vips/rules/bleeding-all.rules", "r");
-    FILE *fp = fopen("/home/victor/rules/all.rules", "r");
+    FILE *fp = fopen("/etc/vips/rules/bleeding-all.rules", "r");
+    //FILE *fp = fopen("/home/victor/rules/all.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/vips-http.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-dshield.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-web.rules", "r");
@@ -485,7 +485,6 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
         //printf("idx %u, pmt->pmq.sig_id_array_cnt %u, s->id %u (MPM? %s)\n", idx, pmt->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
         //printf("Sig %u\n", s->id);
-
         /* check the source & dst port in the sig */
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
             if (!(s->flags & SIG_FLAG_DP_ANY)) {
@@ -500,6 +499,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                     continue;
             }
         }
+
         /* check the source address */
         if (!(s->flags & SIG_FLAG_SRC_ANY)) {
             DetectAddressGroup *saddr = DetectAddressLookupGroup(&s->src,&p->src);
@@ -3290,7 +3290,6 @@ int SigTest16 (void) {
 
     g_de_ctx->sig_list = SigInit("alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
     if (g_de_ctx->sig_list == NULL) {
-        result = 0;
         goto end;
     }
 
@@ -3302,7 +3301,7 @@ int SigTest16 (void) {
     if (PacketAlertCheck(&p, 2008284))
         result = 1;
     else
-        result = 0;
+        printf("sid:2008284 %s: ", PacketAlertCheck(&p, 2008284) ? "OK" : "FAIL");
 
     SigGroupCleanup();
     SigCleanSignatures();
