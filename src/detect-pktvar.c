@@ -16,7 +16,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectPktvarMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
-int DetectPktvarSetup (Signature *, SigMatch *, char *);
+int DetectPktvarSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 
 void DetectPktvarRegister (void) {
     sigmatch_table[DETECT_PKTVAR].name = "pktvar";
@@ -70,7 +70,7 @@ int DetectPktvarMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sign
     return ret;
 }
 
-int DetectPktvarSetup (Signature *s, SigMatch *m, char *rawstr)
+int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
 {
     DetectPktvarData *cd = NULL;
     SigMatch *sm = NULL;

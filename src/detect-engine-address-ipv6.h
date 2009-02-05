@@ -16,9 +16,8 @@ int DetectAddressCutIPv6(DetectAddressData *, DetectAddressData *, DetectAddress
 int DetectAddressCutNotIPv6(DetectAddressData *, DetectAddressData **);
 int DetectAddressCmpIPv6(DetectAddressData *, DetectAddressData *);
 
-int DetectAddressGroupCutIPv6(DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
-
-int DetectAddressGroupJoinIPv6(DetectAddressGroup *, DetectAddressGroup *);
+int DetectAddressGroupCutIPv6(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
+int DetectAddressGroupJoinIPv6(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *);
 
 void DetectAddressIPv6Tests(void);
 

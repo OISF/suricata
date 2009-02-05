@@ -13,7 +13,7 @@
 
 #include "detect-engine-siggroup.h"
 
-int DetectProtoSetup (Signature *s, SigMatch *m, char *sidstr);
+int DetectProtoSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *sidstr);
 void DetectProtoTests (void);
 
 void DetectProtoRegister (void) {
@@ -67,7 +67,7 @@ int DetectProtoParse(DetectProto *dp, char *str) {
 }
 
 /* XXX remove */
-int DetectProtoSetup (Signature *s, SigMatch *m, char *str)
+int DetectProtoSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *str)
 {
     return 0;
 }

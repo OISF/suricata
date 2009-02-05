@@ -4,7 +4,7 @@
 #include "detect.h"
 #include "flow-var.h"
 
-int DetectMetadataSetup (Signature *s, SigMatch *m, char *str);
+int DetectMetadataSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 
 void DetectMetadataRegister (void) {
     sigmatch_table[DETECT_METADATA].name = "metadata";
@@ -14,7 +14,7 @@ void DetectMetadataRegister (void) {
     sigmatch_table[DETECT_METADATA].RegisterTests = NULL;
 }
 
-int DetectMetadataSetup (Signature *s, SigMatch *m, char *rawstr)
+int DetectMetadataSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
 {
     char *str = rawstr;
     char dubbed = 0;

@@ -6,7 +6,7 @@
 
 #include <pcre.h>
 
-int DetectNoalertSetup (Signature *, SigMatch *, char *);
+int DetectNoalertSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 
 void DetectNoalertRegister (void) {
     sigmatch_table[DETECT_NOALERT].name = "noalert";
@@ -18,7 +18,7 @@ void DetectNoalertRegister (void) {
     sigmatch_table[DETECT_NOALERT].flags |= SIGMATCH_NOOPT;
 }
 
-int DetectNoalertSetup (Signature *s, SigMatch *m, char *nullstr)
+int DetectNoalertSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
 {
     if (nullstr != NULL) {
         printf("DetectNoalertSetup: nocase has no value\n");

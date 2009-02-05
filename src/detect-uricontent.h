@@ -24,7 +24,7 @@ typedef struct _DetectUricontentData {
 
 /* prototypes */
 void DetectUricontentRegister (void);
-u_int32_t DetectUricontentMaxId(void);
+u_int32_t DetectUricontentMaxId(DetectEngineCtx *);
 
 #endif /* __DETECT_URICONTENT_H__ */
 

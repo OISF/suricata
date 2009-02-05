@@ -2,11 +2,110 @@
 #define __DETECT_H__
 
 #include "detect-engine-proto.h"
-#include "detect-engine-port.h"
-#include "detect-engine-address.h"
 
-#include "detect-content.h"
-#include "detect-uricontent.h"
+#include "util-hash.h"
+#include "util-hashlist.h"
+
+/*
+ * DETECT ADDRESS
+ */
+
+/* a is ... than b */
+enum {
+    ADDRESS_ER = -1, /* error e.g. compare ipv4 and ipv6 */
+    ADDRESS_LT,      /* smaller              [aaa] [bbb] */
+    ADDRESS_LE,      /* smaller with overlap [aa[bab]bb] */
+    ADDRESS_EQ,      /* exactly equal        [abababab]  */
+    ADDRESS_ES,      /* within               [bb[aaa]bb] and [[abab]bbb] and [bbb[abab]] */
+    ADDRESS_EB,      /* completely overlaps  [aa[bbb]aa] and [[baba]aaa] and [aaa[baba]] */
+    ADDRESS_GE,      /* bigger with overlap  [bb[aba]aa] */
+    ADDRESS_GT,      /* bigger               [bbb] [aaa] */
+};
+
+#define ADDRESS_FLAG_ANY 0x1
+#define ADDRESS_FLAG_NOT 0x2
+
+#define ADDRESS_GROUP_SIGGROUPHEAD_COPY  0x01
+#define ADDRESS_GROUP_PORTS_COPY         0x02
+#define ADDRESS_GROUP_PORTS_NOTUNIQ      0x04
+
+typedef struct DetectAddressData_ {
+    /* XXX convert to use a Address datatype to replace family, ip,ip2*/
+    u_int8_t family;
+    u_int32_t ip[4];
+    u_int32_t ip2[4];
+    u_int8_t flags;
+} DetectAddressData;
+
+typedef struct DetectAddressGroup_ {
+    /* address data for this group */
+    DetectAddressData *ad;
+
+    /* XXX ptr to rules, or PortGroup or whatever */
+    struct DetectAddressGroupsHead_ *dst_gh;
+    struct DetectPort_ *port;
+
+    /* signatures that belong in this group */
+    struct _SigGroupHead *sh;
+    u_int8_t flags;
+
+    /* double linked list */
+    struct DetectAddressGroup_ *prev;
+    struct DetectAddressGroup_ *next;
+
+    u_int32_t cnt;
+} DetectAddressGroup;
+
+typedef struct DetectAddressGroupsHead_ {
+    DetectAddressGroup *any_head;
+    DetectAddressGroup *ipv4_head;
+    DetectAddressGroup *ipv6_head;
+} DetectAddressGroupsHead;
+
+/*
+ * DETECT PORT
+ */
+
+/* a is ... than b */
+enum {
+    PORT_ER = -1, /* error e.g. compare ipv4 and ipv6 */
+    PORT_LT,      /* smaller              [aaa] [bbb] */
+    PORT_LE,      /* smaller with overlap [aa[bab]bb] */
+    PORT_EQ,      /* exactly equal        [abababab]  */
+    PORT_ES,      /* within               [bb[aaa]bb] and [[abab]bbb] and [bbb[abab]] */
+    PORT_EB,      /* completely overlaps  [aa[bbb]aa] and [[baba]aaa] and [aaa[baba]] */
+    PORT_GE,      /* bigger with overlap  [bb[aba]aa] */
+    PORT_GT,      /* bigger               [bbb] [aaa] */
+};
+
+#define PORT_FLAG_ANY 0x1
+#define PORT_FLAG_NOT 0x2
+
+#define PORT_SIGGROUPHEAD_COPY 0x04
+#define PORT_GROUP_PORTS_COPY  0x08
+
+typedef struct DetectPort_ {
+    u_int8_t flags;
+
+    u_int16_t port;
+    u_int16_t port2;
+
+    /* signatures that belong in this group */
+    struct _SigGroupHead *sh;
+
+    struct DetectPort_ *dst_ph;
+
+    /* double linked list */
+    union {
+        struct DetectPort_ *prev;
+        struct DetectPort_ *hnext; /* hash next */
+    };
+    struct DetectPort_ *next;
+
+    u_int32_t cnt;
+} DetectPort;
+
+
 
 /* Signature flags */
 #define SIG_FLAG_RECURSIVE 0x0001 /* recurive capturing enabled */
@@ -35,9 +134,7 @@ typedef struct _PatternMatcherThread {
     /* pointer to the current mpm ctx that is stored
      * in a rule group head -- can be either a content
      * or uricontent ctx. */
-    MpmCtx *mc;  /* content */
-    MpmCtx *mcu; /* uricontent */
-    MpmThreadCtx mtc;
+    MpmThreadCtx mtc; /* thread ctx for the mpm */
     MpmThreadCtx mtcu;
     struct _SigGroupHead *sgh;
     PatternMatcherQueue pmq;
@@ -83,10 +180,58 @@ typedef struct _Signature {
     DetectProto proto;
     DetectPort *sp, *dp;
 
-    //u_int32_t rulegroup_refcnt;
     struct _SigMatch *match;
     struct _Signature *next;
 } Signature;
+
+typedef struct DetectEngineCtx_ {
+    u_int8_t flags;
+
+    Signature *sig_list;
+    u_int32_t sig_cnt;
+
+    Signature **sig_array;
+    u_int32_t sig_array_size; /* size in bytes */
+    u_int32_t sig_array_len;  /* size in array members */
+
+    u_int32_t signum;
+
+    /* ip only sigs: we only add 'alert ip' without
+     * an ip_proto setting here, so no need to look
+     * at the proto */
+    DetectAddressGroupsHead *io_src_gh;
+    DetectAddressGroupsHead *io_tmp_gh;
+
+    /* main sigs */
+    DetectAddressGroupsHead *src_gh[256]; /* a head for each protocol */
+    DetectAddressGroupsHead *tmp_gh[256];
+
+    u_int32_t mpm_unique, mpm_reuse, mpm_none,
+              mpm_uri_unique, mpm_uri_reuse, mpm_uri_none;
+    u_int32_t gh_unique, gh_reuse;
+
+    u_int32_t mpm_max_patcnt, mpm_min_patcnt, mpm_tot_patcnt,
+              mpm_uri_max_patcnt, mpm_uri_min_patcnt, mpm_uri_tot_patcnt;
+
+    /* content and uricontent vars */
+    u_int32_t content_max_id;
+    u_int32_t uricontent_max_id;
+
+    /* init phase vars */
+    HashListTable *sgh_hash_table;
+
+    HashListTable *sgh_mpm_hash_table;
+    HashListTable *sgh_mpm_uri_hash_table;
+
+    HashListTable *sgh_sport_hash_table;
+    HashListTable *sgh_dport_hash_table;
+
+    HashListTable *sport_hash_table;
+    HashListTable *dport_hash_table;
+
+    /* memory counters */
+    u_int32_t mpm_memory_size;
+} DetectEngineCtx;
 
 typedef struct _SigMatch {
     u_int8_t type;
@@ -99,83 +244,14 @@ typedef struct SigTableElmt {
     char *name;
     u_int8_t cost; /* 0 hardly any, 255 very expensive */
     int (*Match)(ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
-    int (*Setup)(Signature *, SigMatch *, char *);
+    int (*Setup)(DetectEngineCtx *, Signature *, SigMatch *, char *);
     int (*Free)(SigMatch *);
     void (*RegisterTests)(void);
     u_int8_t flags;
 } SigTableElmt;
 
-typedef struct DetectEngineCtx_ {
-    u_int8_t flags;
-
-    Signature *sig_list;
-    u_int32_t sig_cnt;
-
-    Signature **sig_array;
-    u_int32_t sig_array_size; /* size in bytes */
-    u_int32_t sig_array_len;  /* size in array members */
-
-    /* ip only sigs: we only add 'alert ip' without
-     * an ip_proto setting here, so no need to look
-     * at the proto */
-    DetectAddressGroupsHead *io_src_gh;
-    DetectAddressGroupsHead *io_tmp_gh;
-
-    /* main sigs */
-    DetectAddressGroupsHead *src_gh[256];
-    DetectAddressGroupsHead *tmp_gh[256];
-
-    u_int32_t mpm_unique, mpm_reuse, mpm_none,
-              mpm_uri_unique, mpm_uri_reuse, mpm_uri_none;
-    u_int32_t gh_unique, gh_reuse;
-
-    u_int32_t mpm_max_patcnt,
-              mpm_min_patcnt,
-              mpm_tot_patcnt,
-              mpm_uri_max_patcnt,
-              mpm_uri_min_patcnt,
-              mpm_uri_tot_patcnt;
-
-} DetectEngineCtx;
-/*
-typedef struct SignatureTuple_ {
-    DetectAddressGroup *src;
-    DetectAddressGroup *dst;
-    DetectPort *sp;
-    DetectPort *dp;
-    u_int8_t proto;
-
-    struct _SigGroupHead *sgh;
-
-    struct SignatureTuple_ *hnext;
-    struct SignatureTuple_ *next;
-
-    u_int32_t cnt;
-} SignatureTuple;
-*/
-/* container for content matches... we use this to compare
- * group heads for contents
- * XXX name */
-typedef struct _SigGroupContent {
-    DetectContentData *content;
-    struct _SigGroupContent *next;
-} SigGroupContent;
-
-/* container for content matches... we use this to compare
- * group heads for contents
- * XXX name */
-typedef struct _SigGroupUricontent {
-    DetectUricontentData *content;
-    struct _SigGroupUricontent *next;
-} SigGroupUricontent;
-
 #define SIG_GROUP_HAVECONTENT    0x1
 #define SIG_GROUP_HAVEURICONTENT 0x2
-
-/* XXX rename */
-//#define SIG_GROUP_INITIALIZED    0x4
-//#define SIG_GROUP_COPY           0x8
-
 #define SIG_GROUP_HEAD_MPM_COPY      0x4
 #define SIG_GROUP_HEAD_MPM_URI_COPY  0x8
 #define SIG_GROUP_HEAD_FREE          0x10
@@ -269,6 +345,12 @@ void TmModuleDetectRegister (void);
 
 int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup();
+
+/*
+ * XXX globals, remove
+ */
+
+DetectEngineCtx *g_de_ctx;
 
 #endif /* __DETECT_H__ */
 

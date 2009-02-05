@@ -10,7 +10,6 @@
 
 #define DETECT_CONTENT_RAWBYTES      0x20
 
-
 typedef struct _DetectContentData {
     u_int8_t *content;
     u_int8_t content_len;
@@ -25,7 +24,7 @@ typedef struct _DetectContentData {
 
 /* prototypes */
 void DetectContentRegister (void);
-u_int32_t DetectContentMaxId(void);
+u_int32_t DetectContentMaxId(DetectEngineCtx *);
 
 #endif /* __DETECT_CONTENT_H__ */
 

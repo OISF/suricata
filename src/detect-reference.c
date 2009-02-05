@@ -4,7 +4,7 @@
 #include "detect.h"
 #include "flow-var.h"
 
-int DetectReferenceSetup (Signature *s, SigMatch *m, char *str);
+int DetectReferenceSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 
 void DetectReferenceRegister (void) {
     sigmatch_table[DETECT_REFERENCE].name = "reference";
@@ -14,7 +14,7 @@ void DetectReferenceRegister (void) {
     sigmatch_table[DETECT_REFERENCE].RegisterTests = NULL;
 }
 
-int DetectReferenceSetup (Signature *s, SigMatch *m, char *rawstr)
+int DetectReferenceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
 {
     char *str = rawstr;
     char dubbed = 0;

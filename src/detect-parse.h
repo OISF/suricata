@@ -5,7 +5,7 @@
 int SigParse(Signature *s, char *sigstr);
 Signature *SigAlloc (void);
 void SigFree(Signature *s);
-Signature *SigInit(char *sigstr);
+Signature *SigInit(DetectEngineCtx *,char *sigstr);
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
 

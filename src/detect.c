@@ -45,10 +45,10 @@
 
 #include "pkt-var.h"
 
+#include "util-print.h"
 #include "util-unittest.h"
 
-static DetectEngineCtx *g_de_ctx = NULL;
-static u_int32_t mpm_memory_size = 0;
+#include "util-hashlist.h"
 
 SigMatch *SigMatchAlloc(void);
 void SigMatchFree(SigMatch *sm);
@@ -56,7 +56,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data);
 
 /* tm module api functions */
 int Detect(ThreadVars *, Packet *, void *, PacketQueue *);
-int DetectThreadInit(ThreadVars *, void **);
+int DetectThreadInit(ThreadVars *, void *, void **);
 int DetectThreadDeinit(ThreadVars *, void *);
 
 void TmModuleDetectRegister (void) {
@@ -146,122 +146,122 @@ void SigLoadSignatures (void)
     /* The next 3 rules handle HTTP header capture. */
 
     /* http_uri -- for uricontent */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP GET URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
+    sig = SigInit(g_de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP GET URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
     if (sig) {
         prevsig = sig;
         g_de_ctx->sig_list = sig;
     }
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
+    sig = SigInit(g_de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_host -- for the log-httplog module */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"|0d 0a|Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
+    sig = SigInit(g_de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"|0d 0a|Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_ua -- for the log-httplog module */
-    sig = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"|0d 0a|User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
+    sig = SigInit(g_de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"|0d 0a|User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
 /*
-    sig = SigInit("alert udp any any -> any any (msg:\"ViCtOr nocase test\"; sid:4; rev:13; content:\"ViCtOr!!\"; offset:100; depth:150; nocase; content:\"ViCtOr!!\"; nocase; offset:99; depth:150;)");
+    sig = SigInit(g_de_ctx,"alert udp any any -> any any (msg:\"ViCtOr nocase test\"; sid:4; rev:13; content:\"ViCtOr!!\"; offset:100; depth:150; nocase; content:\"ViCtOr!!\"; nocase; offset:99; depth:150;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
 
-    sig = SigInit("alert ip any any -> 1.2.3.4 any (msg:\"ViCtOr case test\"; sid:2001; content:\"ViCtOr\"; depth:150;)");
+    sig = SigInit(g_de_ctx,"alert ip any any -> 1.2.3.4 any (msg:\"ViCtOr case test\"; sid:2001; content:\"ViCtOr\"; depth:150;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert ip any any -> 1.2.3.4 any (msg:\"IP ONLY\"; sid:2002;)");
+    sig = SigInit(g_de_ctx,"alert ip any any -> 1.2.3.4 any (msg:\"IP ONLY\"; sid:2002;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert ip ANY any -> 192.168.0.0/16 any (msg:\"offset, depth, within test\"; flow:to_client; sid:2002; content:HTTP; depth:4; content:Server:; offset:15; within:100; depth:200;)");
+    sig = SigInit(g_de_ctx,"alert ip ANY any -> 192.168.0.0/16 any (msg:\"offset, depth, within test\"; flow:to_client; sid:2002; content:HTTP; depth:4; content:Server:; offset:15; within:100; depth:200;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert ip 1.2.3.4 any -> any any (msg:\"Inliniac blog within test\"; flow:to_client; sid:2003; content:inliniac; content:blog; within:9;)");
+    sig = SigInit(g_de_ctx,"alert ip 1.2.3.4 any -> any any (msg:\"Inliniac blog within test\"; flow:to_client; sid:2003; content:inliniac; content:blog; within:9;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert ip 2001::1 any -> 2001::3 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2004; content:abcd; content:efgh; within:4; distance:0; content:ijkl; within:4; distance:0;)");
+    sig = SigInit(g_de_ctx,"alert ip 2001::1 any -> 2001::3 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2004; content:abcd; content:efgh; within:4; distance:0; content:ijkl; within:4; distance:0;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert ip 2001::5 any -> 2001::7 any (msg:\"abcdef distance 0 test\"; flow:to_server; sid:2005; content:abcdef; content:ghijklmnop; distance:0;)");
+    sig = SigInit(g_de_ctx,"alert ip 2001::5 any -> 2001::7 any (msg:\"abcdef distance 0 test\"; flow:to_server; sid:2005; content:abcdef; content:ghijklmnop; distance:0;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
 
-    sig = SigInit("alert ip 10.0.0.0/8 any -> 4.3.2.1 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2006; content:abcdef; content:ghijklmnop; distance:1;)");
+    sig = SigInit(g_de_ctx,"alert ip 10.0.0.0/8 any -> 4.3.2.1 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2006; content:abcdef; content:ghijklmnop; distance:1;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert tcp 172.16.1.0/24 any -> 0.0.0.0/0 any (msg:\"HTTP response code cap\"; flow:to_client; content:HTTP; depth:4; pcre:\"/^HTTP\\/\\d\\.\\d (?<http_response>[0-9]+) [A-z\\s]+\\r\\n/\"; depth:50; sid:3;)");
+    sig = SigInit(g_de_ctx,"alert tcp 172.16.1.0/24 any -> 0.0.0.0/0 any (msg:\"HTTP response code cap\"; flow:to_client; content:HTTP; depth:4; pcre:\"/^HTTP\\/\\d\\.\\d (?<http_response>[0-9]+) [A-z\\s]+\\r\\n/\"; depth:50; sid:3;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert tcp 172.16.2.0/24 any -> 10.10.10.10 any (msg:\"HTTP server code cap\"; flow:to_client; content:Server:; depth:500; pcre:\"/^Server: (?<http_server>.*)\\r\\n/m\"; sid:4;)");
+    sig = SigInit(g_de_ctx,"alert tcp 172.16.2.0/24 any -> 10.10.10.10 any (msg:\"HTTP server code cap\"; flow:to_client; content:Server:; depth:500; pcre:\"/^Server: (?<http_server>.*)\\r\\n/m\"; sid:4;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert tcp 192.168.0.1 any -> 1.0.2.1 any (msg:\"\to_client nocase test\"; flow:to_client; content:Servere:; nocase; sid:400;)");
+    sig = SigInit(g_de_ctx,"alert tcp 192.168.0.1 any -> 1.0.2.1 any (msg:\"\to_client nocase test\"; flow:to_client; content:Servere:; nocase; sid:400;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert tcp 192.168.0.4 any -> 1.2.0.1 any (msg:\"HTTP UA code cap\"; flow:to_server; content:User-Agent:; depth:300; pcre:\"/^User-Agent: (?<http_ua>.*)\\r\\n/m\"; sid:5;)");
+    sig = SigInit(g_de_ctx,"alert tcp 192.168.0.4 any -> 1.2.0.1 any (msg:\"HTTP UA code cap\"; flow:to_server; content:User-Agent:; depth:300; pcre:\"/^User-Agent: (?<http_ua>.*)\\r\\n/m\"; sid:5;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit("alert tcp 192.168.0.12 any -> 0.0.0.0/0 any (msg:\"HTTP http_host flowvar www.inliniac.net\"; flow:to_server; flowvar:http_host,\"www.inliniac.net\"; sid:7;)");
+    sig = SigInit(g_de_ctx,"alert tcp 192.168.0.12 any -> 0.0.0.0/0 any (msg:\"HTTP http_host flowvar www.inliniac.net\"; flow:to_server; flowvar:http_host,\"www.inliniac.net\"; sid:7;)");
     if (sig) {
         prevsig->next = sig;
         prevsig = sig;
     }
-    sig = SigInit("alert tcp 192.168.0.0/16 any -> 0.0.0.0/0 any (msg:\"HTTP http_uri flowvar MattJonkman\"; flow:to_server; flowvar:http_uri,\"MattJonkman\"; sid:8;)");
+    sig = SigInit(g_de_ctx,"alert tcp 192.168.0.0/16 any -> 0.0.0.0/0 any (msg:\"HTTP http_uri flowvar MattJonkman\"; flow:to_server; flowvar:http_uri,\"MattJonkman\"; sid:8;)");
     if (sig) {
         prevsig->next = sig;
         prevsig = sig;
     }
-    sig = SigInit("alert tcp 0.0.0.0/0 any -> 0.0.0.0/0 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:9;)");
+    sig = SigInit(g_de_ctx,"alert tcp 0.0.0.0/0 any -> 0.0.0.0/0 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:9;)");
     if (sig) {
         prevsig->next = sig;
         prevsig = sig;
     }
-    sig = SigInit("alert tcp 0.0.0.0/0 any -> 10.0.0.0/8 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:5;)");
+    sig = SigInit(g_de_ctx,"alert tcp 0.0.0.0/0 any -> 10.0.0.0/8 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:5;)");
     if (sig) {
         prevsig->next = sig;
         prevsig = sig;
@@ -300,7 +300,7 @@ void SigLoadSignatures (void)
 
         //if (i > 1000) break;
 
-        sig = SigInit(line);
+        sig = SigInit(g_de_ctx, line);
         if (sig) {
             prevsig->next = sig;
             prevsig = sig;
@@ -324,8 +324,6 @@ void SigLoadSignatures (void)
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
-
-//abort();
 }
 
 /* check if a certain sid alerted, this is used in the test functions */
@@ -405,8 +403,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
     /* we assume we don't have an uri when we start inspection */
     pmt->de_have_httpuri = 0;
-    pmt->mc = NULL;
-    pmt->mcu = NULL;
+    //pmt->mc = NULL;
+    //pmt->mcu = NULL;
     pmt->sgh = NULL;
 
     /* find the right mpm instance */
@@ -416,8 +414,6 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
         ag = DetectAddressLookupGroup(ag->dst_gh,&p->dst);
         if (ag != NULL) {
             if (ag->port == NULL) {
-                pmt->mc = ag->sh->mpm_ctx;
-                pmt->mcu = ag->sh->mpm_uri_ctx;
                 pmt->sgh = ag->sh;
 
                 //printf("SigMatchSignatures: mc %p, mcu %p\n", pmt->mc, pmt->mcu);
@@ -429,8 +425,6 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                 if (sport != NULL) {
                     DetectPort *dport = DetectPortLookupGroup(sport->dst_ph,p->dp);
                     if (dport != NULL) {
-                        pmt->mc = dport->sh->mpm_ctx;
-                        pmt->mcu = dport->sh->mpm_uri_ctx;
                         pmt->sgh = dport->sh;
                     }
                 }
@@ -445,7 +439,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
         return 0;
     }
 
-    if (p->tcp_payload_len > 0 && pmt->mc != NULL) {
+    if (p->tcp_payload_len > 0 && pmt->sgh->mpm_ctx != NULL) {
         /* run the pattern matcher against the packet */
         if (pmt->sgh->mpm_content_maxlen > p->tcp_payload_len) {
             //printf("Not scanning as pkt payload is smaller than the largest content length we need to match");
@@ -593,8 +587,8 @@ int Detect(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
     return SigMatchSignatures(t,pmt,p);
 }
 
-int DetectThreadInit(ThreadVars *t, void **data) {
-    return PatternMatcherThreadInit(t,data);
+int DetectThreadInit(ThreadVars *t, void *initdata, void **data) {
+    return PatternMatcherThreadInit(t,initdata,data);
 }
 
 int DetectThreadDeinit(ThreadVars *t, void *data) {
@@ -611,7 +605,7 @@ void SigCleanSignatures()
         s = ns;
     }
 
-    SigResetMaxId();
+    DetectEngineResetMaxSigId(g_de_ctx);
 }
 
 /* return codes:
@@ -662,7 +656,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
                "adding signatures to signature source addresses...\n");
     }
 
-    de_ctx->sig_array_len = SigGetMaxId();
+    de_ctx->sig_array_len = DetectEngineGetMaxSigId(de_ctx);
     de_ctx->sig_array_size = (de_ctx->sig_array_len * sizeof(Signature *));
     de_ctx->sig_array = (Signature **)malloc(de_ctx->sig_array_size);
     if (de_ctx->sig_array == NULL)
@@ -690,19 +684,19 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
         }
 
         for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
-            if (SigGroupHeadAppendSig(&gr->sh,tmp_s) < 0) {
+            if (SigGroupHeadAppendSig(de_ctx, &gr->sh,tmp_s) < 0) {
                 goto error;
             }
             cnt++;
         }
         for (gr = tmp_s->src.ipv6_head; gr != NULL; gr = gr->next) {
-            if (SigGroupHeadAppendSig(&gr->sh,tmp_s) < 0) {
+            if (SigGroupHeadAppendSig(de_ctx, &gr->sh,tmp_s) < 0) {
                 goto error;
             }
             cnt++;
         }
         for (gr = tmp_s->src.any_head; gr != NULL; gr = gr->next) {
-            if (SigGroupHeadAppendSig(&gr->sh,tmp_s) < 0) {
+            if (SigGroupHeadAppendSig(de_ctx, &gr->sh,tmp_s) < 0) {
                 goto error;
             }
             cnt++;
@@ -767,7 +761,7 @@ static int BuildSourceAddressList(DetectEngineCtx *de_ctx, Signature *s, int fam
                         grtmp->ad = adtmp;
                         grtmp->cnt = 1;
 
-                        SigGroupHeadAppendSig(&grtmp->sh, s);
+                        SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
 
                         /* add to the lookup list */
                         if (family == AF_INET) {
@@ -779,7 +773,7 @@ static int BuildSourceAddressList(DetectEngineCtx *de_ctx, Signature *s, int fam
                         }
                     } else {
                         /* our group will only have one sig, this one. So add that. */
-                        SigGroupHeadAppendSig(&lookup_gr->sh, s);
+                        SigGroupHeadAppendSig(de_ctx, &lookup_gr->sh, s);
                         lookup_gr->cnt++;
                     }
                 }
@@ -819,10 +813,10 @@ static int BuildSourceAddressList(DetectEngineCtx *de_ctx, Signature *s, int fam
                     DetectAddressGroupAdd(&de_ctx->io_tmp_gh->any_head, grtmp);
                 }
 
-                SigGroupHeadAppendSig(&grtmp->sh, s);
+                SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
             } else {
                 /* our group will only have one sig, this one. So add that. */
-                SigGroupHeadAppendSig(&lookup_gr->sh, s);
+                SigGroupHeadAppendSig(de_ctx, &lookup_gr->sh, s);
                 lookup_gr->cnt++;
             }
 
@@ -860,7 +854,7 @@ static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *head, int family)
  * srchead is a ordered "inserted" list w/o internal overlap
  *
  */
-int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddressGroupsHead *newhead, u_int32_t unique_groups) {
+int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, int family, DetectAddressGroupsHead *newhead, u_int32_t unique_groups) {
     DetectAddressGroup *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
     char insert = 0;
     DetectAddressGroup *gr, *next_gr;
@@ -884,10 +878,10 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
         newtmp->ad = adtmp;
         newtmp->cnt = gr->cnt;
 
-        SigGroupHeadCopySigs(gr->sh,&newtmp->sh);
+        SigGroupHeadCopySigs(de_ctx, gr->sh,&newtmp->sh);
         DetectPort *port = gr->port;
         for ( ; port != NULL; port = port->next) {
-            DetectPortInsertCopy(&newtmp->port, port);
+            DetectPortInsertCopy(de_ctx,&newtmp->port, port);
         }
 
         /* insert it */
@@ -935,14 +929,14 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
                 joingr->ad = adtmp;
                 joingr->cnt = gr->cnt;
 
-                SigGroupHeadCopySigs(gr->sh,&joingr->sh);
+                SigGroupHeadCopySigs(de_ctx,gr->sh,&joingr->sh);
 
                 DetectPort *port = gr->port;
                 for ( ; port != NULL; port = port->next) {
-                    DetectPortInsertCopy(&joingr->port, port);
+                    DetectPortInsertCopy(de_ctx,&joingr->port, port);
                 }
             } else {
-                DetectAddressGroupJoin(joingr, gr);
+                DetectAddressGroupJoin(de_ctx, joingr, gr);
             }
         } else {
             DetectAddressGroup *newtmp = DetectAddressGroupInit();
@@ -956,11 +950,11 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
             newtmp->ad = adtmp;
             newtmp->cnt = gr->cnt;
 
-            SigGroupHeadCopySigs(gr->sh,&newtmp->sh);
+            SigGroupHeadCopySigs(de_ctx,gr->sh,&newtmp->sh);
 
             DetectPort *port = gr->port;
             for ( ; port != NULL; port = port->next) {
-                DetectPortInsertCopy(&newtmp->port, port);
+                DetectPortInsertCopy(de_ctx,&newtmp->port, port);
             }
 
             if (tmplist2 == NULL) {
@@ -995,14 +989,14 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
         newtmp->ad = adtmp;
         newtmp->cnt = gr->cnt;
 
-        SigGroupHeadCopySigs(gr->sh,&newtmp->sh);
+        SigGroupHeadCopySigs(de_ctx, gr->sh,&newtmp->sh);
 
         DetectPort *port = gr->port;
         for ( ; port != NULL; port = port->next) {
-            DetectPortInsertCopy(&newtmp->port, port);
+            DetectPortInsertCopy(de_ctx, &newtmp->port, port);
         }
 
-        DetectAddressGroupInsert(newhead,newtmp);
+        DetectAddressGroupInsert(de_ctx, newhead, newtmp);
 
         next_gr = gr->next;
 //        DetectAddressGroupFree(gr);
@@ -1011,7 +1005,7 @@ int CreateGroupedAddrList(DetectAddressGroup *srchead, int family, DetectAddress
     /* if present, insert the joingr that covers the rest */
     if (joingr != NULL) {
 //        printf(" 3 -= J Address "); DetectAddressDataPrint(joingr->ad); printf(" :  "); DbgPrintSigs2(joingr->sh);
-        DetectAddressGroupInsert(newhead,joingr);
+        DetectAddressGroupInsert(de_ctx, newhead, joingr);
 
         /* mark the groups that are not unique */
         DetectAddressGroup *ag = GetHeadPtr(newhead,family);
@@ -1039,16 +1033,20 @@ error:
     return -1;
 }
 
-int CreateGroupedPortList(DetectPort *srchead, DetectPort **newhead, u_int32_t unique_groups) {
+int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, DetectPort **newhead, u_int32_t unique_groups) {
     DetectPort *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
     char insert = 0;
     DetectPort *gr, *next_gr;
 
+    HashListTableBucket *htb = HashListTableGetListHead(port_hash);
+
     /* insert the addresses into the tmplist, where it will
      * be sorted descending on 'cnt'. */
-    for (gr = srchead; gr != NULL; gr = gr->next) {
+    for ( ; htb != NULL; htb = HashListTableGetListNext(htb)) {
+        gr = (DetectPort *)HashListTableGetListData(htb);
+
         /* alloc a copy */
-        DetectPort *newtmp = DetectPortCopySingle(gr);
+        DetectPort *newtmp = DetectPortCopySingle(de_ctx,gr);
         if (newtmp == NULL) {
             goto error;
         }
@@ -1085,15 +1083,15 @@ int CreateGroupedPortList(DetectPort *srchead, DetectPort **newhead, u_int32_t u
     for (gr = tmplist; gr != NULL; ) {
         if (i == 0) {
             if (joingr == NULL) {
-                joingr = DetectPortCopySingle(gr);
+                joingr = DetectPortCopySingle(de_ctx,gr);
                 if (joingr == NULL) {
                     goto error;
                 }
             } else {
-                DetectPortJoin(joingr, gr);
+                DetectPortJoin(de_ctx,joingr, gr);
             }
         } else {
-            DetectPort *newtmp = DetectPortCopySingle(gr);
+            DetectPort *newtmp = DetectPortCopySingle(de_ctx,gr);
             if (newtmp == NULL) {
                 goto error;
             }
@@ -1118,12 +1116,12 @@ int CreateGroupedPortList(DetectPort *srchead, DetectPort **newhead, u_int32_t u
      *
      * Start with inserting the unique groups */
     for (gr = tmplist2; gr != NULL; ) {
-        DetectPort *newtmp = DetectPortCopySingle(gr);
+        DetectPort *newtmp = DetectPortCopySingle(de_ctx,gr);
         if (newtmp == NULL) {
             goto error;
         }
 
-        DetectPortInsert(newhead,newtmp);
+        DetectPortInsert(de_ctx,newhead,newtmp);
 
         next_gr = gr->next;
         DetectPortFree(gr);
@@ -1131,7 +1129,7 @@ int CreateGroupedPortList(DetectPort *srchead, DetectPort **newhead, u_int32_t u
     }
     /* if present, insert the joingr that covers the rest */
     if (joingr != NULL) {
-        DetectPortInsert(newhead,joingr);
+        DetectPortInsert(de_ctx,newhead,joingr);
     }
 
     for (gr = *newhead; gr != NULL; gr = gr->next) {
@@ -1185,9 +1183,9 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
 
     /* create the final src addr list based on the tmplist. */
     for (proto = 0; proto < 256; proto++) {
-        CreateGroupedAddrList(de_ctx->tmp_gh[proto]->ipv4_head, AF_INET, de_ctx->src_gh[proto], MAX_UNIQ_GROUPS);
-        CreateGroupedAddrList(de_ctx->tmp_gh[proto]->ipv6_head, AF_INET6, de_ctx->src_gh[proto], MAX_UNIQ_GROUPS);
-        CreateGroupedAddrList(de_ctx->tmp_gh[proto]->any_head, AF_UNSPEC, de_ctx->src_gh[proto], MAX_UNIQ_GROUPS);
+        CreateGroupedAddrList(de_ctx, de_ctx->tmp_gh[proto]->ipv4_head, AF_INET, de_ctx->src_gh[proto], MAX_UNIQ_GROUPS);
+        CreateGroupedAddrList(de_ctx, de_ctx->tmp_gh[proto]->ipv6_head, AF_INET6, de_ctx->src_gh[proto], MAX_UNIQ_GROUPS);
+        CreateGroupedAddrList(de_ctx, de_ctx->tmp_gh[proto]->any_head, AF_UNSPEC, de_ctx->src_gh[proto], MAX_UNIQ_GROUPS);
 
         //DetectAddressGroupsHeadFree(de_ctx->tmp_gh[proto]);
         free(de_ctx->tmp_gh[proto]);
@@ -1205,7 +1203,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         DetectAddressGroup *grnext = gr->next;
 
         gr->next = NULL;
-        if (DetectAddressGroupInsert(de_ctx->io_src_gh,gr) < 0)
+        if (DetectAddressGroupInsert(de_ctx, de_ctx->io_src_gh, gr) < 0)
             goto error;
 
         gr = grnext;
@@ -1215,7 +1213,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         DetectAddressGroup *grnext = gr->next;
 
         gr->next = NULL;
-        if (DetectAddressGroupInsert(de_ctx->io_src_gh,gr) < 0)
+        if (DetectAddressGroupInsert(de_ctx, de_ctx->io_src_gh, gr) < 0)
             goto error;
 
         gr = grnext;
@@ -1349,11 +1347,11 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
 
                     DetectAddressGroupAdd(&tmp_gr_list,grtmp);
 
-                    SigGroupHeadAppendSig(&grtmp->sh,tmp_s);
+                    SigGroupHeadAppendSig(de_ctx,&grtmp->sh,tmp_s);
                     grtmp->cnt = 1;
                 } else {
                     /* our group will only have one sig, this one. So add that. */
-                    SigGroupHeadAppendSig(&lookup_gr->sh,tmp_s);
+                    SigGroupHeadAppendSig(de_ctx,&lookup_gr->sh,tmp_s);
                     lookup_gr->cnt++;
                 }
             }
@@ -1362,7 +1360,7 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
 
         /* Create the destination address list, keeping in
          * mind the limits we use. */
-        CreateGroupedAddrList(tmp_gr_list,family,gr->dst_gh,MAX_UNIQ_GROUPS);
+        CreateGroupedAddrList(de_ctx,tmp_gr_list,family,gr->dst_gh,MAX_UNIQ_GROUPS);
 
         /* see if the sig group head of each address group is the
          * same as an earlier one. If it is, free our head and use
@@ -1375,7 +1373,7 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
             /* Because a pattern matcher context uses quite some
              * memory, we first check if we can reuse it from
              * another group head. */
-            SigGroupHead *sgh = SigGroupHeadHashLookup(sgr->sh);
+            SigGroupHead *sgh = SigGroupHeadHashLookup(de_ctx, sgr->sh);
             if (sgh == NULL) {
                 /* put the contents in our sig group head */
                 SigGroupHeadSetSigCnt(sgr->sh, max_idx);
@@ -1387,9 +1385,9 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
                     de_ctx->mpm_none++;
                 } else {
                     /* now have a look if we can reuse a mpm ctx */
-                    SigGroupHead *mpmsh = SigGroupHeadMpmHashLookup(sgr->sh);
+                    SigGroupHead *mpmsh = SigGroupHeadMpmHashLookup(de_ctx, sgr->sh);
                     if (mpmsh == NULL) {
-                        SigGroupHeadMpmHashAdd(sgr->sh);
+                        SigGroupHeadMpmHashAdd(de_ctx, sgr->sh);
 
                         de_ctx->mpm_unique++;
                     } else {
@@ -1407,9 +1405,9 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
                     de_ctx->mpm_uri_none++;
                 } else {
                     /* now have a look if we can reuse a uri mpm ctx */
-                    SigGroupHead *mpmsh = SigGroupHeadMpmUriHashLookup(sgr->sh);
+                    SigGroupHead *mpmsh = SigGroupHeadMpmUriHashLookup(de_ctx, sgr->sh);
                     if (mpmsh == NULL) {
-                        SigGroupHeadMpmUriHashAdd(sgr->sh);
+                        SigGroupHeadMpmUriHashAdd(de_ctx, sgr->sh);
                         de_ctx->mpm_uri_unique++;
                     } else {
                         sgr->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
@@ -1440,13 +1438,13 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
                 }
                 /* dbg */
                 if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_ctx) {
-                    mpm_memory_size += sgr->sh->mpm_ctx->memory_size;
+                    de_ctx->mpm_memory_size += sgr->sh->mpm_ctx->memory_size;
                 }
                 if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && sgr->sh->mpm_uri_ctx) {
-                    mpm_memory_size += sgr->sh->mpm_uri_ctx->memory_size;
+                    de_ctx->mpm_memory_size += sgr->sh->mpm_uri_ctx->memory_size;
                 }
 
-                SigGroupHeadHashAdd(sgr->sh);
+                SigGroupHeadHashAdd(de_ctx, sgr->sh);
                 de_ctx->gh_unique++;
             } else {
                 SigGroupHeadFree(sgr->sh);
@@ -1521,11 +1519,11 @@ static int BuildDestinationAddressHeadsIPOnly(DetectEngineCtx *de_ctx, DetectAdd
 
                     DetectAddressGroupAdd(&tmp_gr_list,grtmp);
 
-                    SigGroupHeadAppendSig(&grtmp->sh,tmp_s);
+                    SigGroupHeadAppendSig(de_ctx, &grtmp->sh,tmp_s);
                     grtmp->cnt = 1;
                 } else {
                     /* our group will only have one sig, this one. So add that. */
-                    SigGroupHeadAppendSig(&lookup_gr->sh,tmp_s);
+                    SigGroupHeadAppendSig(de_ctx, &lookup_gr->sh,tmp_s);
                     lookup_gr->cnt++;
                 }
             }
@@ -1534,7 +1532,7 @@ static int BuildDestinationAddressHeadsIPOnly(DetectEngineCtx *de_ctx, DetectAdd
 
         /* Create the destination address list, keeping in
          * mind the limits we use. */
-        CreateGroupedAddrList(tmp_gr_list,family,gr->dst_gh,0);
+        CreateGroupedAddrList(de_ctx, tmp_gr_list,family,gr->dst_gh,0);
 
         /* see if the sig group head of each address group is the
          * same as an earlier one. If it is, free our head and use
@@ -1547,13 +1545,13 @@ static int BuildDestinationAddressHeadsIPOnly(DetectEngineCtx *de_ctx, DetectAdd
             /* Because a pattern matcher context uses quite some
              * memory, we first check if we can reuse it from
              * another group head. */
-            SigGroupHead *sgh = SigGroupHeadHashLookup(sgr->sh);
+            SigGroupHead *sgh = SigGroupHeadHashLookup(de_ctx, sgr->sh);
             if (sgh == NULL) {
                 /* put the contents in our sig group head */
                 SigGroupHeadSetSigCnt(sgr->sh, max_idx);
                 SigGroupHeadBuildMatchArray(de_ctx,sgr->sh, max_idx);
 
-                SigGroupHeadHashAdd(sgr->sh);
+                SigGroupHeadHashAdd(de_ctx, sgr->sh);
                 de_ctx->gh_unique++;
             } else {
                 SigGroupHeadFree(sgr->sh);
@@ -1622,13 +1620,13 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                         goto error;
                     }
                     grtmp->ad = adtmp;
-                    SigGroupHeadAppendSig(&grtmp->sh,tmp_s);
+                    SigGroupHeadAppendSig(de_ctx, &grtmp->sh, tmp_s);
                     grtmp->cnt = 1;
 
                     DetectAddressGroupAdd(&tmp_gr_list,grtmp);
                 } else {
                     /* our group will only have one sig, this one. So add that. */
-                    SigGroupHeadAppendSig(&lookup_gr->sh,tmp_s);
+                    SigGroupHeadAppendSig(de_ctx, &lookup_gr->sh, tmp_s);
                     lookup_gr->cnt++;
                 }
 
@@ -1639,7 +1637,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
 
         /* Create the destination address list, keeping in
          * mind the limits we use. */
-        CreateGroupedAddrList(tmp_gr_list,family,src_gr->dst_gh,MAX_UNIQ_GROUPS);
+        CreateGroupedAddrList(de_ctx,tmp_gr_list,family,src_gr->dst_gh,MAX_UNIQ_GROUPS);
 
         /* add the ports to the dst address groups and the sigs
          * to the ports */
@@ -1653,9 +1651,9 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
             /* we will reuse address sig group heads at this points,
              * because if the sigs are the same, the ports will be
              * the same. Saves memory and a lot of init time. */
-            SigGroupHead *lookup_sgh = SigGroupHeadHashLookup(dst_gr->sh);
+            SigGroupHead *lookup_sgh = SigGroupHeadHashLookup(de_ctx, dst_gr->sh);
             if (lookup_sgh == NULL) {
-                DetectPortSpHashReset();
+                DetectPortSpHashReset(de_ctx);
 
                 u_int32_t sig2;
                 for (sig2 = 0; sig2 < max_idx+1; sig2++) {
@@ -1668,34 +1666,35 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
 
                     DetectPort *sdp = s->sp;
                     for ( ; sdp != NULL; sdp = sdp->next) {
-                        DetectPort *lookup_port = DetectPortSpHashLookup(sdp);
+                        DetectPort *lookup_port = DetectPortSpHashLookup(de_ctx, sdp);
                         if (lookup_port == NULL) {
-                            DetectPort *port = DetectPortCopySingle(sdp);
+                            DetectPort *port = DetectPortCopySingle(de_ctx,sdp);
                             if (port == NULL)
                                 goto error;
 
-                            SigGroupHeadAppendSig(&port->sh,s);
-                            DetectPortSpHashAdd(port);
+                            SigGroupHeadAppendSig(de_ctx, &port->sh, s);
+                            DetectPortSpHashAdd(de_ctx, port);
                             port->cnt = 1;
                         } else {
-                            SigGroupHeadAppendSig(&lookup_port->sh,s);
+                            SigGroupHeadAppendSig(de_ctx, &lookup_port->sh, s);
                             lookup_port->cnt++;
                         }
                     }
                 }
 
-                DetectPort *p = DetectPortSpHashGetListPtr();
-                CreateGroupedPortList(p, &dst_gr->port, MAX_UNIQ_GROUPS);
-                if (p != NULL) {
-                    DetectPort *next_p;
-                    for (; p != NULL; ) {
-                        next_p = p->next;
-                        DetectPortFree(p);
-                        p = next_p;
-                    }
-                }
+//                HashListTableBucket *htb = HashListTableGetListHead(de_ctx->sport_hash_table);
+//                DetectPort *tsp = HashListTableGetListData(htb);
+                CreateGroupedPortList(de_ctx, de_ctx->sport_hash_table, &dst_gr->port, MAX_UNIQ_GROUPS);
+//                if (tsp != NULL) {
+//                    DetectPort *next_p;
+//                    for (; tsp != NULL; ) {
+//                        next_p = tsp->next;
+//                        DetectPortFree(tsp);
+//                        tsp = next_p;
+//                    }
+//                }
 
-                SigGroupHeadHashAdd(dst_gr->sh);
+                SigGroupHeadHashAdd(de_ctx, dst_gr->sh);
 
                 dst_gr->sh->port = dst_gr->port;
                 /* mark this head for deletion once we no longer need
@@ -1714,9 +1713,9 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                     /* we will reuse address sig group heads at this points,
                      * because if the sigs are the same, the ports will be
                      * the same. Saves memory and a lot of init time. */
-                    SigGroupHead *lookup_sp_sgh = SigGroupHeadSPortHashLookup(sp->sh);
+                    SigGroupHead *lookup_sp_sgh = SigGroupHeadSPortHashLookup(de_ctx, sp->sh);
                     if (lookup_sp_sgh == NULL) {
-                        DetectPortHashReset();
+                        DetectPortDpHashReset(de_ctx);
                         u_int32_t sig2;
                         for (sig2 = 0; sig2 < max_idx+1; sig2++) {
                             if (!(sp->sh->sig_array[(sig2/8)] & (1<<(sig2%8))))
@@ -1728,34 +1727,35 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
 
                             DetectPort *sdp = s->dp;
                             for ( ; sdp != NULL; sdp = sdp->next) {
-                                DetectPort *lookup_port = DetectPortHashLookup(sdp);
+                                DetectPort *lookup_port = DetectPortDpHashLookup(de_ctx,sdp);
                                 if (lookup_port == NULL) {
-                                    DetectPort *port = DetectPortCopySingle(sdp);
+                                    DetectPort *port = DetectPortCopySingle(de_ctx,sdp);
                                     if (port == NULL)
                                         goto error;
 
-                                    SigGroupHeadAppendSig(&port->sh,s);
-                                    DetectPortHashAdd(port);
+                                    SigGroupHeadAppendSig(de_ctx, &port->sh, s);
+                                    DetectPortDpHashAdd(de_ctx,port);
                                     port->cnt = 1;
                                 } else {
-                                    SigGroupHeadAppendSig(&lookup_port->sh,s);
+                                    SigGroupHeadAppendSig(de_ctx, &lookup_port->sh, s);
                                     lookup_port->cnt++;
                                 }
                             }
                         }
 
-                        DetectPort *p = DetectPortHashGetListPtr();
-                        CreateGroupedPortList(p,&sp->dst_ph,MAX_UNIQ_GROUPS);
-                        if (p != NULL) {
-                            DetectPort *next_p;
-                            for (; p != NULL; ) {
-                                next_p = p->next;
-                                DetectPortFree(p);
-                                p = next_p;
-                            }
-                        }
+//                        HashListTableBucket *htb = HashListTableGetListHead(de_ctx->dport_hash_table);
+//                        DetectPort *tdp = HashListTableGetListData(htb);
+                        CreateGroupedPortList(de_ctx, de_ctx->dport_hash_table, &sp->dst_ph, MAX_UNIQ_GROUPS);
+//                        if (tdp != NULL) {
+//                            DetectPort *next_p;
+//                            for (; tdp != NULL; ) {
+//                                next_p = tdp->next;
+//                                DetectPortFree(tdp);
+//                                tdp = next_p;
+//                            }
+//                        }
 
-                        SigGroupHeadSPortHashAdd(sp->sh);
+                        SigGroupHeadSPortHashAdd(de_ctx, sp->sh);
 
                         sp->sh->port = sp->dst_ph;
                         /* mark this head for deletion once we no longer need
@@ -1775,7 +1775,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                             /* Because a pattern matcher context uses quite some
                              * memory, we first check if we can reuse it from
                              * another group head. */
-                            SigGroupHead *lookup_dp_sgh = SigGroupHeadPortHashLookup(dp->sh);
+                            SigGroupHead *lookup_dp_sgh = SigGroupHeadDPortHashLookup(de_ctx, dp->sh);
                             if (lookup_dp_sgh == NULL) {
                                 SigGroupHeadSetSigCnt(dp->sh, max_idx);
                                 SigGroupHeadBuildMatchArray(de_ctx,dp->sh, max_idx);
@@ -1785,9 +1785,9 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                     de_ctx->mpm_none++;
                                 } else {
                                     /* now have a look if we can reuse a mpm ctx */
-                                    SigGroupHead *mpmsh = SigGroupHeadMpmHashLookup(dp->sh);
+                                    SigGroupHead *mpmsh = SigGroupHeadMpmHashLookup(de_ctx, dp->sh);
                                     if (mpmsh == NULL) {
-                                        SigGroupHeadMpmHashAdd(dp->sh);
+                                        SigGroupHeadMpmHashAdd(de_ctx, dp->sh);
 
                                         de_ctx->mpm_unique++;
                                     } else {
@@ -1804,9 +1804,9 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                     de_ctx->mpm_uri_none++;
                                 } else {
                                     /* now have a look if we can reuse a uri mpm ctx */
-                                    SigGroupHead *mpmsh = SigGroupHeadMpmUriHashLookup(dp->sh);
+                                    SigGroupHead *mpmsh = SigGroupHeadMpmUriHashLookup(de_ctx, dp->sh);
                                     if (mpmsh == NULL) {
-                                        SigGroupHeadMpmUriHashAdd(dp->sh);
+                                        SigGroupHeadMpmUriHashAdd(de_ctx, dp->sh);
 
                                         de_ctx->mpm_uri_unique++;
                                     } else {
@@ -1838,13 +1838,13 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                 }
                                 /* dbg */
                                 if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_ctx) {
-                                    mpm_memory_size += dp->sh->mpm_ctx->memory_size;
+                                    de_ctx->mpm_memory_size += dp->sh->mpm_ctx->memory_size;
                                 }
                                 if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && dp->sh->mpm_uri_ctx) {
-                                    mpm_memory_size += dp->sh->mpm_uri_ctx->memory_size;
+                                    de_ctx->mpm_memory_size += dp->sh->mpm_uri_ctx->memory_size;
                                 }
 
-                                SigGroupHeadPortHashAdd(dp->sh);
+                                SigGroupHeadDPortHashAdd(de_ctx, dp->sh);
                                 de_ctx->gh_unique++;
                             } else {
                                 SigGroupHeadFree(dp->sh);
@@ -1903,21 +1903,12 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
 
-    SigGroupHeadHashInit();
-    SigGroupHeadPortHashInit();
-    SigGroupHeadSPortHashInit();
-    SigGroupHeadMpmHashInit();
-    SigGroupHeadMpmUriHashInit();
-
-    DetectPortHashInit();
-    DetectPortSpHashInit();
 
     r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->src_gh[6],AF_INET);
     if (r < 0) {
         printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
         goto error;
     }
-//#if 0
     r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->src_gh[17],AF_INET);
     if (r < 0) {
         printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
@@ -1981,36 +1972,32 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
         printf ("BuildDestinationAddressHeads(src_gh[%d],AF_UNSPEC) failed\n", i);
         goto error;
     }
-//#endif
+
     /* cleanup group head (uri)content_array's */
-    SigGroupHeadFreeMpmArrays();
+    SigGroupHeadFreeMpmArrays(de_ctx);
     /* cleanup group head sig arrays */
-    SigGroupHeadFreeSigArrays();
+    SigGroupHeadFreeSigArrays(de_ctx);
     /* cleanup heads left over in *WithPorts */
     /* XXX VJ breaks SigGroupCleanup */
     //SigGroupHeadFreeHeads();
 
-    /* cleanup the hashes */
-    SigGroupHeadHashFree();
-    SigGroupHeadPortHashFree();
-    SigGroupHeadSPortHashFree();
-    SigGroupHeadMpmHashFree();
-    SigGroupHeadMpmUriHashFree();
+    /* cleanup the hashes now since we won't need them
+     * after the initialization phase. */
+    SigGroupHeadHashFree(de_ctx);
+    SigGroupHeadDPortHashFree(de_ctx);
+    SigGroupHeadSPortHashFree(de_ctx);
+    SigGroupHeadMpmHashFree(de_ctx);
+    SigGroupHeadMpmUriHashFree(de_ctx);
+    DetectPortDpHashFree(de_ctx);
+    DetectPortSpHashFree(de_ctx);
 
-    DetectPortHashFree();
-    DetectPortSpHashFree();
-
-//    DetectAddressGroupPrintMemory();
-//    DetectSigGroupPrintMemory();
-//    DetectPortPrintMemory();
-//#endif
     if (!(de_ctx->flags & DE_QUIET)) {
         printf("* MPM memory %u (dynamic %u, ctxs %u, avg per ctx %u)\n",
-            mpm_memory_size + ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * sizeof(MpmCtx)),
-            mpm_memory_size, ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * sizeof(MpmCtx)),
-            mpm_memory_size / de_ctx->mpm_unique);
+            de_ctx->mpm_memory_size + ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * sizeof(MpmCtx)),
+            de_ctx->mpm_memory_size, ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * sizeof(MpmCtx)),
+            de_ctx->mpm_memory_size / de_ctx->mpm_unique);
 
-        printf(" * Max sig id %u, array size %u\n", SigGetMaxId(), SigGetMaxId() / 8 + 1);
+        printf(" * Max sig id %u, array size %u\n", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
         printf("* Signature group heads: unique %u, copies %u.\n", de_ctx->gh_unique, de_ctx->gh_reuse);
         printf("* MPM instances: %u unique, copies %u (none %u).\n",
                 de_ctx->mpm_unique, de_ctx->mpm_reuse, de_ctx->mpm_none);
@@ -2028,8 +2015,6 @@ error:
 }
 
 int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
-    DetectAddressGroup *gr = NULL;
-
     if (!(de_ctx->flags & DE_QUIET)) {
         printf("* Cleaning up signature grouping structure, stage 1...\n");
     }
@@ -2040,6 +2025,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
         de_ctx->src_gh[i] = NULL;
     }
     DetectAddressGroupsHeadFree(de_ctx->io_src_gh);
+    de_ctx->io_src_gh = NULL;
 
     if (!(de_ctx->flags & DE_QUIET)) {
         printf("* Cleaning up signature grouping structure, stage 1... done\n");
@@ -2067,7 +2053,7 @@ void DbgPrintSigs2(SigGroupHead *sgh) {
     }
 
     u_int32_t sig;
-    for (sig = 0; sig < SigGetMaxId(); sig++) {
+    for (sig = 0; sig < DetectEngineGetMaxSigId(g_de_ctx); sig++) {
         if (sgh->sig_array[(sig/8)] & (1<<(sig%8))) {
             printf("%u ", g_de_ctx->sig_array[sig]->id);
         }
@@ -2357,7 +2343,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
     SigAddressPrepareStage2(de_ctx);
     SigAddressPrepareStage3(de_ctx);
     //SigAddressPrepareStage5();
-    DbgPrintScanSearchStats();
+//    DbgPrintScanSearchStats();
 //    DetectAddressGroupPrintMemory();
 //    DetectSigGroupPrintMemory();
 //    DetectPortPrintMemory();
@@ -2465,7 +2451,7 @@ int SigTest01 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2473,7 +2459,7 @@ int SigTest01 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1) == 0) {
@@ -2531,7 +2517,7 @@ int SigTest02 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2539,7 +2525,7 @@ int SigTest02 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1))
@@ -2584,7 +2570,7 @@ int SigTest03 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:40; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:40; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2592,7 +2578,7 @@ int SigTest03 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (!PacketAlertCheck(&p, 1))
@@ -2638,7 +2624,7 @@ int SigTest04 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:47; within:52; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:47; within:52; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2646,7 +2632,7 @@ int SigTest04 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1))
@@ -2691,7 +2677,7 @@ int SigTest05 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2699,7 +2685,7 @@ int SigTest05 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (!PacketAlertCheck(&p, 1))
@@ -2744,12 +2730,12 @@ int SigTest06 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
     if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -2757,7 +2743,7 @@ int SigTest06 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -2806,12 +2792,12 @@ int SigTest07 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)");
+    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)");
     if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -2819,7 +2805,7 @@ int SigTest07 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -2866,12 +2852,12 @@ int SigTest08 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)");
+    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)");
     if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -2879,7 +2865,7 @@ int SigTest08 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -2928,12 +2914,12 @@ int SigTest09 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
     if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -2941,7 +2927,7 @@ int SigTest09 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -2982,12 +2968,12 @@ int SigTest10 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"Long content test (2)\"; content:\"VWXYZ\"; sid:2;)");
+    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Long content test (2)\"; content:\"VWXYZ\"; sid:2;)");
     if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -2995,7 +2981,7 @@ int SigTest10 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -3036,12 +3022,12 @@ int SigTest11 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"Scan vs Search (1)\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Scan vs Search (1)\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit("alert tcp any any -> any any (msg:\"Scan vs Search (2)\"; content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)");
+    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Scan vs Search (2)\"; content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)");
     if (g_de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -3049,7 +3035,7 @@ int SigTest11 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -3090,7 +3076,7 @@ int SigTest12 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3098,7 +3084,7 @@ int SigTest12 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1))
@@ -3139,7 +3125,7 @@ int SigTest13 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3147,7 +3133,7 @@ int SigTest13 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1))
@@ -3188,7 +3174,7 @@ int SigTest14 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3196,7 +3182,7 @@ int SigTest14 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 1))
@@ -3238,7 +3224,7 @@ int SigTest15 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3246,7 +3232,7 @@ int SigTest15 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 2008284))
@@ -3288,14 +3274,14 @@ int SigTest16 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
     if (g_de_ctx->sig_list == NULL) {
         goto end;
     }
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 2008284))
@@ -3342,7 +3328,7 @@ int SigTest17 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3350,7 +3336,7 @@ int SigTest17 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     PktVar *pv_hn = PktVarGet(&p, "http_host");
@@ -3402,7 +3388,7 @@ int SigTest18 (void) {
 
     g_de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit("alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
     if (g_de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3410,7 +3396,7 @@ int SigTest18 (void) {
 
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)&pmt);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (!PacketAlertCheck(&p, 2003055))

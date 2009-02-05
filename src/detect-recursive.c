@@ -11,7 +11,7 @@
 
 #include <pcre.h>
 
-int DetectRecursiveSetup (Signature *s, SigMatch *m, char *depthstr);
+int DetectRecursiveSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 
 void DetectRecursiveRegister (void) {
     sigmatch_table[DETECT_RECURSIVE].name = "recursive";
@@ -23,7 +23,7 @@ void DetectRecursiveRegister (void) {
     sigmatch_table[DETECT_RECURSIVE].flags |= SIGMATCH_NOOPT;
 }
 
-int DetectRecursiveSetup (Signature *s, SigMatch *m, char *nullstr)
+int DetectRecursiveSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
 {
     //printf("DetectRecursiveSetup: s->match:%p,m:%p\n", s->match, m);
 

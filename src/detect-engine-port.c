@@ -19,7 +19,7 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-port.h"
 
-int DetectPortSetupTmp (Signature *s, SigMatch *m, char *sidstr);
+int DetectPortSetupTmp (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);
 void DetectPortTests (void);
 
 void DetectPortRegister (void) {
@@ -31,25 +31,14 @@ void DetectPortRegister (void) {
 }
 
 /* prototypes */
-void DetectPortPrint(DetectPort *);
-int DetectPortCut(DetectPort *, DetectPort *, DetectPort **);
 int DetectPortCutNot(DetectPort *, DetectPort **);
-int DetectPortCut(DetectPort *, DetectPort *, DetectPort **);
-DetectPort *DetectPortCopy(DetectPort *src);
+int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *, DetectPort **);
 DetectPort *PortParse(char *str);
-int DetectPortCmp(DetectPort *, DetectPort *);
 
 /* memory usage counters */
 static u_int32_t detect_port_memory = 0;
 static u_int32_t detect_port_init_cnt = 0;
 static u_int32_t detect_port_free_cnt = 0;
-
-static u_int32_t detect_port_hash_add_cnt = 0;
-static u_int32_t detect_port_hash_add_coll_cnt = 0;
-static u_int32_t detect_port_hash_lookup_cnt = 0;
-static u_int32_t detect_port_hash_lookup_miss_cnt = 0;
-static u_int32_t detect_port_hash_lookup_hit_cnt = 0;
-static u_int32_t detect_port_hash_lookup_loop_cnt = 0;
 
 DetectPort *DetectPortInit(void) {
     DetectPort *dp = malloc(sizeof(DetectPort));
@@ -92,15 +81,6 @@ void DetectPortPrintMemory(void) {
     printf("  - detect_port_free_cnt %u\n", detect_port_free_cnt);
     printf("  - outstanding ports %u\n", detect_port_init_cnt - detect_port_free_cnt);
     printf(" * Port memory stats done\n");
-#if 0
-    printf("  x detect_port_hash_add_cnt %u\n", detect_port_hash_add_cnt);
-    printf("  x detect_port_hash_add_insert_cnt %u\n", detect_port_hash_add_insert_cnt);
-    printf("  x detect_port_hash_add_coll_cnt %u\n", detect_port_hash_add_coll_cnt);
-    printf("  x detect_port_hash_lookup_cnt %u\n", detect_port_hash_lookup_cnt);
-    printf("  x detect_port_hash_lookup_miss_cnt %u\n", detect_port_hash_lookup_miss_cnt);
-    printf("  x detect_port_hash_lookup_hit_cnt %u\n", detect_port_hash_lookup_hit_cnt);
-    printf("  x detect_port_hash_lookup_loop_cnt %u\n", detect_port_hash_lookup_loop_cnt);
-#endif
 }
 
 /* used to see if the exact same portrange exists in the list
@@ -188,8 +168,8 @@ int DetectPortAdd(DetectPort **head, DetectPort *dp) {
     return 0;
 }
 
-int DetectPortInsertCopy(DetectPort **head, DetectPort *new) {
-    DetectPort *copy = DetectPortCopySingle(new);
+int DetectPortInsertCopy(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new) {
+    DetectPort *copy = DetectPortCopySingle(de_ctx,new);
 
     //printf("new  (%p): ", new); DetectPortPrint(new);  printf(" "); DbgPrintSigs2(new->sh);
     //printf("copy (%p): ",copy); DetectPortPrint(copy); printf(" "); DbgPrintSigs2(copy->sh);
@@ -198,7 +178,7 @@ int DetectPortInsertCopy(DetectPort **head, DetectPort *new) {
         //printf("DetectPortInsertCopy: "); DetectPortPrint(copy); printf("\n");
     }
 
-    return DetectPortInsert(head, copy);
+    return DetectPortInsert(de_ctx, head, copy);
 }
 
 //#define DBG
@@ -210,7 +190,7 @@ int DetectPortInsertCopy(DetectPort **head, DetectPort *new) {
  *  0: not inserted, memory of new is freed
  *  1: inserted
  * */
-int DetectPortInsert(DetectPort **head, DetectPort *new) {
+int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new) {
     if (new == NULL)
         return 0;
 
@@ -243,7 +223,7 @@ int DetectPortInsert(DetectPort **head, DetectPort *new) {
 #endif
                 /* exact overlap/match */
                 if (cur != new) {
-                    SigGroupHeadCopySigs(new->sh,&cur->sh);
+                    SigGroupHeadCopySigs(de_ctx,new->sh,&cur->sh);
                     cur->cnt += new->cnt;
                     DetectPortFree(new);
                     return 0;
@@ -300,13 +280,13 @@ int DetectPortInsert(DetectPort **head, DetectPort *new) {
                 printf("DetectPortInsert: PORT_ES\n");
 #endif
                 DetectPort *c = NULL;
-                r = DetectPortCut(cur,new,&c);
-                DetectPortInsert(head, new);
+                r = DetectPortCut(de_ctx,cur,new,&c);
+                DetectPortInsert(de_ctx, head, new);
                 if (c) {
 #ifdef DBG
                     printf("DetectPortInsert: inserting C (%p) ",c); DetectPortPrint(c); printf("\n");
 #endif
-                    DetectPortInsert(head, c);
+                    DetectPortInsert(de_ctx, head, c);
                 }
                 return 1;
             } else if (r == PORT_EB) {
@@ -314,14 +294,14 @@ int DetectPortInsert(DetectPort **head, DetectPort *new) {
                 printf("DetectPortInsert: PORT_EB\n");
 #endif
                 DetectPort *c = NULL;
-                r = DetectPortCut(cur,new,&c);
+                r = DetectPortCut(de_ctx,cur,new,&c);
                 //printf("DetectPortCut returned %d\n", r);
-                DetectPortInsert(head, new);
+                DetectPortInsert(de_ctx, head, new);
                 if (c) {
 #ifdef DBG
                     printf("DetectPortInsert: inserting C "); DetectPortPrint(c); printf("\n");
 #endif
-                    DetectPortInsert(head, c);
+                    DetectPortInsert(de_ctx, head, c);
                 }
                 return 1;
             } else if (r == PORT_LE) {
@@ -329,13 +309,13 @@ int DetectPortInsert(DetectPort **head, DetectPort *new) {
                 printf("DetectPortInsert: PORT_LE\n");
 #endif
                 DetectPort *c = NULL;
-                r = DetectPortCut(cur,new,&c);
-                DetectPortInsert(head, new);
+                r = DetectPortCut(de_ctx,cur,new,&c);
+                DetectPortInsert(de_ctx, head, new);
                 if (c) {
 #ifdef DBG
                     printf("DetectPortInsert: inserting C "); DetectPortPrint(c); printf("\n");
 #endif
-                    DetectPortInsert(head, c);
+                    DetectPortInsert(de_ctx, head, c);
                 }
                 return 1;
             } else if (r == PORT_GE) {
@@ -343,13 +323,13 @@ int DetectPortInsert(DetectPort **head, DetectPort *new) {
                 printf("DetectPortInsert: PORT_GE\n");
 #endif
                 DetectPort *c = NULL;
-                r = DetectPortCut(cur,new,&c);
-                DetectPortInsert(head, new);
+                r = DetectPortCut(de_ctx,cur,new,&c);
+                DetectPortInsert(de_ctx, head, new);
                 if (c) {
 #ifdef DBG
                     printf("DetectPortInsert: inserting C "); DetectPortPrint(c); printf("\n");
 #endif
-                    DetectPortInsert(head, c);
+                    DetectPortInsert(de_ctx, head, c);
                 }
                 return 1;
             }
@@ -369,202 +349,7 @@ error:
     return -1;
 }
 
-int DetectPortSetup(DetectPort **head, char *s) {
-    DetectPort  *ad = NULL;
-    int r = 0;
-
-    /* parse the address */
-    ad = PortParse(s);
-    if (ad == NULL) {
-        printf("PortParse error \"%s\"\n",s);
-        goto error;
-    }
-
-    /* handle the not case, we apply the negation
-     * then insert the part(s) */
-    if (ad->flags & PORT_FLAG_NOT) {
-        DetectPort *ad2 = NULL;
-
-        if (DetectPortCutNot(ad,&ad2) < 0) {
-            goto error;
-        }
-
-        /* normally a 'not' will result in two ad's
-         * unless the 'not' is on the start or end
-         * of the address space (e.g. 0.0.0.0 or
-         * 255.255.255.255). */
-        if (ad2 != NULL) {
-            if (DetectPortInsert(head, ad2) < 0)
-                goto error;
-        }
-    }
-
-    r = DetectPortInsert(head, ad);
-    if (r < 0)
-        goto error;
-
-    /* if any, insert 0.0.0.0/0 and ::/0 as well */
-    if (r == 1 && ad->flags & PORT_FLAG_ANY) {
-        ad = PortParse("0:65535");
-        if (ad == NULL)
-            goto error;
-
-        if (DetectPortInsert(head, ad) < 0)
-	        goto error;
-    }
-
-    return 0;
-
-error:
-    printf("DetectPortSetup error\n");
-    /* XXX cleanup */
-    return -1;
-}
-
-/* XXX error handling */
-int DetectPortParse2(DetectPort **head, DetectPort **nhead, char *s,int negate) {
-    int i, x;
-    int o_set = 0, n_set = 0;
-    int depth = 0;
-    size_t size = strlen(s);
-    char address[1024] = "";
-
-    for (i = 0, x = 0; i < size && x < sizeof(address); i++) {
-        address[x] = s[i];
-        x++;
-
-        if (!o_set && s[i] == '!') {
-            n_set = 1;
-            x--;
-        } else if (s[i] == '[') {
-            if (!o_set) {
-                o_set = 1;
-                x = 0;
-            }
-            depth++;
-        } else if (s[i] == ']') {
-            if (depth == 1) { 
-                address[x-1] = '\0';
-                x = 0;
-
-                DetectPortParse2(head,nhead,address,negate ? negate : n_set);
-                n_set = 0;
-            }
-            depth--;
-        } else if (depth == 0 && s[i] == ',') {
-            if (o_set == 1) {
-                o_set = 0;
-            } else {
-                address[x-1] = '\0';
-
-                if (negate == 0 && n_set == 0) {
-                    DetectPortSetup(head,address);
-                } else {
-                    DetectPortSetup(nhead,address);
-                }
-                n_set = 0;
-            }
-            x = 0;
-        } else if (depth == 0 && i == size-1) {
-            address[x] = '\0';
-            x = 0;
-
-            if (negate == 0 && n_set == 0) {
-                DetectPortSetup(head,address);
-            } else {
-                DetectPortSetup(nhead,address);
-            }
-            n_set = 0;
-        }
-    }
-
-    return 0;
-//error:
-//    return -1;
-}
-
-int DetectPortMergeNot(DetectPort **head, DetectPort **nhead) {
-    DetectPort *ad;
-    DetectPort *ag, *ag2;
-    int r = 0;
-
-    /* step 0: if the head list is empty, but the nhead list isn't
-     * we have a pure not thingy. In that case we add a 0:65535
-     * first. */
-    if (*head == NULL && *nhead != NULL) {
-        r = DetectPortSetup(head,"0:65535");
-        if (r < 0) {
-            goto error;
-        }
-    }
-
-    /* step 1: insert our ghn members into the gh list */
-    for (ag = *nhead; ag != NULL; ag = ag->next) {
-        /* work with a copy of the ad so we can easily clean up
-         * the ghn group later. */
-        ad = DetectPortCopy(ag);
-        if (ad == NULL) {
-            goto error;
-        }
-        r = DetectPortInsert(head,ad);
-        if (r < 0) {
-            goto error;
-        }
-    }
-
-    /* step 2: pull the address blocks that match our 'not' blocks */
-    for (ag = *nhead; ag != NULL; ag = ag->next) {
-        for (ag2 = *head; ag2 != NULL; ) {
-            r = DetectPortCmp(ag,ag2);
-            if (r == PORT_EQ || r == PORT_EB) { /* XXX more ??? */
-                if (ag2->prev == NULL) {
-                    *head = ag2->next;
-                } else {
-                    ag2->prev->next = ag2->next;
-                }
-
-                if (ag2->next != NULL) {
-                    ag2->next->prev = ag2->prev;
-                }
-                /* store the next ptr and remove the group */
-                DetectPort *next_ag2 = ag2->next;
-                DetectPortFree(ag2);
-                ag2 = next_ag2;
-            } else {
-                ag2 = ag2->next;
-            }
-        }
-    }
-
-    return 0;
-error:
-    return -1;
-}
-
-int DetectPortParse(DetectPort **head, char *str) {
-    int r;
-
-    DetectPort *nhead = NULL;
-
-    r = DetectPortParse2(head,&nhead,str,/* start with negate no */0);
-    if (r < 0) {
-        goto error;
-    }
-
-    /* merge the 'not' address groups */
-    if (DetectPortMergeNot(head,&nhead) < 0) {
-        goto error;
-    }
-
-    /* free the temp negate head */
-    DetectPortFree(nhead);
-    return 0;
-error:
-    DetectPortFree(nhead);
-    return -1;
-}
-
-int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
+int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, DetectPort **c) {
     u_int32_t a_port1 = a->port;
     u_int32_t a_port2 = a->port2;
     u_int32_t b_port1 = b->port;
@@ -615,8 +400,8 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
         tmp_c->port2 = b_port2;
         *c = tmp_c;
 
-        SigGroupHeadCopySigs(b->sh,&tmp_c->sh); /* copy old b to c */
-        SigGroupHeadCopySigs(a->sh,&b->sh); /* copy old b to a */
+        SigGroupHeadCopySigs(de_ctx,b->sh,&tmp_c->sh); /* copy old b to c */
+        SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh); /* copy old b to a */
 
         tmp_c->cnt += b->cnt;
         b->cnt += a->cnt; 
@@ -649,11 +434,11 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
         /* 'a' gets clean and then 'b' sigs
          * 'b' gets clean, then 'a' then 'b' sigs
          * 'c' gets 'a' sigs */
-        SigGroupHeadCopySigs(a->sh,&tmp->sh); /* store old a list */
+        SigGroupHeadCopySigs(de_ctx,a->sh,&tmp->sh); /* store old a list */
         SigGroupHeadClearSigs(a->sh); /* clean a list */
-        SigGroupHeadCopySigs(tmp->sh,&tmp_c->sh); /* copy old b to c */
-        SigGroupHeadCopySigs(b->sh,&a->sh); /* copy old b to a */
-        SigGroupHeadCopySigs(tmp->sh,&b->sh); /* prepend old a before b */
+        SigGroupHeadCopySigs(de_ctx,tmp->sh,&tmp_c->sh); /* copy old b to c */
+        SigGroupHeadCopySigs(de_ctx,b->sh,&a->sh); /* copy old b to a */
+        SigGroupHeadCopySigs(de_ctx,tmp->sh,&b->sh); /* prepend old a before b */
 
         SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
 
@@ -695,7 +480,7 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             b->port2  = b_port2;
 
             /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
-            SigGroupHeadCopySigs(b->sh,&a->sh);
+            SigGroupHeadCopySigs(de_ctx,b->sh,&a->sh);
             a->cnt += b->cnt;
 
         } else if (a_port2 == b_port2) {
@@ -709,7 +494,7 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             b->port2 = a_port2;
 
             /* 'a' overlaps 'b' so 'b' needs the 'a' sigs */
-            SigGroupHeadCopySigs(a->sh,&b->sh);
+            SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
             b->cnt += a->cnt;
 
         } else {
@@ -735,11 +520,11 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             /* 'a' gets clean and then 'b' sigs
              * 'b' gets clean, then 'a' then 'b' sigs
              * 'c' gets 'b' sigs */
-            SigGroupHeadCopySigs(a->sh,&tmp->sh); /* store old a list */
+            SigGroupHeadCopySigs(de_ctx,a->sh,&tmp->sh); /* store old a list */
             SigGroupHeadClearSigs(a->sh); /* clean a list */
-            SigGroupHeadCopySigs(b->sh,&tmp_c->sh); /* copy old b to c */
-            SigGroupHeadCopySigs(b->sh,&a->sh); /* copy old b to a */
-            SigGroupHeadCopySigs(tmp->sh,&b->sh); /* merge old a with b */
+            SigGroupHeadCopySigs(de_ctx,b->sh,&tmp_c->sh); /* copy old b to c */
+            SigGroupHeadCopySigs(de_ctx,b->sh,&a->sh); /* copy old b to a */
+            SigGroupHeadCopySigs(de_ctx,tmp->sh,&b->sh); /* merge old a with b */
 
             SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
 
@@ -781,10 +566,10 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             b->port2 = a_port2;
 
             /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
-            SigGroupHeadCopySigs(b->sh,&tmp->sh);
+            SigGroupHeadCopySigs(de_ctx,b->sh,&tmp->sh);
             SigGroupHeadClearSigs(b->sh);
-            SigGroupHeadCopySigs(a->sh,&b->sh);
-            SigGroupHeadCopySigs(tmp->sh,&a->sh);
+            SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
+            SigGroupHeadCopySigs(de_ctx,tmp->sh,&a->sh);
 
             SigGroupHeadClearSigs(tmp->sh);
 
@@ -807,7 +592,7 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             b->port2 = b_port2;
 
             /* 'a' overlaps 'b' so 'b' needs the 'a' sigs */
-            SigGroupHeadCopySigs(a->sh,&b->sh);
+            SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
 
             b->cnt += a->cnt;
 
@@ -831,8 +616,8 @@ int DetectPortCut(DetectPort *a, DetectPort *b, DetectPort **c) {
             tmp_c->port2 = a_port2;
             *c = tmp_c;
 
-            SigGroupHeadCopySigs(a->sh,&b->sh);
-            SigGroupHeadCopySigs(a->sh,&tmp_c->sh);
+            SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
+            SigGroupHeadCopySigs(de_ctx,a->sh,&tmp_c->sh);
 
             b->cnt += a->cnt;
             tmp_c->cnt += a->cnt;
@@ -939,6 +724,311 @@ int DetectPortCmp(DetectPort *a, DetectPort *b) {
     return PORT_ER;
 }
 
+DetectPort *DetectPortCopy(DetectEngineCtx *de_ctx, DetectPort *src) {
+    if (src == NULL)
+        return NULL;
+
+    DetectPort *dst = DetectPortInit();
+    if (dst == NULL) {
+        goto error;
+    }
+
+    memcpy(dst,src,sizeof(DetectPort));
+    dst->sh = NULL;
+
+    if (src->next != NULL)
+        dst->next = DetectPortCopy(de_ctx,src->next);
+
+    return dst;
+error:
+    return NULL;
+}
+
+DetectPort *DetectPortCopySingle(DetectEngineCtx *de_ctx,DetectPort *src) {
+    if (src == NULL)
+        return NULL;
+
+    DetectPort *dst = DetectPortInit();
+    if (dst == NULL) {
+        goto error;
+    }
+
+    memcpy(dst,src,sizeof(DetectPort));
+    dst->sh = NULL;
+    dst->next = NULL;
+    dst->prev = NULL;
+
+    SigGroupHeadCopySigs(de_ctx,src->sh,&dst->sh);
+
+    return dst;
+error:
+    return NULL;
+}
+
+int DetectPortSetupTmp (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *addressstr)
+{
+    return 0;
+}
+
+
+int DetectPortMatch (DetectPort *dp, u_int16_t port) {
+    if (port >= dp->port &&
+        port <= dp->port2) {
+        return 1;
+    }
+
+    return 0;
+}
+
+void DetectPortPrint(DetectPort *dp) {
+    if (dp == NULL)
+        return;
+
+    if (dp->flags & PORT_FLAG_ANY) {
+        printf("ANY");
+    } else {
+        printf("%u-%u", dp->port, dp->port2);
+    }
+}
+
+/* find the group matching address in a group head */
+DetectPort *
+DetectPortLookupGroup(DetectPort *dp, u_int16_t port) {
+    DetectPort *p = dp;
+
+    if (dp == NULL)
+        return NULL;
+
+    for ( ; p != NULL; p = p->next) {
+        if (DetectPortMatch(p,port) == 1) {
+            //printf("DetectPortLookupGroup: match, port %u, dp ", port);
+            //DetectPortPrint(p); printf("\n");
+            return p;
+        }
+    }
+
+    return NULL;
+}
+
+int DetectPortJoin(DetectEngineCtx *de_ctx, DetectPort *target, DetectPort *source) {
+    if (target == NULL || source == NULL)
+        return -1;
+
+    target->cnt += source->cnt;
+    SigGroupHeadCopySigs(de_ctx,source->sh,&target->sh);
+
+    if (source->port < target->port)
+        target->port = source->port;
+
+    if (source->port2 > target->port2)
+        target->port2 = source->port2;
+
+    return -1;
+}
+
+/* parsing routines */
+
+static int DetectPortParseInsert(DetectPort **head, DetectPort *new) {
+    return DetectPortInsert(NULL, head, new);
+}
+
+static int DetectPortParseInsertString(DetectPort **head, char *s) {
+    DetectPort  *ad = NULL;
+    int r = 0;
+
+    /* parse the address */
+    ad = PortParse(s);
+    if (ad == NULL) {
+        printf("PortParse error \"%s\"\n",s);
+        goto error;
+    }
+
+    /* handle the not case, we apply the negation
+     * then insert the part(s) */
+    if (ad->flags & PORT_FLAG_NOT) {
+        DetectPort *ad2 = NULL;
+
+        if (DetectPortCutNot(ad,&ad2) < 0) {
+            goto error;
+        }
+
+        /* normally a 'not' will result in two ad's
+         * unless the 'not' is on the start or end
+         * of the address space (e.g. 0.0.0.0 or
+         * 255.255.255.255). */
+        if (ad2 != NULL) {
+            if (DetectPortParseInsert(head, ad2) < 0)
+                goto error;
+        }
+    }
+
+    r = DetectPortParseInsert(head, ad);
+    if (r < 0)
+        goto error;
+
+    /* if any, insert 0.0.0.0/0 and ::/0 as well */
+    if (r == 1 && ad->flags & PORT_FLAG_ANY) {
+        ad = PortParse("0:65535");
+        if (ad == NULL)
+            goto error;
+
+        if (DetectPortParseInsert(head, ad) < 0)
+	        goto error;
+    }
+
+    return 0;
+
+error:
+    printf("DetectPortParseInsertString error\n");
+    /* XXX cleanup */
+    return -1;
+}
+
+/* XXX error handling */
+static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int negate) {
+    int i, x;
+    int o_set = 0, n_set = 0;
+    int depth = 0;
+    size_t size = strlen(s);
+    char address[1024] = "";
+
+    for (i = 0, x = 0; i < size && x < sizeof(address); i++) {
+        address[x] = s[i];
+        x++;
+
+        if (!o_set && s[i] == '!') {
+            n_set = 1;
+            x--;
+        } else if (s[i] == '[') {
+            if (!o_set) {
+                o_set = 1;
+                x = 0;
+            }
+            depth++;
+        } else if (s[i] == ']') {
+            if (depth == 1) { 
+                address[x-1] = '\0';
+                x = 0;
+
+                DetectPortParseDo(head,nhead,address,negate ? negate : n_set);
+                n_set = 0;
+            }
+            depth--;
+        } else if (depth == 0 && s[i] == ',') {
+            if (o_set == 1) {
+                o_set = 0;
+            } else {
+                address[x-1] = '\0';
+
+                if (negate == 0 && n_set == 0) {
+                    DetectPortParseInsertString(head,address);
+                } else {
+                    DetectPortParseInsertString(nhead,address);
+                }
+                n_set = 0;
+            }
+            x = 0;
+        } else if (depth == 0 && i == size-1) {
+            address[x] = '\0';
+            x = 0;
+
+            if (negate == 0 && n_set == 0) {
+                DetectPortParseInsertString(head,address);
+            } else {
+                DetectPortParseInsertString(nhead,address);
+            }
+            n_set = 0;
+        }
+    }
+
+    return 0;
+//error:
+//    return -1;
+}
+
+/* part of the parsing routine */
+int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
+    DetectPort *ad;
+    DetectPort *ag, *ag2;
+    int r = 0;
+
+    /* step 0: if the head list is empty, but the nhead list isn't
+     * we have a pure not thingy. In that case we add a 0:65535
+     * first. */
+    if (*head == NULL && *nhead != NULL) {
+        r = DetectPortParseInsertString(head,"0:65535");
+        if (r < 0) {
+            goto error;
+        }
+    }
+
+    /* step 1: insert our ghn members into the gh list */
+    for (ag = *nhead; ag != NULL; ag = ag->next) {
+        /* work with a copy of the ad so we can easily clean up
+         * the ghn group later. */
+        ad = DetectPortCopy(NULL,ag);
+        if (ad == NULL) {
+            goto error;
+        }
+        r = DetectPortParseInsert(head, ad);
+        if (r < 0) {
+            goto error;
+        }
+    }
+
+    /* step 2: pull the address blocks that match our 'not' blocks */
+    for (ag = *nhead; ag != NULL; ag = ag->next) {
+        for (ag2 = *head; ag2 != NULL; ) {
+            r = DetectPortCmp(ag,ag2);
+            if (r == PORT_EQ || r == PORT_EB) { /* XXX more ??? */
+                if (ag2->prev == NULL) {
+                    *head = ag2->next;
+                } else {
+                    ag2->prev->next = ag2->next;
+                }
+
+                if (ag2->next != NULL) {
+                    ag2->next->prev = ag2->prev;
+                }
+                /* store the next ptr and remove the group */
+                DetectPort *next_ag2 = ag2->next;
+                DetectPortFree(ag2);
+                ag2 = next_ag2;
+            } else {
+                ag2 = ag2->next;
+            }
+        }
+    }
+
+    return 0;
+error:
+    return -1;
+}
+
+int DetectPortParse(DetectPort **head, char *str) {
+    int r;
+
+    /* negate port list */
+    DetectPort *nhead = NULL;
+
+    r = DetectPortParseDo(head,&nhead,str,/* start with negate no */0);
+    if (r < 0) {
+        goto error;
+    }
+
+    /* merge the 'not' address groups */
+    if (DetectPortParseMergeNotPorts(head,&nhead) < 0) {
+        goto error;
+    }
+
+    /* free the temp negate head */
+    DetectPortFree(nhead);
+    return 0;
+error:
+    DetectPortFree(nhead);
+    return -1;
+}
+
 DetectPort *PortParse(char *str) {
     char *portdup = strdup(str);
     char *port2 = NULL;
@@ -990,359 +1080,97 @@ error:
     return NULL;
 }
 
-DetectPort *DetectPortCopy(DetectPort *src) {
-    if (src == NULL)
-        return NULL;
+/* end parsing routines */
 
-    DetectPort *dst = DetectPortInit();
-    if (dst == NULL) {
-        goto error;
-    }
-
-    memcpy(dst,src,sizeof(DetectPort));
-    dst->sh = NULL;
-
-    if (src->next != NULL)
-        dst->next = DetectPortCopy(src->next);
-
-    return dst;
-error:
-    return NULL;
-}
-
-DetectPort *DetectPortCopySingle(DetectPort *src) {
-    if (src == NULL)
-        return NULL;
-
-    DetectPort *dst = DetectPortInit();
-    if (dst == NULL) {
-        goto error;
-    }
-
-    memcpy(dst,src,sizeof(DetectPort));
-    dst->sh = NULL;
-    dst->next = NULL;
-    dst->prev = NULL;
-
-    SigGroupHeadCopySigs(src->sh,&dst->sh);
-
-    return dst;
-error:
-    return NULL;
-}
-
-int DetectPortSetupTmp (Signature *s, SigMatch *m, char *addressstr)
-{
-    return 0;
-}
-
-
-int DetectPortMatch (DetectPort *dp, u_int16_t port) {
-    if (port >= dp->port &&
-        port <= dp->port2) {
-        return 1;
-    }
-
-    return 0;
-}
-
-void DetectPortPrint(DetectPort *dp) {
-    if (dp == NULL)
-        return;
-
-    if (dp->flags & PORT_FLAG_ANY) {
-        printf("ANY");
-    } else {
-        printf("%u-%u", dp->port, dp->port2);
-    }
-}
-
-/* find the group matching address in a group head */
-DetectPort *
-DetectPortLookupGroup(DetectPort *dp, u_int16_t port) {
-    DetectPort *p = dp;
-
-    if (dp == NULL)
-        return NULL;
-
-    for ( ; p != NULL; p = p->next) {
-        if (DetectPortMatch(p,port) == 1) {
-            //printf("DetectPortLookupGroup: match, port %u, dp ", port);
-            //DetectPortPrint(p); printf("\n");
-            return p;
-        }
-    }
-
-    return NULL;
-}
-
-
-/* XXX eeewww global! move to DetectionEngineCtx once we have that! */
-static DetectPort **port_hash;
-static DetectPort *port_list;
+/* init hashes */
 #define PORT_HASH_SIZE 1024
 
-/* XXX dynamic size based on number of sigs? */
-int DetectPortHashInit(void) {
-    port_hash = (DetectPort **)malloc(sizeof(DetectPort *) * PORT_HASH_SIZE);
-    if (port_hash == NULL) {
-        goto error;
-    }
-    memset(port_hash,0,sizeof(DetectPort *) * PORT_HASH_SIZE);
-
-    port_list = NULL;
-
-    return 0;
-error:
-    return -1;
-}
-
-void DetectPortHashFree(void) {
-    free(port_hash);
-    port_hash = NULL;
-}
-
-void DetectPortHashReset(void) {
-    if (port_hash != NULL) {
-        memset(port_hash,0,sizeof(DetectPort *) * PORT_HASH_SIZE);
-    }
-    port_list = NULL;
-}
-
-DetectPort **DetectPortHashGetPtr(void) {
-    return port_hash;
-}
-
-DetectPort *DetectPortHashGetListPtr(void) {
-    return port_list;
-}
-
-u_int32_t DetectPortHashGetSize(void) {
-    return PORT_HASH_SIZE;
-}
-
-static inline u_int32_t DetectPortHash(DetectPort *p) {
+u_int32_t DetectPortHashFunc(HashListTable *ht, void *data, u_int16_t datalen) {
+    DetectPort *p = (DetectPort *)data;
     u_int32_t hash = p->port * p->port2;
 
-    return (hash % PORT_HASH_SIZE);
+    return hash % ht->array_size;
 }
 
-int DetectPortHashAdd(DetectPort *p) {
-    u_int32_t hash = DetectPortHash(p);
+char DetectPortCompareFunc(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+    DetectPort *p1 = (DetectPort *)data1;
+    DetectPort *p2 = (DetectPort *)data2;
 
-    //printf("DetectPortHashAdd: hash %u\n", hash);
-    detect_port_hash_add_cnt++;
-
-    /* list */
-    p->next = port_list;
-    port_list = p;
-
-    /* easy: no collision */
-    if (port_hash[hash] == NULL) {
-        port_hash[hash] = p;
-        return 0;
-    }
-
-    detect_port_hash_add_coll_cnt++;
-
-    /* harder: collision */
-    DetectPort *h = port_hash[hash], *ph = NULL;
-    for ( ; h != NULL; h = h->hnext) {
-#if 0
-        if (DetectPortCmp(p,h) == PORT_EB) {
-            if (h == port_hash[hash]) {
-                p->hnext = h;
-                port_hash[hash] = p;
-            } else {
-                p->hnext = ph->hnext;
-                ph->hnext = p;
-            }
-            detect_port_hash_add_insert_cnt++;
-            return 0;
-        }
-#endif
-        ph = h;
-    }
-    ph->hnext = p;
-
-    return 0;
-}
-
-static inline int DetectPortHashCmp(DetectPort *a,DetectPort *b) {
-    if (a->port2 == b->port2 && a->port == b->port && a->flags == b->flags)
+    if (p1->port2 == p2->port2 && p1->port == p2->port && p1->flags == p2->flags)
         return 1;
 
     return 0;
 }
 
-DetectPort *DetectPortHashLookup(DetectPort *p) {
-    u_int32_t hash = DetectPortHash(p);
+/* dp hash */
 
-    //printf("DetectPortHashLookup: hash %u\n", hash);
-    detect_port_hash_lookup_cnt++;
-
-    /* easy: no sgh at our hash */
-    if (port_hash[hash] == NULL) {
-        detect_port_hash_lookup_miss_cnt++;
-        //printf("DetectPortHashLookup: not found\n");
-        return NULL;
-    }
-
-    /* see if we have the sgh we're looking for */
-    DetectPort *h = port_hash[hash];
-    for ( ; h != NULL; h = h->hnext) {
-        detect_port_hash_lookup_loop_cnt++;
-        if (DetectPortHashCmp(p,h) == 1) {
-            //printf("DetectPortHashLookup: found at %p\n", h);
-            detect_port_hash_lookup_hit_cnt++;
-            return h;
-        }
-    }
-
-    //printf("DetectPortHashLookup: not found\n");
-    return NULL;
-}
-
-/* XXX eeewww global! move to DetectionEngineCtx once we have that! */
-static DetectPort **sport_hash;
-static DetectPort *sport_list;
-#define SPORT_HASH_SIZE 1024
-
-/* XXX dynamic size based on number of sigs? */
-int DetectPortSpHashInit(void) {
-    sport_hash = (DetectPort **)malloc(sizeof(DetectPort *) * SPORT_HASH_SIZE);
-    if (sport_hash == NULL) {
+int DetectPortDpHashInit(DetectEngineCtx *de_ctx) {
+    de_ctx->dport_hash_table = HashListTableInit(PORT_HASH_SIZE, DetectPortHashFunc, DetectPortCompareFunc, NULL);
+    if (de_ctx->dport_hash_table == NULL)
         goto error;
-    }
-    memset(sport_hash,0,sizeof(DetectPort *) * SPORT_HASH_SIZE);
 
-    sport_list = NULL;
-    //printf("DetectSPortHashInit: sport_hash %p\n", sport_hash);
     return 0;
 error:
-    printf("DetectSPortHashInit: error sport_hash %p\n", sport_hash);
     return -1;
 }
 
-void DetectPortSpHashFree(void) {
-    free(sport_hash);
-    sport_hash = NULL;
+void DetectPortDpHashFree(DetectEngineCtx *de_ctx) {
+    if (de_ctx->dport_hash_table == NULL)
+        return;
+
+    HashListTableFree(de_ctx->dport_hash_table);
+    de_ctx->dport_hash_table = NULL;
 }
 
-void DetectPortSpHashReset(void) {
-    if (sport_hash != NULL) {
-        memset(sport_hash,0,sizeof(DetectPort *) * SPORT_HASH_SIZE);
-    }
-    sport_list = NULL;
+void DetectPortDpHashReset(DetectEngineCtx *de_ctx) {
+    DetectPortDpHashFree(de_ctx);
+    DetectPortDpHashInit(de_ctx);
 }
 
-DetectPort **DetectPortSpHashGetPtr(void) {
-    return sport_hash;
+int DetectPortDpHashAdd(DetectEngineCtx *de_ctx, DetectPort *p) {
+    return HashListTableAdd(de_ctx->dport_hash_table, (void *)p, 0);
 }
 
-DetectPort *DetectPortSpHashGetListPtr(void) {
-    return sport_list;
+DetectPort *DetectPortDpHashLookup(DetectEngineCtx *de_ctx, DetectPort *p) {
+    DetectPort *rp = HashListTableLookup(de_ctx->dport_hash_table, (void *)p, 0);
+    return rp;
 }
 
-u_int32_t DetectPortSpHashGetSize(void) {
-    return SPORT_HASH_SIZE;
-}
+/* sp hash */
 
-static inline u_int32_t DetectPortSpHash(DetectPort *p) {
-    u_int32_t hash = p->port * p->port2;
-
-    return (hash % SPORT_HASH_SIZE);
-}
-
-int DetectPortSpHashAdd(DetectPort *p) {
-    u_int32_t hash = DetectPortSpHash(p);
-
-    //printf("DetectSPortHashAdd: hash %u\n", hash);
-    detect_port_hash_add_cnt++;
-
-    /* list */
-    p->next = sport_list;
-    sport_list = p;
-
-    /* easy: no collision */
-    if (sport_hash[hash] == NULL) {
-        sport_hash[hash] = p;
-        return 0;
-    }
-
-    detect_port_hash_add_coll_cnt++;
-
-    /* harder: collision */
-    DetectPort *h = sport_hash[hash], *ph = NULL;
-    for ( ; h != NULL; h = h->hnext) {
-#if 0
-        if (DetectPortCmp(p,h) == PORT_EB) {
-            if (h == port_hash[hash]) {
-                p->hnext = h;
-                port_hash[hash] = p;
-            } else {
-                p->hnext = ph->hnext;
-                ph->hnext = p;
-            }
-            detect_port_hash_add_insert_cnt++;
-            return 0;
-        }
-#endif
-        ph = h;
-    }
-    ph->hnext = p;
+int DetectPortSpHashInit(DetectEngineCtx *de_ctx) {
+    de_ctx->sport_hash_table = HashListTableInit(PORT_HASH_SIZE, DetectPortHashFunc, DetectPortCompareFunc, NULL);
+    if (de_ctx->sport_hash_table == NULL)
+        goto error;
 
     return 0;
-}
-
-DetectPort *DetectPortSpHashLookup(DetectPort *p) {
-    u_int32_t hash = DetectPortSpHash(p);
-
-    //printf("DetectSPortHashLookup: hash %u, sport_hash %p, size %u port %p\n", hash, sport_hash, SPORT_HASH_SIZE, p);
-    detect_port_hash_lookup_cnt++;
-
-    /* easy: no sgh at our hash */
-    if (sport_hash[hash] == NULL) {
-        detect_port_hash_lookup_miss_cnt++;
-        //printf("DetectSPortHashLookup: not found\n");
-        return NULL;
-    }
-
-    /* see if we have the sgh we're looking for */
-    DetectPort *h = sport_hash[hash];
-    for ( ; h != NULL; h = h->hnext) {
-        detect_port_hash_lookup_loop_cnt++;
-        if (DetectPortHashCmp(p,h) == 1) {
-            //printf("DetectSPortHashLookup: found at %p\n", h);
-            detect_port_hash_lookup_hit_cnt++;
-            return h;
-        }
-    }
-
-    //printf("DetectSPortHashLookup: not found\n");
-    return NULL;
-}
-
-int DetectPortJoin(DetectPort *target, DetectPort *source) {
-    if (target == NULL || source == NULL)
-        return -1;
-
-    target->cnt += source->cnt;
-    SigGroupHeadCopySigs(source->sh,&target->sh);
-
-    //DetectPort *port = source->port;
-    //for ( ; port != NULL; port = port->next) {
-    //    DetectPortInsertCopy(&target->port, port);
-    //}
-
-    if (source->port < target->port)
-        target->port = source->port;
-
-    if (source->port2 > target->port2)
-        target->port2 = source->port2;
-
+error:
     return -1;
 }
+
+void DetectPortSpHashFree(DetectEngineCtx *de_ctx) {
+    if (de_ctx->sport_hash_table == NULL)
+        return;
+
+    HashListTableFree(de_ctx->sport_hash_table);
+    de_ctx->sport_hash_table = NULL;
+}
+
+void DetectPortSpHashReset(DetectEngineCtx *de_ctx) {
+    DetectPortSpHashFree(de_ctx);
+    DetectPortSpHashInit(de_ctx);
+}
+
+int DetectPortSpHashAdd(DetectEngineCtx *de_ctx, DetectPort *p) {
+    return HashListTableAdd(de_ctx->sport_hash_table, (void *)p, 0);
+}
+
+DetectPort *DetectPortSpHashLookup(DetectEngineCtx *de_ctx, DetectPort *p) {
+    DetectPort *rp = HashListTableLookup(de_ctx->sport_hash_table, (void *)p, 0);
+    return rp;
+}
+
+/* end init hashes */
 
 /* TESTS */
 
@@ -1446,7 +1274,7 @@ int PortTestParse06 (void) {
     if (r != 0)
         goto end;
 
-    copy = DetectPortCopy(dd);
+    copy = DetectPortCopy(NULL,dd);
     if (copy == NULL)
         goto end;            
 

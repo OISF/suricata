@@ -23,6 +23,7 @@
 
 #include "util-binsearch.h"
 #include "util-hash.h"
+#include "util-hashlist.h"
 #include "util-bloomfilter.h"
 #include "util-bloomfilter-counting.h"
 
@@ -210,11 +211,12 @@ int main(int argc, char **argv)
     TmModuleRegisterTests();
     SigTableRegisterTests();
     HashTableRegisterTests();
+    HashListTableRegisterTests();
     BloomFilterRegisterTests();
     BloomFilterCountingRegisterTests();
     MpmRegisterTests();
     SigRegisterTests();
-    UtRunTests();
+    //UtRunTests();
     UtCleanup();
     //exit(1);
 
@@ -266,7 +268,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName failed for ReceiveNFQ\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_receivenfq,tm_module);
+    Tm1SlotSetFunc(tv_receivenfq,tm_module,NULL);
 
     if (TmThreadSpawn(tv_receivenfq) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -284,7 +286,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_decode1,tm_module);
+    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
     if (TmThreadSpawn(tv_decode1) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -301,7 +303,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_decode2,tm_module);
+    Tm1SlotSetFunc(tv_decode2,tm_module,NULL);
 
     if (TmThreadSpawn(tv_decode2) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -318,7 +320,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_detect1,tm_module);
+    Tm1SlotSetFunc(tv_detect1,tm_module,(void *)g_de_ctx);
 
     if (TmThreadSpawn(tv_detect1) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -335,7 +337,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_detect2,tm_module);
+    Tm1SlotSetFunc(tv_detect2,tm_module,(void *)g_de_ctx);
 
     if (TmThreadSpawn(tv_detect2) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -352,7 +354,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_verdict,tm_module);
+    Tm1SlotSetFunc(tv_verdict,tm_module,NULL);
 
     if (TmThreadSpawn(tv_verdict) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -369,7 +371,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName for RespondReject failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_rreject,tm_module);
+    Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
     if (TmThreadSpawn(tv_rreject) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -386,14 +388,14 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
         exit(1);
     }
-    Tm2SlotSetFunc1(tv_alert,tm_module);
+    Tm2SlotSetFunc1(tv_alert,tm_module,NULL);
 
     tm_module = TmModuleGetByName("LogHttplog");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName failed\n");
         exit(1);
     }
-    Tm2SlotSetFunc2(tv_alert,tm_module);
+    Tm2SlotSetFunc2(tv_alert,tm_module,NULL);
 
     if (TmThreadSpawn(tv_alert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -412,14 +414,14 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
         exit(1);
     }
-    Tm2SlotSetFunc1(tv_unified,tm_module);
+    Tm2SlotSetFunc1(tv_unified,tm_module,NULL);
 
     tm_module = TmModuleGetByName("AlertUnifiedAlert");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
         exit(1);
     }
-    Tm2SlotSetFunc2(tv_unified,tm_module);
+    Tm2SlotSetFunc2(tv_unified,tm_module,NULL);
 
     if (TmThreadSpawn(tv_unified) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -437,7 +439,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_debugalert,tm_module);
+    Tm1SlotSetFunc(tv_debugalert,tm_module,NULL);
 
     if (TmThreadSpawn(tv_debugalert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");

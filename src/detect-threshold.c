@@ -4,7 +4,7 @@
 #include "detect.h"
 #include "flow-var.h"
 
-int DetectThresholdSetup (Signature *s, SigMatch *m, char *str);
+int DetectThresholdSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 
 void DetectThresholdRegister (void) {
     sigmatch_table[DETECT_THRESHOLD].name = "threshold";
@@ -14,7 +14,7 @@ void DetectThresholdRegister (void) {
     sigmatch_table[DETECT_THRESHOLD].RegisterTests  = NULL;
 }
 
-int DetectThresholdSetup (Signature *s, SigMatch *m, char *rawstr)
+int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
 {
     char *str = rawstr;
     char dubbed = 0;

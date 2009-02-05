@@ -9,7 +9,7 @@
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
 
-int DetectNocaseSetup (Signature *s, SigMatch *m, char *depthstr);
+int DetectNocaseSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *depthstr);
 
 void DetectNocaseRegister (void) {
     sigmatch_table[DETECT_NOCASE].name = "nocase";
@@ -21,7 +21,7 @@ void DetectNocaseRegister (void) {
     sigmatch_table[DETECT_NOCASE].flags |= SIGMATCH_NOOPT;
 }
 
-int DetectNocaseSetup (Signature *s, SigMatch *m, char *nullstr)
+int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
 {
     //printf("DetectNocaseSetup: s->match:%p,m:%p\n", s->match, m);
 

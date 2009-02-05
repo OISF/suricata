@@ -21,12 +21,13 @@ static ThreadVars *tv_root;
 
 typedef struct _TmSlot {
     /* function pointers */
-    int (*SlotInit)(ThreadVars *, void **);
+    int (*SlotInit)(ThreadVars *, void *, void **);
     int (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
     void (*SlotExitPrintStats)(ThreadVars *, void *);
     int (*SlotDeinit)(ThreadVars *, void *);
 
     /* data storage */
+    void *slot_initdata;
     void *slot_data;
     PacketQueue slot_pq;
 
@@ -67,7 +68,7 @@ void *TmThreadsSlot1NoIn(void *td) {
         SetCPUAffinity(tv->cpu_affinity);
 
     if (s->s.SlotInit != NULL) {
-        r = s->s.SlotInit(tv, &s->s.slot_data);
+        r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -114,7 +115,7 @@ void *TmThreadsSlot1NoOut(void *td) {
         SetCPUAffinity(tv->cpu_affinity);
 
     if (s->s.SlotInit != NULL) {
-        r = s->s.SlotInit(tv, &s->s.slot_data);
+        r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -157,7 +158,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
     //printf("TmThreadsSlot1NoInOut: %s starting\n", tv->name);
 
     if (s->s.SlotInit != NULL) {
-        r = s->s.SlotInit(tv, &s->s.slot_data);
+        r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -203,7 +204,7 @@ void *TmThreadsSlot1(void *td) {
     //printf("TmThreadsSlot1: %s starting\n", tv->name);
 
     if (s->s.SlotInit != NULL) {
-        r = s->s.SlotInit(tv, &s->s.slot_data);
+        r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -265,13 +266,13 @@ void *TmThreadsSlot2(void *td) {
     //printf("TmThreadsSlot2: %s starting\n", tv->name);
 
     if (s->s1.SlotInit != NULL) {
-        r = s->s1.SlotInit(tv, &s->s1.slot_data);
+        r = s->s1.SlotInit(tv, s->s1.slot_initdata, &s->s1.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
     if (s->s2.SlotInit != NULL) {
-        r = s->s2.SlotInit(tv, &s->s2.slot_data);
+        r = s->s2.SlotInit(tv, s->s2.slot_initdata, &s->s2.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -356,19 +357,19 @@ void *TmThreadsSlot3(void *td) {
     //printf("TmThreadsSlot3: %s starting\n", tv->name);
 
     if (s->s1.SlotInit != NULL) {
-        r = s->s1.SlotInit(tv, &s->s1.slot_data);
+        r = s->s1.SlotInit(tv, s->s1.slot_initdata, &s->s1.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
     if (s->s2.SlotInit != NULL) {
-        r = s->s2.SlotInit(tv, &s->s2.slot_data);
+        r = s->s2.SlotInit(tv, s->s2.slot_initdata, &s->s2.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
     }
     if (s->s3.SlotInit != NULL) {
-        r = s->s3.SlotInit(tv, &s->s3.slot_data);
+        r = s->s3.SlotInit(tv, s->s3.slot_initdata, &s->s3.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
         }
@@ -516,7 +517,7 @@ void *TmThreadsSlotVar(void *td) {
 
     for (slot = s->s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotInit != NULL) {
-            r = slot->SlotInit(tv, &slot->slot_data);
+            r = slot->SlotInit(tv, slot->slot_initdata, &slot->slot_data);
             if (r != 0) {
                 pthread_exit((void *) -1);
             }
@@ -596,7 +597,7 @@ error:
     return -1;
 }
 
-void Tm1SlotSetFunc(ThreadVars *tv, TmModule *tm) {
+void Tm1SlotSetFunc(ThreadVars *tv, TmModule *tm, void *data) {
     Tm1Slot *s1 = (Tm1Slot *)tv->tm_slots;
 
     if (s1->s.SlotFunc != NULL)
@@ -604,12 +605,13 @@ void Tm1SlotSetFunc(ThreadVars *tv, TmModule *tm) {
                "overwriting with %p\n", s1->s.SlotFunc, tm->Func);
 
     s1->s.SlotInit = tm->Init;
+    s1->s.slot_initdata = data;
     s1->s.SlotFunc = tm->Func;
     s1->s.SlotExitPrintStats = tm->ExitPrintStats;
     s1->s.SlotDeinit = tm->Deinit;
 }
 
-void Tm2SlotSetFunc1(ThreadVars *tv, TmModule *tm) {
+void Tm2SlotSetFunc1(ThreadVars *tv, TmModule *tm, void *data) {
     Tm2Slot *s = (Tm2Slot *)tv->tm_slots;
 
     if (s->s1.SlotFunc != NULL)
@@ -617,12 +619,13 @@ void Tm2SlotSetFunc1(ThreadVars *tv, TmModule *tm) {
                "overwriting with %p\n", s->s1.SlotFunc, tm->Func);
 
     s->s1.SlotInit = tm->Init;
+    s->s1.slot_initdata = data;
     s->s1.SlotFunc = tm->Func;
     s->s1.SlotExitPrintStats = tm->ExitPrintStats;
     s->s1.SlotDeinit = tm->Deinit;
 }
 
-void Tm2SlotSetFunc2(ThreadVars *tv, TmModule *tm) {
+void Tm2SlotSetFunc2(ThreadVars *tv, TmModule *tm, void *data) {
     Tm2Slot *s = (Tm2Slot *)tv->tm_slots;
 
     if (s->s2.SlotFunc != NULL)
@@ -630,12 +633,13 @@ void Tm2SlotSetFunc2(ThreadVars *tv, TmModule *tm) {
                "overwriting with %p\n", s->s2.SlotFunc, tm->Func);
 
     s->s2.SlotInit = tm->Init;
+    s->s2.slot_initdata = data;
     s->s2.SlotFunc = tm->Func;
     s->s2.SlotExitPrintStats = tm->ExitPrintStats;
     s->s2.SlotDeinit = tm->Deinit;
 }
 
-void Tm3SlotSetFunc1(ThreadVars *tv, TmModule *tm) {
+void Tm3SlotSetFunc1(ThreadVars *tv, TmModule *tm, void *data) {
     Tm3Slot *s = (Tm3Slot *)tv->tm_slots;
 
     if (s->s1.SlotFunc != NULL)
@@ -643,12 +647,13 @@ void Tm3SlotSetFunc1(ThreadVars *tv, TmModule *tm) {
                "overwriting with %p\n", s->s1.SlotFunc, tm->Func);
 
     s->s1.SlotInit = tm->Init;
+    s->s1.slot_initdata = data;
     s->s1.SlotFunc = tm->Func;
     s->s1.SlotExitPrintStats = tm->ExitPrintStats;
     s->s1.SlotDeinit = tm->Deinit;
 }
 
-void Tm3SlotSetFunc2(ThreadVars *tv, TmModule *tm) {
+void Tm3SlotSetFunc2(ThreadVars *tv, TmModule *tm, void *data) {
     Tm3Slot *s = (Tm3Slot *)tv->tm_slots;
 
     if (s->s2.SlotFunc != NULL)
@@ -656,12 +661,13 @@ void Tm3SlotSetFunc2(ThreadVars *tv, TmModule *tm) {
                "overwriting with %p\n", s->s2.SlotFunc, tm->Func);
 
     s->s2.SlotInit = tm->Init;
+    s->s2.slot_initdata = data;
     s->s2.SlotFunc = tm->Func;
     s->s2.SlotExitPrintStats = tm->ExitPrintStats;
     s->s2.SlotDeinit = tm->Deinit;
 }
 
-void Tm3SlotSetFunc3(ThreadVars *tv, TmModule *tm) {
+void Tm3SlotSetFunc3(ThreadVars *tv, TmModule *tm, void *data) {
     Tm3Slot *s = (Tm3Slot *)tv->tm_slots;
 
     if (s->s3.SlotFunc != NULL)
@@ -669,12 +675,13 @@ void Tm3SlotSetFunc3(ThreadVars *tv, TmModule *tm) {
                "overwriting with %p\n", s->s3.SlotFunc, tm->Func);
 
     s->s3.SlotInit = tm->Init;
+    s->s3.slot_initdata = data;
     s->s3.SlotFunc = tm->Func;
     s->s3.SlotExitPrintStats = tm->ExitPrintStats;
     s->s3.SlotDeinit = tm->Deinit;
 }
 
-void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm) {
+void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data) {
     TmVarSlot *s = (TmVarSlot *)tv->tm_slots;
     TmSlot *slot = malloc(sizeof(TmSlot));
     if (slot == NULL) 
@@ -683,6 +690,7 @@ void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm) {
     memset(slot, 0, sizeof(TmSlot));
 
     slot->SlotInit = tm->Init;
+    slot->slot_initdata = data;
     slot->SlotFunc = tm->Func;
     slot->SlotExitPrintStats = tm->ExitPrintStats;
     slot->SlotDeinit = tm->Deinit;

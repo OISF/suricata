@@ -7,6 +7,7 @@
 
 #include "decode.h"
 #include "detect.h"
+#include "detect-engine.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-mpm.h"
 #include "util-mpm.h"
@@ -26,7 +27,7 @@ u_int32_t PacketPatternScan(ThreadVars *t, PatternMatcherThread *pmt, Packet *p)
     u_int32_t ret;
 
     pmt->pmq.mode = PMQ_MODE_SCAN;
-    ret = pmt->mc->Scan(pmt->mc, &pmt->mtc, &pmt->pmq, p->tcp_payload, p->tcp_payload_len);
+    ret = pmt->sgh->mpm_ctx->Scan(pmt->sgh->mpm_ctx, &pmt->mtc, &pmt->pmq, p->tcp_payload, p->tcp_payload_len);
 
     //printf("PacketPatternScan: ret %u\n", ret);
     return ret;
@@ -36,7 +37,7 @@ u_int32_t PacketPatternMatch(ThreadVars *t, PatternMatcherThread *pmt, Packet *p
     u_int32_t ret;
 
     pmt->pmq.mode = PMQ_MODE_SEARCH;
-    ret = pmt->mc->Search(pmt->mc, &pmt->mtc, &pmt->pmq, p->tcp_payload, p->tcp_payload_len);
+    ret = pmt->sgh->mpm_ctx->Search(pmt->sgh->mpm_ctx, &pmt->mtc, &pmt->pmq, p->tcp_payload, p->tcp_payload_len);
 
     //printf("PacketPatternMatch: ret %u\n", ret);
     return ret;
@@ -50,13 +51,16 @@ void PacketPatternCleanup(ThreadVars *t, PatternMatcherThread *pmt) {
     }
     pmt->pmq.sig_id_array_cnt = 0;
 
+    if (pmt->sgh == NULL)
+        return;
+
     /* content */
-    if (pmt->mc != NULL && pmt->mc->Cleanup != NULL) {
-        pmt->mc->Cleanup(&pmt->mtc);
+    if (pmt->sgh->mpm_ctx != NULL && pmt->sgh->mpm_ctx->Cleanup != NULL) {
+        pmt->sgh->mpm_ctx->Cleanup(&pmt->mtc);
     }
     /* uricontent */
-    if (pmt->mcu != NULL && pmt->mcu->Cleanup != NULL) {
-        pmt->mcu->Cleanup(&pmt->mtcu);
+    if (pmt->sgh->mpm_uri_ctx != NULL && pmt->sgh->mpm_uri_ctx->Cleanup != NULL) {
+        pmt->sgh->mpm_uri_ctx->Cleanup(&pmt->mtcu);
     }
 }
 
@@ -107,13 +111,11 @@ static int g_content_total = 0;
 
 void DbgPrintScanSearchStats() {
 #if 0
-    printf(": content scan %d, search %d (%02.1f%%) :\n", g_content_scan, g_content_search,
+    printf(" - MPM: scan %d, search %d (%02.1f%%) :\n", g_content_scan, g_content_search,
         (float)(g_content_scan/(float)(g_content_scan+g_content_search))*100);
-//    printf(": uricontent scan %d, urisearch %d (%02f%%) :\n", g_uricontent_scan, g_uricontent_search,
-//        (float)(g_uricontent_scan/(float)(g_uricontent_scan+g_uricontent_search))*100);
-    printf(": content maxdepth %d, total %d (%02.1f%%) :\n", g_content_maxdepth, g_content_total,
+    printf(" - MPM: maxdepth %d, total %d (%02.1f%%) :\n", g_content_maxdepth, g_content_total,
         (float)(g_content_maxdepth/(float)(g_content_total))*100);
-    printf(": content minoffset %d, total %d (%02.1f%%) :\n", g_content_minoffset, g_content_total,
+    printf(" - MPM: minoffset %d, total %d (%02.1f%%) :\n", g_content_minoffset, g_content_total,
         (float)(g_content_minoffset/(float)(g_content_total))*100);
 #endif
 }
@@ -181,7 +183,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         MpmInitCtx(sh->mpm_uri_ctx, PM);
     }
 
-    u_int16_t mpm_content_scan_maxlen = 65535, mpm_uricontent_scan_maxlen = 65535;
+    //u_int16_t mpm_content_scan_maxlen = 65535, mpm_uricontent_scan_maxlen = 65535;
     u_int32_t mpm_content_cnt = 0, mpm_uricontent_cnt = 0;
     u_int16_t mpm_content_maxdepth = 65535, mpm_content_minoffset = 65535;
     u_int16_t mpm_content_maxdepth_one = 65535, mpm_content_minoffset_one = 65535;
@@ -417,7 +419,11 @@ error:
     return -1;
 }
 
-int PatternMatcherThreadInit(ThreadVars *t, void **data) {
+int PatternMatcherThreadInit(ThreadVars *t, void *initdata, void **data) {
+    DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;
+    if (de_ctx == NULL)
+        return -1;
+
     PatternMatcherThread *pmt = malloc(sizeof(PatternMatcherThread));
     if (pmt == NULL) {
         return -1;
@@ -430,9 +436,9 @@ int PatternMatcherThreadInit(ThreadVars *t, void **data) {
      * of the content and uricontent id's so our match lookup
      * table is always big enough
      */
-    mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtc, DetectContentMaxId());
-    mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtcu, DetectUricontentMaxId());
-    u_int32_t max_sig_id = SigGetMaxId();
+    mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtc, DetectContentMaxId(de_ctx));
+    mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtcu, DetectUricontentMaxId(de_ctx));
+    u_int32_t max_sig_id = DetectEngineGetMaxSigId(de_ctx);
 
     /* sig callback testing stuff below */
     pmt->pmq.sig_id_array = malloc(max_sig_id * sizeof(u_int32_t));

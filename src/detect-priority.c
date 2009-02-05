@@ -4,7 +4,7 @@
 #include "detect.h"
 #include "flow-var.h"
 
-int DetectPrioritySetup (Signature *s, SigMatch *m, char *sidstr);
+int DetectPrioritySetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);
 
 void DetectPriorityRegister (void) {
     sigmatch_table[DETECT_PRIORITY].name = "priority";
@@ -14,7 +14,7 @@ void DetectPriorityRegister (void) {
     sigmatch_table[DETECT_PRIORITY].RegisterTests = NULL;
 }
 
-int DetectPrioritySetup (Signature *s, SigMatch *m, char *rawstr)
+int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
 {
     char *str = rawstr;
     char dubbed = 0;

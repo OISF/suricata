@@ -10,9 +10,8 @@ int DetectAddressCmpIPv4(DetectAddressData *, DetectAddressData *);
 int DetectAddressCutIPv4(DetectAddressData *, DetectAddressData *, DetectAddressData **);
 int DetectAddressCutNotIPv4(DetectAddressData *, DetectAddressData **);
 
-int DetectAddressGroupCutIPv4(DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
-
-int DetectAddressGroupJoinIPv4(DetectAddressGroup *target, DetectAddressGroup *source);
+int DetectAddressGroupCutIPv4(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
+int DetectAddressGroupJoinIPv4(DetectEngineCtx *, DetectAddressGroup *target, DetectAddressGroup *source);
 
 #endif /* __DETECT_ADDRESS_IPV4_H__ */
 

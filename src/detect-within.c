@@ -9,7 +9,7 @@
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
 
-int DetectWithinSetup (Signature *s, SigMatch *m, char *withinstr);
+int DetectWithinSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *withinstr);
 
 void DetectWithinRegister (void) {
     sigmatch_table[DETECT_WITHIN].name = "within";
@@ -19,7 +19,7 @@ void DetectWithinRegister (void) {
     sigmatch_table[DETECT_WITHIN].RegisterTests = NULL;
 }
 
-int DetectWithinSetup (Signature *s, SigMatch *m, char *withinstr)
+int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *withinstr)
 {
     char *str = withinstr;
     char dubbed = 0;

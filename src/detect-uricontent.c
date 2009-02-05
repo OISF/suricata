@@ -31,15 +31,11 @@
 #include "util-unittest.h"
 
 int DetectUricontentMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
-int DetectUricontentSetup (Signature *, SigMatch *, char *);
+int DetectUricontentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void HttpUriRegisterTests(void);
 
 u_int8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
-
-/* we use a global id for uricontent matches to be able to
- * use just one pattern matcher thread context per thread. */
-static u_int32_t uricontent_max_id = 0;
 
 void DetectUricontentRegister (void) {
     sigmatch_table[DETECT_URICONTENT].name = "uricontent";
@@ -67,9 +63,8 @@ void DetectUricontentRegister (void) {
 }
 
 /* pass on the uricontent_max_id */
-u_int32_t DetectUricontentMaxId(void) {
-    //printf("DetectUricontentMaxId: %u\n", uricontent_max_id);
-    return uricontent_max_id;
+u_int32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx) {
+    return de_ctx->uricontent_max_id;
 }
 
 /* Normalize http buffer
@@ -258,7 +253,7 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
     return DoDetectUricontent(t, pmt, p, m, co);
 }
 
-int DetectUricontentSetup (Signature *s, SigMatch *m, char *contentstr)
+int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *contentstr)
 {
     DetectUricontentData *cd = NULL;
     SigMatch *sm = NULL;
@@ -369,8 +364,8 @@ int DetectUricontentSetup (Signature *s, SigMatch *m, char *contentstr)
 
     SigMatchAppend(s,m,sm);
 
-    cd->id = uricontent_max_id;
-    uricontent_max_id++;
+    cd->id = de_ctx->uricontent_max_id;
+    de_ctx->uricontent_max_id++;
 
     if (dubbed) free(str);
     return 0;

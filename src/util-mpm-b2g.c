@@ -170,6 +170,18 @@ B2gAllocHashItem(MpmCtx *mpm_ctx) {
     return hi;
 }
 
+static void B2gHashFree(MpmCtx *mpm_ctx, B2gHashItem *hi) {
+    if (hi == NULL)
+        return;
+
+    B2gHashItem *t = hi->nxt;
+    B2gHashFree(mpm_ctx, t);
+
+    mpm_ctx->memory_cnt--;
+    mpm_ctx->memory_size -= sizeof(B2gHashItem);
+    free(hi);
+}
+
 static inline void memcpy_tolower(u_int8_t *d, u_int8_t *s, u_int16_t len) {
     u_int16_t i;
     for (i = 0; i < len; i++) {
@@ -518,7 +530,7 @@ static void B2gPrepareScanHash(MpmCtx *mpm_ctx) {
         if (ctx->scan_bloom[h] == NULL)
             continue;
 
-        mpm_ctx->memory_cnt+=2; /* hackish: bloomfilter itself and the bitarray */
+        mpm_ctx->memory_cnt += BloomFilterMemoryCnt(ctx->scan_bloom[h]);
         mpm_ctx->memory_size += BloomFilterMemorySize(ctx->scan_bloom[h]);
 
         if (ctx->scan_pminlen[h] > 8)
@@ -623,7 +635,7 @@ static void B2gPrepareSearchHash(MpmCtx *mpm_ctx) {
         if (ctx->search_bloom[h] == NULL)
             continue;
 
-        mpm_ctx->memory_cnt+=2; /* hackish: bloomfilter itself and the bitarray */
+        mpm_ctx->memory_cnt += BloomFilterMemoryCnt(ctx->search_bloom[h]);
         mpm_ctx->memory_size += BloomFilterMemorySize(ctx->search_bloom[h]);
 
         if (ctx->search_pminlen[h] > 8)
@@ -908,16 +920,92 @@ void B2gDestroyCtx(MpmCtx *mpm_ctx) {
         mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(B2gPattern));
     }
 
+    if (ctx->scan_B2G) {
+        free(ctx->scan_B2G);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(B2G_TYPE) * ctx->scan_hash_size);
+    }
+
+    if (ctx->search_B2G) {
+        free(ctx->search_B2G);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(B2G_TYPE) * ctx->search_hash_size);
+    }
+
+    if (ctx->scan_bloom) {
+        int h;
+        for (h = 0; h < ctx->scan_hash_size; h++) {
+            if (ctx->scan_bloom[h] == NULL)
+                continue;
+
+            mpm_ctx->memory_cnt -= BloomFilterMemoryCnt(ctx->scan_bloom[h]);
+            mpm_ctx->memory_size -= BloomFilterMemorySize(ctx->scan_bloom[h]);
+
+            BloomFilterFree(ctx->scan_bloom[h]);
+        }
+
+        free(ctx->scan_bloom);
+
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->scan_hash_size);
+    }
+
     if (ctx->scan_hash) {
+        int h;
+        for (h = 0; h < ctx->scan_hash_size; h++) {
+            if (ctx->scan_hash[h] == NULL)
+                continue;
+
+            B2gHashFree(mpm_ctx, ctx->scan_hash[h]);
+        }
+
         free(ctx->scan_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B2gHashItem) * ctx->scan_hash_size);
     }
 
+    if (ctx->search_bloom) {
+        int h;
+        for (h = 0; h < ctx->search_hash_size; h++) {
+            if (ctx->search_bloom[h] == NULL)
+                continue;
+
+            mpm_ctx->memory_cnt -= BloomFilterMemoryCnt(ctx->search_bloom[h]);
+            mpm_ctx->memory_size -= BloomFilterMemorySize(ctx->search_bloom[h]);
+
+            BloomFilterFree(ctx->search_bloom[h]);
+        }
+
+        free(ctx->search_bloom);
+
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->search_hash_size);
+    }
+
     if (ctx->search_hash) {
+        int h;
+        for (h = 0; h < ctx->search_hash_size; h++) {
+            if (ctx->search_hash[h] == NULL)
+                continue;
+
+            B2gHashFree(mpm_ctx, ctx->search_hash[h]);
+        }
+
         free(ctx->search_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B2gHashItem) * ctx->search_hash_size);
+    }
+
+    if (ctx->scan_pminlen) {
+        free(ctx->scan_pminlen);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(u_int8_t) * ctx->scan_hash_size);
+    }
+
+    if (ctx->search_pminlen) {
+        free(ctx->search_pminlen);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(u_int8_t) * ctx->search_hash_size);
     }
 
     free(mpm_ctx->ctx);
@@ -1499,6 +1587,7 @@ static int B2gTestInit01 (void) {
     return result;
 }
 
+#if 0
 static int B2gTestS0Init01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
@@ -1595,6 +1684,7 @@ static int B2gTestS0Init05 (void) {
     B2gDestroyCtx(&mpm_ctx);
     return result;
 }
+#endif
 
 static int B2gTestScan01 (void) {
     int result = 0;

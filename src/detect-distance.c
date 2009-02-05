@@ -9,7 +9,7 @@
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
 
-int DetectDistanceSetup (Signature *s, SigMatch *m, char *distancestr);
+int DetectDistanceSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *distancestr);
 
 void DetectDistanceRegister (void) {
     sigmatch_table[DETECT_DISTANCE].name = "distance";
@@ -19,7 +19,7 @@ void DetectDistanceRegister (void) {
     sigmatch_table[DETECT_DISTANCE].RegisterTests = NULL;
 }
 
-int DetectDistanceSetup (Signature *s, SigMatch *m, char *distancestr)
+int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *distancestr)
 {
     char *str = distancestr;
     char dubbed = 0;

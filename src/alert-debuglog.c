@@ -36,7 +36,7 @@
 int AlertDebuglog (ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertDebuglogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertDebuglogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertDebuglogThreadInit(ThreadVars *, void **);
+int AlertDebuglogThreadInit(ThreadVars *, void*, void **);
 int AlertDebuglogThreadDeinit(ThreadVars *, void *);
 void AlertDebuglogExitPrintStats(ThreadVars *, void *);
 
@@ -196,7 +196,7 @@ int AlertDebuglog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return 0;
 }
 
-int AlertDebuglogThreadInit(ThreadVars *t, void **data)
+int AlertDebuglogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertDebuglogThread *aft = malloc(sizeof(AlertDebuglogThread));
     if (aft == NULL) {

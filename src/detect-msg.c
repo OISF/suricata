@@ -4,7 +4,7 @@
 #include "detect.h"
 #include "flow-var.h"
 
-int DetectMsgSetup (Signature *s, SigMatch *m, char *msgstr);
+int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *msgstr);
 
 void DetectMsgRegister (void) {
     sigmatch_table[DETECT_MSG].name = "msg";
@@ -14,7 +14,7 @@ void DetectMsgRegister (void) {
     sigmatch_table[DETECT_MSG].RegisterTests = NULL;
 }
 
-int DetectMsgSetup (Signature *s, SigMatch *m, char *msgstr)
+int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *msgstr)
 {
     char *str = msgstr;
 

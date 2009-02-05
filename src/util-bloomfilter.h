@@ -17,6 +17,7 @@ void BloomFilterFree(BloomFilter *);
 void BloomFilterPrint(BloomFilter *);
 int BloomFilterAdd(BloomFilter *, void *, u_int16_t);
 int BloomFilterTest(BloomFilter *, void *, u_int16_t);
+u_int32_t BloomFilterMemoryCnt(BloomFilter *);
 u_int32_t BloomFilterMemorySize(BloomFilter *);
 
 void BloomFilterRegisterTests(void);

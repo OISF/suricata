@@ -8,7 +8,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 
-int DetectDepthSetup (Signature *s, SigMatch *m, char *depthstr);
+int DetectDepthSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *depthstr);
 
 void DetectDepthRegister (void) {
     sigmatch_table[DETECT_DEPTH].name = "depth";
@@ -18,7 +18,7 @@ void DetectDepthRegister (void) {
     sigmatch_table[DETECT_DEPTH].RegisterTests = NULL;
 }
 
-int DetectDepthSetup (Signature *s, SigMatch *m, char *depthstr)
+int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *depthstr)
 {
     char *str = depthstr;
     char dubbed = 0;

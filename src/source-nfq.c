@@ -30,11 +30,11 @@ static pthread_mutex_t nfq_init_lock;
 
 
 int ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
-int ReceiveNFQThreadInit(ThreadVars *, void **);
+int ReceiveNFQThreadInit(ThreadVars *, void *, void **);
 void ReceiveNFQThreadExitStats(ThreadVars *, void *);
 
 int VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
-int VerdictNFQThreadInit(ThreadVars *, void **);
+int VerdictNFQThreadInit(ThreadVars *, void *, void **);
 void VerdictNFQThreadExitStats(ThreadVars *, void *);
 int VerdictNFQThreadDeinit(ThreadVars *, void *);
 
@@ -231,7 +231,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
     return 0;
 }
 
-int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
+int ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     mutex_lock(&nfq_init_lock);
     printf("ReceiveNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
 
@@ -255,7 +255,7 @@ int ReceiveNFQThreadInit(ThreadVars *tv, void **data) {
     return 0;
 }
 
-int VerdictNFQThreadInit(ThreadVars *tv, void **data) {
+int VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     mutex_lock(&nfq_init_lock);
     printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", verdict_queue_num);
 

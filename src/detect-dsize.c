@@ -24,7 +24,7 @@ typedef struct _DetectDsizeData {
 } DetectDsizeData;
 
 int DetectDsizeMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
-int DetectDsizeSetup (Signature *s, SigMatch *m, char *str);
+int DetectDsizeSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 void DsizeRegisterTests(void);
 
 void DetectDsizeRegister (void) {
@@ -177,7 +177,7 @@ error:
     return NULL;
 }
 
-int DetectDsizeSetup (Signature *s, SigMatch *m, char *rawstr)
+int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
 {
     DetectDsizeData *dd = NULL;
     SigMatch *sm = NULL;

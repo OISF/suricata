@@ -8,7 +8,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 
-int DetectRawbytesSetup (Signature *s, SigMatch *m, char *depthstr);
+int DetectRawbytesSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 
 void DetectRawbytesRegister (void) {
     sigmatch_table[DETECT_RAWBYTES].name = "rawbytes";
@@ -20,7 +20,7 @@ void DetectRawbytesRegister (void) {
     sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_NOOPT;
 }
 
-int DetectRawbytesSetup (Signature *s, SigMatch *m, char *nullstr)
+int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
 {
     //printf("DetectRawbytesSetup: s->match:%p,m:%p\n", s->match, m);
 

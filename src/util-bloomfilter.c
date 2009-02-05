@@ -98,6 +98,13 @@ int BloomFilterTest(BloomFilter *bf, void *data, u_int16_t datalen) {
     return hit;
 }
 
+u_int32_t BloomFilterMemoryCnt(BloomFilter *bf) {
+     if (bf == NULL)
+         return 0;
+
+     return 2;
+}
+
 u_int32_t BloomFilterMemorySize(BloomFilter *bf) {
      if (bf == NULL)
          return 0;

@@ -4,7 +4,7 @@
 #include "detect.h"
 #include "flow-var.h"
 
-int DetectClasstypeSetup (Signature *s, SigMatch *m, char *str);
+int DetectClasstypeSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 
 void DetectClasstypeRegister (void) {
     sigmatch_table[DETECT_CLASSTYPE].name = "classtype";
@@ -14,7 +14,7 @@ void DetectClasstypeRegister (void) {
     sigmatch_table[DETECT_CLASSTYPE].RegisterTests = NULL;
 }
 
-int DetectClasstypeSetup (Signature *s, SigMatch *m, char *rawstr)
+int DetectClasstypeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
 {
     char *str = rawstr;
     char dubbed = 0;

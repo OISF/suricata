@@ -61,6 +61,7 @@ util-mpm-b3g.c util-mpm-b3g.h \
 util-cidr.c util-cidr.h \
 util-unittest.c util-unittest.h \
 util-hash.c util-hash.h \
+util-hashlist.c util-hashlist.h \
 util-bloomfilter.c util-bloomfilter.h \
 util-bloomfilter-counting.c util-bloomfilter-counting.h \
 tm-modules.c tm-modules.h \

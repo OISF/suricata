@@ -21,7 +21,7 @@ static pcre *parse_capture_regex;
 static pcre_extra *parse_capture_regex_study;
 
 int DetectPcreMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
-int DetectPcreSetup (Signature *, SigMatch *, char *);
+int DetectPcreSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 int DetectPcreFree(SigMatch *);
 
 void DetectPcreRegister (void) {
@@ -123,7 +123,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
 
                     /* don't bother scanning if we don't have a pattern matcher ctx
                      * which means we don't have uricontent sigs */
-                    if (pmt->mcu != NULL) {
+                    if (pmt->sgh->mpm_uri_ctx != NULL) {
                         if (pmt->sgh->mpm_uricontent_maxlen <= p->http_uri.raw_size[pmt->pkt_cnt]) {
                             if (pmt->sgh->mpm_uricontent_maxlen == 1)      pmt->pkts_uri_scanned1++;
                             else if (pmt->sgh->mpm_uricontent_maxlen == 2) pmt->pkts_uri_scanned2++;
@@ -132,7 +132,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
                             else                                           pmt->pkts_uri_scanned++;
 
                             pmt->pmq.mode = PMQ_MODE_SCAN;
-                            ret = pmt->mcu->Scan(pmt->mcu, &pmt->mtcu, &pmt->pmq, p->http_uri.raw[pmt->pkt_cnt], p->http_uri.raw_size[pmt->pkt_cnt]);
+                            ret = pmt->sgh->mpm_uri_ctx->Scan(pmt->sgh->mpm_uri_ctx, &pmt->mtcu, &pmt->pmq, p->http_uri.raw[pmt->pkt_cnt], p->http_uri.raw_size[pmt->pkt_cnt]);
                             if (ret > 0) {
                                 if (pmt->sgh->mpm_uricontent_maxlen == 1)      pmt->pkts_uri_searched1++;
                                 else if (pmt->sgh->mpm_uricontent_maxlen == 2) pmt->pkts_uri_searched2++;
@@ -141,7 +141,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
                                 else                                           pmt->pkts_uri_searched++;
 
                                 pmt->pmq.mode = PMQ_MODE_SEARCH;
-                                ret += pmt->mcu->Search(pmt->mcu, &pmt->mtcu, &pmt->pmq, p->http_uri.raw[pmt->pkt_cnt], p->http_uri.raw_size[pmt->pkt_cnt]);
+                                ret += pmt->sgh->mpm_uri_ctx->Search(pmt->sgh->mpm_uri_ctx, &pmt->mtcu, &pmt->pmq, p->http_uri.raw[pmt->pkt_cnt], p->http_uri.raw_size[pmt->pkt_cnt]);
 
                                 /* indicate to uricontent that we have a uri,
                                  * we scanned it _AND_ we found pattern matches. */
@@ -173,7 +173,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
     return ret;
 }
 
-int DetectPcreSetup (Signature *s, SigMatch *m, char *regexstr)
+int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *regexstr)
 {
     const char *eb;
     int eo;

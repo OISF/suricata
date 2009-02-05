@@ -4,7 +4,12 @@
 
 #include "vips.h"
 #include "debug.h"
+
 #include "detect.h"
+#include "detect-engine.h"
+#include "detect-engine-address.h"
+#include "detect-engine-port.h"
+
 #include "flow.h"
 
 #include "util-unittest.h"
@@ -15,7 +20,7 @@ static pcre_extra *config_pcre_extra = NULL;
 static pcre_extra *option_pcre_extra = NULL;
 
 /* XXX this should be part of the DE */
-static u_int32_t signum = 0;
+//static u_int32_t signum = 0;
 
 static u_int32_t dbg_srcportany_cnt = 0;
 static u_int32_t dbg_dstportany_cnt = 0;
@@ -36,9 +41,6 @@ static u_int32_t dbg_dstportany_cnt = 0;
 #define OPTION_PARTS 3
 #define OPTION_PCRE "^\\s*([A-z_0-9]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
-u_int32_t SigGetMaxId(void) {
-    return signum;
-}
 
 u_int32_t DbgGetSrcPortAnyCnt(void) {
     return dbg_srcportany_cnt;
@@ -46,10 +48,6 @@ u_int32_t DbgGetSrcPortAnyCnt(void) {
 
 u_int32_t DbgGetDstPortAnyCnt(void) {
     return dbg_dstportany_cnt;
-}
-
-void SigResetMaxId(void) {
-    signum = 0;
 }
 
 SigMatch *SigMatchAlloc(void) {
@@ -144,7 +142,7 @@ void SigParsePrepare(void) {
     }
 }
 
-int SigParseOptions(Signature *s, SigMatch *m, char *optstr) {
+int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *optstr) {
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     int ret = 0, i = 0;
@@ -194,7 +192,7 @@ int SigParseOptions(Signature *s, SigMatch *m, char *optstr) {
     }
 
     /* setup may or may not add a new SigMatch to the list */
-    if (st->Setup(s, m, optvalue) < 0)
+    if (st->Setup(de_ctx, s, m, optvalue) < 0)
         goto error;
 
     /* thats why we check for that here */
@@ -211,7 +209,7 @@ int SigParseOptions(Signature *s, SigMatch *m, char *optstr) {
         if (optstr) free(optstr);
         //if (optmore) pcre_free_substring(optmore);
         if (arr != NULL) free(arr);
-        return SigParseOptions(s, m, optmore);
+        return SigParseOptions(de_ctx, s, m, optmore);
     }
 
     if (optname) pcre_free_substring(optname);
@@ -426,7 +424,7 @@ error:
     return -1;
 }
 
-int SigParse(Signature *s, char *sigstr) {
+int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr) {
     char **basics;
 
     int ret = SigParseBasics(s, sigstr, &basics);
@@ -443,7 +441,7 @@ int SigParse(Signature *s, char *sigstr) {
 
     /* we can have no options, so make sure we have them */
     if (basics[CONFIG_OPTS] != NULL) {
-        ret = SigParseOptions(s, NULL, strdup(basics[CONFIG_OPTS]));
+        ret = SigParseOptions(de_ctx, s, NULL, strdup(basics[CONFIG_OPTS]));
     }
 
     /* cleanup */
@@ -486,7 +484,7 @@ void SigFree(Signature *s) {
     free(s);
 }
 
-Signature *SigInit(char *sigstr) {
+Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
@@ -495,11 +493,11 @@ Signature *SigInit(char *sigstr) {
      * through classifications.config */
     sig->prio = 3;
 
-    if (SigParse(sig, sigstr) < 0)
+    if (SigParse(de_ctx, sig, sigstr) < 0)
         goto error;
 
-    sig->num = signum;
-    signum++;
+    sig->num = de_ctx->signum;
+    de_ctx->signum++;
     return sig;
 
 error:
@@ -516,13 +514,18 @@ int SigParseTest01 (void) {
     int result = 1;
     Signature *sig = NULL;
 
-    sig = SigInit("alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
     if (sig == NULL) {
         result = 0;
         goto end;
     }
 
     SigFree(sig);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
@@ -531,13 +534,19 @@ int SigParseTest02 (void) {
     int result = 0;
     Signature *sig = NULL;
 
-    sig = SigInit("alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
     if (sig == NULL) {
         goto end;
     }
 
     DetectPort *port = NULL;
     int r = DetectPortParse(&port, "0:20");
+    if (r < 0)
+        goto end;
 
     if (DetectPortCmp(sig->sp, port) == PORT_EQ) {
         result = 1;
@@ -546,6 +555,7 @@ int SigParseTest02 (void) {
     }
 
     SigFree(sig);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }

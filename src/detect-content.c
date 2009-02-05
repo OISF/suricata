@@ -42,14 +42,10 @@
 #include "threads.h"
 
 int DetectContentMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
-int DetectContentSetup (Signature *, SigMatch *, char *);
+int DetectContentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 
 u_int8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
-
-/* we use a global id for content matches to be able to use
- * just one pattern matcher thread context per thread. */
-static u_int32_t content_max_id = 0;
 
 void DetectContentRegister (void) {
     sigmatch_table[DETECT_CONTENT].name = "content";
@@ -77,9 +73,9 @@ void DetectContentRegister (void) {
 }
 
 /* pass on the content_max_id */
-u_int32_t DetectContentMaxId(void) {
-    //printf("DetectContentMaxId: %u\n", content_max_id);
-    return content_max_id;
+u_int32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
+    //printf("DetectContentMaxId: %u\n", de_ctx->content_max_id);
+    return de_ctx->content_max_id;
 }
 
 static inline int
@@ -277,7 +273,7 @@ int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
     return DoDetectContent(t, pmt, p, s, m, co);
 }
 
-int DetectContentSetup (Signature *s, SigMatch *m, char *contentstr)
+int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *contentstr)
 {
     DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
@@ -385,8 +381,8 @@ int DetectContentSetup (Signature *s, SigMatch *m, char *contentstr)
 
     SigMatchAppend(s,m,sm);
 
-    cd->id = content_max_id;
-    content_max_id++;
+    cd->id = de_ctx->content_max_id;
+    de_ctx->content_max_id++;
 
     if (dubbed) free(str);
     return 0;

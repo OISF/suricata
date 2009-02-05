@@ -1,4 +1,4 @@
-/* Implementation of the SBNDMq pattern matching algorithm.
+/* 3 gram implementation of the (S)BNDMq pattern matching algorithm.
  *
  * Copyright (c) 2009 Victor Julien <victor@inliniac.net>
  *
@@ -167,6 +167,18 @@ B3gAllocHashItem(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += sizeof(B3gHashItem);
     return hi;
+}
+
+static void B3gHashFree(MpmCtx *mpm_ctx, B3gHashItem *hi) {
+    if (hi == NULL)
+        return;
+
+    B3gHashItem *t = hi->nxt;
+    B3gHashFree(mpm_ctx, t);
+
+    mpm_ctx->memory_cnt--;
+    mpm_ctx->memory_size -= sizeof(B3gHashItem);
+    free(hi);
 }
 
 static inline void memcpy_tolower(u_int8_t *d, u_int8_t *s, u_int16_t len) {
@@ -515,7 +527,7 @@ static void B3gPrepareScanHash(MpmCtx *mpm_ctx) {
         if (ctx->scan_bloom[h] == NULL)
             continue;
 
-        mpm_ctx->memory_cnt+=2; /* hackish: bloomfilter itself and the bitarray */
+        mpm_ctx->memory_cnt += BloomFilterMemoryCnt(ctx->scan_bloom[h]);
         mpm_ctx->memory_size += BloomFilterMemorySize(ctx->scan_bloom[h]);
 
         if (ctx->scan_pminlen[h] > 8)
@@ -884,18 +896,94 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
         mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(B3gPattern));
     }
 
+    if (ctx->scan_B3G) {
+        free(ctx->scan_B3G);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(B3G_TYPE) * ctx->scan_hash_size);
+    }
+
+    if (ctx->search_B3G) {
+        free(ctx->search_B3G);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(B3G_TYPE) * ctx->search_hash_size);
+    }
+
+    if (ctx->scan_bloom) {
+        int h;
+        for (h = 0; h < ctx->scan_hash_size; h++) {
+            if (ctx->scan_bloom[h] == NULL)
+                continue;
+
+            mpm_ctx->memory_cnt -= BloomFilterMemoryCnt(ctx->scan_bloom[h]);
+            mpm_ctx->memory_size -= BloomFilterMemorySize(ctx->scan_bloom[h]);
+
+            BloomFilterFree(ctx->scan_bloom[h]);
+        }
+
+        free(ctx->scan_bloom);
+
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->scan_hash_size);
+    }
+
     if (ctx->scan_hash) {
+        int h;
+        for (h = 0; h < ctx->scan_hash_size; h++) {
+            if (ctx->scan_hash[h] == NULL)
+                continue;
+
+            B3gHashFree(mpm_ctx, ctx->scan_hash[h]);
+        }
+
         free(ctx->scan_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->scan_hash_size);
     }
+#if 0
+    if (ctx->search_bloom) {
+        int h;
+        for (h = 0; h < ctx->search_hash_size; h++) {
+            if (ctx->search_bloom[h] == NULL)
+                continue;
 
+            mpm_ctx->memory_cnt -= BloomFilterMemoryCnt(ctx->search_bloom[h]);
+            mpm_ctx->memory_size -= BloomFilterMemorySize(ctx->search_bloom[h]);
+
+            BloomFilterFree(ctx->search_bloom[h]);
+        }
+
+        free(ctx->search_bloom);
+
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->search_hash_size);
+    }
+#endif
     if (ctx->search_hash) {
+        int h;
+        for (h = 0; h < ctx->search_hash_size; h++) {
+            if (ctx->search_hash[h] == NULL)
+                continue;
+
+            B3gHashFree(mpm_ctx, ctx->search_hash[h]);
+        }
+
         free(ctx->search_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->search_hash_size);
     }
 
+    if (ctx->scan_pminlen) {
+        free(ctx->scan_pminlen);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(u_int8_t) * ctx->scan_hash_size);
+    }
+#if 0
+    if (ctx->search_pminlen) {
+        free(ctx->search_pminlen);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(u_int8_t) * ctx->search_hash_size);
+    }
+#endif
     free(mpm_ctx->ctx);
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(B3gCtx);
@@ -1510,6 +1598,7 @@ static int B3gTestInit01 (void) {
     return result;
 }
 
+#if 0
 static int B3gTestS0Init01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
@@ -1606,6 +1695,7 @@ static int B3gTestS0Init05 (void) {
     B3gDestroyCtx(&mpm_ctx);
     return result;
 }
+#endif
 
 static int B3gTestScan01 (void) {
     int result = 0;

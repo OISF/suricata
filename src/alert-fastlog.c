@@ -36,7 +36,7 @@
 int AlertFastlog (ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertFastlogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertFastlogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertFastlogThreadInit(ThreadVars *, void **);
+int AlertFastlogThreadInit(ThreadVars *, void *, void **);
 int AlertFastlogThreadDeinit(ThreadVars *, void *);
 void AlertFastlogExitPrintStats(ThreadVars *, void *);
 
@@ -147,7 +147,7 @@ int AlertFastlog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return 0;
 }
 
-int AlertFastlogThreadInit(ThreadVars *t, void **data)
+int AlertFastlogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertFastlogThread *aft = malloc(sizeof(AlertFastlogThread));
     if (aft == NULL) {

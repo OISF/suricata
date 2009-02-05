@@ -31,7 +31,7 @@
 int LogHttplog (ThreadVars *, Packet *, void *, PacketQueue *);
 int LogHttplogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
 int LogHttplogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
-int LogHttplogThreadInit(ThreadVars *, void **);
+int LogHttplogThreadInit(ThreadVars *, void *, void **);
 int LogHttplogThreadDeinit(ThreadVars *, void *);
 void LogHttplogExitPrintStats(ThreadVars *, void *);
 
@@ -172,7 +172,7 @@ int LogHttplog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return 0;
 }
 
-int LogHttplogThreadInit(ThreadVars *t, void **data)
+int LogHttplogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogHttplogThread *aft = malloc(sizeof(LogHttplogThread));
     if (aft == NULL) {

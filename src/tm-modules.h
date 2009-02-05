@@ -3,7 +3,7 @@
 
 typedef struct _TmModule {
     char *name;
-    int (*Init)(ThreadVars *, void **);
+    int (*Init)(ThreadVars *, void *, void **);
     int (*Func)(ThreadVars *, Packet *, void *, PacketQueue *);
     void (*ExitPrintStats)(ThreadVars *, void *);
     int (*Deinit)(ThreadVars *, void *);

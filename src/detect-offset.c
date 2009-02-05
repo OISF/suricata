@@ -8,7 +8,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 
-int DetectOffsetSetup (Signature *s, SigMatch *m, char *offsetstr);
+int DetectOffsetSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *offsetstr);
 
 void DetectOffsetRegister (void) {
     sigmatch_table[DETECT_OFFSET].name = "offset";
@@ -18,7 +18,7 @@ void DetectOffsetRegister (void) {
     sigmatch_table[DETECT_OFFSET].RegisterTests = NULL;
 }
 
-int DetectOffsetSetup (Signature *s, SigMatch *m, char *offsetstr)
+int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *offsetstr)
 {
     char *str = offsetstr;
     char dubbed = 0;

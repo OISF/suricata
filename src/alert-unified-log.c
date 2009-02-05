@@ -34,7 +34,7 @@
 #include "util-unittest.h"
 
 int AlertUnifiedLog (ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertUnifiedLogThreadInit(ThreadVars *, void **);
+int AlertUnifiedLogThreadInit(ThreadVars *, void *, void **);
 int AlertUnifiedLogThreadDeinit(ThreadVars *, void *);
 
 void TmModuleAlertUnifiedLogRegister (void) {
@@ -218,7 +218,7 @@ int AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return 0;
 }
 
-int AlertUnifiedLogThreadInit(ThreadVars *t, void **data)
+int AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertUnifiedLogThread *aun = malloc(sizeof(AlertUnifiedLogThread));
     if (aun == NULL) {
