@@ -14,7 +14,7 @@
 
 #include "util-unittest.h"
 
-HashTable* HashTableInit(u_int32_t size, u_int32_t (*Hash)(struct _HashTable *, void *, u_int16_t), void (*Free)(void *)) {
+HashTable* HashTableInit(u_int32_t size, u_int32_t (*Hash)(struct _HashTable *, void *, u_int16_t), char (*Compare)(void *, u_int16_t, void *, u_int16_t), void (*Free)(void *)) {
 
     HashTable *ht = NULL;
 
@@ -35,6 +35,11 @@ HashTable* HashTableInit(u_int32_t size, u_int32_t (*Hash)(struct _HashTable *, 
     ht->array_size = size;
     ht->Hash = Hash;
     ht->Free = Free;
+
+    if (Compare != NULL)
+        ht->Compare = Compare;
+    else
+        ht->Compare = HashTableDefaultCompare;
 
     /* setup the bitarray */
     ht->array = malloc(ht->array_size * sizeof(HashTableBucket *));
@@ -87,7 +92,7 @@ void HashTablePrint(HashTable *ht) {
 }
 
 int HashTableAdd(HashTable *ht, void *data, u_int16_t datalen) {
-    if (ht == NULL || data == NULL || datalen == 0)
+    if (ht == NULL || data == NULL)
         return -1;
 
     u_int32_t hash = ht->Hash(ht, data, datalen);
@@ -131,13 +136,7 @@ int HashTableRemove(HashTable *ht, void *data, u_int16_t datalen) {
 
     HashTableBucket *hashbucket = ht->array[hash], *prev_hashbucket = NULL;
     do {
-        if (hashbucket->size != datalen) {
-            prev_hashbucket = hashbucket;
-            hashbucket = hashbucket->next;
-            continue;
-        }
-
-        if (memcmp(hashbucket->data,data,datalen) == 0) {
+        if (ht->Compare(hashbucket->data,hashbucket->size,data,datalen) == 1) {
             if (prev_hashbucket == NULL) {
                 /* root bucket */
                 ht->array[hash] = hashbucket->next;
@@ -168,12 +167,7 @@ void *HashTableLookup(HashTable *ht, void *data, u_int16_t datalen) {
 
     HashTableBucket *hashbucket = ht->array[hash];
     do {
-        if (hashbucket->size != datalen) {
-            hashbucket = hashbucket->next;
-            continue;
-        }
-
-        if (memcmp(hashbucket->data,data,datalen) == 0)
+        if (ht->Compare(hashbucket->data,hashbucket->size,data,datalen) == 1)
             return hashbucket->data;
 
         hashbucket = hashbucket->next;
@@ -198,12 +192,22 @@ u_int32_t HashTableGenericHash(HashTable *ht, void *data, u_int16_t datalen) {
      return hash;
 }
 
+char HashTableDefaultCompare(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+    if (len1 != len2)
+        return 0;
+
+    if (memcmp(data1,data2,len1) != 0)
+        return 0;
+
+    return 1;
+}
+
 /*
  * ONLY TESTS BELOW THIS COMMENT
  */
 
 static int HashTableTestInit01 (void) {
-    HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL);
+    HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         return 0;
 
@@ -213,7 +217,7 @@ static int HashTableTestInit01 (void) {
 
 /* no hash function, so it should fail */
 static int HashTableTestInit02 (void) {
-    HashTable *ht = HashTableInit(1024, NULL, NULL);
+    HashTable *ht = HashTableInit(1024, NULL, NULL, NULL);
     if (ht == NULL)
         return 1;
 
@@ -223,7 +227,7 @@ static int HashTableTestInit02 (void) {
 
 static int HashTableTestInit03 (void) {
     int result = 0;
-    HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL);
+    HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         return 0;
 
@@ -235,7 +239,7 @@ static int HashTableTestInit03 (void) {
 }
 
 static int HashTableTestInit04 (void) {
-    HashTable *ht = HashTableInit(0, HashTableGenericHash, NULL);
+    HashTable *ht = HashTableInit(0, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         return 1;
 
@@ -243,14 +247,50 @@ static int HashTableTestInit04 (void) {
     return 0;
 }
 
+static int HashTableTestInit05 (void) {
+    int result = 0;
+    HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL, NULL);
+    if (ht == NULL)
+        return 0;
+
+    if (ht->Compare == HashTableDefaultCompare)
+        result = 1;
+
+    HashTableFree(ht);
+    return result;
+}
+
+static char HashTableDefaultCompareTest(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+    if (len1 != len2)
+        return 0;
+
+    if (memcmp(data1,data2,len1) != 0)
+        return 0;
+
+    return 1;
+}
+
+static int HashTableTestInit06 (void) {
+    int result = 0;
+    HashTable *ht = HashTableInit(1024, HashTableGenericHash, HashTableDefaultCompareTest, NULL);
+    if (ht == NULL)
+        return 0;
+
+    if (ht->Compare == HashTableDefaultCompareTest)
+        result = 1;
+
+    HashTableFree(ht);
+    return result;
+}
+
 static int HashTableTestAdd01 (void) {
     int result = 0;
-    HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL);
+    HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         goto end;
 
     int r = HashTableAdd(ht, "test", 0);
-    if (r == 0)
+    if (r != 0)
         goto end;
 
     /* all is good! */
@@ -262,7 +302,7 @@ end:
 
 static int HashTableTestAdd02 (void) {
     int result = 0;
-    HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL);
+    HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         goto end;
 
@@ -279,7 +319,7 @@ end:
 
 static int HashTableTestFull01 (void) {
     int result = 0;
-    HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL);
+    HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         goto end;
 
@@ -304,7 +344,7 @@ end:
 
 static int HashTableTestFull02 (void) {
     int result = 0;
-    HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL);
+    HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         goto end;
 
@@ -332,6 +372,8 @@ void HashTableRegisterTests(void) {
     UtRegisterTest("HashTableTestInit02", HashTableTestInit02, 1);
     UtRegisterTest("HashTableTestInit03", HashTableTestInit03, 1);
     UtRegisterTest("HashTableTestInit04", HashTableTestInit04, 1);
+    UtRegisterTest("HashTableTestInit05", HashTableTestInit05, 1);
+    UtRegisterTest("HashTableTestInit06", HashTableTestInit06, 1);
 
     UtRegisterTest("HashTableTestAdd01", HashTableTestAdd01, 1);
     UtRegisterTest("HashTableTestAdd02", HashTableTestAdd02, 1);

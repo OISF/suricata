@@ -15,17 +15,19 @@ typedef struct _HashTable {
     HashTableBucket **array;
     u_int32_t array_size;
     u_int32_t (*Hash)(struct _HashTable *, void *, u_int16_t);
+    char (*Compare)(void *, u_int16_t, void *, u_int16_t);
     void (*Free)(void *);
 } HashTable;
 
 /* prototypes */
-HashTable* HashTableInit(u_int32_t, u_int32_t (*Hash)(struct _HashTable *, void *, u_int16_t), void (*Free)(void *));
+HashTable* HashTableInit(u_int32_t, u_int32_t (*Hash)(struct _HashTable *, void *, u_int16_t), char (*Compare)(void *, u_int16_t, void *, u_int16_t), void (*Free)(void *));
 void HashTableFree(HashTable *);
 void HashTablePrint(HashTable *);
 int HashTableAdd(HashTable *, void *, u_int16_t);
 int HashTableRemove(HashTable *, void *, u_int16_t);
 void *HashTableLookup(HashTable *, void *, u_int16_t);
 u_int32_t HashTableGenericHash(HashTable *, void *, u_int16_t);
+char HashTableDefaultCompare(void *, u_int16_t, void *, u_int16_t);
 
 void HashTableRegisterTests(void);
 

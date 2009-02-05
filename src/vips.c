@@ -216,9 +216,9 @@ int main(int argc, char **argv)
     BloomFilterCountingRegisterTests();
     MpmRegisterTests();
     SigRegisterTests();
-    //UtRunTests();
+    UtRunTests();
     UtCleanup();
-    //exit(1);
+    exit(1);
 
     //LoadConfig();
     //exit(1);

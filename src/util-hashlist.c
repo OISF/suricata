@@ -149,13 +149,8 @@ int HashListTableRemove(HashListTable *ht, void *data, u_int16_t datalen) {
 
     HashListTableBucket *hashbucket = ht->array[hash], *prev_hashbucket = NULL;
     do {
-        if (hashbucket->size != datalen) {
-            prev_hashbucket = hashbucket;
-            hashbucket = hashbucket->bucknext;
-            continue;
-        }
+        if (ht->Compare(hashbucket->data,hashbucket->size,data,datalen) == 1) {
 
-        if (memcmp(hashbucket->data,data,datalen) == 0) {
             /* remove from the list */
             if (hashbucket->listprev == NULL) {
                 ht->listhead = hashbucket->listnext;
@@ -290,7 +285,7 @@ static int HashListTableTestAdd01 (void) {
         goto end;
 
     int r = HashListTableAdd(ht, "test", 0);
-    if (r == 0)
+    if (r != 0)
         goto end;
 
     /* all is good! */
