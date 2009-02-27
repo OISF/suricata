@@ -189,15 +189,11 @@ typedef struct _Packet
     Port sp;
     Port dp;
     u_int8_t proto;
+    /* make sure we can't be attacked on when the tunneled packet
+     * has the exact same tuple as the lower levels */
     u_int8_t recursion_level;
-/* XXX make sure we can't be attacked on when the tunneled packet
- * has the exact same tuple as the lower levels */
 
     struct timeval ts;
-
-    /* program flow */
-    int pickup_q_id;
-    int verdict_q_id;
 
     /* ready to set verdict counter, only set in root */
     u_int8_t rtv_cnt;
@@ -243,13 +239,14 @@ typedef struct _Packet
 
     TCPHdr *tcph;
     TCPVars tcpvars;
-    u_int8_t *tcp_payload;
-    u_int16_t tcp_payload_len;
 
     UDPHdr *udph;
     UDPVars udpvars;
-    u_int8_t *udp_payload;
-    u_int16_t udp_payload_len;
+
+    /* ptr to the payload of the packet
+     * with it's length. */
+    u_int8_t *payload;
+    u_int16_t payload_len;
 
     /* decoder events: review how many events we have */
     u_int8_t events[65535/8];
@@ -313,6 +310,7 @@ typedef struct _PacketQueue {
     (p)->http_uri.cnt = 0; \
     PktVarFree((p)->pktvar); \
     (p)->pktvar = NULL; \
+    (p)->recursion_level = 0; \
 }
 
 

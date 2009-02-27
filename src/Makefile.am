@@ -27,6 +27,7 @@ detect-engine-proto.c detect-engine-proto.h \
 detect-engine-port.c detect-engine-port.h \
 detect-engine-siggroup.c detect-engine-siggroup.h \
 detect-engine-mpm.c detect-engine-mpm.h \
+detect-engine-iponly.c detect-engine-iponly.h \
 detect-parse.c detect-parse.h \
 detect-content.c detect-content.h \
 detect-uricontent.c detect-uricontent.h \

@@ -6,10 +6,12 @@
 #include "decode.h"
 
 /* pkt flow flags */
-#define FLOW_PKT_TOSERVER    0x01
-#define FLOW_PKT_TOCLIENT    0x02
-#define FLOW_PKT_ESTABLISHED 0x04
-#define FLOW_PKT_STATELESS   0x08
+#define FLOW_PKT_TOSERVER            0x01
+#define FLOW_PKT_TOCLIENT            0x02
+#define FLOW_PKT_ESTABLISHED         0x04
+#define FLOW_PKT_STATELESS           0x08
+#define FLOW_PKT_TOSERVER_IPONLY_SET 0x10
+#define FLOW_PKT_TOCLIENT_IPONLY_SET 0x20
 
 /* global flow config */
 typedef struct _FlowCnf
@@ -70,10 +72,11 @@ typedef struct _Flow
     struct _FlowBucket *fb;
 } Flow;
 
-void FlowHandlePacket (ThreadVars *th_v, Packet *p);
+void FlowHandlePacket (ThreadVars *, Packet *);
 void FlowInitConfig (void);
 void FlowPrintFlows (void);
 void FlowShutdown(void);
+void FlowSetIPOnlyFlag(Flow *, char);
 
 void *FlowManagerThread(void *td);
 

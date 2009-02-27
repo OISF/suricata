@@ -12,6 +12,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name, char *ou
 int TmThreadSpawn(ThreadVars *);
 void TmThreadKillThreads(void);
 void TmThreadAppend(ThreadVars *);
+int TmThreadSetCPUAffinity(ThreadVars *, int);
 
 #endif /* __TM_THREADS_H__ */
 

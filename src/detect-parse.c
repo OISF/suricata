@@ -236,6 +236,7 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
 
     if (strcmp(addrstr,"$HOME_NET") == 0) {
         addr = "[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]";
+//        addr = "[192.168.0.0/16,10.8.0.0/16,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]";
     } else if (strcmp(addrstr,"$EXTERNAL_NET") == 0) {
         addr = "[!192.168.0.0/16,2000::/3]";
     } else if (strcmp(addrstr,"$HTTP_SERVERS") == 0) {

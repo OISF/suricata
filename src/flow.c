@@ -172,6 +172,14 @@ static int FlowUpdateSpareFlows(void) {
     return 1;
 }
 
+/* Set the IPOnly scanned flag for 'direction'. This function
+ * handles the locking too. */
+void FlowSetIPOnlyFlag(Flow *f, char direction) {
+    mutex_lock(&f->m);
+    direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) : (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
+    mutex_unlock(&f->m);
+}
+
 /* FlowHandlePacket
  *
  * This is called for every packet.
@@ -204,6 +212,12 @@ void FlowHandlePacket (ThreadVars *th_v, Packet *p)
 
     /* update queue positions */
     FlowUpdateQueue(f);
+
+    /* set the iponly stuff */
+    if (f->flags & FLOW_TOCLIENT_IPONLY_SET)
+        p->flowflags |= FLOW_PKT_TOCLIENT_IPONLY_SET;
+    if (f->flags & FLOW_TOSERVER_IPONLY_SET)
+        p->flowflags |= FLOW_PKT_TOSERVER_IPONLY_SET;
 
     /* set the flow in the packet */
     p->flow = f;

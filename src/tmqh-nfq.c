@@ -18,11 +18,14 @@ void TmqhNfqRegister (void) {
 
 void TmqhOutputVerdictNfq(ThreadVars *t, Packet *p)
 {
+/* XXX not scaling */
+#if 0
     PacketQueue *q = &trans_q[p->verdict_q_id];
 
     mutex_lock(&q->mutex_q);
     PacketEnqueue(q, p);
     pthread_cond_signal(&q->cond_q);
     mutex_unlock(&q->mutex_q);
+#endif
 }
 

@@ -121,8 +121,8 @@ int HashListTableAdd(HashListTable *ht, void *data, u_int16_t datalen) {
         ht->listhead = hb;
         ht->listtail = hb;
     } else {
+        hb->listprev = ht->listtail;
         ht->listtail->listnext = hb;
-        hb->listprev = ht->listtail->listnext;
         ht->listtail = hb;
     }
 
@@ -312,6 +312,71 @@ end:
     return result;
 }
 
+static int HashListTableTestAdd03 (void) {
+    int result = 0;
+    HashListTable *ht = HashListTableInit(32, HashListTableGenericHash, NULL, NULL);
+    if (ht == NULL)
+        goto end;
+
+    int r = HashListTableAdd(ht, "test", 0);
+    if (r != 0)
+        goto end;
+
+    if (ht->listhead == NULL) {
+        printf("ht->listhead == NULL: ");
+        goto end;
+    }
+
+    if (ht->listtail == NULL) {
+        printf("ht->listtail == NULL: ");
+        goto end;
+    }
+
+    /* all is good! */
+    result = 1;
+end:
+    if (ht != NULL) HashListTableFree(ht);
+    return result;
+}
+
+static int HashListTableTestAdd04 (void) {
+    int result = 0;
+    HashListTable *ht = HashListTableInit(32, HashListTableGenericHash, NULL, NULL);
+    if (ht == NULL)
+        goto end;
+
+    int r = HashListTableAdd(ht, "test", 4);
+    if (r != 0)
+        goto end;
+
+    char *rp = HashListTableLookup(ht, "test", 4);
+    if (rp == NULL)
+        goto end;
+
+    HashListTableBucket *htb = HashListTableGetListHead(ht);
+    if (htb == NULL) {
+        printf("htb == NULL: ");
+        goto end;
+    }
+
+    char *rp2 = HashListTableGetListData(htb);
+    if (rp2 == NULL) {
+        printf("rp2 == NULL: ");
+        goto end;
+    }
+
+    if (rp != rp2) {
+        printf("rp != rp2: ");
+        goto end;
+    }
+
+    /* all is good! */
+    result = 1;
+end:
+    if (ht != NULL) HashListTableFree(ht);
+    return result;
+}
+
 static int HashListTableTestFull01 (void) {
     int result = 0;
     HashListTable *ht = HashListTableInit(32, HashListTableGenericHash, NULL, NULL);
@@ -370,6 +435,8 @@ void HashListTableRegisterTests(void) {
 
     UtRegisterTest("HashListTableTestAdd01", HashListTableTestAdd01, 1);
     UtRegisterTest("HashListTableTestAdd02", HashListTableTestAdd02, 1);
+    UtRegisterTest("HashListTableTestAdd03", HashListTableTestAdd03, 1);
+    UtRegisterTest("HashListTableTestAdd04", HashListTableTestAdd04, 1);
 
     UtRegisterTest("HashListTableTestFull01", HashListTableTestFull01, 1);
     UtRegisterTest("HashListTableTestFull02", HashListTableTestFull02, 1);

@@ -175,7 +175,7 @@ DoDetectUricontent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, SigMatch
                 if (ret == 1) {
                     /* update pkt ptrs, content doesn't use this,
                      * but pcre does */
-                    pmt->pkt_ptr = p->tcp_payload + m->offset;
+                    pmt->pkt_ptr = p->payload + m->offset;
                     pmt->pkt_off = m->offset;
                     match = 1;
                     break;
@@ -206,7 +206,7 @@ DoDetectUricontent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, SigMatch
             if (ret == 1) {
                 /* update pkt ptrs, content doesn't use this,
                  * but pcre does */
-                pmt->pkt_ptr = p->tcp_payload + m->offset;
+                pmt->pkt_ptr = p->payload + m->offset;
                 pmt->pkt_off = m->offset;
                 match = 1;
                 break;
@@ -366,6 +366,8 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
 
     cd->id = de_ctx->uricontent_max_id;
     de_ctx->uricontent_max_id++;
+
+    s->flags |= SIG_FLAG_MPM;
 
     if (dubbed) free(str);
     return 0;

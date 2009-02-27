@@ -138,6 +138,11 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
             pmq->sig_id_array[pmq->sig_id_array_cnt] = em->sig_id;
             pmq->sig_id_array_cnt++;
         }
+
+        /* nosearch flag */
+        if (pmq->mode == PMQ_MODE_SCAN && !(em->flags & MPM_ENDMATCH_NOSEARCH)) {
+            pmq->searchable++;
+        }
     }
 
 #ifdef DEBUG

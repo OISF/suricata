@@ -17,5 +17,7 @@ void PatternMatchDestroyGroup(SigGroupHead *);
 int PatternMatcherThreadInit(ThreadVars *, void *, void **);
 int PatternMatcherThreadDeinit(ThreadVars *, void *);
 
+void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *, SigGroupHead *);
+
 #endif /* __DETECT_MPM_H__ */
 

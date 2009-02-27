@@ -79,15 +79,17 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
     }
     ag->sh = NULL;
 
-    if (ag->dst_gh != NULL) {
-        DetectAddressGroupsHeadFree(ag->dst_gh);
+    if (!(ag->flags & ADDRESS_GROUP_HAVEPORT)) {
+        if (ag->dst_gh != NULL) {
+            DetectAddressGroupsHeadFree(ag->dst_gh);
+        }
+        ag->dst_gh = NULL;
+    } else {
+        if (ag->port != NULL && !(ag->flags & PORT_GROUP_PORTS_COPY)) {
+            DetectPortCleanupList(ag->port);
+        }
+        ag->port = NULL;
     }
-    ag->dst_gh = NULL;
-
-    if (ag->port != NULL && !(ag->flags & PORT_GROUP_PORTS_COPY)) {
-        DetectPortCleanupList(ag->port);
-    }
-    ag->port = NULL;
 
     detect_address_group_memory -= sizeof(DetectAddressGroup);
     detect_address_group_free_cnt++;

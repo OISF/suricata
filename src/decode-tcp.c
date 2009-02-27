@@ -126,8 +126,8 @@ static int DecodeTCPPacket(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t le
         DecodeTCPOptions(t, p, pkt + TCP_HEADER_LEN, p->tcpvars.tcp_opt_len);
     }
 
-    p->tcp_payload = pkt + p->tcpvars.hlen;
-    p->tcp_payload_len = len - p->tcpvars.hlen;
+    p->payload = pkt + p->tcpvars.hlen;
+    p->payload_len = len - p->tcpvars.hlen;
 
     p->proto = IPPROTO_TCP;
 

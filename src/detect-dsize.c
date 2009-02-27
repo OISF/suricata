@@ -4,6 +4,8 @@
 #include "detect.h"
 #include "flow-var.h"
 
+#include "detect-dsize.h"
+
 #include "util-unittest.h"
 
 #include <pcre.h>
@@ -11,17 +13,6 @@
 #define PARSE_REGEX "^(?:\\\")?(<|>)?([0-9]+)(?:(<>)([0-9]+))?(?:\\\")?$"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
-
-#define LT 0
-#define EQ 1
-#define GT 2
-#define RA 3
-
-typedef struct _DetectDsizeData {
-    u_int16_t dsize;
-    u_int16_t dsize2;
-    u_int8_t mode;
-} DetectDsizeData;
 
 int DetectDsizeMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
 int DetectDsizeSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
@@ -70,13 +61,13 @@ int DetectDsizeMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signa
 
     DetectDsizeData *dd = (DetectDsizeData *)m->ctx;
 
-    if (dd->mode == EQ && dd->dsize == p->tcp_payload_len)
+    if (dd->mode == DETECTDSIZE_EQ && dd->dsize == p->payload_len)
         ret = 1;
-    else if (dd->mode == LT && p->tcp_payload_len < dd->dsize)
+    else if (dd->mode == DETECTDSIZE_LT && p->payload_len < dd->dsize)
         ret = 1;
-    else if (dd->mode == GT && p->tcp_payload_len > dd->dsize)
+    else if (dd->mode == DETECTDSIZE_GT && p->payload_len > dd->dsize)
         ret = 1;
-    else if (dd->mode == RA && p->tcp_payload_len > dd->dsize && p->tcp_payload_len < dd->dsize2)
+    else if (dd->mode == DETECTDSIZE_RA && p->payload_len > dd->dsize && p->payload_len < dd->dsize2)
         ret = 1;
 
     return ret;
@@ -139,21 +130,21 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     dd->dsize = 0;
     dd->dsize2 = 0;
 
-    if (mode[0] == '<') dd->mode = LT;
-    else if (mode[0] == '>') dd->mode = GT;
-    else dd->mode = EQ;
+    if (mode[0] == '<') dd->mode = DETECTDSIZE_LT;
+    else if (mode[0] == '>') dd->mode = DETECTDSIZE_GT;
+    else dd->mode = DETECTDSIZE_EQ;
 
     if (strcmp("<>", range) == 0) {
         if (strlen(mode) != 0)
             goto error;
 
-        dd->mode = RA;
+        dd->mode = DETECTDSIZE_RA;
     }
 
     /* set the value */
     dd->dsize = (u_int16_t)atoi(value1);
     if (strlen(value2) > 0) {
-        if (dd->mode != RA)
+        if (dd->mode != DETECTDSIZE_RA)
             goto error;
 
         dd->dsize2 = (u_int16_t)atoi(value2);
@@ -276,7 +267,7 @@ int DsizeTestParse06 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse(">10");
     if (dd) {
-        if (dd->dsize == 10 && dd->mode == GT)
+        if (dd->dsize == 10 && dd->mode == DETECTDSIZE_GT)
             result = 1;
 
         DetectDsizeFree(dd);
@@ -290,7 +281,7 @@ int DsizeTestParse07 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("<100");
     if (dd) {
-        if (dd->dsize == 100 && dd->mode == LT)
+        if (dd->dsize == 100 && dd->mode == DETECTDSIZE_LT)
             result = 1;
 
         DetectDsizeFree(dd);
@@ -304,7 +295,7 @@ int DsizeTestParse08 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1<>2");
     if (dd) {
-        if (dd->dsize == 1 && dd->dsize2 == 2 && dd->mode == RA)
+        if (dd->dsize == 1 && dd->dsize2 == 2 && dd->mode == DETECTDSIZE_RA)
             result = 1;
 
         DetectDsizeFree(dd);

@@ -179,7 +179,7 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
                 ret = TestWithinDistanceOffsetDepth(t, pmt, m, sm->next, pmt->pkt_off);
                 if (ret == 1) {
                     //printf("DoDetectContent: TestWithinDistanceOffsetDepth returned 1\n");
-                    pmt->pkt_ptr = p->tcp_payload + m->offset;
+                    pmt->pkt_ptr = p->payload + m->offset;
                     pmt->pkt_off = m->offset;
                     match = 1;
                     break;
@@ -214,7 +214,7 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
                 if (m->offset >= pmt->pkt_off) {
                     /* update pkt ptrs, content doesn't use this,
                      * but pcre does */
-                    pmt->pkt_ptr = p->tcp_payload + m->offset;
+                    pmt->pkt_ptr = p->payload + m->offset;
                     pmt->pkt_off = m->offset;
                     match = 1;
                     break;
@@ -227,7 +227,7 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
                 if (ret == 1) {
                     /* update pkt ptrs, this content run doesn't
                      * use this, but pcre does */
-                    pmt->pkt_ptr = p->tcp_payload + m->offset;
+                    pmt->pkt_ptr = p->payload + m->offset;
                     pmt->pkt_off = m->offset;
                     match = 1;
                     break;
@@ -249,7 +249,7 @@ int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
 {
     u_int32_t len = 0;
 
-    if (p->tcp_payload_len == 0)
+    if (p->payload_len == 0)
         return 0;
 
     DetectContentData *co = (DetectContentData *)m->ctx;
@@ -383,6 +383,8 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
     cd->id = de_ctx->content_max_id;
     de_ctx->content_max_id++;
+
+    s->flags |= SIG_FLAG_MPM;
 
     if (dubbed) free(str);
     return 0;

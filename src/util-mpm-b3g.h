@@ -8,16 +8,16 @@
 #define B3G_SCAN   0x02
 
 //#define B3G_HASHSIZE 65536
-#define B3G_HASHSIZE 32768
+//#define B3G_HASHSIZE 32768
 //#define B3G_HASHSIZE 16384
 //#define B3G_HASHSIZE 8192
-//#define B3G_HASHSIZE 4096
+#define B3G_HASHSIZE 4096
 
 //#define B3G_HASHSHIFT 8
-#define B3G_HASHSHIFT 7
+//#define B3G_HASHSHIFT 7
 //#define B3G_HASHSHIFT 6
 //#define B3G_HASHSHIFT 5
-//#define B3G_HASHSHIFT 4
+#define B3G_HASHSHIFT 4
 
 #define B3G_TYPE u_int32_t
 //#define B3G_TYPE u_int16_t
@@ -33,6 +33,9 @@
 
 //#define B3G_SCANFUNC      B3gScan
 #define B3G_SCANFUNC      B3gScanBNDMq
+
+//#define B3G_SEARCHFUNC    B3gSearch
+#define B3G_SEARCHFUNC    B3gSearchBNDMq
 
 //#define B3G_COUNTERS
 
@@ -78,11 +81,16 @@ typedef struct _B3gCtx {
                                of the patters in a hash bucket. Used
                                for the BloomFilter. */
     B3gHashItem scan_hash1[256];
-    B3gHashItem scan_hash2[65536];
+    B3gHashItem **scan_hash2;
+
     u_int32_t search_hash_size;
     B3gHashItem **search_hash;
+    BloomFilter **search_bloom;
+    u_int8_t *search_pminlen; /* array containing the minimal length
+                               of the patters in a hash bucket. Used
+                               for the BloomFilter. */
     B3gHashItem search_hash1[256];
-    B3gHashItem search_hash2[65536];
+    B3gHashItem **search_hash2;
 
     /* we store our own multi byte scan ptr here for B3gSearch1 */
     u_int32_t (*MBScan2)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);

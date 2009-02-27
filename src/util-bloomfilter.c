@@ -82,7 +82,7 @@ int BloomFilterAdd(BloomFilter *bf, void *data, u_int16_t datalen) {
     return 0;
 }
 
-int BloomFilterTest(BloomFilter *bf, void *data, u_int16_t datalen) {
+inline int BloomFilterTest(BloomFilter *bf, void *data, u_int16_t datalen) {
     u_int8_t iter = 0;
     u_int32_t hash = 0;
     int hit = 1;

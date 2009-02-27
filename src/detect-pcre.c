@@ -84,21 +84,21 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
     u_int8_t *ptr = NULL;
     u_int16_t len = 0;
 
-    if (p->tcp_payload_len == 0)
+    if (p->payload_len == 0)
         return 0;
 
     DetectPcreData *pe = (DetectPcreData *)m->ctx;
     if (s->flags & SIG_FLAG_RECURSIVE) {
-        ptr = pmt->pkt_ptr ? pmt->pkt_ptr : p->tcp_payload;
-        len = p->tcp_payload_len - pmt->pkt_off;
+        ptr = pmt->pkt_ptr ? pmt->pkt_ptr : p->payload;
+        len = p->payload_len - pmt->pkt_off;
     } else if (pe->flags & DETECT_PCRE_RELATIVE) {
         ptr = pmt->pkt_ptr;
-        len = p->tcp_payload_len - pmt->pkt_off;
+        len = p->payload_len - pmt->pkt_off;
         if (ptr == NULL || len == 0)
             return 0;
     } else {
-        ptr = p->tcp_payload;
-        len = p->tcp_payload_len;
+        ptr = p->payload;
+        len = p->payload_len;
     }
 
     //printf("DetectPcre: ptr %p, len %u\n", ptr, len);
@@ -161,7 +161,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
 
         /* update ptrs for pcre RELATIVE */
         pmt->pkt_ptr =  ptr+ov[1];
-        pmt->pkt_off = (ptr+ov[1]) - p->tcp_payload;
+        pmt->pkt_off = (ptr+ov[1]) - p->payload;
         //printf("DetectPcre: post match: t->pkt_ptr %p t->pkt_off %u\n", t->pkt_ptr, t->pkt_off);
 
         ret = 1;

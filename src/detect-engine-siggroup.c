@@ -655,12 +655,18 @@ int SigGroupHeadClearUricontent(SigGroupHead *sh) {
     return 0;
 }
 
+/* Create an array with all the internal id's of the sigs
+ * that this sig group head will check for. */
 int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, u_int32_t max_idx) {
     u_int32_t idx = 0;
     u_int32_t sig = 0;
 
     if (sgh == NULL)
         return 0;
+
+/* XXX ugly */
+    if (sgh->match_array == NULL)
+        free(sgh->match_array);
 
     sgh->match_array = malloc(sgh->sig_cnt * sizeof(u_int32_t));
     if (sgh->match_array == NULL)
@@ -686,3 +692,23 @@ int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, u_i
     return 0;
 }
 
+int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh, u_int32_t sid) {
+    u_int32_t sig = 0;
+
+    if (sgh == NULL)
+        return 0;
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        if (!(sgh->sig_array[(sig/8)] & (1<<(sig%8))))
+            continue;
+
+        Signature *s = de_ctx->sig_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (s->id == sid)
+            return 1;
+    }
+
+    return 0;
+}

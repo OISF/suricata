@@ -7,10 +7,12 @@
 #include "flow-queue.h"
 
 /* per flow flags */
-#define FLOW_TO_SRC_SEEN 0x01
-#define FLOW_TO_DST_SEEN 0x02
-#define FLOW_NEW_LIST    0x04
-#define FLOW_EST_LIST    0x08
+#define FLOW_TO_SRC_SEEN         0x01
+#define FLOW_TO_DST_SEEN         0x02
+#define FLOW_NEW_LIST            0x04
+#define FLOW_EST_LIST            0x08
+#define FLOW_TOSERVER_IPONLY_SET 0x10
+#define FLOW_TOCLIENT_IPONLY_SET 0x20
 
 /* global flow flags */
 #define FLOW_EMERGENCY   0x01

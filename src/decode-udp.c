@@ -28,8 +28,8 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t le
     SET_UDP_SRC_PORT(p,&p->sp);
     SET_UDP_DST_PORT(p,&p->dp);
 
-    p->tcp_payload = pkt + UDP_HEADER_LEN;
-    p->tcp_payload_len = len - UDP_HEADER_LEN;
+    p->payload = pkt + UDP_HEADER_LEN;
+    p->payload_len = len - UDP_HEADER_LEN;
 
     p->proto = IPPROTO_UDP;
 

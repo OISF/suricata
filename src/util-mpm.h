@@ -3,9 +3,10 @@
 #ifndef __UTIL_MPM_H__
 #define __UTIL_MPM_H__
 
-#define MPM_ENDMATCH_SINGLE 0x01 /* A single match is sufficient */
-#define MPM_ENDMATCH_OFFSET 0x02 /* has offset setting */
-#define MPM_ENDMATCH_DEPTH  0x04 /* has depth setting */
+#define MPM_ENDMATCH_SINGLE   0x01 /* A single match is sufficient. No depth, offset, etc settings. */
+#define MPM_ENDMATCH_OFFSET   0x02 /* has offset setting */
+#define MPM_ENDMATCH_DEPTH    0x04 /* has depth setting */
+#define MPM_ENDMATCH_NOSEARCH 0x08 /* if this matches, no search is required (for this pattern) */
 
 enum {
     MPM_TRIE,
@@ -72,6 +73,8 @@ typedef struct _PatternMatcherQueue {
     u_int32_t sig_id_array_cnt;
     u_int8_t *sig_bitarray;
     char mode; /* 0: scan, 1: search */
+    u_int32_t searchable; /* counter of the number of matches that
+                             require a search-followup */
 } PatternMatcherQueue;
 
 typedef struct _MpmCtx {
@@ -81,8 +84,8 @@ typedef struct _MpmCtx {
     void (*InitThreadCtx)(struct _MpmCtx *, struct _MpmThreadCtx *, u_int32_t);
     void (*DestroyCtx)(struct _MpmCtx *);
     void (*DestroyThreadCtx)(struct _MpmCtx *, struct _MpmThreadCtx *);
-    int  (*AddScanPattern)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t);
-    int  (*AddScanPatternNocase)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t);
+    int  (*AddScanPattern)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t, u_int8_t);
+    int  (*AddScanPatternNocase)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t, u_int8_t);
     int  (*AddPattern)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t);
     int  (*AddPatternNocase)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t);
     int  (*Prepare)(struct _MpmCtx *);
@@ -118,8 +121,8 @@ typedef struct MpmTableElmt {
     void (*InitThreadCtx)(struct _MpmCtx *, struct _MpmThreadCtx *, u_int32_t);
     void (*DestroyCtx)(struct _MpmCtx *);
     void (*DestroyThreadCtx)(struct _MpmCtx *, struct _MpmThreadCtx *);
-    int  (*AddScanPattern)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t);
-    int  (*AddScanPatternNocase)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t);
+    int  (*AddScanPattern)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t, u_int8_t);
+    int  (*AddScanPatternNocase)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t, u_int8_t);
     int  (*AddPattern)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t);
     int  (*AddPatternNocase)(struct _MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t);
     int  (*Prepare)(struct _MpmCtx *);

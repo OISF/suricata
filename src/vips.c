@@ -179,6 +179,14 @@ int main(int argc, char **argv)
     setup_signal_handler(SIGHUP, handle_sighup);
     //pthread_sigmask(SIG_BLOCK, &set, 0);
 
+    /* create table for O(1) lowercase conversion lookup */
+    u_int8_t c = 0;
+    for ( ; c < 255; c++) {
+       if (c >= 'A' && c <= 'Z')
+           g_u8_lowercasetable[c] = (c + ('a' - 'A'));
+       else
+           g_u8_lowercasetable[c] = c;
+    }
     /* hardcoded initialization code */
     MpmTableSetup(); /* load the pattern matchers */
     SigTableSetup(); /* load the rule keywords */
@@ -216,9 +224,9 @@ int main(int argc, char **argv)
     BloomFilterCountingRegisterTests();
     MpmRegisterTests();
     SigRegisterTests();
-    UtRunTests();
+    //UtRunTests();
     UtCleanup();
-    exit(1);
+    //exit(1);
 
     //LoadConfig();
     //exit(1);
@@ -457,21 +465,21 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
         exit(1);
     }
-    TmVarSlotSetFuncAppend(tv_main,tm_module);
+    TmVarSlotSetFuncAppend(tv_main,tm_module,NULL);
 
     tm_module = TmModuleGetByName("Detect");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    TmVarSlotSetFuncAppend(tv_main,tm_module);
+    TmVarSlotSetFuncAppend(tv_main,tm_module,(void *)g_de_ctx);
 
     tm_module = TmModuleGetByName("VerdictNFQ");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
         exit(1);
     }
-    TmVarSlotSetFuncAppend(tv_main,tm_module);
+    TmVarSlotSetFuncAppend(tv_main,tm_module,NULL);
 /*
     tm_module = TmModuleGetByName("RespondReject");
     if (tm_module == NULL) {
@@ -675,13 +683,17 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName failed for ReceiveNFQ\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_receivenfq,tm_module);
+    Tm1SlotSetFunc(tv_receivenfq,tm_module,NULL);
     TmThreadSetCPUAffinity(tv_receivenfq,0);
 
     if (TmThreadSpawn(tv_receivenfq) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
+
+    /* wait for queue 0 to settle */
+    sleep(1);
+
     /* create the threads */
     ThreadVars *tv_receivenfq2 = TmThreadCreate("ReceiveNFQ2","packetpool","packetpool","pickup-queue2","simple","1slot_noinout");
     if (tv_receivenfq2 == NULL) {
@@ -693,7 +705,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName failed for ReceiveNFQ\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_receivenfq2,tm_module);
+    Tm1SlotSetFunc(tv_receivenfq2,tm_module,NULL);
     TmThreadSetCPUAffinity(tv_receivenfq2,1);
 
     if (TmThreadSpawn(tv_receivenfq2) != 0) {
@@ -701,6 +713,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    sleep(1);
     ThreadVars *tv_decode1 = TmThreadCreate("Decode1","pickup-queue1","simple","packetpool","packetpool","3slot");
     if (tv_decode1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
@@ -711,21 +724,21 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
         exit(1);
     }
-    Tm3SlotSetFunc1(tv_decode1,tm_module);
+    Tm3SlotSetFunc1(tv_decode1,tm_module,NULL);
 
     tm_module = TmModuleGetByName("Detect");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
         exit(1);
     }
-    Tm3SlotSetFunc2(tv_decode1,tm_module);
+    Tm3SlotSetFunc2(tv_decode1,tm_module,(void *)g_de_ctx);
 
     tm_module = TmModuleGetByName("VerdictNFQ");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
         exit(1);
     }
-    Tm3SlotSetFunc3(tv_decode1,tm_module);
+    Tm3SlotSetFunc3(tv_decode1,tm_module,NULL);
     TmThreadSetCPUAffinity(tv_decode1,0);
 
     if (TmThreadSpawn(tv_decode1) != 0) {
@@ -733,6 +746,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    sleep(1);
 
     ThreadVars *tv_decode2 = TmThreadCreate("Decode2","pickup-queue2","simple","packetpool","packetpool","3slot");
     if (tv_decode2 == NULL) {
@@ -744,21 +758,21 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
         exit(1);
     }
-    Tm3SlotSetFunc1(tv_decode2,tm_module);
+    Tm3SlotSetFunc1(tv_decode2,tm_module,NULL);
 
     tm_module = TmModuleGetByName("Detect");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
         exit(1);
     }
-    Tm3SlotSetFunc2(tv_decode2,tm_module);
+    Tm3SlotSetFunc2(tv_decode2,tm_module,(void *)g_de_ctx);
 
     tm_module = TmModuleGetByName("VerdictNFQ");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
         exit(1);
     }
-    Tm3SlotSetFunc3(tv_decode2,tm_module);
+    Tm3SlotSetFunc3(tv_decode2,tm_module,NULL);
     TmThreadSetCPUAffinity(tv_decode2,1);
 
     if (TmThreadSpawn(tv_decode2) != 0) {

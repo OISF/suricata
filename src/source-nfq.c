@@ -119,9 +119,6 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     Packet *p = tv->tmqh_in(tv);
     NFQSetupPkt(p, (void *)nfa);
 
-    p->pickup_q_id = tv->pickup_q_id;
-    p->verdict_q_id = tv->verdict_q_id;
-
 #ifdef COUNTERS
     nfq_t->pkts++;
     nfq_t->bytes += p->pktlen;
@@ -200,7 +197,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
         return -1;
     }
 
-/* XXX detect this at configure time & make it an option */
+    /* XXX detect this at configure time & make it an option */
 #define HAVE_NFQ_MAXLEN
 #ifdef HAVE_NFQ_MAXLEN
     if (queue_maxlen > 0) {
@@ -209,7 +206,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
         /* non-fatal if it fails */
         if (nfq_set_queue_maxlen(nfq_t->qh, queue_maxlen) < 0) {
             printf("NFQInitThread: can't set queue maxlen: your kernel probably "
-                   "doesn't support setting the queue length\n");
+                    "doesn't support setting the queue length\n");
         }
     }
 #endif
@@ -226,14 +223,17 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
         printf("NFQInitThread: can't set socket timeout: %s\n", strerror(errno));
     }
 
-    printf("NFQInitThread: nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %d\n", nfq_t->h, nfq_t->nh, nfq_t->qh, nfq_t->fd);
-
+    //printf("NFQInitThread: nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %d\n", nfq_t->h, nfq_t->nh, nfq_t->qh, nfq_t->fd);
     return 0;
 }
 
 int ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     mutex_lock(&nfq_init_lock);
     printf("ReceiveNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
+
+    sigset_t sigs;
+    sigfillset(&sigs);
+    pthread_sigmask(SIG_BLOCK, &sigs, NULL);
 
     NFQThreadVars *ntv = &nfq_t[receive_queue_num];
 
@@ -265,7 +265,6 @@ int VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     *data = (void *)ntv;
     verdict_queue_num++;
 
-    printf("VerdictNFQThreadInit: ntv %p\n", ntv);
     mutex_unlock(&nfq_init_lock);
     return 0;
 }
@@ -273,9 +272,7 @@ int VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 int VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
-    printf("VerdictNFQThreadDeinit: ntv %p\n", ntv);
     printf("VerdictNFQThreadDeinit: starting... will close queuenum %u\n", ntv->queue_num);
-
     nfq_destroy_queue(ntv->qh);
 
     return 0;
@@ -303,6 +300,8 @@ void NFQRecvPkt(NFQThreadVars *t) {
             t->dbg_maxreadsize = rv;
 #endif /* DBG_PERF */
 
+        //printf("NFQRecvPkt: t %p, rv = %d\n", t, rv);
+
         mutex_lock(&t->mutex_qh);
         ret = nfq_handle_packet(t->h, buf, rv);
         mutex_unlock(&t->mutex_qh);
@@ -316,11 +315,6 @@ int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     //printf("%p receiving on queue %u\n", ntv, ntv->queue_num);
-
-    /* XXX can we move this to initialization? */
-    sigset_t sigs;
-    sigfillset(&sigs);
-    pthread_sigmask(SIG_BLOCK, &sigs, NULL);
 
     /* do our nfq magic */
     NFQRecvPkt(ntv);

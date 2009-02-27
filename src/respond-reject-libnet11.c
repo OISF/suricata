@@ -71,7 +71,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) 
        return 1;
 
     /* save payload len */
-    lpacket.dsize = p->tcp_payload_len;
+    lpacket.dsize = p->payload_len;
 
     if (dir == REJECT_DIR_SRC) {
         printf ("sending a tcp reset to src\n");
@@ -170,7 +170,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.flow = 0;
     lpacket.class = 0;
 
-    lpacket.len = (IPV4_GET_HLEN(p) + p->tcp_payload_len);
+    lpacket.len = (IPV4_GET_HLEN(p) + p->payload_len);
     if ((c = libnet_init (LIBNET_RAW4, NULL, ebuf)) == NULL){
         printf("RejectSendLibnet11L3IPv4ICMP libnet_init %s\n", ebuf);
         return 1;

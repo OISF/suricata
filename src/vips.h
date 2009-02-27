@@ -34,5 +34,14 @@ PacketQueue packet_q;
 /* queue's between various other threads */
 PacketQueue trans_q[256];
 
+/* uppercase to lowercase conversion lookup table */
+u_int8_t g_u8_lowercasetable[256];
+/* marco to do the actual lookup */
+#define u8_tolower(c) g_u8_lowercasetable[(c)]
+// these 2 are slower:
+//#define u8_tolower(c) ((c) >= 'A' && (c) <= 'Z') ? g_u8_lowercasetable[(c)] : (c)
+//#define u8_tolower(c) ((c) >= 'A' && (c) <= 'Z') ? ((c) + ('a' - 'A')) : (c)
+
+
 #endif /* __VIPS_H__ */
 
