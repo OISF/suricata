@@ -29,6 +29,7 @@ typedef struct _DetectPcreData {
     u_int16_t flags;
 
     char *capname;
+    u_int16_t capidx;
 } DetectPcreData;
 
 /* prototypes */

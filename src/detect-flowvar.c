@@ -64,7 +64,7 @@ int DetectFlowvarMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
     /* we need a lock */
     mutex_lock(&p->flow->m);
 
-    FlowVar *fv = FlowVarGet(p->flow, fd->name);
+    FlowVar *fv = FlowVarGet(p->flow, fd->idx);
     if (fv != NULL) {
         u_int8_t *ptr = BinSearch(fv->value, fv->value_len, fd->content, fd->content_len);
         if (ptr != NULL)
@@ -188,6 +188,7 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         return -1;
 
     cd->name = strdup(varname);
+    cd->idx = VariableNameGetIdx(varname,DETECT_FLOWVAR);
     memcpy(cd->content, str, len);
     cd->content_len = len;
     cd->flags = 0;

@@ -51,6 +51,7 @@
 
 #include "flow.h"
 #include "flow-var.h"
+#include "flow-bit.h"
 #include "pkt-var.h"
 
 #include "util-cidr.h"
@@ -223,6 +224,7 @@ int main(int argc, char **argv)
     BloomFilterRegisterTests();
     BloomFilterCountingRegisterTests();
     MpmRegisterTests();
+    FlowBitRegisterTests();
     SigRegisterTests();
     //UtRunTests();
     UtCleanup();
@@ -933,8 +935,8 @@ int main(int argc, char **argv)
         sleep(1);
     }
 
-    FlowPrintFlows();
     FlowShutdown();
+    FlowPrintFlows();
 
     SigGroupCleanup();
     SigCleanSignatures();

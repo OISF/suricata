@@ -274,6 +274,9 @@ typedef struct DetectEngineCtx_ {
     HashListTable *sport_hash_table;
     HashListTable *dport_hash_table;
 
+    HashListTable *variable_names;
+    u_int16_t variable_names_idx;
+
     /* memory counters */
     u_int32_t mpm_memory_size;
 
@@ -372,6 +375,7 @@ enum {
     DETECT_FLOWVAR,
     DETECT_PKTVAR,
     DETECT_NOALERT,
+    DETECT_FLOWBITS,
 
     DETECT_ADDRESS,
     DETECT_PROTO,

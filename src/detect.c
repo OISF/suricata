@@ -40,6 +40,7 @@
 #include "detect-flowvar.h"
 #include "detect-pktvar.h"
 #include "detect-noalert.h"
+#include "detect-flowbits.h"
 
 #include "action-globals.h"
 #include "tm-modules.h"
@@ -2542,6 +2543,7 @@ void SigTableSetup(void) {
     DetectFlowvarRegister();
     DetectPktvarRegister();
     DetectNoalertRegister();
+    DetectFlowbitsRegister();
 
     u_int8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
@@ -3669,6 +3671,244 @@ end:
     return result;
 }
 
+int SigTest21 (void) {
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+    PatternMatcherThread *pmt;
+    int result = 0;
+
+    Flow f;
+    memset(&f, 0, sizeof(f));
+
+    /* packet 1 */
+    u_int8_t *buf1 = (u_int8_t *)"GET /one/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    u_int16_t buf1len = strlen((char *)buf1);
+    Packet p1;
+
+    memset(&p1, 0, sizeof(p1));
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf1;
+    p1.payload_len = buf1len;
+    p1.proto = IPPROTO_TCP;
+    p1.flow = &f;
+
+    /* packet 2 */
+    u_int8_t *buf2 = (u_int8_t *)"GET /two/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    u_int16_t buf2len = strlen((char *)buf2);
+    Packet p2;
+
+    memset(&p2, 0, sizeof(p2));
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf2;
+    p2.payload_len = buf2len;
+    p2.proto = IPPROTO_TCP;
+    p2.flow = &f;
+
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->flags |= DE_QUIET;
+
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(g_de_ctx);
+    PatternMatchPrepare(mpm_ctx);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+
+    SigMatchSignatures(&th_v, pmt, &p1);
+    if (PacketAlertCheck(&p1, 1)) {
+        printf("sid 1 alerted, but shouldn't: ");
+        goto end;
+    }
+    SigMatchSignatures(&th_v, pmt, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result = 1;
+
+    SigGroupCleanup();
+    SigCleanSignatures();
+
+    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(g_de_ctx);
+end:
+    return result;
+}
+
+int SigTest22 (void) {
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+    PatternMatcherThread *pmt;
+    int result = 0;
+
+    Flow f;
+    memset(&f, 0, sizeof(f));
+
+    /* packet 1 */
+    u_int8_t *buf1 = (u_int8_t *)"GET /one/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    u_int16_t buf1len = strlen((char *)buf1);
+    Packet p1;
+
+    memset(&p1, 0, sizeof(p1));
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf1;
+    p1.payload_len = buf1len;
+    p1.proto = IPPROTO_TCP;
+    p1.flow = &f;
+
+    /* packet 2 */
+    u_int8_t *buf2 = (u_int8_t *)"GET /two/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    u_int16_t buf2len = strlen((char *)buf2);
+    Packet p2;
+
+    memset(&p2, 0, sizeof(p2));
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf2;
+    p2.payload_len = buf2len;
+    p2.proto = IPPROTO_TCP;
+    p2.flow = &f;
+
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->flags |= DE_QUIET;
+
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.abc; sid:2;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(g_de_ctx);
+    PatternMatchPrepare(mpm_ctx);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+
+    SigMatchSignatures(&th_v, pmt, &p1);
+    if (PacketAlertCheck(&p1, 1)) {
+        printf("sid 1 alerted, but shouldn't: ");
+        goto end;
+    }
+    SigMatchSignatures(&th_v, pmt, &p2);
+    if (!(PacketAlertCheck(&p2, 2)))
+        result = 1;
+    else
+        printf("sid 2 alerted, but shouldn't: ");
+
+    SigGroupCleanup();
+    SigCleanSignatures();
+
+    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(g_de_ctx);
+end:
+    return result;
+}
+
+int SigTest23 (void) {
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+    PatternMatcherThread *pmt;
+    int result = 0;
+
+    Flow f;
+    memset(&f, 0, sizeof(f));
+
+    /* packet 1 */
+    u_int8_t *buf1 = (u_int8_t *)"GET /one/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    u_int16_t buf1len = strlen((char *)buf1);
+    Packet p1;
+
+    memset(&p1, 0, sizeof(p1));
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf1;
+    p1.payload_len = buf1len;
+    p1.proto = IPPROTO_TCP;
+    p1.flow = &f;
+
+    /* packet 2 */
+    u_int8_t *buf2 = (u_int8_t *)"GET /two/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    u_int16_t buf2len = strlen((char *)buf2);
+    Packet p2;
+
+    memset(&p2, 0, sizeof(p2));
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf2;
+    p2.payload_len = buf2len;
+    p2.proto = IPPROTO_TCP;
+    p2.flow = &f;
+
+    g_de_ctx = DetectEngineCtxInit();
+    if (g_de_ctx == NULL) {
+        goto end;
+    }
+
+    g_de_ctx->flags |= DE_QUIET;
+
+    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    if (g_de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(g_de_ctx);
+    PatternMatchPrepare(mpm_ctx);
+    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+
+    SigMatchSignatures(&th_v, pmt, &p1);
+    if (PacketAlertCheck(&p1, 1)) {
+        printf("sid 1 alerted, but shouldn't: ");
+        goto end;
+    }
+    SigMatchSignatures(&th_v, pmt, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result = 1;
+    else
+        printf("sid 2 didn't alert, but should have: ");
+
+    SigGroupCleanup();
+    SigCleanSignatures();
+
+    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(g_de_ctx);
+end:
+    return result;
+}
+
 void SigRegisterTests(void) {
     SigParseRegisterTests();
     UtRegisterTest("SigTest01 -- HTTP URI cap", SigTest01, 1);
@@ -3691,5 +3931,8 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTest18 -- Ftp negation sig test", SigTest18, 1);
     UtRegisterTest("SigTest19 -- IP-ONLY test (1)", SigTest19, 1);
     UtRegisterTest("SigTest20 -- IP-ONLY test (2)", SigTest20, 1);
+    UtRegisterTest("SigTest21 -- FLOWBIT test (1)", SigTest21, 1);
+    UtRegisterTest("SigTest22 -- FLOWBIT test (2)", SigTest22, 1);
+    UtRegisterTest("SigTest23 -- FLOWBIT test (3)", SigTest23, 1);
 }
 

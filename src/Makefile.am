@@ -16,6 +16,7 @@ flow-queue.c flow-queue.h \
 flow-hash.c flow-hash.h \
 flow-util.c flow-util.h \
 flow-var.c flow-var.h \
+flow-bit.c flow-bit.h \
 pkt-var.c pkt-var.h \
 host.c host.h \
 detect.c detect.h \
@@ -31,6 +32,7 @@ detect-engine-iponly.c detect-engine-iponly.h \
 detect-parse.c detect-parse.h \
 detect-content.c detect-content.h \
 detect-uricontent.c detect-uricontent.h \
+detect-flowbits.c detect-flowbits.h \
 detect-flowvar.c detect-flowvar.h \
 detect-pktvar.c detect-pktvar.h \
 detect-pcre.c detect-pcre.h \
@@ -65,6 +67,8 @@ util-hash.c util-hash.h \
 util-hashlist.c util-hashlist.h \
 util-bloomfilter.c util-bloomfilter.h \
 util-bloomfilter-counting.c util-bloomfilter-counting.h \
+util-var.c util-var.h \
+util-var-name.c util-var-name.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

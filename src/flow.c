@@ -330,6 +330,11 @@ void FlowPrintFlows (void)
 #ifdef DBG_PERF
     printf("  flow_est_q.dbg_maxlen %u\n", flow_est_q.dbg_maxlen);
 #endif
+
+#ifdef FLOWBITS_STATS
+    printf("Flowbits added: %u, removed: %u\n", flowbits_added, flowbits_removed);
+    printf("Max memory usage: %u\n", flowbits_memuse_max);
+#endif /* FLOWBITS_STATS */
 }
 
 /* Not thread safe */

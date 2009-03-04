@@ -4,6 +4,7 @@
 #define __FLOW_H__
 
 #include "decode.h"
+#include "util-var.h"
 
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER            0x01
@@ -53,7 +54,8 @@ typedef struct _Flow
     struct timeval startts;
     struct timeval lastts;
 
-    struct _FlowVar *flowvar;
+    /* pointer to the var list */
+    GenericVar *flowvar;
 
     u_int32_t todstpktcnt;
     u_int32_t tosrcpktcnt;

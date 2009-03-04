@@ -13,6 +13,8 @@
 
 #include "detect-engine-mpm.h"
 
+#include "util-var-name.h"
+
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*)(?<!\\\\)/([A-z]*)"
 static pcre *parse_regex;
@@ -105,7 +107,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
 
     ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret >= 0) {
-        if (ret > 1 && pe->capname != NULL) {
+        if (ret > 1 && pe->capidx != 0) {
             const char *str_ptr;
             ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
             if (ret) {
@@ -153,7 +155,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
                     if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
                         PktVarAdd(p, pe->capname, (u_int8_t *)str_ptr, ret);
                     } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
-                        FlowVarAdd(p->flow, pe->capname, (u_int8_t *)str_ptr, ret);
+                        FlowVarAdd(p->flow, pe->capidx, (u_int8_t *)str_ptr, ret);
                     }
                 }
             }
@@ -248,6 +250,12 @@ int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *r
             pd->flags |= DETECT_PCRE_CAPTURE_PKT;
         } else if (strcmp(type_str_ptr,"flow") == 0) {
             pd->flags |= DETECT_PCRE_CAPTURE_FLOW;
+        }
+        if (capture_str_ptr != NULL) {
+            if (pd->flags & DETECT_PCRE_CAPTURE_PKT)
+                pd->capidx = VariableNameGetIdx(de_ctx,(char *)capture_str_ptr,0,DETECT_PKTVAR);
+            else if (pd->flags & DETECT_PCRE_CAPTURE_FLOW)
+                pd->capidx = VariableNameGetIdx(de_ctx,(char *)capture_str_ptr,0,DETECT_FLOWVAR);
         }
     }
     //printf("DetectPcreSetup: pd->capname %s\n", pd->capname ? pd->capname : "NULL");

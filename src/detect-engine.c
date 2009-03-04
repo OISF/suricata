@@ -13,6 +13,8 @@
 
 #include "util-hash.h"
 
+#include "util-var-name.h"
+
 DetectEngineCtx *DetectEngineCtxInit(void) {
     DetectEngineCtx *de_ctx;
 
@@ -30,6 +32,8 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     SigGroupHeadDPortHashInit(de_ctx);
     DetectPortSpHashInit(de_ctx);
     DetectPortDpHashInit(de_ctx);
+
+    VariableNameInitHash(de_ctx);
     return de_ctx;
 error:
     return NULL;

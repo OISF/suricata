@@ -14,6 +14,7 @@
     (f)->bytecnt = 0; \
     (f)->lastts.tv_sec = 0; \
     (f)->lastts.tv_usec = 0; \
+    GenericVarFree((f)->flowvar); \
     (f)->flowvar = NULL; \
 }
 

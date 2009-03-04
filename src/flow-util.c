@@ -7,6 +7,8 @@
 #include "flow-util.h"
 #include "flow-var.h"
 
+#include "util-var.h"
+
 /* Allocate a flow */
 Flow *FlowAlloc(void)
 {
@@ -31,8 +33,6 @@ Flow *FlowAlloc(void)
     f->hnext = NULL;
     f->hprev = NULL;
 
-    /* we need this here so even unitialized are freed
-     * properly */
     f->flowvar = NULL;
 
     return f;
@@ -44,7 +44,7 @@ void FlowFree(Flow *f)
     flow_memuse -= sizeof(Flow);
     mutex_unlock(&flow_memuse_mutex);
 
-    FlowVarFree(f->flowvar);
+    GenericVarFree(f->flowvar);
 
     free(f);
 }

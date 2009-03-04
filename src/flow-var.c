@@ -12,6 +12,7 @@
 #include "threads.h"
 #include "flow-var.h"
 #include "flow.h"
+#include "detect.h"
 
 /* puts a new value into a flowvar */
 void FlowVarUpdate(FlowVar *fv, u_int8_t *value, u_int16_t size) {
@@ -23,46 +24,36 @@ void FlowVarUpdate(FlowVar *fv, u_int8_t *value, u_int16_t size) {
 /* get the flowvar with name 'name' from the flow
  *
  * name is a normal string*/
-FlowVar *FlowVarGet(Flow *f, char *name) {
-    FlowVar *fv = f->flowvar;
+FlowVar *FlowVarGet(Flow *f, u_int8_t idx) {
+    GenericVar *gv = f->flowvar;
 
-    for (;fv != NULL; fv = fv->next) {
-        if (fv->name && strcmp(fv->name, name) == 0)
-            return fv;
+    for ( ; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_FLOWVAR && gv->idx == idx)
+            return (FlowVar *)gv;
     }
 
     return NULL;
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAdd(Flow *f, char *name, u_int8_t *value, u_int16_t size) {
+void FlowVarAdd(Flow *f, u_int8_t idx, u_int8_t *value, u_int16_t size) {
     //printf("Adding flow var \"%s\" with value(%d) \"%s\"\n", name, size, value);
 
     mutex_lock(&f->m);
 
-    FlowVar *fv = FlowVarGet(f, name);
+    FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
         fv = malloc(sizeof(FlowVar));
         if (fv == NULL)
             goto out;
 
-        fv->name = name;
+        fv->type = DETECT_FLOWVAR;
+        fv->idx = idx;
         fv->value = value;
         fv->value_len = size;
         fv->next = NULL;
 
-        FlowVar *tfv = f->flowvar;
-        if (f->flowvar == NULL) f->flowvar = fv;
-        else {
-            while(tfv) {
-                if (tfv->next == NULL) {
-                    tfv->next = fv;
-                    goto out;
-                }
-                    
-                tfv = tfv->next;
-            }
-        }
+        GenericVarAppend(&f->flowvar, (GenericVar *)fv);
     } else {
         FlowVarUpdate(fv, value, size);
     }
@@ -75,25 +66,28 @@ void FlowVarFree(FlowVar *fv) {
     if (fv == NULL)
         return;
 
-    fv->name = NULL;
-    if (fv->value) free(fv->value);
+    if (fv->value != NULL)
+        free(fv->value);
 
-    if (fv->next) FlowVarFree(fv->next);
+    free(fv);
 }
 
-void FlowVarPrint(FlowVar *fv) {
+void FlowVarPrint(GenericVar *gv) {
     u_int16_t i;
 
-    if (fv == NULL)
+    if (gv == NULL)
         return;
 
-    printf("Name \"%s\", Value \"", fv->name);
-    for (i = 0; i < fv->value_len; i++) {
-        if (isprint(fv->value[i])) printf("%c", fv->value[i]);
-        else                       printf("\\%02X", fv->value[i]);
-    }
-    printf("\", Len \"%u\"\n", fv->value_len);
+    if (gv->type == DETECT_FLOWVAR) {
+        FlowVar *fv = (FlowVar *)gv;
 
-    FlowVarPrint(fv->next);
+        printf("Name idx \"%u\", Value \"", fv->idx);
+        for (i = 0; i < fv->value_len; i++) {
+            if (isprint(fv->value[i])) printf("%c", fv->value[i]);
+            else                       printf("\\%02X", fv->value[i]);
+        }
+        printf("\", Len \"%u\"\n", fv->value_len);
+    }
+    FlowVarPrint(gv->next);
 }
 
