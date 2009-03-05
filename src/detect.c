@@ -709,7 +709,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
         }
 
         if (copresent && colen == 1) {
-            printf("==> Signature %8u: content maxlen 1: ", tmp_s->id);
+            printf("==> Signature %8u content maxlen 1: ", tmp_s->id);
             int proto;
             for (proto = 0; proto < 256; proto++) {
                 if (tmp_s->proto.proto[(proto/8)] & (1<<(proto%8)))
@@ -720,9 +720,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 /* DEBUG */
 
         for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
-if (tmp_s->id == 2001330) {
-printf("Stage1: ip4 ");DetectAddressDataPrint(gr->ad);printf("\n");
-}
+            //printf("Stage1: ip4 ");DetectAddressDataPrint(gr->ad);printf("\n");
             if (SigGroupHeadAppendSig(de_ctx, &gr->sh,tmp_s) < 0) {
                 goto error;
             }
@@ -829,22 +827,30 @@ error:
     return -1;
 }
 
-static u_int32_t g_detectengine_ip4_toclient = 0;
-static u_int32_t g_detectengine_ip4_toserver = 0;
 static u_int32_t g_detectengine_ip4_small = 0;
 static u_int32_t g_detectengine_ip4_big = 0;
-static u_int32_t g_detectengine_ip6_toclient = 0;
-static u_int32_t g_detectengine_ip6_toserver = 0;
+static u_int32_t g_detectengine_ip4_small_toclient = 0;
+static u_int32_t g_detectengine_ip4_small_toserver = 0;
+static u_int32_t g_detectengine_ip4_big_toclient = 0;
+static u_int32_t g_detectengine_ip4_big_toserver = 0;
+
 static u_int32_t g_detectengine_ip6_small = 0;
 static u_int32_t g_detectengine_ip6_big = 0;
-static u_int32_t g_detectengine_any_toclient = 0;
-static u_int32_t g_detectengine_any_toserver = 0;
+static u_int32_t g_detectengine_ip6_small_toclient = 0;
+static u_int32_t g_detectengine_ip6_small_toserver = 0;
+static u_int32_t g_detectengine_ip6_big_toclient = 0;
+static u_int32_t g_detectengine_ip6_big_toserver = 0;
+
 static u_int32_t g_detectengine_any_small = 0;
 static u_int32_t g_detectengine_any_big = 0;
+static u_int32_t g_detectengine_any_small_toclient = 0;
+static u_int32_t g_detectengine_any_small_toserver = 0;
+static u_int32_t g_detectengine_any_big_toclient = 0;
+static u_int32_t g_detectengine_any_big_toserver = 0;
 
 /* add signature to the right flow groups
  */
-static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, DetectEngineLookupDsize *ds, Signature *s, int family) {
+static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, DetectEngineLookupDsize *ds, Signature *s, int family, int dsize) {
     u_int8_t flags = 0;
 
     SigMatch *sm = s->match;
@@ -864,35 +870,35 @@ static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, DetectEngineLoo
         DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[0], s, family);
 
         if (family == AF_INET)
-            g_detectengine_ip4_toclient++;
+            dsize ? g_detectengine_ip4_big_toclient++ : g_detectengine_ip4_small_toclient++;
         else if (family == AF_INET6)
-            g_detectengine_ip6_toclient++;
+            dsize ? g_detectengine_ip6_big_toclient++ : g_detectengine_ip6_small_toclient++;
         else
-            g_detectengine_any_toclient++;
+            dsize ? g_detectengine_any_big_toclient++ : g_detectengine_any_small_toclient++;
     } else if (flags & FLOW_PKT_TOSERVER) {
         /* only toserver */
         DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[1], s, family);
 
         if (family == AF_INET)
-            g_detectengine_ip4_toserver++;
+            dsize ? g_detectengine_ip4_big_toserver++ : g_detectengine_ip4_small_toserver++;
         else if (family == AF_INET6)
-            g_detectengine_ip6_toserver++;
+            dsize ? g_detectengine_ip6_big_toserver++ : g_detectengine_ip6_small_toserver++;
         else
-            g_detectengine_any_toserver++;
+            dsize ? g_detectengine_any_big_toserver++ : g_detectengine_any_small_toserver++;
     } else {
         /* both */
         DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[0], s, family);
         DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[1], s, family);
 
         if (family == AF_INET) {
-            g_detectengine_ip4_toclient++;
-            g_detectengine_ip4_toserver++;
+            dsize ? g_detectengine_ip4_big_toclient++ : g_detectengine_ip4_small_toclient++;
+            dsize ? g_detectengine_ip4_big_toserver++ : g_detectengine_ip4_small_toserver++;
         } else if (family == AF_INET6) {
-            g_detectengine_ip6_toclient++;
-            g_detectengine_ip6_toserver++;
+            dsize ? g_detectengine_ip6_big_toserver++ : g_detectengine_ip6_small_toserver++;
+            dsize ? g_detectengine_ip6_big_toclient++ : g_detectengine_ip6_small_toclient++;
         } else {
-            g_detectengine_any_toclient++;
-            g_detectengine_any_toserver++;
+            dsize ? g_detectengine_any_big_toclient++ : g_detectengine_any_small_toclient++;
+            dsize ? g_detectengine_any_big_toserver++ : g_detectengine_any_small_toserver++;
         }
     }    
 
@@ -935,7 +941,7 @@ static int DetectEngineLookupDsizeAddSig(DetectEngineCtx *de_ctx, Signature *s, 
 
     if (low <= 100) {
         /* add to 'low' group */
-        DetectEngineLookupFlowAddSig(de_ctx, &de_ctx->dsize_gh[0], s, family);
+        DetectEngineLookupFlowAddSig(de_ctx, &de_ctx->dsize_gh[0], s, family, 0);
         if (family == AF_INET)
             g_detectengine_ip4_small++;
         else if (family == AF_INET6)
@@ -945,7 +951,7 @@ static int DetectEngineLookupDsizeAddSig(DetectEngineCtx *de_ctx, Signature *s, 
     }
     if (high > 100) {
         /* add to 'high' group */
-        DetectEngineLookupFlowAddSig(de_ctx, &de_ctx->dsize_gh[1], s, family);
+        DetectEngineLookupFlowAddSig(de_ctx, &de_ctx->dsize_gh[1], s, family, 1);
         if (family == AF_INET)
             g_detectengine_ip4_big++;
         else if (family == AF_INET6)
@@ -974,16 +980,27 @@ static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *head, int family)
     return grhead;
 }
 
-#define MAX_UNIQ_SRC_GROUPS 2
-#define MAX_UNIQ_DST_GROUPS 4
-#define MAX_UNIQ_SP_GROUPS 2
-#define MAX_UNIQ_DP_GROUPS 25
+#define MAX_UNIQ_TOCLIENT_SRC_GROUPS 2
+#define MAX_UNIQ_TOCLIENT_DST_GROUPS 2
+#define MAX_UNIQ_TOCLIENT_SP_GROUPS 2
+#define MAX_UNIQ_TOCLIENT_DP_GROUPS 3
 
-#define MAX_UNIQ_SMALL_SRC_GROUPS 2
-#define MAX_UNIQ_SMALL_DST_GROUPS 2
-#define MAX_UNIQ_SMALL_SP_GROUPS 2
-#define MAX_UNIQ_SMALL_DP_GROUPS 8
+#define MAX_UNIQ_TOSERVER_SRC_GROUPS 2
+#define MAX_UNIQ_TOSERVER_DST_GROUPS 4
+#define MAX_UNIQ_TOSERVER_SP_GROUPS 2
+#define MAX_UNIQ_TOSERVER_DP_GROUPS 25
 
+#define MAX_UNIQ_SMALL_TOCLIENT_SRC_GROUPS 2
+#define MAX_UNIQ_SMALL_TOCLIENT_DST_GROUPS 2
+#define MAX_UNIQ_SMALL_TOCLIENT_SP_GROUPS 2
+#define MAX_UNIQ_SMALL_TOCLIENT_DP_GROUPS 2
+
+#define MAX_UNIQ_SMALL_TOSERVER_SRC_GROUPS 2
+#define MAX_UNIQ_SMALL_TOSERVER_DST_GROUPS 2
+#define MAX_UNIQ_SMALL_TOSERVER_SP_GROUPS 2
+#define MAX_UNIQ_SMALL_TOSERVER_DP_GROUPS 8
+
+//#define SMALL_MPM(c) 0
 #define SMALL_MPM(c) ((c) == 1)
 // || (c) == 2)
 // || (c) == 3)
@@ -1279,10 +1296,10 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
     u_int32_t i = unique_groups;
     if (i == 0) i = groups;
 
-    if (groups > g_groupportlist_maxgroups)
-        g_groupportlist_maxgroups = groups;
+    if (unique_groups > g_groupportlist_maxgroups)
+        g_groupportlist_maxgroups = unique_groups;
     g_groupportlist_groupscnt++;
-    g_groupportlist_totgroups += groups;
+    g_groupportlist_totgroups += unique_groups;
 
     for (gr = tmplist; gr != NULL; ) {
         if (i == 0) {
@@ -1390,18 +1407,20 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     for (ds = 0; ds < DSIZE_STATES; ds++) {
         for (f = 0; f < FLOW_STATES; f++) {
             for (proto = 0; proto < 256; proto++) {
-                int dsize = ds ? MAX_UNIQ_SRC_GROUPS : MAX_UNIQ_SMALL_SRC_GROUPS;
+                int groups = ds ? (f ? MAX_UNIQ_TOSERVER_SRC_GROUPS : MAX_UNIQ_TOCLIENT_SRC_GROUPS) :
+                                  (f ? MAX_UNIQ_SMALL_TOSERVER_SRC_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_SRC_GROUPS);
+
                 CreateGroupedAddrList(de_ctx,
                     de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]->ipv4_head, AF_INET,
-                    de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], dsize,
+                    de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], groups,
                     CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
                 CreateGroupedAddrList(de_ctx,
                     de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]->ipv6_head, AF_INET6,
-                    de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], dsize,
+                    de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], groups,
                     CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
                 CreateGroupedAddrList(de_ctx,
                     de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]->any_head, AF_UNSPEC,
-                    de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], dsize,
+                    de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], groups,
                     CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
 
                 DetectAddressGroupsHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]);
@@ -1420,9 +1439,22 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     IPOnlyPrint(de_ctx, &de_ctx->io_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* %5u signatures, %u in ipv4 small group, %u in rest\n", sigs,g_detectengine_ip4_small,g_detectengine_ip4_big);
-        printf("*                   %u in ipv6 small group, %u in rest\n", g_detectengine_ip6_small,g_detectengine_ip6_big);
-        printf("*                   %u in any small group,  %u in rest\n", g_detectengine_any_small,g_detectengine_any_big);
+        printf("* %u total signatures:\n", sigs);
+        printf(" *         %5u in ipv4 small group, %u in rest\n", g_detectengine_ip4_small,g_detectengine_ip4_big);
+        printf(" *         %5u in ipv6 small group, %u in rest\n", g_detectengine_ip6_small,g_detectengine_ip6_big);
+        printf(" *         %5u in any small group,  %u in rest\n", g_detectengine_any_small,g_detectengine_any_big);
+        printf(" * Small   %5u in ipv4 toserver group, %u in toclient\n",
+            g_detectengine_ip4_small_toserver,g_detectengine_ip4_small_toclient);
+        printf(" *         %5u in ipv6 toserver group, %u in toclient\n",
+            g_detectengine_ip6_small_toserver,g_detectengine_ip6_small_toclient);
+        printf(" *         %5u in any toserver group,  %u in toclient\n",
+            g_detectengine_any_small_toserver,g_detectengine_any_small_toclient);
+        printf(" * Big     %5u in ipv4 toserver group, %u in toclient\n",
+            g_detectengine_ip4_big_toserver,g_detectengine_ip4_big_toclient);
+        printf(" *         %5u in ipv6 toserver group, %u in toclient\n",
+            g_detectengine_ip6_big_toserver,g_detectengine_ip6_big_toclient);
+        printf(" *         %5u in any toserver group,  %u in toclient\n",
+            g_detectengine_any_big_toserver,g_detectengine_any_big_toclient);
     }
 
     /* TCP */
@@ -1514,7 +1546,7 @@ error:
     return -1;
 }
 
-static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *head, int family, int dsize) {
+static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *head, int family, int dsize, int flow) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
     u_int32_t max_idx = 0;
@@ -1579,7 +1611,8 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
 
         /* Create the destination address list, keeping in
          * mind the limits we use. */
-        int groups = dsize ? MAX_UNIQ_DST_GROUPS : MAX_UNIQ_SMALL_DST_GROUPS;
+        int groups = dsize ? (flow ? MAX_UNIQ_TOSERVER_DST_GROUPS : MAX_UNIQ_TOCLIENT_DST_GROUPS) :
+                             (flow ? MAX_UNIQ_SMALL_TOSERVER_DST_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_DST_GROUPS);
         CreateGroupedAddrList(de_ctx, tmp_gr_list, family, gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
 
         /* see if the sig group head of each address group is the
@@ -1687,7 +1720,7 @@ error:
     return -1;
 }
 
-static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *head, int family, int dsize) {
+static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *head, int family, int dsize, int flow) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *src_gr = NULL, *dst_gr = NULL, *sig_gr = NULL, *lookup_gr = NULL;
     DetectAddressGroup *src_gr_head = NULL, *dst_gr_head = NULL, *sig_gr_head = NULL;
@@ -1754,7 +1787,8 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
 
         /* Create the destination address list, keeping in
          * mind the limits we use. */
-        int groups = dsize ? MAX_UNIQ_DST_GROUPS : MAX_UNIQ_SMALL_DST_GROUPS;
+        int groups = dsize ? (flow ? MAX_UNIQ_TOSERVER_DST_GROUPS : MAX_UNIQ_TOCLIENT_DST_GROUPS) :
+                             (flow ? MAX_UNIQ_SMALL_TOSERVER_DST_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_DST_GROUPS);
         CreateGroupedAddrList(de_ctx, tmp_gr_list, family, src_gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
 
         /* add the ports to the dst address groups and the sigs
@@ -1802,19 +1836,10 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                     }
                 }
 
-//                HashListTableBucket *htb = HashListTableGetListHead(de_ctx->sport_hash_table);
-//                DetectPort *tsp = HashListTableGetListData(htb);
-                int spgroups = dsize ? MAX_UNIQ_SP_GROUPS : MAX_UNIQ_SMALL_SP_GROUPS;
+                int spgroups = dsize ? (flow ? MAX_UNIQ_TOSERVER_SP_GROUPS : MAX_UNIQ_TOCLIENT_SP_GROUPS) :
+                                       (flow ? MAX_UNIQ_SMALL_TOSERVER_SP_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_SP_GROUPS);
                 CreateGroupedPortList(de_ctx, de_ctx->sport_hash_table, &dst_gr->port, spgroups, CreateGroupedPortListCmpMpmMaxlen, max_idx);
                 dst_gr->flags |= ADDRESS_GROUP_HAVEPORT;
-//                if (tsp != NULL) {
-//                    DetectPort *next_p;
-//                    for (; tsp != NULL; ) {
-//                        next_p = tsp->next;
-//                        DetectPortFree(tsp);
-//                        tsp = next_p;
-//                    }
-//                }
 
                 SigGroupHeadHashAdd(de_ctx, dst_gr->sh);
 
@@ -1865,7 +1890,8 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                             }
                         }
 
-                        int dpgroups = dsize ? MAX_UNIQ_DP_GROUPS : MAX_UNIQ_SMALL_DP_GROUPS;
+                        int dpgroups = dsize ? (flow ? MAX_UNIQ_TOSERVER_DP_GROUPS : MAX_UNIQ_TOCLIENT_DP_GROUPS) :
+                                               (flow ? MAX_UNIQ_SMALL_TOSERVER_DP_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_DP_GROUPS);
                         CreateGroupedPortList(de_ctx, de_ctx->dport_hash_table, 
                             &sp->dst_ph, dpgroups,
                             CreateGroupedPortListCmpMpmMaxlen, max_idx);
@@ -2025,32 +2051,32 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     int ds, f, proto;
     for (ds = 0; ds < DSIZE_STATES; ds++) {
         for (f = 0; f < FLOW_STATES; f++) {
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6],AF_INET,ds);
+            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6],AF_INET,ds,f);
             if (r < 0) {
                 printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
                 goto error;
             }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17],AF_INET,ds);
+            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17],AF_INET,ds,f);
             if (r < 0) {
                 printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
                 goto error;
             }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6],AF_INET6,ds);
+            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6],AF_INET6,ds,f);
             if (r < 0) {
                 printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
                 goto error;
             }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17],AF_INET6,ds);
+            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17],AF_INET6,ds,f);
             if (r < 0) {
                 printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
                 goto error;
             }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6],AF_UNSPEC,ds);
+            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6],AF_UNSPEC,ds,f);
             if (r < 0) {
                 printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
                 goto error;
             }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17],AF_UNSPEC,ds);
+            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17],AF_UNSPEC,ds,f);
             if (r < 0) {
                 printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
                 goto error;
@@ -2060,17 +2086,17 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
                 if (proto == IPPROTO_TCP || proto == IPPROTO_UDP)
                     continue;
 
-                r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_INET,ds);
+                r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_INET,ds,f);
                 if (r < 0) {
                     printf ("BuildDestinationAddressHeads(src_gh[%d],AF_INET) failed\n", proto);
                     goto error;
                 }
-                r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_INET6,ds);
+                r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_INET6,ds,f);
                 if (r < 0) {
                     printf ("BuildDestinationAddressHeads(src_gh[%d],AF_INET6) failed\n", proto);
                     goto error;
                 }
-                r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_UNSPEC,ds); /* for any */
+                r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_UNSPEC,ds,f); /* for any */
                 if (r < 0) {
                     printf ("BuildDestinationAddressHeads(src_gh[%d],AF_UNSPEC) failed\n", proto);
                     goto error;

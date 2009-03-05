@@ -150,10 +150,13 @@ void FlowBitFree(FlowBit *fb) {
 
 #ifdef FLOWBITS_STATS
     mutex_lock(&flowbits_mutex);
-    flowbits_added++;
-    flowbits_memuse += sizeof(FlowBit);
-    if (flowbits_memuse > flowbits_memuse_max)
-        flowbits_memuse_max = flowbits_memuse;
+    flowbits_removed++;
+    if (flowbits_memuse >= sizeof(FlowBit))
+        flowbits_memuse -= sizeof(FlowBit);
+    else {
+        printf("ERROR: flowbits memory usage going below 0!\n");
+        flowbits_memuse = 0;
+    }
     mutex_unlock(&flowbits_mutex);
 #endif /* FLOWBITS_STATS */
 }
