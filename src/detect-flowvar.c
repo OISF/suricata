@@ -11,6 +11,7 @@
 #include "flow-var.h"
 #include "detect-flowvar.h"
 #include "util-binsearch.h"
+#include "util-var-name.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
 static pcre *parse_regex;
@@ -188,7 +189,7 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         return -1;
 
     cd->name = strdup(varname);
-    cd->idx = VariableNameGetIdx(varname,DETECT_FLOWVAR);
+    cd->idx = VariableNameGetIdx(de_ctx,varname,0,DETECT_FLOWVAR);
     memcpy(cd->content, str, len);
     cd->content_len = len;
     cd->flags = 0;
