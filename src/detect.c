@@ -3625,7 +3625,7 @@ int SigTest19 (void) {
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
-    DetectEngineIPOnlyThreadInit(g_de_ctx,&pmt->io_ctx);
+    //DetectEngineIPOnlyThreadInit(g_de_ctx,&pmt->io_ctx);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 999))
@@ -3680,7 +3680,7 @@ int SigTest20 (void) {
     SigGroupBuild(g_de_ctx);
     PatternMatchPrepare(mpm_ctx);
     PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
-    DetectEngineIPOnlyThreadInit(g_de_ctx,&pmt->io_ctx);
+    //DetectEngineIPOnlyThreadInit(g_de_ctx,&pmt->io_ctx);
 
     SigMatchSignatures(&th_v, pmt, &p);
     if (PacketAlertCheck(&p, 999))

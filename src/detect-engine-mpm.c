@@ -10,6 +10,7 @@
 #include "detect-engine.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-iponly.h"
 #include "util-mpm.h"
 
 #include "flow.h"
@@ -829,6 +830,9 @@ int PatternMatcherThreadInit(ThreadVars *t, void *initdata, void **data) {
         exit(1);
     }
     memset(pmt->pmq.sig_bitarray, 0, max_sig_id / 8 + 1);
+
+    /* IP-ONLY */
+    DetectEngineIPOnlyThreadInit(de_ctx,&pmt->io_ctx);
 
     *data = (void *)pmt;
     //printf("PatternMatcherThreadInit: data %p pmt %p\n", *data, pmt);

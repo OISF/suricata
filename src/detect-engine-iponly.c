@@ -327,21 +327,22 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 
     //printf("Let's inspect the sigs\n");
 
-    u_int32_t sig_cnt;
-    if (src->sh->sig_cnt > dst->sh->sig_cnt) sig_cnt = dst->sh->sig_cnt;
-    else                                     sig_cnt = src->sh->sig_cnt;
+    //u_int32_t sig_cnt;
+    //if (src->sh->sig_cnt > dst->sh->sig_cnt) sig_cnt = dst->sh->sig_cnt;
+    //else                                     sig_cnt = src->sh->sig_cnt;
 
     /* ...the result is that only the sigs with both
      * enable match */
     u_int32_t idx;
-    for (idx = 0; idx < sig_cnt; idx++) {
+    for (idx = 0; idx < io_ctx->sig_cnt; idx++) {
         u_int32_t sig = io_ctx->match_array[idx];
 
         //printf("sig internal id %u\n", sig);
 
         /* sig doesn't match */
-        if (!(io_tctx->sig_match_array[(sig / 8)] & (1<<(sig % 8))))
+        if (!(io_tctx->sig_match_array[(sig / 8)] & (1<<(sig % 8)))) {
             continue;
+        }
 
         Signature *s = de_ctx->sig_array[sig];
         if (s == NULL)
@@ -374,6 +375,7 @@ int IPOnlyBuildMatchArray(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx
     u_int32_t idx = 0;
     u_int32_t sig = 0;
 
+    //printf("IPOnlyBuildMatchArray: max_idx %u\n", io_ctx->max_idx);
     for (sig = 0; sig < io_ctx->max_idx + 1; sig++) {
         if (!(io_ctx->sig_init_array[(sig/8)] & (1<<(sig%8))))
             continue;
@@ -384,6 +386,7 @@ int IPOnlyBuildMatchArray(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx
 
         io_ctx->sig_cnt++;
     }
+    //printf("IPOnlyBuildMatchArray: sig_cnt %u\n", io_ctx->sig_cnt);
 
     io_ctx->match_array = malloc(io_ctx->sig_cnt * sizeof(u_int32_t));
     if (io_ctx->match_array == NULL)
@@ -402,6 +405,7 @@ int IPOnlyBuildMatchArray(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx
         io_ctx->match_array[idx] = s->num;
         idx++;
     }
+    //printf("IPOnlyBuildMatchArray: idx %u\n", idx);
 
     return 0;
 }
@@ -414,26 +418,32 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
     if (hb == NULL)
         return;
 
+    //printf("SRC: ");
     for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
         DetectAddressGroup *gr = (DetectAddressGroup *)HashListTableGetListData(hb);
         if (gr == NULL)
             continue;
 
         SigGroupHeadSetSigCnt(gr->sh, de_ctx->io_ctx.max_idx);
+        //printf("%u ", gr->sh->sig_cnt);
     }
+    //printf("\n");
 
     /* destination: set sig_cnt */
     hb = HashListTableGetListHead(de_ctx->io_ctx.ht16_dst);
     if (hb == NULL)
         return;
 
+    //printf("DST: ");
     for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
         DetectAddressGroup *gr = (DetectAddressGroup *)HashListTableGetListData(hb);
         if (gr == NULL)
             continue;
 
         SigGroupHeadSetSigCnt(gr->sh, de_ctx->io_ctx.max_idx);
+        //printf("%u ", gr->sh->sig_cnt);
     }
+    //printf("\n");
 }
 
 void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, Signature *s) {
