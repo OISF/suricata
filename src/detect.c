@@ -691,6 +691,9 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             //printf("(IP only)\n");
         } else {
             //printf("\n");
+            //if (tmp_s->proto.flags & DETECT_PROTO_ANY) {
+            //printf("Signature %u applies to all protocols.\n",tmp_s->id);
+            //}
         }
 
 /* DEBUG */
@@ -718,6 +721,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             printf("\n");
         }
 /* DEBUG */
+
 
         for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
             //printf("Stage1: ip4 ");DetectAddressDataPrint(gr->ad);printf("\n");
@@ -769,57 +773,51 @@ static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, Det
         head = s->src.any_head;
     }
 
-    /* Normal sigs are added per protocol. For performance reasons we deal with
-     * ip address only sigs in a different way. */
-    if (!(s->flags & SIG_FLAG_IPONLY) || !(s->proto.flags & DETECT_PROTO_ANY)) {
-        /* for each source address group in the signature... */
-        for (gr = head; gr != NULL; gr = gr->next) {
-            /* ...and each protocol the signature matches on... */
-            for (proto = 0; proto < 256; proto++) {
-                if (s->proto.proto[(proto/8)] & (1<<(proto%8))) {
-                    /* ...see if the group is in the tmp list, and if not add it. */
+    /* for each source address group in the signature... */
+    for (gr = head; gr != NULL; gr = gr->next) {
+        /* ...and each protocol the signature matches on... */
+        for (proto = 0; proto < 256; proto++) {
+            if ((s->proto.proto[(proto/8)] & (1<<(proto%8))) || (s->proto.flags & DETECT_PROTO_ANY)) {
+                /* ...see if the group is in the tmp list, and if not add it. */
+                if (family == AF_INET) {
+                    lookup_gr = DetectAddressGroupLookup(flow_gh->tmp_gh[proto]->ipv4_head,gr->ad);
+                } else if (family == AF_INET6) {
+                    lookup_gr = DetectAddressGroupLookup(flow_gh->tmp_gh[proto]->ipv6_head,gr->ad);
+                } else {
+                    lookup_gr = DetectAddressGroupLookup(flow_gh->tmp_gh[proto]->any_head,gr->ad);
+                }
+
+                if (lookup_gr == NULL) {
+                    DetectAddressGroup *grtmp = DetectAddressGroupInit();
+                    if (grtmp == NULL) {
+                        goto error;
+                    }
+                    DetectAddressData *adtmp = DetectAddressDataCopy(gr->ad);
+                    if (adtmp == NULL) {
+                        goto error;
+                    }
+                    grtmp->ad = adtmp;
+                    grtmp->cnt = 1;
+
+                    SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
+
+                    /* add to the lookup list */
                     if (family == AF_INET) {
-                        lookup_gr = DetectAddressGroupLookup(flow_gh->tmp_gh[proto]->ipv4_head,gr->ad);
+                        DetectAddressGroupAdd(&flow_gh->tmp_gh[proto]->ipv4_head, grtmp);
                     } else if (family == AF_INET6) {
-                        lookup_gr = DetectAddressGroupLookup(flow_gh->tmp_gh[proto]->ipv6_head,gr->ad);
+                        DetectAddressGroupAdd(&flow_gh->tmp_gh[proto]->ipv6_head, grtmp);
                     } else {
-                        lookup_gr = DetectAddressGroupLookup(flow_gh->tmp_gh[proto]->any_head,gr->ad);
+                        DetectAddressGroupAdd(&flow_gh->tmp_gh[proto]->any_head, grtmp);
                     }
-
-                    if (lookup_gr == NULL) {
-                        DetectAddressGroup *grtmp = DetectAddressGroupInit();
-                        if (grtmp == NULL) {
-                            goto error;
-                        }
-                        DetectAddressData *adtmp = DetectAddressDataCopy(gr->ad);
-                        if (adtmp == NULL) {
-                            goto error;
-                        }
-                        grtmp->ad = adtmp;
-                        grtmp->cnt = 1;
-
-                        SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
-
-                        /* add to the lookup list */
-                        if (family == AF_INET) {
-                            DetectAddressGroupAdd(&flow_gh->tmp_gh[proto]->ipv4_head, grtmp);
-                        } else if (family == AF_INET6) {
-                            DetectAddressGroupAdd(&flow_gh->tmp_gh[proto]->ipv6_head, grtmp);
-                        } else {
-                            DetectAddressGroupAdd(&flow_gh->tmp_gh[proto]->any_head, grtmp);
-                        }
-                    } else {
-                        /* our group will only have one sig, this one. So add that. */
-                        SigGroupHeadAppendSig(de_ctx, &lookup_gr->sh, s);
-                        lookup_gr->cnt++;
-                    }
+                } else {
+                    /* our group will only have one sig, this one. So add that. */
+                    SigGroupHeadAppendSig(de_ctx, &lookup_gr->sh, s);
+                    lookup_gr->cnt++;
                 }
             }
-            SigGroupHeadFree(gr->sh);
-            gr->sh = NULL;
         }
-    } else {
-        IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, s);
+        SigGroupHeadFree(gr->sh);
+        gr->sh = NULL;
     }
 
     return 0;
@@ -1396,9 +1394,13 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
 
     /* now for every rule add the source group to our temp lists */
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
-        DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_INET);
-        DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_INET6);
-        DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_UNSPEC);
+        if (!(tmp_s->flags & SIG_FLAG_IPONLY)) {
+            DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_INET);
+            DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_INET6);
+            DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_UNSPEC);
+        } else {
+            IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
+        }
 
         sigs++;
     }
