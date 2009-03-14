@@ -55,7 +55,6 @@ int DetectProtoParse(DetectProto *dp, char *str) {
         proto = IPPROTO_ICMP;
         dp->proto[(proto/8)] |= 1<<(proto%8);
     } else if (strcasecmp(str,"ip") == 0) {
-        /* proto is set to 256, a special pseudo proto */
         dp->flags |= DETECT_PROTO_ANY;
         memset(&dp->proto,0xFF,sizeof(dp->proto));
     } else {

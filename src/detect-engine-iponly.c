@@ -348,6 +348,10 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
         if (s == NULL)
             continue;
 
+        /* check the protocol */
+        if (!(s->proto.proto[(p->proto/8)] & (1<<(p->proto%8))))
+            continue;
+
         /* check the source address */
         if (!(s->flags & SIG_FLAG_SRC_ANY)) {
             DetectAddressGroup *saddr = DetectAddressLookupGroup(&s->src,&p->src);

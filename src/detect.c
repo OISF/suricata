@@ -620,6 +620,19 @@ void SigCleanSignatures()
  *
  */
 static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
+    /* in the case of tcp/udp, only consider sigs that
+     * don't have ports set ip-only. */
+    if (!(s->proto.flags & DETECT_PROTO_ANY)) {
+        if (s->proto.proto[(IPPROTO_TCP/8)] & (1<<(IPPROTO_TCP%8)) ||
+            s->proto.proto[(IPPROTO_UDP/8)] & (1<<(IPPROTO_UDP%8))) {
+            if (!(s->flags & SIG_FLAG_SP_ANY))
+                return 0;
+
+            if (!(s->flags & SIG_FLAG_DP_ANY))
+                return 0;
+        }
+    }
+
     SigMatch *sm = s->match;
     if (sm == NULL)
         goto iponly;
@@ -636,6 +649,8 @@ static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
         } else if (sm->type == DETECT_PKTVAR) {
             return 0;
         } else if (sm->type == DETECT_FLOWVAR) {
+            return 0;
+        } else if (sm->type == DETECT_FLOWBITS) {
             return 0;
         } else if (sm->type == DETECT_DSIZE) {
             return 0;
