@@ -91,32 +91,23 @@ setup_signal_handler(int sig, void (*handler)())
 Packet *SetupPkt (void)
 {
     Packet *p = NULL;
-//    do {
-        mutex_lock(&packet_q.mutex_q);
-        p = PacketDequeue(&packet_q);
-        mutex_unlock(&packet_q.mutex_q);
 
+    mutex_lock(&packet_q.mutex_q);
+    p = PacketDequeue(&packet_q);
+    mutex_unlock(&packet_q.mutex_q);
+
+    if (p == NULL) {
+        p = malloc(sizeof(Packet));
         if (p == NULL) {
-            p = malloc(sizeof(Packet));
-            if (p == NULL) {
-                printf("ERROR: malloc failed: %s\n", strerror(errno));
-                exit(1);
-            }
-
-            p->pktvar = NULL;
-            CLEAR_TCP_PACKET(p);
-
-            //TmqDebugList();
-            //usleep(1000); /* sleep 1ms */
-
-            /* XXX check for recv'd signals, so
-             * we can exit on signals received */
-
-            printf("SetupPkt: allocated a new packet...\n");
+            printf("ERROR: malloc failed: %s\n", strerror(errno));
+            exit(1);
         }
-//    } while (p == NULL);
 
-    CLEAR_PACKET(p);
+        memset(p, 0, sizeof(Packet));
+
+        printf("SetupPkt: allocated a new packet...\n");
+    }
+
     return p;
 }
 
@@ -147,8 +138,6 @@ Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t l
         dbg_maxpending = pending;
 #endif /* DBG_PERF */
     mutex_unlock(&mutex_pending);
-
-    CLEAR_PACKET(p);
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)
@@ -247,10 +236,7 @@ int main(int argc, char **argv)
             printf("ERROR: malloc failed: %s\n", strerror(errno));
             exit(1);
         }
-
-        p->pktvar = NULL;
-        CLEAR_TCP_PACKET(p);
-        CLEAR_PACKET(p);
+        memset(p, 0, sizeof(Packet));
 
         PacketEnqueue(&packet_q,p);
     }

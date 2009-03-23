@@ -2531,6 +2531,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
     SigAddressPrepareStage1(de_ctx);
     SigAddressPrepareStage2(de_ctx);
     SigAddressPrepareStage3(de_ctx);
+//abort();
 //    SigAddressPrepareStage5();
     DbgPrintScanSearchStats();
 //    DetectAddressGroupPrintMemory();

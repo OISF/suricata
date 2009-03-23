@@ -70,9 +70,14 @@ void PktVarFree(PktVar *pv) {
         return;
 
     pv->name = NULL;
-    if (pv->value) free(pv->value);
+    if (pv->value != NULL)
+        free(pv->value);
+    PktVar *pv_next = pv->next;
 
-    if (pv->next) PktVarFree(pv->next);
+    free(pv);
+
+    if (pv_next != NULL)
+        PktVarFree(pv_next);
 }
 
 void PktVarPrint(PktVar *pv) {

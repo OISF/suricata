@@ -67,6 +67,16 @@ u_int32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx) {
     return de_ctx->uricontent_max_id;
 }
 
+void PktHttpUriFree(Packet *p) {
+    int i;
+
+    for (i = 0; i < p->http_uri.cnt; i++) {
+        free(p->http_uri.raw[i]);
+        p->http_uri.raw[i] = NULL;
+    }
+    p->http_uri.cnt = 0;
+}
+
 /* Normalize http buffer
  *
  * Returns 0: on ok

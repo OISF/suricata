@@ -307,8 +307,10 @@ typedef struct _PacketQueue {
     (p)->flow = NULL; \
     (p)->flowflags = 0; \
     (p)->alerts.cnt = 0; \
-    (p)->http_uri.cnt = 0; \
-    PktVarFree((p)->pktvar); \
+    PktHttpUriFree((p)); \
+    if ((p)->pktvar != NULL) { \
+        PktVarFree((p)->pktvar); \
+    } \
     (p)->pktvar = NULL; \
     (p)->recursion_level = 0; \
 }

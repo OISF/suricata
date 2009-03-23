@@ -7,6 +7,8 @@
 
 #include "tm-queuehandlers.h"
 
+#include "pkt-var.h"
+
 Packet *TmqhInputPacketpool(ThreadVars *t);
 void TmqhOutputPacketpool(ThreadVars *t, Packet *p);
 
@@ -90,8 +92,15 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         //printf("TmqhOutputPacketpool: tunnel stuff done, move on\n");
     }
 
+    if (proot) {
+        CLEAR_PACKET(p->root);
+    }
+    CLEAR_PACKET(p);
+
     mutex_lock(&q->mutex_q);
-    if (proot) PacketEnqueue(q, p->root);
+    if (proot) {
+        PacketEnqueue(q, p->root);
+    }
     PacketEnqueue(q, p);
     mutex_unlock(&q->mutex_q);
 
