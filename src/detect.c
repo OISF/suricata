@@ -1,4 +1,4 @@
-/* Basic detection engine datastructure */
+/* Basic detection engine */
 
 #include <pcre.h>
 

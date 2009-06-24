@@ -11,8 +11,6 @@
 
 #include "packet-queue.h"
 
-/* maximum number of simultanious threads. */
-#define NUM_THREADS 256
 /* max packets processed simultaniously */
 #define MAX_PENDING 50
 
@@ -21,7 +19,10 @@
 
 /* number of packets in processing right now
  * This is the diff between recv'd and verdicted
- * pkts */
+ * pkts
+ * XXX this should be turned into an api located
+ * in the packetpool code
+ */
 u_int32_t pending;
 #ifdef DBG_PERF
 u_int32_t dbg_maxpending;
@@ -29,9 +30,13 @@ u_int32_t dbg_maxpending;
 pthread_mutex_t mutex_pending;
 pthread_cond_t cond_pending;
 
-/* preallocated packet structures here */
+/* preallocated packet structures here
+ * XXX move to the packetpool queue handler code
+ */
 PacketQueue packet_q;
-/* queue's between various other threads */
+/* queue's between various other threads
+ * XXX move to the TmQueue structure later
+ */
 PacketQueue trans_q[256];
 
 /* uppercase to lowercase conversion lookup table */

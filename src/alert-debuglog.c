@@ -3,7 +3,7 @@
 /* alert debuglog
  *
  * TODO
- * - figure out a way to safely print detection engine info
+ * - figure out a way to (thread) safely print detection engine info
  *   - maybe by having a log queue in the packet
  *   - maybe by accessing it just and hoping threading doesn't hurt
  */

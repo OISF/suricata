@@ -235,6 +235,11 @@ void ContentHashFree(void *ch) {
 
 /* Predict a strength value for patterns
  *
+ * Patterns with high character diversity score higher.
+ * Alpha chars score not so high
+ * Other printable + a few common codes a little higher
+ * Everything else highest.
+ * Longer patterns score better than short patters.
  */
 u_int32_t PatternStrength(u_int8_t *pat, u_int16_t patlen, u_int16_t len) {
     u_int8_t a[256];

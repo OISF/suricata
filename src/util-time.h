@@ -4,7 +4,7 @@
 void TimeSet(struct timeval *);
 void TimeGet(struct timeval *);
 void TimeModeSetLive(void);
-void TimeModeSetNonlive (void);
+void TimeModeSetOffline (void);
 
 #endif /* __UTIL_TIME_H__ */
 

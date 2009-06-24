@@ -79,10 +79,10 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
     /* see if the bucket already has a flow */
     if (fb->f == NULL) {
-        /* no, so get one */
+        /* no, so get a new one */
         f = fb->f = FlowDequeue(&flow_spare_q);
         if (f == NULL) {
-            flow_flags |= FLOW_EMERGENCY;
+            flow_flags |= FLOW_EMERGENCY; /* XXX mutex this */
 
             f = fb->f = FlowAlloc();
             if (f == NULL) {
@@ -123,7 +123,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 /* get us a new one and put it and the list tail */
                 f = pf->hnext = FlowDequeue(&flow_spare_q);
                 if (f == NULL) {
-                    flow_flags |= FLOW_EMERGENCY;
+                    flow_flags |= FLOW_EMERGENCY; /* XXX mutex this */
 
                     f = fb->f = FlowAlloc();
                     if (f == NULL) {

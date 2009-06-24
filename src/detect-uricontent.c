@@ -2,21 +2,6 @@
  *
  * Copyright (C) 2008 by Victor Julien <victor@inliniac.net> */
 
-/* This is a very important part of the detection engine, and certainly one
- * of the most complex parts. String searching is complex and expensive,
- * and thus worth optimizing. The way that is done here is by only running
- * the pattern matcher once for every packet. In this search, all search words,
- * the 'content' matches, are looked for. All results, of all the search words
- * are stored in a array of lists. The array is an array of MpmMatchBucket's,
- * that can be entered through the DetectContentData id field. There, it finds
- * the bucket containing a list of 0, 1, or more matches of that content match.
- * The list contains MpmMatch items, that contain an offset field. This field
- * is the possition of the last character in the match.
- *
- * XXX more later....
- *
- */
-
 #include <ctype.h>
 #include "decode.h"
 #include "detect.h"

@@ -569,7 +569,7 @@ int RunModeIpsNFQ(void) {
 
 int RunModeFilePcap(char *file) {
     printf("RunModeFilePcap: file %s\n", file);
-    TimeModeSetNonlive();
+    TimeModeSetOffline();
 
     /* create the threads */
     ThreadVars *tv_receivepcap = TmThreadCreate("ReceivePcapFile","packetpool","packetpool","pickup-queue","simple","1slot_noinout");

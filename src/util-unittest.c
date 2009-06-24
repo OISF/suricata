@@ -4,7 +4,7 @@
 
 #include "util-unittest.h"
 
-UtTest *ut_list;
+static UtTest *ut_list;
 
 static UtTest *UtAllocTest(void) {
     UtTest *ut = malloc(sizeof(UtTest));

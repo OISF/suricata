@@ -21,9 +21,7 @@
 #include "util-var.h"
 #include "util-unittest.h"
 
-/* get the flowbit with name 'name' from the flow
- *
- * name is a normal string*/
+/* get the flowbit with idx from the flow */
 static FlowBit *FlowBitGet(Flow *f, u_int16_t idx) {
     GenericVar *gv = f->flowvar;
     for ( ; gv != NULL; gv = gv->next) {

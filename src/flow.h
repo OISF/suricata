@@ -32,6 +32,7 @@ typedef struct _FlowCnf
 
 } FlowConfig;
 
+/* Hash key for the flow hash */
 typedef struct _FlowKey
 {
     Address src, dst;

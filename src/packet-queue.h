@@ -5,6 +5,8 @@
 
 #include <pthread.h>
 #include "decode.h"
+
+/* XXX: moved to decode.h */
 #if 0
 typedef struct _PacketQueue {
     Packet *top;

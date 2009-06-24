@@ -1,4 +1,4 @@
-/* Time keeping for non-live packet handling (pcap files) */
+/* Time keeping for offline (non-live) packet handling (pcap files) */
 
 #include "vips.h"
 #include "detect.h"
@@ -12,7 +12,7 @@ void TimeModeSetLive(void) {
     live = TRUE;
 }
 
-void TimeModeSetNonlive (void) {
+void TimeModeSetOffline (void) {
     live = FALSE;
 }
 

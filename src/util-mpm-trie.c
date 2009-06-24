@@ -13,6 +13,8 @@
 #include "util-mpm-trie.h"
 
 #include "util-unittest.h"
+
+/* XXX can be removed. */
 #if 0
 /*
  * TODO/IDEAS/XXX

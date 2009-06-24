@@ -1,7 +1,7 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
 /* TODO
- * - test in Receive and Verdict if both are present
+ * - test if Receive and Verdict if both are present
  *
  *
  *
@@ -109,7 +109,7 @@ void NFQSetupPkt (Packet *p, void *data)
     return;
 }
 
-static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
+static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	      struct nfq_data *nfa, void *data)
 {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
@@ -174,7 +174,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
 
     /* pass the thread memory as a void ptr so the
      * callback function has access to it. */
-    nfq_t->qh = nfq_create_queue(nfq_t->h, nfq_t->queue_num, &cb, (void *)nfq_t);
+    nfq_t->qh = nfq_create_queue(nfq_t->h, nfq_t->queue_num, &NFQCallBack, (void *)nfq_t);
     if (nfq_t->qh == NULL)
     {
         printf("error during nfq_create_queue()\n");
@@ -231,7 +231,7 @@ int ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     NFQThreadVars *ntv = &nfq_t[receive_queue_num];
 
     /* store the ThreadVars pointer in our NFQ thread context
-     * as we will need it in our cb function */
+     * as we will need it in our callback function */
     ntv->tv = tv;
 
     int r = NFQInitThread(ntv,receive_queue_num,MAX_PENDING);

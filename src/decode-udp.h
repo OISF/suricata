@@ -25,7 +25,6 @@ typedef struct _UDPHdr
 typedef struct _UDPVars
 {
     u_int8_t hlen;
-}
-UDPVars;
+} UDPVars;
 
 #endif /* __DECODE_UDP_H__ */

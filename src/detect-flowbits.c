@@ -1,4 +1,4 @@
-/* Simple pktvar content match part of the detection engine.
+/* Simple Snort compatible flowbits implementation.
  *
  * Copyright (C) 2008 by Victor Julien <victor@inliniac.net>
  *

@@ -2,6 +2,11 @@
 
 /* TODO: needs a lot of work
  *
+ * The dificulty with ip only matching is that we need to support (very large)
+ * netblocks as well. So we can't just add every single ip to a hash as that
+ * would be consuming to much memory. Thats why I've chosen to have a hash of
+ * /16's with a list inside them. If a netblock to add is bigger than a /16, 
+ * we split it into /16's.
  */
 
 #include "vips.h"

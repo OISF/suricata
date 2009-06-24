@@ -5,7 +5,7 @@
 
 #include "flow.h"
 
-/* Define a queue for storing unused flows */
+/* Define a queue for storing flows */
 typedef struct _FlowQueue
 {
     Flow *top;
