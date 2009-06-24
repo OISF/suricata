@@ -4,7 +4,11 @@ config.c config.h \
 packet-queue.c packet-queue.h \
 threads.c threads.h \
 source-nfq.c source-nfq.h \
+source-pcap.c source-pcap.h \
+source-pcap-file.c source-pcap-file.h \
 decode.c decode.h \
+decode-ethernet.c decode-ethernet.h \
+decode-sll.c decode-sll.h \
 decode-ipv4.c decode-ipv4.h \
 decode-ipv6.c decode-ipv6.h \
 decode-icmpv4.c decode-icmpv4.h \
@@ -67,6 +71,8 @@ util-hash.c util-hash.h \
 util-hashlist.c util-hashlist.h \
 util-bloomfilter.c util-bloomfilter.h \
 util-bloomfilter-counting.c util-bloomfilter-counting.h \
+util-pool.c util-pool.h \
+util-time.c util-time.h \
 util-var.c util-var.h \
 util-var-name.c util-var-name.h \
 tm-modules.c tm-modules.h \
@@ -81,6 +87,7 @@ alert-debuglog.c alert-debuglog.h \
 log-httplog.c log-httplog.h \
 alert-unified-log.c alert-unified-log.h \
 alert-unified-alert.c alert-unified-alert.h \
+stream-tcp.c stream-tcp.h \
 respond-reject.c respond-reject.h \
 respond-reject-libnet11.h respond-reject-libnet11.c
 

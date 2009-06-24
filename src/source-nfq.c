@@ -127,13 +127,6 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     /* pass on... */
     tv->tmqh_out(tv, p);
 
-    mutex_lock(&mutex_pending);
-    pending++;
-#ifdef DBG_PERF
-    if (pending > dbg_maxpending)
-        dbg_maxpending = pending;
-#endif /* DBG_PERF */
-    mutex_unlock(&mutex_pending);
     return 0;
 }
 
@@ -355,7 +348,8 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
        verdict = NF_ACCEPT;
     } else if (p->action == ACTION_DROP) {
        verdict = NF_DROP;
-    } else if (p->action == ACTION_REJECT || p->action == ACTION_REJECT_DST ||
+    } else if (p->action == ACTION_REJECT ||
+               p->action == ACTION_REJECT_DST ||
                p->action == ACTION_REJECT_BOTH){
        verdict = NF_DROP;
     } else {
@@ -423,10 +417,15 @@ int DecodeNFQ(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
     printf("DecodeNFQ\n");
 #endif
 
-    if (IPV4_GET_RAW_VER(ip4h) == 4)
+    if (IPV4_GET_RAW_VER(ip4h) == 4) {
+        printf("DecodeNFQ ip4\n");
         DecodeIPV4(t, p, p->pkt, p->pktlen, pq);
-    else if(IPV6_GET_RAW_VER(ip6h) == 6)
+    } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
+        printf("DecodeNFQ ip6\n");
         DecodeIPV6(t, p, p->pkt, p->pktlen);
+    } else {
+        printf("DecodeNFQ %02x\n", *p->pkt);
+    }
 
     return 0;
 }

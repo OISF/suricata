@@ -136,6 +136,10 @@ AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
         CFLAGS="$CFLAGS -DHAVE_LIBNET_ICMPV6_UNREACH"
     fi
 
+# libpcap
+CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags`"
+LIBS="${LIBS} -lpcap"
+
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)

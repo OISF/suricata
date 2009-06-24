@@ -33,6 +33,7 @@
 #include "action-globals.h"
 
 #include "decode-ethernet.h"
+#include "decode-sll.h"
 #include "decode-ipv4.h"
 #include "decode-ipv6.h"
 #include "decode-icmpv4.h"
@@ -129,13 +130,14 @@ typedef u_int16_t Port;
 #define CMP_PORT(p1,p2) \
     ((p1 == p2))
 
-#define PKT_IS_IPV4(p) (((p)->ip4h != NULL))
-#define PKT_IS_IPV6(p) (((p)->ip6h != NULL))
-#define PKT_IS_TCP(p)  (((p)->tcph != NULL))
-#define PKT_IS_UDP(p)  (((p)->udph != NULL))
-#define PKT_IS_ICMPV4  (((p)->icmpv4 != NULL))
-#define PKT_IS_ICMPV6  (((p)->icmpv6 != NULL))
-
+#define PKT_IS_IPV4(p)      (((p)->ip4h != NULL))
+#define PKT_IS_IPV6(p)      (((p)->ip6h != NULL))
+#define PKT_IS_TCP(p)       (((p)->tcph != NULL))
+#define PKT_IS_UDP(p)       (((p)->udph != NULL))
+#define PKT_IS_ICMPV4       (((p)->icmpv4 != NULL))
+#define PKT_IS_ICMPV6       (((p)->icmpv6 != NULL))
+#define PKT_IS_TOSERVER(p)  (((p)->flowflags & FLOW_PKT_TOSERVER))
+#define PKT_IS_TOCLIENT(p)  (((p)->flowflags & FLOW_PKT_TOCLIENT))
 
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
@@ -358,6 +360,8 @@ typedef struct _PacketQueue {
 
 
 /* decoder functions */
+void DecodeEthernet(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
+void DecodeSll(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeTunnel(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeIPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeIPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
@@ -372,6 +376,12 @@ Packet *TunnelPktSetup(ThreadVars *, Packet *, u_int8_t *, u_int16_t, u_int8_t);
 
 #define DECODER_SET_EVENT(p, e)   ((p)->events[(e/8)] |= (1<<(e%8)))
 #define DECODER_ISSET_EVENT(p, e) ((p)->events[(e/8)] & (1<<(e%8)))
+
+/* libpcap shows us the way to linktype codes
+ * XXX we need more & maybe put them in a separate
+ * file? */
+#define LINKTYPE_ETHERNET   DLT_EN10MB
+#define LINKTYPE_LINUX_SLL  113
 
 #endif /* __DECODE_H__ */
 

@@ -270,7 +270,7 @@ void SigLoadSignatures (void)
     }
 */
 
-#define LOADSIGS
+//#define LOADSIGS
 #ifdef LOADSIGS
     int good = 0, bad = 0;
     //FILE *fp = fopen("/etc/vips/rules/bleeding-all.rules", "r");

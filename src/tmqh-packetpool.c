@@ -1,9 +1,11 @@
+/* Packetpool queue handlers */
 
 #include "vips.h"
 #include "packet-queue.h"
 #include "decode.h"
 #include "threads.h"
 #include "threadvars.h"
+#include "flow.h"
 
 #include "tm-queuehandlers.h"
 
@@ -22,6 +24,15 @@ Packet *TmqhInputPacketpool(ThreadVars *t)
 {
     /* XXX */
     Packet *p = SetupPkt();
+
+    mutex_lock(&mutex_pending);
+    pending++;
+    //printf("PcapFileCallback: pending %u\n", pending);
+#ifdef DBG_PERF
+    if (pending > dbg_maxpending)
+        dbg_maxpending = pending;
+#endif /* DBG_PERF */
+    mutex_unlock(&mutex_pending);
 
 /*
  * Disabled because it can enter a 'wait' state, while
@@ -92,6 +103,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         //printf("TmqhOutputPacketpool: tunnel stuff done, move on\n");
     }
 
+    FlowDecrUsecnt(t,p);
+
     if (proot) {
         CLEAR_PACKET(p->root);
     }
@@ -105,7 +118,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     mutex_unlock(&q->mutex_q);
 
     mutex_lock(&mutex_pending);
-    if (pending) {
+    //printf("TmqhOutputPacketpool: pending %u\n", pending);
+    if (pending > 0) {
         pending--;
     } else {
         printf("TmqhOutputPacketpool: warning, trying to subtract from 0 pending counter.\n");

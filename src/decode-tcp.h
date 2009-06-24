@@ -14,6 +14,7 @@
 #define TCP_OPTMAX                           20 /* every opt is at least 2 bytes
                                                  * (type + len), except EOL and NOP */
 
+/* TCP flags */
 #define TH_FIN                               0x01
 #define TH_SYN                               0x02
 #define TH_RST                               0x04
@@ -60,6 +61,15 @@
 #define TCP_GET_SEQ(p)                       TCP_GET_RAW_SEQ(p->tcph) 
 #define TCP_GET_ACK(p)                       TCP_GET_RAW_ACK(p->tcph)
 #define TCP_GET_WINDOW(p)                    TCP_GET_RAW_WINDOW(p->tcph)
+
+#define TCP_ISSET_FLAG_FIN(p)                ((p)->tcph->th_flags & TH_FIN)
+#define TCP_ISSET_FLAG_SYN(p)                ((p)->tcph->th_flags & TH_SYN)
+#define TCP_ISSET_FLAG_RST(p)                ((p)->tcph->th_flags & TH_RST)
+#define TCP_ISSET_FLAG_PUSH(p)               ((p)->tcph->th_flags & TH_PUSH)
+#define TCP_ISSET_FLAG_ACK(p)                ((p)->tcph->th_flags & TH_ACK)
+#define TCP_ISSET_FLAG_URG(p)                ((p)->tcph->th_flags & TH_URG)
+#define TCP_ISSET_FLAG_RES2(p)               ((p)->tcph->th_flags & TH_RES2)
+#define TCP_ISSET_FLAG_RES1(p)               ((p)->tcph->th_flags & TH_RES1)
 
 typedef struct _TCPOpt {
     u_int8_t type;

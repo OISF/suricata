@@ -7,8 +7,9 @@
 #include "util-mpm.h"
 #include "tm-queues.h"
 
-#define THV_USE  0x01
-#define THV_KILL 0x02
+#define THV_USE     0x01
+#define THV_KILL    0x02
+#define THV_CLOSED  0x04 /* thread done, should be joinable */
 
 typedef struct _ThreadVars {
     pthread_t t;
@@ -16,8 +17,6 @@ typedef struct _ThreadVars {
     u_int8_t flags;
 
     /* queue's */
-    int pickup_q_id;
-    int verdict_q_id;
     Tmq *inq;
     Tmq *outq;
 
@@ -31,9 +30,6 @@ typedef struct _ThreadVars {
 
     char set_cpu_affinity; /* bool: 0 no, 1 yes */
     int cpu_affinity; /* cpu or core to set affinity to */
-//#ifdef NFQ
-//    NFQThreadVars *nfq_t;
-//#endif
 
     struct _ThreadVars *next;
     struct _ThreadVars *prev;

@@ -16,6 +16,8 @@
     (f)->lastts.tv_usec = 0; \
     GenericVarFree((f)->flowvar); \
     (f)->flowvar = NULL; \
+    (f)->stream = NULL; \
+    (f)->use_cnt = 0; \
 }
 
 Flow *FlowAlloc(void);

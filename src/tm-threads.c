@@ -70,6 +70,7 @@ void *TmThreadsSlot1NoIn(void *td) {
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
@@ -97,10 +98,12 @@ void *TmThreadsSlot1NoIn(void *td) {
     if (s->s.SlotDeinit != NULL) {
         r = s->s.SlotDeinit(tv, s->s.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
 
+    tv->flags |= THV_CLOSED;
     pthread_exit((void *) 0);
 }
 
@@ -117,6 +120,7 @@ void *TmThreadsSlot1NoOut(void *td) {
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
@@ -139,10 +143,12 @@ void *TmThreadsSlot1NoOut(void *td) {
     if (s->s.SlotDeinit != NULL) {
         r = s->s.SlotDeinit(tv, s->s.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
 
+    tv->flags |= THV_CLOSED;
     pthread_exit((void *) 0);
 }
 
@@ -160,6 +166,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
@@ -169,6 +176,9 @@ void *TmThreadsSlot1NoInOut(void *td) {
         r = s->s.SlotFunc(tv, NULL, s->s.slot_data, /* no outqh, no pq */NULL);
         //printf("%s: TmThreadsSlot1NoInNoOut: r %d\n", tv->name, r);
         /* XXX handle error */
+        if (r == 1) {
+            run = 0;
+        }
 
         if (tv->flags & THV_KILL) {
             //printf("%s: TmThreadsSlot1NoInOut: KILL is set\n", tv->name);
@@ -183,11 +193,13 @@ void *TmThreadsSlot1NoInOut(void *td) {
     if (s->s.SlotDeinit != NULL) {
         r = s->s.SlotDeinit(tv, s->s.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
 
     //printf("TmThreadsSlot1NoInOut: %s ending\n", tv->name);
+    tv->flags |= THV_CLOSED;
     pthread_exit((void *) 0);
 }
 
@@ -206,6 +218,7 @@ void *TmThreadsSlot1(void *td) {
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
@@ -245,11 +258,13 @@ void *TmThreadsSlot1(void *td) {
     if (s->s.SlotDeinit != NULL) {
         r = s->s.SlotDeinit(tv, s->s.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
 
     //printf("TmThreadsSlot1: %s ending\n", tv->name);
+    tv->flags |= THV_CLOSED;
     pthread_exit((void *) 0);
 }
 
@@ -268,12 +283,14 @@ void *TmThreadsSlot2(void *td) {
     if (s->s1.SlotInit != NULL) {
         r = s->s1.SlotInit(tv, s->s1.slot_initdata, &s->s1.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
     if (s->s2.SlotInit != NULL) {
         r = s->s2.SlotInit(tv, s->s2.slot_initdata, &s->s2.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
@@ -326,6 +343,7 @@ void *TmThreadsSlot2(void *td) {
         r = s->s1.SlotDeinit(tv, s->s1.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
+            tv->flags |= THV_CLOSED;
         }
     }
 
@@ -337,10 +355,12 @@ void *TmThreadsSlot2(void *td) {
         r = s->s2.SlotDeinit(tv, s->s2.slot_data);
         if (r != 0) {
             pthread_exit((void *) -1);
+            tv->flags |= THV_CLOSED;
         }
     }
 
     //printf("TmThreadsSlot2: %s ending\n", tv->name);
+    tv->flags |= THV_CLOSED;
     pthread_exit((void *) 0);
 }
 
@@ -359,18 +379,21 @@ void *TmThreadsSlot3(void *td) {
     if (s->s1.SlotInit != NULL) {
         r = s->s1.SlotInit(tv, s->s1.slot_initdata, &s->s1.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
     if (s->s2.SlotInit != NULL) {
         r = s->s2.SlotInit(tv, s->s2.slot_initdata, &s->s2.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
     if (s->s3.SlotInit != NULL) {
         r = s->s3.SlotInit(tv, s->s3.slot_initdata, &s->s3.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
@@ -447,6 +470,7 @@ void *TmThreadsSlot3(void *td) {
     if (s->s1.SlotDeinit != NULL) {
         r = s->s1.SlotDeinit(tv, s->s1.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
@@ -458,6 +482,7 @@ void *TmThreadsSlot3(void *td) {
     if (s->s2.SlotDeinit != NULL) {
         r = s->s2.SlotDeinit(tv, s->s2.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
@@ -469,11 +494,13 @@ void *TmThreadsSlot3(void *td) {
     if (s->s3.SlotDeinit != NULL) {
         r = s->s3.SlotDeinit(tv, s->s3.slot_data);
         if (r != 0) {
+            tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
     }
 
     //printf("TmThreadsSlot3: %s ending\n", tv->name);
+    tv->flags |= THV_CLOSED;
     pthread_exit((void *) 0);
 }
 
@@ -519,6 +546,7 @@ void *TmThreadsSlotVar(void *td) {
         if (slot->SlotInit != NULL) {
             r = slot->SlotInit(tv, slot->slot_initdata, &slot->slot_data);
             if (r != 0) {
+                tv->flags |= THV_CLOSED;
                 pthread_exit((void *) -1);
             }
         }
@@ -553,12 +581,14 @@ void *TmThreadsSlotVar(void *td) {
         if (slot->SlotDeinit != NULL) {
             r = slot->SlotDeinit(tv, slot->slot_data);
             if (r != 0) {
+                tv->flags |= THV_CLOSED;
                 pthread_exit((void *) -1);
             }
         }
     }
 
     //printf("TmThreadsSlot1: %s ending\n", tv->name);
+    tv->flags |= THV_CLOSED;
     pthread_exit((void *) 0);
 }
 
@@ -838,12 +868,28 @@ void TmThreadKillThreads(void) {
 
             printf("TmThreadKillThreads: t->inq->usecnt %u\n", t->inq->usecnt);
 
+            /* make sure our packet pending counter doesn't block */
+            pthread_cond_signal(&cond_pending);
+
             /* signal the queue for the number of users */
             for (i = 0; i < t->inq->usecnt; i++)
                 pthread_cond_signal(&trans_q[t->inq->id].cond_q);
+
             /* to be sure, signal more */
-            for (i = 0; i < 1000; i++)
-                pthread_cond_signal(&trans_q[t->inq->id].cond_q);
+            int cnt = 0;
+            while (1) {
+                if (t->flags & THV_CLOSED) {
+                    printf("signalled the thread %d times\n", cnt);
+                    break;
+                }
+
+                cnt++;
+
+                for (i = 0; i < t->inq->usecnt; i++)
+                    pthread_cond_signal(&trans_q[t->inq->id].cond_q);
+
+                usleep(100);
+            }
 
             printf("TmThreadKillThreads: signalled t->inq->id %u\n", t->inq->id);
         }

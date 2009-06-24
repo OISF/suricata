@@ -5,6 +5,8 @@
 #include "decode.h"
 #include "threads.h"
 
+#include "util-time.h"
+
 #include "flow.h"
 #include "flow-queue.h"
 #include "flow-hash.h"
@@ -88,6 +90,14 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts, u_int32_t timeout)
 
     DEBUGPRINT("got lock, now check: %ld+%u=(%ld) < %ld", f->lastts.tv_sec,
         timeout, f->lastts.tv_sec + timeout, ts->tv_sec);
+
+    /* never prune a flow that is used by a packet we are currently
+     * processing in one of the threads */
+    if (f->use_cnt > 0) {
+        mutex_unlock(&f->fb->m);
+        mutex_unlock(&f->m);
+        return 0;
+    }
 
     /* do the timeout check */
     if ((f->lastts.tv_sec + timeout) >= ts->tv_sec) {
@@ -180,6 +190,17 @@ void FlowSetIPOnlyFlag(Flow *f, char direction) {
     mutex_unlock(&f->m);
 }
 
+/* decrease the use cnt of a flow */
+void FlowDecrUsecnt(ThreadVars *th_v, Packet *p) {
+    if (p == NULL || p->flow == NULL)
+        return;
+
+    mutex_lock(&p->flow->m);
+    if (p->flow->use_cnt > 0)
+        p->flow->use_cnt--;
+    mutex_unlock(&p->flow->m);
+}
+
 /* FlowHandlePacket
  *
  * This is called for every packet.
@@ -194,6 +215,8 @@ void FlowHandlePacket (ThreadVars *th_v, Packet *p)
     Flow *f = FlowGetFlowFromHash(p);
     if (f == NULL)
         return;
+
+    f->use_cnt++;
 
     /* update the last seen timestamp of this flow */
     COPY_TIMESTAMP(&p->ts, &f->lastts);
@@ -393,7 +416,8 @@ void *FlowManagerThread(void *td)
 
             /* Get the time */
             memset(&ts, 0, sizeof(ts));
-            gettimeofday(&ts, NULL);
+            //gettimeofday(&ts, NULL);
+            TimeGet(&ts);
             DEBUGPRINT("ts %ld", ts.tv_sec);
 
             /* see if we still have enough spare flows */

@@ -26,6 +26,7 @@
 #include "util-hashlist.h"
 #include "util-bloomfilter.h"
 #include "util-bloomfilter-counting.h"
+#include "util-pool.h"
 
 #include "detect-parse.h"
 #include "detect-engine-mpm.h"
@@ -42,10 +43,15 @@
 
 #include "log-httplog.h"
 
+#include "stream-tcp.h"
+
 #ifdef NFQ
 #include "source-nfq.h"
 #include "source-nfq-prototypes.h"
 #endif /* NFQ */
+
+#include "source-pcap.h"
+#include "source-pcap-file.h"
 
 #include "respond-reject.h"
 
@@ -56,6 +62,7 @@
 
 #include "util-cidr.h"
 #include "util-unittest.h"
+#include "util-time.h"
 
 pthread_attr_t attr;
 
@@ -69,6 +76,8 @@ static int sigterm_count = 0;
 #define VIPS_SIGINT  0x01
 #define VIPS_SIGHUP  0x02
 #define VIPS_SIGTERM 0x04
+#define VIPS_STOP    0x08
+#define VIPS_KILL    0x10
 
 static u_int8_t sigflags = 0;
 
@@ -86,6 +95,27 @@ setup_signal_handler(int sig, void (*handler)())
     sigaddset(&(action.sa_mask),sig);
     action.sa_flags = 0;
     sigaction(sig, &action, 0);
+}
+
+Packet *SetupPktWait (void)
+{
+    Packet *p = NULL;
+    do {
+        mutex_lock(&packet_q.mutex_q);
+        p = PacketDequeue(&packet_q);
+        mutex_unlock(&packet_q.mutex_q);
+
+        if (p == NULL) {
+            //TmqDebugList();
+            usleep(1000); /* sleep 1ms */
+
+            /* XXX check for recv'd signals, so
+             * we can exit on signals received */
+        }
+    } while (p == NULL);
+        memset(p, 0, sizeof(Packet));
+
+    return p;
 }
 
 Packet *SetupPkt (void)
@@ -157,102 +187,196 @@ Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t l
     return p;
 }
 
-int main(int argc, char **argv)
-{
-    int rc;
-    sigset_t set;
+/* XXX hack: make sure threads can stop the engine by calling this
+   function. Purpose: pcap file mode needs to be able to tell the
+   engine the file eof is reached. */
+void EngineStop(void) {
+    sigflags |= VIPS_STOP;
+}
 
-    sigaddset(&set, SIGINT); 
-    /* registering signals we use */
-    setup_signal_handler(SIGINT, handle_sigint);
-    setup_signal_handler(SIGTERM, handle_sigterm);
-    setup_signal_handler(SIGHUP, handle_sighup);
-    //pthread_sigmask(SIG_BLOCK, &set, 0);
+void EngineKill(void) {
+    sigflags |= VIPS_KILL;
+}
 
-    /* create table for O(1) lowercase conversion lookup */
-    u_int8_t c = 0;
-    for ( ; c < 255; c++) {
-       if (c >= 'A' && c <= 'Z')
-           g_u8_lowercasetable[c] = (c + ('a' - 'A'));
-       else
-           g_u8_lowercasetable[c] = c;
+int RunModeIdsPcap(char *iface) {
+    TimeModeSetLive();
+
+    /* create the threads */
+    ThreadVars *tv_receivepcap = TmThreadCreate("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
+    if (tv_receivepcap == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
     }
-    /* hardcoded initialization code */
-    MpmTableSetup(); /* load the pattern matchers */
-    SigTableSetup(); /* load the rule keywords */
-    TmqhSetup();
-
-    BinSearchInit();
-    CIDRInit();
-    SigParsePrepare();
-    PatternMatchPrepare(mpm_ctx);
-
-    TmModuleReceiveNFQRegister();
-    TmModuleVerdictNFQRegister();
-    TmModuleDecodeNFQRegister();
-    TmModuleDetectRegister();
-    TmModuleAlertFastlogRegister();
-    TmModuleAlertDebuglogRegister();
-    TmModuleRespondRejectRegister();
-    TmModuleAlertFastlogIPv4Register();
-    TmModuleAlertFastlogIPv6Register();
-    TmModuleAlertUnifiedLogRegister();
-    TmModuleAlertUnifiedAlertRegister();
-    TmModuleLogHttplogRegister();
-    TmModuleLogHttplogIPv4Register();
-    TmModuleLogHttplogIPv6Register();
-    TmModuleDebugList();
-
-    /* test and initialize the unittesting subsystem */
-    UtRunSelftest(); /* inits and cleans up again */
-    UtInitialize();
-    TmModuleRegisterTests();
-    SigTableRegisterTests();
-    HashTableRegisterTests();
-    HashListTableRegisterTests();
-    BloomFilterRegisterTests();
-    BloomFilterCountingRegisterTests();
-    MpmRegisterTests();
-    FlowBitRegisterTests();
-    SigRegisterTests();
-    //UtRunTests();
-    UtCleanup();
-    //exit(1);
-
-    //LoadConfig();
-    //exit(1);
-
-    /* initialize packet queues */
-    memset(&packet_q,0,sizeof(packet_q));
-    memset(&trans_q, 0,sizeof(trans_q));
-
-    /* pre allocate packets */
-    printf("Preallocating packets... packet size %u\n", sizeof(Packet));
-    int i = 0;
-    for (i = 0; i < MAX_PENDING; i++) {
-        /* XXX pkt alloc function */
-        Packet *p = malloc(sizeof(Packet));
-        if (p == NULL) {
-            printf("ERROR: malloc failed: %s\n", strerror(errno));
-            exit(1);
-        }
-        memset(p, 0, sizeof(Packet));
-
-        PacketEnqueue(&packet_q,p);
+    TmModule *tm_module = TmModuleGetByName("ReceivePcap");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
+        exit(1);
     }
-    printf("Preallocating packets... done\n");
+    Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
 
-    FlowInitConfig();
+    if (TmThreadSpawn(tv_receivepcap) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
 
-    /* Initialize and set thread detached attribute */
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    ThreadVars *tv_decode1 = TmThreadCreate("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
+    if (tv_decode1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("DecodePcap");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodePcap failed\n");
+        exit(1);
+    }
+    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
-    SigLoadSignatures();
+    if (TmThreadSpawn(tv_decode1) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
 
-//#define PERF_THREADS
-#define MANY_THREADS
-#ifndef PERF_THREADS
+    ThreadVars *tv_stream1 = TmThreadCreate("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
+    if (tv_stream1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(1);
+    }
+    Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_stream1) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    ThreadVars *tv_detect1 = TmThreadCreate("Detect1","stream-queue1","simple","verdict-queue","simple","1slot");
+    if (tv_detect1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName Detect failed\n");
+        exit(1);
+    }
+    Tm1SlotSetFunc(tv_detect1,tm_module,(void *)g_de_ctx);
+
+    if (TmThreadSpawn(tv_detect1) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    ThreadVars *tv_detect2 = TmThreadCreate("Detect2","stream-queue1","simple","verdict-queue","simple","1slot");
+    if (tv_detect2 == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName Detect failed\n");
+        exit(1);
+    }
+    Tm1SlotSetFunc(tv_detect2,tm_module,(void *)g_de_ctx);
+
+    if (TmThreadSpawn(tv_detect2) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    ThreadVars *tv_rreject = TmThreadCreate("RespondReject","verdict-queue","simple","alert-queue1","simple","1slot");
+    if (tv_rreject == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(1);
+    }
+    Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_rreject) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    ThreadVars *tv_alert = TmThreadCreate("AlertFastlog&Httplog","alert-queue1","simple","alert-queue2","simple","2slot");
+    if (tv_alert == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("AlertFastlog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
+        exit(1);
+    }
+    Tm2SlotSetFunc1(tv_alert,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("LogHttplog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(1);
+    }
+    Tm2SlotSetFunc2(tv_alert,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_alert) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    ThreadVars *tv_unified = TmThreadCreate("AlertUnifiedLog","alert-queue2","simple","alert-queue3","simple","2slot");
+    if (tv_unified == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+
+    tm_module = TmModuleGetByName("AlertUnifiedLog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
+        exit(1);
+    }
+    Tm2SlotSetFunc1(tv_unified,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedAlert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
+        exit(1);
+    }
+    Tm2SlotSetFunc2(tv_unified,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_unified) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+
+    ThreadVars *tv_debugalert = TmThreadCreate("AlertDebuglog","alert-queue3","simple","packetpool","packetpool","1slot");
+    if (tv_debugalert == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("AlertDebuglog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(1);
+    }
+    Tm1SlotSetFunc(tv_debugalert,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_debugalert) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    return 0;
+}
+
+int RunModeIpsNFQ(void) {
+    TimeModeSetLive();
+
     /* create the threads */
     ThreadVars *tv_receivenfq = TmThreadCreate("ReceiveNFQ","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
     if (tv_receivenfq == NULL) {
@@ -271,7 +395,6 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-#ifdef MANY_THREADS
     ThreadVars *tv_decode1 = TmThreadCreate("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
     if (tv_decode1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
@@ -289,24 +412,24 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    ThreadVars *tv_decode2 = TmThreadCreate("Decode2","pickup-queue","simple","decode-queue2","simple","1slot");
-    if (tv_decode1 == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
+    ThreadVars *tv_stream1 = TmThreadCreate("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
+    if (tv_stream1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
         exit(1);
     }
-    tm_module = TmModuleGetByName("DecodeNFQ");
+    tm_module = TmModuleGetByName("StreamTcp");
     if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_decode2,tm_module,NULL);
+    Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode2) != 0) {
+    if (TmThreadSpawn(tv_stream1) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
 
-    ThreadVars *tv_detect1 = TmThreadCreate("Detect1","decode-queue1","simple","verdict-queue","simple","1slot");
+    ThreadVars *tv_detect1 = TmThreadCreate("Detect1","stream-queue1","simple","verdict-queue","simple","1slot");
     if (tv_detect1 == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
@@ -323,8 +446,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    ThreadVars *tv_detect2 = TmThreadCreate("Detect2","decode-queue2","simple","verdict-queue","simple","1slot");
-    if (tv_detect1 == NULL) {
+    ThreadVars *tv_detect2 = TmThreadCreate("Detect2","stream-queue1","simple","verdict-queue","simple","1slot");
+    if (tv_detect2 == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
@@ -398,7 +521,6 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    //ThreadVars *tv_unified = TmThreadCreate("AlertUnifiedLog","alert-queue2","simple","packetpool","packetpool","2slot");
     ThreadVars *tv_unified = TmThreadCreate("AlertUnifiedLog","alert-queue2","simple","alert-queue3","simple","2slot");
     if (tv_unified == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
@@ -442,352 +564,101 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-#else /* MANY_THREADS */
-    ThreadVars *tv_main = TmThreadCreate("MainThread","pickup-queue","simple","packetpool","packetpool","varslot");
-    if (tv_main == NULL) {
-        printf("ERROR: TmThreadsCreate failed for MainThread\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("DecodeNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    TmVarSlotSetFuncAppend(tv_main,tm_module,NULL);
+    return 0;
+}
 
+int RunModeFilePcap(char *file) {
+    printf("RunModeFilePcap: file %s\n", file);
+    TimeModeSetNonlive();
+
+    /* create the threads */
+    ThreadVars *tv_receivepcap = TmThreadCreate("ReceivePcapFile","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
+    if (tv_receivepcap == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    TmModule *tm_module = TmModuleGetByName("ReceivePcapFile");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
+        exit(1);
+    }
+    Tm1SlotSetFunc(tv_receivepcap,tm_module,file);
+
+    if (TmThreadSpawn(tv_receivepcap) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    ThreadVars *tv_decode1 = TmThreadCreate("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
+    if (tv_decode1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("DecodePcapFile");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodePcap failed\n");
+        exit(1);
+    }
+    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_decode1) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+//#if 0
+    ThreadVars *tv_stream1 = TmThreadCreate("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
+    if (tv_stream1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(1);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(1);
+    }
+    Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_stream1) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    ThreadVars *tv_detect1 = TmThreadCreate("Detect1","stream-queue1","simple","packetpool","packetpool","1slot");
+//#endif
+    //ThreadVars *tv_detect1 = TmThreadCreate("Detect1","decode-queue1","simple","packetpool","packetpool","1slot");
+    if (tv_detect1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
     tm_module = TmModuleGetByName("Detect");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    TmVarSlotSetFuncAppend(tv_main,tm_module,(void *)g_de_ctx);
+    Tm1SlotSetFunc(tv_detect1,tm_module,(void *)g_de_ctx);
 
-    tm_module = TmModuleGetByName("VerdictNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
-        exit(1);
-    }
-    TmVarSlotSetFuncAppend(tv_main,tm_module,NULL);
-/*
-    tm_module = TmModuleGetByName("RespondReject");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
-        exit(1);
-    }
-    TmVarSlotSetFuncAppend(tv_main,tm_module);
-
-    tm_module = TmModuleGetByName("AlertFastlog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
-        exit(1);
-    }
-    TmVarSlotSetFuncAppend(tv_main,tm_module);
-
-    tm_module = TmModuleGetByName("LogHttplog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed\n");
-        exit(1);
-    }
-    TmVarSlotSetFuncAppend(tv_main,tm_module);
-
-    tm_module = TmModuleGetByName("AlertUnifiedLog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
-        exit(1);
-    }
-    TmVarSlotSetFuncAppend(tv_main,tm_module);
-
-    tm_module = TmModuleGetByName("AlertUnifiedAlert");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
-        exit(1);
-    }
-    TmVarSlotSetFuncAppend(tv_main,tm_module);
-
-    tm_module = TmModuleGetByName("AlertDebuglog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed\n");
-        exit(1);
-    }
-    TmVarSlotSetFuncAppend(tv_main,tm_module);
-*/
-    if (TmThreadSpawn(tv_main) != 0) {
+    if (TmThreadSpawn(tv_detect1) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
 
-#endif /* MANY_THREADS */
-#else /* PERF_THREADS */
-#if 0
-    /* create the threads */
-    ThreadVars *tv_receivenfq = TmThreadCreate("ReceiveNFQ1","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
-    if (tv_receivenfq == NULL) {
+    ThreadVars *tv_detect2 = TmThreadCreate("Detect2","stream-queue1","simple","packetpool","packetpool","1slot");
+    if (tv_detect2 == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    TmModule *tm_module = TmModuleGetByName("ReceiveNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed for ReceiveNFQ\n");
-        exit(1);
-    }
-    Tm1SlotSetFunc(tv_receivenfq,tm_module);
-
-    if (TmThreadSpawn(tv_receivenfq) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-
-    ThreadVars *tv_decode1 = TmThreadCreate("Decode1","pickup-queue","simple","verdict-queue","simple","2slot");
-    if (tv_decode1 == NULL) {
-        printf("ERROR: TmThreadsCreate failed for Decode1\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("DecodeNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm2SlotSetFunc1(tv_decode1,tm_module);
-
     tm_module = TmModuleGetByName("Detect");
     if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
+        printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    Tm2SlotSetFunc2(tv_decode1,tm_module);
+    Tm1SlotSetFunc(tv_detect2,tm_module,(void *)g_de_ctx);
 
-    TmThreadSetCPUAffinity(tv_decode1,0);
-
-    if (TmThreadSpawn(tv_decode1) != 0) {
+    if (TmThreadSpawn(tv_detect2) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
 
-    ThreadVars *tv_decode2 = TmThreadCreate("Decode2","pickup-queue","simple","verdict-queue","simple","2slot");
-    if (tv_decode2 == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("DecodeNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm2SlotSetFunc1(tv_decode2,tm_module);
-
-    tm_module = TmModuleGetByName("Detect");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm2SlotSetFunc2(tv_decode2,tm_module);
-
-    TmThreadSetCPUAffinity(tv_decode2,1);
-
-    if (TmThreadSpawn(tv_decode2) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-/*
-    ThreadVars *tv_decode3 = TmThreadCreate("Decode3","pickup-queue","simple","verdict-queue","simple","2slot");
-    if (tv_decode3 == NULL) {
-        printf("ERROR: TmThreadsCreate failed for Decode1\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("DecodeNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm2SlotSetFunc1(tv_decode3,tm_module);
-
-    tm_module = TmModuleGetByName("Detect");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm2SlotSetFunc2(tv_decode3,tm_module);
-
-    TmThreadSetCPUAffinity(tv_decode3,0);
-
-    if (TmThreadSpawn(tv_decode3) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-
-    ThreadVars *tv_decode4 = TmThreadCreate("Decode4","pickup-queue","simple","verdict-queue","simple","2slot");
-    if (tv_decode4 == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("DecodeNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm2SlotSetFunc1(tv_decode4,tm_module);
-
-    tm_module = TmModuleGetByName("Detect");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm2SlotSetFunc2(tv_decode4,tm_module);
-
-    TmThreadSetCPUAffinity(tv_decode4,1);
-
-    if (TmThreadSpawn(tv_decode4) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-*/
-    //ThreadVars *tv_verdict = TmThreadCreate("Verdict","verdict-queue","simple","respond-queue","simple","1slot");
-    ThreadVars *tv_verdict = TmThreadCreate("Verdict","verdict-queue","simple","packetpool","packetpool","1slot");
-    if (tv_verdict == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("VerdictNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
-        exit(1);
-    }
-    Tm1SlotSetFunc(tv_verdict,tm_module);
-
-    if (TmThreadSpawn(tv_verdict) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-#endif
-
-    /* create the threads */
-    ThreadVars *tv_receivenfq = TmThreadCreate("ReceiveNFQ1","packetpool","packetpool","pickup-queue1","simple","1slot_noinout");
-    if (tv_receivenfq == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    TmModule *tm_module = TmModuleGetByName("ReceiveNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed for ReceiveNFQ\n");
-        exit(1);
-    }
-    Tm1SlotSetFunc(tv_receivenfq,tm_module,NULL);
-    TmThreadSetCPUAffinity(tv_receivenfq,0);
-
-    if (TmThreadSpawn(tv_receivenfq) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-
-    /* wait for queue 0 to settle */
-    sleep(1);
-
-    /* create the threads */
-    ThreadVars *tv_receivenfq2 = TmThreadCreate("ReceiveNFQ2","packetpool","packetpool","pickup-queue2","simple","1slot_noinout");
-    if (tv_receivenfq2 == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("ReceiveNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed for ReceiveNFQ\n");
-        exit(1);
-    }
-    Tm1SlotSetFunc(tv_receivenfq2,tm_module,NULL);
-    TmThreadSetCPUAffinity(tv_receivenfq2,1);
-
-    if (TmThreadSpawn(tv_receivenfq2) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-
-    sleep(1);
-    ThreadVars *tv_decode1 = TmThreadCreate("Decode1","pickup-queue1","simple","packetpool","packetpool","3slot");
-    if (tv_decode1 == NULL) {
-        printf("ERROR: TmThreadsCreate failed for Decode1\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("DecodeNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm3SlotSetFunc1(tv_decode1,tm_module,NULL);
-
-    tm_module = TmModuleGetByName("Detect");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm3SlotSetFunc2(tv_decode1,tm_module,(void *)g_de_ctx);
-
-    tm_module = TmModuleGetByName("VerdictNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
-        exit(1);
-    }
-    Tm3SlotSetFunc3(tv_decode1,tm_module,NULL);
-    TmThreadSetCPUAffinity(tv_decode1,0);
-
-    if (TmThreadSpawn(tv_decode1) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-
-    sleep(1);
-
-    ThreadVars *tv_decode2 = TmThreadCreate("Decode2","pickup-queue2","simple","packetpool","packetpool","3slot");
-    if (tv_decode2 == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("DecodeNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm3SlotSetFunc1(tv_decode2,tm_module,NULL);
-
-    tm_module = TmModuleGetByName("Detect");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
-        exit(1);
-    }
-    Tm3SlotSetFunc2(tv_decode2,tm_module,(void *)g_de_ctx);
-
-    tm_module = TmModuleGetByName("VerdictNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
-        exit(1);
-    }
-    Tm3SlotSetFunc3(tv_decode2,tm_module,NULL);
-    TmThreadSetCPUAffinity(tv_decode2,1);
-
-    if (TmThreadSpawn(tv_decode2) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-
-/*
-    //ThreadVars *tv_verdict = TmThreadCreate("Verdict","verdict-queue","simple","respond-queue","simple","1slot");
-    ThreadVars *tv_verdict = TmThreadCreate("Verdict","verdict-queue","simple","packetpool","packetpool","1slot");
-    if (tv_verdict == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("VerdictNFQ");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
-        exit(1);
-    }
-    Tm1SlotSetFunc(tv_verdict,tm_module);
-
-    if (TmThreadSpawn(tv_verdict) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-*/
-/*
     ThreadVars *tv_rreject = TmThreadCreate("RespondReject","respond-queue","simple","alert-queue1","simple","1slot");
     if (tv_rreject == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
@@ -798,7 +669,7 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName for RespondReject failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_rreject,tm_module);
+    Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
     if (TmThreadSpawn(tv_rreject) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -815,21 +686,20 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
         exit(1);
     }
-    Tm2SlotSetFunc1(tv_alert,tm_module);
+    Tm2SlotSetFunc1(tv_alert,tm_module,NULL);
 
     tm_module = TmModuleGetByName("LogHttplog");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName failed\n");
         exit(1);
     }
-    Tm2SlotSetFunc2(tv_alert,tm_module);
+    Tm2SlotSetFunc2(tv_alert,tm_module,NULL);
 
     if (TmThreadSpawn(tv_alert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
 
-    //ThreadVars *tv_unified = TmThreadCreate("AlertUnifiedLog","alert-queue2","simple","packetpool","packetpool","2slot");
     ThreadVars *tv_unified = TmThreadCreate("AlertUnifiedLog","alert-queue2","simple","alert-queue3","simple","2slot");
     if (tv_unified == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
@@ -841,20 +711,19 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
         exit(1);
     }
-    Tm2SlotSetFunc1(tv_unified,tm_module);
+    Tm2SlotSetFunc1(tv_unified,tm_module,NULL);
 
     tm_module = TmModuleGetByName("AlertUnifiedAlert");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
         exit(1);
     }
-    Tm2SlotSetFunc2(tv_unified,tm_module);
+    Tm2SlotSetFunc2(tv_unified,tm_module,NULL);
 
     if (TmThreadSpawn(tv_unified) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
-
 
     ThreadVars *tv_debugalert = TmThreadCreate("AlertDebuglog","alert-queue3","simple","packetpool","packetpool","1slot");
     if (tv_debugalert == NULL) {
@@ -866,14 +735,121 @@ int main(int argc, char **argv)
         printf("ERROR: TmModuleGetByName failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_debugalert,tm_module);
+    Tm1SlotSetFunc(tv_debugalert,tm_module,NULL);
 
     if (TmThreadSpawn(tv_debugalert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
-*/
-#endif /* PERF_THREADS */
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    int rc;
+    sigset_t set;
+
+    sigaddset(&set, SIGINT); 
+    /* registering signals we use */
+    setup_signal_handler(SIGINT, handle_sigint);
+    setup_signal_handler(SIGTERM, handle_sigterm);
+    setup_signal_handler(SIGHUP, handle_sighup);
+    //pthread_sigmask(SIG_BLOCK, &set, 0);
+
+    /* create table for O(1) lowercase conversion lookup */
+    u_int8_t c = 0;
+    for ( ; c < 255; c++) {
+       if (c >= 'A' && c <= 'Z')
+           g_u8_lowercasetable[c] = (c + ('a' - 'A'));
+       else
+           g_u8_lowercasetable[c] = c;
+    }
+    /* hardcoded initialization code */
+    MpmTableSetup(); /* load the pattern matchers */
+    SigTableSetup(); /* load the rule keywords */
+    TmqhSetup();
+
+    BinSearchInit();
+    CIDRInit();
+    SigParsePrepare();
+    PatternMatchPrepare(mpm_ctx);
+
+    TmModuleReceiveNFQRegister();
+    TmModuleVerdictNFQRegister();
+    TmModuleDecodeNFQRegister();
+    TmModuleReceivePcapRegister();
+    TmModuleDecodePcapRegister();
+    TmModuleReceivePcapFileRegister();
+    TmModuleDecodePcapFileRegister();
+    TmModuleDetectRegister();
+    TmModuleAlertFastlogRegister();
+    TmModuleAlertDebuglogRegister();
+    TmModuleRespondRejectRegister();
+    TmModuleAlertFastlogIPv4Register();
+    TmModuleAlertFastlogIPv6Register();
+    TmModuleAlertUnifiedLogRegister();
+    TmModuleAlertUnifiedAlertRegister();
+    TmModuleLogHttplogRegister();
+    TmModuleLogHttplogIPv4Register();
+    TmModuleLogHttplogIPv6Register();
+    TmModuleStreamTcpRegister();
+    TmModuleDebugList();
+
+    /* test and initialize the unittesting subsystem */
+    UtRunSelftest(); /* inits and cleans up again */
+    UtInitialize();
+    TmModuleRegisterTests();
+    SigTableRegisterTests();
+    HashTableRegisterTests();
+    HashListTableRegisterTests();
+    BloomFilterRegisterTests();
+    BloomFilterCountingRegisterTests();
+    PoolRegisterTests();
+    MpmRegisterTests();
+    FlowBitRegisterTests();
+    SigRegisterTests();
+    //UtRunTests();
+    UtCleanup();
+    //exit(1);
+
+    //LoadConfig();
+    //exit(1);
+
+    /* initialize packet queues */
+    memset(&packet_q,0,sizeof(packet_q));
+    memset(&trans_q, 0,sizeof(trans_q));
+
+    /* pre allocate packets */
+    printf("Preallocating packets... packet size %u\n", sizeof(Packet));
+    int i = 0;
+    for (i = 0; i < MAX_PENDING; i++) {
+        /* XXX pkt alloc function */
+        Packet *p = malloc(sizeof(Packet));
+        if (p == NULL) {
+            printf("ERROR: malloc failed: %s\n", strerror(errno));
+            exit(1);
+        }
+        memset(p, 0, sizeof(Packet));
+
+        PacketEnqueue(&packet_q,p);
+    }
+    printf("Preallocating packets... done\n");
+
+    FlowInitConfig();
+
+    /* Initialize and set thread detached attribute */
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+    SigLoadSignatures();
+
+    struct timeval start_time;
+    memset(&start_time, 0, sizeof(start_time));
+    gettimeofday(&start_time, NULL);
+
+    //RunModeIpsNFQ();
+    //RunModeIdsPcap(argv[1]);
+    RunModeFilePcap(argv[1]);
 
     ThreadVars tv_flowmgr;
     memset(&tv_flowmgr, 0, sizeof(ThreadVars));
@@ -891,9 +867,37 @@ int main(int argc, char **argv)
         if (sigflags) {
             printf("signal received\n");
 
-            if (sigflags & VIPS_SIGINT)  printf ("SIGINT\n");
+            if (sigflags & VIPS_SIGINT || sigflags & VIPS_STOP)  {
+                printf ("SIGINT or EngineStop received\n");
+
+                /* Stop the engine so it quits after processing the pcap file
+                 * but first make sure all packets are processed by all other
+                 * threads. */
+                char done = 0;
+                do {
+                    if (sigflags & VIPS_SIGTERM || sigflags & VIPS_KILL)
+                        break;
+
+                    mutex_lock(&mutex_pending);
+                    if (pending == 0)
+                        done = 1;
+                    mutex_unlock(&mutex_pending);
+
+                    if (done == 0) {
+                        usleep(100);
+                    }
+                } while (done == 0);
+
+                printf("main: all packets processed by threads, stopping engine\n");
+            }
             if (sigflags & VIPS_SIGHUP)  printf ("SIGHUP\n");
             if (sigflags & VIPS_SIGTERM) printf ("SIGTERM\n");
+
+            struct timeval end_time;
+            memset(&end_time, 0, sizeof(end_time));
+            gettimeofday(&end_time, NULL);
+
+            printf("time elapsed %lus\n", end_time.tv_sec - start_time.tv_sec);
 
             TmThreadKillThreads();
 #if 0
@@ -918,7 +922,7 @@ int main(int argc, char **argv)
             break;//pthread_exit(NULL);
         }
 
-        sleep(1);
+        usleep(100);
     }
 
     FlowShutdown();

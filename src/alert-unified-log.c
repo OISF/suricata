@@ -243,6 +243,8 @@ int AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
 int AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
 {
+    printf("AlertUnifiedLogThreadDeinit started\n");
+
     AlertUnifiedLogThread *aun = (AlertUnifiedLogThread *)data;
     if (aun == NULL) {
         goto error;
@@ -254,6 +256,7 @@ int AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
     free(aun);
+    printf("AlertUnifiedLogThreadDeinit done\n");
     return 0;
 
 error:
@@ -262,6 +265,7 @@ error:
         memset(aun, 0, sizeof(AlertUnifiedLogThread));
         free(aun);
     }
+    printf("AlertUnifiedLogThreadDeinit done (error)\n");
     return -1;
 }
 

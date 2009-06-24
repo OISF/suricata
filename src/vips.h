@@ -14,7 +14,7 @@
 /* maximum number of simultanious threads. */
 #define NUM_THREADS 256
 /* max packets processed simultaniously */
-#define MAX_PENDING 512
+#define MAX_PENDING 50
 
 #define TRUE   1
 #define FALSE  0

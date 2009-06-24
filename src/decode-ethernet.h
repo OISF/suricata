@@ -2,6 +2,8 @@
 #ifndef __DECODE_ETHERNET_H__
 #define __DECODE_ETHERNET_H__
 
+#define ETHERNET_HEADER_LEN           14
+
 /* Ethernet types -- taken from Snort and Libdnet */
 #define ETHERNET_TYPE_PUP             0x0200 /* PUP protocol */
 #define ETHERNET_TYPE_IP              0x0800
