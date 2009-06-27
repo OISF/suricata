@@ -87,7 +87,8 @@ alert-debuglog.c alert-debuglog.h \
 log-httplog.c log-httplog.h \
 alert-unified-log.c alert-unified-log.h \
 alert-unified-alert.c alert-unified-alert.h \
-stream-tcp.c stream-tcp.h \
+stream-tcp.c stream-tcp.h stream-tcp-private.h \
+stream-tcp-reassemble.c stream-tcp-reassemble.h \
 respond-reject.c respond-reject.h \
 respond-reject-libnet11.h respond-reject-libnet11.c
 

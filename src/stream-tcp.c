@@ -23,51 +23,14 @@
 #include "util-pool.h"
 #include "util-unittest.h"
 
+#include "stream-tcp-private.h"
+
 int StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *);
 int StreamTcpThreadInit(ThreadVars *, void *, void **);
 int StreamTcpThreadDeinit(ThreadVars *, void *);
 void StreamTcpExitPrintStats(ThreadVars *, void *);
 
-typedef struct _TcpStream {
-    u_int32_t isn; /* initial sequence number */
-    u_int32_t next_seq; /* next expected sequence number */
-    u_int32_t last_ack; /* last ack'd sequence number */
-    u_int32_t next_win; /* next max seq within window */
-    u_int8_t wscale;
-    u_int16_t window;
-} TcpStream;
-
-/* from /usr/include/netinet/tcp.h */
-enum
-{
-    TCP_ESTABLISHED = 1,
-    TCP_SYN_SENT,
-    TCP_SYN_RECV,
-    TCP_FIN_WAIT1,
-    TCP_FIN_WAIT2,
-    TCP_TIME_WAIT,
-    TCP_CLOSE,
-    TCP_CLOSE_WAIT,
-    TCP_LAST_ACK,
-    TCP_LISTEN,
-    TCP_CLOSING   /* now a valid state */
-};
-
-/* Macro's for comparing Sequence numbers
- * Page 810 from TCP/IP Illustrated, Volume 2. */
-#define SEQ_EQ(a,b)  ((int)((a) - (b)) == 0)
-#define SEQ_LT(a,b)  ((int)((a) - (b)) <  0)
-#define SEQ_LEQ(a,b) ((int)((a) - (b)) <= 0)
-#define SEQ_GT(a,b)  ((int)((a) - (b)) >  0)
-#define SEQ_GEQ(a,b) ((int)((a) - (b)) >= 0)
-
-typedef struct _TcpSession {
-    u_int8_t state;
-    TcpStream server;
-    TcpStream client;
-} TcpSession;
-
-void *StreamTcpSessionAlloc(void) {
+void *StreamTcpSessionAlloc(void *null) {
     void *ptr = malloc(sizeof(TcpSession));
     if (ptr == NULL)
         return NULL;
@@ -82,6 +45,8 @@ static Pool *ssn_pool;
 static pthread_mutex_t ssn_pool_mutex;
 
 void TmModuleStreamTcpRegister (void) {
+    StreamTcpReassembleInit();
+
     tmm_modules[TMM_STREAMTCP].name = "StreamTcp";
     tmm_modules[TMM_STREAMTCP].Init = StreamTcpThreadInit;
     tmm_modules[TMM_STREAMTCP].Func = StreamTcp;
@@ -89,7 +54,7 @@ void TmModuleStreamTcpRegister (void) {
     tmm_modules[TMM_STREAMTCP].Deinit = StreamTcpThreadDeinit;
     tmm_modules[TMM_STREAMTCP].RegisterTests = NULL;
 
-    ssn_pool = PoolInit(262144, 32768, StreamTcpSessionAlloc, StreamTcpSessionFree);
+    ssn_pool = PoolInit(262144, 32768, StreamTcpSessionAlloc, NULL, StreamTcpSessionFree);
     if (ssn_pool == NULL) {
         exit(1);
     }
@@ -123,6 +88,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
 
             /* set the sequence numbers and window */
             ssn->client.isn = TCP_GET_SEQ(p);
+            ssn->client.ra_base_seq = ssn->client.isn;
             ssn->client.next_seq = ssn->client.isn + 1;
             ssn->client.window = TCP_GET_WINDOW(p);
 
@@ -171,6 +137,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
 
             /* sequence number & window */
             ssn->server.isn = TCP_GET_SEQ(p);
+            ssn->server.ra_base_seq = ssn->server.isn;
             ssn->server.next_seq = ssn->server.isn + 1;
             ssn->server.window = TCP_GET_WINDOW(p);
             printf("StreamTcpPacketStateSynSent: (%p): window %u\n", ssn, ssn->server.window);
@@ -190,6 +157,10 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
 
             printf("StreamTcpPacketStateSynSent (%p): ssn->server.isn %u, ssn->server.next_seq %u, ssn->CLIENT.last_ack %u\n",
                     ssn, ssn->server.isn, ssn->server.next_seq, ssn->client.last_ack);
+            break;
+        case TH_RST:
+            /* seq should be 0, win should be 0, ack should be isn +1.
+             * check Snort's stream4/5 for more security */
             break;
         default:
             printf("StreamTcpPacketStateSynSent (%p): default case\n", ssn);
@@ -274,6 +245,8 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
                         ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
                         printf("StreamTcpPacketStateEstablished (%p): ssn->client.next_win %u\n", ssn, ssn->client.next_win);
                     }
+
+                    StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
                 } else {
                     printf("StreamTcpPacketStateEstablished (%p): !!!!! => SEQ mismatch, packet SEQ %u, payload size %u (%u), last_ack %u, next_win %u\n",
                             ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) + p->payload_len, ssn->client.last_ack, ssn->client.next_win);
@@ -301,6 +274,8 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
                         ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
                         printf("StreamTcpPacketStateEstablished (%p): ssn->server.next_win %u\n", ssn, ssn->server.next_win);
                     }
+
+                    StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
                 } else {
                     printf("StreamTcpPacketStateEstablished (%p): !!!!! => SEQ mismatch, packet SEQ %u, payload size %u (%u), last_ack %u, next_win %u\n",
                             ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) + p->payload_len, ssn->server.last_ack, ssn->server.next_win);
@@ -333,6 +308,8 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
                 if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
                     ssn->server.last_ack = TCP_GET_ACK(p);
 
+                StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
+
                 printf("StreamTcpPacketStateEstablished (%p): =+ next SEQ %u, last ACK %u\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
             } else { /* implied to client */
@@ -355,9 +332,13 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
                 if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
                     ssn->client.last_ack = TCP_GET_ACK(p);
 
+                StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
+
                 printf("StreamTcpPacketStateEstablished (%p): =+ next SEQ %u, last ACK %u\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
             }
+            break;
+        case TH_RST:
             break;
     }
 
@@ -388,6 +369,8 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
                 if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
                     ssn->server.last_ack = TCP_GET_ACK(p);
 
+                StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
+
                 printf("StreamTcpPacketStateFinWait1 (%p): =+ next SEQ %u, last ACK %u\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
             } else { /* implied to client */
@@ -406,6 +389,8 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
 
                 if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
                     ssn->client.last_ack = TCP_GET_ACK(p);
+
+                StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
 
                 printf("StreamTcpPacketStateFinWait1 (%p): =+ next SEQ %u, last ACK %u\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
@@ -438,6 +423,8 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
                 if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
                     ssn->server.last_ack = TCP_GET_ACK(p);
 
+                StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
+
                 printf("StreamTcpPacketStateFinWait2 (%p): =+ next SEQ %u, last ACK %u\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
             } else { /* implied to client */
@@ -456,6 +443,8 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
 
                 if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
                     ssn->client.last_ack = TCP_GET_ACK(p);
+
+                StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
 
                 printf("StreamTcpPacketStateFinWait2 (%p): =+ next SEQ %u, last ACK %u\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);

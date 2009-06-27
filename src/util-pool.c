@@ -9,7 +9,7 @@
 
 #include "util-unittest.h"
 
-Pool *PoolInit(u_int32_t size, u_int32_t prealloc_size, void *(*Alloc)(void), void (*Free)(void *))
+Pool *PoolInit(u_int32_t size, u_int32_t prealloc_size, void *(*Alloc)(void *), void *AllocData, void (*Free)(void *))
 {
     Pool *p = NULL;
 
@@ -29,6 +29,7 @@ Pool *PoolInit(u_int32_t size, u_int32_t prealloc_size, void *(*Alloc)(void), vo
     memset(p,0,sizeof(Pool));
 
     p->Alloc = Alloc;
+    p->AllocData = AllocData;
     p->Free  = Free;
 
     /* alloc the buckets and place them in the empty list */
@@ -54,7 +55,7 @@ Pool *PoolInit(u_int32_t size, u_int32_t prealloc_size, void *(*Alloc)(void), vo
         p->empty_list = pb->next;
         p->empty_list_size--;
 
-        pb->data = p->Alloc();
+        pb->data = p->Alloc(p->AllocData);
 
         pb->next = p->alloc_list;
         p->alloc_list = pb;
@@ -113,11 +114,29 @@ void *PoolGet(Pool *p) {
     return ptr;
 }
 
+void PoolReturn(Pool *p, void *data) {
+    PoolBucket *pb = p->empty_list;
+    if (pb == NULL)
+        return;
+
+    /* pull from the alloc list */
+    p->empty_list = pb->next;
+    p->empty_list_size--;
+
+    /* put in the alloc list */
+    pb->next = p->alloc_list;
+    p->alloc_list = pb;
+    p->alloc_list_size++;
+
+    pb->data = data;
+    return;
+}
+
 /*
  * ONLY TESTS BELOW THIS COMMENT
  */
 
-void *PoolTestAlloc(void) {
+void *PoolTestAlloc(void *allocdata) {
     return malloc(10);
 }
 
@@ -126,7 +145,7 @@ void PoolTestFree(void *ptr) {
 }
 
 static int PoolTestInit01 (void) {
-    Pool *p = PoolInit(10,5,PoolTestAlloc,PoolTestFree);
+    Pool *p = PoolInit(10,5,PoolTestAlloc,NULL,PoolTestFree);
     if (p == NULL)
         return 0;
 
@@ -137,7 +156,7 @@ static int PoolTestInit01 (void) {
 static int PoolTestInit02 (void) {
     int retval = 0;
 
-    Pool *p = PoolInit(10,5,PoolTestAlloc,PoolTestFree);
+    Pool *p = PoolInit(10,5,PoolTestAlloc,NULL,PoolTestFree);
     if (p == NULL)
         goto end;
 
@@ -176,7 +195,7 @@ end:
 static int PoolTestInit03 (void) {
     int retval = 0;
 
-    Pool *p = PoolInit(10,5,PoolTestAlloc,PoolTestFree);
+    Pool *p = PoolInit(10,5,PoolTestAlloc,NULL,PoolTestFree);
     if (p == NULL)
         goto end;
 
