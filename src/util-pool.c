@@ -116,8 +116,10 @@ void *PoolGet(Pool *p) {
 
 void PoolReturn(Pool *p, void *data) {
     PoolBucket *pb = p->empty_list;
-    if (pb == NULL)
+    if (pb == NULL) {
+        printf("ERROR: trying to return data to the pool, but no more buckets available.");
         return;
+    }
 
     /* pull from the alloc list */
     p->empty_list = pb->next;
@@ -138,6 +140,12 @@ void PoolReturn(Pool *p, void *data) {
 
 void *PoolTestAlloc(void *allocdata) {
     return malloc(10);
+}
+void *PoolTestAllocArg(void *allocdata) {
+    size_t len = strlen((char *)allocdata) + 1;
+    char *str = malloc(len);
+    strncpy(str,(char *)allocdata,len);
+    return (void *)str;
 }
 
 void PoolTestFree(void *ptr) {
@@ -225,10 +233,99 @@ end:
     return retval;
 }
 
+static int PoolTestInit04 (void) {
+    int retval = 0;
+
+    Pool *p = PoolInit(10,5,PoolTestAllocArg,(void *)"test",PoolTestFree);
+    if (p == NULL)
+        goto end;
+
+    char *str = PoolGet(p);
+    if (str == NULL) {
+        printf("PoolGet returned NULL: ");
+        retval = 0;
+        goto end;
+    }
+
+    if (strcmp(str, "test") != 0) {
+        printf("Memory not properly initialized: ");
+        retval = 0;
+        goto end;
+    }
+
+    if (p->alloc_list_size != 4) {
+        printf("p->alloc_list_size 4 != %u: ", p->alloc_list_size);
+        retval = 0;
+        goto end;
+    }
+
+    if (p->empty_list_size != 6) {
+        printf("p->empty_list_size 6 != %u: ", p->empty_list_size);
+        retval = 0;
+        goto end;
+    }
+
+    retval = 1;
+end:
+    if (p != NULL)
+        PoolFree(p);
+    return retval;
+}
+
+static int PoolTestInit05 (void) {
+    int retval = 0;
+
+    Pool *p = PoolInit(10,5,PoolTestAlloc,NULL,PoolTestFree);
+    if (p == NULL)
+        goto end;
+
+    void *data = PoolGet(p);
+    if (data == NULL) {
+        printf("PoolGet returned NULL: ");
+        retval = 0;
+        goto end;
+    }
+
+    if (p->alloc_list_size != 4) {
+        printf("p->alloc_list_size 4 != %u: ", p->alloc_list_size);
+        retval = 0;
+        goto end;
+    }
+
+    if (p->empty_list_size != 6) {
+        printf("p->empty_list_size 6 != %u: ", p->empty_list_size);
+        retval = 0;
+        goto end;
+    }
+
+    PoolReturn(p, data);
+    data = NULL;
+
+    if (p->alloc_list_size != 5) {
+        printf("p->alloc_list_size 5 != %u: ", p->alloc_list_size);
+        retval = 0;
+        goto end;
+    }
+
+    if (p->empty_list_size != 5) {
+        printf("p->empty_list_size 5 != %u: ", p->empty_list_size);
+        retval = 0;
+        goto end;
+    }
+
+    retval = 1;
+end:
+    if (p != NULL)
+        PoolFree(p);
+    return retval;
+}
+
 
 void PoolRegisterTests(void) {
     UtRegisterTest("PoolTestInit01", PoolTestInit01, 1);
     UtRegisterTest("PoolTestInit02", PoolTestInit02, 1);
     UtRegisterTest("PoolTestInit03", PoolTestInit03, 1);
+    UtRegisterTest("PoolTestInit04", PoolTestInit04, 1);
+    UtRegisterTest("PoolTestInit05", PoolTestInit05, 1);
 }
 
