@@ -19,7 +19,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -205,7 +205,7 @@ int AlertDebuglogThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aft, 0, sizeof(AlertDebuglogThread));
 
     /* XXX */
-    aft->fp = fopen("/var/log/eips/alert-debug.log", "w");
+    aft->fp = fopen("/var/log/eidps/alert-debug.log", "w");
     if (aft->fp == NULL) {
         return -1;
     }

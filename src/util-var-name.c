@@ -1,4 +1,4 @@
-#include "vips.h"
+#include "eidps.h"
 #include "detect.h"
 #include "util-hashlist.h"
 

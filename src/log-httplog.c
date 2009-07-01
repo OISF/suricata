@@ -15,7 +15,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "detect.h"
 #include "pkt-var.h"
@@ -181,7 +181,7 @@ int LogHttplogThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aft, 0, sizeof(LogHttplogThread));
 
     /* XXX */
-    aft->fp = fopen("/var/log/eips/http.log", "w");
+    aft->fp = fopen("/var/log/eidps/http.log", "w");
     if (aft->fp == NULL) {
         return -1;
     }

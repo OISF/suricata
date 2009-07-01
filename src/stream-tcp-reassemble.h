@@ -3,7 +3,8 @@
 #ifndef __STREAM_TCP_REASSEMBLE_H__
 #define __STREAM_TCP_REASSEMBLE_H__
 
-/* XXX */
+int StreamTcpReassembleHandleSegment (TcpSession *ssn, TcpStream *stream, Packet *p);
+int StreamTcpReassembleInit(void);
 
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 

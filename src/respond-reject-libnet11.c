@@ -18,7 +18,7 @@
 #include <sys/signal.h>
 #include <libnet.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "decode.h"
 #include "decode-ipv4.h"
 #include "decode-tcp.h"

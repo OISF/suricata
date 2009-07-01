@@ -23,7 +23,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -156,7 +156,7 @@ int AlertFastlogThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aft, 0, sizeof(AlertFastlogThread));
 
     /* XXX */
-    aft->fp = fopen("/var/log/eips/fast.log", "w");
+    aft->fp = fopen("/var/log/eidps/fast.log", "w");
     if (aft->fp == NULL) {
         return -1;
     }

@@ -18,7 +18,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "vips.h"
+#include "eidps.h"
 
 #include "util-bloomfilter.h"
 #include "util-mpm-b3g.h"

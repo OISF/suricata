@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -24,6 +24,7 @@
 #include "util-unittest.h"
 
 #include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
 
 int StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *);
 int StreamTcpThreadInit(ThreadVars *, void *, void **);

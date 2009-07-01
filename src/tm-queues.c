@@ -1,4 +1,4 @@
-#include "vips.h"
+#include "eidps.h"
 #include "threads.h"
 
 #include "tm-queues.h"

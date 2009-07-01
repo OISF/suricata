@@ -15,7 +15,7 @@
 
 #include <pcre.h>
 
-#include "vips.h"
+#include "eidps.h"
 
 static pcre *config_pcre = NULL;
 static pcre_extra *config_pcre_extra = NULL;
@@ -34,7 +34,7 @@ int LoadConfig ( void ) {
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
 
-    FILE *fp = fopen("vips.conf", "r");
+    FILE *fp = fopen("eidps.conf", "r");
     if (fp == NULL) printf("ERROR: fopen failed %s\n", strerror(errno));
 
 

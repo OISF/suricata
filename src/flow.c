@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"

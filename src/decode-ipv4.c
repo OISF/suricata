@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "vips.h"
+#include "eidps.h"
 #include "packet-queue.h"
 #include "decode.h"
 #include "decode-ipv4.h"

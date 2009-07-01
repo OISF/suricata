@@ -1,6 +1,8 @@
 /* Address part of the detection engine.
  *
  * Copyright (c) 2008 Victor Julien
+ *
+ * XXX unit test the join code
  */
 
 #include "decode.h"

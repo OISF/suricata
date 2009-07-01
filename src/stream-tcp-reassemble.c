@@ -16,7 +16,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"

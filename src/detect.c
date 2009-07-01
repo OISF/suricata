@@ -2,7 +2,7 @@
 
 #include <pcre.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -278,7 +278,7 @@ void SigLoadSignatures (void)
     //FILE *fp = fopen("/home/victor/rules/iponly.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/iponly-small.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/all.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/vips-http.sigs", "r");
+    //FILE *fp = fopen("/home/victor/rules/eidps.http.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-dshield.rules", "r");
     FILE *fp = fopen("/home/victor/rules/emerging-all.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-web.rules", "r");

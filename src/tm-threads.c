@@ -6,7 +6,7 @@
 #include <sys/syscall.h>
 #include <sched.h>     /* for sched_setaffinity(2) */
 
-#include "vips.h"
+#include "eidps.h"
 #include "threadvars.h"
 #include "tm-queues.h"
 #include "tm-queuehandlers.h"

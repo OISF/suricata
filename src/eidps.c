@@ -14,7 +14,7 @@
 #include <sys/signal.h>
 #include <errno.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "decode.h"
 #include "detect.h"
 #include "packet-queue.h"
@@ -73,17 +73,17 @@ static int sigint_count = 0;
 static int sighup_count = 0;
 static int sigterm_count = 0;
 
-#define VIPS_SIGINT  0x01
-#define VIPS_SIGHUP  0x02
-#define VIPS_SIGTERM 0x04
-#define VIPS_STOP    0x08
-#define VIPS_KILL    0x10
+#define EIDPS_SIGINT  0x01
+#define EIDPS_SIGHUP  0x02
+#define EIDPS_SIGTERM 0x04
+#define EIDPS_STOP    0x08
+#define EIDPS_KILL    0x10
 
 static u_int8_t sigflags = 0;
 
-static void handle_sigint(/*@unused@*/ int sig) { sigint_count = 1; sigflags |= VIPS_SIGINT; }
-static void handle_sigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= VIPS_SIGTERM; }
-static void handle_sighup(/*@unused@*/ int sig) { sighup_count = 1; sigflags |= VIPS_SIGHUP; }
+static void handle_sigint(/*@unused@*/ int sig) { sigint_count = 1; sigflags |= EIDPS_SIGINT; }
+static void handle_sigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= EIDPS_SIGTERM; }
+static void handle_sighup(/*@unused@*/ int sig) { sighup_count = 1; sigflags |= EIDPS_SIGHUP; }
 
 static void
 setup_signal_handler(int sig, void (*handler)())
@@ -191,11 +191,11 @@ Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t l
    function. Purpose: pcap file mode needs to be able to tell the
    engine the file eof is reached. */
 void EngineStop(void) {
-    sigflags |= VIPS_STOP;
+    sigflags |= EIDPS_STOP;
 }
 
 void EngineKill(void) {
-    sigflags |= VIPS_KILL;
+    sigflags |= EIDPS_KILL;
 }
 
 int RunModeIdsPcap(char *iface) {
@@ -867,7 +867,7 @@ int main(int argc, char **argv)
         if (sigflags) {
             printf("signal received\n");
 
-            if (sigflags & VIPS_SIGINT || sigflags & VIPS_STOP)  {
+            if (sigflags & EIDPS_SIGINT || sigflags & EIDPS_STOP)  {
                 printf ("SIGINT or EngineStop received\n");
 
                 /* Stop the engine so it quits after processing the pcap file
@@ -875,7 +875,7 @@ int main(int argc, char **argv)
                  * threads. */
                 char done = 0;
                 do {
-                    if (sigflags & VIPS_SIGTERM || sigflags & VIPS_KILL)
+                    if (sigflags & EIDPS_SIGTERM || sigflags & EIDPS_KILL)
                         break;
 
                     mutex_lock(&mutex_pending);
@@ -890,8 +890,8 @@ int main(int argc, char **argv)
 
                 printf("main: all packets processed by threads, stopping engine\n");
             }
-            if (sigflags & VIPS_SIGHUP)  printf ("SIGHUP\n");
-            if (sigflags & VIPS_SIGTERM) printf ("SIGTERM\n");
+            if (sigflags & EIDPS_SIGHUP)  printf ("SIGHUP\n");
+            if (sigflags & EIDPS_SIGTERM) printf ("SIGTERM\n");
 
             struct timeval end_time;
             memset(&end_time, 0, sizeof(end_time));

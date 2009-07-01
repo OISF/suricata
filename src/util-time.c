@@ -1,6 +1,6 @@
 /* Time keeping for offline (non-live) packet handling (pcap files) */
 
-#include "vips.h"
+#include "eidps.h"
 #include "detect.h"
 #include "threads.h"
 

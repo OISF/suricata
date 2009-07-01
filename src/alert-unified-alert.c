@@ -23,7 +23,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -98,7 +98,7 @@ int AlertUnifiedAlertCreateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
     gettimeofday(&ts, NULL);
 
     /* create the filename to use */
-    snprintf(filename, sizeof(filename), "%s/%s.%u", "/var/log/eips", "unified.alert", (u_int32_t)ts.tv_sec);
+    snprintf(filename, sizeof(filename), "%s/%s.%u", "/var/log/eidps", "unified.alert", (u_int32_t)ts.tv_sec);
 
     /* XXX filename & location */
     aun->fp = fopen(filename, "wb");

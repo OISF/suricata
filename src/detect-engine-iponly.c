@@ -1,6 +1,6 @@
 /* ip only part of the detection engine */
 
-/* TODO: needs a lot of work
+/* TODO: needs a lot of work, for example IPv6 support
  *
  * The dificulty with ip only matching is that we need to support (very large)
  * netblocks as well. So we can't just add every single ip to a hash as that
@@ -9,7 +9,7 @@
  * we split it into /16's.
  */
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"

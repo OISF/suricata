@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* XXX replace this by a better algo */
+
 u_int8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
 
@@ -25,8 +27,7 @@ void BinSearchInit (void)
 #endif /* DEBUG */
 }
 
-/* Caseless binary search. More expensive that the one that
- * respects case.
+/* Binary search.
  *
  * Returns:
  *  - ptr to start of the match

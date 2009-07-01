@@ -1,6 +1,6 @@
 /* Packetpool queue handlers */
 
-#include "vips.h"
+#include "eidps.h"
 #include "packet-queue.h"
 #include "decode.h"
 #include "threads.h"

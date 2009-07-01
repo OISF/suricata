@@ -5,6 +5,7 @@
 
 #define UDP_HEADER_LEN         8
 
+/* XXX RAW* needs to be really 'raw', so no ntohs there */
 #define UDP_GET_RAW_LEN(udph)                ntohs((udph)->uh_len)
 #define UDP_GET_RAW_SRC_PORT(udph)           ntohs((udph)->uh_sport)
 #define UDP_GET_RAW_DST_PORT(udph)           ntohs((udph)->uh_dport)

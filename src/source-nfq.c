@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <sys/signal.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"

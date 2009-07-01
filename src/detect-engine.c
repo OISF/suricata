@@ -1,6 +1,6 @@
 /* Copyright (C) 2008 by Victor Julien <victor@inliniac.net> */
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"

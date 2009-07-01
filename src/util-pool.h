@@ -26,7 +26,9 @@ typedef struct _Pool {
 Pool* PoolInit(u_int32_t, u_int32_t, void *(*Alloc)(void *), void *, void (*Free)(void *));
 void PoolFree(Pool *);
 void PoolPrint(Pool *);
+
 void *PoolGet(Pool *);
+void PoolReturn(Pool *, void *);
 
 void PoolRegisterTests(void);
 

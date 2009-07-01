@@ -2,7 +2,7 @@
 
 #include <pcre.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "debug.h"
 
 #include "detect.h"

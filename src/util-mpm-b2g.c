@@ -20,7 +20,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "vips.h"
+#include "eidps.h"
 #include "detect.h"
 #include "util-bloomfilter.h"
 #include "util-mpm-b2g.h"

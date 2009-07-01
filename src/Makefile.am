@@ -1,5 +1,5 @@
-bin_PROGRAMS = vips
-vips_SOURCES = vips.c vips.h \
+bin_PROGRAMS = eidps
+eidps_SOURCES = eidps.c eidps.h \
 config.c config.h \
 packet-queue.c packet-queue.h \
 threads.c threads.h \
@@ -96,7 +96,7 @@ respond-reject-libnet11.h respond-reject-libnet11.c
 INCLUDES= $(all_includes)
 
 # the library search path.
-vips_LDFLAGS = $(all_libraries) 
-#vips_LDADD = -lnetfilter_queue -lpthread -lpcre 
-#vips_CFLAGS = -Wall -fno-strict-aliasing 
+eidps_LDFLAGS = $(all_libraries) 
+#eidps_LDADD = -lnetfilter_queue -lpthread -lpcre 
+#eidps_CFLAGS = -Wall -fno-strict-aliasing 
 

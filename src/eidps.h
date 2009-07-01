@@ -6,8 +6,8 @@
  *
  */
 
-#ifndef __VIPS_H__
-#define __VIPS_H__
+#ifndef __EIDPS_H__
+#define __EIDPS_H__
 
 #include "packet-queue.h"
 
@@ -48,5 +48,5 @@ u_int8_t g_u8_lowercasetable[256];
 //#define u8_tolower(c) ((c) >= 'A' && (c) <= 'Z') ? ((c) + ('a' - 'A')) : (c)
 
 
-#endif /* __VIPS_H__ */
+#endif /* __EIDPS_H__ */
 

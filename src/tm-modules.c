@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "vips.h"
+#include "eidps.h"
 #include "tm-modules.h"
 
 TmModule tmm_modules[TMM_SIZE];
