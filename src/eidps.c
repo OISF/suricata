@@ -811,7 +811,8 @@ int main(int argc, char **argv)
     MpmRegisterTests();
     FlowBitRegisterTests();
     SigRegisterTests();
-    //UtRunTests();
+    DecodePPPRegisterTests();
+    UtRunTests();
     UtCleanup();
     //exit(1);
 

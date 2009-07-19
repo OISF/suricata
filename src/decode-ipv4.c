@@ -77,18 +77,25 @@ void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQu
     inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), s, sizeof(s));
     inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), d, sizeof(d));
     printf("IPV4 %s->%s PROTO: %u OFFSET: %u RF: %u DF: %u MF: %u ID: %u\n", s,d,
-        IPV4_GET_IPPROTO(p), IPV4_GET_IPOFFSET(p), IPV4_GET_RF(p),
-        IPV4_GET_DF(p), IPV4_GET_MF(p), IPV4_GET_IPID(p));
+            IPV4_GET_IPPROTO(p), IPV4_GET_IPOFFSET(p), IPV4_GET_RF(p),
+            IPV4_GET_DF(p), IPV4_GET_MF(p), IPV4_GET_IPID(p));
 #endif /* DEBUG */
 
     /* check what next decoder to invoke */
     switch (IPV4_GET_IPPROTO(p)) {
+        case IPPROTO_IP:
+            /* check PPP VJ uncompressed packets and decode tcp dummy */
+            if(p->ppph != NULL && ntohs(p->ppph->protocol) == PPP_VJ_UCOMP)    {
+
+                return(DecodeTCP(t, p, pkt + IPV4_GET_HLEN(p), len -  IPV4_GET_HLEN(p)));
+            }
+            break;
         case IPPROTO_TCP:
             return(DecodeTCP(t, p, pkt + IPV4_GET_HLEN(p), len - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_UDP:
             //printf("DecodeIPV4: next layer is UDP\n");
-        	return(DecodeUDP(t, p, pkt + IPV4_GET_HLEN(p), len - IPV4_GET_HLEN(p)));
+            return(DecodeUDP(t, p, pkt + IPV4_GET_HLEN(p), len - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_ICMP:
             //printf("DecodeIPV4: next layer is ICMP\n");

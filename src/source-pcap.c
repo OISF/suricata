@@ -130,13 +130,20 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     int datalink = pcap_datalink(pcap_g.pcap_handle);
-    printf("TmModuleReceivePcapRegister: datalink %d\n", datalink);
-    if (datalink == LINKTYPE_LINUX_SLL)
-        pcap_g.Decoder = DecodeSll;
-    else if (datalink == LINKTYPE_ETHERNET)
-        pcap_g.Decoder = DecodeEthernet;
-    else {
-        printf("Error: datalink type %d not yet supported in module Pcap.\n", datalink);
+    printf("TmModuleReceivePcapFileRegister: datalink %d\n", datalink);
+    switch(datalink)    {
+        case LINKTYPE_LINUX_SLL:
+            pcap_g.Decoder = DecodeSll;
+            break;
+        case LINKTYPE_ETHERNET:
+            pcap_g.Decoder = DecodeEthernet;
+            break;
+        case LINKTYPE_PPP:
+            pcap_g.Decoder = DecodePPP;
+            break;
+        default:
+            printf("Error: datalink type %d not yet supported in module PcapFile.\n", datalink);
+            break;
     }
 
 

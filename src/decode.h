@@ -33,6 +33,7 @@
 #include "action-globals.h"
 
 #include "decode-ethernet.h"
+#include "decode-ppp.h"
 #include "decode-sll.h"
 #include "decode-ipv4.h"
 #include "decode-ipv6.h"
@@ -186,8 +187,8 @@ typedef struct _PktVar {
     u_int8_t *value;
     u_int16_t value_len;
     struct _PktVar *next; /* right now just implement this as a list,
-                            * in the long run we have thing of something
-                            * faster. */
+                           * in the long run we have thing of something
+                           * faster. */
 } PktVar;
 
 typedef struct _Packet
@@ -235,6 +236,7 @@ typedef struct _Packet
 
     /* header pointers */
     EthernetHdr *ethh;
+    PPPHdr *ppph;
 
     IPV4Hdr *ip4h;
     IPV4Vars ip4vars;
@@ -302,6 +304,7 @@ typedef struct _PacketQueue {
         CLEAR_TCP_PACKET((p)); \
     } \
     (p)->ethh = NULL; \
+    (p)->ppph = NULL; \
     (p)->ip4h = NULL; \
     (p)->ip6h = NULL; \
     (p)->action = 0; \
@@ -371,6 +374,7 @@ typedef struct _PacketQueue {
 /* decoder functions */
 void DecodeEthernet(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeSll(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
+void DecodePPP(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeTunnel(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeIPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeIPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
@@ -391,6 +395,7 @@ Packet *TunnelPktSetup(ThreadVars *, Packet *, u_int8_t *, u_int16_t, u_int8_t);
  * file? */
 #define LINKTYPE_ETHERNET   DLT_EN10MB
 #define LINKTYPE_LINUX_SLL  113
+#define LINKTYPE_PPP	9
 
 #endif /* __DECODE_H__ */
 
