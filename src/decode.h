@@ -56,6 +56,14 @@ typedef struct _Address
 #define addr_data16 address.address_un_data16
 #define addr_data8  address.address_un_data8
 
+#define COPY_ADDRESS(a,b) { \
+    (b)->family = (a)->family; \
+    (b)->addr_data32[0] = (a)->addr_data32[0]; \
+    (b)->addr_data32[1] = (a)->addr_data32[1]; \
+    (b)->addr_data32[2] = (a)->addr_data32[2]; \
+    (b)->addr_data32[3] = (a)->addr_data32[3]; \
+}
+
 /* Set the IPv4 addressesinto the Addrs of the Packet.
  * Make sure p->ip4h is initialized and validated.
  *
@@ -121,6 +129,7 @@ typedef struct _Address
 /* Port is just a u_int16_t */
 typedef u_int16_t Port;
 #define SET_PORT(v, p) ((p) = (v))
+#define COPY_PORT(a,b) (b) = (a)
 
 #define CMP_ADDR(a1,a2) \
     (((a1)->addr_data32[3] == (a2)->addr_data32[3] && \
