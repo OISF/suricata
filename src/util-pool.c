@@ -28,6 +28,7 @@ Pool *PoolInit(u_int32_t size, u_int32_t prealloc_size, void *(*Alloc)(void *), 
 
     memset(p,0,sizeof(Pool));
 
+    p->max_buckets = size;
     p->Alloc = Alloc;
     p->AllocData = AllocData;
     p->Free  = Free;
@@ -56,6 +57,7 @@ Pool *PoolInit(u_int32_t size, u_int32_t prealloc_size, void *(*Alloc)(void *), 
         p->empty_list_size--;
 
         pb->data = p->Alloc(p->AllocData);
+        p->allocated++;
 
         pb->next = p->alloc_list;
         p->alloc_list = pb;
@@ -97,17 +99,22 @@ void PoolPrint(Pool *p) {
 
 void *PoolGet(Pool *p) {
     PoolBucket *pb = p->alloc_list;
-    if (pb == NULL)
-        return NULL;
+    if (pb != NULL) {
+        /* pull from the alloc list */
+        p->alloc_list = pb->next;
+        p->alloc_list_size--;
 
-    /* pull from the alloc list */
-    p->alloc_list = pb->next;
-    p->alloc_list_size--;
-
-    /* put in the empty list */
-    pb->next = p->empty_list;
-    p->empty_list = pb;
-    p->empty_list_size++;
+        /* put in the empty list */
+        pb->next = p->empty_list;
+        p->empty_list = pb;
+        p->empty_list_size++;
+    } else {
+        if (p->allocated < p->max_buckets) {
+            return p->Alloc(p->AllocData);
+        } else {
+            return NULL;
+        }
+    }
 
     void *ptr = pb->data;
     pb->data = NULL;

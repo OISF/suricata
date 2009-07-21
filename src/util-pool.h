@@ -11,6 +11,9 @@ typedef struct _PoolBucket {
 
 /* pool structure */
 typedef struct _Pool {
+    u_int32_t max_buckets;
+    u_int32_t allocated;
+
     PoolBucket *alloc_list;
     u_int32_t alloc_list_size;
 
