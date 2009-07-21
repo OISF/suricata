@@ -35,6 +35,11 @@ enum {
     UDP_HLEN_TOO_SMALL,
     UDP_HLEN_INVALID,
 
+    /* SLL EVENTS */
+    SLL_PKT_TOO_SMALL,
+
+    /* ETHERNET EVENTS */
+    ETHERNET_PKT_TOO_SMALL,
 };
 
 #endif /* __DECODE_EVENTS_H__ */

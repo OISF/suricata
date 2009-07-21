@@ -2,11 +2,14 @@
 
 #include "decode.h"
 #include "decode-ethernet.h"
+#include "decode-events.h"
 
 void DecodeEthernet(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
 {
-    if (len < ETHERNET_HEADER_LEN)
+    if (len < ETHERNET_HEADER_LEN) {
+        DECODER_SET_EVENT(p,ETHERNET_PKT_TOO_SMALL);
         return;
+    }
 
     EthernetHdr *ethh = (EthernetHdr *)pkt;
     if (ethh == NULL)

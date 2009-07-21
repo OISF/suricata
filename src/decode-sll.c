@@ -2,11 +2,14 @@
 
 #include "decode.h"
 #include "decode-sll.h"
+#include "decode-events.h"
 
 void DecodeSll(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
 {
-    if (len < SLL_HEADER_LEN)
+    if (len < SLL_HEADER_LEN) {
+        DECODER_SET_EVENT(p,SLL_PKT_TOO_SMALL);
         return;
+    }
 
     SllHdr *sllh = (SllHdr *)pkt;
     if (sllh == NULL)
