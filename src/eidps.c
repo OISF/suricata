@@ -812,7 +812,7 @@ int main(int argc, char **argv)
     FlowBitRegisterTests();
     SigRegisterTests();
     DecodePPPRegisterTests();
-    UtRunTests();
+    //UtRunTests();
     UtCleanup();
     //exit(1);
 
