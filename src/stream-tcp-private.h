@@ -51,6 +51,7 @@ typedef struct _TcpSession {
     u_int8_t state;
     TcpStream server;
     TcpStream client;
+    void **l7data;
 } TcpSession;
 
 #endif /* __STREAM_TCP_PRIVATE_H__ */

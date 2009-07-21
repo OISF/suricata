@@ -774,6 +774,9 @@ int main(int argc, char **argv)
     SigParsePrepare();
     PatternMatchPrepare(mpm_ctx);
 
+    /* XXX we need an api for this */
+    L7AppDetectThreadInit();
+
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
     TmModuleDecodeNFQRegister();
@@ -862,6 +865,19 @@ int main(int argc, char **argv)
         exit(1);
     }
     TmThreadAppend(&tv_flowmgr);
+
+#include "l7-app-detect.h"
+    ThreadVars tv_l7appdetect;
+    memset(&tv_l7appdetect, 0, sizeof(ThreadVars));
+    printf("Creating L7 Application layer detect thread (WIP)...\n");
+    tv_flowmgr.name = "L7AppDetectThread";
+
+    rc = pthread_create(&tv_l7appdetect.t, &attr, L7AppDetectThread, (void *)&tv_l7appdetect);
+    if (rc) {
+        printf("ERROR; return code from pthread_create() is %d\n", rc);
+        exit(1);
+    }
+    TmThreadAppend(&tv_l7appdetect);
 
     while(1) {
         if (sigflags) {

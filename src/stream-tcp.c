@@ -26,6 +26,8 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 
+#include "stream.h"
+
 int StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *);
 int StreamTcpThreadInit(ThreadVars *, void *, void **);
 int StreamTcpThreadDeinit(ThreadVars *, void *);

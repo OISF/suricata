@@ -863,6 +863,9 @@ void TmThreadKillThreads(void) {
         t->flags |= THV_KILL;
         printf("TmThreadKillThreads: told thread %s to stop\n", t->name);
 
+        /* XXX hack */
+        StreamMsgSignalQueueHack();
+
         if (t->inq != NULL) {
             int i;
 
