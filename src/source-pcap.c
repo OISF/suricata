@@ -1,11 +1,5 @@
 /* Copyright (c) 2009 Victor Julien <victor@inliniac.net> */
 
-/* TODO
- *
- *
- *
- */
-
 #include <pthread.h>
 #include <sys/signal.h>
 
@@ -24,7 +18,6 @@
 #include "tm-modules.h"
 #include "source-pcap.h"
 
-
 typedef struct PcapThreadVars_
 {
     /* thread specific handle */
@@ -40,7 +33,6 @@ typedef struct PcapThreadVars_
 
     ThreadVars *tv;
 } PcapThreadVars;
-
 
 int ReceivePcap(ThreadVars *, Packet *, void *, PacketQueue *);
 int ReceivePcapThreadInit(ThreadVars *, void *, void **);
@@ -210,6 +202,7 @@ int ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
 }
 
 int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
+
     /* call the decoder */
     switch(p->pcap_v.datalink)    {
         case LINKTYPE_LINUX_SLL:
@@ -222,9 +215,10 @@ int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
             DecodePPP(t,p,p->pkt,p->pktlen,pq);
             break;
         default:
-            printf("Error: datalink type %d not yet supported in module PcapFile.\n", p->pcap_v.datalink);
+            printf("Error: datalink type %d not yet supported in module DecodePcap.\n", p->pcap_v.datalink);
             break;
     }
+
     return 0;
 }
 

@@ -11,6 +11,7 @@ void TmModuleDecodePcapRegister (void);
 #define LIBPCAP_COPYWAIT    500
 #define LIBPCAP_PROMISC     1
 
+/* per packet Pcap vars */
 typedef struct _PcapPacketVars
 {
     int datalink; /* datalink from libpcap */
