@@ -16,6 +16,9 @@
 /* Define to 1 if you have the `nfnetlink' library (-lnfnetlink). */
 #undef HAVE_LIBNFNETLINK
 
+/* Define to 1 if you have the `pcap' library (-lpcap). */
+#undef HAVE_LIBPCAP
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
@@ -39,6 +42,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Major Version of Libpcap */
+#undef LIBPCAP_VERSION_MAJOR
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */

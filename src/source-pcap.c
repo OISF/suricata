@@ -103,6 +103,7 @@ int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
     return 0;
 }
+
 #if LIBPCAP_VERSION_MAJOR == 1
 int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (initdata == NULL) {
@@ -128,24 +129,23 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         exit(1);
     }
     
-    /* Snaplen, Promisc, and Timeout should be the same regardles of version
-     * Must be called before pcap_activate */
+    /* set Snaplen, Promisc, and Timeout. Must be called before pcap_activate */
     int pcap_set_snaplen_r = pcap_set_snaplen(pcap_g.pcap_handle,LIBPCAP_SNAPLEN);
-    printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %d\n", pcap_g.pcap_handle, pcap_set_snaplen_r);
+    //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %d\n", pcap_g.pcap_handle, pcap_set_snaplen_r);
     if (r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(pcap_g.pcap_handle));
         exit(1)
     }
 
     int pcap_set_promisc_r = pcap_set_promisc(pcap_g.pcap_handle,LIBPCAP_PROMISC);
-    printf("ReceivePcapThreadInit: pcap_set_promisc(%p) returned %d\n", pcap_g.pcap_handle, pcap_set_promisc_r);
+    //printf("ReceivePcapThreadInit: pcap_set_promisc(%p) returned %d\n", pcap_g.pcap_handle, pcap_set_promisc_r);
     if (r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(pcap_g.pcap_handle));
         exit(1);
     }
 
     int pcap_set_timeout_r = pcap_set_timeout(pcap_g.pcap_handle,LIBPCAP_COPYWAIT);
-    printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %d\n", pcap_g.pcap_handle, pcap_set_timeout_r);
+    //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %d\n", pcap_g.pcap_handle, pcap_set_timeout_r);
     if (r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(pcap_g.pcap_handle));
         exit(1);
@@ -153,14 +153,14 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
  
     /* activate the handle */
     int pcap_activate_r = pcap_activate(pcap_g.pcap_handle);
-    printf("ReceivePcapThreadInit: pcap_activate(%p) returned %d\n", pcap_g.pcap_handle, pcap_activate_r);
+    //printf("ReceivePcapThreadInit: pcap_activate(%p) returned %d\n", pcap_g.pcap_handle, pcap_activate_r);
     if (r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(pcap_g.pcap_handle));
         exit(1);
     }
 
     int datalink = pcap_datalink(pcap_g.pcap_handle);
-    printf("TmModuleReceivePcapFileRegister: datalink %d\n", datalink);
+    //printf("TmModuleReceivePcapFileRegister: datalink %d\n", datalink);
     switch(datalink)    {
         case LINKTYPE_LINUX_SLL:
             pcap_g.Decoder = DecodeSll;
@@ -180,7 +180,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     *data = (void *)ptv;
     return 0;
 }
-#else
+#else /* implied LIBPCAP_VERSION_MAJOR == 0 */
 int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (initdata == NULL) {
         printf("ReceivePcapThreadInit error: initdata == NULL\n");
@@ -226,7 +226,8 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     *data = (void *)ptv;
     return 0;
 }
-#endif
+#endif /* LIBPCAP_VERSION_MAJOR */
+
 void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 

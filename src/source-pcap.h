@@ -7,9 +7,9 @@ void TmModuleReceivePcapRegister (void);
 void TmModuleDecodePcapRegister (void);
 
 /* XXX replace with user configurable options */
-#define LIBPCAP_SNAPLEN 1518
-#define LIBPCAP_COPYWAIT 500
-#define LIBPCAP_PROMISC 1
+#define LIBPCAP_SNAPLEN     1518
+#define LIBPCAP_COPYWAIT    500
+#define LIBPCAP_PROMISC     1
 
 #endif /* __SOURCE_PCAP_H__ */
 
