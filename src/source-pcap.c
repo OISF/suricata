@@ -197,10 +197,9 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     printf("ReceivePcapThreadInit: using interface %s\n", (char *)initdata);
 
-    /* XXX create a general pcap setup function */
-    char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_g.pcap_handle = pcap_open_live((char *)initdata, LIBPCAP_SNAPLEN, LIBPCAP_PROMISC, LIBPCAP_COPYWAIT, errbuf);
-    /* Cannot use pcap_geterror with pcap_open_live have to use errbuf */
+    char errbuf[PCAP_ERRBUF_SIZE] = "";
+    pcap_g.pcap_handle = pcap_open_live((char *)initdata, LIBPCAP_SNAPLEN,
+                                        LIBPCAP_PROMISC, LIBPCAP_COPYWAIT, errbuf);
     if (pcap_g.pcap_handle == NULL) {
         printf("error %s\n", errbuf);
         exit(1);
@@ -222,7 +221,6 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
             printf("Error: datalink type %d not yet supported in module PcapFile.\n", datalink);
             break;
     }
-
 
     *data = (void *)ptv;
     return 0;

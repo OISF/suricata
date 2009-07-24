@@ -98,28 +98,9 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 int ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
-    //printf("ReceivePcap: tv %p\n", tv);
     int r = pcap_dispatch(pcap_g.pcap_handle, 1, (pcap_handler)PcapFileCallback, (u_char *)ptv);
     if (r <= 0) {
         printf("ReceivePcap: code %d error %s\n", r, pcap_geterr(pcap_g.pcap_handle));
-#if 0
-        /* Stop the engine so it quits after processing the pcap file
-         * but first make sure all packets are processed by all other
-         * threads. */
-        char done = 0;
-        do {
-            mutex_lock(&mutex_pending);
-            if (pending == 0)
-                done = 1;
-            mutex_unlock(&mutex_pending);
-
-            if (done == 0) {
-                usleep(100);
-            }
-        } while (done == 0);
-
-        printf("ReceivePcapFile: all packets processed by threads, stopping engine\n");
-#endif
         EngineStop();
         return 1;
     }
@@ -139,10 +120,8 @@ int ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
     memset(ptv, 0, sizeof(PcapFileThreadVars));
 
-    /* XXX create a general pcap setup function */
-    char errbuf[PCAP_ERRBUF_SIZE];
+    char errbuf[PCAP_ERRBUF_SIZE] = "";
     pcap_g.pcap_handle = pcap_open_offline((char *)initdata, errbuf);
-    /* Cannot use pcap_geterror with pcap_open_offline have to use errbuf */
     if (pcap_g.pcap_handle == NULL) {
         printf("error %s\n", errbuf);
         exit(1);
