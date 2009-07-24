@@ -8,7 +8,12 @@
 
 #include <pthread.h>
 #include <sys/signal.h>
+
+#if LIBPCAP_VERSION_MAJOR == 1
 #include <pcap/pcap.h>
+#else
+#include <pcap.h>
+#endif
 
 #include "eidps.h"
 #include "decode.h"

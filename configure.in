@@ -137,7 +137,26 @@ AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
     fi
 
 # libpcap
-CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags`"
+LIBPCAP=""
+AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no")
+if test "$LIBPCAP" = "no"; then
+    echo
+    echo "   ERROR!  lipcap library not found, go get it"
+    echo "   from http://www.tcpdump.org."
+    echo
+    exit 1
+fi
+
+# pcap_activate and pcap_create only exists in libpcap >= 1.0
+LIBPCAPVTEST=""
+AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
+    if test "$LPCAPVTEST" != "no"; then
+        AC_DEFINE(LIBPCAP_VERSION_MAJOR,[1],[Major Version of Libpcap])
+        CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags`"
+    else
+        AC_DEFINE(LIBPCAP_VERSION_MAJOR,[0],[Major Version of Libpcap])
+    fi
+
 LIBS="${LIBS} -lpcap"
 
 AC_SUBST(CFLAGS)
