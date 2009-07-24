@@ -9,6 +9,7 @@
 #include "util-pool.h"
 
 static StreamMsgQueue stream_q;
+/* per queue setting */
 static u_int16_t toserver_min_init_chunk_len = 0;
 static u_int16_t toserver_min_chunk_len = 0;
 static u_int16_t toclient_min_init_chunk_len = 0;
@@ -144,8 +145,12 @@ void StreamMsgSignalQueueHack(void) {
     pthread_cond_signal(&stream_q.cond_q);
 }
 
-void StreamMsgQueueSetMinInitChunkLen(u_int8_t dir, u_int16_t len) {
-    
+void StreamMsgQueueSetMinInitChunkLen(StreamMsgQueue *q, u_int8_t dir, u_int16_t len) {
+    if (dir == FLOW_PKT_TOSERVER) {
+        toserver_min_init_chunk_len = len;
+    } else {
+        toclient_min_init_chunk_len = len;
+    }
 }
 
 u_int16_t StreamMsgQueueGetMinInitChunkLen(u_int8_t dir) {
@@ -154,7 +159,6 @@ u_int16_t StreamMsgQueueGetMinInitChunkLen(u_int8_t dir) {
     } else {
         return toclient_min_init_chunk_len;
     }
-
 }
 
 u_int16_t StreamMsgQueueGetMinChunkLen(u_int8_t dir) {
@@ -163,5 +167,18 @@ u_int16_t StreamMsgQueueGetMinChunkLen(u_int8_t dir) {
     } else {
         return toclient_min_chunk_len;
     }
+}
+
+/* StreamL7RegisterModule
+ */
+static u_int8_t l7_module_id = 0;
+u_int8_t StreamL7RegisterModule(void) {
+    u_int8_t id = l7_module_id;
+    l7_module_id++;
+    return id;
+}
+
+u_int8_t StreamL7GetStorageSize(void) {
+    return l7_module_id;
 }
 

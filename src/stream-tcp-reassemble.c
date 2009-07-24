@@ -290,7 +290,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
     u_int16_t payload_len = 0;
     TcpSegment *seg = stream->seg_list;
 
-    /* check if we have enough data to send to l7 */
+    /* check if we have enough data to send to L7 */
     if (p->flowflags & FLOW_PKT_TOSERVER) {
         if (stream->ra_base_seq == stream->isn) {
             if (StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER) >
@@ -313,6 +313,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
         }
     }
 
+    /* loop through the segments and fill one or more msgs */
     for ( ; seg != NULL && SEQ_LT(seg->seq,stream->last_ack); ) {
         printf("StreamTcpReassembleHandleSegmentUpdateACK: seg %p\n", seg);
 
@@ -342,14 +343,14 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
 
                 if (SEQ_LT(stream->last_ack,(seg->seq + seg->payload_len))) {
                     payload_len = ((seg->seq + seg->payload_len) - stream->last_ack) - payload_offset;
-                    printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
-                            "before ra_base, ends beyond last_ack, payload_offset %u, "
-                            "payload_len %u\n", payload_offset, payload_len);
+                    //printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
+                    //        "before ra_base, ends beyond last_ack, payload_offset %u, "
+                    //        "payload_len %u\n", payload_offset, payload_len);
                 } else {
                     payload_len = seg->payload_len - payload_offset;
-                    printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
-                           "before ra_base, ends normal, payload_offset %u, "
-                           "payload_len %u\n", payload_offset, payload_len);
+                    //printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
+                    //       "before ra_base, ends normal, payload_offset %u, "
+                    //       "payload_len %u\n", payload_offset, payload_len);
                 }
             /* handle segments after ra_base_seq */
             } else {
@@ -357,14 +358,14 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
 
                 if (SEQ_LT(stream->last_ack,(seg->seq + seg->payload_len))) {
                     payload_len = stream->last_ack - seg->seq;
-                    printf("StreamTcpReassembleHandleSegmentUpdateACK: start "
-                           "fine, ends beyond last_ack, payload_offset %u, "
-                           "payload_len %u\n", payload_offset, payload_len);
+                    //printf("StreamTcpReassembleHandleSegmentUpdateACK: start "
+                    //       "fine, ends beyond last_ack, payload_offset %u, "
+                    //       "payload_len %u\n", payload_offset, payload_len);
                 } else {
                     payload_len = seg->payload_len;
-                    printf("StreamTcpReassembleHandleSegmentUpdateACK: normal "
-                           "(smsg_offset %u), payload_offset %u, payload_len %u\n",
-                            smsg_offset, payload_offset, payload_len);
+                    //printf("StreamTcpReassembleHandleSegmentUpdateACK: normal "
+                    //       "(smsg_offset %u), payload_offset %u, payload_len %u\n",
+                    //        smsg_offset, payload_offset, payload_len);
                 }
             }
 
@@ -372,8 +373,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
-            printf("StreamTcpReassembleHandleSegmentUpdateACK: normal -- "
-                   "copy_size %u (payload %u)\n", copy_size, payload_len);
+            printf("StreamTcpReassembleHandleSegmentUpdateACK: copy_size %u "
+                "(payload %u)\n", copy_size, payload_len);
 
             memcpy(smsg->data.data + smsg_offset, seg->payload + payload_offset, copy_size);
 

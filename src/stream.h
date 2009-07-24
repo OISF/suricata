@@ -57,5 +57,12 @@ void StreamMsgPutInQueue(StreamMsg *);
 
 StreamMsgQueue *StreamMsgQueueGetByPort(u_int16_t);
 
+void StreamMsgQueueSetMinInitChunkLen(StreamMsgQueue *q, u_int8_t, u_int16_t);
+u_int16_t StreamMsgQueueGetMinInitChunkLen(u_int8_t);
+u_int16_t StreamMsgQueueGetMinChunkLen(u_int8_t);
+
+u_int8_t StreamL7RegisterModule(void);
+u_int8_t StreamL7GetStorageSize(void);
+
 #endif /* __STREAM_H__ */
 
