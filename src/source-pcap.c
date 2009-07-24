@@ -24,9 +24,6 @@
 #include "tm-modules.h"
 #include "source-pcap.h"
 
-typedef struct PcapGlobalVars_ {
-    void (*Decoder)(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
-} PcapGlobalVars;
 
 typedef struct PcapThreadVars_
 {
@@ -44,7 +41,6 @@ typedef struct PcapThreadVars_
     ThreadVars *tv;
 } PcapThreadVars;
 
-static PcapGlobalVars pcap_g = { NULL, };
 
 int ReceivePcap(ThreadVars *, Packet *, void *, PacketQueue *);
 int ReceivePcapThreadInit(ThreadVars *, void *, void **);
@@ -85,6 +81,7 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     Packet *p = tv->tmqh_in(tv);
     p->ts.tv_sec = h->ts.tv_sec;
     p->ts.tv_usec = h->ts.tv_usec;
+
     ptv->pkts++;
     ptv->bytes += h->caplen;
 
