@@ -151,10 +151,9 @@ fi
 LIBPCAPVTEST=""
 AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
     if test "$LPCAPVTEST" != "no"; then
-        AC_DEFINE(LIBPCAP_VERSION_MAJOR,[1],[Major Version of Libpcap])
-        CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags`"
+        CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
     else
-        AC_DEFINE(LIBPCAP_VERSION_MAJOR,[0],[Major Version of Libpcap])
+        CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=0"
     fi
 
 LIBS="${LIBS} -lpcap"

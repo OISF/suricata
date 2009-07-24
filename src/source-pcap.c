@@ -132,21 +132,21 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     /* set Snaplen, Promisc, and Timeout. Must be called before pcap_activate */
     int pcap_set_snaplen_r = pcap_set_snaplen(pcap_g.pcap_handle,LIBPCAP_SNAPLEN);
     //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %d\n", pcap_g.pcap_handle, pcap_set_snaplen_r);
-    if (r != 0) {
+    if (pcap_set_snaplen_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(pcap_g.pcap_handle));
-        exit(1)
+        exit(1);
     }
 
     int pcap_set_promisc_r = pcap_set_promisc(pcap_g.pcap_handle,LIBPCAP_PROMISC);
     //printf("ReceivePcapThreadInit: pcap_set_promisc(%p) returned %d\n", pcap_g.pcap_handle, pcap_set_promisc_r);
-    if (r != 0) {
+    if (pcap_set_promisc_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(pcap_g.pcap_handle));
         exit(1);
     }
 
     int pcap_set_timeout_r = pcap_set_timeout(pcap_g.pcap_handle,LIBPCAP_COPYWAIT);
     //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %d\n", pcap_g.pcap_handle, pcap_set_timeout_r);
-    if (r != 0) {
+    if (pcap_set_timeout_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(pcap_g.pcap_handle));
         exit(1);
     }
@@ -154,7 +154,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     /* activate the handle */
     int pcap_activate_r = pcap_activate(pcap_g.pcap_handle);
     //printf("ReceivePcapThreadInit: pcap_activate(%p) returned %d\n", pcap_g.pcap_handle, pcap_activate_r);
-    if (r != 0) {
+    if (pcap_activate_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(pcap_g.pcap_handle));
         exit(1);
     }
@@ -200,8 +200,9 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     /* XXX create a general pcap setup function */
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_g.pcap_handle = pcap_open_live((char *)initdata, LIBPCAP_SNAPLEN, LIBPCAP_PROMISC, LIBPCAP_COPYWAIT, errbuf);
+    /* Cannot use pcap_geterror with pcap_open_live have to use errbuf */
     if (pcap_g.pcap_handle == NULL) {
-        printf("error %s\n", pcap_geterr(pcap_g.pcap_handle));
+        printf("error %s\n", errbuf);
         exit(1);
     }
 

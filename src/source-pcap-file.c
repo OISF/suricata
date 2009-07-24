@@ -142,8 +142,9 @@ int ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     /* XXX create a general pcap setup function */
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_g.pcap_handle = pcap_open_offline((char *)initdata, errbuf);
+    /* Cannot use pcap_geterror with pcap_open_offline have to use errbuf */
     if (pcap_g.pcap_handle == NULL) {
-        printf("error %s\n", pcap_geterr(pcap_g.pcap_handle));
+        printf("error %s\n", errbuf);
         exit(1);
     }
 
