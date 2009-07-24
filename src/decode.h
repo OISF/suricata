@@ -30,6 +30,7 @@
 #include "source-nfq.h"
 #endif /* NFQ */
 
+#include "source-pcap.h" 
 #include "action-globals.h"
 
 #include "decode-ethernet.h"
@@ -222,6 +223,9 @@ typedef struct _Packet
 #ifdef NFQ
     NFQPacketVars nfq_v;
 #endif /* NFQ */
+
+    /* libpcap vars */
+    PcapPacketVars pcap_v;
 
     /* storage */
     u_int8_t pkt[65536];
