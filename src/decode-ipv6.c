@@ -347,6 +347,11 @@ static int DecodeIPV6Packet (ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t 
         return -1;
     }
 
+    if (len < (IPV6_HEADER_LEN + IPV6_GET_PLEN(p)))
+    {
+        return -1;
+    }
+
     SET_IPV6_SRC_ADDR(p,&p->src);
     SET_IPV6_DST_ADDR(p,&p->dst);
 
@@ -377,13 +382,13 @@ void DecodeIPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
     /* now process the Ext headers and/or the L4 Layer */
     switch(IPV6_GET_NH(p)) {
         case IPPROTO_TCP:
-            return(DecodeTCP(t, p, pkt + IPV6_HEADER_LEN, len - IPV6_HEADER_LEN));
+            return(DecodeTCP(t, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p)));
             break;
         case IPPROTO_UDP:
-            return(DecodeUDP(t, p, pkt + IPV6_HEADER_LEN, len - IPV6_HEADER_LEN));
+            return(DecodeUDP(t, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p)));
             break;
         case IPPROTO_ICMPV6:
-            return(DecodeICMPV6(t, p, pkt + IPV6_HEADER_LEN, len - IPV6_HEADER_LEN));
+            return(DecodeICMPV6(t, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p)));
             break;
         case IPPROTO_FRAGMENT:
         case IPPROTO_HOPOPTS:
@@ -392,7 +397,7 @@ void DecodeIPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
         case IPPROTO_DSTOPTS:
         case IPPROTO_AH:
         case IPPROTO_ESP:
-            DecodeIPV6ExtHdrs(t, p, pkt + IPV6_HEADER_LEN, len - IPV6_HEADER_LEN);
+            DecodeIPV6ExtHdrs(t, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
             break;
     }
 

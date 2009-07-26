@@ -69,11 +69,11 @@ typedef struct _IPV4Hdr
 #define IPV4_GET_IPTOS(p) \
      IPV4_GET_RAW_IPTOS(p)
 #define IPV4_GET_IPLEN(p) \
-    (p)->ip4c.flags & IPV4_CACHE_IPLEN ? \
-    (p)->ip4c.ip_len : ((p)->ip4c.flags |= IPV4_CACHE_IPLEN, (p)->ip4c.ip_len = ntohs(IPV4_GET_RAW_IPLEN((p)->ip4h)))
+    ((p)->ip4c.flags & IPV4_CACHE_IPLEN ? \
+    (p)->ip4c.ip_len : ((p)->ip4c.flags |= IPV4_CACHE_IPLEN, (p)->ip4c.ip_len = ntohs(IPV4_GET_RAW_IPLEN((p)->ip4h))))
 #define IPV4_GET_IPID(p) \
-    (p)->ip4c.flags & IPV4_CACHE_IPID ? \
-    (p)->ip4c.ip_id : ((p)->ip4c.flags |= IPV4_CACHE_IPID, (p)->ip4c.ip_id = ntohs(IPV4_GET_RAW_IPID((p)->ip4h)))
+    ((p)->ip4c.flags & IPV4_CACHE_IPID ? \
+    (p)->ip4c.ip_id : ((p)->ip4c.flags |= IPV4_CACHE_IPID, (p)->ip4c.ip_id = ntohs(IPV4_GET_RAW_IPID((p)->ip4h))))
 /* _IPV4_GET_IPOFFSET: get the content of the offset header field in host order */
 #define _IPV4_GET_IPOFFSET(p) \
     ((p)->ip4c.flags & IPV4_CACHE__IPOFF ? \
@@ -97,8 +97,8 @@ typedef struct _IPV4Hdr
 #define IPV4_GET_IPTTL(p) \
      IPV4_GET_RAW_IPTTL(p)
 #define IPV4_GET_IPPROTO(p) \
-    (p)->ip4c.flags & IPV4_CACHE_IPPROTO ? \
-    (p)->ip4c.ip_proto : ((p)->ip4c.flags |= IPV4_CACHE_IPPROTO, (p)->ip4c.ip_proto = IPV4_GET_RAW_IPPROTO((p)->ip4h))
+    ((p)->ip4c.flags & IPV4_CACHE_IPPROTO ? \
+    (p)->ip4c.ip_proto : ((p)->ip4c.flags |= IPV4_CACHE_IPPROTO, (p)->ip4c.ip_proto = IPV4_GET_RAW_IPPROTO((p)->ip4h)))
 
 #define IPV4_CACHE_VER                    0x0001 /* 1 */
 #define IPV4_CACHE_HLEN                   0x0002 /* 2 */

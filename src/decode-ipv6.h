@@ -62,18 +62,18 @@ typedef struct _IPV6Hdr
     ((p)->ip6c.flags & IPV6_CACHE_CLASS ? \
     (p)->ip6c.cl : ((p)->ip6c.flags |= IPV6_CACHE_CLASS, (p)->ip6c.cl = IPV6_GET_RAW_CLASS((p)->ip6h)))
 #define IPV6_GET_FLOW(p) \
-    (p)->ip6c.flags & IPV6_CACHE_FLOW ? \
-    (p)->ip6c.flow : ((p)->ip6c.flags |= IPV6_CACHE_FLOW, (p)->ip6c.flow = IPV6_GET_RAW_FLOW((p)->ip6h))
+    ((p)->ip6c.flags & IPV6_CACHE_FLOW ? \
+    (p)->ip6c.flow : ((p)->ip6c.flags |= IPV6_CACHE_FLOW, (p)->ip6c.flow = IPV6_GET_RAW_FLOW((p)->ip6h)))
 #define IPV6_GET_NH(p) \
-    IPV6_GET_RAW_NH((p)->ip6h)
+    (IPV6_GET_RAW_NH((p)->ip6h))
 #define IPV6_GET_PLEN(p) \
-    (p)->ip6c.flags & IPV6_CACHE_PLEN ? \
-    (p)->ip6c.plen : ((p)->ip6c.flags |= IPV6_CACHE_PLEN, (p)->ip6c.plen = IPV6_GET_RAW_PLEN((p)->ip6h))
+    ((p)->ip6c.flags & IPV6_CACHE_PLEN ? \
+    (p)->ip6c.plen : ((p)->ip6c.flags |= IPV6_CACHE_PLEN, (p)->ip6c.plen = IPV6_GET_RAW_PLEN((p)->ip6h)))
 #define IPV6_GET_HLIM(p) \
-    IPV6_GET_RAW_HLIM((p)->ip6h)
+    (IPV6_GET_RAW_HLIM((p)->ip6h))
 /* XXX */
 #define IPV6_GET_L4PROTO(p) \
-    (p)->ip6vars.l4proto
+    ((p)->ip6vars.l4proto)
 
 #define IPV6_CACHE_VER                    0x0001 /* 1 */
 #define IPV6_CACHE_CLASS                  0x0002 /* 2 */
