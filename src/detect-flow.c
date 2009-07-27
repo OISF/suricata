@@ -57,17 +57,22 @@ error:
 
 int DetectFlowMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
 {
-    int ret = 0;
-
+    u_int8_t cnt = 0;
     DetectFlowData *fd = (DetectFlowData *)m->ctx;
 
     if (fd->flags & FLOW_PKT_TOSERVER && p->flowflags & FLOW_PKT_TOSERVER) {
-        ret = 1;
-    }
-    else if (fd->flags & FLOW_PKT_TOCLIENT && p->flowflags & FLOW_PKT_TOCLIENT) {
-        ret = 1;
+        cnt++;
+    } else if (fd->flags & FLOW_PKT_TOCLIENT && p->flowflags & FLOW_PKT_TOCLIENT) {
+        cnt++;
     }
 
+    if (fd->flags & FLOW_PKT_ESTABLISHED && p->flowflags & FLOW_PKT_ESTABLISHED) {
+        cnt++;
+    } else if (!(fd->flags & FLOW_PKT_ESTABLISHED) && p->flowflags & FLOW_PKT_STATELESS) {
+        cnt++;
+    }
+
+    int ret = (fd->match_cnt == cnt) ? 1 : 0;
     //printf("DetectFlowMatch: returning %d\n", ret);
     return ret;
 }
@@ -127,6 +132,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *f
         if (strcmp(state,"to_server") == 0) fd->flags |= FLOW_PKT_TOSERVER;
         if (strcmp(state,"from_server") == 0) fd->flags |= FLOW_PKT_TOCLIENT;
         if (strcmp(state,"from_client") == 0) fd->flags |= FLOW_PKT_TOSERVER;
+        fd->match_cnt = 1;
     }
     if (dir) {
         if (strcmp(dir,"established") == 0) fd->flags |= FLOW_PKT_ESTABLISHED;
@@ -135,6 +141,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *f
         if (strcmp(dir,"to_server") == 0) fd->flags |= FLOW_PKT_TOSERVER;
         if (strcmp(dir,"from_server") == 0) fd->flags |= FLOW_PKT_TOCLIENT;
         if (strcmp(dir,"from_client") == 0) fd->flags |= FLOW_PKT_TOSERVER;
+        fd->match_cnt = 2;
     }
     if (stream) {
         if (strcmp(stream,"established") == 0) fd->flags |= FLOW_PKT_ESTABLISHED;
@@ -143,6 +150,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *f
         if (strcmp(stream,"to_server") == 0) fd->flags |= FLOW_PKT_TOSERVER;
         if (strcmp(stream,"from_server") == 0) fd->flags |= FLOW_PKT_TOCLIENT;
         if (strcmp(stream,"from_client") == 0) fd->flags |= FLOW_PKT_TOSERVER;
+        fd->match_cnt = 3;
     }
 
     /* Okay so far so good, lets get this into a SigMatch

@@ -233,6 +233,10 @@ void FlowHandlePacket (ThreadVars *th_v, Packet *p)
     }
     f->bytecnt += p->pktlen;
 
+    if (f->flags & FLOW_TO_DST_SEEN && f->flags & FLOW_TO_SRC_SEEN) {
+        p->flowflags |= FLOW_PKT_ESTABLISHED;
+    }
+
     /* update queue positions */
     FlowUpdateQueue(f);
 
