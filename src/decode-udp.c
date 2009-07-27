@@ -43,7 +43,7 @@ void DecodeUDP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
 
 #ifdef DEBUG
     printf("UDP sp: %u -> dp: %u - HLEN: %u LEN: %u TEST: %u\n",
-        UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->tcp_payload_len);
+        UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
 #endif
 
     /* Flow is an integral part of us */
