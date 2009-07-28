@@ -12,7 +12,7 @@ void TmModuleDecodePcapRegister (void);
 #define LIBPCAP_PROMISC     1
 
 /* per packet Pcap vars */
-typedef struct _PcapPacketVars
+typedef struct PcapPacketVars_
 {
     int datalink; /* datalink from libpcap */
 } PcapPacketVars;

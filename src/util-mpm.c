@@ -8,7 +8,6 @@
 #include "util-mpm.h"
 
 /* include pattern matchers */
-#include "util-mpm-trie.h"
 #include "util-mpm-wumanber.h"
 #include "util-mpm-b2g.h"
 #include "util-mpm-b3g.h"
@@ -226,7 +225,6 @@ void MpmInitCtx (MpmCtx *mpm_ctx, u_int16_t matcher) {
 void MpmTableSetup(void) {
     memset(mpm_table, 0, sizeof(mpm_table));
 
-    //MpmTrieRegister();
     MpmWuManberRegister();
     MpmB2gRegister();
     MpmB3gRegister();

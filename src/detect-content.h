@@ -10,7 +10,7 @@
 
 #define DETECT_CONTENT_RAWBYTES      0x20
 
-typedef struct _DetectContentData {
+typedef struct DetectContentData_ {
     u_int8_t *content;
     u_int8_t content_len;
     u_int32_t id;

@@ -44,7 +44,7 @@
 #include "decode-udp.h"
 
 /* Address */
-typedef struct _Address
+typedef struct Address_
 {
     char family;
     union {
@@ -152,7 +152,7 @@ typedef u_int16_t Port;
 
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
-typedef struct _PacketAlert {
+typedef struct PacketAlert_ {
     u_int8_t  gid;
     u_int32_t sid;
     u_int8_t  rev;
@@ -163,7 +163,7 @@ typedef struct _PacketAlert {
 
 #define PACKET_ALERT_MAX 256
 
-typedef struct _PacketAlerts {
+typedef struct PacketAlerts_ {
     u_int16_t cnt;
     PacketAlert alerts[PACKET_ALERT_MAX];
 } PacketAlerts;
@@ -171,7 +171,7 @@ typedef struct _PacketAlerts {
 #define HTTP_URI_MAXCNT 8
 #define HTTP_URI_MAXLEN 1024
 
-typedef struct _HttpUri {
+typedef struct HttpUri_ {
     /* the raw uri for the packet as set by pcre */
     u_int8_t *raw[HTTP_URI_MAXCNT];
     u_int16_t raw_size[HTTP_URI_MAXCNT];
@@ -183,16 +183,16 @@ typedef struct _HttpUri {
     u_int8_t cnt;
 } HttpUri;
 
-typedef struct _PktVar {
+typedef struct PktVar_ {
     char *name;
     u_int8_t *value;
     u_int16_t value_len;
-    struct _PktVar *next; /* right now just implement this as a list,
+    struct PktVar_ *next; /* right now just implement this as a list,
                            * in the long run we have thing of something
                            * faster. */
 } PktVar;
 
-typedef struct _Packet
+typedef struct Packet_
 {
     /* Addresses, Ports and protocol
      * these are on top so we can use
@@ -232,7 +232,7 @@ typedef struct _Packet
     u_int16_t pktlen;
 
     /* flow */
-    struct _Flow *flow;
+    struct Flow_ *flow;
     u_int8_t flowflags;
 
     /* pkt vars */
@@ -276,11 +276,11 @@ typedef struct _Packet
     int action;
 
     /* double linked list ptrs */
-    struct _Packet *next;
-    struct _Packet *prev;
+    struct Packet_ *next;
+    struct Packet_ *prev;
 
     /* tunnel/encapsulation handling */
-    struct _Packet *root; /* in case of tunnel this is a ptr
+    struct Packet_ *root; /* in case of tunnel this is a ptr
                            * to the 'real' packet, the one we
                            * need to set the verdict on --
                            * It should always point to the lowest
@@ -288,7 +288,7 @@ typedef struct _Packet
 
 } Packet;
 
-typedef struct _PacketQueue {
+typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;
     u_int16_t len;

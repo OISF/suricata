@@ -13,7 +13,7 @@
 
 #define MSG_DATA_SIZE       512
 
-typedef struct _StreamMsg {
+typedef struct StreamMsg_ {
     u_int32_t id; /* unique stream id */
     u_int8_t flags; /* msg flags */
     Flow *flow; /* parent flow */
@@ -32,11 +32,11 @@ typedef struct _StreamMsg {
         } gap;
     };
 
-    struct _StreamMsg *next;
-    struct _StreamMsg *prev;
+    struct StreamMsg_ *next;
+    struct StreamMsg_ *prev;
 } StreamMsg;
 
-typedef struct _StreamMsgQueue {
+typedef struct StreamMsgQueue_ {
     StreamMsg *top;
     StreamMsg *bot;
     u_int16_t len;

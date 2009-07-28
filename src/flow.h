@@ -15,7 +15,7 @@
 #define FLOW_PKT_TOCLIENT_IPONLY_SET 0x20
 
 /* global flow config */
-typedef struct _FlowCnf
+typedef struct FlowCnf_
 {
     u_int32_t hash_rand;
     u_int32_t hash_size;
@@ -33,7 +33,7 @@ typedef struct _FlowCnf
 } FlowConfig;
 
 /* Hash key for the flow hash */
-typedef struct _FlowKey
+typedef struct FlowKey_
 {
     Address src, dst;
     Port sp, dp;
@@ -42,7 +42,7 @@ typedef struct _FlowKey
 
 } FlowKey;
 
-typedef struct _Flow
+typedef struct Flow_
 {
     Address src, dst;
     Port sp, dp;
@@ -70,12 +70,12 @@ typedef struct _Flow
     /* list flow ptrs
      * NOTE!!! These are NOT protected by the
      * above mutex, but by the FlowQ's */
-    struct _Flow *hnext; /* hash list */
-    struct _Flow *hprev;
-    struct _Flow *lnext; /* list */
-    struct _Flow *lprev;
+    struct Flow_ *hnext; /* hash list */
+    struct Flow_ *hprev;
+    struct Flow_ *lnext; /* list */
+    struct Flow_ *lprev;
 
-    struct _FlowBucket *fb;
+    struct FlowBucket_ *fb;
 } Flow;
 
 void FlowHandlePacket (ThreadVars *, Packet *);

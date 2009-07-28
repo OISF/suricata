@@ -6,7 +6,7 @@
 #define DETECTDSIZE_GT 2
 #define DETECTDSIZE_RA 3
 
-typedef struct _DetectDsizeData {
+typedef struct DetectDsizeData_ {
     u_int16_t dsize;
     u_int16_t dsize2;
     u_int8_t mode;

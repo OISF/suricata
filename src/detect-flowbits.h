@@ -8,7 +8,7 @@
 #define DETECT_FLOWBITS_CMD_TOGGLE   4
 #define DETECT_FLOWBITS_CMD_NOALERT  5
 
-typedef struct _DetectFlowbitsData {
+typedef struct DetectFlowbitsData_ {
     u_int16_t idx;
     u_int8_t cmd;
 } DetectFlowbitsData;

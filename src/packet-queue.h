@@ -8,7 +8,7 @@
 
 /* XXX: moved to decode.h */
 #if 0
-typedef struct _PacketQueue {
+typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;
     u_int16_t len;

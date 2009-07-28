@@ -71,13 +71,13 @@
 #define TCP_ISSET_FLAG_RES2(p)               ((p)->tcph->th_flags & TH_RES2)
 #define TCP_ISSET_FLAG_RES1(p)               ((p)->tcph->th_flags & TH_RES1)
 
-typedef struct _TCPOpt {
+typedef struct TCPOpt_ {
     u_int8_t type;
     u_int8_t len;
     u_int8_t *data;
 } TCPOpt;
 
-typedef struct _TCPHdr
+typedef struct TCPHdr_
 {
     u_int16_t th_sport;     /* source port */
     u_int16_t th_dport;     /* destination port */
@@ -90,7 +90,7 @@ typedef struct _TCPHdr
     u_int16_t th_urp;       /* urgent pointer */
 } TCPHdr;
 
-typedef struct _TCPVars
+typedef struct TCPVars_
 {
     u_int8_t hlen;
 

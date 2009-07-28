@@ -5,7 +5,7 @@
 #include "flow.h"
 #include "util-var.h"
 
-typedef struct _FlowVar {
+typedef struct FlowVar_ {
     u_int8_t type; /* type, DETECT_FLOWVAR in this case */
     u_int16_t idx; /* name idx */
     GenericVar *next; /* right now just implement this as a list,

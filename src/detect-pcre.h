@@ -14,7 +14,7 @@
 #define DETECT_PCRE_CAPTURE_PKT   0x0080
 #define DETECT_PCRE_CAPTURE_FLOW  0x0100
 
-typedef struct _DetectPcreData {
+typedef struct DetectPcreData_ {
     /* pcre options */
     pcre *re;
     pcre_extra *sd;

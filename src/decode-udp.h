@@ -15,7 +15,7 @@
 #define UDP_GET_DST_PORT(p)                  UDP_GET_RAW_DST_PORT(p->udph)
 
 /* UDP header structure */
-typedef struct _UDPHdr
+typedef struct UDPHdr_
 {
 	u_int16_t uh_sport;  /* source port */
 	u_int16_t uh_dport;  /* destination port */
@@ -23,7 +23,7 @@ typedef struct _UDPHdr
 	u_int16_t uh_sum;    /* checksum */
 } UDPHdr;
 
-typedef struct _UDPVars
+typedef struct UDPVars_
 {
     u_int8_t hlen;
 } UDPVars;

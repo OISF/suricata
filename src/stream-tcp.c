@@ -65,7 +65,7 @@ void TmModuleStreamTcpRegister (void) {
     pthread_mutex_init(&ssn_pool_mutex, NULL);
 }
 
-typedef struct _StreamTcpThread {
+typedef struct StreamTcpThread_ {
     u_int64_t pkts;
 } StreamTcpThread;
 

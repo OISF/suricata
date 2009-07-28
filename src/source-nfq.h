@@ -12,7 +12,7 @@
 /* idea: set the recv-thread id in the packet to
  * select an verdict-queue */
 
-typedef struct _NFQPacketVars
+typedef struct NFQPacketVars_
 {
     int id; /* this nfq packets id */
 
@@ -22,7 +22,7 @@ typedef struct _NFQPacketVars
     u_int16_t hw_protocol;
 } NFQPacketVars;
 
-typedef struct _NFQThreadVars
+typedef struct NFQThreadVars_
 {
     struct nfq_handle *h;
     struct nfnl_handle *nh;
@@ -47,7 +47,7 @@ typedef struct _NFQThreadVars
     ThreadVars *tv;
 } NFQThreadVars;
 
-typedef struct _NFQGlobalVars
+typedef struct NFQGlobalVars_
 {
     char unbind;
 } NFQGlobalVars;

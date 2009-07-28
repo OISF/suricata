@@ -1,7 +1,7 @@
 #ifndef __DETECT_FLOW_H__
 #define __DETECT_FLOW_H__
 
-typedef struct _DetectFlowData {
+typedef struct DetectFlowData_ {
     u_int8_t flags;     /* flags to match */
     u_int8_t match_cnt; /* number of matches we need */
 } DetectFlowData;

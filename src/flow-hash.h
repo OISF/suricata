@@ -7,7 +7,7 @@
  * Each bucket contains a flow or list of flows. All these flows have
  * the same hashkey (the hash is a chained hash). When doing modifications
  * to the list, the entire bucket is locked. */
-typedef struct _FlowBucket {
+typedef struct FlowBucket_ {
     Flow *f;
     pthread_mutex_t m;
 } FlowBucket; 

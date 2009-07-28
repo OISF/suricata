@@ -13,10 +13,10 @@
 #define	IPV6_MAXPACKET	           65535 /* maximum packet size */
 #define IPV6_MAX_OPT               40
 
-typedef struct _IPV6Hdr
+typedef struct IPV6Hdr_
 {
     union {
-        struct _ip6_un1 {
+        struct ip6_un1_ {
             u_int32_t ip6_un1_flow; /* 20 bits of flow-ID */
             u_int16_t ip6_un1_plen; /* payload length */
             u_int8_t  ip6_un1_nxt;  /* next header */
@@ -83,7 +83,7 @@ typedef struct _IPV6Hdr
 #define IPV6_CACHE_HLIM                   0x0020 /* 32 */
 
 /* decoder cache */
-typedef struct _IPV6Cache
+typedef struct IPV6Cache_
 {
     u_int16_t flags;
     u_int8_t ver;
@@ -95,7 +95,7 @@ typedef struct _IPV6Cache
 } IPV6Cache;
 
 /* helper structure with parsed ipv6 info */
-typedef struct _IPV6Vars
+typedef struct IPV6Vars_
 {
     u_int8_t ip_opts_len;
     u_int8_t l4proto;      /* the proto after the extension headers
@@ -104,7 +104,7 @@ typedef struct _IPV6Vars
 } IPV6Vars;
 
 /* Fragment header */
-typedef struct _IPV6FragHdr
+typedef struct IPV6FragHdr_
 {
     u_int8_t  ip6fh_nxt;             /* next header */
     u_int8_t  ip6fh_reserved;        /* reserved field */
@@ -125,7 +125,7 @@ typedef struct _IPV6FragHdr
 #define IPV6_EXTHDR_GET_FH_ID(p)            IPV6_EXTHDR_GET_RAW_FH_ID((p))
 
 /* rfc 1826 */
-typedef struct _IPV6AuthHdr
+typedef struct IPV6AuthHdr_
 {
     u_int8_t ip6ah_nxt;              /* next header */
     u_int8_t ip6ah_len;              /* header length in units of 8 bytes, not
@@ -135,13 +135,13 @@ typedef struct _IPV6AuthHdr
     u_int32_t ip6ah_seq;             /* sequence number */
 } IPV6AuthHdr;
 
-typedef struct _IPV6EspHdr
+typedef struct IPV6EspHdr_
 {
     u_int32_t ip6esph_spi;           /* SECURITY PARAMETERS INDEX (SPI) */
     u_int32_t ip6esph_seq;           /* sequence number */
 } IPV6EspHdr;
 
-typedef struct _IPV6RouteHdr
+typedef struct IPV6RouteHdr_
 {
     u_int8_t ip6rh_nxt;               /* next header */
     u_int8_t ip6rh_len;               /* header length in units of 8 bytes, not
@@ -174,7 +174,7 @@ typedef struct _IPV6RouteHdr
 #define IPV6OPT_HAO                   0xC9
 
 /* Home Address Option */
-typedef struct _IPV6OptHAO
+typedef struct IPV6OptHAO_
 {
     u_int8_t ip6hao_type;             /* Option type */
     u_int8_t ip6hao_len;              /* Option Data len (excludes type and len) */
@@ -182,7 +182,7 @@ typedef struct _IPV6OptHAO
 } IPV6OptHAO;
 
 /* Router Alert Option */
-typedef struct _IPV6OptRA
+typedef struct IPV6OptRA_
 {
     u_int8_t ip6ra_type;             /* Option type */
     u_int8_t ip6ra_len;              /* Option Data len (excludes type and len) */
@@ -190,14 +190,14 @@ typedef struct _IPV6OptRA
 } IPV6OptRA;
 
 /* Jumbo Option */
-typedef struct _IPV6OptJumbo
+typedef struct IPV6OptJumbo_
 {
     u_int8_t ip6j_type;             /* Option type */
     u_int8_t ip6j_len;              /* Option Data len (excludes type and len) */
     u_int32_t ip6j_payload_len;     /* Jumbo Payload Length */
 } IPV6OptJumbo;
 
-typedef struct _IPV6HopOptsHdr
+typedef struct IPV6HopOptsHdr_
 {
     u_int8_t ip6hh_nxt;              /* next header */
     u_int8_t ip6hh_len;              /* header length in units of 8 bytes, not
@@ -212,7 +212,7 @@ typedef struct _IPV6HopOptsHdr
 #define IPV6_EXTHDR_GET_HH_HDRLEN(p)        IPV6_EXTHDR_GET_RAW_HH_HDRLEN((p))
 /* XXX */
 
-typedef struct _IPV6DstOptsHdr
+typedef struct IPV6DstOptsHdr_
 {
     u_int8_t ip6dh_nxt;              /* next header */
     u_int8_t ip6dh_len;              /* header length in units of 8 bytes, not
@@ -235,7 +235,7 @@ typedef struct _IPV6DstOptsHdr
 #define IPV6_EXTHDR_GET_DH2_HDRLEN(p)        IPV6_EXTHDR_GET_RAW_DH2_HDRLEN((p))
 /* XXX */
 
-typedef struct _IPV6GenOptHdr
+typedef struct IPV6GenOptHdr_
 {
     u_int8_t type;
     u_int8_t next;
@@ -243,7 +243,7 @@ typedef struct _IPV6GenOptHdr
     u_int8_t *data;
 }   IPV6GenOptHdr;
 
-typedef struct _IPV6ExtHdrs
+typedef struct IPV6ExtHdrs_
 {
     IPV6FragHdr    *ip6fh;
     /* In fh_offset we store the offset of this extension into the packet past

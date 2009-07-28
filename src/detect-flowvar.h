@@ -3,7 +3,7 @@
 
 #define DETECT_CONTENT_NOCASE        0x01
 
-typedef struct _DetectFlowvarData {
+typedef struct DetectFlowvarData_ {
     char *name;
     u_int16_t idx;
     u_int8_t *content;

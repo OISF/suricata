@@ -11,7 +11,7 @@
 #define THV_KILL    0x02
 #define THV_CLOSED  0x04 /* thread done, should be joinable */
 
-typedef struct _ThreadVars {
+typedef struct ThreadVars_ {
     pthread_t t;
     char *name;
     u_int8_t flags;
@@ -21,8 +21,8 @@ typedef struct _ThreadVars {
     Tmq *outq;
 
     /* queue handlers */
-    struct _Packet * (*tmqh_in)(struct _ThreadVars *);
-    void (*tmqh_out)(struct _ThreadVars *, struct _Packet *);
+    struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);
+    void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
 
     /* slot functions */
     void *(*tm_func)(void *);
@@ -31,8 +31,8 @@ typedef struct _ThreadVars {
     char set_cpu_affinity; /* bool: 0 no, 1 yes */
     int cpu_affinity; /* cpu or core to set affinity to */
 
-    struct _ThreadVars *next;
-    struct _ThreadVars *prev;
+    struct ThreadVars_ *next;
+    struct ThreadVars_ *prev;
 } ThreadVars;
 
 #endif /* __THREADVARS_H__ */

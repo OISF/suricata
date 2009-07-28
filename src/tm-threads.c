@@ -19,7 +19,7 @@ static int SetCPUAffinity(int cpu);
 /* root of the threadvars list */
 static ThreadVars *tv_root;
 
-typedef struct _TmSlot {
+typedef struct TmSlot_ {
     /* function pointers */
     int (*SlotInit)(ThreadVars *, void *, void **);
     int (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
@@ -32,26 +32,26 @@ typedef struct _TmSlot {
     PacketQueue slot_pq;
 
     /* linked list, only used by TmVarSlot */
-    struct _TmSlot *slot_next;
+    struct TmSlot_ *slot_next;
 } TmSlot;
 
 /* 1 function slot */
-typedef struct _Tm1Slot {
+typedef struct Tm1Slot_ {
     TmSlot s;
 } Tm1Slot;
 
 /* 2 function slot */
-typedef struct _Tm2Slot {
+typedef struct Tm2Slot_ {
     TmSlot s1, s2;
 } Tm2Slot;
 
 /* 3 function slot */
-typedef struct _Tm3Slot {
+typedef struct Tm3Slot_ {
     TmSlot s1, s2, s3;
 } Tm3Slot;
 
 /* Variable number of function slots */
-typedef struct _TmVarSlot {
+typedef struct TmVarSlot_ {
     TmSlot *s;
 } TmVarSlot;
 

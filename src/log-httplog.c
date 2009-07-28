@@ -60,7 +60,7 @@ void TmModuleLogHttplogIPv6Register (void) {
     tmm_modules[TMM_LOGHTTPLOG6].RegisterTests = NULL;
 }
 
-typedef struct _LogHttplogThread {
+typedef struct LogHttplogThread_ {
     FILE *fp;
     u_int32_t uri_cnt;
 } LogHttplogThread;

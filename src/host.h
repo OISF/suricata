@@ -6,7 +6,7 @@
 #include "util-hash.h"
 #include "util-bloomfilter-counting.h"
 
-typedef struct _HostTable {
+typedef struct HostTable_ {
     pthread_mutex_t m;
 
     /* storage & lookup */
@@ -16,7 +16,7 @@ typedef struct _HostTable {
     u_int32_t cnt;
 } HostTable;
 
-typedef struct _Host {
+typedef struct Host_ {
     pthread_mutex_t m;
 
     Address addr;

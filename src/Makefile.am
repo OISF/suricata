@@ -60,7 +60,6 @@ detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
 detect-noalert.c detect-noalert.h \
 util-print.c util-print.h \
-util-mpm-trie.c util-mpm-trie.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \
 util-mpm-wumanber.c util-mpm-wumanber.h \

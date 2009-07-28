@@ -11,7 +11,7 @@ enum {
     TMQH_SIZE,
 };
 
-typedef struct _Tmqh {
+typedef struct Tmqh_ {
     char *name;
     Packet *(*InHandler)(ThreadVars *);
     void (*OutHandler)(ThreadVars *, Packet *);

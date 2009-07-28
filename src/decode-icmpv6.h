@@ -64,7 +64,7 @@
 #endif
 
 
-typedef struct _ICMPV6Hdr
+typedef struct ICMPV6Hdr_
 {
     u_int8_t  type;
     u_int8_t  code;

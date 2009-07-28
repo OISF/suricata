@@ -44,22 +44,22 @@
 //#define B2G_SCAN2
 //#define B2G_COUNTERS
 
-typedef struct _B2gPattern {
+typedef struct B2gPattern_ {
     u_int8_t flags;
     u_int16_t len;
     u_int8_t *cs; /* case sensitive */
     u_int8_t *ci; /* case INsensitive */
-    struct _B2gPattern *next;
+    struct B2gPattern_ *next;
     MpmEndMatch *em;
 } B2gPattern;
 
-typedef struct _B2gHashItem_ {
+typedef struct B2gHashItem_ {
     u_int16_t idx;
-    struct _B2gHashItem_ *nxt;
+    struct B2gHashItem_ *nxt;
     u_int8_t flags;
 } B2gHashItem;
 
-typedef struct _B2gCtx {
+typedef struct B2gCtx_ {
     B2G_TYPE *scan_B2G;
     B2G_TYPE scan_m;
     BloomFilter **scan_bloom;
@@ -99,14 +99,14 @@ typedef struct _B2gCtx {
     u_int8_t search_s0;
 
     /* we store our own multi byte scan ptr here for B2gSearch1 */
-    u_int32_t (*MBScan2)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
-    u_int32_t (*MBScan)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
+    u_int32_t (*MBScan2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
+    u_int32_t (*MBScan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
     /* we store our own multi byte search ptr here for B2gSearch1 */
-    u_int32_t (*MBSearch)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
+    u_int32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
 
 } B2gCtx;
 
-typedef struct _B2gThreadCtx {
+typedef struct B2gThreadCtx_ {
 #ifdef B2G_COUNTERS
     u_int32_t scan_stat_pminlen_calls;
     u_int32_t scan_stat_pminlen_total;

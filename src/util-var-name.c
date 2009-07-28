@@ -2,7 +2,7 @@
 #include "detect.h"
 #include "util-hashlist.h"
 
-typedef struct _VariableName {
+typedef struct VariableName_ {
     char *name;
     u_int8_t type; /* flowbit, pktvar, etc */
     u_int16_t idx;

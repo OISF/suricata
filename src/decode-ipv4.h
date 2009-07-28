@@ -21,7 +21,7 @@
 #define IPV4_OPT_SECURITY         0x82
 #define IPV4_OPT_LSRR             0x83
 
-typedef struct _IPV4Hdr
+typedef struct IPV4Hdr_
 {
     u_int8_t ip_verhl;     /* version & header length */
     u_int8_t ip_tos;
@@ -113,8 +113,12 @@ typedef struct _IPV4Hdr
 #define IPV4_CACHE_IPTTL                  0x0400 /* 1024*/
 #define IPV4_CACHE_IPPROTO                0x0800 /* 2048 */
 
-/* decoder cache */
-typedef struct _IPV4Cache
+/**
+ * IPv4 decoder cache
+ *
+ * Used for storing parsed values.
+ */
+typedef struct IPV4Cache_
 {
     u_int16_t flags;
 
@@ -137,7 +141,7 @@ typedef struct _IPV4Cache
 } IPV4Cache;
 
 /* helper structure with parsed ipv4 info */
-typedef struct _IPV4Vars
+typedef struct IPV4Vars_
 {
     u_int8_t ip_opts_len;
 } IPV4Vars;

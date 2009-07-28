@@ -1,16 +1,16 @@
 #ifndef __STREAM_TCP_PRIVATE_H__
 #define __STREAM_TCP_PRIVATE_H__
 
-typedef struct _TcpSegment {
+typedef struct TcpSegment_ {
     u_int8_t *payload;
     u_int16_t payload_len; /* actual size of the payload */
     u_int32_t seq;
     u_int16_t pool_size; /* size of the memory */
-    struct _TcpSegment *next;
-    struct _TcpSegment *prev;
+    struct TcpSegment_ *next;
+    struct TcpSegment_ *prev;
 } TcpSegment;
 
-typedef struct _TcpStream {
+typedef struct TcpStream_ {
     u_int32_t isn; /* initial sequence number */
     u_int32_t next_seq; /* next expected sequence number */
     u_int32_t last_ack; /* last ack'd sequence number */
@@ -47,7 +47,7 @@ enum
 #define SEQ_GT(a,b)  ((int)((a) - (b)) >  0)
 #define SEQ_GEQ(a,b) ((int)((a) - (b)) >= 0)
 
-typedef struct _TcpSession {
+typedef struct TcpSession_ {
     u_int8_t state;
     TcpStream server;
     TcpStream client;

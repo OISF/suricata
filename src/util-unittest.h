@@ -3,18 +3,18 @@
 #ifndef __UTIL_UNITTEST_H__
 #define __UTIL_UNITTEST_H__
 
-typedef struct _UtTest {
+typedef struct UtTest_ {
 
     char *name;
-    int(*testfn)(void);
+    int(*TestFn)(void);
     int evalue;
 
-    struct _UtTest *next;
+    struct UtTest_ *next;
 
 } UtTest;
 
 
-void UtRegisterTest(char *name, int(*testfn)(void), int evalue);
+void UtRegisterTest(char *name, int(*TestFn)(void), int evalue);
 int UtRunTests(void);
 void UtInitialize(void);
 void UtCleanup(void);

@@ -39,22 +39,22 @@
 
 //#define B3G_COUNTERS
 
-typedef struct _B3gPattern {
+typedef struct B3gPattern_ {
     u_int8_t *cs; /* case sensitive */
     u_int8_t *ci; /* case INsensitive */
     u_int16_t len;
-    struct _B3gPattern *next;
+    struct B3gPattern_ *next;
     u_int8_t flags;
     MpmEndMatch *em;
 } B3gPattern;
 
-typedef struct _B3gHashItem_ {
+typedef struct B3gHashItem_ {
     u_int8_t flags;
     u_int16_t idx;
-    struct _B3gHashItem_ *nxt;
+    struct B3gHashItem_ *nxt;
 } B3gHashItem;
 
-typedef struct _B3gCtx {
+typedef struct B3gCtx_ {
     /* hash used during ctx initialization */
     B3gPattern **init_hash;
 
@@ -93,17 +93,17 @@ typedef struct _B3gCtx {
     B3gHashItem **search_hash2;
 
     /* we store our own multi byte scan ptr here for B3gSearch1 */
-    u_int32_t (*MBScan2)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
-    u_int32_t (*MBScan)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
+    u_int32_t (*MBScan2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
+    u_int32_t (*MBScan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
     /* we store our own multi byte search ptr here for B3gSearch1 */
-    u_int32_t (*MBSearch2)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
-    u_int32_t (*MBSearch)(struct _MpmCtx *, struct _MpmThreadCtx *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
+    u_int32_t (*MBSearch2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
+    u_int32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
 
     /* pattern arrays */
     B3gPattern **parray;
 } B3gCtx;
 
-typedef struct _B3gThreadCtx {
+typedef struct B3gThreadCtx_ {
 #ifdef B3G_COUNTERS
     u_int32_t scan_stat_pminlen_calls;
     u_int32_t scan_stat_pminlen_total;

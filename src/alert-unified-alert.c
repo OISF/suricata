@@ -45,7 +45,7 @@ void TmModuleAlertUnifiedAlertRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDALERT].RegisterTests = NULL;
 }
 
-typedef struct _AlertUnifiedAlertThread {
+typedef struct AlertUnifiedAlertThread_ {
     FILE *fp;
     u_int32_t size_limit;
     u_int32_t size_current;
@@ -55,14 +55,14 @@ typedef struct _AlertUnifiedAlertThread {
 #define ALERTUNIFIEDALERT_VERMAJOR 1            /* taken from Snort */
 #define ALERTUNIFIEDALERT_VERMINOR 81           /* taken from Snort */
 
-typedef struct _AlertUnifiedAlertFileHeader {
+typedef struct AlertUnifiedAlertFileHeader_ {
     u_int32_t magic;
     u_int32_t ver_major;
     u_int32_t ver_minor;
     u_int32_t timezone;
 } AlertUnifiedAlertFileHeader;
 
-typedef struct _AlertUnifiedAlertPacketHeader {
+typedef struct AlertUnifiedAlertPacketHeader_ {
     /* Snort's 'Event' structure */
     u_int32_t sig_gen;
     u_int32_t sig_sid;

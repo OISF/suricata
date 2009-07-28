@@ -20,7 +20,7 @@
 
 static u_int8_t l7_proto_id = 0;
 
-typedef struct _L7AppDetectDataProto {
+typedef struct L7AppDetectDataProto_ {
     u_int8_t proto;
 } L7AppDetectDataProto;
 

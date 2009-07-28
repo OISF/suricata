@@ -10,7 +10,7 @@
 
 #define DETECT_URICONTENT_RAWBYTES      0x20
 
-typedef struct _DetectUricontentData {
+typedef struct DetectUricontentData_ {
     u_int8_t *uricontent;
     u_int8_t uricontent_len;
     u_int32_t id;

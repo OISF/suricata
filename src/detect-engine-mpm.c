@@ -182,7 +182,7 @@ void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
 }
 
-typedef struct _ContentHash {
+typedef struct ContentHash_ {
     DetectContentData *ptr;
     u_int16_t cnt;
     u_int8_t use; /* use no matter what */

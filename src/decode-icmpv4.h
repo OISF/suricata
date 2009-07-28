@@ -124,7 +124,7 @@
 #endif
 
 /* ICMPv4 header structure */
-typedef struct _ICMPV4Hdr
+typedef struct ICMPV4Hdr_
 {
     u_int8_t  type;
     u_int8_t  code;

@@ -33,13 +33,13 @@ static int UtAppendTest(UtTest **list, UtTest *test) {
     return 0;
 }
 
-void UtRegisterTest(char *name, int(*testfn)(void), int evalue) {
+void UtRegisterTest(char *name, int(*TestFn)(void), int evalue) {
     UtTest *ut = UtAllocTest();
     if (ut == NULL)
         return;
 
     ut->name = name;
-    ut->testfn = testfn;
+    ut->TestFn = TestFn;
     ut->evalue = evalue;
     ut->next = NULL;
 
@@ -55,7 +55,7 @@ int UtRunTests(void) {
     for (ut = ut_list; ut != NULL; ut = ut->next) {
         printf("Test %-60s : ", ut->name);
         fflush(stdout); /* flush so in case of a segv we see the testname */
-        int ret = ut->testfn();
+        int ret = ut->TestFn();
         printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
         if (ret != ut->evalue) {
             result = 1;

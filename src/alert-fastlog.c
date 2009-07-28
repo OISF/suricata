@@ -65,7 +65,7 @@ void TmModuleAlertFastlogIPv6Register (void) {
     tmm_modules[TMM_ALERTFASTLOG6].RegisterTests = NULL;
 }
 
-typedef struct _AlertFastlogThread {
+typedef struct AlertFastlogThread_ {
     FILE *fp;
     u_int32_t alerts;
 } AlertFastlogThread;

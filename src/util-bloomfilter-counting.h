@@ -4,7 +4,7 @@
 #define __BLOOMFILTERCOUNTING_H__
 
 /* Bloom filter structure */
-typedef struct _BloomFilterCounting {
+typedef struct BloomFilterCounting_ {
     u_int8_t *array;
     u_int32_t array_size; /* size in buckets */
     u_int8_t type; /* 1, 2 or 4 byte counters */

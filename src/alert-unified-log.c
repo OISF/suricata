@@ -45,7 +45,7 @@ void TmModuleAlertUnifiedLogRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDLOG].RegisterTests = NULL;
 }
 
-typedef struct _AlertUnifiedLogThread {
+typedef struct AlertUnifiedLogThread_ {
     FILE *fp;
     u_int32_t size_limit;
     u_int32_t size_current;
@@ -55,7 +55,7 @@ typedef struct _AlertUnifiedLogThread {
 #define ALERTUNIFIEDLOG_VERMAJOR 1          /* taken from Snort */
 #define ALERTUNIFIEDLOG_VERMINOR 2          /* taken from Snort */
 
-typedef struct _AlertUnifiedLogFileHeader {
+typedef struct AlertUnifiedLogFileHeader_ {
     u_int32_t magic;
     u_int16_t ver_major;
     u_int16_t ver_minor;
@@ -65,7 +65,7 @@ typedef struct _AlertUnifiedLogFileHeader {
     u_int32_t linktype;
 } AlertUnifiedLogFileHeader;
 
-typedef struct _AlertUnifiedLogPacketHeader {
+typedef struct AlertUnifiedLogPacketHeader_ {
     /* Snort's 'Event' structure */
     u_int32_t sig_gen;
     u_int32_t sig_sid;

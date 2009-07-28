@@ -17,7 +17,7 @@
 #define ETHERNET_TYPE_8021Q           0x8100
 #define ETHERNET_TYPE_LOOP            0x9000
 
-typedef struct _EthernetHdr {
+typedef struct EthernetHdr_ {
     u_int8_t eth_dst[6];
     u_int8_t eth_src[6];
     u_int16_t eth_type;

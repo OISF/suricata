@@ -4,13 +4,13 @@
 #define __UTIL_POOL_H__
 
 /* pool bucket structure */
-typedef struct _PoolBucket {
+typedef struct PoolBucket_ {
     void *data;
-    struct _PoolBucket *next;
+    struct PoolBucket_ *next;
 } PoolBucket;
 
 /* pool structure */
-typedef struct _Pool {
+typedef struct Pool_ {
     u_int32_t max_buckets;
     u_int32_t allocated;
 

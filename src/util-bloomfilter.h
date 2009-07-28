@@ -4,7 +4,7 @@
 #define __BLOOMFILTER_H__
 
 /* Bloom Filter structure */
-typedef struct _BloomFilter {
+typedef struct BloomFilter_ {
     u_int8_t *bitarray;
     u_int32_t bitarray_size;
     u_int8_t hash_iterations;

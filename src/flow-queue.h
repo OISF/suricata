@@ -6,7 +6,7 @@
 #include "flow.h"
 
 /* Define a queue for storing flows */
-typedef struct _FlowQueue
+typedef struct FlowQueue_
 {
     Flow *top;
     Flow *bot;

@@ -32,7 +32,7 @@
 #include "respond-reject.h"
 #include "respond-reject-libnet11.h"
 
-typedef struct _Libnet11Packet
+typedef struct Libnet11Packet_
 {
     u_int32_t ack, seq;
     u_int16_t window, dsize;

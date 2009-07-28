@@ -43,12 +43,12 @@ typedef struct DetectAddressGroup_ {
     DetectAddressData *ad;
 
     /* XXX ptr to rules, or PortGroup or whatever */
-union {
-    struct DetectAddressGroupsHead_ *dst_gh;
-    struct DetectPort_ *port;
-};
+    union {
+        struct DetectAddressGroupsHead_ *dst_gh;
+        struct DetectPort_ *port;
+    };
     /* signatures that belong in this group */
-    struct _SigGroupHead *sh;
+    struct SigGroupHead_ *sh;
     u_int8_t flags;
 
     /* double linked list */
@@ -93,7 +93,7 @@ typedef struct DetectPort_ {
     u_int16_t port2;
 
     /* signatures that belong in this group */
-    struct _SigGroupHead *sh;
+    struct SigGroupHead_ *sh;
 
     struct DetectPort_ *dst_ph;
 
@@ -126,7 +126,11 @@ typedef struct DetectEngineIPOnlyThreadCtx_ {
     u_int32_t sig_match_size;  /* size in bytes of the array */
 } DetectEngineIPOnlyThreadCtx;
 
-typedef struct _PatternMatcherThread {
+/**
+  * Detection engine thread data.
+  * XXX: we should rename this
+  */
+typedef struct PatternMatcherThread_ {
     /* detection engine variables */
     u_int8_t *pkt_ptr; /* ptr to the current position in the pkt */
     u_int16_t pkt_off;
@@ -142,7 +146,7 @@ typedef struct _PatternMatcherThread {
      * or uricontent ctx. */
     MpmThreadCtx mtc; /* thread ctx for the mpm */
     MpmThreadCtx mtcu;
-    struct _SigGroupHead *sgh;
+    struct SigGroupHead_ *sgh;
     PatternMatcherQueue pmq;
 
     /* counters */
@@ -174,7 +178,7 @@ typedef struct _PatternMatcherThread {
 
 } PatternMatcherThread;
 
-typedef struct _Signature {
+typedef struct Signature_ {
     u_int16_t flags;
 
     u_int32_t num; /* signature number, internal id */
@@ -188,8 +192,8 @@ typedef struct _Signature {
     DetectProto proto;
     DetectPort *sp, *dp;
 
-    struct _SigMatch *match;
-    struct _Signature *next;
+    struct SigMatch_ *match;
+    struct Signature_ *next;
 } Signature;
 
 typedef struct DetectEngineIPOnlyCtx_ {
@@ -247,8 +251,6 @@ typedef struct DetectEngineCtx_ {
     u_int32_t signum;
 
     /* main sigs */
-//    DetectAddressGroupsHead *src_gh[256]; /* a head for each protocol */
-//    DetectAddressGroupsHead *tmp_gh[256];
     DetectEngineLookupDsize dsize_gh[DSIZE_STATES];
 
     u_int32_t mpm_unique, mpm_reuse, mpm_none,
@@ -283,14 +285,14 @@ typedef struct DetectEngineCtx_ {
     DetectEngineIPOnlyCtx io_ctx;
 } DetectEngineCtx;
 
-typedef struct _SigMatch {
+typedef struct SigMatch_ {
     u_int8_t type;
     void *ctx;
-    struct _SigMatch *next;
-    struct _SigMatch *prev;
+    struct SigMatch_ *next;
+    struct SigMatch_ *prev;
 } SigMatch;
 
-typedef struct SigTableElmt {
+typedef struct SigTableElmt_ {
     int (*Match)(ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
     int (*Setup)(DetectEngineCtx *, Signature *, SigMatch *, char *);
     int (*Free)(SigMatch *);
@@ -309,7 +311,7 @@ typedef struct SigTableElmt {
 #define SIG_GROUP_HEAD_MPM_URI_NOSCAN  0x40
 
 /* head of the list of containers. */
-typedef struct _SigGroupHead {
+typedef struct SigGroupHead_ {
     u_int8_t flags;
 
     /* pattern matcher instance */

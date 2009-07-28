@@ -65,7 +65,7 @@ void TmModuleAlertDebuglogIPv6Register (void) {
     tmm_modules[TMM_ALERTDEBUGLOG6].RegisterTests = NULL;
 }
 */
-typedef struct _AlertDebuglogThread {
+typedef struct AlertDebuglogThread_ {
     FILE *fp;
     u_int32_t alerts;
 } AlertDebuglogThread;

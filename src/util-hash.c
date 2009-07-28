@@ -14,7 +14,7 @@
 
 #include "util-unittest.h"
 
-HashTable* HashTableInit(u_int32_t size, u_int32_t (*Hash)(struct _HashTable *, void *, u_int16_t), char (*Compare)(void *, u_int16_t, void *, u_int16_t), void (*Free)(void *)) {
+HashTable* HashTableInit(u_int32_t size, u_int32_t (*Hash)(struct HashTable_ *, void *, u_int16_t), char (*Compare)(void *, u_int16_t, void *, u_int16_t), void (*Free)(void *)) {
 
     HashTable *ht = NULL;
 
