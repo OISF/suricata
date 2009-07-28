@@ -18,6 +18,9 @@
 #include "tm-modules.h"
 #include "source-pcap.h"
 
+/**
+ * \brief Structure to hold thread specific variables.
+ */
 typedef struct PcapThreadVars_
 {
     /* thread specific handle */
@@ -41,6 +44,10 @@ int ReceivePcapThreadDeinit(ThreadVars *, void *);
 
 int DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *);
 
+/**
+ * \brief Registration Function for RecievePcap.
+ * \todo Unit tests are needed for this module.
+ */
 void TmModuleReceivePcapRegister (void) {
     tmm_modules[TMM_RECEIVEPCAP].name = "ReceivePcap";
     tmm_modules[TMM_RECEIVEPCAP].Init = ReceivePcapThreadInit;
@@ -50,6 +57,10 @@ void TmModuleReceivePcapRegister (void) {
     tmm_modules[TMM_RECEIVEPCAP].RegisterTests = NULL;
 }
 
+/**
+ * \brief Registration Function for DecodePcap.
+ * \todo Unit tests are needed for this module.
+ */
 void TmModuleDecodePcapRegister (void) {
     tmm_modules[TMM_DECODEPCAP].name = "DecodePcap";
     tmm_modules[TMM_DECODEPCAP].Init = NULL;
@@ -59,6 +70,16 @@ void TmModuleDecodePcapRegister (void) {
     tmm_modules[TMM_DECODEPCAP].RegisterTests = NULL;
 }
 
+/**
+ * \brief Pcap callback function.
+ *
+ * This function fills in our packet structure from libpcap.
+ * From here the packets are picked up by the  DecodePcap thread.
+ *
+ * \param user pointer to PcapThreadVars passed from pcap_dispatch
+ * \param h pointer to pcap packet header
+ * \param pkt pointer to raw packet data
+ */
 void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     //printf("PcapCallback: user %p, h %p, pkt %p\n", user, h, pkt);
     PcapThreadVars *ptv = (PcapThreadVars *)user;
@@ -86,6 +107,16 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     tv->tmqh_out(tv, p);
 }
 
+/**
+ * \brief Recieves packets from an interface via libpcap.
+ *
+ *  This function recieves packets from an interface and passes
+ *  the packet on to the pcap callback function.
+ *
+ * \param tv pointer to ThreadVars
+ * \param data pointer that gets cast into PcapThreadVars for ptv
+ * \param pq pointer to the PacketQueue (not used here but part of the api)
+ */
 int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
@@ -98,6 +129,21 @@ int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     return 0;
 }
 
+/**
+ * \brief Init function for RecievePcap.
+ *
+ * This is a setup function for recieving packets
+ * via libpcap. There are two versions of this function
+ * depending on the major version of libpcap used.
+ * For versions prior to 1.x we use open_pcap_live,
+ * for versions 1.x and greater we use pcap_create + pcap_activate.
+ *
+ * \param tv pointer to ThreadVars
+ * \param initdata pointer to the interface passed from the user
+ * \param data pointer gets populated with PcapThreadVars
+ *
+ * \todo Create a general pcap setup function.
+ */
 #if LIBPCAP_VERSION_MAJOR == 1
 int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (initdata == NULL) {
@@ -190,6 +236,11 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 }
 #endif /* LIBPCAP_VERSION_MAJOR */
 
+/**
+ * \brief This function prints stats to the screen at exit.
+ * \param tv pointer to ThreadVars
+ * \param data pointer that gets cast into PcapThreadVars for ptv
+ */
 void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
@@ -197,10 +248,29 @@ void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
     return;
 }
 
+/**
+ * \brief DeInit function closes pcap_handle at exit.
+ * \param tv pointer to ThreadVars
+ * \param data pointer that gets cast into PcapThreadVars for ptv
+ */
 int ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
+    PcapThreadVars *ptv = (PcapThreadVars *)data;
+
+    pcap_close(ptv->pcap_handle);
     return 0;
 }
 
+/**
+ * \brief This function passes off to link type decoders.
+ *
+ * DecodePcap reads packets from the PacketQueue and passes
+ * them off to the proper link type decoder.
+ *
+ * \param t pointer to ThreadVars
+ * \param p pointer to the current packet
+ * \param data pointer that gets cast into PcapThreadVars for ptv
+ * \param pq pointer to the current PacketQueue
+ */
 int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
 
     /* call the decoder */
