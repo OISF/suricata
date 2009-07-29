@@ -84,7 +84,7 @@ The following workflow is recommended by Evan and is the guideline for contribut
 
       git branch -d new_feature
 
-When you're familiar with the workflow, you can use the rake tasks to help you out. For example, rake git will fetch the latest code from remote repo, rebase the current branch to master, fast-forward the changes to master and push the commits to the remote. This saves a lot of typing. Check rake -T git for all the git related tasks. 
+When you're familiar with the workflow, you can use the rake tasks to help you out. For example, rake git will fetch the latest code from remote repo, rebase the current branch to master, fast-forward the changes to master and push the commits to the remote. This saves a lot of typing. Check rake -T git for all the git related tasks.
 
 Taken from: http://rubinius.lighthouseapp.com/projects/5089/using-git
 
