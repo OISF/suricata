@@ -572,7 +572,7 @@ int RunModeFilePcap(char *file) {
     TimeModeSetOffline();
 
     /* create the threads */
-    ThreadVars *tv_receivepcap = TmThreadCreate("ReceivePcapFile","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
+    ThreadVars *tv_receivepcap = TmThreadCreate("ReceivePcapFile","packetpool","packetpool","pickup-queue","simple","1slot");
     if (tv_receivepcap == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
@@ -623,9 +623,9 @@ int RunModeFilePcap(char *file) {
         exit(1);
     }
 
-    ThreadVars *tv_detect1 = TmThreadCreate("Detect1","stream-queue1","simple","packetpool","packetpool","1slot");
+    ThreadVars *tv_detect1 = TmThreadCreate("Detect1","stream-queue1","simple","alert-queue1","simple","1slot");
 //#endif
-    //ThreadVars *tv_detect1 = TmThreadCreate("Detect1","decode-queue1","simple","packetpool","packetpool","1slot");
+    //ThreadVars *tv_detect1 = TmThreadCreate("Detect1","decode-queue1","simple","alert-queue1","simple","1slot");
     if (tv_detect1 == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
@@ -642,7 +642,7 @@ int RunModeFilePcap(char *file) {
         exit(1);
     }
 
-    ThreadVars *tv_detect2 = TmThreadCreate("Detect2","stream-queue1","simple","packetpool","packetpool","1slot");
+    ThreadVars *tv_detect2 = TmThreadCreate("Detect2","stream-queue1","simple","alert-queue1","simple","1slot");
     if (tv_detect2 == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
@@ -655,23 +655,6 @@ int RunModeFilePcap(char *file) {
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)g_de_ctx);
 
     if (TmThreadSpawn(tv_detect2) != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-
-    ThreadVars *tv_rreject = TmThreadCreate("RespondReject","respond-queue","simple","alert-queue1","simple","1slot");
-    if (tv_rreject == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    tm_module = TmModuleGetByName("RespondReject");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
-        exit(1);
-    }
-    Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
-
-    if (TmThreadSpawn(tv_rreject) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
@@ -741,6 +724,91 @@ int RunModeFilePcap(char *file) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
+    return 0;
+}
+
+/**
+ * \brief Single thread version of the Pcap file processing.
+ */
+int RunModeFilePcap2(char *file) {
+    printf("RunModeFilePcap2: file %s\n", file);
+    TimeModeSetOffline();
+
+    /* create the threads */
+    ThreadVars *tv = TmThreadCreate("PcapFile","packetpool","packetpool","packetpool","packetpool","varslot");
+    if (tv == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+
+    TmModule *tm_module = TmModuleGetByName("ReceivePcapFile");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,file);
+
+    tm_module = TmModuleGetByName("DecodePcapFile");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodePcap failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName Detect failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,(void *)g_de_ctx);
+
+    tm_module = TmModuleGetByName("AlertFastlog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("LogHttplog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedLog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedAlert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertDebuglog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(1);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    if (TmThreadSpawn(tv) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
     return 0;
 }
 
@@ -854,6 +922,7 @@ int main(int argc, char **argv)
     //RunModeIpsNFQ();
     //RunModeIdsPcap(argv[1]);
     RunModeFilePcap(argv[1]);
+    //RunModeFilePcap2(argv[1]);
 
     ThreadVars tv_flowmgr;
     memset(&tv_flowmgr, 0, sizeof(ThreadVars));
@@ -884,7 +953,7 @@ int main(int argc, char **argv)
         if (sigflags) {
             printf("signal received\n");
 
-            if (sigflags & EIDPS_SIGINT || sigflags & EIDPS_STOP)  {
+            if (sigflags & EIDPS_STOP)  {
                 printf ("SIGINT or EngineStop received\n");
 
                 /* Stop the engine so it quits after processing the pcap file

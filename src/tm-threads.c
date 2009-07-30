@@ -84,6 +84,9 @@ void *TmThreadsSlot1NoIn(void *td) {
         }
 
         /* XXX handle error */
+        if (r == 1) {
+            run = 0;
+        }
 
         tv->tmqh_out(tv, p);
 
@@ -131,6 +134,9 @@ void *TmThreadsSlot1NoOut(void *td) {
 
         r = s->s.SlotFunc(tv, p, s->s.slot_data, /* no outqh no pq */NULL);
         /* XXX handle error */
+        if (r == 1) {
+            run = 0;
+        }
 
         if (tv->flags & THV_KILL)
             run = 0;
@@ -240,6 +246,9 @@ void *TmThreadsSlot1(void *td) {
 
             //printf("%s: TmThreadsSlot1: p %p, r %d\n", tv->name, p, r);
             /* XXX handle error */
+            if (r == 1) {
+                run = 0;
+            }
 
             /* output the packet */
             tv->tmqh_out(tv, p);
@@ -313,8 +322,16 @@ void *TmThreadsSlot2(void *td) {
                     Packet *extra_p2 = PacketDequeue(&s->s2.slot_pq);
                     tv->tmqh_out(tv, extra_p2);
                 }
+                if (r == 1) {
+                    run = 0;
+                }
+
                 tv->tmqh_out(tv, extra_p);
             }
+            if (r == 1) {
+                run = 0;
+            }
+
             r = s->s2.SlotFunc(tv, p, s->s2.slot_data, &s->s2.slot_pq);
             while (s->s2.slot_pq.len > 0) {
                 /* handle new packets from this func */
@@ -324,6 +341,9 @@ void *TmThreadsSlot2(void *td) {
 
             //printf("%s: TmThreadsSlot1: p %p, r %d\n", tv->name, p, r);
             /* XXX handle error */
+            if (r == 1) {
+                run = 0;
+            }
 
             /* output the packet */
             tv->tmqh_out(tv, p);
@@ -422,9 +442,18 @@ void *TmThreadsSlot3(void *td) {
                         Packet *extra_p3 = PacketDequeue(&s->s3.slot_pq);
                         tv->tmqh_out(tv, extra_p3);
                     }
+                    if (r == 1) {
+                        run = 0;
+                    }
                     tv->tmqh_out(tv, extra_p2);
                 }
+                if (r == 1) {
+                    run = 0;
+                }
                 tv->tmqh_out(tv, extra_p);
+            }
+            if (r == 1) {
+                run = 0;
             }
 
             /* slot 2 */
@@ -439,6 +468,9 @@ void *TmThreadsSlot3(void *td) {
                     Packet *extra_p2 = PacketDequeue(&s->s3.slot_pq);
                     tv->tmqh_out(tv, extra_p2);
                 }
+                if (r == 1) {
+                    run = 0;
+                }
                 tv->tmqh_out(tv, extra_p);
             }
 
@@ -452,6 +484,9 @@ void *TmThreadsSlot3(void *td) {
 
             //printf("%s: TmThreadsSlot1: p %p, r %d\n", tv->name, p, r);
             /* XXX handle error */
+            if (r == 1) {
+                run = 0;
+            }
 
             /* output the packet */
             tv->tmqh_out(tv, p);
@@ -508,10 +543,15 @@ void *TmThreadsSlot3(void *td) {
 static inline int TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot) {
     int r = 0;
     TmSlot *s = NULL;
+    int retval = 0;
 
     for (s = slot; s != NULL; s = s->slot_next) {
         r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pq);
         /* XXX handle error */
+        if (r == 1) {
+            //printf("TmThreadsSlotVarRun: s->SlotFunc %p returned 1\n", s->SlotFunc);
+            retval = 1;
+        }
 
         /* handle new packets */
         while (s->slot_pq.len > 0) {
@@ -519,14 +559,18 @@ static inline int TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot) 
 
             /* see if we need to process the packet */
             if (s->slot_next != NULL) {
-                TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
+                r = TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
                 /* XXX handle error */
+                if (r == 1) {
+                    //printf("TmThreadsSlotVarRun: recursive TmThreadsSlotVarRun returned 1\n");
+                    retval = 1;
+                }
             }
             tv->tmqh_out(tv, extra_p);
         }
     }
 
-    return 0;
+    return retval;
 }
 
 void *TmThreadsSlotVar(void *td) {
@@ -556,12 +600,17 @@ void *TmThreadsSlotVar(void *td) {
     while(run) {
         /* input a packet */
         p = tv->tmqh_in(tv);
+        //printf("TmThreadsSlotVar: %p\n", p);
 
         if (p == NULL) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
             r = TmThreadsSlotVarRun(tv, p, s->s);
             /* XXX handle error */
+            if (r == 1) {
+                //printf("TmThreadsSlotVar: TmThreadsSlotVarRun returned 1, breaking out of the loop.\n");
+                run = 0;
+            }
 
             /* output the packet */
             tv->tmqh_out(tv, p);

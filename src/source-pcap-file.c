@@ -38,6 +38,8 @@ typedef struct PcapFileThreadVars_
     u_int32_t errs;
 
     ThreadVars *tv;
+
+    Packet *in_p;
 } PcapFileThreadVars;
 
 static PcapFileGlobalVars pcap_g = { NULL, NULL, };
@@ -70,7 +72,7 @@ void TmModuleDecodePcapFileRegister (void) {
 void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     //printf("PcapFileCallback: user %p, h %p, pkt %p\n", user, h, pkt);
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)user;
-    ThreadVars *tv = ptv->tv;
+    //ThreadVars *tv = ptv->tv;
 
     mutex_lock(&mutex_pending);
     if (pending > MAX_PENDING) {
@@ -78,7 +80,7 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     }
     mutex_unlock(&mutex_pending);
 
-    Packet *p = tv->tmqh_in(tv);
+    Packet *p = ptv->in_p;
 
     p->ts.tv_sec = h->ts.tv_sec;
     p->ts.tv_usec = h->ts.tv_usec;
@@ -90,14 +92,14 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     p->pktlen = h->caplen;
     memcpy(p->pkt, pkt, p->pktlen);
     //printf("PcapFileCallback: p->pktlen: %u (pkt %02x, p->pkt %02x)\n", p->pktlen, *pkt, *p->pkt);
-
-    /* pass on... */
-    tv->tmqh_out(tv, p);
 }
 
 int ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
+    ptv->in_p = p;
+
+    /// Right now we just support reading packets one at a time.
     int r = pcap_dispatch(pcap_g.pcap_handle, 1, (pcap_handler)PcapFileCallback, (u_char *)ptv);
     if (r <= 0) {
         printf("ReceivePcap: code %d error %s\n", r, pcap_geterr(pcap_g.pcap_handle));

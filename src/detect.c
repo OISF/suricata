@@ -590,7 +590,11 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 int Detect(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
     PatternMatcherThread *pmt = (PatternMatcherThread *)data;
 
-    return SigMatchSignatures(t,pmt,p);
+    int r = SigMatchSignatures(t,pmt,p);
+    if (r >= 0) {
+        return 0;
+    }
+    return 1;
 }
 
 int DetectThreadInit(ThreadVars *t, void *initdata, void **data) {
