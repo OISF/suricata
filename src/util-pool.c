@@ -110,6 +110,7 @@ void *PoolGet(Pool *p) {
         p->empty_list_size++;
     } else {
         if (p->allocated < p->max_buckets) {
+            p->allocated++;
             return p->Alloc(p->AllocData);
         } else {
             return NULL;
@@ -124,7 +125,7 @@ void *PoolGet(Pool *p) {
 void PoolReturn(Pool *p, void *data) {
     PoolBucket *pb = p->empty_list;
     if (pb == NULL) {
-        printf("ERROR: trying to return data to the pool, but no more buckets available.");
+        printf("ERROR: trying to return data %p to the pool %p, but no more buckets available.\n", data, p);
         return;
     }
 
