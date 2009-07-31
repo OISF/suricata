@@ -6,6 +6,9 @@
 #include "decode.h"
 #include "util-var.h"
 
+#define FLOW_QUIET      TRUE
+#define FLOW_VERBOSE    FALSE
+
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER            0x01
 #define FLOW_PKT_TOCLIENT            0x02
@@ -79,7 +82,7 @@ typedef struct Flow_
 } Flow;
 
 void FlowHandlePacket (ThreadVars *, Packet *);
-void FlowInitConfig (void);
+void FlowInitConfig (char);
 void FlowPrintFlows (void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, char);

@@ -328,6 +328,63 @@ end:
     return retval;
 }
 
+static int PoolTestInit06 (void) {
+    int retval = 0;
+    void *data = NULL;
+
+    Pool *p = PoolInit(1,0,PoolTestAlloc,NULL,PoolTestFree);
+    if (p == NULL)
+        goto end;
+
+    if (p->allocated != 0) {
+        printf("p->allocated 0 != %u: ", p->allocated);
+        retval = 0;
+        goto end;
+    }
+
+    data = PoolGet(p);
+    if (data == NULL) {
+        printf("PoolGet returned NULL: ");
+        retval = 0;
+        goto end;
+    }
+
+    if (p->allocated != 1) {
+        printf("p->allocated 1 != %u: ", p->allocated);
+        retval = 0;
+        goto end;
+    }
+
+    data = PoolGet(p);
+    if (data != NULL) {
+        printf("PoolGet returned %p, expected NULL: ");
+        retval = 0;
+        goto end;
+    }
+
+    PoolReturn(p,data);
+    data = NULL;
+
+    if (p->allocated != 1) {
+        printf("p->allocated 1 != %u: ", p->allocated);
+        retval = 0;
+        goto end;
+    }
+
+    if (p->alloc_list_size != 1) {
+        printf("p->alloc_list_size 1 != %u: ", p->alloc_list_size);
+        retval = 0;
+        goto end;
+    }
+
+    retval = 1;
+end:
+    if (data != NULL)
+        free(data);
+    if (p != NULL)
+        PoolFree(p);
+    return retval;
+}
 
 void PoolRegisterTests(void) {
     UtRegisterTest("PoolTestInit01", PoolTestInit01, 1);
@@ -335,5 +392,6 @@ void PoolRegisterTests(void) {
     UtRegisterTest("PoolTestInit03", PoolTestInit03, 1);
     UtRegisterTest("PoolTestInit04", PoolTestInit04, 1);
     UtRegisterTest("PoolTestInit05", PoolTestInit05, 1);
+    UtRegisterTest("PoolTestInit06", PoolTestInit06, 1);
 }
 

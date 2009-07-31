@@ -907,7 +907,7 @@ int main(int argc, char **argv)
     }
     printf("Preallocating packets... done\n");
 
-    FlowInitConfig();
+    FlowInitConfig(FLOW_VERBOSE);
 
     /* Initialize and set thread detached attribute */
     pthread_attr_init(&attr);
