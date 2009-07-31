@@ -112,6 +112,13 @@ int StreamTcpReassembleInit(void) {
     return 0;
 }
 
+static void PrintList (TcpSegment *seg) {
+    while (seg != NULL) {
+        printf("PrintList: seg %10u len %u\n", seg->seq, seg->payload_len);
+        seg = seg->next;
+    }
+}
+
 static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
     TcpSegment *list_seg = stream->seg_list, *prev_seg = NULL;
     if (list_seg == NULL) {
@@ -139,6 +146,10 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
 
             /* XXX depends on target OS */
             printf("ReassembleInsertSegment: starts before list seg, ends on list seq: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u\n", seg->seq, list_seg->seq, list_seg->payload_len);
+            seg->next = list_seg;
+            if (prev_seg == NULL) stream->seg_list = seg;
+            else prev_seg->next = seg;
+            return 0;
 
         /* seg partly overlaps with list_seg, starts before, ends inside */
         } else if (SEQ_LT(seg->seq, list_seg->seq) &&
@@ -230,6 +241,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
             }
         }
     }
+
     return 0;
 }
 
@@ -289,6 +301,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
     u_int16_t payload_offset = 0;
     u_int16_t payload_len = 0;
     TcpSegment *seg = stream->seg_list;
+    u_int32_t next_seq = seg->seq;;
 
     /* check if we have enough data to send to L7 */
     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -313,12 +326,22 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
         }
     }
 
+    PrintList(seg);
+
     /* loop through the segments and fill one or more msgs */
     for ( ; seg != NULL && SEQ_LT(seg->seq,stream->last_ack); ) {
         printf("StreamTcpReassembleHandleSegmentUpdateACK: seg %p\n", seg);
 
+        if (next_seq != seg->seq) {
+            printf("StreamTcpReassembleHandleSegmentUpdateACK: expected next_seq %u, got %u. Seq gap?\n", next_seq, seg->seq);
+            return -1;
+        }
+
         /* if the segment ends beyond ra_base_seq we need to consider it */
-        if (SEQ_GEQ((seg->seq + seg->payload_len),stream->ra_base_seq)) {
+        if (SEQ_GT((seg->seq + seg->payload_len),stream->ra_base_seq)) {
+            printf("StreamTcpReassembleHandleSegmentUpdateACK: seg->seq %u, seg->payload_len %u, stream->ra_base_seq %u\n",
+                seg->seq, seg->payload_len, stream->ra_base_seq);
+
             /* get a message */
             if (smsg == NULL) {
                 smsg = StreamMsgGetFromPool();
@@ -343,14 +366,21 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
 
                 if (SEQ_LT(stream->last_ack,(seg->seq + seg->payload_len))) {
                     payload_len = ((seg->seq + seg->payload_len) - stream->last_ack) - payload_offset;
-                    //printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
-                    //        "before ra_base, ends beyond last_ack, payload_offset %u, "
-                    //        "payload_len %u\n", payload_offset, payload_len);
+                    printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
+                            "before ra_base, ends beyond last_ack, payload_offset %u, "
+                            "payload_len %u\n", payload_offset, payload_len);
                 } else {
                     payload_len = seg->payload_len - payload_offset;
-                    //printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
-                    //       "before ra_base, ends normal, payload_offset %u, "
-                    //       "payload_len %u\n", payload_offset, payload_len);
+                    printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
+                           "before ra_base, ends normal, payload_offset %u, "
+                           "payload_len %u\n", payload_offset, payload_len);
+                }
+
+
+                if (payload_offset > seg->payload_len) {
+                    printf("BUG(%u): payload_offset %u > seg->payload_len %u. seg->seq %u, stream->ra_base_seq %u\n",
+                            __LINE__, payload_offset, seg->payload_len, seg->seq, stream->ra_base_seq);
+                    abort();
                 }
             /* handle segments after ra_base_seq */
             } else {
@@ -358,14 +388,14 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
 
                 if (SEQ_LT(stream->last_ack,(seg->seq + seg->payload_len))) {
                     payload_len = stream->last_ack - seg->seq;
-                    //printf("StreamTcpReassembleHandleSegmentUpdateACK: start "
-                    //       "fine, ends beyond last_ack, payload_offset %u, "
-                    //       "payload_len %u\n", payload_offset, payload_len);
+                    printf("StreamTcpReassembleHandleSegmentUpdateACK: start "
+                           "fine, ends beyond last_ack, payload_offset %u, "
+                           "payload_len %u\n", payload_offset, payload_len);
                 } else {
                     payload_len = seg->payload_len;
-                    //printf("StreamTcpReassembleHandleSegmentUpdateACK: normal "
-                    //       "(smsg_offset %u), payload_offset %u, payload_len %u\n",
-                    //        smsg_offset, payload_offset, payload_len);
+                    printf("StreamTcpReassembleHandleSegmentUpdateACK: normal "
+                           "(smsg_offset %u), payload_offset %u, payload_len %u\n",
+                            smsg_offset, payload_offset, payload_len);
                 }
             }
 
@@ -373,8 +403,12 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
+            if (copy_size > sizeof(smsg->data.data)) {
+                printf("BUG(%u): copy_size %u > sizeof(smsg->data.data) %u\n", __LINE__, copy_size, sizeof(smsg->data.data));
+                abort();
+            }
             printf("StreamTcpReassembleHandleSegmentUpdateACK: copy_size %u "
-                "(payload %u)\n", copy_size, payload_len);
+                "(payload_len %u, payload_offset %u)\n", copy_size, payload_len, payload_offset);
 
             memcpy(smsg->data.data + smsg_offset, seg->payload + payload_offset, copy_size);
 
@@ -382,13 +416,21 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
             stream->ra_base_seq += copy_size;
             smsg->data.data_len += copy_size;
 
+            if (smsg->data.data_len == sizeof(smsg->data.data)) {
+                StreamMsgPutInQueue(smsg);
+                smsg = NULL;
+            }
+
             if (copy_size < payload_len) {
                 printf("StreamTcpReassembleHandleSegmentUpdateACK: "
                        "copy_size %u < %u\n", copy_size, payload_len);
 
-                StreamMsgPutInQueue(smsg);
-                smsg = NULL;
-                payload_offset = copy_size + payload_offset;
+                payload_offset += copy_size;
+                payload_len -= copy_size;
+                if (payload_offset > seg->payload_len) {
+                    printf("BUG(%u): payload_offset %u > seg->payload_len %u\n", __LINE__, payload_offset, seg->payload_len);
+                    abort();
+                }
                 printf("StreamTcpReassembleHandleSegmentUpdateACK: "
                        "payload_offset %u\n", payload_offset);
 
@@ -410,8 +452,12 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                     smsg->flow = p->flow;
 
                     copy_size = sizeof(smsg->data.data) - smsg_offset;
-                    if (copy_size > (payload_len - payload_offset)) {
-                        copy_size = (payload_len - payload_offset);
+                    if (copy_size > (seg->payload_len - payload_offset)) {
+                        copy_size = (seg->payload_len - payload_offset);
+                    }
+                    if (copy_size > sizeof(smsg->data.data)) {
+                        printf("BUG(%u): copy_size %u > sizeof(smsg->data.data) %u\n", __LINE__, copy_size, sizeof(smsg->data.data));
+                        abort();
                     }
 
                     printf("StreamTcpReassembleHandleSegmentUpdateACK: copy "
@@ -427,8 +473,19 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                            "payload_offset %u, smsg_offset %u, copy_size %u\n",
                             payload_offset, smsg_offset, copy_size);
 
-                    if ((copy_size + payload_offset) < payload_len) {
+                    if (smsg->data.data_len == sizeof(smsg->data.data)) {
+                        StreamMsgPutInQueue(smsg);
+                        smsg = NULL;
+                    }
+
+                    if ((copy_size + payload_offset) < seg->payload_len) {
                         payload_offset += copy_size;
+                        payload_len -= copy_size;
+
+                        if (payload_offset > seg->payload_len) {
+                            printf("BUG(%u): payload_offset %u > seg->payload_len %u\n", __LINE__, payload_offset, seg->payload_len);
+                            abort();
+                        }
                         printf("StreamTcpReassembleHandleSegmentUpdateACK: loop not done\n");
                     } else {
                         printf("StreamTcpReassembleHandleSegmentUpdateACK: loop done\n");
@@ -446,6 +503,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
 
         /* done with this segment, return it to the pool */
         if (remove == TRUE) {
+            next_seq = seg->seq + seg->payload_len;
+
             printf("StreamTcpReassembleHandleSegmentUpdateACK: removing seg %p, "
                    "seg->next %p\n", seg, seg->next);
             stream->seg_list = seg->next;
