@@ -266,9 +266,10 @@ void FlowHandlePacket (ThreadVars *th_v, Packet *p)
 #define FLOW_DEFAULT_PREALLOC    10000
 
 /* Not Thread safe */
-void FlowInitConfig (void)
+void FlowInitConfig (char quiet)
 {
-    printf("Initializing Flow:\n");
+    if (quiet == FALSE)
+        printf("Initializing Flow:\n");
 
     memset(&flow_config,  0, sizeof(flow_config));
     memset(&flow_spare_q, 0, sizeof(flow_spare_q));
@@ -297,8 +298,9 @@ void FlowInitConfig (void)
     memset(flow_hash, 0, flow_config.hash_size * sizeof(FlowBucket));
     flow_config.memuse += (flow_config.hash_size * sizeof(FlowBucket));
 
-    printf("* Allocated %u bytes of memory for the flow hash... %u buckets of size %u\n",
-        flow_config.memuse, flow_config.hash_size, sizeof(FlowBucket));
+    if (quiet == FALSE)
+        printf("* Allocated %u bytes of memory for the flow hash... %u buckets of size %u\n",
+            flow_config.memuse, flow_config.hash_size, sizeof(FlowBucket));
 
     /* pre allocate flows */
     u_int32_t i = 0;
@@ -310,10 +312,13 @@ void FlowInitConfig (void)
         }
         FlowEnqueue(&flow_spare_q,f);
     }
-    printf("* Preallocated %u flows of size %u\n",
-        flow_spare_q.len, sizeof(Flow));
-    printf("* Flow memory usage: %u bytes. Maximum: %u\n",
-        flow_config.memuse, flow_config.memcap);
+
+    if (quiet == FALSE) {
+        printf("* Preallocated %u flows of size %u\n",
+                flow_spare_q.len, sizeof(Flow));
+        printf("* Flow memory usage: %u bytes. Maximum: %u\n",
+                flow_config.memuse, flow_config.memcap);
+    }
 }
 
 /* Not Thread safe */

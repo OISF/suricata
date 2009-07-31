@@ -1,9 +1,13 @@
 /* Copyright (c) 2009 Open Infosec Foundation
  *  Written by Breno Silva Pinto <breno.silva@gmail.com> */
 
+#include "eidps.h"
+
 #include "decode.h"
 #include "decode-ppp.h"
 #include "decode-events.h"
+
+#include "flow.h"
 
 #include "util-unittest.h"
 
@@ -166,7 +170,11 @@ static int DecodePPPtest03 (void)   {
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
 
+    FlowInitConfig(FLOW_QUIET);
+
     DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL);
+
+    FlowShutdown();
 
     if(p.ppph == NULL) {
         return 0;
@@ -207,7 +215,11 @@ static int DecodePPPtest04 (void)   {
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
 
+    FlowInitConfig(FLOW_QUIET);
+
     DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL);
+
+    FlowShutdown();
 
     if(p.ppph == NULL) {
         return 0;
