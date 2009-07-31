@@ -70,6 +70,8 @@ void *TmThreadsSlot1NoIn(void *td) {
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
+            EngineKill();
+
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
@@ -123,6 +125,8 @@ void *TmThreadsSlot1NoOut(void *td) {
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
+            EngineKill();
+
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
@@ -172,6 +176,8 @@ void *TmThreadsSlot1NoInOut(void *td) {
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
+            EngineKill();
+
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
@@ -224,6 +230,8 @@ void *TmThreadsSlot1(void *td) {
     if (s->s.SlotInit != NULL) {
         r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
+            EngineKill();
+
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
@@ -292,6 +300,8 @@ void *TmThreadsSlot2(void *td) {
     if (s->s1.SlotInit != NULL) {
         r = s->s1.SlotInit(tv, s->s1.slot_initdata, &s->s1.slot_data);
         if (r != 0) {
+            EngineKill();
+
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
@@ -299,6 +309,8 @@ void *TmThreadsSlot2(void *td) {
     if (s->s2.SlotInit != NULL) {
         r = s->s2.SlotInit(tv, s->s2.slot_initdata, &s->s2.slot_data);
         if (r != 0) {
+            EngineKill();
+
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
@@ -399,6 +411,8 @@ void *TmThreadsSlot3(void *td) {
     if (s->s1.SlotInit != NULL) {
         r = s->s1.SlotInit(tv, s->s1.slot_initdata, &s->s1.slot_data);
         if (r != 0) {
+            EngineKill();
+
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
@@ -406,6 +420,8 @@ void *TmThreadsSlot3(void *td) {
     if (s->s2.SlotInit != NULL) {
         r = s->s2.SlotInit(tv, s->s2.slot_initdata, &s->s2.slot_data);
         if (r != 0) {
+            EngineKill();
+
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
@@ -413,6 +429,8 @@ void *TmThreadsSlot3(void *td) {
     if (s->s3.SlotInit != NULL) {
         r = s->s3.SlotInit(tv, s->s3.slot_initdata, &s->s3.slot_data);
         if (r != 0) {
+            EngineKill();
+
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
         }
@@ -590,6 +608,8 @@ void *TmThreadsSlotVar(void *td) {
         if (slot->SlotInit != NULL) {
             r = slot->SlotInit(tv, slot->slot_initdata, &slot->slot_data);
             if (r != 0) {
+                EngineKill();
+
                 tv->flags |= THV_CLOSED;
                 pthread_exit((void *) -1);
             }
@@ -910,7 +930,7 @@ void TmThreadKillThreads(void) {
 
     while (t) {
         t->flags |= THV_KILL;
-        printf("TmThreadKillThreads: told thread %s to stop\n", t->name);
+        //printf("TmThreadKillThreads: told thread %s to stop\n", t->name);
 
         /* XXX hack */
         StreamMsgSignalQueueHack();
@@ -918,7 +938,7 @@ void TmThreadKillThreads(void) {
         if (t->inq != NULL) {
             int i;
 
-            printf("TmThreadKillThreads: t->inq->usecnt %u\n", t->inq->usecnt);
+            //printf("TmThreadKillThreads: t->inq->usecnt %u\n", t->inq->usecnt);
 
             /* make sure our packet pending counter doesn't block */
             pthread_cond_signal(&cond_pending);
@@ -931,7 +951,7 @@ void TmThreadKillThreads(void) {
             int cnt = 0;
             while (1) {
                 if (t->flags & THV_CLOSED) {
-                    printf("signalled the thread %d times\n", cnt);
+                    //printf("signalled the thread %d times\n", cnt);
                     break;
                 }
 
@@ -943,7 +963,7 @@ void TmThreadKillThreads(void) {
                 usleep(100);
             }
 
-            printf("TmThreadKillThreads: signalled t->inq->id %u\n", t->inq->id);
+            //printf("TmThreadKillThreads: signalled t->inq->id %u\n", t->inq->id);
         }
 
         /* join it */
