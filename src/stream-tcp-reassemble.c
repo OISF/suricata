@@ -113,8 +113,19 @@ int StreamTcpReassembleInit(void) {
 }
 
 static void PrintList (TcpSegment *seg) {
+    if (seg == NULL)
+        return;
+
+    u_int32_t next_seq = seg->seq;
+
     while (seg != NULL) {
+        if (next_seq != seg->seq) {
+            printf("PrintList: missing segment(s) for %u bytes of data\n", (seg->seq - next_seq));
+        }
+
         printf("PrintList: seg %10u len %u\n", seg->seq, seg->payload_len);
+
+        next_seq = seg->seq + seg->payload_len;
         seg = seg->next;
     }
 }

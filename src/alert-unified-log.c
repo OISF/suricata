@@ -105,7 +105,7 @@ int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
     /* XXX filename & location */
     aun->fp = fopen(filename, "wb");
     if (aun->fp == NULL) {
-        printf("Error: fopen failed: %s\n", strerror(errno)); /* XXX errno threadsafety? */
+        printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
         return -1;
     }
 

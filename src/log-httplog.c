@@ -181,8 +181,10 @@ int LogHttplogThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aft, 0, sizeof(LogHttplogThread));
 
     /* XXX */
-    aft->fp = fopen("/var/log/eidps/http.log", "w");
+    char *path = "/var/log/eidps/http.log";
+    aft->fp = fopen(path, "w");
     if (aft->fp == NULL) {
+        printf("ERROR: failed to open %s: %s\n", path, strerror(errno));
         return -1;
     }
 
