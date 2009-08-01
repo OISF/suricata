@@ -16,6 +16,8 @@
 #define FLOW_PKT_STATELESS           0x08
 #define FLOW_PKT_TOSERVER_IPONLY_SET 0x10
 #define FLOW_PKT_TOCLIENT_IPONLY_SET 0x20
+#define FLOW_PKT_NOSTREAM            0x40
+#define FLOW_PKT_STREAMONLY          0x80
 
 /* global flow config */
 typedef struct FlowCnf_
