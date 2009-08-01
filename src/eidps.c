@@ -127,6 +127,8 @@ Packet *SetupPkt (void)
     mutex_unlock(&packet_q.mutex_q);
 
     if (p == NULL) {
+        TmqDebugList();
+
         p = malloc(sizeof(Packet));
         if (p == NULL) {
             printf("ERROR: malloc failed: %s\n", strerror(errno));
