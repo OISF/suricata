@@ -21,6 +21,7 @@ typedef struct TcpStream_ {
     /* reassembly */
     u_int32_t ra_base_seq; /* reassembled seq. We've reassembled up to this point. */
     TcpSegment *seg_list;
+    u_int8_t os_policy; /* target based OS policy used for reassembly and handling packets*/
 } TcpStream;
 
 /* from /usr/include/netinet/tcp.h */
@@ -32,7 +33,7 @@ enum
     TCP_FIN_WAIT1,
     TCP_FIN_WAIT2,
     TCP_TIME_WAIT,
-    TCP_CLOSE,
+    TCP_CLOSED,
     TCP_CLOSE_WAIT,
     TCP_LAST_ACK,
     TCP_LISTEN,
@@ -53,5 +54,4 @@ typedef struct TcpSession_ {
     TcpStream client;
     void **l7data;
 } TcpSession;
-
 #endif /* __STREAM_TCP_PRIVATE_H__ */
