@@ -102,7 +102,8 @@ int DetectFlowMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
     }
 
     int ret = (fd->match_cnt == cnt) ? 1 : 0;
-    //printf("DetectFlowMatch: returning %d cnt %d fd->match_cnt %d\n", ret,cnt,fd->match_cnt);
+    //printf("DetectFlowMatch: returning %d cnt %d fd->match_cnt %d fd->flags 0x%02X p->flowflags 0x%02X \n", ret, cnt,
+              //fd->match_cnt, fd->flags, p->flowflags);
     return ret;
 }
 
@@ -226,7 +227,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
             }
 
             fd->match_cnt++;
-            //printf("args[%d]: %s match_cnt: %d flags: %d\n", i, args[i], fd->match_cnt, fd->flags);
+            //printf("args[%d]: %s match_cnt: %d flags: 0x%02X\n", i, args[i], fd->match_cnt, fd->flags);
         }
     }
     for (i = 0; i < (ret -1); i++){
@@ -320,7 +321,7 @@ int DetectFlowTestParse02 (void) {
         if (fd->flags == FLOW_PKT_ESTABLISHED && fd->match_cnt == 1) {
             result = 1;
         } else {
-            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_ESTABLISHED, 1, fd->flags, fd->match_cnt);
+            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_ESTABLISHED, 1, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -339,7 +340,7 @@ int DetectFlowTestParse03 (void) {
         if (fd->flags == FLOW_PKT_STATELESS && fd->match_cnt == 1) {
             result = 1;
         } else {
-            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_STATELESS, 1, fd->flags, fd->match_cnt);
+            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_STATELESS, 1, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -358,7 +359,7 @@ int DetectFlowTestParse04 (void) {
         if (fd->flags == FLOW_PKT_TOCLIENT && fd->match_cnt == 1) {
             result = 1;
         } else {
-            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_TOCLIENT, 1, fd->flags, fd->match_cnt);
+            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_TOCLIENT, 1, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -377,7 +378,7 @@ int DetectFlowTestParse05 (void) {
         if (fd->flags == FLOW_PKT_TOSERVER && fd->match_cnt == 1) {
             result = 1;
         } else {
-            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_TOSERVER, 1, fd->flags, fd->match_cnt);
+            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_TOSERVER, 1, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -396,7 +397,7 @@ int DetectFlowTestParse06 (void) {
         if (fd->flags == FLOW_PKT_TOCLIENT && fd->match_cnt == 1) {
             result = 1;
         } else {
-            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_TOCLIENT, 1, fd->flags, fd->match_cnt);
+            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_TOCLIENT, 1, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -415,7 +416,7 @@ int DetectFlowTestParse07 (void) {
         if (fd->flags == FLOW_PKT_TOSERVER && fd->match_cnt == 1) {
             result = 1;
         } else {
-            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_TOSERVER, 1, fd->flags, fd->match_cnt);
+            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_TOSERVER, 1, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -434,7 +435,7 @@ int DetectFlowTestParse08 (void) {
         if (fd->flags & FLOW_PKT_ESTABLISHED && fd->flags & FLOW_PKT_TOCLIENT && fd->match_cnt == 2) {
             result = 1;
         } else {
-            printf("We expected: 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT, 2, fd->flags, fd->match_cnt);
+            printf("We expected: 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT, 2, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -453,7 +454,7 @@ int DetectFlowTestParse09 (void) {
         if (fd->flags & FLOW_PKT_STATELESS && fd->flags & FLOW_PKT_TOCLIENT && fd->match_cnt == 2) {
             result = 1;
         } else {
-            printf("We expected: 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_STATELESS + FLOW_PKT_TOCLIENT, 2, fd->flags, fd->match_cnt);
+            printf("We expected: 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_STATELESS + FLOW_PKT_TOCLIENT, 2, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -472,7 +473,7 @@ int DetectFlowTestParse10 (void) {
         if (fd->flags & FLOW_PKT_STATELESS  && fd->flags & FLOW_PKT_TOCLIENT && fd->match_cnt == 2){
             result = 1;
         } else {
-            printf("We expected: 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_STATELESS + FLOW_PKT_TOCLIENT, 2, fd->flags, fd->match_cnt);
+            printf("We expected: 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_STATELESS + FLOW_PKT_TOCLIENT, 2, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -491,7 +492,7 @@ int DetectFlowTestParse11 (void) {
         if (fd->flags & FLOW_PKT_STATELESS  && fd->flags & FLOW_PKT_TOCLIENT && fd->match_cnt == 2){
             result = 1;
         } else {
-            printf("We expected: 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_STATELESS + FLOW_PKT_TOCLIENT, 2, fd->flags, fd->match_cnt);
+            printf("We expected: 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_STATELESS + FLOW_PKT_TOCLIENT, 2, fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
     }
@@ -507,7 +508,7 @@ int DetectFlowTestParse12 (void) {
     DetectFlowData *fd = NULL;
     fd = DetectFlowParse("from_server:stateless");
     if (fd != NULL) {
-        printf("We expected: NULL got 0x%02X %d",fd->flags, fd->match_cnt);
+        printf("We expected: NULL got 0x%02X %d: ",fd->flags, fd->match_cnt);
         result = 0;
         DetectFlowFree(fd);
     }
@@ -523,7 +524,7 @@ int DetectFlowTestParse13 (void) {
     DetectFlowData *fd = NULL;
     fd = DetectFlowParse("invalidoptiontest");
     if (fd != NULL) {
-        printf("We expected: NULL got 0x%02X %d",fd->flags, fd->match_cnt);
+        printf("We expected: NULL got 0x%02X %d: ",fd->flags, fd->match_cnt);
         result = 0;
         DetectFlowFree(fd);
     }
@@ -538,7 +539,7 @@ int DetectFlowTestParse14 (void) {
     DetectFlowData *fd = NULL;
     fd = DetectFlowParse("");
     if (fd != NULL) {
-        printf("We expected: NULL got 0x%02X %d",fd->flags, fd->match_cnt);
+        printf("We expected: NULL got 0x%02X %d: ",fd->flags, fd->match_cnt);
         result = 0;
         DetectFlowFree(fd);
     }
@@ -554,7 +555,7 @@ int DetectFlowTestParse15 (void) {
     DetectFlowData *fd = NULL;
     fd = DetectFlowParse("established,stateless");
     if (fd != NULL) {
-        printf("We expected: NULL got 0x%02X %d",fd->flags, fd->match_cnt);
+        printf("We expected: NULL got 0x%02X %d: ",fd->flags, fd->match_cnt);
         result = 0;
         DetectFlowFree(fd);
     }
@@ -570,7 +571,7 @@ int DetectFlowTestParse16 (void) {
     DetectFlowData *fd = NULL;
     fd = DetectFlowParse("to_client,to_server");
     if (fd != NULL) {
-        printf("We expected: NULL got 0x%02X %d",fd->flags, fd->match_cnt);
+        printf("We expected: NULL got 0x%02X %d: ",fd->flags, fd->match_cnt);
         result = 0;
         DetectFlowFree(fd);
     }
@@ -587,7 +588,7 @@ int DetectFlowTestParse17 (void) {
     DetectFlowData *fd = NULL;
     fd = DetectFlowParse("to_client,from_server");
     if (fd != NULL) {
-        printf("We expected: NULL got 0x%02X %d",fd->flags, fd->match_cnt);
+        printf("We expected: NULL got 0x%02X %d: ",fd->flags, fd->match_cnt);
         result = 0;
         DetectFlowFree(fd);
     }
@@ -606,7 +607,7 @@ int DetectFlowTestParse18 (void) {
         if (fd->flags & FLOW_PKT_ESTABLISHED && fd->flags & FLOW_PKT_TOCLIENT && fd->flags & FLOW_PKT_STREAMONLY && fd->match_cnt == 3) {
             result = 1;
         } else {
-            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT + FLOW_PKT_STREAMONLY, 3,
+            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT + FLOW_PKT_STREAMONLY, 3,
                     fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
@@ -623,7 +624,7 @@ int DetectFlowTestParse19 (void) {
     DetectFlowData *fd = NULL;
     fd = DetectFlowParse("from_server,established,stream_only,a");
     if (fd != NULL) {
-        printf("We expected: NULL got 0x%02X %d",fd->flags, fd->match_cnt);
+        printf("We expected: NULL got 0x%02X %d: ",fd->flags, fd->match_cnt);
         result = 0;
         DetectFlowFree(fd);
     }
@@ -641,7 +642,7 @@ int DetectFlowTestParse20 (void) {
         if (fd->flags & FLOW_PKT_ESTABLISHED && fd->flags & FLOW_PKT_TOCLIENT && fd->flags & FLOW_PKT_NOSTREAM && fd->match_cnt == 3) {
             result = 1;
         } else {
-            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT + FLOW_PKT_NOSTREAM, 3,
+            printf("We Expected 0x%02X cnt %d got 0x%02X cnt %d: ", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT + FLOW_PKT_NOSTREAM, 3,
                     fd->flags, fd->match_cnt);
         }
 
@@ -659,7 +660,7 @@ int DetectFlowTestParse21 (void) {
     DetectFlowData *fd = NULL;
     fd = DetectFlowParse("from_server,a,no_stream");
     if (fd != NULL) {
-        printf("We expected: NULL got 0x%02X %d",fd->flags, fd->match_cnt);
+        printf("We expected: NULL got 0x%02X %d: ",fd->flags, fd->match_cnt);
         result = 0;
         DetectFlowFree(fd);
     }
