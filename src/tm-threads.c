@@ -17,7 +17,7 @@ static int SetCPUAffinity(int cpu);
 
 
 /* root of the threadvars list */
-static ThreadVars *tv_root;
+ThreadVars *tv_root = NULL;
 
 typedef struct TmSlot_ {
     /* function pointers */

@@ -21,9 +21,11 @@ void DecodeEthernet(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, Pack
 
     if (ntohs(ethh->eth_type) == ETHERNET_TYPE_IP) {
         //printf("DecodeEthernet ip4\n");
+        PerfCounterIncr(DECODER_IPV4, t->pca);
         DecodeIPV4(t, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN, pq);
     } else if(ntohs(ethh->eth_type) == ETHERNET_TYPE_IPV6) {
         //printf("DecodeEthernet ip6\n");
+        PerfCounterIncr(DECODER_IPV6, t->pca);
         DecodeIPV6(t, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN);
     }
 

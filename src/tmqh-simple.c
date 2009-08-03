@@ -25,6 +25,10 @@ Packet *TmqhInputSimple(ThreadVars *t)
         /* if we have no packets in queue, wait... */
         pthread_cond_wait(&q->cond_q, &q->mutex_q);
     }
+
+    if (t->pctx.perf_flag == 1)
+        PerfUpdateCounterArray(t->pca, &t->pctx, 0);
+
     if (q->len > 0) {
         Packet *p = PacketDequeue(q);
         mutex_unlock(&q->mutex_q);

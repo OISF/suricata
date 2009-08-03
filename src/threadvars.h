@@ -6,6 +6,7 @@
 //#include "source-nfq.h"
 #include "util-mpm.h"
 #include "tm-queues.h"
+#include "counters.h"
 
 #define THV_USE     0x01
 #define THV_KILL    0x02
@@ -30,6 +31,9 @@ typedef struct ThreadVars_ {
 
     char set_cpu_affinity; /* bool: 0 no, 1 yes */
     int cpu_affinity; /* cpu or core to set affinity to */
+
+    PerfContext pctx;
+    PerfCounterArray *pca;
 
     struct ThreadVars_ *next;
     struct ThreadVars_ *prev;

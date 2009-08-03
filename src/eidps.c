@@ -841,6 +841,7 @@ int main(int argc, char **argv)
     CIDRInit();
     SigParsePrepare();
     PatternMatchPrepare(mpm_ctx);
+    PerfInitCounterApi();
 
     /* XXX we need an api for this */
     L7AppDetectThreadInit();
@@ -882,6 +883,7 @@ int main(int argc, char **argv)
     MpmRegisterTests();
     FlowBitRegisterTests();
     SigRegisterTests();
+    PerfRegisterTests();
     DecodePPPRegisterTests();
     if (argc > 1&& (strcmp(argv[1],"runtests") == 0)) {
         UtRunTests();
@@ -957,6 +959,8 @@ int main(int argc, char **argv)
     }
     TmThreadAppend(&tv_l7appdetect);
 
+    PerfSpawnThreads();
+
     while(1) {
         if (sigflags) {
             printf("signal received\n");
@@ -993,6 +997,7 @@ int main(int argc, char **argv)
 
             printf("time elapsed %lus\n", end_time.tv_sec - start_time.tv_sec);
 
+            PerfReleaseResources();
             TmThreadKillThreads();
 #if 0
 #ifdef DBG_PERF

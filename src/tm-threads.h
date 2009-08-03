@@ -1,6 +1,8 @@
 #ifndef __TM_THREADS_H__
 #define __TM_THREADS_H__
 
+extern ThreadVars *tv_root;
+
 void Tm1SlotSetFunc(ThreadVars *, TmModule *, void *);
 void Tm2SlotSetFunc1(ThreadVars *, TmModule *, void *);
 void Tm2SlotSetFunc2(ThreadVars *, TmModule *, void *);
