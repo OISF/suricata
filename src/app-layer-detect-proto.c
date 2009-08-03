@@ -14,51 +14,48 @@
 #include "stream-tcp-private.h"
 #include "stream.h"
 
-#define INSPECT_BYTES   64
+#include "app-layer-protos.h"
 
-#define PROTO_UNKNOWN   0
-#define PROTO_HTTP      1
-#define PROTO_FTP       2
-#define PROTO_SMTP      3
+#define INSPECT_BYTES   32
 
-static u_int8_t l7_proto_id = 0;
+static u_int8_t al_proto_id = 0;
 
-typedef struct L7AppDetectDataProto_ {
+typedef struct AppLayerDetectProtoData_ {
     u_int8_t proto;
-} L7AppDetectDataProto;
+} AppLayerDetectProtoData;
 
-static Pool *l7appdetect_proto_pool = NULL;
+static Pool *al_detect_proto_pool = NULL;
 
-void *L7AppDetectProtoAlloc(void *null) {
-    L7AppDetectDataProto *d = malloc(sizeof(L7AppDetectDataProto));
+void *AppLayerDetectProtoAlloc(void *null) {
+    AppLayerDetectProtoData *d = malloc(sizeof(AppLayerDetectProtoData));
     if (d == NULL) {
         return NULL;
     }
 
-    d->proto = PROTO_UNKNOWN;
+    d->proto = ALPROTO_UNKNOWN;
     return d;
 }
-#define L7AppDetectProtoFree free
+#define AppLayerDetectProtoFree free
 
-void L7AppDetectThreadInit(void) {
-    l7_proto_id = StreamL7RegisterModule(); 
+void AppLayerDetectProtoThreadInit(void) {
+    al_proto_id = StreamL7RegisterModule();
 
-    l7appdetect_proto_pool = PoolInit(262144, 32768, L7AppDetectProtoAlloc, NULL, L7AppDetectProtoFree);
-    if (l7appdetect_proto_pool == NULL) {
+    al_detect_proto_pool = PoolInit(262144, 32768, AppLayerDetectProtoAlloc, NULL, AppLayerDetectProtoFree);
+    if (al_detect_proto_pool == NULL) {
         exit(1);
     }
 }
 
-u_int8_t L7AppDetectGetProto(u_int8_t *buf, u_int16_t buflen) {
+u_int8_t AppLayerDetectGetProto(u_int8_t *buf, u_int16_t buflen) {
     if (buflen < INSPECT_BYTES)
-        return PROTO_UNKNOWN;
+        return ALPROTO_UNKNOWN;
 
     /* XXX do actual detect */
-    printf("L7AppDetectGetProto: protocol detection goes here.\n");
-    return PROTO_HTTP;
+    printf("AppLayerDetectGetProto: protocol detection goes here.\n");
+    return ALPROTO_HTTP;
 }
 
-void *L7AppDetectThread(void *td)
+void *AppLayerDetectProtoThread(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
     char run = TRUE;
@@ -88,7 +85,7 @@ void *L7AppDetectThread(void *td)
                        or make it part of the stream setup */
                     StreamL7DataPtrInit(ssn,StreamL7GetStorageSize());
                 }
-                void *l7_data_ptr = ssn->l7data[l7_proto_id];
+                void *al_data_ptr = ssn->l7data[al_proto_id];
 
                 if (smsg->flags & STREAM_START) {
                     //printf("L7AppDetectThread: stream initializer (len %u (%u))\n", smsg->data.data_len, MSG_DATA_SIZE);
@@ -97,17 +94,19 @@ void *L7AppDetectThread(void *td)
                     //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
                     //printf("=> Init Stream Data -- end\n");
 
-                    if (l7_data_ptr == NULL) {
-                        L7AppDetectDataProto *l7proto = (L7AppDetectDataProto *)PoolGet(l7appdetect_proto_pool);
-                        if (l7proto != NULL) {
-                            l7proto->proto = L7AppDetectGetProto(smsg->data.data, smsg->data.data_len);
+                    if (al_data_ptr == NULL) {
+                        AppLayerDetectProtoData *al_proto = (AppLayerDetectProtoData *)PoolGet(al_detect_proto_pool);
+                        if (al_proto != NULL) {
+                            al_proto->proto = AppLayerDetectGetProto(smsg->data.data, smsg->data.data_len);
 
                             /* store */
-                            ssn->l7data[l7_proto_id] = (void *)l7proto;
+                            ssn->l7data[al_proto_id] = (void *)al_proto;
+
+                            AppLayerParse(smsg->flow, al_proto->proto, smsg->flags, smsg->data.data, smsg->data.data_len);
                         }
                     }
                 } else {
-                    //printf("L7AppDetectThread: stream data (len %u (%u))\n", smsg->data.data_len, MSG_DATA_SIZE);
+                    //printf("AppLayerDetectThread: stream data (len %u (%u))\n", smsg->data.data_len, MSG_DATA_SIZE);
 
                     //printf("=> Stream Data -- start\n");
                     //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
@@ -115,11 +114,13 @@ void *L7AppDetectThread(void *td)
 
                     /* if we don't have a data object here we are not getting it
                      * a start msg should have gotten us one */
-                    if (l7_data_ptr != NULL) {
-                        L7AppDetectDataProto *l7proto = (L7AppDetectDataProto *)l7_data_ptr;
-                        printf("L7AppDetectThread: already established that the proto is %u\n", l7proto->proto);
+                    if (al_data_ptr != NULL) {
+                        AppLayerDetectProtoData *al_proto = (AppLayerDetectProtoData *)al_data_ptr;
+                        printf("AppLayerDetectThread: already established that the proto is %u\n", al_proto->proto);
+
+                        AppLayerParse(smsg->flow, al_proto->proto, smsg->flags, smsg->data.data, smsg->data.data_len);
                     } else {
-                        printf("L7AppDetectThread: smsg not start, but no l7 data? Weird\n");
+                        printf("AppLayerDetectThread: smsg not start, but no l7 data? Weird\n");
                     }
                 }
             }
@@ -138,22 +139,22 @@ void *L7AppDetectThread(void *td)
     pthread_exit((void *) 0);
 }
 
-void L7AppDetectThreadSpawn()
+void AppLayerDetectProtoThreadSpawn()
 {
-    ThreadVars *tv_l7appdetect = NULL;
+    ThreadVars *tv_applayerdetect = NULL;
 
-    tv_l7appdetect = TmThreadCreate("L7AppDetectThread", NULL, NULL, NULL, NULL,
-                                    "custom", L7AppDetectThread, 0);
-    if (tv_l7appdetect == NULL) {
+    tv_applayerdetect = TmThreadCreate("AppLayerDetectProtoThread", NULL, NULL, NULL, NULL,
+                                    "custom", AppLayerDetectProtoThread, 0);
+    if (tv_applayerdetect == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    if (TmThreadSpawn(tv_l7appdetect, TVT_PPT, THV_USE) != 0) {
+    if (TmThreadSpawn(tv_applayerdetect, TVT_PPT, THV_USE) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
 
-    printf("L7_App_Detect thread created\n");
-
+    printf("AppLayerDetectProtoThread thread created\n");
     return;
 }
+

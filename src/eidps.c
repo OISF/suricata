@@ -58,7 +58,7 @@
 #include "flow-bit.h"
 #include "pkt-var.h"
 
-#include "l7-app-detect.h"
+#include "app-layer-detect-proto.h"
 
 #include "util-cidr.h"
 #include "util-unittest.h"
@@ -898,7 +898,10 @@ int main(int argc, char **argv)
     PerfInitCounterApi();
 
     /* XXX we need an api for this */
-    L7AppDetectThreadInit();
+    AppLayerDetectProtoThreadInit();
+
+RegisterAppLayerParsers();
+RegisterHTTPParsers();
 
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
@@ -994,7 +997,7 @@ int main(int argc, char **argv)
     FlowManagerThreadSpawn();
 
     /* Spawn the L7 App Detect thread */
-    L7AppDetectThreadSpawn();
+    AppLayerDetectProtoThreadSpawn();
 
     /* Spawn the perf counter threads */
     PerfSpawnThreads();

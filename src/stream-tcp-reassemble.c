@@ -796,7 +796,25 @@ static void StreamTcpSetupInitMsg(Packet *p, StreamMsg *smsg) {
     }
 }
 
-int StreamTcpReassembleHandleSegmentUpdateACK(TcpSession *ssn, TcpStream *stream, Packet *p) {
+static void StreamTcpSetupMsg(Packet *p, StreamMsg *smsg) {
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+        COPY_ADDRESS(&p->flow->src,&smsg->data.src_ip);
+        COPY_ADDRESS(&p->flow->dst,&smsg->data.dst_ip);
+        COPY_PORT(p->flow->sp,smsg->data.src_port);
+        COPY_PORT(p->flow->dp,smsg->data.dst_port);
+
+        smsg->flags |= STREAM_TOSERVER;
+    } else {
+        COPY_ADDRESS(&p->flow->dst,&smsg->data.src_ip);
+        COPY_ADDRESS(&p->flow->src,&smsg->data.dst_ip);
+        COPY_PORT(p->flow->dp,smsg->data.src_port);
+        COPY_PORT(p->flow->sp,smsg->data.dst_port);
+
+        smsg->flags |= STREAM_TOCLIENT;
+    }
+}
+
+int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *stream, Packet *p) {
     if (stream->seg_list == NULL)
         return 0;
 
@@ -869,6 +887,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK(TcpSession *ssn, TcpStream *stream
 
                 if (stream->ra_base_seq == stream->isn) {
                     StreamTcpSetupInitMsg(p, smsg);
+                } else {
+                    StreamTcpSetupMsg(p, smsg);
                 }
                 smsg->data.data_len = 0;
                 smsg->flow = p->flow;
@@ -970,7 +990,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK(TcpSession *ssn, TcpStream *stream
                     if (smsg->flow)
                         smsg->flow->use_cnt++;
 
-                    copy_size = sizeof (smsg->data.data) - smsg_offset;
+                    StreamTcpSetupMsg(p,smsg);
+
+                    copy_size = sizeof(smsg->data.data) - smsg_offset;
                     if (copy_size > (seg->payload_len - payload_offset)) {
                         copy_size = (seg->payload_len - payload_offset);
                     }

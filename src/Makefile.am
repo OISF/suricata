@@ -93,8 +93,11 @@ stream-tcp.c stream-tcp.h stream-tcp-private.h \
 stream-tcp-reassemble.c stream-tcp-reassemble.h \
 respond-reject.c respond-reject.h \
 respond-reject-libnet11.h respond-reject-libnet11.c \
-l7-app-detect.c l7-app-detect.h \
-counters.c counter.h
+counters.c counter.h \
+app-layer-detect-proto.c app-layer-detect-proto.h \
+app-layer-parser.c app-layer-parser.h \
+app-layer-http.c app-layer-http.h \
+app-layer-protos.h
 
 # set the include path found by configure
 INCLUDES= $(all_includes)
