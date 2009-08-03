@@ -1,4 +1,4 @@
-#TODO test for pcre and a better test for lpthread? A better place for default CFLAGS?
+#TODO A better place for default CFLAGS?
 
 AC_INIT(configure.in)
 
@@ -23,9 +23,66 @@ AC_DEFUN([FAIL_MESSAGE],[
     exit 1
 ])
 
-LIBS="-lpthread -lpcre"
 CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
 
+#libpcre
+AC_ARG_WITH(libpcre_includes,
+    [  --with-libpcre-includes=DIR  libpcre include directory],
+    [with_libpcre_includes="$withval"],[with_libpcre_includes=no])
+AC_ARG_WITH(libpcre_libraries,
+    [  --with-libpcre-libraries=DIR    libpcre library directory],
+    [with_libpcre_libraries="$withval"],[with_libpcre_libraries="no"])
+
+if test "$with_libpcre_includes" != "no"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_libpcre_includes}"
+fi
+
+AC_CHECK_HEADER(pcre.h,,[AC_ERROR(pthread.h not found ...)])
+
+if test "$with_libpcre_libraries" != "no"; then
+    LDFLAGS="${LDFLAGS}  -L${with_libpcre_libraries}"
+fi
+
+PCRE=""
+AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no")
+
+if test "$PCRE" = "no"; then
+    echo
+    echo "   ERROR!  pcre library not found, go get it"
+    echo "   from www.pcre.org."
+    echo
+    exit 1
+fi
+
+#libpthread
+AC_ARG_WITH(libpthread_includes,
+    [  --with-libpthread-includes=DIR  libpthread include directory],
+    [with_libpthread_includes="$withval"],[with_libpthread_includes=no])
+AC_ARG_WITH(libpthread_libraries,
+    [  --with-libpthread-libraries=DIR    libpthread library directory],
+    [with_libpthread_libraries="$withval"],[with_libpthread_libraries="no"])
+
+if test "$with_libpthread_includes" != "no"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_libpthread_includes}"
+fi
+
+AC_CHECK_HEADER(pthread.h,,[AC_ERROR(pthread.h not found ...)])
+
+if test "$with_libpthread_libraries" != "no"; then
+    LDFLAGS="${LDFLAGS}  -L${with_libpthread_libraries}"
+fi
+
+PTHREAD=""
+AC_CHECK_LIB(pthread, pthread_create,, PTHREAD="no")
+
+if test "$PTHREAD" = "no"; then
+    echo
+    echo "   ERROR! libpthread library not found, glibc problem?"
+    echo
+    exit 1
+fi
+
+#libnfnetlink
 AC_ARG_WITH(libnfnetlink_includes,
     [  --with-libnfnetlink-includes=DIR  libnfnetlink include directory],
     [with_libnfnetlink_includes="$withval"],[with_libnfnetlink_includes=no])
@@ -57,6 +114,7 @@ if test "$NFNL" = "no"; then
     exit 
 fi
 
+#libnetfilter_queue
 AC_ARG_WITH(libnetfilter_queue_includes,
     [  --with-libnetfilter_queue-includes=DIR  libnetfilter_queue include directory],
     [with_libnetfilter_queue_includes="$withval"],[with_libnetfilter_queue_includes=no])
@@ -90,6 +148,7 @@ if test "$NFQ" = "no"; then
     exit 1 
 fi
 
+#libnet
 AC_ARG_WITH(libnet_includes,
     [  --with-libnet-includes=DIR     libnet include directory],
     [with_libnet_includes="$withval"],[with_libnet_includes="no"])
@@ -137,6 +196,23 @@ AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
     fi
 
 # libpcap
+AC_ARG_WITH(libpcap_includes,
+    [  --with-libpcap-includes=DIR  libpcap include directory],
+    [with_libpcap_includes="$withval"],[with_libpcap_includes=no])
+AC_ARG_WITH(libpcap_libraries,
+    [  --with-libpcap-libraries=DIR    libpcap library directory],
+    [with_libpcap_libraries="$withval"],[with_libpcap_libraries="no"])
+
+if test "$with_libpcap_includes" != "no"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_libpcap_includes}"
+fi
+
+AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
+
+if test "$with_libpcap_libraries" != "no"; then
+    LDFLAGS="${LDFLAGS}  -L${with_libpcap_libraries}"
+fi
+
 LIBPCAP=""
 AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no")
 if test "$LIBPCAP" = "no"; then
@@ -155,8 +231,6 @@ AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
     else
         CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=0"
     fi
-
-LIBS="${LIBS} -lpcap"
 
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
