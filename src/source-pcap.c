@@ -285,21 +285,21 @@ int ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
  */
 int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
 
-    PerfCounterIncr(DECODER_PKTS, t->pca);
-    PerfCounterAdd(DECODER_BYTES, t->pca, p->pktlen);
+    PerfCounterIncr(COUNTER_DECODER_PKTS, t->pca);
+    PerfCounterAdd(COUNTER_DECODER_BYTES, t->pca, p->pktlen);
 
     /* call the decoder */
     switch(p->pcap_v.datalink)    {
         case LINKTYPE_LINUX_SLL:
-            PerfCounterIncr(DECODER_SLL, t->pca);
+            PerfCounterIncr(COUNTER_DECODER_SLL, t->pca);
             DecodeSll(t,p,p->pkt,p->pktlen,pq);
             break;
         case LINKTYPE_ETHERNET:
-            PerfCounterIncr(DECODER_ETH, t->pca);
+            PerfCounterIncr(COUNTER_DECODER_ETH, t->pca);
             DecodeEthernet(t,p,p->pkt,p->pktlen,pq);
             break;
         case LINKTYPE_PPP:
-            PerfCounterIncr(DECODER_PPP, t->pca);
+            PerfCounterIncr(COUNTER_DECODER_PPP, t->pca);
             DecodePPP(t,p,p->pkt,p->pktlen,pq);
             break;
         default:
@@ -312,30 +312,28 @@ int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
 
 int DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
-    pthread_t self_tid = pthread_self();
-
-    PerfRegisterCounter("decoder.pkts", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.bytes", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.ipv4", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.ipv6", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.ethernet", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.sll", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.tcp", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.udp", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.icmpv4", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.icmpv6", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
-    PerfRegisterCounter("decoder.ppp", "DecodePcap", self_tid, TYPE_UINT64,
-                        "NULL", &tv->pctx);
+    PerfRegisterCounter("decoder.pkts", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.bytes", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.ipv4", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.ipv6", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.ethernet", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.sll", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.tcp", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.udp", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.icmpv4", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.icmpv6", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
+    PerfRegisterCounter("decoder.ppp", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx);
 
     tv->pca = PerfGetAllCountersArray(&tv->pctx);
 

@@ -1,13 +1,15 @@
-/* Anoop Saldanha <poonaatsoc@gmail.com> */
+/** Copyright (c) Open Information Security Foundation.
+ *  \author Anoop Saldanha <poonaatsoc@gmail.com>
+ */
 
 #ifndef __COUNTERS_H__
 #define __COUNTERS_H__
 
 
-// Time interval for syncing the local counters with the global ones
+/** Time interval for syncing the local counters with the global ones */
 #define WUT_TTS 3
-// Time interval at which the mgmt thread o/p the stats
-#define MGMTT_TTS 10
+/** Time interval at which the mgmt thread o/p the stats */
+#define MGMTT_TTS 8
 
 #define PT_RUN 0x01
 #define PT_KILL 0x02
@@ -59,6 +61,12 @@ typedef struct _PerfThreadContext {
 
     /* state of the 2 threads, determined by PT_RUN AND PT_KILL */
     u_int32_t flags;
+
+    /* need these mutexes just for calling pthread_cond_timewait() on tc_cond */
+    pthread_mutex_t wakeup_m;
+    pthread_mutex_t mgmt_m;
+
+    pthread_cond_t tc_cond;
 } PerfThreadContext;
 
 typedef struct _PerfCounterName {
@@ -105,7 +113,7 @@ typedef struct _PerfContext {
 /* PerfCounterArray(PCA) Node*/
 typedef struct _PCAElem {
     u_int32_t id;
-    u_int32_t cnt;
+    u_int64_t cnt;
 } PCAElem;
 
 /* The PerfCounterArray */
@@ -154,8 +162,7 @@ void * PerfMgmtThread(void *);
 
 void * PerfWakeupThread(void *);
 
-u_int32_t PerfRegisterCounter(char *, char *, pthread_t, int, char *,
-                              PerfContext *);
+u_int32_t PerfRegisterCounter(char *, char *, int, char *, PerfContext *);
 
 void PerfAddToClubbedTMTable(char *, PerfContext *);
 
@@ -185,25 +192,5 @@ void PerfReleaseCounter(PerfCounter *);
 void PerfReleasePCA(PerfCounterArray *);
 
 void PerfRegisterTests(void);
-
-int PerfTestCounterReg01(void);
-
-int PerfTestCounterReg02(void);
-
-int PerfTestCounterReg03(void);
-
-int PerfTestCounterReg04(void);
-
-int PerfTestGetCntArray05(void);
-
-int PerfTestGetCntArray06(void);
-
-int PerfTestCntArraySize07(void);
-
-int PerfTestUpdateCounter08(void);
-
-int PerfTestUpdateCounter09(void);
-
-int PerfTestUpdateGlobalCounter10(void);
 
 #endif /* __COUNTERS_H__ */

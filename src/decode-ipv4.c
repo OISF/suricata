@@ -91,22 +91,22 @@ void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQu
             }
             break;
         case IPPROTO_TCP:
-            PerfCounterIncr(DECODER_TCP, t->pca);
+            PerfCounterIncr(COUNTER_DECODER_TCP, t->pca);
             return(DecodeTCP(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_UDP:
             //printf("DecodeIPV4: next layer is UDP\n");
-            PerfCounterIncr(DECODER_UDP, t->pca);
+            PerfCounterIncr(COUNTER_DECODER_UDP, t->pca);
             return(DecodeUDP(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_ICMP:
             //printf("DecodeIPV4: next layer is ICMP\n");
-            PerfCounterIncr(DECODER_ICMPV4, t->pca);
+            PerfCounterIncr(COUNTER_DECODER_ICMPV4, t->pca);
             return(DecodeICMPV4(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_IPV6:
             {
-                PerfCounterIncr(DECODER_ICMPV6, t->pca);
+                PerfCounterIncr(COUNTER_DECODER_ICMPV6, t->pca);
                 if (pq != NULL) {
                     //printf("DecodeIPV4: next layer is IPV6\n");
                     //printf("DecodeIPV4: we are p %p\n", p);

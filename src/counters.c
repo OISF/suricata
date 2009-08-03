@@ -1,15 +1,19 @@
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "pthread.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include "time.h"
+
 #include "counters.h"
 #include "eidps.h"
 #include "threadvars.h"
 #include "tm-modules.h"
 #include "tm-threads.h"
 #include "util-unittest.h"
-#include <sys/time.h>
-#include "time.h"
+
+/** \todo config api */
+#define LOGPATH "/var/log/eidps/stats.log"
 
 static PerfThreadContext *perf_tc = NULL;
 static PerfOPIfaceContext *perf_op_ctx = NULL;
@@ -38,21 +42,24 @@ void PerfInitOPCtx()
 
     perf_op_ctx->iface = IFACE_FILE;
 
-    if ( (perf_op_ctx->file = strdup("/root/log.txt")) == NULL) {
+    if ( (perf_op_ctx->file = strdup(LOGPATH)) == NULL) {
         printf("error allocating memory\n");
         exit(0);
     }
 
     if ( (perf_op_ctx->fp = fopen(perf_op_ctx->file, "w+")) == NULL) {
-        printf("fopen error opening file /root/log.txt\n");
+        printf("fopen error opening file %s\n", perf_op_ctx->file);
         exit(0);
     }
 
-    // club the counter from multiple instances of the tm before o/p
+    /* club the counter from multiple instances of the tm before o/p */
     perf_op_ctx->club_tm = 1;
 
-    // init the lock used by PerfClubTMInst
-    pthread_mutex_init(&perf_op_ctx->pctmi_lock, NULL);
+    /* init the lock used by PerfClubTMInst */
+    if (pthread_mutex_init(&perf_op_ctx->pctmi_lock, NULL) != 0) {
+        printf("error initializing the pctmi mutex\n");
+        exit(0);
+    }
 
     return;
 }
@@ -75,12 +82,27 @@ void PerfSpawnThreads()
 
     perf_tc->flags = PT_RUN;
 
-    if (pthread_create(&perf_tc->wakeup_t, &attr, PerfWakeupThread, NULL)) {
+    if (pthread_mutex_init(&perf_tc->wakeup_m, NULL) != 0) {
+        printf("Error initializing the perf_tc->wakeup_m mutex\n");
+        exit(0);
+    }
+
+    if (pthread_mutex_init(&perf_tc->mgmt_m, NULL) != 0) {
+        printf("Error initializing the perf_tc->mgmt_m mutex\n");
+        exit(0);
+    }
+
+    if (pthread_cond_init(&perf_tc->tc_cond, NULL) != 0) {
+        printf("Error initializing the perf_tc->tc_cond condition variable\n");
+        exit(0);
+    }
+
+    if (pthread_create(&perf_tc->wakeup_t, &attr, PerfWakeupThread, NULL) != 0) {
         printf("Error creating PerfWakeupFunc thread\n");
         exit(0);
     }
 
-    if (pthread_create(&perf_tc->mgmt_t, &attr, PerfMgmtThread, NULL)) {
+    if (pthread_create(&perf_tc->mgmt_t, &attr, PerfMgmtThread, NULL) != 0) {
         printf("Error creating PerfWakeupFunc thread\n");
         exit(0);
     }
@@ -95,8 +117,25 @@ void PerfDestroyThreads()
 {
     perf_tc->flags |= PT_KILL;
 
+    /* prematurely wakeup, the mgmt and wakeup threads */
+    pthread_cond_broadcast(&perf_tc->tc_cond);
+
     pthread_join(perf_tc->wakeup_t, NULL);
     pthread_join(perf_tc->mgmt_t, NULL);
+
+    if (pthread_mutex_destroy(&perf_tc->wakeup_m) != 0) {
+        printf("Error destroying the mutex perf_tc->wakeup_m\n");
+    }
+
+    if (pthread_mutex_destroy(&perf_tc->mgmt_m) != 0) {
+        printf("Error destroying the mutex perf_tc->mgmt_m\n");
+    }
+
+    if (pthread_cond_destroy(&perf_tc->tc_cond) != 0) {
+        printf("Error destroying the condition variable perf_tc->tc_cond\n");
+    }
+
+    if (perf_tc != NULL) free(perf_tc);
 
     return;
 }
@@ -111,6 +150,7 @@ void PerfDestroyThreads()
 void * PerfMgmtThread(void *arg)
 {
     u_int8_t run = 1;
+    struct timespec cond_time;
 
     if (perf_op_ctx == NULL) {
         printf("error: PerfInitCounterApi() has to be called first\n");
@@ -118,7 +158,15 @@ void * PerfMgmtThread(void *arg)
     }
 
     while (run) {
-        sleep(MGMTT_TTS);
+        cond_time.tv_sec = time(NULL) + MGMTT_TTS;
+        cond_time.tv_nsec = 0;
+
+        pthread_mutex_lock(&perf_tc->mgmt_m);
+        pthread_cond_timedwait(&perf_tc->tc_cond, &perf_tc->mgmt_m,
+                               &cond_time);
+        pthread_mutex_unlock(&perf_tc->mgmt_m);
+
+        // sleep(MGMTT_TTS);
 
         PerfOutputCounters();
 
@@ -138,24 +186,33 @@ void * PerfMgmtThread(void *arg)
 void * PerfWakeupThread(void *arg)
 {
     u_int8_t run = 1;
-    ThreadVars *tv;
-    PacketQueue *q;
+    ThreadVars *tv = NULL;
+    PacketQueue *q = NULL;
+    struct timespec cond_time;
 
     while (run) {
-        sleep(WUT_TTS);
+        cond_time.tv_sec = time(NULL) + WUT_TTS;
+        cond_time.tv_nsec = 0;
+
+        pthread_mutex_lock(&perf_tc->wakeup_m);
+        pthread_cond_timedwait(&perf_tc->tc_cond, &perf_tc->wakeup_m,
+                               &cond_time);
+        pthread_mutex_unlock(&perf_tc->wakeup_m);
+
+        // sleep(WUT_TTS);
 
         tv = tv_root;
 
-        while (tv) {
-            if (!tv->inq || !tv->pctx.head) {
+        while (tv != NULL) {
+            if (tv->inq == NULL || tv->pctx.head == NULL) {
                 tv = tv->next;
                 continue;
             }
 
             q = &trans_q[tv->inq->id];
 
-            // assuming the assignment of an int to be atomic, and even if it's
-            // not, it should be okay
+            /* assuming the assignment of an int to be atomic, and even if it's
+               not, it should be okay */
             tv->pctx.perf_flag = 1;
 
             pthread_cond_signal(&q->cond_q);
@@ -181,36 +238,37 @@ void * PerfWakeupThread(void *arg)
  *
  * @returns the counter id
  */
-u_int32_t PerfRegisterCounter(char *cname, char *tm_name, pthread_t tid, int type,
+u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
                               char *desc, PerfContext *pctx)
 {
     PerfCounter **head = &pctx->head;
-    PerfCounter *temp, *prev;
-    PerfCounter *pc;
+    PerfCounter *temp = NULL;
+    PerfCounter *prev = NULL;
+    PerfCounter *pc = NULL;
 
     if (cname == NULL || tm_name == NULL || pctx == NULL) {
         printf("counter name, tm name null or PerfContext NULL\n");
         return 0;
     }
 
-    // (TYPE_MAX - 1) because we still haven't implemented TYPE_STR
+    /* (TYPE_MAX - 1) because we still haven't implemented TYPE_STR */
     if ((type >= (TYPE_MAX - 1)) || (type < 0)) {
-        printf("Error:Counters of this type can't be registered\n");
-        return(0);
+        printf("Error: Counters of type %d can't be registered\n", type);
+        return 0;
     }
 
     temp = prev = *head;
     while (temp != NULL) {
         prev = temp;
 
-        if (!strcmp(cname, temp->name->cname) &&
-            !strcmp(tm_name, temp->name->tm_name))
+        if (strcmp(cname, temp->name->cname) == 0 &&
+            strcmp(tm_name, temp->name->tm_name) == 0)
             break;
 
         temp = temp->next;
     }
 
-    // We already have a counter registered by this name
+    /* We already have a counter registered by this name */
     if (temp != NULL)
         return(temp->id);
 
@@ -243,16 +301,16 @@ u_int32_t PerfRegisterCounter(char *cname, char *tm_name, pthread_t tid, int typ
 
     pc->name->cname = strdup(cname);
     pc->name->tm_name = strdup(tm_name);
-    pc->name->tid = tid;
+    pc->name->tid = pthread_self();
 
     pc->value->type = type;
     switch(pc->value->type) {
-    case TYPE_UINT64:
-        pc->value->size = sizeof(u_int64_t);
-        break;
-    case TYPE_DOUBLE:
-        pc->value->size = sizeof(double);
-        break;
+        case TYPE_UINT64:
+            pc->value->size = sizeof(u_int64_t);
+            break;
+        case TYPE_DOUBLE:
+            pc->value->size = sizeof(double);
+            break;
     }
     if ( (pc->value->cvalue = malloc(pc->value->size)) == NULL) {
         printf("error allocating memory\n");
@@ -260,19 +318,28 @@ u_int32_t PerfRegisterCounter(char *cname, char *tm_name, pthread_t tid, int typ
     }
     memset(pc->value->cvalue, 0, pc->value->size);
 
-    // assign a unique id to this PerfCounter.  The id is local to this tv.
-    // please note that the ids start from 1 and not 0
+    /* assign a unique id to this PerfCounter.  The id is local to this tv.
+       please note that the ids start from 1 and not 0 */
     pc->id = ++(pctx->curr_id);
 
     if (desc != NULL)
         pc->desc = strdup(desc);
 
-    return(pc->id);
+    return pc->id;
 }
 
+/**
+ * Adds a TM to the clubbed TM table.  Multiple instances of the same TM are
+ * stacked together in a PCTMI container
+ *
+ * @param tm_name is the name of the tm to be added
+ * @param pctx holds the PerfContext associated with the TM tm_name
+ */
 void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
 {
-    PerfClubTMInst *pctmi, *prev, *temp;
+    PerfClubTMInst *pctmi = NULL;
+    PerfClubTMInst *prev = NULL;
+    PerfClubTMInst *temp = NULL;
     PerfContext **hpctx;
     int i = 0;
 
@@ -283,7 +350,7 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
 
     while (pctmi != NULL) {
         prev = pctmi;
-        if (strcmp(tm_name, pctmi->tm_name)) {
+        if (strcmp(tm_name, pctmi->tm_name) != 0) {
             pctmi = pctmi->next;
             continue;
         }
@@ -291,7 +358,10 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
     }
 
     if (pctmi == NULL) {
-        temp = malloc(sizeof(PerfClubTMInst));
+        if ( (temp = malloc(sizeof(PerfClubTMInst))) == NULL) {
+            printf("error allocating memory\n");
+            exit(0);
+        }
         memset(temp, 0, sizeof(PerfClubTMInst));
 
         temp->size++;
@@ -349,8 +419,8 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
 PerfCounterArray * PerfGetCounterArrayRange(u_int32_t s_id, u_int32_t e_id,
                                             PerfContext *pctx)
 {
-    PerfCounterArray *pca;
-    u_int8_t i;
+    PerfCounterArray *pca = NULL;
+    u_int32_t i = 0;
 
     if (pctx == NULL) {
         printf("pctx is NULL\n");
@@ -419,7 +489,7 @@ PerfCounterArray * PerfGetAllCountersArray(PerfContext *pctx)
 int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
                       PerfContext *pctx)
 {
-    PerfCounter *pc = pctx->head;
+    PerfCounter *pc = NULL;
 
     if (pctx == NULL) {
         printf("pctx null inside PerfUpdateCounter\n");
@@ -432,6 +502,12 @@ int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
         return 0;
     }
 
+    if (value == NULL) {
+        printf("value is NULL\n");
+        exit(0);
+    }
+
+    pc = pctx->head;
     while(pc != NULL) {
         if (pc->id != id) {
             pc = pc->next;
@@ -461,14 +537,17 @@ int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
  */
 int PerfUpdateCounterArray(PerfCounterArray *pca, PerfContext *pctx, int reset_lc)
 {
-    u_int32_t i;
-    PerfCounter *pc = pctx->head;
-    PCAElem *pcae = pca->head;
+    PerfCounter  *pc = NULL;
+    PCAElem *pcae = NULL;
+    u_int32_t i = 0;
 
     if (pca == NULL || pctx == NULL) {
         printf("pca or pctx is NULL inside PerfUpdateCounterArray\n");
         return -1;
     }
+
+    pc = pctx->head;
+    pcae = pca->head;
 
     pthread_mutex_lock(&pctx->m);
     for (i = 1; i <= pca->size; i++) {
@@ -502,18 +581,18 @@ int PerfUpdateCounterArray(PerfCounterArray *pca, PerfContext *pctx, int reset_l
 void PerfOutputCounters()
 {
     switch (perf_op_ctx->iface) {
-    case IFACE_FILE:
-        PerfOutputCounterFileIface();
-        break;
-    case IFACE_CONSOLE:
-        // yet to be implemented
-        break;
-    case IFACE_NETWORK:
-        // yet to be implemented
-        break;
-    case IFACE_SYSLOG:
-        // yet to be implemented
-        break;
+        case IFACE_FILE:
+            PerfOutputCounterFileIface();
+            break;
+        case IFACE_CONSOLE:
+            // yet to be implemented
+            break;
+        case IFACE_NETWORK:
+            // yet to be implemented
+            break;
+        case IFACE_SYSLOG:
+            // yet to be implemented
+            break;
     }
 
     return;
@@ -525,12 +604,12 @@ void PerfOutputCounters()
 int PerfOutputCounterFileIface()
 {
     ThreadVars *tv = tv_root;
-    PerfClubTMInst *pctmi;
-    PerfCounter *pc;
+    PerfClubTMInst *pctmi = NULL;
+    PerfCounter *pc = NULL;
     PerfCounter **pc_heads;
 
-    u_int64_t *ui64_cvalue;
-    u_int64_t result;
+    u_int64_t *ui64_cvalue = NULL;
+    u_int64_t result = 0;
 
     struct timeval tval;
     struct tm *tms;
@@ -560,15 +639,15 @@ int PerfOutputCounterFileIface()
             "------------------\n");
 
     if (perf_op_ctx->club_tm == 0) {
-        while (tv) {
+        while (tv != NULL) {
             pthread_mutex_lock(&tv->pctx.m);
             pc = tv->pctx.head;
 
-            while (pc) {
+            while (pc != NULL) {
                 ui64_cvalue = (u_int64_t *)pc->value->cvalue;
-                fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-u\n", pc->name->cname,
-                        pc->name->tm_name, *ui64_cvalue);
-                //printf("**** %-10d %-10d %-10s %-10u\n", pc->name->tid, pc->id,
+                fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-lu\n",
+                        pc->name->cname, pc->name->tm_name, *ui64_cvalue);
+                //printf("%-10d %-10d %-10s %-llu\n", pc->name->tid, pc->id,
                 //       pc->name->cname, *ui64_cvalue);
                 pc = pc->next;
             }
@@ -583,7 +662,7 @@ int PerfOutputCounterFileIface()
     }
 
     pctmi = perf_op_ctx->pctmi;
-    while (pctmi) {
+    while (pctmi != NULL) {
         if ( (pc_heads = malloc(pctmi->size * sizeof(PerfCounter **))) == NULL) {
             printf("error allocating memory\n");
             exit(0);
@@ -613,7 +692,7 @@ int PerfOutputCounterFileIface()
                     strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name))
                     flag = 0;
             }
-            fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-u\n",
+            fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-lu\n",
                     pc->name->cname, pctmi->tm_name, result);
             //printf("%-25s | %-25s | %-u\n", pc->name->cname,
             //       pctmi->tm_name, result);
@@ -643,17 +722,17 @@ void PerfReleaseResources()
 
 void PerfReleaseOPCtx()
 {
-    if (perf_op_ctx) {
-        if (perf_op_ctx->fp)
+    if (perf_op_ctx != NULL) {
+        if (perf_op_ctx->fp != NULL)
             fclose(perf_op_ctx->fp);
 
-        if (perf_op_ctx->file)
+        if (perf_op_ctx->file != NULL)
             free(perf_op_ctx->file);
 
-        if (perf_op_ctx->pctmi) {
-            if (perf_op_ctx->pctmi->tm_name)
+        if (perf_op_ctx->pctmi != NULL) {
+            if (perf_op_ctx->pctmi->tm_name != NULL)
                 free(perf_op_ctx->pctmi->tm_name);
-            if (perf_op_ctx->pctmi->head)
+            if (perf_op_ctx->pctmi->head != NULL)
                 free(perf_op_ctx->pctmi->head);
             free(perf_op_ctx->pctmi);
         }
@@ -666,9 +745,9 @@ void PerfReleaseOPCtx()
 
 void PerfReleasePerfCounterS(PerfCounter *head)
 {
-    PerfCounter *pc;
+    PerfCounter *pc = NULL;
 
-    while (head) {
+    while (head != NULL) {
         pc = head;
         head = head->next;
         PerfReleaseCounter(pc);
@@ -679,17 +758,17 @@ void PerfReleasePerfCounterS(PerfCounter *head)
 
 void PerfReleaseCounter(PerfCounter *pc)
 {
-    if (pc) {
-        if (pc->name) {
-            if (pc->name->cname) free(pc->name->cname);
-            if (pc->name->tm_name) free(pc->name->tm_name);
+    if (pc != NULL) {
+        if (pc->name != NULL) {
+            if (pc->name->cname != NULL) free(pc->name->cname);
+            if (pc->name->tm_name != NULL) free(pc->name->tm_name);
             free(pc->name);
         }
-        if (pc->value) {
-            if (pc->value->cvalue) free(pc->value->cvalue);
+        if (pc->value != NULL) {
+            if (pc->value->cvalue != NULL) free(pc->value->cvalue);
             free(pc->value);
         }
-        if (pc->desc) free(pc->desc);
+        if (pc->desc != NULL) free(pc->desc);
         free(pc);
     }
 
@@ -698,27 +777,11 @@ void PerfReleaseCounter(PerfCounter *pc)
 
 void PerfReleasePCA(PerfCounterArray *pca)
 {
-    if (pca) {
-        if (pca->head)
+    if (pca != NULL) {
+        if (pca->head != NULL)
             free(pca->head);
         free(pca);
     }
-
-    return;
-}
-
-void PerfRegisterTests()
-{
-    UtRegisterTest("PerfTestCounterReg01", PerfTestCounterReg01, 0);
-    UtRegisterTest("PerfTestCounterReg02", PerfTestCounterReg02, 0);
-    UtRegisterTest("PerfTestCounterReg03", PerfTestCounterReg03, 1);
-    UtRegisterTest("PerfTestCounterReg04", PerfTestCounterReg04, 1);
-    UtRegisterTest("PerfTestGetCntArray05", PerfTestGetCntArray05, 1);
-    UtRegisterTest("PerfTestGetCntArray06", PerfTestGetCntArray06, 1);
-    UtRegisterTest("PerfTestCntArraySize07", PerfTestCntArraySize07, 2);
-    UtRegisterTest("PerfTestUpdateCounter08", PerfTestUpdateCounter08, 101);
-    UtRegisterTest("PerfTestUpdateCounter09", PerfTestUpdateCounter09, 1);
-    UtRegisterTest("PerfTestUpdateGlobalCounter10", PerfTestUpdateGlobalCounter10, 1);
 
     return;
 }
@@ -727,71 +790,71 @@ void PerfRegisterTests()
 //------------------------------------Unit_Tests------------------------------------
 
 
-int PerfTestCounterReg01()
+static int PerfTestCounterReg01()
 {
     PerfContext pctx;
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    return PerfRegisterCounter("t1", "c1", 100, 5, NULL, &pctx);
+    return PerfRegisterCounter("t1", "c1", 5, NULL, &pctx);
 }
 
-int PerfTestCounterReg02()
+static int PerfTestCounterReg02()
 {
     PerfContext pctx;
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    return PerfRegisterCounter(NULL, NULL, 100, TYPE_UINT64, NULL, &pctx);
+    return PerfRegisterCounter(NULL, NULL, TYPE_UINT64, NULL, &pctx);
 }
 
-int PerfTestCounterReg03()
-{
-    PerfContext pctx;
-    int result;
-
-    memset(&pctx, 0, sizeof(PerfContext));
-
-    result = PerfRegisterCounter("t1", "c1", 100, TYPE_UINT64, NULL, &pctx);
-
-    PerfReleasePerfCounterS(pctx.head);
-
-    return result;
-}
-
-int PerfTestCounterReg04()
+static int PerfTestCounterReg03()
 {
     PerfContext pctx;
     int result;
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    PerfRegisterCounter("t1", "c1", 100, TYPE_UINT64, NULL, &pctx);
-    PerfRegisterCounter("t2", "c2", 100, TYPE_UINT64, NULL, &pctx);
-    PerfRegisterCounter("t3", "c3", 100, TYPE_UINT64, NULL, &pctx);
-
-    result =  PerfRegisterCounter("t1", "c1", 100, TYPE_UINT64, NULL, &pctx);
+    result = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx);
 
     PerfReleasePerfCounterS(pctx.head);
 
     return result;
 }
 
-int PerfTestGetCntArray05()
+static int PerfTestCounterReg04()
+{
+    PerfContext pctx;
+    int result;
+
+    memset(&pctx, 0, sizeof(PerfContext));
+
+    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx);
+    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &pctx);
+    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &pctx);
+
+    result =  PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx);
+
+    PerfReleasePerfCounterS(pctx.head);
+
+    return result;
+}
+
+static int PerfTestGetCntArray05()
 {
     ThreadVars tv;
     int id;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = PerfRegisterCounter("t1", "c1", 100, TYPE_UINT64, NULL, &tv.pctx);
+    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
 
     tv.pca = PerfGetAllCountersArray(NULL);
 
     return (!tv.pca)?1:0;
 }
 
-int PerfTestGetCntArray06()
+static int PerfTestGetCntArray06()
 {
     ThreadVars tv;
     int id;
@@ -799,7 +862,7 @@ int PerfTestGetCntArray06()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = PerfRegisterCounter("t1", "c1", 100, TYPE_UINT64, NULL, &tv.pctx);
+    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
 
     tv.pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -811,18 +874,18 @@ int PerfTestGetCntArray06()
     return result;
 }
 
-int PerfTestCntArraySize07()
+static int PerfTestCntArraySize07()
 {
     ThreadVars tv;
-    PerfCounterArray *pca;
+    PerfCounterArray *pca = NULL;
     int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
     pca = (PerfCounterArray *)&tv.pca;
 
-    PerfRegisterCounter("t1", "c1", 100, TYPE_UINT64, NULL, &tv.pctx);
-    PerfRegisterCounter("t2", "c2", 100, TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -837,16 +900,16 @@ int PerfTestCntArraySize07()
     return result;
 }
 
-int PerfTestUpdateCounter08()
+static int PerfTestUpdateCounter08()
 {
     ThreadVars tv;
-    PerfCounterArray *pca;
+    PerfCounterArray *pca = NULL;
     int id;
     int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = PerfRegisterCounter("t1", "c1", 100, TYPE_UINT64, NULL, &tv.pctx);
+    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -861,20 +924,20 @@ int PerfTestUpdateCounter08()
     return result;
 }
 
-int PerfTestUpdateCounter09()
+static int PerfTestUpdateCounter09()
 {
     ThreadVars tv;
-    PerfCounterArray *pca;
+    PerfCounterArray *pca = NULL;
     int id1, id2;
     int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", 100, TYPE_UINT64, NULL, &tv.pctx);
-    PerfRegisterCounter("t2", "c2", 100, TYPE_UINT64, NULL, &tv.pctx);
-    PerfRegisterCounter("t3", "c3", 100, TYPE_UINT64, NULL, &tv.pctx);
-    PerfRegisterCounter("t4", "c4", 100, TYPE_UINT64, NULL, &tv.pctx);
-    id2 = PerfRegisterCounter("t5", "c5", 100, TYPE_UINT64, NULL, &tv.pctx);
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx);
+    id2 = PerfRegisterCounter("t5", "c5", TYPE_UINT64, NULL, &tv.pctx);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -889,21 +952,21 @@ int PerfTestUpdateCounter09()
     return result;
 }
 
-int PerfTestUpdateGlobalCounter10()
+static int PerfTestUpdateGlobalCounter10()
 {
     ThreadVars tv;
-    PerfCounterArray *pca;
+    PerfCounterArray *pca = NULL;
 
     int result = 1;
     int id1, id2, id3;
-    u_int64_t *p;
+    u_int64_t *p = NULL;
     u_int64_t m;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", 100, TYPE_UINT64, NULL, &tv.pctx);
-    id2 = PerfRegisterCounter("t2", "c2", 100, TYPE_UINT64, NULL, &tv.pctx);
-    id3 = PerfRegisterCounter("t3", "c3", 100, TYPE_UINT64, NULL, &tv.pctx);
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
+    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx);
     pca = PerfGetAllCountersArray(&tv.pctx);
 
     PerfCounterIncr(id1, pca);
@@ -913,7 +976,6 @@ int PerfTestUpdateGlobalCounter10()
 
     PerfUpdateCounterArray(pca, &tv.pctx, 0);
 
-    printf("%d\n", result);
     p = (u_int64_t *)tv.pctx.head->value->cvalue;
     m = *p;
     result = (m == 1);
@@ -925,4 +987,21 @@ int PerfTestUpdateGlobalCounter10()
     result &= (*p == 101);
 
     return result;
+}
+
+void PerfRegisterTests()
+{
+    UtRegisterTest("PerfTestCounterReg01", PerfTestCounterReg01, 0);
+    UtRegisterTest("PerfTestCounterReg02", PerfTestCounterReg02, 0);
+    UtRegisterTest("PerfTestCounterReg03", PerfTestCounterReg03, 1);
+    UtRegisterTest("PerfTestCounterReg04", PerfTestCounterReg04, 1);
+    UtRegisterTest("PerfTestGetCntArray05", PerfTestGetCntArray05, 1);
+    UtRegisterTest("PerfTestGetCntArray06", PerfTestGetCntArray06, 1);
+    UtRegisterTest("PerfTestCntArraySize07", PerfTestCntArraySize07, 2);
+    UtRegisterTest("PerfTestUpdateCounter08", PerfTestUpdateCounter08, 101);
+    UtRegisterTest("PerfTestUpdateCounter09", PerfTestUpdateCounter09, 1);
+    UtRegisterTest("PerfTestUpdateGlobalCounter10",
+                   PerfTestUpdateGlobalCounter10, 1);
+
+    return;
 }
