@@ -29,6 +29,10 @@ enum {
     HTTP_FIELD_MAX,
 };
 
+typedef struct HttpState_ {
+
+} HttpState;
+
 /** \brief Mapping between HTTP_FIELD_* and AppLayerParsers
  *
  * Map the http fields identifiers to the parsers.
@@ -53,16 +57,17 @@ int HTTPParseRequest(void *http_state, void *parser_state, u_int8_t *input, u_in
         http_state, parser_state, input, input_len);
 
     char done = FALSE;
+    u_int32_t offset = 0;
     AppLayerParserState *pstate = (AppLayerParserState *)parser_state;
 
     printf("HTTPParseRequest: pstate->buflen %u\n", pstate->buflen);
 
     u_int32_t u32 = 0;
-    for ( ; u32 < input_len; u32++) {
+    for ( ; u32 < input_len && pstate->buflen < sizeof(pstate->buf); u32++) {
         pstate->buf[pstate->buflen] = input[u32];
         pstate->buflen++;
 
-        if (pstate->buflen > 1 && pstate->buf[pstate->buflen - 2] == '\r' && pstate->buf[pstate->buflen - 1] == '\n') {
+        if (pstate->buflen >= 2 && pstate->buf[pstate->buflen - 2] == '\r' && pstate->buf[pstate->buflen - 1] == '\n') {
             printf("HTTPParseRequest: request line done.\n");
             done = TRUE;
             break;
@@ -70,11 +75,64 @@ int HTTPParseRequest(void *http_state, void *parser_state, u_int8_t *input, u_in
     }
 
     if (done == TRUE) {
-        printf("HTTPParseRequest: request line:\n");
-        PrintRawDataFp(stdout, pstate->buf,pstate->buflen);
-        pstate->flags |= APP_LAYER_PARSER_DONE;
+        AppLayerParserResultElement *e = AppLayerGetResultElmt();
+        if (e == NULL)
+            return -1;
 
+        e->name_idx = HTTP_FIELD_REQUEST_LINE;
+        e->data_ptr = input;
+        e->data_len = pstate->buflen;
+        output[*output_num] = e;
+
+        (*output_num)++;
+
+        printf("HTTPParseRequest: request line:\n");
+        PrintRawDataFp(stdout, e->data_ptr,e->data_len);
+
+        offset += pstate->buflen;
         pstate->buflen = 0;
+        done = FALSE;
+    } else {
+        /* bail with state update */
+        return 0;
+    }
+
+    printf("HTTPParseRequest: u32 %u, pstate->buflen %u\n", u32, pstate->buflen);
+    for ( ; u32 < input_len && pstate->buflen < sizeof(pstate->buf); u32++) {
+        pstate->buf[pstate->buflen] = input[u32];
+        pstate->buflen++;
+
+
+        if (pstate->buflen > 3 &&
+            pstate->buf[pstate->buflen - 4] == '\r' && pstate->buf[pstate->buflen - 3] == '\n' &&
+            pstate->buf[pstate->buflen - 2] == '\r' && pstate->buf[pstate->buflen - 1] == '\n') {
+            printf("HTTPParseRequest: request headers done @ u32 %u, pstate->buflen %u\n", u32, pstate->buflen);
+            done = TRUE;
+            break;
+        }
+    }
+
+    if (done == TRUE) {
+        AppLayerParserResultElement *e = AppLayerGetResultElmt();
+        if (e == NULL)
+            return -1;
+
+        e->name_idx = HTTP_FIELD_REQUEST_HEADERS;
+        e->data_ptr = input + offset;
+        e->data_len = pstate->buflen;
+        output[*output_num] = e;
+
+        (*output_num)++;
+
+        printf("HTTPParseRequest: request headers:\n");
+        PrintRawDataFp(stdout, e->data_ptr,e->data_len);
+
+        offset += pstate->buflen;
+        pstate->buflen = 0;
+        done = FALSE;
+    } else {
+        /* bail with state update */
+        return 0;
     }
     return 1;
 }
@@ -88,6 +146,6 @@ void RegisterHTTPParsers(void) {
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOSERVER, HTTPParseRequest);
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOCLIENT, HTTPParseResponse);
 
-    AppLayerRegisterParser("http.request_line", HTTPParseRequestLine, "http");
+    AppLayerRegisterParser("http.request_line", ALPROTO_HTTP, HTTP_FIELD_REQUEST_LINE, HTTPParseRequestLine, "http");
 }
 

@@ -902,6 +902,7 @@ int main(int argc, char **argv)
 
 RegisterAppLayerParsers();
 RegisterHTTPParsers();
+AppLayerParsersInitPostProcess();
 
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();

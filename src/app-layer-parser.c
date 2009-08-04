@@ -14,6 +14,24 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
+static Pool *al_result_pool = NULL;
+
+void* AppLayerParserResultElementAlloc(void *null) {
+    AppLayerParserResultElement *e = (AppLayerParserResultElement *)malloc(sizeof(AppLayerParserResultElement));
+    if (e == NULL) {
+        return NULL;
+    }
+
+    memset(e, 0, sizeof(AppLayerParserResultElement));
+    return e;
+}
+#define AppLayerParserResultElementFree free
+
+AppLayerParserResultElement *AppLayerGetResultElmt(void) {
+    AppLayerParserResultElement *e = (AppLayerParserResultElement *)PoolGet(al_result_pool);
+    return e;
+}
+
 static u_int16_t app_layer_sid = 0;
 static AppLayerProto al_proto_table[ALPROTO_MAX];
 
@@ -39,12 +57,17 @@ u_int16_t AppLayerParserGetStorageId(void) {
  * \retval 0 on success
  * \retval -1 on error
  */
-int AppLayerRegisterParser(char *name, int (*AppLayerParser)(void *protocol_state, void *parser_state, u_int8_t *input, u_int32_t input_len, AppLayerParserResultElement **output, u_int16_t *output_num), char *dependency) {
+int AppLayerRegisterParser(char *name, u_int16_t proto, u_int16_t parser_id, int (*AppLayerParser)(void *protocol_state, void *parser_state, u_int8_t *input, u_int32_t input_len, AppLayerParserResultElement **output, u_int16_t *output_num), char *dependency) {
 
     al_max_parsers++;
 
     al_parser_table[al_max_parsers].name = name;
+    al_parser_table[al_max_parsers].proto = proto;
+    al_parser_table[al_max_parsers].parser_local_id = parser_id;
     al_parser_table[al_max_parsers].AppLayerParser = AppLayerParser;
+
+    printf("AppLayerRegisterParser: registered %p at proto %u, al_proto_table idx %u, storage_id %u, parser_local_id %u\n",
+        AppLayerParser, proto, al_max_parsers, al_proto_table[proto].storage_id, parser_id);
     return 0;
 }
 
@@ -117,12 +140,12 @@ int AppLayerParse(Flow *f, u_int8_t proto, u_int8_t flags, u_int8_t *input, u_in
             parser_idx = p->to_client;
         }
     } else {
-        printf("L7Parse: using parser %u we stored before\n", parser_state->cur_parser);
+        printf("AppLayerParse: using parser %u we stored before\n", parser_state->cur_parser);
         parser_idx = parser_state->cur_parser;
     }
 
     if (parser_idx == 0) {
-        printf("L7Parse: no parser for protocol %u\n", proto);
+        printf("AppLayerParse: no parser for protocol %u\n", proto);
         return 0;
     }
 
@@ -135,9 +158,30 @@ int AppLayerParse(Flow *f, u_int8_t proto, u_int8_t flags, u_int8_t *input, u_in
         }
     }
 
-    int r = al_parser_table[parser_idx].AppLayerParser(app_layer_state, parser_state, input, input_len, NULL, NULL);
+    AppLayerParserResultElement *result_tbl[256];
+    memset(&result_tbl,0,sizeof(result_tbl));
+    u_int16_t output_num = 0;
+    int r = al_parser_table[parser_idx].AppLayerParser(app_layer_state, parser_state, input, input_len, result_tbl, &output_num);
     if (r < 0)
         return -1;
+
+    printf("AppLayerParse: output_num %u\n", output_num);
+    u_int16_t u = 0;
+    for (u = 0; u < output_num; u++) {
+        AppLayerParserResultElement *e = result_tbl[u];
+        printf("AppLayerParse: e->name_idx %u, e->data_ptr %p, e->data_len %u, map_size %u\n", e->name_idx, e->data_ptr, e->data_len, al_proto_table[proto].map_size);
+
+        /* no parser defined for this field. */
+        if (e->name_idx >= al_proto_table[proto].map_size || al_proto_table[proto].map[e->name_idx] == NULL) {
+            printf("AppLayerParse: no parser for proto %u, parser_local_id %u\n", proto, e->name_idx);
+            continue;
+        }
+
+        parser_idx = al_proto_table[proto].map[e->name_idx]->parser_id;
+        int r = al_parser_table[parser_idx].AppLayerParser(app_layer_state, parser_state, e->data_ptr, e->data_len, result_tbl, &output_num);
+        if (r < 0)
+            return -1;
+    }
 
     return 0;
 }
@@ -148,5 +192,81 @@ void RegisterAppLayerParsers(void) {
     memset(&al_parser_table, 0, sizeof(al_parser_table));
 
     app_layer_sid = StreamL7RegisterModule();
+
+    /** setup result pool
+     * \todo Per thread pool */
+    al_result_pool = PoolInit(100,10,AppLayerParserResultElementAlloc,NULL,AppLayerParserResultElementFree);
+}
+
+void AppLayerParsersInitPostProcess(void) {
+    printf("AppLayerParsersInitPostProcess: start\n");
+    u_int16_t u16 = 0;
+
+    /* build local->global mapping */
+    for (u16 = 1; u16 <= al_max_parsers; u16++) {
+        /* no local parser */
+        if (al_parser_table[u16].parser_local_id == 0)
+            continue;
+
+        if (al_parser_table[u16].parser_local_id > al_proto_table[al_parser_table[u16].proto].map_size)
+            al_proto_table[al_parser_table[u16].proto].map_size = al_parser_table[u16].parser_local_id;
+
+        printf("AppLayerParsersInitPostProcess: map_size %u\n", al_proto_table[al_parser_table[u16].proto].map_size);
+    }
+
+    /* for each proto, alloc the map array */
+    for (u16 = 0; u16 < ALPROTO_MAX; u16++) {
+        if (al_proto_table[u16].map_size == 0)
+            continue;
+
+        al_proto_table[u16].map_size++;
+        al_proto_table[u16].map = (AppLayerLocalMap **)malloc(al_proto_table[u16].map_size * sizeof(AppLayerLocalMap *));
+        if (al_proto_table[u16].map == NULL) {
+            printf("XXX memory error\n");
+            exit(1);
+        }
+        memset(al_proto_table[u16].map, 0, al_proto_table[u16].map_size * sizeof(AppLayerLocalMap *));
+
+        u_int16_t u = 0;
+        u_int16_t x = 0;
+        for (u = 1; u <= al_max_parsers; u++) {
+            /* no local parser */
+            if (al_parser_table[u].parser_local_id == 0)
+                continue;
+
+            if (al_parser_table[u].proto != u16)
+                continue;
+
+            printf("al_proto_table[%u].map_size %u, x %u, %p %p\n", u16, al_proto_table[u16].map_size, x, al_proto_table[u16].map[x], al_proto_table[u16].map);
+            u_int16_t parser_local_id = al_parser_table[u].parser_local_id;
+            printf("parser_local_id: %u\n", parser_local_id);
+
+            if (parser_local_id < al_proto_table[u16].map_size) {
+                al_proto_table[u16].map[parser_local_id] = malloc(sizeof(AppLayerLocalMap));
+                if (al_proto_table[u16].map[parser_local_id] == NULL) {
+                    printf("XXX memory error\n");
+                    exit(1);
+                }
+
+                al_proto_table[u16].map[parser_local_id]->parser_id = u;
+            }
+        }
+    }
+
+    for (u16 = 0; u16 < ALPROTO_MAX; u16++) {
+        if (al_proto_table[u16].map_size == 0)
+            continue;
+
+        if (al_proto_table[u16].map == NULL)
+            continue;
+
+        u_int16_t x = 0;
+        for (x = 0; x < al_proto_table[u16].map_size; x++) {
+            if (al_proto_table[u16].map[x] == NULL)
+                continue;
+
+            printf("al_proto_table[%u].map[%u]->parser_id: %u\n", u16, x, al_proto_table[u16].map[x]->parser_id);
+        }
+    }
 }
 
