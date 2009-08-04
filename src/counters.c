@@ -469,7 +469,7 @@ PerfCounterArray * PerfGetCounterArrayRange(u_int32_t s_id, u_int32_t e_id,
  *
  * @param pctx is a pointer to the tv's PerfContext
  *
- * returns a counter-array for all the counters of this tm instance
+ * @returns a counter-array for all the counters of this tm instance
  */
 PerfCounterArray * PerfGetAllCountersArray(PerfContext *pctx)
 {
@@ -503,8 +503,8 @@ int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
     }
 
     if (value == NULL) {
-        printf("value is NULL\n");
-        exit(0);
+        printf("Pointer to counter(value) supplied to PerfUpdateCounter is NULL\n");
+        return 0;
     }
 
     pc = pctx->head;
