@@ -629,7 +629,7 @@ int PerfOutputCounterFileIface()
 
     fprintf(perf_op_ctx->fp, "-------------------------------------------------"
             "------------------\n");
-    fprintf(perf_op_ctx->fp, "%d/%d/%d -- %d:%d:%d\n", tms->tm_mday,
+    fprintf(perf_op_ctx->fp, "%d/%d/%04d -- %02d:%02d:%02d\n", tms->tm_mday,
             tms->tm_mon, tms->tm_year + 1900, tms->tm_hour, tms->tm_min, tms->tm_sec);
     fprintf(perf_op_ctx->fp, "-------------------------------------------------"
             "------------------\n");
