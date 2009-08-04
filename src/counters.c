@@ -645,7 +645,7 @@ int PerfOutputCounterFileIface()
 
             while (pc != NULL) {
                 ui64_cvalue = (u_int64_t *)pc->value->cvalue;
-                fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-lu\n",
+                fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-llu\n",
                         pc->name->cname, pc->name->tm_name, *ui64_cvalue);
                 //printf("%-10d %-10d %-10s %-llu\n", pc->name->tid, pc->id,
                 //       pc->name->cname, *ui64_cvalue);
@@ -692,9 +692,9 @@ int PerfOutputCounterFileIface()
                     strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name))
                     flag = 0;
             }
-            fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-lu\n",
+            fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-llu\n",
                     pc->name->cname, pctmi->tm_name, result);
-            //printf("%-25s | %-25s | %-u\n", pc->name->cname,
+            //printf("%-25s | %-25s | %-llu\n", pc->name->cname,
             //       pctmi->tm_name, result);
 
         }
@@ -962,7 +962,6 @@ static int PerfTestUpdateGlobalCounter10()
     int result = 1;
     int id1, id2, id3;
     u_int64_t *p = NULL;
-    u_int64_t m;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -979,14 +978,71 @@ static int PerfTestUpdateGlobalCounter10()
     PerfUpdateCounterArray(pca, &tv.pctx, 0);
 
     p = (u_int64_t *)tv.pctx.head->value->cvalue;
-    m = *p;
-    result = (m == 1);
+    result = (1 == *p);
 
     p = (u_int64_t *)tv.pctx.head->next->value->cvalue;
-    result &= (*p == 100);
+    result &= (100 == *p);
 
     p = (u_int64_t *)tv.pctx.head->next->next->value->cvalue;
-    result &= (*p == 101);
+    result &= (101 == *p);
+
+    PerfReleasePerfCounterS(tv.pctx.head);
+    PerfReleasePCA(pca);
+
+    return result;
+}
+
+static int PerfTestCounterValues11()
+{
+    ThreadVars tv;
+    PerfCounterArray *pca = NULL;
+
+    int result = 1;
+    int id1, id2, id3, id4;
+    u_int8_t *u8p;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
+    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx);
+    id4 = PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx);
+
+    pca = PerfGetAllCountersArray(&tv.pctx);
+
+    PerfCounterIncr(id1, pca);
+    PerfCounterAdd(id2, pca, 256);
+    PerfCounterAdd(id3, pca, 257);
+    PerfCounterAdd(id4, pca, 16843024);
+
+    PerfUpdateCounterArray(pca, &tv.pctx, 0);
+
+    u8p = (u_int8_t *)tv.pctx.head->value->cvalue;
+    result &= (1 == *u8p);
+    result &= (0 == *(u8p + 1));
+    result &= (0 == *(u8p + 2));
+    result &= (0 == *(u8p + 3));
+
+    u8p = (u_int8_t *)tv.pctx.head->next->value->cvalue;
+    result &= (0 == *u8p);
+    result &= (1 == *(u8p + 1));
+    result &= (0 == *(u8p + 2));
+    result &= (0 == *(u8p + 3));
+
+    u8p = (u_int8_t *)tv.pctx.head->next->next->value->cvalue;
+    result &= (1 == *u8p);
+    result &= (1 == *(u8p + 1));
+    result &= (0 == *(u8p + 2));
+    result &= (0 == *(u8p + 3));
+
+    u8p = (u_int8_t *)tv.pctx.head->next->next->next->value->cvalue;
+    result &= (16 == *u8p);
+    result &= (1 == *(u8p + 1));
+    result &= (1 == *(u8p + 2));
+    result &= (1 == *(u8p + 3));
+
+    PerfReleasePerfCounterS(tv.pctx.head);
+    PerfReleasePCA(pca);
 
     return result;
 }
@@ -1004,6 +1060,7 @@ void PerfRegisterTests()
     UtRegisterTest("PerfTestUpdateCounter09", PerfTestUpdateCounter09, 1);
     UtRegisterTest("PerfTestUpdateGlobalCounter10",
                    PerfTestUpdateGlobalCounter10, 1);
+    UtRegisterTest("PerfTestCounterValues11", PerfTestCounterValues11, 1);
 
     return;
 }
