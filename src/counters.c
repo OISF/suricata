@@ -630,7 +630,7 @@ int PerfOutputCounterFileIface()
     fprintf(perf_op_ctx->fp, "-------------------------------------------------"
             "------------------\n");
     fprintf(perf_op_ctx->fp, "%d/%d/%d -- %d:%d:%d\n", tms->tm_mday,
-            tms->tm_mon, tms->tm_year, tms->tm_hour, tms->tm_min, tms->tm_sec);
+            tms->tm_mon, tms->tm_year + 1900, tms->tm_hour, tms->tm_min, tms->tm_sec);
     fprintf(perf_op_ctx->fp, "-------------------------------------------------"
             "------------------\n");
     fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-s\n", "Counter", "TM Name",
@@ -703,6 +703,8 @@ int PerfOutputCounterFileIface()
 
         pctmi = pctmi->next;
         free(pc_heads);
+
+        fflush(perf_op_ctx->fp);
     }
 
     return 1;
