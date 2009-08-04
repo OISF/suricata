@@ -103,7 +103,7 @@ int HTTPParseRequest(void *http_state, void *parser_state, u_int8_t *input, u_in
         pstate->buflen++;
 
 
-        if (pstate->buflen > 3 &&
+        if (pstate->buflen >= 4 &&
             pstate->buf[pstate->buflen - 4] == '\r' && pstate->buf[pstate->buflen - 3] == '\n' &&
             pstate->buf[pstate->buflen - 2] == '\r' && pstate->buf[pstate->buflen - 1] == '\n') {
             printf("HTTPParseRequest: request headers done @ u32 %u, pstate->buflen %u\n", u32, pstate->buflen);
