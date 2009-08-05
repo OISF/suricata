@@ -959,6 +959,7 @@ int main(int argc, char **argv)
     }
     TmThreadAppend(&tv_l7appdetect);
 
+    printf("Creating Stats threads...\n");
     PerfSpawnThreads();
 
     while(1) {

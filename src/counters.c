@@ -74,6 +74,8 @@ void PerfSpawnThreads()
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
+    printf("PerfSpawnThreads: spawning counter threads\n");
+
     if ( (perf_tc = malloc(sizeof(PerfThreadContext))) == NULL) {
         printf("Error allocating memory\n");
         exit(0);
@@ -152,6 +154,8 @@ void * PerfMgmtThread(void *arg)
     u_int8_t run = 1;
     struct timespec cond_time;
 
+    printf("PerfMgmtThread: spawned\n");
+
     if (perf_op_ctx == NULL) {
         printf("error: PerfInitCounterApi() has to be called first\n");
         return NULL;
@@ -189,6 +193,8 @@ void * PerfWakeupThread(void *arg)
     ThreadVars *tv = NULL;
     PacketQueue *q = NULL;
     struct timespec cond_time;
+
+    printf("PerfWakeupThread: spawned\n");
 
     while (run) {
         cond_time.tv_sec = time(NULL) + WUT_TTS;
