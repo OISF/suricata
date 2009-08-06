@@ -3,34 +3,35 @@
 #ifndef __THREADVARS_H__
 #define __THREADVARS_H__
 
-//#include "source-nfq.h"
 #include "util-mpm.h"
 #include "tm-queues.h"
 #include "counters.h"
 
-#define THV_USE     0x01
-#define THV_KILL    0x02
-#define THV_CLOSED  0x04 /* thread done, should be joinable */
+/** Thread flags set and read by threads to control the threads */
+#define THV_USE     0x01 /** thread is in use */
+#define THV_KILL    0x02 /** thread should stop and prepare tp get joined. */
+#define THV_CLOSED  0x04 /** thread done, should be joinable */
 
+/** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
     pthread_t t;
     char *name;
     u_int8_t flags;
 
-    /* queue's */
+    /** queue's */
     Tmq *inq;
     Tmq *outq;
 
-    /* queue handlers */
+    /** queue handlers */
     struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);
     void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
 
-    /* slot functions */
+    /** slot functions */
     void *(*tm_func)(void *);
     void *tm_slots;
 
-    char set_cpu_affinity; /* bool: 0 no, 1 yes */
-    int cpu_affinity; /* cpu or core to set affinity to */
+    char set_cpu_affinity; /** bool: 0 no, 1 yes */
+    int cpu_affinity; /** cpu or core number to set affinity to */
 
     PerfContext pctx;
     PerfCounterArray *pca;
