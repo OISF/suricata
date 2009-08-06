@@ -242,12 +242,12 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     fi
 
 # enable the running of unit tests
-    AC_ARG_ENABLE(unittest,
-            [  --enable-unittest  Enable Running of Unit Tests],
-            [ enable_unittest=yes
+    AC_ARG_ENABLE(unittests,
+            [  --enable-unittests  Enable compilation of the unit tests],
+            [ enable_unittests=yes
             ])
-    if test "$enable_unittest" = "yes"; then
-    CFLAGS="${CFLAGS} -DRUN_UNITTEST"
+    if test "$enable_unittests" = "yes"; then
+    CFLAGS="${CFLAGS} -DUNITTESTS"
     fi
 
 # enable the loading of sigs XXX remove this when we get a config language

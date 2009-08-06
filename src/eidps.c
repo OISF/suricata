@@ -866,8 +866,11 @@ int main(int argc, char **argv)
     TmModuleStreamTcpRegister();
     TmModuleDebugList();
 
+#ifdef UNITTESTS
     /* test and initialize the unittesting subsystem */
-    UtRunSelftest(); /* inits and cleans up again */
+    if (argc > 1&& (strcmp(argv[1],"runtests") == 0)) {
+        UtRunSelftest(); /* inits and cleans up again */
+    }
     UtInitialize();
     TmModuleRegisterTests();
     SigTableRegisterTests();
@@ -880,13 +883,14 @@ int main(int argc, char **argv)
     FlowBitRegisterTests();
     SigRegisterTests();
     DecodePPPRegisterTests();
-#ifdef RUN_UNITTEST
-    UtRunTests();
+    if (argc > 1&& (strcmp(argv[1],"runtests") == 0)) {
+        UtRunTests();
+    }
     UtCleanup();
-    exit(1);
-#else /* Implied We did enable running of Unit Tests */
-    UtCleanup();
-#endif /* RUN_UNITTEST */
+    if (argc > 1&& (strcmp(argv[1],"runtests") == 0)) {
+        exit(0);
+    }
+#endif /* UNITTESTS */
 
     //LoadConfig();
     //exit(1);

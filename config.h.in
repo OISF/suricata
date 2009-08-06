@@ -19,6 +19,12 @@
 /* Define to 1 if you have the `pcap' library (-lpcap). */
 #undef HAVE_LIBPCAP
 
+/* Define to 1 if you have the `pcre' library (-lpcre). */
+#undef HAVE_LIBPCRE
+
+/* Define to 1 if you have the `pthread' library (-lpthread). */
+#undef HAVE_LIBPTHREAD
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
