@@ -3,12 +3,11 @@
 #ifndef __SOURCE_NFQ_H__
 #define __SOURCE_NFQ_H__
 
-#include <pthread.h>
-
 #ifdef NFQ
+
+#include <pthread.h>
 #include <linux/netfilter.h>		/* for NF_ACCEPT */
 #include <libnetfilter_queue/libnetfilter_queue.h>
-#endif /* NFQ */
 
 #define NFQ_MAX_QUEUE 16
 
@@ -25,7 +24,6 @@ typedef struct NFQPacketVars_
     u_int16_t hw_protocol;
 } NFQPacketVars;
 
-#ifdef NFQ
 typedef struct NFQThreadVars_
 {
     struct nfq_handle *h;
@@ -49,12 +47,12 @@ typedef struct NFQThreadVars_
 
     ThreadVars *tv;
 } NFQThreadVars;
-#endif /* NFQ */
 
 typedef struct NFQGlobalVars_
 {
     char unbind;
 } NFQGlobalVars;
 
+#endif /* NFQ */
 #endif /* __SOURCE_NFQ_H__ */
 
