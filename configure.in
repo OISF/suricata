@@ -2,108 +2,116 @@
 
 AC_INIT(configure.in)
 
-AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(eidps, 0.1)
+    AM_CONFIG_HEADER(config.h)
+    AM_INIT_AUTOMAKE(eidps, 0.1)
 
-AC_LANG_C
-AC_PROG_CC
-AM_PROG_LIBTOOL
+    AC_LANG_C
+    AC_PROG_CC
+    AM_PROG_LIBTOOL
 
-AC_DEFUN([FAIL_MESSAGE],[
-    echo
-    echo
-    echo "**********************************************"
-    echo "  ERROR: unable to find" $1
-    echo "  checked in the following places"
-    for i in `echo $2`; do
-        echo "        $i"
-    done
-    echo "**********************************************"
-    echo
-    exit 1
-])
+    AC_DEFUN([FAIL_MESSAGE],[
+            echo
+            echo
+            echo "**********************************************"
+            echo "  ERROR: unable to find" $1
+            echo "  checked in the following places"
+            for i in `echo $2`; do
+            echo "        $i"
+            done
+            echo "**********************************************"
+            echo
+            exit 1
+            ])
 
-CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
+    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
 
 #libpcre
-AC_ARG_WITH(libpcre_includes,
-    [  --with-libpcre-includes=DIR  libpcre include directory],
-    [with_libpcre_includes="$withval"],[with_libpcre_includes=no])
-AC_ARG_WITH(libpcre_libraries,
-    [  --with-libpcre-libraries=DIR    libpcre library directory],
-    [with_libpcre_libraries="$withval"],[with_libpcre_libraries="no"])
+    AC_ARG_WITH(libpcre_includes,
+            [  --with-libpcre-includes=DIR  libpcre include directory],
+            [with_libpcre_includes="$withval"],[with_libpcre_includes=no])
+    AC_ARG_WITH(libpcre_libraries,
+            [  --with-libpcre-libraries=DIR    libpcre library directory],
+            [with_libpcre_libraries="$withval"],[with_libpcre_libraries="no"])
 
-if test "$with_libpcre_includes" != "no"; then
+    if test "$with_libpcre_includes" != "no"; then
     CPPFLAGS="${CPPFLAGS} -I${with_libpcre_includes}"
-fi
+    fi
 
-AC_CHECK_HEADER(pcre.h,,[AC_ERROR(pthread.h not found ...)])
+    AC_CHECK_HEADER(pcre.h,,[AC_ERROR(pcre.h not found ...)])
 
-if test "$with_libpcre_libraries" != "no"; then
+    if test "$with_libpcre_libraries" != "no"; then
     LDFLAGS="${LDFLAGS}  -L${with_libpcre_libraries}"
-fi
+    fi
 
-PCRE=""
-AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no")
+    PCRE=""
+    AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no")
 
-if test "$PCRE" = "no"; then
+    if test "$PCRE" = "no"; then
     echo
     echo "   ERROR!  pcre library not found, go get it"
     echo "   from www.pcre.org."
     echo
     exit 1
-fi
+    fi
 
 #libpthread
-AC_ARG_WITH(libpthread_includes,
-    [  --with-libpthread-includes=DIR  libpthread include directory],
-    [with_libpthread_includes="$withval"],[with_libpthread_includes=no])
-AC_ARG_WITH(libpthread_libraries,
-    [  --with-libpthread-libraries=DIR    libpthread library directory],
-    [with_libpthread_libraries="$withval"],[with_libpthread_libraries="no"])
+    AC_ARG_WITH(libpthread_includes,
+            [  --with-libpthread-includes=DIR  libpthread include directory],
+            [with_libpthread_includes="$withval"],[with_libpthread_includes=no])
+    AC_ARG_WITH(libpthread_libraries,
+            [  --with-libpthread-libraries=DIR    libpthread library directory],
+            [with_libpthread_libraries="$withval"],[with_libpthread_libraries="no"])
 
-if test "$with_libpthread_includes" != "no"; then
+    if test "$with_libpthread_includes" != "no"; then
     CPPFLAGS="${CPPFLAGS} -I${with_libpthread_includes}"
-fi
+    fi
 
-AC_CHECK_HEADER(pthread.h,,[AC_ERROR(pthread.h not found ...)])
+    AC_CHECK_HEADER(pthread.h,,[AC_ERROR(pthread.h not found ...)])
 
-if test "$with_libpthread_libraries" != "no"; then
+    if test "$with_libpthread_libraries" != "no"; then
     LDFLAGS="${LDFLAGS}  -L${with_libpthread_libraries}"
-fi
+    fi
 
-PTHREAD=""
-AC_CHECK_LIB(pthread, pthread_create,, PTHREAD="no")
+    PTHREAD=""
+    AC_CHECK_LIB(pthread, pthread_create,, PTHREAD="no")
 
-if test "$PTHREAD" = "no"; then
+    if test "$PTHREAD" = "no"; then
     echo
     echo "   ERROR! libpthread library not found, glibc problem?"
     echo
     exit 1
-fi
+    fi
+
+#enable support for NFQUEUE
+    AC_ARG_ENABLE(nfqueue,
+            [  --enable-nfqueue  Enable NFQUEUE support for inline IDP],
+            [ enable_nfqueue=yes
+            ])
+    if test "$enable_nfqueue" = "yes"; then
+    CFLAGS="$CFLAGS -DNFQ"
 
 #libnfnetlink
-AC_ARG_WITH(libnfnetlink_includes,
-    [  --with-libnfnetlink-includes=DIR  libnfnetlink include directory],
-    [with_libnfnetlink_includes="$withval"],[with_libnfnetlink_includes=no])
-AC_ARG_WITH(libnfnetlink_libraries,
-    [  --with-libnfnetlink-libraries=DIR    libnfnetlink library directory],
-    [with_libnfnetlink_libraries="$withval"],[with_libnfnetlink_libraries="no"])
+    AC_ARG_WITH(libnfnetlink_includes,
+            [  --with-libnfnetlink-includes=DIR  libnfnetlink include directory],
+            [with_libnfnetlink_includes="$withval"],[with_libnfnetlink_includes=no])
+    AC_ARG_WITH(libnfnetlink_libraries,
+            [  --with-libnfnetlink-libraries=DIR    libnfnetlink library directory],
+            [with_libnfnetlink_libraries="$withval"],[with_libnfnetlink_libraries="no"])
 
-if test "$with_libnfnetlink_includes" != "no"; then
+    if test "$with_libnfnetlink_includes" != "no"; then
     CPPFLAGS="${CPPFLAGS} -I${with_libnfnetlink_includes}"
-fi
+    fi
 
-AC_CHECK_HEADER(libnfnetlink/libnfnetlink.h,,[AC_ERROR(libnfnetlink.h not found ...)])
+    AC_CHECK_HEADER(libnfnetlink/libnfnetlink.h,,[AC_ERROR(libnfnetlink.h not found ...)])
 
-if test "$with_libnfnetlink_libraries" != "no"; then
+    if test "$with_libnfnetlink_libraries" != "no"; then
     LDFLAGS="${LDFLAGS}  -L${with_libnfnetlink_libraries}"
-fi
+    fi
 
-NFNL=""
-AC_CHECK_LIB(nfnetlink, nfnl_fd,, NFNL="no")
+    NFNL=""
+    AC_CHECK_LIB(nfnetlink, nfnl_fd,, NFNL="no")
 
-if test "$NFNL" = "no"; then
+    if test "$NFNL" = "no"; then
     echo
     echo "   ERROR!  nfnetlink library not found, go get it"
     echo "   from www.netfilter.org."
@@ -112,32 +120,32 @@ if test "$NFNL" = "no"; then
     echo "   is used"
     echo
     exit 
-fi
+    fi
 
 #libnetfilter_queue
-AC_ARG_WITH(libnetfilter_queue_includes,
-    [  --with-libnetfilter_queue-includes=DIR  libnetfilter_queue include directory],
-    [with_libnetfilter_queue_includes="$withval"],[with_libnetfilter_queue_includes=no])
-AC_ARG_WITH(libnetfilter_queue_libraries,
-    [  --with-libnetfilter_queue-libraries=DIR    libnetfilter_queue library directory],
-    [with_libnetfilter_queue_libraries="$withval"],[with_libnetfilter_queue_libraries="no"])
+    AC_ARG_WITH(libnetfilter_queue_includes,
+            [  --with-libnetfilter_queue-includes=DIR  libnetfilter_queue include directory],
+            [with_libnetfilter_queue_includes="$withval"],[with_libnetfilter_queue_includes=no])
+    AC_ARG_WITH(libnetfilter_queue_libraries,
+            [  --with-libnetfilter_queue-libraries=DIR    libnetfilter_queue library directory],
+            [with_libnetfilter_queue_libraries="$withval"],[with_libnetfilter_queue_libraries="no"])
 
-if test "$with_libnetfilter_queue_includes" != "no"; then
+    if test "$with_libnetfilter_queue_includes" != "no"; then
     CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_queue_includes}"
-fi
+    fi
 
-AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,[AC_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)])
+    AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,[AC_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)])
 
-if test "$with_libnetfilter_queue_libraries" != "no"; then
+    if test "$with_libnetfilter_queue_libraries" != "no"; then
     LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_queue_libraries}"
-fi
+    fi
 
 #LDFLAGS="${LDFLAGS} -lnetfilter_queue"
 
-NFQ=""
-AC_CHECK_LIB(netfilter_queue, nfq_open,, NFQ="no",)
+    NFQ=""
+    AC_CHECK_LIB(netfilter_queue, nfq_open,, NFQ="no",)
 
-if test "$NFQ" = "no"; then
+    if test "$NFQ" = "no"; then
     echo
     echo "   ERROR!  libnetfilter_queue library not found, go get it"
     echo "   from www.netfilter.org."
@@ -146,90 +154,109 @@ if test "$NFQ" = "no"; then
     echo "   is used"
     echo
     exit 1 
-fi
+    fi
+    fi
 
 #libnet
-AC_ARG_WITH(libnet_includes,
-    [  --with-libnet-includes=DIR     libnet include directory],
-    [with_libnet_includes="$withval"],[with_libnet_includes="no"])
-    
-AC_ARG_WITH(libnet_libraries,
-    [  --with-libnet-libraries=DIR    libnet library directory],
-    [with_libnet_libraries="$withval"],[with_libnet_libraries="no"])
-    
-if test "x$with_libnet_includes" != "xno"; then
+    AC_ARG_WITH(libnet_includes,
+            [  --with-libnet-includes=DIR     libnet include directory],
+            [with_libnet_includes="$withval"],[with_libnet_includes="no"])
+
+    AC_ARG_WITH(libnet_libraries,
+            [  --with-libnet-libraries=DIR    libnet library directory],
+            [with_libnet_libraries="$withval"],[with_libnet_libraries="no"])
+
+    if test "x$with_libnet_includes" != "xno"; then
     CPPFLAGS="${CPPFLAGS} -I${with_libnet_includes}"
-fi  
+    fi
 
-if test "x$with_libnet_libraries" != "xno"; then
+    if test "x$with_libnet_libraries" != "xno"; then
     LDFLAGS="${LDFLAGS} -L${with_libnet_libraries}"
-fi
+    fi
 
-LIBNET_INC_DIR=""
-AC_MSG_CHECKING("for libnet.h version 1.1.x")
-libnet_dir="/usr/include /usr/local/include"
-for i in $libnet_dir; do
-     if test -r "$i/libnet.h"; then
-         LIBNET_INC_DIR="$i"
-     fi
-done
+    LIBNET_INC_DIR=""
+    AC_MSG_CHECKING("for libnet.h version 1.1.x")
+    libnet_dir="/usr/include /usr/local/include"
+    for i in $libnet_dir; do
+    if test -r "$i/libnet.h"; then
+    LIBNET_INC_DIR="$i"
+    fi
+    done
 
-if test "$LIBNET_INC_DIR" != ""; then
+    if test "$LIBNET_INC_DIR" != ""; then
     if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v 1.1 >/dev/null"; then
-        FAIL_MESSAGE("libnet 1.1.x (libnet.h)", $tmp)
+    FAIL_MESSAGE("libnet 1.1.x (libnet.h)", $tmp)
     fi
     CFLAGS="${CFLAGS} `libnet-config --defines` `libnet-config --cflags`"
     LIBS="${LIBS} `libnet-config --libs`"
     CPPFLAGS="${CPPFLAGS} -I${LIBNET_INC_DIR}"
     AC_MSG_RESULT($i)
-else
+    else
     AC_MSG_RESULT(no)
     AC_MSG_ERROR("libnet 1.1.x could not be found.  please download and install the library from http://www.packetfactory.net/libnet/")
-fi
+    fi
 
 # see if we have the patched libnet 1.1
 # http://www.inliniac.net/blog/2007/10/16/libnet-11-ipv6-fixes-and-additions.html
-LLIBNET=""
-AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
+    LLIBNET=""
+    AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
     if test "$LLIBNET" != "no"; then
-        CFLAGS="$CFLAGS -DHAVE_LIBNET_ICMPV6_UNREACH"
+    CFLAGS="$CFLAGS -DHAVE_LIBNET_ICMPV6_UNREACH"
     fi
 
 # libpcap
-AC_ARG_WITH(libpcap_includes,
-    [  --with-libpcap-includes=DIR  libpcap include directory],
-    [with_libpcap_includes="$withval"],[with_libpcap_includes=no])
-AC_ARG_WITH(libpcap_libraries,
-    [  --with-libpcap-libraries=DIR    libpcap library directory],
-    [with_libpcap_libraries="$withval"],[with_libpcap_libraries="no"])
+    AC_ARG_WITH(libpcap_includes,
+            [  --with-libpcap-includes=DIR  libpcap include directory],
+            [with_libpcap_includes="$withval"],[with_libpcap_includes=no])
+    AC_ARG_WITH(libpcap_libraries,
+            [  --with-libpcap-libraries=DIR    libpcap library directory],
+            [with_libpcap_libraries="$withval"],[with_libpcap_libraries="no"])
 
-if test "$with_libpcap_includes" != "no"; then
+    if test "$with_libpcap_includes" != "no"; then
     CPPFLAGS="${CPPFLAGS} -I${with_libpcap_includes}"
-fi
+    fi
 
 AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
 
-if test "$with_libpcap_libraries" != "no"; then
+    if test "$with_libpcap_libraries" != "no"; then
     LDFLAGS="${LDFLAGS}  -L${with_libpcap_libraries}"
-fi
+    fi
 
-LIBPCAP=""
-AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no")
-if test "$LIBPCAP" = "no"; then
+    LIBPCAP=""
+    AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no")
+    if test "$LIBPCAP" = "no"; then
     echo
     echo "   ERROR!  lipcap library not found, go get it"
     echo "   from http://www.tcpdump.org."
     echo
     exit 1
-fi
+    fi
 
 # pcap_activate and pcap_create only exists in libpcap >= 1.0
-LIBPCAPVTEST=""
-AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
+    LIBPCAPVTEST=""
+    AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
     if test "$LPCAPVTEST" != "no"; then
-        CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
+    CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
     else
-        CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=0"
+    CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=0"
+    fi
+
+# enable the running of unit tests
+    AC_ARG_ENABLE(unittest,
+            [  --enable-unittest  Enable Running of Unit Tests],
+            [ enable_unittest=yes
+            ])
+    if test "$enable_unittest" = "yes"; then
+    CFLAGS="${CFLAGS} -DRUN_UNITTEST"
+    fi
+
+# enable the loading of sigs XXX remove this when we get a config language
+    AC_ARG_ENABLE(loadsigs,
+            [  --enable-loadsigs  Enable Loading of Signatures],
+            [ enable_loadsigs=yes
+            ])
+    if test "$enable_loadsigs" = "yes"; then
+    CFLAGS="${CFLAGS} -DLOADSIGS"
     fi
 
 AC_SUBST(CFLAGS)

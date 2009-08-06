@@ -4,8 +4,11 @@
 #define __SOURCE_NFQ_H__
 
 #include <pthread.h>
+
+#ifdef NFQ
 #include <linux/netfilter.h>		/* for NF_ACCEPT */
 #include <libnetfilter_queue/libnetfilter_queue.h>
+#endif /* NFQ */
 
 #define NFQ_MAX_QUEUE 16
 
@@ -22,6 +25,7 @@ typedef struct NFQPacketVars_
     u_int16_t hw_protocol;
 } NFQPacketVars;
 
+#ifdef NFQ
 typedef struct NFQThreadVars_
 {
     struct nfq_handle *h;
@@ -32,7 +36,6 @@ typedef struct NFQThreadVars_
     /* this one should be not changing after init */
     u_int16_t queue_num;
     int fd;
-
 #ifdef DBG_PERF
     int dbg_maxreadsize;
 #endif /* DBG_PERF */
@@ -46,6 +49,7 @@ typedef struct NFQThreadVars_
 
     ThreadVars *tv;
 } NFQThreadVars;
+#endif /* NFQ */
 
 typedef struct NFQGlobalVars_
 {

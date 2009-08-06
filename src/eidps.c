@@ -45,10 +45,8 @@
 
 #include "stream-tcp.h"
 
-#ifdef NFQ
 #include "source-nfq.h"
 #include "source-nfq-prototypes.h"
-#endif /* NFQ */
 
 #include "source-pcap.h"
 #include "source-pcap-file.h"
@@ -882,9 +880,13 @@ int main(int argc, char **argv)
     FlowBitRegisterTests();
     SigRegisterTests();
     DecodePPPRegisterTests();
-    //UtRunTests();
+#ifdef RUN_UNITTEST
+    UtRunTests();
     UtCleanup();
-    //exit(1);
+    exit(1);
+#else /* Implied We did enable running of Unit Tests */
+    UtCleanup();
+#endif /* RUN_UNITTEST */
 
     //LoadConfig();
     //exit(1);

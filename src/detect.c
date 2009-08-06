@@ -280,7 +280,7 @@ void SigLoadSignatures (void)
     //FILE *fp = fopen("/home/victor/rules/all.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/eidps.http.sigs", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-dshield.rules", "r");
-    FILE *fp = fopen("/home/victor/rules/emerging-all.rules", "r");
+    FILE *fp = fopen("local.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-web.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-policy.rules", "r");
     //FILE *fp = fopen("/home/victor/rules/emerging-p2p.rules", "r");

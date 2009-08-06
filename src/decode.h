@@ -4,7 +4,7 @@
 #define __DECODE_H__
 
 //#define IPQ
-#define NFQ
+//#define NFQ
 //#define IPFW
 //#define PCAP
 
@@ -26,9 +26,7 @@
 
 #include "threadvars.h"
 
-#ifdef NFQ
 #include "source-nfq.h"
-#endif /* NFQ */
 
 #include "source-pcap.h" 
 #include "action-globals.h"

@@ -23,11 +23,13 @@
 
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
+
+#ifdef NFQ
 static NFQThreadVars nfq_t[NFQ_MAX_QUEUE];
 static u_int16_t receive_queue_num = 0;
 static u_int16_t verdict_queue_num = 0;
 static pthread_mutex_t nfq_init_lock;
-
+#endif /* NFQ */
 
 int ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 int ReceiveNFQThreadInit(ThreadVars *, void *, void **);
@@ -39,7 +41,9 @@ void VerdictNFQThreadExitStats(ThreadVars *, void *);
 int VerdictNFQThreadDeinit(ThreadVars *, void *);
 
 int DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+int NoNFQSupportExit(ThreadVars *, void *, void **);
 
+#ifdef NFQ
 void TmModuleReceiveNFQRegister (void) {
     /* XXX create a general NFQ setup function */
     memset(&nfq_g, 0, sizeof(nfq_g));
@@ -72,6 +76,44 @@ void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
 }
 
+#else /* No NFQ support implied */
+void TmModuleReceiveNFQRegister (void) {
+    tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
+    tmm_modules[TMM_RECEIVENFQ].Init = NoNFQSupportExit;
+    tmm_modules[TMM_RECEIVENFQ].Func = NULL;
+    tmm_modules[TMM_RECEIVENFQ].ExitPrintStats = NULL;
+    tmm_modules[TMM_RECEIVENFQ].Deinit = NULL;
+    tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
+}
+
+void TmModuleVerdictNFQRegister (void) {
+    tmm_modules[TMM_VERDICTNFQ].name = "VerdictNFQ";
+    tmm_modules[TMM_VERDICTNFQ].Init = NoNFQSupportExit;
+    tmm_modules[TMM_VERDICTNFQ].Func = NULL;
+    tmm_modules[TMM_VERDICTNFQ].ExitPrintStats = NULL;
+    tmm_modules[TMM_VERDICTNFQ].Deinit = NULL;
+    tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
+}
+
+void TmModuleDecodeNFQRegister (void) {
+    tmm_modules[TMM_DECODENFQ].name = "DecodeNFQ";
+    tmm_modules[TMM_DECODENFQ].Init = NoNFQSupportExit;
+    tmm_modules[TMM_DECODENFQ].Func = NULL;
+    tmm_modules[TMM_DECODENFQ].ExitPrintStats = NULL;
+    tmm_modules[TMM_DECODENFQ].Deinit = NULL;
+    tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
+}
+#endif /* NFQ */
+
+int NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
+{
+    printf("You do not have support for nfqueue enabled please recompile with --enable-nfqueue\n");
+    exit(1);
+
+    return 0;
+}
+
+#ifdef NFQ
 void NFQSetupPkt (Packet *p, void *data)
 {
     struct nfq_data *tb = (struct nfq_data *)data;
@@ -429,4 +471,4 @@ int DecodeNFQ(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 
     return 0;
 }
-
+#endif /* NFQ */
