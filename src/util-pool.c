@@ -357,7 +357,7 @@ static int PoolTestInit06 (void) {
 
     data = PoolGet(p);
     if (data != NULL) {
-        printf("PoolGet returned %p, expected NULL: ");
+        printf("PoolGet returned %p, expected NULL: ", data);
         retval = 0;
         goto end;
     }
