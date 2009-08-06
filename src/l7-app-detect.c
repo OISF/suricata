@@ -117,9 +117,11 @@ void *L7AppDetectThread(void *td)
                         printf("L7AppDetectThread: smsg not start, but no l7 data? Weird\n");
                     }
                 }
-
-                mutex_unlock(&smsg->flow->m);
             }
+
+            /* XXX we need to improve this logic */
+            smsg->flow->use_cnt--;
+            mutex_unlock(&smsg->flow->m);
 
             /* return the used message to the queue */
             StreamMsgReturnToPool(smsg);

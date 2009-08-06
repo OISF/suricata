@@ -68,7 +68,8 @@ typedef struct Flow_
     u_int64_t bytecnt;
 
     void *stream;
-    u_int16_t use_cnt; /* how many pkts are using the flow *right now* */
+    u_int16_t use_cnt; /** how many pkts and stream msgs are
+                           using the flow *right now* */
 
     pthread_mutex_t m;
 
