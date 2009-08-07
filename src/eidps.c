@@ -950,7 +950,7 @@ int main(int argc, char **argv)
     ThreadVars tv_l7appdetect;
     memset(&tv_l7appdetect, 0, sizeof(ThreadVars));
     printf("Creating L7 Application layer detect thread (WIP)...\n");
-    tv_flowmgr.name = "L7AppDetectThread";
+    tv_l7appdetect.name = "L7AppDetectThread";
 
     rc = pthread_create(&tv_l7appdetect.t, &attr, L7AppDetectThread, (void *)&tv_l7appdetect);
     if (rc) {
