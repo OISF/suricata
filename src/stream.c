@@ -101,8 +101,12 @@ StreamMsg *StreamMsgGetFromQueue(StreamMsgQueue *q)
 {
     mutex_lock(&q->mutex_q);
     if (q->len == 0) {
-        /* if we have no stream msgs in queue, wait... */
-        pthread_cond_wait(&q->cond_q, &q->mutex_q);
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 5;
+        cond_time.tv_nsec = 0;
+
+        /* if we have no stream msgs in queue, wait... for 5 seconds */
+        pthread_cond_timedwait(&q->cond_q, &q->mutex_q, &cond_time);
     }
     if (q->len > 0) {
         StreamMsg *s = StreamMsgDequeue(q);
