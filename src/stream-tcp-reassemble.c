@@ -1,15 +1,14 @@
-/* Copyright (c) 2008 Victor Julien <victor@inliniac.net>*/
-/*  2009 Gurvinder Singh <gurvindersinghdahiya@gmail.com>*/
-
-/* Reference:
- * Judy Novak, Steve Sturges: Target-Based TCP Stream Reassembly
- * August, 2007
- */
-
-/* TODO:
- * - segment insert fasttrack: most pkts are in order
- * - OS depended handling of overlaps, retrans, etc
- */
+/** Copyright (c) 2008 Victor Julien <victor@inliniac.net>
+ *  Copyright (c) 2009 Open Information Security Foundation
+ *
+ * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Reference:
+ * Judy Novak, Steve Sturges: Target-Based TCP Stream Reassembly August, 2007
+ *
+ * \todo segment insert fasttrack: most pkts are in order
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,8 +39,9 @@
 
 #include "stream.h"
 
-/*prototypes*/
+//#define DEBUG
 
+/* prototypes */
 static int HandleSegmentStartsBeforeListSegment(TcpStream *, TcpSegment *, TcpSegment *, TcpSegment *, u_int8_t);
 static int HandleSegmentStartsAtSameListSegment(TcpStream *, TcpSegment *, TcpSegment *, TcpSegment *, u_int8_t);
 static int HandleSegmentStartsAfterListSegment(TcpStream *, TcpSegment *, TcpSegment *, TcpSegment *, u_int8_t);
@@ -131,6 +131,7 @@ int StreamTcpReassembleInit(void) {
     return 0;
 }
 
+#ifdef DEBUG
 static void PrintList(TcpSegment *seg) {
     if (seg == NULL)
         return;
@@ -148,6 +149,7 @@ static void PrintList(TcpSegment *seg) {
         seg = seg->next;
     }
 }
+#endif /* DEBUG */
 
 /**
  *  \brief  Function to handle the insertion newly arrived segment,
@@ -163,16 +165,18 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
     u_int8_t os_policy = stream->os_policy;
     u_int8_t ret_value = 0;
     if (list_seg == NULL) {
+#ifdef DEBUG
         printf("ReassembleInsertSegment: empty list, inserting seg %p seq %u, len %u\n", seg, seg->seq, seg->payload_len);
         //PrintRawDataFp(stdout, seg->payload, seg->payload_len);
+#endif
         stream->seg_list = seg;
         seg->prev = NULL;
         return 0;
     }
 
     for (; list_seg != NULL; prev_seg = list_seg, list_seg = list_seg->next) {
-        printf("ReassembleInsertSegment: seg %p, list_seg %p, list_prev %p list_seg->next %p, segment length %u\n", seg, list_seg, list_seg->prev, list_seg->next, seg->payload_len);
 #ifdef DEBUG
+        printf("ReassembleInsertSegment: seg %p, list_seg %p, list_prev %p list_seg->next %p, segment length %u\n", seg, list_seg, list_seg->prev, list_seg->next, seg->payload_len);
         PrintRawDataFp(stdout, seg->payload, seg->payload_len);
         PrintRawDataFp(stdout, list_seg->payload, list_seg->payload_len);
 #endif
@@ -180,7 +184,9 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
         if (SEQ_LT(seg->seq, list_seg->seq)) {
             /*seg is entirely before list_seg*/
             if (SEQ_LEQ((seg->seq + seg->payload_len), list_seg->seq)) {
+#ifdef DEBUG
                 printf("ReassembleInsertSegment: before list seg: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u\n", seg->seq, list_seg->seq, list_seg->payload_len);
+#endif
                 seg->next = list_seg;
                 list_seg->prev = seg;
                 if (prev_seg == NULL)
@@ -228,7 +234,9 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
             if (((SEQ_GEQ(seg->seq, (list_seg->seq + list_seg->payload_len)))) &&
                     SEQ_GT((seg->seq + seg->payload_len),
                     (list_seg->seq + list_seg->payload_len))) {
+#ifdef DEBUG
                 printf("ReassembleInsertSegment: starts beyond list end, ends after list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u (%u)\n", seg->seq, list_seg->seq, list_seg->payload_len, list_seg->seq + list_seg->payload_len);
+#endif
 
                 if (list_seg->next == NULL) {
                     list_seg->next = seg;
@@ -277,23 +285,27 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
         end_before = TRUE;
         overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq + seg->payload_len);
         overlap_point = list_seg->seq;
+#ifdef DEBUG
         printf("ReassembleInsertSegment: starts before list seg, ends before list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+#endif
         /* seg fully overlaps list_seg, starts before, at end point */
     } else if (SEQ_EQ((seg->seq + seg->payload_len),
             (list_seg->seq + list_seg->payload_len))) {
         overlap = list_seg->payload_len;
         end_same = TRUE;
         overlap_point = list_seg->seq;
+#ifdef DEBUG
         printf("ReassembleInsertSegment: starts before list seg, ends at list end: list prev %p seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", list_seg->prev, seg->seq, list_seg->seq, list_seg->payload_len, overlap);
-
+#endif
         /* seg fully overlaps list_seg, starts before, ends after list endpoint */
     } else if (SEQ_GT((seg->seq + seg->payload_len),
             (list_seg->seq + list_seg->payload_len))) {
         overlap = list_seg->payload_len;
         end_after = TRUE;
         overlap_point = list_seg->seq;
+#ifdef DEBUG
         printf("ReassembleInsertSegment: starts before list seg, ends after list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
-
+#endif
     }
     if (overlap > 0) {
         /*Handling case when the packet starts before the first packet in the list*/
@@ -379,7 +391,9 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
             case OS_POLICY_LINUX:
             case OS_POLICY_MACOS:
             case OS_POLICY_LAST:
+#ifdef DEBUG
                 printf("Replacing Old Data in starts before list seg list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+#endif
                 StreamTcpSegmentDataReplace(list_seg, seg, overlap_point, overlap);
                 break;
             case OS_POLICY_SOLARIS:
@@ -388,12 +402,16 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                     StreamTcpSegmentDataReplace(list_seg, seg, overlap_point, overlap);
                     end_after = FALSE;
                 } else {
+#ifdef DEBUG
                     printf("Using Old Data in starts before list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+#endif
                 }
                 break;
             case OS_POLICY_VISTA:
             case OS_POLICY_FIRST:
+#ifdef DEBUG
                 printf("Using Old Data in starts before list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+#endif
                 break;
             default:
                 break;
@@ -434,7 +452,9 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
             (list_seg->seq + list_seg->payload_len))) {
         overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq + seg->payload_len);
         end_before = TRUE;
+#ifdef DEBUG
         printf("ReassembleInsertSegment: starts at list seq, ends before list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is%u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+#endif
 
         /* seg starts at seq, ends at seq, retransmission. */
     } else if (SEQ_EQ((seg->seq + seg->payload_len),
@@ -442,14 +462,17 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
         /* check csum, ack, other differences? */
         overlap = seg->payload_len;
         end_same = TRUE;
+#ifdef DEBUG
         printf("ReassembleInsertSegment: (retransmission) starts at list seq, ends at list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is%u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
-
+#endif
         /* seg starts at seq, ends beyond seq. */
     } else if (SEQ_GT((seg->seq + seg->payload_len),
             (list_seg->seq + list_seg->payload_len))) {
         overlap = list_seg->payload_len;
         end_after = TRUE;
+#ifdef DEBUG
         printf("ReassembleInsertSegment: starts at list seq, ends beyond list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is%u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+#endif
     }
     if (overlap > 0) {
         /*Handle the case when newly arrived segment ends after original
@@ -491,13 +514,17 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
             case OS_POLICY_VISTA:
             case OS_POLICY_MACOS:
             case OS_POLICY_FIRST:
+#ifdef DEBUG
                 printf("Using Old Data in starts at list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+#endif
                 break;
             case OS_POLICY_LINUX:
                 if (end_after == TRUE) {
                     StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
                 } else
+#ifdef DEBUG
                     printf("Using Old Data in starts at list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+#endif
                 break;
             case OS_POLICY_OLD_LINUX:
             case OS_POLICY_SOLARIS:
@@ -506,7 +533,9 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
                     StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
                     end_after = FALSE;
                 } else {
+#ifdef DEBUG
                     printf("Using Old Data in starts at list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+#endif
                 }
                 break;
             case OS_POLICY_LAST:
@@ -549,22 +578,26 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
             (list_seg->seq + list_seg->payload_len))) {
         overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq + seg->payload_len);
         end_before = TRUE;
+#ifdef DEBUG
         printf("ReassembleInsertSegment: starts beyond list seq, ends before list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
-
+#endif
         /* seg starts after seq, before end, ends at seq. */
     } else if (SEQ_EQ((seg->seq + seg->payload_len),
             (list_seg->seq + list_seg->payload_len))) {
         overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq);
         end_same = TRUE;
+#ifdef DEBUG
         printf("ReassembleInsertSegment: starts beyond list seq, ends at list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
-
+#endif
         /* seg starts after seq, before end, ends beyond seq. */
     } else if (SEQ_LT(seg->seq, list_seg->seq + list_seg->payload_len) &&
             SEQ_GT((seg->seq + seg->payload_len),
             (list_seg->seq + list_seg->payload_len))) {
         overlap = (seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len);
         end_after = TRUE;
+#ifdef DEBUG
         printf("ReassembleInsertSegment: starts beyond list seq, before list end, ends at list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+#endif
     }
     if (overlap > 0) {
         /*Handle the case when newly arrived segment ends after original
@@ -610,7 +643,9 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
             case OS_POLICY_LINUX:
             case OS_POLICY_MACOS:
             case OS_POLICY_FIRST:
+#ifdef DEBUG
                 printf("Using Old Data in starts beyond list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+#endif
                 break;
             case OS_POLICY_SOLARIS:
             case OS_POLICY_HPUX11:
@@ -618,7 +653,9 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
                     StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
                     end_after = FALSE;
                 } else {
+#ifdef DEBUG
                     printf("Using Old Data in starts beyond list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+#endif
                 }
                 break;
             case OS_POLICY_LAST:
@@ -679,7 +716,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK(TcpSession *ssn, TcpStream *stream
     if (stream->seg_list == NULL)
         return 0;
 
+#ifdef DEBUG
     printf("StreamTcpReassembleHandleSegmentUpdateACK: start\n");
+#endif
 
     StreamMsg *smsg = NULL;
     char remove = FALSE;
@@ -688,7 +727,6 @@ int StreamTcpReassembleHandleSegmentUpdateACK(TcpSession *ssn, TcpStream *stream
     u_int16_t payload_len = 0;
     TcpSegment *seg = stream->seg_list;
     u_int32_t next_seq = seg->seq;
-    ;
 
     /* check if we have enough data to send to L7 */
     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -713,7 +751,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK(TcpSession *ssn, TcpStream *stream
         }
     }
 
+#ifdef DEBUG
    PrintList(seg);
+#endif
 
     /* loop through the segments and fill one or more msgs */
     for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);) {
@@ -721,6 +761,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK(TcpSession *ssn, TcpStream *stream
 
         if (next_seq != seg->seq) {
             printf("StreamTcpReassembleHandleSegmentUpdateACK: expected next_seq %u, got %u. Seq gap?\n", next_seq, seg->seq);
+            if (smsg != NULL)
+                StreamMsgPutInQueue(smsg);
             return -1;
         }
 
@@ -920,8 +962,6 @@ int StreamTcpReassembleHandleSegmentUpdateACK(TcpSession *ssn, TcpStream *stream
 }
 
 int StreamTcpReassembleHandleSegment(TcpSession *ssn, TcpStream *stream, Packet *p) {
-    /* XXX GS To test the target based policies and should be removed in final patch :) */
-    //stream->os_policy = OS_POLICY_SOLARIS;
     /* handle ack received */
     if (StreamTcpReassembleHandleSegmentUpdateACK(ssn, stream, p) != 0)
         return -1;
@@ -969,10 +1009,11 @@ void StreamTcpSegmentDataReplace(TcpSegment *list_seg, TcpSegment *seg, u_int32_
     u_int32_t i;
     u_int16_t cnt = 0;
     u_int16_t s_cnt = 0;
-    for (i = list_seg->seq; i < (start_point + len); i++) {
+    for (i = list_seg->seq; i < (start_point + len) && s_cnt < seg->payload_len && cnt < list_seg->payload_len; i++) {
         if (i >= start_point) {
             //printf("i: %u start point: %u len %u \n", i, start_point, len);
-            list_seg->payload[cnt] = seg->payload[s_cnt++];
+            list_seg->payload[cnt] = seg->payload[s_cnt];
+            s_cnt++;
         }
         cnt++;
     }
@@ -1034,6 +1075,9 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg) {
     PoolReturn(segment_pool[idx], (void *) seg);
     mutex_unlock(&segment_pool_mutex[idx]);
 }
+
+#ifdef UNITTESTS
+/** unit tests and it's support functions below */
 
 /** \brief  The Function tests the reassembly engine working for different
  *          OSes supported. It includes all the OS cases and send
@@ -2031,7 +2075,7 @@ static int StreamTcpReassembleTest24(void) {
  *          for various OS policies.
  */
 
-void SreamTcpReassembleRegisterTests(void) {
+void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest01 -- BSD OS Before Reassembly Test", StreamTcpReassembleTest01, 1);
     UtRegisterTest("StreamTcpReassembleTest02 -- BSD OS At Same Reassembly Test", StreamTcpReassembleTest02, 1);
     UtRegisterTest("StreamTcpReassembleTest03 -- BSD OS After Reassembly Test", StreamTcpReassembleTest03, 1);
@@ -2056,6 +2100,7 @@ void SreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest22 -- LAST OS At Same Reassembly Test", StreamTcpReassembleTest22, 1);
     UtRegisterTest("StreamTcpReassembleTest23 -- LAST OS After Reassembly Test", StreamTcpReassembleTest23, 1);
     UtRegisterTest("StreamTcpReassembleTest24 -- LAST OS Complete Reassembly Test", StreamTcpReassembleTest24, 1);
-    /*XXX GS This is to test the unittest, in the final patch it won't be there :) */
-    UtRunTests();
 }
+
+#endif /* UNITTESTS */
+

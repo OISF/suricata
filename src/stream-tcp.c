@@ -39,6 +39,7 @@ void StreamTcpExitPrintStats(ThreadVars *, void *);
 static int ValidReset(TcpSession * , Packet *);
 static int StreamTcpHandleFin(TcpSession *, Packet *);
 void StreamTcpStreamReturntoPool (Packet *);
+void StreamTcpRegisterTests (void);
 
 void *StreamTcpSessionAlloc(void *null) {
     void *ptr = malloc(sizeof(TcpSession));
@@ -62,7 +63,7 @@ void TmModuleStreamTcpRegister (void) {
     tmm_modules[TMM_STREAMTCP].Func = StreamTcp;
     tmm_modules[TMM_STREAMTCP].ExitPrintStats = StreamTcpExitPrintStats;
     tmm_modules[TMM_STREAMTCP].Deinit = StreamTcpThreadDeinit;
-    tmm_modules[TMM_STREAMTCP].RegisterTests = SreamTcpReassembleRegisterTests;
+    tmm_modules[TMM_STREAMTCP].RegisterTests = StreamTcpRegisterTests;
 
     ssn_pool = PoolInit(262144, 32768, StreamTcpSessionAlloc, NULL, StreamTcpSessionFree);
     if (ssn_pool == NULL) {
@@ -1228,8 +1229,14 @@ void StreamTcpStreamReturntoPool (Packet *p) {
 
     return 1;
 }
+*/
 
-void SreamTcpReassembleRegisterTests (void) {
-    UtRegisterTest("StreamTcpReassembleTest01", StreamTcpReassembleTest01, 1);
-    UtRunTests();
-}*/
+void StreamTcpRegisterTests (void) {
+#ifdef UNITTESTS
+    //UtRegisterTest("StreamTcpReassembleTest01", StreamTcpReassembleTest01, 1);
+
+    /* set up the reassembly tests as well */
+    StreamTcpReassembleRegisterTests();
+#endif /* UNITTESTS */
+}
+
