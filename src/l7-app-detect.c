@@ -86,7 +86,7 @@ void *L7AppDetectThread(void *td)
                 void *l7_data_ptr = ssn->l7data[l7_proto_id];
 
                 if (smsg->flags & STREAM_START) {
-                    //printf("L7AppDetectThread: stream initializer (len %u (%u))\n", smsg->init.data_len, MSG_INIT_DATA_SIZE);
+                    //printf("L7AppDetectThread: stream initializer (len %u (%u))\n", smsg->data.data_len, MSG_DATA_SIZE);
 
                     //printf("=> Init Stream Data -- start\n");
                     //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
@@ -118,6 +118,7 @@ void *L7AppDetectThread(void *td)
                     }
                 }
             }
+            mutex_unlock(&smsg->flow->m);
 
             /* XXX we need to improve this logic */
             smsg->flow->use_cnt--;
