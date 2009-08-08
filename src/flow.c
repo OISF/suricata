@@ -385,6 +385,8 @@ void FlowShutdown(void) {
 
     free(flow_hash);
     flow_memuse -= flow_config.hash_size * sizeof(FlowBucket);
+
+    pthread_mutex_destroy(&flow_memuse_mutex);
 }
 
 /* FlowManagerThread
