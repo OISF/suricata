@@ -210,12 +210,13 @@ end:
 
 static int PoolTestInit03 (void) {
     int retval = 0;
+    void *data = NULL;
 
     Pool *p = PoolInit(10,5,PoolTestAlloc,NULL,PoolTestFree);
     if (p == NULL)
         goto end;
 
-    void *data = PoolGet(p);
+    data = PoolGet(p);
     if (data == NULL) {
         printf("PoolGet returned NULL: ");
         retval = 0;
@@ -236,6 +237,8 @@ static int PoolTestInit03 (void) {
 
     retval = 1;
 end:
+    if (data != NULL)
+        free(data);
     if (p != NULL)
         PoolFree(p);
     return retval;
@@ -243,12 +246,13 @@ end:
 
 static int PoolTestInit04 (void) {
     int retval = 0;
+    char *str = NULL;
 
     Pool *p = PoolInit(10,5,PoolTestAllocArg,(void *)"test",PoolTestFree);
     if (p == NULL)
         goto end;
 
-    char *str = PoolGet(p);
+    str = PoolGet(p);
     if (str == NULL) {
         printf("PoolGet returned NULL: ");
         retval = 0;
@@ -275,6 +279,8 @@ static int PoolTestInit04 (void) {
 
     retval = 1;
 end:
+    if (str != NULL)
+        free(str);
     if (p != NULL)
         PoolFree(p);
     return retval;
@@ -282,12 +288,13 @@ end:
 
 static int PoolTestInit05 (void) {
     int retval = 0;
+    void *data = NULL;
 
     Pool *p = PoolInit(10,5,PoolTestAlloc,NULL,PoolTestFree);
     if (p == NULL)
         goto end;
 
-    void *data = PoolGet(p);
+    data = PoolGet(p);
     if (data == NULL) {
         printf("PoolGet returned NULL: ");
         retval = 0;
@@ -323,6 +330,8 @@ static int PoolTestInit05 (void) {
 
     retval = 1;
 end:
+    if (data != NULL)
+        free(data);
     if (p != NULL)
         PoolFree(p);
     return retval;
@@ -331,6 +340,7 @@ end:
 static int PoolTestInit06 (void) {
     int retval = 0;
     void *data = NULL;
+    void *data2 = NULL;
 
     Pool *p = PoolInit(1,0,PoolTestAlloc,NULL,PoolTestFree);
     if (p == NULL)
@@ -355,9 +365,9 @@ static int PoolTestInit06 (void) {
         goto end;
     }
 
-    data = PoolGet(p);
-    if (data != NULL) {
-        printf("PoolGet returned %p, expected NULL: ", data);
+    data2 = PoolGet(p);
+    if (data2 != NULL) {
+        printf("PoolGet returned %p, expected NULL: ", data2);
         retval = 0;
         goto end;
     }
@@ -381,6 +391,8 @@ static int PoolTestInit06 (void) {
 end:
     if (data != NULL)
         free(data);
+    if (data2 != NULL)
+        free(data2);
     if (p != NULL)
         PoolFree(p);
     return retval;
