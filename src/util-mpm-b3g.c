@@ -1003,6 +1003,19 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->scan_hash_size);
     }
+    if (ctx->scan_hash2) {
+        int h;
+        for (h = 0; h < ctx->scan_hash_size; h++) {
+            if (ctx->scan_hash2[h] == NULL)
+                continue;
+
+            B3gHashFree(mpm_ctx, ctx->scan_hash2[h]);
+        }
+
+        free(ctx->scan_hash2);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->scan_hash_size);
+    }
 
     if (ctx->search_bloom) {
         int h;
@@ -1032,6 +1045,19 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
         }
 
         free(ctx->search_hash);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->search_hash_size);
+    }
+    if (ctx->search_hash2) {
+        int h;
+        for (h = 0; h < ctx->search_hash_size; h++) {
+            if (ctx->search_hash2[h] == NULL)
+                continue;
+
+            B3gHashFree(mpm_ctx, ctx->search_hash2[h]);
+        }
+
+        free(ctx->search_hash2);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->search_hash_size);
     }
