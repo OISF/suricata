@@ -118,8 +118,6 @@ void *L7AppDetectThread(void *td)
                     }
                 }
             }
-            mutex_unlock(&smsg->flow->m);
-
             /* XXX we need to improve this logic */
             smsg->flow->use_cnt--;
             mutex_unlock(&smsg->flow->m);
