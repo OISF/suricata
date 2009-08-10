@@ -4,6 +4,9 @@
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"
+#include "tm-modules.h"
+#include "threadvars.h"
+#include "tm-threads.h"
 
 #include "util-time.h"
 
@@ -415,6 +418,8 @@ void *FlowManagerThread(void *td)
 
     while (1)
     {
+        TmThreadTestThreadUnPaused(th_v);
+
         if (sleeping >= 100 || flow_flags & FLOW_EMERGENCY)
         {
             u_int32_t timeout_new = flow_config.timeout_new;
@@ -474,3 +479,22 @@ void *FlowManagerThread(void *td)
     pthread_exit((void *) 0);
 }
 
+void FlowManagerThreadSpawn()
+{
+    ThreadVars *tv_flowmgr = NULL;
+
+    tv_flowmgr = TmThreadCreate("FlowManagerThread", NULL, NULL, NULL, NULL,
+                                "custom", FlowManagerThread, 0);
+    if (tv_flowmgr == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    if (TmThreadSpawn(tv_flowmgr, TVT_PPT, THV_USE) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    printf("Flow Manager thread spawned\n");
+
+    return;
+}

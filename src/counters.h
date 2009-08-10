@@ -1,4 +1,4 @@
-/** Copyright (c) Open Information Security Foundation.
+/** Copyright (c) 2009 Open Information Security Foundation.
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
@@ -6,13 +6,10 @@
 #define __COUNTERS_H__
 
 
-/** Time interval for syncing the local counters with the global ones */
+/* Time interval for syncing the local counters with the global ones */
 #define WUT_TTS 3
-/** Time interval at which the mgmt thread o/p the stats */
+/* Time interval at which the mgmt thread o/p the stats */
 #define MGMTT_TTS 8
-
-#define PT_RUN 0x01
-#define PT_KILL 0x02
 
 /* These 2 macros can only be used when all the registered counters for the tm,
  * are in the counter array */
@@ -53,21 +50,6 @@ enum {
     IFACE_NETWORK,
     IFACE_SYSLOG,
 };
-
-/* Holds the thread context for the counter api */
-typedef struct _PerfThreadContext {
-    pthread_t wakeup_t;
-    pthread_t mgmt_t;
-
-    /* state of the 2 threads, determined by PT_RUN AND PT_KILL */
-    u_int32_t flags;
-
-    /* need these mutexes just for calling pthread_cond_timewait() on tc_cond */
-    pthread_mutex_t wakeup_m;
-    pthread_mutex_t mgmt_m;
-
-    pthread_cond_t tc_cond;
-} PerfThreadContext;
 
 typedef struct _PerfCounterName {
     char *cname;
@@ -155,8 +137,6 @@ void PerfInitCounterApi(void);
 void PerfInitOPCtx(void);
 
 void PerfSpawnThreads(void);
-
-void PerfDestroyThreads(void);
 
 void * PerfMgmtThread(void *);
 

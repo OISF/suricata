@@ -9,8 +9,9 @@
 
 /** Thread flags set and read by threads to control the threads */
 #define THV_USE     0x01 /** thread is in use */
-#define THV_KILL    0x02 /** thread should stop and prepare tp get joined. */
-#define THV_CLOSED  0x04 /** thread done, should be joinable */
+#define THV_PAUSE   0x02
+#define THV_KILL    0x04
+#define THV_CLOSED  0x08 /* thread done, should be joinable */
 
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
@@ -35,6 +36,9 @@ typedef struct ThreadVars_ {
 
     PerfContext pctx;
     PerfCounterArray *pca;
+
+    pthread_mutex_t *m;
+    pthread_cond_t *cond;
 
     struct ThreadVars_ *next;
     struct ThreadVars_ *prev;

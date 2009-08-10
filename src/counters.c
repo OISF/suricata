@@ -15,12 +15,11 @@
 /** \todo config api */
 #define LOGPATH "/var/log/eidps/stats.log"
 
-static PerfThreadContext *perf_tc = NULL;
 static PerfOPIfaceContext *perf_op_ctx = NULL;
 
 /**
- * Initializes the perf counter api.  Things are hard coded currently.
- * More work to be done when we implement multiple interfaces
+ * \brief Initializes the perf counter api.  Things are hard coded currently.
+ *        More work to be done when we implement multiple interfaces
  */
 void PerfInitCounterApi()
 {
@@ -30,7 +29,7 @@ void PerfInitCounterApi()
 }
 
 /**
- * Initializes the output interface context
+ * \brief Initializes the output interface context
  */
 void PerfInitOPCtx()
 {
@@ -65,92 +64,49 @@ void PerfInitOPCtx()
 }
 
 /**
- * Spawns the wakeup, and the management thread
+ * \brief Spawns the wakeup, and the management thread
  */
 void PerfSpawnThreads()
 {
-    pthread_attr_t attr;
+    ThreadVars *tv_wakeup = NULL;
+    ThreadVars *tv_mgmt = NULL;
 
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-    printf("PerfSpawnThreads: spawning counter threads\n");
-
-    if ( (perf_tc = malloc(sizeof(PerfThreadContext))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(0);
+    /* Spawn the stats wakeup thread */
+    tv_wakeup = TmThreadCreate("PerfWakeupThread", NULL, NULL, NULL, NULL,
+                               "custom", PerfWakeupThread, 1);
+    if (tv_wakeup == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
     }
-    memset(perf_tc, 0, sizeof(PerfThreadContext));
-
-    perf_tc->flags = PT_RUN;
-
-    if (pthread_mutex_init(&perf_tc->wakeup_m, NULL) != 0) {
-        printf("Error initializing the perf_tc->wakeup_m mutex\n");
-        exit(0);
+    if (TmThreadSpawn(tv_wakeup, TVT_MGMT, THV_USE | THV_PAUSE) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
     }
 
-    if (pthread_mutex_init(&perf_tc->mgmt_m, NULL) != 0) {
-        printf("Error initializing the perf_tc->mgmt_m mutex\n");
-        exit(0);
+    /* Spawn the stats mgmt thread */
+    tv_mgmt = TmThreadCreate("PerfMgmtThread", NULL, NULL, NULL, NULL,
+                             "custom", PerfMgmtThread, 1);
+    if (tv_mgmt == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
     }
-
-    if (pthread_cond_init(&perf_tc->tc_cond, NULL) != 0) {
-        printf("Error initializing the perf_tc->tc_cond condition variable\n");
-        exit(0);
-    }
-
-    if (pthread_create(&perf_tc->wakeup_t, &attr, PerfWakeupThread, NULL) != 0) {
-        printf("Error creating PerfWakeupFunc thread\n");
-        exit(0);
-    }
-
-    if (pthread_create(&perf_tc->mgmt_t, &attr, PerfMgmtThread, NULL) != 0) {
-        printf("Error creating PerfWakeupFunc thread\n");
-        exit(0);
+    if (TmThreadSpawn(tv_mgmt, TVT_MGMT, THV_USE | THV_PAUSE) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
     }
 
     return;
 }
 
 /**
- * Kills the wakeup and the management threads
- */
-void PerfDestroyThreads()
-{
-    perf_tc->flags |= PT_KILL;
-
-    /* prematurely wakeup, the mgmt and wakeup threads */
-    pthread_cond_broadcast(&perf_tc->tc_cond);
-
-    pthread_join(perf_tc->wakeup_t, NULL);
-    pthread_join(perf_tc->mgmt_t, NULL);
-
-    if (pthread_mutex_destroy(&perf_tc->wakeup_m) != 0) {
-        printf("Error destroying the mutex perf_tc->wakeup_m\n");
-    }
-
-    if (pthread_mutex_destroy(&perf_tc->mgmt_m) != 0) {
-        printf("Error destroying the mutex perf_tc->mgmt_m\n");
-    }
-
-    if (pthread_cond_destroy(&perf_tc->tc_cond) != 0) {
-        printf("Error destroying the condition variable perf_tc->tc_cond\n");
-    }
-
-    if (perf_tc != NULL) free(perf_tc);
-
-    return;
-}
-
-
-/**
- * The management thread. This thread is responsible for writing the performance
- * stats information.
+ * \brief The management thread. This thread is responsible for writing the
+ *        performance stats information.
  *
- * @param arg is NULL always
+ * \param arg is NULL always
  */
 void * PerfMgmtThread(void *arg)
 {
+    ThreadVars *tv_local = (ThreadVars *)arg;
     u_int8_t run = 1;
     struct timespec cond_time;
 
@@ -162,33 +118,37 @@ void * PerfMgmtThread(void *arg)
     }
 
     while (run) {
+        TmThreadTestThreadUnPaused(tv_local);
+
         cond_time.tv_sec = time(NULL) + MGMTT_TTS;
         cond_time.tv_nsec = 0;
 
-        pthread_mutex_lock(&perf_tc->mgmt_m);
-        pthread_cond_timedwait(&perf_tc->tc_cond, &perf_tc->mgmt_m,
-                               &cond_time);
-        pthread_mutex_unlock(&perf_tc->mgmt_m);
+        pthread_mutex_lock(tv_local->m);
+        pthread_cond_timedwait(tv_local->cond, tv_local->m, &cond_time);
+        pthread_mutex_unlock(tv_local->m);
 
         // sleep(MGMTT_TTS);
 
         PerfOutputCounters();
 
-        if (perf_tc->flags & PT_KILL)
+        if (tv_local->flags & THV_KILL) {
+            tv_local->flags |= THV_CLOSED;
             run = 0;
+        }
     }
 
     return NULL;
 }
 
 /**
- * Wake up thread.  This thread wakes up every TTS(time to sleep) seconds and
- * sets the flag for every ThreadVars' PerfContext
+ * \brief Wake up thread.  This thread wakes up every TTS(time to sleep) seconds
+ *        and sets the flag for every ThreadVars' PerfContext
  *
- * @param arg is NULL always
+ * \param arg is NULL always
  */
 void * PerfWakeupThread(void *arg)
 {
+    ThreadVars *tv_local = (ThreadVars *)arg;
     u_int8_t run = 1;
     ThreadVars *tv = NULL;
     PacketQueue *q = NULL;
@@ -197,18 +157,18 @@ void * PerfWakeupThread(void *arg)
     printf("PerfWakeupThread: spawned\n");
 
     while (run) {
+        TmThreadTestThreadUnPaused(tv_local);
+
         cond_time.tv_sec = time(NULL) + WUT_TTS;
         cond_time.tv_nsec = 0;
 
-        pthread_mutex_lock(&perf_tc->wakeup_m);
-        pthread_cond_timedwait(&perf_tc->tc_cond, &perf_tc->wakeup_m,
-                               &cond_time);
-        pthread_mutex_unlock(&perf_tc->wakeup_m);
+        pthread_mutex_lock(tv_local->m);
+        pthread_cond_timedwait(tv_local->cond, tv_local->m, &cond_time);
+        pthread_mutex_unlock(tv_local->m);
 
         // sleep(WUT_TTS);
 
-        tv = tv_root;
-
+        tv = tv_root[TVT_PPT];
         while (tv != NULL) {
             if (tv->inq == NULL || tv->pctx.head == NULL) {
                 tv = tv->next;
@@ -226,23 +186,26 @@ void * PerfWakeupThread(void *arg)
             tv = tv->next;
         }
 
-        if (perf_tc->flags & PT_KILL)
+        if (tv_local->flags & THV_KILL) {
+            tv_local->flags |= THV_CLOSED;
             run = 0;
+        }
     }
 
     return NULL;
 }
 
 /**
- *  Registers a counter
+ * \brief Registers a counter
  *
- * @param cname holds the counter name
- * @param tm_name holds the tm_name
- * @param tid holds the tid running this module
- * @param type holds the datatype of this counter variable
- * @param head holds the PerfCounter
+ * \param cname   Counter name to be registered
+ * \param tm_name Thread module name
+ * \param tid     Thread id running this module instance
+ * \param type    Datatype of this counter variable
+ * \param desc    Description of this counter
+ * \param pctx    PerfContext for this tm-tv instance
  *
- * @returns the counter id
+ * \retval the counter id
  */
 u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
                               char *desc, PerfContext *pctx)
@@ -335,11 +298,11 @@ u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
 }
 
 /**
- * Adds a TM to the clubbed TM table.  Multiple instances of the same TM are
- * stacked together in a PCTMI container
+ * \brief Adds a TM to the clubbed TM table.  Multiple instances of the same TM
+ *        are stacked together in a PCTMI container
  *
- * @param tm_name is the name of the tm to be added
- * @param pctx holds the PerfContext associated with the TM tm_name
+ * \param tm_name Name of the tm to be added to the table
+ * \param pctx    PerfContext associated with the TM tm_name
  */
 void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
 {
@@ -414,13 +377,13 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
 
 
 /**
- * Returns a counter array for counters in this id range(s_id - e_id)
+ * \brief Returns a counter array for counters in this id range(s_id - e_id)
  *
- * @param s_id is the start id of the counter
- * @param e_id is the end id of the counter
- * @param pctx is a pointer to the tv's PerfContext
+ * \param s_id Counter id of the first counter to be added to the array
+ * \param e_id Counter id of the last counter to be added to the array
+ * \param pctx Pointer to the tv's PerfContext
  *
- * @returns a counter-array in this(s_id-e_id) range for this tm instance
+ * \retval a counter-array in this(s_id-e_id) range for this TM instance
  */
 PerfCounterArray * PerfGetCounterArrayRange(u_int32_t s_id, u_int32_t e_id,
                                             PerfContext *pctx)
@@ -471,11 +434,11 @@ PerfCounterArray * PerfGetCounterArrayRange(u_int32_t s_id, u_int32_t e_id,
 }
 
 /**
- * Returns a counter array for all counters registered for this tm instance
+ * \brief Returns a counter array for all counters registered for this tm instance
  *
- * @param pctx is a pointer to the tv's PerfContext
+ * \param pctx Pointer to the tv's PerfContext
  *
- * @returns a counter-array for all the counters of this tm instance
+ * \retval a counter-array for all counters of this tm instance
  */
 PerfCounterArray * PerfGetAllCountersArray(PerfContext *pctx)
 {
@@ -484,13 +447,15 @@ PerfCounterArray * PerfGetAllCountersArray(PerfContext *pctx)
 
 
 /**
- * Updates an individual counter
+ * \brief Updates an individual counter
  *
- * @param cname holds the counter name
- * @param tm_name holds the tm name
- * @param id holds the counter id for this tm
- * @param value holds a pointer to the local counter from the client thread
- * @param pctx holds the PerfContext associated with this instance of the tm
+ * \param cname    Name of the counter to be synced
+ * \param tm_name  Thread module name
+ * \param id holds Counter id of the counter to be synced
+ * \param value    Pointer to the local counter from the client thread
+ * \param pctx     PerfContext for this tm-tv instance
+ *
+ * \retval 1 on success, 0 on failure
  */
 int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
                       PerfContext *pctx)
@@ -535,11 +500,11 @@ int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
 }
 
 /**
- * Syncs the counter array with the global counter variables
+ * \brief Syncs the counter array with the global counter variables
  *
- * @param pca holds a pointer to the PerfCounterArray
- * @param pctx holds a pointer the the tv's PerfContext
- * @param reset_lc indicates whether the local counter has to be reset or not
+ * \param pca      Pointer to the PerfCounterArray
+ * \param pctx     Pointer the the tv's PerfContext
+ * \param reset_lc Indicates whether the local counter has to be reset or not
  */
 int PerfUpdateCounterArray(PerfCounterArray *pca, PerfContext *pctx, int reset_lc)
 {
@@ -582,7 +547,7 @@ int PerfUpdateCounterArray(PerfCounterArray *pca, PerfContext *pctx, int reset_l
 }
 
 /**
- * The output interface dispatcher for the counter api
+ * \brief The output interface dispatcher for the counter api
  */
 void PerfOutputCounters()
 {
@@ -605,11 +570,11 @@ void PerfOutputCounters()
 }
 
 /**
- * The file output interface for the counter api
+ * \brief The file output interface for the counter api
  */
 int PerfOutputCounterFileIface()
 {
-    ThreadVars *tv = tv_root;
+    ThreadVars *tv = NULL;
     PerfClubTMInst *pctmi = NULL;
     PerfCounter *pc = NULL;
     PerfCounter **pc_heads;
@@ -645,24 +610,27 @@ int PerfOutputCounterFileIface()
             "------------------\n");
 
     if (perf_op_ctx->club_tm == 0) {
-        while (tv != NULL) {
-            pthread_mutex_lock(&tv->pctx.m);
-            pc = tv->pctx.head;
+        for (i = 0; i < TVT_MAX; i++) {
+            tv = tv_root[i];
 
-            while (pc != NULL) {
-                ui64_cvalue = (u_int64_t *)pc->value->cvalue;
-                fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-llu\n",
-                        pc->name->cname, pc->name->tm_name, *ui64_cvalue);
-                //printf("%-10d %-10d %-10s %-llu\n", pc->name->tid, pc->id,
-                //       pc->name->cname, *ui64_cvalue);
-                pc = pc->next;
+            while (tv != NULL) {
+                pthread_mutex_lock(&tv->pctx.m);
+                pc = tv->pctx.head;
+
+                while (pc != NULL) {
+                    ui64_cvalue = (u_int64_t *)pc->value->cvalue;
+                    fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-llu\n",
+                            pc->name->cname, pc->name->tm_name, *ui64_cvalue);
+                    //printf("%-10d %-10d %-10s %-llu\n", pc->name->tid, pc->id,
+                    //       pc->name->cname, *ui64_cvalue);
+                    pc = pc->next;
+                }
+
+                pthread_mutex_unlock(&tv->pctx.m);
+                tv = tv->next;
             }
-
-            pthread_mutex_unlock(&tv->pctx.m);
-            tv = tv->next;
+            fflush(perf_op_ctx->fp);
         }
-
-        fflush(perf_op_ctx->fp);
 
         return 1;
     }
@@ -717,12 +685,10 @@ int PerfOutputCounterFileIface()
 }
 
 /**
- * Kills the perf threads and releases other resources.
+ * \brief Releases perf api resources.
  */
 void PerfReleaseResources()
 {
-    PerfDestroyThreads();
-
     PerfReleaseOPCtx();
 
     return;

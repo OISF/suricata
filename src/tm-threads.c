@@ -1,4 +1,6 @@
-/* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
+/** Copyright (c) 2009 Open Information Security Foundation.
+ *  \author Victor Julien <victor@inliniac.net>
+ */
 
 #include <sys/types.h> /* for gettid(2) */
 #define _GNU_SOURCE
@@ -11,13 +13,16 @@
 #include "tm-queues.h"
 #include "tm-queuehandlers.h"
 #include "tm-modules.h"
+#include "tm-threads.h"
 
 /* prototypes */
 static int SetCPUAffinity(int cpu);
 
-
 /* root of the threadvars list */
-ThreadVars *tv_root = NULL;
+ThreadVars *tv_root[TVT_MAX] = { NULL };
+
+/* lock to protect tv_root */
+pthread_mutex_t tv_root_lock = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct TmSlot_ {
     /* function pointers */
@@ -79,6 +84,8 @@ void *TmThreadsSlot1NoIn(void *td) {
     memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
     while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
         r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pq);
         while (s->s.slot_pq.len > 0) {
             Packet *extra = PacketDequeue(&s->s.slot_pq);
@@ -134,6 +141,8 @@ void *TmThreadsSlot1NoOut(void *td) {
     memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
     while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
         p = tv->tmqh_in(tv);
 
         r = s->s.SlotFunc(tv, p, s->s.slot_data, /* no outqh no pq */NULL);
@@ -185,6 +194,8 @@ void *TmThreadsSlot1NoInOut(void *td) {
     memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
     while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
         r = s->s.SlotFunc(tv, NULL, s->s.slot_data, /* no outqh, no pq */NULL);
         //printf("%s: TmThreadsSlot1NoInNoOut: r %d\n", tv->name, r);
         /* XXX handle error */
@@ -239,6 +250,8 @@ void *TmThreadsSlot1(void *td) {
     memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
     while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
         /* input a packet */
         p = tv->tmqh_in(tv);
 
@@ -317,6 +330,8 @@ void *TmThreadsSlot2(void *td) {
     }
 
     while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
         /* input a packet */
         p = tv->tmqh_in(tv);
 
@@ -437,6 +452,8 @@ void *TmThreadsSlot3(void *td) {
     }
 
     while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
         /* input a packet */
         p = tv->tmqh_in(tv);
 
@@ -618,6 +635,8 @@ void *TmThreadsSlotVar(void *td) {
     }
 
     while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
         /* input a packet */
         p = tv->tmqh_in(tv);
         //printf("TmThreadsSlotVar: %p\n", p);
@@ -661,8 +680,18 @@ void *TmThreadsSlotVar(void *td) {
     pthread_exit((void *) 0);
 }
 
-int TmThreadSetSlots(ThreadVars *tv, char *name) {
+int TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *)) {
     u_int16_t size = 0;
+
+    if (name == NULL) {
+        if (fn_p == NULL) {
+            printf("Both slot name and function pointer can't be NULL inside "
+                   "TmThreadSetSlots\n");
+            goto error;
+        }
+        else
+            name = "custom";
+    }
 
     if (strcmp(name, "1slot") == 0) {
         size = sizeof(Tm1Slot);
@@ -685,6 +714,12 @@ int TmThreadSetSlots(ThreadVars *tv, char *name) {
     } else if (strcmp(name, "varslot") == 0) {
         size = sizeof(TmVarSlot);
         tv->tm_func = TmThreadsSlotVar;
+    } else if (strcmp(name, "custom") == 0) {
+        if (fn_p == NULL)
+            goto error;
+
+        tv->tm_func = fn_p;
+        return 0;
     }
 
     tv->tm_slots = malloc(size);
@@ -835,7 +870,25 @@ int TmThreadSetCPUAffinity(ThreadVars *tv, int cpu) {
     return 0;
 }
 
-ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name, char *outq_name, char *outqh_name, char *slots) {
+/**
+ * \brief Creates and returns the TV instance for a new thread.
+ *
+ * \param name       Name of this TV instance
+ * \param inq_name   Incoming queue name
+ * \param inqh_name  Incoming queue handler name as set by TmqhSetup()
+ * \param outq_name  Outgoing queue name
+ * \param outqh_name Outgoing queue handler as set by TmqhSetup()
+ * \param slots      String representation for the slot function to be used
+ * \param fn_p       Pointer to function when \"slots\" is of type \"custom\"
+ * \param mucond     Flag to indicate whether to initialize the condition
+ *                   and the mutex variables for this newly created TV.
+ *
+ * \retval the newly created TV instance, or NULL on error
+ */
+ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
+                           char *outq_name, char *outqh_name, char *slots,
+                           void * (*fn_p)(void *), int mucond)
+{
     ThreadVars *tv = NULL;
     Tmq *tmq = NULL;
     Tmqh *tmqh = NULL;
@@ -889,9 +942,12 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name, char *ou
         //printf("TmThreadCreate: tv->tmqh_out %p\n", tv->tmqh_out);
     }
 
-    if (TmThreadSetSlots(tv, slots) != 0) {
+    if (TmThreadSetSlots(tv, slots, fn_p) != 0) {
         goto error;
     }
+
+    if (mucond != 0)
+        TmThreadInitMC(tv);
 
     return tv;
 error:
@@ -899,9 +955,15 @@ error:
     return NULL;
 }
 
-void TmThreadAppend(ThreadVars *tv) {
-    if (tv_root == NULL) {
-        tv_root = tv;
+/**
+ * \brief Appends this TV to tv_root based on its type
+ *
+ * \param type holds the type this TV belongs to.
+ */
+void TmThreadAppend(ThreadVars *tv, int type)
+{
+    if (tv_root[type] == NULL) {
+        tv_root[type] = tv;
         tv->next = NULL;
         tv->prev = NULL;
 
@@ -909,7 +971,7 @@ void TmThreadAppend(ThreadVars *tv) {
         return;
     }
 
-    ThreadVars *t = tv_root;
+    ThreadVars *t = tv_root[type];
 
     while (t) {
         if (t->next == NULL) {
@@ -926,61 +988,101 @@ void TmThreadAppend(ThreadVars *tv) {
 }
 
 void TmThreadKillThreads(void) {
-    ThreadVars *t = tv_root;
+    ThreadVars *t = NULL;
+    int i = 0;
 
-    while (t) {
-        t->flags |= THV_KILL;
-        //printf("TmThreadKillThreads: told thread %s to stop\n", t->name);
+    for (i = 0; i < TVT_MAX; i++) {
+        t = tv_root[i];
 
-        /* XXX hack */
-        StreamMsgSignalQueueHack();
 
-        if (t->inq != NULL) {
-            int i;
+        while (t) {
+            t->flags |= THV_KILL;
+            printf("TmThreadKillThreads: told thread %s to stop\n", t->name);
 
-            //printf("TmThreadKillThreads: t->inq->usecnt %u\n", t->inq->usecnt);
+            /* XXX hack */
+            StreamMsgSignalQueueHack();
 
-            /* make sure our packet pending counter doesn't block */
-            pthread_cond_signal(&cond_pending);
+            if (t->inq != NULL) {
+                int i;
 
-            /* signal the queue for the number of users */
-            for (i = 0; i < t->inq->usecnt; i++)
-                pthread_cond_signal(&trans_q[t->inq->id].cond_q);
+                //printf("TmThreadKillThreads: t->inq->usecnt %u\n", t->inq->usecnt);
 
-            /* to be sure, signal more */
-            int cnt = 0;
-            while (1) {
-                if (t->flags & THV_CLOSED) {
-                    //printf("signalled the thread %d times\n", cnt);
-                    break;
-                }
+                /* make sure our packet pending counter doesn't block */
+                pthread_cond_signal(&cond_pending);
 
-                cnt++;
+                /* signal the queue for the number of users */
 
                 for (i = 0; i < t->inq->usecnt; i++)
                     pthread_cond_signal(&trans_q[t->inq->id].cond_q);
 
-                usleep(100);
+                /* to be sure, signal more */
+                int cnt = 0;
+                while (1) {
+                    if (t->flags & THV_CLOSED) {
+                        printf("signalled the thread %d times\n", cnt);
+                        break;
+                    }
+
+                    cnt++;
+
+                    for (i = 0; i < t->inq->usecnt; i++)
+                        pthread_cond_signal(&trans_q[t->inq->id].cond_q);
+
+                    usleep(100);
+                }
+
+                printf("TmThreadKillThreads: signalled t->inq->id %u\n", t->inq->id);
+
             }
 
-            //printf("TmThreadKillThreads: signalled t->inq->id %u\n", t->inq->id);
+            if (t->cond != NULL ) {
+                int cnt = 0;
+                while (1) {
+                    if (t->flags & THV_CLOSED) {
+                        printf("signalled the thread %d times\n", cnt);
+                        break;
+                    }
+
+                    cnt++;
+
+                    pthread_cond_broadcast(t->cond);
+
+                    usleep(100);
+                }
+            }
+
+            /* join it */
+            pthread_join(t->t, NULL);
+            printf("TmThreadKillThreads: thread %s stopped\n", t->name);
+
+            t = t->next;
         }
-
-        /* join it */
-        pthread_join(t->t, NULL);
-        printf("TmThreadKillThreads: thread %s stopped\n", t->name);
-
-        t = t->next;
     }
 }
 
-int TmThreadSpawn(ThreadVars *tv) {
+/**
+ * \brief Spawns a thread associated with the ThreadVars instance tv
+ *
+ * \param type  Type this TV belongs to.
+ * \param flags Flags that should be set for this thread
+ *
+ * \retval 0 on success and -1 on failure
+ */
+int TmThreadSpawn(ThreadVars *tv, int type, int flags)
+{
     pthread_attr_t attr;
+
+    if (type < 0 || type >= TVT_MAX) {
+        printf("ThreadVars of category %d does not exist\n", type);
+        return -1;
+    }
 
     if (tv->tm_func == NULL) {
         printf("ERROR: no thread function set\n");
         return -1;
     }
+
+    tv->flags = flags;
 
     /* Initialize and set thread detached attribute */
     pthread_attr_init(&attr);
@@ -992,8 +1094,116 @@ int TmThreadSpawn(ThreadVars *tv) {
         return -1;
     }
 
-    TmThreadAppend(tv);
+    TmThreadAppend(tv, type);
 
     return 0;
 }
 
+/**
+ * \brief Initializes the mutex and condition variables for this TV
+ *
+ * \param tv Pointer to a TV instance
+ */
+void TmThreadInitMC(ThreadVars *tv)
+{
+    if ( (tv->m = malloc(sizeof(pthread_mutex_t))) == NULL) {
+        printf("Error allocating memory\n");
+        exit(0);
+    }
+
+    if (pthread_mutex_init(tv->m, NULL) != 0) {
+        printf("Error initializing the tv->m mutex\n");
+        exit(0);
+    }
+
+    if ( (tv->cond = malloc(sizeof(pthread_cond_t))) == NULL) {
+        printf("Error allocating memory\n");
+        exit(0);
+    }
+
+    if (pthread_cond_init(tv->cond, NULL) != 0) {
+        printf("Error initializing the tv->cond condition variable\n");
+        exit(0);
+    }
+}
+
+/**
+ * \brief Tests if the thread represented in the arg has been unpaused or not.
+ *
+ *        The function would return if the thread tv has been unpaused or if the
+ *        kill flag for the thread has been set.
+ *
+ * \param tv Pointer to the TV instance.
+ */
+void TmThreadTestThreadUnPaused(ThreadVars *tv)
+{
+    while (tv->flags & THV_PAUSE) {
+        usleep(100);
+        if (tv->flags & THV_KILL)
+            break;
+    }
+
+    return;
+}
+
+/**
+ * \brief Unpauses a thread
+ *
+ * \param tv Pointer to a TV instance that has to be unpaused
+ */
+void TmThreadContinue(ThreadVars *tv)
+{
+    tv->flags &= ~THV_PAUSE;
+
+    return;
+}
+
+/**
+ * \brief Unpauses all threads present in tv_root
+ */
+void TmThreadContinueThreads()
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+        while (tv != NULL) {
+            TmThreadContinue(tv);
+            tv = tv->next;
+        }
+    }
+
+    return;
+}
+
+/**
+ * \brief Pauses a thread
+ *
+ * \param tv Pointer to a TV instance that has to be paused
+ */
+void TmThreadPause(ThreadVars *tv)
+{
+    tv->flags |= THV_PAUSE;
+
+    return;
+}
+
+/**
+ * \brief Pauses all threads present in tv_root
+ */
+void TmThreadPauseThreads()
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+        while (tv != NULL) {
+            TmThreadPause(tv);
+            tv = tv->next;
+        }
+    }
+
+    return;
+}

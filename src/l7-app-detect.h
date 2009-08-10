@@ -3,4 +3,6 @@
 
 void *L7AppDetectThread(void *td);
 
+void L7AppDetectThreadSpawn(void);
+
 #endif /* __L7_APP_DETECT_H__ */

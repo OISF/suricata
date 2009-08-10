@@ -4,6 +4,9 @@
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"
+#include "tm-modules.h"
+#include "threadvars.h"
+#include "tm-threads.h"
 
 #include "util-print.h"
 #include "util-pool.h"
@@ -68,6 +71,8 @@ void *L7AppDetectThread(void *td)
 
     /* main loop */
     while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
         /* grab a msg, can return NULL on signals */
         StreamMsg *smsg = StreamMsgGetFromQueue(stream_q);
         if (smsg != NULL) {
@@ -133,3 +138,22 @@ void *L7AppDetectThread(void *td)
     pthread_exit((void *) 0);
 }
 
+void L7AppDetectThreadSpawn()
+{
+    ThreadVars *tv_l7appdetect = NULL;
+
+    tv_l7appdetect = TmThreadCreate("L7AppDetectThread", NULL, NULL, NULL, NULL,
+                                    "custom", L7AppDetectThread, 0);
+    if (tv_l7appdetect == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    if (TmThreadSpawn(tv_l7appdetect, TVT_PPT, THV_USE) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    printf("L7_App_Detect thread created\n");
+
+    return;
+}
