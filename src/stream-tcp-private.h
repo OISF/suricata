@@ -40,6 +40,9 @@ enum
     TCP_CLOSING   /* now a valid state */
 };
 
+#define STREAMTCP_FLAG_MIDSTREAM                0x01    /*Flag for mid stream session*/
+#define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x02    /*Flag for mid stream established session*/
+
 /* Macro's for comparing Sequence numbers
  * Page 810 from TCP/IP Illustrated, Volume 2. */
 #define SEQ_EQ(a,b)  ((int)((a) - (b)) == 0)
@@ -53,5 +56,6 @@ typedef struct TcpSession_ {
     TcpStream server;
     TcpStream client;
     void **l7data;
+    u_int8_t flags;
 } TcpSession;
 #endif /* __STREAM_TCP_PRIVATE_H__ */

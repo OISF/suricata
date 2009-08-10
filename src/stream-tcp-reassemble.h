@@ -32,6 +32,7 @@ enum
 int StreamTcpReassembleHandleSegment(TcpSession *, TcpStream *, Packet *);
 int StreamTcpReassembleInit(void);
 void StreamTcpReassembleRegisterTests(void);
+void StreamTcpCreateTestPacket(u_int8_t *, u_int8_t, u_int8_t);
 
 void StreamL7DataPtrInit(TcpSession *ssn, uint8_t cnt);
 

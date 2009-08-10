@@ -1,9 +1,9 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 /*  2009 Gurvinder Singh <gurvindersinghdahiya@gmail.com>*/
 
+
 #include "decode.h"
-
-
+#include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -26,10 +26,11 @@
 
 #include "util-pool.h"
 #include "util-unittest.h"
+#include "util-print.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-
+#include "stream-tcp.h"
 #include "stream.h"
 #include "stream-tcp.h"
 
@@ -39,10 +40,25 @@ int StreamTcpThreadDeinit(ThreadVars *, void *);
 void StreamTcpExitPrintStats(ThreadVars *, void *);
 static int ValidReset(TcpSession * , Packet *);
 static int StreamTcpHandleFin(TcpSession *, Packet *);
-void StreamTcpStreamReturntoPool (Packet *);
+void StreamTcpSessionPoolFree (Packet *);
 void StreamTcpRegisterTests (void);
+void StreamTcpReturnStreamSegments (TcpStream *);
+void StreamTcpInitConfig(char);
+extern void StreamTcpSegmentReturntoPool(TcpSegment *);
 
-void *StreamTcpSessionAlloc(void *null) {
+#define StreamTcpSessionFree  free
+#define STREAMTCP_DEFAULT_SESSIONS  262144
+#define STREAMTCP_DEFAULT_PREALLOC  32768
+
+static Pool *ssn_pool;
+static pthread_mutex_t ssn_pool_mutex;
+
+typedef struct StreamTcpThread_ {
+    u_int64_t pkts;
+} StreamTcpThread;
+
+
+void *StreamTcpSessionPoolAlloc(void *null) {
     void *ptr = malloc(sizeof(TcpSession));
     if (ptr == NULL)
         return NULL;
@@ -51,10 +67,6 @@ void *StreamTcpSessionAlloc(void *null) {
     return ptr;
 }
 
-#define StreamTcpSessionFree  free
-
-static Pool *ssn_pool;
-static pthread_mutex_t ssn_pool_mutex;
 
 void TmModuleStreamTcpRegister (void) {
     StreamTcpReassembleInit();
@@ -65,18 +77,58 @@ void TmModuleStreamTcpRegister (void) {
     tmm_modules[TMM_STREAMTCP].ExitPrintStats = StreamTcpExitPrintStats;
     tmm_modules[TMM_STREAMTCP].Deinit = StreamTcpThreadDeinit;
     tmm_modules[TMM_STREAMTCP].RegisterTests = StreamTcpRegisterTests;
+    StreamTcpInitConfig(STREAM_VERBOSE);
+}
 
-    ssn_pool = PoolInit(262144, 32768, StreamTcpSessionAlloc, NULL, StreamTcpSessionFree);
+/** \brief          To initialize the stream global configuration data
+ *
+ *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
+ *                  be get printed.
+ */
+
+void StreamTcpInitConfig(char quiet) {
+
+    if (quiet == FALSE)
+        printf("Initializing Stream:\n");
+
+    memset(&stream_config,  0, sizeof(stream_config));
+     /*set defaults*/
+    stream_config.max_sessions = STREAMTCP_DEFAULT_SESSIONS;
+    stream_config.prealloc_sessions = STREAMTCP_DEFAULT_PREALLOC;
+    stream_config.midstream = TRUE;
+    /*XXX GS should we need different function as last argument here not StreamTcpSessionPoolFree(),
+     * this function will free () the memory not retrun to the pool !!*/
+    ssn_pool = PoolInit(stream_config.max_sessions, stream_config.prealloc_sessions, StreamTcpSessionPoolAlloc, NULL, StreamTcpSessionFree);
     if (ssn_pool == NULL) {
         exit(1);
     }
-
     pthread_mutex_init(&ssn_pool_mutex, NULL);
 }
 
-typedef struct StreamTcpThread_ {
-    uint64_t pkts;
-} StreamTcpThread;
+/** \brief          The function is used to to fetch a TCP session from the
+ *                  ssn_pool, when a TCP SYN is received.
+ *
+ *  \param  quiet   Packet P, which has been recieved for the new TCP session.
+ *
+ *  \retval TcpSession A new TCP session with field initilaized to 0/NULL.
+ */
+
+TcpSession *StreamTcpNewSession (Packet *p) {
+    TcpSession *ssn = (TcpSession *)p->flow->stream;
+
+    if (ssn == NULL) {
+        mutex_lock(&ssn_pool_mutex);
+        p->flow->stream = PoolGet(ssn_pool);
+        mutex_unlock(&ssn_pool_mutex);
+        ssn = (TcpSession *)p->flow->stream;
+        if (ssn == NULL)
+            return NULL;
+        ssn->state = 0;
+        ssn->l7data = NULL;
+    }
+
+    return ssn;
+}
 
 /**
  *  \brief  Function to handle the TCP_CLOSED or NONE state. The function handles
@@ -88,17 +140,15 @@ typedef struct StreamTcpThread_ {
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
+static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
     switch (p->tcph->th_flags) {
         case TH_SYN:
-            /* get a stream */
-            mutex_lock(&ssn_pool_mutex);
-            p->flow->stream = PoolGet(ssn_pool);
-            mutex_unlock(&ssn_pool_mutex);
-
-            TcpSession *ssn = (TcpSession *)p->flow->stream;
-            if (ssn == NULL)
-                return -1;
+        {
+            if (ssn == NULL) {
+                ssn = StreamTcpNewSession(p);
+                if (ssn == NULL)
+                    return -1;
+            }
 
             /* set the state */
             ssn->state = TCP_SYN_SENT;
@@ -113,13 +163,99 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             //ssn->server.last_ack = ssn->client.isn + 1;
             //ssn->server.last_ack = TCP_GET_ACK(p);
 
-            printf("StreamTcpPacketStateNone (%p): ssn->client.isn %" PRIu32 ", ssn->client.next_seq %" PRIu32 ", ssn->SERVER.last_ack %" PRIu32 "\n",
-                    ssn, ssn->client.isn, ssn->client.next_seq, ssn->server.last_ack);
+            printf("StreamTcpPacketStateNone (%p): ssn->client.isn %" PRIu32 ", ssn->client.next_seq %" PRIu32 "\n",
+                    ssn, ssn->client.isn, ssn->client.next_seq);
 
             if (p->tcpvars.ws != NULL) {
                 printf("StreamTcpPacketStateNone (%p): p->tcpvars.ws %p, %02x\n", ssn, p->tcpvars.ws, *p->tcpvars.ws->data);
                 ssn->client.wscale = *p->tcpvars.ws->data;
             }
+            break;
+        }
+        case TH_SYN|TH_ACK:
+            if (stream_config.midstream == FALSE)
+                break;
+            if (ssn == NULL) {
+                ssn = StreamTcpNewSession(p);
+                if (ssn == NULL)
+                    return -1;
+            }
+            /* set the state */
+            ssn->state = TCP_SYN_RECV;
+            printf("StreamTcpPacketStateNone (%p): =~ midstream picked ssn state is now TCP_SYN_RECV\n", ssn);
+            ssn->flags = STREAMTCP_FLAG_MIDSTREAM;
+
+            /* sequence number & window */
+            ssn->server.isn = TCP_GET_SEQ(p);
+            ssn->server.ra_base_seq = ssn->server.isn;
+            ssn->server.next_seq = ssn->server.isn + 1;
+            ssn->server.window = TCP_GET_WINDOW(p);
+            printf("StreamTcpPacketStateNone: (%p): server window %u\n", ssn, ssn->server.window);
+
+            ssn->client.isn = TCP_GET_ACK(p) - 1;
+            ssn->client.ra_base_seq = ssn->client.isn;
+            ssn->client.next_seq = ssn->client.isn + 1;
+
+
+            ssn->client.last_ack = TCP_GET_ACK(p);
+
+            printf("StreamTcpPacketStateNone (%p): ssn->client.isn %u, ssn->client.next_seq %u\n",
+                    ssn, ssn->client.isn, ssn->client.next_seq);
+
+            if (p->tcpvars.ws != NULL) {
+                printf("StreamTcpPacketStateNone (%p): p->tcpvars.ws %p, %02x\n", ssn, p->tcpvars.ws, *p->tcpvars.ws->data);
+                ssn->server.wscale = *p->tcpvars.ws->data;
+            }
+
+            printf("StreamTcpPacketStateNone (%p): ssn->server.isn %u, ssn->server.next_seq %u, ssn->CLIENT.last_ack %u\n",
+                    ssn, ssn->server.isn, ssn->server.next_seq, ssn->client.last_ack);
+
+            break;
+        /*Handle SYN/ACK and 3WHS shake missed together as it is almost similar. ryt ?*/
+        case TH_ACK:
+        case TH_ACK|TH_PUSH:
+            if (stream_config.midstream == FALSE)
+                break;
+            if (ssn == NULL) {
+                ssn = StreamTcpNewSession(p);
+                if (ssn == NULL)
+                    return -1;
+            }
+            /* set the state */
+            ssn->state = TCP_ESTABLISHED;
+            printf("StreamTcpPacketStateNone (%p): =~ midstream picked ssn state is now TCP_ESTABLISHED\n", ssn);
+            ssn->flags = STREAMTCP_FLAG_MIDSTREAM;
+            ssn->flags |= STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED;
+
+            /* set the sequence numbers and window */
+            ssn->client.isn = TCP_GET_SEQ(p) - 1;
+            ssn->client.ra_base_seq = ssn->client.isn;
+            ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+            ssn->client.window = TCP_GET_WINDOW(p);
+            ssn->client.last_ack = TCP_GET_SEQ(p);
+            ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
+             printf("StreamTcpPacketStateNone (%p): ssn->client.isn %u, ssn->client.next_seq %u\n",
+                    ssn, ssn->client.isn, ssn->client.next_seq);
+
+            ssn->server.isn = TCP_GET_ACK(p) - 1;
+            ssn->server.ra_base_seq = ssn->server.isn;
+            ssn->server.next_seq = ssn->server.isn + 1;
+            ssn->server.last_ack = TCP_GET_ACK(p);
+
+            /*XXX GS window scaling*/
+            ssn->client.wscale = 0;
+            ssn->server.wscale = 0;
+
+            StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
+            break;
+        case TH_RST:
+        case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_PUSH:
+        case TH_FIN:
+        case TH_FIN|TH_ACK:
+        case TH_FIN|TH_ACK|TH_PUSH:
+            p->flow->stream = NULL;
+            printf ("StreamTcpPacketStateNone: FIN or RST packet received, no session setup\n");
             break;
         default:
             printf("StreamTcpPacketStateNone: default case\n");
@@ -138,8 +274,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
+    if (ssn == NULL)
+        return -1;
 
     switch (p->tcph->th_flags) {
         case TH_SYN:
@@ -193,7 +330,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
             if(ValidReset(ssn, p)){
                 if(SEQ_EQ(TCP_GET_SEQ(p), ssn->client.isn) && SEQ_EQ(TCP_GET_WINDOW(p), 0) && SEQ_EQ(TCP_GET_ACK(p), (ssn->client.isn + 1))) {
                     ssn->state = TCP_CLOSED;
-                    StreamTcpStreamReturntoPool(p);
+                    StreamTcpSessionPoolFree(p);
                 }
             } else
                 return -1;
@@ -216,8 +353,9 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
+    if (ssn == NULL)
+        return -1;
 
     switch (p->tcph->th_flags) {
         case TH_SYN:
@@ -236,6 +374,15 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
                 printf("StreamTcpPacketStateSynRecv (%p): ACK received in the wrong direction\n", ssn);
                 return -1;
             }
+            ssn->server.last_ack = TCP_GET_ACK(p);
+
+            if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
+                ssn->client.window = TCP_GET_WINDOW(p);
+                ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+                /*XXX GS window scaling need to be addressed!!*/
+                ssn->server.wscale = 0;
+                ssn->client.wscale = 0;
+            }
 
             printf("StreamTcpPacketStateSynRecv (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                     ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
@@ -246,7 +393,6 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
             ssn->client.next_seq += p->payload_len;
             ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-            ssn->server.last_ack = TCP_GET_ACK(p);
             ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
             printf("StreamTcpPacketStateSynRecv (%p): next_win %" PRIu32 "\n", ssn, ssn->client.next_win);
             break;
@@ -254,7 +400,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
         case TH_RST|TH_ACK:
             if(ValidReset(ssn, p)) {
                 ssn->state = TCP_CLOSED;
-                StreamTcpStreamReturntoPool(p);
+                StreamTcpSessionPoolFree(p);
             } else
                 return -1;
             break;
@@ -282,8 +428,9 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
+    if (ssn == NULL)
+        return -1;
 
     switch (p->tcph->th_flags) {
         case TH_SYN:
@@ -321,11 +468,20 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
                     printf("StreamTcpPacketStateEstablished (%p): server !!!!! => SEQ mismatch, packet SEQ %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), last_ack %" PRIu32 ", next_win %" PRIu32 "\n",
                             ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) + p->payload_len, ssn->client.last_ack, ssn->client.next_win);
                 }
+
                 printf("StreamTcpPacketStateEstablished (%p): next SEQ %" PRIu32 ", last ACK %" PRIu32 ", next win %" PRIu32 ", win %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack, ssn->client.next_win, ssn->client.window);
             } else { /* implied to client */
                 printf("StreamTcpPacketStateEstablished (%p): =+ pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
+
+                /*To get the server window value from the servers packet, when connection
+                 is picked up as midstream*/
+                if ((ssn->flags & STREAMTCP_FLAG_MIDSTREAM) && (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED)) {
+                    ssn->server.window = TCP_GET_WINDOW(p);
+                    ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+                    ssn->flags = STREAMTCP_FLAG_MIDSTREAM;
+                }
 
                 if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
                     ssn->server.next_seq += p->payload_len;
@@ -380,7 +536,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
 
                     printf("StreamTcpPacketStateEstablished (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                             ssn, ssn->client.next_seq, ssn->server.last_ack);
-                    StreamTcpStreamReturntoPool(p);
+                    StreamTcpSessionPoolFree(p);
                 } else {
                    printf("StreamTcpPacketStateEstablished (%p): Reset received and state changed to TCP_CLOSED\n", ssn);
                     ssn->state = TCP_CLOSED;
@@ -397,7 +553,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
 
                     printf("StreamTcpPacketStateEstablished (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                             ssn, ssn->server.next_seq, ssn->client.last_ack);
-                    StreamTcpStreamReturntoPool(p);
+                    StreamTcpSessionPoolFree(p);
                 }
             } else
                 return -1;
@@ -482,8 +638,9 @@ static int StreamTcpHandleFin(TcpSession *ssn, Packet *p) {
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
+    if (ssn == NULL)
+        return -1;
 
     switch (p->tcph->th_flags) {
         case TH_ACK:
@@ -574,7 +731,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
             if(ValidReset(ssn, p)) {
                 printf("StreamTcpPacketStateFinWait1 (%p): Reset received state changed to TCP_CLOSED\n", ssn);
                 ssn->state = TCP_CLOSED;
-                StreamTcpStreamReturntoPool(p);
+                StreamTcpSessionPoolFree(p);
             }
             else
                 return -1;
@@ -597,8 +754,9 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
+    if (ssn == NULL)
+        return -1;
 
     switch (p->tcph->th_flags) {
         case TH_ACK:
@@ -651,7 +809,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
             if(ValidReset(ssn, p)) {
                 printf("StreamTcpPacketStateFinWait2 (%p): Reset received state changed to TCP_CLOSED\n", ssn);
                 ssn->state = TCP_CLOSED;
-                StreamTcpStreamReturntoPool(p);
+                StreamTcpSessionPoolFree(p);
             }
             else
                 return -1;
@@ -720,8 +878,9 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
+    if (ssn == NULL)
+        return -1;
 
     switch(p->tcph->th_flags) {
         case TH_ACK:
@@ -786,8 +945,9 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p, StreamTcpThrea
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
+    if (ssn == NULL)
+        return -1;
 
     switch(p->tcph->th_flags) {
         case TH_FIN:
@@ -831,8 +991,9 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p, StreamTcpThr
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
+    if (ssn == NULL)
+        return -1;
 
     switch(p->tcph->th_flags) {
         case TH_ACK:
@@ -857,7 +1018,7 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p, StreamTcpThrea
 
                 printf("StreamTcpPacketStateLastAck (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
-                StreamTcpStreamReturntoPool(p);
+                StreamTcpSessionPoolFree(p);
             }
             break;
         default:
@@ -877,8 +1038,9 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p, StreamTcpThrea
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn) {
+    if (ssn == NULL)
+        return -1;
 
     switch(p->tcph->th_flags) {
         case TH_ACK:
@@ -903,7 +1065,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
 
                 printf("StreamTcpPacketStateTimeWait (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
-                StreamTcpStreamReturntoPool(p);
+                StreamTcpSessionPoolFree(p);
             } else {
                 printf("StreamTcpPacketStateTimeWait (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
@@ -925,7 +1087,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
 
                 printf("StreamTcpPacketStateTimeWait (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
-                StreamTcpStreamReturntoPool(p);
+                StreamTcpSessionPoolFree(p);
             }
             break;
         default:
@@ -941,35 +1103,45 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
     TcpSession *ssn = (TcpSession *)p->flow->stream;
 
     if (ssn == NULL || ssn->state == 0 || ssn->state == TCP_CLOSED) {
-        StreamTcpPacketStateNone(tv, p, stt);
+        if (StreamTcpPacketStateNone(tv, p, stt, ssn) == -1)
+            return -1;
     } else {
         switch (ssn->state) {
             case TCP_SYN_SENT:
-                StreamTcpPacketStateSynSent(tv, p, stt);
+                if(StreamTcpPacketStateSynSent(tv, p, stt, ssn))
+                    return -1;
                 break;
             case TCP_SYN_RECV:
-                StreamTcpPacketStateSynRecv(tv, p, stt);
+                if(StreamTcpPacketStateSynRecv(tv, p, stt, ssn))
+                    return -1;
                 break;
             case TCP_ESTABLISHED:
-                StreamTcpPacketStateEstablished(tv, p, stt);
+                if(StreamTcpPacketStateEstablished(tv, p, stt, ssn))
+                    return -1;
                 break;
             case TCP_FIN_WAIT1:
-                StreamTcpPacketStateFinWait1(tv, p, stt);
+                if(StreamTcpPacketStateFinWait1(tv, p, stt, ssn))
+                    return -1;
                 break;
             case TCP_FIN_WAIT2:
-                StreamTcpPacketStateFinWait2(tv, p, stt);
+                if(StreamTcpPacketStateFinWait2(tv, p, stt, ssn))
+                    return -1;
                 break;
             case TCP_CLOSING:
-                StreamTcpPacketStateClosing(tv, p, stt);
+                if(StreamTcpPacketStateClosing(tv, p, stt, ssn))
+                    return -1;
                 break;
             case TCP_CLOSE_WAIT:
-                StreamTcpPacketStateCloseWait(tv, p, stt);
+                if(StreamTcpPacketStateCloseWait(tv, p, stt, ssn))
+                    return -1;
                 break;
             case TCP_LAST_ACK:
-                StreamTcpPakcetStateLastAck(tv, p, stt);
+                if(StreamTcpPakcetStateLastAck(tv, p, stt, ssn))
+                    return -1;
                 break;
             case TCP_TIME_WAIT:
-                StreamTcpPacketStateTimeWait(tv, p, stt);
+                if(StreamTcpPacketStateTimeWait(tv, p, stt, ssn))
+                    return -1;
                 break;
         }
     }
@@ -1151,101 +1323,414 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
 }
 
 /**
- *  \brief   Function to return the stream back to the pool.
+ *  \brief      Function to return the stream back to the pool. It returns the
+ *              segments in the stream to the segment pool.
  *
  *  \param   p  Packet used to identify the stream.
  */
 
-void StreamTcpStreamReturntoPool (Packet *p) {
-    /* get a stream */
+void StreamTcpSessionPoolFree (Packet *p) {
+    TcpSession *ssn = (TcpSession *)p->flow->stream;
+    if (ssn == NULL)
+        return;
+    StreamTcpReturnStreamSegments(&ssn->client);
+    StreamTcpReturnStreamSegments(&ssn->server);
     mutex_lock(&ssn_pool_mutex);
     PoolReturn(ssn_pool, p->flow->stream);
     mutex_unlock(&ssn_pool_mutex);
+    /*XXX GS i think this will suffice then as when ssn_pool is initialize
+     StreamTcpSessionPoolAlloc () sets the ssn to 0 also. I think this will keep
+     the session in the pool as clean. your thoughts ??*/
+    memset(ssn, 0, sizeof(TcpSession));
     p->flow->stream = NULL;
 }
 
-/*static int StreamTcpReassembleTest01 (void) {
+void StreamTcpReturnStreamSegments (TcpStream *stream) {
+    TcpSegment *temp = stream->seg_list;
+    TcpSegment *prev;
+    for (; temp!=NULL; ) {
+        if (temp->next != NULL) {
+            prev = temp;
+            temp = temp->next;
+            StreamTcpSegmentReturntoPool(prev);
+        } else {
+            StreamTcpSegmentReturntoPool(temp);
+            temp = temp->next;
+        }
+    }
+}
+/**
+ *  \test   Test the allocation of TCP session for a given packet from the
+ *          ssn_pool.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
 
-    TcpSession ssn;
-    TcpStream cstream, sstream;
+static int StreamTcpTest01 (void) {
     Packet p;
-    ThreadVars tv;
     Flow f;
-    StreamTcpThread stt;
-    TCPHdr tcph;
-    uint8_t payload[] = { 0x41, 0x41, 0x41 };
+    TcpSession ssn1;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&ssn1, 0, sizeof (TcpSession));
+    f.stream = &ssn1;
+    p.flow = &f;
 
-    memset(&tv, 0, sizeof(ThreadVars));
-    memset(&ssn, 0, sizeof(TcpSession));
-    memset(&cstream, 0, sizeof(TcpStream));
-    memset(&sstream, 0, sizeof(TcpStream));
-    memset(&p, 0, sizeof(Packet));
-    memset(&f, 0, sizeof(Flow));
-    memset(&stt, 0, sizeof(StreamTcpThread));
-    memset(&tcph, 0, sizeof(TCPHdr));
-    cstream.os_policy = OS_POLICY_BSD;
-    sstream.os_policy = OS_POLICY_BSD;
-    //ssn.state = 0;
-    ssn.client = cstream;
-    ssn.server = sstream;
-    ssn.client.isn = 10;
-    ssn.server.isn = 30;
+    TcpSession *ssn = StreamTcpNewSession(&p);
+    if (ssn == NULL) {
+        printf("Session can not be allocated \n");
+        return 0;
+    }
+    if (ssn->l7data != NULL) {
+        printf("Layer 7 field not set to NULL \n");
+        return 0;
+    }
+    if (ssn->state != 0) {
+        printf("TCP state field not set to 0 \n");
+        return 0;
+    }
+
+    StreamTcpSessionPoolFree(&p);
+    return 1;
+}
+
+/**
+ *  \test   Test the deallocation of TCP session for a given packet and return
+ *          the memory back to ssn_pool and corresponding segments to segment
+ *          pool.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpTest02 (void) {
+    Packet p;
+    Flow f;
+    TcpSession ssn;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    u_int8_t payload[4];
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
     f.stream = &ssn;
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    //p.src = Address"10.0.0.1";
-    //p.dst = "10.0.0.2";
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
-    tcph.th_seq = htonl(10);
-    tcph.th_win = 5480;
+    p.flow = &f;
+
+    tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN;
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
-    p.flow = &f;
-    printf("I am executing hello world!!\n");
-    //for (i=0; i<39; i++) {
-        //p = (Packet)pkts[i];
-       StreamTcpPacket(&tv, &p, &stt);
-    //}
-       tcph.th_seq = htonl(30);
-       tcph.th_ack = htonl(11);
-       tcph.th_win = 5480;
-       tcph.th_flags = TH_SYN|TH_ACK;
-       p.tcph = &tcph;
-       p.flowflags = FLOW_PKT_TOCLIENT;
 
-       StreamTcpPacket(&tv, &p, &stt);
-       tcph.th_seq = htonl(11);
-       tcph.th_ack = htonl(31);
-       tcph.th_win = 5480;
-       tcph.th_flags = TH_ACK;
-       p.tcph = &tcph;
-       p.flowflags = FLOW_PKT_TOSERVER;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
 
-       StreamTcpPacket(&tv, &p, &stt);
-       tcph.th_seq = htonl(12);
-       tcph.th_ack = htonl(31);
-       tcph.th_win = 5480;
-       tcph.th_flags = TH_PUSH|TH_ACK;
-       p.tcph = &tcph;
-       //payload =
-       p.payload = payload;
-       p.payload_len = 3;
-       p.flowflags = FLOW_PKT_TOSERVER;
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_flags = TH_SYN | TH_ACK;
+    p.flowflags = FLOW_PKT_TOCLIENT;
 
-       StreamTcpPacket(&tv, &p, &stt);
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
 
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(1);
+    p.tcph->th_flags = TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
 
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(2);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(6);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    StreamTcpSessionPoolFree(&p);
+    if (p.flow->stream != NULL)
+        return 0;
     return 1;
 }
-*/
+
+/**
+ *  \test   Test the setting up a TCP session when we missed the intial
+ *          SYN packet of the session. The session is setup only if midstream
+ *          sessions are allowed to setup.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpTest03 (void) {
+    Packet p;
+    Flow f;
+    TcpSession ssn;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.stream = &ssn;
+    p.flow = &f;
+
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_SYN|TH_ACK;
+    p.tcph = &tcph;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = htonl(11);
+    p.tcph->th_flags = TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(19);
+    p.tcph->th_ack = htonl(11);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    if (stream_config.midstream != TRUE)
+        return 1;
+    if (((TcpSession *)(p.flow->stream))->state != TCP_ESTABLISHED)
+        return 0;
+
+    if (((TcpSession *)(p.flow->stream))->client.next_seq != 20 ||
+            ((TcpSession *)(p.flow->stream))->server.next_seq != 11)
+        return 0;
+
+    StreamTcpSessionPoolFree(&p);
+    return 1;
+}
+
+/**
+ *  \test   Test the setting up a TCP session when we missed the intial
+ *          SYN/ACK packet of the session. The session is setup only if
+ *          midstream sessions are allowed to setup.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpTest04 (void) {
+    Packet p;
+    Flow f;
+    TcpSession ssn;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.stream = &ssn;
+    p.flow = &f;
+
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_ACK;
+    p.tcph = &tcph;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(9);
+    p.tcph->th_ack = htonl(19);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    if (stream_config.midstream != TRUE)
+        return 1;
+    if (((TcpSession *)(p.flow->stream))->state != TCP_ESTABLISHED)
+        return 0;
+
+    if (((TcpSession *)(p.flow->stream))->client.next_seq != 10 ||
+            ((TcpSession *)(p.flow->stream))->server.next_seq != 20)
+        return 0;
+
+    StreamTcpSessionPoolFree(&p);
+    return 1;
+}
+
+/**
+ *  \test   Test the setting up a TCP session when we missed the intial
+ *          3WHS packet of the session. The session is setup only if
+ *          midstream sessions are allowed to setup.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpTest05 (void) {
+    Packet p;
+    Flow f;
+    TcpSession ssn;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    u_int8_t payload[4];
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.stream = &ssn;
+    p.flow = &f;
+
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_ACK|TH_PUSH;
+    p.tcph = &tcph;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(13);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x43, 3); /*CCC*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(19);
+    p.tcph->th_ack = htonl(16);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x44, 3); /*DDD*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    if (stream_config.midstream != TRUE)
+        return 1;
+    if (((TcpSession *)(p.flow->stream))->state != TCP_ESTABLISHED)
+        return 0;
+
+    if (((TcpSession *)(p.flow->stream))->client.next_seq != 16 ||
+            ((TcpSession *)(p.flow->stream))->server.next_seq != 23)
+        return 0;
+    StreamTcpSessionPoolFree(&p);
+    return 1;
+}
+
+/**
+ *  \test   Test the setting up a TCP session when we have seen only the
+ *          FIN, RST packets packet of the session. The session is setup only if
+ *          midstream sessions are allowed to setup.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpTest06 (void) {
+    Packet p;
+    Flow f;
+    TcpSession ssn;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.stream = &ssn;
+    p.flow = &f;
+    tcph.th_flags = TH_FIN;
+    p.tcph = &tcph;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    if (((TcpSession *)(p.flow->stream)) != NULL)
+        return 0;
+
+    p.tcph->th_flags = TH_RST;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        return 0;
+
+    if (((TcpSession *)(p.flow->stream)) != NULL)
+        return 0;
+    return 1;
+}
 
 void StreamTcpRegisterTests (void) {
 #ifdef UNITTESTS
-    //UtRegisterTest("StreamTcpReassembleTest01", StreamTcpReassembleTest01, 1);
-
+    UtRegisterTest("StreamTcpTest01 -- TCP session allocation", StreamTcpTest01, 1);
+    UtRegisterTest("StreamTcpTest02 -- TCP session deallocation", StreamTcpTest02, 1);
+    UtRegisterTest("StreamTcpTest03 -- SYN missed MidStream session", StreamTcpTest03, 1);
+    UtRegisterTest("StreamTcpTest04 -- SYN/ACK missed MidStream session", StreamTcpTest04, 1);
+    UtRegisterTest("StreamTcpTest05 -- 3WHS missed MidStream session", StreamTcpTest05, 1);
+    UtRegisterTest("StreamTcpTest06 -- FIN, RST message MidStream session", StreamTcpTest06, 1);
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
 #endif /* UNITTESTS */
