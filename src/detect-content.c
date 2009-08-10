@@ -39,10 +39,14 @@
 #include "flow-var.h"
 #include "detect-flow.h"
 
+#include "util-unittest.h"
+
 #include "threads.h"
 
 int DetectContentMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
 int DetectContentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+void DetectContentRegisterTests(void);
+void DetectContentFree(DetectContentData *);
 
 u_int8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
@@ -52,7 +56,7 @@ void DetectContentRegister (void) {
     sigmatch_table[DETECT_CONTENT].Match = DetectContentMatch;
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = NULL;
-    sigmatch_table[DETECT_CONTENT].RegisterTests = NULL;
+    sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
 
     /* create table for O(1) case conversion lookup */
     u_int8_t c = 0;
@@ -273,10 +277,9 @@ int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
     return DoDetectContent(t, pmt, p, s, m, co);
 }
 
-int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *contentstr)
+DetectContentData *DetectContentParse (char *contentstr)
 {
     DetectContentData *cd = NULL;
-    SigMatch *sm = NULL;
     char *str = contentstr;
     char dubbed = 0;
     u_int16_t len;
@@ -289,16 +292,16 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
     len = strlen(str);
     if (len == 0)
-        return -1;
+        goto error;
 
     cd = malloc(sizeof(DetectContentData));
     if (cd == NULL) {
-        printf("DetectContentSetup malloc failed\n");
+        printf("DetectContentParse malloc failed\n");
         goto error;
     }
     memset(cd,0,sizeof(DetectContentData));
 
-    //printf("DetectContentSetup: \"%s\", len %u\n", str, len);
+    //printf("DetectContentParse: \"%s\", len %u\n", str, len);
     char converted = 0;
 
     {
@@ -315,12 +318,12 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
             } else {
                 if (bin) {
                     if (isdigit(str[i]) ||
-                        str[i] == 'A' || str[i] == 'a' ||
-                        str[i] == 'B' || str[i] == 'b' ||
-                        str[i] == 'C' || str[i] == 'c' ||
-                        str[i] == 'D' || str[i] == 'd' ||
-                        str[i] == 'E' || str[i] == 'e' ||
-                        str[i] == 'F' || str[i] == 'f') {
+                            str[i] == 'A' || str[i] == 'a' ||
+                            str[i] == 'B' || str[i] == 'b' ||
+                            str[i] == 'C' || str[i] == 'c' ||
+                            str[i] == 'D' || str[i] == 'd' ||
+                            str[i] == 'E' || str[i] == 'e' ||
+                            str[i] == 'F' || str[i] == 'f') {
                         // printf("part of binary: %c\n", str[i]);
 
                         binstr[binpos] = (char)str[i];
@@ -360,7 +363,7 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
     cd->content = malloc(len);
     if (cd->content == NULL)
-        return -1;
+        goto error;
 
     memcpy(cd->content, str, len);
     cd->content_len = len;
@@ -370,8 +373,23 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     cd->distance = 0;
     cd->flags = 0;
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
+    if (dubbed != 0) free(str);
+    return cd;
+
+error:
+    if (dubbed != 0) free(str);
+    if (cd != NULL) free(cd);
+    return NULL;
+}
+
+int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *contentstr)
+{
+    DetectContentData *cd = NULL;
+    SigMatch *sm = NULL;
+
+    cd = DetectContentParse(contentstr);
+    if (cd == NULL) goto error;
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -386,14 +404,118 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
     s->flags |= SIG_FLAG_MPM;
 
-    if (dubbed) free(str);
     return 0;
 
 error:
-    if (dubbed) free(str);
-    if (cd) free(cd);
-    if (sm) free(sm);
+    if (cd != NULL) DetectContentFree(cd);
+    if (sm != NULL) free(sm);
     return -1;
 }
 
+/**
+ * \brief this function will free memory associated with DetectContentData
+ *
+ * \param cd pointer to DetectCotentData
+ */
+void DetectContentFree(DetectContentData *cd) {
+    free(cd);
+}
 
+/**
+ * \test DetectCotentParseTest01 this is a test to make sure we can deal with escaped colons
+ */
+int DetectContentParseTest01 (void) {
+    int result = 1;
+    DetectContentData *cd = NULL;
+    char *teststring = "\"abc\\:def\"";
+    char *teststringparsed = "abc:def";
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        if(memcmp(cd->content, teststringparsed, sizeof(teststringparsed)) != 0){
+            printf("expected %s got %s: ", teststringparsed, cd->content);
+            result = 0;
+            DetectContentFree(cd);
+        }
+    }else if(cd == NULL){
+        printf("expected %s got NULL: ", teststringparsed);
+        result = 0;
+    }
+    return result;
+}
+
+/**
+ * \test DetectCotentParseTest02 this is a test to make sure we can deal with escaped semi-colons
+ */
+int DetectContentParseTest02 (void) {
+    int result = 1;
+    DetectContentData *cd = NULL;
+    char *teststring = "\"abc\\;def\"";
+    char *teststringparsed = "abc;def";
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        if(memcmp(cd->content, teststringparsed, sizeof(teststringparsed)) != 0){
+            printf("expected %s got %s: ", teststringparsed, cd->content);
+            result = 0;
+            DetectContentFree(cd);
+        }
+    }else if(cd == NULL){
+        printf("expected %s got NULL: ", teststringparsed);
+        result = 0;
+    }
+    return result;
+}
+
+/**
+ * \test DetectCotentParseTest03 this is a test to make sure we can deal with escaped double-quotes
+ */
+int DetectContentParseTest03 (void) {
+    int result = 1;
+    DetectContentData *cd = NULL;
+    char *teststring = "\"abc\\\"def\"";
+    char *teststringparsed = "abc\"def";
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        if(memcmp(cd->content, teststringparsed, sizeof(teststringparsed)) != 0){
+            printf("expected %s got %s: ", teststringparsed, cd->content);
+            result = 0;
+            DetectContentFree(cd);
+        }
+    }else if(cd == NULL){
+        printf("expected %s got NULL: ", teststringparsed);
+        result = 0;
+    }
+    return result;
+}
+
+/**
+ * \test DetectCotentParseTest04 ****BROKEN***** this is a test to make sure we can deal with escaped backslashes
+ */
+int DetectContentParseTest04 (void) {
+    int result = 1;
+    DetectContentData *cd = NULL;
+    char *teststring = "\"abc\\\\def\"";
+    char *teststringparsed = "abc\\def";
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+            printf("expected %s got %s: ", teststringparsed, cd->content);
+        if(memcmp(cd->content, teststringparsed, sizeof(teststringparsed)) != 0){
+            printf("expected %s got %s: ", teststringparsed, cd->content);
+            result = 0;
+            DetectContentFree(cd);
+        }
+    }else if(cd == NULL){
+        printf("expected %s got NULL: ", teststringparsed);
+        result = 0;
+    }
+    return result;
+}
+
+/**
+ * \brief this function registers unit tests for DetectFlow
+ */
+void DetectContentRegisterTests(void) {
+    UtRegisterTest("DetectContentParseTest01", DetectContentParseTest01, 1);
+    UtRegisterTest("DetectContentParseTest02", DetectContentParseTest02, 1);
+    UtRegisterTest("DetectContentParseTest03", DetectContentParseTest03, 1);
+    UtRegisterTest("DetectContentParseTest04", DetectContentParseTest04, 1);
+}
