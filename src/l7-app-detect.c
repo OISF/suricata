@@ -63,8 +63,8 @@ void *L7AppDetectThread(void *td)
     /* get the stream msg queue for this thread */
     StreamMsgQueue *stream_q = StreamMsgQueueGetByPort(0);
     /* set the minimum size we expect */
-    StreamMsgQueueSetMinInitChunkLen(stream_q, FLOW_PKT_TOSERVER, INSPECT_BYTES);
-    StreamMsgQueueSetMinInitChunkLen(stream_q, FLOW_PKT_TOCLIENT, INSPECT_BYTES);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, INSPECT_BYTES);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, INSPECT_BYTES);
 
     /* main loop */
     while(run) {

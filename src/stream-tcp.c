@@ -1072,18 +1072,18 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
         case OS_POLICY_VISTA:
             if(PKT_IS_TOSERVER(p)){
                 if(SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq)) {
-                    printf("Reset is Valid! Pakcet SEQ: %d", TCP_GET_SEQ(p));
+                    printf("Reset is Valid! Pakcet SEQ: %u\n", TCP_GET_SEQ(p));
                     return 1;
                 } else {
-                    printf("Reset is not Valid! Packet SEQ: %d and server SEQ: %d", TCP_GET_SEQ(p), ssn->client.next_seq );
+                    printf("Reset is not Valid! Packet SEQ: %u and server SEQ: %u\n", TCP_GET_SEQ(p), ssn->client.next_seq);
                     return 0;
                 }
             } else { /* implied to client */
                 if(SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq)) {
-                    printf("Reset is Valid! Pakcet SEQ: %d", TCP_GET_SEQ(p));
+                    printf("Reset is Valid! Pakcet SEQ: %u\n", TCP_GET_SEQ(p));
                     return 1;
                 } else {
-                    printf("Reset is not Valid! Packet SEQ: %d and client SEQ: %d", TCP_GET_SEQ(p), ssn->server.next_seq );
+                    printf("Reset is not Valid! Packet SEQ: %u and client SEQ: %u\n", TCP_GET_SEQ(p), ssn->server.next_seq);
                     return 0;
                 }
             }
@@ -1091,18 +1091,18 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
         case OS_POLICY_HPUX11:
             if(PKT_IS_TOSERVER(p)){
                 if(SEQ_GEQ(TCP_GET_SEQ(p), ssn->client.next_seq)) {
-                    printf("Reset is Valid! Pakcet SEQ: %d", TCP_GET_SEQ(p));
+                    printf("Reset is Valid! Pakcet SEQ: %u\n", TCP_GET_SEQ(p));
                     return 1;
                 } else {
-                    printf("Reset is not Valid! Packet SEQ: %d and server SEQ: %d", TCP_GET_SEQ(p), ssn->client.next_seq );
+                    printf("Reset is not Valid! Packet SEQ: %u and server SEQ: %u\n", TCP_GET_SEQ(p), ssn->client.next_seq);
                     return 0;
                 }
             } else { /* implied to client */
                 if(SEQ_GEQ(TCP_GET_SEQ(p), ssn->server.next_seq)) {
-                    printf("Reset is Valid! Pakcet SEQ: %d", TCP_GET_SEQ(p));
+                    printf("Reset is Valid! Pakcet SEQ: %u\n", TCP_GET_SEQ(p));
                     return 1;
                 } else {
-                    printf("Reset is not Valid! Packet SEQ: %d and client SEQ: %d", TCP_GET_SEQ(p), ssn->server.next_seq );
+                    printf("Reset is not Valid! Packet SEQ: %u and client SEQ: %u\n", TCP_GET_SEQ(p), ssn->server.next_seq);
                     return 0;
                 }
             }
@@ -1113,27 +1113,27 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
             if(PKT_IS_TOSERVER(p)){
                 if(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->client.last_ack)) { /*window base is needed !!*/
                     if(SEQ_LT(TCP_GET_SEQ(p), (ssn->client.next_seq + ssn->client.window))) {
-                        printf("Reset is Valid! Pakcet SEQ: %d", TCP_GET_SEQ(p));
+                        printf("Reset is Valid! Pakcet SEQ: %u\n", TCP_GET_SEQ(p));
                         return 1;
                     }
                 } else {
-                    printf("Reset is not Valid! Packet SEQ: %d and server SEQ: %d", TCP_GET_SEQ(p), ssn->client.next_seq );
+                    printf("Reset is not Valid! Packet SEQ: %u and server SEQ: %u\n", TCP_GET_SEQ(p), ssn->client.next_seq);
                     return 0;
                 }
             } else { /* implied to client */
                 if(SEQ_GEQ((TCP_GET_SEQ(p) + p->payload_len), ssn->server.last_ack)) { /*window base is needed !!*/
                     if(SEQ_LT(TCP_GET_SEQ(p), (ssn->server.next_seq + ssn->server.window))) {
-                        printf("Reset is Valid! Pakcet SEQ: %d", TCP_GET_SEQ(p));
+                        printf("Reset is Valid! Pakcet SEQ: %u\n", TCP_GET_SEQ(p));
                         return 1;
                     }
                 } else {
-                    printf("Reset is not Valid! Packet SEQ: %d and client SEQ: %d", TCP_GET_SEQ(p), ssn->server.next_seq );
+                    printf("Reset is not Valid! Packet SEQ: %u and client SEQ: %u\n", TCP_GET_SEQ(p), ssn->server.next_seq);
                     return 0;
                 }
             }
             break;
         default:
-            printf("Reset is not Valid! Packet SEQ: %d", TCP_GET_SEQ(p));
+            printf("Reset is not Valid! Packet SEQ: %u & os_policy default case\n", TCP_GET_SEQ(p));
             break;
     }
     return 0;

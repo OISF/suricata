@@ -9,6 +9,7 @@
 #include "util-pool.h"
 
 static StreamMsgQueue stream_q;
+
 /* per queue setting */
 static u_int16_t toserver_min_init_chunk_len = 0;
 static u_int16_t toserver_min_chunk_len = 0;
@@ -149,11 +150,19 @@ void StreamMsgSignalQueueHack(void) {
     pthread_cond_signal(&stream_q.cond_q);
 }
 
-void StreamMsgQueueSetMinInitChunkLen(StreamMsgQueue *q, u_int8_t dir, u_int16_t len) {
+void StreamMsgQueueSetMinInitChunkLen(u_int8_t dir, u_int16_t len) {
     if (dir == FLOW_PKT_TOSERVER) {
         toserver_min_init_chunk_len = len;
     } else {
         toclient_min_init_chunk_len = len;
+    }
+}
+
+void StreamMsgQueueSetMinChunkLen(u_int8_t dir, u_int16_t len) {
+    if (dir == FLOW_PKT_TOSERVER) {
+        toserver_min_chunk_len = len;
+    } else {
+        toclient_min_chunk_len = len;
     }
 }
 
