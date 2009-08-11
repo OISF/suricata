@@ -885,7 +885,6 @@ int main(int argc, char **argv)
     SigRegisterTests();
     PerfRegisterTests();
     DecodePPPRegisterTests();
-    DecodeEventRegisterTests();
     if (argc > 1&& (strcmp(argv[1],"runtests") == 0)) {
         UtRunTests();
     }
@@ -931,8 +930,8 @@ int main(int argc, char **argv)
     gettimeofday(&start_time, NULL);
 
     //RunModeIpsNFQ();
-    RunModeIdsPcap(argv[1]);
-    //RunModeFilePcap(argv[1]);
+    //RunModeIdsPcap(argv[1]);
+    RunModeFilePcap(argv[1]);
     //RunModeFilePcap2(argv[1]);
 
     ThreadVars tv_flowmgr;
