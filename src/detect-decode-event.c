@@ -3,7 +3,6 @@
  *  \author Breno Silva <breno.silva@gmail.com>
  */
 
-
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
@@ -18,7 +17,6 @@
 #include <pcre.h>
 #include <ctype.h>
 
-/* XXX VJ stricter regex */
 #define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z+]+$"
 
 static pcre *parse_regex;
@@ -32,7 +30,6 @@ void DecodeEventRegisterTests(void);
 /**
  * \brief Registration function for decode-event: keyword
  */
-
 void DetectDecodeEventRegister (void) {
     sigmatch_table[DETECT_DECODE_EVENT].name = "decode-event";
     sigmatch_table[DETECT_DECODE_EVENT].Match = DetectDecodeEventMatch;
@@ -76,12 +73,9 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-
-
 int DetectDecodeEventMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
 {
     int ret = 0;
-
     DetectDecodeEventData *de = (DetectDecodeEventData *)m->ctx;
 
     if(de && DECODER_ISSET_EVENT(p, de->event))
@@ -98,46 +92,37 @@ int DetectDecodeEventMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p,
  * \retval de pointer to DetectFlowData on success
  * \retval NULL on failure
  */
-
-
 DetectDecodeEventData *DetectDecodeEventParse (char *rawstr)
 {
-
     int i;
     DetectDecodeEventData *de = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0, found = 0;
     int ov[MAX_SUBSTRINGS];
 
-
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-
     if (ret < 1) {
         goto error;
     }
 
     const char *str_ptr;
-
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 0, &str_ptr);
 
     if (res < 0) {
         goto error;
     }
 
-
-    for(i=0; DEvents[i].event_name != NULL; i++)  {
+    for(i = 0; DEvents[i].event_name != NULL; i++)  {
         if((strncasecmp(DEvents[i].event_name,str_ptr,strlen(DEvents[i].event_name))) == 0) {
             found = 1;
             break;
         }
     }
 
-
     if(found == 0)
         goto error;
 
     de = malloc(sizeof(DetectDecodeEventData));
-
     if (de == NULL) {
         printf("DetectDecodeEventSetup malloc failed\n");
         goto error;
@@ -162,8 +147,6 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-
-
 int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
 {
     DetectDecodeEventData *de = NULL;
@@ -187,8 +170,6 @@ error:
     if (de) free(de);
     if (sm) free(sm);
     return -1;
-
-    return 0;
 }
 
 /**
@@ -196,8 +177,6 @@ error:
  *
  * \param de pointer to DetectDecodeEventData
  */
-
-
 void DetectDecodeEventFree(DetectDecodeEventData *de) {
     if(de) free(de);
 }
@@ -209,7 +188,6 @@ void DetectDecodeEventFree(DetectDecodeEventData *de) {
 /**
  * \test DecodeEventTestParse01 is a test for a  valid decode-event value
  */
-
 int DecodeEventTestParse01 (void) {
     DetectDecodeEventData *de = NULL;
     de = DetectDecodeEventParse("ipv4.pkt_too_small");
@@ -225,7 +203,6 @@ int DecodeEventTestParse01 (void) {
 /**
  * \test DecodeEventTestParse02 is a test for a  valid upper + lower case decode-event value
  */
-
 int DecodeEventTestParse02 (void) {
     DetectDecodeEventData *de = NULL;
     de = DetectDecodeEventParse("PPP.pkt_too_small");
@@ -240,7 +217,6 @@ int DecodeEventTestParse02 (void) {
 /**
  * \test DecodeEventTestParse03 is a test for a  valid upper case decode-event value
  */
-
 int DecodeEventTestParse03 (void) {
     DetectDecodeEventData *de = NULL;
     de = DetectDecodeEventParse("IPV6.PKT_TOO_SMALL");
@@ -255,7 +231,6 @@ int DecodeEventTestParse03 (void) {
 /**
  * \test DecodeEventTestParse04 is a test for an  invalid upper case decode-event value
  */
-
 int DecodeEventTestParse04 (void) {
     DetectDecodeEventData *de = NULL;
     de = DetectDecodeEventParse("IPV6.INVALID_EVENT");
@@ -270,7 +245,6 @@ int DecodeEventTestParse04 (void) {
 /**
  * \test DecodeEventTestParse05 is a test for an  invalid char into the decode-event value
  */
-
 int DecodeEventTestParse05 (void) {
     DetectDecodeEventData *de = NULL;
     de = DetectDecodeEventParse("IPV-6,INVALID_CHAR");
@@ -285,7 +259,6 @@ int DecodeEventTestParse05 (void) {
 /**
  * \test DecodeEventTestParse06 is a test for match function with valid decode-event value
  */
-
 int DecodeEventTestParse06 (void) {
     Packet p;
     ThreadVars tv;
@@ -326,7 +299,6 @@ error:
 /**
  * \brief this function registers unit tests for DecodeEvent
  */
-
 void DecodeEventRegisterTests(void) {
     UtRegisterTest("DecodeEventTestParse01", DecodeEventTestParse01, 1);
     UtRegisterTest("DecodeEventTestParse02", DecodeEventTestParse02, 1);
