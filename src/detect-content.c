@@ -40,6 +40,7 @@
 #include "detect-flow.h"
 
 #include "util-unittest.h"
+#include "util-print.h"
 
 #include "threads.h"
 
@@ -306,7 +307,11 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     {
         u_int16_t i, x;
-        u_int8_t bin = 0, binstr[3] = "", binpos = 0;
+        u_int8_t bin = 0;
+        u_int8_t escape = 0;
+        u_int8_t binstr[3] = "";
+        u_int8_t binpos = 0;
+
         for (i = 0, x = 0; i < len; i++) {
             // printf("str[%02u]: %c\n", i, str[i]);
             if (str[i] == '|') {
@@ -315,6 +320,8 @@ DetectContentData *DetectContentParse (char *contentstr)
                 } else {
                     bin = 1;
                 }
+            } else if(!escape && str[i] == '\\') {
+                escape = 1;
             } else {
                 if (bin) {
                     if (isdigit(str[i]) ||
@@ -323,7 +330,8 @@ DetectContentData *DetectContentParse (char *contentstr)
                             str[i] == 'C' || str[i] == 'c' ||
                             str[i] == 'D' || str[i] == 'd' ||
                             str[i] == 'E' || str[i] == 'e' ||
-                            str[i] == 'F' || str[i] == 'f') {
+                            str[i] == 'F' || str[i] == 'f')
+                    {
                         // printf("part of binary: %c\n", str[i]);
 
                         binstr[binpos] = (char)str[i];
@@ -342,6 +350,20 @@ DetectContentData *DetectContentParse (char *contentstr)
                     } else if (str[i] == ' ') {
                         // printf("space as part of binary string\n");
                     }
+                } else if (escape) {
+                    if (str[i] == ':' ||
+                        str[i] == ';' ||
+                        str[i] == '\\' ||
+                        str[i] == '\"')
+                    {
+                        str[x] = str[i];
+                        x++;
+                    } else {
+                        //printf("Can't escape %c\n", str[i]);
+                        goto error;
+                    }
+                    escape = 0;
+                    converted = 1;
                 } else {
                     str[x] = str[i];
                     x++;
@@ -429,14 +451,17 @@ int DetectContentParseTest01 (void) {
     DetectContentData *cd = NULL;
     char *teststring = "\"abc\\:def\"";
     char *teststringparsed = "abc:def";
+
     cd = DetectContentParse(teststring);
     if (cd != NULL) {
-        if(memcmp(cd->content, teststringparsed, sizeof(teststringparsed)) != 0){
-            printf("expected %s got %s: ", teststringparsed, cd->content);
+        if (memcmp(cd->content, teststringparsed, strlen(teststringparsed)) != 0) {
+            printf("expected %s got ", teststringparsed);
+            PrintRawUriFp(stdout,cd->content,cd->content_len);
+            printf(": ");
             result = 0;
             DetectContentFree(cd);
         }
-    }else if(cd == NULL){
+    } else {
         printf("expected %s got NULL: ", teststringparsed);
         result = 0;
     }
@@ -451,14 +476,17 @@ int DetectContentParseTest02 (void) {
     DetectContentData *cd = NULL;
     char *teststring = "\"abc\\;def\"";
     char *teststringparsed = "abc;def";
+
     cd = DetectContentParse(teststring);
     if (cd != NULL) {
-        if(memcmp(cd->content, teststringparsed, sizeof(teststringparsed)) != 0){
-            printf("expected %s got %s: ", teststringparsed, cd->content);
+        if (memcmp(cd->content, teststringparsed, strlen(teststringparsed)) != 0) {
+            printf("expected %s got ", teststringparsed);
+            PrintRawUriFp(stdout,cd->content,cd->content_len);
+            printf(": ");
             result = 0;
             DetectContentFree(cd);
         }
-    }else if(cd == NULL){
+    } else {
         printf("expected %s got NULL: ", teststringparsed);
         result = 0;
     }
@@ -473,14 +501,17 @@ int DetectContentParseTest03 (void) {
     DetectContentData *cd = NULL;
     char *teststring = "\"abc\\\"def\"";
     char *teststringparsed = "abc\"def";
+
     cd = DetectContentParse(teststring);
     if (cd != NULL) {
-        if(memcmp(cd->content, teststringparsed, sizeof(teststringparsed)) != 0){
-            printf("expected %s got %s: ", teststringparsed, cd->content);
+        if (memcmp(cd->content, teststringparsed, strlen(teststringparsed)) != 0) {
+            printf("expected %s got ", teststringparsed);
+            PrintRawUriFp(stdout,cd->content,cd->content_len);
+            printf(": ");
             result = 0;
             DetectContentFree(cd);
         }
-    }else if(cd == NULL){
+    } else {
         printf("expected %s got NULL: ", teststringparsed);
         result = 0;
     }
@@ -488,27 +519,76 @@ int DetectContentParseTest03 (void) {
 }
 
 /**
- * \test DetectCotentParseTest04 ****BROKEN***** this is a test to make sure we can deal with escaped backslashes
+ * \test DetectCotentParseTest04 this is a test to make sure we can deal with escaped backslashes
  */
 int DetectContentParseTest04 (void) {
     int result = 1;
     DetectContentData *cd = NULL;
     char *teststring = "\"abc\\\\def\"";
     char *teststringparsed = "abc\\def";
+
     cd = DetectContentParse(teststring);
     if (cd != NULL) {
-            printf("expected %s got %s: ", teststringparsed, cd->content);
-        if(memcmp(cd->content, teststringparsed, sizeof(teststringparsed)) != 0){
-            printf("expected %s got %s: ", teststringparsed, cd->content);
+        u_int16_t len = (cd->content_len > strlen(teststringparsed));
+        if (memcmp(cd->content, teststringparsed, len) != 0) {
+            printf("expected %s got ", teststringparsed);
+            PrintRawUriFp(stdout,cd->content,cd->content_len);
+            printf(": ");
             result = 0;
             DetectContentFree(cd);
         }
-    }else if(cd == NULL){
+    } else {
         printf("expected %s got NULL: ", teststringparsed);
         result = 0;
     }
     return result;
 }
+
+/**
+ * \test DetectCotentParseTest05 test illegal escape
+ */
+int DetectContentParseTest05 (void) {
+    int result = 1;
+    DetectContentData *cd = NULL;
+    char *teststring = "\"abc\\def\"";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        printf("expected NULL got ");
+        PrintRawUriFp(stdout,cd->content,cd->content_len);
+        printf(": ");
+        result = 0;
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
+/**
+ * \test DetectCotentParseTest06 test a binary content
+ */
+int DetectContentParseTest06 (void) {
+    int result = 1;
+    DetectContentData *cd = NULL;
+    char *teststring = "\"a|42|c|44|e|46|\"";
+    char *teststringparsed = "abcdef";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        u_int16_t len = (cd->content_len > strlen(teststringparsed));
+        if (memcmp(cd->content, teststringparsed, len) != 0) {
+            printf("expected %s got ", teststringparsed);
+            PrintRawUriFp(stdout,cd->content,cd->content_len);
+            printf(": ");
+            result = 0;
+            DetectContentFree(cd);
+        }
+    } else {
+        printf("expected %s got NULL: ", teststringparsed);
+        result = 0;
+    }
+    return result;
+}
+
 
 /**
  * \brief this function registers unit tests for DetectFlow
@@ -518,4 +598,7 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentParseTest02", DetectContentParseTest02, 1);
     UtRegisterTest("DetectContentParseTest03", DetectContentParseTest03, 1);
     UtRegisterTest("DetectContentParseTest04", DetectContentParseTest04, 1);
+    UtRegisterTest("DetectContentParseTest05", DetectContentParseTest05, 1);
+    UtRegisterTest("DetectContentParseTest06", DetectContentParseTest06, 1);
 }
+
