@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <sys/signal.h>
-#include <errno.h>
+#include <getopt.h>
 
 #include "eidps.h"
 #include "decode.h"
@@ -76,6 +76,14 @@ static int sigterm_count = 0;
 #define EIDPS_SIGTERM 0x04
 #define EIDPS_STOP    0x08
 #define EIDPS_KILL    0x10
+
+/* Run mode. */
+enum {
+    MODE_PCAP_DEV = 0,
+    MODE_PCAP_FILE,
+    MODE_NFQ,
+    MODE_UNITTEST
+};
 
 static u_int8_t sigflags = 0;
 
@@ -813,6 +821,11 @@ int RunModeFilePcap2(char *file) {
 int main(int argc, char **argv)
 {
     sigset_t set;
+    int opt;
+    int mode;
+    char *pcap_file;
+    char *pcap_dev;
+    int nfq_id;
 
     sigaddset(&set, SIGINT); 
     /* registering signals we use */
@@ -820,6 +833,34 @@ int main(int argc, char **argv)
     setup_signal_handler(SIGTERM, handle_sigterm);
     setup_signal_handler(SIGHUP, handle_sighup);
     //pthread_sigmask(SIG_BLOCK, &set, 0);
+
+    while ((opt = getopt(argc, argv, "i:q:r:u")) != -1) {
+        switch (opt) {
+        case 'i':
+            mode = MODE_PCAP_DEV;
+            pcap_dev = optarg;
+            break;
+        case 'q':
+            mode = MODE_NFQ;
+            nfq_id = atoi(optarg); /* strtol? */
+            break;
+        case 'r':
+            mode = MODE_PCAP_FILE;
+            pcap_file = optarg;
+            break;
+        case 'u':
+#ifdef UNITTESTS
+            mode = MODE_UNITTEST;
+#else
+            fprintf(stderr, "ERROR: Unit tests not enabled.\n");
+            exit(1);
+#endif /* UNITTESTS */
+            break;
+        default:
+            printf("USAGE: todo\n");
+            exit(1);
+        }
+    }
 
     /* create table for O(1) lowercase conversion lookup */
     u_int8_t c = 0;
@@ -865,28 +906,24 @@ int main(int argc, char **argv)
     TmModuleDebugList();
 
 #ifdef UNITTESTS
-    /* test and initialize the unittesting subsystem */
-    if (argc > 1&& (strcmp(argv[1],"runtests") == 0)) {
+    if (mode == MODE_UNITTEST) {
+        /* test and initialize the unittesting subsystem */
         UtRunSelftest(); /* inits and cleans up again */
-    }
-    UtInitialize();
-    TmModuleRegisterTests();
-    SigTableRegisterTests();
-    HashTableRegisterTests();
-    HashListTableRegisterTests();
-    BloomFilterRegisterTests();
-    BloomFilterCountingRegisterTests();
-    PoolRegisterTests();
-    MpmRegisterTests();
-    FlowBitRegisterTests();
-    SigRegisterTests();
-    PerfRegisterTests();
-    DecodePPPRegisterTests();
-    if (argc > 1&& (strcmp(argv[1],"runtests") == 0)) {
+        UtInitialize();
+        TmModuleRegisterTests();
+        SigTableRegisterTests();
+        HashTableRegisterTests();
+        HashListTableRegisterTests();
+        BloomFilterRegisterTests();
+        BloomFilterCountingRegisterTests();
+        PoolRegisterTests();
+        MpmRegisterTests();
+        FlowBitRegisterTests();
+        SigRegisterTests();
+        PerfRegisterTests();
+        DecodePPPRegisterTests();
         UtRunTests();
-    }
-    UtCleanup();
-    if (argc > 1&& (strcmp(argv[1],"runtests") == 0)) {
+        UtCleanup();
         exit(0);
     }
 #endif /* UNITTESTS */
@@ -922,10 +959,20 @@ int main(int argc, char **argv)
     memset(&start_time, 0, sizeof(start_time));
     gettimeofday(&start_time, NULL);
 
-    //RunModeIpsNFQ();
-    //RunModeIdsPcap(argv[1]);
-    RunModeFilePcap(argv[1]);
-    //RunModeFilePcap2(argv[1]);
+    if (mode == MODE_PCAP_DEV) {
+        RunModeIdsPcap(pcap_dev);
+    }
+    else if (mode == MODE_PCAP_FILE) {
+        RunModeFilePcap(pcap_file);
+        //RunModeFilePcap2(pcap_file);
+    }
+    else if (mode == MODE_NFQ) {
+        RunModeIpsNFQ();
+    }
+    else {
+        printf("ERROR: Unknown runtime mode.\n");
+        exit(1);
+    }
 
     /* Spawn the flow manager thread */
     FlowManagerThreadSpawn();
