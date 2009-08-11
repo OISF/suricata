@@ -173,6 +173,11 @@ void SigLoadSignatures (void)
     prevsig->next = sig;
     prevsig = sig;
 
+    sig = SigInit(g_de_ctx, "alert tcp any any -> any any (msg:\"ipv4 pkt too small\"; decode-event:ipv4.pkt_too_small; sid:5;)");
+    if (sig == NULL)
+        return;
+    prevsig->next = sig;
+    prevsig = sig;
 /*
     sig = SigInit(g_de_ctx,"alert udp any any -> any any (msg:\"ViCtOr nocase test\"; sid:4; rev:13; content:\"ViCtOr!!\"; offset:100; depth:150; nocase; content:\"ViCtOr!!\"; nocase; offset:99; depth:150;)");
     if (sig == NULL)
@@ -657,6 +662,8 @@ static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
         } else if (sm->type == DETECT_FLOWBITS) {
             return 0;
         } else if (sm->type == DETECT_DSIZE) {
+            return 0;
+        } else if (sm->type == DETECT_DECODE_EVENT) {
             return 0;
         }
     }
@@ -2592,6 +2599,7 @@ void SigTableSetup(void) {
     DetectPktvarRegister();
     DetectNoalertRegister();
     DetectFlowbitsRegister();
+    DetectDecodeEventRegister();
 
     u_int8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

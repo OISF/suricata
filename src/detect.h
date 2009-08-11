@@ -382,7 +382,7 @@ enum {
     DETECT_ADDRESS,
     DETECT_PROTO,
     DETECT_PORT,
-
+    DETECT_DECODE_EVENT,
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
