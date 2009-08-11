@@ -58,6 +58,7 @@ detect-metadata.c detect-metadata.h \
 detect-msg.c detect-msg.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
+detect-decode-event.c detect-decode-event.h \
 detect-noalert.c detect-noalert.h \
 util-print.c util-print.h \
 util-mpm.c util-mpm.h \
