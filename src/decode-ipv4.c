@@ -53,6 +53,8 @@ void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQu
 {
     int ret;
 
+    PerfCounterIncr(COUNTER_DECODER_IPV4, t->pca);
+
     /* reset the decoder cache flags */
     IPV4_CACHE_INIT(p);
 
@@ -86,27 +88,22 @@ void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQu
         case IPPROTO_IP:
             /* check PPP VJ uncompressed packets and decode tcp dummy */
             if(p->ppph != NULL && ntohs(p->ppph->protocol) == PPP_VJ_UCOMP)    {
-
                 return(DecodeTCP(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p)));
             }
             break;
         case IPPROTO_TCP:
-            PerfCounterIncr(COUNTER_DECODER_TCP, t->pca);
             return(DecodeTCP(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_UDP:
             //printf("DecodeIPV4: next layer is UDP\n");
-            PerfCounterIncr(COUNTER_DECODER_UDP, t->pca);
             return(DecodeUDP(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_ICMP:
             //printf("DecodeIPV4: next layer is ICMP\n");
-            PerfCounterIncr(COUNTER_DECODER_ICMPV4, t->pca);
             return(DecodeICMPV4(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p)));
             break;
         case IPPROTO_IPV6:
             {
-                PerfCounterIncr(COUNTER_DECODER_ICMPV6, t->pca);
                 if (pq != NULL) {
                     //printf("DecodeIPV4: next layer is IPV6\n");
                     //printf("DecodeIPV4: we are p %p\n", p);

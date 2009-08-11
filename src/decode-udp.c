@@ -38,6 +38,8 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t le
 
 void DecodeUDP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
 {
+    PerfCounterIncr(COUNTER_DECODER_UDP, t->pca);
+
     if (DecodeUDPPacket(t, p,pkt,len) < 0)
         return;
 

@@ -13,6 +13,8 @@
 
 void DecodePPP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
 {
+    PerfCounterIncr(COUNTER_DECODER_PPP, t->pca);
+
     if(len < PPP_HEADER_LEN)    {
         DECODER_SET_EVENT(p,PPP_PKT_TOO_SMALL);
         return;

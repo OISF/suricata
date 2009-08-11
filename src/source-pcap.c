@@ -283,23 +283,20 @@ int ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
  * \param data pointer that gets cast into PcapThreadVars for ptv
  * \param pq pointer to the current PacketQueue
  */
-int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
-
+int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
+{
     PerfCounterIncr(COUNTER_DECODER_PKTS, t->pca);
     PerfCounterAdd(COUNTER_DECODER_BYTES, t->pca, p->pktlen);
 
     /* call the decoder */
     switch(p->pcap_v.datalink)    {
         case LINKTYPE_LINUX_SLL:
-            PerfCounterIncr(COUNTER_DECODER_SLL, t->pca);
             DecodeSll(t,p,p->pkt,p->pktlen,pq);
             break;
         case LINKTYPE_ETHERNET:
-            PerfCounterIncr(COUNTER_DECODER_ETH, t->pca);
             DecodeEthernet(t,p,p->pkt,p->pktlen,pq);
             break;
         case LINKTYPE_PPP:
-            PerfCounterIncr(COUNTER_DECODER_PPP, t->pca);
             DecodePPP(t,p,p->pkt,p->pktlen,pq);
             break;
         default:

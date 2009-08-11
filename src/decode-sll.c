@@ -6,6 +6,8 @@
 
 void DecodeSll(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
 {
+    PerfCounterIncr(COUNTER_DECODER_SLL, t->pca);
+
     if (len < SLL_HEADER_LEN) {
         DECODER_SET_EVENT(p,SLL_PKT_TOO_SMALL);
         return;

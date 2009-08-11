@@ -362,6 +362,8 @@ void DecodeIPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
 {
     int ret;
 
+    PerfCounterIncr(COUNTER_DECODER_IPV6, t->pca);
+
     IPV6_CACHE_INIT(p);
 
     /* do the actual decoding */

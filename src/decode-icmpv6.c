@@ -7,6 +7,8 @@ void DecodeICMPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
 {
     p->icmpv6h = (ICMPV6Hdr *)pkt;
 
+    PerfCounterIncr(COUNTER_DECODER_ICMPV6, t->pca);
+
     if (len < ICMPV6_HEADER_LEN) {
         return;
     }
