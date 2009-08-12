@@ -132,7 +132,7 @@ int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
             break;
         }
 
-        if (tv->flags != 0) {
+        if (tv->flags & THV_KILL || tv->flags & THV_PAUSE) {
             printf("ReceivePcap: interrupted.\n");
             return 0;
         }
