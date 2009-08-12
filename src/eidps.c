@@ -621,7 +621,7 @@ int RunModeFilePcap(char *file) {
         exit(1);
     }
 
-    ThreadVars *tv_detect1 = TmThreadCreate("Detect1","stream-queue1","simple","packetpool","packetpool","1slot", NULL, 0);
+    ThreadVars *tv_detect1 = TmThreadCreate("Detect1","stream-queue1","simple","alert-queue1","simple","1slot", NULL, 0);
 //#endif
     //ThreadVars *tv_detect1 = TmThreadCreate("Detect1","decode-queue1","simple","alert-queue1","simple","1slot");
     if (tv_detect1 == NULL) {
@@ -640,7 +640,7 @@ int RunModeFilePcap(char *file) {
         exit(1);
     }
 
-    ThreadVars *tv_detect2 = TmThreadCreate("Detect2","stream-queue1","simple","packetpool","packetpool","1slot", NULL, 0);
+    ThreadVars *tv_detect2 = TmThreadCreate("Detect2","stream-queue1","simple","alert-queue1","simple","1slot", NULL, 0);
     if (tv_detect2 == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
