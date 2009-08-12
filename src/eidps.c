@@ -818,6 +818,18 @@ int RunModeFilePcap2(char *file) {
     return 0;
 }
 
+void usage(const char *progname)
+{
+    printf("USAGE: %s\n\n", progname);
+    printf("\t-i <dev> : run in pcap live mode\n");
+    printf("\t-r <path>: run in pcap file/offline mode\n");
+    printf("\t-q <qid> : run in inline nfqueue mode\n");
+#ifdef UNITTESTS
+    printf("\t-u       : run the unittests and exit\n");
+#endif /* UNITTESTS */
+    printf("\n");
+}
+
 int main(int argc, char **argv)
 {
     sigset_t set;
@@ -834,8 +846,12 @@ int main(int argc, char **argv)
     setup_signal_handler(SIGHUP, handle_sighup);
     //pthread_sigmask(SIG_BLOCK, &set, 0);
 
-    while ((opt = getopt(argc, argv, "i:q:r:u")) != -1) {
+    while ((opt = getopt(argc, argv, "hi:q:r:u")) != -1) {
         switch (opt) {
+        case 'h':
+            usage(argv[0]);
+            exit(0);
+            break;
         case 'i':
             mode = MODE_PCAP_DEV;
             pcap_dev = optarg;
@@ -857,7 +873,7 @@ int main(int argc, char **argv)
 #endif /* UNITTESTS */
             break;
         default:
-            printf("USAGE: todo\n");
+            usage(argv[0]);
             exit(1);
         }
     }
