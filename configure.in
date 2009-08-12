@@ -250,15 +250,6 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     CFLAGS="${CFLAGS} -DUNITTESTS"
     fi
 
-# enable the loading of sigs XXX remove this when we get a config language
-    AC_ARG_ENABLE(loadsigs,
-            [  --enable-loadsigs  Enable Loading of Signatures],
-            [ enable_loadsigs=yes
-            ])
-    if test "$enable_loadsigs" = "yes"; then
-    CFLAGS="${CFLAGS} -DLOADSIGS"
-    fi
-
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)

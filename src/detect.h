@@ -350,7 +350,7 @@ typedef struct SigGroupHead_ {
 
 #define SIGMATCH_NOOPT  0x01
 
-void SigLoadSignatures (void);
+void SigLoadSignatures (char *);
 void SigTableSetup(void);
 
 enum {

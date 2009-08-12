@@ -824,6 +824,7 @@ void usage(const char *progname)
     printf("\t-i <dev> : run in pcap live mode\n");
     printf("\t-r <path>: run in pcap file/offline mode\n");
     printf("\t-q <qid> : run in inline nfqueue mode\n");
+    printf("\t-s <path>: path to signature file (optional)\n");
 #ifdef UNITTESTS
     printf("\t-u       : run the unittests and exit\n");
 #endif /* UNITTESTS */
@@ -835,8 +836,9 @@ int main(int argc, char **argv)
     sigset_t set;
     int opt;
     int mode;
-    char *pcap_file;
-    char *pcap_dev;
+    char *pcap_file = NULL;
+    char *pcap_dev = NULL;
+    char *sig_file = NULL;
     int nfq_id;
 
     sigaddset(&set, SIGINT); 
@@ -846,7 +848,7 @@ int main(int argc, char **argv)
     setup_signal_handler(SIGHUP, handle_sighup);
     //pthread_sigmask(SIG_BLOCK, &set, 0);
 
-    while ((opt = getopt(argc, argv, "hi:q:r:u")) != -1) {
+    while ((opt = getopt(argc, argv, "hi:q:r:u:s:")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
@@ -863,6 +865,9 @@ int main(int argc, char **argv)
         case 'r':
             mode = MODE_PCAP_FILE;
             pcap_file = optarg;
+            break;
+        case 's':
+            sig_file = optarg;
             break;
         case 'u':
 #ifdef UNITTESTS
@@ -973,7 +978,7 @@ int main(int argc, char **argv)
 
     FlowInitConfig(FLOW_VERBOSE);
 
-    SigLoadSignatures();
+    SigLoadSignatures(sig_file);
 
     struct timeval start_time;
     memset(&start_time, 0, sizeof(start_time));

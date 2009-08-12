@@ -138,7 +138,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         (float)(pmt->pkts_uri_searched/(float)(pmt->pkts_uri_scanned)*100));
 }
 
-void SigLoadSignatures (void)
+void SigLoadSignatures (char *sig_file)
 {
     Signature *prevsig = NULL, *sig;
 
@@ -275,54 +275,33 @@ void SigLoadSignatures (void)
     }
 */
 
-//#define LOADSIGS
-#ifdef LOADSIGS
-    int good = 0, bad = 0;
-    //FILE *fp = fopen("/etc/vips/rules/bleeding-all.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/bleeding-all-no1.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/iponly.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/iponly-small.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/all.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/eidps.http.sigs", "r");
-    //FILE *fp = fopen("/home/victor/rules/emerging-dshield.rules", "r");
-    FILE *fp = fopen("local.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/emerging-web.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/emerging-policy.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/emerging-p2p.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/emerging-web-small.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/web-misc.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/imap.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/emerging-malware.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/vips-all.sigs", "r");
-    //FILE *fp = fopen("/home/victor/rules/all_noip.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/all_iplists.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/funky.rules", "r");
-    //FILE *fp = fopen("/etc/vips/rules/zango.rules", "r");
-    //FILE *fp = fopen("/home/victor/rules/vips-vrt-all.sigs", "r");
-    //FILE *fp = fopen("/home/victor/rules/test-many-ips.rules", "r");
-    if (fp == NULL) {
-        printf("ERROR, could not open sigs file\n");
-        exit(1);
-    }
-    char line[8192] = "";
-    while(fgets(line, (int)sizeof(line), fp) != NULL) {
-        if (line[0] == '\n' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
-            continue;
+    if(sig_file != NULL){
+        int good = 0, bad = 0;
+        FILE *fp = fopen(sig_file, "r");
 
-        //if (i > 1000) break;
-
-        sig = SigInit(g_de_ctx, line);
-        if (sig) {
-            prevsig->next = sig;
-            prevsig = sig;
-            good++;
-        } else {
-            bad++;
+        if (fp == NULL) {
+            printf("ERROR, could not open sigs file\n");
+            exit(1);
         }
+        char line[8192] = "";
+        while(fgets(line, (int)sizeof(line), fp) != NULL) {
+            if (line[0] == '\n' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+                continue;
+
+            //if (i > 1000) break;
+
+            sig = SigInit(g_de_ctx, line);
+            if (sig) {
+                prevsig->next = sig;
+                prevsig = sig;
+                good++;
+            } else {
+                bad++;
+            }
+        }
+        fclose(fp);
+        printf("SigLoadSignatures: %d successfully loaded from file. %d sigs failed to load\n", good, bad);
     }
-    fclose(fp);
-    printf("SigLoadSignatures: %d successfully loaded from file. %d sigs failed to load\n", good, bad);
-#endif
 
     /* Setup the signature group lookup structure and
      * pattern matchers */
