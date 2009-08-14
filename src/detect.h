@@ -6,6 +6,8 @@
 #include "util-hash.h"
 #include "util-hashlist.h"
 
+#define COUNTER_DETECT_ALERTS 1
+
 /*
  * DETECT ADDRESS
  */

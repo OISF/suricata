@@ -208,7 +208,8 @@ void * PerfWakeupThread(void *arg)
  * \retval the counter id
  */
 u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
-                              char *desc, PerfContext *pctx)
+                              char *desc, PerfContext *pctx, int type_q,
+                              int disp)
 {
     PerfCounter **head = &pctx->head;
     PerfCounter *temp = NULL;
@@ -216,13 +217,17 @@ u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
     PerfCounter *pc = NULL;
 
     if (cname == NULL || tm_name == NULL || pctx == NULL) {
+#ifdef DEBUG
         printf("counter name, tm name null or PerfContext NULL\n");
+#endif
         return 0;
     }
 
     /* (TYPE_MAX - 1) because we still haven't implemented TYPE_STR */
     if ((type >= (TYPE_MAX - 1)) || (type < 0)) {
+#ifdef DEBUG
         printf("Error: Counters of type %d can't be registered\n", type);
+#endif
         return 0;
     }
 
@@ -294,7 +299,232 @@ u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
     if (desc != NULL)
         pc->desc = strdup(desc);
 
+    pc->type_q = type_q;
+
+    pc->disp = disp;
+
     return pc->id;
+}
+
+/**
+ * \brief Increments the local counter
+ *
+ * \param id  Index of the counter in the counter array
+ * \param pca Counter array that holds the local counters for this TM
+ */
+inline void PerfCounterIncr(u_int64_t id, PerfCounterArray *pca)
+{
+    if (!pca) {
+#ifdef DEBUG
+        printf("counterarray is NULL\n");
+#endif
+        return;
+    }
+    if ((id < 1) || (id > pca->size)) {
+#ifdef DEBUG
+        printf("counter doesn't exist\n");
+#endif
+        return;
+    }
+
+    switch (pca->head[id].pc->value->type) {
+        case TYPE_UINT64:
+            pca->head[id].ui64_cnt++;
+            break;
+        case TYPE_DOUBLE:
+            pca->head[id].d_cnt++;
+            break;
+    }
+
+    if (pca->head[id].syncs == ULONG_MAX) {
+        pca->head[id].syncs = 0;
+        pca->head[id].wrapped_syncs++;
+    }
+    pca->head[id].syncs++;
+
+    return;
+}
+
+/**
+ * \brief Adds a value of type u_int64_t to the local counter.
+ *
+ * \param id  ID of the counter as set by the API
+ * \param pca Counter array that holds the local counter for this TM
+ * \param x   Value to add to this local counter
+ */
+inline void PerfCounterAddUI64(u_int64_t id, PerfCounterArray *pca, u_int64_t x)
+{
+    if (!pca) {
+#ifdef DEBUG
+        printf("counterarray is NULL\n");
+#endif
+        return;
+    }
+    if ((id < 1) || (id > pca->size)) {
+#ifdef DEBUG
+        printf("counter doesn't exist\n");
+#endif
+        return;
+    }
+
+    switch (pca->head[id].pc->value->type) {
+        case TYPE_UINT64:
+            pca->head[id].ui64_cnt += x;
+            break;
+        case TYPE_DOUBLE:
+            pca->head[id].d_cnt += x;
+            break;
+    }
+
+    if (pca->head[id].syncs == ULONG_MAX) {
+        pca->head[id].syncs = 0;
+        pca->head[id].wrapped_syncs++;
+    }
+    pca->head[id].syncs++;
+
+    return;
+}
+
+/**
+ * \brief Adds a value of type double to the local counter
+ *
+ * \param id  ID of the counter as set by the API
+ * \param pca Counter array that holds the local counter for this TM
+ * \param x   Value to add to this local counter
+ */
+inline void PerfCounterAddDouble(u_int64_t id, PerfCounterArray *pca, double x)
+{
+    if (!pca) {
+#ifdef DEBUG
+        printf("counterarray is NULL\n");
+#endif
+        return;
+    }
+    if ((id < 1) || (id > pca->size)) {
+#ifdef DEBUG
+        printf("counter doesn't exist\n");
+#endif
+        return;
+    }
+
+    /* incase you are trying to add a double to a counter of type TYPE_UINT64
+       it will be truncated */
+    switch (pca->head[id].pc->value->type) {
+        case TYPE_UINT64:
+            pca->head[id].ui64_cnt += x;
+            break;
+        case TYPE_DOUBLE:
+            pca->head[id].d_cnt += x;
+            break;
+    }
+
+    if (pca->head[id].syncs == ULONG_MAX) {
+        pca->head[id].syncs = 0;
+        pca->head[id].wrapped_syncs++;
+    }
+    pca->head[id].syncs++;
+
+    return;
+}
+
+/**
+ * \brief Sets a local counter to an arg of type double
+ *
+ * \param id  Index of the local counter in the counter array
+ * \param pca Pointer to the PerfCounterArray
+ * \param x   The value to set for the counter
+ */
+inline void PerfCounterSetUI64(u_int64_t id, PerfCounterArray *pca,
+                               u_int64_t x)
+{
+    if (!pca) {
+#ifdef DEBUG
+        printf("counterarray is NULL\n");
+#endif
+        return;
+    }
+
+    if ((id < 1) || (id > pca->size)) {
+#ifdef DEBUG
+        printf("counter doesn't exist\n");
+#endif
+        return;
+    }
+
+    switch (pca->head[id].pc->value->type) {
+        case TYPE_UINT64:
+            if (pca->head[id].pc->type_q & TYPE_Q_MAXIMUM) {
+                if (x > pca->head[id].ui64_cnt)
+                    pca->head[id].ui64_cnt = x;
+            } else if (pca->head[id].pc->type_q & TYPE_Q_NONE)
+                pca->head[id].ui64_cnt = x;
+            break;
+        case TYPE_DOUBLE:
+            if (pca->head[id].pc->type_q & TYPE_Q_MAXIMUM) {
+                if (x > pca->head[id].d_cnt)
+                    pca->head[id].d_cnt = x;
+            } else if (pca->head[id].pc->type_q & TYPE_Q_NONE)
+                pca->head[id].d_cnt = x;
+            break;
+    }
+
+    if (pca->head[id].syncs == ULONG_MAX) {
+        pca->head[id].syncs = 0;
+        pca->head[id].wrapped_syncs++;
+    }
+    pca->head[id].syncs++;
+
+    return;
+}
+
+/**
+ * \brief Sets a local counter to an arg of type double
+ *
+ * \param id  Index of the local counter in the counter array
+ * \param pca Pointer to the PerfCounterArray
+ * \param x   The value to set for the counter
+ */
+inline void PerfCounterSetDouble(u_int64_t id, PerfCounterArray *pca,
+                                 double x)
+{
+    if (!pca) {
+#ifdef DEBUG
+        printf("counterarray is NULL\n");
+#endif
+        return;
+    }
+
+    if ((id < 1) || (id > pca->size)) {
+#ifdef DEBUG
+        printf("counter doesn't exist\n");
+#endif
+        return;
+    }
+
+    switch (pca->head[id].pc->value->type) {
+        case TYPE_UINT64:
+            if (pca->head[id].pc->type_q & TYPE_Q_MAXIMUM) {
+                if (x > pca->head[id].ui64_cnt)
+                    pca->head[id].ui64_cnt = x;
+            } else if (pca->head[id].pc->type_q & TYPE_Q_NONE)
+                pca->head[id].ui64_cnt = x;
+            break;
+        case TYPE_DOUBLE:
+            if (pca->head[id].pc->type_q & TYPE_Q_MAXIMUM) {
+                if (x > pca->head[id].d_cnt)
+                    pca->head[id].d_cnt = x;
+            } else if (pca->head[id].pc->type_q & TYPE_Q_NONE)
+                pca->head[id].d_cnt = x;
+            break;
+    }
+
+    if (pca->head[id].syncs == ULONG_MAX) {
+        pca->head[id].syncs = 0;
+        pca->head[id].wrapped_syncs++;
+    }
+    pca->head[id].syncs++;
+
+    return;
 }
 
 /**
@@ -356,7 +586,8 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
         return;
     }
 
-    pctmi->head = realloc(pctmi->head, (pctmi->size + 1) * sizeof(PerfContext **));
+    pctmi->head = realloc(pctmi->head, (pctmi->size + 1) *
+                          sizeof(PerfContext **));
     hpctx = pctmi->head;
 
     hpctx[pctmi->size] = pctx;
@@ -388,26 +619,35 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
 PerfCounterArray * PerfGetCounterArrayRange(u_int32_t s_id, u_int32_t e_id,
                                             PerfContext *pctx)
 {
+    PerfCounter *pc = NULL;
     PerfCounterArray *pca = NULL;
     u_int32_t i = 0;
 
     if (pctx == NULL) {
+#ifdef DEBUG
         printf("pctx is NULL\n");
+#endif
         return NULL;
     }
 
     if (s_id < 1 || e_id < 1 || s_id > e_id) {
+#ifdef DEBUG
         printf("error with the counter ids\n");
+#endif
         return NULL;
     }
 
     if (e_id > pctx->curr_id) {
+#ifdef DEBUG
         printf("end id is greater than the max id for this tv\n");
+#endif
         return NULL;
     }
 
     if (pctx == NULL) {
+#ifdef DEBUG
         printf("perfcontext is NULL\n");
+#endif
         return NULL;
     }
 
@@ -423,9 +663,15 @@ PerfCounterArray * PerfGetCounterArrayRange(u_int32_t s_id, u_int32_t e_id,
     }
     memset(pca->head, 0, sizeof(PCAElem) * (e_id - s_id  + 2));
 
+    pc = pctx->head;
+    while (pc->id != s_id)
+        pc = pc->next;
+
     i = 1;
-    while (s_id <= e_id) {
-        pca->head[i].id = s_id++;
+    while ((pc != NULL) && (pc->id <= e_id)) {
+        pca->head[i].pc = pc;
+        pca->head[i].id = pc->id;
+        pc = pc->next;
         i++;
     }
     pca->size = i - 1;
@@ -434,7 +680,8 @@ PerfCounterArray * PerfGetCounterArrayRange(u_int32_t s_id, u_int32_t e_id,
 }
 
 /**
- * \brief Returns a counter array for all counters registered for this tm instance
+ * \brief Returns a counter array for all counters registered for this tm
+ *        instance
  *
  * \param pctx Pointer to the tv's PerfContext
  *
@@ -463,18 +710,25 @@ int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
     PerfCounter *pc = NULL;
 
     if (pctx == NULL) {
+#ifdef DEBUG
         printf("pctx null inside PerfUpdateCounter\n");
+#endif
         return 0;
     }
 
     if ((cname == NULL || tm_name == NULL) && (id > pctx->curr_id || id < 1)) {
+#ifdef DEBUG
         printf("id supplied doesn't exist.  Please supply cname and "
                     "tm_name instead\n");
+#endif
         return 0;
     }
 
     if (value == NULL) {
-        printf("Pointer to counter(value) supplied to PerfUpdateCounter is NULL\n");
+#ifdef DEBUG
+        printf("Pointer to counter(value) supplied to PerfUpdateCounter is "
+               "NULL\n");
+#endif
         return 0;
     }
 
@@ -492,11 +746,57 @@ int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
     }
 
     if (pc == NULL) {
+#ifdef DEBUG
         printf("this counter isn't registered in this tm\n");
+#endif
         return 0;
     }
 
     return 1;
+}
+
+static void PerfCopyCounterValue(PCAElem *pcae, int reset_lc)
+{
+    PerfCounter *pc = NULL;
+    double d_temp = 0;
+    u_int64_t ui64_temp = 0;
+    int i = 0;
+
+    pc = pcae->pc;
+    switch (pc->value->type) {
+        case TYPE_UINT64:
+            ui64_temp = pcae->ui64_cnt;
+            if (pc->type_q & TYPE_Q_AVERAGE) {
+                for (i = 0; i < pcae->wrapped_syncs; i++)
+                    ui64_temp /= ULONG_MAX;
+
+                if (pcae->syncs != 0)
+                    ui64_temp /= pcae->syncs;
+            }
+            memcpy(pc->value->cvalue, &ui64_temp, pc->value->size);
+
+            if (reset_lc)
+                pcae->ui64_cnt = 0;
+
+            break;
+        case TYPE_DOUBLE:
+            d_temp = pcae->d_cnt;
+            if (pc->type_q & TYPE_Q_AVERAGE) {
+                for (i = 0; i < pcae->wrapped_syncs; i++)
+                    d_temp /= ULONG_MAX;
+
+                if (pcae->syncs != 0)
+                    d_temp /= pcae->syncs;
+            }
+            memcpy(pc->value->cvalue, &d_temp, pc->value->size);
+
+            if (reset_lc)
+                pcae->d_cnt = 0;
+
+            break;
+    }
+
+    return;
 }
 
 /**
@@ -506,14 +806,17 @@ int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
  * \param pctx     Pointer the the tv's PerfContext
  * \param reset_lc Indicates whether the local counter has to be reset or not
  */
-int PerfUpdateCounterArray(PerfCounterArray *pca, PerfContext *pctx, int reset_lc)
+int PerfUpdateCounterArray(PerfCounterArray *pca, PerfContext *pctx,
+                           int reset_lc)
 {
     PerfCounter  *pc = NULL;
     PCAElem *pcae = NULL;
     u_int32_t i = 0;
 
     if (pca == NULL || pctx == NULL) {
+#ifdef DEBUG
         printf("pca or pctx is NULL inside PerfUpdateCounterArray\n");
+#endif
         return -1;
     }
 
@@ -528,12 +831,9 @@ int PerfUpdateCounterArray(PerfCounterArray *pca, PerfContext *pctx, int reset_l
                 continue;
             }
 
-            memcpy(pc->value->cvalue, &(pcae[i].cnt), pc->value->size);
+            PerfCopyCounterValue(&pcae[i], reset_lc);
 
             pc->updated++;
-
-            if (reset_lc)
-                pcae[i].cnt = 0;
 
             pc = pc->next;
             break;
@@ -580,7 +880,11 @@ int PerfOutputCounterFileIface()
     PerfCounter **pc_heads;
 
     u_int64_t *ui64_cvalue = NULL;
-    u_int64_t result = 0;
+    u_int64_t ui64_result = 0;
+
+    double *double_cvalue = NULL;
+    double double_result = 0;
+
 
     struct timeval tval;
     struct tm *tms;
@@ -589,7 +893,9 @@ int PerfOutputCounterFileIface()
     int flag;
 
     if (perf_op_ctx->fp == NULL) {
+#ifdef DEBUG
         printf("perf_op_ctx->fp is NULL");
+#endif
         return 0;
     }
 
@@ -601,7 +907,8 @@ int PerfOutputCounterFileIface()
     fprintf(perf_op_ctx->fp, "-------------------------------------------------"
             "------------------\n");
     fprintf(perf_op_ctx->fp, "%d/%d/%04d -- %02d:%02d:%02d\n", tms->tm_mday,
-            tms->tm_mon, tms->tm_year + 1900, tms->tm_hour, tms->tm_min, tms->tm_sec);
+            tms->tm_mon, tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
+            tms->tm_sec);
     fprintf(perf_op_ctx->fp, "-------------------------------------------------"
             "------------------\n");
     fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-s\n", "Counter", "TM Name",
@@ -618,11 +925,18 @@ int PerfOutputCounterFileIface()
                 pc = tv->pctx.head;
 
                 while (pc != NULL) {
+                    if (pc->disp == 0) {
+                        pc = pc->next;
+                        continue;
+                    }
+
                     ui64_cvalue = (u_int64_t *)pc->value->cvalue;
                     fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-llu\n",
                             pc->name->cname, pc->name->tm_name, *ui64_cvalue);
-                    //printf("%-10d %-10d %-10s %-llu\n", pc->name->tid, pc->id,
-                    //       pc->name->cname, *ui64_cvalue);
+#ifdef DEBUG
+                    printf("%-10d %-10d %-10s %-llu\n", pc->name->tid, pc->id,
+                           pc->name->cname, *ui64_cvalue);
+#endif
                     pc = pc->next;
                 }
 
@@ -637,7 +951,7 @@ int PerfOutputCounterFileIface()
 
     pctmi = perf_op_ctx->pctmi;
     while (pctmi != NULL) {
-        if ( (pc_heads = malloc(pctmi->size * sizeof(PerfCounter **))) == NULL) {
+        if ( (pc_heads = malloc(pctmi->size * sizeof(PerfCounter *))) == NULL) {
             printf("error allocating memory\n");
             exit(0);
         }
@@ -654,11 +968,20 @@ int PerfOutputCounterFileIface()
 
         flag = 1;
         while(flag) {
-            result = 0;
+            ui64_result = 0;
+            double_result = 0;
             pc = pc_heads[0];
             for (i = 0; i < pctmi->size; i++) {
-                ui64_cvalue = pc_heads[i]->value->cvalue;
-                result += *ui64_cvalue;
+                switch (pc->value->type) {
+                    case TYPE_UINT64:
+                        ui64_cvalue = pc_heads[i]->value->cvalue;
+                        ui64_result += *ui64_cvalue;
+                        break;
+                    case TYPE_DOUBLE:
+                        double_cvalue = pc_heads[i]->value->cvalue;
+                        double_result += *double_cvalue;
+                        break;
+                }
 
                 pc_heads[i] = pc_heads[i]->next;
 
@@ -666,11 +989,24 @@ int PerfOutputCounterFileIface()
                     strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name))
                     flag = 0;
             }
-            fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-llu\n",
-                    pc->name->cname, pctmi->tm_name, result);
-            //printf("%-25s | %-25s | %-llu\n", pc->name->cname,
-            //       pctmi->tm_name, result);
 
+            if (pc->disp == 0)
+                continue;
+
+            switch (pc->value->type) {
+                case TYPE_UINT64:
+                    fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-llu\n",
+                            pc->name->cname, pctmi->tm_name, ui64_result);
+                    break;
+                case TYPE_DOUBLE:
+                    fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-lf\n",
+                            pc->name->cname, pctmi->tm_name, double_result);
+                    break;
+            }
+#ifdef DEBUG
+            printf("%-25s | %-25s | %-llu\n", pc->name->cname,
+                   pctmi->tm_name, result);
+#endif
         }
         for (i = 0; i < pctmi->size; i++)
             pthread_mutex_unlock(&pctmi->head[i]->m);
@@ -770,7 +1106,7 @@ static int PerfTestCounterReg01()
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    return PerfRegisterCounter("t1", "c1", 5, NULL, &pctx);
+    return PerfRegisterCounter("t1", "c1", 5, NULL, &pctx, TYPE_Q_NONE, 1);
 }
 
 static int PerfTestCounterReg02()
@@ -779,7 +1115,8 @@ static int PerfTestCounterReg02()
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    return PerfRegisterCounter(NULL, NULL, TYPE_UINT64, NULL, &pctx);
+    return PerfRegisterCounter(NULL, NULL, TYPE_UINT64, NULL, &pctx,
+                               TYPE_Q_NONE, 1);
 }
 
 static int PerfTestCounterReg03()
@@ -789,7 +1126,8 @@ static int PerfTestCounterReg03()
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    result = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx);
+    result = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx,
+                                 TYPE_Q_NONE, 1);
 
     PerfReleasePerfCounterS(pctx.head);
 
@@ -803,11 +1141,12 @@ static int PerfTestCounterReg04()
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx);
-    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &pctx);
-    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &pctx);
+    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &pctx, TYPE_Q_NONE, 1);
 
-    result =  PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx);
+    result =  PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx,
+                                  TYPE_Q_NONE, 1);
 
     PerfReleasePerfCounterS(pctx.head);
 
@@ -821,7 +1160,8 @@ static int PerfTestGetCntArray05()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
+                             TYPE_Q_NONE, 1);
 
     tv.pca = PerfGetAllCountersArray(NULL);
 
@@ -836,7 +1176,8 @@ static int PerfTestGetCntArray06()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
+                             TYPE_Q_NONE, 1);
 
     tv.pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -858,8 +1199,10 @@ static int PerfTestCntArraySize07()
 
     pca = (PerfCounterArray *)&tv.pca;
 
-    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
-    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx, TYPE_Q_NONE,
+                        1);
+    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx, TYPE_Q_NONE,
+                        1);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -883,14 +1226,15 @@ static int PerfTestUpdateCounter08()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
+                             TYPE_Q_NONE, 1);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
     PerfCounterIncr(id, pca);
-    PerfCounterAdd(id, pca, 100);
+    PerfCounterAddUI64(id, pca, 100);
 
-    result = pca->head[id].cnt;
+    result = pca->head[id].ui64_cnt;
 
     PerfReleasePerfCounterS(tv.pctx.head);
     PerfReleasePCA(pca);
@@ -907,18 +1251,23 @@ static int PerfTestUpdateCounter09()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
-    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
-    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx);
-    PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx);
-    id2 = PerfRegisterCounter("t5", "c5", TYPE_UINT64, NULL, &tv.pctx);
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_NONE, 1);
+    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx,
+                        TYPE_Q_NONE, 1);
+    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx,
+                        TYPE_Q_NONE, 1);
+    PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx,
+                        TYPE_Q_NONE, 1);
+    id2 = PerfRegisterCounter("t5", "c5", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_NONE, 1);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
     PerfCounterIncr(id2, pca);
-    PerfCounterAdd(id2, pca, 100);
+    PerfCounterAddUI64(id2, pca, 100);
 
-    result = (pca->head[id1].cnt == 0) && (pca->head[id2].cnt == 101);
+    result = (pca->head[id1].ui64_cnt == 0) && (pca->head[id2].ui64_cnt == 101);
 
     PerfReleasePerfCounterS(tv.pctx.head);
     PerfReleasePCA(pca);
@@ -937,15 +1286,18 @@ static int PerfTestUpdateGlobalCounter10()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
-    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
-    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx);
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_NONE, 1);
+    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_NONE, 1);
+    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_NONE, 1);
     pca = PerfGetAllCountersArray(&tv.pctx);
 
     PerfCounterIncr(id1, pca);
-    PerfCounterAdd(id2, pca, 100);
+    PerfCounterAddUI64(id2, pca, 100);
     PerfCounterIncr(id3, pca);
-    PerfCounterAdd(id3, pca, 100);
+    PerfCounterAddUI64(id3, pca, 100);
 
     PerfUpdateCounterArray(pca, &tv.pctx, 0);
 
@@ -975,17 +1327,21 @@ static int PerfTestCounterValues11()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
-    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
-    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx);
-    id4 = PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx);
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_NONE, 1);
+    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_NONE, 1);
+    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_NONE, 1);
+    id4 = PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_NONE, 1);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
     PerfCounterIncr(id1, pca);
-    PerfCounterAdd(id2, pca, 256);
-    PerfCounterAdd(id3, pca, 257);
-    PerfCounterAdd(id4, pca, 16843024);
+    PerfCounterAddUI64(id2, pca, 256);
+    PerfCounterAddUI64(id3, pca, 257);
+    PerfCounterAddUI64(id4, pca, 16843024);
 
     PerfUpdateCounterArray(pca, &tv.pctx, 0);
 
@@ -1019,6 +1375,101 @@ static int PerfTestCounterValues11()
     return result;
 }
 
+static int PerfTestAverageQual12()
+{
+    ThreadVars tv;
+    PerfCounterArray *pca = NULL;
+    u_int64_t *ui64_temp = NULL;
+    double *d_temp = NULL;
+
+    int result = 1;
+    int id1, id2;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_DOUBLE, NULL, &tv.pctx,
+                              TYPE_Q_AVERAGE, 1);
+    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx,
+                              TYPE_Q_AVERAGE, 1);
+
+    pca = PerfGetAllCountersArray(&tv.pctx);
+
+    PerfCounterAddDouble(id1, pca, 1);
+    PerfCounterAddDouble(id1, pca, 2);
+    PerfCounterAddDouble(id1, pca, 3);
+    PerfCounterAddDouble(id1, pca, 4);
+    PerfCounterAddDouble(id1, pca, 5);
+    PerfCounterAddDouble(id1, pca, 6);
+
+    PerfUpdateCounterArray(pca, &tv.pctx, 0);
+
+    result &= (21 == pca->head[1].d_cnt);
+    result &= (6 == pca->head[1].syncs);
+    result &= (0 == pca->head[1].wrapped_syncs);
+    d_temp = tv.pctx.head->value->cvalue;
+    result &= (3.5 == *d_temp);
+
+    PerfCounterAddUI64(id2, pca, 1.635);
+    PerfCounterAddUI64(id2, pca, 2.12);
+    PerfCounterAddUI64(id2, pca, 3.74);
+    PerfCounterAddUI64(id2, pca, 4.23);
+    PerfCounterAddUI64(id2, pca, 5.76);
+    PerfCounterAddDouble(id2, pca, 6.99999);
+
+    PerfUpdateCounterArray(pca, &tv.pctx, 0);
+
+    result &= (21 == pca->head[2].ui64_cnt);
+    result &= (6 == pca->head[2].syncs);
+    result &= (0 == pca->head[2].wrapped_syncs);
+    ui64_temp = tv.pctx.head->next->value->cvalue;
+    result &= (3 == *ui64_temp);
+
+    return result;
+}
+
+static int PerfTestMaxQual13()
+{
+    ThreadVars tv;
+    PerfCounterArray *pca = NULL;
+    double *p;
+
+    int result = 1;
+    int id1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_DOUBLE, NULL, &tv.pctx,
+                              TYPE_Q_MAXIMUM, 1);
+
+    p = tv.pctx.head->value->cvalue;
+
+    pca = PerfGetAllCountersArray(&tv.pctx);
+
+    PerfCounterSetDouble(id1, pca, 1.352);
+    PerfCounterSetDouble(id1, pca, 5.12412);
+    PerfCounterSetDouble(id1, pca, 4.1234);
+    PerfCounterSetDouble(id1, pca, 5.13562);
+    PerfCounterSetDouble(id1, pca, 1.2342);
+
+    PerfUpdateCounterArray(pca, &tv.pctx, 0);
+    result &= (5.13562 == *p);
+
+    PerfCounterSetDouble(id1, pca, 8);
+    PerfCounterSetDouble(id1, pca, 7);
+
+    PerfUpdateCounterArray(pca, &tv.pctx, 0);
+    result &= (8 == *p);
+
+    PerfCounterSetDouble(id1, pca, 6);
+    PerfCounterSetUI64(id1, pca, 10);
+    PerfCounterSetDouble(id1, pca, 9.562);
+
+    PerfUpdateCounterArray(pca, &tv.pctx, 0);
+    result &= (10 == *p);
+
+    return result;
+}
+
 void PerfRegisterTests()
 {
     UtRegisterTest("PerfTestCounterReg01", PerfTestCounterReg01, 0);
@@ -1033,6 +1484,8 @@ void PerfRegisterTests()
     UtRegisterTest("PerfTestUpdateGlobalCounter10",
                    PerfTestUpdateGlobalCounter10, 1);
     UtRegisterTest("PerfTestCounterValues11", PerfTestCounterValues11, 1);
+    UtRegisterTest("PerfTestAverageQual12", PerfTestAverageQual12, 1);
+    UtRegisterTest("PerfTestMaxQual13", PerfTestMaxQual13, 1);
 
     return;
 }

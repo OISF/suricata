@@ -108,7 +108,7 @@ void TmModuleVerdictNFQRegister (void) {
 
 void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].name = "DecodeNFQ";
-    tmm_modules[TMM_DECODENFQ].Init = NULL;
+    tmm_modules[TMM_DECODENFQ].Init = DecodeNFQThreadInit;
     tmm_modules[TMM_DECODENFQ].Func = DecodeNFQ;
     tmm_modules[TMM_DECODENFQ].ExitPrintStats = NULL;
     tmm_modules[TMM_DECODENFQ].Deinit = NULL;
@@ -460,6 +460,9 @@ int DecodeNFQ(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
     printf("DecodeNFQ\n");
 #endif
 
+    PerfCounterIncr(COUNTER_DECODER_PKTS, t->pca);
+    PerfCounterAddUI64(COUNTER_DECODER_BYTES, t->pca, p->pktlen);
+
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         printf("DecodeNFQ ip4\n");
         DecodeIPV4(t, p, p->pkt, p->pktlen, pq);
@@ -469,6 +472,38 @@ int DecodeNFQ(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
     } else {
         printf("DecodeNFQ %02x\n", *p->pkt);
     }
+
+    return 0;
+}
+
+int DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
+{
+    PerfRegisterCounter("decoder.pkts", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.bytes", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.ipv4", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.ipv6", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.ethernet", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.sll", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.tcp", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.udp", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.icmpv4", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.icmpv6", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.ppp", "DecodeNFQ", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
+
+    tv->pca = PerfGetAllCountersArray(&tv->pctx);
+
+    PerfAddToClubbedTMTable("DecodeNFQ", &tv->pctx);
 
     return 0;
 }

@@ -31,6 +31,7 @@
 #include "stream-tcp-reassemble.h"
 
 #include "stream.h"
+#include "stream-tcp.h"
 
 int StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *);
 int StreamTcpThreadInit(ThreadVars *, void *, void **);
@@ -980,6 +981,8 @@ int StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     StreamTcpThread *stt = (StreamTcpThread *)data;
 
+    //PerfCounterAddUI64(COUNTER_STREAMTCP_STREAMS, tv->pca, a);
+
     if (!(PKT_IS_TCP(p)))
         return 0;
 
@@ -1017,6 +1020,14 @@ int StreamTcpThreadInit(ThreadVars *t, void *initdata, void **data)
     /* XXX */
 
     *data = (void *)stt;
+
+    PerfRegisterCounter("streamTcp.tcp_streams", "StreamTcp", TYPE_DOUBLE, "NULL",
+                        &t->pctx, TYPE_Q_AVERAGE, 1);
+
+    t->pca = PerfGetAllCountersArray(&t->pctx);
+
+    PerfAddToClubbedTMTable("StreamTcp", &t->pctx);
+
     return 0;
 }
 

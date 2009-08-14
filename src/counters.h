@@ -11,32 +11,7 @@
 /* Time interval at which the mgmt thread o/p the stats */
 #define MGMTT_TTS 8
 
-/* These 2 macros can only be used when all the registered counters for the tm,
- * are in the counter array */
-#define PerfCounterIncr(id, pca) do { \
-                                     if (!pca) { \
-                                         printf("counterarray is NULL\n"); \
-                                         break; \
-                                     } \
-                                     if ((id < 1) || (id > pca->size)) { \
-                                         printf("counter doesn't exist\n"); \
-                                         break; \
-                                     } \
-                                     pca->head[id].cnt++; \
-                                 } while(0)
-
-#define PerfCounterAdd(id, pca, x) do { \
-                                       if (!pca) { \
-                                           printf("counterarray is NULL\n"); \
-                                           break; \
-                                       } \
-                                       if ((id < 1) || (id > pca->size)) { \
-                                           printf("counter doesn't exist\n"); \
-                                           break; \
-                                       } \
-                                       pca->head[id].cnt += x; \
-                                   } while(0)
-
+/* Type of counter */
 enum {
     TYPE_UINT64,
     TYPE_DOUBLE,
@@ -44,6 +19,16 @@ enum {
     TYPE_MAX,
 };
 
+/* Qualifier for the counter */
+enum {
+    TYPE_Q_NONE = 0x01,
+    TYPE_Q_AVERAGE = 0x02,
+    TYPE_Q_MAXIMUM = 0x04,
+    TYPE_Q_TIMEBASED = 0x08,
+    TYPE_Q_MAX = 0x10,
+};
+
+/* Output interfaces */
 enum {
     IFACE_FILE,
     IFACE_CONSOLE,
@@ -54,7 +39,7 @@ enum {
 typedef struct _PerfCounterName {
     char *cname;
     char *tm_name;
-    int tid;
+    pthread_t tid;
 } PerfCounterName;
 
 typedef struct _PerfCounterValue {
@@ -69,12 +54,18 @@ typedef struct _PerfCounter {
     PerfCounterValue *value;
 
     /* local id for this counter in this tm*/
-    pthread_t id;
+    u_int64_t id;
 
     char *desc;
 
     /* no of times the local counter has been synced with this counter */
     u_int64_t updated;
+
+    /* flag that indicates if this counter should be displayed or not */
+    int disp;
+
+    /* counter qualifier */
+    int type_q;
 
     /* the next perfcounter for this tv's tm instance */
     struct _PerfCounter *next;
@@ -94,8 +85,18 @@ typedef struct _PerfContext {
 
 /* PerfCounterArray(PCA) Node*/
 typedef struct _PCAElem {
-    u_int32_t id;
-    u_int64_t cnt;
+    PerfCounter *pc;
+    u_int64_t id;
+    union {
+        u_int64_t ui64_cnt;
+        double d_cnt;
+    };
+
+    /* no of times the local counter has been updated */
+    u_int64_t syncs;
+
+    /* indicates the times syncs has overflowed */
+    u_int64_t wrapped_syncs;
 } PCAElem;
 
 /* The PerfCounterArray */
@@ -142,7 +143,18 @@ void * PerfMgmtThread(void *);
 
 void * PerfWakeupThread(void *);
 
-u_int32_t PerfRegisterCounter(char *, char *, int, char *, PerfContext *);
+u_int32_t PerfRegisterCounter(char *, char *, int, char *, PerfContext *, int,
+                              int);
+
+inline void PerfCounterIncr(u_int64_t, PerfCounterArray *);
+
+inline void PerfCounterAddUI64(u_int64_t, PerfCounterArray *, u_int64_t);
+
+inline void PerfCounterAddDouble(u_int64_t, PerfCounterArray *, double);
+
+inline void PerfCounterSetUI64(u_int64_t, PerfCounterArray *, u_int64_t);
+
+inline void PerfCounterSetDouble(u_int64_t, PerfCounterArray *, double);
 
 void PerfAddToClubbedTMTable(char *, PerfContext *);
 

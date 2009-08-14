@@ -166,7 +166,7 @@ int ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data) {
 int DecodePcapFile(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
     PerfCounterIncr(COUNTER_DECODER_PKTS, t->pca);
-    PerfCounterAdd(COUNTER_DECODER_BYTES, t->pca, p->pktlen);
+    PerfCounterAddUI64(COUNTER_DECODER_BYTES, t->pca, p->pktlen);
 
     /* call the decoder */
     pcap_g.Decoder(t,p,p->pkt,p->pktlen,pq);
@@ -176,27 +176,27 @@ int DecodePcapFile(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 int DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     PerfRegisterCounter("decoder.pkts", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.bytes", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.ipv4", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.ipv6", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.ethernet", "DecodePcapFile", TYPE_UINT64,
-                        "NULL", &tv->pctx);
+                        "NULL", &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.sll", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.tcp", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.udp", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.icmpv4", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.icmpv6", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.ppp", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx);
+                        &tv->pctx, TYPE_Q_NONE, 1);
 
     tv->pca = PerfGetAllCountersArray(&tv->pctx);
 

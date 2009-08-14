@@ -3,6 +3,8 @@
 #ifndef __STREAM_TCP_H__
 #define __STREAM_TCP_H__
 
+#define COUNTER_STREAMTCP_STREAMS 1
+
 void TmModuleStreamTcpRegister (void);
 
 #endif /* __STREAM_TCP_H__ */
