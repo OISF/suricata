@@ -897,12 +897,11 @@ int main(int argc, char **argv)
     PatternMatchPrepare(mpm_ctx);
     PerfInitCounterApi();
 
-    /* XXX we need an api for this */
+    /** \todo we need an api for this */
     AppLayerDetectProtoThreadInit();
-
-RegisterAppLayerParsers();
-RegisterHTTPParsers();
-AppLayerParsersInitPostProcess();
+    RegisterAppLayerParsers();
+    RegisterHTTPParsers();
+    AppLayerParsersInitPostProcess();
 
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
@@ -942,6 +941,7 @@ AppLayerParsersInitPostProcess();
         SigRegisterTests();
         PerfRegisterTests();
         DecodePPPRegisterTests();
+        HTTPParserRegisterTests();
         UtRunTests();
         UtCleanup();
         exit(0);
