@@ -51,7 +51,7 @@ BinSearch(const u_int8_t *haystack, size_t haystack_len,
         }
         /* one byte needles */
         if (needle_len == 1)
-            return haystack;
+            return (u_int8_t *)haystack;
 
         for (h = haystack+1, n++; h != hmax; h++, n++) {
             //printf("h %c n %c\n", isprint(*h) ? *h : 'X', *n);
