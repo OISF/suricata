@@ -28,7 +28,7 @@
 
 #include "source-nfq.h"
 
-#include "source-pcap.h" 
+#include "source-pcap.h"
 #include "action-globals.h"
 
 #include "decode-ethernet.h"

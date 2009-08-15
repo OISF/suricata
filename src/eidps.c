@@ -947,7 +947,7 @@ int main(int argc, char **argv)
         PerfRegisterTests();
         DecodePPPRegisterTests();
         HTTPParserRegisterTests();
-		DecodePPPoERegisterTests();
+        DecodePPPoERegisterTests();
         UtRunTests();
         UtCleanup();
         exit(0);

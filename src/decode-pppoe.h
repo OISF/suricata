@@ -21,11 +21,11 @@
 
 typedef struct _PPPoEHdr
 {
-	unsigned pppoe_version :4;
-	unsigned pppoe_type :4;
-	u_int8_t pppoe_code;
-	u_int16_t sessin_id;
-	u_int16_t pppoe_length;
+    unsigned pppoe_version :4;
+    unsigned pppoe_type :4;
+    u_int8_t pppoe_code;
+    u_int16_t sessin_id;
+    u_int16_t pppoe_length;
 } PPPoEHdr;
 
 #define PPPOE_CODE_PADI 0x09

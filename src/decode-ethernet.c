@@ -27,11 +27,11 @@ void DecodeEthernet(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, Pack
     } else if(ntohs(ethh->eth_type) == ETHERNET_TYPE_IPV6) {
         //printf("DecodeEthernet ip6\n");
         DecodeIPV6(t, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN);
-	} else if(ntohs(ethh->eth_type) == ETHERNET_TYPE_PPPoE_SESS) {
-		//printf("DecodeEthernet PPPoE\n");
-		PerfCounterIncr(COUNTER_DECODER_PPPOE, t->pca);
-		DecodePPPoE(t, p, pkt + PPPOE_HEADER_LEN, len - PPPOE_HEADER_LEN, pq);
-	}
+    } else if(ntohs(ethh->eth_type) == ETHERNET_TYPE_PPPoE_SESS) {
+        //printf("DecodeEthernet PPPoE\n");
+        PerfCounterIncr(COUNTER_DECODER_PPPOE, t->pca);
+        DecodePPPoE(t, p, pkt + PPPOE_HEADER_LEN, len - PPPOE_HEADER_LEN, pq);
+    }
 
     return;
 }

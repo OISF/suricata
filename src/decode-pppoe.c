@@ -1,8 +1,8 @@
 /**
- * \file Copyright (c) 2009 Open Infosec Foundation
+ * \file Copyright (c) 2009 Open Information Security Foundation
  * \author James Riden <jamesr@europe.com>
  *
- * PPPoE Decoder
+ * \brief PPPoE Decoder
  */
 
 #include "eidps.h"
@@ -22,24 +22,24 @@
 void DecodePPPoE(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
 {
 #ifdef DEBUG
-	printf("DecodePPPoEPacket\n");
+    printf("DecodePPPoEPacket\n");
 #endif
 
-	if (len < PPPOE_HEADER_LEN) {
-		DECODER_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);
-		return;
-	}
+    if (len < PPPOE_HEADER_LEN) {
+        DECODER_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);
+        return;
+    }
 
-	p->pppoeh = (PPPoEHdr *)pkt;
+    p->pppoeh = (PPPoEHdr *)pkt;
 
-	if (p->pppoeh == NULL)
-		return;
+    if (p->pppoeh == NULL)
+        return;
 
-	if (p->pppoeh->pppoe_length>0) {
-		/* decode contained PPP packet */
-		PerfCounterIncr(COUNTER_DECODER_PPP, t->pca);
-		DecodePPP(t, p, pkt + PPPOE_HEADER_LEN, len - PPPOE_HEADER_LEN, pq);
-	}
+    if (p->pppoeh->pppoe_length>0) {
+        /* decode contained PPP packet */
+        PerfCounterIncr(COUNTER_DECODER_PPP, t->pca);
+        DecodePPP(t, p, pkt + PPPOE_HEADER_LEN, len - PPPOE_HEADER_LEN, pq);
+    }
 
 }
 
@@ -49,9 +49,9 @@ void DecodePPPoE(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQ
  */
 static int DecodePPPoEtest01 (void)   {
 
-	/* 0000  ff ff ff ff ff ff 00 0a e4 13 31 a3 81 00 03 98   ..........1.....
-	   0010  81 00 00 80 88 63 11 09 00 00 00 08 01 01 00 00   .....c..........
-	   0020  01 00 00 00 */
+    /* 0000  ff ff ff ff ff ff 00 0a e4 13 31 a3 81 00 03 98   ..........1.....
+       0010  81 00 00 80 88 63 11 09 00 00 00 08 01 01 00 00   .....c..........
+       0020  01 00 00 00 */
 
     u_int8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x00, 0x00 };
     Packet p;
@@ -65,7 +65,7 @@ static int DecodePPPoEtest01 (void)   {
     /* Function my returns here with expected value */
 
     if(DECODER_ISSET_EVENT(&p,PPPOE_PKT_TOO_SMALL))  {
-	    return 1;
+        return 1;
     }
 
     return 0;
