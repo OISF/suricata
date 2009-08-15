@@ -180,7 +180,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         printf("error %s\n", pcap_geterr(ptv->pcap_handle));
         exit(1);
     }
-    
+
     /* set Snaplen, Promisc, and Timeout. Must be called before pcap_activate */
     int pcap_set_snaplen_r = pcap_set_snaplen(ptv->pcap_handle,LIBPCAP_SNAPLEN);
     //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %d\n", ptv->pcap_handle, pcap_set_snaplen_r);
@@ -202,7 +202,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(ptv->pcap_handle));
         exit(1);
     }
- 
+
     /* activate the handle */
     int pcap_activate_r = pcap_activate(ptv->pcap_handle);
     //printf("ReceivePcapThreadInit: pcap_activate(%p) returned %d\n", ptv->pcap_handle, pcap_activate_r);
@@ -287,6 +287,8 @@ int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
     PerfCounterIncr(COUNTER_DECODER_PKTS, t->pca);
     PerfCounterAddUI64(COUNTER_DECODER_BYTES, t->pca, p->pktlen);
+    PerfCounterAddUI64(COUNTER_DECODER_AVG_PKT_SIZE, t->pca, p->pktlen);
+    PerfCounterSetUI64(COUNTER_DECODER_MAX_PKT_SIZE, t->pca, p->pktlen);
 
     /* call the decoder */
     switch(p->pcap_v.datalink)    {
@@ -331,6 +333,10 @@ int DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
                         &tv->pctx, TYPE_Q_NONE, 1);
     PerfRegisterCounter("decoder.ppp", "DecodePcap", TYPE_UINT64, "NULL",
                         &tv->pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("decoder.avg_pkt_size", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_AVERAGE, 1);
+    PerfRegisterCounter("decoder.max_pkt_size", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_MAXIMUM, 1);
 
     tv->pca = PerfGetAllCountersArray(&tv->pctx);
 

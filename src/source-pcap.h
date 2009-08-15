@@ -23,6 +23,8 @@ void TmModuleDecodePcapRegister (void);
 #define COUNTER_DECODER_ICMPV4  9
 #define COUNTER_DECODER_ICMPV6 10
 #define COUNTER_DECODER_PPP    11
+#define COUNTER_DECODER_AVG_PKT_SIZE 12
+#define COUNTER_DECODER_MAX_PKT_SIZE 13
 
 /* per packet Pcap vars */
 typedef struct PcapPacketVars_
