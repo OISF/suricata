@@ -21,9 +21,7 @@
  */
 void DecodePPPoE(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-#ifdef DEBUG
-    printf("DecodePPPoEPacket\n");
-#endif
+    PerfCounterIncr(COUNTER_DECODER_PPPOE, t->pca);
 
     if (len < PPPOE_HEADER_LEN) {
         DECODER_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);

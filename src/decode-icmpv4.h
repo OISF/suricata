@@ -128,7 +128,7 @@ typedef struct ICMPV4Hdr_
 {
     uint8_t  type;
     uint8_t  code;
-    uint16_t csum;
+    uint16_t checksum;
 
     /* XXX incomplete */
 } ICMPV4Hdr;
