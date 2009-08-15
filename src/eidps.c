@@ -841,14 +841,14 @@ int main(int argc, char **argv)
     char *sig_file = NULL;
     int nfq_id;
 
-    sigaddset(&set, SIGINT); 
+    sigaddset(&set, SIGINT);
     /* registering signals we use */
     setup_signal_handler(SIGINT, handle_sigint);
     setup_signal_handler(SIGTERM, handle_sigterm);
     setup_signal_handler(SIGHUP, handle_sighup);
     //pthread_sigmask(SIG_BLOCK, &set, 0);
 
-    while ((opt = getopt(argc, argv, "hi:q:r:u:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "hi:q:r:us:")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
