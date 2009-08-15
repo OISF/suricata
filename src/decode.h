@@ -33,6 +33,7 @@
 
 #include "decode-ethernet.h"
 #include "decode-ppp.h"
+#include "decode-pppoe.h"
 #include "decode-sll.h"
 #include "decode-ipv4.h"
 #include "decode-ipv6.h"
@@ -239,6 +240,7 @@ typedef struct Packet_
     /* header pointers */
     EthernetHdr *ethh;
     PPPHdr *ppph;
+    PPPoEHdr *pppoeh;
 
     IPV4Hdr *ip4h;
     IPV4Vars ip4vars;
@@ -377,6 +379,7 @@ typedef struct PacketQueue_ {
 void DecodeEthernet(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeSll(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodePPP(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
+void DecodePPPoE(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeTunnel(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeIPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 void DecodeIPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t);

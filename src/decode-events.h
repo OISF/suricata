@@ -47,6 +47,10 @@ enum {
     PPPIPV4_PKT_TOO_SMALL,
     PPPIPV6_PKT_TOO_SMALL,
     PPP_WRONG_TYPE,
+
+	/* PPPOE EVENTS */
+    PPPOE_PKT_TOO_SMALL,
+ };
 };
 
 #endif /* __DECODE_EVENTS_H__ */

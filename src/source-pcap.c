@@ -337,6 +337,8 @@ int DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
                         &tv->pctx, TYPE_Q_AVERAGE, 1);
     PerfRegisterCounter("decoder.max_pkt_size", "DecodePcap", TYPE_UINT64, "NULL",
                         &tv->pctx, TYPE_Q_MAXIMUM, 1);
+    PerfRegisterCounter("decoder.pppoe", "DecodePcap", TYPE_UINT64, "NULL",
+                        &tv->pctx, TYPE_Q_NONE, 1);
 
     tv->pca = PerfGetAllCountersArray(&tv->pctx);
 

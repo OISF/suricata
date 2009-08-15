@@ -10,6 +10,7 @@ decode.c decode.h \
 decode-ethernet.c decode-ethernet.h \
 decode-sll.c decode-sll.h \
 decode-ppp.c decode-ppp.h \
+decode-pppoe.c decode-pppoe.h \
 decode-ipv4.c decode-ipv4.h \
 decode-ipv6.c decode-ipv6.h \
 decode-icmpv4.c decode-icmpv4.h \
