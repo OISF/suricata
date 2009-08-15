@@ -133,5 +133,7 @@ typedef struct ICMPV4Hdr_
     /* XXX incomplete */
 } ICMPV4Hdr;
 
+void DecodeICMPV4RegisterTests(void);
+
 #endif /* __DECODE_ICMPV4_H__ */
 
