@@ -3,6 +3,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <limits.h>
 #include "time.h"
 
 #include "counters.h"
