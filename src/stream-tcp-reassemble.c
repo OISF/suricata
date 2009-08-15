@@ -147,8 +147,10 @@ static void PrintList(TcpSegment *seg) {
 
         printf("PrintList: seg %10u len %u, seg %p, prev %p, next %p\n", seg->seq, seg->payload_len, seg, seg->prev, seg->next);
 
-        if (prev_seg != seg->prev)
+        if (prev_seg != seg->prev) {
+            printf("PrintList: inconsistant list: prev_seg %p != seg->prev %p\n", prev_seg, seg->prev);
             abort();
+        }
 
         next_seq = seg->seq + seg->payload_len;
         prev_seg = seg;
@@ -380,7 +382,10 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                 new_seg->prev = list_seg->prev;
 
                 StreamTcpSegmentDataCopy(new_seg, list_seg);
-                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->prev->seq + list_seg->prev->payload_len), (u_int16_t) (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len)));
+
+                u_int16_t copy_len = (u_int16_t) (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
+                //printf("StreamTcpReassembleHandleSegmentHandleData: copy_len %u (%u - %u)\n", copy_len, list_seg->seq, (list_seg->prev->seq + list_seg->prev->payload_len));
+                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->prev->seq + list_seg->prev->payload_len), copy_len);
 
                 StreamTcpSegmentReturntoPool(list_seg);
                 list_seg = new_seg;
@@ -1022,6 +1027,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK(TcpSession *ssn, TcpStream *stream
             printf("StreamTcpReassembleHandleSegmentUpdateACK: removing seg %p, "
                     "seg->next %p\n", seg, seg->next);
             stream->seg_list = seg->next;
+            if (stream->seg_list != NULL)
+                stream->seg_list->prev = NULL;
 
             StreamTcpSegmentReturntoPool(seg);
 
