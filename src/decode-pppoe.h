@@ -21,8 +21,8 @@
 
 typedef struct _PPPoEHdr
 {
-    unsigned pppoe_version :4;
-    unsigned pppoe_type :4;
+    unsigned pppoe_version : 4;
+    unsigned pppoe_type : 4;
     uint8_t pppoe_code;
     uint16_t sessin_id;
     uint16_t pppoe_length;
@@ -37,3 +37,4 @@ typedef struct _PPPoEHdr
 void DecodePPPoERegisterTests(void);
 
 #endif /* __DECODE_PPPOE_H__ */
+
