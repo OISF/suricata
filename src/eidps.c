@@ -877,7 +877,7 @@ int main(int argc, char **argv)
 #ifdef UNITTESTS
             mode = MODE_UNITTEST;
 #else
-            fprintf(stderr, "ERROR: Unit tests not enabled.\n");
+            fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
             exit(1);
 #endif /* UNITTESTS */
             break;
