@@ -11,6 +11,7 @@
 #include <sys/signal.h>
 
 #include "eidps-common.h"
+#include "eidps.h"
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"
@@ -82,6 +83,7 @@ void VerdictNFQThreadExitStats(ThreadVars *, void *);
 int VerdictNFQThreadDeinit(ThreadVars *, void *);
 
 int DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+int DecodeNFQThreadInit(ThreadVars *, void *, void **);
 
 void TmModuleReceiveNFQRegister (void) {
     /* XXX create a general NFQ setup function */
