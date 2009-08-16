@@ -8,9 +8,11 @@ enum {
     IPV4_PKT_TOO_SMALL = 1,       /* pkt smaller than minimum header size */
     IPV4_HLEN_TOO_SMALL,
     IPV4_IPLEN_SMALLER_THAN_HLEN,
+    IPV4_TRUNC_PKT,
 
     /* IPV6 EVENTS */
     IPV6_PKT_TOO_SMALL,
+    IPV6_TRUNC_PKT,
     IPV6_TRUNC_EXTHDR,
     IPV6_EXTHDR_DUPL_FH,
     IPV6_EXTHDR_DUPL_RH,
@@ -47,6 +49,7 @@ enum {
     PPPIPV4_PKT_TOO_SMALL,
     PPPIPV6_PKT_TOO_SMALL,
     PPP_WRONG_TYPE,
+    PPP_UNSUP_PROTO,
 
     /* PPPOE EVENTS */
     PPPOE_PKT_TOO_SMALL,

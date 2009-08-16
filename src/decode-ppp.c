@@ -1,5 +1,5 @@
-/* Copyright (c) 2009 Open Infosec Foundation
- *  Written by Breno Silva Pinto <breno.silva@gmail.com> */
+/** Copyright (c) 2009 Open Information Security Foundation
+ *  \author Breno Silva Pinto <breno.silva@gmail.com> */
 
 #include "eidps-common.h"
 
@@ -58,6 +58,7 @@ void DecodePPP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue
         case PPP_PAP:
         case PPP_LQM:
         case PPP_CHAP:
+            DECODER_SET_EVENT(p,PPP_UNSUP_PROTO);
             break;
 
         case PPP_VJ_UCOMP:
@@ -154,12 +155,12 @@ static int DecodePPPtest02 (void)   {
     return 0;
 }
 
-/*  DecodePPPtest03
- *  Decode right PPP packet
- *  Expected test value: 1
+/** DecodePPPtest03
+ *  \brief Decode good PPP packet, additionally the IPv4 packet inside is
+ *         4 bytes short.
+ *  \retval 0 Test failed
+ *  \retval 1 Test succeeded
  */
-
-
 static int DecodePPPtest03 (void)   {
     uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
                            0xed, 0x00, 0x00, 0xff, 0x06, 0xd5, 0x17, 0xbf, 0x01,
@@ -194,6 +195,9 @@ static int DecodePPPtest03 (void)   {
         return 0;
     }
 
+    if (!(DECODER_ISSET_EVENT(&p,IPV4_TRUNC_PKT))) {
+        return 0;
+    }
     /* Function must return here */
 
     return 1;
@@ -224,6 +228,10 @@ static int DecodePPPtest04 (void)   {
     FlowShutdown();
 
     if(p.ppph == NULL) {
+        return 0;
+    }
+
+    if (!(DECODER_ISSET_EVENT(&p,IPV4_TRUNC_PKT))) {
         return 0;
     }
 

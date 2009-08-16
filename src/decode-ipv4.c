@@ -36,6 +36,11 @@ static int DecodeIPV4Packet(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len
         return -1;
     }
 
+    if (len < IPV4_GET_IPLEN(p)) {
+        DECODER_SET_EVENT(p,IPV4_TRUNC_PKT);
+        return -1;
+    }
+
     /* save the options len */
     p->ip4vars.ip_opts_len = IPV4_GET_HLEN(p) - IPV4_HEADER_LEN;
     if (p->ip4vars.ip_opts_len > 0) {

@@ -25,7 +25,9 @@ struct DetectDecodeEvents_ {
     { "ipv4.pkt_too_small", IPV4_PKT_TOO_SMALL, },
     { "ipv4.hlen_too_small", IPV4_HLEN_TOO_SMALL, },
     { "ipv4.iplen_smaller_than_hlen", IPV4_IPLEN_SMALLER_THAN_HLEN, },
+    { "ipv4.trunc_pkt", IPV4_TRUNC_PKT, },
     { "ipv6.pkt_too_small", IPV6_PKT_TOO_SMALL, },
+    { "ipv6.trunc_pkt", IPV6_TRUNC_PKT, },
     { "ipv6.trunc_exthdr", IPV6_TRUNC_EXTHDR, },
     { "ipv6.exthdr_dupl_fh", IPV6_EXTHDR_DUPL_FH, },
     { "ipv6.exthdr_dupl_rh", IPV6_EXTHDR_DUPL_RH, },
@@ -48,7 +50,8 @@ struct DetectDecodeEvents_ {
     { "ppp.ju_pkt_too_small", PPPVJU_PKT_TOO_SMALL, },
     { "ppp.ip4_pkt_too_small", PPPIPV4_PKT_TOO_SMALL, },
     { "ppp.ip6_pkt_too_small", PPPIPV6_PKT_TOO_SMALL, },
-    { "ppp.wrong_type", PPP_WRONG_TYPE, },
+    { "ppp.wrong_type", PPP_WRONG_TYPE, }, /** unknown & invalid protocol */
+    { "ppp.unsup_proto", PPP_UNSUP_PROTO, }, /** unsupported but valid protocol */
     { NULL, 0 },
 };
 #endif /* DETECT_EVENTS */

@@ -72,7 +72,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 
                 IPV6_EXTHDR_SET_RH(p, pkt);
                 IPV6_EXTHDR_RH(p)->ip6rh_len = hdrextlen;
-/* XXX move into own function and load on demand */
+/** \todo move into own function and load on demand */
                 if (IPV6_EXTHDR_RH(p)->ip6rh_type == 0) {
                     uint8_t i;
 
@@ -83,7 +83,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
                      * sized */
                     for (i = 0; i < (n/8) && i < sizeof(IPV6_EXTHDR_RH(p)->ip6rh0_addr)/sizeof(struct in6_addr); ++i) {
                         /* the address header fields are 16 bytes in size */
-/* XXX do this without memcpy since it's expensive */
+/** \todo do this without memcpy since it's expensive */
                         memcpy(&IPV6_EXTHDR_RH(p)->ip6rh0_addr[i], pkt+(i*16)+8, sizeof(IPV6_EXTHDR_RH(p)->ip6rh0_addr[i]));
                     }
                     IPV6_EXTHDR_RH(p)->ip6rh0_num_addrs = i;
@@ -131,7 +131,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
                         plen -= hdrextlen;
                         break;
                     }
- 
+
                     IPV6_EXTHDR_SET_HH(p, pkt);
                     hao = &IPV6_EXTHDR_HH_HAO(p);
                     ra = &IPV6_EXTHDR_HH_RA(p);
@@ -165,7 +165,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
                         break;
                     }
                 }
-              
+
                 if (optslen > plen) {
                     /* since the packet is long enough (we checked
                      * plen against hdrlen, the optlen must be malformed. */
@@ -177,7 +177,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
                     plen -= hdrextlen;
                     break;
                 }
-/* XXX move into own function to loaded on demand */
+/** \todo move into own function to loaded on demand */
                 uint16_t offset = 0;
                 while(offset < optslen)
                 {
@@ -350,6 +350,7 @@ static int DecodeIPV6Packet (ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t le
 
     if (len < (IPV6_HEADER_LEN + IPV6_GET_PLEN(p)))
     {
+        DECODER_SET_EVENT(p,IPV6_TRUNC_PKT);
         return -1;
     }
 

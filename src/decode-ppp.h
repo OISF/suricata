@@ -1,17 +1,15 @@
-/* Copyright (c) 2009 Open Infosec Foundation
- *  Written by Breno Silva Pinto <breno.silva@gmail.com> */
+/** Copyright (c) 2009 Open Infomation Security Foundation
+ *  \author Breno Silva Pinto <breno.silva@gmail.com> */
 
 #ifndef __DECODE_PPP_H__
 #define __DECODE_PPP_H__
 
-/* Point to Point Protocol RFC1331 - Supported tyes */
-
+/** Point to Point Protocol RFC1331 - Supported tyes */
 #define PPP_IP         0x0021       /* Internet Protocol */
 #define PPP_IPV6       0x0057       /* Internet Protocol version 6 */
 #define PPP_VJ_UCOMP   0x002f       /* VJ uncompressed TCP/IP */
 
-/* Unsupported PPP types (libpcap source reference) */
-
+/** Unsupported PPP types (libpcap source reference) */
 #define PPP_IPX        0x002b       /* Novell IPX Protocol */
 #define PPP_VJ_COMP    0x002d       /* VJ compressed TCP/IP */
 #define PPP_IPX        0x002b       /* Novell IPX Protocol */
@@ -42,12 +40,14 @@
 #define PPP_LQM        0xc025       /* Link Quality Monitoring */
 #define PPP_CHAP       0xc223       /* Challenge Handshake Authentication Protocol */
 
+/** PPP Packet header */
 typedef struct PPPHdr_ {
     uint8_t address;
     uint8_t control;
     uint16_t protocol;
 } PPPHdr;
 
+/** PPP Packet header length */
 #define PPP_HEADER_LEN 4
 
 void DecodePPPRegisterTests(void);
