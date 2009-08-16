@@ -5,6 +5,9 @@
 #include "decode-icmpv4.h"
 #include "util-unittest.h"
 
+/** DecodeICMPV4
+ *  \brief Main ICMPv4 decoding function
+ */
 void DecodeICMPV4(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
     p->icmpv4h = (ICMPV4Hdr *)pkt;

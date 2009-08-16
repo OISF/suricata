@@ -32,7 +32,12 @@ void DecodePPPoE(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQue
     if (p->pppoeh == NULL)
         return;
 
-    if (p->pppoeh->pppoe_length > 0) {
+#ifdef DEBUG
+    printf("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "\n",
+           p->pppoeh->pppoe_version,  p->pppoeh->pppoe_type,  p->pppoeh->pppoe_code,  ntohs(p->pppoeh->session_id),  ntohs(p->pppoeh->pppoe_length));
+#endif
+
+    if (ntohs(p->pppoeh->pppoe_length) > 0) {
         /* decode contained PPP packet */
         PerfCounterIncr(COUNTER_DECODER_PPP, t->pca);
         DecodePPP(t, p, pkt + PPPOE_HEADER_LEN, len - PPPOE_HEADER_LEN, pq);

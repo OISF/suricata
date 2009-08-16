@@ -30,7 +30,7 @@ void DecodeEthernet(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, Packet
     } else if(ntohs(ethh->eth_type) == ETHERNET_TYPE_PPPoE_SESS) {
         //printf("DecodeEthernet PPPoE\n");
         PerfCounterIncr(COUNTER_DECODER_PPPOE, t->pca);
-        DecodePPPoE(t, p, pkt + PPPOE_HEADER_LEN, len - PPPOE_HEADER_LEN, pq);
+        DecodePPPoE(t, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN, pq);
     }
 
     return;
