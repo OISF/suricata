@@ -6,7 +6,7 @@ AC_INIT(configure.in)
     AM_INIT_AUTOMAKE(eidps, 0.1)
 
     AC_LANG_C
-    AC_PROG_CC
+    AC_PROG_CC_C99
     AM_PROG_LIBTOOL
 
     AC_DEFUN([FAIL_MESSAGE],[
@@ -26,7 +26,6 @@ AC_INIT(configure.in)
     CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
 
 # Checks for programs.
-    AC_PROG_CXX
     AC_PROG_AWK
     AC_PROG_CC
     AC_PROG_CPP
