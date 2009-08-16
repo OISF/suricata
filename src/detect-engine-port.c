@@ -76,7 +76,7 @@ void DetectPortFree(DetectPort *dp) {
 }
 
 void DetectPortPrintMemory(void) {
-    printf(" * Port memory stats (DetectPort %" PRIuMAX "):\n", sizeof(DetectPort));
+    printf(" * Port memory stats (DetectPort %" PRIuMAX "):\n", (uintmax_t)sizeof(DetectPort));
     printf("  - detect_port_memory %" PRIu32 "\n", detect_port_memory);
     printf("  - detect_port_init_cnt %" PRIu32 "\n", detect_port_init_cnt);
     printf("  - detect_port_free_cnt %" PRIu32 "\n", detect_port_free_cnt);

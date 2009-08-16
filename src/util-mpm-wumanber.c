@@ -155,10 +155,10 @@ void WmPrintInfo(MpmCtx *mpm_ctx) {
     printf("Memory allocs:   %" PRIu32 "\n", mpm_ctx->memory_cnt);
     printf("Memory alloced:  %" PRIu32 "\n", mpm_ctx->memory_size);
     printf(" Sizeofs:\n");
-    printf("  MpmCtx         %" PRIuMAX "\n", sizeof(MpmCtx));
-    printf("  WmCtx:         %" PRIuMAX "\n", sizeof(WmCtx));
-    printf("  WmPattern      %" PRIuMAX "\n", sizeof(WmPattern));
-    printf("  WmHashItem     %" PRIuMAX "\n", sizeof(WmHashItem));
+    printf("  MpmCtx         %" PRIuMAX "\n", (uintmax_t)sizeof(MpmCtx));
+    printf("  WmCtx:         %" PRIuMAX "\n", (uintmax_t)sizeof(WmCtx));
+    printf("  WmPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(WmPattern));
+    printf("  WmHashItem     %" PRIuMAX "\n", (uintmax_t)sizeof(WmHashItem));
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
     printf("Scan Patterns:   %" PRIu32 "\n", mpm_ctx->scan_pattern_cnt);
     printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);

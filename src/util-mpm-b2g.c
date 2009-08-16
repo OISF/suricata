@@ -132,10 +132,10 @@ void B2gPrintInfo(MpmCtx *mpm_ctx) {
     printf("Memory allocs:   %" PRIu32 "\n", mpm_ctx->memory_cnt);
     printf("Memory alloced:  %" PRIu32 "\n", mpm_ctx->memory_size);
     printf(" Sizeofs:\n");
-    printf("  MpmCtx         %" PRIuMAX "\n", sizeof(MpmCtx));
-    printf("  B2gCtx:         %" PRIuMAX "\n", sizeof(B2gCtx));
-    printf("  B2gPattern      %" PRIuMAX "\n", sizeof(B2gPattern));
-    printf("  B2gHashItem     %" PRIuMAX "\n", sizeof(B2gHashItem));
+    printf("  MpmCtx         %" PRIuMAX "\n", (uintmax_t)sizeof(MpmCtx));
+    printf("  B2gCtx:         %" PRIuMAX "\n", (uintmax_t)sizeof(B2gCtx));
+    printf("  B2gPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(B2gPattern));
+    printf("  B2gHashItem     %" PRIuMAX "\n", (uintmax_t)sizeof(B2gHashItem));
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
     printf("Scan Patterns:   %" PRIu32 "\n", mpm_ctx->scan_pattern_cnt);
     printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);

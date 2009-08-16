@@ -98,19 +98,19 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
 }
 
 void DetectAddressGroupPrintMemory(void) {
-    printf(" * Address group memory stats (DetectAddressGroup %" PRIuMAX "):\n", sizeof(DetectAddressGroup));
+    printf(" * Address group memory stats (DetectAddressGroup %" PRIuMAX "):\n", (uintmax_t)sizeof(DetectAddressGroup));
     printf("  - detect_address_group_memory %" PRIu32 "\n", detect_address_group_memory);
     printf("  - detect_address_group_init_cnt %" PRIu32 "\n", detect_address_group_init_cnt);
     printf("  - detect_address_group_free_cnt %" PRIu32 "\n", detect_address_group_free_cnt);
     printf("  - outstanding groups %" PRIu32 "\n", detect_address_group_init_cnt - detect_address_group_free_cnt);
     printf(" * Address group memory stats done\n");
-    printf(" * Address group head memory stats (DetectAddressGroupsHead %" PRIuMAX "):\n", sizeof(DetectAddressGroupsHead));
+    printf(" * Address group head memory stats (DetectAddressGroupsHead %" PRIuMAX "):\n", (uintmax_t)sizeof(DetectAddressGroupsHead));
     printf("  - detect_address_group_head_memory %" PRIu32 "\n", detect_address_group_head_memory);
     printf("  - detect_address_group_head_init_cnt %" PRIu32 "\n", detect_address_group_head_init_cnt);
     printf("  - detect_address_group_head_free_cnt %" PRIu32 "\n", detect_address_group_head_free_cnt);
     printf("  - outstanding groups %" PRIu32 "\n", detect_address_group_head_init_cnt - detect_address_group_head_free_cnt);
     printf(" * Address group head memory stats done\n");
-    printf(" * Address memory stats (DetectAddressData %" PRIuMAX "):\n", sizeof(DetectAddressData));
+    printf(" * Address memory stats (DetectAddressData %" PRIuMAX "):\n", (uintmax_t)sizeof(DetectAddressData));
     printf("  - detect_address_memory %" PRIu32 "\n", detect_address_memory);
     printf("  - detect_address_init_cnt %" PRIu32 "\n", detect_address_init_cnt);
     printf("  - detect_address_free_cnt %" PRIu32 "\n", detect_address_free_cnt);

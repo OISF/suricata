@@ -303,7 +303,7 @@ void FlowInitConfig (char quiet)
 
     if (quiet == FALSE)
         printf("* Allocated %" PRIu32 " bytes of memory for the flow hash... %" PRIu32 " buckets of size %" PRIuMAX "\n",
-            flow_config.memuse, flow_config.hash_size, sizeof(FlowBucket));
+            flow_config.memuse, flow_config.hash_size, (uintmax_t)sizeof(FlowBucket));
 
     /* pre allocate flows */
     uint32_t i = 0;
@@ -318,7 +318,7 @@ void FlowInitConfig (char quiet)
 
     if (quiet == FALSE) {
         printf("* Preallocated %" PRIu32 " flows of size %" PRIuMAX "\n",
-                flow_spare_q.len, sizeof(Flow));
+                flow_spare_q.len, (uintmax_t)sizeof(Flow));
         printf("* Flow memory usage: %" PRIu32 " bytes. Maximum: %" PRIu32 "\n",
                 flow_config.memuse, flow_config.memcap);
     }

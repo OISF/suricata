@@ -487,7 +487,7 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx) {
 }
 
 void DetectSigGroupPrintMemory(void) {
-    printf(" * Sig group head memory stats (SigGroupHead %" PRIuMAX "):\n", sizeof(SigGroupHead));
+    printf(" * Sig group head memory stats (SigGroupHead %" PRIuMAX "):\n", (uintmax_t)sizeof(SigGroupHead));
     printf("  - detect_siggroup_head_memory %" PRIu32 "\n", detect_siggroup_head_memory);
     printf("  - detect_siggroup_head_init_cnt %" PRIu32 "\n", detect_siggroup_head_init_cnt);
     printf("  - detect_siggroup_head_free_cnt %" PRIu32 "\n", detect_siggroup_head_free_cnt);

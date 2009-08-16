@@ -966,7 +966,7 @@ int main(int argc, char **argv)
     memset(&trans_q, 0,sizeof(trans_q));
 
     /* pre allocate packets */
-    printf("Preallocating packets... packet size %" PRIuMAX "\n", sizeof(Packet));
+    printf("Preallocating packets... packet size %" PRIuMAX "\n", (uintmax_t)sizeof(Packet));
     int i = 0;
     for (i = 0; i < MAX_PENDING; i++) {
         /* XXX pkt alloc function */
@@ -1050,7 +1050,7 @@ int main(int argc, char **argv)
             memset(&end_time, 0, sizeof(end_time));
             gettimeofday(&end_time, NULL);
 
-            printf("time elapsed %" PRIu64 "s\n", end_time.tv_sec - start_time.tv_sec);
+            printf("time elapsed %" PRIuMAX "s\n", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
 
             TmThreadKillThreads();
 

@@ -946,8 +946,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
-            if (copy_size > sizeof (smsg->data.data)) {
-                printf("BUG(%" PRIu32 "): copy_size %" PRIu32 " > sizeof(smsg->data.data) %" PRIuMAX "\n", __LINE__, copy_size, sizeof (smsg->data.data));
+            if (copy_size > sizeof(smsg->data.data)) {
+                printf("BUG(%" PRIu32 "): copy_size %" PRIu32 " > sizeof(smsg->data.data) %" PRIuMAX "\n", __LINE__, copy_size, (uintmax_t)sizeof(smsg->data.data));
                 abort();
             }
             printf("StreamTcpReassembleHandleSegmentUpdateACK: copy_size %" PRIu32 " "
@@ -1003,8 +1003,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                     if (copy_size > (seg->payload_len - payload_offset)) {
                         copy_size = (seg->payload_len - payload_offset);
                     }
-                    if (copy_size > sizeof (smsg->data.data)) {
-                        printf("BUG(%" PRIu32 "): copy_size %" PRIu32 " > sizeof(smsg->data.data) %" PRIuMAX "\n", __LINE__, copy_size, sizeof (smsg->data.data));
+                    if (copy_size > sizeof(smsg->data.data)) {
+                        printf("BUG(%" PRIu32 "): copy_size %" PRIu32 " > sizeof(smsg->data.data) %" PRIuMAX "\n", __LINE__, copy_size, (uintmax_t)sizeof(smsg->data.data));
                         abort();
                     }
 
