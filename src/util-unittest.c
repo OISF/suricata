@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "eidps-common.h"
 #include "util-unittest.h"
 
 static UtTest *ut_list;
@@ -50,7 +51,7 @@ void UtRegisterTest(char *name, int(*TestFn)(void), int evalue) {
 int UtRunTests(void) {
     UtTest *ut;
     int result = 0;
-    u_int32_t good = 0, bad = 0;
+    uint32_t good = 0, bad = 0;
 
     for (ut = ut_list; ut != NULL; ut = ut->next) {
         printf("Test %-60s : ", ut->name);
@@ -66,8 +67,8 @@ int UtRunTests(void) {
     }
 
     printf("==== TEST RESULTS ====\n");
-    printf("PASSED: %u\n", good);
-    printf("FAILED: %u\n", bad);
+    printf("PASSED: %" PRIu32 "\n", good);
+    printf("FAILED: %" PRIu32 "\n", bad);
     printf("======================\n");
     return result;
 }

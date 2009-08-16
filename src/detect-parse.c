@@ -2,7 +2,7 @@
 
 #include <pcre.h>
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 
 #include "detect.h"
@@ -20,10 +20,10 @@ static pcre_extra *config_pcre_extra = NULL;
 static pcre_extra *option_pcre_extra = NULL;
 
 /* XXX this should be part of the DE */
-//static u_int32_t signum = 0;
+//static uint32_t signum = 0;
 
-static u_int32_t dbg_srcportany_cnt = 0;
-static u_int32_t dbg_dstportany_cnt = 0;
+static uint32_t dbg_srcportany_cnt = 0;
+static uint32_t dbg_dstportany_cnt = 0;
 
 #define CONFIG_PARTS 8
 
@@ -41,11 +41,11 @@ static u_int32_t dbg_dstportany_cnt = 0;
 #define OPTION_PARTS 3
 #define OPTION_PCRE "^\\s*([A-z_0-9-]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
-u_int32_t DbgGetSrcPortAnyCnt(void) {
+uint32_t DbgGetSrcPortAnyCnt(void) {
     return dbg_srcportany_cnt;
 }
 
-u_int32_t DbgGetDstPortAnyCnt(void) {
+uint32_t DbgGetDstPortAnyCnt(void) {
     return dbg_dstportany_cnt;
 }
 
@@ -112,7 +112,7 @@ void SigParsePrepare(void) {
     config_pcre = pcre_compile(regexstr, opts, &eb, &eo, NULL);
     if(config_pcre == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", regexstr, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", regexstr, eo, eb);
         exit(1);
     }
 
@@ -129,7 +129,7 @@ void SigParsePrepare(void) {
     option_pcre = pcre_compile(regexstr, opts, &eb, &eo, NULL);
     if(option_pcre == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", regexstr, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", regexstr, eo, eb);
         exit(1);
     }
 
@@ -159,14 +159,14 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
      *  4: keyword w value, more options coming
      */
     if (ret != 2 && ret != 3 && ret != 4) {
-        printf("pcre_exec failed: ret %d, optstr \"%s\"\n", ret, optstr);
+        printf("pcre_exec failed: ret %" PRId32 ", optstr \"%s\"\n", ret, optstr);
         goto error;
     }
 
     /* extract the substrings */
     for (i = 1; i <= ret-1; i++) {
         pcre_get_substring(optstr, ov, MAX_SUBSTRINGS, i, &arr[i-1]);
-        //printf("SigParseOptions: arr[%d] = \"%s\"\n", i-1, arr[i-1]);
+        //printf("SigParseOptions: arr[%" PRId32 "] = \"%s\"\n", i-1, arr[i-1]);
     }
     arr[i-1]=NULL;
 
@@ -382,14 +382,14 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
 
     ret = pcre_exec(config_pcre, config_pcre_extra, sigstr, strlen(sigstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 8 && ret != 9) {
-        printf("SigParseBasics: pcre_exec failed: ret %d, sigstr \"%s\"\n", ret, sigstr);
+        printf("SigParseBasics: pcre_exec failed: ret %" PRId32 ", sigstr \"%s\"\n", ret, sigstr);
         goto error;
     }
-    DEBUGPRINT("SigParseBasics: pcre_exec returned %d", ret);
+    DEBUGPRINT("SigParseBasics: pcre_exec returned %" PRId32, ret);
 
     for (i = 1; i <= ret-1; i++) {
         pcre_get_substring(sigstr, ov, MAX_SUBSTRINGS, i, &arr[i-1]);
-        //printf("SigParseBasics: arr[%d] = \"%s\"\n", i-1, arr[i-1]);
+        //printf("SigParseBasics: arr[%" PRId32 "] = \"%s\"\n", i-1, arr[i-1]);
     }
     arr[i-1]=NULL;
 
@@ -435,7 +435,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr) {
     DEBUGPRINT("SigParse: %p", basics);
     int i;
     for (i = 0; basics[i] != NULL; i++) {
-        DEBUGPRINT("SigParse: basics[%d]: %p, %s", i, basics[i], basics[i]);
+        DEBUGPRINT("SigParse: basics[%" PRId32 "]: %p, %s", i, basics[i], basics[i]);
     }
 #endif /* DEBUG */
 

@@ -26,7 +26,7 @@ int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
         dubbed = 1;
     }
 
-    s->prio = (u_int32_t)atoi(str);
+    s->prio = (uint32_t)atoi(str);
 
     if (dubbed) free(str);
     return 0;

@@ -9,6 +9,7 @@
  *
  * */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
@@ -36,9 +37,9 @@ int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *, DetectPort **);
 DetectPort *PortParse(char *str);
 
 /* memory usage counters */
-static u_int32_t detect_port_memory = 0;
-static u_int32_t detect_port_init_cnt = 0;
-static u_int32_t detect_port_free_cnt = 0;
+static uint32_t detect_port_memory = 0;
+static uint32_t detect_port_init_cnt = 0;
+static uint32_t detect_port_free_cnt = 0;
 
 DetectPort *DetectPortInit(void) {
     DetectPort *dp = malloc(sizeof(DetectPort));
@@ -75,11 +76,11 @@ void DetectPortFree(DetectPort *dp) {
 }
 
 void DetectPortPrintMemory(void) {
-    printf(" * Port memory stats (DetectPort %u):\n", sizeof(DetectPort));
-    printf("  - detect_port_memory %u\n", detect_port_memory);
-    printf("  - detect_port_init_cnt %u\n", detect_port_init_cnt);
-    printf("  - detect_port_free_cnt %u\n", detect_port_free_cnt);
-    printf("  - outstanding ports %u\n", detect_port_init_cnt - detect_port_free_cnt);
+    printf(" * Port memory stats (DetectPort %" PRIuMAX "):\n", sizeof(DetectPort));
+    printf("  - detect_port_memory %" PRIu32 "\n", detect_port_memory);
+    printf("  - detect_port_init_cnt %" PRIu32 "\n", detect_port_init_cnt);
+    printf("  - detect_port_free_cnt %" PRIu32 "\n", detect_port_free_cnt);
+    printf("  - outstanding ports %" PRIu32 "\n", detect_port_init_cnt - detect_port_free_cnt);
     printf(" * Port memory stats done\n");
 }
 
@@ -101,7 +102,7 @@ DetectPort *DetectPortLookup(DetectPort *head, DetectPort *dp) {
 
 void DetectPortPrintList(DetectPort *head) {
     DetectPort *cur;
-    u_int16_t cnt = 0;
+    uint16_t cnt = 0;
 
     printf("list:\n");
     if (head != NULL) {
@@ -113,7 +114,7 @@ void DetectPortPrintList(DetectPort *head) {
              printf("\n");
         }
     }
-    printf("endlist (cnt %u)\n", cnt);
+    printf("endlist (cnt %" PRIu32 ")\n", cnt);
 }
 
 void DetectPortCleanupList (DetectPort *head) {
@@ -196,7 +197,7 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
 
 #ifdef DBG
     printf("DetectPortInsert: head %p, new %p\n", head, new);
-    printf("DetectPortInsert: inserting (sig %u) ", new->sh ? new->sh->sig_cnt : 0); DetectPortPrint(new); printf("\n");
+    printf("DetectPortInsert: inserting (sig %" PRIu32 ") ", new->sh ? new->sh->sig_cnt : 0); DetectPortPrint(new); printf("\n");
     DetectPortPrintList(*head);
 #endif
 
@@ -295,7 +296,7 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
 #endif
                 DetectPort *c = NULL;
                 r = DetectPortCut(de_ctx,cur,new,&c);
-                //printf("DetectPortCut returned %d\n", r);
+                //printf("DetectPortCut returned %" PRId32 "\n", r);
                 DetectPortInsert(de_ctx, head, new);
                 if (c) {
 #ifdef DBG
@@ -350,10 +351,10 @@ error:
 }
 
 int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, DetectPort **c) {
-    u_int32_t a_port1 = a->port;
-    u_int32_t a_port2 = a->port2;
-    u_int32_t b_port1 = b->port;
-    u_int32_t b_port2 = b->port2;
+    uint32_t a_port1 = a->port;
+    uint32_t a_port2 = a->port2;
+    uint32_t b_port1 = b->port;
+    uint32_t b_port2 = b->port2;
     DetectPort *tmp = NULL;
 
     /* default to NULL */
@@ -639,8 +640,8 @@ error:
 }
 
 int DetectPortCutNot(DetectPort *a, DetectPort **b) {
-    u_int16_t a_port1 = a->port;
-    u_int16_t a_port2 = a->port2;
+    uint16_t a_port1 = a->port;
+    uint16_t a_port2 = a->port2;
 
     /* default to NULL */
     *b = NULL;
@@ -687,10 +688,10 @@ int DetectPortCmp(DetectPort *a, DetectPort *b) {
     if (!(a->flags & PORT_FLAG_ANY) && b->flags & PORT_FLAG_ANY)
         return PORT_GT;
 
-    u_int16_t a_port1 = a->port;
-    u_int16_t a_port2 = a->port2;
-    u_int16_t b_port1 = b->port;
-    u_int16_t b_port2 = b->port2;
+    uint16_t a_port1 = a->port;
+    uint16_t a_port2 = a->port2;
+    uint16_t b_port1 = b->port;
+    uint16_t b_port2 = b->port2;
 
     /* PORT_EQ */
     if (a_port1 == b_port1 && a_port2 == b_port2) {
@@ -771,7 +772,7 @@ int DetectPortSetupTmp (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 }
 
 
-int DetectPortMatch (DetectPort *dp, u_int16_t port) {
+int DetectPortMatch (DetectPort *dp, uint16_t port) {
     if (port >= dp->port &&
         port <= dp->port2) {
         return 1;
@@ -787,13 +788,13 @@ void DetectPortPrint(DetectPort *dp) {
     if (dp->flags & PORT_FLAG_ANY) {
         printf("ANY");
     } else {
-        printf("%u-%u", dp->port, dp->port2);
+        printf("%" PRIu32 "-%" PRIu32, dp->port, dp->port2);
     }
 }
 
 /* find the group matching address in a group head */
 DetectPort *
-DetectPortLookupGroup(DetectPort *dp, u_int16_t port) {
+DetectPortLookupGroup(DetectPort *dp, uint16_t port) {
     DetectPort *p = dp;
 
     if (dp == NULL)
@@ -801,7 +802,7 @@ DetectPortLookupGroup(DetectPort *dp, u_int16_t port) {
 
     for ( ; p != NULL; p = p->next) {
         if (DetectPortMatch(p,port) == 1) {
-            //printf("DetectPortLookupGroup: match, port %u, dp ", port);
+            //printf("DetectPortLookupGroup: match, port %" PRIu32 ", dp ", port);
             //DetectPortPrint(p); printf("\n");
             return p;
         }
@@ -1085,14 +1086,14 @@ error:
 /* init hashes */
 #define PORT_HASH_SIZE 1024
 
-u_int32_t DetectPortHashFunc(HashListTable *ht, void *data, u_int16_t datalen) {
+uint32_t DetectPortHashFunc(HashListTable *ht, void *data, uint16_t datalen) {
     DetectPort *p = (DetectPort *)data;
-    u_int32_t hash = p->port * p->port2;
+    uint32_t hash = p->port * p->port2;
 
     return hash % ht->array_size;
 }
 
-char DetectPortCompareFunc(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+char DetectPortCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
     DetectPort *p1 = (DetectPort *)data1;
     DetectPort *p2 = (DetectPort *)data2;
 

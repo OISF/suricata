@@ -1,5 +1,6 @@
 /* DSIZE part of the detection engine. */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
@@ -32,7 +33,7 @@ void DetectDsizeRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", PARSE_REGEX, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
         goto error;
     }
 
@@ -84,7 +85,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
-        //printf("DetectDsizeSetup: parse error, ret %d\n", ret);
+        //printf("DetectDsizeSetup: parse error, ret %" PRId32 "\n", ret);
         goto error;
     }
 
@@ -142,12 +143,12 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     }
 
     /* set the value */
-    dd->dsize = (u_int16_t)atoi(value1);
+    dd->dsize = (uint16_t)atoi(value1);
     if (strlen(value2) > 0) {
         if (dd->mode != DETECTDSIZE_RA)
             goto error;
 
-        dd->dsize2 = (u_int16_t)atoi(value2);
+        dd->dsize2 = (uint16_t)atoi(value2);
 
         if (dd->dsize2 <= dd->dsize)
             goto error;

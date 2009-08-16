@@ -2,6 +2,7 @@
 
 #include <pcre.h>
 
+#include "eidps-common.h"
 #include "debug.h"
 #include "decode.h"
 #include "detect.h"
@@ -40,7 +41,7 @@ void DetectPcreRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", PARSE_REGEX, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
         goto error;
     }
 
@@ -55,7 +56,7 @@ void DetectPcreRegister (void) {
     parse_capture_regex = pcre_compile(PARSE_CAPTURE_REGEX, opts, &eb, &eo, NULL);
     if(parse_capture_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", PARSE_CAPTURE_REGEX, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_CAPTURE_REGEX, eo, eb);
         goto error;
     }
 
@@ -83,8 +84,8 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
 #define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
-    u_int8_t *ptr = NULL;
-    u_int16_t len = 0;
+    uint8_t *ptr = NULL;
+    uint16_t len = 0;
 
     if (p->payload_len == 0)
         return 0;
@@ -103,7 +104,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
         len = p->payload_len;
     }
 
-    //printf("DetectPcre: ptr %p, len %u\n", ptr, len);
+    //printf("DetectPcre: ptr %p, len %" PRIu32 "\n", ptr, len);
 
     ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret >= 0) {
@@ -112,7 +113,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
             ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
             if (ret) {
                 if (strcmp(pe->capname,"http_uri") == 0) {
-                    p->http_uri.raw[pmt->pkt_cnt] = (u_int8_t *)str_ptr;
+                    p->http_uri.raw[pmt->pkt_cnt] = (uint8_t *)str_ptr;
                     p->http_uri.raw_size[pmt->pkt_cnt] = ret;
                     p->http_uri.cnt = pmt->pkt_cnt + 1;
 
@@ -121,7 +122,7 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
 
                     //printf("DetectPcre: URI pmt->sgh %p, pmt->mcu %p\n", pmt->sgh, pmt->mcu);
                     //PrintRawUriFp(stdout,p->http_uri.raw[pmt->pkt_cnt],p->http_uri.raw_size[pmt->pkt_cnt]);
-                    //printf(" (pkt_cnt %u, mcu %p)\n", pmt->pkt_cnt, pmt->mcu);
+                    //printf(" (pkt_cnt %" PRIu32 ", mcu %p)\n", pmt->pkt_cnt, pmt->mcu);
 
                     /* don't bother scanning if we don't have a pattern matcher ctx
                      * which means we don't have uricontent sigs */
@@ -153,9 +154,9 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
                     }
                 } else {
                     if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
-                        PktVarAdd(p, pe->capname, (u_int8_t *)str_ptr, ret);
+                        PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
                     } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
-                        FlowVarAdd(p->flow, pe->capidx, (u_int8_t *)str_ptr, ret);
+                        FlowVarAdd(p->flow, pe->capidx, (uint8_t *)str_ptr, ret);
                     }
                 }
             }
@@ -164,14 +165,14 @@ int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signat
         /* update ptrs for pcre RELATIVE */
         pmt->pkt_ptr =  ptr+ov[1];
         pmt->pkt_off = (ptr+ov[1]) - p->payload;
-        //printf("DetectPcre: post match: t->pkt_ptr %p t->pkt_off %u\n", t->pkt_ptr, t->pkt_off);
+        //printf("DetectPcre: post match: t->pkt_ptr %p t->pkt_off %" PRIu32 "\n", t->pkt_ptr, t->pkt_off);
 
         ret = 1;
     } else {
         ret = 0;
     }
 
-    //printf("DetectPcreMatch: ret %d\n", ret);
+    //printf("DetectPcreMatch: ret %" PRId32 "\n", ret);
     return ret;
 }
 
@@ -230,7 +231,7 @@ int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *r
             op_ptr = op = (char *)str_ptr;
         }
     }
-    //printf("ret %d re \'%s\', op \'%s\'\n", ret, re, op);
+    //printf("ret %" PRId32 " re \'%s\', op \'%s\'\n", ret, re, op);
 
     pd = malloc(sizeof(DetectPcreData));
     if (pd == NULL) {
@@ -310,7 +311,7 @@ int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *r
     pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
     if(pd->re == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", regexstr, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", regexstr, eo, eb);
         goto error;
     }
 

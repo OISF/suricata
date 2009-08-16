@@ -6,11 +6,11 @@
 #ifndef __DETECT_ADDRESS_IPV6_H__
 #define __DETECT_ADDRESS_IPV6_H__
 
-int AddressIPv6Lt(u_int32_t *, u_int32_t *);
-int AddressIPv6Gt(u_int32_t *, u_int32_t *);
-int AddressIPv6Eq(u_int32_t *, u_int32_t *);
-int AddressIPv6Le(u_int32_t *, u_int32_t *);
-int AddressIPv6Ge(u_int32_t *, u_int32_t *);
+int AddressIPv6Lt(uint32_t *, uint32_t *);
+int AddressIPv6Gt(uint32_t *, uint32_t *);
+int AddressIPv6Eq(uint32_t *, uint32_t *);
+int AddressIPv6Le(uint32_t *, uint32_t *);
+int AddressIPv6Ge(uint32_t *, uint32_t *);
 
 int DetectAddressCutIPv6(DetectAddressData *, DetectAddressData *, DetectAddressData **);
 int DetectAddressCutNotIPv6(DetectAddressData *, DetectAddressData **);

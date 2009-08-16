@@ -5,20 +5,20 @@
 
 /* Bloom Filter structure */
 typedef struct BloomFilter_ {
-    u_int8_t *bitarray;
-    u_int32_t bitarray_size;
-    u_int8_t hash_iterations;
-    u_int32_t (*Hash)(void *, u_int16_t, u_int8_t, u_int32_t);
+    uint8_t *bitarray;
+    uint32_t bitarray_size;
+    uint8_t hash_iterations;
+    uint32_t (*Hash)(void *, uint16_t, uint8_t, uint32_t);
 } BloomFilter;
 
 /* prototypes */
-BloomFilter *BloomFilterInit(u_int32_t, u_int8_t, u_int32_t (*Hash)(void *, u_int16_t, u_int8_t, u_int32_t));
+BloomFilter *BloomFilterInit(uint32_t, uint8_t, uint32_t (*Hash)(void *, uint16_t, uint8_t, uint32_t));
 void BloomFilterFree(BloomFilter *);
 void BloomFilterPrint(BloomFilter *);
-int BloomFilterAdd(BloomFilter *, void *, u_int16_t);
-inline int BloomFilterTest(BloomFilter *, void *, u_int16_t);
-u_int32_t BloomFilterMemoryCnt(BloomFilter *);
-u_int32_t BloomFilterMemorySize(BloomFilter *);
+int BloomFilterAdd(BloomFilter *, void *, uint16_t);
+inline int BloomFilterTest(BloomFilter *, void *, uint16_t);
+uint32_t BloomFilterMemoryCnt(BloomFilter *);
+uint32_t BloomFilterMemorySize(BloomFilter *);
 
 void BloomFilterRegisterTests(void);
 

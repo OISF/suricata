@@ -1,9 +1,10 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "decode-icmpv4.h"
 
-void DecodeICMPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len )
+void DecodeICMPV4(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len )
 {
     p->icmpv4h = (ICMPV4Hdr *)pkt;
 
@@ -14,7 +15,7 @@ void DecodeICMPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len )
     }
 
 #ifdef DEBUG
-    printf("ICMPV4 TYPE %u CODE %u\n", p->icmpv4h->type, p->icmpv4h->code);
+    printf("ICMPV4 TYPE %" PRIu32 " CODE %" PRIu32 "\n", p->icmpv4h->type, p->icmpv4h->code);
 #endif
 
     p->proto = IPPROTO_ICMP;

@@ -3,7 +3,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-static u_int32_t cidrs[33];
+static uint32_t cidrs[33];
 
 void CIDRInit(void) {
     int i = 0;
@@ -16,7 +16,7 @@ void CIDRInit(void) {
     }
 }
 
-u_int32_t CIDRGet(int cidr) {
+uint32_t CIDRGet(int cidr) {
     if (cidr < 0 || cidr > 32)
         return 0;
     return cidrs[cidr];

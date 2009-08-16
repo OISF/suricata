@@ -3,6 +3,7 @@
  *
  */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
@@ -25,15 +26,15 @@
 /* prototypes */
 int SigGroupHeadClearSigs(SigGroupHead *);
 
-static u_int32_t detect_siggroup_head_memory = 0;
-static u_int32_t detect_siggroup_head_init_cnt = 0;
-static u_int32_t detect_siggroup_head_free_cnt = 0;
-static u_int32_t detect_siggroup_sigarray_memory = 0;
-static u_int32_t detect_siggroup_sigarray_init_cnt = 0;
-static u_int32_t detect_siggroup_sigarray_free_cnt = 0;
-static u_int32_t detect_siggroup_matcharray_memory = 0;
-static u_int32_t detect_siggroup_matcharray_init_cnt = 0;
-static u_int32_t detect_siggroup_matcharray_free_cnt = 0;
+static uint32_t detect_siggroup_head_memory = 0;
+static uint32_t detect_siggroup_head_init_cnt = 0;
+static uint32_t detect_siggroup_head_free_cnt = 0;
+static uint32_t detect_siggroup_sigarray_memory = 0;
+static uint32_t detect_siggroup_sigarray_init_cnt = 0;
+static uint32_t detect_siggroup_sigarray_free_cnt = 0;
+static uint32_t detect_siggroup_matcharray_memory = 0;
+static uint32_t detect_siggroup_matcharray_init_cnt = 0;
+static uint32_t detect_siggroup_matcharray_free_cnt = 0;
 
 /* Free a sgh */
 void SigGroupHeadFree(SigGroupHead *sh) {
@@ -65,7 +66,7 @@ void SigGroupHeadFree(SigGroupHead *sh) {
 
     if (sh->match_array) {
         detect_siggroup_matcharray_init_cnt--;
-        detect_siggroup_matcharray_memory -= (sh->sig_cnt * sizeof(u_int32_t));
+        detect_siggroup_matcharray_memory -= (sh->sig_cnt * sizeof(uint32_t));
         free(sh->match_array);
         sh->match_array = NULL;
     }
@@ -80,18 +81,18 @@ void SigGroupHeadFree(SigGroupHead *sh) {
  */
 
 /* mpm sgh hash */
-u_int32_t SigGroupHeadMpmHashFunc(HashListTable *ht, void *data, u_int16_t datalen) {
+uint32_t SigGroupHeadMpmHashFunc(HashListTable *ht, void *data, uint16_t datalen) {
     SigGroupHead *sgh = (SigGroupHead *)data;
-    u_int32_t hash = 0;
+    uint32_t hash = 0;
 
-    u_int32_t b;
+    uint32_t b;
     for (b = 0; b < sgh->content_size; b+=1) {
         hash += sgh->content_array[b];
     }
     return hash % ht->array_size;
 }
 
-char SigGroupHeadMpmCompareFunc(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+char SigGroupHeadMpmCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
     SigGroupHead *sgh1 = (SigGroupHead *)data1;
     SigGroupHead *sgh2 = (SigGroupHead *)data2;
 
@@ -133,18 +134,18 @@ void SigGroupHeadMpmHashFree(DetectEngineCtx *de_ctx) {
 
 /* mpm uri sgh hash */
 
-u_int32_t SigGroupHeadMpmUriHashFunc(HashListTable *ht, void *data, u_int16_t datalen) {
+uint32_t SigGroupHeadMpmUriHashFunc(HashListTable *ht, void *data, uint16_t datalen) {
     SigGroupHead *sgh = (SigGroupHead *)data;
-    u_int32_t hash = 0;
+    uint32_t hash = 0;
 
-    u_int32_t b;
+    uint32_t b;
     for (b = 0; b < sgh->uri_content_size; b+=1) {
         hash += sgh->uri_content_array[b];
     }
     return hash % ht->array_size;
 }
 
-char SigGroupHeadMpmUriCompareFunc(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+char SigGroupHeadMpmUriCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
     SigGroupHead *sgh1 = (SigGroupHead *)data1;
     SigGroupHead *sgh2 = (SigGroupHead *)data2;
 
@@ -186,18 +187,18 @@ void SigGroupHeadMpmUriHashFree(DetectEngineCtx *de_ctx) {
 
 /* non-port sgh hash */
 
-u_int32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, u_int16_t datalen) {
+uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t datalen) {
     SigGroupHead *sgh = (SigGroupHead *)data;
-    u_int32_t hash = 0;
+    uint32_t hash = 0;
 
-    u_int32_t b;
+    uint32_t b;
     for (b = 0; b < sgh->sig_size; b+=1) {
         hash += sgh->sig_array[b];
     }
     return hash % ht->array_size;
 }
 
-char SigGroupHeadCompareFunc(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+char SigGroupHeadCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
     SigGroupHead *sgh1 = (SigGroupHead *)data1;
     SigGroupHead *sgh2 = (SigGroupHead *)data2;
 
@@ -465,7 +466,7 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
     }
 
     /* do the copy */
-    u_int32_t idx;
+    uint32_t idx;
     for (idx = 0; idx < src->sig_size; idx++) {
         (*dst)->sig_array[idx] = (*dst)->sig_array[idx] | src->sig_array[idx];
     }
@@ -475,8 +476,8 @@ error:
     return -1;
 }
 
-void SigGroupHeadSetSigCnt(SigGroupHead *sgh, u_int32_t max_idx) {
-    u_int32_t sig;
+void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx) {
+    uint32_t sig;
 
     for (sig = 0; sig < max_idx+1; sig++) {
         if (sgh->sig_array[(sig/8)] & (1<<(sig%8))) {
@@ -486,34 +487,34 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, u_int32_t max_idx) {
 }
 
 void DetectSigGroupPrintMemory(void) {
-    printf(" * Sig group head memory stats (SigGroupHead %u):\n", sizeof(SigGroupHead));
-    printf("  - detect_siggroup_head_memory %u\n", detect_siggroup_head_memory);
-    printf("  - detect_siggroup_head_init_cnt %u\n", detect_siggroup_head_init_cnt);
-    printf("  - detect_siggroup_head_free_cnt %u\n", detect_siggroup_head_free_cnt);
-    printf("  - outstanding sig group heads %u\n", detect_siggroup_head_init_cnt - detect_siggroup_head_free_cnt);
+    printf(" * Sig group head memory stats (SigGroupHead %" PRIuMAX "):\n", sizeof(SigGroupHead));
+    printf("  - detect_siggroup_head_memory %" PRIu32 "\n", detect_siggroup_head_memory);
+    printf("  - detect_siggroup_head_init_cnt %" PRIu32 "\n", detect_siggroup_head_init_cnt);
+    printf("  - detect_siggroup_head_free_cnt %" PRIu32 "\n", detect_siggroup_head_free_cnt);
+    printf("  - outstanding sig group heads %" PRIu32 "\n", detect_siggroup_head_init_cnt - detect_siggroup_head_free_cnt);
     printf(" * Sig group head memory stats done\n");
     printf(" * Sig group sigarray memory stats:\n");
-    printf("  - detect_siggroup_sigarray_memory %u\n", detect_siggroup_sigarray_memory);
-    printf("  - detect_siggroup_sigarray_init_cnt %u\n", detect_siggroup_sigarray_init_cnt);
-    printf("  - detect_siggroup_sigarray_free_cnt %u\n", detect_siggroup_sigarray_free_cnt);
-    printf("  - outstanding sig group sigarrays %u\n", detect_siggroup_sigarray_init_cnt - detect_siggroup_sigarray_free_cnt);
+    printf("  - detect_siggroup_sigarray_memory %" PRIu32 "\n", detect_siggroup_sigarray_memory);
+    printf("  - detect_siggroup_sigarray_init_cnt %" PRIu32 "\n", detect_siggroup_sigarray_init_cnt);
+    printf("  - detect_siggroup_sigarray_free_cnt %" PRIu32 "\n", detect_siggroup_sigarray_free_cnt);
+    printf("  - outstanding sig group sigarrays %" PRIu32 "\n", detect_siggroup_sigarray_init_cnt - detect_siggroup_sigarray_free_cnt);
     printf(" * Sig group sigarray memory stats done\n");
     printf(" * Sig group matcharray memory stats:\n");
-    printf("  - detect_siggroup_matcharray_memory %u\n", detect_siggroup_matcharray_memory);
-    printf("  - detect_siggroup_matcharray_init_cnt %u\n", detect_siggroup_matcharray_init_cnt);
-    printf("  - detect_siggroup_matcharray_free_cnt %u\n", detect_siggroup_matcharray_free_cnt);
-    printf("  - outstanding sig group matcharrays %u\n", detect_siggroup_matcharray_init_cnt - detect_siggroup_matcharray_free_cnt);
+    printf("  - detect_siggroup_matcharray_memory %" PRIu32 "\n", detect_siggroup_matcharray_memory);
+    printf("  - detect_siggroup_matcharray_init_cnt %" PRIu32 "\n", detect_siggroup_matcharray_init_cnt);
+    printf("  - detect_siggroup_matcharray_free_cnt %" PRIu32 "\n", detect_siggroup_matcharray_free_cnt);
+    printf("  - outstanding sig group matcharrays %" PRIu32 "\n", detect_siggroup_matcharray_init_cnt - detect_siggroup_matcharray_free_cnt);
     printf(" * Sig group sigarray memory stats done\n");
-    printf(" X Total %u\n", detect_siggroup_head_memory + detect_siggroup_sigarray_memory + detect_siggroup_matcharray_memory);
+    printf(" X Total %" PRIu32 "\n", detect_siggroup_head_memory + detect_siggroup_sigarray_memory + detect_siggroup_matcharray_memory);
 }
 
 void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     printf("SigGroupHeadPrintSigs: ");
 
-    u_int32_t i;
+    uint32_t i;
     for (i = 0; i < sgh->sig_size; i++) {
         if (sgh->sig_array[(i/8)] & (1<<(i%8))) {
-            printf("%u ", i);
+            printf("%" PRIu32 " ", i);
         }
     }
 
@@ -523,10 +524,10 @@ void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 void SigGroupHeadPrintContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     printf("SigGroupHeadPrintContent: ");
 
-    u_int32_t i;
+    uint32_t i;
     for (i = 0; i < DetectContentMaxId(de_ctx); i++) {
         if (sgh->content_array[(i/8)] & (1<<(i%8))) {
-            printf("%u ", i);
+            printf("%" PRIu32 " ", i);
         }
     }
 
@@ -536,14 +537,14 @@ void SigGroupHeadPrintContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 void SigGroupHeadPrintContentCnt(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     printf("SigGroupHeadPrintContent: ");
 
-    u_int32_t i, cnt = 0;
+    uint32_t i, cnt = 0;
     for (i = 0; i < DetectContentMaxId(de_ctx); i++) {
         if (sgh->content_array[(i/8)] & (1<<(i%8))) {
             cnt++;
         }
     }
 
-    printf("cnt %u\n", cnt);
+    printf("cnt %" PRIu32 "\n", cnt);
 }
 
 /* load all pattern id's into a single bitarray that we can memcmp
@@ -560,15 +561,15 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
         return 0;
 
     sgh->content_size = (DetectContentMaxId(de_ctx) / 8) + 1;
-    sgh->content_array = malloc(sgh->content_size * sizeof(u_int32_t));
+    sgh->content_array = malloc(sgh->content_size * sizeof(uint32_t));
     if (sgh->content_array == NULL)
         return -1;
 
-    memset(sgh->content_array,0, sgh->content_size * sizeof(u_int32_t));
+    memset(sgh->content_array,0, sgh->content_size * sizeof(uint32_t));
 
-    u_int32_t sig;
+    uint32_t sig;
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        u_int32_t num = sgh->match_array[sig];
+        uint32_t num = sgh->match_array[sig];
 
         s = de_ctx->sig_array[num];
         if (s == NULL)
@@ -613,15 +614,15 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
         return 0;
 
     sgh->uri_content_size = (DetectUricontentMaxId(de_ctx) / 8) + 1;
-    sgh->uri_content_array = malloc(sgh->uri_content_size * sizeof(u_int32_t));
+    sgh->uri_content_array = malloc(sgh->uri_content_size * sizeof(uint32_t));
     if (sgh->uri_content_array == NULL)
         return -1;
 
-    memset(sgh->uri_content_array,0, sgh->uri_content_size * sizeof(u_int32_t));
+    memset(sgh->uri_content_array,0, sgh->uri_content_size * sizeof(uint32_t));
 
-    u_int32_t sig;
+    uint32_t sig;
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        u_int32_t num = sgh->match_array[sig];
+        uint32_t num = sgh->match_array[sig];
 
         s = de_ctx->sig_array[num];
         if (s == NULL)
@@ -657,9 +658,9 @@ int SigGroupHeadClearUricontent(SigGroupHead *sh) {
 
 /* Create an array with all the internal id's of the sigs
  * that this sig group head will check for. */
-int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, u_int32_t max_idx) {
-    u_int32_t idx = 0;
-    u_int32_t sig = 0;
+int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t max_idx) {
+    uint32_t idx = 0;
+    uint32_t sig = 0;
 
     if (sgh == NULL)
         return 0;
@@ -668,14 +669,14 @@ int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, u_i
     if (sgh->match_array == NULL)
         free(sgh->match_array);
 
-    sgh->match_array = malloc(sgh->sig_cnt * sizeof(u_int32_t));
+    sgh->match_array = malloc(sgh->sig_cnt * sizeof(uint32_t));
     if (sgh->match_array == NULL)
         return -1;
 
-    memset(sgh->match_array,0, sgh->sig_cnt * sizeof(u_int32_t));
+    memset(sgh->match_array,0, sgh->sig_cnt * sizeof(uint32_t));
 
     detect_siggroup_matcharray_init_cnt++;
-    detect_siggroup_matcharray_memory += (sgh->sig_cnt * sizeof(u_int32_t));
+    detect_siggroup_matcharray_memory += (sgh->sig_cnt * sizeof(uint32_t));
 
     for (sig = 0; sig < max_idx+1; sig++) {
         if (!(sgh->sig_array[(sig/8)] & (1<<(sig%8))))
@@ -692,8 +693,8 @@ int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, u_i
     return 0;
 }
 
-int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh, u_int32_t sid) {
-    u_int32_t sig = 0;
+int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid) {
+    uint32_t sig = 0;
 
     if (sgh == NULL)
         return 0;

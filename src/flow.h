@@ -22,18 +22,18 @@
 /* global flow config */
 typedef struct FlowCnf_
 {
-    u_int32_t hash_rand;
-    u_int32_t hash_size;
-    u_int32_t max_flows;
-    u_int32_t memcap;
-    u_int32_t memuse;
-    u_int32_t prealloc;
+    uint32_t hash_rand;
+    uint32_t hash_size;
+    uint32_t max_flows;
+    uint32_t memcap;
+    uint32_t memuse;
+    uint32_t prealloc;
 
-    u_int32_t timeout_new;
-    u_int32_t timeout_est;
+    uint32_t timeout_new;
+    uint32_t timeout_est;
 
-    u_int32_t emerg_timeout_new;
-    u_int32_t emerg_timeout_est;
+    uint32_t emerg_timeout_new;
+    uint32_t emerg_timeout_est;
 
 } FlowConfig;
 
@@ -42,8 +42,8 @@ typedef struct FlowKey_
 {
     Address src, dst;
     Port sp, dp;
-    u_int8_t proto;
-    u_int8_t recursion_level;
+    uint8_t proto;
+    uint8_t recursion_level;
 
 } FlowKey;
 
@@ -51,10 +51,10 @@ typedef struct Flow_
 {
     Address src, dst;
     Port sp, dp;
-    u_int8_t proto;
-    u_int8_t recursion_level;
+    uint8_t proto;
+    uint8_t recursion_level;
 
-    u_int8_t flags;
+    uint8_t flags;
 
     /* ts of flow init and last update */
     struct timeval startts;
@@ -63,12 +63,12 @@ typedef struct Flow_
     /* pointer to the var list */
     GenericVar *flowvar;
 
-    u_int32_t todstpktcnt;
-    u_int32_t tosrcpktcnt;
-    u_int64_t bytecnt;
+    uint32_t todstpktcnt;
+    uint32_t tosrcpktcnt;
+    uint64_t bytecnt;
 
     void *stream;
-    u_int16_t use_cnt; /** how many pkts and stream msgs are
+    uint16_t use_cnt; /** how many pkts and stream msgs are
                            using the flow *right now* */
 
     pthread_mutex_t m;

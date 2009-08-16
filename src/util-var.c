@@ -1,4 +1,4 @@
-#include "eidps.h"
+#include "eidps-common.h"
 #include "detect.h"
 
 #include "util-var.h"
@@ -11,7 +11,7 @@ void GenericVarFree(GenericVar *gv) {
     if (gv == NULL)
         return;
 
-    //printf("GenericVarFree: gv %p, gv->type %u\n", gv, gv->type);
+    //printf("GenericVarFree: gv %p, gv->type %" PRIu32 "\n", gv, gv->type);
     GenericVar *next_gv = gv->next;
 
     switch (gv->type) {
@@ -36,7 +36,7 @@ void GenericVarFree(GenericVar *gv) {
         }
         default:
         {
-            printf("ERROR: GenericVarFree unknown type %u\n", gv->type);
+            printf("ERROR: GenericVarFree unknown type %" PRIu32 "\n", gv->type);
             break;
         }
     }

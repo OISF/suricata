@@ -21,15 +21,15 @@ typedef struct DetectPcreData_ {
     int opts;
 
     /* match position vars */
-    u_int16_t depth;
-    u_int16_t offset;
+    uint16_t depth;
+    uint16_t offset;
     int32_t within;
     int32_t distance;
 
-    u_int16_t flags;
+    uint16_t flags;
 
     char *capname;
-    u_int16_t capidx;
+    uint16_t capidx;
 } DetectPcreData;
 
 /* prototypes */

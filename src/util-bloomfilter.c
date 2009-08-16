@@ -7,11 +7,13 @@
 #include <time.h>
 #include <string.h>
 
+#include "eidps-common.h"
+
 #include "util-bloomfilter.h"
 
 #include "util-unittest.h"
 
-BloomFilter *BloomFilterInit(u_int32_t size, u_int8_t iter, u_int32_t (*Hash)(void *, u_int16_t, u_int8_t, u_int32_t)) {
+BloomFilter *BloomFilterInit(uint32_t size, uint8_t iter, uint32_t (*Hash)(void *, uint16_t, uint8_t, uint32_t)) {
     BloomFilter *bf = NULL;
 
     if (size == 0 || iter == 0)
@@ -60,16 +62,16 @@ void BloomFilterFree(BloomFilter *bf) {
 
 void BloomFilterPrint(BloomFilter *bf) {
     printf("\n---------- Bloom Filter Stats -----------\n");
-    printf("Buckets:               %u\n", bf->bitarray_size);
-    printf("Memory size:           %u bytes\n", bf->bitarray_size/8 + 1);
+    printf("Buckets:               %" PRIu32 "\n", bf->bitarray_size);
+    printf("Memory size:           %" PRIu32 " bytes\n", bf->bitarray_size/8 + 1);
     printf("Hash function pointer: %p\n", bf->Hash);
-    printf("Hash functions:        %u\n", bf->hash_iterations);
+    printf("Hash functions:        %" PRIu32 "\n", bf->hash_iterations);
     printf("-----------------------------------------\n");
 }
 
-int BloomFilterAdd(BloomFilter *bf, void *data, u_int16_t datalen) {
-    u_int8_t iter = 0;
-    u_int32_t hash = 0;
+int BloomFilterAdd(BloomFilter *bf, void *data, uint16_t datalen) {
+    uint8_t iter = 0;
+    uint32_t hash = 0;
 
     if (bf == NULL || data == NULL || datalen == 0)
         return -1;
@@ -82,9 +84,9 @@ int BloomFilterAdd(BloomFilter *bf, void *data, u_int16_t datalen) {
     return 0;
 }
 
-inline int BloomFilterTest(BloomFilter *bf, void *data, u_int16_t datalen) {
-    u_int8_t iter = 0;
-    u_int32_t hash = 0;
+inline int BloomFilterTest(BloomFilter *bf, void *data, uint16_t datalen) {
+    uint8_t iter = 0;
+    uint32_t hash = 0;
     int hit = 1;
 
     for (iter = 0; iter < bf->hash_iterations; iter++) {
@@ -98,29 +100,29 @@ inline int BloomFilterTest(BloomFilter *bf, void *data, u_int16_t datalen) {
     return hit;
 }
 
-u_int32_t BloomFilterMemoryCnt(BloomFilter *bf) {
+uint32_t BloomFilterMemoryCnt(BloomFilter *bf) {
      if (bf == NULL)
          return 0;
 
      return 2;
 }
 
-u_int32_t BloomFilterMemorySize(BloomFilter *bf) {
+uint32_t BloomFilterMemorySize(BloomFilter *bf) {
      if (bf == NULL)
          return 0;
 
      return (sizeof(BloomFilter) + (bf->bitarray_size/8) + 1);
 }
 
-static u_int32_t BloomHash(void *data, u_int16_t datalen, u_int8_t iter, u_int32_t hash_size) {
-     u_int8_t *d = (u_int8_t *)data;
-     u_int32_t i;
-     u_int32_t hash = 0;
+static uint32_t BloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
+     uint8_t *d = (uint8_t *)data;
+     uint32_t i;
+     uint32_t hash = 0;
 
      for (i = 0; i < datalen; i++) {
-         if (i == 0)      hash += (((u_int32_t)*d++));
-         else if (i == 1) hash += (((u_int32_t)*d++) * datalen);
-         else             hash *= (((u_int32_t)*d++) * i);
+         if (i == 0)      hash += (((uint32_t)*d++));
+         else if (i == 1) hash += (((uint32_t)*d++) * datalen);
+         else             hash *= (((uint32_t)*d++) * i);
      }
 
      hash *= (iter + datalen);

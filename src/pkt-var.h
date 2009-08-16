@@ -2,7 +2,7 @@
 #ifndef __PKT_VAR_H__
 #define __PKT_VAR_H__
 
-void PktVarAdd(Packet *, char *, u_int8_t *, u_int16_t);
+void PktVarAdd(Packet *, char *, uint8_t *, uint16_t);
 PktVar *PktVarGet(Packet *, char *);
 void PktVarFree(PktVar *);
 void PktVarPrint(PktVar *);

@@ -9,11 +9,13 @@
  */
 
 #include <ctype.h>
+
+#include "eidps-common.h"
 #include "decode.h"
 #include "pkt-var.h"
 
 /* puts a new value into a pktvar */
-void PktVarUpdate(PktVar *pv, u_int8_t *value, u_int16_t size) {
+void PktVarUpdate(PktVar *pv, uint8_t *value, uint16_t size) {
     if (pv->value) free(pv->value);
     pv->value = value;
     pv->value_len = size;
@@ -34,8 +36,8 @@ PktVar *PktVarGet(Packet *p, char *name) {
 }
 
 /* add a pktvar to the pkt, or update it */
-void PktVarAdd(Packet *p, char *name, u_int8_t *value, u_int16_t size) {
-    //printf("Adding packet var \"%s\" with value(%d) \"%s\"\n", name, size, value);
+void PktVarAdd(Packet *p, char *name, uint8_t *value, uint16_t size) {
+    //printf("Adding packet var \"%s\" with value(%" PRId32 ") \"%s\"\n", name, size, value);
 
     PktVar *pv = PktVarGet(p, name);
     if (pv == NULL) {
@@ -81,7 +83,7 @@ void PktVarFree(PktVar *pv) {
 }
 
 void PktVarPrint(PktVar *pv) {
-    u_int16_t i;
+    uint16_t i;
 
     if (pv == NULL)
         return;
@@ -91,7 +93,7 @@ void PktVarPrint(PktVar *pv) {
         if (isprint(pv->value[i])) printf("%c", pv->value[i]);
         else                       printf("\\%02X", pv->value[i]);
     }
-    printf("\", Len \"%u\"\n", pv->value_len);
+    printf("\", Len \"%" PRIu32 "\"\n", pv->value_len);
 
     PktVarPrint(pv->next);
 }

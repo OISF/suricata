@@ -19,7 +19,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -67,18 +67,18 @@ void TmModuleAlertDebuglogIPv6Register (void) {
 */
 typedef struct AlertDebuglogThread_ {
     FILE *fp;
-    u_int32_t alerts;
+    uint32_t alerts;
 } AlertDebuglogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
     struct tm *t = gmtime(&time);
-    u_int32_t sec = ts->tv_sec % 86400;
+    uint32_t sec = ts->tv_sec % 86400;
 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
         t->tm_mon + 1, t->tm_mday, t->tm_year - 100,
         sec / 3600, (sec % 3600) / 60, sec % 60,
-        (u_int32_t) ts->tv_usec);
+        (uint32_t) ts->tv_usec);
 }
 
 int AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
@@ -94,16 +94,16 @@ int AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     fprintf(aft->fp, "+================\n");
     fprintf(aft->fp, "TIME:              %s\n", timebuf);
-    fprintf(aft->fp, "ALERT CNT:         %u\n", p->alerts.cnt);
+    fprintf(aft->fp, "ALERT CNT:         %" PRIu32 "\n", p->alerts.cnt);
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
 
         fprintf(aft->fp, "ALERT MSG [%02d]:    %s\n", i, pa->msg);
-        fprintf(aft->fp, "ALERT GID [%02d]:    %u\n", i, pa->gid);
-        fprintf(aft->fp, "ALERT SID [%02d]:    %u\n", i, pa->sid);
-        fprintf(aft->fp, "ALERT REV [%02d]:    %u\n", i, pa->rev);
-        fprintf(aft->fp, "ALERT PRIO [%02d]:   %u\n", i, pa->prio);
+        fprintf(aft->fp, "ALERT GID [%02d]:    %" PRIu32 "\n", i, pa->gid);
+        fprintf(aft->fp, "ALERT SID [%02d]:    %" PRIu32 "\n", i, pa->sid);
+        fprintf(aft->fp, "ALERT REV [%02d]:    %" PRIu32 "\n", i, pa->rev);
+        fprintf(aft->fp, "ALERT PRIO [%02d]:   %" PRIu32 "\n", i, pa->prio);
     }
 
     char srcip[16], dstip[16];
@@ -112,10 +112,10 @@ int AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     fprintf(aft->fp, "SRC IP:            %s\n", srcip);
     fprintf(aft->fp, "DST IP:            %s\n", dstip);
-    fprintf(aft->fp, "PROTO:             %u\n", IPV4_GET_IPPROTO(p));
+    fprintf(aft->fp, "PROTO:             %" PRIu32 "\n", IPV4_GET_IPPROTO(p));
     if (IPV4_GET_IPPROTO(p) == IPPROTO_TCP || IPV4_GET_IPPROTO(p) == IPPROTO_UDP) {
-        fprintf(aft->fp, "SRC PORT:          %u\n", p->sp);
-        fprintf(aft->fp, "DST PORT:          %u\n", p->dp);
+        fprintf(aft->fp, "SRC PORT:          %" PRIu32 "\n", p->sp);
+        fprintf(aft->fp, "DST PORT:          %" PRIu32 "\n", p->dp);
     }
 
     /* flow stuff */
@@ -149,7 +149,7 @@ int AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     aft->alerts += p->alerts.cnt;
 
-    fprintf(aft->fp, "PACKET LEN:        %u\n", p->pktlen);
+    fprintf(aft->fp, "PACKET LEN:        %" PRIu32 "\n", p->pktlen);
     fprintf(aft->fp, "PACKET:\n");
     PrintRawDataFp(aft->fp, p->pkt, p->pktlen);
 
@@ -177,7 +177,7 @@ int AlertDebuglogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->fp, "%s  [**] [%u:%u:%u] %s [**] [Classification: fixme] [Priority: %u] {%u} %s:%u -> %s:%u\n",
+        fprintf(aft->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
             timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         fflush(aft->fp);
     }
@@ -239,6 +239,6 @@ void AlertDebuglogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    printf(" - (%s) Alerts %u.\n", tv->name, aft->alerts);
+    printf(" - (%s) Alerts %" PRIu32 ".\n", tv->name, aft->alerts);
 }
 

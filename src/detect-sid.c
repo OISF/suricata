@@ -26,7 +26,7 @@ int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *si
         dubbed = 1;
     }
 
-    s->id = (u_int32_t)atoi(str);
+    s->id = (uint32_t)atoi(str);
 
     if (dubbed) free(str);
     return 0;

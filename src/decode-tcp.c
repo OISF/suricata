@@ -1,14 +1,15 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "decode-tcp.h"
 #include "decode-events.h"
 
 #include "flow.h"
 
-static int DecodeTCPOptions(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+static int DecodeTCPOptions(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
-    u_int16_t plen = len;
+    uint16_t plen = len;
     while (plen)
     {
         /* single byte options */
@@ -98,7 +99,7 @@ static int DecodeTCPOptions(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t l
     return 0;
 }
 
-static int DecodeTCPPacket(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+static int DecodeTCPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
     p->tcph = (TCPHdr *)pkt;
 
@@ -134,7 +135,7 @@ static int DecodeTCPPacket(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t le
     return 0;
 }
 
-void DecodeTCP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+void DecodeTCP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
     PerfCounterIncr(COUNTER_DECODER_TCP, t->pca);
 
@@ -142,7 +143,7 @@ void DecodeTCP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
         return;
 
 #ifdef DEBUG
-    printf("TCP sp: %u -> dp: %u - HLEN: %u LEN: %u %s%s%s%s\n",
+    printf("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s\n",
         GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), p->tcpvars.hlen, len,
         p->tcpvars.sackok ? "SACKOK " : "",
         p->tcpvars.ws ? "WS " : "",

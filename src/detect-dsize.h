@@ -7,9 +7,9 @@
 #define DETECTDSIZE_RA 3
 
 typedef struct DetectDsizeData_ {
-    u_int16_t dsize;
-    u_int16_t dsize2;
-    u_int8_t mode;
+    uint16_t dsize;
+    uint16_t dsize2;
+    uint8_t mode;
 } DetectDsizeData;
 
 /* prototypes */

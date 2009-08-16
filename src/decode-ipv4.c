@@ -1,20 +1,20 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "packet-queue.h"
 #include "decode.h"
 #include "decode-ipv4.h"
 #include "decode-events.h"
 
 /* XXX */
-static int DecodeIPV4Options(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+static int DecodeIPV4Options(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
-    printf("*pkt %u\n", *pkt);
+    printf("*pkt %" PRIu32 "\n", *pkt);
 
     return 0;
 }
 
-static int DecodeIPV4Packet(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+static int DecodeIPV4Packet(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
 #ifdef DEBUG
     printf("DecodeIPV4Packet\n");
@@ -49,7 +49,7 @@ static int DecodeIPV4Packet(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t l
     return 0;
 }
 
-void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
+void DecodeIPV4(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     int ret;
 
@@ -78,7 +78,7 @@ void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQu
     char s[16], d[16];
     inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), s, sizeof(s));
     inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), d, sizeof(d));
-    printf("IPV4 %s->%s PROTO: %u OFFSET: %u RF: %u DF: %u MF: %u ID: %u\n", s,d,
+    printf("IPV4 %s->%s PROTO: %" PRIu32 " OFFSET: %" PRIu32 " RF: %" PRIu32 " DF: %" PRIu32 " MF: %" PRIu32 " ID: %" PRIu32 "\n", s,d,
             IPV4_GET_IPPROTO(p), IPV4_GET_IPOFFSET(p), IPV4_GET_RF(p),
             IPV4_GET_DF(p), IPV4_GET_MF(p), IPV4_GET_IPID(p));
 #endif /* DEBUG */

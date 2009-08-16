@@ -43,9 +43,9 @@
 #define PPP_CHAP       0xc223       /* Challenge Handshake Authentication Protocol */
 
 typedef struct PPPHdr_ {
-    u_int8_t address;
-    u_int8_t control;
-    u_int16_t protocol;
+    uint8_t address;
+    uint8_t control;
+    uint16_t protocol;
 } PPPHdr;
 
 #define PPP_HEADER_LEN 4

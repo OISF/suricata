@@ -5,11 +5,11 @@
 #define SLL_HEADER_LEN                16
 
 typedef struct SllHdr_ {
-    u_int16_t sll_pkttype;      /* packet type */
-    u_int16_t sll_hatype;       /* link-layer address type */
-    u_int16_t sll_halen;        /* link-layer address length */
-    u_int8_t sll_addr[8];       /* link-layer address */
-    u_int16_t sll_protocol;     /* protocol */
+    uint16_t sll_pkttype;      /* packet type */
+    uint16_t sll_hatype;       /* link-layer address type */
+    uint16_t sll_halen;        /* link-layer address length */
+    uint8_t sll_addr[8];       /* link-layer address */
+    uint16_t sll_protocol;     /* protocol */
 } SllHdr;
 
 #endif /* __DECODE_SLL_H__ */

@@ -20,6 +20,8 @@
 
 #include <ctype.h>
 #include <pcre.h>
+
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "threads.h"
@@ -51,7 +53,7 @@ void DetectFlowbitsRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", PARSE_REGEX, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
         goto error;
     }
 
@@ -116,7 +118,7 @@ int DetectFlowbitMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
         case DETECT_FLOWBITS_CMD_TOGGLE:
             return DetectFlowbitMatchToggle(p,fd);
         default:
-            printf("ERROR: DetectFlowbitMatch unknown cmd %u\n", fd->cmd);
+            printf("ERROR: DetectFlowbitMatch unknown cmd %" PRIu32 "\n", fd->cmd);
             return 0;
     }
 
@@ -130,7 +132,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     char *str = rawstr;
     char dubbed = 0;
     char *fb_cmd_str = NULL, *fb_name = NULL;
-    u_int8_t fb_cmd = 0;
+    uint8_t fb_cmd = 0;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
@@ -185,7 +187,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
     cd->idx = VariableNameGetIdx(de_ctx,fb_name,fb_cmd,DETECT_FLOWBITS);
     cd->cmd = fb_cmd;
-    //printf("DetectFlowbitSetup: idx %u, cmd %s, name %s\n", cd->idx, fb_cmd_str, fb_name ? fb_name : "(null)");
+    //printf("DetectFlowbitSetup: idx %" PRIu32 ", cmd %s, name %s\n", cd->idx, fb_cmd_str, fb_name ? fb_name : "(null)");
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */

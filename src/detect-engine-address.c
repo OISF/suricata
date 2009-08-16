@@ -8,6 +8,7 @@
  * 
  */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
@@ -39,17 +40,17 @@ int DetectAddressCutNot(DetectAddressData *, DetectAddressData **);
 int DetectAddressGroupCut(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
 
 /* memory usage counters */
-static u_int32_t detect_address_group_memory = 0;
-static u_int32_t detect_address_group_init_cnt = 0;
-static u_int32_t detect_address_group_free_cnt = 0;
+static uint32_t detect_address_group_memory = 0;
+static uint32_t detect_address_group_init_cnt = 0;
+static uint32_t detect_address_group_free_cnt = 0;
 
-static u_int32_t detect_address_group_head_memory = 0;
-static u_int32_t detect_address_group_head_init_cnt = 0;
-static u_int32_t detect_address_group_head_free_cnt = 0;
+static uint32_t detect_address_group_head_memory = 0;
+static uint32_t detect_address_group_head_init_cnt = 0;
+static uint32_t detect_address_group_head_free_cnt = 0;
 
-static u_int32_t detect_address_memory = 0;
-static u_int32_t detect_address_init_cnt = 0;
-static u_int32_t detect_address_free_cnt = 0;
+static uint32_t detect_address_memory = 0;
+static uint32_t detect_address_init_cnt = 0;
+static uint32_t detect_address_free_cnt = 0;
 
 DetectAddressGroup *DetectAddressGroupInit(void) {
     DetectAddressGroup *ag = malloc(sizeof(DetectAddressGroup));
@@ -97,25 +98,25 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
 }
 
 void DetectAddressGroupPrintMemory(void) {
-    printf(" * Address group memory stats (DetectAddressGroup %u):\n", sizeof(DetectAddressGroup));
-    printf("  - detect_address_group_memory %u\n", detect_address_group_memory);
-    printf("  - detect_address_group_init_cnt %u\n", detect_address_group_init_cnt);
-    printf("  - detect_address_group_free_cnt %u\n", detect_address_group_free_cnt);
-    printf("  - outstanding groups %u\n", detect_address_group_init_cnt - detect_address_group_free_cnt);
+    printf(" * Address group memory stats (DetectAddressGroup %" PRIuMAX "):\n", sizeof(DetectAddressGroup));
+    printf("  - detect_address_group_memory %" PRIu32 "\n", detect_address_group_memory);
+    printf("  - detect_address_group_init_cnt %" PRIu32 "\n", detect_address_group_init_cnt);
+    printf("  - detect_address_group_free_cnt %" PRIu32 "\n", detect_address_group_free_cnt);
+    printf("  - outstanding groups %" PRIu32 "\n", detect_address_group_init_cnt - detect_address_group_free_cnt);
     printf(" * Address group memory stats done\n");
-    printf(" * Address group head memory stats (DetectAddressGroupsHead %u):\n", sizeof(DetectAddressGroupsHead));
-    printf("  - detect_address_group_head_memory %u\n", detect_address_group_head_memory);
-    printf("  - detect_address_group_head_init_cnt %u\n", detect_address_group_head_init_cnt);
-    printf("  - detect_address_group_head_free_cnt %u\n", detect_address_group_head_free_cnt);
-    printf("  - outstanding groups %u\n", detect_address_group_head_init_cnt - detect_address_group_head_free_cnt);
+    printf(" * Address group head memory stats (DetectAddressGroupsHead %" PRIuMAX "):\n", sizeof(DetectAddressGroupsHead));
+    printf("  - detect_address_group_head_memory %" PRIu32 "\n", detect_address_group_head_memory);
+    printf("  - detect_address_group_head_init_cnt %" PRIu32 "\n", detect_address_group_head_init_cnt);
+    printf("  - detect_address_group_head_free_cnt %" PRIu32 "\n", detect_address_group_head_free_cnt);
+    printf("  - outstanding groups %" PRIu32 "\n", detect_address_group_head_init_cnt - detect_address_group_head_free_cnt);
     printf(" * Address group head memory stats done\n");
-    printf(" * Address memory stats (DetectAddressData %u):\n", sizeof(DetectAddressData));
-    printf("  - detect_address_memory %u\n", detect_address_memory);
-    printf("  - detect_address_init_cnt %u\n", detect_address_init_cnt);
-    printf("  - detect_address_free_cnt %u\n", detect_address_free_cnt);
-    printf("  - outstanding addresses %u\n", detect_address_init_cnt - detect_address_free_cnt);
+    printf(" * Address memory stats (DetectAddressData %" PRIuMAX "):\n", sizeof(DetectAddressData));
+    printf("  - detect_address_memory %" PRIu32 "\n", detect_address_memory);
+    printf("  - detect_address_init_cnt %" PRIu32 "\n", detect_address_init_cnt);
+    printf("  - detect_address_free_cnt %" PRIu32 "\n", detect_address_free_cnt);
+    printf("  - outstanding addresses %" PRIu32 "\n", detect_address_init_cnt - detect_address_free_cnt);
     printf(" * Address memory stats done\n");
-    printf(" X Total %u\n", detect_address_group_memory + detect_address_group_head_memory + detect_address_memory);
+    printf(" X Total %" PRIu32 "\n", detect_address_group_memory + detect_address_group_head_memory + detect_address_memory);
 }
 
 /* used to see if the exact same address group exists in the list
@@ -248,7 +249,7 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
         return 0;
 
 #ifdef DBG
-    printf("DetectAddressGroupInsert: inserting (sig %u) ", new->sh?new->sh->sig_cnt:0); DetectAddressDataPrint(new->ad); printf("\n");
+    printf("DetectAddressGroupInsert: inserting (sig %" PRIu32 ") ", new->sh?new->sh->sig_cnt:0); DetectAddressDataPrint(new->ad); printf("\n");
     DetectAddressGroupPrintList(gh->ipv4_head);
 #endif
     /* get our head ptr based on the address we want to insert */
@@ -343,7 +344,7 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
 #endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(de_ctx, cur,new,&c);
-                //printf("DetectAddressGroupCut returned %d\n", r);
+                //printf("DetectAddressGroupCut returned %" PRId32 "\n", r);
                 DetectAddressGroupInsert(de_ctx, gh, new);
                 if (c) {
 #ifdef DBG
@@ -873,7 +874,7 @@ int DetectAddressCmp(DetectAddressData *a, DetectAddressData *b) {
 void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6) {
     int i = 0;
 
-    //printf("CIDR: %d\n", cidr);
+    //printf("CIDR: %" PRId32 "\n", cidr);
 
     memset(in6, 0, sizeof(struct in6_addr));
 
@@ -924,8 +925,8 @@ int AddressParse(DetectAddressData *dd, char *str) {
             /* 1.2.3.4/xxx format (either dotted or cidr notation */
             ip[mask - ip] = '\0';
             mask++;
-            u_int32_t ip4addr = 0;
-            u_int32_t netmask = 0;
+            uint32_t ip4addr = 0;
+            uint32_t netmask = 0;
 
             char *t = NULL;
             if ((t = strchr (mask,'.')) == NULL) {
@@ -941,7 +942,7 @@ int AddressParse(DetectAddressData *dd, char *str) {
                 }
         
                 netmask = in.s_addr;
-                //printf("AddressParse: dd->ip2 %X\n", dd->ip2);
+                //printf("AddressParse: dd->ip2 %" PRIX32 "\n", dd->ip2);
             }
 
             r = inet_pton(AF_INET, ip, &in);
@@ -954,7 +955,7 @@ int AddressParse(DetectAddressData *dd, char *str) {
             dd->ip[0] = dd->ip2[0] = ip4addr & netmask;
             dd->ip2[0] |=~ netmask;
 
-            //printf("AddressParse: dd->ip %X\n", dd->ip);
+            //printf("AddressParse: dd->ip %" PRIX32 "\n", dd->ip);
         } else if ((ip2 = strchr(ip, '-')) != NULL)  {
             /* 1.2.3.4-1.2.3.6 range format */
             ip[ip2 - ip] = '\0';
@@ -986,12 +987,12 @@ int AddressParse(DetectAddressData *dd, char *str) {
             /* single host */
             dd->ip[0] = in.s_addr;
             dd->ip2[0] = in.s_addr;
-            //printf("AddressParse: dd->ip %X\n", dd->ip);
+            //printf("AddressParse: dd->ip %" PRIX32 "\n", dd->ip);
         }
     } else {
         /* IPv6 Address */
         struct in6_addr in6, mask6;
-        u_int32_t ip6addr[4], netmask[4];
+        uint32_t ip6addr[4], netmask[4];
 
         dd->family = AF_INET6;
 
@@ -1145,7 +1146,7 @@ int DetectAddressMatch (DetectAddressData *dd, Address *a) {
         case AF_INET:
             /* XXX figure out a way to not need to do this ntohl
              * if we switch to Address inside DetectAddressData
-             * we can do u_int8_t checks */
+             * we can do uint8_t checks */
             if (ntohl(a->addr_data32[0]) >= ntohl(dd->ip[0]) &&
                 ntohl(a->addr_data32[0]) <= ntohl(dd->ip2[0])) {
                 return 1;

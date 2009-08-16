@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"
@@ -67,7 +67,7 @@ static void FlowUpdateQueue(Flow *f)
  * returns 0 on error, failed block, nothing to prune
  * returns 1 on successfully pruned one
  */
-static int FlowPrune (FlowQueue *q, struct timeval *ts, u_int32_t timeout)
+static int FlowPrune (FlowQueue *q, struct timeval *ts, uint32_t timeout)
 {
     if (mutex_trylock(&q->mutex_q) != 0) {
         return 0;
@@ -91,7 +91,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts, u_int32_t timeout)
         return 0;
     }
 
-    DEBUGPRINT("got lock, now check: %ld+%u=(%ld) < %ld", f->lastts.tv_sec,
+    DEBUGPRINT("got lock, now check: %" PRId64 "+%" PRIu32 "=(%" PRId64 ") < %" PRId64 "", f->lastts.tv_sec,
         timeout, f->lastts.tv_sec + timeout, ts->tv_sec);
 
     /* never prune a flow that is used by a packet we are currently
@@ -134,9 +134,9 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts, u_int32_t timeout)
  *
  * Returns: number of flows that are pruned.
  */
-static u_int32_t FlowPruneFlows(FlowQueue *q, struct timeval *ts, u_int32_t timeout)
+static uint32_t FlowPruneFlows(FlowQueue *q, struct timeval *ts, uint32_t timeout)
 {
-    u_int32_t cnt = 0;
+    uint32_t cnt = 0;
     while(FlowPrune(q, ts, timeout)) { cnt++; }
     return cnt;
 }
@@ -150,7 +150,7 @@ static u_int32_t FlowPruneFlows(FlowQueue *q, struct timeval *ts, u_int32_t time
  * shape). Returns 0 otherwise.
  */
 static int FlowUpdateSpareFlows(void) {
-    u_int32_t toalloc = 0, tofree = 0, len;
+    uint32_t toalloc = 0, tofree = 0, len;
 
     mutex_lock(&flow_spare_q.mutex_q);
     len = flow_spare_q.len;
@@ -159,7 +159,7 @@ static int FlowUpdateSpareFlows(void) {
     if (len < flow_config.prealloc) {
         toalloc = flow_config.prealloc - len;
 
-        u_int32_t i;
+        uint32_t i;
         for (i = 0; i < toalloc; i++) {
             Flow *f = FlowAlloc();
             if (f == NULL)
@@ -172,7 +172,7 @@ static int FlowUpdateSpareFlows(void) {
     } else if (len > flow_config.prealloc) {
         tofree = len - flow_config.prealloc;
 
-        u_int32_t i;
+        uint32_t i;
         for (i = 0; i < tofree; i++) {
             Flow *f = FlowDequeue(&flow_spare_q);
             if (f == NULL)
@@ -302,11 +302,11 @@ void FlowInitConfig (char quiet)
     flow_config.memuse += (flow_config.hash_size * sizeof(FlowBucket));
 
     if (quiet == FALSE)
-        printf("* Allocated %u bytes of memory for the flow hash... %u buckets of size %u\n",
+        printf("* Allocated %" PRIu32 " bytes of memory for the flow hash... %" PRIu32 " buckets of size %" PRIuMAX "\n",
             flow_config.memuse, flow_config.hash_size, sizeof(FlowBucket));
 
     /* pre allocate flows */
-    u_int32_t i = 0;
+    uint32_t i = 0;
     for (i = 0; i < flow_config.prealloc; i++) {
         Flow *f = FlowAlloc();
         if (f == NULL) {
@@ -317,9 +317,9 @@ void FlowInitConfig (char quiet)
     }
 
     if (quiet == FALSE) {
-        printf("* Preallocated %u flows of size %u\n",
+        printf("* Preallocated %" PRIu32 " flows of size %" PRIuMAX "\n",
                 flow_spare_q.len, sizeof(Flow));
-        printf("* Flow memory usage: %u bytes. Maximum: %u\n",
+        printf("* Flow memory usage: %" PRIu32 " bytes. Maximum: %" PRIu32 "\n",
                 flow_config.memuse, flow_config.memcap);
     }
 }
@@ -334,7 +334,7 @@ void FlowPrintFlows (void)
         FlowBucket *fb = &flow_hash[i];
 
         if (fb->f != NULL) {
-            printf("Flow %u->%u: %u pkts (tosrc %d todst %u) %llu bytes\n",
+            printf("Flow %" PRIu32 "->%" PRIu32 ": %" PRIu32 " pkts (tosrc %" PRId32 " todst %" PRIu32 ") %" PRIu64 " bytes\n",
                 fb->f->sp, fb->f->dp, fb->f->tosrcpktcnt+fb->f->todstpktcnt, fb->f->tosrcpktcnt,
                 fb->f->todstpktcnt, fb->f->bytecnt);
             FlowVarPrint(fb->f->flowvar);
@@ -342,7 +342,7 @@ void FlowPrintFlows (void)
             if (fb->f->hnext != NULL) {
                 Flow *f = fb->f->hnext;
                 while (f) {
-                    printf("  Flow %u->%u: %u pkts (tosrc %d todst %u) %llu bytes\n",
+                    printf("  Flow %" PRIu32 "->%" PRIu32 ": %" PRIu32 " pkts (tosrc %" PRId32 " todst %" PRIu32 ") %" PRIu64 " bytes\n",
                         f->sp, f->dp, f->tosrcpktcnt+f->todstpktcnt, f->tosrcpktcnt,
                         f->todstpktcnt, f->bytecnt);
                     FlowVarPrint(f->flowvar);
@@ -353,22 +353,22 @@ void FlowPrintFlows (void)
     }
 */
     printf("Flow Queue info:\n");
-    printf("SPARE       %u\n", flow_spare_q.len);
+    printf("SPARE       %" PRIu32 "\n", flow_spare_q.len);
 #ifdef DBG_PERF
-    printf("  flow_spare_q.dbg_maxlen %u\n", flow_spare_q.dbg_maxlen);
+    printf("  flow_spare_q.dbg_maxlen %" PRIu32 "\n", flow_spare_q.dbg_maxlen);
 #endif
-    printf("NEW         %u\n", flow_new_q.len);
+    printf("NEW         %" PRIu32 "\n", flow_new_q.len);
 #ifdef DBG_PERF
-    printf("  flow_new_q.dbg_maxlen %u\n", flow_new_q.dbg_maxlen);
+    printf("  flow_new_q.dbg_maxlen %" PRIu32 "\n", flow_new_q.dbg_maxlen);
 #endif
-    printf("ESTABLISHED %u\n", flow_est_q.len);
+    printf("ESTABLISHED %" PRIu32 "\n", flow_est_q.len);
 #ifdef DBG_PERF
-    printf("  flow_est_q.dbg_maxlen %u\n", flow_est_q.dbg_maxlen);
+    printf("  flow_est_q.dbg_maxlen %" PRIu32 "\n", flow_est_q.dbg_maxlen);
 #endif
 
 #ifdef FLOWBITS_STATS
-    printf("Flowbits added: %u, removed: %u\n", flowbits_added, flowbits_removed);
-    printf("Max memory usage: %u\n", flowbits_memuse_max);
+    printf("Flowbits added: %" PRIu32 ", removed: %" PRIu32 "\n", flowbits_added, flowbits_removed);
+    printf("Max memory usage: %" PRIu32 "\n", flowbits_memuse_max);
 #endif /* FLOWBITS_STATS */
 }
 
@@ -410,9 +410,9 @@ void *FlowManagerThread(void *td)
 {
     ThreadVars *th_v = (ThreadVars *)td;
     struct timeval ts;
-    u_int32_t established_cnt = 0, new_cnt = 0, nowcnt;
-    u_int32_t sleeping = 0;
-    u_int8_t emerg = FALSE;
+    uint32_t established_cnt = 0, new_cnt = 0, nowcnt;
+    uint32_t sleeping = 0;
+    uint8_t emerg = FALSE;
 
     printf("%s started...\n", th_v->name);
 
@@ -422,8 +422,8 @@ void *FlowManagerThread(void *td)
 
         if (sleeping >= 100 || flow_flags & FLOW_EMERGENCY)
         {
-            u_int32_t timeout_new = flow_config.timeout_new;
-            u_int32_t timeout_est = flow_config.timeout_est;
+            uint32_t timeout_new = flow_config.timeout_new;
+            uint32_t timeout_est = flow_config.timeout_est;
 
             if (flow_flags & FLOW_EMERGENCY) {
                 emerg = TRUE;
@@ -434,7 +434,7 @@ void *FlowManagerThread(void *td)
             memset(&ts, 0, sizeof(ts));
             //gettimeofday(&ts, NULL);
             TimeGet(&ts);
-            DEBUGPRINT("ts %ld", ts.tv_sec);
+            DEBUGPRINT("ts %" PRId64 "", ts.tv_sec);
 
             /* see if we still have enough spare flows */
             if (!(FlowUpdateSpareFlows()) && emerg == TRUE) {
@@ -445,14 +445,14 @@ void *FlowManagerThread(void *td)
             /* prune new list */
             nowcnt = FlowPruneFlows(&flow_new_q, &ts, timeout_new);
             if (nowcnt) {
-                DEBUGPRINT("Pruned %u new flows...\n", nowcnt);
+                DEBUGPRINT("Pruned %" PRIu32 " new flows...\n", nowcnt);
                 new_cnt += nowcnt;
             }
 
             /* prune established list */
             nowcnt = FlowPruneFlows(&flow_est_q, &ts, timeout_est);
             if (nowcnt) {
-                DEBUGPRINT("Pruned %u established flows...\n", nowcnt);
+                DEBUGPRINT("Pruned %" PRIu32 " established flows...\n", nowcnt);
                 established_cnt += nowcnt;
             }
 
@@ -475,7 +475,7 @@ void *FlowManagerThread(void *td)
         sleeping += 10;
     }
 
-    printf("%s ended: %u new flows, %u established flows pruned\n", th_v->name, new_cnt, established_cnt);
+    printf("%s ended: %" PRIu32 " new flows, %" PRIu32 " established flows pruned\n", th_v->name, new_cnt, established_cnt);
     pthread_exit((void *) 0);
 }
 

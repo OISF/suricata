@@ -5,7 +5,7 @@
  * \brief PPPoE Decoder
  */
 
-#include "eidps.h"
+#include "eidps-common.h"
 
 #include "packet-queue.h"
 
@@ -19,7 +19,7 @@
 /**
  * \brief Main decoding function for PPPoE packets
  */
-void DecodePPPoE(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
+void DecodePPPoE(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
 #ifdef DEBUG
     printf("DecodePPPoEPacket\n");
@@ -53,7 +53,7 @@ static int DecodePPPoEtest01 (void)   {
        0010  81 00 00 80 88 63 11 09 00 00 00 08 01 01 00 00   .....c..........
        0020  01 00 00 00 */
 
-    u_int8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x00, 0x00 };
+    uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x00, 0x00 };
     Packet p;
     ThreadVars tv;
 

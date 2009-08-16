@@ -6,8 +6,8 @@
 #include <limits.h>
 #include "time.h"
 
-#include "counters.h"
 #include "eidps.h"
+#include "counters.h"
 #include "threadvars.h"
 #include "tm-modules.h"
 #include "tm-threads.h"
@@ -108,7 +108,7 @@ void PerfSpawnThreads()
 void * PerfMgmtThread(void *arg)
 {
     ThreadVars *tv_local = (ThreadVars *)arg;
-    u_int8_t run = 1;
+    uint8_t run = 1;
     struct timespec cond_time;
 
     printf("PerfMgmtThread: spawned\n");
@@ -150,7 +150,7 @@ void * PerfMgmtThread(void *arg)
 void * PerfWakeupThread(void *arg)
 {
     ThreadVars *tv_local = (ThreadVars *)arg;
-    u_int8_t run = 1;
+    uint8_t run = 1;
     ThreadVars *tv = NULL;
     PacketQueue *q = NULL;
     struct timespec cond_time;
@@ -208,7 +208,7 @@ void * PerfWakeupThread(void *arg)
  *
  * \retval the counter id
  */
-u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
+uint32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
                               char *desc, PerfContext *pctx, int type_q,
                               int disp)
 {
@@ -227,7 +227,7 @@ u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
     /* (TYPE_MAX - 1) because we still haven't implemented TYPE_STR */
     if ((type >= (TYPE_MAX - 1)) || (type < 0)) {
 #ifdef DEBUG
-        printf("Error: Counters of type %d can't be registered\n", type);
+        printf("Error: Counters of type %" PRId32 " can't be registered\n", type);
 #endif
         return 0;
     }
@@ -281,7 +281,7 @@ u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
     pc->value->type = type;
     switch(pc->value->type) {
         case TYPE_UINT64:
-            pc->value->size = sizeof(u_int64_t);
+            pc->value->size = sizeof(uint64_t);
             break;
         case TYPE_DOUBLE:
             pc->value->size = sizeof(double);
@@ -313,7 +313,7 @@ u_int32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
  * \param id  Index of the counter in the counter array
  * \param pca Counter array that holds the local counters for this TM
  */
-inline void PerfCounterIncr(u_int64_t id, PerfCounterArray *pca)
+inline void PerfCounterIncr(uint64_t id, PerfCounterArray *pca)
 {
     if (!pca) {
 #ifdef DEBUG
@@ -347,13 +347,13 @@ inline void PerfCounterIncr(u_int64_t id, PerfCounterArray *pca)
 }
 
 /**
- * \brief Adds a value of type u_int64_t to the local counter.
+ * \brief Adds a value of type uint64_t to the local counter.
  *
  * \param id  ID of the counter as set by the API
  * \param pca Counter array that holds the local counter for this TM
  * \param x   Value to add to this local counter
  */
-inline void PerfCounterAddUI64(u_int64_t id, PerfCounterArray *pca, u_int64_t x)
+inline void PerfCounterAddUI64(uint64_t id, PerfCounterArray *pca, uint64_t x)
 {
     if (!pca) {
 #ifdef DEBUG
@@ -393,7 +393,7 @@ inline void PerfCounterAddUI64(u_int64_t id, PerfCounterArray *pca, u_int64_t x)
  * \param pca Counter array that holds the local counter for this TM
  * \param x   Value to add to this local counter
  */
-inline void PerfCounterAddDouble(u_int64_t id, PerfCounterArray *pca, double x)
+inline void PerfCounterAddDouble(uint64_t id, PerfCounterArray *pca, double x)
 {
     if (!pca) {
 #ifdef DEBUG
@@ -435,8 +435,8 @@ inline void PerfCounterAddDouble(u_int64_t id, PerfCounterArray *pca, double x)
  * \param pca Pointer to the PerfCounterArray
  * \param x   The value to set for the counter
  */
-inline void PerfCounterSetUI64(u_int64_t id, PerfCounterArray *pca,
-                               u_int64_t x)
+inline void PerfCounterSetUI64(uint64_t id, PerfCounterArray *pca,
+                               uint64_t x)
 {
     if (!pca) {
 #ifdef DEBUG
@@ -485,7 +485,7 @@ inline void PerfCounterSetUI64(u_int64_t id, PerfCounterArray *pca,
  * \param pca Pointer to the PerfCounterArray
  * \param x   The value to set for the counter
  */
-inline void PerfCounterSetDouble(u_int64_t id, PerfCounterArray *pca,
+inline void PerfCounterSetDouble(uint64_t id, PerfCounterArray *pca,
                                  double x)
 {
     if (!pca) {
@@ -617,12 +617,12 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
  *
  * \retval a counter-array in this(s_id-e_id) range for this TM instance
  */
-PerfCounterArray * PerfGetCounterArrayRange(u_int32_t s_id, u_int32_t e_id,
+PerfCounterArray * PerfGetCounterArrayRange(uint32_t s_id, uint32_t e_id,
                                             PerfContext *pctx)
 {
     PerfCounter *pc = NULL;
     PerfCounterArray *pca = NULL;
-    u_int32_t i = 0;
+    uint32_t i = 0;
 
     if (pctx == NULL) {
 #ifdef DEBUG
@@ -705,7 +705,7 @@ PerfCounterArray * PerfGetAllCountersArray(PerfContext *pctx)
  *
  * \retval 1 on success, 0 on failure
  */
-int PerfUpdateCounter(char *cname, char *tm_name, u_int32_t id, void *value,
+int PerfUpdateCounter(char *cname, char *tm_name, uint32_t id, void *value,
                       PerfContext *pctx)
 {
     PerfCounter *pc = NULL;
@@ -760,7 +760,7 @@ static void PerfCopyCounterValue(PCAElem *pcae, int reset_lc)
 {
     PerfCounter *pc = NULL;
     double d_temp = 0;
-    u_int64_t ui64_temp = 0;
+    uint64_t ui64_temp = 0;
     int i = 0;
 
     pc = pcae->pc;
@@ -812,7 +812,7 @@ int PerfUpdateCounterArray(PerfCounterArray *pca, PerfContext *pctx,
 {
     PerfCounter  *pc = NULL;
     PCAElem *pcae = NULL;
-    u_int32_t i = 0;
+    uint32_t i = 0;
 
     if (pca == NULL || pctx == NULL) {
 #ifdef DEBUG
@@ -880,8 +880,8 @@ int PerfOutputCounterFileIface()
     PerfCounter *pc = NULL;
     PerfCounter **pc_heads;
 
-    u_int64_t *ui64_cvalue = NULL;
-    u_int64_t ui64_result = 0;
+    uint64_t *ui64_cvalue = NULL;
+    uint64_t ui64_result = 0;
 
     double *double_cvalue = NULL;
     double double_result = 0;
@@ -907,7 +907,7 @@ int PerfOutputCounterFileIface()
 
     fprintf(perf_op_ctx->fp, "-------------------------------------------------"
             "------------------\n");
-    fprintf(perf_op_ctx->fp, "%d/%d/%04d -- %02d:%02d:%02d\n", tms->tm_mday,
+    fprintf(perf_op_ctx->fp, "%" PRId32 "/%" PRId32 "/%04d -- %02d:%02d:%02d\n", tms->tm_mday,
             tms->tm_mon, tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
             tms->tm_sec);
     fprintf(perf_op_ctx->fp, "-------------------------------------------------"
@@ -931,11 +931,11 @@ int PerfOutputCounterFileIface()
                         continue;
                     }
 
-                    ui64_cvalue = (u_int64_t *)pc->value->cvalue;
-                    fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-llu\n",
+                    ui64_cvalue = (uint64_t *)pc->value->cvalue;
+                    fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
                             pc->name->cname, pc->name->tm_name, *ui64_cvalue);
 #ifdef DEBUG
-                    printf("%-10d %-10d %-10s %-llu\n", pc->name->tid, pc->id,
+                    printf("%-10" PRIuMAX " %-10" PRIu64 " %-10s %-" PRIu64 "\n", pc->name->tid, pc->id,
                            pc->name->cname, *ui64_cvalue);
 #endif
                     pc = pc->next;
@@ -996,7 +996,7 @@ int PerfOutputCounterFileIface()
 
             switch (pc->value->type) {
                 case TYPE_UINT64:
-                    fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-llu\n",
+                    fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
                             pc->name->cname, pctmi->tm_name, ui64_result);
                     break;
                 case TYPE_DOUBLE:
@@ -1005,8 +1005,11 @@ int PerfOutputCounterFileIface()
                     break;
             }
 #ifdef DEBUG
-            printf("%-25s | %-25s | %-llu\n", pc->name->cname,
+            /** \todo XXX "result" no longer exists */
+#if 0
+            printf("%-25s | %-25s | %-" PRIu64 "\n", pc->name->cname,
                    pctmi->tm_name, result);
+#endif
 #endif
         }
         for (i = 0; i < pctmi->size; i++)
@@ -1283,7 +1286,7 @@ static int PerfTestUpdateGlobalCounter10()
 
     int result = 1;
     int id1, id2, id3;
-    u_int64_t *p = NULL;
+    uint64_t *p = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -1302,13 +1305,13 @@ static int PerfTestUpdateGlobalCounter10()
 
     PerfUpdateCounterArray(pca, &tv.pctx, 0);
 
-    p = (u_int64_t *)tv.pctx.head->value->cvalue;
+    p = (uint64_t *)tv.pctx.head->value->cvalue;
     result = (1 == *p);
 
-    p = (u_int64_t *)tv.pctx.head->next->value->cvalue;
+    p = (uint64_t *)tv.pctx.head->next->value->cvalue;
     result &= (100 == *p);
 
-    p = (u_int64_t *)tv.pctx.head->next->next->value->cvalue;
+    p = (uint64_t *)tv.pctx.head->next->next->value->cvalue;
     result &= (101 == *p);
 
     PerfReleasePerfCounterS(tv.pctx.head);
@@ -1324,7 +1327,7 @@ static int PerfTestCounterValues11()
 
     int result = 1;
     int id1, id2, id3, id4;
-    u_int8_t *u8p;
+    uint8_t *u8p;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -1346,25 +1349,25 @@ static int PerfTestCounterValues11()
 
     PerfUpdateCounterArray(pca, &tv.pctx, 0);
 
-    u8p = (u_int8_t *)tv.pctx.head->value->cvalue;
+    u8p = (uint8_t *)tv.pctx.head->value->cvalue;
     result &= (1 == *u8p);
     result &= (0 == *(u8p + 1));
     result &= (0 == *(u8p + 2));
     result &= (0 == *(u8p + 3));
 
-    u8p = (u_int8_t *)tv.pctx.head->next->value->cvalue;
+    u8p = (uint8_t *)tv.pctx.head->next->value->cvalue;
     result &= (0 == *u8p);
     result &= (1 == *(u8p + 1));
     result &= (0 == *(u8p + 2));
     result &= (0 == *(u8p + 3));
 
-    u8p = (u_int8_t *)tv.pctx.head->next->next->value->cvalue;
+    u8p = (uint8_t *)tv.pctx.head->next->next->value->cvalue;
     result &= (1 == *u8p);
     result &= (1 == *(u8p + 1));
     result &= (0 == *(u8p + 2));
     result &= (0 == *(u8p + 3));
 
-    u8p = (u_int8_t *)tv.pctx.head->next->next->next->value->cvalue;
+    u8p = (uint8_t *)tv.pctx.head->next->next->next->value->cvalue;
     result &= (16 == *u8p);
     result &= (1 == *(u8p + 1));
     result &= (1 == *(u8p + 2));
@@ -1380,7 +1383,7 @@ static int PerfTestAverageQual12()
 {
     ThreadVars tv;
     PerfCounterArray *pca = NULL;
-    u_int64_t *ui64_temp = NULL;
+    uint64_t *ui64_temp = NULL;
     double *d_temp = NULL;
 
     int result = 1;

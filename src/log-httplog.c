@@ -15,7 +15,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "pkt-var.h"
@@ -62,18 +62,18 @@ void TmModuleLogHttplogIPv6Register (void) {
 
 typedef struct LogHttplogThread_ {
     FILE *fp;
-    u_int32_t uri_cnt;
+    uint32_t uri_cnt;
 } LogHttplogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
     struct tm *t = gmtime(&time);
-    u_int32_t sec = ts->tv_sec % 86400;
+    uint32_t sec = ts->tv_sec % 86400;
 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
         t->tm_mon + 1, t->tm_mday, t->tm_year - 100,
         sec / 3600, (sec % 3600) / 60, sec % 60,
-        (u_int32_t) ts->tv_usec);
+        (uint32_t) ts->tv_usec);
 }
 
 int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
@@ -109,7 +109,7 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         if (pv_ua != NULL) PrintRawUriFp(aft->fp, pv_ua->value, pv_ua->value_len);
         else fprintf(aft->fp, "<useragent unknown>");
         /* ip/tcp header info */
-        fprintf(aft->fp, " [**] %s:%u -> %s:%u\n", srcip, p->sp, dstip, p->dp);
+        fprintf(aft->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
     }
     fflush(aft->fp);
 
@@ -150,7 +150,7 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         if (pv_ua != NULL) PrintRawUriFp(aft->fp, pv_ua->value, pv_ua->value_len);
         else fprintf(aft->fp, "<useragent unknown>");
         /* ip/tcp header info */
-        fprintf(aft->fp, " [**] %s:%u -> %s:%u\n", srcip, p->sp, dstip, p->dp);
+        fprintf(aft->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
     }
     fflush(aft->fp);
 
@@ -215,6 +215,6 @@ void LogHttplogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    printf(" - (%s) HTTP requests %u.\n", tv->name, aft->uri_cnt);
+    printf(" - (%s) HTTP requests %" PRIu32 ".\n", tv->name, aft->uri_cnt);
 }
 

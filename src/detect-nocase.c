@@ -1,5 +1,6 @@
 /* NOCASE part of the detection engine. */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
@@ -35,7 +36,7 @@ int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
 #if 0
         if (pm->type == DETECT_PCRE) {
             DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-            printf("DetectNocaseSetup: set depth %u for previous pcre\n", pe->depth);
+            printf("DetectNocaseSetup: set depth %" PRIu32 " for previous pcre\n", pe->depth);
         } else 
 #endif
         if (pm->type == DETECT_CONTENT) {
@@ -47,7 +48,7 @@ int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
             //printf("DetectNocaseSetup: set nocase for previous content\n");
             cd->flags |= DETECT_URICONTENT_NOCASE;
         } else {
-            printf("DetectNocaseSetup: Unknown previous keyword! (type %u)\n", pm->type);
+            printf("DetectNocaseSetup: Unknown previous keyword! (type %" PRIu32 ")\n", pm->type);
             return -1;
         }
     } else {

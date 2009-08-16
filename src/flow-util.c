@@ -1,5 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#include "eidps-common.h"
 #include "threads.h"
 
 #include "flow.h"
@@ -66,7 +67,7 @@ void FlowInit(Flow *f, Packet *p)
         SET_IPV6_DST_ADDR(p,&f->dst);
     } /* XXX handle default */
     else {
-        printf("FIXME: %s:%s:%d\n", __FILE__, __FUNCTION__, __LINE__);
+        printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
     }
 
     if (p->tcph != NULL) { /* XXX MACRO */
@@ -77,7 +78,7 @@ void FlowInit(Flow *f, Packet *p)
         SET_UDP_DST_PORT(p,&f->dp);
     } /* XXX handle default */
     else {
-        printf("FIXME: %s:%s:%d\n", __FILE__, __FUNCTION__, __LINE__);
+        printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
     }
 
     COPY_TIMESTAMP(&p->ts, &f->startts);

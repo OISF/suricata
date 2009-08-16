@@ -6,7 +6,7 @@
 /* hash bucket structure */
 typedef struct HashListTableBucket_ {
     void *data;
-    u_int16_t size;
+    uint16_t size;
     struct HashListTableBucket_ *bucknext;
     struct HashListTableBucket_ *listnext;
     struct HashListTableBucket_ *listprev;
@@ -17,24 +17,24 @@ typedef struct HashListTable_ {
     HashListTableBucket **array;
     HashListTableBucket *listhead;
     HashListTableBucket *listtail;
-    u_int32_t array_size;
-    u_int32_t (*Hash)(struct HashListTable_ *, void *, u_int16_t);
-    char (*Compare)(void *, u_int16_t, void *, u_int16_t);
+    uint32_t array_size;
+    uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t);
+    char (*Compare)(void *, uint16_t, void *, uint16_t);
     void (*Free)(void *);
 } HashListTable;
 
 /* prototypes */
-HashListTable* HashListTableInit(u_int32_t, u_int32_t (*Hash)(struct HashListTable_ *, void *, u_int16_t), char (*Compare)(void *, u_int16_t, void *, u_int16_t), void (*Free)(void *));
+HashListTable* HashListTableInit(uint32_t, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
 void HashListTableFree(HashListTable *);
 void HashListTablePrint(HashListTable *);
-int HashListTableAdd(HashListTable *, void *, u_int16_t);
-int HashListTableRemove(HashListTable *, void *, u_int16_t);
-void *HashListTableLookup(HashListTable *, void *, u_int16_t);
-u_int32_t HashListTableGenericHash(HashListTable *, void *, u_int16_t);
+int HashListTableAdd(HashListTable *, void *, uint16_t);
+int HashListTableRemove(HashListTable *, void *, uint16_t);
+void *HashListTableLookup(HashListTable *, void *, uint16_t);
+uint32_t HashListTableGenericHash(HashListTable *, void *, uint16_t);
 HashListTableBucket *HashListTableGetListHead(HashListTable *);
 #define HashListTableGetListNext(hb) (hb)->listnext
 #define HashListTableGetListData(hb) (hb)->data
-char HashListTableDefaultCompare(void *, u_int16_t, void *, u_int16_t);
+char HashListTableDefaultCompare(void *, uint16_t, void *, uint16_t);
 
 void HashListTableRegisterTests(void);
 

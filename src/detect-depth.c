@@ -36,12 +36,12 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
     if (pm != NULL) {
         if (pm->type == DETECT_PCRE) {
             DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-            pe->depth = (u_int32_t)atoi(str);
-            //printf("DetectDepthSetup: set depth %u for previous pcre\n", pe->depth);
+            pe->depth = (uint32_t)atoi(str);
+            //printf("DetectDepthSetup: set depth %" PRIu32 " for previous pcre\n", pe->depth);
         } else if (pm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
-            cd->depth = (u_int32_t)atoi(str);
-            //printf("DetectDepthSetup: set depth %u for previous content\n", cd->depth);
+            cd->depth = (uint32_t)atoi(str);
+            //printf("DetectDepthSetup: set depth %" PRIu32 " for previous content\n", cd->depth);
         } else {
             printf("DetectDepthSetup: Unknown previous keyword!\n");
         }

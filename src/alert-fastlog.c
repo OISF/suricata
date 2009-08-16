@@ -23,7 +23,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -67,18 +67,18 @@ void TmModuleAlertFastlogIPv6Register (void) {
 
 typedef struct AlertFastlogThread_ {
     FILE *fp;
-    u_int32_t alerts;
+    uint32_t alerts;
 } AlertFastlogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
     struct tm *t = gmtime(&time);
-    u_int32_t sec = ts->tv_sec % 86400;
+    uint32_t sec = ts->tv_sec % 86400;
 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
         t->tm_mon + 1, t->tm_mday, t->tm_year - 100,
         sec / 3600, (sec % 3600) / 60, sec % 60,
-        (u_int32_t) ts->tv_usec);
+        (uint32_t) ts->tv_usec);
 }
 
 int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
@@ -101,7 +101,7 @@ int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->fp, "%s  [**] [%u:%u:%u] %s [**] [Classification: fixme] [Priority: %u] {%u} %s:%u -> %s:%u\n",
+        fprintf(aft->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
             timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
         fflush(aft->fp);
     }
@@ -128,7 +128,7 @@ int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->fp, "%s  [**] [%u:%u:%u] %s [**] [Classification: fixme] [Priority: %u] {%u} %s:%u -> %s:%u\n",
+        fprintf(aft->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
             timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         fflush(aft->fp);
     }
@@ -190,6 +190,6 @@ void AlertFastlogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    printf(" - (%s) Alerts %u.\n", tv->name, aft->alerts);
+    printf(" - (%s) Alerts %" PRIu32 ".\n", tv->name, aft->alerts);
 }
 

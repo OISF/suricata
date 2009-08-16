@@ -17,6 +17,8 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 
+#include "detect-decode-event.h"
+
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
@@ -75,62 +77,62 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
     if (pmt == NULL)
         return;
 
-    printf(" - (%s) (1byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) (1byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->pkts, pmt->pkts_scanned1,
         (float)(pmt->pkts_scanned1/(float)(pmt->pkts)*100),
         pmt->pkts_searched1,
         (float)(pmt->pkts_searched1/(float)(pmt->pkts)*100),
         (float)(pmt->pkts_searched1/(float)(pmt->pkts_scanned1)*100));
-    printf(" - (%s) (2byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) (2byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->pkts, pmt->pkts_scanned2,
         (float)(pmt->pkts_scanned2/(float)(pmt->pkts)*100),
         pmt->pkts_searched2,
         (float)(pmt->pkts_searched2/(float)(pmt->pkts)*100),
         (float)(pmt->pkts_searched2/(float)(pmt->pkts_scanned2)*100));
-    printf(" - (%s) (3byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) (3byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->pkts, pmt->pkts_scanned3,
         (float)(pmt->pkts_scanned3/(float)(pmt->pkts)*100),
         pmt->pkts_searched3,
         (float)(pmt->pkts_searched3/(float)(pmt->pkts)*100),
         (float)(pmt->pkts_searched3/(float)(pmt->pkts_scanned3)*100));
-    printf(" - (%s) (4byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) (4byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->pkts, pmt->pkts_scanned4,
         (float)(pmt->pkts_scanned4/(float)(pmt->pkts)*100),
         pmt->pkts_searched4,
         (float)(pmt->pkts_searched4/(float)(pmt->pkts)*100),
         (float)(pmt->pkts_searched4/(float)(pmt->pkts_scanned4)*100));
-    printf(" - (%s) (+byte) Pkts %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) (+byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->pkts, pmt->pkts_scanned,
         (float)(pmt->pkts_scanned/(float)(pmt->pkts)*100),
         pmt->pkts_searched,
         (float)(pmt->pkts_searched/(float)(pmt->pkts)*100),
         (float)(pmt->pkts_searched/(float)(pmt->pkts_scanned)*100));
 
-    printf(" - (%s) URI (1byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) URI (1byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->uris, pmt->pkts_uri_scanned1,
         (float)(pmt->pkts_uri_scanned1/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched1,
         (float)(pmt->pkts_uri_searched1/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched1/(float)(pmt->pkts_uri_scanned1)*100));
-    printf(" - (%s) URI (2byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) URI (2byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->uris, pmt->pkts_uri_scanned2,
         (float)(pmt->pkts_uri_scanned2/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched2,
         (float)(pmt->pkts_uri_searched2/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched2/(float)(pmt->pkts_uri_scanned2)*100));
-    printf(" - (%s) URI (3byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) URI (3byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->uris, pmt->pkts_uri_scanned3,
         (float)(pmt->pkts_uri_scanned3/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched3,
         (float)(pmt->pkts_uri_searched3/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched3/(float)(pmt->pkts_uri_scanned3)*100));
-    printf(" - (%s) URI (4byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) URI (4byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->uris, pmt->pkts_uri_scanned4,
         (float)(pmt->pkts_uri_scanned4/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched4,
         (float)(pmt->pkts_uri_searched4/(float)(pmt->uris)*100),
         (float)(pmt->pkts_uri_searched4/(float)(pmt->pkts_uri_scanned4)*100));
-    printf(" - (%s) URI (+byte) Uri's %u, Scanned %u (%02.1f), Searched %u (%02.1f): %02.1f%%.\n", tv->name,
+    printf(" - (%s) URI (+byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
         pmt->uris, pmt->pkts_uri_scanned,
         (float)(pmt->pkts_uri_scanned/(float)(pmt->uris)*100),
         pmt->pkts_uri_searched,
@@ -300,7 +302,7 @@ void SigLoadSignatures (char *sig_file)
             }
         }
         fclose(fp);
-        printf("SigLoadSignatures: %d successfully loaded from file. %d sigs failed to load\n", good, bad);
+        printf("SigLoadSignatures: %" PRId32 " successfully loaded from file. %" PRId32 " sigs failed to load\n", good, bad);
     }
 
     /* Setup the signature group lookup structure and
@@ -318,9 +320,9 @@ void SigLoadSignatures (char *sig_file)
 }
 
 /* check if a certain sid alerted, this is used in the test functions */
-int PacketAlertCheck(Packet *p, u_int32_t sid)
+int PacketAlertCheck(Packet *p, uint32_t sid)
 {
-    u_int16_t i = 0;
+    uint16_t i = 0;
     int match = 0;
 
     for (i = 0; i < p->alerts.cnt; i++) {
@@ -331,7 +333,7 @@ int PacketAlertCheck(Packet *p, u_int32_t sid)
     return match;
 }
 
-int PacketAlertAppend(Packet *p, u_int8_t gid, u_int32_t sid, u_int8_t rev, u_int8_t prio, char *msg)
+int PacketAlertAppend(Packet *p, uint8_t gid, uint32_t sid, uint8_t rev, uint8_t prio, char *msg)
 {
     /* XXX overflow check? */
 
@@ -371,7 +373,7 @@ static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, PatternMa
                 sgh = ag->sh;
 
                 //printf("SigMatchSignatures: mc %p, mcu %p\n", pmt->mc, pmt->mcu);
-                //printf("sigs %u\n", ag->sh->sig_cnt);
+                //printf("sigs %" PRIu32 "\n", ag->sh->sig_cnt);
             } else {
                 //printf("SigMatchSignatures: we have ports\n");
 
@@ -394,7 +396,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
     int match = 0, fmatch = 0;
     Signature *s = NULL;
     SigMatch *sm = NULL;
-    u_int32_t idx,sig;
+    uint32_t idx,sig;
 
     pmt->pkts++;
 
@@ -424,8 +426,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
         if (pmt->sgh->mpm_content_maxlen > p->payload_len) {
             //printf("Not scanning as pkt payload is smaller than the largest content length we need to match");
         } else {
-            u_int32_t cnt = 0;
-//printf("scan: (%p, maxlen %u, cnt %u)\n", pmt->sgh, pmt->sgh->mpm_content_maxlen, pmt->sgh->sig_cnt);
+            uint32_t cnt = 0;
+//printf("scan: (%p, maxlen %" PRIu32 ", cnt %" PRIu32 ")\n", pmt->sgh, pmt->sgh->mpm_content_maxlen, pmt->sgh->sig_cnt);
             /* scan, but only if the noscan flag isn't set */
             if (!(pmt->sgh->flags & SIG_GROUP_HEAD_MPM_NOSCAN)) {
                 if (pmt->sgh->mpm_content_maxlen == 1)      pmt->pkts_scanned1++;
@@ -437,7 +439,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                 cnt += PacketPatternScan(th_v, pmt, p);
             }
 //if (cnt != pmt->pmq.searchable)
-//printf("post scan: cnt %u, searchable %u\n", cnt, pmt->pmq.searchable);
+//printf("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "\n", cnt, pmt->pmq.searchable);
             if (pmt->sgh->flags & SIG_GROUP_HEAD_MPM_NOSCAN || pmt->pmq.searchable > 0) {
 //printf("now search\n");
                 if (pmt->sgh->mpm_content_maxlen == 1)      pmt->pkts_searched1++;
@@ -448,7 +450,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
                 cnt += PacketPatternMatch(th_v, pmt, p);
 
-//                printf("RAW: cnt %u, pmt->pmq.sig_id_array_cnt %u\n", cnt, pmt->pmq.sig_id_array_cnt);
+//                printf("RAW: cnt %" PRIu32 ", pmt->pmq.sig_id_array_cnt %" PRIu32 "\n", cnt, pmt->pmq.sig_id_array_cnt);
             }
             pmt->pmq.searchable = 0;
         }
@@ -467,8 +469,8 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
             (s->flags & SIG_FLAG_MPM))
             continue;
 
-        //printf("idx %u, pmt->pmq.sig_id_array_cnt %u, s->id %u (MPM? %s)\n", idx, pmt->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
-        //printf("Sig %u\n", s->id);
+        //printf("idx %" PRIu32 ", pmt->pmq.sig_id_array_cnt %" PRIu32 ", s->id %" PRIu32 " (MPM? %s)\n", idx, pmt->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
+        //printf("Sig %" PRIu32 "\n", s->id);
         /* check the source & dst port in the sig */
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
             if (!(s->flags & SIG_FLAG_DP_ANY)) {
@@ -502,7 +504,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
         pmt->pkt_off = 0;
 
         if (s->flags & SIG_FLAG_RECURSIVE) {
-            u_int8_t rmatch = 0;
+            uint8_t rmatch = 0;
             pmt->pkt_cnt = 0;
 
             do {
@@ -549,7 +551,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
                     /* only if the last matched as well, we have a hit */
                     if (sm == NULL) {
                         fmatch = 1;
-//printf("DE : sig %u matched\n", s->id);
+//printf("DE : sig %" PRIu32 " matched\n", s->id);
                         if (!(s->flags & SIG_FLAG_NOALERT)) {
                             PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
 
@@ -660,7 +662,7 @@ static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
 
 iponly:
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("IP-ONLY (%u): source %s, dest %s\n", s->id,
+        printf("IP-ONLY (%" PRIu32 "): source %s, dest %s\n", s->id,
         s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",
         s->flags & SIG_FLAG_DST_ANY ? "ANY" : "SET");
     }
@@ -671,7 +673,7 @@ iponly:
 int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL;
-    u_int32_t cnt = 0, cnt_iponly = 0;
+    uint32_t cnt = 0, cnt_iponly = 0;
 
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -690,7 +692,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     memset(de_ctx->sig_array,0,de_ctx->sig_array_size);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf(" - Signature lookup array: %u sigs, %u bytes.\n",
+        printf(" - Signature lookup array: %" PRIu32 " sigs, %" PRIu32 " bytes.\n",
             de_ctx->sig_array_len, de_ctx->sig_array_size);
     }
 
@@ -698,7 +700,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
 
         de_ctx->sig_array[tmp_s->num] = tmp_s;
-        //printf(" + Signature %u, internal id %u, ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
+        //printf(" + Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
 
         /* see if the sig is ip only */
         if (SignatureIsIPOnly(de_ctx, tmp_s) == 1) {
@@ -708,12 +710,12 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
         } else {
             //printf("\n");
             //if (tmp_s->proto.flags & DETECT_PROTO_ANY) {
-            //printf("Signature %u applies to all protocols.\n",tmp_s->id);
+            //printf("Signature %" PRIu32 " applies to all protocols.\n",tmp_s->id);
             //}
         }
 
 /* DEBUG */
-        u_int16_t colen = 0;
+        uint16_t colen = 0;
         char copresent = 0;
         SigMatch *sm;
         DetectContentData *co;
@@ -732,7 +734,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             int proto;
             for (proto = 0; proto < 256; proto++) {
                 if (tmp_s->proto.proto[(proto/8)] & (1<<(proto%8)))
-                    printf ("%d ", proto);
+                    printf ("%" PRId32 " ", proto);
             }
             printf("\n");
         }
@@ -766,7 +768,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf(" * %u signatures processed. %u are IP-only rules.\n",
+        printf(" * %" PRIu32 " signatures processed. %" PRIu32 " are IP-only rules.\n",
             de_ctx->sig_cnt, cnt_iponly);
         printf("* Building signature grouping structure, stage 1: "
                "adding signatures to signature source addresses... done\n");
@@ -841,31 +843,31 @@ error:
     return -1;
 }
 
-static u_int32_t g_detectengine_ip4_small = 0;
-static u_int32_t g_detectengine_ip4_big = 0;
-static u_int32_t g_detectengine_ip4_small_toclient = 0;
-static u_int32_t g_detectengine_ip4_small_toserver = 0;
-static u_int32_t g_detectengine_ip4_big_toclient = 0;
-static u_int32_t g_detectengine_ip4_big_toserver = 0;
+static uint32_t g_detectengine_ip4_small = 0;
+static uint32_t g_detectengine_ip4_big = 0;
+static uint32_t g_detectengine_ip4_small_toclient = 0;
+static uint32_t g_detectengine_ip4_small_toserver = 0;
+static uint32_t g_detectengine_ip4_big_toclient = 0;
+static uint32_t g_detectengine_ip4_big_toserver = 0;
 
-static u_int32_t g_detectengine_ip6_small = 0;
-static u_int32_t g_detectengine_ip6_big = 0;
-static u_int32_t g_detectengine_ip6_small_toclient = 0;
-static u_int32_t g_detectengine_ip6_small_toserver = 0;
-static u_int32_t g_detectengine_ip6_big_toclient = 0;
-static u_int32_t g_detectengine_ip6_big_toserver = 0;
+static uint32_t g_detectengine_ip6_small = 0;
+static uint32_t g_detectengine_ip6_big = 0;
+static uint32_t g_detectengine_ip6_small_toclient = 0;
+static uint32_t g_detectengine_ip6_small_toserver = 0;
+static uint32_t g_detectengine_ip6_big_toclient = 0;
+static uint32_t g_detectengine_ip6_big_toserver = 0;
 
-static u_int32_t g_detectengine_any_small = 0;
-static u_int32_t g_detectengine_any_big = 0;
-static u_int32_t g_detectengine_any_small_toclient = 0;
-static u_int32_t g_detectengine_any_small_toserver = 0;
-static u_int32_t g_detectengine_any_big_toclient = 0;
-static u_int32_t g_detectengine_any_big_toserver = 0;
+static uint32_t g_detectengine_any_small = 0;
+static uint32_t g_detectengine_any_big = 0;
+static uint32_t g_detectengine_any_small_toclient = 0;
+static uint32_t g_detectengine_any_small_toserver = 0;
+static uint32_t g_detectengine_any_big_toclient = 0;
+static uint32_t g_detectengine_any_big_toserver = 0;
 
 /* add signature to the right flow groups
  */
 static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, DetectEngineLookupDsize *ds, Signature *s, int family, int dsize) {
-    u_int8_t flags = 0;
+    uint8_t flags = 0;
 
     SigMatch *sm = s->match;
     for ( ; sm != NULL; sm = sm->next) {
@@ -925,7 +927,7 @@ static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, DetectEngineLoo
  *
  */
 static int DetectEngineLookupDsizeAddSig(DetectEngineCtx *de_ctx, Signature *s, int family) {
-    u_int16_t low = 0, high = 65535;
+    uint16_t low = 0, high = 65535;
 
     SigMatch *sm = s->match;
     for ( ; sm != NULL; sm = sm->next) {
@@ -1042,11 +1044,11 @@ int CreateGroupedAddrListCmpMpmMaxlen(DetectAddressGroup *a, DetectAddressGroup 
  * srchead is a ordered "inserted" list w/o internal overlap
  *
  */
-int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, int family, DetectAddressGroupsHead *newhead, u_int32_t unique_groups, int (*CompareFunc)(DetectAddressGroup *, DetectAddressGroup *), u_int32_t max_idx) {
+int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, int family, DetectAddressGroupsHead *newhead, uint32_t unique_groups, int (*CompareFunc)(DetectAddressGroup *, DetectAddressGroup *), uint32_t max_idx) {
     DetectAddressGroup *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
     char insert = 0;
     DetectAddressGroup *gr, *next_gr;
-    u_int32_t groups = 0;
+    uint32_t groups = 0;
 
     /* insert the addresses into the tmplist, where it will
      * be sorted descending on 'cnt'. */
@@ -1108,7 +1110,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
         }
     }
 
-    u_int32_t i = unique_groups;
+    uint32_t i = unique_groups;
     if (i == 0) i = groups;
 
     for (gr = tmplist; gr != NULL; ) {
@@ -1247,15 +1249,15 @@ int CreateGroupedPortListCmpMpmMaxlen(DetectPort *a, DetectPort *b) {
     return 0;
 }
 
-static u_int32_t g_groupportlist_maxgroups = 0;
-static u_int32_t g_groupportlist_groupscnt = 0;
-static u_int32_t g_groupportlist_totgroups = 0;
+static uint32_t g_groupportlist_maxgroups = 0;
+static uint32_t g_groupportlist_groupscnt = 0;
+static uint32_t g_groupportlist_totgroups = 0;
 
-int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, DetectPort **newhead, u_int32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), u_int32_t max_idx) {
+int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx) {
     DetectPort *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
     char insert = 0;
     DetectPort *gr, *next_gr;
-    u_int32_t groups = 0;
+    uint32_t groups = 0;
 
     HashListTableBucket *htb = HashListTableGetListHead(port_hash);
 
@@ -1270,7 +1272,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
 
         groups++;
 
-        //printf(":-:1:-: Port "); DetectPortPrint(gr); printf(" (cnt %u, cost %u, maxlen %u) ", gr->cnt, gr->sh->cost, gr->sh->mpm_content_maxlen);DbgSghContainsSig(de_ctx,gr->sh,2001330);
+        //printf(":-:1:-: Port "); DetectPortPrint(gr); printf(" (cnt %" PRIu32 ", cost %" PRIu32 ", maxlen %" PRIu32 ") ", gr->cnt, gr->sh->cost, gr->sh->mpm_content_maxlen);DbgSghContainsSig(de_ctx,gr->sh,2001330);
 
         /* alloc a copy */
         DetectPort *newtmp = DetectPortCopySingle(de_ctx,gr);
@@ -1307,7 +1309,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
         }
     }
 
-    u_int32_t i = unique_groups;
+    uint32_t i = unique_groups;
     if (i == 0) i = groups;
 
     if (unique_groups > g_groupportlist_maxgroups)
@@ -1351,7 +1353,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
      *
      * Start with inserting the unique groups */
     for (gr = tmplist2; gr != NULL; ) {
-        //printf(":-:7:-: Unique Port "); DetectPortPrint(gr); printf(" (cnt %u, cost %u) ", gr->cnt, gr->sh->cost); DbgSghContainsSig(de_ctx,gr->sh,2001330);
+        //printf(":-:7:-: Unique Port "); DetectPortPrint(gr); printf(" (cnt %" PRIu32 ", cost %" PRIu32 ") ", gr->cnt, gr->sh->cost); DbgSghContainsSig(de_ctx,gr->sh,2001330);
         DetectPort *newtmp = DetectPortCopySingle(de_ctx,gr);
         if (newtmp == NULL) {
             goto error;
@@ -1365,12 +1367,12 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
     }
     /* if present, insert the joingr that covers the rest */
     if (joingr != NULL) {
-        //printf(":-:8:-: Join Port "); DetectPortPrint(joingr); printf(" (cnt %u, cost %u) ", joingr->cnt, joingr->sh->cost); DbgSghContainsSig(de_ctx,joingr->sh,2001330);
+        //printf(":-:8:-: Join Port "); DetectPortPrint(joingr); printf(" (cnt %" PRIu32 ", cost %" PRIu32 ") ", joingr->cnt, joingr->sh->cost); DbgSghContainsSig(de_ctx,joingr->sh,2001330);
         DetectPortInsert(de_ctx,newhead,joingr);
     }
 
     for (gr = *newhead; gr != NULL; gr = gr->next) {
-        //printf(":-:9:-: Port "); DetectPortPrint(gr); printf(" (cnt %u, cost %u) ", gr->cnt, gr->sh->cost); DbgSghContainsSig(de_ctx,gr->sh,2001330);
+        //printf(":-:9:-: Port "); DetectPortPrint(gr); printf(" (cnt %" PRIu32 ", cost %" PRIu32 ") ", gr->cnt, gr->sh->cost); DbgSghContainsSig(de_ctx,gr->sh,2001330);
         //printf("  -= Port "); DetectPortPrint(gr); printf(" : "); DbgPrintSigs2(gr->sh);
     }
 
@@ -1383,7 +1385,7 @@ error:
 int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL;
-    u_int32_t sigs = 0;
+    uint32_t sigs = 0;
 
     if (!(de_ctx->flags & DE_QUIET)) {
         printf("* Building signature grouping structure, stage 2: "
@@ -1457,26 +1459,26 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     IPOnlyPrint(de_ctx, &de_ctx->io_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* %u total signatures:\n", sigs);
-        printf(" *         %5u in ipv4 small group, %u in rest\n", g_detectengine_ip4_small,g_detectengine_ip4_big);
-        printf(" *         %5u in ipv6 small group, %u in rest\n", g_detectengine_ip6_small,g_detectengine_ip6_big);
-        printf(" *         %5u in any small group,  %u in rest\n", g_detectengine_any_small,g_detectengine_any_big);
-        printf(" * Small   %5u in ipv4 toserver group, %u in toclient\n",
+        printf("* %" PRIu32 " total signatures:\n", sigs);
+        printf(" *         %5u in ipv4 small group, %" PRIu32 " in rest\n", g_detectengine_ip4_small,g_detectengine_ip4_big);
+        printf(" *         %5u in ipv6 small group, %" PRIu32 " in rest\n", g_detectengine_ip6_small,g_detectengine_ip6_big);
+        printf(" *         %5u in any small group,  %" PRIu32 " in rest\n", g_detectengine_any_small,g_detectengine_any_big);
+        printf(" * Small   %5u in ipv4 toserver group, %" PRIu32 " in toclient\n",
             g_detectengine_ip4_small_toserver,g_detectengine_ip4_small_toclient);
-        printf(" *         %5u in ipv6 toserver group, %u in toclient\n",
+        printf(" *         %5u in ipv6 toserver group, %" PRIu32 " in toclient\n",
             g_detectengine_ip6_small_toserver,g_detectengine_ip6_small_toclient);
-        printf(" *         %5u in any toserver group,  %u in toclient\n",
+        printf(" *         %5u in any toserver group,  %" PRIu32 " in toclient\n",
             g_detectengine_any_small_toserver,g_detectengine_any_small_toclient);
-        printf(" * Big     %5u in ipv4 toserver group, %u in toclient\n",
+        printf(" * Big     %5u in ipv4 toserver group, %" PRIu32 " in toclient\n",
             g_detectengine_ip4_big_toserver,g_detectengine_ip4_big_toclient);
-        printf(" *         %5u in ipv6 toserver group, %u in toclient\n",
+        printf(" *         %5u in ipv6 toserver group, %" PRIu32 " in toclient\n",
             g_detectengine_ip6_big_toserver,g_detectengine_ip6_big_toclient);
-        printf(" *         %5u in any toserver group,  %u in toclient\n",
+        printf(" *         %5u in any toserver group,  %" PRIu32 " in toclient\n",
             g_detectengine_any_big_toserver,g_detectengine_any_big_toclient);
     }
 
     /* TCP */
-    u_int32_t cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
+    uint32_t cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
     for (ds = 0; ds < DSIZE_STATES; ds++) {
         for (f = 0; f < FLOW_STATES; f++) {
             for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6]->any_head; gr != NULL; gr = gr->next) {
@@ -1567,7 +1569,7 @@ error:
 static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *head, int family, int dsize, int flow) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
-    u_int32_t max_idx = 0;
+    uint32_t max_idx = 0;
 
     DetectAddressGroup *grhead = NULL, *grdsthead = NULL, *grsighead = NULL;
 
@@ -1589,7 +1591,7 @@ static int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGr
 
         /* loop through all signatures in this source address group
          * and build the temporary destination address list for it */
-        u_int32_t sig;
+        uint32_t sig;
         for (sig = 0; sig < de_ctx->sig_array_len; sig++) {
             if (!(gr->sh->sig_array[(sig/8)] & (1<<(sig%8))))
                 continue;
@@ -1742,7 +1744,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
     Signature *tmp_s = NULL;
     DetectAddressGroup *src_gr = NULL, *dst_gr = NULL, *sig_gr = NULL, *lookup_gr = NULL;
     DetectAddressGroup *src_gr_head = NULL, *dst_gr_head = NULL, *sig_gr_head = NULL;
-    u_int32_t max_idx = 0;
+    uint32_t max_idx = 0;
 
     /* loop through the global source address list */
     src_gr_head = GetHeadPtr(head,family);
@@ -1760,7 +1762,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
 
         /* loop through all signatures in this source address group
          * and build the temporary destination address list for it */
-        u_int32_t sig;
+        uint32_t sig;
         for (sig = 0; sig < de_ctx->sig_array_len; sig++) {
             if (!(src_gr->sh->sig_array[(sig/8)] & (1<<(sig%8))))
                 continue;
@@ -1825,7 +1827,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
             if (lookup_sgh == NULL) {
                 DetectPortSpHashReset(de_ctx);
 
-                u_int32_t sig2;
+                uint32_t sig2;
                 for (sig2 = 0; sig2 < max_idx+1; sig2++) {
                     if (!(dst_gr->sh->sig_array[(sig2/8)] & (1<<(sig2%8))))
                         continue;
@@ -1881,7 +1883,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                     SigGroupHead *lookup_sp_sgh = SigGroupHeadSPortHashLookup(de_ctx, sp->sh);
                     if (lookup_sp_sgh == NULL) {
                         DetectPortDpHashReset(de_ctx);
-                        u_int32_t sig2;
+                        uint32_t sig2;
                         for (sig2 = 0; sig2 < max_idx+1; sig2++) {
                             if (!(sp->sh->sig_array[(sig2/8)] & (1<<(sig2%8))))
                                 continue;
@@ -2106,17 +2108,17 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
 
                 r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_INET,ds,f);
                 if (r < 0) {
-                    printf ("BuildDestinationAddressHeads(src_gh[%d],AF_INET) failed\n", proto);
+                    printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_INET) failed\n", proto);
                     goto error;
                 }
                 r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_INET6,ds,f);
                 if (r < 0) {
-                    printf ("BuildDestinationAddressHeads(src_gh[%d],AF_INET6) failed\n", proto);
+                    printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_INET6) failed\n", proto);
                     goto error;
                 }
                 r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_UNSPEC,ds,f); /* for any */
                 if (r < 0) {
-                    printf ("BuildDestinationAddressHeads(src_gh[%d],AF_UNSPEC) failed\n", proto);
+                    printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_UNSPEC) failed\n", proto);
                     goto error;
                 }
             }
@@ -2142,21 +2144,21 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     DetectPortSpHashFree(de_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* MPM memory %u (dynamic %u, ctxs %u, avg per ctx %u)\n",
+        printf("* MPM memory %" PRIuMAX " (dynamic %" PRIu32 ", ctxs %" PRIuMAX ", avg per ctx %" PRIu32 ")\n",
             de_ctx->mpm_memory_size + ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * sizeof(MpmCtx)),
             de_ctx->mpm_memory_size, ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * sizeof(MpmCtx)),
             de_ctx->mpm_unique ? de_ctx->mpm_memory_size / de_ctx->mpm_unique: 0);
 
-        printf(" * Max sig id %u, array size %u\n", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
-        printf("* Signature group heads: unique %u, copies %u.\n", de_ctx->gh_unique, de_ctx->gh_reuse);
-        printf("* MPM instances: %u unique, copies %u (none %u).\n",
+        printf(" * Max sig id %" PRIu32 ", array size %" PRIu32 "\n", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
+        printf("* Signature group heads: unique %" PRIu32 ", copies %" PRIu32 ".\n", de_ctx->gh_unique, de_ctx->gh_reuse);
+        printf("* MPM instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").\n",
                 de_ctx->mpm_unique, de_ctx->mpm_reuse, de_ctx->mpm_none);
-        printf("* MPM (URI) instances: %u unique, copies %u (none %u).\n",
+        printf("* MPM (URI) instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").\n",
                 de_ctx->mpm_uri_unique, de_ctx->mpm_uri_reuse, de_ctx->mpm_uri_none);
-        printf("* MPM max patcnt %u, avg %u\n", de_ctx->mpm_max_patcnt, de_ctx->mpm_unique?de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique:0);
+        printf("* MPM max patcnt %" PRIu32 ", avg %" PRIu32 "\n", de_ctx->mpm_max_patcnt, de_ctx->mpm_unique?de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique:0);
         if (de_ctx->mpm_uri_tot_patcnt && de_ctx->mpm_uri_unique)
-            printf("* MPM (URI) max patcnt %u, avg %u (%u/%u)\n", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
-        printf("  = port maxgroups: %u, avg %u, tot %u\n", g_groupportlist_maxgroups, g_groupportlist_totgroups/g_groupportlist_groupscnt, g_groupportlist_totgroups);
+            printf("* MPM (URI) max patcnt %" PRIu32 ", avg %" PRIu32 " (%" PRIu32 "/%" PRIu32 ")\n", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
+        printf("  = port maxgroups: %" PRIu32 ", avg %" PRIu32 ", tot %" PRIu32 "\n", g_groupportlist_maxgroups, g_groupportlist_totgroups/g_groupportlist_groupscnt, g_groupportlist_totgroups);
         printf("* Building signature grouping structure, stage 3: building destination address lists... done\n");
     }
     return 0;
@@ -2195,9 +2197,9 @@ void DbgPrintSigs(SigGroupHead *sgh) {
         return;
     }
 
-    u_int32_t sig;
+    uint32_t sig;
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        printf("%u ", g_de_ctx->sig_array[sgh->match_array[sig]]->id);
+        printf("%" PRIu32 " ", g_de_ctx->sig_array[sgh->match_array[sig]]->id);
     }
     printf("\n");
 }
@@ -2208,22 +2210,22 @@ void DbgPrintSigs2(SigGroupHead *sgh) {
         return;
     }
 
-    u_int32_t sig;
+    uint32_t sig;
     for (sig = 0; sig < DetectEngineGetMaxSigId(g_de_ctx); sig++) {
         if (sgh->sig_array[(sig/8)] & (1<<(sig%8))) {
-            printf("%u ", g_de_ctx->sig_array[sig]->id);
+            printf("%" PRIu32 " ", g_de_ctx->sig_array[sig]->id);
         }
     }
     printf("\n");
 }
 
-void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, u_int32_t sid) {
+void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid) {
     if (sgh == NULL) {
         printf("\n");
         return;
     }
 
-    u_int32_t sig;
+    uint32_t sig;
     for (sig = 0; sig < DetectEngineGetMaxSigId(g_de_ctx); sig++) {
         if (!(sgh->sig_array[(sig/8)] & (1<<(sig%8))))
             continue;
@@ -2233,7 +2235,7 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, u_int32_t sid
             continue;
 
         if (sid == s->id) {
-            printf("%u ", g_de_ctx->sig_array[sig]->id);
+            printf("%" PRIu32 " ", g_de_ctx->sig_array[sig]->id);
         }
     }
     printf("\n");
@@ -2290,12 +2292,12 @@ int SigAddressPrepareStage5(void) {
                             DetectPort *dp = sp->dst_ph;
                             for ( ; dp != NULL; dp = dp->next) {
                                 printf("   4 Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %u, maxlen %u)", dp->sh->sig_cnt, dp->sh->mpm_content_maxlen); 
+                                printf(" (sigs %" PRIu32 ", maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh->mpm_content_maxlen);
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
                                     Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
-                                    printf("%u ", s->id);
+                                    printf("%" PRIu32 " ", s->id);
                                 }
 #endif
                                 printf(" - ");
@@ -2303,7 +2305,7 @@ int SigAddressPrepareStage5(void) {
                                     Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
                                     if (s->id == 2008335 || s->id == 2001329 || s->id == 2001330 ||
                                             s->id == 2001331 || s->id == 2003321 || s->id == 2003322)
-                                        printf("%u ", s->id);
+                                        printf("%" PRIu32 " ", s->id);
                                 }
                                 printf("\n");
                             }
@@ -2328,12 +2330,12 @@ int SigAddressPrepareStage5(void) {
                             DetectPort *dp = sp->dst_ph;
                             for ( ; dp != NULL; dp = dp->next) {
                                 printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %u)", dp->sh->sig_cnt); 
+                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
                                     Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
-                                    printf("%u ", s->id);
+                                    printf("%" PRIu32 " ", s->id);
                                 }
 #endif
                                 printf("\n");
@@ -2371,12 +2373,12 @@ int SigAddressPrepareStage5(void) {
                             DetectPort *dp = sp->dst_ph;
                             for ( ; dp != NULL; dp = dp->next) {
                                 printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %u)", dp->sh->sig_cnt); 
+                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
                                     Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
-                                    printf("%u ", s->id);
+                                    printf("%" PRIu32 " ", s->id);
                                 }
 #endif
                                 printf("\n");
@@ -2402,12 +2404,12 @@ int SigAddressPrepareStage5(void) {
                             DetectPort *dp = sp->dst_ph;
                             for ( ; dp != NULL; dp = dp->next) {
                                 printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %u)", dp->sh->sig_cnt); 
+                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
                                     Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
-                                    printf("%u ", s->id);
+                                    printf("%" PRIu32 " ", s->id);
                                 }
 #endif
                                 printf("\n");
@@ -2445,12 +2447,12 @@ int SigAddressPrepareStage5(void) {
                             DetectPort *dp = sp->dst_ph;
                             for ( ; dp != NULL; dp = dp->next) {
                                 printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %u)", dp->sh->sig_cnt); 
+                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
                                     Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
-                                    printf("%u ", s->id);
+                                    printf("%" PRIu32 " ", s->id);
                                 }
 #endif
                                 printf("\n");
@@ -2476,12 +2478,12 @@ int SigAddressPrepareStage5(void) {
                             DetectPort *dp = sp->dst_ph;
                             for ( ; dp != NULL; dp = dp->next) {
                                 printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %u)", dp->sh->sig_cnt); 
+                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
                                     Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
-                                    printf("%u ", s->id);
+                                    printf("%" PRIu32 " ", s->id);
                                 }
 #endif
                                 printf("\n");
@@ -2507,12 +2509,12 @@ int SigAddressPrepareStage5(void) {
                             DetectPort *dp = sp->dst_ph;
                             for ( ; dp != NULL; dp = dp->next) {
                                 printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %u)", dp->sh->sig_cnt); 
+                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
                                     Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
-                                    printf("%u ", s->id);
+                                    printf("%" PRIu32 " ", s->id);
                                 }
 #endif
                                 printf("\n");
@@ -2548,12 +2550,12 @@ int SigGroupCleanup (void) {
 }
 
 int SigGroupGetSrcAddress(DetectAddressGroupsHead *src) {
-    u_int32_t ip = 0x04030201; /* 1.2.3.4 */
+    uint32_t ip = 0x04030201; /* 1.2.3.4 */
 
-    printf("ip & 0x000000ff %8u 0x%08X >> 0  %u\n", ip & 0x000000ff, ip & 0x000000ff, (ip & 0x000000ff) >> 0);
-    printf("ip & 0x0000ff00 %8u 0x%08X >> 8  %u\n", ip & 0x0000ff00, ip & 0x0000ff00, (ip & 0x0000ff00) >> 8);
-    printf("ip & 0x00ff0000 %8u 0x%08X >> 16 %u\n", ip & 0x00ff0000, ip & 0x00ff0000, (ip & 0x00ff0000) >> 16);
-    printf("ip & 0xff000000 %8u 0x%08X >> 24 %u\n", ip & 0xff000000, ip & 0xff000000, (ip & 0xff000000) >> 24);
+    printf("ip & 0x000000ff %8u 0x%08X >> 0  %" PRIu32 "\n", ip & 0x000000ff, ip & 0x000000ff, (ip & 0x000000ff) >> 0);
+    printf("ip & 0x0000ff00 %8u 0x%08X >> 8  %" PRIu32 "\n", ip & 0x0000ff00, ip & 0x0000ff00, (ip & 0x0000ff00) >> 8);
+    printf("ip & 0x00ff0000 %8u 0x%08X >> 16 %" PRIu32 "\n", ip & 0x00ff0000, ip & 0x00ff0000, (ip & 0x00ff0000) >> 16);
+    printf("ip & 0xff000000 %8u 0x%08X >> 24 %" PRIu32 "\n", ip & 0xff000000, ip & 0xff000000, (ip & 0xff000000) >> 24);
 
     return 0;
 }
@@ -2591,7 +2593,7 @@ void SigTableSetup(void) {
     DetectFlowbitsRegister();
     DetectDecodeEventRegister();
 
-    u_int8_t i = 0;
+    uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
         if (sigmatch_table[i].RegisterTests == NULL) {
             printf("Warning: detection plugin %s has no unittest "
@@ -2602,7 +2604,7 @@ void SigTableSetup(void) {
 
 void SigTableRegisterTests(void) {
     /* register the tests */
-    u_int8_t i = 0;
+    uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
         if (sigmatch_table[i].RegisterTests != NULL) {
             sigmatch_table[i].RegisterTests();
@@ -2617,14 +2619,14 @@ void SigTableRegisterTests(void) {
 #include "flow-util.h"
 
 int SigTest01 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
                     "\r\n\r\n"
                     "GET /two/ HTTP/1.1\r\n"
                     "Host: two.example.org\r\n"
                     "\r\n\r\n";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -2661,8 +2663,8 @@ int SigTest01 (void) {
         goto end;
     }
 
-    //printf("URI0 \"%s\", len %u\n", p.http_uri.raw[0], p.http_uri.raw_size[0]);
-    //printf("URI1 \"%s\", len %u\n", p.http_uri.raw[1], p.http_uri.raw_size[1]);
+    //printf("URI0 \"%s\", len %" PRIu32 "\n", p.http_uri.raw[0], p.http_uri.raw_size[0]);
+    //printf("URI1 \"%s\", len %" PRIu32 "\n", p.http_uri.raw[1], p.http_uri.raw_size[1]);
 
     if (p.http_uri.raw_size[0] == 5 &&
         memcmp(p.http_uri.raw[0], "/one/", 5) == 0 &&
@@ -2683,14 +2685,14 @@ end:
 }
 
 int SigTest02 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
                     "\r\n\r\n"
                     "GET /two/ HTTP/1.1\r\n"
                     "Host: two.example.org\r\n"
                     "\r\n\r\n";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -2736,14 +2738,14 @@ end:
 }
 
 int SigTest03 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
                     "\r\n\r\n"
                     "GET /two/ HTTP/1.1\r\n"
                     "Host: two.example.org\r\n"
                     "\r\n\r\n";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -2789,14 +2791,14 @@ end:
 }
 
 int SigTest04 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
                     "\r\n\r\n"
                     "GET /two/ HTTP/1.1\r\n"
                     "Host: two.example.org\r\n"
                     "\r\n\r\n";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
 
     Packet p;
     ThreadVars th_v;
@@ -2843,14 +2845,14 @@ end:
 }
 
 int SigTest05 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
                     "\r\n\r\n"                  /* 4,  47 */
                     "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
                     "Host: two.example.org\r\n" /* 23, 90 */
                     "\r\n\r\n";                 /* 4,  94 */
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -2896,14 +2898,14 @@ end:
 }
 
 int SigTest06 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
                     "\r\n\r\n"                  /* 4,  47 */
                     "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
                     "Host: two.example.org\r\n" /* 23, 90 */
                     "\r\n\r\n";                 /* 4,  94 */
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -2958,14 +2960,14 @@ end:
 }
 
 int SigTest07 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
                     "\r\n\r\n"                  /* 4,  47 */
                     "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
                     "Host: two.example.org\r\n" /* 23, 90 */
                     "\r\n\r\n";                 /* 4,  94 */
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3018,14 +3020,14 @@ end:
 }
 
 int SigTest08 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.0\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
                     "\r\n\r\n"                  /* 4,  47 */
                     "GET /two/ HTTP/1.0\r\n"    /* 20, 67 */
                     "Host: two.example.org\r\n" /* 23, 90 */
                     "\r\n\r\n";                 /* 4,  94 */
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3080,14 +3082,14 @@ end:
 }
 
 int SigTest09 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.0\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
                     "\r\n\r\n"                  /* 4,  47 */
                     "GET /two/ HTTP/1.0\r\n"    /* 20, 67 */
                     "Host: two.example.org\r\n" /* 23, 90 */
                     "\r\n\r\n";                 /* 4,  94 */
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3139,9 +3141,9 @@ end:
 }
 
 int SigTest10 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "ABC";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3193,9 +3195,9 @@ end:
 }
 
 int SigTest11 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3247,9 +3249,9 @@ end:
 }
 
 int SigTest12 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3296,9 +3298,9 @@ end:
 }
 
 int SigTest13 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3345,9 +3347,9 @@ end:
 }
 
 int SigTest14 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3394,9 +3396,9 @@ end:
 }
 
 int SigTest15 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3444,9 +3446,9 @@ end:
 }
 
 int SigTest16 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3493,14 +3495,14 @@ end:
 }
 
 int SigTest17 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
                     "\r\n\r\n"                  /* 4,  47 */
                     "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
                     "Host: two.example.org\r\n" /* 23, 90 */
                     "\r\n\r\n";                 /* 4,  94 */
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3557,9 +3559,9 @@ end:
 }
 
 int SigTest18 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3608,9 +3610,9 @@ end:
 }
 
 int SigTest19 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3663,9 +3665,9 @@ end:
 }
 
 int SigTest20 (void) {
-    u_int8_t *buf = (u_int8_t *)
+    uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
-    u_int16_t buflen = strlen((char *)buf);
+    uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
     PatternMatcherThread *pmt;
@@ -3727,9 +3729,9 @@ int SigTest21 (void) {
     memset(&f, 0, sizeof(f));
 
     /* packet 1 */
-    u_int8_t *buf1 = (u_int8_t *)"GET /one/ HTTP/1.0\r\n"
+    uint8_t *buf1 = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
                     "\r\n\r\n";
-    u_int16_t buf1len = strlen((char *)buf1);
+    uint16_t buf1len = strlen((char *)buf1);
     Packet p1;
 
     memset(&p1, 0, sizeof(p1));
@@ -3741,9 +3743,9 @@ int SigTest21 (void) {
     p1.flow = &f;
 
     /* packet 2 */
-    u_int8_t *buf2 = (u_int8_t *)"GET /two/ HTTP/1.0\r\n"
+    uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
                     "\r\n\r\n";
-    u_int16_t buf2len = strlen((char *)buf2);
+    uint16_t buf2len = strlen((char *)buf2);
     Packet p2;
 
     memset(&p2, 0, sizeof(p2));
@@ -3805,9 +3807,9 @@ int SigTest22 (void) {
     memset(&f, 0, sizeof(f));
 
     /* packet 1 */
-    u_int8_t *buf1 = (u_int8_t *)"GET /one/ HTTP/1.0\r\n"
+    uint8_t *buf1 = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
                     "\r\n\r\n";
-    u_int16_t buf1len = strlen((char *)buf1);
+    uint16_t buf1len = strlen((char *)buf1);
     Packet p1;
 
     memset(&p1, 0, sizeof(p1));
@@ -3819,9 +3821,9 @@ int SigTest22 (void) {
     p1.flow = &f;
 
     /* packet 2 */
-    u_int8_t *buf2 = (u_int8_t *)"GET /two/ HTTP/1.0\r\n"
+    uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
                     "\r\n\r\n";
-    u_int16_t buf2len = strlen((char *)buf2);
+    uint16_t buf2len = strlen((char *)buf2);
     Packet p2;
 
     memset(&p2, 0, sizeof(p2));
@@ -3885,9 +3887,9 @@ int SigTest23 (void) {
     memset(&f, 0, sizeof(f));
 
     /* packet 1 */
-    u_int8_t *buf1 = (u_int8_t *)"GET /one/ HTTP/1.0\r\n"
+    uint8_t *buf1 = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
                     "\r\n\r\n";
-    u_int16_t buf1len = strlen((char *)buf1);
+    uint16_t buf1len = strlen((char *)buf1);
     Packet p1;
 
     memset(&p1, 0, sizeof(p1));
@@ -3899,9 +3901,9 @@ int SigTest23 (void) {
     p1.flow = &f;
 
     /* packet 2 */
-    u_int8_t *buf2 = (u_int8_t *)"GET /two/ HTTP/1.0\r\n"
+    uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
                     "\r\n\r\n";
-    u_int16_t buf2len = strlen((char *)buf2);
+    uint16_t buf2len = strlen((char *)buf2);
     Packet p2;
 
     memset(&p2, 0, sizeof(p2));

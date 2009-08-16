@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <sys/signal.h>
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"
@@ -68,8 +68,8 @@ int NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 static NFQGlobalVars nfq_g;
 
 static NFQThreadVars nfq_t[NFQ_MAX_QUEUE];
-static u_int16_t receive_queue_num = 0;
-static u_int16_t verdict_queue_num = 0;
+static uint16_t receive_queue_num = 0;
+static uint16_t verdict_queue_num = 0;
 static pthread_mutex_t nfq_init_lock;
 
 int ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
@@ -173,7 +173,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     return 0;
 }
 
-int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_maxlen)
+int NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_maxlen)
 {
     struct timeval tv;
 
@@ -213,7 +213,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
         }
     }
 
-    printf("NFQInitThread: binding this socket to queue '%u'\n", nfq_t->queue_num);
+    printf("NFQInitThread: binding this socket to queue '%" PRIu32 "'\n", nfq_t->queue_num);
 
     /* pass the thread memory as a void ptr so the
      * callback function has access to it. */
@@ -237,7 +237,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
 #define HAVE_NFQ_MAXLEN
 #ifdef HAVE_NFQ_MAXLEN
     if (queue_maxlen > 0) {
-        printf("NFQInitThread: setting queue length to %d\n", queue_maxlen);
+        printf("NFQInitThread: setting queue length to %" PRId32 "\n", queue_maxlen);
 
         /* non-fatal if it fails */
         if (nfq_set_queue_maxlen(nfq_t->qh, queue_maxlen) < 0) {
@@ -259,13 +259,13 @@ int NFQInitThread(NFQThreadVars *nfq_t, u_int16_t queue_num, u_int32_t queue_max
         printf("NFQInitThread: can't set socket timeout: %s\n", strerror(errno));
     }
 
-    //printf("NFQInitThread: nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %d\n", nfq_t->h, nfq_t->nh, nfq_t->qh, nfq_t->fd);
+    //printf("NFQInitThread: nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %" PRId32 "\n", nfq_t->h, nfq_t->nh, nfq_t->qh, nfq_t->fd);
     return 0;
 }
 
 int ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     mutex_lock(&nfq_init_lock);
-    printf("ReceiveNFQThreadInit: starting... will bind to queuenum %u\n", receive_queue_num);
+    printf("ReceiveNFQThreadInit: starting... will bind to queuenum %" PRIu32 "\n", receive_queue_num);
 
     sigset_t sigs;
     sigfillset(&sigs);
@@ -293,7 +293,7 @@ int ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
 int VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     mutex_lock(&nfq_init_lock);
-    printf("VerdictNFQThreadInit: starting... will bind to queuenum %u\n", verdict_queue_num);
+    printf("VerdictNFQThreadInit: starting... will bind to queuenum %" PRIu32 "\n", verdict_queue_num);
 
     /* no initialization, ReceiveNFQ takes care of that */
     NFQThreadVars *ntv = &nfq_t[verdict_queue_num];
@@ -308,7 +308,7 @@ int VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 int VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
-    printf("VerdictNFQThreadDeinit: starting... will close queuenum %u\n", ntv->queue_num);
+    printf("VerdictNFQThreadDeinit: starting... will close queuenum %" PRIu32 "\n", ntv->queue_num);
     nfq_destroy_queue(ntv->qh);
 
     return 0;
@@ -336,21 +336,21 @@ void NFQRecvPkt(NFQThreadVars *t) {
             t->dbg_maxreadsize = rv;
 #endif /* DBG_PERF */
 
-        //printf("NFQRecvPkt: t %p, rv = %d\n", t, rv);
+        //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
         mutex_lock(&t->mutex_qh);
         ret = nfq_handle_packet(t->h, buf, rv);
         mutex_unlock(&t->mutex_qh);
 
         if (ret != 0)
-            printf("NFQRecvPkt: nfq_handle_packet error %d\n", ret);
+            printf("NFQRecvPkt: nfq_handle_packet error %" PRId32 "\n", ret);
     }
 }
 
 int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
-    //printf("%p receiving on queue %u\n", ntv, ntv->queue_num);
+    //printf("%p receiving on queue %" PRIu32 "\n", ntv, ntv->queue_num);
 
     /* do our nfq magic */
     NFQRecvPkt(ntv);
@@ -368,22 +368,22 @@ int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 #ifdef COUNTERS
-    printf(" - (%s) Pkts %u, Bytes %llu, Errors %u\n", tv->name, ntv->pkts, ntv->bytes, ntv->errs);
+    printf(" - (%s) Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "\n", tv->name, ntv->pkts, ntv->bytes, ntv->errs);
 #endif
 }
 
 void VerdictNFQThreadExitStats(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 #ifdef COUNTERS
-    printf(" - (%s) Pkts accepted %u, dropped %u\n", tv->name, ntv->accepted, ntv->dropped);
+    printf(" - (%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "\n", tv->name, ntv->accepted, ntv->dropped);
 #endif
 }
 
 void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     int ret;
-    u_int32_t verdict;
+    uint32_t verdict;
 
-    //printf("%p verdicting on queue %u\n", t, t->queue_num);
+    //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
 
     if (p->action == ACTION_ALERT) {
        verdict = NF_ACCEPT;
@@ -410,7 +410,7 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     mutex_unlock(&t->mutex_qh);
 
     if (ret < 0)
-        printf("NFQSetVerdict: nfq_set_verdict of %p failed %d\n", p, ret);
+        printf("NFQSetVerdict: nfq_set_verdict of %p failed %" PRId32 "\n", p, ret);
 }
 
 int VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
@@ -427,7 +427,7 @@ int VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
         /* if there are more tunnel packets than ready to verdict packets,
          * we won't verdict this one */
         if (TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p)) {
-            //printf("VerdictNFQ: not ready to verdict yet: TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %d > %d\n", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
+            //printf("VerdictNFQ: not ready to verdict yet: TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %" PRId32 " > %" PRId32 "\n", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
             verdict = 0;
         }
         mutex_unlock(m);

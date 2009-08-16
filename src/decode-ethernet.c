@@ -4,7 +4,7 @@
 #include "decode-ethernet.h"
 #include "decode-events.h"
 
-void DecodeEthernet(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
+void DecodeEthernet(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     PerfCounterIncr(COUNTER_DECODER_ETH, t->pca);
 

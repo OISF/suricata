@@ -1,6 +1,6 @@
 /* Copyright (C) 2008 by Victor Julien <victor@inliniac.net> */
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -59,7 +59,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
  * getting & (re)setting the internal sig i
  */
 
-u_int32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx) {
+uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx) {
     return de_ctx->signum;
 }
 

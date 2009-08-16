@@ -9,7 +9,7 @@
  * we split it into /16's.
  */
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -34,30 +34,30 @@
 /* No need to calc a constant every lookup: htonl(65535) */
 #define IPONLY_HTONL_65535 4294901760UL
 
-static u_int32_t IPOnlyHashFunc16(HashListTable *ht, void *data, u_int16_t len) {
+static uint32_t IPOnlyHashFunc16(HashListTable *ht, void *data, uint16_t len) {
     DetectAddressGroup *gr = (DetectAddressGroup *) data;
 
-    u_int32_t hash = IPONLY_EXTRACT_16(gr->ad) % ht->array_size;
+    uint32_t hash = IPONLY_EXTRACT_16(gr->ad) % ht->array_size;
     return hash;
 }
 
 /*
-static u_int32_t IPOnlyHashFunc24(HashListTable *ht, void *data, u_int16_t len) {
+static uint32_t IPOnlyHashFunc24(HashListTable *ht, void *data, uint16_t len) {
     DetectAddressGroup *gr = (DetectAddressGroup *) data;
 
-    u_int32_t hash = IPONLY_EXTRACT_24(gr->ad) % ht->array_size;
+    uint32_t hash = IPONLY_EXTRACT_24(gr->ad) % ht->array_size;
     return hash;
 }
 */
 
 static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, HashListTable *ht, DetectAddressGroup *gr, char direction, Signature *s) {
-    u_int32_t high = ntohl(gr->ad->ip2[0]);
-    u_int32_t low = ntohl(gr->ad->ip[0]);
+    uint32_t high = ntohl(gr->ad->ip2[0]);
+    uint32_t low = ntohl(gr->ad->ip[0]);
 
     if ((ntohl(gr->ad->ip2[0]) - ntohl(gr->ad->ip[0])) > 65536) {
         //printf("Bigger than a class/16:\n"); DetectAddressDataPrint(gr->ad);
 
-        u_int32_t s16_cnt = 0;
+        uint32_t s16_cnt = 0;
 
         while (high > low) {
             s16_cnt++;
@@ -98,7 +98,7 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
             else
                 high = 0;
         }
-        //printf(" contains %u /16's\n", s16_cnt);
+        //printf(" contains %" PRIu32 " /16's\n", s16_cnt);
 
     } else {
         DetectAddressGroup *grtmp = DetectAddressGroupInit();
@@ -138,9 +138,9 @@ static void IPOnlyAddSlash24(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
     if ((ntohl(gr->ad->ip2[0]) - ntohl(gr->ad->ip[0])) > 256) {
         //printf("Bigger than a class/24:\n"); DetectAddressDataPrint(a);
 
-        u_int32_t high = ntohl(gr->ad->ip2[0]);
-        u_int32_t low = ntohl(gr->ad->ip[0]);
-        u_int32_t s24_cnt = 0;
+        uint32_t high = ntohl(gr->ad->ip2[0]);
+        uint32_t low = ntohl(gr->ad->ip[0]);
+        uint32_t s24_cnt = 0;
 
         while (high > low) {
             s24_cnt++;
@@ -176,7 +176,7 @@ static void IPOnlyAddSlash24(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
             else
                 high = 0;
         }
-        //printf(" contains %u /24's\n", s24_cnt);
+        //printf(" contains %" PRIu32 " /24's\n", s24_cnt);
 
     } else {
         DetectAddressGroup *rgr = HashListTableLookup(ht,gr,0);
@@ -192,7 +192,7 @@ error:
 }
 */
 
-static char IPOnlyCompareFunc(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+static char IPOnlyCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
     DetectAddressGroup *a1 = (DetectAddressGroup *)data1;
     DetectAddressGroup *a2 = (DetectAddressGroup *)data2;
 
@@ -238,14 +238,14 @@ void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThr
 
 void IPOnlyPrint(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf(" * IP ONLY (SRC): %u /16's in our hash, %u total address ranges in them\n",
+        printf(" * IP ONLY (SRC): %" PRIu32 " /16's in our hash, %" PRIu32 " total address ranges in them\n",
                 io_ctx->a_src_uniq16, io_ctx->a_src_uniq16 + io_ctx->a_src_total16);
-        printf(" * IP ONLY (DST): %u /16's in our hash, %u total address ranges in them\n",
+        printf(" * IP ONLY (DST): %" PRIu32 " /16's in our hash, %" PRIu32 " total address ranges in them\n",
                 io_ctx->a_dst_uniq16, io_ctx->a_dst_uniq16 + io_ctx->a_dst_total16);
 /*
-        printf(" * IP ONLY (SRC): %u /24's in our hash, %u total address ranges in them\n",
+        printf(" * IP ONLY (SRC): %" PRIu32 " /24's in our hash, %" PRIu32 " total address ranges in them\n",
                 io_ctx->a_src_uniq24, io_ctx->a_src_uniq24 + io_ctx->a_src_total24);
-        printf(" * IP ONLY (DST): %u /24's in our hash, %u total address ranges in them\n",
+        printf(" * IP ONLY (DST): %" PRIu32 " /24's in our hash, %" PRIu32 " total address ranges in them\n",
                 io_ctx->a_dst_uniq24, io_ctx->a_dst_uniq24 + io_ctx->a_dst_total24);
 */
     }
@@ -320,7 +320,7 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
     //printf("IPOnlyMatchPacket processing arrays...\n");
 
     /* copy the match array from source... */
-    u_int32_t u;
+    uint32_t u;
     for (u = 0; u < io_tctx->sig_match_size; u++) {
         io_tctx->sig_match_array[u] = src->sh->sig_array[u];
     }
@@ -332,17 +332,17 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 
     //printf("Let's inspect the sigs\n");
 
-    //u_int32_t sig_cnt;
+    //uint32_t sig_cnt;
     //if (src->sh->sig_cnt > dst->sh->sig_cnt) sig_cnt = dst->sh->sig_cnt;
     //else                                     sig_cnt = src->sh->sig_cnt;
 
     /* ...the result is that only the sigs with both
      * enable match */
-    u_int32_t idx;
+    uint32_t idx;
     for (idx = 0; idx < io_ctx->sig_cnt; idx++) {
-        u_int32_t sig = io_ctx->match_array[idx];
+        uint32_t sig = io_ctx->match_array[idx];
 
-        //printf("sig internal id %u\n", sig);
+        //printf("sig internal id %" PRIu32 "\n", sig);
 
         /* sig doesn't match */
         if (!(io_tctx->sig_match_array[(sig / 8)] & (1<<(sig % 8)))) {
@@ -381,10 +381,10 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 }
 
 int IPOnlyBuildMatchArray(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
-    u_int32_t idx = 0;
-    u_int32_t sig = 0;
+    uint32_t idx = 0;
+    uint32_t sig = 0;
 
-    //printf("IPOnlyBuildMatchArray: max_idx %u\n", io_ctx->max_idx);
+    //printf("IPOnlyBuildMatchArray: max_idx %" PRIu32 "\n", io_ctx->max_idx);
     for (sig = 0; sig < io_ctx->max_idx + 1; sig++) {
         if (!(io_ctx->sig_init_array[(sig/8)] & (1<<(sig%8))))
             continue;
@@ -395,13 +395,13 @@ int IPOnlyBuildMatchArray(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx
 
         io_ctx->sig_cnt++;
     }
-    //printf("IPOnlyBuildMatchArray: sig_cnt %u\n", io_ctx->sig_cnt);
+    //printf("IPOnlyBuildMatchArray: sig_cnt %" PRIu32 "\n", io_ctx->sig_cnt);
 
-    io_ctx->match_array = malloc(io_ctx->sig_cnt * sizeof(u_int32_t));
+    io_ctx->match_array = malloc(io_ctx->sig_cnt * sizeof(uint32_t));
     if (io_ctx->match_array == NULL)
         return -1;
 
-    memset(io_ctx->match_array,0, io_ctx->sig_cnt * sizeof(u_int32_t));
+    memset(io_ctx->match_array,0, io_ctx->sig_cnt * sizeof(uint32_t));
 
     for (sig = 0; sig < io_ctx->max_idx + 1; sig++) {
         if (!(io_ctx->sig_init_array[(sig/8)] & (1<<(sig%8))))
@@ -414,7 +414,7 @@ int IPOnlyBuildMatchArray(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx
         io_ctx->match_array[idx] = s->num;
         idx++;
     }
-    //printf("IPOnlyBuildMatchArray: idx %u\n", idx);
+    //printf("IPOnlyBuildMatchArray: idx %" PRIu32 "\n", idx);
 
     return 0;
 }
@@ -434,7 +434,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
             continue;
 
         SigGroupHeadSetSigCnt(gr->sh, de_ctx->io_ctx.max_idx);
-        //printf("%u ", gr->sh->sig_cnt);
+        //printf(PRIu32 " ", gr->sh->sig_cnt);
     }
     //printf("\n");
 
@@ -450,7 +450,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
             continue;
 
         SigGroupHeadSetSigCnt(gr->sh, de_ctx->io_ctx.max_idx);
-        //printf("%u ", gr->sh->sig_cnt);
+        //printf(PRIu32 " ", gr->sh->sig_cnt);
     }
     //printf("\n");
 }

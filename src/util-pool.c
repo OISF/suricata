@@ -5,11 +5,13 @@
 #include <time.h>
 #include <string.h>
 
+#include "eidps-common.h"
+
 #include "util-pool.h"
 
 #include "util-unittest.h"
 
-Pool *PoolInit(u_int32_t size, u_int32_t prealloc_size, void *(*Alloc)(void *), void *AllocData, void (*Free)(void *))
+Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), void *AllocData, void (*Free)(void *))
 {
     Pool *p = NULL;
 
@@ -34,7 +36,7 @@ Pool *PoolInit(u_int32_t size, u_int32_t prealloc_size, void *(*Alloc)(void *), 
     p->Free  = Free;
 
     /* alloc the buckets and place them in the empty list */
-    u_int32_t u32 = 0;
+    uint32_t u32 = 0;
     for (u32 = 0; u32 < size; u32++) {
         /* populate pool */
         PoolBucket *pb = malloc(sizeof(PoolBucket));
@@ -93,7 +95,7 @@ void PoolFree(Pool *p) {
 
 void PoolPrint(Pool *p) {
     printf("\n----------- Hash Table Stats ------------\n");
-    printf("Buckets:               %u\n", p->empty_list_size + p->alloc_list_size);
+    printf("Buckets:               %" PRIu32 "\n", p->empty_list_size + p->alloc_list_size);
     printf("-----------------------------------------\n");
 }
 
@@ -224,13 +226,13 @@ static int PoolTestInit03 (void) {
     }
 
     if (p->alloc_list_size != 4) {
-        printf("p->alloc_list_size 4 != %u: ", p->alloc_list_size);
+        printf("p->alloc_list_size 4 != %" PRIu32 ": ", p->alloc_list_size);
         retval = 0;
         goto end;
     }
 
     if (p->empty_list_size != 6) {
-        printf("p->empty_list_size 6 != %u: ", p->empty_list_size);
+        printf("p->empty_list_size 6 != %" PRIu32 ": ", p->empty_list_size);
         retval = 0;
         goto end;
     }
@@ -266,13 +268,13 @@ static int PoolTestInit04 (void) {
     }
 
     if (p->alloc_list_size != 4) {
-        printf("p->alloc_list_size 4 != %u: ", p->alloc_list_size);
+        printf("p->alloc_list_size 4 != %" PRIu32 ": ", p->alloc_list_size);
         retval = 0;
         goto end;
     }
 
     if (p->empty_list_size != 6) {
-        printf("p->empty_list_size 6 != %u: ", p->empty_list_size);
+        printf("p->empty_list_size 6 != %" PRIu32 ": ", p->empty_list_size);
         retval = 0;
         goto end;
     }
@@ -302,13 +304,13 @@ static int PoolTestInit05 (void) {
     }
 
     if (p->alloc_list_size != 4) {
-        printf("p->alloc_list_size 4 != %u: ", p->alloc_list_size);
+        printf("p->alloc_list_size 4 != %" PRIu32 ": ", p->alloc_list_size);
         retval = 0;
         goto end;
     }
 
     if (p->empty_list_size != 6) {
-        printf("p->empty_list_size 6 != %u: ", p->empty_list_size);
+        printf("p->empty_list_size 6 != %" PRIu32 ": ", p->empty_list_size);
         retval = 0;
         goto end;
     }
@@ -317,13 +319,13 @@ static int PoolTestInit05 (void) {
     data = NULL;
 
     if (p->alloc_list_size != 5) {
-        printf("p->alloc_list_size 5 != %u: ", p->alloc_list_size);
+        printf("p->alloc_list_size 5 != %" PRIu32 ": ", p->alloc_list_size);
         retval = 0;
         goto end;
     }
 
     if (p->empty_list_size != 5) {
-        printf("p->empty_list_size 5 != %u: ", p->empty_list_size);
+        printf("p->empty_list_size 5 != %" PRIu32 ": ", p->empty_list_size);
         retval = 0;
         goto end;
     }
@@ -347,7 +349,7 @@ static int PoolTestInit06 (void) {
         goto end;
 
     if (p->allocated != 0) {
-        printf("p->allocated 0 != %u: ", p->allocated);
+        printf("p->allocated 0 != %" PRIu32 ": ", p->allocated);
         retval = 0;
         goto end;
     }
@@ -360,7 +362,7 @@ static int PoolTestInit06 (void) {
     }
 
     if (p->allocated != 1) {
-        printf("p->allocated 1 != %u: ", p->allocated);
+        printf("p->allocated 1 != %" PRIu32 ": ", p->allocated);
         retval = 0;
         goto end;
     }
@@ -376,13 +378,13 @@ static int PoolTestInit06 (void) {
     data = NULL;
 
     if (p->allocated != 1) {
-        printf("p->allocated 1 != %u: ", p->allocated);
+        printf("p->allocated 1 != %" PRIu32 ": ", p->allocated);
         retval = 0;
         goto end;
     }
 
     if (p->alloc_list_size != 1) {
-        printf("p->alloc_list_size 1 != %u: ", p->alloc_list_size);
+        printf("p->alloc_list_size 1 != %" PRIu32 ": ", p->alloc_list_size);
         retval = 0;
         goto end;
     }

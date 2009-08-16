@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include "eidps-common.h"
 #include "util-mpm.h"
 
 /* include pattern matchers */
@@ -18,7 +19,7 @@
 void
 MpmMatchCleanup(MpmThreadCtx *thread_ctx) {
 #ifdef DEBUG
-    printf("MpmMatchCleanup: mem %u\n", thread_ctx->memory_size);
+    printf("MpmMatchCleanup: mem %" PRIu32 "\n", thread_ctx->memory_size);
 #endif
 
     MpmMatch *nxt;
@@ -71,7 +72,7 @@ MpmMatchAlloc(MpmThreadCtx *thread_ctx) {
  *
  * used at search runtime */
 inline int
-MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *em, MpmMatchBucket *mb, u_int16_t offset, u_int16_t patlen)
+MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *em, MpmMatchBucket *mb, uint16_t offset, uint16_t patlen)
 {
     /* don't bother looking at sigs that didn't match
      * when we scanned. There's not matching anyway. */
@@ -145,7 +146,7 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
     }
 
 #ifdef DEBUG
-    printf("MpmMatchAppend: len %u (offset %u)\n", mb->len, m->offset);
+    printf("MpmMatchAppend: len %" PRIu32 " (offset %" PRIu32 ")\n", mb->len, m->offset);
 
     MpmMatch *tmp = thread_ctx->qlist;
     while (tmp) {
@@ -202,7 +203,7 @@ void MpmEndMatchFreeAll(MpmCtx *mpm_ctx, MpmEndMatch *em) {
     }
 }
 
-void MpmInitCtx (MpmCtx *mpm_ctx, u_int16_t matcher) {
+void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher) {
     mpm_table[matcher].InitCtx(mpm_ctx);
 
     mpm_ctx->InitCtx              = mpm_table[matcher].InitCtx;
@@ -231,7 +232,7 @@ void MpmTableSetup(void) {
 }
 
 void MpmRegisterTests(void) {
-    u_int16_t i;
+    uint16_t i;
 
     for (i = 0; i < MPM_TABLE_SIZE; i++) {
         if (mpm_table[i].RegisterUnittests != NULL) {

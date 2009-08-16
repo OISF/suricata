@@ -5,9 +5,9 @@
 
 typedef struct DetectPktvarData_ {
     char *name;
-    u_int8_t *content;
-    u_int8_t content_len;
-    u_int8_t flags;
+    uint8_t *content;
+    uint8_t content_len;
+    uint8_t flags;
 } DetectPktvarData;
 
 /* prototypes */

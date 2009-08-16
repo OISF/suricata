@@ -18,7 +18,7 @@
 #include <sys/signal.h>
 #include <libnet.h>
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "decode.h"
 #include "decode-ipv4.h"
 #include "decode-tcp.h"
@@ -34,15 +34,15 @@
 
 typedef struct Libnet11Packet_
 {
-    u_int32_t ack, seq;
-    u_int16_t window, dsize;
-    u_int8_t ttl;
-    u_int16_t id;
-    u_int32_t flow;
-    u_int8_t class;
+    uint32_t ack, seq;
+    uint16_t window, dsize;
+    uint8_t ttl;
+    uint16_t id;
+    uint32_t flow;
+    uint8_t class;
     struct in6_addr src6, dst6;
-    u_int32_t src4, dst4;
-    u_int16_t sp, dp;
+    uint32_t src4, dst4;
+    uint16_t sp, dp;
     size_t len;
 } Libnet11Packet;
 
@@ -197,7 +197,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     		               ICMP_DEST_UNREACH,        /* type */
     		               ICMP_HOST_ANO,            /* code */
                                0,                        /* checksum */
-                               (u_int8_t *)p->ip4h,      /* payload */
+                               (uint8_t *)p->ip4h,      /* payload */
                                lpacket.len,              /* payload length */
                                c,                        /* libnet context */
                                0)) < 0)                  /* libnet ptag */

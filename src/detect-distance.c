@@ -41,21 +41,21 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
             pe->distance = strtol(str, NULL, 10);
             pe->flags |= DETECT_PCRE_DISTANCE;
 
-            //printf("DetectDistanceSetup: set distance %d for previous pcre\n", pe->distance);
+            //printf("DetectDistanceSetup: set distance %" PRId32 " for previous pcre\n", pe->distance);
         } else if (pm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
 
             cd->distance = strtol(str, NULL, 10);
             cd->flags |= DETECT_CONTENT_DISTANCE;
 
-            //printf("DetectDistanceSetup: set distance %d for previous content\n", cd->distance);
+            //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
         } else if (pm->type == DETECT_URICONTENT) {
             DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
 
             cd->distance = strtol(str, NULL, 10);
             cd->flags |= DETECT_URICONTENT_DISTANCE;
 
-            //printf("DetectDistanceSetup: set distance %d for previous content\n", cd->distance);
+            //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
         } else {
             printf("DetectDistanceSetup: Unknown previous keyword!\n");
         }

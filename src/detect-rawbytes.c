@@ -34,7 +34,7 @@ int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
 #if 0
         if (pm->type == DETECT_PCRE) {
             DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-            printf("DetectRawbytesSetup: set depth %u for previous pcre\n", pe->depth);
+            printf("DetectRawbytesSetup: set depth %" PRIu32 " for previous pcre\n", pe->depth);
         } else 
 #endif
         if (pm->type == DETECT_CONTENT) {

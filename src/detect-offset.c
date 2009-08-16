@@ -36,12 +36,12 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     if (pm != NULL) {
         if (pm->type == DETECT_PCRE) {
             //DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-            //pe->offset = (u_int32_t)atoi(str); /* XXX */
-            //printf("DetectOffsetSetup: set offset %u for previous pcre\n", pe->offset);
+            //pe->offset = (uint32_t)atoi(str); /* XXX */
+            //printf("DetectOffsetSetup: set offset %" PRIu32 " for previous pcre\n", pe->offset);
         } else if (pm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
-            cd->offset = (u_int32_t)atoi(str); /* XXX */
-            //printf("DetectOffsetSetup: set offset %u for previous content\n", cd->offset);
+            cd->offset = (uint32_t)atoi(str); /* XXX */
+            //printf("DetectOffsetSetup: set offset %" PRIu32 " for previous content\n", cd->offset);
         } else {
             printf("DetectOffsetSetup: Unknown previous keyword!\n");
         }

@@ -21,7 +21,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -42,15 +42,19 @@
 //#define DEBUG
 
 /* prototypes */
-static int HandleSegmentStartsBeforeListSegment(TcpStream *, TcpSegment *, TcpSegment *, u_int8_t);
-static int HandleSegmentStartsAtSameListSegment(TcpStream *, TcpSegment *, TcpSegment *, u_int8_t);
-static int HandleSegmentStartsAfterListSegment(TcpStream *, TcpSegment *, TcpSegment *, u_int8_t);
-void StreamTcpSegmentDataReplace(TcpSegment *, TcpSegment *, u_int32_t, u_int16_t);
+static int HandleSegmentStartsBeforeListSegment(TcpStream *, TcpSegment *, TcpSegment *, uint8_t);
+static int HandleSegmentStartsAtSameListSegment(TcpStream *, TcpSegment *, TcpSegment *, uint8_t);
+static int HandleSegmentStartsAfterListSegment(TcpStream *, TcpSegment *, TcpSegment *, uint8_t);
+void StreamTcpSegmentDataReplace(TcpSegment *, TcpSegment *, uint32_t, uint16_t);
 void StreamTcpSegmentDataCopy(TcpSegment *, TcpSegment *);
-TcpSegment* StreamTcpGetSegment(u_int16_t);
+TcpSegment* StreamTcpGetSegment(uint16_t);
 void StreamTcpSegmentReturntoPool(TcpSegment *);
-void StreamTcpCreateTestPacket(u_int8_t *, u_int8_t, u_int8_t);
-static int StreamTcpCheckStreamContents(u_int8_t *, TcpStream *);
+void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t);
+
+/** \todo XXX Never defined */
+#if 0
+static int StreamTcpCheckStreamContents(uint8_t *, TcpStream *);
+#endif
 
 void *TcpSegmentAlloc(void *payload_len) {
     TcpSegment *seg = malloc(sizeof (TcpSegment));
@@ -59,7 +63,7 @@ void *TcpSegmentAlloc(void *payload_len) {
 
     memset(seg, 0, sizeof (TcpSegment));
 
-    seg->pool_size = *((u_int16_t *) payload_len);
+    seg->pool_size = *((uint16_t *) payload_len);
     seg->payload_len = seg->pool_size;
 
     seg->payload = malloc(seg->payload_len);
@@ -86,23 +90,23 @@ void TcpSegmentFree(void *ptr) {
  * data segment we receive, which would be a large performance penalty.
  * The cost is in memory of course. */
 #define segment_pool_num 8
-static u_int16_t segment_pool_pktsizes[segment_pool_num] = {4, 16, 112, 248, 512, 768, 1448, 0xffff};
-static u_int16_t segment_pool_poolsizes[segment_pool_num] = {1024, 1024, 1024, 1024, 4096, 4096, 1024, 128};
+static uint16_t segment_pool_pktsizes[segment_pool_num] = {4, 16, 112, 248, 512, 768, 1448, 0xffff};
+static uint16_t segment_pool_poolsizes[segment_pool_num] = {1024, 1024, 1024, 1024, 4096, 4096, 1024, 128};
 static Pool *segment_pool[segment_pool_num];
 static pthread_mutex_t segment_pool_mutex[segment_pool_num];
 /* index to the right pool for all packet sizes. */
-static u_int16_t segment_pool_idx[65536]; /* O(1) lookups of the pool */
+static uint16_t segment_pool_idx[65536]; /* O(1) lookups of the pool */
 
 int StreamTcpReassembleInit(void) {
     StreamMsgQueuesInit();
 
-    u_int16_t u16 = 0;
+    uint16_t u16 = 0;
     for (u16 = 0; u16 < segment_pool_num; u16++) {
         segment_pool[u16] = PoolInit(segment_pool_poolsizes[u16], segment_pool_poolsizes[u16] / 2, TcpSegmentAlloc, (void *) & segment_pool_pktsizes[u16], TcpSegmentFree);
         pthread_mutex_init(&segment_pool_mutex[u16], NULL);
     }
 
-    u_int16_t idx = 0;
+    uint16_t idx = 0;
     u16 = 0;
     while (1) {
         if (idx <= segment_pool_pktsizes[u16]) {
@@ -118,14 +122,14 @@ int StreamTcpReassembleInit(void) {
     }
 
     /*
-    printf("pkt 0    : idx %u\n", segment_pool_idx[0]);
-    printf("pkt 1    : idx %u\n", segment_pool_idx[1]);
-    printf("pkt 1200 : idx %u\n", segment_pool_idx[1200]);
-    printf("pkt 32   : idx %u\n", segment_pool_idx[32]);
-    printf("pkt 1448 : idx %u\n", segment_pool_idx[1448]);
-    printf("pkt 1449 : idx %u\n", segment_pool_idx[1449]);
-    printf("pkt 65534: idx %u\n", segment_pool_idx[65534]);
-    printf("pkt 65535: idx %u\n", segment_pool_idx[65535]);
+    printf("pkt 0    : idx %" PRIu32 "\n", segment_pool_idx[0]);
+    printf("pkt 1    : idx %" PRIu32 "\n", segment_pool_idx[1]);
+    printf("pkt 1200 : idx %" PRIu32 "\n", segment_pool_idx[1200]);
+    printf("pkt 32   : idx %" PRIu32 "\n", segment_pool_idx[32]);
+    printf("pkt 1448 : idx %" PRIu32 "\n", segment_pool_idx[1448]);
+    printf("pkt 1449 : idx %" PRIu32 "\n", segment_pool_idx[1449]);
+    printf("pkt 65534: idx %" PRIu32 "\n", segment_pool_idx[65534]);
+    printf("pkt 65535: idx %" PRIu32 "\n", segment_pool_idx[65535]);
      */
 
     return 0;
@@ -138,14 +142,14 @@ static void PrintList(TcpSegment *seg) {
     if (seg == NULL)
         return;
 
-    u_int32_t next_seq = seg->seq;
+    uint32_t next_seq = seg->seq;
 
     while (seg != NULL) {
         if (next_seq != seg->seq) {
-            printf("PrintList: missing segment(s) for %u bytes of data\n", (seg->seq - next_seq));
+            printf("PrintList: missing segment(s) for %" PRIu32 " bytes of data\n", (seg->seq - next_seq));
         }
 
-        printf("PrintList: seg %10u len %u, seg %p, prev %p, next %p\n", seg->seq, seg->payload_len, seg, seg->prev, seg->next);
+        printf("PrintList: seg %10u len %" PRIu32 ", seg %p, prev %p, next %p\n", seg->seq, seg->payload_len, seg, seg->prev, seg->next);
 
         if (prev_seg != seg->prev) {
             printf("PrintList: inconsistant list: prev_seg %p != seg->prev %p\n", prev_seg, seg->prev);
@@ -170,14 +174,14 @@ static void PrintList(TcpSegment *seg) {
 static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
     TcpSegment *list_seg = stream->seg_list;
 
-    u_int8_t os_policy = stream->os_policy;
-    u_int8_t ret_value = 0;
+    uint8_t os_policy = stream->os_policy;
+    uint8_t ret_value = 0;
 
     //printf("ReassembleInsertSegment start seg %p\n", seg);
 
     if (list_seg == NULL) {
 #ifdef DEBUG
-        printf("ReassembleInsertSegment: empty list, inserting seg %p seq %u, len %u\n", seg, seg->seq, seg->payload_len);
+        printf("ReassembleInsertSegment: empty list, inserting seg %p seq %" PRIu32 ", len %" PRIu32 "\n", seg, seg->seq, seg->payload_len);
         //PrintRawDataFp(stdout, seg->payload, seg->payload_len);
 #endif
         stream->seg_list = seg;
@@ -187,7 +191,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
 
     for (; list_seg != NULL; list_seg = list_seg->next) {
 #ifdef DEBUG
-        printf("ReassembleInsertSegment: seg %p, list_seg %p, list_prev %p list_seg->next %p, segment length %u\n", seg, list_seg, list_seg->prev, list_seg->next, seg->payload_len);
+        printf("ReassembleInsertSegment: seg %p, list_seg %p, list_prev %p list_seg->next %p, segment length %" PRIu32 "\n", seg, list_seg, list_seg->prev, list_seg->next, seg->payload_len);
         PrintRawDataFp(stdout, seg->payload, seg->payload_len);
         PrintRawDataFp(stdout, list_seg->payload, list_seg->payload_len);
 #endif
@@ -196,7 +200,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
             /*seg is entirely before list_seg*/
             if (SEQ_LEQ((seg->seq + seg->payload_len), list_seg->seq)) {
 #ifdef DEBUG
-                printf("ReassembleInsertSegment: before list seg: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u, list_seg->prev %p\n", seg->seq, list_seg->seq, list_seg->payload_len, list_seg->prev);
+                printf("ReassembleInsertSegment: before list seg: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 ", list_seg->prev %p\n", seg->seq, list_seg->seq, list_seg->payload_len, list_seg->prev);
 #endif
                 seg->next = list_seg;
                 if (list_seg->prev == NULL) {
@@ -207,12 +211,15 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
                 /* To print the full stream upon arrival of packet with content as 0 (test pcap)
                    the variable should be DEBUG in to the final patch :) */
 #ifdef DEBUG
-                printf("seg is %u policy %u\n", ((u_int8_t) (seg->payload)), stream->os_policy);
-                if (((u_int8_t) (seg->payload)) == 104) {
+                /** \todo XXX Why converting *uint8_t to uint8_t?  Did someone mean *seg->payload == 104 instead ??? */
+#if 0
+                printf("seg is %" PRIu8 " policy %" PRIu32 "\n", ((uint8_t) (seg->payload)), stream->os_policy);
+                if (((uint8_t) (seg->payload)) == 104) {
                     TcpSegment *temp;
                     for (temp = stream->seg_list; temp != NULL; temp = temp->next)
                         PrintRawDataFp(stdout, temp->payload, temp->payload_len);
                 }
+#endif
 #endif
                 goto end;
             /*seg overlap with nest seg(s)*/
@@ -244,7 +251,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
                     SEQ_GT((seg->seq + seg->payload_len),
                     (list_seg->seq + list_seg->payload_len))) {
 #ifdef DEBUG
-                printf("ReassembleInsertSegment: starts beyond list end, ends after list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u (%u)\n", seg->seq, list_seg->seq, list_seg->payload_len, list_seg->seq + list_seg->payload_len);
+                printf("ReassembleInsertSegment: starts beyond list end, ends after list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " (%" PRIu32 ")\n", seg->seq, list_seg->seq, list_seg->payload_len, list_seg->seq + list_seg->payload_len);
 #endif
 
                 if (list_seg->next == NULL) {
@@ -284,15 +291,15 @@ end:
  *  \param  os_policy   OS_POLICY of the given stream.
  */
 
-static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, u_int8_t os_policy) {
-    u_int16_t overlap = 0;
-    u_int16_t packet_length;
-    u_int32_t overlap_point;
+static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, uint8_t os_policy) {
+    uint16_t overlap = 0;
+    uint16_t packet_length;
+    uint32_t overlap_point;
     char end_before = FALSE;
     char end_after = FALSE;
     char end_same = FALSE;
 
-    //printf("\nHandleSegmentStartsBeforeListSegment: seg->seq %u, seg->payload_len %u\n", seg->seq, seg->payload_len);
+    //printf("\nHandleSegmentStartsBeforeListSegment: seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "\n", seg->seq, seg->payload_len);
     //PrintList(stream->seg_list);
 
     if (SEQ_GT((seg->seq + seg->payload_len), list_seg->seq) &&
@@ -303,7 +310,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
         overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq + seg->payload_len);
         overlap_point = list_seg->seq;
 #ifdef DEBUG
-        printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends before list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends before list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
         /* seg fully overlaps list_seg, starts before, at end point */
     } else if (SEQ_EQ((seg->seq + seg->payload_len),
@@ -312,7 +319,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
         end_same = TRUE;
         overlap_point = list_seg->seq;
 #ifdef DEBUG
-        printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends at list end: list prev %p seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", list_seg->prev, seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends at list end: list prev %p seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", list_seg->prev, seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
         /* seg fully overlaps list_seg, starts before, ends after list endpoint */
     } else if (SEQ_GT((seg->seq + seg->payload_len),
@@ -321,14 +328,14 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
         end_after = TRUE;
         overlap_point = list_seg->seq;
 #ifdef DEBUG
-        printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends after list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends after list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
     }
     if (overlap > 0) {
         /* Handling case when the packet starts before the first packet in the list */
         if (list_seg->prev == NULL) {
             packet_length = seg->payload_len + (list_seg->payload_len - overlap);
-            //printf("HandleSegmentStartsBeforeListSegment: entered here pkt len %u, seg %u, list %u\n",
+            //printf("HandleSegmentStartsBeforeListSegment: entered here pkt len %" PRIu32 ", seg %" PRIu32 ", list %" PRIu32 "\n",
             //    packet_length, seg->payload_len, list_seg->payload_len);
 
             TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
@@ -343,11 +350,11 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
             StreamTcpSegmentDataCopy(new_seg, list_seg);
 
             /* first the data before the list_seg->seq */
-            StreamTcpSegmentDataReplace(new_seg, seg, seg->seq, (u_int16_t) (list_seg->seq - seg->seq));
+            StreamTcpSegmentDataReplace(new_seg, seg, seg->seq, (uint16_t) (list_seg->seq - seg->seq));
 
             /* then, if any, the data after list_seg->seq + list_seg->payload_len */
             if (SEQ_GT((seg->seq + seg->payload_len), (list_seg->seq + list_seg->payload_len))) {
-                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq + list_seg->payload_len), (u_int16_t) (((seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len))));
+                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq + list_seg->payload_len), (uint16_t) (((seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len))));
             }
 
             StreamTcpSegmentReturntoPool(list_seg);
@@ -364,7 +371,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
         } else if (end_before == TRUE || end_same == TRUE) {
             /* Handling overlapping with more than one segment and filling gap */
             if (SEQ_LEQ(seg->seq, (list_seg->prev->seq + list_seg->prev->payload_len))) {
-                //printf("the diff is %u \n", (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len)));
+                //printf("the diff is %" PRIu32 " \n", (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len)));
                 packet_length = list_seg->payload_len + (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
                 //overlap += packet_length - list_seg->payload_len;
 
@@ -372,7 +379,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                 if (new_seg == NULL) {
                     return -1;
                 }
-                //printf("StreamTcpReassembleHandleSegmentHandleData: seg %p, seg->pool_size %u\n", seg, seg->pool_size);
+                //printf("StreamTcpReassembleHandleSegmentHandleData: seg %p, seg->pool_size %" PRIu32 "\n", seg, seg->pool_size);
                 new_seg->payload_len = packet_length;
                 if (SEQ_GT((list_seg->prev->seq + list_seg->prev->payload_len), seg->seq))
                     new_seg->seq = (list_seg->prev->seq + list_seg->prev->payload_len);
@@ -383,8 +390,8 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
 
                 StreamTcpSegmentDataCopy(new_seg, list_seg);
 
-                u_int16_t copy_len = (u_int16_t) (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
-                //printf("StreamTcpReassembleHandleSegmentHandleData: copy_len %u (%u - %u)\n", copy_len, list_seg->seq, (list_seg->prev->seq + list_seg->prev->payload_len));
+                uint16_t copy_len = (uint16_t) (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
+                //printf("StreamTcpReassembleHandleSegmentHandleData: copy_len %" PRIu32 " (%" PRIu32 " - %" PRIu32 ")\n", copy_len, list_seg->seq, (list_seg->prev->seq + list_seg->prev->payload_len));
                 StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->prev->seq + list_seg->prev->payload_len), copy_len);
 
                 StreamTcpSegmentReturntoPool(list_seg);
@@ -403,7 +410,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                 else
                     packet_length = list_seg->payload_len + (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
                 packet_length += (seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len);
-                //printf("the diff is %u in after \n", packet_length);
+                //printf("the diff is %" PRIu32 " in after \n", packet_length);
                 //overlap = packet_length;
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
@@ -421,10 +428,10 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                 /* create a new seg, copy the list_seg data over */
                 StreamTcpSegmentDataCopy(new_seg, list_seg);
 
-                u_int16_t copy_len = list_seg->seq - new_seg->seq;
+                uint16_t copy_len = list_seg->seq - new_seg->seq;
                 StreamTcpSegmentDataReplace(new_seg, seg, new_seg->seq, copy_len);
 
-                copy_len = (u_int16_t) ((seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len));
+                copy_len = (uint16_t) ((seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len));
                 StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq + list_seg->payload_len), copy_len);
 
                 if (new_seg->prev != NULL) {
@@ -449,7 +456,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
             case OS_POLICY_MACOS:
             case OS_POLICY_LAST:
 #ifdef DEBUG
-                printf("Replacing Old Data in starts before list seg list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+                printf("Replacing Old Data in starts before list seg list_seg->seq %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "\n", list_seg->seq, os_policy, overlap);
 #endif
                 StreamTcpSegmentDataReplace(list_seg, seg, overlap_point, overlap);
                 //PrintRawDataFp(stdout, list_seg->payload, list_seg->payload_len);
@@ -461,14 +468,14 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                     end_after = FALSE;
                 } else {
 #ifdef DEBUG
-                    printf("Using Old Data in starts before list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+                    printf("Using Old Data in starts before list case, list_seg->seq %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "\n", list_seg->seq, os_policy, overlap);
 #endif
                 }
                 break;
             case OS_POLICY_VISTA:
             case OS_POLICY_FIRST:
 #ifdef DEBUG
-                printf("Using Old Data in starts before list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+                printf("Using Old Data in starts before list case, list_seg->seq %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "\n", list_seg->seq, os_policy, overlap);
 #endif
                 break;
             default:
@@ -502,9 +509,9 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
  *  \param  os_policy   OS_POLICY of the given stream.
  */
 
-static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, u_int8_t os_policy) {
-    u_int16_t overlap = 0;
-    u_int16_t packet_length;
+static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, uint8_t os_policy) {
+    uint16_t overlap = 0;
+    uint16_t packet_length;
     char end_before = FALSE;
     char end_after = FALSE;
     char end_same = FALSE;
@@ -515,7 +522,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
         overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq + seg->payload_len);
         end_before = TRUE;
 #ifdef DEBUG
-        printf("HandleSegmentStartsAtSameListSegment: starts at list seq, ends before list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is%u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsAtSameListSegment: starts at list seq, ends before list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is%" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
 
         /* seg starts at seq, ends at seq, retransmission. */
@@ -525,7 +532,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
         overlap = seg->payload_len;
         end_same = TRUE;
 #ifdef DEBUG
-        printf("HandleSegmentStartsAtSameListSegment: (retransmission) starts at list seq, ends at list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is%u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsAtSameListSegment: (retransmission) starts at list seq, ends at list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is%" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
         /* seg starts at seq, ends beyond seq. */
     } else if (SEQ_GT((seg->seq + seg->payload_len),
@@ -533,7 +540,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
         overlap = list_seg->payload_len;
         end_after = TRUE;
 #ifdef DEBUG
-        printf("HandleSegmentStartsAtSameListSegment: starts at list seq, ends beyond list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is%u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsAtSameListSegment: starts at list seq, ends beyond list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is%" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
     }
     if (overlap > 0) {
@@ -560,7 +567,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
                 new_seg->prev = list_seg->prev;
 
                 StreamTcpSegmentDataCopy(new_seg, list_seg);
-                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq + list_seg->payload_len), (u_int16_t) ((seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len)));
+                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq + list_seg->payload_len), (uint16_t) ((seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len)));
 
 
                 StreamTcpSegmentReturntoPool(list_seg);
@@ -586,7 +593,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
             case OS_POLICY_MACOS:
             case OS_POLICY_FIRST:
 #ifdef DEBUG
-                printf("Using Old Data in starts at list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+                printf("Using Old Data in starts at list case, list_seg->seq %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "\n", list_seg->seq, os_policy, overlap);
 #endif
                 break;
             case OS_POLICY_LINUX:
@@ -594,7 +601,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
                     StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
                 } else
 #ifdef DEBUG
-                    printf("Using Old Data in starts at list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+                    printf("Using Old Data in starts at list case, list_seg->seq %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "\n", list_seg->seq, os_policy, overlap);
 #endif
                 break;
             case OS_POLICY_OLD_LINUX:
@@ -605,7 +612,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
                     end_after = FALSE;
                 } else {
 #ifdef DEBUG
-                    printf("Using Old Data in starts at list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+                    printf("Using Old Data in starts at list case, list_seg->seq %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "\n", list_seg->seq, os_policy, overlap);
 #endif
                 }
                 break;
@@ -637,9 +644,9 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
  *  \param  os_policy   OS_POLICY of the given stream.
  */
 
-static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, u_int8_t os_policy) {
-    u_int16_t overlap = 0;
-    u_int16_t packet_length;
+static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, uint8_t os_policy) {
+    uint16_t overlap = 0;
+    uint16_t packet_length;
     char end_before = FALSE;
     char end_after = FALSE;
     char end_same = FALSE;
@@ -650,7 +657,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
         overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq + seg->payload_len);
         end_before = TRUE;
 #ifdef DEBUG
-        printf("HandleSegmentStartsAfterListSegment: starts beyond list seq, ends before list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsAfterListSegment: starts beyond list seq, ends before list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
         /* seg starts after seq, before end, ends at seq. */
     } else if (SEQ_EQ((seg->seq + seg->payload_len),
@@ -658,7 +665,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
         overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq);
         end_same = TRUE;
 #ifdef DEBUG
-        printf("HandleSegmentStartsAfterListSegment: starts beyond list seq, ends at list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsAfterListSegment: starts beyond list seq, ends at list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
         /* seg starts after seq, before end, ends beyond seq. */
     } else if (SEQ_LT(seg->seq, list_seg->seq + list_seg->payload_len) &&
@@ -667,7 +674,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
         overlap = (seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len);
         end_after = TRUE;
 #ifdef DEBUG
-        printf("HandleSegmentStartsAfterListSegment: starts beyond list seq, before list end, ends at list end: seg->seq %u, list_seg->seq %u, list_seg->payload_len %u overlap is %u\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsAfterListSegment: starts beyond list seq, before list end, ends at list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
     }
     if (overlap > 0) {
@@ -697,7 +704,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
                 new_seg->prev = list_seg->prev;
 
                 StreamTcpSegmentDataCopy(new_seg, list_seg);
-                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq + list_seg->payload_len), (u_int16_t) ((seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len)));
+                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq + list_seg->payload_len), (uint16_t) ((seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len)));
 
                 StreamTcpSegmentReturntoPool(list_seg);
 
@@ -725,7 +732,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
             case OS_POLICY_MACOS:
             case OS_POLICY_FIRST:
 #ifdef DEBUG
-                printf("Using Old Data in starts beyond list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+                printf("Using Old Data in starts beyond list case, list_seg->seq %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "\n", list_seg->seq, os_policy, overlap);
 #endif
                 break;
             case OS_POLICY_SOLARIS:
@@ -735,7 +742,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
                     end_after = FALSE;
                 } else {
 #ifdef DEBUG
-                    printf("Using Old Data in starts beyond list case, list_seg->seq %u policy %u overlap %u\n", list_seg->seq, os_policy, overlap);
+                    printf("Using Old Data in starts beyond list case, list_seg->seq %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "\n", list_seg->seq, os_policy, overlap);
 #endif
                 }
                 break;
@@ -761,7 +768,7 @@ int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn, TcpStream *strea
     if (seg == NULL)
         return -1;
 
-    //printf("StreamTcpReassembleHandleSegmentHandleData: seg %p, seg->pool_size %u\n", seg, seg->pool_size);
+    //printf("StreamTcpReassembleHandleSegmentHandleData: seg %p, seg->pool_size %" PRIu32 "\n", seg, seg->pool_size);
 
     memcpy(seg->payload, p->payload, p->payload_len);
     seg->payload_len = p->payload_len;
@@ -824,11 +831,11 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
 
     StreamMsg *smsg = NULL;
     char remove = FALSE;
-    u_int16_t smsg_offset = 0;
-    u_int16_t payload_offset = 0;
-    u_int16_t payload_len = 0;
+    uint16_t smsg_offset = 0;
+    uint16_t payload_offset = 0;
+    uint16_t payload_len = 0;
     TcpSegment *seg = stream->seg_list;
-    u_int32_t next_seq = seg->seq;
+    uint32_t next_seq = seg->seq;
 
     /* check if we have enough data to send to L7 */
     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -862,7 +869,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
         printf("StreamTcpReassembleHandleSegmentUpdateACK: seg %p\n", seg);
 
         if (next_seq != seg->seq) {
-            printf("StreamTcpReassembleHandleSegmentUpdateACK: expected next_seq %u, got %u. Seq gap?\n", next_seq, seg->seq);
+            printf("StreamTcpReassembleHandleSegmentUpdateACK: expected next_seq %" PRIu32 ", got %" PRIu32 ". Seq gap?\n", next_seq, seg->seq);
             if (smsg != NULL)
                 StreamMsgPutInQueue(smsg);
             return -1;
@@ -870,7 +877,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
 
         /* if the segment ends beyond ra_base_seq we need to consider it */
         if (SEQ_GT((seg->seq + seg->payload_len), stream->ra_base_seq)) {
-            printf("StreamTcpReassembleHandleSegmentUpdateACK: seg->seq %u, seg->payload_len %u, stream->ra_base_seq %u\n",
+            printf("StreamTcpReassembleHandleSegmentUpdateACK: seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 ", stream->ra_base_seq %" PRIu32 "\n",
                     seg->seq, seg->payload_len, stream->ra_base_seq);
 
             /* get a message
@@ -903,18 +910,18 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
                     payload_len = ((seg->seq + seg->payload_len) - stream->last_ack) - payload_offset;
                     printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
-                            "before ra_base, ends beyond last_ack, payload_offset %u, "
-                            "payload_len %u\n", payload_offset, payload_len);
+                            "before ra_base, ends beyond last_ack, payload_offset %" PRIu32 ", "
+                            "payload_len %" PRIu32 "\n", payload_offset, payload_len);
                 } else {
                     payload_len = seg->payload_len - payload_offset;
                     printf("StreamTcpReassembleHandleSegmentUpdateACK: starts "
-                            "before ra_base, ends normal, payload_offset %u, "
-                            "payload_len %u\n", payload_offset, payload_len);
+                            "before ra_base, ends normal, payload_offset %" PRIu32 ", "
+                            "payload_len %" PRIu32 "\n", payload_offset, payload_len);
                 }
 
 
                 if (payload_offset > seg->payload_len) {
-                    printf("BUG(%u): payload_offset %u > seg->payload_len %u. seg->seq %u, stream->ra_base_seq %u\n",
+                    printf("BUG(%" PRIu32 "): payload_offset %" PRIu32 " > seg->payload_len %" PRIu32 ". seg->seq %" PRIu32 ", stream->ra_base_seq %" PRIu32 "\n",
                             __LINE__, payload_offset, seg->payload_len, seg->seq, stream->ra_base_seq);
                     abort();
                 }
@@ -925,26 +932,26 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
                     payload_len = stream->last_ack - seg->seq;
                     printf("StreamTcpReassembleHandleSegmentUpdateACK: start "
-                            "fine, ends beyond last_ack, payload_offset %u, "
-                            "payload_len %u\n", payload_offset, payload_len);
+                            "fine, ends beyond last_ack, payload_offset %" PRIu32 ", "
+                            "payload_len %" PRIu32 "\n", payload_offset, payload_len);
                 } else {
                     payload_len = seg->payload_len;
                     printf("StreamTcpReassembleHandleSegmentUpdateACK: normal "
-                            "(smsg_offset %u), payload_offset %u, payload_len %u\n",
+                            "(smsg_offset %" PRIu32 "), payload_offset %" PRIu32 ", payload_len %" PRIu32 "\n",
                             smsg_offset, payload_offset, payload_len);
                 }
             }
 
-            u_int16_t copy_size = sizeof (smsg->data.data) - smsg_offset;
+            uint16_t copy_size = sizeof (smsg->data.data) - smsg_offset;
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
             if (copy_size > sizeof (smsg->data.data)) {
-                printf("BUG(%u): copy_size %u > sizeof(smsg->data.data) %u\n", __LINE__, copy_size, sizeof (smsg->data.data));
+                printf("BUG(%" PRIu32 "): copy_size %" PRIu32 " > sizeof(smsg->data.data) %" PRIuMAX "\n", __LINE__, copy_size, sizeof (smsg->data.data));
                 abort();
             }
-            printf("StreamTcpReassembleHandleSegmentUpdateACK: copy_size %u "
-                    "(payload_len %u, payload_offset %u)\n", copy_size, payload_len, payload_offset);
+            printf("StreamTcpReassembleHandleSegmentUpdateACK: copy_size %" PRIu32 " "
+                    "(payload_len %" PRIu32 ", payload_offset %" PRIu32 ")\n", copy_size, payload_len, payload_offset);
 
             memcpy(smsg->data.data + smsg_offset, seg->payload + payload_offset, copy_size);
 
@@ -959,22 +966,22 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
 
             if (copy_size < payload_len) {
                 printf("StreamTcpReassembleHandleSegmentUpdateACK: "
-                        "copy_size %u < %u\n", copy_size, payload_len);
+                        "copy_size %" PRIu32 " < %" PRIu32 "\n", copy_size, payload_len);
 
                 payload_offset += copy_size;
                 payload_len -= copy_size;
                 if (payload_offset > seg->payload_len) {
-                    printf("BUG(%u): payload_offset %u > seg->payload_len %u\n", __LINE__, payload_offset, seg->payload_len);
+                    printf("BUG(%" PRIu32 "): payload_offset %" PRIu32 " > seg->payload_len %" PRIu32 "\n", __LINE__, payload_offset, seg->payload_len);
                     abort();
                 }
                 printf("StreamTcpReassembleHandleSegmentUpdateACK: "
-                        "payload_offset %u\n", payload_offset);
+                        "payload_offset %" PRIu32 "\n", payload_offset);
 
                 /* we need a while loop here as the packets theoretically can be 64k */
 
                 while (remove == FALSE) {
                     printf("StreamTcpReassembleHandleSegmentUpdateACK: "
-                            "new msg at offset %u, payload_len %u\n", payload_offset, payload_len);
+                            "new msg at offset %" PRIu32 ", payload_len %" PRIu32 "\n", payload_offset, payload_len);
 
                     /* get a new message
                        XXX we need a setup function */
@@ -997,12 +1004,12 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                         copy_size = (seg->payload_len - payload_offset);
                     }
                     if (copy_size > sizeof (smsg->data.data)) {
-                        printf("BUG(%u): copy_size %u > sizeof(smsg->data.data) %u\n", __LINE__, copy_size, sizeof (smsg->data.data));
+                        printf("BUG(%" PRIu32 "): copy_size %" PRIu32 " > sizeof(smsg->data.data) %" PRIuMAX "\n", __LINE__, copy_size, sizeof (smsg->data.data));
                         abort();
                     }
 
                     printf("StreamTcpReassembleHandleSegmentUpdateACK: copy "
-                            "payload_offset %u, smsg_offset %u, copy_size %u\n",
+                            "payload_offset %" PRIu32 ", smsg_offset %" PRIu32 ", copy_size %" PRIu32 "\n",
                             payload_offset, smsg_offset, copy_size);
 
                     memcpy(smsg->data.data + smsg_offset, seg->payload + payload_offset, copy_size);
@@ -1011,7 +1018,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                     smsg->data.data_len += copy_size;
 
                     printf("StreamTcpReassembleHandleSegmentUpdateACK: copied "
-                            "payload_offset %u, smsg_offset %u, copy_size %u\n",
+                            "payload_offset %" PRIu32 ", smsg_offset %" PRIu32 ", copy_size %" PRIu32 "\n",
                             payload_offset, smsg_offset, copy_size);
 
                     if (smsg->data.data_len == sizeof (smsg->data.data)) {
@@ -1024,7 +1031,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                         payload_len -= copy_size;
 
                         if (payload_offset > seg->payload_len) {
-                            printf("BUG(%u): payload_offset %u > seg->payload_len %u\n", __LINE__, payload_offset, seg->payload_len);
+                            printf("BUG(%" PRIu32 "): payload_offset %" PRIu32 " > seg->payload_len %" PRIu32 "\n", __LINE__, payload_offset, seg->payload_len);
                             abort();
                         }
                         printf("StreamTcpReassembleHandleSegmentUpdateACK: loop not done\n");
@@ -1090,13 +1097,13 @@ int StreamTcpReassembleHandleSegment(TcpSession *ssn, TcpStream *stream, Packet 
  *
  * XXX use a pool?
  */
-void StreamL7DataPtrInit(TcpSession *ssn, u_int8_t cnt) {
+void StreamL7DataPtrInit(TcpSession *ssn, uint8_t cnt) {
     if (cnt == 0)
         return;
 
     ssn->l7data = (void **) malloc(sizeof (void *) * cnt);
     if (ssn->l7data != NULL) {
-        u_int8_t u;
+        uint8_t u;
         for (u = 0; u < cnt; u++) {
             ssn->l7data[u] = NULL;
         }
@@ -1114,10 +1121,10 @@ void StreamL7DataPtrInit(TcpSession *ssn, u_int8_t cnt) {
  *  \todo VJ We can remove the abort()s later.
  */
 
-void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg, u_int32_t start_point, u_int16_t len) {
-    u_int32_t seq;
-    u_int16_t s_cnt = 0;
-    u_int16_t dst_pos = 0;
+void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg, uint32_t start_point, uint16_t len) {
+    uint32_t seq;
+    uint16_t s_cnt = 0;
+    uint16_t dst_pos = 0;
 
     if (SEQ_GT(start_point, dst_seg->seq)) {
         dst_pos = start_point - dst_seg->seq;
@@ -1134,7 +1141,7 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg, u_int
         if (dst_pos >= dst_seg->payload_len)
             abort();
 
-        //printf("StreamTcpSegmentDataReplace: seq %u, start point %u, len %u, dst_seg len %u, dst_pos %u, s_cnt %u\n", seq, start_point, len, dst_seg->payload_len, dst_pos, s_cnt);
+        //printf("StreamTcpSegmentDataReplace: seq %" PRIu32 ", start point %" PRIu32 ", len %" PRIu32 ", dst_seg len %" PRIu32 ", dst_pos %" PRIu32 ", s_cnt %" PRIu32 "\n", seq, start_point, len, dst_seg->payload_len, dst_pos, s_cnt);
 
         dst_seg->payload[dst_pos] = src_seg->payload[s_cnt];
 
@@ -1157,9 +1164,9 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg, u_int
  */
 
 void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg) {
-    u_int32_t i;
-    u_int16_t dst_pos = 0;
-    u_int16_t src_pos = 0;
+    uint32_t i;
+    uint16_t dst_pos = 0;
+    uint16_t src_pos = 0;
 
     if (SEQ_GT(src_seg->seq, dst_seg->seq))
         dst_pos = src_seg->seq - dst_seg->seq;
@@ -1169,7 +1176,7 @@ void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg) {
     for (i = src_seg->seq; SEQ_LT(i, (src_seg->seq + src_seg->payload_len)); i++) {
         dst_seg->payload[dst_pos] = src_seg->payload[src_pos];
 
-        //printf("StreamTcpSegmentDataCopy: value %X, src %X, src_pos %u, dst seq %u, src seq %u, i %u, pay len %u\n",
+        //printf("StreamTcpSegmentDataCopy: value %" PRIX32 ", src %" PRIX32 ", src_pos %" PRIu32 ", dst seq %" PRIu32 ", src seq %" PRIu32 ", i %" PRIu32 ", pay len %" PRIu32 "\n",
         //    dst_seg->payload[dst_pos], src_seg->payload[src_pos], src_pos, dst_seg->seq, src_seg->seq, i, src_seg->payload_len);
 
         dst_pos++;
@@ -1185,9 +1192,9 @@ void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg) {
  *  \param   len    Length which tells the required size of needed segment.
  */
 
-TcpSegment* StreamTcpGetSegment(u_int16_t len) {
-    u_int16_t idx = segment_pool_idx[len];
-    //printf("StreamTcpReassembleHandleSegmentHandleData: idx %u for payload_len %u\n", idx, p->payload_len);
+TcpSegment* StreamTcpGetSegment(uint16_t len) {
+    uint16_t idx = segment_pool_idx[len];
+    //printf("StreamTcpReassembleHandleSegmentHandleData: idx %" PRIu32 " for payload_len %" PRIu32 "\n", idx, p->payload_len);
 
     mutex_lock(&segment_pool_mutex[idx]);
     //printf("StreamTcpReassembleHandleSegmentHandleData: mutex locked, getting data from pool %p\n", segment_pool[idx]);
@@ -1207,7 +1214,7 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg) {
     seg->next = NULL;
     seg->prev = NULL;
 
-    u_int16_t idx = segment_pool_idx[seg->pool_size];
+    uint16_t idx = segment_pool_idx[seg->pool_size];
     mutex_lock(&segment_pool_mutex[idx]);
     //printf("StreamTcpReassembleHandleSegmentHandleData: mutex locked, getting data from pool %p\n", segment_pool[idx]);
     PoolReturn(segment_pool[idx], (void *) seg);
@@ -1230,7 +1237,7 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
     Packet p;
     ThreadVars tv;
     Flow f;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     TCPHdr tcph;
 
     /* prevent L7 from kicking in */
@@ -1394,8 +1401,8 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
  *  \param  payload_len The length of the payload for current packet.
  */
 
-void StreamTcpCreateTestPacket(u_int8_t *payload, u_int8_t value, u_int8_t payload_len) {
-    u_int8_t i;
+void StreamTcpCreateTestPacket(uint8_t *payload, uint8_t value, uint8_t payload_len) {
+    uint8_t i;
     for (i = 0; i < payload_len; i++)
         payload[i] = value;
     for (; i < 4; i++)
@@ -1409,10 +1416,10 @@ void StreamTcpCreateTestPacket(u_int8_t *payload, u_int8_t value, u_int8_t paylo
  *  \param  stream          Reassembled stream returned from the reassembly functions
  */
 
-static int StreamTcpCheckStreamContents(u_int8_t *stream_policy, TcpStream *stream) {
+static int StreamTcpCheckStreamContents(uint8_t *stream_policy, TcpStream *stream) {
     TcpSegment *temp;
-    u_int16_t i = 0;
-    u_int8_t j;
+    uint16_t i = 0;
+    uint8_t j;
 
 #ifdef DEBUG
     TcpSegment *temp1;
@@ -1426,7 +1433,7 @@ static int StreamTcpCheckStreamContents(u_int8_t *stream_policy, TcpStream *stre
     for (temp = stream->seg_list; temp != NULL; temp = temp->next) {
         j = 0;
         for (; j < temp->payload_len; j++) {
-            //printf("i is %u and len is %u stream %x and temp is %x\n", i, temp->payload_len, stream_policy[i], temp->payload[j]);
+            //printf("i is %" PRIu32 " and len is %" PRIu32 " stream %" PRIx32 " and temp is %" PRIx32 "\n", i, temp->payload_len, stream_policy[i], temp->payload[j]);
             if (stream_policy[i] == temp->payload[j]) {
                 i++;
                 continue;
@@ -1449,7 +1456,7 @@ static int StreamTcpTestStartsBeforeListSegment(TcpStream *stream) {
     Packet p;
     ThreadVars tv;
     Flow f;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     TCPHdr tcph;
 
     /* prevent L7 from kicking in */
@@ -1540,7 +1547,7 @@ static int StreamTcpTestStartsAtSameListSegment(TcpStream *stream) {
     Packet p;
     ThreadVars tv;
     Flow f;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     TCPHdr tcph;
 
     /* prevent L7 from kicking in */
@@ -1632,7 +1639,7 @@ static int StreamTcpTestStartsAfterListSegment(TcpStream *stream) {
     Packet p;
     ThreadVars tv;
     Flow f;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     TCPHdr tcph;
 
     /* prevent L7 from kicking in */
@@ -1711,7 +1718,7 @@ static int StreamTcpTestStartsAfterListSegment(TcpStream *stream) {
 
 static int StreamTcpReassembleTest01(void) {
     TcpStream stream;
-    u_int8_t stream_before_bsd[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
+    uint8_t stream_before_bsd[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
                                       0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
@@ -1734,7 +1741,7 @@ exit(1);
 
 static int StreamTcpReassembleTest02(void) {
     TcpStream stream;
-    u_int8_t stream_same_bsd[8] = {0x43, 0x43, 0x43, 0x4c, 0x48, 0x48,
+    uint8_t stream_same_bsd[8] = {0x43, 0x43, 0x43, 0x4c, 0x48, 0x48,
                                     0x49, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
@@ -1756,7 +1763,7 @@ static int StreamTcpReassembleTest02(void) {
 
 static int StreamTcpReassembleTest03(void) {
     TcpStream stream;
-    u_int8_t stream_after_bsd[8] = {0x41, 0x41, 0x4a, 0x46, 0x46, 0x46,
+    uint8_t stream_after_bsd[8] = {0x41, 0x41, 0x4a, 0x46, 0x46, 0x46,
                                      0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
@@ -1778,7 +1785,7 @@ static int StreamTcpReassembleTest03(void) {
 
 static int StreamTcpReassembleTest04(void) {
     TcpStream stream;
-    u_int8_t stream_bsd[25] = {0x30, 0x41, 0x41, 0x41, 0x4a, 0x4a, 0x42, 0x43,
+    uint8_t stream_bsd[25] = {0x30, 0x41, 0x41, 0x41, 0x4a, 0x4a, 0x42, 0x43,
                                0x43, 0x43, 0x4c, 0x4c, 0x4c, 0x4d, 0x4d, 0x4d,
                                0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x49, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
@@ -1801,7 +1808,7 @@ static int StreamTcpReassembleTest04(void) {
 
 static int StreamTcpReassembleTest05(void) {
     TcpStream stream;
-    u_int8_t stream_before_vista[10] = {0x4a, 0x41, 0x42, 0x4a, 0x4c, 0x44,
+    uint8_t stream_before_vista[10] = {0x4a, 0x41, 0x42, 0x4a, 0x4c, 0x44,
                                         0x4c, 0x4d, 0x45, 0x45};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_VISTA;
@@ -1823,7 +1830,7 @@ static int StreamTcpReassembleTest05(void) {
 
 static int StreamTcpReassembleTest06(void) {
     TcpStream stream;
-    u_int8_t stream_same_vista[8] = {0x43, 0x43, 0x43, 0x4c, 0x48, 0x48,
+    uint8_t stream_same_vista[8] = {0x43, 0x43, 0x43, 0x4c, 0x48, 0x48,
                                      0x49, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_VISTA;
@@ -1845,7 +1852,7 @@ static int StreamTcpReassembleTest06(void) {
 
 static int StreamTcpReassembleTest07(void) {
     TcpStream stream;
-    u_int8_t stream_after_vista[8] = {0x41, 0x41, 0x4a, 0x46, 0x46, 0x46,
+    uint8_t stream_after_vista[8] = {0x41, 0x41, 0x4a, 0x46, 0x46, 0x46,
                                       0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_VISTA;
@@ -1867,7 +1874,7 @@ static int StreamTcpReassembleTest07(void) {
 
 static int StreamTcpReassembleTest08(void) {
     TcpStream stream;
-    u_int8_t stream_vista[25] = {0x30, 0x41, 0x41, 0x41, 0x4a, 0x42, 0x42, 0x43,
+    uint8_t stream_vista[25] = {0x30, 0x41, 0x41, 0x41, 0x4a, 0x42, 0x42, 0x43,
                                  0x43, 0x43, 0x4c, 0x44, 0x4c, 0x4d, 0x45, 0x45,
                                  0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x49, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
@@ -1890,7 +1897,7 @@ static int StreamTcpReassembleTest08(void) {
 
 static int StreamTcpReassembleTest09(void) {
     TcpStream stream;
-    u_int8_t stream_before_linux[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
+    uint8_t stream_before_linux[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
                                         0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LINUX;
@@ -1912,7 +1919,7 @@ static int StreamTcpReassembleTest09(void) {
 
 static int StreamTcpReassembleTest10(void) {
     TcpStream stream;
-    u_int8_t stream_same_linux[8] = {0x4c, 0x4c, 0x4c, 0x4c, 0x48, 0x48,
+    uint8_t stream_same_linux[8] = {0x4c, 0x4c, 0x4c, 0x4c, 0x48, 0x48,
                                      0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LINUX;
@@ -1934,7 +1941,7 @@ static int StreamTcpReassembleTest10(void) {
 
 static int StreamTcpReassembleTest11(void) {
     TcpStream stream;
-    u_int8_t stream_after_linux[8] = {0x41, 0x41, 0x4a, 0x46, 0x46, 0x46,
+    uint8_t stream_after_linux[8] = {0x41, 0x41, 0x4a, 0x46, 0x46, 0x46,
                                       0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LINUX;
@@ -1956,7 +1963,7 @@ static int StreamTcpReassembleTest11(void) {
 
 static int StreamTcpReassembleTest12(void) {
     TcpStream stream;
-    u_int8_t stream_linux[25] = {0x30, 0x41, 0x41, 0x41, 0x4a, 0x4a, 0x42, 0x43,
+    uint8_t stream_linux[25] = {0x30, 0x41, 0x41, 0x41, 0x4a, 0x4a, 0x42, 0x43,
                                  0x43, 0x43, 0x4c, 0x4c, 0x4c, 0x4d, 0x4d, 0x4d,
                                  0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
@@ -1979,7 +1986,7 @@ static int StreamTcpReassembleTest12(void) {
 
 static int StreamTcpReassembleTest13(void) {
     TcpStream stream;
-    u_int8_t stream_before_old_linux[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
+    uint8_t stream_before_old_linux[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
                                             0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_OLD_LINUX;
@@ -2001,7 +2008,7 @@ static int StreamTcpReassembleTest13(void) {
 
 static int StreamTcpReassembleTest14(void) {
     TcpStream stream;
-    u_int8_t stream_same_old_linux[8] = {0x4c, 0x4c, 0x4c, 0x4c, 0x48, 0x48,
+    uint8_t stream_same_old_linux[8] = {0x4c, 0x4c, 0x4c, 0x4c, 0x48, 0x48,
                                          0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_OLD_LINUX;
@@ -2023,7 +2030,7 @@ static int StreamTcpReassembleTest14(void) {
 
 static int StreamTcpReassembleTest15(void) {
     TcpStream stream;
-    u_int8_t stream_after_old_linux[8] = {0x41, 0x41, 0x4a, 0x46, 0x46, 0x46,
+    uint8_t stream_after_old_linux[8] = {0x41, 0x41, 0x4a, 0x46, 0x46, 0x46,
                                           0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_OLD_LINUX;
@@ -2045,7 +2052,7 @@ static int StreamTcpReassembleTest15(void) {
 
 static int StreamTcpReassembleTest16(void) {
     TcpStream stream;
-    u_int8_t stream_old_linux[25] = {0x30, 0x41, 0x41, 0x41, 0x4a, 0x4a, 0x42, 0x4b,
+    uint8_t stream_old_linux[25] = {0x30, 0x41, 0x41, 0x41, 0x4a, 0x4a, 0x42, 0x4b,
                                      0x4b, 0x4b, 0x4c, 0x4c, 0x4c, 0x4d, 0x4d, 0x4d,
                                      0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
@@ -2068,7 +2075,7 @@ static int StreamTcpReassembleTest16(void) {
 
 static int StreamTcpReassembleTest17(void) {
     TcpStream stream;
-    u_int8_t stream_before_solaris[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
+    uint8_t stream_before_solaris[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
                                           0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_SOLARIS;
@@ -2090,7 +2097,7 @@ static int StreamTcpReassembleTest17(void) {
 
 static int StreamTcpReassembleTest18(void) {
     TcpStream stream;
-    u_int8_t stream_same_solaris[8] = {0x4c, 0x4c, 0x4c, 0x4c, 0x48, 0x48,
+    uint8_t stream_same_solaris[8] = {0x4c, 0x4c, 0x4c, 0x4c, 0x48, 0x48,
                                        0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_SOLARIS;
@@ -2112,7 +2119,7 @@ static int StreamTcpReassembleTest18(void) {
 
 static int StreamTcpReassembleTest19(void) {
     TcpStream stream;
-    u_int8_t stream_after_solaris[8] = {0x41, 0x4a, 0x4a, 0x46, 0x46, 0x46,
+    uint8_t stream_after_solaris[8] = {0x41, 0x4a, 0x4a, 0x46, 0x46, 0x46,
                                         0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_SOLARIS;
@@ -2134,7 +2141,7 @@ static int StreamTcpReassembleTest19(void) {
 
 static int StreamTcpReassembleTest20(void) {
     TcpStream stream;
-    u_int8_t stream_solaris[25] = {0x30, 0x41, 0x4a, 0x4a, 0x4a, 0x42, 0x42, 0x4b,
+    uint8_t stream_solaris[25] = {0x30, 0x41, 0x4a, 0x4a, 0x4a, 0x42, 0x42, 0x4b,
                                    0x4b, 0x4b, 0x4c, 0x4c, 0x4c, 0x4d, 0x4d, 0x4d,
                                    0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
@@ -2157,7 +2164,7 @@ static int StreamTcpReassembleTest20(void) {
 
 static int StreamTcpReassembleTest21(void) {
     TcpStream stream;
-    u_int8_t stream_before_last[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
+    uint8_t stream_before_last[10] = {0x4a, 0x4a, 0x4a, 0x4a, 0x4c, 0x4c,
                                        0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LAST;
@@ -2179,7 +2186,7 @@ static int StreamTcpReassembleTest21(void) {
 
 static int StreamTcpReassembleTest22(void) {
     TcpStream stream;
-    u_int8_t stream_same_last[8] = {0x4c, 0x4c, 0x4c, 0x4c, 0x50, 0x48,
+    uint8_t stream_same_last[8] = {0x4c, 0x4c, 0x4c, 0x4c, 0x50, 0x48,
                                     0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LAST;
@@ -2201,7 +2208,7 @@ static int StreamTcpReassembleTest22(void) {
 
 static int StreamTcpReassembleTest23(void) {
     TcpStream stream;
-    u_int8_t stream_after_last[8] = {0x41, 0x4a, 0x4a, 0x46, 0x4e, 0x46,
+    uint8_t stream_after_last[8] = {0x41, 0x4a, 0x4a, 0x46, 0x4e, 0x46,
                                      0x47, 0x4f};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LAST;
@@ -2223,7 +2230,7 @@ static int StreamTcpReassembleTest23(void) {
 
 static int StreamTcpReassembleTest24(void) {
     TcpStream stream;
-    u_int8_t stream_last[25] = {0x30, 0x41, 0x4a, 0x4a, 0x4a, 0x4a, 0x42, 0x4b,
+    uint8_t stream_last[25] = {0x30, 0x41, 0x4a, 0x4a, 0x4a, 0x4a, 0x42, 0x4b,
                                 0x4b, 0x4b, 0x4c, 0x4c, 0x4c, 0x4d, 0x4d, 0x4d,
                                 0x46, 0x4e, 0x46, 0x47, 0x4f, 0x50, 0x48, 0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));

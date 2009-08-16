@@ -9,8 +9,8 @@
 #define DETECT_FLOWBITS_CMD_NOALERT  5
 
 typedef struct DetectFlowbitsData_ {
-    u_int16_t idx;
-    u_int8_t cmd;
+    uint16_t idx;
+    uint8_t cmd;
 } DetectFlowbitsData;
 
 /* prototypes */

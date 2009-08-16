@@ -2,26 +2,26 @@
 #define __STREAM_TCP_PRIVATE_H__
 
 typedef struct TcpSegment_ {
-    u_int8_t *payload;
-    u_int16_t payload_len; /* actual size of the payload */
-    u_int32_t seq;
-    u_int16_t pool_size; /* size of the memory */
+    uint8_t *payload;
+    uint16_t payload_len; /* actual size of the payload */
+    uint32_t seq;
+    uint16_t pool_size; /* size of the memory */
     struct TcpSegment_ *next;
     struct TcpSegment_ *prev;
 } TcpSegment;
 
 typedef struct TcpStream_ {
-    u_int32_t isn; /* initial sequence number */
-    u_int32_t next_seq; /* next expected sequence number */
-    u_int32_t last_ack; /* last ack'd sequence number */
-    u_int32_t next_win; /* next max seq within window */
-    u_int8_t wscale;
-    u_int16_t window;
+    uint32_t isn; /* initial sequence number */
+    uint32_t next_seq; /* next expected sequence number */
+    uint32_t last_ack; /* last ack'd sequence number */
+    uint32_t next_win; /* next max seq within window */
+    uint8_t wscale;
+    uint16_t window;
 
     /* reassembly */
-    u_int32_t ra_base_seq; /* reassembled seq. We've reassembled up to this point. */
+    uint32_t ra_base_seq; /* reassembled seq. We've reassembled up to this point. */
     TcpSegment *seg_list;
-    u_int8_t os_policy; /* target based OS policy used for reassembly and handling packets*/
+    uint8_t os_policy; /* target based OS policy used for reassembly and handling packets*/
 } TcpStream;
 
 /* from /usr/include/netinet/tcp.h */
@@ -49,7 +49,7 @@ enum
 #define SEQ_GEQ(a,b) ((int)((a) - (b)) >= 0)
 
 typedef struct TcpSession_ {
-    u_int8_t state;
+    uint8_t state;
     TcpStream server;
     TcpStream client;
     void **l7data;

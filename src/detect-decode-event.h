@@ -6,19 +6,21 @@
 #ifndef __DETECT_DECODE_EVENT_H__
 #define __DETECT_DECODE_EVENT_H__
 
+#include "decode-events.h"
 
 typedef struct DetectDecodeEventData_ {
-    u_int8_t event;
+    uint8_t event;
 } DetectDecodeEventData;
 
 /* prototypes */
 void DetectDecodeEventRegister (void);
 
-/* suppoted decoder events */
+/* supported decoder events */
 
+#ifdef DETECT_EVENTS
 struct DetectDecodeEvents_ {
     char *event_name;
-    u_int8_t code;
+    uint8_t code;
 } DEvents[] = {
     { "ipv4.pkt_too_small", IPV4_PKT_TOO_SMALL, },
     { "ipv4.hlen_too_small", IPV4_HLEN_TOO_SMALL, },
@@ -49,7 +51,7 @@ struct DetectDecodeEvents_ {
     { "ppp.wrong_type", PPP_WRONG_TYPE, },
     { NULL, 0 },
 };
-
+#endif /* DETECT_EVENTS */
 
 #endif /*__DETECT_DECODE_EVENT_H__ */
 

@@ -11,20 +11,21 @@
 #define DETECT_URICONTENT_RAWBYTES      0x20
 
 typedef struct DetectUricontentData_ {
-    u_int8_t *uricontent;
-    u_int8_t uricontent_len;
-    u_int32_t id;
+    uint8_t *uricontent;
+    uint8_t uricontent_len;
+    uint32_t id;
 
-    u_int16_t depth;
-    u_int16_t offset;
+    uint16_t depth;
+    uint16_t offset;
     int32_t distance;
     int32_t within;
-    u_int8_t flags;
+    uint8_t flags;
 } DetectUricontentData;
 
 /* prototypes */
 void DetectUricontentRegister (void);
-u_int32_t DetectUricontentMaxId(DetectEngineCtx *);
+uint32_t DetectUricontentMaxId(DetectEngineCtx *);
+void PktHttpUriFree(Packet *p);
 
 #endif /* __DETECT_URICONTENT_H__ */
 

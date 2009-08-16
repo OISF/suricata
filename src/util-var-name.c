@@ -1,18 +1,18 @@
-#include "eidps.h"
+#include "eidps-common.h"
 #include "detect.h"
 #include "util-hashlist.h"
 
 typedef struct VariableName_ {
     char *name;
-    u_int8_t type; /* flowbit, pktvar, etc */
-    u_int16_t idx;
-    u_int8_t flags;
+    uint8_t type; /* flowbit, pktvar, etc */
+    uint16_t idx;
+    uint8_t flags;
 } VariableName;
 
-static u_int32_t VariableNameHash(HashListTable *ht, void *buf, u_int16_t buflen) {
+static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen) {
      VariableName *fn = (VariableName *)buf;
-     u_int32_t hash = strlen(fn->name) + fn->type;
-     u_int16_t u;
+     uint32_t hash = strlen(fn->name) + fn->type;
+     uint16_t u;
 
      for (u = 0; u < buflen; u++) {
          hash += fn->name[u];
@@ -21,7 +21,7 @@ static u_int32_t VariableNameHash(HashListTable *ht, void *buf, u_int16_t buflen
      return hash;
 }
 
-static char VariableNameCompare(void *buf1, u_int16_t len1, void *buf2, u_int16_t len2) {
+static char VariableNameCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2) {
     VariableName *fn1 = (VariableName *)buf1;
     VariableName *fn2 = (VariableName *)buf2;
 
@@ -56,8 +56,8 @@ int VariableNameInitHash(DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-u_int16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, u_int8_t cmd, u_int8_t type) {
-    u_int16_t idx = 0;
+uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t cmd, uint8_t type) {
+    uint16_t idx = 0;
 
     VariableName *fn = malloc(sizeof(VariableName));
     if (fn == NULL)

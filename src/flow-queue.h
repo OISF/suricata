@@ -10,11 +10,11 @@ typedef struct FlowQueue_
 {
     Flow *top;
     Flow *bot;
-    u_int32_t len;
+    uint32_t len;
     pthread_mutex_t mutex_q;
     pthread_cond_t cond_q;
 #ifdef DBG_PERF
-    u_int32_t dbg_maxlen;
+    uint32_t dbg_maxlen;
 #endif /* DBG_PERF */
 } FlowQueue;
 

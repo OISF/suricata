@@ -47,9 +47,9 @@ typedef struct Address_
 {
     char family;
     union {
-        u_int32_t       address_un_data32[4]; /* type-specific field */
-        u_int16_t       address_un_data16[8]; /* type-specific field */
-        u_int8_t        address_un_data8[16]; /* type-specific field */
+        uint32_t       address_un_data32[4]; /* type-specific field */
+        uint16_t       address_un_data16[8]; /* type-specific field */
+        uint8_t        address_un_data8[16]; /* type-specific field */
     } address;
 } Address;
 
@@ -72,14 +72,14 @@ typedef struct Address_
  * prevent using memset. */
 #define SET_IPV4_SRC_ADDR(p,a) { \
     (a)->family = AF_INET; \
-    (a)->addr_data32[0] = (u_int32_t)(p)->ip4h->ip_src.s_addr; \
+    (a)->addr_data32[0] = (uint32_t)(p)->ip4h->ip_src.s_addr; \
     (a)->addr_data32[1] = 0; \
     (a)->addr_data32[2] = 0; \
     (a)->addr_data32[3] = 0; \
 }
 #define SET_IPV4_DST_ADDR(p,a) { \
     (a)->family = AF_INET; \
-    (a)->addr_data32[0] = (u_int32_t)(p)->ip4h->ip_dst.s_addr; \
+    (a)->addr_data32[0] = (uint32_t)(p)->ip4h->ip_dst.s_addr; \
     (a)->addr_data32[1] = 0; \
     (a)->addr_data32[2] = 0; \
     (a)->addr_data32[3] = 0; \
@@ -127,8 +127,8 @@ typedef struct Address_
 #define GET_TCP_SRC_PORT(p)  ((p)->sp)
 #define GET_TCP_DST_PORT(p)  ((p)->dp)
 
-/* Port is just a u_int16_t */
-typedef u_int16_t Port;
+/* Port is just a uint16_t */
+typedef uint16_t Port;
 #define SET_PORT(v, p) ((p) = (v))
 #define COPY_PORT(a,b) (b) = (a)
 
@@ -152,18 +152,18 @@ typedef u_int16_t Port;
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
 typedef struct PacketAlert_ {
-    u_int8_t  gid;
-    u_int32_t sid;
-    u_int8_t  rev;
-    u_int8_t class;
-    u_int8_t prio;
+    uint8_t  gid;
+    uint32_t sid;
+    uint8_t  rev;
+    uint8_t class;
+    uint8_t prio;
     char      *msg;
 } PacketAlert;
 
 #define PACKET_ALERT_MAX 256
 
 typedef struct PacketAlerts_ {
-    u_int16_t cnt;
+    uint16_t cnt;
     PacketAlert alerts[PACKET_ALERT_MAX];
 } PacketAlerts;
 
@@ -172,20 +172,20 @@ typedef struct PacketAlerts_ {
 
 typedef struct HttpUri_ {
     /* the raw uri for the packet as set by pcre */
-    u_int8_t *raw[HTTP_URI_MAXCNT];
-    u_int16_t raw_size[HTTP_URI_MAXCNT];
+    uint8_t *raw[HTTP_URI_MAXCNT];
+    uint16_t raw_size[HTTP_URI_MAXCNT];
 
     /* normalized uri */
-    u_int8_t norm[HTTP_URI_MAXCNT][HTTP_URI_MAXLEN];
-    u_int16_t norm_size[HTTP_URI_MAXCNT];
+    uint8_t norm[HTTP_URI_MAXCNT][HTTP_URI_MAXLEN];
+    uint16_t norm_size[HTTP_URI_MAXCNT];
 
-    u_int8_t cnt;
+    uint8_t cnt;
 } HttpUri;
 
 typedef struct PktVar_ {
     char *name;
-    u_int8_t *value;
-    u_int16_t value_len;
+    uint8_t *value;
+    uint16_t value_len;
     struct PktVar_ *next; /* right now just implement this as a list,
                            * in the long run we have thing of something
                            * faster. */
@@ -200,20 +200,20 @@ typedef struct Packet_
     Address dst;
     Port sp;
     Port dp;
-    u_int8_t proto;
+    uint8_t proto;
     /* make sure we can't be attacked on when the tunneled packet
      * has the exact same tuple as the lower levels */
-    u_int8_t recursion_level;
+    uint8_t recursion_level;
 
     struct timeval ts;
 
     /* ready to set verdict counter, only set in root */
-    u_int8_t rtv_cnt;
+    uint8_t rtv_cnt;
     /* tunnel packet ref count */
-    u_int8_t tpr_cnt;
+    uint8_t tpr_cnt;
     pthread_mutex_t mutex_rtv_cnt;
     /* tunnel stuff */
-    u_int8_t tunnel_proto;
+    uint8_t tunnel_proto;
     /* tunnel XXX convert to bitfield*/
     char tunnel_pkt;
     char tunnel_verdicted;
@@ -227,12 +227,12 @@ typedef struct Packet_
     PcapPacketVars pcap_v;
 
     /* storage */
-    u_int8_t pkt[65536];
-    u_int16_t pktlen;
+    uint8_t pkt[65536];
+    uint16_t pktlen;
 
     /* flow */
     struct Flow_ *flow;
-    u_int8_t flowflags;
+    uint8_t flowflags;
 
     /* pkt vars */
     PktVar *pktvar;
@@ -262,11 +262,11 @@ typedef struct Packet_
 
     /* ptr to the payload of the packet
      * with it's length. */
-    u_int8_t *payload;
-    u_int16_t payload_len;
+    uint8_t *payload;
+    uint16_t payload_len;
 
     /* decoder events: review how many events we have */
-    u_int8_t events[65535/8];
+    uint8_t events[65535/8];
 
     HttpUri http_uri;
 
@@ -291,11 +291,11 @@ typedef struct Packet_
 typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;
-    u_int16_t len;
+    uint16_t len;
     pthread_mutex_t mutex_q;
     pthread_cond_t cond_q;
 #ifdef DBG_PERF
-    u_int16_t dbg_maxlen;
+    uint16_t dbg_maxlen;
 #endif /* DBG_PERF */
 } PacketQueue;
 
@@ -376,21 +376,21 @@ typedef struct PacketQueue_ {
 
 
 /* decoder functions */
-void DecodeEthernet(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
-void DecodeSll(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
-void DecodePPP(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
-void DecodePPPoE(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
-void DecodeTunnel(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
-void DecodeIPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
-void DecodeIPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
-void DecodeICMPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
-void DecodeICMPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
-void DecodeTCP(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
-void DecodeUDP(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
-void DecodeHTTP(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
+void DecodeEthernet(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+void DecodeSll(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+void DecodePPP(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+void DecodePPPoE(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+void DecodeTunnel(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+void DecodeIPV4(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+void DecodeIPV6(ThreadVars *, Packet *, uint8_t *, uint16_t);
+void DecodeICMPV4(ThreadVars *, Packet *, uint8_t *, uint16_t);
+void DecodeICMPV6(ThreadVars *, Packet *, uint8_t *, uint16_t);
+void DecodeTCP(ThreadVars *, Packet *, uint8_t *, uint16_t);
+void DecodeUDP(ThreadVars *, Packet *, uint8_t *, uint16_t);
+void DecodeHTTP(ThreadVars *, Packet *, uint8_t *, uint16_t);
 
 Packet *SetupPkt (void);
-Packet *TunnelPktSetup(ThreadVars *, Packet *, u_int8_t *, u_int16_t, u_int8_t);
+Packet *TunnelPktSetup(ThreadVars *, Packet *, uint8_t *, uint16_t, uint8_t);
 
 #define DECODER_SET_EVENT(p, e)   ((p)->events[(e/8)] |= (1<<(e%8)))
 #define DECODER_ISSET_EVENT(p, e) ((p)->events[(e/8)] & (1<<(e%8)))

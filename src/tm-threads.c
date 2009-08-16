@@ -9,6 +9,7 @@
 #include <sched.h>     /* for sched_setaffinity(2) */
 
 #include "eidps.h"
+#include "stream.h"
 #include "threadvars.h"
 #include "tm-queues.h"
 #include "tm-queuehandlers.h"
@@ -197,7 +198,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
         TmThreadTestThreadUnPaused(tv);
 
         r = s->s.SlotFunc(tv, NULL, s->s.slot_data, /* no outqh, no pq */NULL);
-        //printf("%s: TmThreadsSlot1NoInNoOut: r %d\n", tv->name, r);
+        //printf("%s: TmThreadsSlot1NoInNoOut: r %" PRId32 "\n", tv->name, r);
         /* XXX handle error */
         if (r == 1) {
             run = 0;
@@ -265,7 +266,7 @@ void *TmThreadsSlot1(void *td) {
                 tv->tmqh_out(tv, extra_p);
             }
 
-            //printf("%s: TmThreadsSlot1: p %p, r %d\n", tv->name, p, r);
+            //printf("%s: TmThreadsSlot1: p %p, r %" PRId32 "\n", tv->name, p, r);
             /* XXX handle error */
             if (r == 1) {
                 run = 0;
@@ -366,7 +367,7 @@ void *TmThreadsSlot2(void *td) {
                 tv->tmqh_out(tv, extra_p);
             }
 
-            //printf("%s: TmThreadsSlot1: p %p, r %d\n", tv->name, p, r);
+            //printf("%s: TmThreadsSlot1: p %p, r %" PRId32 "\n", tv->name, p, r);
             /* XXX handle error */
             if (r == 1) {
                 run = 0;
@@ -517,7 +518,7 @@ void *TmThreadsSlot3(void *td) {
                 tv->tmqh_out(tv, extra_p);
             }
 
-            //printf("%s: TmThreadsSlot1: p %p, r %d\n", tv->name, p, r);
+            //printf("%s: TmThreadsSlot1: p %p, r %" PRId32 "\n", tv->name, p, r);
             /* XXX handle error */
             if (r == 1) {
                 run = 0;
@@ -681,7 +682,7 @@ void *TmThreadsSlotVar(void *td) {
 }
 
 int TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *)) {
-    u_int16_t size = 0;
+    uint16_t size = 0;
 
     if (name == NULL) {
         if (fn_p == NULL) {
@@ -851,14 +852,14 @@ static int SetCPUAffinity(int cpu) {
     pid_t tid = syscall(SYS_gettid);
     cpu_set_t cs;
 
-    printf("Setting CPU Affinity for thread %u to CPU %d\n", tid, cpu);
+    printf("Setting CPU Affinity for thread %" PRIu32 " to CPU %" PRId32 "\n", tid, cpu);
 
     CPU_ZERO(&cs);
     CPU_SET(cpu,&cs);
 
     int r = sched_setaffinity(tid,sizeof(cpu_set_t),&cs); 
     if (r != 0) {
-        printf("Warning: sched_setaffinity failed (%d): %s\n", r, strerror(errno));
+        printf("Warning: sched_setaffinity failed (%" PRId32 "): %s\n", r, strerror(errno));
     }
 
     return 0;
@@ -912,7 +913,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
 
         tv->inq = tmq;
         tv->inq->usecnt++;
-        //printf("TmThreadCreate: tv->inq->id %u\n", tv->inq->id);
+        //printf("TmThreadCreate: tv->inq->id %" PRIu32 "\n", tv->inq->id);
     }
     if (inqh_name != NULL) {
         tmqh = TmqhGetQueueHandlerByName(inqh_name);
@@ -932,7 +933,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
 
         tv->outq = tmq;
         tv->outq->usecnt++;
-        //printf("TmThreadCreate: tv->outq->id %u\n", tv->outq->id);
+        //printf("TmThreadCreate: tv->outq->id %" PRIu32 "\n", tv->outq->id);
     }
     if (outqh_name != NULL) {
         tmqh = TmqhGetQueueHandlerByName(outqh_name);
@@ -1005,7 +1006,7 @@ void TmThreadKillThreads(void) {
             if (t->inq != NULL) {
                 int i;
 
-                //printf("TmThreadKillThreads: t->inq->usecnt %u\n", t->inq->usecnt);
+                //printf("TmThreadKillThreads: t->inq->usecnt %" PRIu32 "\n", t->inq->usecnt);
 
                 /* make sure our packet pending counter doesn't block */
                 pthread_cond_signal(&cond_pending);
@@ -1019,7 +1020,7 @@ void TmThreadKillThreads(void) {
                 int cnt = 0;
                 while (1) {
                     if (t->flags & THV_CLOSED) {
-                        printf("signalled the thread %d times\n", cnt);
+                        printf("signalled the thread %" PRId32 " times\n", cnt);
                         break;
                     }
 
@@ -1031,7 +1032,7 @@ void TmThreadKillThreads(void) {
                     usleep(100);
                 }
 
-                printf("TmThreadKillThreads: signalled t->inq->id %u\n", t->inq->id);
+                printf("TmThreadKillThreads: signalled t->inq->id %" PRIu32 "\n", t->inq->id);
 
             }
 
@@ -1039,7 +1040,7 @@ void TmThreadKillThreads(void) {
                 int cnt = 0;
                 while (1) {
                     if (t->flags & THV_CLOSED) {
-                        printf("signalled the thread %d times\n", cnt);
+                        printf("signalled the thread %" PRId32 " times\n", cnt);
                         break;
                     }
 
@@ -1073,7 +1074,7 @@ int TmThreadSpawn(ThreadVars *tv, int type, int flags)
     pthread_attr_t attr;
 
     if (type < 0 || type >= TVT_MAX) {
-        printf("ThreadVars of category %d does not exist\n", type);
+        printf("ThreadVars of category %" PRId32 " does not exist\n", type);
         return -1;
     }
 
@@ -1090,7 +1091,7 @@ int TmThreadSpawn(ThreadVars *tv, int type, int flags)
 
     int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
     if (rc) {
-        printf("ERROR; return code from pthread_create() is %d\n", rc);
+        printf("ERROR; return code from pthread_create() is %" PRId32 "\n", rc);
         return -1;
     }
 

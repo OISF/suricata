@@ -5,10 +5,10 @@
 
 typedef struct DetectFlowvarData_ {
     char *name;
-    u_int16_t idx;
-    u_int8_t *content;
-    u_int8_t content_len;
-    u_int8_t flags;
+    uint16_t idx;
+    uint8_t *content;
+    uint8_t content_len;
+    uint8_t flags;
 } DetectFlowvarData;
 
 /* prototypes */

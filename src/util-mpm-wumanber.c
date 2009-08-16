@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include "eidps-common.h"
 #include "util-mpm.h"
 #include "util-mpm-wumanber.h"
 
@@ -40,32 +41,32 @@
 #define HASH9(a,b) (((a)<<1) | (b))
 
 void WmInitCtx (MpmCtx *mpm_ctx);
-void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int32_t);
+void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t);
 void WmDestroyCtx(MpmCtx *mpm_ctx);
 void WmThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx);
-int WmAddScanPatternCI(MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t, u_int8_t);
-int WmAddScanPatternCS(MpmCtx *, u_int8_t *, u_int16_t, u_int16_t, u_int16_t, u_int32_t, u_int32_t, u_int8_t);
-int WmAddPatternCI(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen, u_int16_t offset, u_int16_t depth, u_int32_t pid, u_int32_t sid);
-int WmAddPatternCS(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen, u_int16_t offset, u_int16_t depth, u_int32_t pid, u_int32_t sid);
+int WmAddScanPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
+int WmAddScanPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
+int WmAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid);
+int WmAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid);
 int WmPreparePatterns(MpmCtx *mpm_ctx);
-u_int32_t WmScan1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmScan2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmScan2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmScan2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmScan2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmScan2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmSearch2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
-u_int32_t WmSearch2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, u_int8_t *buf, u_int16_t buflen);
+uint32_t WmScan1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmScan2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmScan2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmScan2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmScan2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmScan2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmSearch2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+uint32_t WmSearch2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
 void WmPrintInfo(MpmCtx *mpm_ctx);
 void WmPrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void WmRegisterTests(void);
 
 /* uppercase to lowercase conversion lookup table */
-static u_int8_t lowercasetable[256];
+static uint8_t lowercasetable[256];
 /* marco to do the actual lookup */
 #define wm_tolower(c) lowercasetable[(c)]
 
@@ -95,7 +96,7 @@ void MpmWuManberRegister (void) {
     mpm_table[MPM_WUMANBER].RegisterUnittests = WmRegisterTests;
 
     /* create table for O(1) lowercase conversion lookup */
-    u_int8_t c = 0;
+    uint8_t c = 0;
     for ( ; c < 255; c++) {
        if (c >= 'A' && c <= 'Z')
            lowercasetable[c] = (c + ('a' - 'A'));
@@ -108,8 +109,8 @@ void MpmWuManberRegister (void) {
  *
  * Only used in the initialization phase */
 static inline void WmEndMatchAppend(MpmCtx *mpm_ctx, WmPattern *p,
-    u_int16_t offset, u_int16_t depth, u_int32_t pid, u_int32_t sid,
-    u_int8_t nosearch)
+    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid,
+    uint8_t nosearch)
 {
     MpmEndMatch *em = MpmAllocEndMatch(mpm_ctx);
     if (em == NULL) {
@@ -137,12 +138,12 @@ static inline void WmEndMatchAppend(MpmCtx *mpm_ctx, WmPattern *p,
     m->next = em;
 }
 
-void prt (u_int8_t *buf, u_int16_t buflen) {
-    u_int16_t i;
+void prt (uint8_t *buf, uint16_t buflen) {
+    uint16_t i;
 
     for (i = 0; i < buflen; i++) {
         if (isprint(buf[i])) printf("%c", buf[i]);
-        else                 printf("\\x%X", buf[i]);
+        else                 printf("\\x%" PRIX32, buf[i]);
     }
     //printf("\n");
 }
@@ -151,20 +152,20 @@ void WmPrintInfo(MpmCtx *mpm_ctx) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 
     printf("MPM WuManber Information:\n");
-    printf("Memory allocs:   %u\n", mpm_ctx->memory_cnt);
-    printf("Memory alloced:  %u\n", mpm_ctx->memory_size);
+    printf("Memory allocs:   %" PRIu32 "\n", mpm_ctx->memory_cnt);
+    printf("Memory alloced:  %" PRIu32 "\n", mpm_ctx->memory_size);
     printf(" Sizeofs:\n");
-    printf("  MpmCtx         %u\n", sizeof(MpmCtx));
-    printf("  WmCtx:         %u\n", sizeof(WmCtx));
-    printf("  WmPattern      %u\n", sizeof(WmPattern));
-    printf("  WmHashItem     %u\n", sizeof(WmHashItem));
-    printf("Unique Patterns: %u\n", mpm_ctx->pattern_cnt);
-    printf("Scan Patterns:   %u\n", mpm_ctx->scan_pattern_cnt);
-    printf("Total Patterns:  %u\n", mpm_ctx->total_pattern_cnt);
-    printf("Smallest:        %u\n", mpm_ctx->scan_minlen);
-    printf("Largest:         %u\n", mpm_ctx->scan_maxlen);
-    printf("Max shiftlen:    %u\n", ctx->scan_shiftlen);
-    printf("Hash size:       %u\n", ctx->scan_hash_size);
+    printf("  MpmCtx         %" PRIuMAX "\n", sizeof(MpmCtx));
+    printf("  WmCtx:         %" PRIuMAX "\n", sizeof(WmCtx));
+    printf("  WmPattern      %" PRIuMAX "\n", sizeof(WmPattern));
+    printf("  WmHashItem     %" PRIuMAX "\n", sizeof(WmHashItem));
+    printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
+    printf("Scan Patterns:   %" PRIu32 "\n", mpm_ctx->scan_pattern_cnt);
+    printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);
+    printf("Smallest:        %" PRIu32 "\n", mpm_ctx->scan_minlen);
+    printf("Largest:         %" PRIu32 "\n", mpm_ctx->scan_maxlen);
+    printf("Max shiftlen:    %" PRIu32 "\n", ctx->scan_shiftlen);
+    printf("Hash size:       %" PRIu32 "\n", ctx->scan_hash_size);
     printf("Scan function: ");
     if (mpm_ctx->Scan == WmScan1) {
         printf("WmScan1 (allows single byte patterns)\n");
@@ -181,10 +182,10 @@ void WmPrintInfo(MpmCtx *mpm_ctx) {
     else if (mpm_ctx->Scan == WmScan2Hash12) printf("WmScan2Hash12 (only for multibyte patterns)\n");
     else if (mpm_ctx->Scan == WmScan2Hash9)  printf("WmScan2Hash9 (only for multibyte patterns)\n");
     else printf("ERROR\n");
-    printf("Smallest:        %u\n", mpm_ctx->search_minlen);
-    printf("Largest:         %u\n", mpm_ctx->search_maxlen);
-    printf("Max shiftlen:    %u\n", ctx->search_shiftlen);
-    printf("Hash size:       %u\n", ctx->search_hash_size);
+    printf("Smallest:        %" PRIu32 "\n", mpm_ctx->search_minlen);
+    printf("Largest:         %" PRIu32 "\n", mpm_ctx->search_maxlen);
+    printf("Max shiftlen:    %" PRIu32 "\n", ctx->search_shiftlen);
+    printf("Hash size:       %" PRIu32 "\n", ctx->search_hash_size);
     printf("Search function: ");
     if (mpm_ctx->Search == WmSearch1) {
         printf("WmSearch1 (allows single byte patterns)\n");
@@ -241,8 +242,8 @@ static void WmHashFree(MpmCtx *mpm_ctx, WmHashItem *hi) {
     free(hi);
 }
 
-static inline void memcpy_tolower(u_int8_t *d, u_int8_t *s, u_int16_t len) {
-    u_int16_t i;
+static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len) {
+    uint16_t i;
     for (i = 0; i < len; i++) {
         d[i] = wm_tolower(s[i]);
     }
@@ -251,16 +252,16 @@ static inline void memcpy_tolower(u_int8_t *d, u_int8_t *s, u_int16_t len) {
 /*
  * INIT HASH START
  */
-static inline u_int32_t WmInitHash(WmPattern *p) {
-    u_int32_t hash = p->len * p->cs[0];
+static inline uint32_t WmInitHash(WmPattern *p) {
+    uint32_t hash = p->len * p->cs[0];
     if (p->len > 1)
         hash += p->cs[1];
 
     return (hash % INIT_HASH_SIZE);
 }
 
-static inline u_int32_t WmInitHashRaw(u_int8_t *pat, u_int16_t patlen) {
-    u_int32_t hash = patlen * pat[0];
+static inline uint32_t WmInitHashRaw(uint8_t *pat, uint16_t patlen) {
+    uint32_t hash = patlen * pat[0];
     if (patlen > 1)
         hash += pat[1];
 
@@ -268,13 +269,13 @@ static inline u_int32_t WmInitHashRaw(u_int8_t *pat, u_int16_t patlen) {
 }
 
 static inline int WmInitHashAdd(WmCtx *ctx, WmPattern *p) {
-    u_int32_t hash = WmInitHash(p);
+    uint32_t hash = WmInitHash(p);
 
-    //printf("WmInitHashAdd: %u\n", hash);
+    //printf("WmInitHashAdd: %" PRIu32 "\n", hash);
 
     if (ctx->init_hash[hash] == NULL) {
         ctx->init_hash[hash] = p;
-        //printf("WmInitHashAdd: hash %u, head %p\n", hash, ctx->init_hash[hash]);
+        //printf("WmInitHashAdd: hash %" PRIu32 ", head %p\n", hash, ctx->init_hash[hash]);
         return 0;
     }
 
@@ -283,17 +284,17 @@ static inline int WmInitHashAdd(WmCtx *ctx, WmPattern *p) {
         tt = t;
     }
     tt->next = p;
-    //printf("WmInitHashAdd: hash %u, head %p\n", hash, ctx->init_hash[hash]);
+    //printf("WmInitHashAdd: hash %" PRIu32 ", head %p\n", hash, ctx->init_hash[hash]);
 
     return 0;
 }
 
-static inline int WmCmpPattern(WmPattern *p, u_int8_t *pat, u_int16_t patlen, char nocase);
+static inline int WmCmpPattern(WmPattern *p, uint8_t *pat, uint16_t patlen, char nocase);
 
-static inline WmPattern *WmInitHashLookup(WmCtx *ctx, u_int8_t *pat, u_int16_t patlen, char nocase) {
-    u_int32_t hash = WmInitHashRaw(pat,patlen);
+static inline WmPattern *WmInitHashLookup(WmCtx *ctx, uint8_t *pat, uint16_t patlen, char nocase) {
+    uint32_t hash = WmInitHashRaw(pat,patlen);
 
-    //printf("WmInitHashLookup: %u, head %p\n", hash, ctx->init_hash[hash]);
+    //printf("WmInitHashLookup: %" PRIu32 ", head %p\n", hash, ctx->init_hash[hash]);
 
     if (ctx->init_hash[hash] == NULL) {
         return NULL;
@@ -308,7 +309,7 @@ static inline WmPattern *WmInitHashLookup(WmCtx *ctx, u_int8_t *pat, u_int16_t p
     return NULL;
 }
 
-static inline int WmCmpPattern(WmPattern *p, u_int8_t *pat, u_int16_t patlen, char nocase) {
+static inline int WmCmpPattern(WmPattern *p, uint8_t *pat, uint16_t patlen, char nocase) {
     if (p->len != patlen)
         return 0;
 
@@ -357,11 +358,11 @@ void WmFreePattern(MpmCtx *mpm_ctx, WmPattern *p) {
  * pid: pattern id
  * sid: signature id (internal id)
  */
-static inline int WmAddPattern(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen, u_int16_t offset, u_int16_t depth, char nocase, char scan, u_int32_t pid, u_int32_t sid, u_int8_t nosearch) {
+static inline int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, char nocase, char scan, uint32_t pid, uint32_t sid, uint8_t nosearch) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 
 //    printf("WmAddPattern: ctx %p \"", mpm_ctx); prt(pat, patlen);
-//    printf("\" id %u, nocase %s\n", id, nocase ? "true" : "false");
+//    printf("\" id %" PRIu32 ", nocase %s\n", id, nocase ? "true" : "false");
 
     if (patlen == 0)
         return 0;
@@ -403,13 +404,13 @@ static inline int WmAddPattern(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen,
         }
 
         if (p->len > 1) {
-            p->prefix_cs = (u_int16_t)(*(p->cs)+*(p->cs+1));
-            p->prefix_ci = (u_int16_t)(*(p->ci)+*(p->ci+1));
+            p->prefix_cs = (uint16_t)(*(p->cs)+*(p->cs+1));
+            p->prefix_ci = (uint16_t)(*(p->ci)+*(p->ci+1));
         }
 
         //printf("WmAddPattern: ci \""); prt(p->ci,p->len);
         //printf("\" cs \""); prt(p->cs,p->len);
-        //printf("\" prefix_ci %u, prefix_cs %u\n", p->prefix_ci, p->prefix_cs);
+        //printf("\" prefix_ci %" PRIu32 ", prefix_cs %" PRIu32 "\n", p->prefix_ci, p->prefix_cs);
 
         /* put in the pattern hash */
         WmInitHashAdd(ctx, p);
@@ -448,34 +449,34 @@ error:
     return -1;
 }
 
-int WmAddScanPatternCI(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen,
-    u_int16_t offset, u_int16_t depth, u_int32_t pid, u_int32_t sid, u_int8_t nosearch)
+int WmAddScanPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t nosearch)
 {
     return WmAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */1, /* scan */1, pid, sid, nosearch);
 }
 
-int WmAddScanPatternCS(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen,
-    u_int16_t offset, u_int16_t depth, u_int32_t pid, u_int32_t sid, u_int8_t nosearch)
+int WmAddScanPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t nosearch)
 {
     return WmAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */0, /* scan */1, pid, sid, nosearch);
 }
 
-int WmAddPatternCI(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen,
-    u_int16_t offset, u_int16_t depth, u_int32_t pid, u_int32_t sid)
+int WmAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid)
 {
     return WmAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */1, /* scan */0, pid, sid, 0);
 }
 
-int WmAddPatternCS(MpmCtx *mpm_ctx, u_int8_t *pat, u_int16_t patlen,
-    u_int16_t offset, u_int16_t depth, u_int32_t pid, u_int32_t sid)
+int WmAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid)
 {
     return WmAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */0, /* scan */0, pid, sid, 0);
 }
 
-static u_int32_t WmBloomHash(void *data, u_int16_t datalen, u_int8_t iter, u_int32_t hash_size) {
-     u_int8_t *d = (u_int8_t *)data;
-     u_int16_t i;
-     u_int32_t hash = (u_int32_t)wm_tolower(*d);
+static uint32_t WmBloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
+     uint8_t *d = (uint8_t *)data;
+     uint16_t i;
+     uint32_t hash = (uint32_t)wm_tolower(*d);
 
      for (i = 1; i < datalen - 1; i++) {
          hash += (wm_tolower((*d++))) ^ i;
@@ -486,15 +487,15 @@ static u_int32_t WmBloomHash(void *data, u_int16_t datalen, u_int8_t iter, u_int
      return hash;
 }
 /*
-static u_int32_t BloomHash(void *data, u_int16_t datalen, u_int8_t iter, u_int32_t hash_size) {
-     u_int8_t *d = (u_int8_t *)data;
-     u_int32_t i;
-     u_int32_t hash = 0;
+static uint32_t BloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
+     uint8_t *d = (uint8_t *)data;
+     uint32_t i;
+     uint32_t hash = 0;
 
      for (i = 0; i < datalen; i++) {
-         if (i == 0)      hash += (((u_int32_t)*d++));
-         else if (i == 1) hash += (((u_int32_t)*d++) * datalen);
-         else             hash *= (((u_int32_t)*d++) * i);
+         if (i == 0)      hash += (((uint32_t)*d++));
+         else if (i == 1) hash += (((uint32_t)*d++) * datalen);
+         else             hash *= (((uint32_t)*d++) * i);
      }
 
      hash *= (iter + datalen);
@@ -504,9 +505,9 @@ static u_int32_t BloomHash(void *data, u_int16_t datalen, u_int8_t iter, u_int32
 */
 static void WmScanPrepareHash(MpmCtx *mpm_ctx) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
-    u_int16_t i;
-    u_int16_t idx = 0;
-    u_int8_t idx8 = 0;
+    uint16_t i;
+    uint16_t idx = 0;
+    uint8_t idx8 = 0;
 
     ctx->scan_hash = (WmHashItem **)malloc(sizeof(WmHashItem *) * ctx->scan_hash_size);
     if (ctx->scan_hash == NULL) goto error;
@@ -516,9 +517,9 @@ static void WmScanPrepareHash(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_size += (sizeof(WmHashItem *) * ctx->scan_hash_size);
 
     /* alloc the pminlen array */
-    ctx->scan_pminlen = (u_int8_t *)malloc(sizeof(u_int8_t) * ctx->scan_hash_size);
+    ctx->scan_pminlen = (uint8_t *)malloc(sizeof(uint8_t) * ctx->scan_hash_size);
     if (ctx->scan_pminlen == NULL) goto error;
-    memset(ctx->scan_pminlen, 0, sizeof(u_int8_t) * ctx->scan_hash_size);
+    memset(ctx->scan_pminlen, 0, sizeof(uint8_t) * ctx->scan_hash_size);
 
     for (i = 0; i < mpm_ctx->pattern_cnt; i++)
     {
@@ -527,7 +528,7 @@ static void WmScanPrepareHash(MpmCtx *mpm_ctx) {
             continue;
 
         if(ctx->parray[i]->len == 1) {
-            idx8 = (u_int8_t)ctx->parray[i]->ci[0];
+            idx8 = (uint8_t)ctx->parray[i]->ci[0];
             if (ctx->scan_hash1[idx8].flags == 0) {
                 ctx->scan_hash1[idx8].idx = i;
                 ctx->scan_hash1[idx8].flags |= 0x01;
@@ -542,7 +543,7 @@ static void WmScanPrepareHash(MpmCtx *mpm_ctx) {
                 thi->nxt = hi;
             }
         } else {
-            u_int16_t patlen = ctx->scan_shiftlen;
+            uint16_t patlen = ctx->scan_shiftlen;
 
             if (ctx->scan_hash_size == HASH9_SIZE)
                 idx = HASH9(ctx->parray[i]->ci[patlen-1], ctx->parray[i]->ci[patlen-2]);
@@ -614,9 +615,9 @@ error:
 }
 static void WmPrepareHash(MpmCtx *mpm_ctx) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
-    u_int16_t i;
-    u_int16_t idx = 0;
-    u_int8_t idx8 = 0;
+    uint16_t i;
+    uint16_t idx = 0;
+    uint8_t idx8 = 0;
 
     ctx->search_hash = (WmHashItem **)malloc(sizeof(WmHashItem *) * ctx->search_hash_size);
     if (ctx->search_hash == NULL) goto error;
@@ -632,7 +633,7 @@ static void WmPrepareHash(MpmCtx *mpm_ctx) {
             continue;
 
         if(ctx->parray[i]->len == 1) {
-            idx8 = (u_int8_t)ctx->parray[i]->ci[0];
+            idx8 = (uint8_t)ctx->parray[i]->ci[0];
             if (ctx->search_hash1[idx8].flags == 0) {
                 ctx->search_hash1[idx8].idx = i;
                 ctx->search_hash1[idx8].flags |= 0x01;
@@ -647,7 +648,7 @@ static void WmPrepareHash(MpmCtx *mpm_ctx) {
                 thi->nxt = hi;
             }
         } else {
-            u_int16_t patlen = ctx->search_shiftlen;
+            uint16_t patlen = ctx->search_shiftlen;
 
             if (ctx->search_hash_size == HASH9_SIZE)
                 idx = HASH9(ctx->parray[i]->ci[patlen-1], ctx->parray[i]->ci[patlen-2]);
@@ -687,21 +688,21 @@ static void WmScanPrepareShiftTable(MpmCtx *mpm_ctx)
 {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 
-    u_int16_t shift = 0, k = 0, idx = 0;
-    u_int32_t i = 0;
+    uint16_t shift = 0, k = 0, idx = 0;
+    uint32_t i = 0;
 
-    u_int16_t smallest = mpm_ctx->scan_minlen;
+    uint16_t smallest = mpm_ctx->scan_minlen;
     if (smallest > 255) smallest = 255;
     if (smallest < 2) smallest = 2;
 
     ctx->scan_shiftlen = smallest;
 
-    ctx->scan_shifttable = malloc(sizeof(u_int16_t) * ctx->scan_hash_size);
+    ctx->scan_shifttable = malloc(sizeof(uint16_t) * ctx->scan_hash_size);
     if (ctx->scan_shifttable == NULL)
         return;
 
     mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += (sizeof(u_int16_t) * ctx->scan_hash_size);
+    mpm_ctx->memory_size += (sizeof(uint16_t) * ctx->scan_hash_size);
 
     /* default shift table is set to minimal shift */
     for (i = 0; i < ctx->scan_hash_size; i++)
@@ -717,7 +718,7 @@ static void WmScanPrepareShiftTable(MpmCtx *mpm_ctx)
         if (!(ctx->parray[i]->flags & WUMANBER_SCAN))
             continue;
 
-        //printf("WmPrepareShiftTable: i = %u ", i);
+        //printf("WmPrepareShiftTable: i = %" PRIu32 " ", i);
         //prt(ctx->parray[i].ci, ctx->parray[i].len);
 
         /* add the first character of the pattern preceeded by
@@ -727,20 +728,20 @@ static void WmScanPrepareShiftTable(MpmCtx *mpm_ctx)
             if (shift > 255) shift = 255;
 
             if (ctx->scan_hash_size == HASH9_SIZE) {
-                idx = HASH9(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH9 idx %u\n", idx);
+                idx = HASH9(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH9 idx %" PRIu32 "\n", idx);
             } else if (ctx->scan_hash_size == HASH12_SIZE) {
-                idx = HASH12(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH12 idx %u\n", idx);
+                idx = HASH12(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH12 idx %" PRIu32 "\n", idx);
             } else if (ctx->scan_hash_size == HASH14_SIZE) {
-                idx = HASH14(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH14 idx %u\n", idx);
+                idx = HASH14(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH14 idx %" PRIu32 "\n", idx);
             } else if (ctx->scan_hash_size == HASH15_SIZE) {
-                idx = HASH15(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH15 idx %u\n", idx);
+                idx = HASH15(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH15 idx %" PRIu32 "\n", idx);
             } else {
-                idx = HASH16(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH15 idx %u\n", idx);
+                idx = HASH16(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH15 idx %" PRIu32 "\n", idx);
             }
             if (shift < ctx->scan_shifttable[idx]) {
                 ctx->scan_shifttable[idx] = shift;
@@ -754,24 +755,24 @@ static void WmScanPrepareShiftTable(MpmCtx *mpm_ctx)
 
             if (ctx->scan_hash_size == HASH9_SIZE) {
                 idx = HASH9(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH9 idx %u\n", idx);
+                //printf("HASH9 idx %" PRIu32 "\n", idx);
             } else if (ctx->scan_hash_size == HASH12_SIZE) {
                 idx = HASH12(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH12 idx %u\n", idx);
+                //printf("HASH12 idx %" PRIu32 "\n", idx);
             } else if (ctx->scan_hash_size == HASH14_SIZE) {
                 idx = HASH14(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH14 idx %u\n", idx);
+                //printf("HASH14 idx %" PRIu32 "\n", idx);
             } else if (ctx->scan_hash_size == HASH15_SIZE) {
                 idx = HASH15(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH15 idx %u\n", idx);
+                //printf("HASH15 idx %" PRIu32 "\n", idx);
             } else {
                 idx = HASH16(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH15 idx %u\n", idx);
+                //printf("HASH15 idx %" PRIu32 "\n", idx);
             }
             if (shift < ctx->scan_shifttable[idx]) {
                 ctx->scan_shifttable[idx] = shift;
             }
-            //printf("WmPrepareShiftTable: i %u, k %u, idx %u, shift set to %u: \"%c%c\"\n",
+            //printf("WmPrepareShiftTable: i %" PRIu32 ", k %" PRIu32 ", idx %" PRIu32 ", shift set to %" PRIu32 ": \"%c%c\"\n",
             //    i, k, idx, shift, ctx->parray[i]->ci[k], ctx->parray[i]->ci[k+1]);
         }
     }
@@ -781,21 +782,21 @@ static void WmPrepareShiftTable(MpmCtx *mpm_ctx)
 {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 
-    u_int16_t shift = 0, k = 0, idx = 0;
-    u_int32_t i = 0;
+    uint16_t shift = 0, k = 0, idx = 0;
+    uint32_t i = 0;
 
-    u_int16_t smallest = mpm_ctx->search_minlen;
+    uint16_t smallest = mpm_ctx->search_minlen;
     if (smallest > 255) smallest = 255;
     if (smallest < 2) smallest = 2;
 
     ctx->search_shiftlen = smallest;
 
-    ctx->search_shifttable = malloc(sizeof(u_int16_t) * ctx->search_hash_size);
+    ctx->search_shifttable = malloc(sizeof(uint16_t) * ctx->search_hash_size);
     if (ctx->search_shifttable == NULL)
         return;
 
     mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += (sizeof(u_int16_t) * ctx->search_hash_size);
+    mpm_ctx->memory_size += (sizeof(uint16_t) * ctx->search_hash_size);
 
     /* default shift table is set to minimal shift */
     for (i = 0; i < ctx->search_hash_size; i++)
@@ -811,7 +812,7 @@ static void WmPrepareShiftTable(MpmCtx *mpm_ctx)
         if (ctx->parray[i]->flags & WUMANBER_SCAN)
             continue;
 
-        //printf("WmPrepareShiftTable: i = %u ", i);
+        //printf("WmPrepareShiftTable: i = %" PRIu32 " ", i);
         //prt(ctx->parray[i].ci, ctx->parray[i].len);
 
         /* add the first character of the pattern preceeded by
@@ -821,20 +822,20 @@ static void WmPrepareShiftTable(MpmCtx *mpm_ctx)
             if (shift > 255) shift = 255;
 
             if (ctx->search_hash_size == HASH9_SIZE) {
-                idx = HASH9(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH9 idx %u\n", idx);
+                idx = HASH9(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH9 idx %" PRIu32 "\n", idx);
             } else if (ctx->search_hash_size == HASH12_SIZE) {
-                idx = HASH12(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH12 idx %u\n", idx);
+                idx = HASH12(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH12 idx %" PRIu32 "\n", idx);
             } else if (ctx->search_hash_size == HASH14_SIZE) {
-                idx = HASH14(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH14 idx %u\n", idx);
+                idx = HASH14(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH14 idx %" PRIu32 "\n", idx);
             } else if (ctx->search_hash_size == HASH15_SIZE) {
-                idx = HASH15(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH15 idx %u\n", idx);
+                idx = HASH15(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH15 idx %" PRIu32 "\n", idx);
             } else {
-                idx = HASH16(ctx->parray[i]->ci[0], (u_int8_t)k);
-                //printf("HASH15 idx %u\n", idx);
+                idx = HASH16(ctx->parray[i]->ci[0], (uint8_t)k);
+                //printf("HASH15 idx %" PRIu32 "\n", idx);
             }
             if (shift < ctx->search_shifttable[idx]) {
                 ctx->search_shifttable[idx] = shift;
@@ -848,24 +849,24 @@ static void WmPrepareShiftTable(MpmCtx *mpm_ctx)
 
             if (ctx->search_hash_size == HASH9_SIZE) {
                 idx = HASH9(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH9 idx %u\n", idx);
+                //printf("HASH9 idx %" PRIu32 "\n", idx);
             } else if (ctx->search_hash_size == HASH12_SIZE) {
                 idx = HASH12(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH12 idx %u\n", idx);
+                //printf("HASH12 idx %" PRIu32 "\n", idx);
             } else if (ctx->search_hash_size == HASH14_SIZE) {
                 idx = HASH14(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH14 idx %u\n", idx);
+                //printf("HASH14 idx %" PRIu32 "\n", idx);
             } else if (ctx->search_hash_size == HASH15_SIZE) {
                 idx = HASH15(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH15 idx %u\n", idx);
+                //printf("HASH15 idx %" PRIu32 "\n", idx);
             } else {
                 idx = HASH16(ctx->parray[i]->ci[k+1], ctx->parray[i]->ci[k]);
-                //printf("HASH15 idx %u\n", idx);
+                //printf("HASH15 idx %" PRIu32 "\n", idx);
             }
             if (shift < ctx->search_shifttable[idx]) {
                 ctx->search_shifttable[idx] = shift;
             }
-            //printf("WmPrepareShiftTable: i %u, k %u, idx %u, shift set to %u: \"%c%c\"\n",
+            //printf("WmPrepareShiftTable: i %" PRIu32 ", k %" PRIu32 ", idx %" PRIu32 ", shift set to %" PRIu32 ": \"%c%c\"\n",
             //    i, k, idx, shift, ctx->parray[i]->ci[k], ctx->parray[i]->ci[k+1]);
         }
     }
@@ -883,7 +884,7 @@ int WmPreparePatterns(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_size += (mpm_ctx->pattern_cnt * sizeof(WmPattern *));
 
     /* populate it with the patterns in the hash */
-    u_int32_t i = 0, p = 0;
+    uint32_t i = 0, p = 0;
     for (i = 0; i < INIT_HASH_SIZE; i++) {
         WmPattern *node = ctx->init_hash[i], *nnode = NULL;
         for ( ; node != NULL; ) {
@@ -991,22 +992,22 @@ void WmPrintSearchStats(MpmThreadCtx *mpm_thread_ctx) {
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 
-    printf("Shift 0: %u\n", tctx->scan_stat_shift_null);
-    printf("Loop match: %u\n", tctx->scan_stat_loop_match);
-    printf("Loop no match: %u\n", tctx->scan_stat_loop_no_match);
-    printf("Num shifts: %u\n", tctx->scan_stat_num_shift);
-    printf("Total shifts: %u\n", tctx->scan_stat_total_shift);
+    printf("Shift 0: %" PRIu32 "\n", tctx->scan_stat_shift_null);
+    printf("Loop match: %" PRIu32 "\n", tctx->scan_stat_loop_match);
+    printf("Loop no match: %" PRIu32 "\n", tctx->scan_stat_loop_no_match);
+    printf("Num shifts: %" PRIu32 "\n", tctx->scan_stat_num_shift);
+    printf("Total shifts: %" PRIu32 "\n", tctx->scan_stat_total_shift);
 
-    printf("Shift 0: %u\n", tctx->search_stat_shift_null);
-    printf("Loop match: %u\n", tctx->search_stat_loop_match);
-    printf("Loop no match: %u\n", tctx->search_stat_loop_no_match);
-    printf("Num shifts: %u\n", tctx->search_stat_num_shift);
-    printf("Total shifts: %u\n", tctx->search_stat_total_shift);
+    printf("Shift 0: %" PRIu32 "\n", tctx->search_stat_shift_null);
+    printf("Loop match: %" PRIu32 "\n", tctx->search_stat_loop_match);
+    printf("Loop no match: %" PRIu32 "\n", tctx->search_stat_loop_no_match);
+    printf("Num shifts: %" PRIu32 "\n", tctx->search_stat_num_shift);
+    printf("Total shifts: %" PRIu32 "\n", tctx->search_stat_total_shift);
 #endif /* WUMANBER_COUNTERS */
 }
 
 static inline int
-memcmp_lowercase(u_int8_t *s1, u_int8_t *s2, u_int16_t n) {
+memcmp_lowercase(uint8_t *s1, uint8_t *s2, uint16_t n) {
     size_t i;
 
     /* check backwards because we already tested the first
@@ -1021,33 +1022,33 @@ memcmp_lowercase(u_int8_t *s1, u_int8_t *s2, u_int16_t n) {
 }
 
 /* SCAN FUNCTIONS */
-u_int32_t WmScan2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmScan2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->scan_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->scan_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf(" (sl %u)\n", sl);
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf(" (sl %" PRIu32 ")\n", sl);
 
     buf+=(sl-1);
 
     while (buf <= bufend) {
         h = HASH9(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->scan_shifttable[h];
-        //printf("%p %u search: h %u, shift %u\n", buf, buf - bufmin, h, shift);
+        //printf("%p %" PRIu32 " search: h %" PRIu32 ", shift %" PRIu32 "\n", buf, buf - bufmin, h, shift);
 
         if (shift == 0) {
             COUNT(tctx->scan_stat_shift_null++);
@@ -1072,13 +1073,13 @@ u_int32_t WmScan2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMat
                     }
                 }
 
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
 
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -1091,7 +1092,7 @@ u_int32_t WmScan2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMat
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1108,7 +1109,7 @@ u_int32_t WmScan2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMat
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1128,30 +1129,30 @@ skip_loop:
         buf += shift;
     }
 
-    //printf("cnt %u\n", cnt);
+    //printf("cnt %" PRIu32 "\n", cnt);
     return cnt;
 }
 
-u_int32_t WmScan2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmScan2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->scan_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->scan_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf("\n");
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf("\n");
 
     buf+=(sl-1);
     //buf++;
@@ -1160,7 +1161,7 @@ u_int32_t WmScan2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
         //h = (wm_tolower(*buf)<<8)+(wm_tolower(*(buf-1)));
         h = HASH12(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->scan_shifttable[h];
-        //printf("search: h %u, shift %u\n", h, shift);
+        //printf("search: h %" PRIu32 ", shift %" PRIu32 "\n", h, shift);
 
         if (shift == 0) {
             COUNT(tctx->scan_stat_shift_null++);
@@ -1185,13 +1186,13 @@ u_int32_t WmScan2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
                     }
                 }
 
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
-                //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
+                //printf("WmSearch2: prefixci_buf %" PRIu32 ", prefixcs_buf %" PRIu32 "\n", prefixci_buf, prefixcs_buf);
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -1204,7 +1205,7 @@ u_int32_t WmScan2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1221,7 +1222,7 @@ u_int32_t WmScan2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1244,26 +1245,26 @@ skip_loop:
     return cnt;
 }
 
-u_int32_t WmScan2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmScan2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->scan_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->scan_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf("\n");
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf("\n");
 
     buf+=(sl-1);
     //buf++;
@@ -1272,7 +1273,7 @@ u_int32_t WmScan2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
         //h = (wm_tolower(*buf)<<8)+(wm_tolower(*(buf-1)));
         h = HASH14(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->scan_shifttable[h];
-        //printf("search: h %u, shift %u\n", h, shift);
+        //printf("search: h %" PRIu32 ", shift %" PRIu32 "\n", h, shift);
 
         if (shift == 0) {
             COUNT(tctx->scan_stat_shift_null++);
@@ -1297,13 +1298,13 @@ u_int32_t WmScan2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
                     }
                 }
 
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
-                //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
+                //printf("WmSearch2: prefixci_buf %" PRIu32 ", prefixcs_buf %" PRIu32 "\n", prefixci_buf, prefixcs_buf);
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -1316,7 +1317,7 @@ u_int32_t WmScan2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1333,7 +1334,7 @@ u_int32_t WmScan2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1356,26 +1357,26 @@ skip_loop:
     return cnt;
 }
 
-u_int32_t WmScan2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmScan2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->scan_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->scan_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf("\n");
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf("\n");
 
     buf+=(sl-1);
     //buf++;
@@ -1384,7 +1385,7 @@ u_int32_t WmScan2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
         //h = (wm_tolower(*buf)<<8)+(wm_tolower(*(buf-1)));
         h = HASH15(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->scan_shifttable[h];
-        //printf("search: h %u, shift %u\n", h, shift);
+        //printf("search: h %" PRIu32 ", shift %" PRIu32 "\n", h, shift);
 
         if (shift == 0) {
             COUNT(tctx->scan_stat_shift_null++);
@@ -1409,13 +1410,13 @@ u_int32_t WmScan2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
                     }
                 }
 
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
-                //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
+                //printf("WmSearch2: prefixci_buf %" PRIu32 ", prefixcs_buf %" PRIu32 "\n", prefixci_buf, prefixcs_buf);
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -1428,7 +1429,7 @@ u_int32_t WmScan2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1445,7 +1446,7 @@ u_int32_t WmScan2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1468,26 +1469,26 @@ skip_loop:
     return cnt;
 }
 
-u_int32_t WmScan2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmScan2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->scan_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->scan_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf("\n");
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf("\n");
 
     buf+=(sl-1);
     //buf++;
@@ -1496,7 +1497,7 @@ u_int32_t WmScan2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
         //h = (wm_tolower(*buf)<<8)+(wm_tolower(*(buf-1)));
         h = HASH16(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->scan_shifttable[h];
-        //printf("search: h %u, shift %u\n", h, shift);
+        //printf("search: h %" PRIu32 ", shift %" PRIu32 "\n", h, shift);
 
         if (shift == 0) {
             COUNT(tctx->scan_stat_shift_null++);
@@ -1521,13 +1522,13 @@ u_int32_t WmScan2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
                     }
                 }
 
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
-                //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
+                //printf("WmSearch2: prefixci_buf %" PRIu32 ", prefixcs_buf %" PRIu32 "\n", prefixci_buf, prefixcs_buf);
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -1540,7 +1541,7 @@ u_int32_t WmScan2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1557,7 +1558,7 @@ u_int32_t WmScan2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1580,11 +1581,11 @@ skip_loop:
     return cnt;
 }
 
-u_int32_t WmScan1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmScan1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint32_t cnt = 0;
     WmPattern *p;
     MpmEndMatch *em; 
     WmHashItem *thi, *hi;
@@ -1596,7 +1597,7 @@ u_int32_t WmScan1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQ
 
     if (mpm_ctx->scan_minlen == 1) {
         while (buf <= bufend) {
-            u_int8_t h = wm_tolower(*buf);
+            uint8_t h = wm_tolower(*buf);
             hi = &ctx->scan_hash1[h];
 
             if (hi->flags & 0x01) {
@@ -1628,38 +1629,38 @@ u_int32_t WmScan1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQ
             buf += 1;
         }
     }
-    //printf("WmScan1: after 1byte cnt %u\n", cnt);
+    //printf("WmScan1: after 1byte cnt %" PRIu32 "\n", cnt);
     if (mpm_ctx->scan_maxlen > 1) {
         /* Pass bufmin on because buf no longer points to the
          * start of the buffer. */
         cnt += ctx->MBScan(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
-        //printf("WmScan1: after 2+byte cnt %u\n", cnt);
+        //printf("WmScan1: after 2+byte cnt %" PRIu32 "\n", cnt);
     }
     return cnt;
 }
 
 
 /* SEARCH FUNCTIONS */
-u_int32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->search_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->search_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf(" (sl %u)\n", sl);
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf(" (sl %" PRIu32 ")\n", sl);
 
     buf+=(sl-1);
     //buf++;
@@ -1668,7 +1669,7 @@ u_int32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
     //while (buf < bufend) {
         h = HASH9(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->search_shifttable[h];
-        //printf("%p %u search: h %u, shift %u\n", buf, buf - bufmin, h, shift);
+        //printf("%p %" PRIu32 " search: h %" PRIu32 ", shift %" PRIu32 "\n", buf, buf - bufmin, h, shift);
 
         if (shift == 0) {
             COUNT(tctx->search_stat_shift_null++);
@@ -1676,13 +1677,13 @@ u_int32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
             hi = ctx->search_hash[h];
             if (hi != NULL) {
                 //printf("buf-sl+1 %p, buf-sl+2 %p\n", buf-sl+1, buf-sl+2);
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
-                //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
+                //printf("WmSearch2: prefixci_buf %" PRIu32 ", prefixcs_buf %" PRIu32 "\n", prefixci_buf, prefixcs_buf);
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -1695,7 +1696,7 @@ u_int32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1712,7 +1713,7 @@ u_int32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1731,30 +1732,30 @@ u_int32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
         buf += shift;
     }
 
-    //printf("cnt %u\n", cnt);
+    //printf("cnt %" PRIu32 "\n", cnt);
     return cnt;
 }
 
-u_int32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->search_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->search_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf("\n");
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf("\n");
 
     buf+=(sl-1);
     //buf++;
@@ -1763,7 +1764,7 @@ u_int32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
         //h = (wm_tolower(*buf)<<8)+(wm_tolower(*(buf-1)));
         h = HASH12(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->search_shifttable[h];
-        //printf("search: h %u, shift %u\n", h, shift);
+        //printf("search: h %" PRIu32 ", shift %" PRIu32 "\n", h, shift);
 
         if (shift == 0) {
             COUNT(tctx->search_stat_shift_null++);
@@ -1771,13 +1772,13 @@ u_int32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
             hi = ctx->search_hash[h];
             //printf("search: hi %p\n", hi);
             if (hi != NULL) {
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
-                //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
+                //printf("WmSearch2: prefixci_buf %" PRIu32 ", prefixcs_buf %" PRIu32 "\n", prefixci_buf, prefixcs_buf);
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -1790,7 +1791,7 @@ u_int32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1807,7 +1808,7 @@ u_int32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1829,26 +1830,26 @@ u_int32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
     return cnt;
 }
 
-u_int32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->search_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->search_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf("\n");
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf("\n");
 
     buf+=(sl-1);
     //buf++;
@@ -1857,7 +1858,7 @@ u_int32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
         //h = (wm_tolower(*buf)<<8)+(wm_tolower(*(buf-1)));
         h = HASH14(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->search_shifttable[h];
-        //printf("search: h %u, shift %u\n", h, shift);
+        //printf("search: h %" PRIu32 ", shift %" PRIu32 "\n", h, shift);
 
         if (shift == 0) {
             COUNT(tctx->search_stat_shift_null++);
@@ -1865,13 +1866,13 @@ u_int32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
             hi = ctx->search_hash[h];
             //printf("search: hi %p\n", hi);
             if (hi != NULL) {
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
-                //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
+                //printf("WmSearch2: prefixci_buf %" PRIu32 ", prefixcs_buf %" PRIu32 "\n", prefixci_buf, prefixcs_buf);
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -1884,7 +1885,7 @@ u_int32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1901,7 +1902,7 @@ u_int32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1923,33 +1924,33 @@ u_int32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
     return cnt;
 }
 
-u_int32_t WmSearch2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmSearch2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->search_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->search_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf("\n");
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf("\n");
 
     buf+=(sl-1);
 
     while (buf <= bufend) {
         h = HASH15(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->search_shifttable[h];
-        //printf("search: h %u, shift %u\n", h, shift);
+        //printf("search: h %" PRIu32 ", shift %" PRIu32 "\n", h, shift);
 
         if (shift == 0) {
             COUNT(tctx->search_stat_shift_null++);
@@ -1957,13 +1958,13 @@ u_int32_t WmSearch2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
             hi = ctx->search_hash[h];
             //printf("search: hi %p\n", hi);
             if (hi != NULL) {
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
-                //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
+                //printf("WmSearch2: prefixci_buf %" PRIu32 ", prefixcs_buf %" PRIu32 "\n", prefixci_buf, prefixcs_buf);
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -1976,7 +1977,7 @@ u_int32_t WmSearch2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -1993,7 +1994,7 @@ u_int32_t WmSearch2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -2015,33 +2016,33 @@ u_int32_t WmSearch2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
     return cnt;
 }
 
-u_int32_t WmSearch2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmSearch2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 #ifdef WUMANBER_COUNTERS
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
 #endif /* WUMANBER_COUNTERS */
-    u_int32_t cnt = 0;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int16_t sl = ctx->search_shiftlen;
-    u_int16_t h;
-    u_int8_t shift;
+    uint32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint16_t sl = ctx->search_shiftlen;
+    uint16_t h;
+    uint8_t shift;
     WmHashItem *thi, *hi;
     WmPattern *p;
-    u_int16_t prefixci_buf;
-    u_int16_t prefixcs_buf;
+    uint16_t prefixci_buf;
+    uint16_t prefixcs_buf;
 
     if (buflen == 0)
         return 0;
 
-    //printf("BUF(%u) ", buflen); prt(buf,buflen); printf("\n");
+    //printf("BUF(%" PRIu32 ") ", buflen); prt(buf,buflen); printf("\n");
 
     buf+=(sl-1);
 
     while (buf <= bufend) {
         h = HASH16(wm_tolower(*buf),(wm_tolower(*(buf-1))));
         shift = ctx->search_shifttable[h];
-        //printf("search: h %u, shift %u\n", h, shift);
+        //printf("search: h %" PRIu32 ", shift %" PRIu32 "\n", h, shift);
 
         if (shift == 0) {
             COUNT(tctx->search_stat_shift_null++);
@@ -2049,13 +2050,13 @@ u_int32_t WmSearch2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
             hi = ctx->search_hash[h];
             //printf("search: hi %p\n", hi);
             if (hi != NULL) {
-                prefixci_buf = (u_int16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
-                prefixcs_buf = (u_int16_t)(*(buf-sl+1) + *(buf-sl+2));
-                //printf("WmSearch2: prefixci_buf %u, prefixcs_buf %u\n", prefixci_buf, prefixcs_buf);
+                prefixci_buf = (uint16_t)(wm_tolower(*(buf-sl+1)) + wm_tolower(*(buf-sl+2)));
+                prefixcs_buf = (uint16_t)(*(buf-sl+1) + *(buf-sl+2));
+                //printf("WmSearch2: prefixci_buf %" PRIu32 ", prefixcs_buf %" PRIu32 "\n", prefixci_buf, prefixcs_buf);
                 for (thi = hi; thi != NULL; thi = thi->nxt) {
                     p = ctx->parray[thi->idx];
 
-                    //printf("WmSearch2: p->prefix_ci %u, p->prefix_cs %u\n",
+                    //printf("WmSearch2: p->prefix_ci %" PRIu32 ", p->prefix_cs %" PRIu32 "\n",
                     //    p->prefix_ci, p->prefix_cs);
 
                     if (p->flags & WUMANBER_NOCASE) {
@@ -2068,7 +2069,7 @@ u_int32_t WmSearch2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -2085,7 +2086,7 @@ u_int32_t WmSearch2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
 
                             MpmEndMatch *em; 
                             for (em = p->em; em; em = em->next) {
-                                //printf("em %p id %u\n", em, em->id);
+                                //printf("em %p id %" PRIu32 "\n", em, em->id);
                                 if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id],(buf-sl+1 - bufmin), p->len))
                                     cnt++;
                             }
@@ -2107,11 +2108,11 @@ u_int32_t WmSearch2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, Pattern
     return cnt;
 }
 
-u_int32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, u_int8_t *buf, u_int16_t buflen) {
+uint32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
-    u_int8_t *bufmin = buf;
-    u_int8_t *bufend = buf + buflen - 1;
-    u_int32_t cnt = 0;
+    uint8_t *bufmin = buf;
+    uint8_t *bufend = buf + buflen - 1;
+    uint32_t cnt = 0;
     WmPattern *p;
     MpmEndMatch *em; 
     WmHashItem *thi, *hi;
@@ -2123,7 +2124,7 @@ u_int32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
 
     if (mpm_ctx->search_minlen == 1) {
         while (buf <= bufend) {
-            u_int8_t h = wm_tolower(*buf);
+            uint8_t h = wm_tolower(*buf);
             hi = &ctx->search_hash1[h];
 
             if (hi->flags & 0x01) {
@@ -2155,12 +2156,12 @@ u_int32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
             buf += 1;
         }
     }
-    //printf("WmSearch1: after 1byte cnt %u\n", cnt);
+    //printf("WmSearch1: after 1byte cnt %" PRIu32 "\n", cnt);
     if (mpm_ctx->search_maxlen > 1) {
         /* Pass bufmin on because buf no longer points to the
          * start of the buffer. */
         cnt += ctx->MBSearch(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
-        //printf("WmSearch1: after 2+byte cnt %u\n", cnt);
+        //printf("WmSearch1: after 2+byte cnt %" PRIu32 "\n", cnt);
     }
     return cnt;
 }
@@ -2200,7 +2201,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->parray) {
-        u_int32_t i;
+        uint32_t i;
         for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
             if (ctx->parray[i] != NULL) {
                 WmFreePattern(mpm_ctx, ctx->parray[i]);
@@ -2247,7 +2248,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
     if (ctx->scan_shifttable) {
         free(ctx->scan_shifttable);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (sizeof(u_int16_t) * ctx->scan_hash_size);
+        mpm_ctx->memory_size -= (sizeof(uint16_t) * ctx->scan_hash_size);
     }
 #if 0
     if (ctx->search_bloom) {
@@ -2285,19 +2286,19 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
     if (ctx->search_shifttable) {
         free(ctx->search_shifttable);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (sizeof(u_int16_t) * ctx->search_hash_size);
+        mpm_ctx->memory_size -= (sizeof(uint16_t) * ctx->search_hash_size);
     }
 
     if (ctx->scan_pminlen) {
         free(ctx->scan_pminlen);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (sizeof(u_int8_t) * ctx->scan_hash_size);
+        mpm_ctx->memory_size -= (sizeof(uint8_t) * ctx->scan_hash_size);
     }
 #if 0
     if (ctx->search_pminlen) {
         free(ctx->search_pminlen);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (sizeof(u_int8_t) * ctx->search_hash_size);
+        mpm_ctx->memory_size -= (sizeof(uint8_t) * ctx->search_hash_size);
     }
 #endif
     free(mpm_ctx->ctx);
@@ -2305,7 +2306,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_size -= sizeof(WmCtx);
 }
 
-void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int32_t matchsize) {
+void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t matchsize) {
     memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
     mpm_thread_ctx->ctx = malloc(sizeof(WmThreadCtx));
@@ -2321,8 +2322,8 @@ void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, u_int32_t ma
      * this is done so the detect engine won't have to care about
      * what instance it's looking up in. The matches all have a
      * unique id and is the array lookup key at the same time */
-    //u_int32_t keys = mpm_ctx->max_pattern_id + 1;
-    u_int32_t keys = matchsize + 1;
+    //uint32_t keys = mpm_ctx->max_pattern_id + 1;
+    uint32_t keys = matchsize + 1;
     if (keys) {
         mpm_thread_ctx->match = malloc(keys * sizeof(MpmMatchBucket));
         if (mpm_thread_ctx->match == NULL) {
@@ -2443,7 +2444,7 @@ int WmTestInitAddPattern01 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    int ret = WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
+    int ret = WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
     if (ret == 0)
         result = 1;
 
@@ -2461,7 +2462,7 @@ int WmTestInitAddPattern02 (void) {
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
     if (ctx->init_hash != NULL)
         result = 1;
 
@@ -2479,8 +2480,8 @@ int WmTestInitAddPattern03 (void) {
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
-    WmPattern *pat = WmInitHashLookup(ctx, (u_int8_t *)"abcd", 4, 1);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
+    WmPattern *pat = WmInitHashLookup(ctx, (uint8_t *)"abcd", 4, 1);
     if (pat != NULL) {
         if (pat->len == 4)
             result = 1;
@@ -2500,8 +2501,8 @@ int WmTestInitAddPattern04 (void) {
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
-    WmPattern *pat = WmInitHashLookup(ctx, (u_int8_t *)"abcd", 4, 1);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
+    WmPattern *pat = WmInitHashLookup(ctx, (uint8_t *)"abcd", 4, 1);
     if (pat != NULL) {
         if (pat->flags & WUMANBER_NOCASE)
             result = 1;
@@ -2521,8 +2522,8 @@ int WmTestInitAddPattern05 (void) {
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 0, 0, 1234, 0, 0);
-    WmPattern *pat = WmInitHashLookup(ctx, (u_int8_t *)"abcd", 4, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 1234, 0, 0);
+    WmPattern *pat = WmInitHashLookup(ctx, (uint8_t *)"abcd", 4, 0);
     if (pat != NULL) {
         if (!(pat->flags & WUMANBER_NOCASE))
             result = 1;
@@ -2542,8 +2543,8 @@ int WmTestInitAddPattern06 (void) {
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
-    WmPattern *pat = WmInitHashLookup(ctx, (u_int8_t *)"abcd", 4, 1);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
+    WmPattern *pat = WmInitHashLookup(ctx, (uint8_t *)"abcd", 4, 1);
     if (pat != NULL) {
         if (memcmp(pat->cs, "abcd", 4) == 0)
             result = 1;
@@ -2562,7 +2563,7 @@ int WmTestInitAddPattern07 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
 
     if (mpm_ctx.max_pattern_id == 1234)
         result = 1;
@@ -2577,7 +2578,7 @@ int WmTestPrepare01 (void) {
     MpmCtx mpm_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"a", 1, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
 
     if (mpm_ctx.Search == WmSearch1)
@@ -2592,7 +2593,7 @@ int WmTestPrepare02 (void) {
     MpmCtx mpm_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
@@ -2608,14 +2609,14 @@ int WmTestPrepare03 (void) {
     MpmCtx mpm_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     if (ctx->search_shifttable[1] == 4)
         result = 1;
     else
-        printf("4 != %u: ", ctx->search_shifttable[1]);
+        printf("4 != %" PRIu32 ": ", ctx->search_shifttable[1]);
 
     WmDestroyCtx(&mpm_ctx);
     return result;
@@ -2626,7 +2627,7 @@ int WmTestPrepare04 (void) {
     MpmCtx mpm_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0, 0, 1, 1, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"a", 1, 0, 0, 1, 1, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
 
     if (mpm_ctx.Scan == WmScan1)
@@ -2641,7 +2642,7 @@ int WmTestPrepare05 (void) {
     MpmCtx mpm_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 1, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 1, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
@@ -2657,14 +2658,14 @@ int WmTestPrepare06 (void) {
     MpmCtx mpm_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 1, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 1, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     if (ctx->scan_shifttable[1] == 4)
         result = 1;
     else
-        printf("4 != %u: ", ctx->scan_shifttable[1]);
+        printf("4 != %" PRIu32 ": ", ctx->scan_shifttable[1]);
 
     WmDestroyCtx(&mpm_ctx);
     return result;
@@ -2677,18 +2678,18 @@ int WmTestSearch01 (void) {
 
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     //mpm_ctx.PrintCtx(&mpm_ctx);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcd", 4);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcd", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
         result = 1;
     else
-        printf("1 != %u ", cnt);
+        printf("1 != %" PRIu32 " ", cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -2703,20 +2704,20 @@ int WmTestSearch01Hash12 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
 
     ctx->search_hash_size = HASH12_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     //mpm_ctx.PrintCtx(&mpm_ctx);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcd", 4);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcd", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
         result = 1;
     else
-        printf("1 != %u ", cnt);
+        printf("1 != %" PRIu32 " ", cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -2731,20 +2732,20 @@ int WmTestSearch01Hash14 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
 
     ctx->search_hash_size = HASH14_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     //mpm_ctx.PrintCtx(&mpm_ctx);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcd", 4);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcd", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
         result = 1;
     else
-        printf("1 != %u ", cnt);
+        printf("1 != %" PRIu32 " ", cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -2759,20 +2760,20 @@ int WmTestSearch01Hash15 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
 
     ctx->search_hash_size = HASH15_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     //mpm_ctx.PrintCtx(&mpm_ctx);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcd", 4);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcd", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
         result = 1;
     else
-        printf("1 != %u ", cnt);
+        printf("1 != %" PRIu32 " ", cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -2787,20 +2788,20 @@ int WmTestSearch01Hash16 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
 
     ctx->search_hash_size = HASH16_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     //mpm_ctx.PrintCtx(&mpm_ctx);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcd", 4);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcd", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
         result = 1;
     else
-        printf("1 != %u ", cnt);
+        printf("1 != %" PRIu32 " ", cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -2813,11 +2814,11 @@ int WmTestSearch02 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abce", 4);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abce", 4);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 0)
@@ -2834,16 +2835,16 @@ int WmTestSearch03 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
     if (cnt == 1)
         result = 1;
     else
-        printf("1 != %u ", cnt);
+        printf("1 != %" PRIu32 " ", cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -2856,11 +2857,11 @@ int WmTestSearch04 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"bcde", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -2877,11 +2878,11 @@ int WmTestSearch05 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"efgh", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"efgh", 4, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -2898,11 +2899,11 @@ int WmTestSearch06 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"eFgH", 4, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"eFgH", 4, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdEfGh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdEfGh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -2919,12 +2920,12 @@ int WmTestSearch07 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcd", 4, 0, 0, 0, 0, 0, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"eFgH", 4, 0, 0, 1, 0, 1, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"eFgH", 4, 0, 0, 1, 0, 1, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdEfGh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdEfGh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
@@ -2941,12 +2942,12 @@ int WmTestSearch08 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"abcde", 5, 0, 0, 1, 0, 0, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"bcde",  4, 0, 0, 1, 0, 1, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"bcde",  4, 0, 0, 1, 0, 1, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
@@ -2963,11 +2964,11 @@ int WmTestSearch09 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"ab", 2, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 1, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"ab", 2);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"ab", 2);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 1)
@@ -2984,12 +2985,12 @@ int WmTestSearch10 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"bc", 2, 0, 0, 1, 0, 0, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"gh", 2, 0, 0, 1, 0, 1, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"bc", 2, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"gh", 2, 0, 0, 1, 0, 1, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
@@ -3006,13 +3007,13 @@ int WmTestSearch11 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0, 0, 1, 0, 0, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 0, 0, 1, 0, 1, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 0, 0, 1, 0, 2, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"a", 1, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"d", 1, 0, 0, 1, 0, 1, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"h", 1, 0, 0, 1, 0, 2, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 3)
@@ -3029,19 +3030,19 @@ int WmTestSearch12 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0, 1, 0, 0, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"d", 1, 0, 0, 1, 0, 1, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 0, 0, 1, 0, 2, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"d", 1, 0, 0, 1, 0, 1, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"Z", 1, 0, 0, 1, 0, 2, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
         result = 1;
     else
-        printf("2 != %u: ", cnt);
+        printf("2 != %" PRIu32 ": ", cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -3054,19 +3055,19 @@ int WmTestSearch13 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"a", 1, 0, 0, 1, 0, 0, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 0, 0, 1, 0, 1, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"h", 1, 0, 0, 1, 0, 2, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"a", 1, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"de",2, 0, 0, 1, 0, 1, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"h", 1, 0, 0, 1, 0, 2, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 3)
         result = 1;
     else
-        printf("3 != %u: ", cnt);
+        printf("3 != %" PRIu32 ": ", cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -3079,13 +3080,13 @@ int WmTestSearch14 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0, 1, 0, 0, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 0, 0, 1, 0, 1, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 0, 0, 1, 0, 2, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"de",2, 0, 0, 1, 0, 1, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"Z", 1, 0, 0, 1, 0, 2, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 2)
@@ -3102,15 +3103,15 @@ int WmTestSearch15 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0, 1, 0, 0, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 0, 0, 1, 0, 1, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 0, 0, 1, 0, 2, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"de",2, 0, 0, 1, 0, 1, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"Z", 1, 0, 0, 1, 0, 2, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
 
-    u_int32_t len = mpm_thread_ctx.match[1].len;
+    uint32_t len = mpm_thread_ctx.match[1].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3128,15 +3129,15 @@ int WmTestSearch16 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0, 1, 0, 0, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"de",2, 0, 0, 1, 0, 1, 0, 0);
-    WmAddPattern(&mpm_ctx, (u_int8_t *)"Z", 1, 0, 0, 1, 0, 2, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 1, 0, 0, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"de",2, 0, 0, 1, 0, 1, 0, 0);
+    WmAddPattern(&mpm_ctx, (uint8_t *)"Z", 1, 0, 0, 1, 0, 2, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"abcdefgh", 8);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefgh", 8);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3154,13 +3155,13 @@ int WmTestSearch17 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3179,14 +3180,14 @@ int WmTestSearch18Hash12 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH12_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3205,14 +3206,14 @@ int WmTestSearch18Hash14 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH14_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3231,14 +3232,14 @@ int WmTestSearch18Hash15 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH15_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3257,14 +3258,14 @@ int WmTestSearch18 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH16_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3283,14 +3284,14 @@ int WmTestSearch18Hash16 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH16_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3308,13 +3309,13 @@ int WmTestSearch19 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPatternCI(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3333,14 +3334,14 @@ int WmTestSearch19Hash12 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCI(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH12_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3359,14 +3360,14 @@ int WmTestSearch19Hash14 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCI(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH14_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3385,14 +3386,14 @@ int WmTestSearch19Hash15 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCI(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH15_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3411,14 +3412,14 @@ int WmTestSearch19Hash16 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCI(&mpm_ctx, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH16_SIZE;
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstaLL.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstaLL.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3436,13 +3437,13 @@ int WmTestSearch20 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3461,14 +3462,14 @@ int WmTestSearch20Hash12 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH12_SIZE; /* force hash12 */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3487,14 +3488,14 @@ int WmTestSearch20Hash14 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH14_SIZE; /* force hash14 */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3513,14 +3514,14 @@ int WmTestSearch20Hash15 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH15_SIZE; /* force hash15 */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3539,14 +3540,14 @@ int WmTestSearch20Hash16 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH16_SIZE; /* force hash16 */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/VideoAccessCodecInstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/VideoAccessCodecInstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3564,13 +3565,13 @@ int WmTestSearch21 (void) {
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/videoaccesscodecinstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/videoaccesscodecinstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3589,14 +3590,14 @@ static int WmTestSearch21Hash12 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH12_SIZE; /* force hash16 */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     //WmPrintInfo(&mpm_ctx);
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/videoaccesscodecinstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/videoaccesscodecinstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3615,14 +3616,14 @@ static int WmTestSearch21Hash14 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH14_SIZE; /* force hash16 */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     //WmPrintInfo(&mpm_ctx);
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/videoaccesscodecinstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/videoaccesscodecinstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3641,14 +3642,14 @@ static int WmTestSearch21Hash15 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH15_SIZE; /* force hash16 */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     //WmPrintInfo(&mpm_ctx);
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/videoaccesscodecinstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/videoaccesscodecinstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3667,14 +3668,14 @@ static int WmTestSearch21Hash16 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0);
     ctx->search_hash_size = HASH16_SIZE; /* force hash16 */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     //WmPrintInfo(&mpm_ctx);
-    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"/videoaccesscodecinstall.exe", 28);
+    mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"/videoaccesscodecinstall.exe", 28);
 
-    u_int32_t len = mpm_thread_ctx.match[0].len;
+    uint32_t len = mpm_thread_ctx.match[0].len;
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
@@ -3693,26 +3694,26 @@ static int WmTestSearch22Hash9 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
     /* total matches: 135 */
 
     ctx->search_hash_size = HASH9_SIZE; /* force hash size */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 6 /* 6 patterns */);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 135)
         result = 1;
     else
-        printf("135 != %u ",cnt);
+        printf("135 != %" PRIu32 " ",cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -3726,26 +3727,26 @@ static int WmTestSearch22Hash12 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
     /* total matches: 135 */
 
     ctx->search_hash_size = HASH12_SIZE; /* force hash size */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 6 /* 6 patterns */);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 135)
         result = 1;
     else
-        printf("135 != %u ",cnt);
+        printf("135 != %" PRIu32 " ",cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -3759,26 +3760,26 @@ static int WmTestSearch22Hash14 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
     /* total matches: 135 */
 
     ctx->search_hash_size = HASH14_SIZE; /* force hash size */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 6 /* 6 patterns */);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 135)
         result = 1;
     else
-        printf("135 != %u ",cnt);
+        printf("135 != %" PRIu32 " ",cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -3792,26 +3793,26 @@ static int WmTestSearch22Hash15 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
     /* total matches: 135 */
 
     ctx->search_hash_size = HASH15_SIZE; /* force hash size */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 6 /* 6 patterns */);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 135)
         result = 1;
     else
-        printf("135 != %u ",cnt);
+        printf("135 != %" PRIu32 " ",cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);
@@ -3825,26 +3826,26 @@ static int WmTestSearch22Hash16 (void) {
     MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
-    WmAddPatternCS(&mpm_ctx, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0); /* should match 30 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0); /* should match 29 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0); /* should match 28 times */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0); /* 26 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0); /* 21 */
+    WmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0); /* 1 */
     /* total matches: 135 */
 
     ctx->search_hash_size = HASH16_SIZE; /* force hash size */
     WmPreparePatterns(&mpm_ctx);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 6 /* 6 patterns */);
 
-    u_int32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (u_int8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
+    uint32_t cnt = mpm_ctx.Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
 
     MpmMatchCleanup(&mpm_thread_ctx);
 
     if (cnt == 135)
         result = 1;
     else
-        printf("135 != %u ",cnt);
+        printf("135 != %" PRIu32 " ",cnt);
 
     WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     WmDestroyCtx(&mpm_ctx);

@@ -32,6 +32,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
+#include "eidps-common.h"
 #include "detect-engine-mpm.h"
 #include "util-mpm.h"
 
@@ -49,7 +50,7 @@ int DetectContentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectContentRegisterTests(void);
 void DetectContentFree(DetectContentData *);
 
-u_int8_t nocasetable[256];
+uint8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
 
 void DetectContentRegister (void) {
@@ -60,7 +61,7 @@ void DetectContentRegister (void) {
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
 
     /* create table for O(1) case conversion lookup */
-    u_int8_t c = 0;
+    uint8_t c = 0;
     for ( ; c < 255; c++) {
        if ( c >= 'a' && c <= 'z')
            nocasetable[c] = (c - ('a' - 'A'));
@@ -78,26 +79,26 @@ void DetectContentRegister (void) {
 }
 
 /* pass on the content_max_id */
-u_int32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
-    //printf("DetectContentMaxId: %u\n", de_ctx->content_max_id);
+uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
+    //printf("DetectContentMaxId: %" PRIu32 "\n", de_ctx->content_max_id);
     return de_ctx->content_max_id;
 }
 
 static inline int
-TestOffsetDepth(MpmMatch *m, DetectContentData *co, u_int16_t pktoff) {
+TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
     if (m->offset >= pktoff) {
         if (co->offset == 0 ||
            (co->offset && m->offset >= co->offset)) {
             if (co->depth == 0 ||
                (co->depth && (m->offset+co->content_len) <= co->depth))
             {
-                //printf("TestOffsetDepth: depth %u, offset %u, m->offset %u, return 1\n",
+                //printf("TestOffsetDepth: depth %" PRIu32 ", offset %" PRIu32 ", m->offset %" PRIu32 ", return 1\n",
                 //    co->depth, co->offset, m->offset);
                 return 1;
             }
         }
     }
-    //printf("TestOffsetDepth: depth %u, offset %u, m->offset %u, return 0\n",
+    //printf("TestOffsetDepth: depth %" PRIu32 ", offset %" PRIu32 ", m->offset %" PRIu32 ", return 0\n",
     //    co->depth, co->offset, m->offset);
     return 0;
 }
@@ -109,7 +110,7 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, u_int16_t pktoff) {
  * that turn out to fail being followed by full matches later in the
  * packet. This adds some runtime complexity however. */
 static inline int
-TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch *m, SigMatch *nsm, u_int16_t pktoff)
+TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch *m, SigMatch *nsm, uint16_t pktoff)
 {
     //printf("test_nextsigmatch m:%p, nsm:%p\n", m,nsm);
     if (nsm == NULL)
@@ -119,34 +120,34 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch
     MpmMatch *nm = pmt->mtc.match[co->id].top;
 
     for (; nm; nm = nm->next) {
-        //printf("TestWithinDistanceOffsetDepth: nm->offset %u, m->offset %u, pktoff %u\n", nm->offset, m->offset, pktoff);
+        //printf("TestWithinDistanceOffsetDepth: nm->offset %" PRIu32 ", m->offset %" PRIu32 ", pktoff %" PRIu32 "\n", nm->offset, m->offset, pktoff);
         if (nm->offset >= pktoff) {
             if ((!(co->flags & DETECT_CONTENT_WITHIN) || (co->within > 0 &&
                 (nm->offset > m->offset) &&
                 ((nm->offset - m->offset + co->content_len) <= co->within))))
             {
-                //printf("TestWithinDistanceOffsetDepth: MATCH: %u <= WITHIN(%u), "
-                //    "nm->offset %u, m->offset %u\n", nm->offset - m->offset + co->content_len,
+                //printf("TestWithinDistanceOffsetDepth: MATCH: %" PRIu32 " <= WITHIN(%" PRIu32 "), "
+                //    "nm->offset %" PRIu32 ", m->offset %" PRIu32 "\n", nm->offset - m->offset + co->content_len,
                 //    co->within, nm->offset, m->offset);
 
                 if (!(co->flags & DETECT_CONTENT_DISTANCE) ||
                     ((nm->offset > m->offset) &&
                     ((nm->offset - m->offset) >= co->distance)))
                 {
-                    //printf("TestWithinDistanceOffsetDepth: MATCH: %u >= DISTANCE(%u), "
-                    //    "nm->offset %u, m->offset %u\n", nm->offset - m->offset,
+                    //printf("TestWithinDistanceOffsetDepth: MATCH: %" PRIu32 " >= DISTANCE(%" PRIu32 "), "
+                    //    "nm->offset %" PRIu32 ", m->offset %" PRIu32 "\n", nm->offset - m->offset,
                     //    co->distance, nm->offset, m->offset);
                     if (TestOffsetDepth(nm, co, pktoff) == 1) {
                         return TestWithinDistanceOffsetDepth(t, pmt, nm, nsm->next, pktoff);
                     }
                 } else {
-                    //printf("TestWithinDistanceOffsetDepth: NO MATCH: %u >= DISTANCE(%u), "
-                    //     "nm->offset %u, m->offset %u\n", nm->offset - m->offset,
+                    //printf("TestWithinDistanceOffsetDepth: NO MATCH: %" PRIu32 " >= DISTANCE(%" PRIu32 "), "
+                    //     "nm->offset %" PRIu32 ", m->offset %" PRIu32 "\n", nm->offset - m->offset,
                     //     co->distance, nm->offset, m->offset);
                 }
             } else {
-                //printf("TestWithinDistanceOffsetDepth: NO MATCH: %u <= WITHIN(%u), "
-                //    "nm->offset %u, m->offset %u\n", nm->offset - m->offset + co->content_len,
+                //printf("TestWithinDistanceOffsetDepth: NO MATCH: %" PRIu32 " <= WITHIN(%" PRIu32 "), "
+                //    "nm->offset %" PRIu32 ", m->offset %" PRIu32 "\n", nm->offset - m->offset + co->content_len,
                 //    co->within, nm->offset, m->offset);
             }
         }
@@ -252,7 +253,7 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
 
 int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
 {
-    u_int32_t len = 0;
+    uint32_t len = 0;
 
     if (p->payload_len == 0)
         return 0;
@@ -266,11 +267,11 @@ int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
 
 #ifdef DEBUG
     printf("content \""); PrintRawUriFp(stdout, co->content, co->content_len);
-    printf("\" matched %u time(s) at offsets: ", len);
+    printf("\" matched %" PRIu32 " time(s) at offsets: ", len);
 
     MpmMatch *tmpm = NULL;
     for (tmpm = pmt->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
-        printf("%u ", tmpm->offset);
+        printf("%" PRIu32 " ", tmpm->offset);
     }
     printf("\n");
 #endif
@@ -283,7 +284,7 @@ DetectContentData *DetectContentParse (char *contentstr)
     DetectContentData *cd = NULL;
     char *str = contentstr;
     char dubbed = 0;
-    u_int16_t len;
+    uint16_t len;
 
     if (contentstr[0] == '\"' && contentstr[strlen(contentstr)-1] == '\"') {
         str = strdup(contentstr+1);
@@ -302,15 +303,15 @@ DetectContentData *DetectContentParse (char *contentstr)
     }
     memset(cd,0,sizeof(DetectContentData));
 
-    //printf("DetectContentParse: \"%s\", len %u\n", str, len);
+    //printf("DetectContentParse: \"%s\", len %" PRIu32 "\n", str, len);
     char converted = 0;
 
     {
-        u_int16_t i, x;
-        u_int8_t bin = 0;
-        u_int8_t escape = 0;
-        u_int8_t binstr[3] = "";
-        u_int8_t binpos = 0;
+        uint16_t i, x;
+        uint8_t bin = 0;
+        uint8_t escape = 0;
+        uint8_t binstr[3] = "";
+        uint8_t binpos = 0;
 
         for (i = 0, x = 0; i < len; i++) {
             // printf("str[%02u]: %c\n", i, str[i]);
@@ -338,9 +339,9 @@ DetectContentData *DetectContentParse (char *contentstr)
                         binpos++;
 
                         if (binpos == 2) {
-                            u_int8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
+                            uint8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
 #ifdef DEBUG
-                            printf("Binstr %X\n", c);
+                            printf("Binstr %" PRIX32 "\n", c);
 #endif
                             binpos = 0;
                             str[x] = c;
@@ -529,7 +530,7 @@ int DetectContentParseTest04 (void) {
 
     cd = DetectContentParse(teststring);
     if (cd != NULL) {
-        u_int16_t len = (cd->content_len > strlen(teststringparsed));
+        uint16_t len = (cd->content_len > strlen(teststringparsed));
         if (memcmp(cd->content, teststringparsed, len) != 0) {
             printf("expected %s got ", teststringparsed);
             PrintRawUriFp(stdout,cd->content,cd->content_len);
@@ -574,7 +575,7 @@ int DetectContentParseTest06 (void) {
 
     cd = DetectContentParse(teststring);
     if (cd != NULL) {
-        u_int16_t len = (cd->content_len > strlen(teststringparsed));
+        uint16_t len = (cd->content_len > strlen(teststringparsed));
         if (memcmp(cd->content, teststringparsed, len) != 0) {
             printf("expected %s got ", teststringparsed);
             PrintRawUriFp(stdout,cd->content,cd->content_len);

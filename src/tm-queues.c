@@ -5,7 +5,7 @@
 
 #define TMQ_MAX_QUEUES 256
 
-static u_int16_t tmq_id = 0;
+static uint16_t tmq_id = 0;
 static Tmq tmqs[TMQ_MAX_QUEUES];
 
 Tmq* TmqAlloc(void) {
@@ -34,7 +34,7 @@ error:
 }
 
 Tmq* TmqGetQueueByName(char *name) {
-    u_int16_t i;
+    uint16_t i;
 
     for (i = 0; i < tmq_id; i++) {
         if (strcmp(tmqs[i].name, name) == 0)
@@ -45,11 +45,11 @@ Tmq* TmqGetQueueByName(char *name) {
 }
 
 void TmqDebugList(void) {
-    u_int16_t i = 0;
+    uint16_t i = 0;
     for (i = 0; i < tmq_id; i++) {
         /* get a lock accessing the len */
         mutex_lock(&trans_q[tmqs[i].id].mutex_q);
-        printf("TmqDebugList: id %u, name \'%s\', len %u\n", tmqs[i].id, tmqs[i].name, trans_q[tmqs[i].id].len);
+        printf("TmqDebugList: id %" PRIu32 ", name \'%s\', len %" PRIu32 "\n", tmqs[i].id, tmqs[i].name, trans_q[tmqs[i].id].len);
         mutex_unlock(&trans_q[tmqs[i].id].mutex_q);
     }
 }

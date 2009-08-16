@@ -22,7 +22,7 @@
 #include "util-unittest.h"
 
 /* get the flowbit with idx from the flow */
-static FlowBit *FlowBitGet(Flow *f, u_int16_t idx) {
+static FlowBit *FlowBitGet(Flow *f, uint16_t idx) {
     GenericVar *gv = f->flowvar;
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
@@ -34,7 +34,7 @@ static FlowBit *FlowBitGet(Flow *f, u_int16_t idx) {
 }
 
 /* add a flowbit to the flow */
-static void FlowBitAdd(Flow *f, u_int16_t idx) {
+static void FlowBitAdd(Flow *f, uint16_t idx) {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         fb = malloc(sizeof(FlowBit));
@@ -46,7 +46,7 @@ static void FlowBitAdd(Flow *f, u_int16_t idx) {
         fb->next = NULL;
         GenericVarAppend(&f->flowvar, (GenericVar *)fb);
 
-        //printf("FlowBitAdd: adding flowbit with idx %u\n", idx);
+        //printf("FlowBitAdd: adding flowbit with idx %" PRIu32 "\n", idx);
 #ifdef FLOWBITS_STATS
         mutex_lock(&flowbits_mutex);
         flowbits_added++;
@@ -58,14 +58,14 @@ static void FlowBitAdd(Flow *f, u_int16_t idx) {
     }
 }
 
-static void FlowBitRemove(Flow *f, u_int16_t idx) {
+static void FlowBitRemove(Flow *f, uint16_t idx) {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL)
         return;
 
     GenericVarRemove(&f->flowvar, (GenericVar *)fb);
 
-    //printf("FlowBitRemove: remove flowbit with idx %u\n", idx);
+    //printf("FlowBitRemove: remove flowbit with idx %" PRIu32 "\n", idx);
 #ifdef FLOWBITS_STATS
     mutex_lock(&flowbits_mutex);
     flowbits_removed++;
@@ -79,7 +79,7 @@ static void FlowBitRemove(Flow *f, u_int16_t idx) {
 #endif /* FLOWBITS_STATS */
 }
 
-void FlowBitSet(Flow *f, u_int16_t idx) {
+void FlowBitSet(Flow *f, uint16_t idx) {
     mutex_lock(&f->m);
 
     FlowBit *fb = FlowBitGet(f, idx);
@@ -90,7 +90,7 @@ void FlowBitSet(Flow *f, u_int16_t idx) {
     mutex_unlock(&f->m);
 }
 
-void FlowBitUnset(Flow *f, u_int16_t idx) {
+void FlowBitUnset(Flow *f, uint16_t idx) {
     mutex_lock(&f->m);
 
     FlowBit *fb = FlowBitGet(f, idx);
@@ -101,7 +101,7 @@ void FlowBitUnset(Flow *f, u_int16_t idx) {
     mutex_unlock(&f->m);
 }
 
-void FlowBitToggle(Flow *f, u_int16_t idx) {
+void FlowBitToggle(Flow *f, uint16_t idx) {
     mutex_lock(&f->m);
 
     FlowBit *fb = FlowBitGet(f, idx);
@@ -114,7 +114,7 @@ void FlowBitToggle(Flow *f, u_int16_t idx) {
     mutex_unlock(&f->m);
 }
 
-int FlowBitIsset(Flow *f, u_int16_t idx) {
+int FlowBitIsset(Flow *f, uint16_t idx) {
     int r = 0;
     mutex_lock(&f->m);
 
@@ -127,7 +127,7 @@ int FlowBitIsset(Flow *f, u_int16_t idx) {
     return r;
 }
 
-int FlowBitIsnotset(Flow *f, u_int16_t idx) {
+int FlowBitIsnotset(Flow *f, uint16_t idx) {
     int r = 0;
     mutex_lock(&f->m);
 

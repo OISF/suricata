@@ -26,7 +26,7 @@ int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ra
         dubbed = 1;
     }
 
-    s->rev = (u_int8_t)atoi(str);
+    s->rev = (uint8_t)atoi(str);
 
     if (dubbed) free(str);
     return 0;

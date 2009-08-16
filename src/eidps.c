@@ -1,18 +1,20 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#ifdef HAVE_CONFIG_H
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 
+#include <errno.h>
 #include <stdio.h>
+#include <sys/signal.h>
+#include <getopt.h>
+
+/** \todo These are covered by HAVE_* macros */
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <netinet/in.h>
-#include <sys/signal.h>
-#include <getopt.h>
 
 #include "eidps.h"
 #include "decode.h"
@@ -59,6 +61,8 @@
 #include "pkt-var.h"
 
 #include "app-layer-detect-proto.h"
+#include "app-layer-parser.h"
+#include "app-layer-http.h"
 
 #include "util-cidr.h"
 #include "util-unittest.h"
@@ -85,7 +89,7 @@ enum {
     MODE_UNITTEST
 };
 
-static u_int8_t sigflags = 0;
+static uint8_t sigflags = 0;
 
 static void handle_sigint(/*@unused@*/ int sig) { sigint_count = 1; sigflags |= EIDPS_SIGINT; }
 static void handle_sigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= EIDPS_SIGTERM; }
@@ -149,9 +153,9 @@ Packet *SetupPkt (void)
     return p;
 }
 
-Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, u_int8_t *pkt, u_int16_t len, u_int8_t proto)
+Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
 {
-    //printf("TunnelPktSetup: pkt %p, len %u, proto %u\n", pkt, len, proto);
+    //printf("TunnelPktSetup: pkt %p, len %" PRIu32 ", proto %" PRIu32 "\n", pkt, len, proto);
 
     /* get us a packet */
     Packet *p = NULL;
@@ -884,7 +888,7 @@ int main(int argc, char **argv)
     }
 
     /* create table for O(1) lowercase conversion lookup */
-    u_int8_t c = 0;
+    uint8_t c = 0;
     for ( ; c < 255; c++) {
        if (c >= 'A' && c <= 'Z')
            g_u8_lowercasetable[c] = (c + ('a' - 'A'));
@@ -962,7 +966,7 @@ int main(int argc, char **argv)
     memset(&trans_q, 0,sizeof(trans_q));
 
     /* pre allocate packets */
-    printf("Preallocating packets... packet size %u\n", sizeof(Packet));
+    printf("Preallocating packets... packet size %" PRIuMAX "\n", sizeof(Packet));
     int i = 0;
     for (i = 0; i < MAX_PENDING; i++) {
         /* XXX pkt alloc function */
@@ -1046,28 +1050,28 @@ int main(int argc, char **argv)
             memset(&end_time, 0, sizeof(end_time));
             gettimeofday(&end_time, NULL);
 
-            printf("time elapsed %lus\n", end_time.tv_sec - start_time.tv_sec);
+            printf("time elapsed %" PRIu64 "s\n", end_time.tv_sec - start_time.tv_sec);
 
             TmThreadKillThreads();
 
             PerfReleaseResources();
 #if 0
 #ifdef DBG_PERF
-            printf("th_v[0].nfq_t->dbg_maxreadsize %d\n", th_v[0].nfq_t->dbg_maxreadsize);
-            //printf("th_v[1].nfq_t->dbg_maxreadsize %d\n", th_v[1].nfq_t->dbg_maxreadsize);
+            printf("th_v[0].nfq_t->dbg_maxreadsize %" PRId32 "\n", th_v[0].nfq_t->dbg_maxreadsize);
+            //printf("th_v[1].nfq_t->dbg_maxreadsize %" PRId32 "\n", th_v[1].nfq_t->dbg_maxreadsize);
 #endif /* DBG_PERF */
-            printf("NFQ Stats 0: pkts %u, errs %u\n", th_v[0].nfq_t->pkts, th_v[0].nfq_t->errs);
-            //printf("NFQ Stats 1: pkts %u, errs %u\n", th_v[1].nfq_t->pkts, th_v[1].nfq_t->errs);
+            printf("NFQ Stats 0: pkts %" PRIu32 ", errs %" PRIu32 "\n", th_v[0].nfq_t->pkts, th_v[0].nfq_t->errs);
+            //printf("NFQ Stats 1: pkts %" PRIu32 ", errs %" PRIu32 "\n", th_v[1].nfq_t->pkts, th_v[1].nfq_t->errs);
             PatternMatcherThreadInfo(&th_v[3]);
             PatternMatcherThreadInfo(&th_v[4]);
 #ifdef DBG_PERF
-            printf("trans_q[0].dbg_maxlen %u\n", trans_q[0].dbg_maxlen);
-            printf("trans_q[1].dbg_maxlen %u\n", trans_q[1].dbg_maxlen);
-            printf("trans_q[2].dbg_maxlen %u\n", trans_q[2].dbg_maxlen);
-            printf("trans_q[3].dbg_maxlen %u\n", trans_q[3].dbg_maxlen);
-            printf("trans_q[4].dbg_maxlen %u\n", trans_q[4].dbg_maxlen);
+            printf("trans_q[0].dbg_maxlen %" PRIu32 "\n", trans_q[0].dbg_maxlen);
+            printf("trans_q[1].dbg_maxlen %" PRIu32 "\n", trans_q[1].dbg_maxlen);
+            printf("trans_q[2].dbg_maxlen %" PRIu32 "\n", trans_q[2].dbg_maxlen);
+            printf("trans_q[3].dbg_maxlen %" PRIu32 "\n", trans_q[3].dbg_maxlen);
+            printf("trans_q[4].dbg_maxlen %" PRIu32 "\n", trans_q[4].dbg_maxlen);
 
-            printf("dbg_maxpending %u\n", dbg_maxpending);
+            printf("dbg_maxpending %" PRIu32 "\n", dbg_maxpending);
 #endif /* DBG_PERF */
 #endif
             break;//pthread_exit(NULL);

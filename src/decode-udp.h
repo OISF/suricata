@@ -17,15 +17,15 @@
 /* UDP header structure */
 typedef struct UDPHdr_
 {
-	u_int16_t uh_sport;  /* source port */
-	u_int16_t uh_dport;  /* destination port */
-	u_int16_t uh_len;    /* length */
-	u_int16_t uh_sum;    /* checksum */
+	uint16_t uh_sport;  /* source port */
+	uint16_t uh_dport;  /* destination port */
+	uint16_t uh_len;    /* length */
+	uint16_t uh_sum;    /* checksum */
 } UDPHdr;
 
 typedef struct UDPVars_
 {
-    u_int8_t hlen;
+    uint8_t hlen;
 } UDPVars;
 
 #endif /* __DECODE_UDP_H__ */

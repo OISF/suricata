@@ -4,8 +4,8 @@
 #define DETECT_PROTO_ANY 0x1
 
 typedef struct DetectProto_ {
-    u_int8_t proto[256/8]; /* bitarray for 256 bits */
-    u_int8_t flags;
+    uint8_t proto[256/8]; /* bitarray for 256 bits */
+    uint8_t flags;
 } DetectProto;
 
 /* prototypes */

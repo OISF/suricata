@@ -3,19 +3,21 @@
 #include <config.h>
 #endif
 
+#include <errno.h>
 #include <stdio.h>
+#include <sys/signal.h>
+
+/** \todo These are covered by HAVE_* macros */
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <netinet/in.h>
-#include <sys/signal.h>
-#include <errno.h>
 
 #include <pcre.h>
 
-#include "eidps.h"
+
+#include "eidps-common.h"
 
 static pcre *config_pcre = NULL;
 static pcre_extra *config_pcre_extra = NULL;
@@ -42,7 +44,7 @@ int LoadConfig ( void ) {
     config_pcre = pcre_compile(regexstr, opts, &eb, &eo, NULL);
     if(config_pcre == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", regexstr, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", regexstr, eo, eb);
         exit(1);
     }
 
@@ -59,10 +61,10 @@ int LoadConfig ( void ) {
 
         ret = pcre_exec(config_pcre, config_pcre_extra, line, strlen(line), 0, 0, ov, MAX_SUBSTRINGS);
         if (ret != 3) {
-            //printf("pcre_exec failed: ret %d, optstr \"%s\"\n", ret, line);
+            //printf("pcre_exec failed: ret %" PRId32 ", optstr \"%s\"\n", ret, line);
             continue;
         }
-        //printf("LoadConfig: pcre_exec returned %d\n", ret);
+        //printf("LoadConfig: pcre_exec returned %" PRId32 "\n", ret);
 
         const char *all, *name, *value;
         pcre_get_substring(line, ov, MAX_SUBSTRINGS, 0, &all);
@@ -73,7 +75,10 @@ int LoadConfig ( void ) {
     }
 
     return 0;
+/** \todo Currently unused */
+#if 0
 error:
     return -1;
+#endif
 }
 

@@ -13,18 +13,18 @@ typedef struct HostTable_ {
     HashTable *hash;
     BloomFilterCounting *bf;
 
-    u_int32_t cnt;
+    uint32_t cnt;
 } HostTable;
 
 typedef struct Host_ {
     pthread_mutex_t m;
 
     Address addr;
-    u_int8_t os;
-    u_int8_t reputation;
+    uint8_t os;
+    uint8_t reputation;
 
-    u_int64_t bytes;
-    u_int32_t pkts;
+    uint64_t bytes;
+    uint32_t pkts;
 } Host;
 
 #define HOST_OS_UNKNOWN 0

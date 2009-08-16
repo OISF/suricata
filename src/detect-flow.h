@@ -2,8 +2,8 @@
 #define __DETECT_FLOW_H__
 
 typedef struct DetectFlowData_ {
-    u_int8_t flags;     /* flags to match */
-    u_int8_t match_cnt; /* number of matches we need */
+    uint8_t flags;     /* flags to match */
+    uint8_t match_cnt; /* number of matches we need */
 } DetectFlowData;
 
 /* prototypes */

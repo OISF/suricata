@@ -3,6 +3,8 @@
  * Copyright (C) 2008 by Victor Julien <victor@inliniac.net> */
 
 #include <ctype.h>
+
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "detect-uricontent.h"
@@ -12,6 +14,7 @@
 #include "flow-var.h"
 #include "threads.h"
 #include "util-mpm.h"
+#include "util-print.h"
 
 #include "util-unittest.h"
 
@@ -19,7 +22,7 @@ int DetectUricontentMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signa
 int DetectUricontentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void HttpUriRegisterTests(void);
 
-u_int8_t nocasetable[256];
+uint8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
 
 void DetectUricontentRegister (void) {
@@ -30,7 +33,7 @@ void DetectUricontentRegister (void) {
     sigmatch_table[DETECT_URICONTENT].RegisterTests = HttpUriRegisterTests;
 
     /* create table for O(1) case conversion lookup */
-    u_int8_t c = 0;
+    uint8_t c = 0;
     for ( ; c < 255; c++) {
        if ( c >= 'a' && c <= 'z')
            nocasetable[c] = (c - ('a' - 'A'));
@@ -48,7 +51,7 @@ void DetectUricontentRegister (void) {
 }
 
 /* pass on the uricontent_max_id */
-u_int32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx) {
+uint32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx) {
     return de_ctx->uricontent_max_id;
 }
 
@@ -76,8 +79,8 @@ void PktHttpUriFree(Packet *p) {
  *   example: '/one/%20/two/' becomes '/one/ /two/'
  */
 static inline int
-HttpUriNormalize(u_int8_t *raw, u_int16_t rawlen, u_int8_t *norm, u_int16_t *normlen) {
-    u_int16_t i,x;
+HttpUriNormalize(uint8_t *raw, uint16_t rawlen, uint8_t *norm, uint16_t *normlen) {
+    uint16_t i,x;
     for (i = 0, x = 0; i < rawlen; i++) {
             /* check for ../ */
             /* check for // */
@@ -121,20 +124,20 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch
     MpmMatch *nm = pmt->mtcu.match[co->id].top;
 
     for (; nm; nm = nm->next) {
-        //printf("test_nextsigmatch: (nm->offset+1) %u, (m->offset+1) %u\n", (nm->offset+1), (m->offset+1));
+        //printf("test_nextsigmatch: (nm->offset+1) %" PRIu32 ", (m->offset+1) %" PRIu32 "\n", (nm->offset+1), (m->offset+1));
 
         if ((co->within == 0 || (co->within &&
            ((nm->offset+1) > (m->offset+1)) &&
            ((nm->offset+1) - (m->offset+1) <= co->within))))
         {
-            //printf("test_nextsigmatch: WITHIN (nm->offset+1) %u, (m->offset+1) %u\n", (nm->offset+1), (m->offset+1));
+            //printf("test_nextsigmatch: WITHIN (nm->offset+1) %" PRIu32 ", (m->offset+1) %" PRIu32 "\n", (nm->offset+1), (m->offset+1));
 
             if (co->distance == 0 || (co->distance &&
                ((nm->offset+1) > (m->offset+1)) &&
                ((nm->offset+1) - (m->offset+1) >= co->distance)))
             {
                 if (TestOffsetDepth(nm, co) == 1) {
-                     //printf("test_nextsigmatch: DISTANCE (nm->offset+1) %u, (m->offset+1) %u\n", (nm->offset+1), (m->offset+1));
+                     //printf("test_nextsigmatch: DISTANCE (nm->offset+1) %" PRIu32 ", (m->offset+1) %" PRIu32 "\n", (nm->offset+1), (m->offset+1));
                     return TestWithinDistanceOffsetDepth(t, pmt, nm, nsm->next);
                 }
             }
@@ -220,7 +223,7 @@ DoDetectUricontent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, SigMatch
 
 int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
 {
-    u_int32_t len = 0;
+    uint32_t len = 0;
 
     /* if we don't have a uri, don't bother scanning */
     if (pmt->de_have_httpuri == 0)
@@ -236,11 +239,11 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
 #ifdef DEBUG
     printf("uricontent \'");
     PrintRawUriFp(stdout, co->uricontent, co->uricontent_len);    
-    printf("\' matched %u time(s) at offsets: ", len);
+    printf("\' matched %" PRIu32 " time(s) at offsets: ", len);
 
     MpmMatch *tmpm = NULL;
     for (tmpm = pmt->mtcu.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
-        printf("%u ", tmpm->offset);
+        printf("%" PRIu32 " ", tmpm->offset);
     }
     printf("\n");
 #endif
@@ -254,7 +257,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     SigMatch *sm = NULL;
     char *str = contentstr;
     char dubbed = 0;
-    u_int16_t len = 0;
+    uint16_t len = 0;
 
     if (contentstr[0] == '\"' && contentstr[strlen(contentstr)-1] == '\"') {
         str = strdup(contentstr+1);
@@ -273,12 +276,12 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     }
     memset(cd,0,sizeof(DetectUricontentData));
 
-    //printf("DetectUricontentSetup: \"%s\", len %u\n", str, len);
+    //printf("DetectUricontentSetup: \"%s\", len %" PRIu32 "\n", str, len);
     char converted = 0;
 
     {
-        u_int16_t i, x;
-        u_int8_t bin = 0, binstr[3] = "", binpos = 0;
+        uint16_t i, x;
+        uint8_t bin = 0, binstr[3] = "", binpos = 0;
         for (i = 0, x = 0; i < len; i++) {
             //printf("str[%02u]: %c\n", i, str[i]);
             if (str[i] == '|') {
@@ -302,9 +305,9 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
                         binpos++;
 
                         if (binpos == 2) {
-                            u_int8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
+                            uint8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
 #ifdef DEBUG
-                            printf("Binstr %X\n", c);
+                            printf("Binstr %" PRIX32 "\n", c);
 #endif
                             binpos = 0;
                             str[x] = c;
@@ -333,7 +336,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     }
 
 #ifdef DEBUG
-    printf("DetectUricontentSetup: len %u\n", len);
+    printf("DetectUricontentSetup: len %" PRIu32 "\n", len);
 #endif
 
     cd->uricontent = malloc(len);
@@ -380,21 +383,21 @@ error:
  */
 
 int HttpUriTest01 (void) {
-    u_int8_t *raw = (u_int8_t *)"/one/../two/";
-    u_int16_t rawlen = strlen((char *)raw);
-    u_int8_t *norm = (u_int8_t *)"/two/";
-    u_int16_t normlen = strlen((char *)norm);
+    uint8_t *raw = (uint8_t *)"/one/../two/";
+    uint16_t rawlen = strlen((char *)raw);
+    uint8_t *norm = (uint8_t *)"/two/";
+    uint16_t normlen = strlen((char *)norm);
     int result = 0, r = 0;
 
-    u_int8_t buf[1024];
-    u_int16_t buflen = 0;
+    uint8_t buf[1024];
+    uint16_t buflen = 0;
 
     r = HttpUriNormalize(raw, rawlen, buf, &buflen);
 
     if (buflen == normlen && memcmp(norm, buf, normlen) == 0)
         result = 1;
 
-    //printf("HttpUriTest01: buflen %u, %s\n", buflen, buf);
+    //printf("HttpUriTest01: buflen %" PRIu32 ", %s\n", buflen, buf);
 
 //end:
     return result;

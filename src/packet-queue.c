@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"

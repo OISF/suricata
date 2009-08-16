@@ -1,6 +1,6 @@
 /* Time keeping for offline (non-live) packet handling (pcap files) */
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "detect.h"
 #include "threads.h"
 
@@ -26,7 +26,7 @@ void TimeSet(struct timeval *tv) {
     mutex_lock(&current_time_mutex);
     current_time.tv_sec = tv->tv_sec; 
     current_time.tv_usec = tv->tv_usec;
-    //printf("TimeSet: time set to %lu sec, %lu usec\n",
+    //printf("TimeSet: time set to %" PRIu64 " sec, %" PRIu64 " usec\n",
     //    current_time.tv_sec, current_time.tv_usec);
 
     mutex_unlock(&current_time_mutex);
@@ -45,7 +45,7 @@ void TimeGet(struct timeval *tv) {
         mutex_unlock(&current_time_mutex);
     }
 
-    //printf("TimeGet: time we got is %lu sec, %lu usec\n",
+    //printf("TimeGet: time we got is %" PRIu64 " sec, %" PRIu64 " usec\n",
     //    tv->tv_sec, tv->tv_usec);
 }
 

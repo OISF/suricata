@@ -3,6 +3,8 @@
 #include "eidps.h"
 #include "packet-queue.h"
 #include "decode.h"
+#include "detect.h"
+#include "detect-uricontent.h"
 #include "threads.h"
 #include "threadvars.h"
 #include "flow.h"
@@ -27,7 +29,7 @@ Packet *TmqhInputPacketpool(ThreadVars *t)
 
     mutex_lock(&mutex_pending);
     pending++;
-    //printf("PcapFileCallback: pending %u\n", pending);
+    //printf("PcapFileCallback: pending %" PRIu32 "\n", pending);
 #ifdef DBG_PERF
     if (pending > dbg_maxpending)
         dbg_maxpending = pending;
@@ -93,7 +95,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
                 /* fall through */
             } else {
-                //printf("TmqhOutputPacketpool: NOT p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1 (%u)\n", TUNNEL_PKT_TPR(p));
+                //printf("TmqhOutputPacketpool: NOT p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1 (%" PRIu32 ")\n", TUNNEL_PKT_TPR(p));
                 TUNNEL_DECR_PKT_TPR_NOLOCK(p);
 
                  /* fall through */
@@ -118,7 +120,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     mutex_unlock(&q->mutex_q);
 
     mutex_lock(&mutex_pending);
-    //printf("TmqhOutputPacketpool: pending %u\n", pending);
+    //printf("TmqhOutputPacketpool: pending %" PRIu32 "\n", pending);
     if (pending > 0) {
         pending--;
     } else {

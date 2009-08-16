@@ -5,20 +5,20 @@
 
 /* Bloom filter structure */
 typedef struct BloomFilterCounting_ {
-    u_int8_t *array;
-    u_int32_t array_size; /* size in buckets */
-    u_int8_t type; /* 1, 2 or 4 byte counters */
-    u_int8_t hash_iterations;
-    u_int32_t (*Hash)(void *, u_int16_t, u_int8_t, u_int32_t);
+    uint8_t *array;
+    uint32_t array_size; /* size in buckets */
+    uint8_t type; /* 1, 2 or 4 byte counters */
+    uint8_t hash_iterations;
+    uint32_t (*Hash)(void *, uint16_t, uint8_t, uint32_t);
 } BloomFilterCounting;
 
 /* prototypes */
-BloomFilterCounting *BloomFilterCountingInit(u_int32_t, u_int8_t, u_int8_t, u_int32_t (*Hash)(void *, u_int16_t, u_int8_t, u_int32_t));
+BloomFilterCounting *BloomFilterCountingInit(uint32_t, uint8_t, uint8_t, uint32_t (*Hash)(void *, uint16_t, uint8_t, uint32_t));
 void BloomFilterCountingFree(BloomFilterCounting *);
 void BloomFilterCountingPrint(BloomFilterCounting *);
-int BloomFilterCountingAdd(BloomFilterCounting *, void *, u_int16_t);
-int BloomFilterCountingRemove(BloomFilterCounting *, void *, u_int16_t);
-int BloomFilterCountingTest(BloomFilterCounting *, void *, u_int16_t);
+int BloomFilterCountingAdd(BloomFilterCounting *, void *, uint16_t);
+int BloomFilterCountingRemove(BloomFilterCounting *, void *, uint16_t);
+int BloomFilterCountingTest(BloomFilterCounting *, void *, uint16_t);
 
 void BloomFilterCountingRegisterTests(void);
 

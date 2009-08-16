@@ -1,9 +1,10 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "decode-icmpv6.h"
 
-void DecodeICMPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+void DecodeICMPV6(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
     p->icmpv6h = (ICMPV6Hdr *)pkt;
 
@@ -14,7 +15,7 @@ void DecodeICMPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
     }
 
 #ifdef DEBUG
-    printf("ICMPV6 TYPE %u CODE %u\n", p->icmpv6h->type, p->icmpv6h->code);
+    printf("ICMPV6 TYPE %" PRIu32 " CODE %" PRIu32 "\n", p->icmpv6h->type, p->icmpv6h->code);
 #endif
 
     p->proto = IPPROTO_ICMPV6;

@@ -1,7 +1,13 @@
 /* Copyright (c) 2009 Victor Julien <victor@inliniac.net> */
 
-#include <pthread.h>
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/signal.h>
+
+/** \todo These are covered by HAVE_* macros */
+#include <pthread.h>
 
 #if LIBPCAP_VERSION_MAJOR == 1
 #include <pcap/pcap.h>
@@ -30,9 +36,9 @@ typedef struct PcapThreadVars_
     int datalink;
 
     /* counters */
-    u_int32_t pkts;
-    u_int64_t bytes;
-    u_int32_t errs;
+    uint32_t pkts;
+    uint64_t bytes;
+    uint32_t errs;
 
     ThreadVars *tv;
 } PcapThreadVars;
@@ -102,7 +108,7 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     p->pcap_v.datalink = ptv->datalink;
     p->pktlen = h->caplen;
     memcpy(p->pkt, pkt, p->pktlen);
-    //printf("PcapCallback: p->pktlen: %u (pkt %02x, p->pkt %02x)\n", p->pktlen, *pkt, *p->pkt);
+    //printf("PcapCallback: p->pktlen: %" PRIu32 " (pkt %02x, p->pkt %02x)\n", p->pktlen, *pkt, *p->pkt);
 
     /* pass on... */
     tv->tmqh_out(tv, p);
@@ -124,7 +130,7 @@ int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     /// Just read one packet at a time for now.
     int r = 0;
     while (r == 0) {
-        //printf("ReceivePcap: call pcap_dispatch %u\n", tv->flags);
+        //printf("ReceivePcap: call pcap_dispatch %" PRIu32 "\n", tv->flags);
 
         r = pcap_dispatch(ptv->pcap_handle, 1, (pcap_handler)PcapCallback, (u_char *)ptv);
         if (r < 0) {
@@ -183,21 +189,21 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     /* set Snaplen, Promisc, and Timeout. Must be called before pcap_activate */
     int pcap_set_snaplen_r = pcap_set_snaplen(ptv->pcap_handle,LIBPCAP_SNAPLEN);
-    //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %d\n", ptv->pcap_handle, pcap_set_snaplen_r);
+    //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_snaplen_r);
     if (pcap_set_snaplen_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(ptv->pcap_handle));
         exit(1);
     }
 
     int pcap_set_promisc_r = pcap_set_promisc(ptv->pcap_handle,LIBPCAP_PROMISC);
-    //printf("ReceivePcapThreadInit: pcap_set_promisc(%p) returned %d\n", ptv->pcap_handle, pcap_set_promisc_r);
+    //printf("ReceivePcapThreadInit: pcap_set_promisc(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_promisc_r);
     if (pcap_set_promisc_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(ptv->pcap_handle));
         exit(1);
     }
 
     int pcap_set_timeout_r = pcap_set_timeout(ptv->pcap_handle,LIBPCAP_COPYWAIT);
-    //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %d\n", ptv->pcap_handle, pcap_set_timeout_r);
+    //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_timeout_r);
     if (pcap_set_timeout_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(ptv->pcap_handle));
         exit(1);
@@ -205,7 +211,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     /* activate the handle */
     int pcap_activate_r = pcap_activate(ptv->pcap_handle);
-    //printf("ReceivePcapThreadInit: pcap_activate(%p) returned %d\n", ptv->pcap_handle, pcap_activate_r);
+    //printf("ReceivePcapThreadInit: pcap_activate(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_activate_r);
     if (pcap_activate_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(ptv->pcap_handle));
         exit(1);
@@ -256,7 +262,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
-    printf(" - (%s) Packets %u, bytes %llu.\n", tv->name, ptv->pkts, ptv->bytes);
+    printf(" - (%s) Packets %" PRIu32 ", bytes %" PRIu64 ".\n", tv->name, ptv->pkts, ptv->bytes);
     return;
 }
 
@@ -302,7 +308,7 @@ int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
             DecodePPP(t,p,p->pkt,p->pktlen,pq);
             break;
         default:
-            printf("Error: datalink type %d not yet supported in module DecodePcap.\n", p->pcap_v.datalink);
+            printf("Error: datalink type %" PRId32 " not yet supported in module DecodePcap.\n", p->pcap_v.datalink);
             break;
     }
 

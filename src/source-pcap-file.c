@@ -6,8 +6,14 @@
  *
  */
 
-#include <pthread.h>
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/signal.h>
+
+/** \todo These are covered by HAVE_* macros */
+#include <pthread.h>
 
 #if LIBPCAP_VERSION_MAJOR == 1
 #include <pcap/pcap.h>
@@ -27,15 +33,15 @@
 
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
-    void (*Decoder)(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
+    void (*Decoder)(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 } PcapFileGlobalVars;
 
 typedef struct PcapFileThreadVars_
 {
     /* counters */
-    u_int32_t pkts;
-    u_int64_t bytes;
-    u_int32_t errs;
+    uint32_t pkts;
+    uint64_t bytes;
+    uint32_t errs;
 
     ThreadVars *tv;
 
@@ -92,7 +98,7 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 
     p->pktlen = h->caplen;
     memcpy(p->pkt, pkt, p->pktlen);
-    //printf("PcapFileCallback: p->pktlen: %u (pkt %02x, p->pkt %02x)\n", p->pktlen, *pkt, *p->pkt);
+    //printf("PcapFileCallback: p->pktlen: %" PRIu32 " (pkt %02x, p->pkt %02x)\n", p->pktlen, *pkt, *p->pkt);
 }
 
 int ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
@@ -103,7 +109,7 @@ int ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     /// Right now we just support reading packets one at a time.
     int r = pcap_dispatch(pcap_g.pcap_handle, 1, (pcap_handler)PcapFileCallback, (u_char *)ptv);
     if (r <= 0) {
-        printf("ReceivePcap: code %d error %s\n", r, pcap_geterr(pcap_g.pcap_handle));
+        printf("ReceivePcap: code %" PRId32 " error %s\n", r, pcap_geterr(pcap_g.pcap_handle));
         EngineStop();
         return 1;
     }
@@ -131,7 +137,7 @@ int ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     int datalink = pcap_datalink(pcap_g.pcap_handle);
-    printf("TmModuleReceivePcapFileRegister: datalink %d\n", datalink);
+    printf("TmModuleReceivePcapFileRegister: datalink %" PRId32 "\n", datalink);
     switch(datalink)	{
         case LINKTYPE_LINUX_SLL:
             pcap_g.Decoder = DecodeSll;
@@ -143,7 +149,7 @@ int ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
             pcap_g.Decoder = DecodePPP;
             break;
         default:
-            printf("Error: datalink type %d not yet supported in module PcapFile.\n", datalink);
+            printf("Error: datalink type %" PRId32 " not yet supported in module PcapFile.\n", datalink);
             break;
     }
 
@@ -155,7 +161,7 @@ int ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
 void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
-    printf(" - (%s) Packets %u, bytes %llu.\n", tv->name, ptv->pkts, ptv->bytes);
+    printf(" - (%s) Packets %" PRIu32 ", bytes %" PRIu64 ".\n", tv->name, ptv->pkts, ptv->bytes);
     return;
 }
 

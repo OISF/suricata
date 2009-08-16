@@ -44,8 +44,8 @@ typedef struct _PerfCounterName {
 
 typedef struct _PerfCounterValue {
     void *cvalue;
-    u_int32_t size;
-    u_int32_t type;
+    uint32_t size;
+    uint32_t type;
 } PerfCounterValue;
 
 /* Container to hold the counter variable */
@@ -54,12 +54,12 @@ typedef struct _PerfCounter {
     PerfCounterValue *value;
 
     /* local id for this counter in this tm*/
-    u_int64_t id;
+    uint64_t id;
 
     char *desc;
 
     /* no of times the local counter has been synced with this counter */
-    u_int64_t updated;
+    uint64_t updated;
 
     /* flag that indicates if this counter should be displayed or not */
     int disp;
@@ -76,8 +76,8 @@ typedef struct _PerfContext {
     PerfCounter *head;
 
     /* flag set by the wakeup thread, to inform the client threads to sync */
-    u_int32_t perf_flag;
-    u_int32_t curr_id;
+    uint32_t perf_flag;
+    uint32_t curr_id;
 
     /* mutex to prevent simultaneous access during update_counter/output_stat */
     pthread_mutex_t m;
@@ -86,17 +86,17 @@ typedef struct _PerfContext {
 /* PerfCounterArray(PCA) Node*/
 typedef struct _PCAElem {
     PerfCounter *pc;
-    u_int64_t id;
+    uint64_t id;
     union {
-        u_int64_t ui64_cnt;
+        uint64_t ui64_cnt;
         double d_cnt;
     };
 
     /* no of times the local counter has been updated */
-    u_int64_t syncs;
+    uint64_t syncs;
 
     /* indicates the times syncs has overflowed */
-    u_int64_t wrapped_syncs;
+    uint64_t wrapped_syncs;
 } PCAElem;
 
 /* The PerfCounterArray */
@@ -105,7 +105,7 @@ typedef struct _PerfCounterArray {
     PCAElem *head;
 
     /* no of PCAElems in head */
-    u_int32_t size;
+    uint32_t size;
 } PerfCounterArray;
 
 /* Holds multiple instances of the same TM together, used when the stats
@@ -114,20 +114,20 @@ typedef struct _PerfClubTMInst {
     char *tm_name;
 
     PerfContext **head;
-    u_int32_t size;
+    uint32_t size;
 
     struct _PerfClubTMInst *next;
 } PerfClubTMInst;
 
 /* Holds the output interface context for the counter api */
 typedef struct _PerfOPIfaceContext {
-    u_int32_t iface;
+    uint32_t iface;
     char *file;
 
     /* more interfaces to be supported later.  For now just a file */
     FILE *fp;
 
-    u_int32_t club_tm;
+    uint32_t club_tm;
 
     PerfClubTMInst *pctmi;
     pthread_mutex_t pctmi_lock;
@@ -143,28 +143,28 @@ void * PerfMgmtThread(void *);
 
 void * PerfWakeupThread(void *);
 
-u_int32_t PerfRegisterCounter(char *, char *, int, char *, PerfContext *, int,
+uint32_t PerfRegisterCounter(char *, char *, int, char *, PerfContext *, int,
                               int);
 
-inline void PerfCounterIncr(u_int64_t, PerfCounterArray *);
+inline void PerfCounterIncr(uint64_t, PerfCounterArray *);
 
-inline void PerfCounterAddUI64(u_int64_t, PerfCounterArray *, u_int64_t);
+inline void PerfCounterAddUI64(uint64_t, PerfCounterArray *, uint64_t);
 
-inline void PerfCounterAddDouble(u_int64_t, PerfCounterArray *, double);
+inline void PerfCounterAddDouble(uint64_t, PerfCounterArray *, double);
 
-inline void PerfCounterSetUI64(u_int64_t, PerfCounterArray *, u_int64_t);
+inline void PerfCounterSetUI64(uint64_t, PerfCounterArray *, uint64_t);
 
-inline void PerfCounterSetDouble(u_int64_t, PerfCounterArray *, double);
+inline void PerfCounterSetDouble(uint64_t, PerfCounterArray *, double);
 
 void PerfAddToClubbedTMTable(char *, PerfContext *);
 
-PerfCounterArray * PerfGetCounterArrayRange(u_int32_t, u_int32_t,
+PerfCounterArray * PerfGetCounterArrayRange(uint32_t, uint32_t,
                                             PerfContext *);
 
 PerfCounterArray * PerfGetAllCountersArray(PerfContext *);
 
 
-int PerfUpdateCounter(char *, char *, u_int32_t, void *,
+int PerfUpdateCounter(char *, char *, uint32_t, void *,
                       PerfContext *);
 
 int PerfUpdateCounterArray(PerfCounterArray *, PerfContext *, int);

@@ -9,6 +9,8 @@
 #include <time.h>
 #include <string.h>
 
+#include "eidps-common.h"
+
 #include "util-bloomfilter-counting.h"
 
 #include "util-unittest.h"
@@ -16,7 +18,7 @@
 /* type: 1, 2 or 4 for 8, 16, or 32 bit counters
  *
  */
-BloomFilterCounting *BloomFilterCountingInit(u_int32_t size, u_int8_t type, u_int8_t iter, u_int32_t (*Hash)(void *, u_int16_t, u_int8_t, u_int32_t)) {
+BloomFilterCounting *BloomFilterCountingInit(uint32_t size, uint8_t type, uint8_t iter, uint32_t (*Hash)(void *, uint16_t, uint8_t, uint32_t)) {
     BloomFilterCounting *bf = NULL;
 
     if (iter == 0)
@@ -71,17 +73,17 @@ void BloomFilterCountingFree(BloomFilterCounting *bf) {
 
 void BloomFilterCountingPrint(BloomFilterCounting *bf) {
     printf("\n------ Counting Bloom Filter Stats ------\n");
-    printf("Buckets:               %u\n", bf->array_size);
-    printf("Counter size:          %u\n", bf->type);
-    printf("Memory size:           %u bytes\n", bf->array_size * bf->type);
+    printf("Buckets:               %" PRIu32 "\n", bf->array_size);
+    printf("Counter size:          %" PRIu32 "\n", bf->type);
+    printf("Memory size:           %" PRIu32 " bytes\n", bf->array_size * bf->type);
     printf("Hash function pointer: %p\n", bf->Hash);
-    printf("Hash functions:        %u\n", bf->hash_iterations);
+    printf("Hash functions:        %" PRIu32 "\n", bf->hash_iterations);
     printf("-----------------------------------------\n");
 }
 
-int BloomFilterCountingAdd(BloomFilterCounting *bf, void *data, u_int16_t datalen) {
-    u_int8_t iter = 0;
-    u_int32_t hash = 0;
+int BloomFilterCountingAdd(BloomFilterCounting *bf, void *data, uint16_t datalen) {
+    uint8_t iter = 0;
+    uint32_t hash = 0;
 
     if (bf == NULL || data == NULL || datalen == 0)
         return -1;
@@ -89,15 +91,15 @@ int BloomFilterCountingAdd(BloomFilterCounting *bf, void *data, u_int16_t datale
     for (iter = 0; iter < bf->hash_iterations; iter++) {
         hash = bf->Hash(data, datalen, iter, bf->array_size) * bf->type;
         if (bf->type == 1) {
-            u_int8_t *u8 = (u_int8_t *)&bf->array[hash];
+            uint8_t *u8 = (uint8_t *)&bf->array[hash];
             if ((*u8) != 255)
                 (*u8)++;
         } else if (bf->type == 2) {
-            u_int16_t *u16 = (u_int16_t *)&bf->array[hash];
+            uint16_t *u16 = (uint16_t *)&bf->array[hash];
             if ((*u16) != 65535)
                 (*u16)++;
         } else if (bf->type == 4) {
-            u_int32_t *u32 = (u_int32_t *)&bf->array[hash];
+            uint32_t *u32 = (uint32_t *)&bf->array[hash];
             if ((*u32) != 4294967295UL)
                 (*u32)++;
         }
@@ -106,9 +108,9 @@ int BloomFilterCountingAdd(BloomFilterCounting *bf, void *data, u_int16_t datale
     return 0;
 }
 
-int BloomFilterCountingRemove(BloomFilterCounting *bf, void *data, u_int16_t datalen) {
-    u_int8_t iter = 0;
-    u_int32_t hash = 0;
+int BloomFilterCountingRemove(BloomFilterCounting *bf, void *data, uint16_t datalen) {
+    uint8_t iter = 0;
+    uint32_t hash = 0;
 
     if (bf == NULL || data == NULL || datalen == 0)
         return -1;
@@ -124,7 +126,7 @@ int BloomFilterCountingRemove(BloomFilterCounting *bf, void *data, u_int16_t dat
     for (iter = 0; iter < bf->hash_iterations; iter++) {
         hash = bf->Hash(data, datalen, iter, bf->array_size) * bf->type;
         if (bf->type == 1) {
-            u_int8_t *u8 = (u_int8_t *)&bf->array[hash];
+            uint8_t *u8 = (uint8_t *)&bf->array[hash];
             if ((*u8) > 0)
                 (*u8)--;
             else {
@@ -133,7 +135,7 @@ int BloomFilterCountingRemove(BloomFilterCounting *bf, void *data, u_int16_t dat
                 return -1;
             }
         } else if (bf->type == 2) {
-            u_int16_t *u16 = (u_int16_t *)&bf->array[hash];
+            uint16_t *u16 = (uint16_t *)&bf->array[hash];
             if ((*u16) > 0)
                 (*u16)--;
             else {
@@ -142,7 +144,7 @@ int BloomFilterCountingRemove(BloomFilterCounting *bf, void *data, u_int16_t dat
                 return -1;
             }
         } else if (bf->type == 4) {
-            u_int32_t *u32 = (u_int32_t *)&bf->array[hash];
+            uint32_t *u32 = (uint32_t *)&bf->array[hash];
             if ((*u32) > 0)
                 (*u32)--;
             else {
@@ -161,9 +163,9 @@ int BloomFilterCountingRemove(BloomFilterCounting *bf, void *data, u_int16_t dat
  * returns 0: for no match
  *         1: match
  */
-int BloomFilterCountingTest(BloomFilterCounting *bf, void *data, u_int16_t datalen) {
-    u_int8_t iter = 0;
-    u_int32_t hash = 0;
+int BloomFilterCountingTest(BloomFilterCounting *bf, void *data, uint16_t datalen) {
+    uint8_t iter = 0;
+    uint32_t hash = 0;
     int hit = 1;
 
     /* check each hash iteration */
@@ -178,15 +180,15 @@ int BloomFilterCountingTest(BloomFilterCounting *bf, void *data, u_int16_t datal
     return hit;
 }
 
-static u_int32_t BloomHash(void *data, u_int16_t datalen, u_int8_t iter, u_int32_t hash_size) {
-     u_int8_t *d = (u_int8_t *)data;
-     u_int32_t i;
-     u_int32_t hash = 0;
+static uint32_t BloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
+     uint8_t *d = (uint8_t *)data;
+     uint32_t i;
+     uint32_t hash = 0;
 
      for (i = 0; i < datalen; i++) {
-         if (i == 0)      hash += (((u_int32_t)*d++));
-         else if (i == 1) hash += (((u_int32_t)*d++) * datalen);
-         else             hash *= (((u_int32_t)*d++) * i);
+         if (i == 0)      hash += (((uint32_t)*d++));
+         else if (i == 1) hash += (((uint32_t)*d++) * datalen);
+         else             hash *= (((uint32_t)*d++) * i);
      }
 
      hash *= (iter + datalen);

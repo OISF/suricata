@@ -1,6 +1,6 @@
 /* Copyright (c) 2009 Victor Julien */
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"
@@ -12,16 +12,18 @@
 #include "util-pool.h"
 
 #include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
 #include "stream.h"
 
 #include "app-layer-protos.h"
+#include "app-layer-parser.h"
 
 #define INSPECT_BYTES   32
 
-static u_int8_t al_proto_id = 0;
+static uint8_t al_proto_id = 0;
 
 typedef struct AppLayerDetectProtoData_ {
-    u_int8_t proto;
+    uint8_t proto;
 } AppLayerDetectProtoData;
 
 static Pool *al_detect_proto_pool = NULL;
@@ -46,7 +48,7 @@ void AppLayerDetectProtoThreadInit(void) {
     }
 }
 
-u_int8_t AppLayerDetectGetProto(u_int8_t *buf, u_int16_t buflen) {
+uint8_t AppLayerDetectGetProto(uint8_t *buf, uint16_t buflen) {
     if (buflen < INSPECT_BYTES)
         return ALPROTO_UNKNOWN;
 
@@ -88,7 +90,7 @@ void *AppLayerDetectProtoThread(void *td)
                 void *al_data_ptr = ssn->l7data[al_proto_id];
 
                 if (smsg->flags & STREAM_START) {
-                    //printf("L7AppDetectThread: stream initializer (len %u (%u))\n", smsg->data.data_len, MSG_DATA_SIZE);
+                    //printf("L7AppDetectThread: stream initializer (len %" PRIu32 " (%" PRIu32 "))\n", smsg->data.data_len, MSG_DATA_SIZE);
 
                     //printf("=> Init Stream Data -- start\n");
                     //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
@@ -106,7 +108,7 @@ void *AppLayerDetectProtoThread(void *td)
                         }
                     }
                 } else {
-                    //printf("AppLayerDetectThread: stream data (len %u (%u))\n", smsg->data.data_len, MSG_DATA_SIZE);
+                    //printf("AppLayerDetectThread: stream data (len %" PRIu32 " (%" PRIu32 "))\n", smsg->data.data_len, MSG_DATA_SIZE);
 
                     //printf("=> Stream Data -- start\n");
                     //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
@@ -116,7 +118,7 @@ void *AppLayerDetectProtoThread(void *td)
                      * a start msg should have gotten us one */
                     if (al_data_ptr != NULL) {
                         AppLayerDetectProtoData *al_proto = (AppLayerDetectProtoData *)al_data_ptr;
-                        printf("AppLayerDetectThread: already established that the proto is %u\n", al_proto->proto);
+                        printf("AppLayerDetectThread: already established that the proto is %" PRIu32 "\n", al_proto->proto);
 
                         AppLayerParse(smsg->flow, al_proto->proto, smsg->flags, smsg->data.data, smsg->data.data_len);
                     } else {

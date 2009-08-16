@@ -23,7 +23,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -47,8 +47,8 @@ void TmModuleAlertUnifiedLogRegister (void) {
 
 typedef struct AlertUnifiedLogThread_ {
     FILE *fp;
-    u_int32_t size_limit;
-    u_int32_t size_current;
+    uint32_t size_limit;
+    uint32_t size_current;
 } AlertUnifiedLogThread;
 
 #define ALERTUNIFIEDLOG_LOGMAGIC 0xDEAD1080 /* taken from Snort */
@@ -56,35 +56,35 @@ typedef struct AlertUnifiedLogThread_ {
 #define ALERTUNIFIEDLOG_VERMINOR 2          /* taken from Snort */
 
 typedef struct AlertUnifiedLogFileHeader_ {
-    u_int32_t magic;
-    u_int16_t ver_major;
-    u_int16_t ver_minor;
-    u_int32_t timezone;
-    u_int32_t pad1; /* Snort has something called sigfigs, dunno what it is. I do know it's always 0. */
-    u_int32_t snaplen;
-    u_int32_t linktype;
+    uint32_t magic;
+    uint16_t ver_major;
+    uint16_t ver_minor;
+    uint32_t timezone;
+    uint32_t pad1; /* Snort has something called sigfigs, dunno what it is. I do know it's always 0. */
+    uint32_t snaplen;
+    uint32_t linktype;
 } AlertUnifiedLogFileHeader;
 
 typedef struct AlertUnifiedLogPacketHeader_ {
     /* Snort's 'Event' structure */
-    u_int32_t sig_gen;
-    u_int32_t sig_sid;
-    u_int32_t sig_rev;
-    u_int32_t sig_class;
-    u_int32_t sig_prio;
-    u_int32_t pad1; /* Snort's event_id */
-    u_int32_t pad2; /* Snort's event_reference */
-    u_int32_t tv_sec1; /* from Snort's struct pcap_timeval */
-    u_int32_t tv_usec1; /* from Snort's struct pcap_timeval */
+    uint32_t sig_gen;
+    uint32_t sig_sid;
+    uint32_t sig_rev;
+    uint32_t sig_class;
+    uint32_t sig_prio;
+    uint32_t pad1; /* Snort's event_id */
+    uint32_t pad2; /* Snort's event_reference */
+    uint32_t tv_sec1; /* from Snort's struct pcap_timeval */
+    uint32_t tv_usec1; /* from Snort's struct pcap_timeval */
 
     /* 32 bit unsigned flags */
-    u_int32_t pktflags;
+    uint32_t pktflags;
 
     /* Snort's 'SnortPktHeader' structure */
-    u_int32_t tv_sec2; /* from Snort's struct pcap_timeval */
-    u_int32_t tv_usec2; /* from Snort's struct pcap_timeval */
-    u_int32_t caplen;
-    u_int32_t pktlen;
+    uint32_t tv_sec2; /* from Snort's struct pcap_timeval */
+    uint32_t tv_usec2; /* from Snort's struct pcap_timeval */
+    uint32_t caplen;
+    uint32_t pktlen;
 } AlertUnifiedLogPacketHeader;
 
 int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
@@ -100,7 +100,7 @@ int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
     gettimeofday(&ts, NULL);
 
     /* create the filename to use */
-    snprintf(filename, sizeof(filename), "%s/%s.%u", "/var/log/eidps", "unified.log", (u_int32_t)ts.tv_sec);
+    snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, "/var/log/eidps", "unified.log", (uint32_t)ts.tv_sec);
 
     /* XXX filename & location */
     aun->fp = fopen(filename, "wb");
@@ -121,7 +121,7 @@ int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
 
     ret = fwrite(&hdr, sizeof(hdr), 1, aun->fp);
     if (ret != 1) {
-        printf("Error: fwrite failed: ret = %d, %s\n", ret, strerror(errno));
+        printf("Error: fwrite failed: ret = %" PRId32 ", %s\n", ret, strerror(errno));
         return -1;
     }
 
@@ -152,9 +152,9 @@ int AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     AlertUnifiedLogThread *aun = (AlertUnifiedLogThread *)data;
     AlertUnifiedLogPacketHeader hdr;
     int ret;
-    u_int8_t ethh_offset = 0;
-    u_int8_t buf[80000];
-    u_int32_t buflen = 0;
+    uint8_t ethh_offset = 0;
+    uint8_t buf[80000];
+    uint32_t buflen = 0;
 
     /* the unified1 format only supports IPv4. */
     if (p->alerts.cnt == 0 || !PKT_IS_IPV4(p))

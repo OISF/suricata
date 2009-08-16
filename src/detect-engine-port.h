@@ -15,7 +15,7 @@ void DetectPortCleanupList (DetectPort *head);
 DetectPort *DetectPortLookup(DetectPort *head, DetectPort *dp);
 int DetectPortAdd(DetectPort **head, DetectPort *dp);
 
-DetectPort *DetectPortLookupGroup(DetectPort *dp, u_int16_t port);
+DetectPort *DetectPortLookupGroup(DetectPort *dp, uint16_t port);
 
 void DetectPortPrintMemory(void);
 

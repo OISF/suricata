@@ -1,6 +1,8 @@
 #ifndef __TM_MODULES_H__
 #define __TM_MODULES_H__
 
+#include "threadvars.h"
+
 typedef struct TmModule_ {
     char *name;
     int (*Init)(ThreadVars *, void *, void **);

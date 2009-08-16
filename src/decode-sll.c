@@ -4,7 +4,7 @@
 #include "decode-sll.h"
 #include "decode-events.h"
 
-void DecodeSll(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
+void DecodeSll(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     PerfCounterIncr(COUNTER_DECODER_SLL, t->pca);
 

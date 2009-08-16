@@ -3,13 +3,14 @@
 
 typedef struct Tmq_ {
     char *name;
-    u_int16_t id;
-    u_int16_t usecnt;
+    uint16_t id;
+    uint16_t usecnt;
 } Tmq;
 
 Tmq* TmqCreateQueue(char *name);
 Tmq* TmqGetQueueByName(char *name);
 
+void TmqDebugList(void);
 
 #endif /* __TM_QUEUES_H__ */
 

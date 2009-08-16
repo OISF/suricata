@@ -11,20 +11,20 @@
 #define DETECT_CONTENT_RAWBYTES      0x20
 
 typedef struct DetectContentData_ {
-    u_int8_t *content;
-    u_int8_t content_len;
-    u_int32_t id;
+    uint8_t *content;
+    uint8_t content_len;
+    uint32_t id;
 
-    u_int16_t depth;
-    u_int16_t offset;
+    uint16_t depth;
+    uint16_t offset;
     int32_t distance;
     int32_t within;
-    u_int8_t flags;
+    uint8_t flags;
 } DetectContentData;
 
 /* prototypes */
 void DetectContentRegister (void);
-u_int32_t DetectContentMaxId(DetectEngineCtx *);
+uint32_t DetectContentMaxId(DetectEngineCtx *);
 
 #endif /* __DETECT_CONTENT_H__ */
 

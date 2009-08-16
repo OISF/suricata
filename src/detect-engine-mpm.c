@@ -24,23 +24,23 @@
 #define PM   MPM_B2G
 //#define PM   MPM_B3G
 
-u_int32_t PacketPatternScan(ThreadVars *t, PatternMatcherThread *pmt, Packet *p) {
-    u_int32_t ret;
+uint32_t PacketPatternScan(ThreadVars *t, PatternMatcherThread *pmt, Packet *p) {
+    uint32_t ret;
 
     pmt->pmq.mode = PMQ_MODE_SCAN;
     ret = pmt->sgh->mpm_ctx->Scan(pmt->sgh->mpm_ctx, &pmt->mtc, &pmt->pmq, p->payload, p->payload_len);
 
-    //printf("PacketPatternScan: ret %u\n", ret);
+    //printf("PacketPatternScan: ret %" PRIu32 "\n", ret);
     return ret;
 }
 
-u_int32_t PacketPatternMatch(ThreadVars *t, PatternMatcherThread *pmt, Packet *p) {
-    u_int32_t ret;
+uint32_t PacketPatternMatch(ThreadVars *t, PatternMatcherThread *pmt, Packet *p) {
+    uint32_t ret;
 
     pmt->pmq.mode = PMQ_MODE_SEARCH;
     ret = pmt->sgh->mpm_ctx->Search(pmt->sgh->mpm_ctx, &pmt->mtc, &pmt->pmq, p->payload, p->payload_len);
 
-    //printf("PacketPatternMatch: ret %u\n", ret);
+    //printf("PacketPatternMatch: ret %" PRIu32 "\n", ret);
     return ret;
 }
 
@@ -119,19 +119,19 @@ static int g_content_sigcnt10= 0;
 
 void DbgPrintScanSearchStats() {
 #if 0
-    printf(" - MPM: scan %d, search %d (%02.1f%%) :\n", g_content_scan, g_content_search,
+    printf(" - MPM: scan %" PRId32 ", search %" PRId32 " (%02.1f%%) :\n", g_content_scan, g_content_search,
         (float)(g_content_scan/(float)(g_content_scan+g_content_search))*100);
-    printf(" - MPM: maxdepth %d, total %d (%02.1f%%) :\n", g_content_maxdepth, g_content_total,
+    printf(" - MPM: maxdepth %" PRId32 ", total %" PRId32 " (%02.1f%%) :\n", g_content_maxdepth, g_content_total,
         (float)(g_content_maxdepth/(float)(g_content_total))*100);
-    printf(" - MPM: minoffset %d, total %d (%02.1f%%) :\n", g_content_minoffset, g_content_total,
+    printf(" - MPM: minoffset %" PRId32 ", total %" PRId32 " (%02.1f%%) :\n", g_content_minoffset, g_content_total,
         (float)(g_content_minoffset/(float)(g_content_total))*100);
-    printf(" - MPM: avg maxlen %02.1f (%u/%u)\n", (float)((float)g_content_maxlen/(float)(g_content_sigcnt)), g_content_maxlen, g_content_sigcnt);
-    printf(" - MPM: 1 len %u (%02.1f%%)\n", g_content_sigcnt1, (float)(g_content_sigcnt1/(float)(g_content_sigcnt))*100);
-    printf(" - MPM: 2 len %u (%02.1f%%)\n", g_content_sigcnt2, (float)(g_content_sigcnt2/(float)(g_content_sigcnt))*100);
-    printf(" - MPM: 3 len %u (%02.1f%%)\n", g_content_sigcnt3, (float)(g_content_sigcnt3/(float)(g_content_sigcnt))*100);
-    printf(" - MPM: 4 len %u (%02.1f%%)\n", g_content_sigcnt4, (float)(g_content_sigcnt4/(float)(g_content_sigcnt))*100);
-    printf(" - MPM: 5+len %u (%02.1f%%)\n", g_content_sigcnt5, (float)(g_content_sigcnt5/(float)(g_content_sigcnt))*100);
-    printf(" - MPM: 10+ln %u (%02.1f%%)\n", g_content_sigcnt10,(float)(g_content_sigcnt10/(float)(g_content_sigcnt))*100);
+    printf(" - MPM: avg maxlen %02.1f (%" PRIu32 "/%" PRIu32 ")\n", (float)((float)g_content_maxlen/(float)(g_content_sigcnt)), g_content_maxlen, g_content_sigcnt);
+    printf(" - MPM: 1 len %" PRIu32 " (%02.1f%%)\n", g_content_sigcnt1, (float)(g_content_sigcnt1/(float)(g_content_sigcnt))*100);
+    printf(" - MPM: 2 len %" PRIu32 " (%02.1f%%)\n", g_content_sigcnt2, (float)(g_content_sigcnt2/(float)(g_content_sigcnt))*100);
+    printf(" - MPM: 3 len %" PRIu32 " (%02.1f%%)\n", g_content_sigcnt3, (float)(g_content_sigcnt3/(float)(g_content_sigcnt))*100);
+    printf(" - MPM: 4 len %" PRIu32 " (%02.1f%%)\n", g_content_sigcnt4, (float)(g_content_sigcnt4/(float)(g_content_sigcnt))*100);
+    printf(" - MPM: 5+len %" PRIu32 " (%02.1f%%)\n", g_content_sigcnt5, (float)(g_content_sigcnt5/(float)(g_content_sigcnt))*100);
+    printf(" - MPM: 10+ln %" PRIu32 " (%02.1f%%)\n", g_content_sigcnt10,(float)(g_content_sigcnt10/(float)(g_content_sigcnt))*100);
 #endif
 }
 
@@ -140,7 +140,7 @@ void DbgPrintScanSearchStats() {
 void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     SigMatch *sm;
-    u_int32_t sig;
+    uint32_t sig;
 
     sgh->mpm_content_maxlen = 0;
     sgh->mpm_uricontent_maxlen = 0;
@@ -157,7 +157,7 @@ void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (!(s->flags & SIG_FLAG_MPM))
             continue;
 
-        u_int16_t content_maxlen = 0, uricontent_maxlen = 0;
+        uint16_t content_maxlen = 0, uricontent_maxlen = 0;
 
         /* determine the length of the longest pattern */
         for (sm = s->match; sm != NULL; sm = sm->next) {
@@ -184,26 +184,26 @@ void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
 typedef struct ContentHash_ {
     DetectContentData *ptr;
-    u_int16_t cnt;
-    u_int8_t use; /* use no matter what */
-    u_int8_t nosearch; /* single match, no search after
+    uint16_t cnt;
+    uint8_t use; /* use no matter what */
+    uint8_t nosearch; /* single match, no search after
                         * scan match (for this pattern) */
 } ContentHash;
 
-u_int32_t ContentHashFunc(HashTable *ht, void *data, u_int16_t datalen) {
+uint32_t ContentHashFunc(HashTable *ht, void *data, uint16_t datalen) {
      ContentHash *ch = (ContentHash *)data;
      DetectContentData *co = ch->ptr;
-     u_int32_t hash = 0;
+     uint32_t hash = 0;
      int i;
      for (i = 0; i < co->content_len; i++) {
          hash += co->content[i];
      }
      hash = hash % ht->array_size;
-//printf("hash %u\n", hash);
+//printf("hash %" PRIu32 "\n", hash);
      return hash;
 }
 
-char ContentHashCompareFunc(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+char ContentHashCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
     ContentHash *ch1 = (ContentHash *)data1;
     ContentHash *ch2 = (ContentHash *)data2;
     DetectContentData *co1 = ch1->ptr;
@@ -241,12 +241,12 @@ void ContentHashFree(void *ch) {
  * Everything else highest.
  * Longer patterns score better than short patters.
  */
-u_int32_t PatternStrength(u_int8_t *pat, u_int16_t patlen, u_int16_t len) {
-    u_int8_t a[256];
+uint32_t PatternStrength(uint8_t *pat, uint16_t patlen, uint16_t len) {
+    uint8_t a[256];
     memset(&a,0,sizeof(a));
 
-    u_int32_t s = 0;
-    u_int16_t u = 0;
+    uint32_t s = 0;
+    uint16_t u = 0;
     for (u = 0; u < patlen; u++) {
         if (a[pat[u]] == 0) {
             if (isalpha(pat[u]))
@@ -266,7 +266,7 @@ u_int32_t PatternStrength(u_int8_t *pat, u_int16_t patlen, u_int16_t len) {
 }
 
 int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
-    u_int32_t sig;
+    uint32_t sig;
 
     HashTable *ht = HashTableInit(4096, ContentHashFunc, ContentHashCompareFunc, ContentHashFree);
     if (ht == NULL)
@@ -274,7 +274,7 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
 
     /* add all the contents to a counting hash */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        u_int32_t num = sgh->match_array[sig];
+        uint32_t num = sgh->match_array[sig];
 
         Signature *s = de_ctx->sig_array[num];
         if (s == NULL)
@@ -335,7 +335,7 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
 
     /* now determine which one to add to the scan phase */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        u_int32_t num = sgh->match_array[sig];
+        uint32_t num = sgh->match_array[sig];
 
         Signature *s = de_ctx->sig_array[num];
         if (s == NULL)
@@ -356,7 +356,7 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
                 if (ch == NULL)
                     goto error;
 //if (s->id == 2002102) {
-//printf("%p %u Content: ", sgh, s->id); PrintRawUriFp(stdout,co->content,co->content_len);printf(" (strength %u, maxlen %u)\n", PatternStrength(co->content,co->content_len,sgh->mpm_content_maxlen), sgh->mpm_content_maxlen);
+//printf("%p %" PRIu32 " Content: ", sgh, s->id); PrintRawUriFp(stdout,co->content,co->content_len);printf(" (strength %" PRIu32 ", maxlen %" PRIu32 ")\n", PatternStrength(co->content,co->content_len,sgh->mpm_content_maxlen), sgh->mpm_content_maxlen);
 //}
                 ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
                 if (lookup_ch == NULL) {
@@ -367,8 +367,8 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
                     scan_ch = lookup_ch;
                 } else {
                     if (lookup_ch->use == 0) {
-                        u_int32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len,sgh->mpm_content_maxlen);
-                        u_int32_t ss = PatternStrength(scan_ch->ptr->content,scan_ch->ptr->content_len,sgh->mpm_content_maxlen);
+                        uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len,sgh->mpm_content_maxlen);
+                        uint32_t ss = PatternStrength(scan_ch->ptr->content,scan_ch->ptr->content_len,sgh->mpm_content_maxlen);
                         if (ls > ss)
                             scan_ch = lookup_ch;
                         else if (ls == ss) {
@@ -386,8 +386,8 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
                         if (scan_ch->use == 0)
                             scan_ch = lookup_ch;
                         else {
-                            u_int32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len,sgh->mpm_content_maxlen);
-                            u_int32_t ss = PatternStrength(scan_ch->ptr->content,scan_ch->ptr->content_len,sgh->mpm_content_maxlen);
+                            uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len,sgh->mpm_content_maxlen);
+                            uint32_t ss = PatternStrength(scan_ch->ptr->content,scan_ch->ptr->content_len,sgh->mpm_content_maxlen);
                             if (ls > ss)
                                 scan_ch = lookup_ch;
                             else if (ls == ss) {
@@ -414,12 +414,12 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
             DetectContentData *co = scan_ch->ptr;
 //if (s->id == 2002102) {
 //if (sgh->mpm_content_maxlen == 1) {
-//printf("%p %u SCAN: ", sgh, s->id); PrintRawUriFp(stdout,co->content,co->content_len);printf("\n");
+//printf("%p %" PRIu32 " SCAN: ", sgh, s->id); PrintRawUriFp(stdout,co->content,co->content_len);printf("\n");
 //}
-//if (scan_ch->nosearch == 1) { printf("%3u (%u) Content: ", scan_ch->cnt, scan_ch->use); PrintRawUriFp(stdout,co->content,co->content_len);printf("\n"); }
+//if (scan_ch->nosearch == 1) { printf("%3u (%" PRIu32 ") Content: ", scan_ch->cnt, scan_ch->use); PrintRawUriFp(stdout,co->content,co->content_len);printf("\n"); }
 
-            u_int16_t offset = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->offset;
-            u_int16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->depth;
+            uint16_t offset = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->offset;
+            uint16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->depth;
             offset = scan_ch->cnt ? 0 : offset;
             depth = scan_ch->cnt ? 0 : depth;
 
@@ -440,8 +440,8 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
                 if (scan_ch != NULL && co == scan_ch->ptr)
                     continue;
 
-                u_int16_t offset = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->offset;
-                u_int16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->depth;
+                uint16_t offset = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->offset;
+                uint16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->depth;
 
                 if (co->flags & DETECT_CONTENT_NOCASE) {
                     sgh->mpm_ctx->AddPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num);
@@ -472,10 +472,10 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
     Signature *s;
     SigMatch *sm;
-    u_int32_t co_cnt = 0;
-    u_int32_t ur_cnt = 0;
-    u_int32_t cnt = 0;
-    u_int32_t sig;
+    uint32_t co_cnt = 0;
+    uint32_t ur_cnt = 0;
+    uint32_t cnt = 0;
+    uint32_t sig;
 
     g_content_sigcnt++;
 
@@ -487,7 +487,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     /* see if this head has content and/or uricontent */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
-        u_int32_t num = sh->match_array[sig];
+        uint32_t num = sh->match_array[sig];
 
         s = de_ctx->sig_array[num];
         if (s == NULL)
@@ -529,16 +529,16 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         MpmInitCtx(sh->mpm_uri_ctx, PM);
     }
 
-    //u_int16_t mpm_content_scan_maxlen = 65535, mpm_uricontent_scan_maxlen = 65535;
-    u_int32_t mpm_content_cnt = 0, mpm_uricontent_cnt = 0;
-    u_int16_t mpm_content_maxdepth = 65535, mpm_content_minoffset = 65535;
-    u_int16_t mpm_content_maxdepth_one = 65535, mpm_content_minoffset_one = 65535;
+    //uint16_t mpm_content_scan_maxlen = 65535, mpm_uricontent_scan_maxlen = 65535;
+    uint32_t mpm_content_cnt = 0, mpm_uricontent_cnt = 0;
+    uint16_t mpm_content_maxdepth = 65535, mpm_content_minoffset = 65535;
+    uint16_t mpm_content_maxdepth_one = 65535, mpm_content_minoffset_one = 65535;
     int mpm_content_depth_present = -1;
     int mpm_content_offset_present = -1;
 
     /* for each signature in this group do */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
-        u_int32_t num = sh->match_array[sig];
+        uint32_t num = sh->match_array[sig];
 
         s = de_ctx->sig_array[num];
         if (s == NULL)
@@ -547,13 +547,13 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         cnt++;
 
         char content_added = 0;
-        u_int16_t content_maxlen = 0, uricontent_maxlen = 0;
-        u_int16_t content_minlen = 0, uricontent_minlen = 0;
-        u_int16_t content_cnt = 0, uricontent_cnt = 0;
-        u_int16_t content_maxdepth = 65535;
-        u_int16_t content_maxdepth_one = 65535;
-        u_int16_t content_minoffset = 65535;
-        u_int16_t content_minoffset_one = 65535;
+        uint16_t content_maxlen = 0, uricontent_maxlen = 0;
+        uint16_t content_minlen = 0, uricontent_minlen = 0;
+        uint16_t content_cnt = 0, uricontent_cnt = 0;
+        uint16_t content_maxdepth = 65535;
+        uint16_t content_maxdepth_one = 65535;
+        uint16_t content_minoffset = 65535;
+        uint16_t content_minoffset_one = 65535;
         SigMatch *sm;
 
         /* determine the length of the longest pattern */
@@ -608,7 +608,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 }
             }
         }
-//if (content_maxlen < 4 && content_cnt) printf(" (%u, min %u, max %u)\n", content_cnt, content_minlen, content_maxlen);
+//if (content_maxlen < 4 && content_cnt) printf(" (%" PRIu32 ", min %" PRIu32 ", max %" PRIu32 ")\n", content_cnt, content_minlen, content_maxlen);
 
         int content_depth_atleastone = 0;
         int content_offset_atleastone = 0;
@@ -651,10 +651,10 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             content_minoffset_one = 0;
 
         if (content_maxdepth != 0) {
-            //printf("content_maxdepth %u (sid %u)\n", content_maxdepth, s->id);
+            //printf("content_maxdepth %" PRIu32 " (sid %" PRIu32 ")\n", content_maxdepth, s->id);
         }
         if (content_minoffset != 0) {
-            //printf("content_minoffset %u (sid %u)\n", content_minoffset, s->id);
+            //printf("content_minoffset %" PRIu32 " (sid %" PRIu32 ")\n", content_minoffset, s->id);
         }
 
         if (mpm_content_maxdepth > content_maxdepth)
@@ -695,14 +695,14 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     /* add the signatures */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
-        u_int32_t num = sh->match_array[sig];
+        uint32_t num = sh->match_array[sig];
 
         s = de_ctx->sig_array[num];
         if (s == NULL)
             continue;
 
-        u_int16_t content_maxlen = 0, uricontent_maxlen = 0;
-        u_int16_t content_minlen = 0, uricontent_minlen = 0;
+        uint16_t content_maxlen = 0, uricontent_maxlen = 0;
+        uint16_t content_minlen = 0, uricontent_minlen = 0;
 
         /* determine the length of the longest pattern */
         for (sm = s->match; sm != NULL; sm = sm->next) {
@@ -763,17 +763,17 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
 
         if (mpm_content_maxdepth) {
-//            printf("mpm_content_maxdepth %u\n", mpm_content_maxdepth);
+//            printf("mpm_content_maxdepth %" PRIu32 "\n", mpm_content_maxdepth);
             g_content_maxdepth++;
         }
         if (mpm_content_minoffset) {
-//            printf("mpm_content_minoffset %u\n", mpm_content_minoffset);
+//            printf("mpm_content_minoffset %" PRIu32 "\n", mpm_content_minoffset);
             g_content_minoffset++;
         }
         g_content_total++;
 
-        //if (mpm_content_depth_present) printf("(sh %p) at least one depth: %d, depth %u\n", sh, mpm_content_depth_present, mpm_content_maxdepth_one);
-        //if (mpm_content_offset_present) printf("(sh %p) at least one offset: %d, offset %u\n", sh, mpm_content_offset_present, mpm_content_minoffset_one);
+        //if (mpm_content_depth_present) printf("(sh %p) at least one depth: %" PRId32 ", depth %" PRIu32 "\n", sh, mpm_content_depth_present, mpm_content_maxdepth_one);
+        //if (mpm_content_offset_present) printf("(sh %p) at least one offset: %" PRId32 ", offset %" PRIu32 "\n", sh, mpm_content_offset_present, mpm_content_minoffset_one);
 
         //sh->mpm_ctx->PrintCtx(sh->mpm_ctx);
     }
@@ -784,7 +784,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             sh->mpm_uri_ctx->Prepare(sh->mpm_uri_ctx);
         }
         if (mpm_uricontent_cnt && sh->mpm_uricontent_maxlen > 1) {
-//            printf("mpm_uricontent_cnt %u, mpm_uricontent_maxlen %d\n", mpm_uricontent_cnt, mpm_uricontent_maxlen);
+//            printf("mpm_uricontent_cnt %" PRIu32 ", mpm_uricontent_maxlen %" PRId32 "\n", mpm_uricontent_cnt, mpm_uricontent_maxlen);
             g_uricontent_scan++;
         } else {
             g_uricontent_search++;
@@ -818,15 +818,15 @@ int PatternMatcherThreadInit(ThreadVars *t, void *initdata, void **data) {
      */
     mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtc, DetectContentMaxId(de_ctx));
     mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtcu, DetectUricontentMaxId(de_ctx));
-    u_int32_t max_sig_id = DetectEngineGetMaxSigId(de_ctx);
+    uint32_t max_sig_id = DetectEngineGetMaxSigId(de_ctx);
 
     /* sig callback testing stuff below */
-    pmt->pmq.sig_id_array = malloc(max_sig_id * sizeof(u_int32_t));
+    pmt->pmq.sig_id_array = malloc(max_sig_id * sizeof(uint32_t));
     if (pmt->pmq.sig_id_array == NULL) {
         printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
         exit(1);
     }
-    memset(pmt->pmq.sig_id_array, 0, max_sig_id * sizeof(u_int32_t));
+    memset(pmt->pmq.sig_id_array, 0, max_sig_id * sizeof(uint32_t));
     pmt->pmq.sig_id_array_cnt = 0;
     /* lookup bitarray */
     pmt->pmq.sig_bitarray = malloc(max_sig_id / 8 + 1);

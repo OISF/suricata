@@ -23,7 +23,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -47,8 +47,8 @@ void TmModuleAlertUnifiedAlertRegister (void) {
 
 typedef struct AlertUnifiedAlertThread_ {
     FILE *fp;
-    u_int32_t size_limit;
-    u_int32_t size_current;
+    uint32_t size_limit;
+    uint32_t size_current;
 } AlertUnifiedAlertThread;
 
 #define ALERTUNIFIEDALERT_ALERTMAGIC 0xDEAD4137 /* taken from Snort */
@@ -56,33 +56,33 @@ typedef struct AlertUnifiedAlertThread_ {
 #define ALERTUNIFIEDALERT_VERMINOR 81           /* taken from Snort */
 
 typedef struct AlertUnifiedAlertFileHeader_ {
-    u_int32_t magic;
-    u_int32_t ver_major;
-    u_int32_t ver_minor;
-    u_int32_t timezone;
+    uint32_t magic;
+    uint32_t ver_major;
+    uint32_t ver_minor;
+    uint32_t timezone;
 } AlertUnifiedAlertFileHeader;
 
 typedef struct AlertUnifiedAlertPacketHeader_ {
     /* Snort's 'Event' structure */
-    u_int32_t sig_gen;
-    u_int32_t sig_sid;
-    u_int32_t sig_rev;
-    u_int32_t sig_class;
-    u_int32_t sig_prio;
-    u_int32_t pad1; /* Snort's event_id */
-    u_int32_t pad2; /* Snort's event_reference */
-    u_int32_t tv_sec1; /* from Snort's struct pcap_timeval in Event */
-    u_int32_t tv_usec1; /* from Snort's struct pcap_timeval in Event */
+    uint32_t sig_gen;
+    uint32_t sig_sid;
+    uint32_t sig_rev;
+    uint32_t sig_class;
+    uint32_t sig_prio;
+    uint32_t pad1; /* Snort's event_id */
+    uint32_t pad2; /* Snort's event_reference */
+    uint32_t tv_sec1; /* from Snort's struct pcap_timeval in Event */
+    uint32_t tv_usec1; /* from Snort's struct pcap_timeval in Event */
 
-    u_int32_t tv_sec2; /* from Snort's struct pcap_timeval */
-    u_int32_t tv_usec2; /* from Snort's struct pcap_timeval */
+    uint32_t tv_sec2; /* from Snort's struct pcap_timeval */
+    uint32_t tv_usec2; /* from Snort's struct pcap_timeval */
 
-    u_int32_t src_ip;
-    u_int32_t dst_ip;
-    u_int16_t sp;
-    u_int16_t dp;
-    u_int32_t protocol;
-    u_int32_t flags;
+    uint32_t src_ip;
+    uint32_t dst_ip;
+    uint16_t sp;
+    uint16_t dp;
+    uint32_t protocol;
+    uint32_t flags;
 } AlertUnifiedAlertPacketHeader;
 
 int AlertUnifiedAlertCreateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
@@ -98,7 +98,7 @@ int AlertUnifiedAlertCreateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
     gettimeofday(&ts, NULL);
 
     /* create the filename to use */
-    snprintf(filename, sizeof(filename), "%s/%s.%u", "/var/log/eidps", "unified.alert", (u_int32_t)ts.tv_sec);
+    snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, "/var/log/eidps", "unified.alert", (uint32_t)ts.tv_sec);
 
     /* XXX filename & location */
     aun->fp = fopen(filename, "wb");
@@ -116,7 +116,7 @@ int AlertUnifiedAlertCreateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
 
     ret = fwrite(&hdr, sizeof(hdr), 1, aun->fp);
     if (ret != 1) {
-        printf("Error: fwrite failed: ret = %d, %s\n", ret, strerror(errno));
+        printf("Error: fwrite failed: ret = %" PRId32 ", %s\n", ret, strerror(errno));
         return -1;
     }
     fflush(aun->fp);
@@ -150,7 +150,7 @@ int AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     AlertUnifiedAlertThread *aun = (AlertUnifiedAlertThread *)data;
     AlertUnifiedAlertPacketHeader hdr;
     int ret;
-    u_int8_t ethh_offset = 0;
+    uint8_t ethh_offset = 0;
 
     /* the unified1 format only supports IPv4. */
     if (p->alerts.cnt == 0 || !PKT_IS_IPV4(p))

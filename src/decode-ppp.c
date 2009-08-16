@@ -1,7 +1,7 @@
 /* Copyright (c) 2009 Open Infosec Foundation
  *  Written by Breno Silva Pinto <breno.silva@gmail.com> */
 
-#include "eidps.h"
+#include "eidps-common.h"
 
 #include "decode.h"
 #include "decode-ppp.h"
@@ -11,7 +11,7 @@
 
 #include "util-unittest.h"
 
-void DecodePPP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
+void DecodePPP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     PerfCounterIncr(COUNTER_DECODER_PPP, t->pca);
 
@@ -25,7 +25,7 @@ void DecodePPP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQue
         return;
 
 #ifdef DEBUG
-    printf("DecodePPP: p %p pkt %p PPP protocol %04x Len: %d\n", p, pkt, ntohs(p->ppph->protocol), len);
+    printf("DecodePPP: p %p pkt %p PPP protocol %04x Len: %" PRId32 "\n", p, pkt, ntohs(p->ppph->protocol), len);
 #endif
 
     switch (ntohs(p->ppph->protocol))
@@ -93,7 +93,7 @@ void DecodePPP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQue
 
         default:
 #ifdef	DEBUG
-            printf("Unknown PPP protocol: %x\n",ntohs(p->ppph->protocol));
+            printf("Unknown PPP protocol: %" PRIx32 "\n",ntohs(p->ppph->protocol));
 #endif
             DECODER_SET_EVENT(p,PPP_WRONG_TYPE);
             return;
@@ -109,7 +109,7 @@ void DecodePPP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQue
  *  Expected test value: 1
  */
 static int DecodePPPtest01 (void)   {
-    u_int8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00 };
+    uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00 };
     Packet p;
     ThreadVars tv;
 
@@ -132,7 +132,7 @@ static int DecodePPPtest01 (void)   {
  *  Expected test value: 1
  */
 static int DecodePPPtest02 (void)   {
-    u_int8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0xff, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
+    uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0xff, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
                            0xed, 0x00, 0x00, 0xff, 0x06, 0xd5, 0x17, 0xbf, 0x01,
                            0x0d, 0x01, 0xbf, 0x01, 0x0d, 0x03, 0xea, 0x37, 0x00,
                            0x17, 0x6d, 0x0b, 0xba, 0xc3, 0x00, 0x00, 0x00, 0x00,
@@ -161,7 +161,7 @@ static int DecodePPPtest02 (void)   {
 
 
 static int DecodePPPtest03 (void)   {
-    u_int8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
+    uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
                            0xed, 0x00, 0x00, 0xff, 0x06, 0xd5, 0x17, 0xbf, 0x01,
                            0x0d, 0x01, 0xbf, 0x01, 0x0d, 0x03, 0xea, 0x37, 0x00,
                            0x17, 0x6d, 0x0b, 0xba, 0xc3, 0x00, 0x00, 0x00, 0x00,
@@ -206,7 +206,7 @@ static int DecodePPPtest03 (void)   {
  */
 
 static int DecodePPPtest04 (void)   {
-    u_int8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
+    uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
                            0xed, 0x00, 0x00, 0xff, 0x06, 0xd5, 0x17, 0xbf, 0x01,
                            0x0d, 0x01, 0xbf, 0x01, 0x0d, 0x03, 0xea, 0x37, 0x00,
                            0x17, 0x6d, 0x0b, 0xba, 0xc3, 0x00, 0x00, 0x00, 0x00,

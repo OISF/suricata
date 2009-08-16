@@ -19,9 +19,9 @@
 //#define B3G_HASHSHIFT 5
 #define B3G_HASHSHIFT 4
 
-#define B3G_TYPE u_int32_t
-//#define B3G_TYPE u_int16_t
-//#define B3G_TYPE u_int8_t
+#define B3G_TYPE uint32_t
+//#define B3G_TYPE uint16_t
+//#define B3G_TYPE uint8_t
 //#define B3G_WORD_SIZE 16
 //#define B3G_WORD_SIZE 8
 #define B3G_WORD_SIZE     32
@@ -40,17 +40,17 @@
 //#define B3G_COUNTERS
 
 typedef struct B3gPattern_ {
-    u_int8_t *cs; /* case sensitive */
-    u_int8_t *ci; /* case INsensitive */
-    u_int16_t len;
+    uint8_t *cs; /* case sensitive */
+    uint8_t *ci; /* case INsensitive */
+    uint16_t len;
     struct B3gPattern_ *next;
-    u_int8_t flags;
+    uint8_t flags;
     MpmEndMatch *em;
 } B3gPattern;
 
 typedef struct B3gHashItem_ {
-    u_int8_t flags;
-    u_int16_t idx;
+    uint8_t flags;
+    uint16_t idx;
     struct B3gHashItem_ *nxt;
 } B3gHashItem;
 
@@ -63,41 +63,41 @@ typedef struct B3gCtx_ {
     B3G_TYPE *scan_B3G;
     B3G_TYPE *search_B3G;
 
-    u_int8_t scan_s0;
-    u_int8_t search_s0;
+    uint8_t scan_s0;
+    uint8_t search_s0;
 
-    u_int16_t scan_1_pat_cnt;
-    u_int16_t scan_2_pat_cnt;
-    u_int16_t scan_x_pat_cnt;
+    uint16_t scan_1_pat_cnt;
+    uint16_t scan_2_pat_cnt;
+    uint16_t scan_x_pat_cnt;
 
-    u_int16_t search_1_pat_cnt;
-    u_int16_t search_2_pat_cnt;
-    u_int16_t search_x_pat_cnt;
+    uint16_t search_1_pat_cnt;
+    uint16_t search_2_pat_cnt;
+    uint16_t search_x_pat_cnt;
 
-    u_int32_t scan_hash_size;
+    uint32_t scan_hash_size;
     B3gHashItem **scan_hash;
     BloomFilter **scan_bloom;
-    u_int8_t *scan_pminlen; /* array containing the minimal length
+    uint8_t *scan_pminlen; /* array containing the minimal length
                                of the patters in a hash bucket. Used
                                for the BloomFilter. */
     B3gHashItem scan_hash1[256];
     B3gHashItem **scan_hash2;
 
-    u_int32_t search_hash_size;
+    uint32_t search_hash_size;
     B3gHashItem **search_hash;
     BloomFilter **search_bloom;
-    u_int8_t *search_pminlen; /* array containing the minimal length
+    uint8_t *search_pminlen; /* array containing the minimal length
                                of the patters in a hash bucket. Used
                                for the BloomFilter. */
     B3gHashItem search_hash1[256];
     B3gHashItem **search_hash2;
 
     /* we store our own multi byte scan ptr here for B3gSearch1 */
-    u_int32_t (*MBScan2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
-    u_int32_t (*MBScan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
+    uint32_t (*MBScan2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+    uint32_t (*MBScan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     /* we store our own multi byte search ptr here for B3gSearch1 */
-    u_int32_t (*MBSearch2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
-    u_int32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, u_int8_t *, u_int16_t);
+    uint32_t (*MBSearch2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+    uint32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
 
     /* pattern arrays */
     B3gPattern **parray;
@@ -105,24 +105,24 @@ typedef struct B3gCtx_ {
 
 typedef struct B3gThreadCtx_ {
 #ifdef B3G_COUNTERS
-    u_int32_t scan_stat_pminlen_calls;
-    u_int32_t scan_stat_pminlen_total;
-    u_int32_t scan_stat_bloom_calls;
-    u_int32_t scan_stat_bloom_hits;
-    u_int32_t scan_stat_calls;
-    u_int32_t scan_stat_m_total;
-    u_int32_t scan_stat_d0;
-    u_int32_t scan_stat_d0_hashloop;
-    u_int32_t scan_stat_loop_match;
-    u_int32_t scan_stat_loop_no_match;
-    u_int32_t scan_stat_num_shift;
-    u_int32_t scan_stat_total_shift;
+    uint32_t scan_stat_pminlen_calls;
+    uint32_t scan_stat_pminlen_total;
+    uint32_t scan_stat_bloom_calls;
+    uint32_t scan_stat_bloom_hits;
+    uint32_t scan_stat_calls;
+    uint32_t scan_stat_m_total;
+    uint32_t scan_stat_d0;
+    uint32_t scan_stat_d0_hashloop;
+    uint32_t scan_stat_loop_match;
+    uint32_t scan_stat_loop_no_match;
+    uint32_t scan_stat_num_shift;
+    uint32_t scan_stat_total_shift;
 
-    u_int32_t search_stat_d0;
-    u_int32_t search_stat_loop_match;
-    u_int32_t search_stat_loop_no_match;
-    u_int32_t search_stat_num_shift;
-    u_int32_t search_stat_total_shift;
+    uint32_t search_stat_d0;
+    uint32_t search_stat_loop_match;
+    uint32_t search_stat_loop_no_match;
+    uint32_t search_stat_num_shift;
+    uint32_t search_stat_total_shift;
 #endif /* B3G_COUNTERS */
 } B3gThreadCtx;
 

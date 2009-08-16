@@ -1,5 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "decode-ipv6.h"
 #include "decode-icmpv6.h"
@@ -9,12 +10,12 @@
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
 
 static void
-DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
-    u_int8_t *orig_pkt = pkt;
-    u_int8_t nh;
-    u_int8_t hdrextlen;
-    u_int16_t plen;
+    uint8_t *orig_pkt = pkt;
+    uint8_t nh;
+    uint8_t hdrextlen;
+    uint16_t plen;
     char dstopts = 0;
     char exthdr_fh_done = 0;
 
@@ -73,9 +74,9 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
                 IPV6_EXTHDR_RH(p)->ip6rh_len = hdrextlen;
 /* XXX move into own function and load on demand */
                 if (IPV6_EXTHDR_RH(p)->ip6rh_type == 0) {
-                    u_int8_t i;
+                    uint8_t i;
 
-                    u_int8_t n = IPV6_EXTHDR_RH(p)->ip6rh_len / 2;
+                    uint8_t n = IPV6_EXTHDR_RH(p)->ip6rh_len / 2;
 
                     /* because we devide the header len by 2 (as rfc 2460 tells us to)
                      * we devide the result by 8 and not 16 as the header fields are
@@ -99,7 +100,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
                 IPV6OptHAO *hao = NULL;
                 IPV6OptRA *ra = NULL;
                 IPV6OptJumbo *jumbo = NULL;
-                u_int8_t optslen = 0;
+                uint8_t optslen = 0;
 
                 hdrextlen =  (*(pkt+1) + 1) << 3;
                 if (hdrextlen > plen) {
@@ -116,7 +117,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
                     p->IPV6_EH_CNT++;
                 }
 
-                u_int8_t *ptr = pkt + 2; /* +2 to go past nxthdr and len */
+                uint8_t *ptr = pkt + 2; /* +2 to go past nxthdr and len */
 
                 /* point the pointers to right structures
                  * in Packet. */
@@ -177,7 +178,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
                     break;
                 }
 /* XXX move into own function to loaded on demand */
-                u_int16_t offset = 0;
+                uint16_t offset = 0;
                 while(offset < optslen)
                 {
                     if (*ptr == IPV6OPT_PADN) /* PadN */
@@ -190,7 +191,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
                         ra->ip6ra_len  = *(ptr + 1);
                         memcpy(&ra->ip6ra_value, (ptr + 2), sizeof(ra->ip6ra_value));
                         ra->ip6ra_value = ntohs(ra->ip6ra_value);
-                        //printf("RA option: type %u len %u value %u\n",
+                        //printf("RA option: type %" PRIu32 " len %" PRIu32 " value %" PRIu32 "\n",
                         //    ra->ip6ra_type, ra->ip6ra_len, ra->ip6ra_value);
                     }
                     else if (*ptr == IPV6OPT_JUMBO) /* Jumbo */
@@ -199,7 +200,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
                         jumbo->ip6j_len  = *(ptr+1);
                         memcpy(&jumbo->ip6j_payload_len, (ptr+2), sizeof(jumbo->ip6j_payload_len));
                         jumbo->ip6j_payload_len = ntohl(jumbo->ip6j_payload_len);
-                        //printf("Jumbo option: type %u len %u payload len %u\n",
+                        //printf("Jumbo option: type %" PRIu32 " len %" PRIu32 " payload len %" PRIu32 "\n",
                         //    jumbo->ip6j_type, jumbo->ip6j_len, jumbo->ip6j_payload_len);
                     }
                     else if (*ptr == IPV6OPT_HAO) /* HAO */
@@ -207,14 +208,14 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
                         hao->ip6hao_type = *(ptr);
                         hao->ip6hao_len  = *(ptr+1);
                         memcpy(&hao->ip6hao_hoa, (ptr+2), sizeof(hao->ip6hao_hoa));
-                        //printf("HAO option: type %u len %u ",
+                        //printf("HAO option: type %" PRIu32 " len %" PRIu32 " ",
                         //    hao->ip6hao_type, hao->ip6hao_len);
                         //char addr_buf[46];
                         //inet_ntop(AF_INET6, (char *)&(hao->ip6hao_hoa),
                         //    addr_buf,sizeof(addr_buf));
                         //printf("home addr %s\n", addr_buf);
                     }
-                    u_int16_t len = (*(ptr + 1) + 2);
+                    uint16_t len = (*(ptr + 1) + 2);
                     ptr += len; /* +2 for opt type and opt len fields */
                     offset += len;
                 }
@@ -339,7 +340,7 @@ DecodeIPV6ExtHdrs(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
     return;
 }
 
-static int DecodeIPV6Packet (ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+static int DecodeIPV6Packet (ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
     p->ip6h = (IPV6Hdr *)pkt;
 
@@ -358,7 +359,7 @@ static int DecodeIPV6Packet (ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t 
     return 0;
 }
 
-void DecodeIPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+void DecodeIPV6(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
     int ret;
 
@@ -376,7 +377,7 @@ void DecodeIPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
     char s[46], d[46];
     inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), s, sizeof(s));
     inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), d, sizeof(d));
-    printf("IPV6 %s->%s - CLASS: %u FLOW: %u NH: %u PLEN: %u HLIM: %u\n", s,d,
+    printf("IPV6 %s->%s - CLASS: %" PRIu32 " FLOW: %" PRIu32 " NH: %" PRIu32 " PLEN: %" PRIu32 " HLIM: %" PRIu32 "\n", s,d,
         IPV6_GET_CLASS(p), IPV6_GET_FLOW(p), IPV6_GET_NH(p), IPV6_GET_PLEN(p),
         IPV6_GET_HLIM(p));
 #endif /* DEBUG */
@@ -405,25 +406,25 @@ void DecodeIPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
 
 #ifdef DEBUG
     if (IPV6_EXTHDR_ISSET_FH(p)) {
-        printf("IPV6 FRAG - HDRLEN: %u NH: %u OFFSET: %u ID: %u\n",
+        printf("IPV6 FRAG - HDRLEN: %" PRIuMAX " NH: %" PRIu32 " OFFSET: %" PRIu32 " ID: %" PRIu32 "\n",
             IPV6_EXTHDR_GET_FH_HDRLEN(p), IPV6_EXTHDR_GET_FH_NH(p),
             IPV6_EXTHDR_GET_FH_OFFSET(p), IPV6_EXTHDR_GET_FH_ID(p));
     }
     if (IPV6_EXTHDR_ISSET_RH(p)) {
-        printf("IPV6 ROUTE - HDRLEN: %u NH: %u TYPE: %u\n",
+        printf("IPV6 ROUTE - HDRLEN: %" PRIu32 " NH: %" PRIu32 " TYPE: %" PRIu32 "\n",
             IPV6_EXTHDR_GET_RH_HDRLEN(p), IPV6_EXTHDR_GET_RH_NH(p),
             IPV6_EXTHDR_GET_RH_TYPE(p));
     }
     if (IPV6_EXTHDR_ISSET_HH(p)) {
-        printf("IPV6 HOPOPT - HDRLEN: %u NH: %u\n",
+        printf("IPV6 HOPOPT - HDRLEN: %" PRIu32 " NH: %" PRIu32 "\n",
             IPV6_EXTHDR_GET_HH_HDRLEN(p), IPV6_EXTHDR_GET_HH_NH(p));
     }
     if (IPV6_EXTHDR_ISSET_DH1(p)) {
-        printf("IPV6 DSTOPT1 - HDRLEN: %u NH: %u\n",
+        printf("IPV6 DSTOPT1 - HDRLEN: %" PRIu32 " NH: %" PRIu32 "\n",
             IPV6_EXTHDR_GET_DH1_HDRLEN(p), IPV6_EXTHDR_GET_DH1_NH(p));
     }
     if (IPV6_EXTHDR_ISSET_DH2(p)) {
-        printf("IPV6 DSTOPT2 - HDRLEN: %u NH: %u\n",
+        printf("IPV6 DSTOPT2 - HDRLEN: %" PRIu32 " NH: %" PRIu32 "\n",
             IPV6_EXTHDR_GET_DH2_HDRLEN(p), IPV6_EXTHDR_GET_DH2_NH(p));
     }
 #endif

@@ -126,9 +126,9 @@
 /* ICMPv4 header structure */
 typedef struct ICMPV4Hdr_
 {
-    u_int8_t  type;
-    u_int8_t  code;
-    u_int16_t csum;
+    uint8_t  type;
+    uint8_t  code;
+    uint16_t csum;
 
     /* XXX incomplete */
 } ICMPV4Hdr;

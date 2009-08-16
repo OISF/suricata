@@ -10,6 +10,10 @@
 #include "eidps.h"
 
 #include "decode-events.h"
+
+/* Need to get the DEvents[] array */
+#define DETECT_EVENTS
+
 #include "detect-decode-event.h"
 
 #include "util-unittest.h"
@@ -44,7 +48,7 @@ void DetectDecodeEventRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", PARSE_REGEX, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
         goto error;
     }
 

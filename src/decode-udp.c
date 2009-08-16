@@ -1,12 +1,13 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "decode-udp.h"
 #include "decode-events.h"
 
 #include "flow.h"
 
-static int DecodeUDPPacket(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
     p->udph = (UDPHdr *)pkt;
 
@@ -36,7 +37,7 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t le
     return 0;
 }
 
-void DecodeUDP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
+void DecodeUDP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
     PerfCounterIncr(COUNTER_DECODER_UDP, t->pca);
 
@@ -44,8 +45,11 @@ void DecodeUDP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len)
         return;
 
 #ifdef DEBUG
-    printf("UDP sp: %u -> dp: %u - HLEN: %u LEN: %u TEST: %u\n",
+    /** \todo XXX This has only 4 args for 5 formatters??? */
+#if 0
+    printf("UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " TEST: %" PRIu32 "\n",
         UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
+#endif
 #endif
 
     /* Flow is an integral part of us */

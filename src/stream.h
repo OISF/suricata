@@ -14,8 +14,8 @@
 #define MSG_DATA_SIZE       512
 
 typedef struct StreamMsg_ {
-    u_int32_t id; /* unique stream id */
-    u_int8_t flags; /* msg flags */
+    uint32_t id; /* unique stream id */
+    uint8_t flags; /* msg flags */
     Flow *flow; /* parent flow */
 
     union {
@@ -23,12 +23,12 @@ typedef struct StreamMsg_ {
         struct {
             Address src_ip, dst_ip;
             Port src_port, dst_port;
-            u_int8_t data[MSG_DATA_SIZE];
-            u_int16_t data_len;
+            uint8_t data[MSG_DATA_SIZE];
+            uint16_t data_len;
         } data;
         /* case STREAM_GAP */
         struct {
-            u_int32_t gap_size;
+            uint32_t gap_size;
         } gap;
     };
 
@@ -39,11 +39,11 @@ typedef struct StreamMsg_ {
 typedef struct StreamMsgQueue_ {
     StreamMsg *top;
     StreamMsg *bot;
-    u_int16_t len;
+    uint16_t len;
     pthread_mutex_t mutex_q;
     pthread_cond_t cond_q;
 #ifdef DBG_PERF
-    u_int16_t dbg_maxlen;
+    uint16_t dbg_maxlen;
 #endif /* DBG_PERF */
 } StreamMsgQueue;
 
@@ -55,14 +55,17 @@ void StreamMsgReturnToPool(StreamMsg *);
 StreamMsg *StreamMsgGetFromQueue(StreamMsgQueue *);
 void StreamMsgPutInQueue(StreamMsg *);
 
-StreamMsgQueue *StreamMsgQueueGetByPort(u_int16_t);
+StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t);
 
-void StreamMsgQueueSetMinInitChunkLen(u_int8_t, u_int16_t);
-u_int16_t StreamMsgQueueGetMinInitChunkLen(u_int8_t);
-u_int16_t StreamMsgQueueGetMinChunkLen(u_int8_t);
+void StreamMsgQueueSetMinInitChunkLen(uint8_t, uint16_t);
+void StreamMsgQueueSetMinChunkLen(uint8_t dir, uint16_t len);
+uint16_t StreamMsgQueueGetMinInitChunkLen(uint8_t);
+uint16_t StreamMsgQueueGetMinChunkLen(uint8_t);
 
-u_int8_t StreamL7RegisterModule(void);
-u_int8_t StreamL7GetStorageSize(void);
+void StreamMsgSignalQueueHack(void);
+
+uint8_t StreamL7RegisterModule(void);
+uint8_t StreamL7GetStorageSize(void);
 
 #endif /* __STREAM_H__ */
 

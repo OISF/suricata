@@ -5,7 +5,9 @@
 #include <string.h>
 #include <ctype.h>
 
-void PrintRawUriFp(FILE *fp, u_int8_t *buf, u_int32_t buflen) {
+#include "eidps-common.h"
+
+void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
     int i;
     for (i = 0; i < buflen; i++) {
         if (isprint(buf[i])) fprintf(fp, "%c", buf[i]);
@@ -13,14 +15,14 @@ void PrintRawUriFp(FILE *fp, u_int8_t *buf, u_int32_t buflen) {
     }
 }
 
-void PrintRawDataFp(FILE *fp, u_int8_t *buf, u_int32_t buflen) {
+void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
     int i,ch = 0;
 
     for (i = 0; i < buflen; i+=16) {
         fprintf(fp ," %04X  ", i);
         ch = 0;
         for (ch = 0; (i+ch) < buflen && ch < 16; ch++) {
-             fprintf(fp, "%02X ", (u_int8_t)buf[i+ch]);
+             fprintf(fp, "%02X ", (uint8_t)buf[i+ch]);
 
              if (ch == 7) fprintf(fp, " ");
         }
@@ -37,7 +39,7 @@ void PrintRawDataFp(FILE *fp, u_int8_t *buf, u_int32_t buflen) {
 
         ch = 0;
         for (ch = 0; (i+ch) < buflen && ch < 16; ch++) {
-             fprintf(fp, "%c", isprint((u_int8_t)buf[i+ch]) ? (u_int8_t)buf[i+ch] : '.');
+             fprintf(fp, "%c", isprint((uint8_t)buf[i+ch]) ? (uint8_t)buf[i+ch] : '.');
 
              if (ch == 7)  fprintf(fp, " ");
              if (ch == 15) fprintf(fp, "\n");

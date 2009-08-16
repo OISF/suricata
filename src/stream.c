@@ -1,6 +1,6 @@
 /* Copyright (c) 2009 Victor Julien <victor@inliniac.net> */
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "decode.h"
 #include "threads.h"
 
@@ -11,10 +11,10 @@
 static StreamMsgQueue stream_q;
 
 /* per queue setting */
-static u_int16_t toserver_min_init_chunk_len = 0;
-static u_int16_t toserver_min_chunk_len = 0;
-static u_int16_t toclient_min_init_chunk_len = 0;
-static u_int16_t toclient_min_chunk_len = 0;
+static uint16_t toserver_min_init_chunk_len = 0;
+static uint16_t toserver_min_chunk_len = 0;
+static uint16_t toclient_min_init_chunk_len = 0;
+static uint16_t toclient_min_chunk_len = 0;
 
 static Pool *stream_msg_pool = NULL;
 static pthread_mutex_t stream_msg_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -127,7 +127,7 @@ void StreamMsgPutInQueue(StreamMsg *s)
 
     mutex_lock(&q->mutex_q);
     StreamMsgEnqueue(q, s);
-    printf("StreamMsgPutInQueue: q->len %u\n", q->len);
+    printf("StreamMsgPutInQueue: q->len %" PRIu32 "\n", q->len);
     pthread_cond_signal(&q->cond_q);
     mutex_unlock(&q->mutex_q);
 }
@@ -140,7 +140,7 @@ void StreamMsgQueuesInit(void) {
         exit(1); /* XXX */ 
 }
 
-StreamMsgQueue *StreamMsgQueueGetByPort(u_int16_t port) {
+StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {
     /* XXX implement this */
     return &stream_q;
 }
@@ -150,7 +150,7 @@ void StreamMsgSignalQueueHack(void) {
     pthread_cond_signal(&stream_q.cond_q);
 }
 
-void StreamMsgQueueSetMinInitChunkLen(u_int8_t dir, u_int16_t len) {
+void StreamMsgQueueSetMinInitChunkLen(uint8_t dir, uint16_t len) {
     if (dir == FLOW_PKT_TOSERVER) {
         toserver_min_init_chunk_len = len;
     } else {
@@ -158,7 +158,7 @@ void StreamMsgQueueSetMinInitChunkLen(u_int8_t dir, u_int16_t len) {
     }
 }
 
-void StreamMsgQueueSetMinChunkLen(u_int8_t dir, u_int16_t len) {
+void StreamMsgQueueSetMinChunkLen(uint8_t dir, uint16_t len) {
     if (dir == FLOW_PKT_TOSERVER) {
         toserver_min_chunk_len = len;
     } else {
@@ -166,7 +166,7 @@ void StreamMsgQueueSetMinChunkLen(u_int8_t dir, u_int16_t len) {
     }
 }
 
-u_int16_t StreamMsgQueueGetMinInitChunkLen(u_int8_t dir) {
+uint16_t StreamMsgQueueGetMinInitChunkLen(uint8_t dir) {
     if (dir == FLOW_PKT_TOSERVER) {
         return toserver_min_init_chunk_len;
     } else {
@@ -174,7 +174,7 @@ u_int16_t StreamMsgQueueGetMinInitChunkLen(u_int8_t dir) {
     }
 }
 
-u_int16_t StreamMsgQueueGetMinChunkLen(u_int8_t dir) {
+uint16_t StreamMsgQueueGetMinChunkLen(uint8_t dir) {
     if (dir == FLOW_PKT_TOSERVER) {
         return toserver_min_chunk_len;
     } else {
@@ -184,14 +184,14 @@ u_int16_t StreamMsgQueueGetMinChunkLen(u_int8_t dir) {
 
 /* StreamL7RegisterModule
  */
-static u_int8_t l7_module_id = 0;
-u_int8_t StreamL7RegisterModule(void) {
-    u_int8_t id = l7_module_id;
+static uint8_t l7_module_id = 0;
+uint8_t StreamL7RegisterModule(void) {
+    uint8_t id = l7_module_id;
     l7_module_id++;
     return id;
 }
 
-u_int8_t StreamL7GetStorageSize(void) {
+uint8_t StreamL7GetStorageSize(void) {
     return l7_module_id;
 }
 

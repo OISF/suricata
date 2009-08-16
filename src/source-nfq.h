@@ -18,10 +18,10 @@ typedef struct NFQPacketVars_
 {
     int id; /* this nfq packets id */
 
-    u_int32_t mark;
-    u_int32_t ifi;
-    u_int32_t ifo;
-    u_int16_t hw_protocol;
+    uint32_t mark;
+    uint32_t ifi;
+    uint32_t ifo;
+    uint16_t hw_protocol;
 } NFQPacketVars;
 
 typedef struct NFQThreadVars_
@@ -32,18 +32,18 @@ typedef struct NFQThreadVars_
     struct nfq_q_handle *qh;
     pthread_mutex_t mutex_qh;
     /* this one should be not changing after init */
-    u_int16_t queue_num;
+    uint16_t queue_num;
     int fd;
 #ifdef DBG_PERF
     int dbg_maxreadsize;
 #endif /* DBG_PERF */
 
     /* counters */
-    u_int32_t pkts;
-    u_int64_t bytes;
-    u_int32_t errs;
-    u_int32_t accepted;
-    u_int32_t dropped;
+    uint32_t pkts;
+    uint64_t bytes;
+    uint32_t errs;
+    uint32_t accepted;
+    uint32_t dropped;
 
     ThreadVars *tv;
 } NFQThreadVars;

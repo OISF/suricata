@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "flow.h"
 
+#include "eidps-common.h"
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "flow-private.h"
@@ -20,9 +21,9 @@
  *  recursion level -- for tunnels, make sure different tunnel layers can
  *                     never get mixed up.
  */
-u_int32_t FlowGetKey(Packet *p) {
+uint32_t FlowGetKey(Packet *p) {
     FlowKey *k = (FlowKey *)p;
-    u_int32_t key;
+    uint32_t key;
 
     if (p->ip4h != NULL)
         key = (flow_config.hash_rand + k->proto + k->sp + k->dp + \
@@ -70,7 +71,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
     Flow *f = NULL;
 
     /* get the key to our bucket */
-    u_int32_t key = FlowGetKey(p);
+    uint32_t key = FlowGetKey(p);
     /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[key];
     mutex_lock(&fb->m);

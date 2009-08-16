@@ -9,12 +9,14 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #include "util-hashlist.h"
 
 #include "util-unittest.h"
 
-HashListTable* HashListTableInit(u_int32_t size, u_int32_t (*Hash)(struct HashListTable_ *, void *, u_int16_t), char (*Compare)(void *, u_int16_t, void *, u_int16_t), void (*Free)(void *)) {
+HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *)) {
 
     HashListTable *ht = NULL;
 
@@ -62,7 +64,7 @@ error:
 }
 
 void HashListTableFree(HashListTable *ht) {
-    u_int32_t i = 0;
+    uint32_t i = 0;
 
     if (ht == NULL)
         return;
@@ -88,16 +90,16 @@ void HashListTableFree(HashListTable *ht) {
 
 void HashListTablePrint(HashListTable *ht) {
     printf("\n----------- Hash Table Stats ------------\n");
-    printf("Buckets:               %u\n", ht->array_size);
+    printf("Buckets:               %" PRIu32 "\n", ht->array_size);
     printf("Hash function pointer: %p\n", ht->Hash);
     printf("-----------------------------------------\n");
 }
 
-int HashListTableAdd(HashListTable *ht, void *data, u_int16_t datalen) {
+int HashListTableAdd(HashListTable *ht, void *data, uint16_t datalen) {
     if (ht == NULL || data == NULL)
         return -1;
 
-    u_int32_t hash = ht->Hash(ht, data, datalen);
+    uint32_t hash = ht->Hash(ht, data, datalen);
 
     HashListTableBucket *hb = malloc(sizeof(HashListTableBucket));
     if (hb == NULL) {
@@ -132,8 +134,8 @@ error:
     return -1;
 }
 
-int HashListTableRemove(HashListTable *ht, void *data, u_int16_t datalen) {
-    u_int32_t hash = ht->Hash(ht, data, datalen);
+int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen) {
+    uint32_t hash = ht->Hash(ht, data, datalen);
 
     if (ht->array[hash] == NULL) {
         return -1;
@@ -185,7 +187,7 @@ int HashListTableRemove(HashListTable *ht, void *data, u_int16_t datalen) {
     return -1;
 }
 
-char HashListTableDefaultCompare(void *data1, u_int16_t len1, void *data2, u_int16_t len2) {
+char HashListTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16_t len2) {
     if (len1 != len2)
         return 0;
 
@@ -195,8 +197,8 @@ char HashListTableDefaultCompare(void *data1, u_int16_t len1, void *data2, u_int
     return 1;
 }
 
-void *HashListTableLookup(HashListTable *ht, void *data, u_int16_t datalen) {
-    u_int32_t hash = ht->Hash(ht, data, datalen);
+void *HashListTableLookup(HashListTable *ht, void *data, uint16_t datalen) {
+    uint32_t hash = ht->Hash(ht, data, datalen);
 
     if (ht->array[hash] == NULL) {
         return NULL;
@@ -213,15 +215,15 @@ void *HashListTableLookup(HashListTable *ht, void *data, u_int16_t datalen) {
     return NULL;
 }
 
-u_int32_t HashListTableGenericHash(HashListTable *ht, void *data, u_int16_t datalen) {
-     u_int8_t *d = (u_int8_t *)data;
-     u_int32_t i;
-     u_int32_t hash = 0;
+uint32_t HashListTableGenericHash(HashListTable *ht, void *data, uint16_t datalen) {
+     uint8_t *d = (uint8_t *)data;
+     uint32_t i;
+     uint32_t hash = 0;
 
      for (i = 0; i < datalen; i++) {
-         if (i == 0)      hash += (((u_int32_t)*d++));
-         else if (i == 1) hash += (((u_int32_t)*d++) * datalen);
-         else             hash *= (((u_int32_t)*d++) * i) + datalen + i;
+         if (i == 0)      hash += (((uint32_t)*d++));
+         else if (i == 1) hash += (((uint32_t)*d++) * datalen);
+         else             hash *= (((uint32_t)*d++) * i) + datalen + i;
      }
 
      hash *= datalen;

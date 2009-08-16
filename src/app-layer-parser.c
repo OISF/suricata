@@ -1,6 +1,6 @@
 /* Copyright (c) 2009 Victor Julien */
 
-#include "eidps.h"
+#include "eidps-common.h"
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"
@@ -73,7 +73,7 @@ static void AlpAppendResultElmt(AppLayerParserResult *r, AppLayerParserResultElm
 /**
  *  \param alloc Is ptr alloc'd (1) or a ptr to static mem (0).
  */
-static void AlpStoreField(AppLayerParserResult *output, u_int16_t idx, u_int8_t *ptr, u_int32_t len, u_int8_t alloc) {
+static void AlpStoreField(AppLayerParserResult *output, uint16_t idx, uint8_t *ptr, uint32_t len, uint8_t alloc) {
     AppLayerParserResultElmt *e = AlpGetResultElmt();
     if (e == NULL)
         return;
@@ -86,7 +86,7 @@ static void AlpStoreField(AppLayerParserResult *output, u_int16_t idx, u_int8_t 
     e->data_len = len;
     AlpAppendResultElmt(output, e);
 
-    //printf("FIELD registered %u:\n", idx);
+    //printf("FIELD registered %" PRIu32 ":\n", idx);
     //PrintRawDataFp(stdout, e->data_ptr,e->data_len);
 }
 
@@ -96,7 +96,7 @@ static void AlpStoreField(AppLayerParserResult *output, u_int16_t idx, u_int8_t 
  * \retval  0 Field parsing in progress.
  * \retval -1 error
  */
-int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate, u_int16_t field_idx, u_int8_t *input, u_int32_t input_len) {
+int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate, uint16_t field_idx, uint8_t *input, uint32_t input_len) {
     if (pstate->store_len == 0) {
         if (pstate->flags & APP_LAYER_PARSER_EOF) {
             //printf("ParseFieldByEOF: store_len 0 and EOF\n");
@@ -114,7 +114,7 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
         }
     } else {
         if (pstate->flags & APP_LAYER_PARSER_EOF) {
-            //printf("ParseFieldByEOF: store_len %u and EOF\n", pstate->store_len);
+            //printf("ParseFieldByEOF: store_len %" PRIu32 " and EOF\n", pstate->store_len);
             pstate->store = realloc(pstate->store, (input_len + pstate->store_len));
             if (pstate->store == NULL)
                 return -1;
@@ -127,7 +127,7 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
             pstate->store_len = 0;
             return 1;
         } else {
-            //printf("ParseFieldByEOF: store_len %u but no EOF\n", pstate->store_len);
+            //printf("ParseFieldByEOF: store_len %" PRIu32 " but no EOF\n", pstate->store_len);
             /* delimiter field not found, so store the result for the next run */
             pstate->store = realloc(pstate->store, (input_len + pstate->store_len));
             if (pstate->store == NULL)
@@ -148,14 +148,14 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
  * \retval  0 Field parsing in progress.
  * \retval -1 error
  */
-int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *pstate, u_int16_t field_idx, const u_int8_t *delim, u_int8_t delim_len, u_int8_t *input, u_int32_t input_len, u_int32_t *offset) {
-//    printf("ParseFieldByDelimiter: pstate->store_len %u, delim_len %u\n", pstate->store_len, delim_len);
+int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *pstate, uint16_t field_idx, const uint8_t *delim, uint8_t delim_len, uint8_t *input, uint32_t input_len, uint32_t *offset) {
+//    printf("ParseFieldByDelimiter: pstate->store_len %" PRIu32 ", delim_len %" PRIu32 "\n", pstate->store_len, delim_len);
 
     if (pstate->store_len == 0) {
-        u_int8_t *ptr = BinSearch(input, input_len, delim, delim_len);
+        uint8_t *ptr = BinSearch(input, input_len, delim, delim_len);
         if (ptr != NULL) {
-            u_int32_t len = ptr - input;
-            //printf("ParseFieldByDelimiter: len %u\n", len);
+            uint32_t len = ptr - input;
+            //printf("ParseFieldByDelimiter: len %" PRIu32 "\n", len);
 
             AlpStoreField(output, field_idx, input, len, 0);
             (*offset) += (len + delim_len);
@@ -177,10 +177,10 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
             pstate->store_len = input_len;
         }
     } else {
-        u_int8_t *ptr = BinSearch(input, input_len, delim, delim_len);
+        uint8_t *ptr = BinSearch(input, input_len, delim, delim_len);
         if (ptr != NULL) {
-            u_int32_t len = ptr - input;
-            //printf("ParseFieldByDelimiter: len %u + %u = %u\n", len, pstate->store_len, len + pstate->store_len);
+            uint32_t len = ptr - input;
+            //printf("ParseFieldByDelimiter: len %" PRIu32 " + %" PRIu32 " = %" PRIu32 "\n", len, pstate->store_len, len + pstate->store_len);
 
             pstate->store = realloc(pstate->store, (len + pstate->store_len));
             if (pstate->store == NULL)
@@ -214,14 +214,14 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                         if (ptr != NULL) {
                             //printf("ParseFieldByDelimiter: now we found the delim\n");
 
-                            u_int32_t len = ptr - pstate->store;
+                            uint32_t len = ptr - pstate->store;
                             AlpStoreField(output, field_idx, pstate->store, len, 1);
                             pstate->store = NULL;
                             pstate->store_len = 0;
 
                             (*offset) += (input_len);
 
-                            //printf("ParseFieldByDelimiter: offset %u\n", (*offset));
+                            //printf("ParseFieldByDelimiter: offset %" PRIu32 "\n", (*offset));
                             return 1;
                         }
                         goto free_and_return;
@@ -253,14 +253,14 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                 if (ptr != NULL) {
                     //printf("ParseFieldByDelimiter: now we found the delim\n");
 
-                    u_int32_t len = ptr - pstate->store;
+                    uint32_t len = ptr - pstate->store;
                     AlpStoreField(output, field_idx, pstate->store, len, 1);
                     pstate->store = NULL;
                     pstate->store_len = 0;
 
                     (*offset) += (input_len);
 
-                    //printf("ParseFieldByDelimiter: offset %u\n", (*offset));
+                    //printf("ParseFieldByDelimiter: offset %" PRIu32 "\n", (*offset));
                     return 1;
                 }
             }
@@ -271,18 +271,18 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
     return 0;
 }
 
-static u_int16_t app_layer_sid = 0;
+static uint16_t app_layer_sid = 0;
 static AppLayerProto al_proto_table[ALPROTO_MAX];
 
 #define MAX_PARSERS 16
 static AppLayerParserTableElement al_parser_table[MAX_PARSERS];
-static u_int16_t al_max_parsers = 0; /* incremented for every registered parser */
+static uint16_t al_max_parsers = 0; /* incremented for every registered parser */
 
 /** \brief Get the Parsers id for storing the parser state.
  *
  * \retval Parser subsys id
  */
-u_int16_t AppLayerParserGetStorageId(void) {
+uint16_t AppLayerParserGetStorageId(void) {
     return app_layer_sid;
 }
 
@@ -296,7 +296,7 @@ u_int16_t AppLayerParserGetStorageId(void) {
  * \retval 0 on success
  * \retval -1 on error
  */
-int AppLayerRegisterParser(char *name, u_int16_t proto, u_int16_t parser_id, int (*AppLayerParser)(void *protocol_state, AppLayerParserState *parser_state, u_int8_t *input, u_int32_t input_len, AppLayerParserResult *output), char *dependency) {
+int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id, int (*AppLayerParser)(void *protocol_state, AppLayerParserState *parser_state, uint8_t *input, uint32_t input_len, AppLayerParserResult *output), char *dependency) {
 
     al_max_parsers++;
 
@@ -305,7 +305,7 @@ int AppLayerRegisterParser(char *name, u_int16_t proto, u_int16_t parser_id, int
     al_parser_table[al_max_parsers].parser_local_id = parser_id;
     al_parser_table[al_max_parsers].AppLayerParser = AppLayerParser;
 
-    printf("AppLayerRegisterParser: registered %p at proto %u, al_proto_table idx %u, storage_id %u, parser_local_id %u\n",
+    printf("AppLayerRegisterParser: registered %p at proto %" PRIu32 ", al_proto_table idx %" PRIu32 ", storage_id %" PRIu32 ", parser_local_id %" PRIu32 "\n",
         AppLayerParser, proto, al_max_parsers, al_proto_table[proto].storage_id, parser_id);
     return 0;
 }
@@ -319,7 +319,7 @@ int AppLayerRegisterParser(char *name, u_int16_t proto, u_int16_t parser_id, int
  * \retval 0 on success
  * \retval -1 on error
  */
-int AppLayerRegisterProto(char *name, u_int8_t proto, u_int8_t flags, int (*AppLayerParser)(void *protocol_state, AppLayerParserState *parser_state, u_int8_t *input, u_int32_t input_len, AppLayerParserResult *output)) {
+int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags, int (*AppLayerParser)(void *protocol_state, AppLayerParserState *parser_state, uint8_t *input, uint32_t input_len, AppLayerParserResult *output)) {
 
     al_max_parsers++;
 
@@ -337,17 +337,17 @@ int AppLayerRegisterProto(char *name, u_int8_t proto, u_int8_t flags, int (*AppL
         al_proto_table[proto].storage_id = StreamL7RegisterModule();
     }
 
-    printf("AppLayerRegisterProto: registered %p at proto %u flags %02X, al_proto_table idx %u, storage_id %u\n",
+    printf("AppLayerRegisterProto: registered %p at proto %" PRIu32 " flags %02X, al_proto_table idx %" PRIu32 ", storage_id %" PRIu32 "\n",
         AppLayerParser, proto, flags, al_max_parsers, al_proto_table[proto].storage_id);
     return 0;
 }
 
-void AppLayerRegisterStateFuncs(u_int16_t proto, void *(*StateAlloc)(void), void (*StateFree)(void *)) {
+void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void), void (*StateFree)(void *)) {
     al_proto_table[proto].StateAlloc = StateAlloc;
     al_proto_table[proto].StateFree = StateFree;
 }
 
-u_int16_t AlpGetStateIdx(u_int16_t proto) {
+uint16_t AlpGetStateIdx(uint16_t proto) {
     return al_proto_table[proto].storage_id;
 }
 
@@ -375,11 +375,11 @@ static void AppLayerParserResultCleanup(AppLayerParserResult *result) {
     }
 }
 
-static int AppLayerDoParse(void *app_layer_state, AppLayerParserState *parser_state, u_int8_t *input, u_int32_t input_len, u_int16_t parser_idx, u_int16_t proto) {
+static int AppLayerDoParse(void *app_layer_state, AppLayerParserState *parser_state, uint8_t *input, uint32_t input_len, uint16_t parser_idx, uint16_t proto) {
     int retval = 0;
     AppLayerParserResult result = { NULL, NULL, 0 };
 
-    //printf("AppLayerDoParse: parser_idx %u\n", parser_idx);
+    //printf("AppLayerDoParse: parser_idx %" PRIu32 "\n", parser_idx);
     //PrintRawDataFp(stdout, input,input_len);
 
     /* invoke the parser */
@@ -390,19 +390,19 @@ static int AppLayerDoParse(void *app_layer_state, AppLayerParserState *parser_st
     /* process the result elements */
     AppLayerParserResultElmt *e = result.head;
     for (; e != NULL; e = e->next) {
-        //printf("AppLayerParse: e %p e->name_idx %u, e->data_ptr %p, e->data_len %u, map_size %u\n",
+        //printf("AppLayerParse: e %p e->name_idx %" PRIu32 ", e->data_ptr %p, e->data_len %" PRIu32 ", map_size %" PRIu32 "\n",
         //    e, e->name_idx, e->data_ptr, e->data_len, al_proto_table[proto].map_size);
 
         /* no parser defined for this field. */
         if (e->name_idx >= al_proto_table[proto].map_size || al_proto_table[proto].map[e->name_idx] == NULL) {
-            //printf("AppLayerParse: no parser for proto %u, parser_local_id %u\n", proto, e->name_idx);
+            //printf("AppLayerParse: no parser for proto %" PRIu32 ", parser_local_id %" PRIu32 "\n", proto, e->name_idx);
             continue;
         }
 
-        u_int16_t idx = al_proto_table[proto].map[e->name_idx]->parser_id;
+        uint16_t idx = al_proto_table[proto].map[e->name_idx]->parser_id;
 
         /* prepare */
-        u_int16_t tmp = parser_state->parse_field;
+        uint16_t tmp = parser_state->parse_field;
         parser_state->parse_field = 0;
         parser_state->flags |= APP_LAYER_PARSER_EOF;
 
@@ -435,11 +435,11 @@ static int AppLayerDoParse(void *app_layer_state, AppLayerParserState *parser_st
  * \retval -1 error
  * \retval 0 ok
  */
-int AppLayerParse(Flow *f, u_int8_t proto, u_int8_t flags, u_int8_t *input, u_int32_t input_len) {
-    //printf("AppLayerParse: proto %u, flags %02X\n", proto, flags);
+int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_t input_len) {
+    //printf("AppLayerParse: proto %" PRIu32 ", flags %02X\n", proto, flags);
     //PrintRawDataFp(stdout, input,input_len);
 
-    u_int16_t parser_idx = 0;
+    uint16_t parser_idx = 0;
     AppLayerProto *p = &al_proto_table[proto];
 
     TcpSession *ssn = f->stream;
@@ -466,7 +466,7 @@ int AppLayerParse(Flow *f, u_int8_t proto, u_int8_t flags, u_int8_t *input, u_in
             parser_state->cur_parser = parser_idx;
             parser_state->flags |= APP_LAYER_PARSER_USE;
         } else {
-            //printf("AppLayerParse: using parser %u we stored before (to_server)\n", parser_state->cur_parser);
+            //printf("AppLayerParse: using parser %" PRIu32 " we stored before (to_server)\n", parser_state->cur_parser);
             parser_idx = parser_state->cur_parser;
         }
     } else {
@@ -476,13 +476,13 @@ int AppLayerParse(Flow *f, u_int8_t proto, u_int8_t flags, u_int8_t *input, u_in
             parser_state->cur_parser = parser_idx;
             parser_state->flags |= APP_LAYER_PARSER_USE;
         } else {
-            //printf("AppLayerParse: using parser %u we stored before (to_client)\n", parser_state->cur_parser);
+            //printf("AppLayerParse: using parser %" PRIu32 " we stored before (to_client)\n", parser_state->cur_parser);
             parser_idx = parser_state->cur_parser;
         }
     }
 
     if (parser_idx == 0) {
-        printf("AppLayerParse: no parser for protocol %u\n", proto);
+        printf("AppLayerParse: no parser for protocol %" PRIu32 "\n", proto);
         return 0;
     }
 
@@ -525,7 +525,7 @@ void RegisterAppLayerParsers(void) {
  */
 void AppLayerParsersInitPostProcess(void) {
     printf("AppLayerParsersInitPostProcess: start\n");
-    u_int16_t u16 = 0;
+    uint16_t u16 = 0;
 
     /* build local->global mapping */
     for (u16 = 1; u16 <= al_max_parsers; u16++) {
@@ -536,7 +536,7 @@ void AppLayerParsersInitPostProcess(void) {
         if (al_parser_table[u16].parser_local_id > al_proto_table[al_parser_table[u16].proto].map_size)
             al_proto_table[al_parser_table[u16].proto].map_size = al_parser_table[u16].parser_local_id;
 
-        //printf("AppLayerParsersInitPostProcess: map_size %u\n", al_proto_table[al_parser_table[u16].proto].map_size);
+        //printf("AppLayerParsersInitPostProcess: map_size %" PRIu32 "\n", al_proto_table[al_parser_table[u16].proto].map_size);
     }
 
     /* for each proto, alloc the map array */
@@ -552,7 +552,7 @@ void AppLayerParsersInitPostProcess(void) {
         }
         memset(al_proto_table[u16].map, 0, al_proto_table[u16].map_size * sizeof(AppLayerLocalMap *));
 
-        u_int16_t u = 0;
+        uint16_t u = 0;
         for (u = 1; u <= al_max_parsers; u++) {
             /* no local parser */
             if (al_parser_table[u].parser_local_id == 0)
@@ -561,9 +561,9 @@ void AppLayerParsersInitPostProcess(void) {
             if (al_parser_table[u].proto != u16)
                 continue;
 
-            //printf("AppLayerParsersInitPostProcess: al_proto_table[%u].map_size %u, %p %p\n", u16, al_proto_table[u16].map_size, al_proto_table[u16].map[x], al_proto_table[u16].map);
-            u_int16_t parser_local_id = al_parser_table[u].parser_local_id;
-            //printf("AppLayerParsersInitPostProcess: parser_local_id: %u\n", parser_local_id);
+            //printf("AppLayerParsersInitPostProcess: al_proto_table[%" PRIu32 "].map_size %" PRIu32 ", %p %p\n", u16, al_proto_table[u16].map_size, al_proto_table[u16].map[x], al_proto_table[u16].map);
+            uint16_t parser_local_id = al_parser_table[u].parser_local_id;
+            //printf("AppLayerParsersInitPostProcess: parser_local_id: %" PRIu32 "\n", parser_local_id);
 
             if (parser_local_id < al_proto_table[u16].map_size) {
                 al_proto_table[u16].map[parser_local_id] = malloc(sizeof(AppLayerLocalMap));
@@ -584,12 +584,12 @@ void AppLayerParsersInitPostProcess(void) {
         if (al_proto_table[u16].map == NULL)
             continue;
 
-        u_int16_t x = 0;
+        uint16_t x = 0;
         for (x = 0; x < al_proto_table[u16].map_size; x++) {
             if (al_proto_table[u16].map[x] == NULL)
                 continue;
 
-            //printf("AppLayerParsersInitPostProcess: al_proto_table[%u].map[%u]->parser_id: %u\n", u16, x, al_proto_table[u16].map[x]->parser_id);
+            //printf("AppLayerParsersInitPostProcess: al_proto_table[%" PRIu32 "].map[%" PRIu32 "]->parser_id: %" PRIu32 "\n", u16, x, al_proto_table[u16].map[x]->parser_id);
         }
     }
 }

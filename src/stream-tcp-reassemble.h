@@ -33,5 +33,7 @@ int StreamTcpReassembleHandleSegment(TcpSession *, TcpStream *, Packet *);
 int StreamTcpReassembleInit(void);
 void StreamTcpReassembleRegisterTests(void);
 
+void StreamL7DataPtrInit(TcpSession *ssn, uint8_t cnt);
+
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 

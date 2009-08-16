@@ -5,7 +5,7 @@
 DetectEngineCtx *DetectEngineCtxInit(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
-u_int32_t DetectEngineGetMaxSigId(DetectEngineCtx *);
+uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *);
 void DetectEngineResetMaxSigId(DetectEngineCtx *);
 
 #endif /* __DETECT_ENGINE_H__ */

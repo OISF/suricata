@@ -30,17 +30,17 @@ FlowQueue flow_est_q;   /* All other flows live here, the top holds the
 FlowBucket *flow_hash;
 FlowConfig flow_config;
 
-u_int8_t flow_flags;
+uint8_t flow_flags;
 
-u_int32_t flow_memuse;
+uint32_t flow_memuse;
 pthread_mutex_t flow_memuse_mutex;
 
 #define FLOWBITS_STATS
 #ifdef FLOWBITS_STATS
-u_int32_t flowbits_memuse;
-u_int32_t flowbits_memuse_max;
-u_int32_t flowbits_added;
-u_int32_t flowbits_removed;
+uint32_t flowbits_memuse;
+uint32_t flowbits_memuse_max;
+uint32_t flowbits_added;
+uint32_t flowbits_removed;
 pthread_mutex_t flowbits_mutex;
 #endif /* FLOWBITS_STATS */
 

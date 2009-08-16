@@ -11,11 +11,11 @@
 typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;
-    u_int16_t len;
+    uint16_t len;
     pthread_mutex_t mutex_q;
     pthread_cond_t cond_q;
 #ifdef DBG_PERF
-    u_int16_t dbg_maxlen;
+    uint16_t dbg_maxlen;
 #endif /* DBG_PERF */
 } PacketQueue;
 #endif

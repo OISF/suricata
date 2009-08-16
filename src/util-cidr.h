@@ -4,7 +4,7 @@
 #define __UTIL_NETMASK_H__
 
 void CIDRInit(void);
-u_int32_t CIDRGet(int);
+uint32_t CIDRGet(int);
 
 #endif /* __UTIL_NETMASK_H__ */
 

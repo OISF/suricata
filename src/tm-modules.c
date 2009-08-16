@@ -1,13 +1,17 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "eidps.h"
+#include <stdio.h>
+#include <string.h>
+
+#include "eidps-common.h"
+#include "packet-queue.h"
 #include "tm-modules.h"
 
 TmModule tmm_modules[TMM_SIZE];
 
 void TmModuleDebugList(void) {
     TmModule *t;
-    u_int16_t i;
+    uint16_t i;
 
     printf("TmModuleDebugList: start\n");
     for (i = 0; i < TMM_SIZE; i++) {
@@ -20,7 +24,7 @@ void TmModuleDebugList(void) {
 
 TmModule *TmModuleGetByName(char *name) {
     TmModule *t;
-    u_int16_t i;
+    uint16_t i;
 
     for (i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
@@ -34,7 +38,7 @@ TmModule *TmModuleGetByName(char *name) {
 
 void TmModuleRegisterTests(void) {
     TmModule *t;
-    u_int16_t i;
+    uint16_t i;
 
     for (i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];

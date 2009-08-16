@@ -6,7 +6,7 @@
 #ifdef DEBUG
 
 #define DEBUGPRINT(format, args...) \
-        printf("[%s:%d](%s) " format "\n", __FILE__, __LINE__, __FUNCTION__, ## args)
+        printf("[%s:%" PRId32 "](%s) " format "\n", __FILE__, __LINE__, __FUNCTION__, ## args)
 
 #else
 

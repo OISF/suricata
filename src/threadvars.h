@@ -17,7 +17,7 @@
 typedef struct ThreadVars_ {
     pthread_t t;
     char *name;
-    u_int8_t flags;
+    uint8_t flags;
 
     /** queue's */
     Tmq *inq;

@@ -41,21 +41,21 @@ int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
             pe->within = strtol(str, NULL, 10);
             pe->flags |= DETECT_PCRE_WITHIN;
 
-            //printf("DetectWithinSetup: set within %d for previous pcre\n", pe->within);
+            //printf("DetectWithinSetup: set within %" PRId32 " for previous pcre\n", pe->within);
         } else if (pm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
 
             cd->within = strtol(str, NULL, 10);
             cd->flags |= DETECT_CONTENT_WITHIN;
 
-            //printf("DetectWithinSetup: set within %d for previous content\n", cd->within);
+            //printf("DetectWithinSetup: set within %" PRId32 " for previous content\n", cd->within);
         } else if (pm->type == DETECT_URICONTENT) {
             DetectUricontentData *ud = (DetectUricontentData *)pm->ctx;
 
             ud->within = strtol(str, NULL, 10);
             ud->flags |= DETECT_URICONTENT_WITHIN;
 
-            //printf("DetectWithinSetup: set within %d for previous content\n", cd->within);
+            //printf("DetectWithinSetup: set within %" PRId32 " for previous content\n", cd->within);
         } else {
             printf("DetectWithinSetup: Unknown previous keyword!\n");
         }

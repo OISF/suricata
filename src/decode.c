@@ -2,9 +2,10 @@
 
 /* Decode the raw packet */
 
+#include "eidps-common.h"
 #include "decode.h"
 
-void DecodeTunnel(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, PacketQueue *pq)
+void DecodeTunnel(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     switch (p->tunnel_proto) {
         case IPPROTO_IP:
@@ -15,7 +16,7 @@ void DecodeTunnel(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len, Packet
             return DecodeIPV6(t, p, pkt, len);
             break;
         default:
-            printf("FIXME: DecodeTunnel: protocol %u not supported.\n", p->tunnel_proto);
+            printf("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.\n", p->tunnel_proto);
             break;
     }
 }

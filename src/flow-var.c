@@ -9,13 +9,15 @@
  */
 
 #include <ctype.h>
+
+#include "eidps-common.h"
 #include "threads.h"
 #include "flow-var.h"
 #include "flow.h"
 #include "detect.h"
 
 /* puts a new value into a flowvar */
-void FlowVarUpdate(FlowVar *fv, u_int8_t *value, u_int16_t size) {
+void FlowVarUpdate(FlowVar *fv, uint8_t *value, uint16_t size) {
     if (fv->value) free(fv->value);
     fv->value = value;
     fv->value_len = size;
@@ -24,7 +26,7 @@ void FlowVarUpdate(FlowVar *fv, u_int8_t *value, u_int16_t size) {
 /* get the flowvar with name 'name' from the flow
  *
  * name is a normal string*/
-FlowVar *FlowVarGet(Flow *f, u_int8_t idx) {
+FlowVar *FlowVarGet(Flow *f, uint8_t idx) {
     GenericVar *gv = f->flowvar;
 
     for ( ; gv != NULL; gv = gv->next) {
@@ -36,8 +38,8 @@ FlowVar *FlowVarGet(Flow *f, u_int8_t idx) {
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAdd(Flow *f, u_int8_t idx, u_int8_t *value, u_int16_t size) {
-    //printf("Adding flow var \"%s\" with value(%d) \"%s\"\n", name, size, value);
+void FlowVarAdd(Flow *f, uint8_t idx, uint8_t *value, uint16_t size) {
+    //printf("Adding flow var \"%s\" with value(%" PRId32 ") \"%s\"\n", name, size, value);
 
     mutex_lock(&f->m);
 
@@ -73,7 +75,7 @@ void FlowVarFree(FlowVar *fv) {
 }
 
 void FlowVarPrint(GenericVar *gv) {
-    u_int16_t i;
+    uint16_t i;
 
     if (gv == NULL)
         return;
@@ -81,12 +83,12 @@ void FlowVarPrint(GenericVar *gv) {
     if (gv->type == DETECT_FLOWVAR) {
         FlowVar *fv = (FlowVar *)gv;
 
-        printf("Name idx \"%u\", Value \"", fv->idx);
+        printf("Name idx \"%" PRIu32 "\", Value \"", fv->idx);
         for (i = 0; i < fv->value_len; i++) {
             if (isprint(fv->value[i])) printf("%c", fv->value[i]);
             else                       printf("\\%02X", fv->value[i]);
         }
-        printf("\", Len \"%u\"\n", fv->value_len);
+        printf("\", Len \"%" PRIu32 "\"\n", fv->value_len);
     }
     FlowVarPrint(gv->next);
 }

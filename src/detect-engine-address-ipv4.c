@@ -17,10 +17,10 @@
 #include "detect-engine-port.h"
 
 int DetectAddressCmpIPv4(DetectAddressData *a, DetectAddressData *b) {
-    u_int32_t a_ip1 = ntohl(a->ip[0]);
-    u_int32_t a_ip2 = ntohl(a->ip2[0]);
-    u_int32_t b_ip1 = ntohl(b->ip[0]);
-    u_int32_t b_ip2 = ntohl(b->ip2[0]);
+    uint32_t a_ip1 = ntohl(a->ip[0]);
+    uint32_t a_ip2 = ntohl(a->ip2[0]);
+    uint32_t b_ip1 = ntohl(b->ip[0]);
+    uint32_t b_ip2 = ntohl(b->ip2[0]);
 
     /* ADDRESS_EQ */
     if (a_ip1 == b_ip1 && a_ip2 == b_ip2) {
@@ -70,10 +70,10 @@ int DetectAddressCmpIPv4(DetectAddressData *a, DetectAddressData *b) {
  * must result in: a == 1.2.3.0-1.2.3.3, b == 1.2.3.4, c == 1.2.3.5-1.2.3.255
  */
 int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, DetectAddressGroup *b, DetectAddressGroup **c) {
-    u_int32_t a_ip1 = ntohl(a->ad->ip[0]);
-    u_int32_t a_ip2 = ntohl(a->ad->ip2[0]);
-    u_int32_t b_ip1 = ntohl(b->ad->ip[0]);
-    u_int32_t b_ip2 = ntohl(b->ad->ip2[0]);
+    uint32_t a_ip1 = ntohl(a->ad->ip[0]);
+    uint32_t a_ip2 = ntohl(a->ad->ip2[0]);
+    uint32_t b_ip1 = ntohl(b->ad->ip[0]);
+    uint32_t b_ip2 = ntohl(b->ad->ip2[0]);
     DetectPort *port = NULL;
     DetectAddressGroup *tmp = NULL;
 
@@ -459,10 +459,10 @@ error:
  * must result in: a == 1.2.3.0-1.2.3.3, b == 1.2.3.4, c == 1.2.3.5-1.2.3.255
  */
 int DetectAddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
-    u_int32_t a_ip1 = ntohl(a->ip[0]);
-    u_int32_t a_ip2 = ntohl(a->ip2[0]);
-    u_int32_t b_ip1 = ntohl(b->ip[0]);
-    u_int32_t b_ip2 = ntohl(b->ip2[0]);
+    uint32_t a_ip1 = ntohl(a->ip[0]);
+    uint32_t a_ip2 = ntohl(a->ip2[0]);
+    uint32_t b_ip1 = ntohl(b->ip[0]);
+    uint32_t b_ip2 = ntohl(b->ip2[0]);
 
     /* default to NULL */
     *c = NULL;
@@ -624,8 +624,8 @@ error:
  *
  */
 int DetectAddressCutNotIPv4(DetectAddressData *a, DetectAddressData **b) {
-    u_int32_t a_ip1 = ntohl(a->ip[0]);
-    u_int32_t a_ip2 = ntohl(a->ip2[0]);
+    uint32_t a_ip1 = ntohl(a->ip[0]);
+    uint32_t a_ip2 = ntohl(a->ip2[0]);
 
     /* default to NULL */
     *b = NULL;

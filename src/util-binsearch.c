@@ -1,16 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <ctype.h>
+#include <inttypes.h>
 
 /* XXX replace this by a better algo */
 
-u_int8_t nocasetable[256];
+uint8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
 
 void BinSearchInit (void)
 {
     /* create table for O(1) case conversion lookup */
-    u_int8_t c = 0;
+    uint8_t c = 0;
     for ( ; c < 255; c++) {
        if ( c >= 'a' && c <= 'z')
            nocasetable[c] = (c - ('a' - 'A'));
@@ -34,13 +37,13 @@ void BinSearchInit (void)
  *  - null if no match
  */
 /* simple bin search modelled loosely after strstr */
-u_int8_t *
-BinSearch(const u_int8_t *haystack, size_t haystack_len,
-          const u_int8_t *needle, size_t needle_len)
+uint8_t *
+BinSearch(const uint8_t *haystack, size_t haystack_len,
+          const uint8_t *needle, size_t needle_len)
 {
-    const u_int8_t *h, *n;
-    const u_int8_t *hmax = haystack + haystack_len;
-    const u_int8_t *nmax = needle + (needle_len - 1);
+    const uint8_t *h, *n;
+    const uint8_t *hmax = haystack + haystack_len;
+    const uint8_t *nmax = needle + (needle_len - 1);
 
     if (needle_len == 0)
         return NULL;
@@ -51,7 +54,7 @@ BinSearch(const u_int8_t *haystack, size_t haystack_len,
         }
         /* one byte needles */
         if (needle_len == 1)
-            return (u_int8_t *)haystack;
+            return (uint8_t *)haystack;
 
         for (h = haystack+1, n++; h != hmax; h++, n++) {
             //printf("h %c n %c\n", isprint(*h) ? *h : 'X', *n);
@@ -60,7 +63,7 @@ BinSearch(const u_int8_t *haystack, size_t haystack_len,
             }
             /* if we run out of needle we fully matched */
             if (n == nmax) {
-                return (u_int8_t *)haystack;
+                return (uint8_t *)haystack;
             }
         }
         n = needle;
@@ -75,13 +78,13 @@ BinSearch(const u_int8_t *haystack, size_t haystack_len,
  *  - ptr to start of the match
  *  - null if no match
  */
-u_int8_t *
-BinSearchNocase(const u_int8_t *haystack, size_t haystack_len,
-                const u_int8_t *needle, size_t needle_len)
+uint8_t *
+BinSearchNocase(const uint8_t *haystack, size_t haystack_len,
+                const uint8_t *needle, size_t needle_len)
 {
-    const u_int8_t *h, *n;
-    const u_int8_t *hmax = haystack + haystack_len;
-    const u_int8_t *nmax = needle + (needle_len - 1);
+    const uint8_t *h, *n;
+    const uint8_t *hmax = haystack + haystack_len;
+    const uint8_t *nmax = needle + (needle_len - 1);
 
     if (needle_len == 0)
         return NULL;
@@ -97,7 +100,7 @@ BinSearchNocase(const u_int8_t *haystack, size_t haystack_len,
             }
             /* if we run out of needle we fully matched */
             if (n == nmax) {
-                return (u_int8_t *)haystack;
+                return (uint8_t *)haystack;
             }
         }
         n = needle;

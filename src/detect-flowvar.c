@@ -4,6 +4,8 @@
 
 #include <ctype.h>
 #include <pcre.h>
+
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "threads.h"
@@ -34,7 +36,7 @@ void DetectFlowvarRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %d: %s\n", PARSE_REGEX, eo, eb);
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
         goto error;
     }
 
@@ -67,7 +69,7 @@ int DetectFlowvarMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
 
     FlowVar *fv = FlowVarGet(p->flow, fd->idx);
     if (fv != NULL) {
-        u_int8_t *ptr = BinSearch(fv->value, fv->value_len, fd->content, fd->content_len);
+        uint8_t *ptr = BinSearch(fv->value, fv->value_len, fd->content, fd->content_len);
         if (ptr != NULL)
             ret = 1;
     }
@@ -82,7 +84,7 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     SigMatch *sm = NULL;
     char *str = rawstr;
     char dubbed = 0;
-    u_int16_t len;
+    uint16_t len;
     char *varname = NULL, *varcontent = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
@@ -129,8 +131,8 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     char converted = 0;
 
     {
-        u_int16_t i, x;
-        u_int8_t bin = 0, binstr[3] = "", binpos = 0;
+        uint16_t i, x;
+        uint8_t bin = 0, binstr[3] = "", binpos = 0;
         for (i = 0, x = 0; i < len; i++) {
             // printf("str[%02u]: %c\n", i, str[i]);
             if (str[i] == '|') {
@@ -154,9 +156,9 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
                         binpos++;
 
                         if (binpos == 2) {
-                            u_int8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
+                            uint8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
 #ifdef DEBUG
-                            printf("Binstr %X\n", c);
+                            printf("Binstr %" PRIX32 "\n", c);
 #endif
                             binpos = 0;
                             str[x] = c;

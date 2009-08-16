@@ -23,14 +23,14 @@
 
 typedef struct IPV4Hdr_
 {
-    u_int8_t ip_verhl;     /* version & header length */
-    u_int8_t ip_tos;
-    u_int16_t ip_len;      /* length */
-    u_int16_t ip_id;       /* id */
-    u_int16_t ip_off;      /* frag offset */
-    u_int8_t ip_ttl;
-    u_int8_t ip_proto;     /* protocol (tcp, udp, etc) */
-    u_int16_t ip_csum;     /* checksum */
+    uint8_t ip_verhl;     /* version & header length */
+    uint8_t ip_tos;
+    uint16_t ip_len;      /* length */
+    uint16_t ip_id;       /* id */
+    uint16_t ip_off;      /* frag offset */
+    uint8_t ip_ttl;
+    uint8_t ip_proto;     /* protocol (tcp, udp, etc) */
+    uint16_t ip_csum;     /* checksum */
     struct in_addr ip_src;
     struct in_addr ip_dst;
 } IPV4Hdr;
@@ -85,15 +85,15 @@ typedef struct IPV4Hdr_
 /* IPV4_GET_RF: get the RF flag. Use _IPV4_GET_IPOFFSET to save a ntohs call. */
 #define IPV4_GET_RF(p) \
     ((p)->ip4c.flags & IPV4_CACHE_RF ? \
-    (p)->ip4c.rf : ((p)->ip4c.flags |= IPV4_CACHE_RF, (p)->ip4c.rf = (u_int8_t)((_IPV4_GET_IPOFFSET((p)) & 0x8000) >> 15)))
+    (p)->ip4c.rf : ((p)->ip4c.flags |= IPV4_CACHE_RF, (p)->ip4c.rf = (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x8000) >> 15)))
 /* IPV4_GET_DF: get the DF flag. Use _IPV4_GET_IPOFFSET to save a ntohs call. */
 #define IPV4_GET_DF(p) \
     ((p)->ip4c.flags & IPV4_CACHE_DF ? \
-    (p)->ip4c.df : ((p)->ip4c.flags |= IPV4_CACHE_DF, (p)->ip4c.df = (u_int8_t)((_IPV4_GET_IPOFFSET((p)) & 0x4000) >> 14)))
+    (p)->ip4c.df : ((p)->ip4c.flags |= IPV4_CACHE_DF, (p)->ip4c.df = (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x4000) >> 14)))
 /* IPV4_GET_MF: get the MF flag. Use _IPV4_GET_IPOFFSET to save a ntohs call. */
 #define IPV4_GET_MF(p) \
     ((p)->ip4c.flags & IPV4_CACHE_MF ? \
-    (p)->ip4c.mf : ((p)->ip4c.flags |= IPV4_CACHE_MF, (p)->ip4c.mf = (u_int8_t)((_IPV4_GET_IPOFFSET((p)) & 0x2000) >> 13)))
+    (p)->ip4c.mf : ((p)->ip4c.flags |= IPV4_CACHE_MF, (p)->ip4c.mf = (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x2000) >> 13)))
 #define IPV4_GET_IPTTL(p) \
      IPV4_GET_RAW_IPTTL(p)
 #define IPV4_GET_IPPROTO(p) \
@@ -120,30 +120,30 @@ typedef struct IPV4Hdr_
  */
 typedef struct IPV4Cache_
 {
-    u_int16_t flags;
+    uint16_t flags;
 
-    u_int8_t ver;
-    u_int8_t hl;
-    u_int8_t ip_tos;        /* type of service */
-    u_int16_t ip_len;       /* datagram length */
-    u_int16_t ip_id;        /* identification  */
-    u_int16_t ip_off;       /* fragment offset */
-    u_int16_t _ip_off;      /* fragment offset - full field value, host order*/
-    u_int8_t rf;
-    u_int8_t df;
-    u_int8_t mf;
-    u_int8_t ip_ttl;        /* time to live field */
-    u_int8_t ip_proto;      /* datagram protocol */
-    u_int16_t ip_csum;      /* checksum */
-    u_int32_t ip_src_u32;   /* source IP */
-    u_int32_t ip_dst_u32;   /* dest IP */
+    uint8_t ver;
+    uint8_t hl;
+    uint8_t ip_tos;        /* type of service */
+    uint16_t ip_len;       /* datagram length */
+    uint16_t ip_id;        /* identification  */
+    uint16_t ip_off;       /* fragment offset */
+    uint16_t _ip_off;      /* fragment offset - full field value, host order*/
+    uint8_t rf;
+    uint8_t df;
+    uint8_t mf;
+    uint8_t ip_ttl;        /* time to live field */
+    uint8_t ip_proto;      /* datagram protocol */
+    uint16_t ip_csum;      /* checksum */
+    uint32_t ip_src_u32;   /* source IP */
+    uint32_t ip_dst_u32;   /* dest IP */
 
 } IPV4Cache;
 
 /* helper structure with parsed ipv4 info */
 typedef struct IPV4Vars_
 {
-    u_int8_t ip_opts_len;
+    uint8_t ip_opts_len;
 } IPV4Vars;
 
 #endif /* __DECODE_IPV4_H__ */

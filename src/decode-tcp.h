@@ -72,31 +72,31 @@
 #define TCP_ISSET_FLAG_RES1(p)               ((p)->tcph->th_flags & TH_RES1)
 
 typedef struct TCPOpt_ {
-    u_int8_t type;
-    u_int8_t len;
-    u_int8_t *data;
+    uint8_t type;
+    uint8_t len;
+    uint8_t *data;
 } TCPOpt;
 
 typedef struct TCPHdr_
 {
-    u_int16_t th_sport;     /* source port */
-    u_int16_t th_dport;     /* destination port */
-    u_int32_t th_seq;       /* sequence number */
-    u_int32_t th_ack;       /* acknowledgement number */
-    u_int8_t th_offx2;      /* offset and reserved */
-    u_int8_t th_flags;      /* pkt flags */
-    u_int16_t th_win;       /* pkt window */
-    u_int16_t th_sum;       /* checksum */
-    u_int16_t th_urp;       /* urgent pointer */
+    uint16_t th_sport;     /* source port */
+    uint16_t th_dport;     /* destination port */
+    uint32_t th_seq;       /* sequence number */
+    uint32_t th_ack;       /* acknowledgement number */
+    uint8_t th_offx2;      /* offset and reserved */
+    uint8_t th_flags;      /* pkt flags */
+    uint16_t th_win;       /* pkt window */
+    uint16_t th_sum;       /* checksum */
+    uint16_t th_urp;       /* urgent pointer */
 } TCPHdr;
 
 typedef struct TCPVars_
 {
-    u_int8_t hlen;
+    uint8_t hlen;
 
-    u_int8_t tcp_opt_len;
+    uint8_t tcp_opt_len;
     TCPOpt tcp_opts[TCP_OPTMAX];
-    u_int8_t tcp_opt_cnt;
+    uint8_t tcp_opt_cnt;
 
     /* ptrs to commonly used and needed opts */
     TCPOpt *sackok;
