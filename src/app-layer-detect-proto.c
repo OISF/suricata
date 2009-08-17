@@ -53,7 +53,7 @@ uint8_t AppLayerDetectGetProto(uint8_t *buf, uint16_t buflen) {
         return ALPROTO_UNKNOWN;
 
     /* XXX do actual detect */
-    printf("AppLayerDetectGetProto: protocol detection goes here.\n");
+    //printf("AppLayerDetectGetProto: protocol detection goes here.\n");
     return ALPROTO_HTTP;
 }
 
@@ -61,6 +61,9 @@ void *AppLayerDetectProtoThread(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
     char run = TRUE;
+    AppLayerDetectProtoData *al_proto = NULL;
+    char store = 0;
+    void *al_data_ptr = NULL;
 
     /* get the stream msg queue for this thread */
     StreamMsgQueue *stream_q = StreamMsgQueueGetByPort(0);
@@ -75,11 +78,7 @@ void *AppLayerDetectProtoThread(void *td)
         /* grab a msg, can return NULL on signals */
         StreamMsg *smsg = StreamMsgGetFromQueue(stream_q);
         if (smsg != NULL) {
-            /* keep the flow locked during operation.
-             * XXX we may be better off adding a mutex
-             *     to the l7data object */
             mutex_lock(&smsg->flow->m);
-
             TcpSession *ssn = smsg->flow->stream;
             if (ssn != NULL) {
                 if (ssn->l7data == NULL) {
@@ -87,8 +86,11 @@ void *AppLayerDetectProtoThread(void *td)
                        or make it part of the stream setup */
                     StreamL7DataPtrInit(ssn,StreamL7GetStorageSize());
                 }
-                void *al_data_ptr = ssn->l7data[al_proto_id];
+                al_data_ptr = ssn->l7data[al_proto_id];
+            }
+            mutex_unlock(&smsg->flow->m);
 
+            if (al_data_ptr != NULL) {
                 if (smsg->flags & STREAM_START) {
                     //printf("L7AppDetectThread: stream initializer (len %" PRIu32 " (%" PRIu32 "))\n", smsg->data.data_len, MSG_DATA_SIZE);
 
@@ -97,12 +99,10 @@ void *AppLayerDetectProtoThread(void *td)
                     //printf("=> Init Stream Data -- end\n");
 
                     if (al_data_ptr == NULL) {
-                        AppLayerDetectProtoData *al_proto = (AppLayerDetectProtoData *)PoolGet(al_detect_proto_pool);
+                        al_proto = (AppLayerDetectProtoData *)PoolGet(al_detect_proto_pool);
                         if (al_proto != NULL) {
                             al_proto->proto = AppLayerDetectGetProto(smsg->data.data, smsg->data.data_len);
-
-                            /* store */
-                            ssn->l7data[al_proto_id] = (void *)al_proto;
+                            store = 1;
 
                             AppLayerParse(smsg->flow, al_proto->proto, smsg->flags, smsg->data.data, smsg->data.data_len);
                         }
@@ -117,19 +117,25 @@ void *AppLayerDetectProtoThread(void *td)
                     /* if we don't have a data object here we are not getting it
                      * a start msg should have gotten us one */
                     if (al_data_ptr != NULL) {
-                        AppLayerDetectProtoData *al_proto = (AppLayerDetectProtoData *)al_data_ptr;
-                        printf("AppLayerDetectThread: already established that the proto is %" PRIu32 "\n", al_proto->proto);
+                        al_proto = (AppLayerDetectProtoData *)al_data_ptr;
+//                        printf("AppLayerDetectThread: already established that the proto is %" PRIu32 "\n", al_proto->proto);
 
                         AppLayerParse(smsg->flow, al_proto->proto, smsg->flags, smsg->data.data, smsg->data.data_len);
                     } else {
-                        printf("AppLayerDetectThread: smsg not start, but no l7 data? Weird\n");
+//                        printf("AppLayerDetectThread: smsg not start, but no l7 data? Weird\n");
                     }
                 }
+            }
+
+            mutex_lock(&smsg->flow->m);
+            if (store == 1) {
+                /* store */
+                ssn->l7data[al_proto_id] = (void *)al_proto;
+                store = 0;
             }
             /* XXX we need to improve this logic */
             smsg->flow->use_cnt--;
             mutex_unlock(&smsg->flow->m);
-
             /* return the used message to the queue */
             StreamMsgReturnToPool(smsg);
         }

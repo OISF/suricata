@@ -455,7 +455,9 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
         if (parser_state_store == NULL)
             return -1;
 
+        mutex_lock(&f->m);
         ssn->l7data[app_layer_sid] = (void *)parser_state_store;
+        mutex_unlock(&f->m);
     }
 
     AppLayerParserState *parser_state = NULL;
@@ -496,7 +498,9 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
         if (app_layer_state == NULL)
             return -1;
 
+        mutex_lock(&f->m);
         ssn->l7data[p->storage_id] = app_layer_state;
+        mutex_unlock(&f->m);
     }
 
     /* invoke the recursive parser */
