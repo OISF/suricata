@@ -83,7 +83,8 @@ static int sigterm_count = 0;
 
 /* Run mode. */
 enum {
-    MODE_PCAP_DEV = 0,
+    MODE_UNKNOWN = 0,
+    MODE_PCAP_DEV,
     MODE_PCAP_FILE,
     MODE_NFQ,
     MODE_UNITTEST
@@ -839,7 +840,7 @@ int main(int argc, char **argv)
 {
     sigset_t set;
     int opt;
-    int mode;
+    int mode = MODE_UNKNOWN;
     char *pcap_file = NULL;
     char *pcap_dev = NULL;
     char *sig_file = NULL;
@@ -885,6 +886,11 @@ int main(int argc, char **argv)
             usage(argv[0]);
             exit(1);
         }
+    }
+
+    if (mode == MODE_UNKNOWN) {
+        usage(argv[0]);
+        exit(1);
     }
 
     /* create table for O(1) lowercase conversion lookup */
