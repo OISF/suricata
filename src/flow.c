@@ -1,4 +1,12 @@
-/* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
+/** Copyright (c) 2008 Victor Julien <victor@inliniac.net>
+ *  \file
+ *  Flow implementation.
+ *
+ *  IDEAS:
+ *  - Maybe place the flow that we get a packet for on top of the
+ *    list in the bucket. This rewards active flows.
+ *
+ */
 
 #include "eidps-common.h"
 #include "debug.h"
@@ -17,19 +25,10 @@
 #include "flow-var.h"
 #include "flow-private.h"
 
-/* Flow implementation
- *
- * IDEAS:
- * - Maybe place the flow that we get a packet for on top of the
- *   list in the bucket. This rewards active flows.
- *
- */
-
-
-/* FlowUpdateQueue
+/** \brief Update the flows position in the queue's
+ *  \param f Flow to requeue.
  *
  * In-use flows are either in the flow_new_q or flow_est_q lists.
- *
  */
 static void FlowUpdateQueue(Flow *f)
 {
@@ -52,20 +51,19 @@ static void FlowUpdateQueue(Flow *f)
 }
 
 
-/* FlowPrune
+/** FlowPrune
  *
  * Inspect top (last recently used) flow from the queue and see if
  * we need to prune it.
  *
  * Use trylock here so prevent us from blocking the packet handling.
  *
- * Arguments:
- *     q:       flow queue to prune
- *     ts:      current time
- *     timeout: timeout to enforce
+ * \param q flow queue to prune
+ * \param ts current time
+ * \param timeout timeout to enforce
  *
- * returns 0 on error, failed block, nothing to prune
- * returns 1 on successfully pruned one
+ * \retval 0 on error, failed block, nothing to prune
+ * \retval 1 on successfully pruned one
  */
 static int FlowPrune (FlowQueue *q, struct timeval *ts, uint32_t timeout)
 {
@@ -94,8 +92,8 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts, uint32_t timeout)
     DEBUGPRINT("got lock, now check: %" PRId64 "+%" PRIu32 "=(%" PRId64 ") < %" PRId64 "", f->lastts.tv_sec,
         timeout, f->lastts.tv_sec + timeout, ts->tv_sec);
 
-    /* never prune a flow that is used by a packet we are currently
-     * processing in one of the threads */
+    /** never prune a flow that is used by a packet or stream msg
+     *  we are currently processing in one of the threads */
     if (f->use_cnt > 0) {
         mutex_unlock(&f->fb->m);
         mutex_unlock(&f->m);
@@ -130,9 +128,11 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts, uint32_t timeout)
     return 1;
 }
 
-/* FlowPruneFlows
- *
- * Returns: number of flows that are pruned.
+/** \brief Time out flows.
+ *  \param q flow queue to time out flows from
+ *  \param ts current time
+ *  \param timeout timeout to consider
+ *  \retval cnt number of flows that are timed out
  */
 static uint32_t FlowPruneFlows(FlowQueue *q, struct timeval *ts, uint32_t timeout)
 {
@@ -141,13 +141,13 @@ static uint32_t FlowPruneFlows(FlowQueue *q, struct timeval *ts, uint32_t timeou
     return cnt;
 }
 
-/* FlowUpdateSpareFlows
+/** \brief Make sure we have enough spare flows. 
  *
- * Enforce the prealloc parameter, so keep at least prealloc flows in the
- * spare queue and free flows going over the limit.
+ *  Enforce the prealloc parameter, so keep at least prealloc flows in the
+ *  spare queue and free flows going over the limit.
  *
- * Returns 1 if the queue was properly updated (or if it already was in good
- * shape). Returns 0 otherwise.
+ *  \retval 1 if the queue was properly updated (or if it already was in good shape)
+ *  \retval 0 otherwise.
  */
 static int FlowUpdateSpareFlows(void) {
     uint32_t toalloc = 0, tofree = 0, len;
@@ -185,16 +185,22 @@ static int FlowUpdateSpareFlows(void) {
     return 1;
 }
 
-/* Set the IPOnly scanned flag for 'direction'. This function
- * handles the locking too. */
+/** \brief Set the IPOnly scanned flag for 'direction'. This function
+  *        handles the locking too.
+  * \param f Flow to set the flag in
+  * \param direction direction to set the flag in
+  */
 void FlowSetIPOnlyFlag(Flow *f, char direction) {
     mutex_lock(&f->m);
     direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) : (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
     mutex_unlock(&f->m);
 }
 
-/* decrease the use cnt of a flow */
-void FlowDecrUsecnt(ThreadVars *th_v, Packet *p) {
+/** \brief decrease the use cnt of a flow
+ *  \param tv thread vars (\todo unused?)
+ *  \param p packet with flow to decrease use cnt for
+ */
+void FlowDecrUsecnt(ThreadVars *tv, Packet *p) {
     if (p == NULL || p->flow == NULL)
         return;
 
@@ -204,16 +210,17 @@ void FlowDecrUsecnt(ThreadVars *th_v, Packet *p) {
     mutex_unlock(&p->flow->m);
 }
 
-/* FlowHandlePacket
+/** \brief Entry point for packet flow handling
  *
  * This is called for every packet.
  *
- * Returns: nothing.
+ *  \param tv threadvars
+ *  \param p packet to handle flow for
  */
-void FlowHandlePacket (ThreadVars *th_v, Packet *p)
+void FlowHandlePacket (ThreadVars *tv, Packet *p)
 {
     /* Get this packet's flow from the hash. FlowHandlePacket() will setup
-     * a new flow if nescesary. If we get NULL, we're out of flow memory. 
+     * a new flow if nescesary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
     Flow *f = FlowGetFlowFromHash(p);
     if (f == NULL)
@@ -268,7 +275,8 @@ void FlowHandlePacket (ThreadVars *th_v, Packet *p)
 
 #define FLOW_DEFAULT_PREALLOC    10000
 
-/* Not Thread safe */
+/** \brief initialize the configuration
+ *  \warning Not thread safe */
 void FlowInitConfig (char quiet)
 {
     if (quiet == FALSE)
@@ -324,7 +332,8 @@ void FlowInitConfig (char quiet)
     }
 }
 
-/* Not Thread safe */
+/** \brief print some flow stats
+ *  \warning Not thread safe */
 void FlowPrintFlows (void)
 {
 /*
@@ -372,7 +381,8 @@ void FlowPrintFlows (void)
 #endif /* FLOWBITS_STATS */
 }
 
-/* Not thread safe */
+/** \brief shutdown the flow engine
+ *  \warning Not thread safe */
 void FlowShutdown(void) {
     Flow *f;
 
@@ -392,9 +402,8 @@ void FlowShutdown(void) {
     pthread_mutex_destroy(&flow_memuse_mutex);
 }
 
-/* FlowManagerThread
- *
- * Thread that manages the various queue's and removes timed out flows.
+/** \brief Thread that manages the various queue's and removes timed out flows.
+ *  \param td ThreadVars casted to void ptr
  *
  * IDEAS/TODO
  * Create a 'emergency mode' in which flow handling threads can indicate
@@ -432,7 +441,6 @@ void *FlowManagerThread(void *td)
 
             /* Get the time */
             memset(&ts, 0, sizeof(ts));
-            //gettimeofday(&ts, NULL);
             TimeGet(&ts);
             DEBUGPRINT("ts %" PRId64 "", ts.tv_sec);
 
@@ -479,6 +487,7 @@ void *FlowManagerThread(void *td)
     pthread_exit((void *) 0);
 }
 
+/** \brief spawn the flow manager thread */
 void FlowManagerThreadSpawn()
 {
     ThreadVars *tv_flowmgr = NULL;
@@ -493,8 +502,6 @@ void FlowManagerThreadSpawn()
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
-
-    printf("Flow Manager thread spawned\n");
 
     return;
 }
