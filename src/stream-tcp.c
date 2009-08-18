@@ -1374,6 +1374,8 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
     return 0;
 }
 
+#ifdef UNITTESTS
+
 /**
  *  \test   Test the allocation of TCP session for a given packet from the
  *          ssn_pool.
@@ -1737,6 +1739,8 @@ static int StreamTcpTest06 (void) {
         return 0;
     return 1;
 }
+
+#endif /* UNITTESTS */
 
 void StreamTcpRegisterTests (void) {
 #ifdef UNITTESTS
