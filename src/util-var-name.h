@@ -2,7 +2,7 @@
 #define __UTIL_VAR_NAME_H__
 
 int VariableNameInitHash(DetectEngineCtx *de_ctx);
-uint16_t VariableNameGetIdx(DetectEngineCtx *, char *, uint8_t, uint8_t);
+uint16_t VariableNameGetIdx(DetectEngineCtx *, char *, uint8_t);
 
 #endif
 

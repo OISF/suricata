@@ -2,6 +2,7 @@
 #include "detect.h"
 #include "util-hashlist.h"
 
+/** \brief Name2idx mapping structure for flowbits, flowvars and pktvars. */
 typedef struct VariableName_ {
     char *name;
     uint8_t type; /* flowbit, pktvar, etc */
@@ -48,6 +49,11 @@ static void VariableNameFree(void *data) {
     free(fn);
 }
 
+/** \brief Initialize the Name idx hash.
+ *  \param de_ctx Ptr to the detection engine ctx.
+ *  \retval -1 in case of error
+ *  \retval 0 in case of success
+ */
 int VariableNameInitHash(DetectEngineCtx *de_ctx) {
     de_ctx->variable_names = HashListTableInit(4096, VariableNameHash, VariableNameCompare, VariableNameFree);
     if (de_ctx->variable_names == NULL)
@@ -56,7 +62,14 @@ int VariableNameInitHash(DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t cmd, uint8_t type) {
+/** \brief Get a name idx for a name. If the name is already used reuse the idx.
+ *  \param de_ctx Ptr to the detection engine ctx.
+ *  \param name nul terminated string with the name
+ *  \param type variable type (DETECT_FLOWBITS, DETECT_PKTVAR, etc)
+ *  \retval 0 in case of error
+ *  \retval _ the idx.
+ */
+uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t type) {
     uint16_t idx = 0;
 
     VariableName *fn = malloc(sizeof(VariableName));
@@ -78,6 +91,7 @@ uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t cmd, ui
         HashListTableAdd(de_ctx->variable_names, (void *)fn, 0);
     } else {
         idx = lookup_fn->idx;
+        VariableNameFree(fn);
     }
 
     return idx;

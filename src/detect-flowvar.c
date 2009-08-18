@@ -191,7 +191,7 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         return -1;
 
     cd->name = strdup(varname);
-    cd->idx = VariableNameGetIdx(de_ctx,varname,0,DETECT_FLOWVAR);
+    cd->idx = VariableNameGetIdx(de_ctx,varname,DETECT_FLOWVAR);
     memcpy(cd->content, str, len);
     cd->content_len = len;
     cd->flags = 0;

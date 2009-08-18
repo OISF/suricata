@@ -15,7 +15,7 @@
  * or
  *
  * flowbits:noalert;
- * 
+ *
  */
 
 #include <ctype.h>
@@ -185,7 +185,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         goto error;
     }
 
-    cd->idx = VariableNameGetIdx(de_ctx,fb_name,fb_cmd,DETECT_FLOWBITS);
+    cd->idx = VariableNameGetIdx(de_ctx,fb_name,DETECT_FLOWBITS);
     cd->cmd = fb_cmd;
     //printf("DetectFlowbitSetup: idx %" PRIu32 ", cmd %s, name %s\n", cd->idx, fb_cmd_str, fb_name ? fb_name : "(null)");
 

@@ -254,9 +254,9 @@ int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *r
         }
         if (capture_str_ptr != NULL) {
             if (pd->flags & DETECT_PCRE_CAPTURE_PKT)
-                pd->capidx = VariableNameGetIdx(de_ctx,(char *)capture_str_ptr,0,DETECT_PKTVAR);
+                pd->capidx = VariableNameGetIdx(de_ctx,(char *)capture_str_ptr,DETECT_PKTVAR);
             else if (pd->flags & DETECT_PCRE_CAPTURE_FLOW)
-                pd->capidx = VariableNameGetIdx(de_ctx,(char *)capture_str_ptr,0,DETECT_FLOWVAR);
+                pd->capidx = VariableNameGetIdx(de_ctx,(char *)capture_str_ptr,DETECT_FLOWVAR);
         }
     }
     //printf("DetectPcreSetup: pd->capname %s\n", pd->capname ? pd->capname : "NULL");
