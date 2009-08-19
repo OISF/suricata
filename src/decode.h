@@ -299,6 +299,27 @@ typedef struct PacketQueue_ {
 #endif /* DBG_PERF */
 } PacketQueue;
 
+/* Generic structure to hold user data for all decode modules */
+typedef struct DecodeThreadVars_
+{
+    /* counters */
+    u_int64_t counter_pkts;
+    u_int64_t counter_bytes;
+    u_int64_t counter_ipv4;
+    u_int64_t counter_ipv6;
+    u_int64_t counter_eth;
+    u_int64_t counter_sll;
+    u_int64_t counter_tcp;
+    u_int64_t counter_udp;
+    u_int64_t counter_icmpv4;
+    u_int64_t counter_icmpv6;
+    u_int64_t counter_ppp;
+    u_int64_t counter_pppoe;
+    u_int64_t counter_avg_pkt_size;
+    u_int64_t counter_max_pkt_size;
+
+    ThreadVars *tv;
+} DecodeThreadVars;
 
 /* clear key vars so we don't need to call the expensive
  * memset or bzero
@@ -376,18 +397,24 @@ typedef struct PacketQueue_ {
 
 
 /* decoder functions */
-void DecodeEthernet(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
-void DecodeSll(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
-void DecodePPP(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
-void DecodePPPoE(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
-void DecodeTunnel(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
-void DecodeIPV4(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
-void DecodeIPV6(ThreadVars *, Packet *, uint8_t *, uint16_t);
-void DecodeICMPV4(ThreadVars *, Packet *, uint8_t *, uint16_t);
-void DecodeICMPV6(ThreadVars *, Packet *, uint8_t *, uint16_t);
-void DecodeTCP(ThreadVars *, Packet *, uint8_t *, uint16_t);
-void DecodeUDP(ThreadVars *, Packet *, uint8_t *, uint16_t);
-void DecodeHTTP(ThreadVars *, Packet *, uint8_t *, uint16_t);
+void DecodeEthernet(ThreadVars *, Packet *, u_int8_t *, u_int16_t,
+                    PacketQueue *, void *);
+void DecodeSll(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *,
+               void *);
+void DecodePPP(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *,
+               void *);
+void DecodePPPoE(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *,
+                 void *);
+void DecodeTunnel(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *,
+                  void *);
+void DecodeIPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *,
+                void *);
+void DecodeIPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t, void *);
+void DecodeICMPV4(ThreadVars *, Packet *, u_int8_t *, u_int16_t, void *);
+void DecodeICMPV6(ThreadVars *, Packet *, u_int8_t *, u_int16_t, void *);
+void DecodeTCP(ThreadVars *, Packet *, u_int8_t *, u_int16_t, void *);
+void DecodeUDP(ThreadVars *, Packet *, u_int8_t *, u_int16_t, void *);
+void DecodeHTTP(ThreadVars *, Packet *, u_int8_t *, u_int16_t);
 
 Packet *SetupPkt (void);
 Packet *TunnelPktSetup(ThreadVars *, Packet *, uint8_t *, uint16_t, uint8_t);

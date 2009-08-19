@@ -11,22 +11,6 @@ void TmModuleDecodePcapRegister (void);
 #define LIBPCAP_COPYWAIT    500
 #define LIBPCAP_PROMISC     1
 
-// The counter ids.  In case you can't recollect the ids, use the counter name
-#define COUNTER_DECODER_PKTS    1
-#define COUNTER_DECODER_BYTES   2
-#define COUNTER_DECODER_IPV4    3
-#define COUNTER_DECODER_IPV6    4
-#define COUNTER_DECODER_ETH     5
-#define COUNTER_DECODER_SLL     6
-#define COUNTER_DECODER_TCP     7
-#define COUNTER_DECODER_UDP     8
-#define COUNTER_DECODER_ICMPV4  9
-#define COUNTER_DECODER_ICMPV6 10
-#define COUNTER_DECODER_PPP    11
-#define COUNTER_DECODER_AVG_PKT_SIZE 12
-#define COUNTER_DECODER_MAX_PKT_SIZE 13
-#define COUNTER_DECODER_PPPOE  14
-
 /* per packet Pcap vars */
 typedef struct PcapPacketVars_
 {

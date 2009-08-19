@@ -291,21 +291,24 @@ int ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
  */
 int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
-    PerfCounterIncr(COUNTER_DECODER_PKTS, t->pca);
-    PerfCounterAddUI64(COUNTER_DECODER_BYTES, t->pca, p->pktlen);
-    PerfCounterAddUI64(COUNTER_DECODER_AVG_PKT_SIZE, t->pca, p->pktlen);
-    PerfCounterSetUI64(COUNTER_DECODER_MAX_PKT_SIZE, t->pca, p->pktlen);
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
+
+    PerfCounterIncr(dtv->counter_pkts, t->pca);
+    PerfCounterAddUI64(dtv->counter_bytes, t->pca, p->pktlen);
+
+    PerfCounterAddUI64(dtv->counter_avg_pkt_size, t->pca, p->pktlen);
+    PerfCounterSetUI64(dtv->counter_max_pkt_size, t->pca, p->pktlen);
 
     /* call the decoder */
     switch(p->pcap_v.datalink)    {
         case LINKTYPE_LINUX_SLL:
-            DecodeSll(t,p,p->pkt,p->pktlen,pq);
+            DecodeSll(t, p, p->pkt, p->pktlen, pq, data);
             break;
         case LINKTYPE_ETHERNET:
-            DecodeEthernet(t,p,p->pkt,p->pktlen,pq);
+            DecodeEthernet(t, p,p->pkt, p->pktlen, pq, data);
             break;
         case LINKTYPE_PPP:
-            DecodePPP(t,p,p->pkt,p->pktlen,pq);
+            DecodePPP(t, p, p->pkt, p->pktlen, pq, data);
             break;
         default:
             printf("Error: datalink type %" PRId32 " not yet supported in module DecodePcap.\n", p->pcap_v.datalink);
@@ -317,38 +320,51 @@ int DecodePcap(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 
 int DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
-    PerfRegisterCounter("decoder.pkts", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.bytes", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ipv4", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ipv6", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ethernet", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.sll", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.tcp", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.udp", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.icmpv4", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.icmpv6", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ppp", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.avg_pkt_size", "DecodePcap", TYPE_DOUBLE, "NULL",
-                        &tv->pctx, TYPE_Q_AVERAGE, 1);
-    PerfRegisterCounter("decoder.max_pkt_size", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_MAXIMUM, 1);
-    PerfRegisterCounter("decoder.pppoe", "DecodePcap", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
+    DecodeThreadVars *dtv = NULL;
+
+    if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
+        printf("Error Allocating memory\n");
+        return -1;
+    }
+    memset(dtv, 0, sizeof(DecodeThreadVars));
+
+    dtv->tv = tv;
+
+    /* register counters */
+    dtv->counter_pkts = PerfTVRegisterCounter("decoder.pkts", tv,
+                                               TYPE_UINT64, "NULL");
+    dtv->counter_bytes = PerfTVRegisterCounter("decoder.bytes", tv,
+                                                TYPE_UINT64, "NULL");
+    dtv->counter_ipv4 = PerfTVRegisterCounter("decoder.ipv4", tv,
+                                               TYPE_UINT64, "NULL");
+    dtv->counter_ipv6 = PerfTVRegisterCounter("decoder.ipv6", tv,
+                                               TYPE_UINT64, "NULL");
+    dtv->counter_eth = PerfTVRegisterCounter("decoder.ethernet", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_sll = PerfTVRegisterCounter("decoder.sll", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_tcp = PerfTVRegisterCounter("decoder.tcp", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_udp = PerfTVRegisterCounter("decoder.udp", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_icmpv4 = PerfTVRegisterCounter("decoder.icmpv4", tv,
+                                                 TYPE_UINT64, "NULL");
+    dtv->counter_icmpv6 = PerfTVRegisterCounter("decoder.icmpv6", tv,
+                                                 TYPE_UINT64, "NULL");
+    dtv->counter_ppp = PerfTVRegisterCounter("decoder.ppp", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_avg_pkt_size = PerfTVRegisterAvgCounter("decoder.avg_pkt_size", tv,
+                                                         TYPE_DOUBLE, "NULL");
+    dtv->counter_max_pkt_size = PerfTVRegisterMaxCounter("decoder.max_pkt_size", tv,
+                                                         TYPE_UINT64, "NULL");
+    dtv->counter_pppoe = PerfTVRegisterCounter("decoder.pppoe", tv, TYPE_UINT64,
+                                               "NULL");
 
     tv->pca = PerfGetAllCountersArray(&tv->pctx);
 
-    PerfAddToClubbedTMTable("DecodePcap", &tv->pctx);
+    PerfAddToClubbedTMTable(tv->name, &tv->pctx);
+
+    *data = (void *)dtv;
 
     return 0;
 }

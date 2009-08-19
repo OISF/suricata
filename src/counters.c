@@ -201,16 +201,16 @@ void * PerfWakeupThread(void *arg)
  *
  * \param cname   Counter name to be registered
  * \param tm_name Thread module name
- * \param tid     Thread id running this module instance
  * \param type    Datatype of this counter variable
  * \param desc    Description of this counter
  * \param pctx    PerfContext for this tm-tv instance
+ * \param type_q  Qualifier describing the counter to be registered
  *
  * \retval the counter id
  */
-uint32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
-                              char *desc, PerfContext *pctx, int type_q,
-                              int disp)
+static u_int64_t PerfRegisterQualifiedCounter(char *cname, char *tm_name,
+                                              int type, char *desc,
+                                              PerfContext *pctx, int type_q)
 {
     PerfCounter **head = &pctx->head;
     PerfCounter *temp = NULL;
@@ -302,9 +302,89 @@ uint32_t PerfRegisterCounter(char *cname, char *tm_name, int type,
 
     pc->type_q = type_q;
 
-    pc->disp = disp;
+    pc->disp = 1;
 
     return pc->id;
+}
+
+u_int64_t PerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type,
+                                char *desc)
+{
+    return PerfRegisterQualifiedCounter(cname, tv->name, type, desc,
+                                        &tv->pctx, TYPE_Q_NORMAL);
+}
+
+u_int64_t PerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
+                                   int type, char *desc)
+{
+    return PerfRegisterQualifiedCounter(cname, tv->name, type, desc,
+                                        &tv->pctx, TYPE_Q_AVERAGE);
+}
+
+u_int64_t PerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
+                                   int type, char *desc)
+{
+    return PerfRegisterQualifiedCounter(cname, tv->name, type, desc,
+                                        &tv->pctx, TYPE_Q_MAXIMUM);
+}
+
+u_int64_t PerfRegisterCounter(char *cname, char *tm_name, int type, char *desc,
+                              PerfContext *pctx)
+{
+    return PerfRegisterQualifiedCounter(cname, tm_name, type, desc,
+                                        pctx, TYPE_Q_NORMAL);
+}
+
+u_int64_t PerfRegisterAvgCounter(char *cname, char *tm_name, int type,
+                                 char *desc, PerfContext *pctx)
+{
+    return PerfRegisterQualifiedCounter(cname, tm_name, type, desc,
+                                        pctx, TYPE_Q_AVERAGE);
+}
+
+u_int64_t PerfRegisterMaxCounter(char *cname, char *tm_name, int type,
+                                 char *desc, PerfContext *pctx)
+{
+    return PerfRegisterQualifiedCounter(cname, tm_name, type, desc,
+                                        pctx, TYPE_Q_MAXIMUM);
+}
+
+/**
+ * \brief Allows the user the set whether the counter identified with the id
+ *        should be displayed or not in the output
+ *
+ * \param id   Id of the counter
+ * \param pctx Pointer to the PerfContext in which the counter exists
+ * \param disp Holds a 0 or a non-zero value, based on whether the counter
+ *             should be displayed or not in the output
+ *
+ * \retval 1 on success, 0 on failure
+ */
+int PerfCounterDisplay(u_int64_t id, PerfContext *pctx, int disp)
+{
+    PerfCounter *pc = NULL;
+
+    if (pctx == NULL) {
+#ifdef DEBUG
+        printf("pctx null inside PerfCounterDisplay\n");
+#endif
+        return 0;
+    }
+
+    if ( (id < 1) || (id > pctx->curr_id) ) {
+#ifdef DEBUG
+        printf("counter with the id %d doesn't exist in this tm instance", id);
+#endif
+        return 0;
+    }
+
+    pc = pctx->head;
+    while(pc->id != id)
+        pc = pc->next;
+
+    pc->disp = (disp != 0);
+
+    return 1;
 }
 
 /**
@@ -457,14 +537,14 @@ inline void PerfCounterSetUI64(uint64_t id, PerfCounterArray *pca,
             if (pca->head[id].pc->type_q & TYPE_Q_MAXIMUM) {
                 if (x > pca->head[id].ui64_cnt)
                     pca->head[id].ui64_cnt = x;
-            } else if (pca->head[id].pc->type_q & TYPE_Q_NONE)
+            } else if (pca->head[id].pc->type_q & TYPE_Q_NORMAL)
                 pca->head[id].ui64_cnt = x;
             break;
         case TYPE_DOUBLE:
             if (pca->head[id].pc->type_q & TYPE_Q_MAXIMUM) {
                 if (x > pca->head[id].d_cnt)
                     pca->head[id].d_cnt = x;
-            } else if (pca->head[id].pc->type_q & TYPE_Q_NONE)
+            } else if (pca->head[id].pc->type_q & TYPE_Q_NORMAL)
                 pca->head[id].d_cnt = x;
             break;
     }
@@ -507,14 +587,14 @@ inline void PerfCounterSetDouble(uint64_t id, PerfCounterArray *pca,
             if (pca->head[id].pc->type_q & TYPE_Q_MAXIMUM) {
                 if (x > pca->head[id].ui64_cnt)
                     pca->head[id].ui64_cnt = x;
-            } else if (pca->head[id].pc->type_q & TYPE_Q_NONE)
+            } else if (pca->head[id].pc->type_q & TYPE_Q_NORMAL)
                 pca->head[id].ui64_cnt = x;
             break;
         case TYPE_DOUBLE:
             if (pca->head[id].pc->type_q & TYPE_Q_MAXIMUM) {
                 if (x > pca->head[id].d_cnt)
                     pca->head[id].d_cnt = x;
-            } else if (pca->head[id].pc->type_q & TYPE_Q_NONE)
+            } else if (pca->head[id].pc->type_q & TYPE_Q_NORMAL)
                 pca->head[id].d_cnt = x;
             break;
     }
@@ -534,14 +614,23 @@ inline void PerfCounterSetDouble(uint64_t id, PerfCounterArray *pca,
  *
  * \param tm_name Name of the tm to be added to the table
  * \param pctx    PerfContext associated with the TM tm_name
+ *
+ * \retval 1 on success, 0 on failure
  */
-void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
+int PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
 {
     PerfClubTMInst *pctmi = NULL;
     PerfClubTMInst *prev = NULL;
     PerfClubTMInst *temp = NULL;
     PerfContext **hpctx;
     int i = 0;
+
+    if (tm_name == NULL || pctx == NULL) {
+#ifdef DEBUG
+        printf("Supplied argument(s) to PerfAddToClubbedTMTable NULL\n");
+#endif
+        return 0;
+    }
 
     pthread_mutex_lock(&perf_op_ctx->pctmi_lock);
 
@@ -575,7 +664,7 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
             prev->next = temp;
 
         pthread_mutex_unlock(&perf_op_ctx->pctmi_lock);
-        return;
+        return 1;
     }
 
     hpctx = pctmi->head;
@@ -584,7 +673,7 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
             continue;
 
         pthread_mutex_unlock(&perf_op_ctx->pctmi_lock);
-        return;
+        return 1;
     }
 
     pctmi->head = realloc(pctmi->head, (pctmi->size + 1) *
@@ -604,7 +693,7 @@ void PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
 
     pthread_mutex_unlock(&perf_op_ctx->pctmi_lock);
 
-    return;
+    return 1;
 }
 
 
@@ -705,7 +794,7 @@ PerfCounterArray * PerfGetAllCountersArray(PerfContext *pctx)
  *
  * \retval 1 on success, 0 on failure
  */
-int PerfUpdateCounter(char *cname, char *tm_name, uint32_t id, void *value,
+int PerfUpdateCounter(char *cname, char *tm_name, u_int64_t id, void *value,
                       PerfContext *pctx)
 {
     PerfCounter *pc = NULL;
@@ -1101,7 +1190,7 @@ void PerfReleasePCA(PerfCounterArray *pca)
 }
 
 
-//------------------------------------Unit_Tests------------------------------------
+//------------------------------------Unit_Tests--------------------------------
 
 
 static int PerfTestCounterReg01()
@@ -1110,7 +1199,7 @@ static int PerfTestCounterReg01()
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    return PerfRegisterCounter("t1", "c1", 5, NULL, &pctx, TYPE_Q_NONE, 1);
+    return PerfRegisterCounter("t1", "c1", 5, NULL, &pctx);
 }
 
 static int PerfTestCounterReg02()
@@ -1119,8 +1208,7 @@ static int PerfTestCounterReg02()
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    return PerfRegisterCounter(NULL, NULL, TYPE_UINT64, NULL, &pctx,
-                               TYPE_Q_NONE, 1);
+    return PerfRegisterCounter(NULL, NULL, TYPE_UINT64, NULL, &pctx);
 }
 
 static int PerfTestCounterReg03()
@@ -1130,8 +1218,7 @@ static int PerfTestCounterReg03()
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    result = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx,
-                                 TYPE_Q_NONE, 1);
+    result = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx);
 
     PerfReleasePerfCounterS(pctx.head);
 
@@ -1145,12 +1232,11 @@ static int PerfTestCounterReg04()
 
     memset(&pctx, 0, sizeof(PerfContext));
 
-    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &pctx, TYPE_Q_NONE, 1);
+    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx);
+    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &pctx);
+    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &pctx);
 
-    result =  PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx,
-                                  TYPE_Q_NONE, 1);
+    result =  PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &pctx);
 
     PerfReleasePerfCounterS(pctx.head);
 
@@ -1164,8 +1250,7 @@ static int PerfTestGetCntArray05()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
-                             TYPE_Q_NONE, 1);
+    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
 
     tv.pca = PerfGetAllCountersArray(NULL);
 
@@ -1180,8 +1265,7 @@ static int PerfTestGetCntArray06()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
-                             TYPE_Q_NONE, 1);
+    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
 
     tv.pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -1203,10 +1287,8 @@ static int PerfTestCntArraySize07()
 
     pca = (PerfCounterArray *)&tv.pca;
 
-    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx, TYPE_Q_NONE,
-                        1);
-    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx, TYPE_Q_NONE,
-                        1);
+    PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -1230,8 +1312,7 @@ static int PerfTestUpdateCounter08()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
-                             TYPE_Q_NONE, 1);
+    id = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -1255,16 +1336,11 @@ static int PerfTestUpdateCounter09()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_NONE, 1);
-    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx,
-                        TYPE_Q_NONE, 1);
-    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx,
-                        TYPE_Q_NONE, 1);
-    PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx,
-                        TYPE_Q_NONE, 1);
-    id2 = PerfRegisterCounter("t5", "c5", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_NONE, 1);
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx);
+    PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx);
+    id2 = PerfRegisterCounter("t5", "c5", TYPE_UINT64, NULL, &tv.pctx);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -1290,12 +1366,10 @@ static int PerfTestUpdateGlobalCounter10()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_NONE, 1);
-    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_NONE, 1);
-    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_NONE, 1);
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
+    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx);
+
     pca = PerfGetAllCountersArray(&tv.pctx);
 
     PerfCounterIncr(id1, pca);
@@ -1331,14 +1405,10 @@ static int PerfTestCounterValues11()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_NONE, 1);
-    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_NONE, 1);
-    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_NONE, 1);
-    id4 = PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_NONE, 1);
+    id1 = PerfRegisterCounter("t1", "c1", TYPE_UINT64, NULL, &tv.pctx);
+    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
+    id3 = PerfRegisterCounter("t3", "c3", TYPE_UINT64, NULL, &tv.pctx);
+    id4 = PerfRegisterCounter("t4", "c4", TYPE_UINT64, NULL, &tv.pctx);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -1391,10 +1461,8 @@ static int PerfTestAverageQual12()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", TYPE_DOUBLE, NULL, &tv.pctx,
-                              TYPE_Q_AVERAGE, 1);
-    id2 = PerfRegisterCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx,
-                              TYPE_Q_AVERAGE, 1);
+    id1 = PerfRegisterAvgCounter("t1", "c1", TYPE_DOUBLE, NULL, &tv.pctx);
+    id2 = PerfRegisterAvgCounter("t2", "c2", TYPE_UINT64, NULL, &tv.pctx);
 
     pca = PerfGetAllCountersArray(&tv.pctx);
 
@@ -1442,8 +1510,7 @@ static int PerfTestMaxQual13()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = PerfRegisterCounter("t1", "c1", TYPE_DOUBLE, NULL, &tv.pctx,
-                              TYPE_Q_MAXIMUM, 1);
+    id1 = PerfRegisterMaxCounter("t1", "c1", TYPE_DOUBLE, NULL, &tv.pctx);
 
     p = tv.pctx.head->value->cvalue;
 

@@ -8,11 +8,14 @@
 /** DecodeICMPV4
  *  \brief Main ICMPv4 decoding function
  */
-void DecodeICMPV4(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
+void DecodeICMPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
+                  void *data)
 {
-    p->icmpv4h = (ICMPV4Hdr *)pkt;
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
-    PerfCounterIncr(COUNTER_DECODER_ICMPV4, t->pca);
+    PerfCounterIncr(dtv->counter_icmpv4, t->pca);
+
+    p->icmpv4h = (ICMPV4Hdr *)pkt;
 
     if (len < ICMPV4_HEADER_LEN) {
         return;
@@ -43,11 +46,13 @@ static int DecodeICMPV4test01(void) {
         0xab };
     Packet p;
     ThreadVars tv;
+    DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4));
+    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4), &dtv);
     return 0;
 }
 
@@ -66,11 +71,13 @@ static int DecodeICMPV4test02(void) {
         0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f };
     Packet p;
     ThreadVars tv;
+    DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4));
+    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4), &dtv);
     return 0;
 }
 
@@ -87,11 +94,13 @@ static int DecodeICMPV4test03(void) {
         0x00, 0x28, 0x7c, 0xdd };
     Packet p;
     ThreadVars tv;
+    DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4));
+    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4), &dtv);
     return 0;
 }
 
@@ -110,11 +119,13 @@ static int DecodeICMPV4test04(void) {
         0x02, 0x04, 0x05, 0x8a, 0x04, 0x02, 0x08, 0x0a };
     Packet p;
     ThreadVars tv;
+    DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4));
+    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4), &dtv);
     return 0;
 }
 

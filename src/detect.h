@@ -178,6 +178,8 @@ typedef struct PatternMatcherThread_ {
     uint32_t pkts_uri_scanned4;
     uint32_t pkts_uri_searched4;
 
+    u_int64_t counter_alerts;
+
     DetectEngineIPOnlyThreadCtx io_ctx;
 
 } PatternMatcherThread;

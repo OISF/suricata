@@ -581,20 +581,13 @@ int Detect(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
         return 0;
     }
 
-    // PerfCounterIncr(COUNTER_DETECT_ALERTS, t->pca);
+    // PerfCounterIncr(pmt->counter_alerts, t->pca);
 
     return 1;
 }
 
 int DetectThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    PerfRegisterCounter("detect.alert", "Detect", TYPE_UINT64, "NULL",
-                        &t->pctx, TYPE_Q_NONE, 1);
-
-    t->pca = PerfGetAllCountersArray(&t->pctx);
-
-    PerfAddToClubbedTMTable("Detect", &t->pctx);
-
     return PatternMatcherThreadInit(t,initdata,data);
 }
 

@@ -455,6 +455,8 @@ int VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
  */
 int DecodeNFQ(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
+
     IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
     IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
 
@@ -462,15 +464,15 @@ int DecodeNFQ(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
     printf("DecodeNFQ\n");
 #endif
 
-    PerfCounterIncr(COUNTER_DECODER_PKTS, t->pca);
-    PerfCounterAddUI64(COUNTER_DECODER_BYTES, t->pca, p->pktlen);
+    PerfCounterIncr(dtv->counter_pkts, t->pca);
+    PerfCounterAddUI64(dtv->counter_bytes, t->pca, p->pktlen);
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         printf("DecodeNFQ ip4\n");
-        DecodeIPV4(t, p, p->pkt, p->pktlen, pq);
+        DecodeIPV4(t, p, p->pkt, p->pktlen, pq, data);
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
         printf("DecodeNFQ ip6\n");
-        DecodeIPV6(t, p, p->pkt, p->pktlen);
+        DecodeIPV6(t, p, p->pkt, p->pktlen, data);
     } else {
         printf("DecodeNFQ %02x\n", *p->pkt);
     }
@@ -480,32 +482,45 @@ int DecodeNFQ(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 
 int DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
-    PerfRegisterCounter("decoder.pkts", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.bytes", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ipv4", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ipv6", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ethernet", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.sll", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.tcp", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.udp", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.icmpv4", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.icmpv6", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ppp", "DecodeNFQ", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
+    DecodeThreadVars *dtv = NULL;
+
+    if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
+        printf("Error Allocating memory\n");
+        return -1;
+    }
+    memset(dtv, 0, sizeof(DecodeThreadVars));
+
+    dtv->tv = tv;
+
+    /* register counters */
+    dtv->counter_pkts = PerfTVRegisterCounter("decoder.pkts", tv,
+                                               TYPE_UINT64, "NULL");
+    dtv->counter_bytes = PerfTVRegisterCounter("decoder.bytes", tv,
+                                                TYPE_UINT64, "NULL");
+    dtv->counter_ipv4 = PerfTVRegisterCounter("decoder.ipv4", tv,
+                                               TYPE_UINT64, "NULL");
+    dtv->counter_ipv6 = PerfTVRegisterCounter("decoder.ipv6", tv,
+                                               TYPE_UINT64, "NULL");
+    dtv->counter_eth = PerfTVRegisterCounter("decoder.ethernet", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_sll = PerfTVRegisterCounter("decoder.sll", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_tcp = PerfTVRegisterCounter("decoder.tcp", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_udp = PerfTVRegisterCounter("decoder.udp", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_icmpv4 = PerfTVRegisterCounter("decoder.icmpv4", tv,
+                                                 TYPE_UINT64, "NULL");
+    dtv->counter_icmpv6 = PerfTVRegisterCounter("decoder.icmpv6", tv,
+                                                 TYPE_UINT64, "NULL");
+    dtv->counter_ppp = PerfTVRegisterCounter("decoder.ppp", tv,
+                                              TYPE_UINT64, "NULL");
 
     tv->pca = PerfGetAllCountersArray(&tv->pctx);
 
-    PerfAddToClubbedTMTable("DecodeNFQ", &tv->pctx);
+    PerfAddToClubbedTMTable(tv->name, &tv->pctx);
+
+    *data = (void *)dtv;
 
     return 0;
 }

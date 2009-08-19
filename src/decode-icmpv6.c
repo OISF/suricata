@@ -4,11 +4,14 @@
 #include "decode.h"
 #include "decode-icmpv6.h"
 
-void DecodeICMPV6(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
+void DecodeICMPV6(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
+                  void *data)
 {
-    p->icmpv6h = (ICMPV6Hdr *)pkt;
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
-    PerfCounterIncr(COUNTER_DECODER_ICMPV6, t->pca);
+    PerfCounterIncr(dtv->counter_icmpv6, t->pca);
+
+    p->icmpv6h = (ICMPV6Hdr *)pkt;
 
     if (len < ICMPV6_HEADER_LEN) {
         return;

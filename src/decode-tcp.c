@@ -135,9 +135,12 @@ static int DecodeTCPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-void DecodeTCP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
+void DecodeTCP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
+               void *data)
 {
-    PerfCounterIncr(COUNTER_DECODER_TCP, t->pca);
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
+
+    PerfCounterIncr(dtv->counter_tcp, t->pca);
 
     if (DecodeTCPPacket(t, p,pkt,len) < 0)
         return;

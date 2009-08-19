@@ -11,9 +11,12 @@
 
 #include "util-unittest.h"
 
-void DecodePPP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+void DecodePPP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
+               PacketQueue *pq, void *data)
 {
-    PerfCounterIncr(COUNTER_DECODER_PPP, t->pca);
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
+
+    PerfCounterIncr(dtv->counter_ppp, t->pca);
 
     if(len < PPP_HEADER_LEN)    {
         DECODER_SET_EVENT(p,PPP_PKT_TOO_SMALL);
@@ -69,7 +72,8 @@ void DecodePPP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue
             }
 
             if(IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + PPP_HEADER_LEN)) == 4) {
-                DecodeIPV4(t, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq );
+                DecodeIPV4(t, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq,
+                           data);
             }
             break;
 
@@ -79,7 +83,8 @@ void DecodePPP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue
                 return;
             }
 
-            DecodeIPV4(t, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq );
+            DecodeIPV4(t, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq,
+                       data);
             break;
 
             /* PPP IPv6 was not tested */
@@ -89,7 +94,7 @@ void DecodePPP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue
                 return;
             }
 
-            DecodeIPV6(t, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN);
+            DecodeIPV6(t, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, data);
             break;
 
         default:
@@ -113,11 +118,13 @@ static int DecodePPPtest01 (void)   {
     uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00 };
     Packet p;
     ThreadVars tv;
+    DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL);
+    DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL, &dtv);
 
     /* Function my returns here with expected value */
 
@@ -140,11 +147,13 @@ static int DecodePPPtest02 (void)   {
                            0x60, 0x02, 0x10, 0x20, 0xdd, 0xe1, 0x00, 0x00 };
     Packet p;
     ThreadVars tv;
+    DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL);
+    DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL, &dtv);
 
     /* Function must returns here */
 
@@ -169,13 +178,15 @@ static int DecodePPPtest03 (void)   {
                            0x60, 0x02, 0x10, 0x20, 0xdd, 0xe1, 0x00, 0x00 };
     Packet p;
     ThreadVars tv;
+    DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL);
+    DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL, &dtv);
 
     FlowShutdown();
 
@@ -217,13 +228,15 @@ static int DecodePPPtest04 (void)   {
                            0x60, 0x02, 0x10, 0x20, 0xdd, 0xe1, 0x00, 0x00 };
     Packet p;
     ThreadVars tv;
+    DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL);
+    DecodePPP(&tv, &p, raw_ppp, sizeof(raw_ppp), NULL, &dtv);
 
     FlowShutdown();
 

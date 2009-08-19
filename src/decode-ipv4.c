@@ -54,11 +54,13 @@ static int DecodeIPV4Packet(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len
     return 0;
 }
 
-void DecodeIPV4(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+void DecodeIPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
+                PacketQueue *pq, void *data)
 {
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
     int ret;
 
-    PerfCounterIncr(COUNTER_DECODER_IPV4, t->pca);
+    PerfCounterIncr(dtv->counter_ipv4, t->pca);
 
     /* reset the decoder cache flags */
     IPV4_CACHE_INIT(p);
@@ -93,19 +95,23 @@ void DecodeIPV4(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueu
         case IPPROTO_IP:
             /* check PPP VJ uncompressed packets and decode tcp dummy */
             if(p->ppph != NULL && ntohs(p->ppph->protocol) == PPP_VJ_UCOMP)    {
-                return(DecodeTCP(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p)));
+                return(DecodeTCP(t, p, pkt + IPV4_GET_HLEN(p),
+                                 IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p), data));
             }
             break;
         case IPPROTO_TCP:
-            return(DecodeTCP(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p)));
+            return(DecodeTCP(t, p, pkt + IPV4_GET_HLEN(p),
+                             IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), data));
             break;
         case IPPROTO_UDP:
             //printf("DecodeIPV4: next layer is UDP\n");
-            return(DecodeUDP(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p)));
+            return(DecodeUDP(t, p, pkt + IPV4_GET_HLEN(p),
+                             IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), data));
             break;
         case IPPROTO_ICMP:
             //printf("DecodeIPV4: next layer is ICMP\n");
-            return(DecodeICMPV4(t, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p)));
+            return(DecodeICMPV4(t, p, pkt + IPV4_GET_HLEN(p),
+                                IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), data));
             break;
         case IPPROTO_IPV6:
             {
@@ -118,7 +124,7 @@ void DecodeIPV4(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len, PacketQueu
                     //printf("DecodeIPV4: tunnel is tp %p\n", tp);
 
                     /* send that to the Tunnel decoder */
-                    DecodeTunnel(t, tp, tp->pkt, tp->pktlen, pq);
+                    DecodeTunnel(t, tp, tp->pkt, tp->pktlen, pq, data);
                     /* add the tp to the packet queue. */
                     PacketEnqueue(pq,tp);
 

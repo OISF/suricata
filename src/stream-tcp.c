@@ -54,6 +54,8 @@ static pthread_mutex_t ssn_pool_mutex;
 
 typedef struct StreamTcpThread_ {
     u_int64_t pkts;
+
+    u_int64_t counter_tcp_streams;
 } StreamTcpThread;
 
 void TmModuleStreamTcpRegister (void) {
@@ -1205,7 +1207,7 @@ int StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     StreamTcpThread *stt = (StreamTcpThread *)data;
 
-    //PerfCounterAddUI64(COUNTER_STREAMTCP_STREAMS, tv->pca, a);
+    // PerfCounterAddUI64(stt->counter_tcp_streams, tv->pca, a);
 
     if (!(PKT_IS_TCP(p)))
         return 0;
@@ -1245,12 +1247,12 @@ int StreamTcpThreadInit(ThreadVars *t, void *initdata, void **data)
 
     *data = (void *)stt;
 
-    PerfRegisterCounter("streamTcp.tcp_streams", "StreamTcp", TYPE_DOUBLE, "NULL",
-                        &t->pctx, TYPE_Q_AVERAGE, 1);
+    stt->counter_tcp_streams = PerfTVRegisterAvgCounter("streamTcp.tcp_streams",
+                                                        t, TYPE_DOUBLE, "NULL");
 
     t->pca = PerfGetAllCountersArray(&t->pctx);
 
-    PerfAddToClubbedTMTable("StreamTcp", &t->pctx);
+    PerfAddToClubbedTMTable(t->name, &t->pctx);
 
     return 0;
 }

@@ -33,7 +33,8 @@
 
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
-    void (*Decoder)(ThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+    void (*Decoder)(ThreadVars *, Packet *, u_int8_t *, u_int16_t,
+                    PacketQueue *, void *);
 } PcapFileGlobalVars;
 
 typedef struct PcapFileThreadVars_
@@ -171,42 +172,58 @@ int ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data) {
 
 int DecodePcapFile(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
-    PerfCounterIncr(COUNTER_DECODER_PKTS, t->pca);
-    PerfCounterAddUI64(COUNTER_DECODER_BYTES, t->pca, p->pktlen);
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
+
+    PerfCounterIncr(dtv->counter_pkts, t->pca);
+    PerfCounterAddUI64(dtv->counter_bytes, t->pca, p->pktlen);
 
     /* call the decoder */
-    pcap_g.Decoder(t,p,p->pkt,p->pktlen,pq);
+    pcap_g.Decoder(t, p, p->pkt, p->pktlen, pq, data);
+
     return 0;
 }
 
 int DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
-    PerfRegisterCounter("decoder.pkts", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.bytes", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ipv4", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ipv6", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ethernet", "DecodePcapFile", TYPE_UINT64,
-                        "NULL", &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.sll", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.tcp", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.udp", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.icmpv4", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.icmpv6", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
-    PerfRegisterCounter("decoder.ppp", "DecodePcapFile", TYPE_UINT64, "NULL",
-                        &tv->pctx, TYPE_Q_NONE, 1);
+    DecodeThreadVars *dtv = NULL;
+
+    if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
+        printf("Error Allocating memory\n");
+        return -1;
+    }
+    memset(dtv, 0, sizeof(DecodeThreadVars));
+
+    dtv->tv = tv;
+
+    /* register counters */
+    dtv->counter_pkts = PerfTVRegisterCounter("decoder.pkts", tv,
+                                               TYPE_UINT64, "NULL");
+    dtv->counter_bytes = PerfTVRegisterCounter("decoder.bytes", tv,
+                                                TYPE_UINT64, "NULL");
+    dtv->counter_ipv4 = PerfTVRegisterCounter("decoder.ipv4", tv,
+                                               TYPE_UINT64, "NULL");
+    dtv->counter_ipv6 = PerfTVRegisterCounter("decoder.ipv6", tv,
+                                               TYPE_UINT64, "NULL");
+    dtv->counter_eth = PerfTVRegisterCounter("decoder.ethernet", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_sll = PerfTVRegisterCounter("decoder.sll", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_tcp = PerfTVRegisterCounter("decoder.tcp", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_udp = PerfTVRegisterCounter("decoder.udp", tv,
+                                              TYPE_UINT64, "NULL");
+    dtv->counter_icmpv4 = PerfTVRegisterCounter("decoder.icmpv4", tv,
+                                                 TYPE_UINT64, "NULL");
+    dtv->counter_icmpv6 = PerfTVRegisterCounter("decoder.icmpv6", tv,
+                                                 TYPE_UINT64, "NULL");
+    dtv->counter_ppp = PerfTVRegisterCounter("decoder.ppp", tv,
+                                              TYPE_UINT64, "NULL");
 
     tv->pca = PerfGetAllCountersArray(&tv->pctx);
 
-    PerfAddToClubbedTMTable("DecodePcapFile", &tv->pctx);
+    PerfAddToClubbedTMTable(tv->name, &tv->pctx);
+
+    *data = (void *)dtv;
 
     return 0;
 }

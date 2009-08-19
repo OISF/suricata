@@ -839,6 +839,13 @@ int PatternMatcherThreadInit(ThreadVars *t, void *initdata, void **data) {
     /* IP-ONLY */
     DetectEngineIPOnlyThreadInit(de_ctx,&pmt->io_ctx);
 
+    pmt->counter_alerts = PerfTVRegisterCounter("detect.alert", t, TYPE_UINT64,
+                                                "NULL");
+
+    t->pca = PerfGetAllCountersArray(&t->pctx);
+
+    PerfAddToClubbedTMTable(t->name, &t->pctx);
+
     *data = (void *)pmt;
     //printf("PatternMatcherThreadInit: data %p pmt %p\n", *data, pmt);
     return 0;

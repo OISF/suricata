@@ -37,9 +37,12 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-void DecodeUDP(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
+void DecodeUDP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
+               void *data)
 {
-    PerfCounterIncr(COUNTER_DECODER_UDP, t->pca);
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
+
+    PerfCounterIncr(dtv->counter_udp, t->pca);
 
     if (DecodeUDPPacket(t, p,pkt,len) < 0)
         return;
