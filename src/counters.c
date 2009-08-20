@@ -22,7 +22,7 @@ static PerfOPIfaceContext *perf_op_ctx = NULL;
  * \brief Initializes the perf counter api.  Things are hard coded currently.
  *        More work to be done when we implement multiple interfaces
  */
-void PerfInitCounterApi()
+void PerfInitCounterApi(void)
 {
     PerfInitOPCtx();
 
@@ -32,7 +32,7 @@ void PerfInitCounterApi()
 /**
  * \brief Initializes the output interface context
  */
-void PerfInitOPCtx()
+void PerfInitOPCtx(void)
 {
     if ( (perf_op_ctx = malloc(sizeof(PerfOPIfaceContext))) == NULL) {
         printf("error allocating memory\n");
@@ -67,7 +67,7 @@ void PerfInitOPCtx()
 /**
  * \brief Spawns the wakeup, and the management thread
  */
-void PerfSpawnThreads()
+void PerfSpawnThreads(void)
 {
     ThreadVars *tv_wakeup = NULL;
     ThreadVars *tv_mgmt = NULL;
@@ -208,7 +208,7 @@ void * PerfWakeupThread(void *arg)
  *
  * \retval the counter id
  */
-static u_int64_t PerfRegisterQualifiedCounter(char *cname, char *tm_name,
+static uint16_t PerfRegisterQualifiedCounter(char *cname, char *tm_name,
                                               int type, char *desc,
                                               PerfContext *pctx, int type_q)
 {
@@ -307,42 +307,42 @@ static u_int64_t PerfRegisterQualifiedCounter(char *cname, char *tm_name,
     return pc->id;
 }
 
-u_int64_t PerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type,
+uint16_t PerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type,
                                 char *desc)
 {
     return PerfRegisterQualifiedCounter(cname, tv->name, type, desc,
                                         &tv->pctx, TYPE_Q_NORMAL);
 }
 
-u_int64_t PerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
+uint16_t PerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
                                    int type, char *desc)
 {
     return PerfRegisterQualifiedCounter(cname, tv->name, type, desc,
                                         &tv->pctx, TYPE_Q_AVERAGE);
 }
 
-u_int64_t PerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
+uint16_t PerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
                                    int type, char *desc)
 {
     return PerfRegisterQualifiedCounter(cname, tv->name, type, desc,
                                         &tv->pctx, TYPE_Q_MAXIMUM);
 }
 
-u_int64_t PerfRegisterCounter(char *cname, char *tm_name, int type, char *desc,
+uint16_t PerfRegisterCounter(char *cname, char *tm_name, int type, char *desc,
                               PerfContext *pctx)
 {
     return PerfRegisterQualifiedCounter(cname, tm_name, type, desc,
                                         pctx, TYPE_Q_NORMAL);
 }
 
-u_int64_t PerfRegisterAvgCounter(char *cname, char *tm_name, int type,
+uint16_t PerfRegisterAvgCounter(char *cname, char *tm_name, int type,
                                  char *desc, PerfContext *pctx)
 {
     return PerfRegisterQualifiedCounter(cname, tm_name, type, desc,
                                         pctx, TYPE_Q_AVERAGE);
 }
 
-u_int64_t PerfRegisterMaxCounter(char *cname, char *tm_name, int type,
+uint16_t PerfRegisterMaxCounter(char *cname, char *tm_name, int type,
                                  char *desc, PerfContext *pctx)
 {
     return PerfRegisterQualifiedCounter(cname, tm_name, type, desc,
@@ -360,7 +360,7 @@ u_int64_t PerfRegisterMaxCounter(char *cname, char *tm_name, int type,
  *
  * \retval 1 on success, 0 on failure
  */
-int PerfCounterDisplay(u_int64_t id, PerfContext *pctx, int disp)
+int PerfCounterDisplay(uint16_t id, PerfContext *pctx, int disp)
 {
     PerfCounter *pc = NULL;
 
@@ -393,7 +393,7 @@ int PerfCounterDisplay(u_int64_t id, PerfContext *pctx, int disp)
  * \param id  Index of the counter in the counter array
  * \param pca Counter array that holds the local counters for this TM
  */
-inline void PerfCounterIncr(uint64_t id, PerfCounterArray *pca)
+inline void PerfCounterIncr(uint16_t id, PerfCounterArray *pca)
 {
     if (!pca) {
 #ifdef DEBUG
@@ -433,7 +433,7 @@ inline void PerfCounterIncr(uint64_t id, PerfCounterArray *pca)
  * \param pca Counter array that holds the local counter for this TM
  * \param x   Value to add to this local counter
  */
-inline void PerfCounterAddUI64(uint64_t id, PerfCounterArray *pca, uint64_t x)
+inline void PerfCounterAddUI64(uint16_t id, PerfCounterArray *pca, uint64_t x)
 {
     if (!pca) {
 #ifdef DEBUG
@@ -473,7 +473,7 @@ inline void PerfCounterAddUI64(uint64_t id, PerfCounterArray *pca, uint64_t x)
  * \param pca Counter array that holds the local counter for this TM
  * \param x   Value to add to this local counter
  */
-inline void PerfCounterAddDouble(uint64_t id, PerfCounterArray *pca, double x)
+inline void PerfCounterAddDouble(uint16_t id, PerfCounterArray *pca, double x)
 {
     if (!pca) {
 #ifdef DEBUG
@@ -515,7 +515,7 @@ inline void PerfCounterAddDouble(uint64_t id, PerfCounterArray *pca, double x)
  * \param pca Pointer to the PerfCounterArray
  * \param x   The value to set for the counter
  */
-inline void PerfCounterSetUI64(uint64_t id, PerfCounterArray *pca,
+inline void PerfCounterSetUI64(uint16_t id, PerfCounterArray *pca,
                                uint64_t x)
 {
     if (!pca) {
@@ -565,7 +565,7 @@ inline void PerfCounterSetUI64(uint64_t id, PerfCounterArray *pca,
  * \param pca Pointer to the PerfCounterArray
  * \param x   The value to set for the counter
  */
-inline void PerfCounterSetDouble(uint64_t id, PerfCounterArray *pca,
+inline void PerfCounterSetDouble(uint16_t id, PerfCounterArray *pca,
                                  double x)
 {
     if (!pca) {
@@ -706,7 +706,7 @@ int PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
  *
  * \retval a counter-array in this(s_id-e_id) range for this TM instance
  */
-PerfCounterArray * PerfGetCounterArrayRange(uint32_t s_id, uint32_t e_id,
+PerfCounterArray * PerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
                                             PerfContext *pctx)
 {
     PerfCounter *pc = NULL;
@@ -1331,7 +1331,7 @@ static int PerfTestUpdateCounter09()
 {
     ThreadVars tv;
     PerfCounterArray *pca = NULL;
-    int id1, id2;
+    uint16_t id1, id2;
     int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
@@ -1361,7 +1361,7 @@ static int PerfTestUpdateGlobalCounter10()
     PerfCounterArray *pca = NULL;
 
     int result = 1;
-    int id1, id2, id3;
+    uint16_t id1, id2, id3;
     uint64_t *p = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
@@ -1400,7 +1400,7 @@ static int PerfTestCounterValues11()
     PerfCounterArray *pca = NULL;
 
     int result = 1;
-    int id1, id2, id3, id4;
+    uint16_t id1, id2, id3, id4;
     uint8_t *u8p;
 
     memset(&tv, 0, sizeof(ThreadVars));
@@ -1457,7 +1457,7 @@ static int PerfTestAverageQual12()
     double *d_temp = NULL;
 
     int result = 1;
-    int id1, id2;
+    uint16_t id1, id2;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -1506,7 +1506,7 @@ static int PerfTestMaxQual13()
     double *p;
 
     int result = 1;
-    int id1;
+    uint16_t id1;
 
     memset(&tv, 0, sizeof(ThreadVars));
 

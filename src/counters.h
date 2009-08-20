@@ -55,8 +55,8 @@ typedef struct PerfCounter_ {
     PerfCounterName *name;
     PerfCounterValue *value;
 
-    /* local id for this counter in this tm*/
-    uint64_t id;
+    /* local id for this counter in this tm */
+    uint16_t id;
 
     char *desc;
 
@@ -79,7 +79,7 @@ typedef struct PerfContext_ {
 
     /* flag set by the wakeup thread, to inform the client threads to sync */
     uint32_t perf_flag;
-    uint32_t curr_id;
+    uint16_t curr_id;
 
     /* mutex to prevent simultaneous access during update_counter/output_stat */
     pthread_mutex_t m;
@@ -88,7 +88,7 @@ typedef struct PerfContext_ {
 /* PerfCounterArray(PCA) Node*/
 typedef struct PCAElem_ {
     PerfCounter *pc;
-    uint64_t id;
+    uint16_t id;
     union {
         uint64_t ui64_cnt;
         double d_cnt;
@@ -145,37 +145,37 @@ void * PerfMgmtThread(void *);
 
 void * PerfWakeupThread(void *);
 
-u_int64_t PerfTVRegisterCounter(char *, struct ThreadVars_ *, int, char *);
+uint16_t PerfTVRegisterCounter(char *, struct ThreadVars_ *, int, char *);
 
-u_int64_t PerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int, char *);
+uint16_t PerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int, char *);
 
-u_int64_t PerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int, char *);
+uint16_t PerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int, char *);
 
-u_int64_t PerfTVRegisterIntervalCounter(char *, struct ThreadVars_ *, int, char *);
+uint16_t PerfTVRegisterIntervalCounter(char *, struct ThreadVars_ *, int, char *);
 
-u_int64_t PerfRegisterCounter(char *, char *, int, char *, PerfContext *);
+uint16_t PerfRegisterCounter(char *, char *, int, char *, PerfContext *);
 
-u_int64_t PerfRegisterAvgCounter(char *, char *, int, char *, PerfContext *);
+uint16_t PerfRegisterAvgCounter(char *, char *, int, char *, PerfContext *);
 
-u_int64_t PerfRegisterMaxCounter(char *, char *, int, char *, PerfContext *);
+uint16_t PerfRegisterMaxCounter(char *, char *, int, char *, PerfContext *);
 
-u_int64_t PerfRegisterIntervalCounter(char *, char *, int, char *, PerfContext *);
+uint16_t PerfRegisterIntervalCounter(char *, char *, int, char *, PerfContext *);
 
-int PerfCounterDisplay(u_int64_t, PerfContext *, int);
+int PerfCounterDisplay(uint16_t, PerfContext *, int);
 
-inline void PerfCounterIncr(uint64_t, PerfCounterArray *);
+inline void PerfCounterIncr(uint16_t, PerfCounterArray *);
 
-inline void PerfCounterAddUI64(uint64_t, PerfCounterArray *, uint64_t);
+inline void PerfCounterAddUI64(uint16_t, PerfCounterArray *, uint64_t);
 
-inline void PerfCounterAddDouble(uint64_t, PerfCounterArray *, double);
+inline void PerfCounterAddDouble(uint16_t, PerfCounterArray *, double);
 
-inline void PerfCounterSetUI64(uint64_t, PerfCounterArray *, uint64_t);
+inline void PerfCounterSetUI64(uint16_t, PerfCounterArray *, uint64_t);
 
-inline void PerfCounterSetDouble(uint64_t, PerfCounterArray *, double);
+inline void PerfCounterSetDouble(uint16_t, PerfCounterArray *, double);
 
 int PerfAddToClubbedTMTable(char *, PerfContext *);
 
-PerfCounterArray * PerfGetCounterArrayRange(uint32_t, uint32_t,
+PerfCounterArray * PerfGetCounterArrayRange(uint16_t, uint16_t,
                                             PerfContext *);
 
 PerfCounterArray * PerfGetAllCountersArray(PerfContext *);
