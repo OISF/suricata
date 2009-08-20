@@ -4,12 +4,9 @@
 #include "decode-sll.h"
 #include "decode-events.h"
 
-void DecodeSll(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
-               PacketQueue *pq, void *data)
+void DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
-
-    PerfCounterIncr(dtv->counter_sll, t->pca);
+    PerfCounterIncr(dtv->counter_sll, tv->pca);
 
     if (len < SLL_HEADER_LEN) {
         DECODER_SET_EVENT(p,SLL_PKT_TOO_SMALL);
@@ -26,10 +23,10 @@ void DecodeSll(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
 
     if (ntohs(sllh->sll_protocol) == ETHERNET_TYPE_IP) {
         //printf("DecodeSll ip4\n");
-        DecodeIPV4(t, p, pkt + SLL_HEADER_LEN, len - SLL_HEADER_LEN, pq, data);
+        DecodeIPV4(tv, dtv, p, pkt + SLL_HEADER_LEN, len - SLL_HEADER_LEN, pq);
     } else if(ntohs(sllh->sll_protocol) == ETHERNET_TYPE_IPV6) {
         //printf("DecodeSll ip6\n");
-        DecodeIPV6(t, p, pkt + SLL_HEADER_LEN, len - SLL_HEADER_LEN, data);
+        DecodeIPV6(tv, dtv, p, pkt + SLL_HEADER_LEN, len - SLL_HEADER_LEN, pq);
     }
 }
 

@@ -33,8 +33,7 @@
 
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
-    void (*Decoder)(ThreadVars *, Packet *, u_int8_t *, u_int16_t,
-                    PacketQueue *, void *);
+    void (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
 } PcapFileGlobalVars;
 
 typedef struct PcapFileThreadVars_
@@ -170,15 +169,18 @@ int ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data) {
     return 0;
 }
 
-int DecodePcapFile(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
+int DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
-    PerfCounterIncr(dtv->counter_pkts, t->pca);
-    PerfCounterAddUI64(dtv->counter_bytes, t->pca, p->pktlen);
+    /* update counters */
+    PerfCounterIncr(dtv->counter_pkts, tv->pca);
+    PerfCounterAddUI64(dtv->counter_bytes, tv->pca, p->pktlen);
+    PerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->pca, p->pktlen);
+    PerfCounterSetUI64(dtv->counter_max_pkt_size, tv->pca, p->pktlen);
 
     /* call the decoder */
-    pcap_g.Decoder(t, p, p->pkt, p->pktlen, pq, data);
+    pcap_g.Decoder(tv, dtv, p, p->pkt, p->pktlen, pq);
 
     return 0;
 }
@@ -193,38 +195,28 @@ int DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
-    dtv->tv = tv;
-
     /* register counters */
-    dtv->counter_pkts = PerfTVRegisterCounter("decoder.pkts", tv,
-                                               TYPE_UINT64, "NULL");
-    dtv->counter_bytes = PerfTVRegisterCounter("decoder.bytes", tv,
-                                                TYPE_UINT64, "NULL");
-    dtv->counter_ipv4 = PerfTVRegisterCounter("decoder.ipv4", tv,
-                                               TYPE_UINT64, "NULL");
-    dtv->counter_ipv6 = PerfTVRegisterCounter("decoder.ipv6", tv,
-                                               TYPE_UINT64, "NULL");
-    dtv->counter_eth = PerfTVRegisterCounter("decoder.ethernet", tv,
-                                              TYPE_UINT64, "NULL");
-    dtv->counter_sll = PerfTVRegisterCounter("decoder.sll", tv,
-                                              TYPE_UINT64, "NULL");
-    dtv->counter_tcp = PerfTVRegisterCounter("decoder.tcp", tv,
-                                              TYPE_UINT64, "NULL");
-    dtv->counter_udp = PerfTVRegisterCounter("decoder.udp", tv,
-                                              TYPE_UINT64, "NULL");
-    dtv->counter_icmpv4 = PerfTVRegisterCounter("decoder.icmpv4", tv,
-                                                 TYPE_UINT64, "NULL");
-    dtv->counter_icmpv6 = PerfTVRegisterCounter("decoder.icmpv6", tv,
-                                                 TYPE_UINT64, "NULL");
-    dtv->counter_ppp = PerfTVRegisterCounter("decoder.ppp", tv,
-                                              TYPE_UINT64, "NULL");
+    dtv->counter_pkts = PerfTVRegisterCounter("decoder.pkts", tv, TYPE_UINT64, "NULL");
+    dtv->counter_bytes = PerfTVRegisterCounter("decoder.bytes", tv, TYPE_UINT64, "NULL");
+    dtv->counter_ipv4 = PerfTVRegisterCounter("decoder.ipv4", tv, TYPE_UINT64, "NULL");
+    dtv->counter_ipv6 = PerfTVRegisterCounter("decoder.ipv6", tv, TYPE_UINT64, "NULL");
+    dtv->counter_eth = PerfTVRegisterCounter("decoder.ethernet", tv, TYPE_UINT64, "NULL");
+    dtv->counter_sll = PerfTVRegisterCounter("decoder.sll", tv, TYPE_UINT64, "NULL");
+    dtv->counter_tcp = PerfTVRegisterCounter("decoder.tcp", tv, TYPE_UINT64, "NULL");
+    dtv->counter_udp = PerfTVRegisterCounter("decoder.udp", tv, TYPE_UINT64, "NULL");
+    dtv->counter_icmpv4 = PerfTVRegisterCounter("decoder.icmpv4", tv, TYPE_UINT64, "NULL");
+    dtv->counter_icmpv6 = PerfTVRegisterCounter("decoder.icmpv6", tv, TYPE_UINT64, "NULL");
+    dtv->counter_ppp = PerfTVRegisterCounter("decoder.ppp", tv, TYPE_UINT64, "NULL");
+    dtv->counter_pppoe = PerfTVRegisterCounter("decoder.pppoe", tv, TYPE_UINT64, "NULL");
+    dtv->counter_avg_pkt_size = PerfTVRegisterAvgCounter("decoder.avg_pkt_size", tv,
+                                                         TYPE_DOUBLE, "NULL");
+    dtv->counter_max_pkt_size = PerfTVRegisterMaxCounter("decoder.max_pkt_size", tv,
+                                                         TYPE_UINT64, "NULL");
 
     tv->pca = PerfGetAllCountersArray(&tv->pctx);
-
     PerfAddToClubbedTMTable(tv->name, &tv->pctx);
 
     *data = (void *)dtv;
-
     return 0;
 }
 

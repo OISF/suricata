@@ -19,12 +19,9 @@
 /**
  * \brief Main decoding function for PPPoE packets
  */
-void DecodePPPoE(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len,
-                 PacketQueue *pq, void *data)
+void DecodePPPoE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
-
-    PerfCounterIncr(dtv->counter_pppoe, t->pca);
+    PerfCounterIncr(dtv->counter_pppoe, tv->pca);
 
     if (len < PPPOE_HEADER_LEN) {
         DECODER_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);
@@ -42,8 +39,7 @@ void DecodePPPoE(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len,
 
     if (ntohs(p->pppoeh->pppoe_length) > 0) {
         /* decode contained PPP packet */
-        DecodePPP(t, p, pkt + PPPOE_HEADER_LEN, len - PPPOE_HEADER_LEN, pq,
-                  data);
+        DecodePPP(tv, dtv, p, pkt + PPPOE_HEADER_LEN, len - PPPOE_HEADER_LEN, pq);
     }
 }
 
@@ -66,7 +62,7 @@ static int DecodePPPoEtest01 (void)   {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPPoE(&tv, &p, raw_pppoe, sizeof(raw_pppoe), NULL, &dtv);
+    DecodePPPoE(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
     if(DECODER_ISSET_EVENT(&p,PPPOE_PKT_TOO_SMALL))  {
         return 1;
@@ -106,7 +102,7 @@ static int DecodePPPoEtest02 (void)   {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPPoE(&tv, &p, raw_pppoe, sizeof(raw_pppoe), NULL, &dtv);
+    DecodePPPoE(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
     if(DECODER_ISSET_EVENT(&p,PPPOE_PKT_TOO_SMALL))  {
         return 1;

@@ -453,26 +453,27 @@ int VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
  *
  *
  */
-int DecodeNFQ(ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
+int DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
-
     IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
     IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
 #ifdef DEBUG
     printf("DecodeNFQ\n");
 #endif
 
-    PerfCounterIncr(dtv->counter_pkts, t->pca);
-    PerfCounterAddUI64(dtv->counter_bytes, t->pca, p->pktlen);
+    PerfCounterIncr(dtv->counter_pkts, tv->pca);
+    PerfCounterAddUI64(dtv->counter_bytes, tv->pca, p->pktlen);
+    PerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->pca, p->pktlen);
+    PerfCounterSetUI64(dtv->counter_max_pkt_size, tv->pca, p->pktlen);
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         printf("DecodeNFQ ip4\n");
-        DecodeIPV4(t, p, p->pkt, p->pktlen, pq, data);
+        DecodeIPV4(tv, dtv, p, p->pkt, p->pktlen, pq);
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
         printf("DecodeNFQ ip6\n");
-        DecodeIPV6(t, p, p->pkt, p->pktlen, data);
+        DecodeIPV6(tv, dtv, p, p->pkt, p->pktlen, pq);
     } else {
         printf("DecodeNFQ %02x\n", *p->pkt);
     }
@@ -490,31 +491,23 @@ int DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
-    dtv->tv = tv;
-
     /* register counters */
-    dtv->counter_pkts = PerfTVRegisterCounter("decoder.pkts", tv,
-                                               TYPE_UINT64, "NULL");
-    dtv->counter_bytes = PerfTVRegisterCounter("decoder.bytes", tv,
-                                                TYPE_UINT64, "NULL");
-    dtv->counter_ipv4 = PerfTVRegisterCounter("decoder.ipv4", tv,
-                                               TYPE_UINT64, "NULL");
-    dtv->counter_ipv6 = PerfTVRegisterCounter("decoder.ipv6", tv,
-                                               TYPE_UINT64, "NULL");
-    dtv->counter_eth = PerfTVRegisterCounter("decoder.ethernet", tv,
-                                              TYPE_UINT64, "NULL");
-    dtv->counter_sll = PerfTVRegisterCounter("decoder.sll", tv,
-                                              TYPE_UINT64, "NULL");
-    dtv->counter_tcp = PerfTVRegisterCounter("decoder.tcp", tv,
-                                              TYPE_UINT64, "NULL");
-    dtv->counter_udp = PerfTVRegisterCounter("decoder.udp", tv,
-                                              TYPE_UINT64, "NULL");
-    dtv->counter_icmpv4 = PerfTVRegisterCounter("decoder.icmpv4", tv,
-                                                 TYPE_UINT64, "NULL");
-    dtv->counter_icmpv6 = PerfTVRegisterCounter("decoder.icmpv6", tv,
-                                                 TYPE_UINT64, "NULL");
-    dtv->counter_ppp = PerfTVRegisterCounter("decoder.ppp", tv,
-                                              TYPE_UINT64, "NULL");
+    dtv->counter_pkts = PerfTVRegisterCounter("decoder.pkts", tv, TYPE_UINT64, "NULL");
+    dtv->counter_bytes = PerfTVRegisterCounter("decoder.bytes", tv, TYPE_UINT64, "NULL");
+    dtv->counter_ipv4 = PerfTVRegisterCounter("decoder.ipv4", tv, TYPE_UINT64, "NULL");
+    dtv->counter_ipv6 = PerfTVRegisterCounter("decoder.ipv6", tv, TYPE_UINT64, "NULL");
+    dtv->counter_eth = PerfTVRegisterCounter("decoder.ethernet", tv, TYPE_UINT64, "NULL");
+    dtv->counter_sll = PerfTVRegisterCounter("decoder.sll", tv, TYPE_UINT64, "NULL");
+    dtv->counter_tcp = PerfTVRegisterCounter("decoder.tcp", tv, TYPE_UINT64, "NULL");
+    dtv->counter_udp = PerfTVRegisterCounter("decoder.udp", tv, TYPE_UINT64, "NULL");
+    dtv->counter_icmpv4 = PerfTVRegisterCounter("decoder.icmpv4", tv, TYPE_UINT64, "NULL");
+    dtv->counter_icmpv6 = PerfTVRegisterCounter("decoder.icmpv6", tv, TYPE_UINT64, "NULL");
+    dtv->counter_ppp = PerfTVRegisterCounter("decoder.ppp", tv, TYPE_UINT64, "NULL");
+    dtv->counter_pppoe = PerfTVRegisterCounter("decoder.pppoe", tv, TYPE_UINT64, "NULL");
+    dtv->counter_avg_pkt_size = PerfTVRegisterAvgCounter("decoder.avg_pkt_size", tv,
+                                                         TYPE_DOUBLE, "NULL");
+    dtv->counter_max_pkt_size = PerfTVRegisterMaxCounter("decoder.max_pkt_size", tv,
+                                                         TYPE_UINT64, "NULL");
 
     tv->pca = PerfGetAllCountersArray(&tv->pctx);
 

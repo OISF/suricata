@@ -7,7 +7,7 @@
 
 #include "flow.h"
 
-static int DecodeTCPOptions(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeTCPOptions(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
 {
     uint16_t plen = len;
     while (plen)
@@ -95,18 +95,18 @@ static int DecodeTCPOptions(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len
             plen -= (p->TCP_OPTS[p->TCP_OPTS_CNT].len);
             p->TCP_OPTS_CNT++;
         }
-    } 
+    }
     return 0;
 }
 
-static int DecodeTCPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
 {
-    p->tcph = (TCPHdr *)pkt;
-
     if (len < TCP_HEADER_LEN) {
         DECODER_SET_EVENT(p, TCP_PKT_TOO_SMALL);
         return -1;
     }
+
+    p->tcph = (TCPHdr *)pkt;
 
     p->tcpvars.hlen = TCP_GET_HLEN(p);
     if (len < p->tcpvars.hlen) {
@@ -124,7 +124,7 @@ static int DecodeTCPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
     }
 
     if (p->tcpvars.tcp_opt_len > 0) {
-        DecodeTCPOptions(t, p, pkt + TCP_HEADER_LEN, p->tcpvars.tcp_opt_len);
+        DecodeTCPOptions(tv, p, pkt + TCP_HEADER_LEN, p->tcpvars.tcp_opt_len);
     }
 
     p->payload = pkt + p->tcpvars.hlen;
@@ -135,15 +135,14 @@ static int DecodeTCPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-void DecodeTCP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
-               void *data)
+void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
+    PerfCounterIncr(dtv->counter_tcp, tv->pca);
 
-    PerfCounterIncr(dtv->counter_tcp, t->pca);
-
-    if (DecodeTCPPacket(t, p,pkt,len) < 0)
+    if (DecodeTCPPacket(tv, p,pkt,len) < 0) {
+        p->tcph = NULL;
         return;
+    }
 
 #ifdef DEBUG
     printf("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s\n",
@@ -155,7 +154,7 @@ void DecodeTCP(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
 #endif
 
     /* Flow is an integral part of us */
-    FlowHandlePacket(t, p);
+    FlowHandlePacket(tv, p);
 
     return;
 }

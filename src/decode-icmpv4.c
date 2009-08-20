@@ -8,18 +8,16 @@
 /** DecodeICMPV4
  *  \brief Main ICMPv4 decoding function
  */
-void DecodeICMPV4(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
-                  void *data)
+void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
-
-    PerfCounterIncr(dtv->counter_icmpv4, t->pca);
-
-    p->icmpv4h = (ICMPV4Hdr *)pkt;
+    PerfCounterIncr(dtv->counter_icmpv4, tv->pca);
 
     if (len < ICMPV4_HEADER_LEN) {
+        /** \todo decode event */
         return;
     }
+
+    p->icmpv4h = (ICMPV4Hdr *)pkt;
 
 #ifdef DEBUG
     printf("ICMPV4 TYPE %" PRIu32 " CODE %" PRIu32 "\n", p->icmpv4h->type, p->icmpv4h->code);
@@ -52,7 +50,7 @@ static int DecodeICMPV4test01(void) {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4), &dtv);
+    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
     return 0;
 }
 
@@ -77,7 +75,7 @@ static int DecodeICMPV4test02(void) {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4), &dtv);
+    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
     return 0;
 }
 
@@ -100,7 +98,7 @@ static int DecodeICMPV4test03(void) {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4), &dtv);
+    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
     return 0;
 }
 
@@ -125,7 +123,7 @@ static int DecodeICMPV4test04(void) {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeICMPV4(&tv, &p, raw_icmpv4, sizeof(raw_icmpv4), &dtv);
+    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
     return 0;
 }
 

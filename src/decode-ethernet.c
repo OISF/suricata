@@ -4,12 +4,9 @@
 #include "decode-ethernet.h"
 #include "decode-events.h"
 
-void DecodeEthernet(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
-                    PacketQueue *pq, void *data)
+void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
-
-    PerfCounterIncr(dtv->counter_eth, t->pca);
+    PerfCounterIncr(dtv->counter_eth, tv->pca);
 
     if (len < ETHERNET_HEADER_LEN) {
         DECODER_SET_EVENT(p,ETHERNET_PKT_TOO_SMALL);
@@ -26,16 +23,13 @@ void DecodeEthernet(ThreadVars *t, Packet *p, u_int8_t *pkt, u_int16_t len,
 
     if (ntohs(ethh->eth_type) == ETHERNET_TYPE_IP) {
         //printf("DecodeEthernet ip4\n");
-        DecodeIPV4(t, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN,
-                   pq, data);
+        DecodeIPV4(tv, dtv, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN, pq);
     } else if(ntohs(ethh->eth_type) == ETHERNET_TYPE_IPV6) {
         //printf("DecodeEthernet ip6\n");
-        DecodeIPV6(t, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN,
-                   data);
+        DecodeIPV6(tv, dtv, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN, pq);
     } else if(ntohs(ethh->eth_type) == ETHERNET_TYPE_PPPoE_SESS) {
         //printf("DecodeEthernet PPPoE\n");
-        DecodePPPoE(t, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN,
-                    pq, data);
+        DecodePPPoE(tv, dtv, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN, pq);
     }
 
     return;

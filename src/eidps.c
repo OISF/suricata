@@ -154,7 +154,7 @@ Packet *SetupPkt (void)
     return p;
 }
 
-Packet *TunnelPktSetup(ThreadVars *t, Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
+Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
 {
     //printf("TunnelPktSetup: pkt %p, len %" PRIu32 ", proto %" PRIu32 "\n", pkt, len, proto);
 
