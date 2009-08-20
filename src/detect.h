@@ -301,7 +301,7 @@ typedef struct SigMatch_ {
 typedef struct SigTableElmt_ {
     int (*Match)(ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
     int (*Setup)(DetectEngineCtx *, Signature *, SigMatch *, char *);
-    int (*Free)(SigMatch *);
+    void (*Free)(void *);
     void (*RegisterTests)(void);
 
     uint8_t flags;

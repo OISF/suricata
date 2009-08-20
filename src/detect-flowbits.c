@@ -38,12 +38,13 @@ static pcre_extra *parse_regex_study;
 
 int DetectFlowbitMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
 int DetectFlowbitSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+void DetectFlowbitFree (void *);
 
 void DetectFlowbitsRegister (void) {
     sigmatch_table[DETECT_FLOWBITS].name = "flowbits";
     sigmatch_table[DETECT_FLOWBITS].Match = DetectFlowbitMatch;
     sigmatch_table[DETECT_FLOWBITS].Setup = DetectFlowbitSetup;
-    sigmatch_table[DETECT_FLOWBITS].Free  = NULL;
+    sigmatch_table[DETECT_FLOWBITS].Free  = DetectFlowbitFree;
     sigmatch_table[DETECT_FLOWBITS].RegisterTests  = NULL;
 
     const char *eb;
@@ -209,4 +210,12 @@ error:
     return -1;
 }
 
+void DetectFlowbitFree (void *ptr) {
+    DetectFlowbitsData *fd = (DetectFlowbitsData *)ptr;
+
+    if (fd == NULL)
+        return;
+
+    free(fd);
+}
 

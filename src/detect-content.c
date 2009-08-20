@@ -48,7 +48,7 @@
 int DetectContentMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
 int DetectContentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectContentRegisterTests(void);
-void DetectContentFree(DetectContentData *);
+void DetectContentFree(void *);
 
 uint8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
@@ -57,7 +57,7 @@ void DetectContentRegister (void) {
     sigmatch_table[DETECT_CONTENT].name = "content";
     sigmatch_table[DETECT_CONTENT].Match = DetectContentMatch;
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
-    sigmatch_table[DETECT_CONTENT].Free  = NULL;
+    sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
 
     /* create table for O(1) case conversion lookup */
@@ -440,7 +440,15 @@ error:
  *
  * \param cd pointer to DetectCotentData
  */
-void DetectContentFree(DetectContentData *cd) {
+void DetectContentFree(void *ptr) {
+    DetectContentData *cd = (DetectContentData *)ptr;
+
+    if (cd == NULL)
+        return;
+
+    if (cd->content != NULL)
+        free(cd->content);
+
     free(cd);
 }
 

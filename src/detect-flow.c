@@ -30,7 +30,7 @@ static pcre_extra *parse_regex_study;
 int DetectFlowMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
 int DetectFlowSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectFlowRegisterTests(void);
-void DetectFlowFree(DetectFlowData *);
+void DetectFlowFree(void *);
 
 /**
  * \brief Registration function for flow: keyword
@@ -40,7 +40,7 @@ void DetectFlowRegister (void) {
     sigmatch_table[DETECT_FLOW].name = "flow";
     sigmatch_table[DETECT_FLOW].Match = DetectFlowMatch;
     sigmatch_table[DETECT_FLOW].Setup = DetectFlowSetup;
-    sigmatch_table[DETECT_FLOW].Free  = NULL;
+    sigmatch_table[DETECT_FLOW].Free  = DetectFlowFree;
     sigmatch_table[DETECT_FLOW].RegisterTests = DetectFlowRegisterTests;
 
     const char *eb;
@@ -291,7 +291,8 @@ error:
  *
  * \param fd pointer to DetectFlowData
  */
-void DetectFlowFree(DetectFlowData *fd) {
+void DetectFlowFree(void *ptr) {
+    DetectFlowData *fd = (DetectFlowData *)ptr;
     free(fd);
 }
 

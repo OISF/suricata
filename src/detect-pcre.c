@@ -25,7 +25,7 @@ static pcre_extra *parse_capture_regex_study;
 
 int DetectPcreMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
 int DetectPcreSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
-int DetectPcreFree(SigMatch *);
+void DetectPcreFree(void *);
 
 void DetectPcreRegister (void) {
     sigmatch_table[DETECT_PCRE].name = "pcre";
@@ -351,14 +351,14 @@ error:
     return -1;
 }
 
-int DetectPcreFree(SigMatch *sm) {
-    DetectPcreData *pd = (DetectPcreData *)sm->ctx;
+void DetectPcreFree(void *ptr) {
+    DetectPcreData *pd = (DetectPcreData *)ptr;
 
     if (pd->capname != NULL) free(pd->capname);
     if (pd->re != NULL) pcre_free(pd->re);
     if (pd->sd != NULL) pcre_free(pd->sd);
 
-    free(sm->ctx);
-    return 0;
+    free(pd);
+    return;
 }
 
