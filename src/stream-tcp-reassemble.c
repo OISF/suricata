@@ -2223,7 +2223,7 @@ static int StreamTcpReassembleTest24(void) {
     return 1;
 }
 
-static int StreamTcpTestMissedPacket (TcpStream *stream, u_int32_t seq, u_int8_t *payload, u_int16_t len) {
+static int StreamTcpTestMissedPacket (TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len) {
     TcpSession ssn;
     Packet p;
     Flow f;
@@ -2258,9 +2258,9 @@ static int StreamTcpTestMissedPacket (TcpStream *stream, u_int32_t seq, u_int8_t
 static int StreamTcpReassembleTest25 (void) {
 
     uint8_t payload[4];
-    u_int32_t seq;
+    uint32_t seq;
     TcpStream stream;
-    u_int8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
+    uint8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
     memset(&stream, 0, sizeof (TcpStream));
 
     StreamTcpCreateTestPacket(payload, 0x42, 2); /*BB*/
@@ -2295,9 +2295,9 @@ static int StreamTcpReassembleTest25 (void) {
 static int StreamTcpReassembleTest26 (void) {
 
     uint8_t payload[4];
-    u_int32_t seq;
+    uint32_t seq;
     TcpStream stream;
-    u_int8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
+    uint8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
     memset(&stream, 0, sizeof (TcpStream));
 
     StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
@@ -2333,9 +2333,9 @@ static int StreamTcpReassembleTest26 (void) {
 static int StreamTcpReassembleTest27 (void) {
 
     uint8_t payload[4];
-    u_int32_t seq;
+    uint32_t seq;
     TcpStream stream;
-    u_int8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
+    uint8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
     memset(&stream, 0, sizeof (TcpStream));
 
     StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
