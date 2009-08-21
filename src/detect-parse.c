@@ -58,12 +58,18 @@ SigMatch *SigMatchAlloc(void) {
     return sm;
 }
 
+/** \brief free a SigMatch
+ *  \param sm SigMatch to free.
+ */
 void SigMatchFree(SigMatch *sm) {
     if (sm == NULL)
         return;
 
-    if (sigmatch_table[sm->type].Free != NULL) {
-        sigmatch_table[sm->type].Free(sm);
+    /** free the ctx, for that we call the Free func */
+    if (sm->ctx != NULL) {
+        if (sigmatch_table[sm->type].Free != NULL) {
+            sigmatch_table[sm->type].Free(sm->ctx);
+        }
     }
     free(sm);
 }
