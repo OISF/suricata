@@ -12,11 +12,39 @@
 #include "tm-modules.h"
 #include "tm-threads.h"
 #include "util-unittest.h"
+#include "conf.h"
 
-/** \todo config api */
-#define LOGPATH "/var/log/eidps/stats.log"
+/** \todo Get the default log directory from some global resource. */
+#define DEFAULT_LOG_FILENAME "stats.log"
 
 static PerfOPIfaceContext *perf_op_ctx = NULL;
+
+/**
+ * \brief Get the filename with path to the stats log file.
+ *
+ * This function returns a string containing the log filename.  It
+ * uses allocated memory simply to drop into the existing code a
+ * little better where a strdup was used.  So as before, it is up to
+ * the caller to free the memory.
+ *
+ * \retval An allocated string containing the log filename or NULL on
+ * a failure.
+ */
+static char *
+PerfGetLogFilename(void)
+{
+    char *log_dir;
+    char *log_filename;
+
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
+    log_filename = malloc(PATH_MAX);
+    if (log_filename == NULL)
+        return NULL;
+    snprintf(log_filename, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
+
+    return log_filename;
+}
 
 /**
  * \brief Initializes the perf counter api.  Things are hard coded currently.
@@ -42,7 +70,7 @@ void PerfInitOPCtx(void)
 
     perf_op_ctx->iface = IFACE_FILE;
 
-    if ( (perf_op_ctx->file = strdup(LOGPATH)) == NULL) {
+    if ( (perf_op_ctx->file = PerfGetLogFilename()) == NULL) {
         printf("error allocating memory\n");
         exit(0);
     }

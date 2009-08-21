@@ -1,6 +1,5 @@
 bin_PROGRAMS = eidps
 eidps_SOURCES = eidps.c eidps.h \
-config.c config.h \
 packet-queue.c packet-queue.h \
 threads.c threads.h \
 source-nfq.c source-nfq.h \
@@ -98,7 +97,8 @@ counters.c counter.h \
 app-layer-detect-proto.c app-layer-detect-proto.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-http.c app-layer-http.h \
-app-layer-protos.h
+app-layer-protos.h \
+conf.c conf.h
 
 # set the include path found by configure
 INCLUDES= $(all_includes)

@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -27,6 +28,7 @@
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
+#include "conf.h"
 
 #include "threadvars.h"
 #include "tm-modules.h"
@@ -88,7 +90,7 @@ typedef struct AlertUnifiedLogPacketHeader_ {
 } AlertUnifiedLogPacketHeader;
 
 int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
-    char filename[2048]; /* XXX some sane default? */
+    char filename[PATH_MAX]; /* XXX some sane default? */
     int ret;
 
     /* get the time so we can have a filename with seconds since epoch
@@ -100,7 +102,10 @@ int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
     gettimeofday(&ts, NULL);
 
     /* create the filename to use */
-    snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, "/var/log/eidps", "unified.log", (uint32_t)ts.tv_sec);
+    char *log_dir;
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
+    snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, log_dir, "unified.log", (uint32_t)ts.tv_sec);
 
     /* XXX filename & location */
     aun->fp = fopen(filename, "wb");

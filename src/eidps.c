@@ -830,6 +830,7 @@ void usage(const char *progname)
     printf("\t-r <path>: run in pcap file/offline mode\n");
     printf("\t-q <qid> : run in inline nfqueue mode\n");
     printf("\t-s <path>: path to signature file (optional)\n");
+    printf("\t-l <dir> : default log directory\n");
 #ifdef UNITTESTS
     printf("\t-u       : run the unittests and exit\n");
 #endif /* UNITTESTS */
@@ -853,7 +854,10 @@ int main(int argc, char **argv)
     setup_signal_handler(SIGHUP, handle_sighup);
     //pthread_sigmask(SIG_BLOCK, &set, 0);
 
-    while ((opt = getopt(argc, argv, "hi:q:r:us:")) != -1) {
+    /* Initialize the configuration module. */
+    ConfInit();
+
+    while ((opt = getopt(argc, argv, "hi:l:q:r:us:")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
@@ -862,6 +866,12 @@ int main(int argc, char **argv)
         case 'i':
             mode = MODE_PCAP_DEV;
             pcap_dev = optarg;
+            break;
+        case 'l':
+            if (ConfSet("default-log-dir", optarg, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set log directory.\n");
+                exit(1);
+            }
             break;
         case 'q':
             mode = MODE_NFQ;
@@ -960,6 +970,7 @@ int main(int argc, char **argv)
         DecodePPPoERegisterTests();
         DecodeICMPV4RegisterTests();
         AlpDetectRegisterTests();
+        ConfRegisterTests();
         UtRunTests();
         UtCleanup();
         exit(0);

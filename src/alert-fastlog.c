@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -27,11 +28,14 @@
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
+#include "conf.h"
 
 #include "threadvars.h"
 #include "tm-modules.h"
 
 #include "util-unittest.h"
+
+#define DEFAULT_LOG_FILENAME "fast.log"
 
 int AlertFastlog (ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertFastlogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
@@ -155,11 +159,13 @@ int AlertFastlogThreadInit(ThreadVars *t, void *initdata, void **data)
     }
     memset(aft, 0, sizeof(AlertFastlogThread));
 
-    /* XXX */
-    char *path = "/var/log/eidps/fast.log";
-    aft->fp = fopen(path, "w");
+    char log_path[PATH_MAX], *log_dir;
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
+    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
+    aft->fp = fopen(log_path, "w");
     if (aft->fp == NULL) {
-        printf("ERROR: failed to open %s: %s\n", path, strerror(errno));
+        printf("ERROR: failed to open %s: %s\n", log_path, strerror(errno));
         return -1;
     }
 
