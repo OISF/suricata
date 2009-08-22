@@ -116,7 +116,7 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint8_t al_proto, ch
     cd->depth = depth;
     cd->offset = offset;
 
-    PrintRawDataFp(stdout,cd->content,cd->content_len);
+    //PrintRawDataFp(stdout,cd->content,cd->content_len);
 
     AlpProtoDetectDirection *dir;
     if (flags & STREAM_TOCLIENT) {
