@@ -26,7 +26,7 @@ typedef struct DetectContentData_ {
 void DetectContentRegister (void);
 uint32_t DetectContentMaxId(DetectEngineCtx *);
 DetectContentData *DetectContentParse (char *contentstr);
-void DetectContentFree(DetectContentData *);
+void DetectContentFree(void *);
 
 #endif /* __DETECT_CONTENT_H__ */
 
