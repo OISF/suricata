@@ -832,6 +832,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
     TcpSegment *seg = stream->seg_list;
     uint32_t next_seq = seg->seq;
     uint32_t gap_len = 0;
+    char missed_seg = FALSE;
 
     /* check if we have enough data to send to L7 */
     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -871,12 +872,33 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                 gap_len = seg->seq - next_seq;
                 next_seq = seg->seq;
             }
-            if (smsg != NULL) {
+            /* if (smsg != NULL) {
                 smsg->flags = STREAM_EOF;
                 smsg->gap.gap_size = gap_len;
                 StreamMsgPutInQueue(smsg);
                 smsg = NULL;
-            }
+               smsg = StreamMsgGetFromPool();
+                if (smsg == NULL) {
+                    printf("StreamTcpReassembleHandleSegmentUpdateACK: couldn't "
+                            "get a stream msg from the pool\n");
+                    return -1;
+                }
+                smsg->flags = STREAM_GAP;
+                smsg->gap.gap_size = gap_len;
+                stream->ra_base_seq = seg->seq;
+                smsg_offset = 0;
+
+                if (stream->ra_base_seq == stream->isn) {
+                    StreamTcpSetupInitMsg(p, smsg);
+                } else {
+                    StreamTcpSetupMsg(p, smsg);
+                }
+                smsg->data.data_len = 0;
+                smsg->flow = p->flow;
+                if (smsg->flow)
+                    smsg->flow->use_cnt++;
+                missed_seg = TRUE;*/
+            //}
 
             //return -1;
         }
@@ -895,7 +917,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                             "get a stream msg from the pool\n");
                     return -1;
                 }
-
+            //}
+            //if (smsg == NULL || (missed_seg == TRUE)) {
                 smsg_offset = 0;
 
                 if (stream->ra_base_seq == stream->isn) {
@@ -908,6 +931,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
                 if (smsg->flow)
                     smsg->flow->use_cnt++;
             }
+
+            //if (missed_seg == TRUE)
+               // missed_seg = FALSE;
 
             /* handle segments partly before ra_base_seq */
             if (SEQ_GT(stream->ra_base_seq, seg->seq)) {
