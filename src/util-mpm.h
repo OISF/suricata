@@ -53,22 +53,18 @@ typedef struct MpmThreadCtx_ {
     MpmMatch *qlist;
     /* spare list */
     MpmMatch *sparelist;
-
-    uint32_t matches;
-
 } MpmThreadCtx;
 
 #define PMQ_MODE_SCAN   0
 #define PMQ_MODE_SEARCH 1
 
-/* helper structure for the detection engine. The Pattern Matcher thread
- * has this and passes a pointer to it to the pattern matcher. The actual
- * pattern matcher will fill the structure. */
+/** \brief helper structure for the pattern matcher engine. The Pattern Matcher
+ *         thread has this and passes a pointer to it to the pattern matcher.
+ *         The actual pattern matcher will fill the structure. */
 typedef struct PatternMatcherQueue_ {
-    /* sig callback stuff XXX consider a separate struct for this*/
     uint32_t *sig_id_array; /* array with internal sig id's that had a
-                                pattern match. These will be inspected
-                                futher by the detection engine. */
+                               pattern match. These will be inspected
+                               futher by the detection engine. */
     uint32_t sig_id_array_cnt;
     uint8_t *sig_bitarray;
     char mode; /* 0: scan, 1: search */
@@ -133,6 +129,12 @@ typedef struct MpmTableElmt_ {
     void (*RegisterUnittests)(void);
     uint8_t flags;
 } MpmTableElmt;
+
+
+int PmqSetup(PatternMatcherQueue *, uint32_t);
+void PmqReset(PatternMatcherQueue *);
+void PmqCleanup(PatternMatcherQueue *);
+void PmqFree(PatternMatcherQueue *);
 
 void MpmMatchCleanup(MpmThreadCtx *);
 MpmMatch *MpmMatchAlloc(MpmThreadCtx *);

@@ -484,7 +484,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
     }
 
     if (parser_idx == 0) {
-        printf("AppLayerParse: no parser for protocol %" PRIu32 "\n", proto);
+        //printf("AppLayerParse: no parser for protocol %" PRIu32 "\n", proto);
         return 0;
     }
 

@@ -46,11 +46,7 @@ uint32_t PacketPatternMatch(ThreadVars *t, PatternMatcherThread *pmt, Packet *p)
 
 /* cleans up the mpm instance after a match */
 void PacketPatternCleanup(ThreadVars *t, PatternMatcherThread *pmt) {
-    int i;
-    for (i = 0; i < pmt->pmq.sig_id_array_cnt; i++) {
-        pmt->pmq.sig_bitarray[(pmt->pmq.sig_id_array[i] / 8)] &= ~(1<<(pmt->pmq.sig_id_array[i] % 8));
-    }
-    pmt->pmq.sig_id_array_cnt = 0;
+    PmqReset(&pmt->pmq);
 
     if (pmt->sgh == NULL)
         return;
@@ -818,23 +814,8 @@ int PatternMatcherThreadInit(ThreadVars *t, void *initdata, void **data) {
      */
     mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtc, DetectContentMaxId(de_ctx));
     mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtcu, DetectUricontentMaxId(de_ctx));
-    uint32_t max_sig_id = DetectEngineGetMaxSigId(de_ctx);
 
-    /* sig callback testing stuff below */
-    pmt->pmq.sig_id_array = malloc(max_sig_id * sizeof(uint32_t));
-    if (pmt->pmq.sig_id_array == NULL) {
-        printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
-        exit(1);
-    }
-    memset(pmt->pmq.sig_id_array, 0, max_sig_id * sizeof(uint32_t));
-    pmt->pmq.sig_id_array_cnt = 0;
-    /* lookup bitarray */
-    pmt->pmq.sig_bitarray = malloc(max_sig_id / 8 + 1);
-    if (pmt->pmq.sig_bitarray == NULL) {
-        printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
-        exit(1);
-    }
-    memset(pmt->pmq.sig_bitarray, 0, max_sig_id / 8 + 1);
+    PmqSetup(&pmt->pmq, DetectEngineGetMaxSigId(de_ctx));
 
     /* IP-ONLY */
     DetectEngineIPOnlyThreadInit(de_ctx,&pmt->io_ctx);

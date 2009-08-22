@@ -797,6 +797,8 @@ static void StreamTcpSetupInitMsg(Packet *p, StreamMsg *smsg) {
 }
 
 static void StreamTcpSetupMsg(Packet *p, StreamMsg *smsg) {
+    smsg->flags = 0;
+
     if (p->flowflags & FLOW_PKT_TOSERVER) {
         COPY_ADDRESS(&p->flow->src,&smsg->data.src_ip);
         COPY_ADDRESS(&p->flow->dst,&smsg->data.dst_ip);

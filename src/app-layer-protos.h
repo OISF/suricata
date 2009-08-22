@@ -6,6 +6,11 @@ enum {
     ALPROTO_HTTP,
     ALPROTO_FTP,
     ALPROTO_SMTP,
+    ALPROTO_SSL,
+    ALPROTO_SSH,
+    ALPROTO_IMAP,
+    ALPROTO_MSN,
+    ALPROTO_JABBER,
 
     /* keep last */
     ALPROTO_MAX,

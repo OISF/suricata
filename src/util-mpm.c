@@ -13,6 +13,79 @@
 #include "util-mpm-b2g.h"
 #include "util-mpm-b3g.h"
 
+/** \brief Setup a pmq
+  * \param pmq Pattern matcher queue to be initialized
+  * \param maxid Max id to be matched on
+  * \retval -1 error
+  * \retval 0 ok
+  */
+int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
+    if (pmq == NULL)
+        return -1;
+
+    memset(pmq, 0, sizeof(PatternMatcherQueue));
+
+    pmq->sig_id_array = malloc(maxid * sizeof(uint32_t));
+    if (pmq->sig_id_array == NULL) {
+        printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
+        return -1;
+    }
+    memset(pmq->sig_id_array, 0, maxid * sizeof(uint32_t));
+    pmq->sig_id_array_cnt = 0;
+
+    /* lookup bitarray */
+    pmq->sig_bitarray = malloc(maxid / 8 + 1);
+    if (pmq->sig_bitarray == NULL) {
+        printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
+        return -1;
+    }
+    memset(pmq->sig_bitarray, 0, maxid / 8 + 1);
+
+    return 0;
+}
+
+/** \brief Reset a Pmq for reusage. Meant to be called after a single search.
+ *  \param pmq Pattern matcher to be reset.
+ */
+void PmqReset(PatternMatcherQueue *pmq) {
+    int i;
+    for (i = 0; i < pmq->sig_id_array_cnt; i++) {
+        pmq->sig_bitarray[(pmq->sig_id_array[i] / 8)] &= ~(1<<(pmq->sig_id_array[i] % 8));
+    }
+    pmq->sig_id_array_cnt = 0;
+}
+
+/** \brief Cleanup a Pmq
+  * \param pmq Pattern matcher queue to be cleaned up.
+  */
+void PmqCleanup(PatternMatcherQueue *pmq) {
+    if (pmq == NULL)
+        return;
+
+    if (pmq->sig_id_array != NULL) {
+        free(pmq->sig_id_array);
+        pmq->sig_id_array = NULL;
+    }
+
+    if (pmq->sig_bitarray != NULL) {
+        free(pmq->sig_bitarray);
+        pmq->sig_bitarray = NULL;
+    }
+
+    pmq->sig_id_array_cnt = 0;
+}
+
+/** \brief Cleanup and free a Pmq
+  * \param pmq Pattern matcher queue to be free'd.
+  */
+void PmqFree(PatternMatcherQueue *pmq) {
+    if (pmq == NULL)
+        return;
+
+    PmqCleanup(pmq);
+    free(pmq);
+}
+
 /* cleanup list with all matches
  *
  * used at search runtime (or actually once per search) */

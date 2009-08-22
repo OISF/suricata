@@ -48,7 +48,6 @@
 int DetectContentMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
 int DetectContentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectContentRegisterTests(void);
-void DetectContentFree(void *);
 
 uint8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]
@@ -282,14 +281,17 @@ int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Sig
 DetectContentData *DetectContentParse (char *contentstr)
 {
     DetectContentData *cd = NULL;
-    char *str = contentstr;
-    char dubbed = 0;
+    char *str;
     uint16_t len;
+
+    if (strlen(contentstr) == 0)
+        return NULL;
 
     if (contentstr[0] == '\"' && contentstr[strlen(contentstr)-1] == '\"') {
         str = strdup(contentstr+1);
         str[strlen(contentstr)-2] = '\0';
-        dubbed = 1;
+    } else {
+        str = strdup(contentstr);
     }
 
     len = strlen(str);
@@ -396,12 +398,16 @@ DetectContentData *DetectContentParse (char *contentstr)
     cd->distance = 0;
     cd->flags = 0;
 
-    if (dubbed != 0) free(str);
+    free(str);
     return cd;
 
 error:
-    if (dubbed != 0) free(str);
-    if (cd != NULL) free(cd);
+    free(str);
+    if (cd != NULL) {
+        if (cd->content != NULL)
+            free(cd->content);
+        free(cd);
+    }
     return NULL;
 }
 
@@ -598,6 +604,40 @@ int DetectContentParseTest06 (void) {
     return result;
 }
 
+/**
+ * \test DetectCotentParseTest07 test an empty content
+ */
+int DetectContentParseTest07 (void) {
+    int result = 1;
+    DetectContentData *cd = NULL;
+    char *teststring = "\"\"";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        printf("expected NULL got %p: ", cd);
+        result = 0;
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
+/**
+ * \test DetectCotentParseTest08 test an empty content
+ */
+int DetectContentParseTest08 (void) {
+    int result = 1;
+    DetectContentData *cd = NULL;
+    char *teststring = "";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        printf("expected NULL got %p: ", cd);
+        result = 0;
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
 
 /**
  * \brief this function registers unit tests for DetectFlow
@@ -609,5 +649,7 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentParseTest04", DetectContentParseTest04, 1);
     UtRegisterTest("DetectContentParseTest05", DetectContentParseTest05, 1);
     UtRegisterTest("DetectContentParseTest06", DetectContentParseTest06, 1);
+    UtRegisterTest("DetectContentParseTest07", DetectContentParseTest07, 1);
+    UtRegisterTest("DetectContentParseTest08", DetectContentParseTest08, 1);
 }
 

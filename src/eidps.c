@@ -959,6 +959,7 @@ int main(int argc, char **argv)
         HTTPParserRegisterTests();
         DecodePPPoERegisterTests();
         DecodeICMPV4RegisterTests();
+        AlpDetectRegisterTests();
         UtRunTests();
         UtCleanup();
         exit(0);
