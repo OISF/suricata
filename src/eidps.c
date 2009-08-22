@@ -68,6 +68,8 @@
 #include "util-unittest.h"
 #include "util-time.h"
 
+#include "conf.h"
+
 /*
  * we put this here, because we only use it here in main.
  */
