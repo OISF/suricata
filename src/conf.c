@@ -1,17 +1,4 @@
-/* Copyright (c) 2009 Open Information Security Foundation
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+/* Copyright (c) 2009 Open Information Security Foundation */
 
 /**
  * This file provides a basic configuration system for the IDPS
@@ -23,6 +10,8 @@
  * will require some locks.
  *
  * \author Endace Technology Limited
+ *
+ * \todo Consider using HashListTable to allow easy dumping of all data.
  */
 
 #include <stdlib.h>
@@ -48,12 +37,12 @@ static HashTable *conf_hash = NULL;
 /**
  * Structure of a configuration parameter.
  */
-struct conf_node {
+typedef struct ConfNode_ {
     char *name;
     char *val;
 
     int allow_override;
-};
+} ConfNode;
 
 /**
  * \brief Function to generate the hash of a configuration value.
@@ -67,7 +56,7 @@ struct conf_node {
 static uint32_t
 ConfHashFunc(HashTable *ht, void *data, uint16_t len)
 {
-    struct conf_node *cn = (struct conf_node *)data;
+    ConfNode *cn = (ConfNode *)data;
     uint32_t hash;
 
     hash = HashTableGenericHash(ht, cn->name, strlen(cn->name));
@@ -86,8 +75,8 @@ ConfHashFunc(HashTable *ht, void *data, uint16_t len)
 static char
 ConfHashComp(void *a, uint16_t a_len, void *b, uint16_t b_len)
 {
-    struct conf_node *ca = (struct conf_node *)a;
-    struct conf_node *cb = (struct conf_node *)b;
+    ConfNode *ca = (ConfNode *)a;
+    ConfNode *cb = (ConfNode *)b;
 
     if (strcmp(ca->name, cb->name) == 0)
         return 1;
@@ -100,7 +89,7 @@ ConfHashComp(void *a, uint16_t a_len, void *b, uint16_t b_len)
  */
 static void ConfHashFree(void *data)
 {
-    struct conf_node *cn = (struct conf_node *)data;
+    ConfNode *cn = (ConfNode *)data;
 
     DPRINTF(("%s: Freeing configuration parameter '%s'\n", __func__, cn->name));
     free(cn->name);
@@ -142,7 +131,7 @@ ConfInit(void)
 int
 ConfSet(char *name, char *val, int allow_override)
 {
-    struct conf_node lookup_key, *conf_node;
+    ConfNode lookup_key, *conf_node;
 
     lookup_key.name = name;
     conf_node = HashTableLookup(conf_hash, &lookup_key, sizeof(lookup_key));
@@ -184,8 +173,8 @@ ConfSet(char *name, char *val, int allow_override)
 int
 ConfGet(char *name, char **vptr)
 {
-    struct conf_node lookup_key;
-    struct conf_node *conf_node;
+    ConfNode lookup_key;
+    ConfNode *conf_node;
 
     lookup_key.name = name;
 
@@ -212,7 +201,7 @@ ConfGet(char *name, char **vptr)
 int
 ConfRemove(char *name)
 {
-    struct conf_node cn;
+    ConfNode cn;
 
     cn.name = name;
     if (HashTableRemove(conf_hash, &cn, sizeof(cn)) == 0)
