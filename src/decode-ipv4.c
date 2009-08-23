@@ -553,6 +553,10 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
                 }
                 break;
             }
+        case IPPROTO_GRE:
+            return(DecodeGRE(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
+                             IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq));
+            break;
     }
 
     return;

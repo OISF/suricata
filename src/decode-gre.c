@@ -20,6 +20,8 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     uint16_t header_len = GRE_HDR_LEN;
     GRESreHdr *gsre = NULL;
 
+    PerfCounterIncr(dtv->counter_gre, tv->pca);
+
     if(len < GRE_HDR_LEN)    {
         DECODER_SET_EVENT(p,GRE_PKT_TOO_SMALL);
         return;
@@ -170,7 +172,6 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     {
         case ETHERNET_TYPE_IP:
             {
-                PerfCounterIncr(dtv->counter_gre, tv->pca);
                 if (pq != NULL) {
 
                     Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, GRE_GET_PROTO(p->greh));
@@ -184,7 +185,6 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
         case GRE_PROTO_PPP:
             {
-                PerfCounterIncr(dtv->counter_gre, tv->pca);
                 if (pq != NULL) {
 
                     Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, GRE_GET_PROTO(p->greh));
@@ -198,7 +198,6 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
         case ETHERNET_TYPE_IPV6:
             {
-                PerfCounterIncr(dtv->counter_gre, tv->pca);
                 if (pq != NULL) {
 
                     Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, GRE_GET_PROTO(p->greh));
