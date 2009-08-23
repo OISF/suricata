@@ -25,22 +25,20 @@ static int DecodeTCPOptions(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t le
                 break;
             }
 
+            /* we already know that the total options len is valid,
+             * so here the len of the specific option must be bad.
+             * Also check for invalid lengths 0 and 1. */
+            if (*(pkt+1) > plen || *(pkt+1) < 2) {
+                DECODER_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                return -1;
+            }
+
             p->TCP_OPTS[p->TCP_OPTS_CNT].type = *pkt;
             p->TCP_OPTS[p->TCP_OPTS_CNT].len  = *(pkt+1);
             if (plen > 2)
                 p->TCP_OPTS[p->TCP_OPTS_CNT].data = (pkt+2);
             else
                 p->TCP_OPTS[p->TCP_OPTS_CNT].data = NULL;
-
-            /* we already know that the total options len is valid,
-             * so here the len of the specific option must be bad.
-             * Also check for invalid lengths 0 and 1. */
-            /** \todo Should we check this *before* we set the data so that the incorrect data is not used later on? */
-            if (p->TCP_OPTS[p->TCP_OPTS_CNT].len > plen ||
-                p->TCP_OPTS[p->TCP_OPTS_CNT].len < 2) {
-                DECODER_SET_EVENT(p,TCP_OPT_INVALID_LEN);
-                return -1;
-            }
 
             /* we are parsing the most commonly used opts to prevent
              * us from having to walk the opts list for these all the

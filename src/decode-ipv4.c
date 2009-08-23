@@ -237,7 +237,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
             default:
                 //printf("CIPSO tag %" PRIu8 " unknown tag\n", ttype);
                 DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
-                /* \todo May not want to return error here on unknown tag type (at least not for 3|4 */
+                /** \todo May not want to return error here on unknown tag type (at least not for 3|4) */
                 return -1;
         }
     }
@@ -562,6 +562,8 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 #ifdef UNITTESTS
 
 void DecodeIPV4OptionsPrint(Packet *p) {
+/** \todo Fix this on 32bit */
+#if 0
     IPV4Vars *pv = &p->ip4vars;
 
     printf("DecodeIPV4Options: cnt=%" PRIu8
@@ -585,6 +587,7 @@ void DecodeIPV4OptionsPrint(Packet *p) {
            (pv->o_sid ? pv->o_sid->type : 0), (pv->o_sid ? pv->o_sid->len : 0), (uintmax_t)(pv->o_sid ? pv->o_sid->data : 0),
            (pv->o_ssrr ? pv->o_ssrr->type : 0), (pv->o_ssrr ? pv->o_ssrr->len : 0), (uintmax_t)(pv->o_ssrr ? pv->o_ssrr->data : 0),
            (pv->o_rtralt ? pv->o_rtralt->type : 0), (pv->o_rtralt ? pv->o_rtralt->len : 0), (uintmax_t)(pv->o_rtralt ? pv->o_rtralt->data : 0));
+#endif
 }
 
 /** \test IPV4 with no options. */
