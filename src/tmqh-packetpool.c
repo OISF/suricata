@@ -90,7 +90,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 TUNNEL_DECR_PKT_TPR_NOLOCK(p);
 
                 /* handle the root */
-                //printf("TmqhOutputPacketpool: calling PacketEnqueue for root pkt\n");
+                //printf("TmqhOutputPacketpool: calling PacketEnqueue for root pkt, p->root %p (%p)\n", p->root, p);
                 proot = 1;
 
                 /* fall through */
@@ -107,15 +107,17 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
     FlowDecrUsecnt(t,p);
 
-    if (proot) {
+    if (proot && p->root != NULL) {
         CLEAR_PACKET(p->root);
+
+        mutex_lock(&q->mutex_q);
+        PacketEnqueue(q, p->root);
+        mutex_unlock(&q->mutex_q);
     }
+
     CLEAR_PACKET(p);
 
     mutex_lock(&q->mutex_q);
-    if (proot) {
-        PacketEnqueue(q, p->root);
-    }
     PacketEnqueue(q, p);
     mutex_unlock(&q->mutex_q);
 
@@ -123,6 +125,13 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     //printf("TmqhOutputPacketpool: pending %" PRIu32 "\n", pending);
     if (pending > 0) {
         pending--;
+        if (proot) {
+            if (pending > 0) {
+                pending--;
+            } else {
+                printf("TmqhOutputPacketpool: warning, trying to subtract from 0 pending counter (tunnel root).\n");
+            }
+        }
     } else {
         printf("TmqhOutputPacketpool: warning, trying to subtract from 0 pending counter.\n");
     }

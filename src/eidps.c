@@ -126,7 +126,8 @@ Packet *SetupPktWait (void)
              * we can exit on signals received */
         }
     } while (p == NULL);
-        memset(p, 0, sizeof(Packet));
+
+    memset(p, 0, sizeof(Packet));
 
     return p;
 }
@@ -161,7 +162,8 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
     //printf("TunnelPktSetup: pkt %p, len %" PRIu32 ", proto %" PRIu32 "\n", pkt, len, proto);
 
     /* get us a packet */
-    Packet *p = NULL;
+    Packet *p = SetupPkt();
+#if 0
     do {
         mutex_lock(&packet_q.mutex_q);
         p = PacketDequeue(&packet_q);
@@ -175,7 +177,7 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
              * we can exit on signals received */
         }
     } while (p == NULL);
-
+#endif
     mutex_lock(&mutex_pending);
     pending++;
 #ifdef DBG_PERF
