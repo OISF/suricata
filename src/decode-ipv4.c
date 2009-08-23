@@ -255,9 +255,10 @@ static int DecodeIPV4Options(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t l
     p->IPV4_OPTS_CNT = 0;
 
 #ifdef DEBUG
+    printf("DecodeIPV4Options\n");
     {
         uint16_t i;
-        printf("IPV4OPTS: {");
+        printf("IPV4OPTS: { ");
         for (i = 0; i < len; i++) {
             printf("%02" PRIx8 " ", pkt[i]);
         }
@@ -276,8 +277,20 @@ static int DecodeIPV4Options(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t l
         /* single byte options */
         if (*pkt == IPV4_OPT_EOL) {
             /** \todo What if more data exist after EOL (possible covert channel or data leakage)? */
+#ifdef DEBUG
+            printf("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "\n",
+                   *pkt,
+                   (len - plen),
+                   (len - 1));
+#endif
             break;
         } else if (*pkt == IPV4_OPT_NOP) {
+#ifdef DEBUG
+            printf("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "\n",
+                   *pkt,
+                   (len - plen),
+                   (len - 1));
+#endif
             pkt++;
             plen--;
 
@@ -571,27 +584,26 @@ void DecodeIPV4OptionsPrint(Packet *p) {
     IPV4Vars *pv = &p->ip4vars;
 
     printf("DecodeIPV4Options: cnt=%" PRIu8
-           ",rr={t=%" PRIu8 ",l=%" PRIu8 ",d=0x%0" PRIxMAX "}"
-           ",qs={t=%" PRIu8 ",l=%" PRIu8 ",d=0x%0" PRIxMAX "}"
-           ",ts={t=%" PRIu8 ",l=%" PRIu8 ",d=0x%0" PRIxMAX "}"
-           ",sec={t=%" PRIu8 ",l=%" PRIu8 ",d=0x%0" PRIxMAX "}"
-           ",lsrr={t=%" PRIu8 ",l=%" PRIu8 ",d=0x%0" PRIxMAX "}"
-           ",cipso={t=%" PRIu8 ",l=%" PRIu8 ",d=0x%0" PRIxMAX "}"
-           ",sid={t=%" PRIu8 ",l=%" PRIu8 ",d=0x%0" PRIxMAX "}"
-           ",ssrr={t=%" PRIu8 ",l=%" PRIu8 ",d=0x%0" PRIxMAX "}"
-           ",rtralt={t=%" PRIu8 ",l=%" PRIu8 ",d=0x%0" PRIxMAX "}"
+           ",rr={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
+           ",qs={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
+           ",ts={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
+           ",sec={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
+           ",lsrr={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
+           ",cipso={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
+           ",sid={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
+           ",ssrr={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
+           ",rtralt={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
            "}\n",
            pv->ip_opt_cnt,
-           (pv->o_rr ? pv->o_rr->type : 0), (pv->o_rr ? pv->o_rr->len : 0), (uintmax_t)(pv->o_rr ? pv->o_rr->data : 0),
-           (pv->o_qs ? pv->o_qs->type : 0), (pv->o_qs ? pv->o_qs->len : 0), (uintmax_t)(pv->o_qs ? pv->o_qs->data : 0),
-           (pv->o_ts ? pv->o_ts->type : 0), (pv->o_ts ? pv->o_ts->len : 0), (uintmax_t)(pv->o_ts ? pv->o_ts->data : 0),
-           (pv->o_sec ? pv->o_sec->type : 0), (pv->o_sec ? pv->o_sec->len : 0), (uintmax_t)(pv->o_sec ? pv->o_sec->data : 0),
-           (pv->o_lsrr ? pv->o_lsrr->type : 0), (pv->o_lsrr ? pv->o_lsrr->len : 0), (uintmax_t)(pv->o_lsrr ? pv->o_lsrr->data : 0),
-           (pv->o_cipso ? pv->o_cipso->type : 0), (pv->o_cipso ? pv->o_cipso->len : 0), (uintmax_t)(pv->o_cipso ? pv->o_cipso->data : 0),
-           (pv->o_sid ? pv->o_sid->type : 0), (pv->o_sid ? pv->o_sid->len : 0), (uintmax_t)(pv->o_sid ? pv->o_sid->data : 0),
-           (pv->o_ssrr ? pv->o_ssrr->type : 0), (pv->o_ssrr ? pv->o_ssrr->len : 0), (uintmax_t)(pv->o_ssrr ? pv->o_ssrr->data : 0),
-           (pv->o_rtralt ? pv->o_rtralt->type : 0), (pv->o_rtralt ? pv->o_rtralt->len : 0), (uintmax_t)(pv->o_rtralt ? pv->o_rtralt->data : 0));
-#endif
+           (pv->o_rr ? pv->o_rr->type : 0), (pv->o_rr ? pv->o_rr->len : 0), (pv->o_rr ? pv->o_rr->data : 0),
+           (pv->o_qs ? pv->o_qs->type : 0), (pv->o_qs ? pv->o_qs->len : 0), (pv->o_qs ? pv->o_qs->data : 0),
+           (pv->o_ts ? pv->o_ts->type : 0), (pv->o_ts ? pv->o_ts->len : 0), (pv->o_ts ? pv->o_ts->data : 0),
+           (pv->o_sec ? pv->o_sec->type : 0), (pv->o_sec ? pv->o_sec->len : 0), (pv->o_sec ? pv->o_sec->data : 0),
+           (pv->o_lsrr ? pv->o_lsrr->type : 0), (pv->o_lsrr ? pv->o_lsrr->len : 0), (pv->o_lsrr ? pv->o_lsrr->data : 0),
+           (pv->o_cipso ? pv->o_cipso->type : 0), (pv->o_cipso ? pv->o_cipso->len : 0), (pv->o_cipso ? pv->o_cipso->data : 0),
+           (pv->o_sid ? pv->o_sid->type : 0), (pv->o_sid ? pv->o_sid->len : 0), (pv->o_sid ? pv->o_sid->data : 0),
+           (pv->o_ssrr ? pv->o_ssrr->type : 0), (pv->o_ssrr ? pv->o_ssrr->len : 0), (pv->o_ssrr ? pv->o_ssrr->data : 0),
+           (pv->o_rtralt ? pv->o_rtralt->type : 0), (pv->o_rtralt ? pv->o_rtralt->len : 0), (pv->o_rtralt ? pv->o_rtralt->data : 0));
 }
 
 /** \test IPV4 with no options. */

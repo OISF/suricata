@@ -1052,7 +1052,7 @@ int PerfOutputCounterFileIface()
                     fprintf(perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
                             pc->name->cname, pc->name->tm_name, *ui64_cvalue);
 #ifdef DEBUG
-                    printf("%-10" PRIuMAX " %-10" PRIu64 " %-10s %-" PRIu64 "\n", pc->name->tid, pc->id,
+                    printf("%-10" PRIuMAX " %-10" PRIu16 " %-10s %-" PRIu64 "\n", pc->name->tid, pc->id,
                            pc->name->cname, *ui64_cvalue);
 #endif
                     pc = pc->next;
