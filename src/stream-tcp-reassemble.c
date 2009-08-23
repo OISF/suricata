@@ -871,34 +871,34 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
     for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);) {
         printf("StreamTcpReassembleHandleSegmentUpdateACK: seg %p\n", seg);
 
+        /* we've run into a sequence gap */
         if (next_seq != seg->seq) {
 
+            /* see what the length of the gap is, gap length is seg->seq - (ra_base_seq +1) */
             if (SEQ_GEQ(stream->last_ack, next_seq)) {
                 gap_len = seg->seq - next_seq;
                 printf("StreamTcpReassembleHandleSegmentUpdateACK: expected next_seq %" PRIu32 ", got %" PRIu32 " , stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"\n", next_seq, seg->seq, stream->last_ack, gap_len);
                 next_seq = seg->seq;
             }
 
-            stream->ra_base_seq = seg->seq - 1;
-
+            /* pass on pre existing smsgs if any */
             if (smsg != NULL && smsg->data.data_len > 0) {
-                smsg->flags |= STREAM_EOF;
-                smsg->gap.gap_size = gap_len;
 #ifdef DEBUG
                 PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
 #endif
                 StreamMsgPutInQueue(smsg);
+                smsg  = NULL;
             }
 
-            smsg = NULL;
-            smsg = StreamMsgGetFromPool();
             if (smsg == NULL) {
-                printf("StreamTcpReassembleHandleSegmentUpdateACK: couldn't "
-                        "get a stream msg from the pool\n");
-                return -1;
+                smsg = StreamMsgGetFromPool();
+                if (smsg == NULL) {
+                    printf("StreamTcpReassembleHandleSegmentUpdateACK: couldn't "
+                            "get a stream msg from the pool\n");
+                    return -1;
+                }
             }
 
-            smsg_offset = 0;
             if (stream->ra_base_seq == stream->isn) {
                 StreamTcpSetupInitMsg(p, smsg);
             } else {
@@ -910,8 +910,16 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpSession *ssn, TcpStream *strea
             if (smsg->flow)
                 smsg->flow->use_cnt++;
 
+            /*As IDS has missed the packet and end host has acknowldge it, so
+             IDS should adavced it ra_base_seq and should not consider this packet
+             any longer, even if it is retransmitted, as end host will drop it anyway */
+            stream->ra_base_seq = seg->seq - 1;
+
             smsg->flags |= STREAM_GAP;
             smsg->gap.gap_size = gap_len;
+            StreamMsgPutInQueue(smsg);
+            smsg = NULL;
+            smsg_offset = 0;
         }
 
         /* if the segment ends beyond ra_base_seq we need to consider it */
@@ -1490,16 +1498,34 @@ static int StreamTcpCheckStreamContents(uint8_t *stream_policy, TcpStream *strea
  *  \retval On success the function returns 1, on failure 0.
  */
 
-static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q) {
+static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q, uint8_t test_case) {
     StreamMsg *msg;
     uint16_t i = 0;
     uint8_t j;
+    uint8_t cnt = 0;
 
     msg = StreamMsgGetFromQueue(q);
 
     while(msg != NULL) {
-        if (msg->gap.gap_size != 3)
-            return 0;
+        cnt++;
+        switch (test_case) {
+            /*Gap at start*/
+            case 1:
+                if (cnt == 1 && msg->gap.gap_size != 3)
+                    return 0;
+                break;
+            /*Gap at middle*/
+            case 2:
+                if (cnt == 2 && msg->gap.gap_size != 3)
+                    return 0;
+                break;
+            /*Gap at end*/
+            case 3:
+                if (cnt == 2 && msg->gap.gap_size != 3)
+                    return 0;
+                break;
+        }
+
 #ifdef DEBUG
         printf("hellow world %" PRIu32"\n", msg->gap.gap_size);
 #endif
@@ -2593,7 +2619,7 @@ static int StreamTcpReassembleTest28 (void) {
 
     StreamMsgQueue *q = StreamMsgQueueGetByPort(200);
 
-    if (StreamTcpCheckQueue(check_contents, q) == 0) {
+    if (StreamTcpCheckQueue(check_contents, q, 1) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2666,7 +2692,7 @@ static int StreamTcpReassembleTest29 (void) {
 
     StreamMsgQueue *q = StreamMsgQueueGetByPort(200);
 
-    if (StreamTcpCheckQueue(check_contents, q) == 0) {
+    if (StreamTcpCheckQueue(check_contents, q, 2) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2758,7 +2784,7 @@ static int StreamTcpReassembleTest30 (void) {
 
     StreamMsgQueue *q = StreamMsgQueueGetByPort(200);
 
-    if (StreamTcpCheckQueue(check_contents, q) == 0) {
+    if (StreamTcpCheckQueue(check_contents, q, 3) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
