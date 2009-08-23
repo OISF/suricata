@@ -32,6 +32,7 @@
 #include "action-globals.h"
 
 #include "decode-ethernet.h"
+#include "decode-gre.h"
 #include "decode-ppp.h"
 #include "decode-pppoe.h"
 #include "decode-sll.h"
@@ -241,6 +242,7 @@ typedef struct Packet_
     EthernetHdr *ethh;
     PPPHdr *ppph;
     PPPoEHdr *pppoeh;
+    GREHdr *greh;
 
     IPV4Hdr *ip4h;
     IPV4Vars ip4vars;
@@ -314,6 +316,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_icmpv4;
     uint16_t counter_icmpv6;
     uint16_t counter_ppp;
+    uint16_t counter_gre;
     uint16_t counter_pppoe;
     uint16_t counter_avg_pkt_size;
     uint16_t counter_max_pkt_size;
@@ -328,6 +331,7 @@ typedef struct DecodeThreadVars_
     } \
     (p)->ethh = NULL; \
     (p)->ppph = NULL; \
+    (p)->greh = NULL; \
     (p)->ip4h = NULL; \
     (p)->ip6h = NULL; \
     (p)->action = 0; \
@@ -419,6 +423,7 @@ Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, ui
 #define LINKTYPE_ETHERNET   DLT_EN10MB
 #define LINKTYPE_LINUX_SLL  113
 #define LINKTYPE_PPP	9
+#define PPP_OVER_GRE    11
 
 #endif /* __DECODE_H__ */
 

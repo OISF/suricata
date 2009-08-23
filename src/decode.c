@@ -8,6 +8,9 @@
 void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     switch (p->tunnel_proto) {
+        case PPP_OVER_GRE:
+            return DecodePPP(tv, dtv, p, pkt, len, pq);
+            break;
         case IPPROTO_IP:
             return DecodeIPV4(tv, dtv, p, pkt, len, pq);
         case IPPROTO_IPV6:

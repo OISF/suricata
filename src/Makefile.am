@@ -8,6 +8,7 @@ source-pcap-file.c source-pcap-file.h \
 decode.c decode.h \
 decode-ethernet.c decode-ethernet.h \
 decode-sll.c decode-sll.h \
+decode-gre.c decode-gre.h \
 decode-ppp.c decode-ppp.h \
 decode-pppoe.c decode-pppoe.h \
 decode-ipv4.c decode-ipv4.h \

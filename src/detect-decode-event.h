@@ -59,6 +59,20 @@ struct DetectDecodeEvents_ {
     { "ppp.ip6_pkt_too_small", PPPIPV6_PKT_TOO_SMALL, },
     { "ppp.wrong_type", PPP_WRONG_TYPE, }, /** unknown & invalid protocol */
     { "ppp.unsup_proto", PPP_UNSUP_PROTO, }, /** unsupported but valid protocol */
+    { "gre.pkt_too_small", GRE_PKT_TOO_SMALL, },
+    { "gre.wrong_version", GRE_WRONG_VERSION, },
+    { "gre.version0_recur", GRE_VERSION0_RECUR, },
+    { "gre.version0_flags", GRE_VERSION0_FLAGS, },
+    { "gre.version0_hdr_too_big", GRE_VERSION0_HDR_TOO_BIG, },
+    { "gre.version1_chksum", GRE_VERSION1_CHKSUM, },
+    { "gre.version1_route", GRE_VERSION1_ROUTE, },
+    { "gre.version1_ssr", GRE_VERSION1_SSR, },
+    { "gre.version1_recur", GRE_VERSION1_RECUR, },
+    { "gre.version1_flags", GRE_VERSION1_FLAGS, },
+    { "gre.version1_no_key", GRE_VERSION1_NO_KEY, },
+    { "gre.version1_wrong_protocol", GRE_VERSION1_WRONG_PROTOCOL, },
+    { "gre.version1_malformed_sre_hdr", GRE_VERSION1_MALFORMED_SRE_HDR, },
+    { "gre.version1_hdr_too_big", GRE_VERSION1_HDR_TOO_BIG, },
     { NULL, 0 },
 };
 #endif /* DETECT_EVENTS */
