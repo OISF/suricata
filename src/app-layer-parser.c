@@ -456,7 +456,8 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
             return -1;
 
         mutex_lock(&f->m);
-        ssn->l7data[app_layer_sid] = (void *)parser_state_store;
+        if (ssn->l7data != NULL) /** \todo remove once we fixed ssn timeouts */
+            ssn->l7data[app_layer_sid] = (void *)parser_state_store;
         mutex_unlock(&f->m);
     }
 
@@ -492,14 +493,19 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
         parser_state->flags |= APP_LAYER_PARSER_EOF;
 
     /* See if we already have a 'app layer' state */
-    void *app_layer_state = ssn->l7data[p->storage_id];
+    void *app_layer_state = NULL;
+    mutex_lock(&f->m);
+    if (ssn->l7data != NULL) /** \todo remove once we fixed ssn timeouts */
+        app_layer_state = ssn->l7data[p->storage_id];
+    mutex_unlock(&f->m);
     if (app_layer_state == NULL) {
         app_layer_state = p->StateAlloc();
         if (app_layer_state == NULL)
             return -1;
 
         mutex_lock(&f->m);
-        ssn->l7data[p->storage_id] = app_layer_state;
+        if (ssn->l7data != NULL) /** \todo remove once we fixed ssn timeouts */
+            ssn->l7data[p->storage_id] = app_layer_state;
         mutex_unlock(&f->m);
     }
 

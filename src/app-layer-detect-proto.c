@@ -369,7 +369,12 @@ void *AppLayerDetectProtoThread(void *td)
             mutex_lock(&smsg->flow->m);
             if (store == 1) {
                 /* store */
-                ssn->l7data[al_proto_id] = (void *)al_proto;
+                if (ssn != NULL && ssn->l7data != NULL) {
+                    ssn->l7data[al_proto_id] = (void *)al_proto;
+                } else {
+                    al_proto->proto = 0;
+                    PoolReturn(al_detect_proto_pool,(void *)al_proto);
+                }
                 store = 0;
             }
             /* XXX we need to improve this logic */
