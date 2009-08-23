@@ -579,8 +579,6 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 #ifdef UNITTESTS
 
 void DecodeIPV4OptionsPrint(Packet *p) {
-/** \todo Fix this on 32bit */
-#if 0
     IPV4Vars *pv = &p->ip4vars;
 
     printf("DecodeIPV4Options: cnt=%" PRIu8
