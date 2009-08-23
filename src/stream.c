@@ -127,7 +127,9 @@ void StreamMsgPutInQueue(StreamMsg *s)
 
     mutex_lock(&q->mutex_q);
     StreamMsgEnqueue(q, s);
+#ifdef DEBUG
     printf("StreamMsgPutInQueue: q->len %" PRIu32 "\n", q->len);
+#endif
     pthread_cond_signal(&q->cond_q);
     mutex_unlock(&q->mutex_q);
 }

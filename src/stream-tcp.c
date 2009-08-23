@@ -206,7 +206,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
 
             /* set the state */
             ssn->state = TCP_SYN_SENT;
+#ifdef DEBUG
             printf("StreamTcpPacketStateNone (%p): =~ ssn state is now TCP_SYN_SENT\n", ssn);
+#endif
 
             /* set the sequence numbers and window */
             ssn->client.isn = TCP_GET_SEQ(p);
@@ -217,11 +219,15 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             //ssn->server.last_ack = ssn->client.isn + 1;
             //ssn->server.last_ack = TCP_GET_ACK(p);
 
+#ifdef DEBUG
             printf("StreamTcpPacketStateNone (%p): ssn->client.isn %" PRIu32 ", ssn->client.next_seq %" PRIu32 "\n",
                     ssn, ssn->client.isn, ssn->client.next_seq);
+#endif
 
             if (p->tcpvars.ws != NULL) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateNone (%p): p->tcpvars.ws %p, %02x\n", ssn, p->tcpvars.ws, *p->tcpvars.ws->data);
+#endif
                 ssn->client.wscale = *p->tcpvars.ws->data;
             }
             break;
@@ -236,7 +242,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             }
             /* set the state */
             ssn->state = TCP_SYN_RECV;
+#ifdef DEBUG
             printf("StreamTcpPacketStateNone (%p): =~ midstream picked ssn state is now TCP_SYN_RECV\n", ssn);
+#endif
             ssn->flags = STREAMTCP_FLAG_MIDSTREAM;
 
             /* sequence number & window */
@@ -244,26 +252,29 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             ssn->server.ra_base_seq = ssn->server.isn;
             ssn->server.next_seq = ssn->server.isn + 1;
             ssn->server.window = TCP_GET_WINDOW(p);
+#ifdef DEBUG
             printf("StreamTcpPacketStateNone: (%p): server window %u\n", ssn, ssn->server.window);
-
+#endif
             ssn->client.isn = TCP_GET_ACK(p) - 1;
             ssn->client.ra_base_seq = ssn->client.isn;
             ssn->client.next_seq = ssn->client.isn + 1;
 
-
             ssn->client.last_ack = TCP_GET_ACK(p);
 
+#ifdef DEBUG
             printf("StreamTcpPacketStateNone (%p): ssn->client.isn %u, ssn->client.next_seq %u\n",
                     ssn, ssn->client.isn, ssn->client.next_seq);
-
+#endif
             if (p->tcpvars.ws != NULL) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateNone (%p): p->tcpvars.ws %p, %02x\n", ssn, p->tcpvars.ws, *p->tcpvars.ws->data);
+#endif
                 ssn->server.wscale = *p->tcpvars.ws->data;
             }
-
+#ifdef DEBUG
             printf("StreamTcpPacketStateNone (%p): ssn->server.isn %u, ssn->server.next_seq %u, ssn->CLIENT.last_ack %u\n",
                     ssn, ssn->server.isn, ssn->server.next_seq, ssn->client.last_ack);
-
+#endif
             break;
         /*Handle SYN/ACK and 3WHS shake missed together as it is almost similar. ryt ?*/
         case TH_ACK:
@@ -277,7 +288,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             }
             /* set the state */
             ssn->state = TCP_ESTABLISHED;
+#ifdef DEBUG
             printf("StreamTcpPacketStateNone (%p): =~ midstream picked ssn state is now TCP_ESTABLISHED\n", ssn);
+#endif
             ssn->flags = STREAMTCP_FLAG_MIDSTREAM;
             ssn->flags |= STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED;
 
@@ -288,9 +301,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             ssn->client.window = TCP_GET_WINDOW(p);
             ssn->client.last_ack = TCP_GET_SEQ(p);
             ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
+#ifdef DEBUG
              printf("StreamTcpPacketStateNone (%p): ssn->client.isn %u, ssn->client.next_seq %u\n",
                     ssn, ssn->client.isn, ssn->client.next_seq);
-
+#endif
             ssn->server.isn = TCP_GET_ACK(p) - 1;
             ssn->server.ra_base_seq = ssn->server.isn;
             ssn->server.next_seq = ssn->server.isn + 1;
@@ -309,10 +323,14 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
         case TH_FIN|TH_ACK:
         case TH_FIN|TH_ACK|TH_PUSH:
             p->flow->stream = NULL;
+#ifdef DEBUG
             printf ("StreamTcpPacketStateNone: FIN or RST packet received, no session setup\n");
+#endif
             break;
         default:
+#ifdef DEBUG
             printf("StreamTcpPacketStateNone: default case\n");
+#endif
             break;
     }
     return 0;
@@ -334,48 +352,59 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
 
     switch (p->tcph->th_flags) {
         case TH_SYN:
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynSent (%p): SYN packet on state SYN_SENT... resent\n", ssn);
+#endif
             break;
         case TH_SYN|TH_ACK:
             if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateSynSent (%p): SYN/ACK received in the wrong direction\n", ssn);
+#endif
                 return -1;
             }
 
             /* Check if the SYN/ACK packet ack's the earlier
              * received SYN packet. */
             if (!(SEQ_EQ(TCP_GET_ACK(p), ssn->client.isn + 1))) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateSynSent (%p): ACK mismatch, packet ACK %" PRIu32 " != %" PRIu32 " from stream\n",
                         ssn, TCP_GET_ACK(p), ssn->client.isn + 1);
+#endif
                 return -1;
             }
 
             /* update state */
             ssn->state = TCP_SYN_RECV;
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynSent (%p): =~ ssn state is now TCP_SYN_RECV\n", ssn);
-
+#endif
             /* sequence number & window */
             ssn->server.isn = TCP_GET_SEQ(p);
             ssn->server.ra_base_seq = ssn->server.isn;
             ssn->server.next_seq = ssn->server.isn + 1;
             ssn->server.window = TCP_GET_WINDOW(p);
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynSent: (%p): window %" PRIu32 "\n", ssn, ssn->server.window);
-
+#endif
             ssn->client.last_ack = TCP_GET_ACK(p);
             ssn->server.last_ack = ssn->server.isn + 1;
 
             if (ssn->client.wscale != 0 && p->tcpvars.ws != NULL) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateSynSent (%p): p->tcpvars.ws %p, %02x\n", ssn, p->tcpvars.ws, *p->tcpvars.ws->data);
+#endif
                 ssn->server.wscale = *p->tcpvars.ws->data;
             } else {
                 ssn->client.wscale = 0;
             }
 
             ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynSent (%p): next_win %" PRIu32 "\n", ssn, ssn->server.next_win);
-
             printf("StreamTcpPacketStateSynSent (%p): ssn->server.isn %" PRIu32 ", ssn->server.next_seq %" PRIu32 ", ssn->CLIENT.last_ack %" PRIu32 "\n",
                     ssn, ssn->server.isn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
@@ -390,7 +419,9 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
                 return -1;
             break;
         default:
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynSent (%p): default case\n", ssn);
+#endif
             break;
     }
 
@@ -413,19 +444,27 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
 
     switch (p->tcph->th_flags) {
         case TH_SYN:
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynRecv (%p): SYN packet on state SYN_RECV... resent\n", ssn);
+#endif
             break;
         case TH_SYN|TH_ACK:
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynRecv (%p): SYN/ACK packet on state SYN_RECV... resent\n", ssn);
+#endif
             break;
         case TH_ACK:
             if (PKT_IS_TOCLIENT(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateSynRecv (%p): ACK received in the wrong direction\n", ssn);
+#endif
                 return -1;
             }
 
             if (!(SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq))) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateSynRecv (%p): ACK received in the wrong direction\n", ssn);
+#endif
                 return -1;
             }
             ssn->server.last_ack = TCP_GET_ACK(p);
@@ -437,18 +476,21 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
                 ssn->server.wscale = 0;
                 ssn->client.wscale = 0;
             }
-
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynRecv (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                     ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
             ssn->state = TCP_ESTABLISHED;
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynRecv (%p): =~ ssn state is now TCP_ESTABLISHED\n", ssn);
-
+#endif
             ssn->client.next_seq += p->payload_len;
             ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
             ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynRecv (%p): next_win %" PRIu32 "\n", ssn, ssn->client.next_win);
+#endif
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
@@ -464,7 +506,9 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
                 return -1;
             break;
         default:
+#ifdef DEBUG
             printf("StreamTcpPacketStateSynRecv (%p): default case\n", ssn);
+#endif
             break;
     }
 
@@ -488,25 +532,32 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
 
     switch (p->tcph->th_flags) {
         case TH_SYN:
+#ifdef DEBUG
             printf("StreamTcpPacketStateEstablished (%p): SYN packet on state ESTABLISED... resent\n", ssn);
+#endif
             break;
         case TH_SYN|TH_ACK:
+#ifdef DEBUG
             printf("StreamTcpPacketStateEstablished (%p): SYN/ACK packet on state ESTABLISHED... resent\n", ssn);
+#endif
             break;
         case TH_ACK:
         case TH_ACK|TH_PUSH:
             if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateEstablished (%p): =+ pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
                 if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
                     ssn->client.next_seq += p->payload_len;
+#ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): ssn->client.next_seq %" PRIu32 "\n", ssn, ssn->client.next_seq);
+#endif
                 }
 
                 if (SEQ_GEQ(TCP_GET_SEQ(p), ssn->client.last_ack) &&
                     SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_win)) {
-    
+
                     ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
                     if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
@@ -514,20 +565,28 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
 
                     if (SEQ_GT(ssn->client.last_ack + ssn->client.window, ssn->client.next_win)) {
                         ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
+#ifdef DEBUG
                         printf("StreamTcpPacketStateEstablished (%p): ssn->client.next_win %" PRIu32 "\n", ssn, ssn->client.next_win);
+#endif
                     }
 
                     StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
                 } else {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): server !!!!! => SEQ mismatch, packet SEQ %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), last_ack %" PRIu32 ", next_win %" PRIu32 "\n",
                             ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) + p->payload_len, ssn->client.last_ack, ssn->client.next_win);
+#endif
                 }
 
+#ifdef DEBUG
                 printf("StreamTcpPacketStateEstablished (%p): next SEQ %" PRIu32 ", last ACK %" PRIu32 ", next win %" PRIu32 ", win %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack, ssn->client.next_win, ssn->client.window);
+#endif
             } else { /* implied to client */
+#ifdef DEBUG
                 printf("StreamTcpPacketStateEstablished (%p): =+ pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
+#endif
 
                 /*To get the server window value from the servers packet, when connection
                  is picked up as midstream*/
@@ -539,7 +598,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
 
                 if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
                     ssn->server.next_seq += p->payload_len;
+#ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): ssn->server.next_seq %" PRIu32 "\n", ssn, ssn->server.next_seq);
+#endif
                 }
 
                 if (SEQ_GEQ(TCP_GET_SEQ(p), ssn->server.last_ack) &&
@@ -552,17 +613,22 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
 
                     if (SEQ_GT(ssn->server.last_ack + ssn->server.window, ssn->server.next_win)) {
                         ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+#ifdef DEBUG
                         printf("StreamTcpPacketStateEstablished (%p): ssn->server.next_win %" PRIu32 "\n", ssn, ssn->server.next_win);
+#endif
                     }
 
                     StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
                 } else {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): client !!!!! => SEQ mismatch, packet SEQ %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), last_ack %" PRIu32 ", next_win %" PRIu32 "\n",
                             ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) + p->payload_len, ssn->server.last_ack, ssn->server.next_win);
+#endif
                 }
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateEstablished (%p): next SEQ %" PRIu32 ", last ACK %" PRIu32 ", next win %" PRIu32 ", win %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack, ssn->server.next_win, ssn->server.window);
+#endif
             }
             break;
         case TH_FIN:
@@ -575,45 +641,57 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
         case TH_RST|TH_ACK:
             if(ValidReset(ssn, p)) {
                 if(PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): Reset received and state changed to TCP_CLOSED\n", ssn);
+#endif
                     ssn->state = TCP_CLOSED;
                     /*Similar remote application is closed, so jump to CLOSE_WAIT*/
                     ssn->client.next_seq = TCP_GET_ACK(p);
                     ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len + 1;
+#ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): ssn->server.next_seq %" PRIu32 "\n", ssn, ssn->server.next_seq);
+#endif
                     ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
                     if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
                         ssn->server.last_ack = TCP_GET_ACK(p);
 
                     StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
-
+#ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                             ssn, ssn->client.next_seq, ssn->server.last_ack);
+#endif
                     StreamTcpSessionPktFree(p);
                 } else {
-                   printf("StreamTcpPacketStateEstablished (%p): Reset received and state changed to TCP_CLOSED\n", ssn);
+#ifdef DEBUG
+                    printf("StreamTcpPacketStateEstablished (%p): Reset received and state changed to TCP_CLOSED\n", ssn);
+#endif
                     ssn->state = TCP_CLOSED;
                     /*Similar remote application is closed, so jump to CLOSE_WAIT*/
                     ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len + 1;
                     ssn->client.next_seq = TCP_GET_ACK(p);
+#ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): ssn->server.next_seq %" PRIu32 "\n", ssn, ssn->server.next_seq);
+#endif
                     ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                     if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
                         ssn->client.last_ack = TCP_GET_ACK(p);
 
                     StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
-
+#ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                             ssn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
                     StreamTcpSessionPktFree(p);
                 }
             } else
                 return -1;
             break;
          default:
+#ifdef DEBUG
             printf("StreamTcpPacketStateEstablished (%p): default case\n", ssn);
+#endif
             break;
     }
     return 0;
@@ -631,20 +709,28 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
 static int StreamTcpHandleFin(TcpSession *ssn, Packet *p) {
 
     if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
         printf("StreamTcpPacket (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                 ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
+#endif
 
         if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq) || SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window))) {
+#ifdef DEBUG
               printf("StreamTcpPacket (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                       ssn, TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
               return -1;
         }
 
+#ifdef DEBUG
         printf("StreamTcpPacket (%p): state changed to TCP_CLOSE_WAIT\n", ssn);
+#endif
         ssn->state = TCP_CLOSE_WAIT;
         ssn->client.next_seq = TCP_GET_ACK(p);
         ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len + 1;
+#ifdef DEBUG
         printf("StreamTcpPacket (%p): ssn->server.next_seq %" PRIu32 "\n", ssn, ssn->server.next_seq);
+#endif
         ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
         if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
@@ -652,23 +738,32 @@ static int StreamTcpHandleFin(TcpSession *ssn, Packet *p) {
 
         StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
 
+#ifdef DEBUG
         printf("StreamTcpPacket (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                 ssn, ssn->client.next_seq, ssn->server.last_ack);
+#endif
     } else { /* implied to client */
+#ifdef DEBUG
         printf("StreamTcpPacket (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                 ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
         if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq) || SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window))) {
+#ifdef DEBUG
             printf("StreamTcpPacket (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                     ssn, TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
             return -1;
         }
 
+#ifdef DEBUG
         printf("StreamTcpPacket (%p): state changed to TCP_FIN_WAIT1\n", ssn);
+#endif
         ssn->state = TCP_FIN_WAIT1;
         ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len + 1;
         ssn->client.next_seq = TCP_GET_ACK(p);
+#ifdef DEBUG
         printf("StreamTcpPacket (%p): ssn->server.next_seq %" PRIu32 "\n", ssn, ssn->server.next_seq);
+#endif
         ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
         if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
@@ -676,8 +771,10 @@ static int StreamTcpHandleFin(TcpSession *ssn, Packet *p) {
 
         StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
 
+#ifdef DEBUG
         printf("StreamTcpPacket (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                 ssn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
     }
     return 0;
 }
@@ -699,11 +796,11 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
     switch (p->tcph->th_flags) {
         case TH_ACK:
             if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
-
                 printf("StreamTcpPacketStateFinWait1 (%p): state changed to TCP_FIN_WAIT2\n", ssn);
+#endif
                 ssn->state = TCP_FIN_WAIT2;
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
@@ -712,14 +809,16 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
                     ssn->server.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
+#endif
             } else { /* implied to client */
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
                 printf("StreamTcpPacketStateFinWait1 (%p): state changed to TCP_FIN_WAIT2\n", ssn);
+#endif
                 ssn->state = TCP_FIN_WAIT2;
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -727,25 +826,30 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
                     ssn->client.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
             }
             break;
         case TH_FIN:
         case TH_FIN|TH_ACK:
         case TH_FIN|TH_ACK|TH_PUSH:
             if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
                 if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq || SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window)))) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateFinWait1 (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
                     return -1;
                 }
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): state changed to TCP_TIME_WAIT\n", ssn);
+#endif
                 ssn->state = TCP_TIME_WAIT;
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
@@ -754,20 +858,26 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
                     ssn->server.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
+#endif
             } else { /* implied to client */
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
                 if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq) || SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window))) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateFinWait1 (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
                     return -1;
                 }
 
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): state changed to TCP_TIME_WAIT\n", ssn);
+#endif
                 ssn->state = TCP_TIME_WAIT;
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -775,15 +885,18 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
                     ssn->client.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
             }
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
             if(ValidReset(ssn, p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait1 (%p): Reset received state changed to TCP_CLOSED\n", ssn);
+#endif
                 ssn->state = TCP_CLOSED;
                 StreamTcpSessionPktFree(p);
             }
@@ -791,7 +904,9 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
                 return -1;
             break;
         default:
+#ifdef DEBUG
             printf("StreamTcpPacketStateFinWait1 (%p): default case\n", ssn);
+#endif
             break;
     }
 
@@ -815,16 +930,21 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
     switch (p->tcph->th_flags) {
         case TH_ACK:
             if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
+#endif
 
                 if (TCP_GET_SEQ(p) != ssn->client.next_seq) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateFinWait2 (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
                     return -1;
                 }
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): state changed to TCP_TIME_WAIT\n", ssn);
+#endif
                 ssn->state = TCP_TIME_WAIT;
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
@@ -832,20 +952,25 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
                     ssn->server.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
+#endif
             } else { /* implied to client */
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
                 if (TCP_GET_SEQ(p) != ssn->server.next_seq) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateFinWait2 (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
                     return -1;
                 }
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): state changed to TCP_TIME_WAIT\n", ssn);
+#endif
                 ssn->state = TCP_TIME_WAIT;
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -853,15 +978,18 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
                     ssn->client.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
             }
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
             if(ValidReset(ssn, p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): Reset received state changed to TCP_CLOSED\n", ssn);
+#endif
                 ssn->state = TCP_CLOSED;
                 StreamTcpSessionPktFree(p);
             }
@@ -870,18 +998,21 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
             break;
         case TH_FIN:
             if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
                 if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq || SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window)))) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateFinWait2 (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
                     return -1;
                 }
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): state changed to TCP_TIME_WAIT\n", ssn);
+#endif
                 ssn->state = TCP_TIME_WAIT;
-
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
                 if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
@@ -889,19 +1020,26 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
 
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
+#endif
             } else { /* implied to client */
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
+#endif
 
                 if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq) || SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window))) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateFinWait2 (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
                     return -1;
                 }
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): state changed to TCP_TIME_WAIT\n", ssn);
+#endif
                 ssn->state = TCP_TIME_WAIT;
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -909,13 +1047,16 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
                     ssn->client.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateFinWait2 (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
             }
             break;
         default:
+#ifdef DEBUG
             printf("StreamTcpPacketStateFinWait2 (%p): default case\n", ssn);
+#endif
             break;
     }
 
@@ -939,16 +1080,22 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p, StreamTcpThrea
     switch(p->tcph->th_flags) {
         case TH_ACK:
             if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateClosing (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
+#endif
 
                 if (TCP_GET_SEQ(p) != ssn->client.next_seq) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateClosing (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
                     return -1;
                 }
 
+#ifdef DEBUG
                 printf("StreamTcpPacketStateClosing (%p): state changed to TCP_TIME_WAIT\n", ssn);
+#endif
                 ssn->state = TCP_TIME_WAIT;
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
@@ -956,20 +1103,27 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p, StreamTcpThrea
                     ssn->server.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateClosing (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
+#endif
             } else { /* implied to client */
+#ifdef DEBUG
                 printf("StreamTcpPacketStateClosing (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
+#endif
 
                 if (TCP_GET_SEQ(p) != ssn->server.next_seq) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateClosing (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
                     return -1;
                 }
 
+#ifdef DEBUG
                 printf("StreamTcpPacketStateClosing (%p): state changed to TCP_TIME_WAIT\n", ssn);
+#endif
                 ssn->state = TCP_TIME_WAIT;
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -977,13 +1131,16 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p, StreamTcpThrea
                     ssn->client.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateClosing (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
             }
             break;
         default:
+#ifdef DEBUG
             printf("StreamTcpPacketStateClosing (%p): default case\n", ssn);
+#endif
             break;
     }
     return 0;
@@ -1006,16 +1163,22 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p, StreamTcpThr
     switch(p->tcph->th_flags) {
         case TH_FIN:
             if (PKT_IS_TOCLIENT(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateCloseWait (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
+#endif
 
                 if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq) || SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window))) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateCloseWait (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
                     return -1;
                 }
 
+#ifdef DEBUG
                 printf("StreamTcpPacketStateCloseWait (%p): state changed to TCP_LAST_ACK\n", ssn);
+#endif
                 ssn->state = TCP_LAST_ACK;
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -1023,13 +1186,16 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p, StreamTcpThr
                     ssn->client.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateCloseWait (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
             }
             break;
         default:
+#ifdef DEBUG
             printf("StreamTcpPacketStateCloseWait (%p): default case\n", ssn);
+#endif
             break;
     }
     return 0;
@@ -1052,16 +1218,20 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p, StreamTcpThrea
     switch(p->tcph->th_flags) {
         case TH_ACK:
             if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateLastAck (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
                 if (TCP_GET_SEQ(p) != ssn->client.next_seq) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateLastAck (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
                     return -1;
                 }
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateLastAck (%p): state changed to TCP_CLOSED\n", ssn);
+#endif
                 ssn->state = TCP_CLOSED;
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
@@ -1069,9 +1239,10 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p, StreamTcpThrea
                     ssn->server.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateLastAck (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
+#endif
                 StreamTcpSessionPktFree(p);
             }
             break;
@@ -1099,16 +1270,20 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
     switch(p->tcph->th_flags) {
         case TH_ACK:
             if (PKT_IS_TOSERVER(p)) {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateTimeWait (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
                 if (TCP_GET_SEQ(p) != ssn->client.next_seq) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateTimeWait (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
                     return -1;
                 }
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateTimeWait (%p): state changed to TCP_CLOSED\n", ssn);
+#endif
                 ssn->state = TCP_CLOSED;
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
@@ -1116,21 +1291,26 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
                     ssn->server.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateTimeWait (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
+#endif
                 StreamTcpSessionPktFree(p);
             } else {
+#ifdef DEBUG
                 printf("StreamTcpPacketStateTimeWait (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
                         ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
-
+#endif
                 if (TCP_GET_SEQ(p) != ssn->server.next_seq) {
+#ifdef DEBUG
                     printf("StreamTcpPacketStateTimeWait (%p): -> SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from stream\n",
                             ssn, TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
                     return -1;
                 }
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateTimeWait (%p): state changed to TCP_CLOSED\n", ssn);
+#endif
                 ssn->state = TCP_CLOSED;
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -1138,14 +1318,17 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
                     ssn->client.last_ack = TCP_GET_ACK(p);
 
                 StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
-
+#ifdef DEBUG
                 printf("StreamTcpPacketStateTimeWait (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
+#endif
                 StreamTcpSessionPktFree(p);
             }
             break;
         default:
+#ifdef DEBUG
             printf("StreamTcpPacketStateTimeWait (%p): default case\n", ssn);
+#endif
             break;
 
     }
@@ -1247,7 +1430,7 @@ int StreamTcpThreadInit(ThreadVars *t, void *initdata, void **data)
 
     *data = (void *)stt;
 
-    stt->counter_tcp_streams = PerfTVRegisterAvgCounter("streamTcp.tcp_streams",
+    stt->counter_tcp_streams = PerfTVRegisterAvgCounter("streamtcp.tcp_streams",
                                                         t, TYPE_DOUBLE, "NULL");
 
     t->pca = PerfGetAllCountersArray(&t->pctx);
@@ -1309,18 +1492,26 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
         case OS_POLICY_VISTA:
             if(PKT_IS_TOSERVER(p)){
                 if(SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq)) {
+#ifdef DEBUG
                     printf("Reset is Valid! Pakcet SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p));
+#endif
                     return 1;
                 } else {
+#ifdef DEBUG
                     printf("Reset is not Valid! Packet SEQ: %" PRIu32 " and server SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
                     return 0;
                 }
             } else { /* implied to client */
                 if(SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq)) {
+#ifdef DEBUG
                     printf("Reset is Valid! Pakcet SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p));
+#endif
                     return 1;
                 } else {
+#ifdef DEBUG
                     printf("Reset is not Valid! Packet SEQ: %" PRIu32 " and client SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
                     return 0;
                 }
             }
@@ -1328,18 +1519,26 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
         case OS_POLICY_HPUX11:
             if(PKT_IS_TOSERVER(p)){
                 if(SEQ_GEQ(TCP_GET_SEQ(p), ssn->client.next_seq)) {
+#ifdef DEBUG
                     printf("Reset is Valid! Pakcet SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p));
+#endif
                     return 1;
                 } else {
+#ifdef DEBUG
                     printf("Reset is not Valid! Packet SEQ: %" PRIu32 " and server SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
                     return 0;
                 }
             } else { /* implied to client */
                 if(SEQ_GEQ(TCP_GET_SEQ(p), ssn->server.next_seq)) {
+#ifdef DEBUG
                     printf("Reset is Valid! Pakcet SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p));
+#endif
                     return 1;
                 } else {
+#ifdef DEBUG
                     printf("Reset is not Valid! Packet SEQ: %" PRIu32 " and client SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
                     return 0;
                 }
             }
@@ -1350,27 +1549,37 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
             if(PKT_IS_TOSERVER(p)){
                 if(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->client.last_ack)) { /*window base is needed !!*/
                     if(SEQ_LT(TCP_GET_SEQ(p), (ssn->client.next_seq + ssn->client.window))) {
+#ifdef DEBUG
                         printf("Reset is Valid! Pakcet SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p));
+#endif
                         return 1;
                     }
                 } else {
+#ifdef DEBUG
                     printf("Reset is not Valid! Packet SEQ: %" PRIu32 " and server SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p), ssn->client.next_seq);
+#endif
                     return 0;
                 }
             } else { /* implied to client */
                 if(SEQ_GEQ((TCP_GET_SEQ(p) + p->payload_len), ssn->server.last_ack)) { /*window base is needed !!*/
                     if(SEQ_LT(TCP_GET_SEQ(p), (ssn->server.next_seq + ssn->server.window))) {
+#ifdef DEBUG
                         printf("Reset is Valid! Pakcet SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p));
+#endif
                         return 1;
                     }
                 } else {
+#ifdef DEBUG
                     printf("Reset is not Valid! Packet SEQ: %" PRIu32 " and client SEQ: %" PRIu32 "\n", TCP_GET_SEQ(p), ssn->server.next_seq);
+#endif
                     return 0;
                 }
             }
             break;
         default:
+#ifdef DEBUG
             printf("Reset is not Valid! Packet SEQ: %" PRIu32 " & os_policy default case\n", TCP_GET_SEQ(p));
+#endif
             break;
     }
     return 0;
