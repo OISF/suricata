@@ -971,6 +971,7 @@ int main(int argc, char **argv)
         HTTPParserRegisterTests();
         DecodePPPoERegisterTests();
         DecodeICMPV4RegisterTests();
+        DecodeIPV4RegisterTests();
         AlpDetectRegisterTests();
         ConfRegisterTests();
         UtRunTests();

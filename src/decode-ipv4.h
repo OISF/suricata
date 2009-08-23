@@ -9,30 +9,60 @@
 #include <netinet/in.h>
 #include <net/if.h>
 
-#define IPV4_HEADER_LEN           20
-#define IPV4_OPTMAX               40
-#define	IPV4_MAXPACKET_LEN        65535 /* maximum packet size */
+#define IPV4_HEADER_LEN           20    /**< Header length */
+#define IPV4_OPTMAX               40    /**< Max options length */
+#define	IPV4_MAXPACKET_LEN        65535 /**< Maximum packet size */
 
-#define IPV4_OPT_EOL              0x00
-#define IPV4_OPT_NOP              0x01
-#define IPV4_OPT_RR               0x07
-#define IPV4_OPT_RTRALT           0x94
-#define IPV4_OPT_TS               0x44
-#define IPV4_OPT_SECURITY         0x82
-#define IPV4_OPT_LSRR             0x83
+/** IP Option Types */
+#define IPV4_OPT_EOL              0x00  /**< Option: End of List */
+#define IPV4_OPT_NOP              0x01  /**< Option: No op */
+#define IPV4_OPT_RR               0x07  /**< Option: Record Route */
+#define IPV4_OPT_QS               0x19  /**< Option: Quick Start */
+#define IPV4_OPT_TS               0x44  /**< Option: Timestamp */
+#define IPV4_OPT_SEC              0x82  /**< Option: Security */
+#define IPV4_OPT_LSRR             0x83  /**< Option: Loose Source Route */
+#define IPV4_OPT_CIPSO            0x86  /**< Option: Commercial IP Security */
+#define IPV4_OPT_SID              0x88  /**< Option: Stream Identifier */
+#define IPV4_OPT_SSRR             0x89  /**< Option: Strict Source Route */
+#define IPV4_OPT_RTRALT           0x94  /**< Option: Router Alert */
+
+/** IP Option Lengths (fixed) */
+#define IPV4_OPT_SEC_LEN          11    /**< SEC Option Fixed Length */
+#define IPV4_OPT_SID_LEN          4     /**< SID Option Fixed Length */
+#define IPV4_OPT_RTRALT_LEN       4     /**< RTRALT Option Fixed Length */
+
+/** IP Option Lengths (variable) */
+#define IPV4_OPT_ROUTE_MIN        3     /**< RR, SRR, LTRR Option Min Length */
+#define IPV4_OPT_QS_MIN           8     /**< QS Option Min Length */
+#define IPV4_OPT_TS_MIN           5     /**< TS Option Min Length */
+#define IPV4_OPT_CIPSO_MIN        10    /**< CIPSO Option Min Length */
+
+/** IP Option fields */
+#define IPV4_OPTS                 ip4vars.ip_opts
+#define IPV4_OPTS_CNT             ip4vars.ip_opt_cnt
+
+typedef struct IPV4Opt_ {
+    /** \todo We may want to break type up into its 3 fields
+     *        as the reassembler may want to know which options
+     *        must be copied to each fragment.
+     */
+    uint8_t type;         /**< option type */
+    uint8_t len;          /**< option length (type+len+data) */
+    uint8_t *data;        /**< option data */
+} IPV4Opt;
 
 typedef struct IPV4Hdr_
 {
-    uint8_t ip_verhl;     /* version & header length */
-    uint8_t ip_tos;
-    uint16_t ip_len;      /* length */
-    uint16_t ip_id;       /* id */
-    uint16_t ip_off;      /* frag offset */
-    uint8_t ip_ttl;
-    uint8_t ip_proto;     /* protocol (tcp, udp, etc) */
-    uint16_t ip_csum;     /* checksum */
-    struct in_addr ip_src;
-    struct in_addr ip_dst;
+    uint8_t ip_verhl;     /**< version & header length */
+    uint8_t ip_tos;       /**< type of service */
+    uint16_t ip_len;      /**< length */
+    uint16_t ip_id;       /**< id */
+    uint16_t ip_off;      /**< frag offset */
+    uint8_t ip_ttl;       /**< time to live */
+    uint8_t ip_proto;     /**< protocol (tcp, udp, etc) */
+    uint16_t ip_csum;     /**< checksum */
+    struct in_addr ip_src;/**< source address */
+    struct in_addr ip_dst;/**< destination address */
 } IPV4Hdr;
 
 #define IPV4_GET_RAW_VER(ip4h)            (((ip4h)->ip_verhl & 0xf0) >> 4)
@@ -143,8 +173,23 @@ typedef struct IPV4Cache_
 /* helper structure with parsed ipv4 info */
 typedef struct IPV4Vars_
 {
-    uint8_t ip_opts_len;
+    uint8_t ip_opt_len;
+    IPV4Opt ip_opts[IPV4_OPTMAX];
+    uint8_t ip_opt_cnt;
+
+    /* These are here for direct access and dup tracking */
+    IPV4Opt *o_rr;
+    IPV4Opt *o_qs;
+    IPV4Opt *o_ts;
+    IPV4Opt *o_sec;
+    IPV4Opt *o_lsrr;
+    IPV4Opt *o_cipso;
+    IPV4Opt *o_sid;
+    IPV4Opt *o_ssrr;
+    IPV4Opt *o_rtralt;
 } IPV4Vars;
+
+void DecodeIPV4RegisterTests(void);
 
 #endif /* __DECODE_IPV4_H__ */
 
