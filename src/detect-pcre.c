@@ -23,7 +23,7 @@ static pcre_extra *parse_regex_study;
 static pcre *parse_capture_regex;
 static pcre_extra *parse_capture_regex_study;
 
-int DetectPcreMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
+int DetectPcreMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectPcreSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectPcreFree(void *);
 
@@ -79,7 +79,7 @@ error:
  *        -1: error
  */
 
-int DetectPcreMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
 {
 #define MAX_SUBSTRINGS 30
     int ret = 0;

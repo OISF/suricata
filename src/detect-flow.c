@@ -27,7 +27,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
+int DetectFlowMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectFlowSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectFlowRegisterTests(void);
 void DetectFlowFree(void *);
@@ -85,7 +85,7 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectFlowMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
 {
     uint8_t cnt = 0;
     DetectFlowData *fd = (DetectFlowData *)m->ctx;

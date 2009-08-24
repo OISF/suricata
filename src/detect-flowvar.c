@@ -19,7 +19,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowvarMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
+int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectFlowvarSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 
 void DetectFlowvarRegister (void) {
@@ -59,7 +59,7 @@ error:
  *        -1: error
  */
 
-int DetectFlowvarMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
 {
     int ret = 0;
     DetectFlowvarData *fd = (DetectFlowvarData *)m->ctx;

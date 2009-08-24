@@ -73,7 +73,7 @@ void TmModuleDetectRegister (void) {
 }
 
 void DetectExitPrintStats(ThreadVars *tv, void *data) {
-    PatternMatcherThread *pmt = (PatternMatcherThread *)data;
+    DetectEngineThreadCtx *pmt = (DetectEngineThreadCtx *)data;
     if (pmt == NULL)
         return;
 
@@ -312,7 +312,7 @@ void SigLoadSignatures (char *sig_file)
     //DetectPortPrintMemory();
 
     SigGroupBuild(g_de_ctx);
-    //SigGroupCleanup();
+    //SigGroupCleanup(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
@@ -347,7 +347,7 @@ int PacketAlertAppend(Packet *p, uint8_t gid, uint32_t sid, uint8_t rev, uint8_t
     return 0;
 }
 
-static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p) {
+static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *pmt, Packet *p) {
     int ds,f;
     SigGroupHead *sgh = NULL;
 
@@ -364,7 +364,7 @@ static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, PatternMa
         f = 1;
 
     /* find the right mpm instance */
-    DetectAddressGroup *ag = DetectAddressLookupGroup(g_de_ctx->dsize_gh[ds].flow_gh[f].src_gh[p->proto],&p->src);
+    DetectAddressGroup *ag = DetectAddressLookupGroup(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[p->proto],&p->src);
     if (ag != NULL) {
         /* source group found, lets try a dst group */
         ag = DetectAddressLookupGroup(ag->dst_gh,&p->dst);
@@ -387,11 +387,11 @@ static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, PatternMa
             }
         }
     }
-    
+
     return sgh;
 }
 
-int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
+int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *pmt, Packet *p)
 {
     int match = 0, fmatch = 0;
     Signature *s = NULL;
@@ -403,7 +403,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
     /* match the ip only signatures */
     if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
         (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
-         IPOnlyMatchPacket(g_de_ctx, &g_de_ctx->io_ctx, &pmt->io_ctx, p);
+         IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &pmt->io_ctx, p);
          /* save in the flow that we scanned this direction... locking is
           * done in the FlowSetIPOnlyFlag function. */
          if (p->flow != NULL)
@@ -413,7 +413,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
     /* we assume we don't have an uri when we start inspection */
     pmt->de_have_httpuri = 0;
 
-    pmt->sgh = SigMatchSignaturesGetSgh(th_v, pmt, p);
+    pmt->sgh = SigMatchSignaturesGetSgh(th_v, de_ctx, pmt, p);
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
     if (pmt->sgh == NULL) {
@@ -461,7 +461,7 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
     //for (idx = 0; idx < pmt->pmq.sig_id_array_cnt; idx++) {
         sig = pmt->sgh->match_array[idx];
         //sig = pmt->pmq.sig_id_array[idx];
-        s = g_de_ctx->sig_array[sig];
+        s = de_ctx->sig_array[sig];
 
         /* filter out sigs that want pattern matches, but
          * have no matches */
@@ -574,9 +574,10 @@ int SigMatchSignatures(ThreadVars *th_v, PatternMatcherThread *pmt, Packet *p)
 
 /* tm module api functions */
 int Detect(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
-    PatternMatcherThread *pmt = (PatternMatcherThread *)data;
+    DetectEngineThreadCtx *pmt = (DetectEngineThreadCtx *)data;
+    DetectEngineCtx *de_ctx = pmt->de_ctx;
 
-    int r = SigMatchSignatures(t,pmt,p);
+    int r = SigMatchSignatures(t,de_ctx,pmt,p);
     if (r >= 0) {
         return 0;
     }
@@ -588,24 +589,27 @@ int Detect(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
 
 int DetectThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    return PatternMatcherThreadInit(t,initdata,data);
+    return DetectEngineThreadCtxInit(t,initdata,data);
 }
 
 int DetectThreadDeinit(ThreadVars *t, void *data) {
-    return PatternMatcherThreadDeinit(t,data);
+    return DetectEngineThreadCtxDeinit(t,data);
 }
 
-void SigCleanSignatures()
+void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {
     Signature *s = NULL, *ns;
 
-    for (s = g_de_ctx->sig_list; s != NULL;) {
+    if (de_ctx == NULL)
+        return;
+
+    for (s = de_ctx->sig_list; s != NULL;) {
         ns = s->next;
         SigFree(s);
         s = ns;
     }
 
-    DetectEngineResetMaxSigId(g_de_ctx);
+    DetectEngineResetMaxSigId(de_ctx);
 }
 
 /* return codes:
@@ -2537,8 +2541,8 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-int SigGroupCleanup (void) {
-    SigAddressCleanupStage1(g_de_ctx);
+int SigGroupCleanup (DetectEngineCtx *de_ctx) {
+    SigAddressCleanupStage1(de_ctx);
     return 0;
 }
 
@@ -2609,9 +2613,10 @@ void SigTableRegisterTests(void) {
  * TESTS
  */
 
+#ifdef UNITTESTS
 #include "flow-util.h"
 
-int SigTest01 (void) {
+static int SigTest01Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -2622,7 +2627,7 @@ int SigTest01 (void) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2633,24 +2638,24 @@ int SigTest01 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1) == 0) {
         result = 0;
         goto end;
@@ -2667,17 +2672,27 @@ int SigTest01 (void) {
         result = 1;
     }
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
 
-int SigTest02 (void) {
+static int SigTest01B2g (void) {
+    return SigTest01Real(MPM_B2G);
+}
+static int SigTest01B3g (void) {
+    return SigTest01Real(MPM_B3G);
+}
+static int SigTest01Wm (void) {
+    return SigTest01Real(MPM_WUMANBER);
+}
+
+static int SigTest02Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -2688,7 +2703,7 @@ int SigTest02 (void) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2699,38 +2714,48 @@ int SigTest02 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx,mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1))
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest02B2g (void) {
+    return SigTest02Real(MPM_B2G);
+}
+static int SigTest02B3g (void) {
+    return SigTest02Real(MPM_B3G);
+}
+static int SigTest02Wm (void) {
+    return SigTest02Real(MPM_WUMANBER);
+}
 
-int SigTest03 (void) {
+
+static int SigTest03Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -2741,7 +2766,7 @@ int SigTest03 (void) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2752,38 +2777,48 @@ int SigTest03 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:40; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:40; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (!PacketAlertCheck(&p, 1))
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest03B2g (void) {
+    return SigTest03Real(MPM_B2G);
+}
+static int SigTest03B3g (void) {
+    return SigTest03Real(MPM_B3G);
+}
+static int SigTest03Wm (void) {
+    return SigTest03Real(MPM_WUMANBER);
+}
 
-int SigTest04 (void) {
+
+static int SigTest04Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -2795,7 +2830,7 @@ int SigTest04 (void) {
 
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2806,38 +2841,48 @@ int SigTest04 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:47; within:52; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:47; within:52; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1))
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest04B2g (void) {
+    return SigTest04Real(MPM_B2G);
+}
+static int SigTest04B3g (void) {
+    return SigTest04Real(MPM_B3G);
+}
+static int SigTest04Wm (void) {
+    return SigTest04Real(MPM_WUMANBER);
+}
 
-int SigTest05 (void) {
+
+static int SigTest05Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -2848,7 +2893,7 @@ int SigTest05 (void) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2859,38 +2904,48 @@ int SigTest05 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (!PacketAlertCheck(&p, 1))
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest05B2g (void) {
+    return SigTest05Real(MPM_B2G);
+}
+static int SigTest05B3g (void) {
+    return SigTest05Real(MPM_B3G);
+}
+static int SigTest05Wm (void) {
+    return SigTest05Real(MPM_WUMANBER);
+}
 
-int SigTest06 (void) {
+
+static int SigTest06Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -2901,7 +2956,7 @@ int SigTest06 (void) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2912,29 +2967,29 @@ int SigTest06 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
-    if (g_de_ctx->sig_list->next == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
     else
@@ -2942,17 +2997,27 @@ int SigTest06 (void) {
             PacketAlertCheck(&p, 1) ? "OK" : "FAIL",
             PacketAlertCheck(&p, 2) ? "OK" : "FAIL");
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest06B2g (void) {
+    return SigTest06Real(MPM_B2G);
+}
+static int SigTest06B3g (void) {
+    return SigTest06Real(MPM_B3G);
+}
+static int SigTest06Wm (void) {
+    return SigTest06Real(MPM_WUMANBER);
+}
 
-int SigTest07 (void) {
+
+static int SigTest07Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -2963,7 +3028,7 @@ int SigTest07 (void) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2974,45 +3039,55 @@ int SigTest07 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)");
-    if (g_de_ctx->sig_list->next == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 0;
     else
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest07B2g (void) {
+    return SigTest07Real(MPM_B2G);
+}
+static int SigTest07B3g (void) {
+    return SigTest07Real(MPM_B3G);
+}
+static int SigTest07Wm (void) {
+    return SigTest07Real(MPM_WUMANBER);
+}
 
-int SigTest08 (void) {
+
+static int SigTest08Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.0\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -3023,7 +3098,7 @@ int SigTest08 (void) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3034,29 +3109,29 @@ int SigTest08 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)");
-    if (g_de_ctx->sig_list->next == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
     else
@@ -3064,17 +3139,27 @@ int SigTest08 (void) {
             PacketAlertCheck(&p, 1) ? "OK" : "FAIL",
             PacketAlertCheck(&p, 2) ? "OK" : "FAIL");
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest08B2g (void) {
+    return SigTest08Real(MPM_B2G);
+}
+static int SigTest08B3g (void) {
+    return SigTest08Real(MPM_B3G);
+}
+static int SigTest08Wm (void) {
+    return SigTest08Real(MPM_WUMANBER);
+}
 
-int SigTest09 (void) {
+
+static int SigTest09Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.0\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -3085,7 +3170,7 @@ int SigTest09 (void) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3096,50 +3181,60 @@ int SigTest09 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
-    if (g_de_ctx->sig_list->next == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 0;
     else
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest09B2g (void) {
+    return SigTest09Real(MPM_B2G);
+}
+static int SigTest09B3g (void) {
+    return SigTest09Real(MPM_B3G);
+}
+static int SigTest09Wm (void) {
+    return SigTest09Real(MPM_WUMANBER);
+}
 
-int SigTest10 (void) {
+
+static int SigTest10Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "ABC";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3150,50 +3245,60 @@ int SigTest10 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Long content test (2)\"; content:\"VWXYZ\"; sid:2;)");
-    if (g_de_ctx->sig_list->next == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (2)\"; content:\"VWXYZ\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 0;
     else
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest10B2g (void) {
+    return SigTest10Real(MPM_B2G);
+}
+static int SigTest10B3g (void) {
+    return SigTest10Real(MPM_B3G);
+}
+static int SigTest10Wm (void) {
+    return SigTest10Real(MPM_WUMANBER);
+}
 
-int SigTest11 (void) {
+
+static int SigTest11Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3204,50 +3309,60 @@ int SigTest11 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Scan vs Search (1)\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Scan vs Search (1)\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Scan vs Search (2)\"; content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)");
-    if (g_de_ctx->sig_list->next == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Scan vs Search (2)\"; content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
     else
         result = 0;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest11B2g (void) {
+    return SigTest11Real(MPM_B2G);
+}
+static int SigTest11B3g (void) {
+    return SigTest11Real(MPM_B3G);
+}
+static int SigTest11Wm (void) {
+    return SigTest11Real(MPM_WUMANBER);
+}
 
-int SigTest12 (void) {
+
+static int SigTest12Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3258,45 +3373,55 @@ int SigTest12 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1))
         result = 1;
     else
         result = 0;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest12B2g (void) {
+    return SigTest12Real(MPM_B2G);
+}
+static int SigTest12B3g (void) {
+    return SigTest12Real(MPM_B3G);
+}
+static int SigTest12Wm (void) {
+    return SigTest12Real(MPM_WUMANBER);
+}
 
-int SigTest13 (void) {
+
+static int SigTest13Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3307,45 +3432,55 @@ int SigTest13 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1))
         result = 1;
     else
         result = 0;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest13B2g (void) {
+    return SigTest13Real(MPM_B2G);
+}
+static int SigTest13B3g (void) {
+    return SigTest13Real(MPM_B3G);
+}
+static int SigTest13Wm (void) {
+    return SigTest13Real(MPM_WUMANBER);
+}
 
-int SigTest14 (void) {
+
+static int SigTest14Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3356,45 +3491,55 @@ int SigTest14 (void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 1))
         result = 0;
     else
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest14B2g (void) {
+    return SigTest14Real(MPM_B2G);
+}
+static int SigTest14B3g (void) {
+    return SigTest14Real(MPM_B3G);
+}
+static int SigTest14Wm (void) {
+    return SigTest14Real(MPM_WUMANBER);
+}
 
-int SigTest15 (void) {
+
+static int SigTest15Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3406,45 +3551,55 @@ int SigTest15 (void) {
     p.proto = IPPROTO_TCP;
     p.dp = 80;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 2008284))
         result = 0;
     else
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest15B2g (void) {
+    return SigTest15Real(MPM_B2G);
+}
+static int SigTest15B3g (void) {
+    return SigTest15Real(MPM_B3G);
+}
+static int SigTest15Wm (void) {
+    return SigTest15Real(MPM_WUMANBER);
+}
 
-int SigTest16 (void) {
+
+static int SigTest16Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3456,38 +3611,48 @@ int SigTest16 (void) {
     p.proto = IPPROTO_TCP;
     p.dp = 1234;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
+    if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 2008284))
         result = 1;
     else
         printf("sid:2008284 %s: ", PacketAlertCheck(&p, 2008284) ? "OK" : "FAIL");
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest16B2g (void) {
+    return SigTest16Real(MPM_B2G);
+}
+static int SigTest16B3g (void) {
+    return SigTest16Real(MPM_B3G);
+}
+static int SigTest16Wm (void) {
+    return SigTest16Real(MPM_WUMANBER);
+}
 
-int SigTest17 (void) {
+
+static int SigTest17Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -3498,7 +3663,7 @@ int SigTest17 (void) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3510,24 +3675,24 @@ int SigTest17 (void) {
     p.proto = IPPROTO_TCP;
     p.dp = 80;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     PktVar *pv_hn = PktVarGet(&p, "http_host");
     if (pv_hn != NULL) {
         if (memcmp(pv_hn->value, "one.example.org", pv_hn->value_len < 15 ? pv_hn->value_len : 15) == 0)
@@ -3541,23 +3706,33 @@ int SigTest17 (void) {
         printf("Pkt var http_host not captured: ");
     }
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest17B2g (void) {
+    return SigTest17Real(MPM_B2G);
+}
+static int SigTest17B3g (void) {
+    return SigTest17Real(MPM_B3G);
+}
+static int SigTest17Wm (void) {
+    return SigTest17Real(MPM_WUMANBER);
+}
 
-int SigTest18 (void) {
+
+static int SigTest18Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3570,45 +3745,55 @@ int SigTest18 (void) {
     p.dp = 34260;
     p.sp = 21;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (!PacketAlertCheck(&p, 2003055))
         result = 1;
     else
         printf("signature shouldn't match, but did: ");
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest18B2g (void) {
+    return SigTest18Real(MPM_B2G);
+}
+static int SigTest18B3g (void) {
+    return SigTest18Real(MPM_B3G);
+}
+static int SigTest18Wm (void) {
+    return SigTest18Real(MPM_WUMANBER);
+}
 
-int SigTest19 (void) {
+
+int SigTest19Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3624,46 +3809,55 @@ int SigTest19 (void) {
     p.sp = 21;
     p.flowflags |= FLOW_PKT_TOSERVER;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert ip $HOME_NET any -> 1.2.3.4 any (msg:\"IP-ONLY test (1)\"; sid:999; rev:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> 1.2.3.4 any (msg:\"IP-ONLY test (1)\"; sid:999; rev:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
-    //DetectEngineIPOnlyThreadInit(g_de_ctx,&pmt->io_ctx);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    //DetectEngineIPOnlyThreadInit(de_ctx,&pmt->io_ctx);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 999))
         result = 1;
     else
         printf("signature didn't match, but should have: ");
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest19B2g (void) {
+    return SigTest19Real(MPM_B2G);
+}
+static int SigTest19B3g (void) {
+    return SigTest19Real(MPM_B3G);
+}
+static int SigTest19Wm (void) {
+    return SigTest19Real(MPM_WUMANBER);
+}
 
-int SigTest20 (void) {
+static int SigTest20Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3679,43 +3873,53 @@ int SigTest20 (void) {
     p.sp = 21;
     p.flowflags |= FLOW_PKT_TOSERVER;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert ip $HOME_NET any -> [99.99.99.99,1.2.3.0/24,1.1.1.1,3.0.0.0/8] any (msg:\"IP-ONLY test (2)\"; sid:999; rev:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> [99.99.99.99,1.2.3.0/24,1.1.1.1,3.0.0.0/8] any (msg:\"IP-ONLY test (2)\"; sid:999; rev:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx,(void *)&pmt);
-    //DetectEngineIPOnlyThreadInit(g_de_ctx,&pmt->io_ctx);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    //DetectEngineIPOnlyThreadInit(de_ctx,&pmt->io_ctx);
 
-    SigMatchSignatures(&th_v, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
     if (PacketAlertCheck(&p, 999))
         result = 1;
     else
         printf("signature didn't match, but should have: ");
 
-    SigGroupCleanup();
-    SigCleanSignatures();
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest20B2g (void) {
+    return SigTest20Real(MPM_B2G);
+}
+static int SigTest20B3g (void) {
+    return SigTest20Real(MPM_B3G);
+}
+static int SigTest20Wm (void) {
+    return SigTest20Real(MPM_WUMANBER);
+}
 
-int SigTest21 (void) {
+
+static int SigTest21Real (int mpm_type) {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     Flow f;
@@ -3749,51 +3953,61 @@ int SigTest21 (void) {
     p2.proto = IPPROTO_TCP;
     p2.flow = &f;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p1);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p1);
     if (PacketAlertCheck(&p1, 1)) {
         printf("sid 1 alerted, but shouldn't: ");
         goto end;
     }
-    SigMatchSignatures(&th_v, pmt, &p2);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p2);
     if (PacketAlertCheck(&p2, 2))
         result = 1;
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest21B2g (void) {
+    return SigTest21Real(MPM_B2G);
+}
+static int SigTest21B3g (void) {
+    return SigTest21Real(MPM_B3G);
+}
+static int SigTest21Wm (void) {
+    return SigTest21Real(MPM_WUMANBER);
+}
 
-int SigTest22 (void) {
+
+static int SigTest22Real (int mpm_type) {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     Flow f;
@@ -3827,53 +4041,62 @@ int SigTest22 (void) {
     p2.proto = IPPROTO_TCP;
     p2.flow = &f;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.abc; sid:2;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.abc; sid:2;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p1);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p1);
     if (PacketAlertCheck(&p1, 1)) {
         printf("sid 1 alerted, but shouldn't: ");
         goto end;
     }
-    SigMatchSignatures(&th_v, pmt, &p2);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p2);
     if (!(PacketAlertCheck(&p2, 2)))
         result = 1;
     else
         printf("sid 2 alerted, but shouldn't: ");
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest22B2g (void) {
+    return SigTest22Real(MPM_B2G);
+}
+static int SigTest22B3g (void) {
+    return SigTest22Real(MPM_B3G);
+}
+static int SigTest22Wm (void) {
+    return SigTest22Real(MPM_WUMANBER);
+}
 
-int SigTest23 (void) {
+static int SigTest23Real (int mpm_type) {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    PatternMatcherThread *pmt;
+    DetectEngineThreadCtx *pmt;
     int result = 0;
 
     Flow f;
@@ -3907,73 +4130,155 @@ int SigTest23 (void) {
     p2.proto = IPPROTO_TCP;
     p2.flow = &f;
 
-    g_de_ctx = DetectEngineCtxInit();
-    if (g_de_ctx == NULL) {
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
     }
 
-    g_de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
-    g_de_ctx->sig_list = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    g_de_ctx->sig_list->next = SigInit(g_de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
-    if (g_de_ctx->sig_list == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    SigGroupBuild(g_de_ctx);
-    PatternMatchPrepare(mpm_ctx);
-    PatternMatcherThreadInit(&th_v, (void *)g_de_ctx, (void *)&pmt);
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
 
-    SigMatchSignatures(&th_v, pmt, &p1);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p1);
     if (PacketAlertCheck(&p1, 1)) {
         printf("sid 1 alerted, but shouldn't: ");
         goto end;
     }
-    SigMatchSignatures(&th_v, pmt, &p2);
+    SigMatchSignatures(&th_v, de_ctx, pmt, &p2);
     if (PacketAlertCheck(&p2, 2))
         result = 1;
     else
         printf("sid 2 didn't alert, but should have: ");
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
 
-    PatternMatcherThreadDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(g_de_ctx);
+    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
+static int SigTest23B2g (void) {
+    return SigTest23Real(MPM_B2G);
+}
+static int SigTest23B3g (void) {
+    return SigTest23Real(MPM_B3G);
+}
+static int SigTest23Wm (void) {
+    return SigTest23Real(MPM_WUMANBER);
+}
+
+
+#endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
+#ifdef UNITTESTS
     SigParseRegisterTests();
-    UtRegisterTest("SigTest01 -- HTTP URI cap", SigTest01, 1);
-    UtRegisterTest("SigTest02 -- Offset/Depth match", SigTest02, 1);
-    UtRegisterTest("SigTest03 -- offset/depth mismatch", SigTest03, 1);
-    UtRegisterTest("SigTest04 -- distance/within match", SigTest04, 1);
-    UtRegisterTest("SigTest05 -- distance/within mismatch", SigTest05, 1);
-    UtRegisterTest("SigTest06 -- uricontent HTTP/1.1 match test", SigTest06, 1);
-    UtRegisterTest("SigTest07 -- uricontent HTTP/1.1 mismatch test", SigTest07, 1);
-    UtRegisterTest("SigTest08 -- uricontent HTTP/1.0 match test", SigTest08, 1);
-    UtRegisterTest("SigTest09 -- uricontent HTTP/1.0 mismatch test", SigTest09, 1);
-    UtRegisterTest("SigTest10 -- long content match, longer than pkt", SigTest10, 1);
-    UtRegisterTest("SigTest11 -- scan vs search", SigTest11, 1);
-    UtRegisterTest("SigTest12 -- content order matching, normal", SigTest12, 1);
-    UtRegisterTest("SigTest13 -- content order matching, diff order", SigTest13, 1);
-    UtRegisterTest("SigTest14 -- content order matching, distance 0", SigTest14, 1);
-    UtRegisterTest("SigTest15 -- port negation sig (no match)", SigTest15, 1);
-    UtRegisterTest("SigTest16 -- port negation sig (match)", SigTest16, 1);
-    UtRegisterTest("SigTest17 -- HTTP Host Pkt var capture", SigTest17, 1);
-    UtRegisterTest("SigTest18 -- Ftp negation sig test", SigTest18, 1);
-    UtRegisterTest("SigTest19 -- IP-ONLY test (1)", SigTest19, 1);
-    UtRegisterTest("SigTest20 -- IP-ONLY test (2)", SigTest20, 1);
-    UtRegisterTest("SigTest21 -- FLOWBIT test (1)", SigTest21, 1);
-    UtRegisterTest("SigTest22 -- FLOWBIT test (2)", SigTest22, 1);
-    UtRegisterTest("SigTest23 -- FLOWBIT test (3)", SigTest23, 1);
+    UtRegisterTest("SigTest01B2g -- HTTP URI cap", SigTest01B2g, 1);
+    UtRegisterTest("SigTest01B3g -- HTTP URI cap", SigTest01B3g, 1);
+    UtRegisterTest("SigTest01Wm -- HTTP URI cap", SigTest01Wm, 1);
+
+    UtRegisterTest("SigTest02B2g -- Offset/Depth match", SigTest02B2g, 1);
+    UtRegisterTest("SigTest02B3g -- Offset/Depth match", SigTest02B3g, 1);
+    UtRegisterTest("SigTest02Wm -- Offset/Depth match", SigTest02Wm, 1);
+
+    UtRegisterTest("SigTest03B2g -- offset/depth mismatch", SigTest03B2g, 1);
+    UtRegisterTest("SigTest03B3g -- offset/depth mismatch", SigTest03B3g, 1);
+    UtRegisterTest("SigTest03Wm -- offset/depth mismatch", SigTest03Wm, 1);
+
+    UtRegisterTest("SigTest04B2g -- distance/within match", SigTest04B2g, 1);
+    UtRegisterTest("SigTest04B3g -- distance/within match", SigTest04B3g, 1);
+    UtRegisterTest("SigTest04Wm -- distance/within match", SigTest04Wm, 1);
+
+    UtRegisterTest("SigTest05B2g -- distance/within mismatch", SigTest05B2g, 1);
+    UtRegisterTest("SigTest05B3g -- distance/within mismatch", SigTest05B3g, 1);
+    UtRegisterTest("SigTest05Wm -- distance/within mismatch", SigTest05Wm, 1);
+
+    UtRegisterTest("SigTest06B2g -- uricontent HTTP/1.1 match test", SigTest06B2g, 1);
+    UtRegisterTest("SigTest06B3g -- uricontent HTTP/1.1 match test", SigTest06B3g, 1);
+    UtRegisterTest("SigTest06wm -- uricontent HTTP/1.1 match test", SigTest06Wm, 1);
+
+    UtRegisterTest("SigTest07B2g -- uricontent HTTP/1.1 mismatch test", SigTest07B2g, 1);
+    UtRegisterTest("SigTest07B3g -- uricontent HTTP/1.1 mismatch test", SigTest07B3g, 1);
+    UtRegisterTest("SigTest07Wm -- uricontent HTTP/1.1 mismatch test", SigTest07Wm, 1);
+
+    UtRegisterTest("SigTest08B2g -- uricontent HTTP/1.0 match test", SigTest08B2g, 1);
+    UtRegisterTest("SigTest08B3g -- uricontent HTTP/1.0 match test", SigTest08B3g, 1);
+    UtRegisterTest("SigTest08Wm -- uricontent HTTP/1.0 match test", SigTest08Wm, 1);
+
+    UtRegisterTest("SigTest09B2g -- uricontent HTTP/1.0 mismatch test", SigTest09B2g, 1);
+    UtRegisterTest("SigTest09B3g -- uricontent HTTP/1.0 mismatch test", SigTest09B3g, 1);
+    UtRegisterTest("SigTest09Wm -- uricontent HTTP/1.0 mismatch test", SigTest09Wm, 1);
+
+    UtRegisterTest("SigTest10B2g -- long content match, longer than pkt", SigTest10B2g, 1);
+    UtRegisterTest("SigTest10B3g -- long content match, longer than pkt", SigTest10B3g, 1);
+    UtRegisterTest("SigTest10Wm -- long content match, longer than pkt", SigTest10Wm, 1);
+
+    UtRegisterTest("SigTest11B2g -- scan vs search", SigTest11B2g, 1);
+    UtRegisterTest("SigTest11B3g -- scan vs search", SigTest11B3g, 1);
+    UtRegisterTest("SigTest11Wm -- scan vs search", SigTest11Wm, 1);
+
+    UtRegisterTest("SigTest12B2g -- content order matching, normal", SigTest12B2g, 1);
+    UtRegisterTest("SigTest12B3g -- content order matching, normal", SigTest12B3g, 1);
+    UtRegisterTest("SigTest12Wm -- content order matching, normal", SigTest12Wm, 1);
+
+    UtRegisterTest("SigTest13B2g -- content order matching, diff order", SigTest13B2g, 1);
+    UtRegisterTest("SigTest13B3g -- content order matching, diff order", SigTest13B3g, 1);
+    UtRegisterTest("SigTest13Wm -- content order matching, diff order", SigTest13Wm, 1);
+
+    UtRegisterTest("SigTest14B2g -- content order matching, distance 0", SigTest14B2g, 1);
+    UtRegisterTest("SigTest14B3g -- content order matching, distance 0", SigTest14B3g, 1);
+    UtRegisterTest("SigTest14Wm -- content order matching, distance 0", SigTest14Wm, 1);
+
+    UtRegisterTest("SigTest15B2g -- port negation sig (no match)", SigTest15B2g, 1);
+    UtRegisterTest("SigTest15B3g -- port negation sig (no match)", SigTest15B3g, 1);
+    UtRegisterTest("SigTest15Wm -- port negation sig (no match)", SigTest15Wm, 1);
+
+    UtRegisterTest("SigTest16B2g -- port negation sig (match)", SigTest16B2g, 1);
+    UtRegisterTest("SigTest16B3g -- port negation sig (match)", SigTest16B3g, 1);
+    UtRegisterTest("SigTest16Wm -- port negation sig (match)", SigTest16Wm, 1);
+
+    UtRegisterTest("SigTest17B2g -- HTTP Host Pkt var capture", SigTest17B2g, 1);
+    UtRegisterTest("SigTest17B3g -- HTTP Host Pkt var capture", SigTest17B3g, 1);
+    UtRegisterTest("SigTest17Wm -- HTTP Host Pkt var capture", SigTest17Wm, 1);
+
+    UtRegisterTest("SigTest18B2g -- Ftp negation sig test", SigTest18B2g, 1);
+    UtRegisterTest("SigTest18B3g -- Ftp negation sig test", SigTest18B3g, 1);
+    UtRegisterTest("SigTest18Wm -- Ftp negation sig test", SigTest18Wm, 1);
+
+    UtRegisterTest("SigTest19B2g -- IP-ONLY test (1)", SigTest19B2g, 1);
+    UtRegisterTest("SigTest19B3g -- IP-ONLY test (1)", SigTest19B3g, 1);
+    UtRegisterTest("SigTest19Wm -- IP-ONLY test (1)", SigTest19Wm, 1);
+
+    UtRegisterTest("SigTest20B2g -- IP-ONLY test (2)", SigTest20B2g, 1);
+    UtRegisterTest("SigTest20B3g -- IP-ONLY test (2)", SigTest20B3g, 1);
+    UtRegisterTest("SigTest20Wm -- IP-ONLY test (2)", SigTest20Wm, 1);
+
+    UtRegisterTest("SigTest21B2g -- FLOWBIT test (1)", SigTest21B2g, 1);
+    UtRegisterTest("SigTest21B3g -- FLOWBIT test (1)", SigTest21B3g, 1);
+    UtRegisterTest("SigTest21Wm -- FLOWBIT test (1)", SigTest21Wm, 1);
+
+    UtRegisterTest("SigTest22B2g -- FLOWBIT test (2)", SigTest22B2g, 1);
+    UtRegisterTest("SigTest22B3g -- FLOWBIT test (2)", SigTest22B3g, 1);
+    UtRegisterTest("SigTest22Wm -- FLOWBIT test (2)", SigTest22Wm, 1);
+
+    UtRegisterTest("SigTest23B2g -- FLOWBIT test (3)", SigTest23B2g, 1);
+    UtRegisterTest("SigTest23B3g -- FLOWBIT test (3)", SigTest23B3g, 1);
+    UtRegisterTest("SigTest23Wm -- FLOWBIT test (3)", SigTest23Wm, 1);
+#endif /* UNITTESTS */
 }
 

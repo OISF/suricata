@@ -45,7 +45,7 @@
 
 #include "threads.h"
 
-int DetectContentMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
+int DetectContentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectContentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectContentRegisterTests(void);
 
@@ -109,7 +109,7 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
  * that turn out to fail being followed by full matches later in the
  * packet. This adds some runtime complexity however. */
 static inline int
-TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch *m, SigMatch *nsm, uint16_t pktoff)
+TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *pmt, MpmMatch *m, SigMatch *nsm, uint16_t pktoff)
 {
     //printf("test_nextsigmatch m:%p, nsm:%p\n", m,nsm);
     if (nsm == NULL)
@@ -155,7 +155,7 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch
 }
 
 static inline int
-DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *sm, DetectContentData *co)
+DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *sm, DetectContentData *co)
 {
     int ret = 0;
     char match = 0;
@@ -250,7 +250,7 @@ DoDetectContent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *
  *        -1: error
  */
 
-int DetectContentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
 {
     uint32_t len = 0;
 

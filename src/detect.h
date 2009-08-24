@@ -62,6 +62,7 @@ typedef struct DetectAddressGroup_ {
     uint32_t cnt;
 } DetectAddressGroup;
 
+/** Signature grouping head. Here 'any', ipv4 and ipv6 are split out */
 typedef struct DetectAddressGroupsHead_ {
     DetectAddressGroup *any_head;
     DetectAddressGroup *ipv4_head;
@@ -84,15 +85,13 @@ enum {
     PORT_GT,      /* bigger               [bbb] [aaa] */
 };
 
-#define PORT_FLAG_ANY 0x1
-#define PORT_FLAG_NOT 0x2
+#define PORT_FLAG_ANY           0x01 /**< 'any' special port */
+#define PORT_FLAG_NOT           0x02 /**< negated port */
+#define PORT_SIGGROUPHEAD_COPY  0x04 /**< sgh is a ptr copy */
+#define PORT_GROUP_PORTS_COPY   0x08 /**< dst_ph is a ptr copy */
 
-#define PORT_SIGGROUPHEAD_COPY 0x04
-#define PORT_GROUP_PORTS_COPY  0x08
-
+/** \brief Port structure for detection engine */
 typedef struct DetectPort_ {
-    uint8_t flags;
-
     uint16_t port;
     uint16_t port2;
 
@@ -109,20 +108,21 @@ typedef struct DetectPort_ {
     struct DetectPort_ *next;
 
     uint32_t cnt;
+    uint8_t flags;  /**< flags for this port */
 } DetectPort;
 
 /* Signature flags */
-#define SIG_FLAG_RECURSIVE 0x0001 /* recurive capturing enabled */
-#define SIG_FLAG_SRC_ANY   0x0002 /* source is any */
-#define SIG_FLAG_DST_ANY   0x0004 /* destination is any */
-#define SIG_FLAG_SP_ANY    0x0008 /* source port is any */
-#define SIG_FLAG_DP_ANY    0x0010 /* destination port is any */
-#define SIG_FLAG_NOALERT   0x0020 /* no alert flag is set */
-#define SIG_FLAG_IPONLY    0x0040 /* ip only signature */
-#define SIG_FLAG_MPM       0x0080 /* sig has mpm portion (content, uricontent, etc) */
+#define SIG_FLAG_RECURSIVE 0x0001   /**< recurive capturing enabled */
+#define SIG_FLAG_SRC_ANY   0x0002   /**< source is any */
+#define SIG_FLAG_DST_ANY   0x0004   /**< destination is any */
+#define SIG_FLAG_SP_ANY    0x0008   /**< source port is any */
+#define SIG_FLAG_DP_ANY    0x0010   /**< destination port is any */
+#define SIG_FLAG_NOALERT   0x0020   /**< no alert flag is set */
+#define SIG_FLAG_IPONLY    0x0040   /**< ip only signature */
+#define SIG_FLAG_MPM       0x0080   /**< sig has mpm portion (content, uricontent, etc) */
 
 /* Detection Engine flags */
-#define DE_QUIET           0x01   /* DE is quiet (esp for unittests) */
+#define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {
     DetectAddressGroup *src, *dst;
@@ -130,78 +130,33 @@ typedef struct DetectEngineIPOnlyThreadCtx_ {
     uint32_t sig_match_size;  /* size in bytes of the array */
 } DetectEngineIPOnlyThreadCtx;
 
-/**
-  * Detection engine thread data.
-  * XXX: we should rename this
-  */
-typedef struct PatternMatcherThread_ {
-    /* detection engine variables */
-    uint8_t *pkt_ptr; /* ptr to the current position in the pkt */
-    uint16_t pkt_off;
-    uint8_t pkt_cnt;
-
-    char de_checking_distancewithin;
-
-    /* http_uri stuff for uricontent */
-    char de_have_httpuri;
-
-    /* pointer to the current mpm ctx that is stored
-     * in a rule group head -- can be either a content
-     * or uricontent ctx. */
-    MpmThreadCtx mtc; /* thread ctx for the mpm */
-    MpmThreadCtx mtcu;
-    struct SigGroupHead_ *sgh;
-    PatternMatcherQueue pmq;
-
-    /* counters */
-    uint32_t pkts;
-    uint32_t pkts_scanned;
-    uint32_t pkts_searched;
-    uint32_t pkts_scanned1;
-    uint32_t pkts_searched1;
-    uint32_t pkts_scanned2;
-    uint32_t pkts_searched2;
-    uint32_t pkts_scanned3;
-    uint32_t pkts_searched3;
-    uint32_t pkts_scanned4;
-    uint32_t pkts_searched4;
-
-    uint32_t uris;
-    uint32_t pkts_uri_scanned;
-    uint32_t pkts_uri_searched;
-    uint32_t pkts_uri_scanned1;
-    uint32_t pkts_uri_searched1;
-    uint32_t pkts_uri_scanned2;
-    uint32_t pkts_uri_searched2;
-    uint32_t pkts_uri_scanned3;
-    uint32_t pkts_uri_searched3;
-    uint32_t pkts_uri_scanned4;
-    uint32_t pkts_uri_searched4;
-
-    u_int64_t counter_alerts;
-
-    DetectEngineIPOnlyThreadCtx io_ctx;
-
-} PatternMatcherThread;
-
+/** \brief Signature container */
 typedef struct Signature_ {
     uint16_t flags;
 
-    uint32_t num; /* signature number, internal id */
-    uint32_t id;
     uint8_t rev;
     uint8_t prio;
-    char *msg;
-    uint8_t action;
 
+    uint32_t num; /**< signature number, internal id */
+    uint32_t id;  /**< sid, set by the 'sid' rule keyword */
+    char *msg;
+
+    /** addresses, ports and proto this sig matches on */
     DetectAddressGroupsHead src, dst;
     DetectProto proto;
     DetectPort *sp, *dp;
 
+    /** ptr to the SigMatch list */
     struct SigMatch_ *match;
+    /** ptr to the next sig in the list */
     struct Signature_ *next;
+
+    /** inline -- action */
+    uint8_t action;
 } Signature;
 
+/** \brief IP only rules matching ctx.
+ *  \todo a radix tree would be great here */
 typedef struct DetectEngineIPOnlyCtx_ {
     /* lookup hashes */
     HashListTable *ht16_src, *ht16_dst;
@@ -244,6 +199,7 @@ typedef struct DetectEngineLookupDsize_ {
  */
 #define DSIZE_STATES 2
 
+/** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     uint8_t flags;
 
@@ -291,15 +247,73 @@ typedef struct DetectEngineCtx_ {
     DetectEngineIPOnlyCtx io_ctx;
 } DetectEngineCtx;
 
+/**
+  * Detection engine thread data.
+  */
+typedef struct DetectionEngineThreadCtx_ {
+    /* detection engine variables */
+    uint8_t *pkt_ptr; /* ptr to the current position in the pkt */
+    uint16_t pkt_off;
+    uint8_t pkt_cnt;
+
+    char de_checking_distancewithin;
+
+    /* http_uri stuff for uricontent */
+    char de_have_httpuri;
+
+    /** pointer to the current mpm ctx that is stored
+     *  in a rule group head -- can be either a content
+     *  or uricontent ctx. */
+    MpmThreadCtx mtc; /**< thread ctx for the mpm */
+    MpmThreadCtx mtcu;
+    struct SigGroupHead_ *sgh;
+    PatternMatcherQueue pmq;
+
+    /* counters */
+    uint32_t pkts;
+    uint32_t pkts_scanned;
+    uint32_t pkts_searched;
+    uint32_t pkts_scanned1;
+    uint32_t pkts_searched1;
+    uint32_t pkts_scanned2;
+    uint32_t pkts_searched2;
+    uint32_t pkts_scanned3;
+    uint32_t pkts_searched3;
+    uint32_t pkts_scanned4;
+    uint32_t pkts_searched4;
+
+    uint32_t uris;
+    uint32_t pkts_uri_scanned;
+    uint32_t pkts_uri_searched;
+    uint32_t pkts_uri_scanned1;
+    uint32_t pkts_uri_searched1;
+    uint32_t pkts_uri_scanned2;
+    uint32_t pkts_uri_searched2;
+    uint32_t pkts_uri_scanned3;
+    uint32_t pkts_uri_searched3;
+    uint32_t pkts_uri_scanned4;
+    uint32_t pkts_uri_searched4;
+
+    /** id for alert counter */
+    uint16_t counter_alerts;
+
+    /** ip only rules ctx */
+    DetectEngineIPOnlyThreadCtx io_ctx;
+
+    DetectEngineCtx *de_ctx;
+} DetectEngineThreadCtx;
+
+/** \brief a single match condition for a signature */
 typedef struct SigMatch_ {
-    uint8_t type;
-    void *ctx;
+    uint8_t type; /**< match type */
+    void *ctx; /**< plugin specific data */
     struct SigMatch_ *next;
     struct SigMatch_ *prev;
 } SigMatch;
 
+/** \brief element in sigmatch type table. */
 typedef struct SigTableElmt_ {
-    int (*Match)(ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
+    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
     int (*Setup)(DetectEngineCtx *, Signature *, SigMatch *, char *);
     void (*Free)(void *);
     void (*RegisterTests)(void);
@@ -308,15 +322,15 @@ typedef struct SigTableElmt_ {
     char *name;
 } SigTableElmt;
 
-#define SIG_GROUP_HAVECONTENT          0x1
-#define SIG_GROUP_HAVEURICONTENT       0x2
-#define SIG_GROUP_HEAD_MPM_COPY        0x4
-#define SIG_GROUP_HEAD_MPM_URI_COPY    0x8
+#define SIG_GROUP_HAVECONTENT          0x01
+#define SIG_GROUP_HAVEURICONTENT       0x02
+#define SIG_GROUP_HEAD_MPM_COPY        0x04
+#define SIG_GROUP_HEAD_MPM_URI_COPY    0x08
 #define SIG_GROUP_HEAD_FREE            0x10
 #define SIG_GROUP_HEAD_MPM_NOSCAN      0x20
 #define SIG_GROUP_HEAD_MPM_URI_NOSCAN  0x40
 
-/* head of the list of containers. */
+/** \brief head of the list of containers. */
 typedef struct SigGroupHead_ {
     uint8_t flags;
 
@@ -389,6 +403,7 @@ enum {
     DETECT_PROTO,
     DETECT_PORT,
     DETECT_DECODE_EVENT,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
@@ -399,7 +414,7 @@ SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 /* detection api */
 SigMatch *SigMatchAlloc(void);
 void SigMatchAppend(Signature *, SigMatch *, SigMatch *);
-void SigCleanSignatures(void);
+void SigCleanSignatures(DetectEngineCtx *);
 
 void SigTableRegisterTests(void);
 void SigRegisterTests(void);

@@ -4,18 +4,18 @@
 /* XXX remove once */
 MpmCtx mpm_ctx[1];
 
-uint32_t PacketPatternScan(ThreadVars *, PatternMatcherThread *, Packet *);
-uint32_t PacketPatternMatch(ThreadVars *, PatternMatcherThread *, Packet *);
+uint32_t PacketPatternScan(ThreadVars *, DetectEngineThreadCtx *, Packet *);
+uint32_t PacketPatternMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *);
 
-void PacketPatternCleanup(ThreadVars *, PatternMatcherThread *);
-void PatternMatchPrepare(MpmCtx *);
+void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
+void PatternMatchPrepare(MpmCtx *, int);
 int PatternMatchPrepareGroup(DetectEngineCtx *, SigGroupHead *);
-void PatternMatcherThreadInfo(ThreadVars *, PatternMatcherThread *);
+void DetectEngineThreadCtxInfo(ThreadVars *, DetectEngineThreadCtx *);
 void PatternMatchDestroy(MpmCtx *);
 void PatternMatchDestroyGroup(SigGroupHead *);
 
-int PatternMatcherThreadInit(ThreadVars *, void *, void **);
-int PatternMatcherThreadDeinit(ThreadVars *, void *);
+int DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
+int DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 
 void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *, SigGroupHead *);
 

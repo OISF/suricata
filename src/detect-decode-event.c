@@ -26,7 +26,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectDecodeEventMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
+int DetectDecodeEventMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectDecodeEventSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 void DecodeEventRegisterTests(void);
 
@@ -77,7 +77,7 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectDecodeEventMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectDecodeEventMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
 {
     int ret = 0;
     DetectDecodeEventData *de = (DetectDecodeEventData *)m->ctx;

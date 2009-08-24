@@ -62,6 +62,10 @@ int VariableNameInitHash(DetectEngineCtx *de_ctx) {
     return 0;
 }
 
+void VariableNameFreeHash(DetectEngineCtx *de_ctx) {
+    HashListTableFree(de_ctx->variable_names);
+}
+
 /** \brief Get a name idx for a name. If the name is already used reuse the idx.
  *  \param de_ctx Ptr to the detection engine ctx.
  *  \param name nul terminated string with the name

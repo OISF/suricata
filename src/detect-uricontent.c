@@ -18,7 +18,7 @@
 
 #include "util-unittest.h"
 
-int DetectUricontentMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
+int DetectUricontentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectUricontentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void HttpUriRegisterTests(void);
 
@@ -114,7 +114,7 @@ TestOffsetDepth(MpmMatch *m, DetectUricontentData *co) {
  * that turn out to fail being followed by full matches later in the
  * packet. This adds some runtime complexity however. */
 static inline int
-TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch *m, SigMatch *nsm)
+TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *pmt, MpmMatch *m, SigMatch *nsm)
 {
     //printf("test_nextsigmatch m:%p, nsm:%p\n", m,nsm);
     if (nsm == NULL)
@@ -147,7 +147,7 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, PatternMatcherThread *pmt, MpmMatch
 }
 
 static inline int
-DoDetectUricontent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, SigMatch *sm, DetectUricontentData *co)
+DoDetectUricontent(ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, SigMatch *sm, DetectUricontentData *co)
 {
     int ret = 0;
     char match = 0;
@@ -221,7 +221,7 @@ DoDetectUricontent(ThreadVars *t, PatternMatcherThread *pmt, Packet *p, SigMatch
  *        -1: error
  */
 
-int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectUricontentMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
 {
     uint32_t len = 0;
 
@@ -238,7 +238,7 @@ int DetectUricontentMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, 
 
 #ifdef DEBUG
     printf("uricontent \'");
-    PrintRawUriFp(stdout, co->uricontent, co->uricontent_len);    
+    PrintRawUriFp(stdout, co->uricontent, co->uricontent_len);
     printf("\' matched %" PRIu32 " time(s) at offsets: ", len);
 
     MpmMatch *tmpm = NULL;

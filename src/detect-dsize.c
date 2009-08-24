@@ -15,7 +15,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectDsizeMatch (ThreadVars *, PatternMatcherThread *, Packet *, Signature *, SigMatch *);
+int DetectDsizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectDsizeSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 void DsizeRegisterTests(void);
 
@@ -56,7 +56,7 @@ error:
  *        -1: error
  */
 
-int DetectDsizeMatch (ThreadVars *t, PatternMatcherThread *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
 {
     int ret = 0;
 

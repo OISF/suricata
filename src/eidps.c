@@ -923,7 +923,7 @@ int main(int argc, char **argv)
     BinSearchInit();
     CIDRInit();
     SigParsePrepare();
-    PatternMatchPrepare(mpm_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
     PerfInitCounterApi();
 
     /** \todo we need an api for this */
@@ -1108,8 +1108,8 @@ int main(int argc, char **argv)
     FlowShutdown();
     FlowPrintFlows();
 
-    SigGroupCleanup();
-    SigCleanSignatures();
+    SigGroupCleanup(g_de_ctx);
+    SigCleanSignatures(g_de_ctx);
 
     pthread_exit(NULL);
 }

@@ -20,32 +20,45 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
+/** \todo make it possible to use multiple pattern matcher algorithms next to
+          eachother. */
 //#define PM   MPM_WUMANBER
 #define PM   MPM_B2G
 //#define PM   MPM_B3G
 
-uint32_t PacketPatternScan(ThreadVars *t, PatternMatcherThread *pmt, Packet *p) {
+/** \brief Pattern match, scan part -- searches for only 'scan' patterns,
+ *         normally one per signature.
+ *  \param tv threadvars
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to scan
+ */
+uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p) {
     uint32_t ret;
 
-    pmt->pmq.mode = PMQ_MODE_SCAN;
-    ret = pmt->sgh->mpm_ctx->Scan(pmt->sgh->mpm_ctx, &pmt->mtc, &pmt->pmq, p->payload, p->payload_len);
+    det_ctx->pmq.mode = PMQ_MODE_SCAN;
+    ret = det_ctx->sgh->mpm_ctx->Scan(det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload, p->payload_len);
 
     //printf("PacketPatternScan: ret %" PRIu32 "\n", ret);
     return ret;
 }
 
-uint32_t PacketPatternMatch(ThreadVars *t, PatternMatcherThread *pmt, Packet *p) {
+/** \brief Pattern match, search part -- searches for all other patterns
+ *  \param tv threadvars
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to scan
+ */
+uint32_t PacketPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p) {
     uint32_t ret;
 
-    pmt->pmq.mode = PMQ_MODE_SEARCH;
-    ret = pmt->sgh->mpm_ctx->Search(pmt->sgh->mpm_ctx, &pmt->mtc, &pmt->pmq, p->payload, p->payload_len);
+    det_ctx->pmq.mode = PMQ_MODE_SEARCH;
+    ret = det_ctx->sgh->mpm_ctx->Search(det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload, p->payload_len);
 
     //printf("PacketPatternMatch: ret %" PRIu32 "\n", ret);
     return ret;
 }
 
-/* cleans up the mpm instance after a match */
-void PacketPatternCleanup(ThreadVars *t, PatternMatcherThread *pmt) {
+/** \brief cleans up the mpm instance after a match */
+void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *pmt) {
     PmqReset(&pmt->pmq);
 
     if (pmt->sgh == NULL)
@@ -61,15 +74,13 @@ void PacketPatternCleanup(ThreadVars *t, PatternMatcherThread *pmt) {
     }
 }
 
-/* XXX remove this once we got rid of the global mpm_ctx */
 void PatternMatchDestroy(MpmCtx *mc) {
     mc->DestroyCtx(mc);
 }
 
-/* TODO remove this when we move to the rule groups completely */
-void PatternMatchPrepare(MpmCtx *mc)
+void PatternMatchPrepare(MpmCtx *mc, int type)
 {
-    MpmInitCtx(mc, PM);
+    MpmInitCtx(mc, type);
 }
 
 
@@ -131,8 +142,8 @@ void DbgPrintScanSearchStats() {
 #endif
 }
 
-/* set the mpm_content_maxlen and mpm_uricontent_maxlen variables in
- * a sig group head */
+/** \brief set the mpm_content_maxlen and mpm_uricontent_maxlen variables in
+ *         a sig group head */
 void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     SigMatch *sm;
@@ -178,6 +189,8 @@ void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
 }
 
+/** \brief Hash for looking up contents that are most used,
+ *         always used, etc. */
 typedef struct ContentHash_ {
     DetectContentData *ptr;
     uint16_t cnt;
@@ -229,7 +242,7 @@ void ContentHashFree(void *ch) {
     free(ch);
 }
 
-/* Predict a strength value for patterns
+/** \brief Predict a strength value for patterns
  *
  * Patterns with high character diversity score higher.
  * Alpha chars score not so high
@@ -351,9 +364,7 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
                 ContentHash *ch = ContentHashAlloc(co);
                 if (ch == NULL)
                     goto error;
-//if (s->id == 2002102) {
-//printf("%p %" PRIu32 " Content: ", sgh, s->id); PrintRawUriFp(stdout,co->content,co->content_len);printf(" (strength %" PRIu32 ", maxlen %" PRIu32 ")\n", PatternStrength(co->content,co->content_len,sgh->mpm_content_maxlen), sgh->mpm_content_maxlen);
-//}
+
                 ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
                 if (lookup_ch == NULL) {
                     continue;
@@ -368,16 +379,10 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
                         if (ls > ss)
                             scan_ch = lookup_ch;
                         else if (ls == ss) {
+                            /* if 2 patterns are of equal strength, we pick the longest */
                             if (lookup_ch->ptr->content_len > scan_ch->ptr->content_len)
                                 scan_ch = lookup_ch;
                         }
-
-//                        if (lookup_ch->cnt > scan_ch->cnt) {
-//                            scan_ch = lookup_ch;
-//                        } else if (lookup_ch->cnt == scan_ch->cnt) {
-//                            if (lookup_ch->ptr->content_len < scan_ch->ptr->content_len)
-//                                scan_ch = lookup_ch;
-//                        }
                     } else {
                         if (scan_ch->use == 0)
                             scan_ch = lookup_ch;
@@ -386,18 +391,11 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
                             uint32_t ss = PatternStrength(scan_ch->ptr->content,scan_ch->ptr->content_len,sgh->mpm_content_maxlen);
                             if (ls > ss)
                                 scan_ch = lookup_ch;
+                            /* if 2 patterns are of equal strength, we pick the longest */
                             else if (ls == ss) {
                                 if (lookup_ch->ptr->content_len > scan_ch->ptr->content_len)
                                     scan_ch = lookup_ch;
                             }
-/*
-                            if (lookup_ch->cnt > scan_ch->cnt) {
-                                scan_ch = lookup_ch;
-                            } else if (lookup_ch->cnt == scan_ch->cnt) {
-                                if (lookup_ch->ptr->content_len < scan_ch->ptr->content_len)
-                                    scan_ch = lookup_ch;
-                            }
-*/
                         }
                     }
                 }
@@ -408,12 +406,6 @@ int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) 
         /* now add the scan_ch to the mpm ctx */
         if (scan_ch != NULL) {
             DetectContentData *co = scan_ch->ptr;
-//if (s->id == 2002102) {
-//if (sgh->mpm_content_maxlen == 1) {
-//printf("%p %" PRIu32 " SCAN: ", sgh, s->id); PrintRawUriFp(stdout,co->content,co->content_len);printf("\n");
-//}
-//if (scan_ch->nosearch == 1) { printf("%3u (%" PRIu32 ") Content: ", scan_ch->cnt, scan_ch->use); PrintRawUriFp(stdout,co->content,co->content_len);printf("\n"); }
-
             uint16_t offset = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->offset;
             uint16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->depth;
             offset = scan_ch->cnt ? 0 : offset;
@@ -793,59 +785,5 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 error:
     /* XXX */
     return -1;
-}
-
-int PatternMatcherThreadInit(ThreadVars *t, void *initdata, void **data) {
-    DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;
-    if (de_ctx == NULL)
-        return -1;
-
-    PatternMatcherThread *pmt = malloc(sizeof(PatternMatcherThread));
-    if (pmt == NULL) {
-        return -1;
-    }
-    memset(pmt, 0, sizeof(PatternMatcherThread));
-
-    /* XXX we still depend on the global mpm_ctx here
-     *
-     * Initialize the thread pattern match ctx with the max size
-     * of the content and uricontent id's so our match lookup
-     * table is always big enough
-     */
-    mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtc, DetectContentMaxId(de_ctx));
-    mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &pmt->mtcu, DetectUricontentMaxId(de_ctx));
-
-    PmqSetup(&pmt->pmq, DetectEngineGetMaxSigId(de_ctx));
-
-    /* IP-ONLY */
-    DetectEngineIPOnlyThreadInit(de_ctx,&pmt->io_ctx);
-
-    pmt->counter_alerts = PerfTVRegisterCounter("detect.alert", t, TYPE_UINT64,
-                                                "NULL");
-
-    t->pca = PerfGetAllCountersArray(&t->pctx);
-
-    PerfAddToClubbedTMTable(t->name, &t->pctx);
-
-    *data = (void *)pmt;
-    //printf("PatternMatcherThreadInit: data %p pmt %p\n", *data, pmt);
-    return 0;
-}
-
-int PatternMatcherThreadDeinit(ThreadVars *t, void *data) {
-    PatternMatcherThread *pmt = (PatternMatcherThread *)data;
-
-    /* XXX */
-    mpm_ctx[0].DestroyThreadCtx(&mpm_ctx[0], &pmt->mtc);
-    mpm_ctx[0].DestroyThreadCtx(&mpm_ctx[0], &pmt->mtcu);
-
-    return 0;
-}
-
-
-void PatternMatcherThreadInfo(ThreadVars *t, PatternMatcherThread *pmt) {
-    /* XXX */
-    mpm_ctx[0].PrintThreadCtx(&pmt->mtc);
-    mpm_ctx[0].PrintThreadCtx(&pmt->mtcu);
 }
 
