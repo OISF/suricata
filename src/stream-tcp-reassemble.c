@@ -1611,7 +1611,7 @@ static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q, uin
         }
 
 #ifdef DEBUG
-        printf("hellow world %" PRIu32"\n", msg->gap.gap_size);
+        printf("Gap is %" PRIu32"\n", msg->gap.gap_size);
 #endif
         j = 0;
         for (; j < msg->data.data_len; j++) {
