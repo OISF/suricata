@@ -65,34 +65,6 @@ void PktHttpUriFree(Packet *p) {
     p->http_uri.cnt = 0;
 }
 
-/* Normalize http buffer
- *
- * Returns 0: on ok
- *         1: normalized with events occurred.
- *
- * What we normalize:
- * - ../ becomes
- *   example: /one/../two/ becomes /two/
- * - // becomes /
- *   example: /one//two/ becomes /one/two/
- * - '%20' becomes ' '
- *   example: '/one/%20/two/' becomes '/one/ /two/'
- */
-static inline int
-HttpUriNormalize(uint8_t *raw, uint16_t rawlen, uint8_t *norm, uint16_t *normlen) {
-    uint16_t i,x;
-    for (i = 0, x = 0; i < rawlen; i++) {
-            /* check for ../ */
-            /* check for // */
-
-        norm[x] = raw[i];
-        x++;
-    }
-    *normlen = x;
-
-    return 0;
-}
-
 static inline int
 TestOffsetDepth(MpmMatch *m, DetectUricontentData *co) {
     if (co->offset == 0 ||
@@ -382,28 +354,7 @@ error:
  * TESTS
  */
 
-int HttpUriTest01 (void) {
-    uint8_t *raw = (uint8_t *)"/one/../two/";
-    uint16_t rawlen = strlen((char *)raw);
-    uint8_t *norm = (uint8_t *)"/two/";
-    uint16_t normlen = strlen((char *)norm);
-    int result = 0, r = 0;
-
-    uint8_t buf[1024];
-    uint16_t buflen = 0;
-
-    r = HttpUriNormalize(raw, rawlen, buf, &buflen);
-
-    if (buflen == normlen && memcmp(norm, buf, normlen) == 0)
-        result = 1;
-
-    //printf("HttpUriTest01: buflen %" PRIu32 ", %s\n", buflen, buf);
-
-//end:
-    return result;
-}
-
 void HttpUriRegisterTests(void) {
-    UtRegisterTest("HttpUriTest01", HttpUriTest01, 1);
+    /** none atm */
 }
 

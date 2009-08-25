@@ -31,6 +31,7 @@
 #include "util-pool.h"
 
 #include "detect-parse.h"
+#include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
 #include "tm-queuehandlers.h"
@@ -215,7 +216,7 @@ void EngineKill(void) {
     sigflags |= EIDPS_KILL;
 }
 
-int RunModeIdsPcap(char *iface) {
+int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface) {
     TimeModeSetLive();
 
     /* create the threads */
@@ -280,7 +281,7 @@ int RunModeIdsPcap(char *iface) {
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_detect1,tm_module,(void *)g_de_ctx);
+    Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
     if (TmThreadSpawn(tv_detect1, TVT_PPT, THV_USE | THV_PAUSE) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -297,7 +298,7 @@ int RunModeIdsPcap(char *iface) {
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_detect2,tm_module,(void *)g_de_ctx);
+    Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
 
     if (TmThreadSpawn(tv_detect2, TVT_PPT, THV_USE | THV_PAUSE) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -390,7 +391,7 @@ int RunModeIdsPcap(char *iface) {
     return 0;
 }
 
-int RunModeIpsNFQ(void) {
+int RunModeIpsNFQ(DetectEngineCtx *de_ctx) {
     TimeModeSetLive();
 
     /* create the threads */
@@ -455,7 +456,7 @@ int RunModeIpsNFQ(void) {
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_detect1,tm_module,(void *)g_de_ctx);
+    Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
     if (TmThreadSpawn(tv_detect1, TVT_PPT, THV_USE | THV_PAUSE) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -472,7 +473,7 @@ int RunModeIpsNFQ(void) {
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_detect2,tm_module,(void *)g_de_ctx);
+    Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
 
     if (TmThreadSpawn(tv_detect2, TVT_PPT, THV_USE | THV_PAUSE) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -582,7 +583,7 @@ int RunModeIpsNFQ(void) {
     return 0;
 }
 
-int RunModeFilePcap(char *file) {
+int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file) {
     printf("RunModeFilePcap: file %s\n", file);
     TimeModeSetOffline();
 
@@ -650,7 +651,7 @@ int RunModeFilePcap(char *file) {
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_detect1,tm_module,(void *)g_de_ctx);
+    Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
     if (TmThreadSpawn(tv_detect1, TVT_PPT, THV_USE | THV_PAUSE) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -667,7 +668,7 @@ int RunModeFilePcap(char *file) {
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    Tm1SlotSetFunc(tv_detect2,tm_module,(void *)g_de_ctx);
+    Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
 
     if (TmThreadSpawn(tv_detect2, TVT_PPT, THV_USE | THV_PAUSE) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -745,7 +746,7 @@ int RunModeFilePcap(char *file) {
 /**
  * \brief Single thread version of the Pcap file processing.
  */
-int RunModeFilePcap2(char *file) {
+int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file) {
     printf("RunModeFilePcap2: file %s\n", file);
     TimeModeSetOffline();
 
@@ -782,7 +783,7 @@ int RunModeFilePcap2(char *file) {
         printf("ERROR: TmModuleGetByName Detect failed\n");
         exit(1);
     }
-    TmVarSlotSetFuncAppend(tv,tm_module,(void *)g_de_ctx);
+    TmVarSlotSetFuncAppend(tv,tm_module,(void *)de_ctx);
 
     tm_module = TmModuleGetByName("AlertFastlog");
     if (tm_module == NULL) {
@@ -926,7 +927,7 @@ int main(int argc, char **argv)
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
     PerfInitCounterApi();
 
-    /** \todo we need an api for this */
+    /** \todo we need an api for these */
     AppLayerDetectProtoThreadInit();
     RegisterAppLayerParsers();
     RegisterHTTPParsers();
@@ -977,14 +978,12 @@ int main(int argc, char **argv)
         DecodeGRERegisterTests();
         AlpDetectRegisterTests();
         ConfRegisterTests();
-        UtRunTests();
+        uint32_t failed = UtRunTests();
         UtCleanup();
-        exit(0);
+        if (failed) exit(EXIT_FAILURE);
+        else        exit(EXIT_SUCCESS);
     }
 #endif /* UNITTESTS */
-
-    //LoadConfig();
-    //exit(1);
 
     /* initialize packet queues */
     memset(&packet_q,0,sizeof(packet_q));
@@ -1008,21 +1007,23 @@ int main(int argc, char **argv)
 
     FlowInitConfig(FLOW_VERBOSE);
 
-    SigLoadSignatures(sig_file);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+
+    SigLoadSignatures(de_ctx, sig_file);
 
     struct timeval start_time;
     memset(&start_time, 0, sizeof(start_time));
     gettimeofday(&start_time, NULL);
 
     if (mode == MODE_PCAP_DEV) {
-        RunModeIdsPcap(pcap_dev);
+        RunModeIdsPcap(de_ctx, pcap_dev);
     }
     else if (mode == MODE_PCAP_FILE) {
-        RunModeFilePcap(pcap_file);
-        //RunModeFilePcap2(pcap_file);
+        RunModeFilePcap(de_ctx, pcap_file);
+        //RunModeFilePcap2(de_ctx, pcap_file);
     }
     else if (mode == MODE_NFQ) {
-        RunModeIpsNFQ();
+        RunModeIpsNFQ(de_ctx);
     }
     else {
         printf("ERROR: Unknown runtime mode.\n");
@@ -1078,28 +1079,9 @@ int main(int argc, char **argv)
             printf("time elapsed %" PRIuMAX "s\n", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
 
             TmThreadKillThreads();
-
             PerfReleaseResources();
-#if 0
-#ifdef DBG_PERF
-            printf("th_v[0].nfq_t->dbg_maxreadsize %" PRId32 "\n", th_v[0].nfq_t->dbg_maxreadsize);
-            //printf("th_v[1].nfq_t->dbg_maxreadsize %" PRId32 "\n", th_v[1].nfq_t->dbg_maxreadsize);
-#endif /* DBG_PERF */
-            printf("NFQ Stats 0: pkts %" PRIu32 ", errs %" PRIu32 "\n", th_v[0].nfq_t->pkts, th_v[0].nfq_t->errs);
-            //printf("NFQ Stats 1: pkts %" PRIu32 ", errs %" PRIu32 "\n", th_v[1].nfq_t->pkts, th_v[1].nfq_t->errs);
-            PatternMatcherThreadInfo(&th_v[3]);
-            PatternMatcherThreadInfo(&th_v[4]);
-#ifdef DBG_PERF
-            printf("trans_q[0].dbg_maxlen %" PRIu32 "\n", trans_q[0].dbg_maxlen);
-            printf("trans_q[1].dbg_maxlen %" PRIu32 "\n", trans_q[1].dbg_maxlen);
-            printf("trans_q[2].dbg_maxlen %" PRIu32 "\n", trans_q[2].dbg_maxlen);
-            printf("trans_q[3].dbg_maxlen %" PRIu32 "\n", trans_q[3].dbg_maxlen);
-            printf("trans_q[4].dbg_maxlen %" PRIu32 "\n", trans_q[4].dbg_maxlen);
 
-            printf("dbg_maxpending %" PRIu32 "\n", dbg_maxpending);
-#endif /* DBG_PERF */
-#endif
-            break;//pthread_exit(NULL);
+            break;
         }
 
         usleep(100);
@@ -1108,8 +1090,10 @@ int main(int argc, char **argv)
     FlowShutdown();
     FlowPrintFlows();
 
-    SigGroupCleanup(g_de_ctx);
-    SigCleanSignatures(g_de_ctx);
+    /** \todo review whats needed here */
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     pthread_exit(NULL);
 }

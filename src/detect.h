@@ -120,6 +120,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_NOALERT   0x0020   /**< no alert flag is set */
 #define SIG_FLAG_IPONLY    0x0040   /**< ip only signature */
 #define SIG_FLAG_MPM       0x0080   /**< sig has mpm portion (content, uricontent, etc) */
+#define SIG_FLAG_DEONLY    0x0100   /**< decode event only signature */
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
@@ -368,10 +369,12 @@ typedef struct SigGroupHead_ {
     uint16_t mpm_len4; /* 4+ */
 } SigGroupHead;
 
-#define SIGMATCH_NOOPT  0x01
-
-void SigLoadSignatures (char *);
-void SigTableSetup(void);
+/** sigmatch has no options, so the parser shouldn't expect any */
+#define SIGMATCH_NOOPT          0x01
+/** sigmatch is compatible with a ip only rule */
+#define SIGMATCH_IPONLY_COMPAT  0x02
+/** sigmatch is compatible with a decode event only rule */
+#define SIGMATCH_DEONLY_COMPAT  0x04
 
 enum {
     DETECT_SID,
@@ -424,11 +427,9 @@ int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup();
 
 int PacketAlertAppend(Packet *, uint8_t, uint32_t, uint8_t, uint8_t, char *);
-/*
- * XXX globals, remove
- */
 
-DetectEngineCtx *g_de_ctx;
+void SigLoadSignatures (DetectEngineCtx *, char *);
+void SigTableSetup(void);
 
 #endif /* __DETECT_H__ */
 

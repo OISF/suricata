@@ -140,137 +140,134 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->pkts_uri_scanned)*100));
 }
 
-void SigLoadSignatures (char *sig_file)
+void SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 {
     Signature *prevsig = NULL, *sig;
-
-    /* intialize the de_ctx */
-    g_de_ctx = DetectEngineCtxInit();
 
     /* The next 3 rules handle HTTP header capture. */
 
     /* http_uri -- for uricontent */
-    sig = SigInit(g_de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP GET URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
+    sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP GET URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
     if (sig) {
         prevsig = sig;
-        g_de_ctx->sig_list = sig;
+        de_ctx->sig_list = sig;
     }
-    sig = SigInit(g_de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
+    sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_host -- for the log-httplog module */
-    sig = SigInit(g_de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"|0d 0a|Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
+    sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"|0d 0a|Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_ua -- for the log-httplog module */
-    sig = SigInit(g_de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"|0d 0a|User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
+    sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"|0d 0a|User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx, "alert tcp any any -> any any (msg:\"ipv4 pkt too small\"; decode-event:ipv4.pkt_too_small; sid:5;)");
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"ipv4 pkt too small\"; decode-event:ipv4.pkt_too_small; sid:5;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 /*
-    sig = SigInit(g_de_ctx,"alert udp any any -> any any (msg:\"ViCtOr nocase test\"; sid:4; rev:13; content:\"ViCtOr!!\"; offset:100; depth:150; nocase; content:\"ViCtOr!!\"; nocase; offset:99; depth:150;)");
+    sig = SigInit(de_ctx,"alert udp any any -> any any (msg:\"ViCtOr nocase test\"; sid:4; rev:13; content:\"ViCtOr!!\"; offset:100; depth:150; nocase; content:\"ViCtOr!!\"; nocase; offset:99; depth:150;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
 
-    sig = SigInit(g_de_ctx,"alert ip any any -> 1.2.3.4 any (msg:\"ViCtOr case test\"; sid:2001; content:\"ViCtOr\"; depth:150;)");
+    sig = SigInit(de_ctx,"alert ip any any -> 1.2.3.4 any (msg:\"ViCtOr case test\"; sid:2001; content:\"ViCtOr\"; depth:150;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert ip any any -> 1.2.3.4 any (msg:\"IP ONLY\"; sid:2002;)");
+    sig = SigInit(de_ctx,"alert ip any any -> 1.2.3.4 any (msg:\"IP ONLY\"; sid:2002;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert ip ANY any -> 192.168.0.0/16 any (msg:\"offset, depth, within test\"; flow:to_client; sid:2002; content:HTTP; depth:4; content:Server:; offset:15; within:100; depth:200;)");
+    sig = SigInit(de_ctx,"alert ip ANY any -> 192.168.0.0/16 any (msg:\"offset, depth, within test\"; flow:to_client; sid:2002; content:HTTP; depth:4; content:Server:; offset:15; within:100; depth:200;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert ip 1.2.3.4 any -> any any (msg:\"Inliniac blog within test\"; flow:to_client; sid:2003; content:inliniac; content:blog; within:9;)");
+    sig = SigInit(de_ctx,"alert ip 1.2.3.4 any -> any any (msg:\"Inliniac blog within test\"; flow:to_client; sid:2003; content:inliniac; content:blog; within:9;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert ip 2001::1 any -> 2001::3 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2004; content:abcd; content:efgh; within:4; distance:0; content:ijkl; within:4; distance:0;)");
+    sig = SigInit(de_ctx,"alert ip 2001::1 any -> 2001::3 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2004; content:abcd; content:efgh; within:4; distance:0; content:ijkl; within:4; distance:0;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert ip 2001::5 any -> 2001::7 any (msg:\"abcdef distance 0 test\"; flow:to_server; sid:2005; content:abcdef; content:ghijklmnop; distance:0;)");
+    sig = SigInit(de_ctx,"alert ip 2001::5 any -> 2001::7 any (msg:\"abcdef distance 0 test\"; flow:to_server; sid:2005; content:abcdef; content:ghijklmnop; distance:0;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
 
-    sig = SigInit(g_de_ctx,"alert ip 10.0.0.0/8 any -> 4.3.2.1 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2006; content:abcdef; content:ghijklmnop; distance:1;)");
+    sig = SigInit(de_ctx,"alert ip 10.0.0.0/8 any -> 4.3.2.1 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2006; content:abcdef; content:ghijklmnop; distance:1;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert tcp 172.16.1.0/24 any -> 0.0.0.0/0 any (msg:\"HTTP response code cap\"; flow:to_client; content:HTTP; depth:4; pcre:\"/^HTTP\\/\\d\\.\\d (?<http_response>[0-9]+) [A-z\\s]+\\r\\n/\"; depth:50; sid:3;)");
+    sig = SigInit(de_ctx,"alert tcp 172.16.1.0/24 any -> 0.0.0.0/0 any (msg:\"HTTP response code cap\"; flow:to_client; content:HTTP; depth:4; pcre:\"/^HTTP\\/\\d\\.\\d (?<http_response>[0-9]+) [A-z\\s]+\\r\\n/\"; depth:50; sid:3;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert tcp 172.16.2.0/24 any -> 10.10.10.10 any (msg:\"HTTP server code cap\"; flow:to_client; content:Server:; depth:500; pcre:\"/^Server: (?<http_server>.*)\\r\\n/m\"; sid:4;)");
+    sig = SigInit(de_ctx,"alert tcp 172.16.2.0/24 any -> 10.10.10.10 any (msg:\"HTTP server code cap\"; flow:to_client; content:Server:; depth:500; pcre:\"/^Server: (?<http_server>.*)\\r\\n/m\"; sid:4;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert tcp 192.168.0.1 any -> 1.0.2.1 any (msg:\"\to_client nocase test\"; flow:to_client; content:Servere:; nocase; sid:400;)");
+    sig = SigInit(de_ctx,"alert tcp 192.168.0.1 any -> 1.0.2.1 any (msg:\"\to_client nocase test\"; flow:to_client; content:Servere:; nocase; sid:400;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert tcp 192.168.0.4 any -> 1.2.0.1 any (msg:\"HTTP UA code cap\"; flow:to_server; content:User-Agent:; depth:300; pcre:\"/^User-Agent: (?<http_ua>.*)\\r\\n/m\"; sid:5;)");
+    sig = SigInit(de_ctx,"alert tcp 192.168.0.4 any -> 1.2.0.1 any (msg:\"HTTP UA code cap\"; flow:to_server; content:User-Agent:; depth:300; pcre:\"/^User-Agent: (?<http_ua>.*)\\r\\n/m\"; sid:5;)");
     if (sig == NULL)
         return;
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(g_de_ctx,"alert tcp 192.168.0.12 any -> 0.0.0.0/0 any (msg:\"HTTP http_host flowvar www.inliniac.net\"; flow:to_server; flowvar:http_host,\"www.inliniac.net\"; sid:7;)");
+    sig = SigInit(de_ctx,"alert tcp 192.168.0.12 any -> 0.0.0.0/0 any (msg:\"HTTP http_host flowvar www.inliniac.net\"; flow:to_server; flowvar:http_host,\"www.inliniac.net\"; sid:7;)");
     if (sig) {
         prevsig->next = sig;
         prevsig = sig;
     }
-    sig = SigInit(g_de_ctx,"alert tcp 192.168.0.0/16 any -> 0.0.0.0/0 any (msg:\"HTTP http_uri flowvar MattJonkman\"; flow:to_server; flowvar:http_uri,\"MattJonkman\"; sid:8;)");
+    sig = SigInit(de_ctx,"alert tcp 192.168.0.0/16 any -> 0.0.0.0/0 any (msg:\"HTTP http_uri flowvar MattJonkman\"; flow:to_server; flowvar:http_uri,\"MattJonkman\"; sid:8;)");
     if (sig) {
         prevsig->next = sig;
         prevsig = sig;
     }
-    sig = SigInit(g_de_ctx,"alert tcp 0.0.0.0/0 any -> 0.0.0.0/0 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:9;)");
+    sig = SigInit(de_ctx,"alert tcp 0.0.0.0/0 any -> 0.0.0.0/0 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:9;)");
     if (sig) {
         prevsig->next = sig;
         prevsig = sig;
     }
-    sig = SigInit(g_de_ctx,"alert tcp 0.0.0.0/0 any -> 10.0.0.0/8 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:5;)");
+    sig = SigInit(de_ctx,"alert tcp 0.0.0.0/0 any -> 10.0.0.0/8 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:5;)");
     if (sig) {
         prevsig->next = sig;
         prevsig = sig;
@@ -292,7 +289,7 @@ void SigLoadSignatures (char *sig_file)
 
             //if (i > 1000) break;
 
-            sig = SigInit(g_de_ctx, line);
+            sig = SigInit(de_ctx, line);
             if (sig) {
                 prevsig->next = sig;
                 prevsig = sig;
@@ -311,7 +308,7 @@ void SigLoadSignatures (char *sig_file)
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
 
-    SigGroupBuild(g_de_ctx);
+    SigGroupBuild(de_ctx);
     //SigGroupCleanup(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -2188,7 +2185,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-void DbgPrintSigs(SigGroupHead *sgh) {
+void DbgPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     if (sgh == NULL) {
         printf("\n");
         return;
@@ -2196,21 +2193,21 @@ void DbgPrintSigs(SigGroupHead *sgh) {
 
     uint32_t sig;
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        printf("%" PRIu32 " ", g_de_ctx->sig_array[sgh->match_array[sig]]->id);
+        printf("%" PRIu32 " ", de_ctx->sig_array[sgh->match_array[sig]]->id);
     }
     printf("\n");
 }
 
-void DbgPrintSigs2(SigGroupHead *sgh) {
+void DbgPrintSigs2(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     if (sgh == NULL) {
         printf("\n");
         return;
     }
 
     uint32_t sig;
-    for (sig = 0; sig < DetectEngineGetMaxSigId(g_de_ctx); sig++) {
+    for (sig = 0; sig < DetectEngineGetMaxSigId(de_ctx); sig++) {
         if (sgh->sig_array[(sig/8)] & (1<<(sig%8))) {
-            printf("%" PRIu32 " ", g_de_ctx->sig_array[sig]->id);
+            printf("%" PRIu32 " ", de_ctx->sig_array[sig]->id);
         }
     }
     printf("\n");
@@ -2223,7 +2220,7 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
     }
 
     uint32_t sig;
-    for (sig = 0; sig < DetectEngineGetMaxSigId(g_de_ctx); sig++) {
+    for (sig = 0; sig < DetectEngineGetMaxSigId(de_ctx); sig++) {
         if (!(sgh->sig_array[(sig/8)] & (1<<(sig%8))))
             continue;
 
@@ -2232,7 +2229,7 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
             continue;
 
         if (sid == s->id) {
-            printf("%" PRIu32 " ", g_de_ctx->sig_array[sig]->id);
+            printf("%" PRIu32 " ", de_ctx->sig_array[sig]->id);
         }
     }
     printf("\n");
@@ -2243,7 +2240,7 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
 //#define PRINTSIGS
 
 /* just printing */
-int SigAddressPrepareStage5(void) {
+int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
     DetectAddressGroupsHead *global_dst_gh = NULL;
     DetectAddressGroup *global_src_gr = NULL, *global_dst_gr = NULL;
     int i;
@@ -2257,7 +2254,7 @@ int SigAddressPrepareStage5(void) {
                 if (proto != 6)
                     continue;
 
-                for (global_src_gr = g_de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]->ipv4_head; global_src_gr != NULL;
+                for (global_src_gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]->ipv4_head; global_src_gr != NULL;
                         global_src_gr = global_src_gr->next)
                 {
                     printf("1 Src Addr: "); DetectAddressDataPrint(global_src_gr->ad);
@@ -2293,13 +2290,13 @@ int SigAddressPrepareStage5(void) {
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
                                     if (s->id == 2008335 || s->id == 2001329 || s->id == 2001330 ||
                                             s->id == 2001331 || s->id == 2003321 || s->id == 2003322)
                                         printf("%" PRIu32 " ", s->id);
@@ -2331,7 +2328,7 @@ int SigAddressPrepareStage5(void) {
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2341,7 +2338,7 @@ int SigAddressPrepareStage5(void) {
                     }
                 }
 #if 0
-                for (global_src_gr = g_de_ctx->src_gh[proto]->ipv6_head; global_src_gr != NULL;
+                for (global_src_gr = de_ctx->src_gh[proto]->ipv6_head; global_src_gr != NULL;
                         global_src_gr = global_src_gr->next)
                 {
                     printf("- "); DetectAddressDataPrint(global_src_gr->ad);
@@ -2374,7 +2371,7 @@ int SigAddressPrepareStage5(void) {
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2405,7 +2402,7 @@ int SigAddressPrepareStage5(void) {
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2415,7 +2412,7 @@ int SigAddressPrepareStage5(void) {
                     }
                 }
 
-                for (global_src_gr = g_de_ctx->src_gh[proto]->any_head; global_src_gr != NULL;
+                for (global_src_gr = de_ctx->src_gh[proto]->any_head; global_src_gr != NULL;
                         global_src_gr = global_src_gr->next)
                 {
                     printf("- "); DetectAddressDataPrint(global_src_gr->ad);
@@ -2448,7 +2445,7 @@ int SigAddressPrepareStage5(void) {
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2479,7 +2476,7 @@ int SigAddressPrepareStage5(void) {
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2510,7 +2507,7 @@ int SigAddressPrepareStage5(void) {
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = g_de_ctx->sig_array[dp->sh->match_array[i]];
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif

@@ -15,7 +15,7 @@ typedef struct UtTest_ {
 
 
 void UtRegisterTest(char *name, int(*TestFn)(void), int evalue);
-int UtRunTests(void);
+uint32_t UtRunTests(void);
 void UtInitialize(void);
 void UtCleanup(void);
 int UtRunSelftest (void);

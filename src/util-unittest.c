@@ -48,9 +48,13 @@ void UtRegisterTest(char *name, int(*TestFn)(void), int evalue) {
     UtAppendTest(&ut_list, ut);
 }
 
-int UtRunTests(void) {
+/** \brief Run all registered unittests.
+ *
+ *  \retval 0 all successful
+ *  \retval result number of tests that failed
+ */
+uint32_t UtRunTests(void) {
     UtTest *ut;
-    int result = 0;
     uint32_t good = 0, bad = 0;
 
     for (ut = ut_list; ut != NULL; ut = ut->next) {
@@ -59,7 +63,6 @@ int UtRunTests(void) {
         int ret = ut->TestFn();
         printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
         if (ret != ut->evalue) {
-            result = 1;
             bad++;
         } else {
             good++;
@@ -70,7 +73,7 @@ int UtRunTests(void) {
     printf("PASSED: %" PRIu32 "\n", good);
     printf("FAILED: %" PRIu32 "\n", bad);
     printf("======================\n");
-    return result;
+    return bad;
 }
 
 void UtInitialize(void) {
