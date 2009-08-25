@@ -2,7 +2,7 @@
  * \file Copyright (c) 2009 Open Information Security Foundation
  * \author James Riden <jamesr@europe.com>
  *
- * \brief PPPoE Decoder
+ * \brief PPPOE Decoder
  */
 
 #include "eidps-common.h"
@@ -17,41 +17,116 @@
 #include "util-unittest.h"
 
 /**
- * \brief Main decoding function for PPPoE packets
+ * \brief Main decoding function for PPPOE Discovery packets
  */
-void DecodePPPoE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+{
+    // TODO
+}
+
+/**
+ * \brief Main decoding function for PPPOE Session packets
+ */
+void DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     PerfCounterIncr(dtv->counter_pppoe, tv->pca);
 
-    if (len < PPPOE_HEADER_LEN) {
+    if (len < PPPOE_SESSION_HEADER_LEN) {
         DECODER_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);
         return;
     }
 
-    p->pppoeh = (PPPoEHdr *)pkt;
-    if (p->pppoeh == NULL)
+    p->pppoesh = (PPPOESessionHdr *)pkt;
+    if (p->pppoesh == NULL)
         return;
 
 #ifdef DEBUG
     printf("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "\n",
-           p->pppoeh->pppoe_version,  p->pppoeh->pppoe_type,  p->pppoeh->pppoe_code,  ntohs(p->pppoeh->session_id),  ntohs(p->pppoeh->pppoe_length));
+           p->pppoesh->pppoe_version,  p->pppoesh->pppoe_type,  p->pppoesh->pppoe_code,  ntohs(p->pppoesh->session_id),  ntohs(p->pppoesh->pppoe_length));
 #endif
 
-    if (ntohs(p->pppoeh->pppoe_length) > 0) {
+    if (ntohs(p->pppoesh->pppoe_length) > 0) {
         /* decode contained PPP packet */
-        DecodePPP(tv, dtv, p, pkt + PPPOE_HEADER_LEN, len - PPPOE_HEADER_LEN, pq);
+
+        switch (ntohs(p->pppoesh->protocol))
+        {
+            case PPP_VJ_COMP:
+            case PPP_IPX:
+            case PPP_OSI:
+            case PPP_NS:
+            case PPP_DECNET:
+            case PPP_APPLE:
+            case PPP_BRPDU:
+            case PPP_STII:
+            case PPP_VINES:
+            case PPP_HELLO:
+            case PPP_LUXCOM:
+            case PPP_SNS:
+            case PPP_MPLS_UCAST:
+            case PPP_MPLS_MCAST:
+            case PPP_IPCP:
+            case PPP_OSICP:
+            case PPP_NSCP:
+            case PPP_DECNETCP:
+            case PPP_APPLECP:
+            case PPP_IPXCP:
+            case PPP_STIICP:
+            case PPP_VINESCP:
+            case PPP_IPV6CP:
+            case PPP_MPLSCP:
+            case PPP_LCP:
+            case PPP_PAP:
+            case PPP_LQM:
+            case PPP_CHAP:
+                DECODER_SET_EVENT(p,PPP_UNSUP_PROTO);
+                break;
+
+            case PPP_VJ_UCOMP:
+
+                if(len < (PPPOE_SESSION_HEADER_LEN + IPV4_HEADER_LEN))    {
+                    DECODER_SET_EVENT(p,PPPVJU_PKT_TOO_SMALL);
+                    return;
+                }
+
+                if(IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + PPPOE_SESSION_HEADER_LEN)) == 4) {
+                    DecodeIPV4(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN, pq );
+                }
+                break;
+
+            case PPP_IP:
+                if(len < (PPPOE_SESSION_HEADER_LEN + IPV4_HEADER_LEN))    {
+                    DECODER_SET_EVENT(p,PPPIPV4_PKT_TOO_SMALL);
+                    return;
+                }
+
+                DecodeIPV4(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN, pq );
+            break;
+
+            /* PPP IPv6 was not tested */
+            case PPP_IPV6:
+                if(len < (PPPOE_SESSION_HEADER_LEN + IPV6_HEADER_LEN))    {
+                    DECODER_SET_EVENT(p,PPPIPV6_PKT_TOO_SMALL);
+                    return;
+                }
+
+                DecodeIPV6(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN, pq );
+                break;
+
+            default:
+#ifdef	DEBUG
+                printf("Unknown PPP protocol: %" PRIx32 "\n",ntohs(p->ppph->protocol));
+#endif
+                DECODER_SET_EVENT(p,PPP_WRONG_TYPE);
+                return;
+        }
     }
 }
 
-/** DecodePPPoEtest01
- *  \brief Decode malformed PPPoE packet (too short)
+/** DecodePPPOEtest01
+ *  \brief Decode malformed PPPOE packet (too short)
  *  \retval 1 Expected test value
  */
-static int DecodePPPoEtest01 (void)   {
-
-    /* 0000  ff ff ff ff ff ff 00 0a e4 13 31 a3 81 00 03 98   ..........1.....
-       0010  81 00 00 80 88 63 11 09 00 00 00 08 01 01 00 00   .....c..........
-       0020  01 00 00 00 */
+static int DecodePPPOEtest01 (void)   {
 
     uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x00, 0x00 };
     Packet p;
@@ -62,37 +137,36 @@ static int DecodePPPoEtest01 (void)   {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPPoE(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
+    DecodePPPOESession(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
-    if(DECODER_ISSET_EVENT(&p,PPPOE_PKT_TOO_SMALL))  {
+    if (DECODER_ISSET_EVENT(&p,PPPOE_PKT_TOO_SMALL))  {
         return 1;
     }
 
     return 0;
 }
 
-/** DecodePPPoEtest02
- *  \brief Valid PPPoE packet
+/** DecodePPPOEtest02
+ *  \brief Valid PPPOE packet
  *  \retval 0 Expected test value
  */
-static int DecodePPPoEtest02 (void)   {
+static int DecodePPPOEtest02 (void)   {
 
     uint8_t raw_pppoe[] = {
         0x11, 0x00, 0x00, 0x01, 0x00, 0x68, 0x00, 0x21,
-        0x45, 0xc0, 0x00, 0x66, 0x02, 0xa3, 0x00, 0x00,
-        0xff, 0xfd, 0x91, 0x7b, 0x64, 0x00, 0x00, 0x64,
-        0xc0, 0x55, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x27, 0x56, 0x8b, 0xa4, 0x7c, 0xfa,
-        0x38, 0x78, 0xb3, 0x70, 0x3f, 0xda, 0x79, 0x50,
-        0x2e, 0xd7, 0x7f, 0x4d, 0x7c, 0xd2, 0xdc, 0x80,
-        0xfa, 0x66 };
+        0x45, 0xc0, 0x00, 0x64, 0x00, 0x1e, 0x00, 0x00,
+        0xff, 0x01, 0xa7, 0x78, 0x0a, 0x00, 0x00, 0x02,
+        0x0a, 0x00, 0x00, 0x01, 0x00, 0x00, 0x4a, 0x61,
+        0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x0f, 0x3b, 0xd4, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd };
 
     Packet p;
     ThreadVars tv;
@@ -102,7 +176,7 @@ static int DecodePPPoEtest02 (void)   {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPPoE(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
+    DecodePPPOESession(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
     if(DECODER_ISSET_EVENT(&p,PPPOE_PKT_TOO_SMALL))  {
         return 1;
@@ -111,12 +185,60 @@ static int DecodePPPoEtest02 (void)   {
     return 0;
 }
 
-/**
- * \brief Registers PPPoE unit tests
- * \todo More PPPoE tests
+
+/** DecodePPPOEtest03
+ *  \brief Valid example PADO packet PPPOE packet taken from RFC2516
+ *  \retval 0 Expected test value
  */
-void DecodePPPoERegisterTests(void) {
-    UtRegisterTest("DecodePPPoEtest01", DecodePPPoEtest01, 1);
-    UtRegisterTest("DecodePPPoEtest02", DecodePPPoEtest02, 0);
+static int DecodePPPOEtest03 (void)   {
+
+    /* example PADO packet taken from RFC2516 */
+    uint8_t raw_pppoe[] = {
+        0x11, 0x07, 0x00, 0x00, 0x00, 0x20, 0x01, 0x01,
+        0x00, 0x00, 0x01, 0x02, 0x00, 0x18, 0x47, 0x6f,
+        0x20, 0x52, 0x65, 0x64, 0x42, 0x61, 0x63, 0x6b,
+        0x20, 0x2d, 0x20, 0x65, 0x73, 0x68, 0x73, 0x68,
+        0x65, 0x73, 0x68, 0x6f, 0x6f, 0x74
+    };
+
+    Packet p;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    DecodePPPOEDiscovery(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
+
+    return 0; // TODO
+}
+
+/** DecodePPPOEtest04
+ *  \brief Valid exaple PADI PPPOE packet taken from RFC2516
+ *  \retval 0 Expected test value
+ */
+static int DecodePPPOEtest04 (void)   {
+
+    /* example PADI packet taken from RFC2516 */
+    uint8_t raw_pppoe[] = {
+        0x11, 0x09, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01,
+        0x00, 0x00
+    };
+
+    Packet p;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    DecodePPPOEDiscovery(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
+
+    return 0; // TODO
+}
+
+/**
+ * \brief Registers PPPOE unit tests
+ * \todo More PPPOE tests
+ */
+void DecodePPPOERegisterTests(void) {
+    UtRegisterTest("DecodePPPOEtest01", DecodePPPOEtest01, 1);
+    UtRegisterTest("DecodePPPOEtest02", DecodePPPOEtest02, 0);
+    UtRegisterTest("DecodePPPOEtest03", DecodePPPOEtest03, 0);
+    UtRegisterTest("DecodePPPOEtest04", DecodePPPOEtest04, 0);
 }
 

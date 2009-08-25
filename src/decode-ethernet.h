@@ -12,8 +12,8 @@
 #define ETHERNET_TYPE_EAPOL           0x888e
 #define ETHERNET_TYPE_IPV6            0x86dd
 #define ETHERNET_TYPE_IPX             0x8137
-#define ETHERNET_TYPE_PPPoE_DISC      0x8863 /* discovery stage */
-#define ETHERNET_TYPE_PPPoE_SESS      0x8864 /* session stage */
+#define ETHERNET_TYPE_PPPOE_DISC      0x8863 /* discovery stage */
+#define ETHERNET_TYPE_PPPOE_SESS      0x8864 /* session stage */
 #define ETHERNET_TYPE_8021Q           0x8100
 #define ETHERNET_TYPE_LOOP            0x9000
 
