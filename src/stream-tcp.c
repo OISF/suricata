@@ -34,6 +34,8 @@
 #include "stream.h"
 #include "stream-tcp.h"
 
+//#define DEBUG
+
 int StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *);
 int StreamTcpThreadInit(ThreadVars *, void *, void **);
 int StreamTcpThreadDeinit(ThreadVars *, void *);

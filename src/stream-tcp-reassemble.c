@@ -138,7 +138,6 @@ int StreamTcpReassembleInit(void) {
     return 0;
 }
 
-//#ifdef DEBUG
 static void PrintList(TcpSegment *seg) {
     TcpSegment *prev_seg = NULL;
 
@@ -148,14 +147,14 @@ static void PrintList(TcpSegment *seg) {
     uint32_t next_seq = seg->seq;
 
     while (seg != NULL) {
-        if (next_seq != seg->seq) {
+        if (SEQ_LT(next_seq,seg->seq)) {
 #ifdef DEBUG
             printf("PrintList: missing segment(s) for %" PRIu32 " bytes of data\n", (seg->seq - next_seq));
 #endif /* DEBUG */
         }
 
 #ifdef DEBUG
-        printf("PrintList: seg %10u len %" PRIu32 ", seg %p, prev %p, next %p\n", seg->seq, seg->payload_len, seg, seg->prev, seg->next);
+        printf("PrintList: seg %10"PRIu32" len %" PRIu16 ", seg %p, prev %p, next %p\n", seg->seq, seg->payload_len, seg, seg->prev, seg->next);
 #endif /* DEBUG */
 
         if (seg->prev != NULL && SEQ_LT(seg->seq,seg->prev->seq)) {
@@ -174,11 +173,13 @@ static void PrintList(TcpSegment *seg) {
         }
 
         next_seq = seg->seq + seg->payload_len;
+#ifdef DEBUG
+        printf("PrintList: next_seq is now %"PRIu32"\n", next_seq);
+#endif
         prev_seg = seg;
         seg = seg->next;
     }
 }
-//#endif /* DEBUG */
 
 /**
  *  \brief  Function to handle the insertion newly arrived segment,
@@ -305,23 +306,27 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
     char end_before = FALSE;
     char end_after = FALSE;
     char end_same = FALSE;
-
-    //printf("\nHandleSegmentStartsBeforeListSegment: seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "\n", seg->seq, seg->payload_len);
-    //PrintList(stream->seg_list);
+#ifdef DEBUG
+    printf("\nHandleSegmentStartsBeforeListSegment: seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "\n", seg->seq, seg->payload_len);
+#endif
+    PrintList(stream->seg_list);
 
     if (SEQ_GT((seg->seq + seg->payload_len), list_seg->seq) &&
-            SEQ_LT((seg->seq + seg->payload_len),
-            (list_seg->seq + list_seg->payload_len))) {
-
+        SEQ_LT((seg->seq + seg->payload_len),(list_seg->seq + list_seg->payload_len))) {
+        /* seg starts before list seg, ends beyond it but before list end */
         end_before = TRUE;
-        overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq + seg->payload_len);
+
+        /* [aaaa[abab]bbbb] a = seg, b = list_seg, overlap is the part [abab]
+         * We know seg->seq + seg->payload_len is bigger than list_seg->seq */
+        overlap = (seg->seq + seg->payload_len) - list_seg->seq;
         overlap_point = list_seg->seq;
 #ifdef DEBUG
-        printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends before list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+        printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends before list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu16 " overlap is %" PRIu32 ", overlap point %"PRIu32"\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap, overlap_point);
 #endif
-        /* seg fully overlaps list_seg, starts before, at end point */
-    } else if (SEQ_EQ((seg->seq + seg->payload_len),
-            (list_seg->seq + list_seg->payload_len))) {
+    } else if (SEQ_EQ((seg->seq + seg->payload_len), (list_seg->seq + list_seg->payload_len))) {
+        /* seg fully overlaps list_seg, starts before, at end point
+         * [aaa[ababab]] where a = seg, b = list_seg
+         * overlap is [ababab], which is list_seg->payload_len */
         overlap = list_seg->payload_len;
         end_same = TRUE;
         overlap_point = list_seg->seq;
@@ -329,8 +334,10 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
         printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends at list end: list prev %p seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", list_seg->prev, seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
         /* seg fully overlaps list_seg, starts before, ends after list endpoint */
-    } else if (SEQ_GT((seg->seq + seg->payload_len),
-            (list_seg->seq + list_seg->payload_len))) {
+    } else if (SEQ_GT((seg->seq + seg->payload_len), (list_seg->seq + list_seg->payload_len))) {
+        /* seg fully overlaps list_seg, starts before, ends after list endpoint
+         * [aaa[ababab]aaa] where a = seg, b = list_seg
+         * overlap is [ababab] which is list_seg->payload_len */
         overlap = list_seg->payload_len;
         end_after = TRUE;
         overlap_point = list_seg->seq;
@@ -338,12 +345,15 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
         printf("HandleSegmentStartsBeforeListSegment: starts before list seg, ends after list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
     }
+
     if (overlap > 0) {
         /* Handling case when the packet starts before the first packet in the list */
         if (list_seg->prev == NULL) {
             packet_length = seg->payload_len + (list_seg->payload_len - overlap);
-            //printf("HandleSegmentStartsBeforeListSegment: entered here pkt len %" PRIu32 ", seg %" PRIu32 ", list %" PRIu32 "\n",
-            //    packet_length, seg->payload_len, list_seg->payload_len);
+#ifdef DEBUG
+            printf("HandleSegmentStartsBeforeListSegment: entered here pkt len %" PRIu32 ", seg %" PRIu32 ", list %" PRIu32 "\n",
+                packet_length, seg->payload_len, list_seg->payload_len);
+#endif
 
             TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
             if (new_seg == NULL) {
@@ -374,19 +384,19 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
             }
 
             stream->seg_list = new_seg;
-            //printf("HandleSegmentStartsBeforeListSegment: list_seg now %p, stream->seg_list now %p\n", list_seg, stream->seg_list);
+#ifdef DEBUG
+            printf("HandleSegmentStartsBeforeListSegment: list_seg now %p, stream->seg_list now %p\n", list_seg, stream->seg_list);
+#endif
         } else if (end_before == TRUE || end_same == TRUE) {
             /* Handling overlapping with more than one segment and filling gap */
             if (SEQ_LEQ(seg->seq, (list_seg->prev->seq + list_seg->prev->payload_len))) {
-                //printf("the diff is %" PRIu32 " \n", (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len)));
                 packet_length = list_seg->payload_len + (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
-                //overlap += packet_length - list_seg->payload_len;
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
                     return -1;
                 }
-                //printf("StreamTcpReassembleHandleSegmentHandleData: seg %p, seg->pool_size %" PRIu32 "\n", seg, seg->pool_size);
+
                 new_seg->payload_len = packet_length;
                 if (SEQ_GT((list_seg->prev->seq + list_seg->prev->payload_len), seg->seq))
                     new_seg->seq = (list_seg->prev->seq + list_seg->prev->payload_len);
@@ -398,7 +408,9 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                 StreamTcpSegmentDataCopy(new_seg, list_seg);
 
                 uint16_t copy_len = (uint16_t) (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
-                //printf("StreamTcpReassembleHandleSegmentHandleData: copy_len %" PRIu32 " (%" PRIu32 " - %" PRIu32 ")\n", copy_len, list_seg->seq, (list_seg->prev->seq + list_seg->prev->payload_len));
+#ifdef DEBUG
+                printf("StreamTcpReassembleHandleSegmentHandleData: copy_len %" PRIu32 " (%" PRIu32 " - %" PRIu32 ")\n", copy_len, list_seg->seq, (list_seg->prev->seq + list_seg->prev->payload_len));
+#endif
                 StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->prev->seq + list_seg->prev->payload_len), copy_len);
 
                 StreamTcpSegmentReturntoPool(list_seg);
@@ -416,9 +428,8 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                     packet_length = list_seg->payload_len + (list_seg->seq - seg->seq);
                 else
                     packet_length = list_seg->payload_len + (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
+
                 packet_length += (seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len);
-                //printf("the diff is %" PRIu32 " in after \n", packet_length);
-                //overlap = packet_length;
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
@@ -524,26 +535,33 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
     char end_same = FALSE;
     char handle_beyond = FALSE;
 
-    if (SEQ_LT((seg->seq + seg->payload_len),
-            (list_seg->seq + list_seg->payload_len))) {
-        overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq + seg->payload_len);
+    if (SEQ_LT((seg->seq + seg->payload_len), (list_seg->seq + list_seg->payload_len))) {
+        /* seg->seg == list_seg->seq and list_seg->payload_len > seg->payload_len
+         * [[ababab]bbbb] where a = seg, b = list_seg
+         * overlap is the [ababab] part, which equals seg->payload_len. */
+        overlap = seg->payload_len;
         end_before = TRUE;
 #ifdef DEBUG
         printf("HandleSegmentStartsAtSameListSegment: starts at list seq, ends before list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is%" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
 
-        /* seg starts at seq, ends at seq, retransmission. */
-    } else if (SEQ_EQ((seg->seq + seg->payload_len),
-            (list_seg->seq + list_seg->payload_len))) {
+    } else if (SEQ_EQ((seg->seq + seg->payload_len), (list_seg->seq + list_seg->payload_len))) {
+        /* seg starts at seq, ends at seq, retransmission.
+         * both segments are the same, so overlap is either
+         * seg->payload_len or list_seg->payload_len */
+
         /* check csum, ack, other differences? */
         overlap = seg->payload_len;
         end_same = TRUE;
 #ifdef DEBUG
         printf("HandleSegmentStartsAtSameListSegment: (retransmission) starts at list seq, ends at list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is%" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
-        /* seg starts at seq, ends beyond seq. */
     } else if (SEQ_GT((seg->seq + seg->payload_len),
             (list_seg->seq + list_seg->payload_len))) {
+        /* seg starts at seq, ends beyond seq. */
+        /* seg->seg == list_seg->seq and seg->payload_len > list_seg->payload_len
+         * [[ababab]aaaa] where a = seg, b = list_seg
+         * overlap is the [ababab] part, which equals list_seg->payload_len. */
         overlap = list_seg->payload_len;
         end_after = TRUE;
 #ifdef DEBUG
@@ -659,26 +677,33 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
     char end_same = FALSE;
     char handle_beyond = FALSE;
 
-    if (SEQ_LT((seg->seq + seg->payload_len),
-            (list_seg->seq + list_seg->payload_len))) {
-        overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq + seg->payload_len);
+    if (SEQ_LT((seg->seq + seg->payload_len), (list_seg->seq + list_seg->payload_len))) {
+        /* seg starts after list, ends before list end
+         * [bbbb[ababab]bbbb] where a = seg, b = list_seg
+         * overlap is the part [ababab] which is seg->payload_len */
+        overlap = seg->payload_len;
         end_before = TRUE;
 #ifdef DEBUG
         printf("HandleSegmentStartsAfterListSegment: starts beyond list seq, ends before list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
-        /* seg starts after seq, before end, ends at seq. */
     } else if (SEQ_EQ((seg->seq + seg->payload_len),
             (list_seg->seq + list_seg->payload_len))) {
-        overlap = (list_seg->seq + list_seg->payload_len) - (seg->seq);
+        /* seg starts after seq, before end, ends at seq
+         * [bbbb[ababab]] where a = seg, b = list_seg
+         * overlapping part is [ababab], thus seg->payload_len */
+        overlap = seg->payload_len;
         end_same = TRUE;
 #ifdef DEBUG
         printf("HandleSegmentStartsAfterListSegment: starts beyond list seq, ends at list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 #endif
-        /* seg starts after seq, before end, ends beyond seq. */
     } else if (SEQ_LT(seg->seq, list_seg->seq + list_seg->payload_len) &&
-            SEQ_GT((seg->seq + seg->payload_len),
-            (list_seg->seq + list_seg->payload_len))) {
-        overlap = (seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len);
+               SEQ_GT((seg->seq + seg->payload_len), (list_seg->seq + list_seg->payload_len))) {
+        /* seg starts after seq, before end, ends beyond seq.
+         *
+         * [bbb[ababab]aaa] where a = seg, b = list_seg.
+         * overlap is the [ababab] part, which can be get using:
+         * (list_seg->seq + list_seg->payload_len) - seg->seg */
+        overlap = (list_seg->seq + list_seg->payload_len) - seg->seq;
         end_after = TRUE;
 #ifdef DEBUG
         printf("HandleSegmentStartsAfterListSegment: starts beyond list seq, before list end, ends at list end: seg->seq %" PRIu32 ", list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "\n", seg->seq, list_seg->seq, list_seg->payload_len, overlap);
