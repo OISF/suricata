@@ -193,7 +193,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
     TcpSegment *list_seg = stream->seg_list;
 
     uint8_t os_policy = stream->os_policy;
-    uint8_t ret_value = 0;
+    int ret_value = 0;
 
     //printf("ReassembleInsertSegment start seg %p\n", seg);
 
