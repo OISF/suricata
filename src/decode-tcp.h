@@ -114,5 +114,7 @@ typedef struct TCPVars_
     (p)->tcpvars.mss = NULL; \
 }
 
+void DecodeTCPRegisterTests(void);
+
 #endif /* __DECODE_TCP_H__ */
 

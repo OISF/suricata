@@ -4,8 +4,69 @@
 #include "decode.h"
 #include "decode-tcp.h"
 #include "decode-events.h"
+#include "util-unittest.h"
 
 #include "flow.h"
+
+/**
+ * \brief Calculates the checksum for the TCP packet
+ *
+ * \param shdr Pointer to source address field from the IP packet.  Used as a
+ *             part of the psuedoheader for computing the checksum
+ * \param pkt  Pointer to the start of the TCP packet
+ * \param hlen Total length of the TCP packet(header + payload)
+ *
+ * \retval csum Checksum for the TCP packet
+ */
+static inline uint16_t TCPCalculateChecksum(uint16_t *shdr, uint16_t *pkt,
+                                            uint16_t tlen)
+{
+    uint16_t pad = 0;
+    uint32_t csum = shdr[0];
+
+    csum += shdr[1] + shdr[2] + shdr[3] + htons(6 + tlen);
+
+    csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+        pkt[7] + pkt[9];
+
+    tlen -= 20;
+    pkt += 10;
+
+    while (tlen >= 32) {
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
+            pkt[14] + pkt[15];
+        tlen -= 32;
+        pkt += 16;
+    }
+
+    while(tlen >= 8) {
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3];
+        tlen -= 8;
+        pkt += 4;
+    }
+
+    while(tlen >= 4) {
+        csum += pkt[0] + pkt[1];
+        tlen -= 4;
+        pkt += 2;
+    }
+
+    while (tlen > 1) {
+        csum += pkt[0];
+        pkt += 1;
+        tlen -= 2;
+    }
+
+    if (tlen == 1) {
+        *(uint8_t *)(&pad) = (*(uint8_t *)pkt);
+        csum += pad;
+    }
+
+    csum = (csum >> 16) + (csum & 0x0000FFFF);
+
+    return (uint16_t) ~csum;
+}
 
 static int DecodeTCPOptions(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
 {
@@ -158,3 +219,50 @@ void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     return;
 }
 
+static int TCPCalculateValidChecksumtest01(void)
+{
+    uint16_t csum = 0;
+
+    uint8_t raw_ipshdr[] = {
+        0x40, 0x8e, 0x7e, 0xb2, 0xc0, 0xa8, 0x01, 0x03};
+
+    uint8_t raw_tcp[] = {
+        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
+        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
+        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
+        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 02};
+
+    csum = *( ((uint16_t *)raw_tcp) + 8);
+
+    return (csum == TCPCalculateChecksum((uint16_t *) raw_ipshdr,
+                                         (uint16_t *)raw_tcp, sizeof(raw_tcp)));
+}
+
+static int TCPCalculateInvalidChecksumtest02(void)
+{
+    uint16_t csum = 0;
+
+    uint8_t raw_ipshdr[] = {
+        0x40, 0x8e, 0x7e, 0xb2, 0xc0, 0xa8, 0x01, 0x03};
+
+    uint8_t raw_tcp[] = {
+        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
+        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
+        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
+        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 03};
+
+    csum = *( ((uint16_t *)raw_tcp) + 8);
+
+    return (csum == TCPCalculateChecksum((uint16_t *) raw_ipshdr,
+                                         (uint16_t *)raw_tcp, sizeof(raw_tcp)));
+}
+
+void DecodeTCPRegisterTests(void)
+{
+    UtRegisterTest("TCPCalculateValidChecksumtest01",
+                   TCPCalculateValidChecksumtest01, 1);
+    UtRegisterTest("TCPCalculateInvalidChecksumtest02",
+                   TCPCalculateInvalidChecksumtest02, 0);
+}

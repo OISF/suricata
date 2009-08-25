@@ -28,4 +28,6 @@ typedef struct UDPVars_
     uint8_t hlen;
 } UDPVars;
 
+void DecodeUDPV4RegisterTests(void);
+
 #endif /* __DECODE_UDP_H__ */
