@@ -101,7 +101,7 @@ static int DetectFlowbitMatchIsnotset (Packet *p, DetectFlowbitsData *fd) {
  *        -1: error
  */
 
-int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     DetectFlowbitsData *fd = (DetectFlowbitsData *)m->ctx;
     if (fd == NULL)

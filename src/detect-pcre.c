@@ -79,7 +79,7 @@ error:
  *        -1: error
  */
 
-int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
 #define MAX_SUBSTRINGS 30
     int ret = 0;
@@ -92,11 +92,11 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signa
 
     DetectPcreData *pe = (DetectPcreData *)m->ctx;
     if (s->flags & SIG_FLAG_RECURSIVE) {
-        ptr = pmt->pkt_ptr ? pmt->pkt_ptr : p->payload;
-        len = p->payload_len - pmt->pkt_off;
+        ptr = det_ctx->pkt_ptr ? det_ctx->pkt_ptr : p->payload;
+        len = p->payload_len - det_ctx->pkt_off;
     } else if (pe->flags & DETECT_PCRE_RELATIVE) {
-        ptr = pmt->pkt_ptr;
-        len = p->payload_len - pmt->pkt_off;
+        ptr = det_ctx->pkt_ptr;
+        len = p->payload_len - det_ctx->pkt_off;
         if (ptr == NULL || len == 0)
             return 0;
     } else {
@@ -113,42 +113,42 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signa
             ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
             if (ret) {
                 if (strcmp(pe->capname,"http_uri") == 0) {
-                    p->http_uri.raw[pmt->pkt_cnt] = (uint8_t *)str_ptr;
-                    p->http_uri.raw_size[pmt->pkt_cnt] = ret;
-                    p->http_uri.cnt = pmt->pkt_cnt + 1;
+                    p->http_uri.raw[det_ctx->pkt_cnt] = (uint8_t *)str_ptr;
+                    p->http_uri.raw_size[det_ctx->pkt_cnt] = ret;
+                    p->http_uri.cnt = det_ctx->pkt_cnt + 1;
 
                     /* count how many uri's we handle for stats */
-                    pmt->uris++;
+                    det_ctx->uris++;
 
-                    //printf("DetectPcre: URI pmt->sgh %p, pmt->mcu %p\n", pmt->sgh, pmt->mcu);
-                    //PrintRawUriFp(stdout,p->http_uri.raw[pmt->pkt_cnt],p->http_uri.raw_size[pmt->pkt_cnt]);
-                    //printf(" (pkt_cnt %" PRIu32 ", mcu %p)\n", pmt->pkt_cnt, pmt->mcu);
+                    //printf("DetectPcre: URI det_ctx->sgh %p, det_ctx->mcu %p\n", det_ctx->sgh, det_ctx->mcu);
+                    //PrintRawUriFp(stdout,p->http_uri.raw[det_ctx->pkt_cnt],p->http_uri.raw_size[det_ctx->pkt_cnt]);
+                    //printf(" (pkt_cnt %" PRIu32 ", mcu %p)\n", det_ctx->pkt_cnt, det_ctx->mcu);
 
                     /* don't bother scanning if we don't have a pattern matcher ctx
                      * which means we don't have uricontent sigs */
-                    if (pmt->sgh->mpm_uri_ctx != NULL) {
-                        if (pmt->sgh->mpm_uricontent_maxlen <= p->http_uri.raw_size[pmt->pkt_cnt]) {
-                            if (pmt->sgh->mpm_uricontent_maxlen == 1)      pmt->pkts_uri_scanned1++;
-                            else if (pmt->sgh->mpm_uricontent_maxlen == 2) pmt->pkts_uri_scanned2++;
-                            else if (pmt->sgh->mpm_uricontent_maxlen == 3) pmt->pkts_uri_scanned3++;
-                            else if (pmt->sgh->mpm_uricontent_maxlen == 4) pmt->pkts_uri_scanned4++;
-                            else                                           pmt->pkts_uri_scanned++;
+                    if (det_ctx->sgh->mpm_uri_ctx != NULL) {
+                        if (det_ctx->sgh->mpm_uricontent_maxlen <= p->http_uri.raw_size[det_ctx->pkt_cnt]) {
+                            if (det_ctx->sgh->mpm_uricontent_maxlen == 1)      det_ctx->pkts_uri_scanned1++;
+                            else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_scanned2++;
+                            else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_scanned3++;
+                            else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_scanned4++;
+                            else                                           det_ctx->pkts_uri_scanned++;
 
-                            pmt->pmq.mode = PMQ_MODE_SCAN;
-                            ret = pmt->sgh->mpm_uri_ctx->Scan(pmt->sgh->mpm_uri_ctx, &pmt->mtcu, &pmt->pmq, p->http_uri.raw[pmt->pkt_cnt], p->http_uri.raw_size[pmt->pkt_cnt]);
+                            det_ctx->pmq.mode = PMQ_MODE_SCAN;
+                            ret = det_ctx->sgh->mpm_uri_ctx->Scan(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
                             if (ret > 0) {
-                                if (pmt->sgh->mpm_uricontent_maxlen == 1)      pmt->pkts_uri_searched1++;
-                                else if (pmt->sgh->mpm_uricontent_maxlen == 2) pmt->pkts_uri_searched2++;
-                                else if (pmt->sgh->mpm_uricontent_maxlen == 3) pmt->pkts_uri_searched3++;
-                                else if (pmt->sgh->mpm_uricontent_maxlen == 4) pmt->pkts_uri_searched4++;
-                                else                                           pmt->pkts_uri_searched++;
+                                if (det_ctx->sgh->mpm_uricontent_maxlen == 1)      det_ctx->pkts_uri_searched1++;
+                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_searched2++;
+                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_searched3++;
+                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
+                                else                                           det_ctx->pkts_uri_searched++;
 
-                                pmt->pmq.mode = PMQ_MODE_SEARCH;
-                                ret += pmt->sgh->mpm_uri_ctx->Search(pmt->sgh->mpm_uri_ctx, &pmt->mtcu, &pmt->pmq, p->http_uri.raw[pmt->pkt_cnt], p->http_uri.raw_size[pmt->pkt_cnt]);
+                                det_ctx->pmq.mode = PMQ_MODE_SEARCH;
+                                ret += det_ctx->sgh->mpm_uri_ctx->Search(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
 
                                 /* indicate to uricontent that we have a uri,
                                  * we scanned it _AND_ we found pattern matches. */
-                                pmt->de_have_httpuri = 1;
+                                det_ctx->de_have_httpuri = 1;
                             }
                         }
                     }
@@ -163,8 +163,8 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signa
         }
 
         /* update ptrs for pcre RELATIVE */
-        pmt->pkt_ptr =  ptr+ov[1];
-        pmt->pkt_off = (ptr+ov[1]) - p->payload;
+        det_ctx->pkt_ptr =  ptr+ov[1];
+        det_ctx->pkt_off = (ptr+ov[1]) - p->payload;
         //printf("DetectPcre: post match: t->pkt_ptr %p t->pkt_off %" PRIu32 "\n", t->pkt_ptr, t->pkt_off);
 
         ret = 1;

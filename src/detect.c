@@ -73,71 +73,71 @@ void TmModuleDetectRegister (void) {
 }
 
 void DetectExitPrintStats(ThreadVars *tv, void *data) {
-    DetectEngineThreadCtx *pmt = (DetectEngineThreadCtx *)data;
-    if (pmt == NULL)
+    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
+    if (det_ctx == NULL)
         return;
 
     printf(" - (%s) (1byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_scanned1,
-        (float)(pmt->pkts_scanned1/(float)(pmt->pkts)*100),
-        pmt->pkts_searched1,
-        (float)(pmt->pkts_searched1/(float)(pmt->pkts)*100),
-        (float)(pmt->pkts_searched1/(float)(pmt->pkts_scanned1)*100));
+        det_ctx->pkts, det_ctx->pkts_scanned1,
+        (float)(det_ctx->pkts_scanned1/(float)(det_ctx->pkts)*100),
+        det_ctx->pkts_searched1,
+        (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts)*100),
+        (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts_scanned1)*100));
     printf(" - (%s) (2byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_scanned2,
-        (float)(pmt->pkts_scanned2/(float)(pmt->pkts)*100),
-        pmt->pkts_searched2,
-        (float)(pmt->pkts_searched2/(float)(pmt->pkts)*100),
-        (float)(pmt->pkts_searched2/(float)(pmt->pkts_scanned2)*100));
+        det_ctx->pkts, det_ctx->pkts_scanned2,
+        (float)(det_ctx->pkts_scanned2/(float)(det_ctx->pkts)*100),
+        det_ctx->pkts_searched2,
+        (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts)*100),
+        (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts_scanned2)*100));
     printf(" - (%s) (3byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_scanned3,
-        (float)(pmt->pkts_scanned3/(float)(pmt->pkts)*100),
-        pmt->pkts_searched3,
-        (float)(pmt->pkts_searched3/(float)(pmt->pkts)*100),
-        (float)(pmt->pkts_searched3/(float)(pmt->pkts_scanned3)*100));
+        det_ctx->pkts, det_ctx->pkts_scanned3,
+        (float)(det_ctx->pkts_scanned3/(float)(det_ctx->pkts)*100),
+        det_ctx->pkts_searched3,
+        (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts)*100),
+        (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts_scanned3)*100));
     printf(" - (%s) (4byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_scanned4,
-        (float)(pmt->pkts_scanned4/(float)(pmt->pkts)*100),
-        pmt->pkts_searched4,
-        (float)(pmt->pkts_searched4/(float)(pmt->pkts)*100),
-        (float)(pmt->pkts_searched4/(float)(pmt->pkts_scanned4)*100));
+        det_ctx->pkts, det_ctx->pkts_scanned4,
+        (float)(det_ctx->pkts_scanned4/(float)(det_ctx->pkts)*100),
+        det_ctx->pkts_searched4,
+        (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts)*100),
+        (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts_scanned4)*100));
     printf(" - (%s) (+byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->pkts, pmt->pkts_scanned,
-        (float)(pmt->pkts_scanned/(float)(pmt->pkts)*100),
-        pmt->pkts_searched,
-        (float)(pmt->pkts_searched/(float)(pmt->pkts)*100),
-        (float)(pmt->pkts_searched/(float)(pmt->pkts_scanned)*100));
+        det_ctx->pkts, det_ctx->pkts_scanned,
+        (float)(det_ctx->pkts_scanned/(float)(det_ctx->pkts)*100),
+        det_ctx->pkts_searched,
+        (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts)*100),
+        (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts_scanned)*100));
 
     printf(" - (%s) URI (1byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->uris, pmt->pkts_uri_scanned1,
-        (float)(pmt->pkts_uri_scanned1/(float)(pmt->uris)*100),
-        pmt->pkts_uri_searched1,
-        (float)(pmt->pkts_uri_searched1/(float)(pmt->uris)*100),
-        (float)(pmt->pkts_uri_searched1/(float)(pmt->pkts_uri_scanned1)*100));
+        det_ctx->uris, det_ctx->pkts_uri_scanned1,
+        (float)(det_ctx->pkts_uri_scanned1/(float)(det_ctx->uris)*100),
+        det_ctx->pkts_uri_searched1,
+        (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->uris)*100),
+        (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->pkts_uri_scanned1)*100));
     printf(" - (%s) URI (2byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->uris, pmt->pkts_uri_scanned2,
-        (float)(pmt->pkts_uri_scanned2/(float)(pmt->uris)*100),
-        pmt->pkts_uri_searched2,
-        (float)(pmt->pkts_uri_searched2/(float)(pmt->uris)*100),
-        (float)(pmt->pkts_uri_searched2/(float)(pmt->pkts_uri_scanned2)*100));
+        det_ctx->uris, det_ctx->pkts_uri_scanned2,
+        (float)(det_ctx->pkts_uri_scanned2/(float)(det_ctx->uris)*100),
+        det_ctx->pkts_uri_searched2,
+        (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->uris)*100),
+        (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->pkts_uri_scanned2)*100));
     printf(" - (%s) URI (3byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->uris, pmt->pkts_uri_scanned3,
-        (float)(pmt->pkts_uri_scanned3/(float)(pmt->uris)*100),
-        pmt->pkts_uri_searched3,
-        (float)(pmt->pkts_uri_searched3/(float)(pmt->uris)*100),
-        (float)(pmt->pkts_uri_searched3/(float)(pmt->pkts_uri_scanned3)*100));
+        det_ctx->uris, det_ctx->pkts_uri_scanned3,
+        (float)(det_ctx->pkts_uri_scanned3/(float)(det_ctx->uris)*100),
+        det_ctx->pkts_uri_searched3,
+        (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->uris)*100),
+        (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->pkts_uri_scanned3)*100));
     printf(" - (%s) URI (4byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->uris, pmt->pkts_uri_scanned4,
-        (float)(pmt->pkts_uri_scanned4/(float)(pmt->uris)*100),
-        pmt->pkts_uri_searched4,
-        (float)(pmt->pkts_uri_searched4/(float)(pmt->uris)*100),
-        (float)(pmt->pkts_uri_searched4/(float)(pmt->pkts_uri_scanned4)*100));
+        det_ctx->uris, det_ctx->pkts_uri_scanned4,
+        (float)(det_ctx->pkts_uri_scanned4/(float)(det_ctx->uris)*100),
+        det_ctx->pkts_uri_searched4,
+        (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->uris)*100),
+        (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->pkts_uri_scanned4)*100));
     printf(" - (%s) URI (+byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
-        pmt->uris, pmt->pkts_uri_scanned,
-        (float)(pmt->pkts_uri_scanned/(float)(pmt->uris)*100),
-        pmt->pkts_uri_searched,
-        (float)(pmt->pkts_uri_searched/(float)(pmt->uris)*100),
-        (float)(pmt->pkts_uri_searched/(float)(pmt->pkts_uri_scanned)*100));
+        det_ctx->uris, det_ctx->pkts_uri_scanned,
+        (float)(det_ctx->pkts_uri_scanned/(float)(det_ctx->uris)*100),
+        det_ctx->pkts_uri_searched,
+        (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->uris)*100),
+        (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->pkts_uri_scanned)*100));
 }
 
 void SigLoadSignatures (char *sig_file)
@@ -347,7 +347,7 @@ int PacketAlertAppend(Packet *p, uint8_t gid, uint32_t sid, uint8_t rev, uint8_t
     return 0;
 }
 
-static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *pmt, Packet *p) {
+static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
     int ds,f;
     SigGroupHead *sgh = NULL;
 
@@ -372,7 +372,7 @@ static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEng
             if (ag->port == NULL) {
                 sgh = ag->sh;
 
-                //printf("SigMatchSignatures: mc %p, mcu %p\n", pmt->mc, pmt->mcu);
+                //printf("SigMatchSignatures: mc %p, mcu %p\n", det_ctx->mc, det_ctx->mcu);
                 //printf("sigs %" PRIu32 "\n", ag->sh->sig_cnt);
             } else {
                 //printf("SigMatchSignatures: we have ports\n");
@@ -391,19 +391,19 @@ static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEng
     return sgh;
 }
 
-int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *pmt, Packet *p)
+int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     int match = 0, fmatch = 0;
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint32_t idx,sig;
 
-    pmt->pkts++;
+    det_ctx->pkts++;
 
     /* match the ip only signatures */
     if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
         (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
-         IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &pmt->io_ctx, p);
+         IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
          /* save in the flow that we scanned this direction... locking is
           * done in the FlowSetIPOnlyFlag function. */
          if (p->flow != NULL)
@@ -411,65 +411,65 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 
     /* we assume we don't have an uri when we start inspection */
-    pmt->de_have_httpuri = 0;
+    det_ctx->de_have_httpuri = 0;
 
-    pmt->sgh = SigMatchSignaturesGetSgh(th_v, de_ctx, pmt, p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(th_v, de_ctx, det_ctx, p);
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
-    if (pmt->sgh == NULL) {
+    if (det_ctx->sgh == NULL) {
         //printf("SigMatchSignatures: no sgh\n");
         return 0;
     }
 
-    if (p->payload_len > 0 && pmt->sgh->mpm_ctx != NULL) {
+    if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL) {
         /* run the pattern matcher against the packet */
-        if (pmt->sgh->mpm_content_maxlen > p->payload_len) {
+        if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
             //printf("Not scanning as pkt payload is smaller than the largest content length we need to match");
         } else {
             uint32_t cnt = 0;
-//printf("scan: (%p, maxlen %" PRIu32 ", cnt %" PRIu32 ")\n", pmt->sgh, pmt->sgh->mpm_content_maxlen, pmt->sgh->sig_cnt);
+//printf("scan: (%p, maxlen %" PRIu32 ", cnt %" PRIu32 ")\n", det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
             /* scan, but only if the noscan flag isn't set */
-            if (!(pmt->sgh->flags & SIG_GROUP_HEAD_MPM_NOSCAN)) {
-                if (pmt->sgh->mpm_content_maxlen == 1)      pmt->pkts_scanned1++;
-                else if (pmt->sgh->mpm_content_maxlen == 2) pmt->pkts_scanned2++;
-                else if (pmt->sgh->mpm_content_maxlen == 3) pmt->pkts_scanned3++;
-                else if (pmt->sgh->mpm_content_maxlen == 4) pmt->pkts_scanned4++;
-                else                                        pmt->pkts_scanned++;
+            if (!(det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_NOSCAN)) {
+                if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_scanned1++;
+                else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_scanned2++;
+                else if (det_ctx->sgh->mpm_content_maxlen == 3) det_ctx->pkts_scanned3++;
+                else if (det_ctx->sgh->mpm_content_maxlen == 4) det_ctx->pkts_scanned4++;
+                else                                        det_ctx->pkts_scanned++;
 
-                cnt += PacketPatternScan(th_v, pmt, p);
+                cnt += PacketPatternScan(th_v, det_ctx, p);
             }
-//if (cnt != pmt->pmq.searchable)
-//printf("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "\n", cnt, pmt->pmq.searchable);
-            if (pmt->sgh->flags & SIG_GROUP_HEAD_MPM_NOSCAN || pmt->pmq.searchable > 0) {
+//if (cnt != det_ctx->pmq.searchable)
+//printf("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "\n", cnt, det_ctx->pmq.searchable);
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_NOSCAN || det_ctx->pmq.searchable > 0) {
 //printf("now search\n");
-                if (pmt->sgh->mpm_content_maxlen == 1)      pmt->pkts_searched1++;
-                else if (pmt->sgh->mpm_content_maxlen == 2) pmt->pkts_searched2++;
-                else if (pmt->sgh->mpm_content_maxlen == 3) pmt->pkts_searched3++;
-                else if (pmt->sgh->mpm_content_maxlen == 4) pmt->pkts_searched4++;
-                else                                        pmt->pkts_searched++;
+                if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_searched1++;
+                else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_searched2++;
+                else if (det_ctx->sgh->mpm_content_maxlen == 3) det_ctx->pkts_searched3++;
+                else if (det_ctx->sgh->mpm_content_maxlen == 4) det_ctx->pkts_searched4++;
+                else                                        det_ctx->pkts_searched++;
 
-                cnt += PacketPatternMatch(th_v, pmt, p);
+                cnt += PacketPatternMatch(th_v, det_ctx, p);
 
-//                printf("RAW: cnt %" PRIu32 ", pmt->pmq.sig_id_array_cnt %" PRIu32 "\n", cnt, pmt->pmq.sig_id_array_cnt);
+//                printf("RAW: cnt %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 "\n", cnt, det_ctx->pmq.sig_id_array_cnt);
             }
-            pmt->pmq.searchable = 0;
+            det_ctx->pmq.searchable = 0;
         }
     }
 
     /* inspect the sigs against the packet */
-    for (idx = 0; idx < pmt->sgh->sig_cnt; idx++) {
-    //for (idx = 0; idx < pmt->pmq.sig_id_array_cnt; idx++) {
-        sig = pmt->sgh->match_array[idx];
-        //sig = pmt->pmq.sig_id_array[idx];
+    for (idx = 0; idx < det_ctx->sgh->sig_cnt; idx++) {
+    //for (idx = 0; idx < det_ctx->pmq.sig_id_array_cnt; idx++) {
+        sig = det_ctx->sgh->match_array[idx];
+        //sig = det_ctx->pmq.sig_id_array[idx];
         s = de_ctx->sig_array[sig];
 
         /* filter out sigs that want pattern matches, but
          * have no matches */
-        if (!(pmt->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
+        if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
             (s->flags & SIG_FLAG_MPM))
             continue;
 
-        //printf("idx %" PRIu32 ", pmt->pmq.sig_id_array_cnt %" PRIu32 ", s->id %" PRIu32 " (MPM? %s)\n", idx, pmt->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
+        //printf("idx %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 ", s->id %" PRIu32 " (MPM? %s)\n", idx, det_ctx->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
         //printf("Sig %" PRIu32 "\n", s->id);
         /* check the source & dst port in the sig */
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
@@ -500,17 +500,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
 
         /* reset pkt ptr and offset */
-        pmt->pkt_ptr = NULL;
-        pmt->pkt_off = 0;
+        det_ctx->pkt_ptr = NULL;
+        det_ctx->pkt_off = 0;
 
         if (s->flags & SIG_FLAG_RECURSIVE) {
             uint8_t rmatch = 0;
-            pmt->pkt_cnt = 0;
+            det_ctx->pkt_cnt = 0;
 
             do {
                 sm = s->match;
                 while (sm) {
-                    match = sigmatch_table[sm->type].Match(th_v, pmt, p, s, sm);
+                    match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                     if (match) {
                         /* okay, try the next match */
                         sm = sm->next;
@@ -527,7 +527,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 }
                             }
                             rmatch = fmatch = 1;
-                            pmt->pkt_cnt++;
+                            det_ctx->pkt_cnt++;
                         }
                     } else {
                         /* done with this sig */
@@ -537,13 +537,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
                 /* Limit the number of times we do this recursive thing.
                  * XXX is this a sane limit? Should it be configurable? */
-                if (pmt->pkt_cnt == 10)
+                if (det_ctx->pkt_cnt == 10)
                     break;
             } while (rmatch);
         } else {
             sm = s->match;
             while (sm) {
-                match = sigmatch_table[sm->type].Match(th_v, pmt, p, s, sm);
+                match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                 if (match) {
                     /* okay, try the next match */
                     sm = sm->next;
@@ -568,21 +568,21 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 
     /* cleanup pkt specific part of the patternmatcher */
-    PacketPatternCleanup(th_v, pmt);
+    PacketPatternCleanup(th_v, det_ctx);
     return fmatch;
 }
 
 /* tm module api functions */
 int Detect(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
-    DetectEngineThreadCtx *pmt = (DetectEngineThreadCtx *)data;
-    DetectEngineCtx *de_ctx = pmt->de_ctx;
+    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
+    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
 
-    int r = SigMatchSignatures(t,de_ctx,pmt,p);
+    int r = SigMatchSignatures(t,de_ctx,det_ctx,p);
     if (r >= 0) {
         return 0;
     }
 
-    // PerfCounterIncr(pmt->counter_alerts, t->pca);
+    // PerfCounterIncr(det_ctx->counter_alerts, t->pca);
 
     return 1;
 }
@@ -2627,7 +2627,7 @@ static int SigTest01Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2653,9 +2653,9 @@ static int SigTest01Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) == 0) {
         result = 0;
         goto end;
@@ -2675,7 +2675,7 @@ static int SigTest01Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -2703,7 +2703,7 @@ static int SigTest02Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2729,16 +2729,16 @@ static int SigTest02Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx,mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1))
         result = 1;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -2766,7 +2766,7 @@ static int SigTest03Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2792,16 +2792,16 @@ static int SigTest03Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (!PacketAlertCheck(&p, 1))
         result = 1;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -2830,7 +2830,7 @@ static int SigTest04Real (int mpm_type) {
 
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2856,16 +2856,16 @@ static int SigTest04Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1))
         result = 1;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -2893,7 +2893,7 @@ static int SigTest05Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2919,16 +2919,16 @@ static int SigTest05Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (!PacketAlertCheck(&p, 1))
         result = 1;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -2956,7 +2956,7 @@ static int SigTest06Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2987,9 +2987,9 @@ static int SigTest06Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
     else
@@ -3000,7 +3000,7 @@ static int SigTest06Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3028,7 +3028,7 @@ static int SigTest07Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3059,9 +3059,9 @@ static int SigTest07Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 0;
     else
@@ -3070,7 +3070,7 @@ static int SigTest07Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3098,7 +3098,7 @@ static int SigTest08Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3129,9 +3129,9 @@ static int SigTest08Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
     else
@@ -3142,7 +3142,7 @@ static int SigTest08Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3170,7 +3170,7 @@ static int SigTest09Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3201,9 +3201,9 @@ static int SigTest09Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 0;
     else
@@ -3211,7 +3211,7 @@ static int SigTest09Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3234,7 +3234,7 @@ static int SigTest10Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3265,9 +3265,9 @@ static int SigTest10Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 0;
     else
@@ -3275,7 +3275,7 @@ static int SigTest10Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3298,7 +3298,7 @@ static int SigTest11Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3329,9 +3329,9 @@ static int SigTest11Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
     else
@@ -3339,7 +3339,7 @@ static int SigTest11Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3362,7 +3362,7 @@ static int SigTest12Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3388,9 +3388,9 @@ static int SigTest12Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1))
         result = 1;
     else
@@ -3398,7 +3398,7 @@ static int SigTest12Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3421,7 +3421,7 @@ static int SigTest13Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3447,9 +3447,9 @@ static int SigTest13Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1))
         result = 1;
     else
@@ -3457,7 +3457,7 @@ static int SigTest13Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3480,7 +3480,7 @@ static int SigTest14Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3506,9 +3506,9 @@ static int SigTest14Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1))
         result = 0;
     else
@@ -3516,7 +3516,7 @@ static int SigTest14Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3539,7 +3539,7 @@ static int SigTest15Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3566,9 +3566,9 @@ static int SigTest15Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 2008284))
         result = 0;
     else
@@ -3576,7 +3576,7 @@ static int SigTest15Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3599,7 +3599,7 @@ static int SigTest16Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3625,9 +3625,9 @@ static int SigTest16Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 2008284))
         result = 1;
     else
@@ -3635,7 +3635,7 @@ static int SigTest16Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3663,7 +3663,7 @@ static int SigTest17Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3690,9 +3690,9 @@ static int SigTest17Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     PktVar *pv_hn = PktVarGet(&p, "http_host");
     if (pv_hn != NULL) {
         if (memcmp(pv_hn->value, "one.example.org", pv_hn->value_len < 15 ? pv_hn->value_len : 15) == 0)
@@ -3709,7 +3709,7 @@ static int SigTest17Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3732,7 +3732,7 @@ static int SigTest18Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3760,9 +3760,9 @@ static int SigTest18Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (!PacketAlertCheck(&p, 2003055))
         result = 1;
     else
@@ -3770,7 +3770,7 @@ static int SigTest18Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3793,7 +3793,7 @@ int SigTest19Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3824,10 +3824,10 @@ int SigTest19Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
-    //DetectEngineIPOnlyThreadInit(de_ctx,&pmt->io_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 999))
         result = 1;
     else
@@ -3835,7 +3835,7 @@ int SigTest19Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3857,7 +3857,7 @@ static int SigTest20Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3888,10 +3888,10 @@ static int SigTest20Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&pmt);
-    //DetectEngineIPOnlyThreadInit(de_ctx,&pmt->io_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 999))
         result = 1;
     else
@@ -3899,7 +3899,7 @@ static int SigTest20Real (int mpm_type) {
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -3919,7 +3919,7 @@ static int SigTest20Wm (void) {
 static int SigTest21Real (int mpm_type) {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     Flow f;
@@ -3973,21 +3973,21 @@ static int SigTest21Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
     if (PacketAlertCheck(&p1, 1)) {
         printf("sid 1 alerted, but shouldn't: ");
         goto end;
     }
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p2);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
     if (PacketAlertCheck(&p2, 2))
         result = 1;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -4007,7 +4007,7 @@ static int SigTest21Wm (void) {
 static int SigTest22Real (int mpm_type) {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     Flow f;
@@ -4061,14 +4061,14 @@ static int SigTest22Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
     if (PacketAlertCheck(&p1, 1)) {
         printf("sid 1 alerted, but shouldn't: ");
         goto end;
     }
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p2);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
     if (!(PacketAlertCheck(&p2, 2)))
         result = 1;
     else
@@ -4077,7 +4077,7 @@ static int SigTest22Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
@@ -4096,7 +4096,7 @@ static int SigTest22Wm (void) {
 static int SigTest23Real (int mpm_type) {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    DetectEngineThreadCtx *pmt;
+    DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     Flow f;
@@ -4150,14 +4150,14 @@ static int SigTest23Real (int mpm_type) {
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&pmt);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
     if (PacketAlertCheck(&p1, 1)) {
         printf("sid 1 alerted, but shouldn't: ");
         goto end;
     }
-    SigMatchSignatures(&th_v, de_ctx, pmt, &p2);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
     if (PacketAlertCheck(&p2, 2))
         result = 1;
     else
@@ -4166,7 +4166,7 @@ static int SigTest23Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)pmt);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:

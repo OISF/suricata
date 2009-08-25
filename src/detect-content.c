@@ -109,14 +109,14 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
  * that turn out to fail being followed by full matches later in the
  * packet. This adds some runtime complexity however. */
 static inline int
-TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *pmt, MpmMatch *m, SigMatch *nsm, uint16_t pktoff)
+TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *det_ctx, MpmMatch *m, SigMatch *nsm, uint16_t pktoff)
 {
     //printf("test_nextsigmatch m:%p, nsm:%p\n", m,nsm);
     if (nsm == NULL)
         return 1;
 
     DetectContentData *co = (DetectContentData *)nsm->ctx;
-    MpmMatch *nm = pmt->mtc.match[co->id].top;
+    MpmMatch *nm = det_ctx->mtc.match[co->id].top;
 
     for (; nm; nm = nm->next) {
         //printf("TestWithinDistanceOffsetDepth: nm->offset %" PRIu32 ", m->offset %" PRIu32 ", pktoff %" PRIu32 "\n", nm->offset, m->offset, pktoff);
@@ -137,7 +137,7 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *pmt, MpmMatc
                     //    "nm->offset %" PRIu32 ", m->offset %" PRIu32 "\n", nm->offset - m->offset,
                     //    co->distance, nm->offset, m->offset);
                     if (TestOffsetDepth(nm, co, pktoff) == 1) {
-                        return TestWithinDistanceOffsetDepth(t, pmt, nm, nsm->next, pktoff);
+                        return TestWithinDistanceOffsetDepth(t, det_ctx, nm, nsm->next, pktoff);
                     }
                 } else {
                     //printf("TestWithinDistanceOffsetDepth: NO MATCH: %" PRIu32 " >= DISTANCE(%" PRIu32 "), "
@@ -155,37 +155,37 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *pmt, MpmMatc
 }
 
 static inline int
-DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *sm, DetectContentData *co)
+DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm, DetectContentData *co)
 {
     int ret = 0;
     char match = 0;
 
     /* Get the top match, we already know we have one. */
-    MpmMatch *m = pmt->mtc.match[co->id].top;
+    MpmMatch *m = det_ctx->mtc.match[co->id].top;
 
     /*  if we have within or distance coming up next, check this match
      *  for distance and/or within and check the rest of this match
      *  chain as well. */
     if ((co->flags & DETECT_CONTENT_WITHIN_NEXT ||
          co->flags & DETECT_CONTENT_DISTANCE_NEXT) &&
-         pmt->de_checking_distancewithin == 0)
+         det_ctx->de_checking_distancewithin == 0)
     {
         //printf("DoDetectContent: Content \""); PrintRawUriFp(stdout, co->content, co->content_len);
         //printf("\" DETECT_CONTENT_WITHIN_NEXT or DETECT_CONTENT_DISTANCE_NEXT is true\n");
 
         /* indicate to the detection engine the next sigmatch(es)
          * are part of this match chain */
-        pmt->de_checking_distancewithin = 1;
+        det_ctx->de_checking_distancewithin = 1;
 
         for (; m != NULL; m = m->next) {
             /* first check our match for offset and depth */
-            if (TestOffsetDepth(m, co, pmt->pkt_off) == 1) {
+            if (TestOffsetDepth(m, co, det_ctx->pkt_off) == 1) {
                 //printf("DoDetectContent: TestOffsetDepth returned 1\n");
-                ret = TestWithinDistanceOffsetDepth(t, pmt, m, sm->next, pmt->pkt_off);
+                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm->next, det_ctx->pkt_off);
                 if (ret == 1) {
                     //printf("DoDetectContent: TestWithinDistanceOffsetDepth returned 1\n");
-                    pmt->pkt_ptr = p->payload + m->offset;
-                    pmt->pkt_off = m->offset;
+                    det_ctx->pkt_ptr = p->payload + m->offset;
+                    det_ctx->pkt_off = m->offset;
                     match = 1;
                     break;
                 }
@@ -203,7 +203,7 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature 
     } else if (co->flags & DETECT_CONTENT_WITHIN ||
                co->flags & DETECT_CONTENT_DISTANCE)
     {
-        pmt->de_checking_distancewithin = 0;
+        det_ctx->de_checking_distancewithin = 0;
         match = 1;
 
     /* Getting here means we are not in checking an within/distance chain.
@@ -214,13 +214,13 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature 
     } else {
         /* when in recursive capture mode don't check depth and offset
          * after the first match */
-        if (s->flags & SIG_FLAG_RECURSIVE && pmt->pkt_cnt) {
+        if (s->flags & SIG_FLAG_RECURSIVE && det_ctx->pkt_cnt) {
             for (; m != NULL; m = m->next) {
-                if (m->offset >= pmt->pkt_off) {
+                if (m->offset >= det_ctx->pkt_off) {
                     /* update pkt ptrs, content doesn't use this,
                      * but pcre does */
-                    pmt->pkt_ptr = p->payload + m->offset;
-                    pmt->pkt_off = m->offset;
+                    det_ctx->pkt_ptr = p->payload + m->offset;
+                    det_ctx->pkt_off = m->offset;
                     match = 1;
                     break;
                 }
@@ -232,8 +232,8 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature 
                 if (ret == 1) {
                     /* update pkt ptrs, this content run doesn't
                      * use this, but pcre does */
-                    pmt->pkt_ptr = p->payload + m->offset;
-                    pmt->pkt_off = m->offset;
+                    det_ctx->pkt_ptr = p->payload + m->offset;
+                    det_ctx->pkt_off = m->offset;
                     match = 1;
                     break;
                 }
@@ -250,7 +250,7 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature 
  *        -1: error
  */
 
-int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     uint32_t len = 0;
 
@@ -260,7 +260,7 @@ int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Si
     DetectContentData *co = (DetectContentData *)m->ctx;
 
     /* see if we had a match */
-    len = pmt->mtc.match[co->id].len;
+    len = det_ctx->mtc.match[co->id].len;
     if (len == 0)
         return 0;
 
@@ -269,13 +269,13 @@ int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Si
     printf("\" matched %" PRIu32 " time(s) at offsets: ", len);
 
     MpmMatch *tmpm = NULL;
-    for (tmpm = pmt->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
+    for (tmpm = det_ctx->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
         printf("%" PRIu32 " ", tmpm->offset);
     }
     printf("\n");
 #endif
 
-    return DoDetectContent(t, pmt, p, s, m, co);
+    return DoDetectContent(t, det_ctx, p, s, m, co);
 }
 
 DetectContentData *DetectContentParse (char *contentstr)

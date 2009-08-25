@@ -57,7 +57,7 @@ error:
  *        -1: error
  */
 
-int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     int ret = 0;
     DetectPktvarData *pd = (DetectPktvarData *)m->ctx;

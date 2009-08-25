@@ -69,7 +69,7 @@ error:
  * \brief This function is used to match decoder event flags set on a packet with those passed via decode-event:
  *
  * \param t pointer to thread vars
- * \param pmt pointer to the pattern matcher thread
+ * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
  * \param s pointer to the Signature
  * \param m pointer to the sigmatch
@@ -77,7 +77,7 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectDecodeEventMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectDecodeEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     int ret = 0;
     DetectDecodeEventData *de = (DetectDecodeEventData *)m->ctx;

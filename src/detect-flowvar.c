@@ -59,7 +59,7 @@ error:
  *        -1: error
  */
 
-int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     int ret = 0;
     DetectFlowvarData *fd = (DetectFlowvarData *)m->ctx;

@@ -78,14 +78,14 @@ error:
  * \todo We need to add support for no_stream and stream_only flag checking
  *
  * \param t pointer to thread vars
- * \param pmt pointer to the pattern matcher thread
+ * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
  * \param m pointer to the sigmatch that we will cast into DetectFlowData
  *
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     uint8_t cnt = 0;
     DetectFlowData *fd = (DetectFlowData *)m->ctx;

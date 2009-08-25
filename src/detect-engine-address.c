@@ -5,7 +5,7 @@
  * TODO move this out of the detection plugin structure
  *      rename to detect-engine-address.c
  *
- * 
+ *
  */
 
 #include "eidps-common.h"

@@ -58,19 +58,19 @@ uint32_t PacketPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Pack
 }
 
 /** \brief cleans up the mpm instance after a match */
-void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *pmt) {
-    PmqReset(&pmt->pmq);
+void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
+    PmqReset(&det_ctx->pmq);
 
-    if (pmt->sgh == NULL)
+    if (det_ctx->sgh == NULL)
         return;
 
     /* content */
-    if (pmt->sgh->mpm_ctx != NULL && pmt->sgh->mpm_ctx->Cleanup != NULL) {
-        pmt->sgh->mpm_ctx->Cleanup(&pmt->mtc);
+    if (det_ctx->sgh->mpm_ctx != NULL && det_ctx->sgh->mpm_ctx->Cleanup != NULL) {
+        det_ctx->sgh->mpm_ctx->Cleanup(&det_ctx->mtc);
     }
     /* uricontent */
-    if (pmt->sgh->mpm_uri_ctx != NULL && pmt->sgh->mpm_uri_ctx->Cleanup != NULL) {
-        pmt->sgh->mpm_uri_ctx->Cleanup(&pmt->mtcu);
+    if (det_ctx->sgh->mpm_uri_ctx != NULL && det_ctx->sgh->mpm_uri_ctx->Cleanup != NULL) {
+        det_ctx->sgh->mpm_uri_ctx->Cleanup(&det_ctx->mtcu);
     }
 }
 

@@ -56,7 +56,7 @@ error:
  *        -1: error
  */
 
-int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *pmt, Packet *p, Signature *s, SigMatch *m)
+int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     int ret = 0;
 
