@@ -149,6 +149,13 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
     Signature *sig = NULL;
     int good = 0, bad = 0;
 
+    /* set the prevsig to the last sig of the existing list, if any */
+    if (de_ctx->sig_list != NULL) {
+        for (prevsig = de_ctx->sig_list;
+             prevsig->next != NULL;
+             prevsig = prevsig->next);
+    }
+
     FILE *fp = fopen(sig_file, "r");
     if (fp == NULL) {
         printf("ERROR, could not open sigs file\n");
@@ -164,7 +171,11 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
 
         sig = SigInit(de_ctx, line);
         if (sig != NULL) {
-            prevsig->next = sig;
+            if (de_ctx->sig_list == NULL) {
+                de_ctx->sig_list = sig;
+            } else {
+                prevsig->next = sig;
+            }
             prevsig = sig;
             good++;
         } else {
