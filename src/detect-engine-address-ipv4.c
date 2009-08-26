@@ -498,7 +498,7 @@ int DetectAddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddre
      * part a: b_ip1 <-> a_ip1 - 1
      * part b: a_ip1 <-> b_ip2
      * part c: b_ip2 + 1 <-> a_ip2
-     */ 
+     */
     } else if (r == ADDRESS_GE) {
         a->ip[0]   = htonl(b_ip1);
         a->ip2[0] = htonl(a_ip1 - 1);
@@ -524,7 +524,7 @@ int DetectAddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddre
      *
      * part a: b_ip1 <-> a_ip1 - 1
      * part b: a_ip1 <-> a_ip2
-     * 
+     *
      * 3 part [bbb[aaa]bbb]
      * part a: b_ip1 <-> a_ip1 - 1
      * part b: a_ip1 <-> a_ip2
@@ -568,7 +568,7 @@ int DetectAddressCutIPv4(DetectAddressData *a, DetectAddressData *b, DetectAddre
      *
      * part a: a_ip1 <-> b_ip1 - 1
      * part b: b_ip1 <-> b_ip2
-     * 
+     *
      * 3 part [aaa[bbb]aaa]
      * part a: a_ip1 <-> b_ip2 - 1
      * part b: b_ip1 <-> b_ip2

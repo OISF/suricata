@@ -69,7 +69,7 @@ void TmModuleDetectRegister (void) {
     tmm_modules[TMM_DETECT].Func = Detect;
     tmm_modules[TMM_DETECT].ExitPrintStats = DetectExitPrintStats;
     tmm_modules[TMM_DETECT].Deinit = DetectThreadDeinit;
-    tmm_modules[TMM_DETECT].RegisterTests = NULL;
+    tmm_modules[TMM_DETECT].RegisterTests = SigRegisterTests;
 }
 
 void DetectExitPrintStats(ThreadVars *tv, void *data) {
@@ -140,7 +140,44 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->pkts_uri_scanned)*100));
 }
 
-void SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
+/** \brief Load a file with signatures
+ *  \retval -1 error
+ *  \retval 0 ok
+ */
+int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
+    Signature *prevsig = NULL;
+    Signature *sig = NULL;
+    int good = 0, bad = 0;
+
+    FILE *fp = fopen(sig_file, "r");
+    if (fp == NULL) {
+        printf("ERROR, could not open sigs file\n");
+        return -1;
+    }
+    char line[8192] = "";
+    while(fgets(line, (int)sizeof(line), fp) != NULL) {
+        /** \todo multi line support */
+
+        /* ignore comments and empty lines */
+        if (line[0] == '\n' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+            continue;
+
+        sig = SigInit(de_ctx, line);
+        if (sig != NULL) {
+            prevsig->next = sig;
+            prevsig = sig;
+            good++;
+        } else {
+            bad++;
+        }
+    }
+    fclose(fp);
+    printf("DetectLoadSigFile: %" PRId32 " successfully loaded from file. %" PRId32 " sigs failed to load\n", good, bad);
+
+    return 0;
+}
+
+int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 {
     Signature *prevsig = NULL, *sig;
 
@@ -154,27 +191,27 @@ void SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     }
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
     if (sig == NULL)
-        return;
+        return -1;
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_host -- for the log-httplog module */
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server; content:\"|0d 0a|Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
     if (sig == NULL)
-        return;
+        return -1;
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_ua -- for the log-httplog module */
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server; content:\"|0d 0a|User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
     if (sig == NULL)
-        return;
+        return -1;
     prevsig->next = sig;
     prevsig = sig;
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"ipv4 pkt too small\"; decode-event:ipv4.pkt_too_small; sid:5;)");
     if (sig == NULL)
-        return;
+        return -1;
     prevsig->next = sig;
     prevsig = sig;
 /*
@@ -275,45 +312,15 @@ void SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 */
 
     if(sig_file != NULL){
-        int good = 0, bad = 0;
-        FILE *fp = fopen(sig_file, "r");
-
-        if (fp == NULL) {
-            printf("ERROR, could not open sigs file\n");
-            exit(1);
-        }
-        char line[8192] = "";
-        while(fgets(line, (int)sizeof(line), fp) != NULL) {
-            if (line[0] == '\n' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
-                continue;
-
-            //if (i > 1000) break;
-
-            sig = SigInit(de_ctx, line);
-            if (sig) {
-                prevsig->next = sig;
-                prevsig = sig;
-                good++;
-            } else {
-                bad++;
-            }
-        }
-        fclose(fp);
-        printf("SigLoadSignatures: %" PRId32 " successfully loaded from file. %" PRId32 " sigs failed to load\n", good, bad);
+        int r = DetectLoadSigFile(de_ctx, sig_file);
+        if (r < 0)
+            return -1;
     }
 
     /* Setup the signature group lookup structure and
      * pattern matchers */
-    //DetectAddressGroupPrintMemory();
-    //DetectSigGroupPrintMemory();
-    //DetectPortPrintMemory();
-
     SigGroupBuild(de_ctx);
-    //SigGroupCleanup(de_ctx);
-    //DetectAddressGroupPrintMemory();
-    //DetectSigGroupPrintMemory();
-    //DetectPortPrintMemory();
-//abort();
+    return 0;
 }
 
 /* check if a certain sid alerted, this is used in the test functions */
@@ -910,7 +917,7 @@ static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, DetectEngineLoo
             dsize ? g_detectengine_any_big_toclient++ : g_detectengine_any_small_toclient++;
             dsize ? g_detectengine_any_big_toserver++ : g_detectengine_any_small_toserver++;
         }
-    }    
+    }
 
     return 0;
 }

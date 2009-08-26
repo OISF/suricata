@@ -130,6 +130,7 @@ typedef struct MpmTableElmt_ {
     uint8_t flags;
 } MpmTableElmt;
 
+MpmTableElmt mpm_table[MPM_TABLE_SIZE];
 
 int PmqSetup(PatternMatcherQueue *, uint32_t);
 void PmqReset(PatternMatcherQueue *);
@@ -143,7 +144,6 @@ MpmEndMatch *MpmAllocEndMatch (MpmCtx *);
 void MpmEndMatchFreeAll(MpmCtx *mpm_ctx, MpmEndMatch *em);
 void MpmMatchFreeSpares(MpmThreadCtx *mpm_ctx, MpmMatch *m);
 
-MpmTableElmt mpm_table[MPM_TABLE_SIZE];
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
 

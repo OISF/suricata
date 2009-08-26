@@ -86,7 +86,7 @@ typedef struct Flow_
 
 void FlowHandlePacket (ThreadVars *, Packet *);
 void FlowInitConfig (char);
-void FlowPrintFlows (void);
+void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, char);
 void FlowDecrUsecnt(ThreadVars *, Packet *);

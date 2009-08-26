@@ -122,7 +122,7 @@ MpmMatchCleanup(MpmThreadCtx *thread_ctx) {
 
 }
 
-/* allocate a match
+/** \brief allocate a match
  *
  * used at search runtime */
 inline MpmMatch *
@@ -141,20 +141,21 @@ MpmMatchAlloc(MpmThreadCtx *thread_ctx) {
     return m;
 }
 
-/* append a match to a bucket
+/** \brief append a match to a bucket
  *
  * used at search runtime */
 inline int
 MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *em, MpmMatchBucket *mb, uint16_t offset, uint16_t patlen)
 {
     /* don't bother looking at sigs that didn't match
-     * when we scanned. There's not matching anyway. */
+     * when we scanned. There's no matching anyway. */
     if (pmq != NULL && pmq->mode == PMQ_MODE_SEARCH) {
         if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8))))
             return 0;
     }
 
-    /* XXX is this correct? */
+    /* if our endmatch is set to a single match being enough,
+       we're not going to add more if we already have one */
     if (em->flags & MPM_ENDMATCH_SINGLE && mb->len)
         return 0;
 
@@ -207,7 +208,9 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
          * so we won't inspect it more than once. For this we keep a
          * bitarray of sig internal id's and flag each sig that matched */
         if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8)))) {
+            /* flag this sig_id as being added now */
             pmq->sig_bitarray[(em->sig_id / 8)] |= (1<<(em->sig_id % 8));
+            /* append the sig_id to the array with matches */
             pmq->sig_id_array[pmq->sig_id_array_cnt] = em->sig_id;
             pmq->sig_id_array_cnt++;
         }
@@ -305,6 +308,7 @@ void MpmTableSetup(void) {
 }
 
 void MpmRegisterTests(void) {
+#ifdef UNITTESTS
     uint16_t i;
 
     for (i = 0; i < MPM_TABLE_SIZE; i++) {
@@ -314,5 +318,6 @@ void MpmRegisterTests(void) {
             printf("Warning: mpm %s has no unittest registration function...", mpm_table[i].name);
         }
     }
+#endif
 }
 

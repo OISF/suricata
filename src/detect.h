@@ -428,7 +428,7 @@ int SigGroupCleanup();
 
 int PacketAlertAppend(Packet *, uint8_t, uint32_t, uint8_t, uint8_t, char *);
 
-void SigLoadSignatures (DetectEngineCtx *, char *);
+int SigLoadSignatures (DetectEngineCtx *, char *);
 void SigTableSetup(void);
 
 #endif /* __DETECT_H__ */

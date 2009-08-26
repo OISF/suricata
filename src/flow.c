@@ -334,33 +334,8 @@ void FlowInitConfig (char quiet)
 
 /** \brief print some flow stats
  *  \warning Not thread safe */
-void FlowPrintFlows (void)
+void FlowPrintQueueInfo (void)
 {
-/*
-    int i;
-    printf("Flows:\n");
-    for (i = 0; i < flow_config.hash_size; i++) {
-        FlowBucket *fb = &flow_hash[i];
-
-        if (fb->f != NULL) {
-            printf("Flow %" PRIu32 "->%" PRIu32 ": %" PRIu32 " pkts (tosrc %" PRId32 " todst %" PRIu32 ") %" PRIu64 " bytes\n",
-                fb->f->sp, fb->f->dp, fb->f->tosrcpktcnt+fb->f->todstpktcnt, fb->f->tosrcpktcnt,
-                fb->f->todstpktcnt, fb->f->bytecnt);
-            FlowVarPrint(fb->f->flowvar);
-
-            if (fb->f->hnext != NULL) {
-                Flow *f = fb->f->hnext;
-                while (f) {
-                    printf("  Flow %" PRIu32 "->%" PRIu32 ": %" PRIu32 " pkts (tosrc %" PRId32 " todst %" PRIu32 ") %" PRIu64 " bytes\n",
-                        f->sp, f->dp, f->tosrcpktcnt+f->todstpktcnt, f->tosrcpktcnt,
-                        f->todstpktcnt, f->bytecnt);
-                    FlowVarPrint(f->flowvar);
-                    f = f->hnext;
-                }
-            }
-        }
-    }
-*/
     printf("Flow Queue info:\n");
     printf("SPARE       %" PRIu32 "\n", flow_spare_q.len);
 #ifdef DBG_PERF

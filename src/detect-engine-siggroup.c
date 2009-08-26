@@ -36,41 +36,73 @@ static uint32_t detect_siggroup_matcharray_memory = 0;
 static uint32_t detect_siggroup_matcharray_init_cnt = 0;
 static uint32_t detect_siggroup_matcharray_free_cnt = 0;
 
-/* Free a sgh */
-void SigGroupHeadFree(SigGroupHead *sh) {
-    if (sh == NULL)
+/** \brief alloc a sig group head and it's sig_array
+ *  \param size size of the sig array
+ *  \retval sgh or NULL in case of error */
+static SigGroupHead *SigGroupHeadAlloc(uint32_t size) {
+    SigGroupHead *sgh = malloc(sizeof(SigGroupHead));
+    if (sgh == NULL) {
+        return NULL;
+    }
+    memset(sgh, 0, sizeof(SigGroupHead));
+
+    detect_siggroup_head_init_cnt++;
+    detect_siggroup_head_memory += sizeof(SigGroupHead);
+
+    /* initialize the signature bitarray */
+    sgh->sig_size = size;
+    sgh->sig_array = malloc(sgh->sig_size);
+    if (sgh->sig_array == NULL)
+        goto error;
+    memset(sgh->sig_array,0,sgh->sig_size);
+
+    detect_siggroup_sigarray_init_cnt++;
+    detect_siggroup_sigarray_memory += sgh->sig_size;
+
+    return sgh;
+error:
+    if (sgh != NULL)
+        free(sgh);
+    return NULL;
+}
+
+/** \brief Free a sgh
+ *  \param sgh the sig group head to free */
+void SigGroupHeadFree(SigGroupHead *sgh) {
+    if (sgh == NULL)
         return;
 
-    PatternMatchDestroyGroup(sh);
-    SigGroupHeadClearSigs(sh);
+    PatternMatchDestroyGroup(sgh);
+    SigGroupHeadClearSigs(sgh);
 
-    if (sh->sig_array != NULL) {
-        free(sh->sig_array);
-        sh->sig_array = NULL;
+    if (sgh->sig_array != NULL) {
+        free(sgh->sig_array);
+        sgh->sig_array = NULL;
 
         detect_siggroup_sigarray_free_cnt++;
-        detect_siggroup_sigarray_memory -= sh->sig_size;
+        detect_siggroup_sigarray_memory -= sgh->sig_size;
     }
 
-    if (sh->content_array != NULL) {
-        free(sh->content_array);
-        sh->content_array = NULL;
-        sh->content_size = 0;
+    if (sgh->content_array != NULL) {
+        free(sgh->content_array);
+        sgh->content_array = NULL;
+        sgh->content_size = 0;
     }
 
-    if (sh->uri_content_array != NULL) {
-        free(sh->uri_content_array);
-        sh->uri_content_array = NULL;
-        sh->uri_content_size = 0;
+    if (sgh->uri_content_array != NULL) {
+        free(sgh->uri_content_array);
+        sgh->uri_content_array = NULL;
+        sgh->uri_content_size = 0;
     }
 
-    if (sh->match_array) {
+    if (sgh->match_array != NULL) {
         detect_siggroup_matcharray_init_cnt--;
-        detect_siggroup_matcharray_memory -= (sh->sig_cnt * sizeof(uint32_t));
-        free(sh->match_array);
-        sh->match_array = NULL;
+        detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(uint32_t));
+        free(sgh->match_array);
+        sgh->match_array = NULL;
+        sgh->sig_cnt = 0;
     }
-    free(sh);
+    free(sgh);
 
     detect_siggroup_head_free_cnt++;
     detect_siggroup_head_memory -= sizeof(SigGroupHead);
@@ -395,48 +427,41 @@ void SigGroupHeadFreeMpmArrays(DetectEngineCtx *de_ctx) {
     }
 }
 
-int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sh, Signature *s) {
+/** \brief Add a signature to a sgh
+ *  \param de_ctx detection engine ctx
+ *  \param sgh pointer to a sgh, can be NULL
+ *  \param s signature to append
+ *  \retval 0 success
+ *  \retval -1 error
+ */
+int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh, Signature *s) {
     if (de_ctx == NULL)
         return 0;
 
     /* see if we have a head already */
-    if (*sh == NULL) {
-        *sh = malloc(sizeof(SigGroupHead));
-        if (*sh == NULL) {
+    if (*sgh == NULL) {
+        *sgh = SigGroupHeadAlloc(DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
+        if (*sgh == NULL) {
             goto error;
         }
-        memset(*sh, 0, sizeof(SigGroupHead));
-
-        detect_siggroup_head_init_cnt++;
-        detect_siggroup_head_memory += sizeof(SigGroupHead);
-
-        /* initialize the signature bitarray */
-        (*sh)->sig_size = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-        (*sh)->sig_array = malloc((*sh)->sig_size);
-        if ((*sh)->sig_array == NULL)
-            goto error;
-        memset((*sh)->sig_array,0,(*sh)->sig_size);
-
-        detect_siggroup_sigarray_init_cnt++;
-        detect_siggroup_sigarray_memory += (*sh)->sig_size;
     }
 
     /* enable the sig in the bitarray */
-    (*sh)->sig_array[(s->num/8)] |= 1<<(s->num%8);
+    (*sgh)->sig_array[(s->num/8)] |= 1<<(s->num%8);
 
     return 0;
 error:
     return -1;
 }
 
-int SigGroupHeadClearSigs(SigGroupHead *sh) {
-    if (sh == NULL)
+int SigGroupHeadClearSigs(SigGroupHead *sgh) {
+    if (sgh == NULL)
         return 0;
 
-    if (sh->sig_array != NULL) {
-        memset(sh->sig_array,0,sh->sig_size);
-        sh->sig_cnt = 0;
+    if (sgh->sig_array != NULL) {
+        memset(sgh->sig_array,0,sgh->sig_size);
     }
+    sgh->sig_cnt = 0;
     return 0;
 }
 
@@ -445,24 +470,10 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
         return 0;
 
     if (*dst == NULL) {
-        *dst = malloc(sizeof(SigGroupHead));
+        *dst = SigGroupHeadAlloc(DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
         if (*dst == NULL) {
             goto error;
         }
-        memset(*dst, 0, sizeof(SigGroupHead));
-
-        detect_siggroup_head_init_cnt++;
-        detect_siggroup_head_memory += sizeof(SigGroupHead);
-
-        (*dst)->sig_size = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-        (*dst)->sig_array = malloc((*dst)->sig_size);
-        if ((*dst)->sig_array == NULL)
-            goto error;
-
-        memset((*dst)->sig_array,0,(*dst)->sig_size);
-
-        detect_siggroup_sigarray_init_cnt++;
-        detect_siggroup_sigarray_memory += (*dst)->sig_size;
     }
 
     /* do the copy */
@@ -656,18 +667,20 @@ int SigGroupHeadClearUricontent(SigGroupHead *sh) {
     return 0;
 }
 
-/* Create an array with all the internal id's of the sigs
- * that this sig group head will check for. */
+/** \brief Create an array with all the internal id's of the sigs that this
+ *         sig group head will check for.
+ *  \param de_ctx detection engine ctx
+ *  \param sgh sig group head
+ *  \param max_idx max idx for deternmining the array size
+ *  \retval 0 success
+ *  \retval -1 error
+ */
 int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t max_idx) {
     uint32_t idx = 0;
     uint32_t sig = 0;
 
     if (sgh == NULL)
         return 0;
-
-/* XXX ugly */
-    if (sgh->match_array == NULL)
-        free(sgh->match_array);
 
     sgh->match_array = malloc(sgh->sig_cnt * sizeof(uint32_t));
     if (sgh->match_array == NULL)
@@ -693,6 +706,13 @@ int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uin
     return 0;
 }
 
+/** \brief Check if a sgh contains a sid
+ *  \param de_ctx detection engine ctx
+ *  \param sgh sig group head
+ *  \param sid the signature id to check for
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
 int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid) {
     uint32_t sig = 0;
 

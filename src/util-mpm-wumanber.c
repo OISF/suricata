@@ -2322,9 +2322,8 @@ void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t mat
      * this is done so the detect engine won't have to care about
      * what instance it's looking up in. The matches all have a
      * unique id and is the array lookup key at the same time */
-    //uint32_t keys = mpm_ctx->max_pattern_id + 1;
     uint32_t keys = matchsize + 1;
-    if (keys) {
+    if (keys > 0) {
         mpm_thread_ctx->match = malloc(keys * sizeof(MpmMatchBucket));
         if (mpm_thread_ctx->match == NULL) {
             printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));

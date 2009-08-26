@@ -3,8 +3,8 @@
  * Copyright (c) 2008 Victor Julien
  */
 
-#ifndef __DETECT_ADDRESS_IPV6_H__
-#define __DETECT_ADDRESS_IPV6_H__
+#ifndef __DETECT_ENGINE_ADDRESS_IPV6_H__
+#define __DETECT_ENGINE_ADDRESS_IPV6_H__
 
 int AddressIPv6Lt(uint32_t *, uint32_t *);
 int AddressIPv6Gt(uint32_t *, uint32_t *);
@@ -21,5 +21,5 @@ int DetectAddressGroupJoinIPv6(DetectEngineCtx *, DetectAddressGroup *, DetectAd
 
 void DetectAddressIPv6Tests(void);
 
-#endif /* __DETECT_ADDRESS_IPV6_H__ */
+#endif /* __DETECT_ENGINE_ADDRESS_IPV6_H__ */
 

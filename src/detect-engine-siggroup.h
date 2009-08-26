@@ -1,7 +1,5 @@
-#ifndef __DETECT_SIGGROUP_H__
-#define __DETECT_SIGGROUP_H__
-
-/* XXX cleanup */
+#ifndef __DETECT_ENGINE_SIGGROUP_H__
+#define __DETECT_ENGINE_SIGGROUP_H__
 
 int SigGroupHeadAppendSig(DetectEngineCtx *, SigGroupHead **, Signature *);
 int SigGroupHeadClearSigs(SigGroupHead *);
@@ -44,5 +42,5 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx);
 int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t max_idx);
 void SigGroupHeadFreeSigArrays(DetectEngineCtx *de_ctx);
 
-#endif /* __DETECT_SIGGROUP_H__ */
+#endif /* __DETECT_ENGINE_SIGGROUP_H__ */
 

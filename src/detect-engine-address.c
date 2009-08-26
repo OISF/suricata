@@ -65,7 +65,7 @@ DetectAddressGroup *DetectAddressGroupInit(void) {
     return ag;
 }
 
-/* free a DetectAddressGroup object */
+/** \brief free a DetectAddressGroup object */
 void DetectAddressGroupFree(DetectAddressGroup *ag) {
     if (ag == NULL)
         return;
@@ -203,7 +203,7 @@ int DetectAddressGroupAdd(DetectAddressGroup **head, DetectAddressGroup *ag) {
     return 0;
 }
 
-/* helper functions for DetectAddress(Group)Insert:
+/* helper function for DetectAddress(Group)Insert:
  * set & get the head ptr
  */
 static int SetHeadPtr(DetectAddressGroupsHead *gh, DetectAddressGroup *newhead) {
@@ -448,7 +448,7 @@ int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
                 DetectAddressDataPrint(new);
                 DetectAddressDataPrint(cur->ad);
                 goto error;
-            } 
+            }
             /* if so, handle that */
             if (r == ADDRESS_EQ) {
                 /* exact overlap/match, we don't need to do a thing
@@ -628,7 +628,7 @@ int DetectAddressParse2(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *gh
             }
             depth++;
         } else if (s[i] == ']') {
-            if (depth == 1) { 
+            if (depth == 1) {
                 address[x-1] = '\0';
                 x = 0;
 
@@ -668,6 +668,7 @@ int DetectAddressParse2(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *gh
 //    return -1;
 }
 
+/** \brief Merge the + and the - list (+ positive match, - 'not' match) */
 int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *ghn) {
     DetectAddressData *ad;
     DetectAddressGroup *ag, *ag2;
@@ -940,7 +941,7 @@ int AddressParse(DetectAddressData *dd, char *str) {
                 if (r <= 0) {
                     goto error;
                 }
-        
+
                 netmask = in.s_addr;
                 //printf("AddressParse: dd->ip2 %" PRIX32 "\n", dd->ip2);
             }
@@ -949,7 +950,7 @@ int AddressParse(DetectAddressData *dd, char *str) {
             if (r <= 0) {
                 goto error;
             }
-        
+
             ip4addr = in.s_addr;
 
             dd->ip[0] = dd->ip2[0] = ip4addr & netmask;
