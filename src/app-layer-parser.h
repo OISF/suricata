@@ -44,8 +44,9 @@ typedef struct AppLayerParserResult_ {
     uint32_t cnt;
 } AppLayerParserResult;
 
-#define APP_LAYER_PARSER_USE   0x01
-#define APP_LAYER_PARSER_EOF   0x02
+#define APP_LAYER_PARSER_USE    0x01
+#define APP_LAYER_PARSER_EOF    0x02
+#define APP_LAYER_PARSER_DONE   0x04 /* parser is done, ignore more msgs */
 
 typedef struct AppLayerParserState_ {
     uint8_t flags;
@@ -81,6 +82,7 @@ void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void), void 
 
 int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_t input_len);
 
+int AlpParseFieldBySize(AppLayerParserResult *, AppLayerParserState *, uint16_t, uint32_t, uint8_t *, uint32_t, uint32_t *);
 int AlpParseFieldByEOF(AppLayerParserResult *, AppLayerParserState *, uint16_t, uint8_t *, uint32_t);
 int AlpParseFieldByDelimiter(AppLayerParserResult *, AppLayerParserState *, uint16_t, const uint8_t *, uint8_t, uint8_t *, uint32_t, uint32_t *);
 uint16_t AlpGetStateIdx(uint16_t);

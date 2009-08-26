@@ -227,6 +227,7 @@ static int HTTPParseRequest(void *http_state, AppLayerParserState *pstate, uint8
     }
 
     pstate->parse_field = 0;
+    pstate->flags |= APP_LAYER_PARSER_DONE;
     return 1;
 }
 
@@ -365,6 +366,7 @@ static int HTTPParseResponse(void *http_state, AppLayerParserState *pstate, uint
     }
 
     pstate->parse_field = 0;
+    pstate->flags |= APP_LAYER_PARSER_DONE;
     return 1;
 }
 

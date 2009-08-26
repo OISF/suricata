@@ -6,7 +6,8 @@ enum {
     ALPROTO_HTTP,
     ALPROTO_FTP,
     ALPROTO_SMTP,
-    ALPROTO_SSL,
+    ALPROTO_SSL, /* SSLv2 */
+    ALPROTO_TLS, /* SSLv3 & TLSv1 */
     ALPROTO_SSH,
     ALPROTO_IMAP,
     ALPROTO_MSN,

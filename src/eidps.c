@@ -64,6 +64,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer-http.h"
+#include "app-layer-tls.h"
 
 #include "util-cidr.h"
 #include "util-unittest.h"
@@ -928,6 +929,7 @@ int main(int argc, char **argv)
     AppLayerDetectProtoThreadInit();
     RegisterAppLayerParsers();
     RegisterHTTPParsers();
+    RegisterTLSParsers();
     AppLayerParsersInitPostProcess();
 
     TmModuleReceiveNFQRegister();
@@ -968,6 +970,7 @@ int main(int argc, char **argv)
         PerfRegisterTests();
         DecodePPPRegisterTests();
         HTTPParserRegisterTests();
+        TLSParserRegisterTests();
         DecodePPPOERegisterTests();
         DecodeICMPV4RegisterTests();
         DecodeIPV4RegisterTests();

@@ -90,6 +90,57 @@ static void AlpStoreField(AppLayerParserResult *output, uint16_t idx, uint8_t *p
     //PrintRawDataFp(stdout, e->data_ptr,e->data_len);
 }
 
+/** \brief Parse a field up to we reach the size limit
+ *
+ * \retval  1 Field found and stored.
+ * \retval  0 Field parsing in progress.
+ * \retval -1 error
+ */
+int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstate, uint16_t field_idx, uint32_t size, uint8_t *input, uint32_t input_len, uint32_t *offset) {
+    if ((pstate->store_len + input_len) < size) {
+        if (pstate->store_len == 0) {
+            pstate->store = malloc(input_len);
+            if (pstate->store == NULL)
+                return -1;
+
+            memcpy(pstate->store, input, input_len);
+            pstate->store_len = input_len;
+        } else {
+            pstate->store = realloc(pstate->store, (input_len + pstate->store_len));
+            if (pstate->store == NULL)
+                return -1;
+
+            memcpy(pstate->store+pstate->store_len, input, input_len);
+            pstate->store_len += input_len;
+        }
+    } else {
+        if (pstate->store_len == 0) {
+            AlpStoreField(output, field_idx, input, size, 0);
+            (*offset) += size;
+            return 1;
+        } else {
+            uint32_t diff = size - pstate->store_len;
+
+            pstate->store = realloc(pstate->store, (diff + pstate->store_len));
+            if (pstate->store == NULL)
+                return -1;
+
+            memcpy(pstate->store+pstate->store_len, input, diff);
+            pstate->store_len += diff;
+
+            AlpStoreField(output, field_idx, pstate->store, pstate->store_len, 1);
+
+            (*offset) += diff;
+
+            pstate->store = NULL;
+            pstate->store_len = 0;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 /** \brief Parse a field up to the EOF
  *
  * \retval  1 Field found and stored.
@@ -484,7 +535,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
         }
     }
 
-    if (parser_idx == 0) {
+    if (parser_idx == 0 || parser_state->flags & APP_LAYER_PARSER_DONE) {
         //printf("AppLayerParse: no parser for protocol %" PRIu32 "\n", proto);
         return 0;
     }
