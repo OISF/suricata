@@ -235,6 +235,26 @@ AC_INIT(configure.in)
     CFLAGS="$CFLAGS -DHAVE_LIBNET_ICMPV6_UNREACH"
     fi
 
+# libpfring (currently only supported for libpcap enabled pfring)
+# Error on the side of caution. If libpfring enabled pcap is being used and we don't link against -lpfring compilation will fail.
+    AC_ARG_WITH(libpfring_includes,
+            [  --with-libpfring-includes=DIR  libpfring include directory],
+            [with_libpfring_includes="$withval"],[with_libpfring_includes=no])
+    AC_ARG_WITH(libpfring_libraries,
+            [  --with-libpfring-libraries=DIR    libpfring library directory],
+            [with_libpfring_libraries="$withval"],[with_libpfring_libraries="no"])
+
+    if test "$with_libpfring_includes" != "no"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_libpfring_includes}"
+    fi
+
+    if test "$with_libpfring_libraries" != "no"; then
+    LDFLAGS="${LDFLAGS}  -L${with_libpfring_libraries}"
+    fi
+
+    LIBPFRING=""
+    AC_CHECK_LIB(pfring, pfring_open,, LIBPFRING="no")
+
 # libpcap
     AC_ARG_WITH(libpcap_includes,
             [  --with-libpcap-includes=DIR  libpcap include directory],
