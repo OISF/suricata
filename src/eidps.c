@@ -973,6 +973,7 @@ int main(int argc, char **argv)
         TLSParserRegisterTests();
         DecodePPPOERegisterTests();
         DecodeICMPV4RegisterTests();
+        DecodeICMPV6RegisterTests();
         DecodeIPV4RegisterTests();
         DecodeTCPRegisterTests();
         DecodeUDPV4RegisterTests();

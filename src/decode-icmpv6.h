@@ -73,5 +73,7 @@ typedef struct ICMPV6Hdr_
     /* XXX incomplete */
 } ICMPV6Hdr;
 
+void DecodeICMPV6RegisterTests(void);
+
 #endif /* __DECODE_ICMPV6_H__ */
 

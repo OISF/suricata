@@ -68,6 +68,68 @@ static inline uint16_t TCPCalculateChecksum(uint16_t *shdr, uint16_t *pkt,
     return (uint16_t) ~csum;
 }
 
+/**
+ * \brief Calculates the checksum for the TCP packet
+ *
+ * \param shdr Pointer to source address field from the IPV6 packet.  Used as a
+ *             part of the psuedoheader for computing the checksum
+ * \param pkt  Pointer to the start of the TCP packet
+ * \param tlen Total length of the TCP packet(header + payload)
+ *
+ * \retval csum Checksum for the TCP packet
+ */
+static inline uint16_t TCPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
+                                              uint16_t tlen)
+{
+    uint16_t pad = 0;
+    uint32_t csum = shdr[0];
+
+    csum += shdr[1] + shdr[2] + shdr[3] + shdr[4] + shdr[5] + shdr[6] +
+        shdr[7] + shdr[8] + shdr[9] + shdr[10] + shdr[11] + shdr[12] +
+        shdr[13] + shdr[14] + shdr[15] + htons(6 + tlen);
+
+    csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+        pkt[7] + pkt[9];
+
+    tlen -= 20;
+    pkt += 10;
+
+    while (tlen >= 32) {
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
+            pkt[14] + pkt[15];
+        tlen -= 32;
+        pkt += 16;
+    }
+
+    while(tlen >= 8) {
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3];
+        tlen -= 8;
+        pkt += 4;
+    }
+
+    while(tlen >= 4) {
+        csum += pkt[0] + pkt[1];
+        tlen -= 4;
+        pkt += 2;
+    }
+
+    while (tlen > 1) {
+        csum += pkt[0];
+        pkt += 1;
+        tlen -= 2;
+    }
+
+    if (tlen == 1) {
+        *(uint8_t *)(&pad) = (*(uint8_t *)pkt);
+        csum += pad;
+    }
+
+    csum = (csum >> 16) + (csum & 0x0000FFFF);
+
+    return (uint16_t) ~csum;
+}
+
 static int DecodeTCPOptions(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
 {
     uint16_t plen = len;
@@ -259,10 +321,61 @@ static int TCPCalculateInvalidChecksumtest02(void)
                                          (uint16_t *)raw_tcp, sizeof(raw_tcp)));
 }
 
+static int TCPV6CalculateValidChecksumtest03(void)
+{
+    uint16_t csum = 0;
+
+    static uint8_t raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
+        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a,
+        0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2, 0xf1,
+        0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
+        0xca, 0x5a, 0x00, 0x01, 0x69, 0x27};
+
+    csum = *( ((uint16_t *)(raw_ipv6 + 70)));
+
+    return (csum == TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+                                           (uint16_t *)(raw_ipv6 + 54), 32));
+}
+
+static int TCPV6CalculateInvalidChecksumtest04(void)
+{
+    uint16_t csum = 0;
+
+    static uint8_t raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
+        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a,
+        0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2, 0xf1,
+        0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
+        0xca, 0x5a, 0x00, 0x01, 0x69, 0x28};
+
+    csum = *( ((uint16_t *)(raw_ipv6 + 70)));
+
+    return (csum == TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+                                           (uint16_t *)(raw_ipv6 + 54), 32));
+}
+
+
 void DecodeTCPRegisterTests(void)
 {
     UtRegisterTest("TCPCalculateValidChecksumtest01",
                    TCPCalculateValidChecksumtest01, 1);
     UtRegisterTest("TCPCalculateInvalidChecksumtest02",
                    TCPCalculateInvalidChecksumtest02, 0);
+    UtRegisterTest("TCPV6CalculateValidChecksumtest03",
+                   TCPV6CalculateValidChecksumtest03, 1);
+    UtRegisterTest("TCPV6CalculateInvalidChecksumtest04",
+                   TCPV6CalculateInvalidChecksumtest04, 0);
 }
