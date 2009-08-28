@@ -75,7 +75,7 @@ static void FlowUpdateQueue(Flow *f)
  * \retval 0 on error, failed block, nothing to prune
  * \retval 1 on successfully pruned one
  */
-static int FlowPrune (FlowQueue *q, struct timeval *ts, uint32_t timeout)
+static int FlowPrune (FlowQueue *q, struct timeval *ts, uint8_t emerg, uint8_t flow_type)
 {
     if (mutex_trylock(&q->mutex_q) != 0) {
         return 0;
@@ -97,6 +97,31 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts, uint32_t timeout)
     if (mutex_trylock(&f->fb->m) != 0) {
         mutex_unlock(&f->m);
         return 0;
+    }
+
+    uint32_t timeout = 0;
+    if (emerg == TRUE) {
+        switch (flow_type) {
+            case FLOW_NEW:
+                timeout = f->emerg_timeout_new;
+                break;
+            case FLOW_ESTABLISHED:
+                timeout = f->emerg_timeout_est;
+                break;
+            default:
+                break;
+        }
+    } else {
+        switch (flow_type) {
+            case FLOW_NEW:
+                timeout = f->timeout_new;
+                break;
+            case FLOW_ESTABLISHED:
+                timeout = f->timeout_est;
+                break;
+            default:
+                break;
+        }
     }
 
     DEBUGPRINT("got lock, now check: %" PRId64 "+%" PRIu32 "=(%" PRId64 ") < %" PRId64 "", f->lastts.tv_sec,
@@ -144,10 +169,10 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts, uint32_t timeout)
  *  \param timeout timeout to consider
  *  \retval cnt number of flows that are timed out
  */
-static uint32_t FlowPruneFlows(FlowQueue *q, struct timeval *ts, uint32_t timeout)
+static uint32_t FlowPruneFlows(FlowQueue *q, struct timeval *ts, uint8_t emerg, uint8_t flow_type)
 {
     uint32_t cnt = 0;
-    while(FlowPrune(q, ts, timeout)) { cnt++; }
+    while(FlowPrune(q, ts, emerg, flow_type)) { cnt++; }
     return cnt;
 }
 
@@ -255,6 +280,33 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
 
     if (f->flags & FLOW_TO_DST_SEEN && f->flags & FLOW_TO_SRC_SEEN) {
         p->flowflags |= FLOW_PKT_ESTABLISHED;
+    }
+
+    switch (f->proto) {
+        case IPPROTO_TCP:
+            f->timeout_new = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
+            f->timeout_est = FLOW_IPPROTO_TCP_EST_TIMEOUT;
+            f->emerg_timeout_new = FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT;
+            f->emerg_timeout_est = FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT;
+            break;
+        case IPPROTO_UDP:
+            f->timeout_new = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
+            f->timeout_est = FLOW_IPPROTO_UDP_EST_TIMEOUT;
+            f->emerg_timeout_new = FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT;
+            f->emerg_timeout_est = FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT;
+            break;
+        case IPPROTO_ICMP:
+            f->timeout_new = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
+            f->timeout_est = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
+            f->emerg_timeout_new = FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT;
+            f->emerg_timeout_est = FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT;
+            break;
+        default:
+            f->timeout_new = FLOW_DEFAULT_NEW_TIMEOUT;
+            f->timeout_est = FLOW_DEFAULT_EST_TIMEOUT;
+            f->emerg_timeout_new = FLOW_DEFAULT_EMERG_NEW_TIMEOUT;
+            f->emerg_timeout_est = FLOW_DEFAULT_EMERG_EST_TIMEOUT;
+            break;
     }
 
     /* update queue positions */
@@ -394,6 +446,8 @@ void *FlowManagerThread(void *td)
     uint32_t established_cnt = 0, new_cnt = 0, nowcnt;
     uint32_t sleeping = 0;
     uint8_t emerg = FALSE;
+    uint8_t flow_type;
+    uint8_t emerg_timeout = FALSE;
 
     printf("%s started...\n", th_v->name);
 
@@ -403,9 +457,9 @@ void *FlowManagerThread(void *td)
 
         if (sleeping >= 100 || flow_flags & FLOW_EMERGENCY)
         {
-            uint32_t timeout_new = flow_config.timeout_new;
+            /*uint32_t timeout_new = flow_config.timeout_new;
             uint32_t timeout_est = flow_config.timeout_est;
-            printf("The Timeout values are %" PRIu32" and %" PRIu32"\n", timeout_est, timeout_new);
+            printf("The Timeout values are %" PRIu32" and %" PRIu32"\n", timeout_est, timeout_new);*/
             if (flow_flags & FLOW_EMERGENCY) {
                 emerg = TRUE;
                 printf("Flow emergency mode entered...\n");
@@ -418,19 +472,22 @@ void *FlowManagerThread(void *td)
 
             /* see if we still have enough spare flows */
             if (!(FlowUpdateSpareFlows()) && emerg == TRUE) {
-                timeout_new = flow_config.emerg_timeout_new;
-                timeout_est = flow_config.emerg_timeout_est;
+                emerg_timeout = TRUE;
+                /*timeout_new = flow_config.emerg_timeout_new;
+                timeout_est = flow_config.emerg_timeout_est;*/
             }
 
             /* prune new list */
-            nowcnt = FlowPruneFlows(&flow_new_q, &ts, timeout_new);
+            flow_type = FLOW_NEW;
+            nowcnt = FlowPruneFlows(&flow_new_q, &ts, emerg_timeout, flow_type);
             if (nowcnt) {
                 DEBUGPRINT("Pruned %" PRIu32 " new flows...\n", nowcnt);
                 new_cnt += nowcnt;
             }
 
             /* prune established list */
-            nowcnt = FlowPruneFlows(&flow_est_q, &ts, timeout_est);
+            flow_type = FLOW_ESTABLISHED;
+            nowcnt = FlowPruneFlows(&flow_est_q, &ts, emerg_timeout, flow_type);
             if (nowcnt) {
                 DEBUGPRINT("Pruned %" PRIu32 " established flows...\n", nowcnt);
                 established_cnt += nowcnt;
@@ -504,8 +561,8 @@ static int FlowTest01 (void) {
     FlowInitConfig(TRUE);
     FlowHandlePacket(&tv, &p);
 
-    if ((flow_config.timeout_new != FLOW_IPPROTO_TCP_NEW_TIMEOUT) && (flow_config.timeout_est != FLOW_IPPROTO_TCP_EST_TIMEOUT)
-            && (flow_config.emerg_timeout_new != FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT) && (flow_config.emerg_timeout_est != FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT)){
+    if ((p.flow->timeout_new != FLOW_IPPROTO_TCP_NEW_TIMEOUT) && (p.flow->timeout_est != FLOW_IPPROTO_TCP_EST_TIMEOUT)
+            && (p.flow->emerg_timeout_new != FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT) && (p.flow->emerg_timeout_est != FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT)){
         printf ("failed in setting TCP flow timeout");
         return 0;
     }
@@ -513,8 +570,8 @@ static int FlowTest01 (void) {
     p.proto = IPPROTO_UDP;
     FlowHandlePacket(&tv, &p);
 
-    if ((flow_config.timeout_new != FLOW_IPPROTO_UDP_NEW_TIMEOUT) && (flow_config.timeout_est != FLOW_IPPROTO_UDP_EST_TIMEOUT)
-            && (flow_config.emerg_timeout_new != FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT) && (flow_config.emerg_timeout_est != FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT)){
+    if ((p.flow->timeout_new != FLOW_IPPROTO_UDP_NEW_TIMEOUT) && (p.flow->timeout_est != FLOW_IPPROTO_UDP_EST_TIMEOUT)
+            && (p.flow->emerg_timeout_new != FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT) && (p.flow->emerg_timeout_est != FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT)){
         printf ("failed in setting UDP flow timeout");
         return 0;
     }
@@ -522,8 +579,8 @@ static int FlowTest01 (void) {
     p.proto = IPPROTO_ICMP;
     FlowHandlePacket(&tv, &p);
 
-    if ((flow_config.timeout_new != FLOW_IPPROTO_ICMP_NEW_TIMEOUT) && (flow_config.timeout_est != FLOW_IPPROTO_ICMP_EST_TIMEOUT)
-            && (flow_config.emerg_timeout_new != FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT) && (flow_config.emerg_timeout_est != FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT)){
+    if ((p.flow->timeout_new != FLOW_IPPROTO_ICMP_NEW_TIMEOUT) && (p.flow->timeout_est != FLOW_IPPROTO_ICMP_EST_TIMEOUT)
+            && (p.flow->emerg_timeout_new != FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT) && (p.flow->emerg_timeout_est != FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT)){
         printf ("failed in setting ICMP flow timeout");
         return 0;
     }
@@ -531,9 +588,9 @@ static int FlowTest01 (void) {
     p.proto = IPPROTO_DCCP;
     FlowHandlePacket(&tv, &p);
 
-    if ((flow_config.timeout_new != FLOW_DEFAULT_NEW_TIMEOUT) && (flow_config.timeout_est != FLOW_DEFAULT_EST_TIMEOUT)
-            && (flow_config.emerg_timeout_new != FLOW_DEFAULT_EMERG_NEW_TIMEOUT) && (flow_config.emerg_timeout_est != FLOW_DEFAULT_EMERG_EST_TIMEOUT)){
-        printf ("failed in setting ICMP flow timeout");
+    if ((p.flow->timeout_new != FLOW_DEFAULT_NEW_TIMEOUT) && (p.flow->timeout_est != FLOW_DEFAULT_EST_TIMEOUT)
+            && (p.flow->emerg_timeout_new != FLOW_DEFAULT_EMERG_NEW_TIMEOUT) && (p.flow->emerg_timeout_est != FLOW_DEFAULT_EMERG_EST_TIMEOUT)){
+        printf ("failed in setting default flow timeout");
         return 0;
     }
 

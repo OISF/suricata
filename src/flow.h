@@ -8,6 +8,8 @@
 
 #define FLOW_QUIET      TRUE
 #define FLOW_VERBOSE    FALSE
+#define FLOW_NEW            0
+#define FLOW_ESTABLISHED    1
 
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER            0x01
@@ -53,6 +55,13 @@ typedef struct Flow_
     Port sp, dp;
     uint8_t proto;
     uint8_t recursion_level;
+
+    /*flow timeouts for protocol specific timeouts*/
+    uint32_t timeout_new;
+    uint32_t timeout_est;
+
+    uint32_t emerg_timeout_new;
+    uint32_t emerg_timeout_est;
 
     uint8_t flags;
 
