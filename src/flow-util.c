@@ -81,6 +81,30 @@ void FlowInit(Flow *f, Packet *p)
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
     }
 
+    switch (f->proto) {
+        case IPPROTO_TCP:
+            flow_config.timeout_new = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
+            flow_config.timeout_est = FLOW_IPPROTO_TCP_EST_TIMEOUT;
+            flow_config.emerg_timeout_new = FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT;
+            flow_config.emerg_timeout_est = FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT;
+            break;
+        case IPPROTO_UDP:
+            flow_config.timeout_new = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
+            flow_config.timeout_est = FLOW_IPPROTO_UDP_EST_TIMEOUT;
+            flow_config.emerg_timeout_new = FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT;
+            flow_config.emerg_timeout_est = FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT;
+            break;
+        case IPPROTO_ICMP:
+            flow_config.timeout_new = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
+            flow_config.timeout_est = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
+            flow_config.emerg_timeout_new = FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT;
+            flow_config.emerg_timeout_est = FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT;
+            break;
+        default:
+            /*we have set defaults already in FlowInitConfig ()*/
+            break;
+    }
+
     COPY_TIMESTAMP(&p->ts, &f->startts);
 }
 

@@ -24,6 +24,16 @@
 #include "flow-util.h"
 #include "flow-var.h"
 #include "flow-private.h"
+#include "util-unittest.h"
+
+//#define FLOW_DEFAULT_HASHSIZE    262144
+#define FLOW_DEFAULT_HASHSIZE    65536
+//#define FLOW_DEFAULT_MEMCAP      128 * 1024 * 1024 /* 128 MB */
+#define FLOW_DEFAULT_MEMCAP      32 * 1024 * 1024 /* 32 MB */
+
+#define FLOW_DEFAULT_PREALLOC    10000
+
+void FlowRegisterTests (void);
 
 /** \brief Update the flows position in the queue's
  *  \param f Flow to requeue.
@@ -262,19 +272,6 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
     mutex_unlock(&f->m);
 }
 
-//#define FLOW_DEFAULT_HASHSIZE    262144
-#define FLOW_DEFAULT_HASHSIZE    65536
-//#define FLOW_DEFAULT_MEMCAP      128 * 1024 * 1024 /* 128 MB */
-#define FLOW_DEFAULT_MEMCAP      32 * 1024 * 1024 /* 32 MB */
-
-#define FLOW_DEFAULT_NEW_TIMEOUT 30
-#define FLOW_DEFAULT_EST_TIMEOUT 300
-
-#define FLOW_DEFAULT_EMERG_NEW_TIMEOUT 10
-#define FLOW_DEFAULT_EMERG_EST_TIMEOUT 100
-
-#define FLOW_DEFAULT_PREALLOC    10000
-
 /** \brief initialize the configuration
  *  \warning Not thread safe */
 void FlowInitConfig (char quiet)
@@ -408,7 +405,7 @@ void *FlowManagerThread(void *td)
         {
             uint32_t timeout_new = flow_config.timeout_new;
             uint32_t timeout_est = flow_config.timeout_est;
-
+            printf("The Timeout values are %" PRIu32" and %" PRIu32"\n", timeout_est, timeout_new);
             if (flow_flags & FLOW_EMERGENCY) {
                 emerg = TRUE;
                 printf("Flow emergency mode entered...\n");
@@ -479,4 +476,69 @@ void FlowManagerThreadSpawn()
     }
 
     return;
+}
+
+static int FlowTest01 (void) {
+    ThreadVars tv;
+    Packet p;
+    struct in_addr in;
+    IPV4Hdr iphdr;
+    TCPHdr tcph;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&iphdr, 0, sizeof(IPV4Hdr));
+    memset(&tcph, 0, sizeof(TCPHdr));
+
+    inet_pton(AF_INET, "1.2.3.4", &in);
+    iphdr.ip_src = in;
+    iphdr.ip_dst = in;
+    iphdr.ip_proto = IPPROTO_TCP;
+    tcph.th_dport = ntohs(20);
+    tcph.th_sport = ntohs(24);
+
+    p.tcph = &tcph;
+    p.ip4h = &iphdr;
+    p.proto = IPPROTO_TCP;
+
+    FlowInitConfig(TRUE);
+    FlowHandlePacket(&tv, &p);
+
+    if ((flow_config.timeout_new != FLOW_IPPROTO_TCP_NEW_TIMEOUT) && (flow_config.timeout_est != FLOW_IPPROTO_TCP_EST_TIMEOUT)
+            && (flow_config.emerg_timeout_new != FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT) && (flow_config.emerg_timeout_est != FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT)){
+        printf ("failed in setting TCP flow timeout");
+        return 0;
+    }
+
+    p.proto = IPPROTO_UDP;
+    FlowHandlePacket(&tv, &p);
+
+    if ((flow_config.timeout_new != FLOW_IPPROTO_UDP_NEW_TIMEOUT) && (flow_config.timeout_est != FLOW_IPPROTO_UDP_EST_TIMEOUT)
+            && (flow_config.emerg_timeout_new != FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT) && (flow_config.emerg_timeout_est != FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT)){
+        printf ("failed in setting UDP flow timeout");
+        return 0;
+    }
+
+    p.proto = IPPROTO_ICMP;
+    FlowHandlePacket(&tv, &p);
+
+    if ((flow_config.timeout_new != FLOW_IPPROTO_ICMP_NEW_TIMEOUT) && (flow_config.timeout_est != FLOW_IPPROTO_ICMP_EST_TIMEOUT)
+            && (flow_config.emerg_timeout_new != FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT) && (flow_config.emerg_timeout_est != FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT)){
+        printf ("failed in setting ICMP flow timeout");
+        return 0;
+    }
+
+    p.proto = IPPROTO_DCCP;
+    FlowHandlePacket(&tv, &p);
+
+    if ((flow_config.timeout_new != FLOW_DEFAULT_NEW_TIMEOUT) && (flow_config.timeout_est != FLOW_DEFAULT_EST_TIMEOUT)
+            && (flow_config.emerg_timeout_new != FLOW_DEFAULT_EMERG_NEW_TIMEOUT) && (flow_config.emerg_timeout_est != FLOW_DEFAULT_EMERG_EST_TIMEOUT)){
+        printf ("failed in setting ICMP flow timeout");
+        return 0;
+    }
+
+    return 1;
+}
+void FlowRegisterTests (void) {
+    UtRegisterTest("FlowTest01 -- Protocol Specific Timeouts", FlowTest01, 1);
 }

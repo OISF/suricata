@@ -94,6 +94,7 @@ void FlowDecrUsecnt(ThreadVars *, Packet *);
 void *FlowManagerThread(void *td);
 
 void FlowManagerThreadSpawn(void);
+void FlowRegisterTests (void);
 
 #endif /* __FLOW_H__ */
 
