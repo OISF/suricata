@@ -57,11 +57,11 @@ typedef struct Flow_
     uint8_t recursion_level;
 
     /*flow timeouts for protocol specific timeouts*/
-    uint32_t timeout_new;
-    uint32_t timeout_est;
+    uint32_t new_timeout;
+    uint32_t est_timeout;
 
-    uint32_t emerg_timeout_new;
-    uint32_t emerg_timeout_est;
+    uint32_t emerg_new_timeout;
+    uint32_t emerg_est_timeout;
 
     uint8_t flags;
 
@@ -104,6 +104,7 @@ void *FlowManagerThread(void *td);
 
 void FlowManagerThreadSpawn(void);
 void FlowRegisterTests (void);
+void FlowSetInitTimeouts (Flow *);
 
 #endif /* __FLOW_H__ */
 
