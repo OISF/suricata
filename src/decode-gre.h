@@ -13,17 +13,17 @@
 #include "decode.h"
 #include "threadvars.h"
 
-typedef struct _GREHdr
+typedef struct GREHdr_
 {
-    uint8_t flags;
-    uint8_t version;
-    uint16_t ether_type;
+    uint8_t flags; /**< GRE packet flags */
+    uint8_t version; /**< GRE version */
+    uint16_t ether_type; /**< ether type of the encapsulated traffic */
 
 } GREHdr;
 
-typedef struct _GRESreHdr
+typedef struct GRESreHdr_
 {
-    uint16_t af;  /* address familly */
+    uint16_t af; /**< Address family */
     uint8_t sre_offset;
     uint8_t sre_length;
     uint8_t *routing;
