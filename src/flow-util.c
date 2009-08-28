@@ -81,6 +81,33 @@ void FlowInit(Flow *f, Packet *p)
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
     }
 
+    switch (f->proto) {
+        case IPPROTO_TCP:
+            f->timeout_new = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
+            f->timeout_est = FLOW_IPPROTO_TCP_EST_TIMEOUT;
+            f->emerg_timeout_new = FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT;
+            f->emerg_timeout_est = FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT;
+            break;
+        case IPPROTO_UDP:
+            f->timeout_new = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
+            f->timeout_est = FLOW_IPPROTO_UDP_EST_TIMEOUT;
+            f->emerg_timeout_new = FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT;
+            f->emerg_timeout_est = FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT;
+            break;
+        case IPPROTO_ICMP:
+            f->timeout_new = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
+            f->timeout_est = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
+            f->emerg_timeout_new = FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT;
+            f->emerg_timeout_est = FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT;
+            break;
+        default:
+            f->timeout_new = FLOW_DEFAULT_NEW_TIMEOUT;
+            f->timeout_est = FLOW_DEFAULT_EST_TIMEOUT;
+            f->emerg_timeout_new = FLOW_DEFAULT_EMERG_NEW_TIMEOUT;
+            f->emerg_timeout_est = FLOW_DEFAULT_EMERG_EST_TIMEOUT;
+            break;
+    }
+
     COPY_TIMESTAMP(&p->ts, &f->startts);
 }
 
