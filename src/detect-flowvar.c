@@ -91,29 +91,29 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     int ov[MAX_SUBSTRINGS];
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret > 1) {
-        const char *str_ptr;
-        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-        if (res < 0) {
-            printf("DetectPcreSetup: pcre_get_substring failed\n");
-            return -1;
-        }
-        varname = (char *)str_ptr;
-
-        if (ret > 2) {
-            res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
-            if (res < 0) {
-                printf("DetectPcreSetup: pcre_get_substring failed\n");
-                return -1;
-            }
-            varcontent = (char *)str_ptr;
-        }
-    } else {
+    if (ret != 3) {
         printf("ERROR: \"%s\" is not a valid setting for flowvar.\n", rawstr);
         return -1;
     }
 
-    printf("DetectFlowvarSetup: varname %s, varcontent %s\n", varname, varcontent);
+    const char *str_ptr;
+    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    if (res < 0) {
+        printf("DetectPcreSetup: pcre_get_substring failed\n");
+        return -1;
+    }
+    varname = (char *)str_ptr;
+
+    if (ret > 2) {
+        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+        if (res < 0) {
+            printf("DetectPcreSetup: pcre_get_substring failed\n");
+            return -1;
+        }
+        varcontent = (char *)str_ptr;
+    }
+
+    //printf("DetectFlowvarSetup: varname %s, varcontent %s\n", varname, varcontent);
 
     if (varcontent[0] == '\"' && varcontent[strlen(varcontent)-1] == '\"') {
         str = strdup(varcontent+1);

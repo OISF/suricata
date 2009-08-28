@@ -78,8 +78,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             {
 
                 gsre = (GRESreHdr *)(pkt + header_len);
-
-                if(gsre == NULL)
+                if (gsre == NULL)
                     return;
 
                 while (1)
@@ -96,7 +95,8 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
                     header_len += gsre->sre_length;
                     gsre = (GRESreHdr *)(pkt + header_len);
-
+                    if (gsre == NULL)
+                        return;
                 }
             }
             break;

@@ -139,26 +139,26 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     int ov[MAX_SUBSTRINGS];
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret > 1) {
-        const char *str_ptr;
-        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    if (ret != 2 && ret != 3) {
+        printf("ERROR: \"%s\" is not a valid setting for flowbits.\n", rawstr);
+        return -1;
+    }
+
+    const char *str_ptr;
+    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    if (res < 0) {
+        printf("DetectPcreSetup: pcre_get_substring failed\n");
+        return -1;
+    }
+    fb_cmd_str = (char *)str_ptr;
+
+    if (ret == 3) {
+        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
         if (res < 0) {
             printf("DetectPcreSetup: pcre_get_substring failed\n");
             return -1;
         }
-        fb_cmd_str = (char *)str_ptr;
-
-        if (ret > 2) {
-            res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
-            if (res < 0) {
-                printf("DetectPcreSetup: pcre_get_substring failed\n");
-                return -1;
-            }
-            fb_name = (char *)str_ptr;
-        }
-    } else {
-        printf("ERROR: \"%s\" is not a valid setting for flowbits.\n", rawstr);
-        return -1;
+        fb_name = (char *)str_ptr;
     }
 
     if (strcmp(fb_cmd_str,"noalert") == 0) {
@@ -189,7 +189,11 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         goto error;
     }
 
-    cd->idx = VariableNameGetIdx(de_ctx,fb_name,DETECT_FLOWBITS);
+    if (fb_name != NULL) {
+        cd->idx = VariableNameGetIdx(de_ctx,fb_name,DETECT_FLOWBITS);
+    } else {
+        cd->idx = 0;
+    }
     cd->cmd = fb_cmd;
     //printf("DetectFlowbitSetup: idx %" PRIu32 ", cmd %s, name %s\n", cd->idx, fb_cmd_str, fb_name ? fb_name : "(null)");
 
