@@ -102,6 +102,9 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
             }
             varcontent = (char *)str_ptr;
         }
+    } else {
+        printf("ERROR: \"%s\" is not a valid setting for pktvar.\n", rawstr);
+        return -1;
     }
 
     printf("DetectPktvarSetup: varname %s, varcontent %s\n", varname, varcontent);

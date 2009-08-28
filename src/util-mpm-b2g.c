@@ -150,6 +150,7 @@ static inline B2gPattern *B2gAllocPattern(MpmCtx *mpm_ctx) {
     B2gPattern *p = malloc(sizeof(B2gPattern));
     if (p == NULL) {
         printf("ERROR: B2gAllocPattern: malloc failed\n");
+        exit(EXIT_FAILURE);
     }
     memset(p,0,sizeof(B2gPattern));
 
@@ -163,6 +164,7 @@ B2gAllocHashItem(MpmCtx *mpm_ctx) {
     B2gHashItem *hi = malloc(sizeof(B2gHashItem));
     if (hi == NULL) {
         printf("ERROR: B2gAllocHashItem: malloc failed\n");
+        exit(EXIT_FAILURE);
     }
     memset(hi,0,sizeof(B2gHashItem));
 
@@ -220,13 +222,18 @@ static inline int B2gInitHashAdd(B2gCtx *ctx, B2gPattern *p) {
         return 0;
     }
 
-    B2gPattern *t = ctx->init_hash[hash], *tt = NULL;
-    for ( ; t != NULL; t = t->next) {
-        tt = t;
-    }
-    tt->next = p;
-    //printf("B2gInitHashAdd: hash %" PRIu32 ", head %p\n", hash, ctx->init_hash[hash]);
+    B2gPattern *tt = NULL;
+    B2gPattern *t = ctx->init_hash[hash];
 
+    /* get the list tail */
+    do {
+        tt = t;
+        t = t->next;
+    } while (t != NULL);
+
+    tt->next = p;
+
+    //printf("B2gInitHashAdd: hash %" PRIu32 ", head %p\n", hash, ctx->init_hash[hash]);
     return 0;
 }
 

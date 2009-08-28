@@ -32,8 +32,8 @@ void DetectPortRegister (void) {
 }
 
 /* prototypes */
-int DetectPortCutNot(DetectPort *, DetectPort **);
-int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *, DetectPort **);
+static int DetectPortCutNot(DetectPort *, DetectPort **);
+static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *, DetectPort **);
 DetectPort *PortParse(char *str);
 
 /* memory usage counters */
@@ -161,7 +161,8 @@ int DetectPortAdd(DetectPort **head, DetectPort *dp) {
             }
         }
         dp->prev = prev_cur;
-        prev_cur->next = dp;
+        if (prev_cur != NULL)
+            prev_cur->next = dp;
     } else {
         *head = dp;
     }
@@ -282,8 +283,11 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
 #endif
                 DetectPort *c = NULL;
                 r = DetectPortCut(de_ctx,cur,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectPortInsert(de_ctx, head, new);
-                if (c) {
+                if (c != NULL) {
 #ifdef DBG
                     printf("DetectPortInsert: inserting C (%p) ",c); DetectPortPrint(c); printf("\n");
 #endif
@@ -296,9 +300,11 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
 #endif
                 DetectPort *c = NULL;
                 r = DetectPortCut(de_ctx,cur,new,&c);
-                //printf("DetectPortCut returned %" PRId32 "\n", r);
+                if (r == -1)
+                    goto error;
+
                 DetectPortInsert(de_ctx, head, new);
-                if (c) {
+                if (c != NULL) {
 #ifdef DBG
                     printf("DetectPortInsert: inserting C "); DetectPortPrint(c); printf("\n");
 #endif
@@ -311,8 +317,11 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
 #endif
                 DetectPort *c = NULL;
                 r = DetectPortCut(de_ctx,cur,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectPortInsert(de_ctx, head, new);
-                if (c) {
+                if (c != NULL) {
 #ifdef DBG
                     printf("DetectPortInsert: inserting C "); DetectPortPrint(c); printf("\n");
 #endif
@@ -325,8 +334,11 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
 #endif
                 DetectPort *c = NULL;
                 r = DetectPortCut(de_ctx,cur,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectPortInsert(de_ctx, head, new);
-                if (c) {
+                if (c != NULL) {
 #ifdef DBG
                     printf("DetectPortInsert: inserting C "); DetectPortPrint(c); printf("\n");
 #endif
@@ -350,7 +362,9 @@ error:
     return -1;
 }
 
-int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, DetectPort **c) {
+/** \retval 0 ok
+  * \retval -1 error */
+static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, DetectPort **c) {
     uint32_t a_port1 = a->port;
     uint32_t a_port2 = a->port2;
     uint32_t b_port1 = b->port;
@@ -635,11 +649,11 @@ error:
     if (tmp != NULL)
         DetectPortFree(tmp);
     return -1;
-
-    return -1;
 }
 
-int DetectPortCutNot(DetectPort *a, DetectPort **b) {
+/** \retval 0 ok
+  * \retval -1 error */
+static int DetectPortCutNot(DetectPort *a, DetectPort **b) {
     uint16_t a_port1 = a->port;
     uint16_t a_port2 = a->port2;
 
@@ -674,8 +688,6 @@ int DetectPortCutNot(DetectPort *a, DetectPort **b) {
     return 0;
 
 error:
-    return -1;
-
     return -1;
 }
 
@@ -1277,7 +1289,7 @@ int PortTestParse06 (void) {
 
     copy = DetectPortCopy(NULL,dd);
     if (copy == NULL)
-        goto end;            
+        goto end;
 
     if (DetectPortCmp(dd,copy) != PORT_EQ)
         goto end;

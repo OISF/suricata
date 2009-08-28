@@ -328,8 +328,6 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_COPY        0x04
 #define SIG_GROUP_HEAD_MPM_URI_COPY    0x08
 #define SIG_GROUP_HEAD_FREE            0x10
-#define SIG_GROUP_HEAD_MPM_NOSCAN      0x20
-#define SIG_GROUP_HEAD_MPM_URI_NOSCAN  0x40
 
 /** \brief head of the list of containers. */
 typedef struct SigGroupHead_ {

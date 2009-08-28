@@ -91,7 +91,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
                     header_len += GRE_SRE_HDR_LEN;
 
-                    if (gsre && (ntohs(gsre->af) == 0) && (gsre->sre_length == 0))
+                    if (gsre != NULL && (ntohs(gsre->af) == 0) && (gsre->sre_length == 0))
                         break;
 
                     header_len += gsre->sre_length;

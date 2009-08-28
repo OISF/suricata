@@ -209,6 +209,7 @@ static inline WmPattern *WmAllocPattern(MpmCtx *mpm_ctx) {
     WmPattern *p = malloc(sizeof(WmPattern));
     if (p == NULL) {
         printf("ERROR: WmAllocPattern: malloc failed\n");
+        exit(EXIT_FAILURE);
     }
     memset(p,0,sizeof(WmPattern));
 
@@ -222,6 +223,7 @@ WmAllocHashItem(MpmCtx *mpm_ctx) {
     WmHashItem *hi = malloc(sizeof(WmHashItem));
     if (hi == NULL) {
         printf("ERROR: WmAllocHashItem: malloc failed\n");
+        exit(EXIT_FAILURE);
     }
     memset(hi,0,sizeof(WmHashItem));
 
@@ -279,10 +281,15 @@ static inline int WmInitHashAdd(WmCtx *ctx, WmPattern *p) {
         return 0;
     }
 
-    WmPattern *t = ctx->init_hash[hash], *tt = NULL;
-    for ( ; t != NULL; t = t->next) {
+    WmPattern *tt = NULL;
+    WmPattern *t = ctx->init_hash[hash];
+
+    /* get the list tail */
+    do {
         tt = t;
-    }
+        t = t->next;
+    } while (t != NULL);
+
     tt->next = p;
     //printf("WmInitHashAdd: hash %" PRIu32 ", head %p\n", hash, ctx->init_hash[hash]);
 

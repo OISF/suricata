@@ -35,9 +35,9 @@ void DetectAddressRegister (void) {
 
 /* prototypes */
 void DetectAddressDataPrint(DetectAddressData *);
-int DetectAddressCut(DetectAddressData *, DetectAddressData *, DetectAddressData **);
-int DetectAddressCutNot(DetectAddressData *, DetectAddressData **);
-int DetectAddressGroupCut(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
+static int DetectAddressCut(DetectAddressData *, DetectAddressData *, DetectAddressData **);
+static int DetectAddressCutNot(DetectAddressData *, DetectAddressData **);
+static int DetectAddressGroupCut(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
 
 /* memory usage counters */
 static uint32_t detect_address_group_memory = 0;
@@ -195,7 +195,8 @@ int DetectAddressGroupAdd(DetectAddressGroup **head, DetectAddressGroup *ag) {
         }
         //printf("default append\n");
         ag->prev = prev_cur;
-        prev_cur->next = ag;
+        if (prev_cur != NULL)
+            prev_cur->next = ag;
     } else {
         *head = ag;
     }
@@ -330,8 +331,11 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
 #endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(de_ctx, cur,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectAddressGroupInsert(de_ctx, gh, new);
-                if (c) {
+                if (c != NULL) {
 #ifdef DBG
                     printf("DetectAddressGroupInsert: inserting C "); DetectAddressDataPrint(c->ad); printf("\n");
 #endif
@@ -344,9 +348,12 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
 #endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(de_ctx, cur,new,&c);
+                if (r == -1)
+                    goto error;
+
                 //printf("DetectAddressGroupCut returned %" PRId32 "\n", r);
                 DetectAddressGroupInsert(de_ctx, gh, new);
-                if (c) {
+                if (c != NULL) {
 #ifdef DBG
                     printf("DetectAddressGroupInsert: inserting C "); DetectAddressDataPrint(c->ad); printf("\n");
 #endif
@@ -359,8 +366,11 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
 #endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(de_ctx, cur,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectAddressGroupInsert(de_ctx, gh, new);
-                if (c) {
+                if (c != NULL) {
 #ifdef DBG
                     printf("DetectAddressGroupInsert: inserting C "); DetectAddressDataPrint(c->ad); printf("\n");
 #endif
@@ -373,8 +383,11 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
 #endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(de_ctx, cur,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectAddressGroupInsert(de_ctx, gh, new);
-                if (c) {
+                if (c != NULL) {
 #ifdef DBG
                     printf("DetectAddressGroupInsert: inserting C "); DetectAddressDataPrint(c->ad); printf("\n");
 #endif
@@ -400,6 +413,7 @@ error:
     return -1;
 }
 
+/** \brief Join two addresses together */
 int DetectAddressGroupJoin(DetectEngineCtx *de_ctx, DetectAddressGroup *target, DetectAddressGroup *source) {
     if (target == NULL || source == NULL)
         return -1;
@@ -424,11 +438,10 @@ int DetectAddressGroupJoin(DetectEngineCtx *de_ctx, DetectAddressGroup *target, 
     return -1;
 }
 
-/*
- * return codes:
- *  1: inserted
- *  0: not inserted (no error), memory is cleared
- * -1: error
+/**
+ *  \retval 1 inserted
+ *  \retval 0 not inserted (no error), memory is cleared
+ *  \retval -1 error
  */
 int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
     DetectAddressGroup *head = NULL;
@@ -506,26 +519,46 @@ int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
             } else if (r == ADDRESS_ES) {
                 DetectAddressData *c = NULL;
                 r = DetectAddressCut(cur->ad,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectAddressInsert(gh, new);
-                if (c) DetectAddressInsert(gh, c);
+                if (c != NULL)
+                    DetectAddressInsert(gh, c);
+
                 return 1;
             } else if (r == ADDRESS_EB) {
                 DetectAddressData *c = NULL;
                 r = DetectAddressCut(cur->ad,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectAddressInsert(gh, new);
-                if (c) DetectAddressInsert(gh, c);
+                if (c != NULL)
+                    DetectAddressInsert(gh, c);
+
                 return 1;
             } else if (r == ADDRESS_LE) {
                 DetectAddressData *c = NULL;
                 r = DetectAddressCut(cur->ad,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectAddressInsert(gh, new);
-                if (c) DetectAddressInsert(gh, c);
+                if (c != NULL)
+                    DetectAddressInsert(gh, c);
+
                 return 1;
             } else if (r == ADDRESS_GE) {
                 DetectAddressData *c = NULL;
                 r = DetectAddressCut(cur->ad,new,&c);
+                if (r == -1)
+                    goto error;
+
                 DetectAddressInsert(gh, new);
-                if (c) DetectAddressInsert(gh, c);
+                if (c != NULL)
+                    DetectAddressInsert(gh, c);
+
                 return 1;
             }
         }
@@ -837,6 +870,8 @@ int DetectAddressGroupCut(DetectEngineCtx *de_ctx, DetectAddressGroup *a, Detect
     return -1;
 }
 
+/** \retval 0 ok
+ *  \retval -1 error */
 int DetectAddressCut(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
     if (a->family == AF_INET) {
         return DetectAddressCutIPv4(a,b,c);
@@ -847,6 +882,8 @@ int DetectAddressCut(DetectAddressData *a, DetectAddressData *b, DetectAddressDa
     return -1;
 }
 
+/** \retval 0 ok
+ *  \retval -1 error */
 int DetectAddressCutNot(DetectAddressData *a, DetectAddressData **b) {
     if (a->family == AF_INET) {
         return DetectAddressCutNotIPv4(a,b);
@@ -896,7 +933,6 @@ int AddressParse(DetectAddressData *dd, char *str) {
     char *ipdup = strdup(str);
     char *ip2 = NULL;
     char *mask = NULL;
-    char *ip6 = NULL;
     int r = 0;
 
     /* first handle 'any' */
@@ -916,7 +952,7 @@ int AddressParse(DetectAddressData *dd, char *str) {
     }
 
     /* see if the address is an ipv4 or ipv6 address */
-    if ((ip6 = strchr(str,':')) == NULL) {
+    if ((strchr(str,':')) == NULL) {
         /* IPv4 Address */
         struct in_addr in;
 
@@ -929,8 +965,7 @@ int AddressParse(DetectAddressData *dd, char *str) {
             uint32_t ip4addr = 0;
             uint32_t netmask = 0;
 
-            char *t = NULL;
-            if ((t = strchr (mask,'.')) == NULL) {
+            if ((strchr (mask,'.')) == NULL) {
                 /* 1.2.3.4/24 format */
 
                 int cidr = atoi(mask);

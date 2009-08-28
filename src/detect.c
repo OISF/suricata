@@ -196,10 +196,12 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 
     /* http_uri -- for uricontent */
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP GET URI cap\"; flow:to_server; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
-    if (sig) {
-        prevsig = sig;
-        de_ctx->sig_list = sig;
-    }
+    if (sig == NULL)
+        return -1;
+
+    prevsig = sig;
+    de_ctx->sig_list = sig;
+
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
     if (sig == NULL)
         return -1;
@@ -218,109 +220,6 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     if (sig == NULL)
         return -1;
     prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"ipv4 pkt too small\"; decode-event:ipv4.pkt_too_small; sid:5;)");
-    if (sig == NULL)
-        return -1;
-    prevsig->next = sig;
-    prevsig = sig;
-/*
-    sig = SigInit(de_ctx,"alert udp any any -> any any (msg:\"ViCtOr nocase test\"; sid:4; rev:13; content:\"ViCtOr!!\"; offset:100; depth:150; nocase; content:\"ViCtOr!!\"; nocase; offset:99; depth:150;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-
-    sig = SigInit(de_ctx,"alert ip any any -> 1.2.3.4 any (msg:\"ViCtOr case test\"; sid:2001; content:\"ViCtOr\"; depth:150;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert ip any any -> 1.2.3.4 any (msg:\"IP ONLY\"; sid:2002;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert ip ANY any -> 192.168.0.0/16 any (msg:\"offset, depth, within test\"; flow:to_client; sid:2002; content:HTTP; depth:4; content:Server:; offset:15; within:100; depth:200;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert ip 1.2.3.4 any -> any any (msg:\"Inliniac blog within test\"; flow:to_client; sid:2003; content:inliniac; content:blog; within:9;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert ip 2001::1 any -> 2001::3 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2004; content:abcd; content:efgh; within:4; distance:0; content:ijkl; within:4; distance:0;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert ip 2001::5 any -> 2001::7 any (msg:\"abcdef distance 0 test\"; flow:to_server; sid:2005; content:abcdef; content:ghijklmnop; distance:0;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-
-    sig = SigInit(de_ctx,"alert ip 10.0.0.0/8 any -> 4.3.2.1 any (msg:\"abcdefg distance 1 test\"; flow:to_server; sid:2006; content:abcdef; content:ghijklmnop; distance:1;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert tcp 172.16.1.0/24 any -> 0.0.0.0/0 any (msg:\"HTTP response code cap\"; flow:to_client; content:HTTP; depth:4; pcre:\"/^HTTP\\/\\d\\.\\d (?<http_response>[0-9]+) [A-z\\s]+\\r\\n/\"; depth:50; sid:3;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert tcp 172.16.2.0/24 any -> 10.10.10.10 any (msg:\"HTTP server code cap\"; flow:to_client; content:Server:; depth:500; pcre:\"/^Server: (?<http_server>.*)\\r\\n/m\"; sid:4;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert tcp 192.168.0.1 any -> 1.0.2.1 any (msg:\"\to_client nocase test\"; flow:to_client; content:Servere:; nocase; sid:400;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert tcp 192.168.0.4 any -> 1.2.0.1 any (msg:\"HTTP UA code cap\"; flow:to_server; content:User-Agent:; depth:300; pcre:\"/^User-Agent: (?<http_ua>.*)\\r\\n/m\"; sid:5;)");
-    if (sig == NULL)
-        return;
-    prevsig->next = sig;
-    prevsig = sig;
-
-    sig = SigInit(de_ctx,"alert tcp 192.168.0.12 any -> 0.0.0.0/0 any (msg:\"HTTP http_host flowvar www.inliniac.net\"; flow:to_server; flowvar:http_host,\"www.inliniac.net\"; sid:7;)");
-    if (sig) {
-        prevsig->next = sig;
-        prevsig = sig;
-    }
-    sig = SigInit(de_ctx,"alert tcp 192.168.0.0/16 any -> 0.0.0.0/0 any (msg:\"HTTP http_uri flowvar MattJonkman\"; flow:to_server; flowvar:http_uri,\"MattJonkman\"; sid:8;)");
-    if (sig) {
-        prevsig->next = sig;
-        prevsig = sig;
-    }
-    sig = SigInit(de_ctx,"alert tcp 0.0.0.0/0 any -> 0.0.0.0/0 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:9;)");
-    if (sig) {
-        prevsig->next = sig;
-        prevsig = sig;
-    }
-    sig = SigInit(de_ctx,"alert tcp 0.0.0.0/0 any -> 10.0.0.0/8 any (msg:\"HTTP uricontent VictorJulien\"; flow:to_server; uricontent:\"VictorJulien\"; nocase; sid:5;)");
-    if (sig) {
-        prevsig->next = sig;
-        prevsig = sig;
-    }
-*/
 
     if(sig_file != NULL){
         int r = DetectLoadSigFile(de_ctx, sig_file);
@@ -442,21 +341,21 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             //printf("Not scanning as pkt payload is smaller than the largest content length we need to match");
         } else {
             uint32_t cnt = 0;
-//printf("scan: (%p, maxlen %" PRIu32 ", cnt %" PRIu32 ")\n", det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
+            //printf("scan: (%p, maxlen %" PRIu32 ", cnt %" PRIu32 ")\n", det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
             /* scan, but only if the noscan flag isn't set */
-            if (!(det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_NOSCAN)) {
-                if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_scanned1++;
-                else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_scanned2++;
-                else if (det_ctx->sgh->mpm_content_maxlen == 3) det_ctx->pkts_scanned3++;
-                else if (det_ctx->sgh->mpm_content_maxlen == 4) det_ctx->pkts_scanned4++;
-                else                                        det_ctx->pkts_scanned++;
 
-                cnt += PacketPatternScan(th_v, det_ctx, p);
-            }
-//if (cnt != det_ctx->pmq.searchable)
-//printf("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "\n", cnt, det_ctx->pmq.searchable);
-            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_NOSCAN || det_ctx->pmq.searchable > 0) {
-//printf("now search\n");
+            if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_scanned1++;
+            else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_scanned2++;
+            else if (det_ctx->sgh->mpm_content_maxlen == 3) det_ctx->pkts_scanned3++;
+            else if (det_ctx->sgh->mpm_content_maxlen == 4) det_ctx->pkts_scanned4++;
+            else                                        det_ctx->pkts_scanned++;
+
+            cnt += PacketPatternScan(th_v, det_ctx, p);
+
+            //if (cnt != det_ctx->pmq.searchable)
+            //printf("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "\n", cnt, det_ctx->pmq.searchable);
+            if (det_ctx->pmq.searchable > 0) {
+                //printf("now search\n");
                 if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_searched1++;
                 else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_searched2++;
                 else if (det_ctx->sgh->mpm_content_maxlen == 3) det_ctx->pkts_searched3++;
@@ -465,7 +364,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                 cnt += PacketPatternMatch(th_v, det_ctx, p);
 
-//                printf("RAW: cnt %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 "\n", cnt, det_ctx->pmq.sig_id_array_cnt);
+                // printf("RAW: cnt %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 "\n", cnt, det_ctx->pmq.sig_id_array_cnt);
             }
             det_ctx->pmq.searchable = 0;
         }
@@ -1966,8 +1865,6 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                     } else {
                                         /* XXX write dedicated function for this */
                                         dp->sh->mpm_ctx = mpmsh->mpm_ctx;
-                                        if (mpmsh->flags & SIG_GROUP_HEAD_MPM_NOSCAN)
-                                            dp->sh->flags |= SIG_GROUP_HEAD_MPM_NOSCAN;
                                         dp->sh->mpm_content_maxlen = mpmsh->mpm_content_maxlen;
                                         dp->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
                                         SigGroupHeadClearContent(dp->sh);

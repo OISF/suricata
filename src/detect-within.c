@@ -1,5 +1,9 @@
 /* WITHIN part of the detection engine. */
 
+/** \file
+ *  \author Victor Julien <victor@inliniac.net>
+ *  \todo within logic is not Snort compat atm: it is applied to pcre and uricontent as well */
+
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
@@ -34,53 +38,63 @@ int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     }
 
     SigMatch *pm = m;
-    if (pm != NULL) {
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-
-            pe->within = strtol(str, NULL, 10);
-            pe->flags |= DETECT_PCRE_WITHIN;
-
-            //printf("DetectWithinSetup: set within %" PRId32 " for previous pcre\n", pe->within);
-        } else if (pm->type == DETECT_CONTENT) {
-            DetectContentData *cd = (DetectContentData *)pm->ctx;
-
-            cd->within = strtol(str, NULL, 10);
-            cd->flags |= DETECT_CONTENT_WITHIN;
-
-            //printf("DetectWithinSetup: set within %" PRId32 " for previous content\n", cd->within);
-        } else if (pm->type == DETECT_URICONTENT) {
-            DetectUricontentData *ud = (DetectUricontentData *)pm->ctx;
-
-            ud->within = strtol(str, NULL, 10);
-            ud->flags |= DETECT_URICONTENT_WITHIN;
-
-            //printf("DetectWithinSetup: set within %" PRId32 " for previous content\n", cd->within);
-        } else {
-            printf("DetectWithinSetup: Unknown previous keyword!\n");
-        }
-    } else {
+    if (pm == NULL) {
         printf("DetectWithinSetup: No previous match!\n");
+        goto error;
     }
-    pm = m->prev;
-    if (pm != NULL) {
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-            pe->flags |= DETECT_PCRE_WITHIN_NEXT;
-        } else if (pm->type == DETECT_CONTENT) {
-            DetectContentData *cd = (DetectContentData *)pm->ctx;
-            cd->flags |= DETECT_CONTENT_WITHIN_NEXT;
-        } else if (pm->type == DETECT_URICONTENT) {
-            DetectUricontentData *ud = (DetectUricontentData *)pm->ctx;
-            ud->flags |= DETECT_URICONTENT_WITHIN_NEXT;
-        } else {
-            printf("DetectWithinSetup: Unknown previous-previous keyword!\n");
-        }
+
+    /* Set the within flag on the Sigmatch */
+    if (pm->type == DETECT_PCRE) {
+        DetectPcreData *pe = (DetectPcreData *)pm->ctx;
+
+        pe->within = strtol(str, NULL, 10);
+        pe->flags |= DETECT_PCRE_WITHIN;
+
+        //printf("DetectWithinSetup: set within %" PRId32 " for previous pcre\n", pe->within);
+    } else if (pm->type == DETECT_CONTENT) {
+        DetectContentData *cd = (DetectContentData *)pm->ctx;
+
+        cd->within = strtol(str, NULL, 10);
+        cd->flags |= DETECT_CONTENT_WITHIN;
+
+        //printf("DetectWithinSetup: set within %" PRId32 " for previous content\n", cd->within);
+    } else if (pm->type == DETECT_URICONTENT) {
+        DetectUricontentData *ud = (DetectUricontentData *)pm->ctx;
+
+        ud->within = strtol(str, NULL, 10);
+        ud->flags |= DETECT_URICONTENT_WITHIN;
+
+        //printf("DetectWithinSetup: set within %" PRId32 " for previous content\n", cd->within);
     } else {
+        printf("DetectWithinSetup: Unknown previous keyword!\n");
+        goto error;
+    }
+
+    pm = m->prev;
+    if (pm == NULL) {
         printf("DetectWithinSetup: No previous-previous match!\n");
+        goto error;
+    }
+
+    /* Set the within next flag on the prev sigmatch */
+    if (pm->type == DETECT_PCRE) {
+        DetectPcreData *pe = (DetectPcreData *)pm->ctx;
+        pe->flags |= DETECT_PCRE_WITHIN_NEXT;
+    } else if (pm->type == DETECT_CONTENT) {
+        DetectContentData *cd = (DetectContentData *)pm->ctx;
+        cd->flags |= DETECT_CONTENT_WITHIN_NEXT;
+    } else if (pm->type == DETECT_URICONTENT) {
+        DetectUricontentData *ud = (DetectUricontentData *)pm->ctx;
+        ud->flags |= DETECT_URICONTENT_WITHIN_NEXT;
+    } else {
+        printf("DetectWithinSetup: Unknown previous-previous keyword!\n");
+        goto error;
     }
 
     if (dubbed) free(str);
     return 0;
+error:
+    if (dubbed) free(str);
+    return -1;
 }
 

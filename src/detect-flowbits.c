@@ -156,6 +156,9 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
             }
             fb_name = (char *)str_ptr;
         }
+    } else {
+        printf("ERROR: \"%s\" is not a valid setting for flowbits.\n", rawstr);
+        return -1;
     }
 
     if (strcmp(fb_cmd_str,"noalert") == 0) {

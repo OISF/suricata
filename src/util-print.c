@@ -37,7 +37,6 @@ void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
             for ( ; s < spaces; s++) fprintf(fp, " ");
         }
 
-        ch = 0;
         for (ch = 0; (i+ch) < buflen && ch < 16; ch++) {
              fprintf(fp, "%c", isprint((uint8_t)buf[i+ch]) ? (uint8_t)buf[i+ch] : '.');
 

@@ -144,6 +144,7 @@ static inline B3gPattern *B3gAllocPattern(MpmCtx *mpm_ctx) {
     B3gPattern *p = malloc(sizeof(B3gPattern));
     if (p == NULL) {
         printf("ERROR: B3gAllocPattern: malloc failed\n");
+        exit(EXIT_FAILURE);
     }
     memset(p,0,sizeof(B3gPattern));
 
@@ -157,6 +158,7 @@ B3gAllocHashItem(MpmCtx *mpm_ctx) {
     B3gHashItem *hi = malloc(sizeof(B3gHashItem));
     if (hi == NULL) {
         printf("ERROR: B3gAllocHashItem: malloc failed\n");
+        exit(EXIT_FAILURE);
     }
     memset(hi,0,sizeof(B3gHashItem));
 
@@ -214,10 +216,15 @@ static inline int B3gInitHashAdd(B3gCtx *ctx, B3gPattern *p) {
         return 0;
     }
 
-    B3gPattern *t = ctx->init_hash[hash], *tt = NULL;
-    for ( ; t != NULL; t = t->next) {
+    B3gPattern *tt = NULL;
+    B3gPattern *t = ctx->init_hash[hash];
+
+    /* get the list tail */
+    do {
         tt = t;
-    }
+        t = t->next;
+    } while (t != NULL);
+
     tt->next = p;
     //printf("B3gInitHashAdd: hash %" PRIu32 ", head %p\n", hash, ctx->init_hash[hash]);
 

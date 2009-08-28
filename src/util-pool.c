@@ -183,8 +183,6 @@ static int PoolTestInit02 (void) {
             p->alloc_list, p->empty_list);
         retval = 0;
         goto end;
-    } else {
-        retval = 1;
     }
 
     if (p->Alloc != PoolTestAlloc) {
@@ -192,8 +190,6 @@ static int PoolTestInit02 (void) {
             p->Alloc, PoolTestAlloc);
         retval = 0;
         goto end;
-    } else {
-        retval = 1;
     }
 
     if (p->Free != PoolTestFree) {
@@ -201,9 +197,9 @@ static int PoolTestInit02 (void) {
             p->Free, PoolTestFree);
         retval = 0;
         goto end;
-    } else {
-        retval = 1;
     }
+
+    retval = 1;
 end:
     if (p != NULL)
         PoolFree(p);

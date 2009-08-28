@@ -274,7 +274,8 @@ uint32_t PatternStrength(uint8_t *pat, uint16_t patlen, uint16_t len) {
     return s;
 }
 
-int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+/** \brief Setup the content portion of the sig group head */
+static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     uint32_t sig;
 
     HashTable *ht = HashTableInit(4096, ContentHashFunc, ContentHashCompareFunc, ContentHashFree);
@@ -447,23 +448,20 @@ error:
     return -1;
 }
 
-/*
+/** \brief Prepare the pattern matcher ctx in a sig group head.
  *
- * TODO
- *  - determine if a content match can set the 'single' flag
- *
- *
- * XXX do error checking
- * XXX rewrite the COPY stuff
+ *  \todo determine if a content match can set the 'single' flag
+ *  \todo do error checking
+ *  \todo rewrite the COPY stuff
  */
 int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
-    Signature *s;
-    SigMatch *sm;
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
     uint32_t co_cnt = 0;
     uint32_t ur_cnt = 0;
     uint32_t cnt = 0;
-    uint32_t sig;
+    uint32_t sig = 0;
 
     g_content_sigcnt++;
 
@@ -473,7 +471,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     if (!(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))
         sh->mpm_uricontent_maxlen = 0;
 
-    /* see if this head has content and/or uricontent */
+    /** see if this head has content and/or uricontent
+     *  \todo we can move this to the signature init phase */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
         uint32_t num = sh->match_array[sig];
 
@@ -517,7 +516,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         MpmInitCtx(sh->mpm_uri_ctx, PM);
     }
 
-    //uint16_t mpm_content_scan_maxlen = 65535, mpm_uricontent_scan_maxlen = 65535;
     uint32_t mpm_content_cnt = 0, mpm_uricontent_cnt = 0;
     uint16_t mpm_content_maxdepth = 65535, mpm_content_minoffset = 65535;
     uint16_t mpm_content_maxdepth_one = 65535, mpm_content_minoffset_one = 65535;
@@ -580,9 +578,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         for (sm = s->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
-//if (content_maxlen < 4) {
-//printf("\""); PrintRawUriFp(stdout,cd->content,cd->content_len); printf("\" "); 
-//}
+                //if (content_maxlen < 4) {
+                //printf("\""); PrintRawUriFp(stdout,cd->content,cd->content_len); printf("\" ");
+                //}
                 if (cd->content_len == content_maxlen) {
                     if (content_maxdepth > cd->depth)
                         content_maxdepth = cd->depth;
@@ -593,10 +591,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             } else if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (ud->uricontent_len == uricontent_maxlen) {
+                    /** \todo we don't support offset in uricontent */
                 }
             }
         }
-//if (content_maxlen < 4 && content_cnt) printf(" (%" PRIu32 ", min %" PRIu32 ", max %" PRIu32 ")\n", content_cnt, content_minlen, content_maxlen);
+        //if (content_maxlen < 4 && content_cnt) printf(" (%" PRIu32 ", min %" PRIu32 ", max %" PRIu32 ")\n", content_cnt, content_minlen, content_maxlen);
 
         int content_depth_atleastone = 0;
         int content_offset_atleastone = 0;
@@ -674,14 +673,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     if (sh->mpm_content_maxlen >= 5) g_content_sigcnt5++;
     if (sh->mpm_content_maxlen >= 10) g_content_sigcnt10++;
 
-    /* see if we will use the scanning phase */
-//    if (sh->mpm_content_maxlen == 1) {
-//        sh->flags |= SIG_GROUP_HEAD_MPM_NOSCAN;
-//        printf("(%p) noscan set (%s)\n", sh, sh->flags & SIG_GROUP_HEAD_MPM_NOSCAN ? "TRUE":"FALSE");
-//    }
-//    if (sh->mpm_uricontent_maxlen < 4) sh->flags |= SIG_GROUP_HEAD_MPM_URI_NOSCAN;
-
-    /* add the signatures */
+    /* add the patterns for uricontent signatures */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
         uint32_t num = sh->match_array[sig];
 
@@ -713,21 +705,22 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                     uricontent_minlen = ud->uricontent_len;
             }
         }
-        char content_scanadded = 0, uricontent_scanadded = 0;
+        char uricontent_scanadded = 0;
         for (sm = s->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
 
-                /* only add the pattern if:
-                 * noscan is not set, we didn't add a pattern already, length
-                 * is the same as maxlen (ie we only add the longest pattern) */
-                if (!(sh->flags & SIG_GROUP_HEAD_MPM_URI_NOSCAN) && !uricontent_scanadded && uricontent_maxlen == ud->uricontent_len) {
+                /* only add the pattern if: we didn't add a pattern already,
+                 * length is the same as maxlen (ie we only add the longest pattern) */
+                if (!uricontent_scanadded && uricontent_maxlen == ud->uricontent_len) {
                     if (ud->flags & DETECT_URICONTENT_NOCASE) {
                         sh->mpm_uri_ctx->AddScanPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
                     } else {
                         sh->mpm_uri_ctx->AddScanPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
                     }
                     uricontent_scanadded = 1;
+
+                /* otherwise it's a 'search' pattern */
                 } else {
                     if (ud->flags & DETECT_URICONTENT_NOCASE) {
                         sh->mpm_uri_ctx->AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
@@ -737,13 +730,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 }
             }
         }
-
-        content_scanadded = 0;
-        uricontent_scanadded = 0;
     }
 
     /* content */
     if (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
+        /* load the patterns */
         PatternMatchPreprarePopulateMpm(de_ctx, sh);
 
         if (sh->mpm_ctx->Prepare != NULL) {
@@ -751,18 +742,17 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
 
         if (mpm_content_maxdepth) {
-//            printf("mpm_content_maxdepth %" PRIu32 "\n", mpm_content_maxdepth);
+            // printf("mpm_content_maxdepth %" PRIu32 "\n", mpm_content_maxdepth);
             g_content_maxdepth++;
         }
         if (mpm_content_minoffset) {
-//            printf("mpm_content_minoffset %" PRIu32 "\n", mpm_content_minoffset);
+            // printf("mpm_content_minoffset %" PRIu32 "\n", mpm_content_minoffset);
             g_content_minoffset++;
         }
         g_content_total++;
 
         //if (mpm_content_depth_present) printf("(sh %p) at least one depth: %" PRId32 ", depth %" PRIu32 "\n", sh, mpm_content_depth_present, mpm_content_maxdepth_one);
         //if (mpm_content_offset_present) printf("(sh %p) at least one offset: %" PRId32 ", offset %" PRIu32 "\n", sh, mpm_content_offset_present, mpm_content_minoffset_one);
-
         //sh->mpm_ctx->PrintCtx(sh->mpm_ctx);
     }
 
@@ -772,7 +762,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             sh->mpm_uri_ctx->Prepare(sh->mpm_uri_ctx);
         }
         if (mpm_uricontent_cnt && sh->mpm_uricontent_maxlen > 1) {
-//            printf("mpm_uricontent_cnt %" PRIu32 ", mpm_uricontent_maxlen %" PRId32 "\n", mpm_uricontent_cnt, mpm_uricontent_maxlen);
+            // printf("mpm_uricontent_cnt %" PRIu32 ", mpm_uricontent_maxlen %" PRId32 "\n", mpm_uricontent_cnt, mpm_uricontent_maxlen);
             g_uricontent_scan++;
         } else {
             g_uricontent_search++;

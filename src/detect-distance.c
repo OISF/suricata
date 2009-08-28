@@ -34,53 +34,61 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
     }
 
     SigMatch *pm = m;
-    if (pm != NULL) {
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-
-            pe->distance = strtol(str, NULL, 10);
-            pe->flags |= DETECT_PCRE_DISTANCE;
-
-            //printf("DetectDistanceSetup: set distance %" PRId32 " for previous pcre\n", pe->distance);
-        } else if (pm->type == DETECT_CONTENT) {
-            DetectContentData *cd = (DetectContentData *)pm->ctx;
-
-            cd->distance = strtol(str, NULL, 10);
-            cd->flags |= DETECT_CONTENT_DISTANCE;
-
-            //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
-        } else if (pm->type == DETECT_URICONTENT) {
-            DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
-
-            cd->distance = strtol(str, NULL, 10);
-            cd->flags |= DETECT_URICONTENT_DISTANCE;
-
-            //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
-        } else {
-            printf("DetectDistanceSetup: Unknown previous keyword!\n");
-        }
-    } else {
+    if (pm == NULL) {
         printf("DetectDistanceSetup: No previous match!\n");
+        goto error;
     }
-    pm = m->prev;
-    if (pm != NULL) {
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-            pe->flags |= DETECT_PCRE_DISTANCE_NEXT;
-        } else if (pm->type == DETECT_CONTENT) {
-            DetectContentData *cd = (DetectContentData *)pm->ctx;
-            cd->flags |= DETECT_CONTENT_DISTANCE_NEXT;
-        } else if (pm->type == DETECT_URICONTENT) {
-            DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
-            cd->flags |= DETECT_URICONTENT_DISTANCE_NEXT;
-        } else {
-            printf("DetectDistanceSetup: Unknown previous-previous keyword!\n");
-        }
+
+    if (pm->type == DETECT_PCRE) {
+        DetectPcreData *pe = (DetectPcreData *)pm->ctx;
+
+        pe->distance = strtol(str, NULL, 10);
+        pe->flags |= DETECT_PCRE_DISTANCE;
+
+        //printf("DetectDistanceSetup: set distance %" PRId32 " for previous pcre\n", pe->distance);
+    } else if (pm->type == DETECT_CONTENT) {
+        DetectContentData *cd = (DetectContentData *)pm->ctx;
+
+        cd->distance = strtol(str, NULL, 10);
+        cd->flags |= DETECT_CONTENT_DISTANCE;
+
+        //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
+    } else if (pm->type == DETECT_URICONTENT) {
+        DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
+
+        cd->distance = strtol(str, NULL, 10);
+        cd->flags |= DETECT_URICONTENT_DISTANCE;
+
+        //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
     } else {
+        printf("DetectDistanceSetup: Unknown previous keyword!\n");
+        goto error;
+    }
+
+    pm = m->prev;
+    if (pm == NULL) {
         printf("DetectDistanceSetup: No previous-previous match!\n");
+        goto error;
+    }
+
+    if (pm->type == DETECT_PCRE) {
+        DetectPcreData *pe = (DetectPcreData *)pm->ctx;
+        pe->flags |= DETECT_PCRE_DISTANCE_NEXT;
+    } else if (pm->type == DETECT_CONTENT) {
+        DetectContentData *cd = (DetectContentData *)pm->ctx;
+        cd->flags |= DETECT_CONTENT_DISTANCE_NEXT;
+    } else if (pm->type == DETECT_URICONTENT) {
+        DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
+        cd->flags |= DETECT_URICONTENT_DISTANCE_NEXT;
+    } else {
+        printf("DetectDistanceSetup: Unknown previous-previous keyword!\n");
+        goto error;
     }
 
     if (dubbed) free(str);
     return 0;
+error:
+    if (dubbed) free(str);
+    return -1;
 }
 

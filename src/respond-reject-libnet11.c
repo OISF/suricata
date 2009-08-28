@@ -49,10 +49,8 @@ typedef struct Libnet11Packet_
 int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) {
 
     Libnet11Packet lpacket;
-
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
-    libnet_ptag_t t;
     int result;
 
     /* fill in struct defaults */
@@ -107,38 +105,39 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) 
     lpacket.ttl = 64;
 
     /* build the package */
-    if ((t = libnet_build_tcp (lpacket.sp,            /* source port */
-                               lpacket.dp,            /* dst port */
-                               lpacket.seq,           /* seq number */
-                               lpacket.ack,           /* ack number */
-                               TH_RST|TH_ACK,         /* flags */
-                               lpacket.window,        /* window size */
-                               0,                     /* checksum */
-                               0,                     /* urgent flag */
-                               LIBNET_TCP_H,          /* header length */
-                               NULL,                  /* payload */
-                               0,                     /* payload length */
-                               c,                     /* libnet context */
-                               0)) < 0)               /* libnet ptag */
+    if ((libnet_build_tcp (
+                    lpacket.sp,            /* source port */
+                    lpacket.dp,            /* dst port */
+                    lpacket.seq,           /* seq number */
+                    lpacket.ack,           /* ack number */
+                    TH_RST|TH_ACK,         /* flags */
+                    lpacket.window,        /* window size */
+                    0,                     /* checksum */
+                    0,                     /* urgent flag */
+                    LIBNET_TCP_H,          /* header length */
+                    NULL,                  /* payload */
+                    0,                     /* payload length */
+                    c,                     /* libnet context */
+                    0)) < 0)               /* libnet ptag */
     {
         printf("RejectSendLibnet11IPv4TCP libnet_build_tcp %s\n", libnet_geterror(c));
         goto cleanup;
     }
 
-    if((t = libnet_build_ipv4(
-                        LIBNET_TCP_H + LIBNET_IPV4_H, /* entire packet length */
-                        0,                            /* tos */
-                        lpacket.id,                   /* ID */
-                        0,                            /* fragmentation flags and offset */
-                        lpacket.ttl,                  /* TTL */
-                        IPPROTO_TCP,                  /* protocol */
-                        0,                            /* checksum */
-                        lpacket.src4,                 /* source address */
-                        lpacket.dst4,                 /* destination address */
-                        NULL,                         /* pointer to packet data (or NULL) */
-                        0,                            /* payload length */
-                        c,                            /* libnet context pointer */
-                        0)) < 0)                      /* packet id */
+    if((libnet_build_ipv4(
+                    LIBNET_TCP_H + LIBNET_IPV4_H, /* entire packet length */
+                    0,                            /* tos */
+                    lpacket.id,                   /* ID */
+                    0,                            /* fragmentation flags and offset */
+                    lpacket.ttl,                  /* TTL */
+                    IPPROTO_TCP,                  /* protocol */
+                    0,                            /* checksum */
+                    lpacket.src4,                 /* source address */
+                    lpacket.dst4,                 /* destination address */
+                    NULL,                         /* pointer to packet data (or NULL) */
+                    0,                            /* payload length */
+                    c,                            /* libnet context pointer */
+                    0)) < 0)                      /* packet id */
     {
         printf("RejectSendLibnet11IPv4TCP libnet_build_ipv4 %s\n", libnet_geterror(c));
         goto cleanup;
@@ -158,10 +157,8 @@ cleanup:
 int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir) {
     //printf("going to send a ICMP host unreachable\n");
     Libnet11Packet lpacket;
-
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
-    libnet_ptag_t t;
     int result;
 
     /* fill in struct defaults */
@@ -193,34 +190,34 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.ttl = 64;
 
     /* build the package */
-    if ((t = libnet_build_icmpv4_unreach (
-    		               ICMP_DEST_UNREACH,        /* type */
-    		               ICMP_HOST_ANO,            /* code */
-                               0,                        /* checksum */
-                               (uint8_t *)p->ip4h,      /* payload */
-                               lpacket.len,              /* payload length */
-                               c,                        /* libnet context */
-                               0)) < 0)                  /* libnet ptag */
+    if ((libnet_build_icmpv4_unreach (
+                    ICMP_DEST_UNREACH,        /* type */
+                    ICMP_HOST_ANO,            /* code */
+                    0,                        /* checksum */
+                    (uint8_t *)p->ip4h,       /* payload */
+                    lpacket.len,              /* payload length */
+                    c,                        /* libnet context */
+                    0)) < 0)                  /* libnet ptag */
     {
         printf("RejectSendLibnet11L3IPv4ICMP libnet_build_icmpv4_unreach %s\n", libnet_geterror(c));
         goto cleanup;
     }
 
-    if((t = libnet_build_ipv4(
-                        LIBNET_ICMPV4_H + LIBNET_IPV4_H +
-                        lpacket.len,                    /* entire packet length */
-                        0,                              /* tos */
-                        lpacket.id,                     /* ID */
-                        0,                              /* fragmentation flags and offset */
-                        lpacket.ttl,                    /* TTL */
-                        IPPROTO_ICMP,                   /* protocol */
-                        0,                              /* checksum */
-                        lpacket.src4,                   /* source address */
-                        lpacket.dst4,                   /* destination address */
-                        NULL,                           /* pointer to packet data (or NULL) */
-                        0,                              /* payload length */
-                        c,                              /* libnet context pointer */
-                        0)) < 0)                        /* packet id */
+    if((libnet_build_ipv4(
+                    LIBNET_ICMPV4_H + LIBNET_IPV4_H +
+                    lpacket.len,                    /* entire packet length */
+                    0,                              /* tos */
+                    lpacket.id,                     /* ID */
+                    0,                              /* fragmentation flags and offset */
+                    lpacket.ttl,                    /* TTL */
+                    IPPROTO_ICMP,                   /* protocol */
+                    0,                              /* checksum */
+                    lpacket.src4,                   /* source address */
+                    lpacket.dst4,                   /* destination address */
+                    NULL,                           /* pointer to packet data (or NULL) */
+                    0,                              /* payload length */
+                    c,                              /* libnet context pointer */
+                    0)) < 0)                        /* packet id */
     {
         printf("RejectSendLibnet11L3IPv4ICMP %s\n", libnet_geterror(c));
         goto cleanup;

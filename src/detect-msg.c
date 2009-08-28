@@ -16,7 +16,7 @@ void DetectMsgRegister (void) {
 
 int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *msgstr)
 {
-    char *str = msgstr;
+    char *str = NULL;
 
     /* strip "'s */
     if (msgstr[0] == '\"' && msgstr[strlen(msgstr)-1] == '\"') {
