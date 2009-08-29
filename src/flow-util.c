@@ -81,8 +81,6 @@ void FlowInit(Flow *f, Packet *p)
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
     }
 
-    FlowSetInitTimeouts(f);
-
     COPY_TIMESTAMP(&p->ts, &f->startts);
 }
 

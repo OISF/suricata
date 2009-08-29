@@ -8,8 +8,6 @@
 
 #define FLOW_QUIET      TRUE
 #define FLOW_VERBOSE    FALSE
-#define FLOW_NEW            0
-#define FLOW_ESTABLISHED    1
 
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER            0x01
@@ -56,13 +54,6 @@ typedef struct Flow_
     uint8_t proto;
     uint8_t recursion_level;
 
-    /*flow timeouts for protocol specific timeouts*/
-    uint32_t new_timeout;
-    uint32_t est_timeout;
-
-    uint32_t emerg_new_timeout;
-    uint32_t emerg_est_timeout;
-
     uint8_t flags;
 
     /* ts of flow init and last update */
@@ -93,6 +84,13 @@ typedef struct Flow_
     struct FlowBucket_ *fb;
 } Flow;
 
+enum {
+    NEW = 0,
+    ESTABLISHED,
+    EMERG_NEW,
+    EMERG_ESTABLISHED,
+};
+
 void FlowHandlePacket (ThreadVars *, Packet *);
 void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
@@ -104,7 +102,7 @@ void *FlowManagerThread(void *td);
 
 void FlowManagerThreadSpawn(void);
 void FlowRegisterTests (void);
-void FlowSetInitTimeouts (Flow *);
+int FlowSetProtoTimout(uint8_t ,uint8_t, uint32_t ,uint32_t );
 
 #endif /* __FLOW_H__ */
 
