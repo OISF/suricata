@@ -84,12 +84,20 @@ typedef struct Flow_
     struct FlowBucket_ *fb;
 } Flow;
 
-enum {
+/*enum {
     NEW = 0,
     ESTABLISHED,
     EMERG_NEW,
     EMERG_ESTABLISHED,
-};
+};*/
+
+typedef struct Protocols_ {
+    uint32_t new_timeout;
+    uint32_t est_timeout;
+    uint32_t emerg_new_timeout;
+    uint32_t emerg_est_timeout;
+    void (*Freefunc)(void *);
+}Protocols;
 
 void FlowHandlePacket (ThreadVars *, Packet *);
 void FlowInitConfig (char);

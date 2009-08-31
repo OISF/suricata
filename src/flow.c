@@ -25,6 +25,7 @@
 #include "flow-var.h"
 #include "flow-private.h"
 #include "util-unittest.h"
+#include "stream-tcp.h"
 
 //#define FLOW_DEFAULT_HASHSIZE    262144
 #define FLOW_DEFAULT_HASHSIZE    65536
@@ -33,16 +34,16 @@
 
 #define FLOW_DEFAULT_PREALLOC    10000
 
-/*Protocols specific timeouts*/
-uint32_t proto_timeouts[4][4];
+/*Protocols specific timeouts and free function*/
+Protocols protocols[4];
 
 void FlowRegisterTests (void);
-static void FlowClearProtocolMemory (Flow *);
-void FlowInitProtoTimeouts();
+void FlowInitProtocols();
 static int FlowUpdateSpareFlows(void);
 int FlowSetProtoTimeout(uint8_t , uint32_t ,uint32_t );
 int FlowSetProtoEmergencyTimeout(uint8_t , uint32_t ,uint32_t );
 static int FlowGetProtoMapping(uint8_t );
+int FlowSetProtoFreeFunc(uint8_t, Flow *f, void (*Free)(void *));
 /** \brief Update the flows position in the queue's
  *  \param f Flow to requeue.
  *
@@ -113,14 +114,14 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     proto_map = FlowGetProtoMapping(f->proto);
     if (!(FlowUpdateSpareFlows()) && (flow_flags & FLOW_EMERGENCY)) {
         if (f->flags & FLOW_EST_LIST)
-            timeout = proto_timeouts[proto_map][EMERG_ESTABLISHED];
+            timeout = protocols[proto_map].emerg_est_timeout;
         else
-            timeout = proto_timeouts[proto_map][EMERG_NEW];
+            timeout = protocols[proto_map].emerg_new_timeout;
     } else {
         if (f->flags & FLOW_EST_LIST)
-            timeout = proto_timeouts[proto_map][ESTABLISHED];
+            timeout = protocols[proto_map].est_timeout;
         else
-            timeout = proto_timeouts[proto_map][NEW];
+            timeout = protocols[proto_map].new_timeout;
     }
 
     DEBUGPRINT("got lock, now check: %" PRId64 "+%" PRIu32 "=(%" PRId64 ") < %" PRId64 "", f->lastts.tv_sec,
@@ -155,7 +156,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     mutex_unlock(&f->fb->m);
     f->fb = NULL;
 
-    FlowClearProtocolMemory (f);
+    FlowSetProtoFreeFunc (f->proto, f, protocols[proto_map].Freefunc);
 
     /* move to spare list */
     FlowRequeue(f, q, &flow_spare_q);
@@ -354,7 +355,7 @@ void FlowInitConfig (char quiet)
                 flow_config.memuse, flow_config.memcap);
     }
 
-    FlowInitProtoTimeouts();
+    FlowInitProtocols();
 
 }
 
@@ -507,34 +508,43 @@ void FlowManagerThreadSpawn()
     return;
 }
 
-void FlowInitProtoTimeouts (void) {
-
+void FlowInitProtocols(void) {
+    /*XXX GS initialze protocol specific free function pointers*/
     /*Default*/
-    proto_timeouts[0][NEW] = FLOW_DEFAULT_NEW_TIMEOUT;
-    proto_timeouts[0][ESTABLISHED] = FLOW_DEFAULT_EST_TIMEOUT;
-    proto_timeouts[0][EMERG_NEW] = FLOW_DEFAULT_EMERG_NEW_TIMEOUT;
-    proto_timeouts[0][EMERG_ESTABLISHED] = FLOW_DEFAULT_EMERG_EST_TIMEOUT;
+    protocols[0].new_timeout = FLOW_DEFAULT_NEW_TIMEOUT;
+    protocols[0].est_timeout = FLOW_DEFAULT_EST_TIMEOUT;
+    protocols[0].emerg_new_timeout = FLOW_DEFAULT_EMERG_NEW_TIMEOUT;
+    protocols[0].emerg_est_timeout = FLOW_DEFAULT_EMERG_EST_TIMEOUT;
+    protocols[0].Freefunc = "";
     /*TCP*/
-    proto_timeouts[1][NEW] = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
-    proto_timeouts[1][ESTABLISHED] = FLOW_IPPROTO_TCP_EST_TIMEOUT;
-    proto_timeouts[1][EMERG_NEW] = FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT;
-    proto_timeouts[1][EMERG_ESTABLISHED] = FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT;
+    protocols[1].new_timeout = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
+    protocols[1].est_timeout = FLOW_IPPROTO_TCP_EST_TIMEOUT;
+    protocols[1].emerg_new_timeout = FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT;
+    protocols[1].emerg_est_timeout = FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT;
+    protocols[1].Freefunc = StreamTcpSessionPoolFree;
     /*UDP*/
-    proto_timeouts[2][NEW] = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
-    proto_timeouts[2][ESTABLISHED] = FLOW_IPPROTO_UDP_EST_TIMEOUT;
-    proto_timeouts[2][EMERG_NEW] = FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT;
-    proto_timeouts[2][EMERG_ESTABLISHED] = FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT;
+    protocols[2].new_timeout = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
+    protocols[2].est_timeout = FLOW_IPPROTO_UDP_EST_TIMEOUT;
+    protocols[2].emerg_new_timeout = FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT;
+    protocols[2].emerg_est_timeout = FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT;
+    protocols[2].Freefunc = "";
     /*ICMP*/
-    proto_timeouts[3][NEW] = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
-    proto_timeouts[3][ESTABLISHED] = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
-    proto_timeouts[3][EMERG_NEW] = FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT;
-    proto_timeouts[3][EMERG_ESTABLISHED] = FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT;
+    protocols[3].new_timeout = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
+    protocols[3].est_timeout = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
+    protocols[3].emerg_new_timeout = FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT;
+    protocols[3].emerg_est_timeout = FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT;
+    protocols[3].Freefunc = "";
 
 }
 
-static void FlowClearProtocolMemory (Flow *f) {
+int FlowSetProtoFreeFunc (uint8_t proto, Flow *f, void (*Free)(void *)) {
     /*XXX GS WIP*/
+    //uint8_t proto_map;
+    //proto_map = FlowGetProtoMapping(proto);
+    Free(f->stream);
     memset(f, 0, sizeof(Flow));
+    //FlowSetProtoFreeFunc(f->proto, );
+    return 1;
 }
 
 int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout, uint32_t est_timeout) {
@@ -542,8 +552,8 @@ int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout, uint32_t est_timeou
     uint8_t proto_map;
     proto_map = FlowGetProtoMapping(proto);
 
-    proto_timeouts[proto_map][NEW] = new_timeout;
-    proto_timeouts[proto_map][ESTABLISHED] = est_timeout;
+    protocols[proto_map].new_timeout = new_timeout;
+    protocols[proto_map].est_timeout = est_timeout;
 
     return 1;
 }
@@ -553,8 +563,8 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t new_timeout, uint32_t e
     uint8_t proto_map;
     proto_map = FlowGetProtoMapping(proto);
 
-    proto_timeouts[proto_map][EMERG_NEW] = new_timeout;
-    proto_timeouts[proto_map][EMERG_ESTABLISHED] = est_timeout;
+    protocols[proto_map].emerg_new_timeout = new_timeout;
+    protocols[proto_map].emerg_est_timeout = est_timeout;
 
     return 1;
 }
@@ -579,29 +589,29 @@ static int FlowTest01 (void) {
     FlowInitConfig(TRUE);
     proto_map = FlowGetProtoMapping(IPPROTO_TCP);
 
-    if ((proto_timeouts[proto_map][NEW] != FLOW_IPPROTO_TCP_NEW_TIMEOUT) && (proto_timeouts[proto_map][ESTABLISHED] != FLOW_IPPROTO_TCP_EST_TIMEOUT)
-            && (proto_timeouts[proto_map][EMERG_NEW] != FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT) && (proto_timeouts[proto_map][EMERG_ESTABLISHED] != FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT)){
+    if ((protocols[proto_map].new_timeout != FLOW_IPPROTO_TCP_NEW_TIMEOUT) && (protocols[proto_map].est_timeout != FLOW_IPPROTO_TCP_EST_TIMEOUT)
+            && (protocols[proto_map].emerg_new_timeout != FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT) && (protocols[proto_map].emerg_est_timeout != FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT)){
         printf ("failed in setting TCP flow timeout");
         return 0;
     }
 
     proto_map = FlowGetProtoMapping(IPPROTO_UDP);
-    if ((proto_timeouts[proto_map][NEW] != FLOW_IPPROTO_UDP_NEW_TIMEOUT) && (proto_timeouts[proto_map][ESTABLISHED] != FLOW_IPPROTO_UDP_EST_TIMEOUT)
-            && (proto_timeouts[proto_map][EMERG_NEW] != FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT) && (proto_timeouts[proto_map][EMERG_ESTABLISHED] != FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT)){
+    if ((protocols[proto_map].new_timeout != FLOW_IPPROTO_UDP_NEW_TIMEOUT) && (protocols[proto_map].est_timeout != FLOW_IPPROTO_UDP_EST_TIMEOUT)
+            && (protocols[proto_map].emerg_new_timeout != FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT) && (protocols[proto_map].emerg_est_timeout != FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT)){
         printf ("failed in setting UDP flow timeout");
         return 0;
     }
 
     proto_map = FlowGetProtoMapping(IPPROTO_ICMP);
-    if ((proto_timeouts[proto_map][NEW] != FLOW_IPPROTO_ICMP_NEW_TIMEOUT) && (proto_timeouts[proto_map][ESTABLISHED] != FLOW_IPPROTO_ICMP_EST_TIMEOUT)
-            && (proto_timeouts[proto_map][EMERG_NEW] != FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT) && (proto_timeouts[proto_map][EMERG_ESTABLISHED] != FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT)){
+    if ((protocols[proto_map].new_timeout != FLOW_IPPROTO_ICMP_NEW_TIMEOUT) && (protocols[proto_map].est_timeout != FLOW_IPPROTO_ICMP_EST_TIMEOUT)
+            && (protocols[proto_map].emerg_new_timeout != FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT) && (protocols[proto_map].emerg_est_timeout != FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT)){
         printf ("failed in setting ICMP flow timeout");
         return 0;
     }
 
     proto_map = FlowGetProtoMapping(IPPROTO_DCCP);
-    if ((proto_timeouts[proto_map][NEW] != FLOW_DEFAULT_NEW_TIMEOUT) && (proto_timeouts[proto_map][ESTABLISHED] != FLOW_DEFAULT_EST_TIMEOUT)
-            && (proto_timeouts[proto_map][EMERG_NEW] != FLOW_DEFAULT_EMERG_NEW_TIMEOUT) && (proto_timeouts[proto_map][EMERG_ESTABLISHED] != FLOW_DEFAULT_EMERG_EST_TIMEOUT)){
+    if ((protocols[proto_map].new_timeout != FLOW_DEFAULT_NEW_TIMEOUT) && (protocols[proto_map].est_timeout != FLOW_DEFAULT_EST_TIMEOUT)
+            && (protocols[proto_map].emerg_new_timeout != FLOW_DEFAULT_EMERG_NEW_TIMEOUT) && (protocols[proto_map].emerg_est_timeout != FLOW_DEFAULT_EMERG_EST_TIMEOUT)){
         printf ("failed in setting default flow timeout");
         return 0;
     }
