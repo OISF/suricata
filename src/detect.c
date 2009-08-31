@@ -43,6 +43,7 @@
 #include "detect-pktvar.h"
 #include "detect-noalert.h"
 #include "detect-flowbits.h"
+#include "detect-csum.h"
 
 #include "action-globals.h"
 #include "tm-modules.h"
@@ -2501,6 +2502,7 @@ void SigTableSetup(void) {
     DetectNoalertRegister();
     DetectFlowbitsRegister();
     DetectDecodeEventRegister();
+    DetectCsumRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
@@ -4094,6 +4096,1559 @@ static int SigTest23Wm (void) {
     return SigTest23Real(MPM_WUMANBER);
 }
 
+int SigTest24IPV4Keyword(void)
+{
+    uint8_t valid_raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
+        0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
+        0xc0, 0xa8, 0x01, 0x03};
+
+    uint8_t invalid_raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
+        0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
+        0xc0, 0xa8, 0x01, 0x06};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+    p1.ip4c.comp_csum = -1;
+    p2.ip4c.comp_csum = -1;
+
+    p1.ip4h = (IPV4Hdr *)valid_raw_ipv4;
+
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_TCP;
+
+    p2.ip4h = (IPV4Hdr *)invalid_raw_ipv4;
+
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = buflen;
+    p2.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"/one/\"; ipv4-csum:valid; "
+                               "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any "
+                                     "(content:\"/one/\"; ipv4-csum:invalid; "
+                                     "msg:\"ipv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 1;
+    else {
+        result &= 0;
+        printf("signature didn't match, but should have: ");
+    }
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest25NegativeIPV4Keyword(void)
+{
+    uint8_t valid_raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
+        0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
+        0xc0, 0xa8, 0x01, 0x03};
+
+    uint8_t invalid_raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
+        0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
+        0xc0, 0xa8, 0x01, 0x06};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+    p1.ip4c.comp_csum = -1;
+    p2.ip4c.comp_csum = -1;
+
+    p1.ip4h = (IPV4Hdr *)valid_raw_ipv4;
+
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_TCP;
+
+    p2.ip4h = (IPV4Hdr *)invalid_raw_ipv4;
+
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = buflen;
+    p2.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"/one/\"; ipv4-csum:invalid; "
+                               "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any "
+                                     "(content:\"/one/\"; ipv4-csum:valid; "
+                                     "msg:\"ipv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest26TCPV4Keyword(void)
+{
+    uint8_t raw_ipv4[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x40, 0x8e, 0x7e, 0xb2,
+        0xc0, 0xa8, 0x01, 0x03};
+
+    uint8_t valid_raw_tcp[] = {
+        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
+        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
+        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
+        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x02};
+
+    uint8_t invalid_raw_tcp[] = {
+        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
+        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
+        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
+        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x03};
+
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0yyyyyyyyyyyyyyyy\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.tcpc.comp_csum = -1;
+    p1.ip4h = (IPV4Hdr *)raw_ipv4;
+    p1.tcph = (TCPHdr *)valid_raw_tcp;
+    //p1.tcpvars.hlen = TCP_GET_HLEN((&p));
+    p1.tcpvars.hlen = 0;
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_TCP;
+
+    p2.tcpc.comp_csum = -1;
+    p2.ip4h = (IPV4Hdr *)raw_ipv4;
+    p2.tcph = (TCPHdr *)invalid_raw_tcp;
+    //p2.tcpvars.hlen = TCP_GET_HLEN((&p));
+    p2.tcpvars.hlen = 0;
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = buflen;
+    p2.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"/one/\"; tcpv4-csum:valid; "
+                               "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any "
+                                     "(content:\"/one/\"; tcpv4-csum:invalid; "
+                                     "msg:\"tcpv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest27NegativeTCPV4Keyword(void)
+{
+    uint8_t raw_ipv4[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x40, 0x8e, 0x7e, 0xb2,
+        0xc0, 0xa8, 0x01, 0x03};
+
+    uint8_t valid_raw_tcp[] = {
+        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
+        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
+        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
+        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x02};
+
+    uint8_t invalid_raw_tcp[] = {
+        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
+        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
+        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
+        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x03};
+
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0yyyyyyyyyyyyyyyy\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.tcpc.comp_csum = -1;
+    p1.ip4h = (IPV4Hdr *)raw_ipv4;
+    p1.tcph = (TCPHdr *)valid_raw_tcp;
+    //p1.tcpvars.hlen = TCP_GET_HLEN((&p));
+    p1.tcpvars.hlen = 0;
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_TCP;
+
+    p2.tcpc.comp_csum = -1;
+    p2.ip4h = (IPV4Hdr *)raw_ipv4;
+    p2.tcph = (TCPHdr *)invalid_raw_tcp;
+    //p2.tcpvars.hlen = TCP_GET_HLEN((&p));
+    p2.tcpvars.hlen = 0;
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = buflen;
+    p2.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"/one/\"; tcpv4-csum:invalid; "
+                               "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any "
+                                     "(content:\"/one/\"; tcpv4-csum:valid; "
+                                     "msg:\"tcpv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2)) {
+        result &= 0;
+    }
+    else
+        result &= 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest28TCPV6Keyword(void)
+{
+    static uint8_t valid_raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
+        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a,
+        0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2, 0xf1,
+        0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
+        0xca, 0x5a, 0x00, 0x01, 0x69, 0x27};
+
+    static uint8_t invalid_raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
+        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a,
+        0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2, 0xf1,
+        0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
+        0xca, 0x5a, 0x00, 0x01, 0x69, 0x28};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0tttttttt\r\n"
+                    "\r\n\r\n";
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.tcpc.comp_csum = -1;
+    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1.tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.tcpvars.hlen = TCP_GET_HLEN((&p1));
+    p1.payload = buf;
+    p1.payload_len = p1.tcpvars.hlen;
+    p1.tcpvars.hlen = 0;
+    p1.proto = IPPROTO_TCP;
+
+    p2.tcpc.comp_csum = -1;
+    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2.tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.tcpvars.hlen = TCP_GET_HLEN((&p2));
+    p2.payload = buf;
+    p2.payload_len = p2.tcpvars.hlen;
+    p2.tcpvars.hlen = 0;
+    p2.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"/one/\"; tcpv6-csum:valid; "
+                               "msg:\"tcpv6-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any "
+                                     "(content:\"/one/\"; tcpv6-csum:invalid; "
+                                     "msg:\"tcpv6-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest29NegativeTCPV6Keyword(void)
+{
+    static uint8_t valid_raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
+        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a,
+        0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2, 0xf1,
+        0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
+        0xca, 0x5a, 0x00, 0x01, 0x69, 0x27};
+
+    static uint8_t invalid_raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
+        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a,
+        0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2, 0xf1,
+        0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
+        0xca, 0x5a, 0x00, 0x01, 0x69, 0x28};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0tttttttt\r\n"
+                    "\r\n\r\n";
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.tcpc.comp_csum = -1;
+    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1.tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.tcpvars.hlen = TCP_GET_HLEN((&p1));
+    p1.payload = buf;
+    p1.payload_len = p1.tcpvars.hlen;
+    p1.tcpvars.hlen = 0;
+    p1.proto = IPPROTO_TCP;
+
+    p2.tcpc.comp_csum = -1;
+    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2.tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.tcpvars.hlen = TCP_GET_HLEN((&p2));
+    p2.payload = buf;
+    p2.payload_len = p2.tcpvars.hlen;
+    p2.tcpvars.hlen = 0;
+    p2.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"/one/\"; tcpv6-csum:invalid; "
+                               "msg:\"tcpv6-csum keyword check(1)\"; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any "
+                                     "(content:\"/one/\"; tcpv6-csum:valid; "
+                                     "msg:\"tcpv6-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest30UDPV4Keyword(void)
+{
+    uint8_t raw_ipv4[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xd0, 0x43, 0xdc, 0xdc,
+        0xc0, 0xa8, 0x01, 0x03};
+
+    uint8_t valid_raw_udp[] = {
+        0x00, 0x35, 0xcf, 0x34, 0x00, 0x55, 0x6c, 0xe0,
+        0x83, 0xfc, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x07, 0x70, 0x61, 0x67,
+        0x65, 0x61, 0x64, 0x32, 0x11, 0x67, 0x6f, 0x6f,
+        0x67, 0x6c, 0x65, 0x73, 0x79, 0x6e, 0x64, 0x69,
+        0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x03, 0x63,
+        0x6f, 0x6d, 0x00, 0x00, 0x1c, 0x00, 0x01, 0xc0,
+        0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x01, 0x4b,
+        0x50, 0x00, 0x12, 0x06, 0x70, 0x61, 0x67, 0x65,
+        0x61, 0x64, 0x01, 0x6c, 0x06, 0x67, 0x6f, 0x6f,
+        0x67, 0x6c, 0x65, 0xc0, 0x26};
+
+    uint8_t invalid_raw_udp[] = {
+        0x00, 0x35, 0xcf, 0x34, 0x00, 0x55, 0x6c, 0xe0,
+        0x83, 0xfc, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x07, 0x70, 0x61, 0x67,
+        0x65, 0x61, 0x64, 0x32, 0x11, 0x67, 0x6f, 0x6f,
+        0x67, 0x6c, 0x65, 0x73, 0x79, 0x6e, 0x64, 0x69,
+        0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x03, 0x63,
+        0x6f, 0x6d, 0x00, 0x00, 0x1c, 0x00, 0x01, 0xc0,
+        0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x01, 0x4b,
+        0x50, 0x00, 0x12, 0x06, 0x70, 0x61, 0x67, 0x65,
+        0x61, 0x64, 0x01, 0x6c, 0x06, 0x67, 0x6f, 0x6f,
+        0x67, 0x6c, 0x65, 0xc0, 0x27};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0yyyyyyyyyyyyyyyy\r\n"
+                    "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.udpc.comp_csum = -1;
+    p1.ip4h = (IPV4Hdr *)raw_ipv4;
+    p1.udph = (UDPHdr *)valid_raw_udp;
+    p1.udpvars.hlen = UDP_HEADER_LEN;
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = sizeof(valid_raw_udp) - p1.udpvars.hlen;
+    p1.proto = IPPROTO_UDP;
+
+    p2.udpc.comp_csum = -1;
+    p2.ip4h = (IPV4Hdr *)raw_ipv4;
+    p2.udph = (UDPHdr *)invalid_raw_udp;
+    p2.udpvars.hlen = UDP_HEADER_LEN;
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = sizeof(invalid_raw_udp) - p2.udpvars.hlen;
+    p2.proto = IPPROTO_UDP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(content:\"/one/\"; udpv4-csum:valid; "
+                               "msg:\"udpv4-csum keyword check(1)\"; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert udp any any -> any any "
+                                     "(content:\"/one/\"; udpv4-csum:invalid; "
+                                     "msg:\"udpv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest31NegativeUDPV4Keyword(void)
+{
+    uint8_t raw_ipv4[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xd0, 0x43, 0xdc, 0xdc,
+        0xc0, 0xa8, 0x01, 0x03};
+
+    uint8_t valid_raw_udp[] = {
+        0x00, 0x35, 0xcf, 0x34, 0x00, 0x55, 0x6c, 0xe0,
+        0x83, 0xfc, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x07, 0x70, 0x61, 0x67,
+        0x65, 0x61, 0x64, 0x32, 0x11, 0x67, 0x6f, 0x6f,
+        0x67, 0x6c, 0x65, 0x73, 0x79, 0x6e, 0x64, 0x69,
+        0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x03, 0x63,
+        0x6f, 0x6d, 0x00, 0x00, 0x1c, 0x00, 0x01, 0xc0,
+        0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x01, 0x4b,
+        0x50, 0x00, 0x12, 0x06, 0x70, 0x61, 0x67, 0x65,
+        0x61, 0x64, 0x01, 0x6c, 0x06, 0x67, 0x6f, 0x6f,
+        0x67, 0x6c, 0x65, 0xc0, 0x26};
+
+    uint8_t invalid_raw_udp[] = {
+        0x00, 0x35, 0xcf, 0x34, 0x00, 0x55, 0x6c, 0xe0,
+        0x83, 0xfc, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x07, 0x70, 0x61, 0x67,
+        0x65, 0x61, 0x64, 0x32, 0x11, 0x67, 0x6f, 0x6f,
+        0x67, 0x6c, 0x65, 0x73, 0x79, 0x6e, 0x64, 0x69,
+        0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x03, 0x63,
+        0x6f, 0x6d, 0x00, 0x00, 0x1c, 0x00, 0x01, 0xc0,
+        0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x01, 0x4b,
+        0x50, 0x00, 0x12, 0x06, 0x70, 0x61, 0x67, 0x65,
+        0x61, 0x64, 0x01, 0x6c, 0x06, 0x67, 0x6f, 0x6f,
+        0x67, 0x6c, 0x65, 0xc0, 0x27};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0yyyyyyyyyyyyyyyy\r\n"
+                    "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.udpc.comp_csum = -1;
+    p1.ip4h = (IPV4Hdr *)raw_ipv4;
+    p1.udph = (UDPHdr *)valid_raw_udp;
+    p1.udpvars.hlen = UDP_HEADER_LEN;
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = sizeof(valid_raw_udp) - p1.udpvars.hlen;
+    p1.proto = IPPROTO_UDP;
+
+    p2.udpc.comp_csum = -1;
+    p2.ip4h = (IPV4Hdr *)raw_ipv4;
+    p2.udph = (UDPHdr *)invalid_raw_udp;
+    p2.udpvars.hlen = UDP_HEADER_LEN;
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = sizeof(invalid_raw_udp) - p2.udpvars.hlen;
+    p2.proto = IPPROTO_UDP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(content:\"/one/\"; udpv4-csum:invalid; "
+                               "msg:\"udpv4-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert udp any any -> any any "
+                                     "(content:\"/one/\"; udpv4-csum:valid; "
+                                     "msg:\"udpv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2)) {
+        result &= 0;
+    }
+    else
+        result &= 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+
+int SigTest32UDPV6Keyword(void)
+{
+    static uint8_t valid_raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x14, 0x11, 0x02, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
+        0x82, 0xa0, 0x00, 0x14, 0x1a, 0xc3, 0x06, 0x02,
+        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0x57, 0xb0,
+        0x09, 0x00};
+
+    static uint8_t invalid_raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x14, 0x11, 0x02, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
+        0x82, 0xa0, 0x00, 0x14, 0x1a, 0xc3, 0x06, 0x02,
+        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0x57, 0xb0,
+        0x09, 0x01};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP\r\n"
+                    "\r\n\r\n";
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.udpc.comp_csum = -1;
+    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1.udph = (UDPHdr *) (valid_raw_ipv6 + 54);
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.udpvars.hlen = UDP_HEADER_LEN;
+    p1.payload = buf;
+    p1.payload_len = IPV6_GET_PLEN((&p1)) - p1.udpvars.hlen;
+    p1.proto = IPPROTO_UDP;
+
+    p2.udpc.comp_csum = -1;
+    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2.udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.udpvars.hlen = UDP_HEADER_LEN;
+    p2.payload = buf;
+    p2.payload_len = IPV6_GET_PLEN((&p2)) - p2.udpvars.hlen;
+    p2.proto = IPPROTO_UDP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(content:\"/one/\"; udpv6-csum:valid; "
+                               "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert udp any any -> any any "
+                                     "(content:\"/one/\"; udpv6-csum:invalid; "
+                                     "msg:\"udpv6-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest33NegativeUDPV6Keyword(void)
+{
+    static uint8_t valid_raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x14, 0x11, 0x02, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
+        0x82, 0xa0, 0x00, 0x14, 0x1a, 0xc3, 0x06, 0x02,
+        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0x57, 0xb0,
+        0x09, 0x00};
+
+    static uint8_t invalid_raw_ipv6[] = {
+        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
+        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x14, 0x11, 0x02, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
+        0x82, 0xa0, 0x00, 0x14, 0x1a, 0xc3, 0x06, 0x02,
+        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0x57, 0xb0,
+        0x09, 0x01};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP\r\n"
+                    "\r\n\r\n";
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.udpc.comp_csum = -1;
+    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1.udph = (UDPHdr *) (valid_raw_ipv6 + 54);
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.udpvars.hlen = UDP_HEADER_LEN;
+    p1.payload = buf;
+    p1.payload_len = IPV6_GET_PLEN((&p1)) - p1.udpvars.hlen;
+    p1.proto = IPPROTO_UDP;
+
+    p2.udpc.comp_csum = -1;
+    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2.udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.udpvars.hlen = UDP_HEADER_LEN;
+    p2.payload = buf;
+    p2.payload_len = IPV6_GET_PLEN((&p2)) - p2.udpvars.hlen;
+    p2.proto = IPPROTO_UDP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(content:\"/one/\"; udpv6-csum:invalid; "
+                               "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert udp any any -> any any "
+                                     "(content:\"/one/\"; udpv6-csum:valid; "
+                                     "msg:\"udpv6-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest34ICMPV4Keyword(void)
+{
+    uint8_t valid_raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
+        0x40, 0x01, 0x3c, 0xa7, 0x7f, 0x00, 0x00, 0x01,
+        0x7f, 0x00, 0x00, 0x01, 0x08, 0x00, 0xc3, 0x01,
+        0x2b, 0x36, 0x00, 0x01, 0x3f, 0x16, 0x9a, 0x4a,
+        0x41, 0x63, 0x04, 0x00, 0x08, 0x09, 0x0a, 0x0b,
+        0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13,
+        0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
+        0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23,
+        0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b,
+        0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33,
+        0x34, 0x35, 0x36, 0x37};
+
+    uint8_t invalid_raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
+        0x40, 0x01, 0x3c, 0xa7, 0x7f, 0x00, 0x00, 0x01,
+        0x7f, 0x00, 0x00, 0x01, 0x08, 0x00, 0xc3, 0x01,
+        0x2b, 0x36, 0x00, 0x01, 0x3f, 0x16, 0x9a, 0x4a,
+        0x41, 0x63, 0x04, 0x00, 0x08, 0x09, 0x0a, 0x0b,
+        0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13,
+        0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
+        0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23,
+        0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b,
+        0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33,
+        0x34, 0x35, 0x36, 0x38};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.icmpv4c.comp_csum = -1;
+    p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
+    p1.icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1.ip4h) * 4);
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_ICMP;
+
+    p2.icmpv4c.comp_csum = -1;
+    p2.ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
+    p2.icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2.ip4h) * 4);
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = buflen;
+    p2.proto = IPPROTO_ICMP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any "
+                               "(content:\"/one/\"; icmpv4-csum:valid; "
+                               "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert icmp any any -> any any "
+                                     "(content:\"/one/\"; icmpv4-csum:invalid; "
+                                     "msg:\"icmpv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest35NegativeICMPV4Keyword(void)
+{
+    uint8_t valid_raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
+        0x40, 0x01, 0x3c, 0xa7, 0x7f, 0x00, 0x00, 0x01,
+        0x7f, 0x00, 0x00, 0x01, 0x08, 0x00, 0xc3, 0x01,
+        0x2b, 0x36, 0x00, 0x01, 0x3f, 0x16, 0x9a, 0x4a,
+        0x41, 0x63, 0x04, 0x00, 0x08, 0x09, 0x0a, 0x0b,
+        0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13,
+        0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
+        0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23,
+        0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b,
+        0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33,
+        0x34, 0x35, 0x36, 0x37};
+
+    uint8_t invalid_raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
+        0x40, 0x01, 0x3c, 0xa7, 0x7f, 0x00, 0x00, 0x01,
+        0x7f, 0x00, 0x00, 0x01, 0x08, 0x00, 0xc3, 0x01,
+        0x2b, 0x36, 0x00, 0x01, 0x3f, 0x16, 0x9a, 0x4a,
+        0x41, 0x63, 0x04, 0x00, 0x08, 0x09, 0x0a, 0x0b,
+        0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13,
+        0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
+        0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23,
+        0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b,
+        0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33,
+        0x34, 0x35, 0x36, 0x38};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.icmpv4c.comp_csum = -1;
+    p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
+    p1.icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1.ip4h) * 4);
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_ICMP;
+
+    p2.icmpv4c.comp_csum = -1;
+    p2.ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
+    p2.icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2.ip4h) * 4);
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = buflen;
+    p2.proto = IPPROTO_ICMP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any "
+                               "(content:\"/one/\"; icmpv4-csum:invalid; "
+                               "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert icmp any any -> any any "
+                                     "(content:\"/one/\"; icmpv4-csum:valid; "
+                                     "msg:\"icmpv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 0;
+    else {
+        result &= 1;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest36ICMPV6Keyword(void)
+{
+    uint8_t valid_raw_ipv6[] = {
+        0x00, 0x00, 0x86, 0x05, 0x80, 0xda, 0x00, 0x60,
+        0x97, 0x07, 0x69, 0xea, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x44, 0x3a, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x60,
+        0x97, 0xff, 0xfe, 0x07, 0x69, 0xea, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x03, 0x00,
+        0xf7, 0x52, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x14, 0x11, 0x01, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
+        0x82, 0x9b, 0x00, 0x14, 0x82, 0x8b, 0x01, 0x01,
+        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
+        0x08, 0x00};
+
+    uint8_t invalid_raw_ipv6[] = {
+        0x00, 0x00, 0x86, 0x05, 0x80, 0xda, 0x00, 0x60,
+        0x97, 0x07, 0x69, 0xea, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x44, 0x3a, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x60,
+        0x97, 0xff, 0xfe, 0x07, 0x69, 0xea, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x03, 0x00,
+        0xf7, 0x52, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x14, 0x11, 0x01, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
+        0x82, 0x9b, 0x00, 0x14, 0x82, 0x8b, 0x01, 0x01,
+        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
+        0x08, 0x01};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.icmpv6c.comp_csum = -1;
+    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1.icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
+    p1.ip6c.plen = IPV6_GET_PLEN(&(p1));
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_ICMPV6;
+
+    p2.icmpv6c.comp_csum = -1;
+    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2.icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
+    p2.ip6c.plen = IPV6_GET_PLEN(&(p2));
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = buflen;
+    p2.proto = IPPROTO_ICMPV6;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmpv6 any any -> any any "
+                               "(content:\"/one/\"; icmpv6-csum:valid; "
+                               "msg:\"icmpv6-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert icmpv6 any any -> any any "
+                                     "(content:\"/one/\"; icmpv6-csum:invalid; "
+                                     "msg:\"icmpv6-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 1;
+    else
+        result &= 0;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+int SigTest37NegativeICMPV6Keyword(void)
+{
+    uint8_t valid_raw_ipv6[] = {
+        0x00, 0x00, 0x86, 0x05, 0x80, 0xda, 0x00, 0x60,
+        0x97, 0x07, 0x69, 0xea, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x44, 0x3a, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x60,
+        0x97, 0xff, 0xfe, 0x07, 0x69, 0xea, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x03, 0x00,
+        0xf7, 0x52, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x14, 0x11, 0x01, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
+        0x82, 0x9b, 0x00, 0x14, 0x82, 0x8b, 0x01, 0x01,
+        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
+        0x08, 0x00};
+
+    uint8_t invalid_raw_ipv6[] = {
+        0x00, 0x00, 0x86, 0x05, 0x80, 0xda, 0x00, 0x60,
+        0x97, 0x07, 0x69, 0xea, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x44, 0x3a, 0x40, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x60,
+        0x97, 0xff, 0xfe, 0x07, 0x69, 0xea, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x03, 0x00,
+        0xf7, 0x52, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x14, 0x11, 0x01, 0x3f, 0xfe,
+        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
+        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
+        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
+        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
+        0x82, 0x9b, 0x00, 0x14, 0x82, 0x8b, 0x01, 0x01,
+        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
+        0x08, 0x01};
+
+    Packet p1, p2;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+
+    p1.icmpv6c.comp_csum = -1;
+    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1.icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
+    p1.ip6c.plen = IPV6_GET_PLEN(&(p1));
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = buf;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_ICMPV6;
+
+    p2.icmpv6c.comp_csum = -1;
+    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2.icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
+    p2.ip6c.plen = IPV6_GET_PLEN(&(p2));
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = buf;
+    p2.payload_len = buflen;
+    p2.proto = IPPROTO_ICMPV6;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmpv6 any any -> any any "
+                               "(content:\"/one/\"; icmpv6-csum:invalid; "
+                               "msg:\"icmpv6-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert icmpv6 any any -> any any "
+                                     "(content:\"/one/\"; icmpv6-csum:valid; "
+                                     "msg:\"icmpv6-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    if (PacketAlertCheck(&p2, 2))
+        result &= 0;
+    else
+        result &= 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+
 
 #endif /* UNITTESTS */
 
@@ -4191,6 +5746,37 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTest23B2g -- FLOWBIT test (3)", SigTest23B2g, 1);
     UtRegisterTest("SigTest23B3g -- FLOWBIT test (3)", SigTest23B3g, 1);
     UtRegisterTest("SigTest23Wm -- FLOWBIT test (3)", SigTest23Wm, 1);
+
+    UtRegisterTest("SigTest24IPV4Keyword", SigTest24IPV4Keyword, 1);
+    UtRegisterTest("SigTest25NegativeIPV4Keyword",
+                   SigTest25NegativeIPV4Keyword, 1);
+
+    UtRegisterTest("SigTest26TCPV4Keyword", SigTest26TCPV4Keyword, 1);
+    UtRegisterTest("SigTest27NegativeTCPV4Keyword",
+                   SigTest27NegativeTCPV4Keyword, 1);
+
+    UtRegisterTest("SigTest28TCPV6Keyword", SigTest28TCPV6Keyword, 1);
+    UtRegisterTest("SigTest29NegativeTCPV6Keyword",
+                   SigTest29NegativeTCPV6Keyword, 1);
+
+    UtRegisterTest("SigTest30UDPV4Keyword", SigTest30UDPV4Keyword, 1);
+    UtRegisterTest("SigTest31NegativeUDPV4Keyword",
+                   SigTest31NegativeUDPV4Keyword, 1);
+
+    UtRegisterTest("SigTest32UDPV6Keyword", SigTest32UDPV6Keyword, 1);
+    UtRegisterTest("SigTest33NegativeUDPV6Keyword",
+                   SigTest33NegativeUDPV6Keyword, 1);
+
+    UtRegisterTest("SigTest34ICMPV4Keyword", SigTest34ICMPV4Keyword, 1);
+    UtRegisterTest("SigTest35NegativeICMPV4Keyword",
+                   SigTest35NegativeICMPV4Keyword, 1);
+
+    /* We need to enable these tests, as soon as we add the ICMPv6 protocol
+       support in our rules engine */
+    //UtRegisterTest("SigTest36ICMPV6Keyword", SigTest36ICMPV6Keyword, 1);
+    //UtRegisterTest("SigTest37NegativeICMPV6Keyword",
+    //               SigTest37NegativeICMPV6Keyword, 1);
+
 #endif /* UNITTESTS */
 }
 

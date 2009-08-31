@@ -133,6 +133,12 @@ typedef struct ICMPV4Hdr_
     /* XXX incomplete */
 } ICMPV4Hdr;
 
+typedef struct ICMPV4Cache_ {
+    /* checksum computed over the icmpv4 packet */
+    int32_t comp_csum;
+} ICMPV4Cache;
+
+inline uint16_t ICMPV4CalculateChecksum(uint16_t *, uint16_t);
 void DecodeICMPV4RegisterTests(void);
 
 #endif /* __DECODE_ICMPV4_H__ */

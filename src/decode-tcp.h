@@ -105,6 +105,11 @@ typedef struct TCPVars_
     TCPOpt *mss;
 } TCPVars;
 
+typedef struct TCPCache_ {
+    /* checksum computed over the tcp(for both ipv4 and ipv6) packet */
+    int32_t comp_csum;
+} TCPCache;
+
 #define CLEAR_TCP_PACKET(p) { \
     (p)->tcph = NULL; \
     (p)->tcpvars.tcp_opt_cnt = 0; \
@@ -114,6 +119,8 @@ typedef struct TCPVars_
     (p)->tcpvars.mss = NULL; \
 }
 
+inline uint16_t TCPCalculateChecksum(uint16_t *, uint16_t *, uint16_t);
+inline uint16_t TCPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);
 void DecodeTCPRegisterTests(void);
 
 #endif /* __DECODE_TCP_H__ */

@@ -165,6 +165,7 @@ typedef struct IPV4Cache_
     uint8_t ip_ttl;        /* time to live field */
     uint8_t ip_proto;      /* datagram protocol */
     uint16_t ip_csum;      /* checksum */
+    int32_t comp_csum;     /* checksum computed over the ipv4 packet */
     uint32_t ip_src_u32;   /* source IP */
     uint32_t ip_dst_u32;   /* dest IP */
 
@@ -189,6 +190,7 @@ typedef struct IPV4Vars_
     IPV4Opt *o_rtralt;
 } IPV4Vars;
 
+inline uint16_t IPV4CalculateChecksum(uint16_t *, uint16_t);
 void DecodeIPV4RegisterTests(void);
 
 #endif /* __DECODE_IPV4_H__ */

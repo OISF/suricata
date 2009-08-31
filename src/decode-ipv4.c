@@ -19,7 +19,7 @@
  *
  * \retval csum Checksum for the IP packet
  */
-static inline uint16_t IPV4CalculateChecksum(uint16_t *pkt, uint16_t hlen)
+inline uint16_t IPV4CalculateChecksum(uint16_t *pkt, uint16_t hlen)
 {
     uint32_t csum = pkt[0];
 

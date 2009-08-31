@@ -13,7 +13,7 @@
  *
  * \retval csum Checksum for the ICMP packet
  */
-static inline uint16_t ICMPV4CalculateChecksum(uint16_t *pkt, uint16_t tlen)
+inline uint16_t ICMPV4CalculateChecksum(uint16_t *pkt, uint16_t tlen)
 {
     uint16_t pad = 0;
     uint32_t csum = pkt[0];
@@ -76,6 +76,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 #endif
 
     p->proto = IPPROTO_ICMP;
+
     return;
 }
 

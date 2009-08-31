@@ -18,8 +18,8 @@
  *
  * \retval csum Checksum for the UDP packet
  */
-static inline uint16_t UDPV4CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                              uint16_t tlen)
+inline uint16_t UDPV4CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
+                                       uint16_t tlen)
 {
     uint16_t pad = 0;
     uint32_t csum = shdr[0];
@@ -77,8 +77,8 @@ static inline uint16_t UDPV4CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
  *
  * \retval csum Checksum for the UDP packet
  */
-static inline uint16_t UDPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                              uint16_t tlen)
+inline uint16_t UDPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
+                                       uint16_t tlen)
 {
     uint16_t pad = 0;
     uint32_t csum = shdr[0];
@@ -150,6 +150,7 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
     SET_UDP_SRC_PORT(p,&p->sp);
     SET_UDP_DST_PORT(p,&p->dp);
 
+    p->udpvars.hlen = UDP_HEADER_LEN;
     p->payload = pkt + UDP_HEADER_LEN;
     p->payload_len = len - UDP_HEADER_LEN;
 

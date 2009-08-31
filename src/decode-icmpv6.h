@@ -73,6 +73,12 @@ typedef struct ICMPV6Hdr_
     /* XXX incomplete */
 } ICMPV6Hdr;
 
+typedef struct ICMPV6Cache_ {
+    /* checksum computed over the icmpv6 packet */
+    int32_t comp_csum;
+} ICMPV6Cache;
+
+inline uint16_t ICMPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);
 void DecodeICMPV6RegisterTests(void);
 
 #endif /* __DECODE_ICMPV6_H__ */

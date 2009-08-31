@@ -15,8 +15,8 @@
  *
  * \retval csum Checksum for the ICMPV6 packet
  */
-static inline uint16_t ICMPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                               uint16_t tlen)
+inline uint16_t ICMPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
+                                        uint16_t tlen)
 {
     uint16_t pad = 0;
     uint32_t csum = shdr[0];

@@ -156,6 +156,9 @@ Packet *SetupPkt (void)
         printf("SetupPkt: allocated a new packet...\n");
     }
 
+    /* reset the packet csum fields */
+    RESET_PACKET_CSUMS(p);
+
     return p;
 }
 

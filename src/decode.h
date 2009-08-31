@@ -254,13 +254,17 @@ typedef struct Packet_
     IPV6ExtHdrs ip6eh;
 
     ICMPV4Hdr *icmpv4h;
+    ICMPV4Cache icmpv4c;
     ICMPV6Hdr *icmpv6h;
+    ICMPV6Cache icmpv6c;
 
     TCPHdr *tcph;
     TCPVars tcpvars;
+    TCPCache tcpc;
 
     UDPHdr *udph;
     UDPVars udpvars;
+    UDPCache udpc;
 
     /* ptr to the payload of the packet
      * with it's length. */
@@ -354,6 +358,15 @@ typedef struct DecodeThreadVars_
     } \
     (p)->pktvar = NULL; \
     (p)->recursion_level = 0; \
+}
+
+/* reset these to -1(indicates that the packet is fresh from the queue) */
+#define RESET_PACKET_CSUMS(p) { \
+    (p)->ip4c.comp_csum = -1; \
+    (p)->tcpc.comp_csum = -1; \
+    (p)->udpc.comp_csum = -1;  \
+    (p)->icmpv4c.comp_csum = -1; \
+    (p)->icmpv6c.comp_csum = -1; \
 }
 
 
