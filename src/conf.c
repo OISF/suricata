@@ -136,7 +136,7 @@ ConfSet(char *name, char *val, int allow_override)
     lookup_key.name = name;
     conf_node = HashTableLookup(conf_hash, &lookup_key, sizeof(lookup_key));
     if (conf_node != NULL) {
-        if (!allow_override) {
+        if (!conf_node->allow_override) {
             return 0;
         }
         HashTableRemove(conf_hash, conf_node, sizeof(*conf_node));
@@ -208,6 +208,28 @@ ConfRemove(char *name)
         return 1;
     else
         return 0;
+}
+
+/**
+ * \brief Dump configuration to stdout.
+ */
+void
+ConfDump(void)
+{
+    HashTableBucket *b;
+    ConfNode *cn;
+    int i;
+
+    for (i = 0; i < conf_hash->array_size; i++) {
+        if (conf_hash->array[i] != NULL) {
+            b = (HashTableBucket *)conf_hash->array[i];
+            while (b != NULL) {
+                cn = (ConfNode *)b->data;
+                printf("%s=%s\n", cn->name, cn->val);
+                b = b->next;
+            }
+        }
+    }
 }
 
 #ifdef UNITTESTS

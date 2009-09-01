@@ -15,6 +15,7 @@
 void ConfInit(void);
 int ConfGet(char *name, char **vptr);
 int ConfSet(char *name, char *val, int allow_override);
+void ConfDump(void);
 void ConfRegisterTests();
 
 #endif /* ! __CONF_H__ */
