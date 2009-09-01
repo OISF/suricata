@@ -25,6 +25,7 @@
 #include "flow-var.h"
 #include "flow-private.h"
 #include "util-unittest.h"
+#include "stream-tcp-private.h"
 
 //#define FLOW_DEFAULT_HASHSIZE    262144
 #define FLOW_DEFAULT_HASHSIZE    65536
@@ -509,31 +510,30 @@ void FlowManagerThreadSpawn()
 }
 
 void FlowInitProtocols(void) {
-    /*XXX GS initialze protocol specific free function pointers*/
     /*Default*/
-    protocols[0].new_timeout = FLOW_DEFAULT_NEW_TIMEOUT;
-    protocols[0].est_timeout = FLOW_DEFAULT_EST_TIMEOUT;
-    protocols[0].emerg_new_timeout = FLOW_DEFAULT_EMERG_NEW_TIMEOUT;
-    protocols[0].emerg_est_timeout = FLOW_DEFAULT_EMERG_EST_TIMEOUT;
-    protocols[0].Freefunc = NULL;
+    protocols[FLOW_PROTO_DEFAULT].new_timeout = FLOW_DEFAULT_NEW_TIMEOUT;
+    protocols[FLOW_PROTO_DEFAULT].est_timeout = FLOW_DEFAULT_EST_TIMEOUT;
+    protocols[FLOW_PROTO_DEFAULT].emerg_new_timeout = FLOW_DEFAULT_EMERG_NEW_TIMEOUT;
+    protocols[FLOW_PROTO_DEFAULT].emerg_est_timeout = FLOW_DEFAULT_EMERG_EST_TIMEOUT;
+    protocols[FLOW_PROTO_DEFAULT].Freefunc = NULL;
     /*TCP*/
-    protocols[1].new_timeout = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
-    protocols[1].est_timeout = FLOW_IPPROTO_TCP_EST_TIMEOUT;
-    protocols[1].emerg_new_timeout = FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT;
-    protocols[1].emerg_est_timeout = FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT;
-    protocols[1].Freefunc = NULL;
+    protocols[FLOW_PROTO_TCP].new_timeout = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
+    protocols[FLOW_PROTO_TCP].est_timeout = FLOW_IPPROTO_TCP_EST_TIMEOUT;
+    protocols[FLOW_PROTO_TCP].emerg_new_timeout = FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT;
+    protocols[FLOW_PROTO_TCP].emerg_est_timeout = FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT;
+    protocols[FLOW_PROTO_TCP].Freefunc = NULL;
     /*UDP*/
-    protocols[2].new_timeout = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
-    protocols[2].est_timeout = FLOW_IPPROTO_UDP_EST_TIMEOUT;
-    protocols[2].emerg_new_timeout = FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT;
-    protocols[2].emerg_est_timeout = FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT;
-    protocols[2].Freefunc = NULL;
+    protocols[FLOW_PROTO_UDP].new_timeout = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
+    protocols[FLOW_PROTO_UDP].est_timeout = FLOW_IPPROTO_UDP_EST_TIMEOUT;
+    protocols[FLOW_PROTO_UDP].emerg_new_timeout = FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT;
+    protocols[FLOW_PROTO_UDP].emerg_est_timeout = FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT;
+    protocols[FLOW_PROTO_UDP].Freefunc = NULL;
     /*ICMP*/
-    protocols[3].new_timeout = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
-    protocols[3].est_timeout = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
-    protocols[3].emerg_new_timeout = FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT;
-    protocols[3].emerg_est_timeout = FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT;
-    protocols[3].Freefunc = NULL;
+    protocols[FLOW_PROTO_ICMP].new_timeout = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
+    protocols[FLOW_PROTO_ICMP].est_timeout = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
+    protocols[FLOW_PROTO_ICMP].emerg_new_timeout = FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT;
+    protocols[FLOW_PROTO_ICMP].emerg_est_timeout = FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT;
+    protocols[FLOW_PROTO_ICMP].Freefunc = NULL;
 
 }
 
@@ -562,7 +562,7 @@ int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout, uint32_t est_timeou
 
     protocols[proto_map].new_timeout = new_timeout;
     protocols[proto_map].est_timeout = est_timeout;
-
+    printf("The time out is %"PRIu32"\n",protocols[FLOW_PROTO_TCP].est_timeout);
     return 1;
 }
 
@@ -581,20 +581,20 @@ static int FlowGetProtoMapping(uint8_t proto) {
 
     switch (proto) {
         case IPPROTO_TCP:
-            return 1;
+            return FLOW_PROTO_TCP;
         case IPPROTO_UDP:
-            return 2;
+            return FLOW_PROTO_UDP;
         case IPPROTO_ICMP:
-            return 3;
+            return FLOW_PROTO_ICMP;
         default:
-            return 0;
+            return FLOW_PROTO_DEFAULT;
     }
 }
+
 static int FlowTest01 (void) {
 
     uint8_t proto_map;
 
-    FlowInitConfig(TRUE);
     proto_map = FlowGetProtoMapping(IPPROTO_TCP);
 
     if ((protocols[proto_map].new_timeout != FLOW_IPPROTO_TCP_NEW_TIMEOUT) && (protocols[proto_map].est_timeout != FLOW_IPPROTO_TCP_EST_TIMEOUT)
@@ -626,6 +626,209 @@ static int FlowTest01 (void) {
 
     return 1;
 }
+
+void test(void *f){}
+
+static int FlowTest02 (void) {
+
+    FlowSetProtoFreeFunc(IPPROTO_DCCP, test);
+    FlowSetProtoFreeFunc(IPPROTO_TCP, test);
+    FlowSetProtoFreeFunc(IPPROTO_UDP, test);
+    FlowSetProtoFreeFunc(IPPROTO_ICMP, test);
+
+    if (protocols[FLOW_PROTO_DEFAULT].Freefunc != test) {
+        printf("Failed in setting default free function\n");
+        return 0;
+    }
+    if (protocols[FLOW_PROTO_TCP].Freefunc != test) {
+        printf("Failed in setting TCP free function\n");
+        return 0;
+    }
+    if (protocols[FLOW_PROTO_UDP].Freefunc != test) {
+        printf("Failed in setting UDP free function\n");
+        return 0;
+    }
+    if (protocols[FLOW_PROTO_ICMP].Freefunc != test) {
+        printf("Failed in setting ICMP free function\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int FlowTestPrune(Flow *f, struct timeval *ts) {
+
+    FlowQueue q;
+
+    memset(&q, 0, sizeof(FlowQueue));
+
+    q.top = NULL;
+
+    FlowEnqueue(&q, f);
+    if (q.len != 1) {
+        printf("Failed in enqueue the flow in flowqueue\n");
+        return 0;
+    }
+
+    FlowPrune(&q, ts);
+    if (q.len != 0) {
+        printf("Failed in prunning the flow\n");
+        return 0;
+    }
+
+    if (f->stream != NULL){
+        printf("Failed in freeing the TcpSession\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int FlowTest03 (void) {
+
+    TcpSession ssn;
+    Flow f;
+    FlowBucket fb;
+    struct timeval ts;
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ts, 0, sizeof(ts));
+    memset(&fb, 0, sizeof(FlowBucket));
+
+    TimeGet(&ts);
+    f.flags = FLOW_EST_LIST;
+    /*The value should be more than 3600s but as the FlowInitConfig()
+     is called Decodeppptests(), it reinitalize the flow timeout values to
+     defaults.*/
+    f.lastts.tv_sec = ts.tv_sec - 500;
+    f.stream = &ssn;
+    f.fb = &fb;
+    f.proto = IPPROTO_TCP;
+
+    if (FlowTestPrune(&f, &ts) != 1)
+        return 0;
+
+    return 1;
+}
+
+static int FlowTest04 (void) {
+
+    TcpSession ssn;
+    Flow f;
+    FlowBucket fb;
+    struct timeval ts;
+    TcpSegment seg;
+    TcpStream client;
+    uint8_t payload[3] = {0x41, 0x41, 0x41};
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&f, 0, sizeof(Flow));
+    memset(&fb, 0, sizeof(FlowBucket));
+    memset(&ts, 0, sizeof(ts));
+    memset(&seg, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpSegment));
+
+    TimeGet(&ts);
+    seg.payload = payload;
+    seg.payload_len = 3;
+    seg.next = NULL;
+    seg.prev = NULL;
+    client.seg_list = &seg;
+    ssn.client = client;
+    ssn.server = client;
+    ssn.state = TCP_ESTABLISHED;
+    f.flags = FLOW_EST_LIST;
+    /*The value should be more than 3600s but as the FlowInitConfig()
+     is called Decodeppptests(), it reinitalize the flow timeout values to
+     defaults.*/
+    f.lastts.tv_sec = ts.tv_sec - 500;
+    f.stream = &ssn;
+    f.fb = &fb;
+    f.proto = IPPROTO_TCP;
+
+    if (FlowTestPrune(&f, &ts) != 1)
+        return 0;
+
+    return 1;
+
+}
+
+static int FlowTest05 (void) {
+
+    TcpSession ssn;
+    Flow f;
+    FlowBucket fb;
+    struct timeval ts;
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ts, 0, sizeof(ts));
+    memset(&fb, 0, sizeof(FlowBucket));
+
+    TimeGet(&ts);
+    f.flags = FLOW_EST_LIST;
+    /*The value should be more than 300s but as the FlowInitConfig()
+     is called Decodeppptests(), it reinitalize the flow timeout values to
+     defaults.*/
+    f.lastts.tv_sec = ts.tv_sec - 150;
+    f.stream = &ssn;
+    f.fb = &fb;
+    f.proto = IPPROTO_TCP;
+    f.flags = FLOW_EMERGENCY;
+
+    if (FlowTestPrune(&f, &ts) != 1)
+        return 0;
+
+    return 1;
+}
+
+static int FlowTest06 (void) {
+
+    TcpSession ssn;
+    Flow f;
+    FlowBucket fb;
+    struct timeval ts;
+    TcpSegment seg;
+    TcpStream client;
+    uint8_t payload[3] = {0x41, 0x41, 0x41};
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&f, 0, sizeof(Flow));
+    memset(&fb, 0, sizeof(FlowBucket));
+    memset(&ts, 0, sizeof(ts));
+    memset(&seg, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpSegment));
+
+    TimeGet(&ts);
+    seg.payload = payload;
+    seg.payload_len = 3;
+    seg.next = NULL;
+    seg.prev = NULL;
+    client.seg_list = &seg;
+    ssn.client = client;
+    ssn.server = client;
+    ssn.state = TCP_ESTABLISHED;
+    f.flags = FLOW_EST_LIST;
+    /*The value should be more than 300s but as the FlowInitConfig()
+     is called Decodeppptests(), it reinitalize the flow timeout values to
+     defaults.*/
+    f.lastts.tv_sec = ts.tv_sec - 150;
+    f.stream = &ssn;
+    f.fb = &fb;
+    f.proto = IPPROTO_TCP;
+    f.flags = FLOW_EMERGENCY;
+
+    if (FlowTestPrune(&f, &ts) != 1)
+        return 0;
+
+    return 1;
+
+}
+
 void FlowRegisterTests (void) {
     UtRegisterTest("FlowTest01 -- Protocol Specific Timeouts", FlowTest01, 1);
+    UtRegisterTest("FlowTest02 -- Setting Protocol Specific Free Function", FlowTest02, 1);
+    UtRegisterTest("FlowTest03 -- Timeout a flow having fresh TcpSession", FlowTest03, 1);
+    UtRegisterTest("FlowTest04 -- Timeout a flow having TcpSession with segments", FlowTest04, 1);
+    UtRegisterTest("FlowTest05 -- Timeout a flow in emergency having fresh TcpSession", FlowTest05, 1);
+    UtRegisterTest("FlowTest06 -- Timeout a flow in emergency having TcpSession with segments", FlowTest06, 1);
 }

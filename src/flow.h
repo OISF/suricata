@@ -110,9 +110,9 @@ void *FlowManagerThread(void *td);
 
 void FlowManagerThreadSpawn(void);
 void FlowRegisterTests (void);
-int FlowSetProtoTimout(uint8_t ,uint32_t ,uint32_t );
+int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t );
 int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t );
-int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *))
+int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
 
 #endif /* __FLOW_H__ */
 

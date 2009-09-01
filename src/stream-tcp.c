@@ -50,6 +50,10 @@ extern void StreamTcpSegmentReturntoPool(TcpSegment *);
 
 #define STREAMTCP_DEFAULT_SESSIONS  262144
 #define STREAMTCP_DEFAULT_PREALLOC  32768
+#define STREAMTCP_NEW_TIMEOUT   60
+#define STREAMTCP_EST_TIMEOUT   3600
+#define STREAMTCP_EMERG_NEW_TIMEOUT 10
+#define STREAMTCP_EMERG_EST_TIMEOUT 300
 
 static Pool *ssn_pool;
 static pthread_mutex_t ssn_pool_mutex;
@@ -61,7 +65,6 @@ typedef struct StreamTcpThread_ {
 } StreamTcpThread;
 
 void TmModuleStreamTcpRegister (void) {
-    StreamTcpReassembleInit();
 
     tmm_modules[TMM_STREAMTCP].name = "StreamTcp";
     tmm_modules[TMM_STREAMTCP].Init = StreamTcpThreadInit;
@@ -159,6 +162,10 @@ void StreamTcpInitConfig(char quiet) {
 
     pthread_mutex_init(&ssn_pool_mutex, NULL);
 
+    StreamTcpReassembleInit();
+
+    FlowSetProtoTimeout(IPPROTO_TCP, STREAMTCP_NEW_TIMEOUT, STREAMTCP_EST_TIMEOUT);
+    FlowSetProtoEmergencyTimeout(IPPROTO_TCP, STREAMTCP_EMERG_NEW_TIMEOUT, STREAMTCP_EMERG_EST_TIMEOUT);
     FlowSetProtoFreeFunc(IPPROTO_TCP, StreamTcpSessionPoolFree);
 }
 
