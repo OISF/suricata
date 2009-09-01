@@ -1213,6 +1213,7 @@ int main(int argc, char **argv)
         AlpDetectRegisterTests();
         ConfRegisterTests();
         TmqhFlowRegisterTests();
+        FlowRegisterTests();
         uint32_t failed = UtRunTests();
         UtCleanup();
         if (failed) exit(EXIT_FAILURE);
