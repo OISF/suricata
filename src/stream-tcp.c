@@ -158,6 +158,8 @@ void StreamTcpInitConfig(char quiet) {
     }
 
     pthread_mutex_init(&ssn_pool_mutex, NULL);
+
+    FlowSetProtoFreeFunc(IPPROTO_TCP, StreamTcpSessionPoolFree);
 }
 
 /** \brief The function is used to to fetch a TCP session from the

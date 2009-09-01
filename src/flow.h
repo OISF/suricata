@@ -84,12 +84,12 @@ typedef struct Flow_
     struct FlowBucket_ *fb;
 } Flow;
 
-/*enum {
-    NEW = 0,
-    ESTABLISHED,
-    EMERG_NEW,
-    EMERG_ESTABLISHED,
-};*/
+enum {
+    FLOW_PROTO_DEFAULT = 0,
+    FLOW_PROTO_TCP,
+    FLOW_PROTO_UDP,
+    FLOW_PROTO_ICMP,
+};
 
 typedef struct Protocols_ {
     uint32_t new_timeout;
@@ -110,7 +110,9 @@ void *FlowManagerThread(void *td);
 
 void FlowManagerThreadSpawn(void);
 void FlowRegisterTests (void);
-int FlowSetProtoTimout(uint8_t ,uint8_t, uint32_t ,uint32_t );
+int FlowSetProtoTimout(uint8_t ,uint32_t ,uint32_t );
+int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t );
+int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *))
 
 #endif /* __FLOW_H__ */
 
