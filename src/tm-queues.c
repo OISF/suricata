@@ -54,3 +54,8 @@ void TmqDebugList(void) {
     }
 }
 
+void TmqResetQueues(void) {
+    memset(&tmqs, 0x00, sizeof(tmqs));
+    tmq_id = 0;
+}
+

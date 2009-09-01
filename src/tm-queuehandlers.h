@@ -7,6 +7,7 @@ enum {
     TMQH_SIMPLE,
     TMQH_NFQ,
     TMQH_PACKETPOOL,
+    TMQH_FLOW,
 
     TMQH_SIZE,
 };
@@ -15,6 +16,9 @@ typedef struct Tmqh_ {
     char *name;
     Packet *(*InHandler)(ThreadVars *);
     void (*OutHandler)(ThreadVars *, Packet *);
+    void *(*OutHandlerCtxSetup)(char *);
+    void (*OutHandlerCtxFree)(void *);
+    void (*RegisterTests)(void);
 } Tmqh;
 
 Tmqh tmqh_table[TMQH_SIZE];

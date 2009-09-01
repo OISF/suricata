@@ -85,6 +85,7 @@ tm-threads.c tm-threads.h \
 tmqh-simple.c tmqh-simple.h \
 tmqh-nfq.c tmqh-nfq.h \
 tmqh-packetpool.c tmqh-packetpool.h \
+tmqh-flow.c tmqh-flow.h \
 alert-fastlog.c alert-fastlog.h \
 alert-debuglog.c alert-debuglog.h \
 log-httplog.c log-httplog.h \

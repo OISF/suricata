@@ -248,7 +248,9 @@ int AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
 int AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
 {
+#ifdef DEBUG
     printf("AlertUnifiedLogThreadDeinit started\n");
+#endif
 
     AlertUnifiedLogThread *aun = (AlertUnifiedLogThread *)data;
     if (aun == NULL) {
@@ -261,7 +263,9 @@ int AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
     free(aun);
+#ifdef DEBUG
     printf("AlertUnifiedLogThreadDeinit done\n");
+#endif
     return 0;
 
 error:

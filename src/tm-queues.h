@@ -11,6 +11,7 @@ Tmq* TmqCreateQueue(char *name);
 Tmq* TmqGetQueueByName(char *name);
 
 void TmqDebugList(void);
+void TmqResetQueues(void);
 
 #endif /* __TM_QUEUES_H__ */
 

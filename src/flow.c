@@ -336,23 +336,23 @@ void FlowInitConfig (char quiet)
  *  \warning Not thread safe */
 void FlowPrintQueueInfo (void)
 {
-    printf("Flow Queue info:\n");
-    printf("SPARE       %" PRIu32 "\n", flow_spare_q.len);
+    printf("* Flow Queue info:\n");
+    printf(" - SPARE       %" PRIu32 " (", flow_spare_q.len);
 #ifdef DBG_PERF
-    printf("  flow_spare_q.dbg_maxlen %" PRIu32 "\n", flow_spare_q.dbg_maxlen);
+    printf("flow_spare_q.dbg_maxlen %" PRIu32 ")\n", flow_spare_q.dbg_maxlen);
 #endif
-    printf("NEW         %" PRIu32 "\n", flow_new_q.len);
+    printf(" - NEW         %" PRIu32 " (", flow_new_q.len);
 #ifdef DBG_PERF
-    printf("  flow_new_q.dbg_maxlen %" PRIu32 "\n", flow_new_q.dbg_maxlen);
+    printf("flow_new_q.dbg_maxlen %" PRIu32 ")\n", flow_new_q.dbg_maxlen);
 #endif
-    printf("ESTABLISHED %" PRIu32 "\n", flow_est_q.len);
+    printf(" - ESTABLISHED %" PRIu32 " (", flow_est_q.len);
 #ifdef DBG_PERF
-    printf("  flow_est_q.dbg_maxlen %" PRIu32 "\n", flow_est_q.dbg_maxlen);
+    printf("flow_est_q.dbg_maxlen %" PRIu32 ")\n", flow_est_q.dbg_maxlen);
 #endif
 
 #ifdef FLOWBITS_STATS
-    printf("Flowbits added: %" PRIu32 ", removed: %" PRIu32 "\n", flowbits_added, flowbits_removed);
-    printf("Max memory usage: %" PRIu32 "\n", flowbits_memuse_max);
+    printf("* Flowbits added: %" PRIu32 ", removed: %" PRIu32 ", ", flowbits_added, flowbits_removed);
+    printf("max memory usage: %" PRIu32 "\n", flowbits_memuse_max);
 #endif /* FLOWBITS_STATS */
 }
 
@@ -458,7 +458,7 @@ void *FlowManagerThread(void *td)
         sleeping += 10;
     }
 
-    printf("%s ended: %" PRIu32 " new flows, %" PRIu32 " established flows pruned\n", th_v->name, new_cnt, established_cnt);
+    printf("* %s ended: %" PRIu32 " new flows, %" PRIu32 " established flows were pruned\n", th_v->name, new_cnt, established_cnt);
     pthread_exit((void *) 0);
 }
 

@@ -22,6 +22,7 @@ typedef struct ThreadVars_ {
     /** queue's */
     Tmq *inq;
     Tmq *outq;
+    void *outctx;
 
     /** queue handlers */
     struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);

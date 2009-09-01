@@ -924,23 +924,28 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     }
 
     /* set the outgoing queue */
-    if (outq_name != NULL) {
-        tmq = TmqGetQueueByName(outq_name);
-        if (tmq == NULL) {
-            tmq = TmqCreateQueue(outq_name);
-            if (tmq == NULL) goto error;
-        }
-
-        tv->outq = tmq;
-        tv->outq->usecnt++;
-        //printf("TmThreadCreate: tv->outq->id %" PRIu32 "\n", tv->outq->id);
-    }
     if (outqh_name != NULL) {
         tmqh = TmqhGetQueueHandlerByName(outqh_name);
         if (tmqh == NULL) goto error;
 
         tv->tmqh_out = tmqh->OutHandler;
         //printf("TmThreadCreate: tv->tmqh_out %p\n", tv->tmqh_out);
+
+        if (outq_name != NULL) {
+            if (tmqh->OutHandlerCtxSetup != NULL) {
+                tv->outctx = tmqh->OutHandlerCtxSetup(outq_name);
+            } else {
+                tmq = TmqGetQueueByName(outq_name);
+                if (tmq == NULL) {
+                    tmq = TmqCreateQueue(outq_name);
+                    if (tmq == NULL) goto error;
+                }
+
+                tv->outq = tmq;
+                tv->outq->usecnt++;
+            }
+            //printf("TmThreadCreate: tv->outq->id %" PRIu32 "\n", tv->outq->id);
+        }
     }
 
     if (TmThreadSetSlots(tv, slots, fn_p) != 0) {
@@ -998,7 +1003,9 @@ void TmThreadKillThreads(void) {
 
         while (t) {
             t->flags |= THV_KILL;
+#ifdef DEBUG
             printf("TmThreadKillThreads: told thread %s to stop\n", t->name);
+#endif
 
             /* XXX hack */
             StreamMsgSignalQueueHack();
@@ -1020,7 +1027,9 @@ void TmThreadKillThreads(void) {
                 int cnt = 0;
                 while (1) {
                     if (t->flags & THV_CLOSED) {
+#ifdef DEBUG
                         printf("signalled the thread %" PRId32 " times\n", cnt);
+#endif
                         break;
                     }
 
@@ -1032,7 +1041,9 @@ void TmThreadKillThreads(void) {
                     usleep(100);
                 }
 
+#ifdef DEBUG
                 printf("TmThreadKillThreads: signalled t->inq->id %" PRIu32 "\n", t->inq->id);
+#endif
 
             }
 
@@ -1040,7 +1051,9 @@ void TmThreadKillThreads(void) {
                 int cnt = 0;
                 while (1) {
                     if (t->flags & THV_CLOSED) {
+#ifdef DEBUG
                         printf("signalled the thread %" PRId32 " times\n", cnt);
+#endif
                         break;
                     }
 
@@ -1054,7 +1067,9 @@ void TmThreadKillThreads(void) {
 
             /* join it */
             pthread_join(t->t, NULL);
+#ifdef DEBUG
             printf("TmThreadKillThreads: thread %s stopped\n", t->name);
+#endif
 
             t = t->next;
         }
