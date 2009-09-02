@@ -312,7 +312,7 @@ ConfTestOverrideValue2(void)
 
     if (ConfSet(name, value0, 0) != 1)
         return 0;
-    if (ConfSet(name, value1, 0) != 0)
+    if (ConfSet(name, value1, 1) != 0)
         return 0;
     if (ConfGet(name, &val) != 1)
         return 0;
