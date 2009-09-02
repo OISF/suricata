@@ -1182,7 +1182,6 @@ int main(int argc, char **argv)
     TmModuleLogHttplogRegister();
     TmModuleLogHttplogIPv4Register();
     TmModuleLogHttplogIPv6Register();
-    TmModuleStreamTcpRegister();
     TmModuleDebugList();
 
 #ifdef UNITTESTS
@@ -1213,6 +1212,7 @@ int main(int argc, char **argv)
         AlpDetectRegisterTests();
         ConfRegisterTests();
         TmqhFlowRegisterTests();
+        StreamTcpRegisterTests();
         FlowRegisterTests();
         uint32_t failed = UtRunTests();
         UtCleanup();
@@ -1272,6 +1272,8 @@ int main(int argc, char **argv)
 
     /* Spawn the flow manager thread */
     FlowManagerThreadSpawn();
+
+    TmModuleStreamTcpRegister();
 
     /* Spawn the L7 App Detect thread */
     AppLayerDetectProtoThreadSpawn();

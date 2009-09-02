@@ -91,12 +91,19 @@ enum {
     FLOW_PROTO_ICMP,
 };
 
+enum {
+    FLOW_STATE_NEW = 0,
+    FLOW_STATE_ESTABLISHED,
+    FLOW_STATE_CLOSED,
+};
+
 typedef struct Protocols_ {
     uint32_t new_timeout;
     uint32_t est_timeout;
     uint32_t emerg_new_timeout;
     uint32_t emerg_est_timeout;
     void (*Freefunc)(void *);
+    int (*GetFlowState)(void *);
 }Protocols;
 
 void FlowHandlePacket (ThreadVars *, Packet *);
@@ -113,6 +120,7 @@ void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t );
 int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t );
 int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
+int FlowSetProtoFlowStateFunc (uint8_t , int (*GetFlowState)(void *));
 
 #endif /* __FLOW_H__ */
 

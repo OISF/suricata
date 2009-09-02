@@ -45,6 +45,7 @@ int FlowSetProtoEmergencyTimeout(uint8_t , uint32_t ,uint32_t );
 static int FlowGetProtoMapping(uint8_t );
 static int FlowClearMemory(Flow *,uint8_t );
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
+int FlowSetProtoFlowStateFunc (uint8_t , int (*GetFlowState)(void *));
 /** \brief Update the flows position in the queue's
  *  \param f Flow to requeue.
  *
@@ -113,16 +114,31 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     uint8_t proto_map;
 
     proto_map = FlowGetProtoMapping(f->proto);
-    if (!(FlowUpdateSpareFlows()) && (flow_flags & FLOW_EMERGENCY)) {
-        if (f->flags & FLOW_EST_LIST)
-            timeout = protocols[proto_map].emerg_est_timeout;
-        else
-            timeout = protocols[proto_map].emerg_new_timeout;
+    if (flow_flags & FLOW_EMERGENCY) {
+        if (protocols[proto_map].GetFlowState != NULL) {
+            if ((protocols[proto_map].GetFlowState(f->stream)) == FLOW_STATE_ESTABLISHED)
+                timeout = protocols[proto_map].emerg_est_timeout;
+            else
+                timeout = protocols[proto_map].emerg_new_timeout;
+        } else {
+            if (f->flags & FLOW_EST_LIST)
+                timeout = protocols[proto_map].emerg_est_timeout;
+            else
+                timeout = protocols[proto_map].emerg_new_timeout;
+        }
+
     } else {
-        if (f->flags & FLOW_EST_LIST)
-            timeout = protocols[proto_map].est_timeout;
-        else
-            timeout = protocols[proto_map].new_timeout;
+        if (protocols[proto_map].GetFlowState != NULL) {
+            if ((protocols[proto_map].GetFlowState(f->stream)) == FLOW_STATE_ESTABLISHED)
+                timeout = protocols[proto_map].emerg_est_timeout;
+            else
+                timeout = protocols[proto_map].emerg_new_timeout;
+        } else {
+            if (f->flags & FLOW_EST_LIST)
+                timeout = protocols[proto_map].emerg_est_timeout;
+            else
+                timeout = protocols[proto_map].emerg_new_timeout;
+        }
     }
 
     DEBUGPRINT("got lock, now check: %" PRId64 "+%" PRIu32 "=(%" PRId64 ") < %" PRId64 "", f->lastts.tv_sec,
@@ -447,11 +463,11 @@ void *FlowManagerThread(void *td)
             TimeGet(&ts);
             DEBUGPRINT("ts %" PRId64 "", ts.tv_sec);
 
-            /* see if we still have enough spare flows
+            /* see if we still have enough spare flows */
             if (!(FlowUpdateSpareFlows()) && emerg == TRUE) {
-                timeout_new = flow_config.emerg_timeout_new;
-                timeout_est = flow_config.emerg_timeout_est;
-            }*/
+                /*timeout_new = flow_config.emerg_timeout_new;
+                timeout_est = flow_config.emerg_timeout_est;*/
+            }
 
             /* prune new list */
             nowcnt = FlowPruneFlows(&flow_new_q, &ts);
@@ -516,25 +532,28 @@ void FlowInitProtocols(void) {
     protocols[FLOW_PROTO_DEFAULT].emerg_new_timeout = FLOW_DEFAULT_EMERG_NEW_TIMEOUT;
     protocols[FLOW_PROTO_DEFAULT].emerg_est_timeout = FLOW_DEFAULT_EMERG_EST_TIMEOUT;
     protocols[FLOW_PROTO_DEFAULT].Freefunc = NULL;
+    protocols[FLOW_PROTO_DEFAULT].GetFlowState = NULL;
     /*TCP*/
     protocols[FLOW_PROTO_TCP].new_timeout = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
     protocols[FLOW_PROTO_TCP].est_timeout = FLOW_IPPROTO_TCP_EST_TIMEOUT;
     protocols[FLOW_PROTO_TCP].emerg_new_timeout = FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT;
     protocols[FLOW_PROTO_TCP].emerg_est_timeout = FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT;
     protocols[FLOW_PROTO_TCP].Freefunc = NULL;
+    protocols[FLOW_PROTO_TCP].GetFlowState = NULL;
     /*UDP*/
     protocols[FLOW_PROTO_UDP].new_timeout = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
     protocols[FLOW_PROTO_UDP].est_timeout = FLOW_IPPROTO_UDP_EST_TIMEOUT;
     protocols[FLOW_PROTO_UDP].emerg_new_timeout = FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT;
     protocols[FLOW_PROTO_UDP].emerg_est_timeout = FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT;
     protocols[FLOW_PROTO_UDP].Freefunc = NULL;
+    protocols[FLOW_PROTO_UDP].GetFlowState = NULL;
     /*ICMP*/
     protocols[FLOW_PROTO_ICMP].new_timeout = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
     protocols[FLOW_PROTO_ICMP].est_timeout = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
     protocols[FLOW_PROTO_ICMP].emerg_new_timeout = FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT;
     protocols[FLOW_PROTO_ICMP].emerg_est_timeout = FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT;
     protocols[FLOW_PROTO_ICMP].Freefunc = NULL;
-
+    protocols[FLOW_PROTO_ICMP].GetFlowState = NULL;
 }
 
 static int FlowClearMemory(Flow* f, uint8_t proto_map) {
@@ -555,6 +574,15 @@ int FlowSetProtoFreeFunc (uint8_t proto, void (*Free)(void *)) {
     return 1;
 }
 
+int FlowSetProtoFlowStateFunc (uint8_t proto, int (*GetFlowState)(void *)) {
+
+    uint8_t proto_map;
+    proto_map = FlowGetProtoMapping(proto);
+
+    protocols[proto_map].GetFlowState = GetFlowState;
+    return 1;
+}
+
 int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout, uint32_t est_timeout) {
 
     uint8_t proto_map;
@@ -562,7 +590,7 @@ int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout, uint32_t est_timeou
 
     protocols[proto_map].new_timeout = new_timeout;
     protocols[proto_map].est_timeout = est_timeout;
-    printf("The time out is %"PRIu32"\n",protocols[FLOW_PROTO_TCP].est_timeout);
+
     return 1;
 }
 
@@ -695,11 +723,7 @@ static int FlowTest03 (void) {
     memset(&fb, 0, sizeof(FlowBucket));
 
     TimeGet(&ts);
-    f.flags = FLOW_EST_LIST;
-    /*The value should be more than 3600s but as the FlowInitConfig()
-     is called Decodeppptests(), it reinitalize the flow timeout values to
-     defaults.*/
-    f.lastts.tv_sec = ts.tv_sec - 500;
+    f.lastts.tv_sec = ts.tv_sec - 5000;
     f.stream = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -736,11 +760,7 @@ static int FlowTest04 (void) {
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
-    f.flags = FLOW_EST_LIST;
-    /*The value should be more than 3600s but as the FlowInitConfig()
-     is called Decodeppptests(), it reinitalize the flow timeout values to
-     defaults.*/
-    f.lastts.tv_sec = ts.tv_sec - 500;
+    f.lastts.tv_sec = ts.tv_sec - 5000;
     f.stream = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -765,11 +785,8 @@ static int FlowTest05 (void) {
     memset(&fb, 0, sizeof(FlowBucket));
 
     TimeGet(&ts);
-    f.flags = FLOW_EST_LIST;
-    /*The value should be more than 300s but as the FlowInitConfig()
-     is called Decodeppptests(), it reinitalize the flow timeout values to
-     defaults.*/
-    f.lastts.tv_sec = ts.tv_sec - 150;
+    ssn.state = TCP_SYN_SENT;
+    f.lastts.tv_sec = ts.tv_sec - 300;
     f.stream = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -807,11 +824,7 @@ static int FlowTest06 (void) {
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
-    f.flags = FLOW_EST_LIST;
-    /*The value should be more than 300s but as the FlowInitConfig()
-     is called Decodeppptests(), it reinitalize the flow timeout values to
-     defaults.*/
-    f.lastts.tv_sec = ts.tv_sec - 150;
+    f.lastts.tv_sec = ts.tv_sec - 5000;
     f.stream = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;

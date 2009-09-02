@@ -16,6 +16,7 @@ typedef struct TcpStreamCnf_ {
 TcpStreamCnf stream_config;
 void TmModuleStreamTcpRegister (void);
 void StreamTcpInitConfig (char);
+void StreamTcpRegisterTests (void);
 
 #endif /* __STREAM_TCP_H__ */
 

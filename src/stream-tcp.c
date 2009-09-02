@@ -47,6 +47,7 @@ void StreamTcpRegisterTests (void);
 void StreamTcpReturnStreamSegments (TcpStream *);
 void StreamTcpInitConfig(char);
 extern void StreamTcpSegmentReturntoPool(TcpSegment *);
+int StreamTcpGetFlowState(void *);
 
 #define STREAMTCP_DEFAULT_SESSIONS  262144
 #define STREAMTCP_DEFAULT_PREALLOC  32768
@@ -167,6 +168,7 @@ void StreamTcpInitConfig(char quiet) {
     FlowSetProtoTimeout(IPPROTO_TCP, STREAMTCP_NEW_TIMEOUT, STREAMTCP_EST_TIMEOUT);
     FlowSetProtoEmergencyTimeout(IPPROTO_TCP, STREAMTCP_EMERG_NEW_TIMEOUT, STREAMTCP_EMERG_EST_TIMEOUT);
     FlowSetProtoFreeFunc(IPPROTO_TCP, StreamTcpSessionPoolFree);
+    FlowSetProtoFlowStateFunc(IPPROTO_TCP, StreamTcpGetFlowState);
 }
 
 /** \brief The function is used to to fetch a TCP session from the
@@ -424,7 +426,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
             if(ValidReset(ssn, p)){
                 if(SEQ_EQ(TCP_GET_SEQ(p), ssn->client.isn) && SEQ_EQ(TCP_GET_WINDOW(p), 0) && SEQ_EQ(TCP_GET_ACK(p), (ssn->client.isn + 1))) {
                     ssn->state = TCP_CLOSED;
-                    StreamTcpSessionPktFree(p);
+                    //StreamTcpSessionPktFree(p);
                 }
             } else
                 return -1;
@@ -507,7 +509,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
         case TH_RST|TH_ACK:
             if(ValidReset(ssn, p)) {
                 ssn->state = TCP_CLOSED;
-                StreamTcpSessionPktFree(p);
+                //StreamTcpSessionPktFree(p);
             } else
                 return -1;
             break;
@@ -672,7 +674,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
                     printf("StreamTcpPacketStateEstablished (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                             ssn, ssn->client.next_seq, ssn->server.last_ack);
 #endif
-                    StreamTcpSessionPktFree(p);
+                    //StreamTcpSessionPktFree(p);
                 } else {
 #ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): Reset received and state changed to TCP_CLOSED\n", ssn);
@@ -694,7 +696,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
                     printf("StreamTcpPacketStateEstablished (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                             ssn, ssn->server.next_seq, ssn->client.last_ack);
 #endif
-                    StreamTcpSessionPktFree(p);
+                    //StreamTcpSessionPktFree(p);
                 }
             } else
                 return -1;
@@ -909,7 +911,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
                 printf("StreamTcpPacketStateFinWait1 (%p): Reset received state changed to TCP_CLOSED\n", ssn);
 #endif
                 ssn->state = TCP_CLOSED;
-                StreamTcpSessionPktFree(p);
+                //StreamTcpSessionPktFree(p);
             }
             else
                 return -1;
@@ -1002,7 +1004,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
                 printf("StreamTcpPacketStateFinWait2 (%p): Reset received state changed to TCP_CLOSED\n", ssn);
 #endif
                 ssn->state = TCP_CLOSED;
-                StreamTcpSessionPktFree(p);
+                //StreamTcpSessionPktFree(p);
             }
             else
                 return -1;
@@ -1254,7 +1256,7 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p, StreamTcpThrea
                 printf("StreamTcpPacketStateLastAck (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
 #endif
-                StreamTcpSessionPktFree(p);
+                //StreamTcpSessionPktFree(p);
             }
             break;
         default:
@@ -1306,7 +1308,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
                 printf("StreamTcpPacketStateTimeWait (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
 #endif
-                StreamTcpSessionPktFree(p);
+                //StreamTcpSessionPktFree(p);
             } else {
 #ifdef DEBUG
                 printf("StreamTcpPacketStateTimeWait (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
@@ -1333,7 +1335,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
                 printf("StreamTcpPacketStateTimeWait (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
 #endif
-                StreamTcpSessionPktFree(p);
+                //StreamTcpSessionPktFree(p);
             }
             break;
         default:
@@ -1596,6 +1598,30 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
     return 0;
 }
 
+int StreamTcpGetFlowState(void *s) {
+    TcpSession *ssn = (TcpSession *)s;
+
+    switch(ssn->state) {
+        case 0:
+        case TCP_SYN_SENT:
+        case TCP_SYN_RECV:
+        case TCP_LISTEN:
+            return FLOW_STATE_NEW;
+        case TCP_ESTABLISHED:
+            return FLOW_STATE_ESTABLISHED;
+        case TCP_FIN_WAIT1:
+        case TCP_FIN_WAIT2:
+        case TCP_CLOSING:
+        case TCP_LAST_ACK:
+        case TCP_TIME_WAIT:
+        case TCP_CLOSE_WAIT:
+        case TCP_CLOSED:
+            return FLOW_STATE_CLOSED;
+    }
+    return FLOW_STATE_CLOSED;
+}
+
+
 #ifdef UNITTESTS
 
 /**
@@ -1615,6 +1641,7 @@ static int StreamTcpTest01 (void) {
     f.stream = &ssn1;
     p.flow = &f;
 
+    StreamTcpInitConfig(TRUE);
     TcpSession *ssn = StreamTcpNewSession(&p);
     if (ssn == NULL) {
         printf("Session can not be allocated \n");
