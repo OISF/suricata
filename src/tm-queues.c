@@ -24,6 +24,9 @@ Tmq* TmqCreateQueue(char *name) {
     if (tmq_id >= TMQ_MAX_QUEUES)
         goto error;
 
+#ifdef DEBUG
+    printf("TmqCreateQueue: created queue \'%s\'...\n", name);
+#endif
     Tmq *q = &tmqs[tmq_id];
     q->name = name;
     q->id = tmq_id++;
@@ -66,19 +69,25 @@ void TmqResetQueues(void) {
 void TmValidateQueueState(void)
 {
     int i = 0;
+    char err = FALSE;
 
     for (i = 0; i < tmq_id; i++) {
+        mutex_lock(&trans_q[tmqs[i].id].mutex_q);
         if (tmqs[i].reader_cnt == 0) {
             printf("Error: Queue \"%s\" doesn't have a reader\n", tmqs[i].name);
-            goto error;
+            err = TRUE;
         } else if (tmqs[i].writer_cnt == 0) {
             printf("Error: Queue \"%s\" doesn't have a writer\n", tmqs[i].name);
-            goto error;
+            err = TRUE;
         }
+        mutex_unlock(&trans_q[tmqs[i].id].mutex_q);
+
+        if (err == TRUE)
+            goto error;
     }
 
     return;
 
- error:
+error:
     exit(EXIT_FAILURE);
 }

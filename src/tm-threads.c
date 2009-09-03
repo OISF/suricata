@@ -576,7 +576,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     tv->aof = THV_RESTART_THREAD;
 
     /* set the incoming queue */
-    if (inq_name != NULL) {
+    if (inq_name != NULL && strcmp(inq_name,"packetpool") != 0) {
         tmq = TmqGetQueueByName(inq_name);
         if (tmq == NULL) {
             tmq = TmqCreateQueue(inq_name);
@@ -603,9 +603,10 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
         tv->tmqh_out = tmqh->OutHandler;
         //printf("TmThreadCreate: tv->tmqh_out %p\n", tv->tmqh_out);
 
-        if (outq_name != NULL) {
+        if (outq_name != NULL && strcmp(outq_name,"packetpool") != 0) {
             if (tmqh->OutHandlerCtxSetup != NULL) {
                 tv->outctx = tmqh->OutHandlerCtxSetup(outq_name);
+                tv->outq = NULL;
             } else {
                 tmq = TmqGetQueueByName(outq_name);
                 if (tmq == NULL) {
@@ -614,6 +615,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
                 }
 
                 tv->outq = tmq;
+                tv->outctx = NULL;
                 tv->outq->writer_cnt++;
             }
             //printf("TmThreadCreate: tv->outq->id %" PRIu32 "\n", tv->outq->id);
