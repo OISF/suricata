@@ -101,25 +101,23 @@ void PerfSpawnThreads(void)
     ThreadVars *tv_mgmt = NULL;
 
     /* Spawn the stats wakeup thread */
-    tv_wakeup = TmThreadCreate("PerfWakeupThread", NULL, NULL, NULL, NULL,
-                               "custom", PerfWakeupThread, 1);
+    tv_wakeup = TmThreadCreateMgmtThread("PerfWakeupThread", PerfWakeupThread, 1);
     if (tv_wakeup == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    if (TmThreadSpawn(tv_wakeup, TVT_MGMT, THV_USE | THV_PAUSE) != 0) {
+    if (TmThreadSpawn(tv_wakeup) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
 
     /* Spawn the stats mgmt thread */
-    tv_mgmt = TmThreadCreate("PerfMgmtThread", NULL, NULL, NULL, NULL,
-                             "custom", PerfMgmtThread, 1);
+    tv_mgmt = TmThreadCreateMgmtThread("PerfMgmtThread", PerfMgmtThread, 1);
     if (tv_mgmt == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    if (TmThreadSpawn(tv_mgmt, TVT_MGMT, THV_USE | THV_PAUSE) != 0) {
+    if (TmThreadSpawn(tv_mgmt) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }

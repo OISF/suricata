@@ -14,24 +14,21 @@ extern pthread_mutex_t tv_root_lock;
 
 void Tm1SlotSetFunc(ThreadVars *, TmModule *, void *);
 
-void Tm2SlotSetFunc1(ThreadVars *, TmModule *, void *);
-
-void Tm2SlotSetFunc2(ThreadVars *, TmModule *, void *);
-
-void Tm3SlotSetFunc1(ThreadVars *, TmModule *, void *);
-
-void Tm3SlotSetFunc2(ThreadVars *, TmModule *, void *);
-
-void Tm3SlotSetFunc3(ThreadVars *, TmModule *, void *);
-
 void TmVarSlotSetFuncAppend(ThreadVars *, TmModule *, void *);
 
-
-ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
-                           char *outq_name, char *outqh_name, char *slots,
+ThreadVars *TmThreadCreate(char *, char *, char *, char *, char *, char *,
                            void *(fn_p)(void *), int);
 
-int TmThreadSpawn(ThreadVars *, int, int);
+ThreadVars *TmThreadCreatePacketHandler(char *, char *, char *, char *, char *,
+                                        char *);
+
+ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *), int);
+
+int TmThreadSpawn(ThreadVars *);
+
+void TmThreadSetFlags(ThreadVars *, uint8_t);
+
+void TmThreadSetAOF(ThreadVars *, uint8_t);
 
 void TmThreadKillThreads(void);
 
@@ -50,6 +47,8 @@ void TmThreadContinueThreads(void);
 void TmThreadPause(ThreadVars *);
 
 void TmThreadPauseThreads(void);
+
+void TmThreadCheckThreadState(void);
 
 #endif /* __TM_THREADS_H__ */
 

@@ -13,8 +13,7 @@
 
 #include "pkt-var.h"
 
-Packet *TmqhInputPacketpool(ThreadVars *t);
-void TmqhOutputPacketpool(ThreadVars *t, Packet *p);
+#include "tmqh-packetpool.h"
 
 void TmqhPacketpoolRegister (void) {
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
@@ -55,6 +54,9 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 {
     PacketQueue *q = &packet_q;
     char proot = 0;
+
+    if (p == NULL)
+        return;
 
     if (IS_TUNNEL_PKT(p)) {
         //printf("TmqhOutputPacketpool: tunnel packet: %p %s\n", p,p->root ? "upper layer":"root");
@@ -140,3 +142,27 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     mutex_unlock(&mutex_pending);
 }
 
+/**
+ * \brief Release all the packets in the queue back to the packetpool.  Mainly
+ *        used by threads that have failed, and wants to return the packets back
+ *        to the packetpool.
+ *
+ * \param pq Pointer to the packetqueue from which the packets have to be
+ *           returned back to the packetpool
+ */
+void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
+{
+    Packet *p = NULL;
+
+    if (pq == NULL)
+        return;
+
+    mutex_lock(&pq->mutex_q);
+
+    while ( (p = PacketDequeue(pq)) != NULL)
+        TmqhOutputPacketpool(NULL, p);
+
+    mutex_unlock(&pq->mutex_q);
+
+    return;
+}

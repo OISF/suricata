@@ -406,13 +406,13 @@ void AppLayerDetectProtoThreadSpawn()
 {
     ThreadVars *tv_applayerdetect = NULL;
 
-    tv_applayerdetect = TmThreadCreate("AppLayerDetectProtoThread", NULL, NULL, NULL, NULL,
-                                    "custom", AppLayerDetectProtoThread, 0);
+    tv_applayerdetect = TmThreadCreateMgmtThread("AppLayerDetectProtoThread",
+                                                 AppLayerDetectProtoThread, 0);
     if (tv_applayerdetect == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    if (TmThreadSpawn(tv_applayerdetect, TVT_PPT, THV_USE) != 0) {
+    if (TmThreadSpawn(tv_applayerdetect) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }

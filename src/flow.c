@@ -467,13 +467,13 @@ void FlowManagerThreadSpawn()
 {
     ThreadVars *tv_flowmgr = NULL;
 
-    tv_flowmgr = TmThreadCreate("FlowManagerThread", NULL, NULL, NULL, NULL,
-                                "custom", FlowManagerThread, 0);
+    tv_flowmgr = TmThreadCreateMgmtThread("FlowManagerThread", FlowManagerThread, 0);
+
     if (tv_flowmgr == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    if (TmThreadSpawn(tv_flowmgr, TVT_PPT, THV_USE) != 0) {
+    if (TmThreadSpawn(tv_flowmgr) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }

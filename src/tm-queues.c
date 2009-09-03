@@ -59,3 +59,26 @@ void TmqResetQueues(void) {
     tmq_id = 0;
 }
 
+/**
+ * \brief Checks if all the queues allocated so far have at least one reader
+ *        and writer.
+ */
+void TmValidateQueueState(void)
+{
+    int i = 0;
+
+    for (i = 0; i < tmq_id; i++) {
+        if (tmqs[i].reader_cnt == 0) {
+            printf("Error: Queue \"%s\" doesn't have a reader\n", tmqs[i].name);
+            goto error;
+        } else if (tmqs[i].writer_cnt == 0) {
+            printf("Error: Queue \"%s\" doesn't have a writer\n", tmqs[i].name);
+            goto error;
+        }
+    }
+
+    return;
+
+ error:
+    exit(EXIT_FAILURE);
+}

@@ -75,7 +75,7 @@ static int StoreQueueId(TmqhFlowCtx *ctx, char *name) {
         if (tmq == NULL)
             return -1;
     }
-    tmq->usecnt++;
+    tmq->writer_cnt++;
 
     uint16_t id = tmq->id;
     //printf("StoreQueueId: id %u\n", id);
