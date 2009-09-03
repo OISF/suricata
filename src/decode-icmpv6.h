@@ -4,6 +4,7 @@
 #define __DECODE_ICMPV6_H__
 
 #define ICMPV6_HEADER_LEN       8
+
 #ifndef ICMP6_DST_UNREACH
 #define ICMP6_DST_UNREACH             1
 #endif
@@ -63,6 +64,10 @@
 #define ICMP6_PARAMPROB_OPTION        2 /* unrecognized IPv6 option */
 #endif
 
+/** marco for icmpv6 type access */
+#define ICMPV6_GET_TYPE(p)      (p)->icmpv6h->type
+/** marco for icmpv4 code access */
+#define ICMPV6_GET_CODE(p)      (p)->icmpv6h->code
 
 typedef struct ICMPV6Hdr_
 {

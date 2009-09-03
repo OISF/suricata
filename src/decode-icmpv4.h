@@ -123,6 +123,11 @@
 #define ICMP_EXC_FRAGTIME       1       /* Fragment Reass time exceeded */
 #endif
 
+/** marco for icmpv4 type access */
+#define ICMPV4_GET_TYPE(p)      (p)->icmpv4h->type
+/** marco for icmpv4 code access */
+#define ICMPV4_GET_CODE(p)      (p)->icmpv4h->code
+
 /* ICMPv4 header structure */
 typedef struct ICMPV4Hdr_
 {
