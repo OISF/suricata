@@ -40,12 +40,12 @@ Protocols protocols[4];
 void FlowRegisterTests (void);
 void FlowInitProtocols();
 static int FlowUpdateSpareFlows(void);
-int FlowSetProtoTimeout(uint8_t , uint32_t ,uint32_t );
-int FlowSetProtoEmergencyTimeout(uint8_t , uint32_t ,uint32_t );
+int FlowSetProtoTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
+int FlowSetProtoEmergencyTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
 static int FlowGetProtoMapping(uint8_t );
 static int FlowClearMemory(Flow *,uint8_t );
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
-int FlowSetProtoFlowStateFunc (uint8_t , int (*GetFlowState)(void *));
+int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
 /** \brief Update the flows position in the queue's
  *  \param f Flow to requeue.
  *
@@ -110,16 +110,26 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         return 0;
     }
 
+    /*set the timeout value according to the flow operating mode, flow's state
+      and protocol.*/
     uint32_t timeout = 0;
     uint8_t proto_map;
 
     proto_map = FlowGetProtoMapping(f->proto);
     if (flow_flags & FLOW_EMERGENCY) {
-        if (protocols[proto_map].GetFlowState != NULL) {
-            if ((protocols[proto_map].GetFlowState(f->stream)) == FLOW_STATE_ESTABLISHED)
-                timeout = protocols[proto_map].emerg_est_timeout;
-            else
-                timeout = protocols[proto_map].emerg_new_timeout;
+
+        if (protocols[proto_map].GetProtoState != NULL) {
+            switch(protocols[proto_map].GetProtoState(f->stream)) {
+                case FLOW_STATE_NEW:
+                    timeout = protocols[proto_map].emerg_new_timeout;
+                    break;
+                case FLOW_STATE_ESTABLISHED:
+                    timeout = protocols[proto_map].emerg_est_timeout;
+                    break;
+                case FLOW_STATE_CLOSED:
+                    timeout = protocols[proto_map].emerg_closed_timeout;
+                    break;
+            }
         } else {
             if (f->flags & FLOW_EST_LIST)
                 timeout = protocols[proto_map].emerg_est_timeout;
@@ -128,16 +138,24 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         }
 
     } else {
-        if (protocols[proto_map].GetFlowState != NULL) {
-            if ((protocols[proto_map].GetFlowState(f->stream)) == FLOW_STATE_ESTABLISHED)
-                timeout = protocols[proto_map].emerg_est_timeout;
-            else
-                timeout = protocols[proto_map].emerg_new_timeout;
+
+        if (protocols[proto_map].GetProtoState != NULL) {
+            switch(protocols[proto_map].GetProtoState(f->stream)) {
+                case FLOW_STATE_NEW:
+                    timeout = protocols[proto_map].new_timeout;
+                    break;
+                case FLOW_STATE_ESTABLISHED:
+                    timeout = protocols[proto_map].est_timeout;
+                    break;
+                case FLOW_STATE_CLOSED:
+                    timeout = protocols[proto_map].closed_timeout;
+                    break;
+            }
         } else {
             if (f->flags & FLOW_EST_LIST)
-                timeout = protocols[proto_map].emerg_est_timeout;
+                timeout = protocols[proto_map].est_timeout;
             else
-                timeout = protocols[proto_map].emerg_new_timeout;
+                timeout = protocols[proto_map].new_timeout;
         }
     }
 
@@ -525,36 +543,57 @@ void FlowManagerThreadSpawn()
     return;
 }
 
+/**
+ *  \brief  Function to set the default timeout, free function and flow state
+ *          function for all supported protocols.
+ */
+
 void FlowInitProtocols(void) {
     /*Default*/
     protocols[FLOW_PROTO_DEFAULT].new_timeout = FLOW_DEFAULT_NEW_TIMEOUT;
     protocols[FLOW_PROTO_DEFAULT].est_timeout = FLOW_DEFAULT_EST_TIMEOUT;
+    protocols[FLOW_PROTO_DEFAULT].closed_timeout = FLOW_DEFAULT_CLOSED_TIMEOUT;
     protocols[FLOW_PROTO_DEFAULT].emerg_new_timeout = FLOW_DEFAULT_EMERG_NEW_TIMEOUT;
     protocols[FLOW_PROTO_DEFAULT].emerg_est_timeout = FLOW_DEFAULT_EMERG_EST_TIMEOUT;
+    protocols[FLOW_PROTO_DEFAULT].emerg_closed_timeout = FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT;
     protocols[FLOW_PROTO_DEFAULT].Freefunc = NULL;
-    protocols[FLOW_PROTO_DEFAULT].GetFlowState = NULL;
+    protocols[FLOW_PROTO_DEFAULT].GetProtoState = NULL;
     /*TCP*/
     protocols[FLOW_PROTO_TCP].new_timeout = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
     protocols[FLOW_PROTO_TCP].est_timeout = FLOW_IPPROTO_TCP_EST_TIMEOUT;
+    protocols[FLOW_PROTO_TCP].closed_timeout = FLOW_DEFAULT_CLOSED_TIMEOUT;
     protocols[FLOW_PROTO_TCP].emerg_new_timeout = FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT;
     protocols[FLOW_PROTO_TCP].emerg_est_timeout = FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT;
+    protocols[FLOW_PROTO_TCP].emerg_closed_timeout = FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT;
     protocols[FLOW_PROTO_TCP].Freefunc = NULL;
-    protocols[FLOW_PROTO_TCP].GetFlowState = NULL;
+    protocols[FLOW_PROTO_TCP].GetProtoState = NULL;
     /*UDP*/
     protocols[FLOW_PROTO_UDP].new_timeout = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
     protocols[FLOW_PROTO_UDP].est_timeout = FLOW_IPPROTO_UDP_EST_TIMEOUT;
+    protocols[FLOW_PROTO_UDP].closed_timeout = FLOW_DEFAULT_CLOSED_TIMEOUT;
     protocols[FLOW_PROTO_UDP].emerg_new_timeout = FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT;
     protocols[FLOW_PROTO_UDP].emerg_est_timeout = FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT;
+    protocols[FLOW_PROTO_UDP].emerg_closed_timeout = FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT;
     protocols[FLOW_PROTO_UDP].Freefunc = NULL;
-    protocols[FLOW_PROTO_UDP].GetFlowState = NULL;
+    protocols[FLOW_PROTO_UDP].GetProtoState = NULL;
     /*ICMP*/
     protocols[FLOW_PROTO_ICMP].new_timeout = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
     protocols[FLOW_PROTO_ICMP].est_timeout = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
+    protocols[FLOW_PROTO_ICMP].closed_timeout = FLOW_DEFAULT_CLOSED_TIMEOUT;
     protocols[FLOW_PROTO_ICMP].emerg_new_timeout = FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT;
     protocols[FLOW_PROTO_ICMP].emerg_est_timeout = FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT;
+    protocols[FLOW_PROTO_ICMP].emerg_closed_timeout = FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT;
     protocols[FLOW_PROTO_ICMP].Freefunc = NULL;
-    protocols[FLOW_PROTO_ICMP].GetFlowState = NULL;
+    protocols[FLOW_PROTO_ICMP].GetProtoState = NULL;
 }
+
+/**
+ *  \brief  Function clear the flow memory before queueing it to spare flow
+ *          queue.
+ *
+ *  \param  f           pointer to the flow needed to be cleared.
+ *  \param  proto_map   mapped value of the protocol to FLOW_PROTO's.
+ */
 
 static int FlowClearMemory(Flow* f, uint8_t proto_map) {
     /*This check should be removed later*/
@@ -565,6 +604,14 @@ static int FlowClearMemory(Flow* f, uint8_t proto_map) {
     return 1;
 }
 
+/**
+ *  \brief  Function to set the function to get protocol specific flow state.
+ *
+ *  \param   proto  protocol of which function is needed to be set.
+ *  \param   Free   Function pointer which will be called to free the protocol
+ *                  specific memory.
+ */
+
 int FlowSetProtoFreeFunc (uint8_t proto, void (*Free)(void *)) {
 
     uint8_t proto_map;
@@ -574,36 +621,70 @@ int FlowSetProtoFreeFunc (uint8_t proto, void (*Free)(void *)) {
     return 1;
 }
 
-int FlowSetProtoFlowStateFunc (uint8_t proto, int (*GetFlowState)(void *)) {
+/**
+ *  \brief  Function to set the function to get protocol specific flow state.
+ *
+ *  \param   proto            protocol of which function is needed to be set.
+ *  \param   GetFlowState     Function pointer which will be called to get state.
+ */
+
+int FlowSetFlowStateFunc (uint8_t proto, int (*GetProtoState)(void *)) {
 
     uint8_t proto_map;
     proto_map = FlowGetProtoMapping(proto);
 
-    protocols[proto_map].GetFlowState = GetFlowState;
+    protocols[proto_map].GetProtoState = GetProtoState;
     return 1;
 }
 
-int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout, uint32_t est_timeout) {
+/**
+ *  \brief   Function to set the timeout values for the specified protocol.
+ *
+ *  \param   proto            protocol of which timeout value is needed to be set.
+ *  \param   new_timeout      timeout value for the new flows.
+ *  \param   est_timeout      timeout value for the established flows.
+ *  \param   closed_timeout   timeout value for the closed flows.
+ */
+
+int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout, uint32_t est_timeout, uint32_t closed_timeout) {
 
     uint8_t proto_map;
     proto_map = FlowGetProtoMapping(proto);
 
     protocols[proto_map].new_timeout = new_timeout;
     protocols[proto_map].est_timeout = est_timeout;
+    protocols[proto_map].closed_timeout = closed_timeout;
 
     return 1;
 }
 
-int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t new_timeout, uint32_t est_timeout) {
+/**
+ *  \brief   Function to set the emergency timeout values for the specified
+ *           protocol.
+ *
+ *  \param   proto                  protocol of which timeout value is needed to be set.
+ *  \param   emerg_new_timeout      timeout value for the new flows.
+ *  \param   emerg_est_timeout      timeout value for the established flows.
+ *  \param   emerg_closed_timeout   timeout value for the closed flows.
+ */
+
+int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout, uint32_t emerg_est_timeout, uint32_t emerg_closed_timeout) {
 
     uint8_t proto_map;
     proto_map = FlowGetProtoMapping(proto);
 
-    protocols[proto_map].emerg_new_timeout = new_timeout;
-    protocols[proto_map].emerg_est_timeout = est_timeout;
+    protocols[proto_map].emerg_new_timeout = emerg_new_timeout;
+    protocols[proto_map].emerg_est_timeout = emerg_est_timeout;
+    protocols[proto_map].emerg_closed_timeout = emerg_closed_timeout;
 
     return 1;
 }
+
+/**
+ *  \brief   Function to map the protocol to the defined FLOW_PROTO_* enumeration.
+ *
+ *  \param   proto  protocol which is needed to be mapped
+ */
 
 static int FlowGetProtoMapping(uint8_t proto) {
 
@@ -618,6 +699,12 @@ static int FlowGetProtoMapping(uint8_t proto) {
             return FLOW_PROTO_DEFAULT;
     }
 }
+
+/**
+ *  \test   Test the setting of the per protocol timeouts.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
 
 static int FlowTest01 (void) {
 
@@ -655,7 +742,16 @@ static int FlowTest01 (void) {
     return 1;
 }
 
+/*Test function for the unit test FlowTest02*/
+
 void test(void *f){}
+
+/**
+ *  \test   Test the setting of the per protocol free function to free the
+ *          protocol specific memory.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
 
 static int FlowTest02 (void) {
 
@@ -682,6 +778,15 @@ static int FlowTest02 (void) {
     }
     return 1;
 }
+
+/**
+ *  \brief   Function to test the prunning of the flow in different flow modes.
+ *
+ *  \param   f    Pointer to the flow to be prunned
+ *  \param   ts   time value against which the flow will be checked
+ *
+ *  \retval on success returns 1 and on failure 0
+ */
 
 static int FlowTestPrune(Flow *f, struct timeval *ts) {
 
@@ -710,6 +815,13 @@ static int FlowTestPrune(Flow *f, struct timeval *ts) {
     return 1;
 }
 
+/**
+ *  \test   Test the timing out of a flow with a fresh TcpSession
+ *          (just initialized, no data segments) in normal mode.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
 static int FlowTest03 (void) {
 
     TcpSession ssn;
@@ -733,6 +845,13 @@ static int FlowTest03 (void) {
 
     return 1;
 }
+
+/**
+ *  \test   Test the timing out of a flow with a TcpSession
+ *          (with data segments) in normal mode.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
 
 static int FlowTest04 (void) {
 
@@ -772,6 +891,13 @@ static int FlowTest04 (void) {
 
 }
 
+/**
+ *  \test   Test the timing out of a flow with a fresh TcpSession
+ *          (just initialized, no data segments) in emergency mode.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
 static int FlowTest05 (void) {
 
     TcpSession ssn;
@@ -797,6 +923,13 @@ static int FlowTest05 (void) {
 
     return 1;
 }
+
+/**
+ *  \test   Test the timing out of a flow with a TcpSession
+ *          (with data segments) in emergency mode.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
 
 static int FlowTest06 (void) {
 
@@ -836,6 +969,9 @@ static int FlowTest06 (void) {
     return 1;
 
 }
+/**
+ *  \brief   Function to register the Flow Unitests.
+ */
 
 void FlowRegisterTests (void) {
     UtRegisterTest("FlowTest01 -- Protocol Specific Timeouts", FlowTest01, 1);

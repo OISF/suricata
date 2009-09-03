@@ -100,10 +100,12 @@ enum {
 typedef struct Protocols_ {
     uint32_t new_timeout;
     uint32_t est_timeout;
+    uint32_t closed_timeout;
     uint32_t emerg_new_timeout;
     uint32_t emerg_est_timeout;
+    uint32_t emerg_closed_timeout;
     void (*Freefunc)(void *);
-    int (*GetFlowState)(void *);
+    int (*GetProtoState)(void *);
 }Protocols;
 
 void FlowHandlePacket (ThreadVars *, Packet *);
@@ -117,10 +119,10 @@ void *FlowManagerThread(void *td);
 
 void FlowManagerThreadSpawn(void);
 void FlowRegisterTests (void);
-int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t );
-int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t );
+int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
+int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
-int FlowSetProtoFlowStateFunc (uint8_t , int (*GetFlowState)(void *));
+int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
 
 #endif /* __FLOW_H__ */
 

@@ -53,8 +53,10 @@ int StreamTcpGetFlowState(void *);
 #define STREAMTCP_DEFAULT_PREALLOC  32768
 #define STREAMTCP_NEW_TIMEOUT   60
 #define STREAMTCP_EST_TIMEOUT   3600
+#define STREAMTCP_CLOSED_TIMEOUT   120
 #define STREAMTCP_EMERG_NEW_TIMEOUT 10
 #define STREAMTCP_EMERG_EST_TIMEOUT 300
+#define STREAMTCP_EMERG_CLOSED_TIMEOUT   20
 
 static Pool *ssn_pool;
 static pthread_mutex_t ssn_pool_mutex;
@@ -164,11 +166,11 @@ void StreamTcpInitConfig(char quiet) {
     pthread_mutex_init(&ssn_pool_mutex, NULL);
 
     StreamTcpReassembleInit();
-
-    FlowSetProtoTimeout(IPPROTO_TCP, STREAMTCP_NEW_TIMEOUT, STREAMTCP_EST_TIMEOUT);
-    FlowSetProtoEmergencyTimeout(IPPROTO_TCP, STREAMTCP_EMERG_NEW_TIMEOUT, STREAMTCP_EMERG_EST_TIMEOUT);
+    /*set the default TCP timeout, free function and flow state function values.*/
+    FlowSetProtoTimeout(IPPROTO_TCP, STREAMTCP_NEW_TIMEOUT, STREAMTCP_EST_TIMEOUT, STREAMTCP_CLOSED_TIMEOUT);
+    FlowSetProtoEmergencyTimeout(IPPROTO_TCP, STREAMTCP_EMERG_NEW_TIMEOUT, STREAMTCP_EMERG_EST_TIMEOUT, STREAMTCP_EMERG_CLOSED_TIMEOUT);
     FlowSetProtoFreeFunc(IPPROTO_TCP, StreamTcpSessionPoolFree);
-    FlowSetProtoFlowStateFunc(IPPROTO_TCP, StreamTcpGetFlowState);
+    FlowSetFlowStateFunc(IPPROTO_TCP, StreamTcpGetFlowState);
 }
 
 /** \brief The function is used to to fetch a TCP session from the
