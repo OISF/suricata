@@ -5,10 +5,15 @@
 
 typedef struct TmModule_ {
     char *name;
-    int (*Init)(ThreadVars *, void *, void **);
+
+    /** thread handling */
+    int (*ThreadInit)(ThreadVars *, void *, void **);
+    void (*ThreadExitPrintStats)(ThreadVars *, void *);
+    int (*ThreadDeinit)(ThreadVars *, void *);
+
+    /** the packet processing function */
     int (*Func)(ThreadVars *, Packet *, void *, PacketQueue *);
-    void (*ExitPrintStats)(ThreadVars *, void *);
-    int (*Deinit)(ThreadVars *, void *);
+
     void (*RegisterTests)(void);
 } TmModule;
 

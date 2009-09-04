@@ -35,9 +35,9 @@ int RejectSendIPv6ICMP(ThreadVars *, Packet *, void *);
 void TmModuleRespondRejectRegister (void) {
 
     tmm_modules[TMM_RESPONDREJECT].name = "RespondReject";
-    tmm_modules[TMM_RESPONDREJECT].Init = NULL;
+    tmm_modules[TMM_RESPONDREJECT].ThreadInit = NULL;
     tmm_modules[TMM_RESPONDREJECT].Func = RespondRejectFunc;
-    tmm_modules[TMM_RESPONDREJECT].Deinit = NULL;
+    tmm_modules[TMM_RESPONDREJECT].ThreadDeinit = NULL;
     tmm_modules[TMM_RESPONDREJECT].RegisterTests = NULL;
 }
 

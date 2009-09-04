@@ -46,29 +46,13 @@ void AlertDebuglogExitPrintStats(ThreadVars *, void *);
 
 void TmModuleAlertDebuglogRegister (void) {
     tmm_modules[TMM_ALERTDEBUGLOG].name = "AlertDebuglog";
-    tmm_modules[TMM_ALERTDEBUGLOG].Init = AlertDebuglogThreadInit;
+    tmm_modules[TMM_ALERTDEBUGLOG].ThreadInit = AlertDebuglogThreadInit;
     tmm_modules[TMM_ALERTDEBUGLOG].Func = AlertDebuglog;
-    tmm_modules[TMM_ALERTDEBUGLOG].ExitPrintStats = AlertDebuglogExitPrintStats;
-    tmm_modules[TMM_ALERTDEBUGLOG].Deinit = AlertDebuglogThreadDeinit;
+    tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebuglogExitPrintStats;
+    tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebuglogThreadDeinit;
     tmm_modules[TMM_ALERTDEBUGLOG].RegisterTests = NULL;
 }
-/*
-void TmModuleAlertDebuglogIPv4Register (void) {
-    tmm_modules[TMM_ALERTDEBUGLOG4].name = "AlertDebuglogIPv4";
-    tmm_modules[TMM_ALERTDEBUGLOG4].Init = AlertDebuglogThreadInit;
-    tmm_modules[TMM_ALERTDEBUGLOG4].Func = AlertDebuglogIPv4;
-    tmm_modules[TMM_ALERTDEBUGLOG4].Deinit = AlertDebuglogThreadDeinit;
-    tmm_modules[TMM_ALERTDEBUGLOG4].RegisterTests = NULL;
-}
 
-void TmModuleAlertDebuglogIPv6Register (void) {
-    tmm_modules[TMM_ALERTDEBUGLOG6].name = "AlertDebuglogIPv6";
-    tmm_modules[TMM_ALERTDEBUGLOG6].Init = AlertDebuglogThreadInit;
-    tmm_modules[TMM_ALERTDEBUGLOG6].Func = AlertDebuglogIPv6;
-    tmm_modules[TMM_ALERTDEBUGLOG6].Deinit = AlertDebuglogThreadDeinit;
-    tmm_modules[TMM_ALERTDEBUGLOG6].RegisterTests = NULL;
-}
-*/
 typedef struct AlertDebuglogThread_ {
     FILE *fp;
     uint32_t alerts;

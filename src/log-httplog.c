@@ -41,26 +41,28 @@ void LogHttplogExitPrintStats(ThreadVars *, void *);
 
 void TmModuleLogHttplogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].name = "LogHttplog";
-    tmm_modules[TMM_LOGHTTPLOG].Init = LogHttplogThreadInit;
+    tmm_modules[TMM_LOGHTTPLOG].ThreadInit = LogHttplogThreadInit;
     tmm_modules[TMM_LOGHTTPLOG].Func = LogHttplog;
-    tmm_modules[TMM_LOGHTTPLOG].ExitPrintStats = LogHttplogExitPrintStats;
-    tmm_modules[TMM_LOGHTTPLOG].Deinit = LogHttplogThreadDeinit;
+    tmm_modules[TMM_LOGHTTPLOG].ThreadExitPrintStats = LogHttplogExitPrintStats;
+    tmm_modules[TMM_LOGHTTPLOG].ThreadDeinit = LogHttplogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG].RegisterTests = NULL;
 }
 
 void TmModuleLogHttplogIPv4Register (void) {
     tmm_modules[TMM_LOGHTTPLOG4].name = "LogHttplogIPv4";
-    tmm_modules[TMM_LOGHTTPLOG4].Init = LogHttplogThreadInit;
+    tmm_modules[TMM_LOGHTTPLOG4].ThreadInit = LogHttplogThreadInit;
     tmm_modules[TMM_LOGHTTPLOG4].Func = LogHttplogIPv4;
-    tmm_modules[TMM_LOGHTTPLOG4].Deinit = LogHttplogThreadDeinit;
+    tmm_modules[TMM_LOGHTTPLOG4].ThreadExitPrintStats = LogHttplogExitPrintStats;
+    tmm_modules[TMM_LOGHTTPLOG4].ThreadDeinit = LogHttplogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG4].RegisterTests = NULL;
 }
 
 void TmModuleLogHttplogIPv6Register (void) {
     tmm_modules[TMM_LOGHTTPLOG6].name = "LogHttplogIPv6";
-    tmm_modules[TMM_LOGHTTPLOG6].Init = LogHttplogThreadInit;
+    tmm_modules[TMM_LOGHTTPLOG6].ThreadInit = LogHttplogThreadInit;
     tmm_modules[TMM_LOGHTTPLOG6].Func = LogHttplogIPv6;
-    tmm_modules[TMM_LOGHTTPLOG6].Deinit = LogHttplogThreadDeinit;
+    tmm_modules[TMM_LOGHTTPLOG6].ThreadExitPrintStats = LogHttplogExitPrintStats;
+    tmm_modules[TMM_LOGHTTPLOG6].ThreadDeinit = LogHttplogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG6].RegisterTests = NULL;
 }
 

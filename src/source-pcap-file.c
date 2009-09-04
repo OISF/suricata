@@ -60,19 +60,19 @@ int DecodePcapFileThreadInit(ThreadVars *, void *, void **);
 
 void TmModuleReceivePcapFileRegister (void) {
     tmm_modules[TMM_RECEIVEPCAPFILE].name = "ReceivePcapFile";
-    tmm_modules[TMM_RECEIVEPCAPFILE].Init = ReceivePcapFileThreadInit;
+    tmm_modules[TMM_RECEIVEPCAPFILE].ThreadInit = ReceivePcapFileThreadInit;
     tmm_modules[TMM_RECEIVEPCAPFILE].Func = ReceivePcapFile;
-    tmm_modules[TMM_RECEIVEPCAPFILE].ExitPrintStats = ReceivePcapFileThreadExitStats;
-    tmm_modules[TMM_RECEIVEPCAPFILE].Deinit = NULL;
+    tmm_modules[TMM_RECEIVEPCAPFILE].ThreadExitPrintStats = ReceivePcapFileThreadExitStats;
+    tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].RegisterTests = NULL;
 }
 
 void TmModuleDecodePcapFileRegister (void) {
     tmm_modules[TMM_DECODEPCAPFILE].name = "DecodePcapFile";
-    tmm_modules[TMM_DECODEPCAPFILE].Init = DecodePcapFileThreadInit;
+    tmm_modules[TMM_DECODEPCAPFILE].ThreadInit = DecodePcapFileThreadInit;
     tmm_modules[TMM_DECODEPCAPFILE].Func = DecodePcapFile;
-    tmm_modules[TMM_DECODEPCAPFILE].ExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEPCAPFILE].Deinit = NULL;
+    tmm_modules[TMM_DECODEPCAPFILE].ThreadExitPrintStats = NULL;
+    tmm_modules[TMM_DECODEPCAPFILE].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEPCAPFILE].RegisterTests = NULL;
 }
 

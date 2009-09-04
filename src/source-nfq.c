@@ -31,28 +31,28 @@ int NoNFQSupportExit(ThreadVars *, void *, void **);
 
 void TmModuleReceiveNFQRegister (void) {
     tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
-    tmm_modules[TMM_RECEIVENFQ].Init = NoNFQSupportExit;
+    tmm_modules[TMM_RECEIVENFQ].ThreadInit = NoNFQSupportExit;
     tmm_modules[TMM_RECEIVENFQ].Func = NULL;
-    tmm_modules[TMM_RECEIVENFQ].ExitPrintStats = NULL;
-    tmm_modules[TMM_RECEIVENFQ].Deinit = NULL;
+    tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = NULL;
+    tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
 }
 
 void TmModuleVerdictNFQRegister (void) {
     tmm_modules[TMM_VERDICTNFQ].name = "VerdictNFQ";
-    tmm_modules[TMM_VERDICTNFQ].Init = NoNFQSupportExit;
+    tmm_modules[TMM_VERDICTNFQ].ThreadInit = NoNFQSupportExit;
     tmm_modules[TMM_VERDICTNFQ].Func = NULL;
-    tmm_modules[TMM_VERDICTNFQ].ExitPrintStats = NULL;
-    tmm_modules[TMM_VERDICTNFQ].Deinit = NULL;
+    tmm_modules[TMM_VERDICTNFQ].ThreadExitPrintStats = NULL;
+    tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
 }
 
 void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].name = "DecodeNFQ";
-    tmm_modules[TMM_DECODENFQ].Init = NoNFQSupportExit;
+    tmm_modules[TMM_DECODENFQ].ThreadInit = NoNFQSupportExit;
     tmm_modules[TMM_DECODENFQ].Func = NULL;
-    tmm_modules[TMM_DECODENFQ].ExitPrintStats = NULL;
-    tmm_modules[TMM_DECODENFQ].Deinit = NULL;
+    tmm_modules[TMM_DECODENFQ].ThreadExitPrintStats = NULL;
+    tmm_modules[TMM_DECODENFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
 }
 
@@ -92,19 +92,19 @@ void TmModuleReceiveNFQRegister (void) {
     pthread_mutex_init(&nfq_init_lock, NULL);
 
     tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
-    tmm_modules[TMM_RECEIVENFQ].Init = ReceiveNFQThreadInit;
+    tmm_modules[TMM_RECEIVENFQ].ThreadInit = ReceiveNFQThreadInit;
     tmm_modules[TMM_RECEIVENFQ].Func = ReceiveNFQ;
-    tmm_modules[TMM_RECEIVENFQ].ExitPrintStats = ReceiveNFQThreadExitStats;
-    tmm_modules[TMM_RECEIVENFQ].Deinit = NULL;
+    tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = ReceiveNFQThreadExitStats;
+    tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
 }
 
 void TmModuleVerdictNFQRegister (void) {
     tmm_modules[TMM_VERDICTNFQ].name = "VerdictNFQ";
-    tmm_modules[TMM_VERDICTNFQ].Init = VerdictNFQThreadInit;
+    tmm_modules[TMM_VERDICTNFQ].ThreadInit = VerdictNFQThreadInit;
     tmm_modules[TMM_VERDICTNFQ].Func = VerdictNFQ;
-    tmm_modules[TMM_VERDICTNFQ].ExitPrintStats = VerdictNFQThreadExitStats;
-    tmm_modules[TMM_VERDICTNFQ].Deinit = VerdictNFQThreadDeinit;
+    tmm_modules[TMM_VERDICTNFQ].ThreadExitPrintStats = VerdictNFQThreadExitStats;
+    tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = VerdictNFQThreadDeinit;
     tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
 }
 

@@ -33,10 +33,11 @@ uint8_t tv_aof = THV_RESTART_THREAD;
 
 typedef struct TmSlot_ {
     /* function pointers */
-    int (*SlotInit)(ThreadVars *, void *, void **);
     int (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
-    void (*SlotExitPrintStats)(ThreadVars *, void *);
-    int (*SlotDeinit)(ThreadVars *, void *);
+
+    int (*SlotThreadInit)(ThreadVars *, void *, void **);
+    void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
+    int (*SlotThreadDeinit)(ThreadVars *, void *);
 
     /* data storage */
     void *slot_initdata;
@@ -69,8 +70,8 @@ void *TmThreadsSlot1NoIn(void *td) {
     if (tv->set_cpu_affinity == 1)
         SetCPUAffinity(tv->cpu_affinity);
 
-    if (s->s.SlotInit != NULL) {
-        r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
+    if (s->s.SlotThreadInit != NULL) {
+        r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
             EngineKill();
 
@@ -104,12 +105,12 @@ void *TmThreadsSlot1NoIn(void *td) {
             run = 0;
     }
 
-    if (s->s.SlotExitPrintStats != NULL) {
-        s->s.SlotExitPrintStats(tv, s->s.slot_data);
+    if (s->s.SlotThreadExitPrintStats != NULL) {
+        s->s.SlotThreadExitPrintStats(tv, s->s.slot_data);
     }
 
-    if (s->s.SlotDeinit != NULL) {
-        r = s->s.SlotDeinit(tv, s->s.slot_data);
+    if (s->s.SlotThreadDeinit != NULL) {
+        r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
         if (r != 0) {
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
@@ -130,8 +131,8 @@ void *TmThreadsSlot1NoOut(void *td) {
     if (tv->set_cpu_affinity == 1)
         SetCPUAffinity(tv->cpu_affinity);
 
-    if (s->s.SlotInit != NULL) {
-        r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
+    if (s->s.SlotThreadInit != NULL) {
+        r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
             EngineKill();
 
@@ -159,12 +160,12 @@ void *TmThreadsSlot1NoOut(void *td) {
             run = 0;
     }
 
-    if (s->s.SlotExitPrintStats != NULL) {
-        s->s.SlotExitPrintStats(tv, s->s.slot_data);
+    if (s->s.SlotThreadExitPrintStats != NULL) {
+        s->s.SlotThreadExitPrintStats(tv, s->s.slot_data);
     }
 
-    if (s->s.SlotDeinit != NULL) {
-        r = s->s.SlotDeinit(tv, s->s.slot_data);
+    if (s->s.SlotThreadDeinit != NULL) {
+        r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
         if (r != 0) {
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
@@ -186,8 +187,8 @@ void *TmThreadsSlot1NoInOut(void *td) {
 
     //printf("TmThreadsSlot1NoInOut: %s starting\n", tv->name);
 
-    if (s->s.SlotInit != NULL) {
-        r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
+    if (s->s.SlotThreadInit != NULL) {
+        r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
             EngineKill();
 
@@ -215,12 +216,12 @@ void *TmThreadsSlot1NoInOut(void *td) {
         }
     }
 
-    if (s->s.SlotExitPrintStats != NULL) {
-        s->s.SlotExitPrintStats(tv, s->s.slot_data);
+    if (s->s.SlotThreadExitPrintStats != NULL) {
+        s->s.SlotThreadExitPrintStats(tv, s->s.slot_data);
     }
 
-    if (s->s.SlotDeinit != NULL) {
-        r = s->s.SlotDeinit(tv, s->s.slot_data);
+    if (s->s.SlotThreadDeinit != NULL) {
+        r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
         if (r != 0) {
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
@@ -244,8 +245,8 @@ void *TmThreadsSlot1(void *td) {
 
     //printf("TmThreadsSlot1: %s starting\n", tv->name);
 
-    if (s->s.SlotInit != NULL) {
-        r = s->s.SlotInit(tv, s->s.slot_initdata, &s->s.slot_data);
+    if (s->s.SlotThreadInit != NULL) {
+        r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
         if (r != 0) {
             EngineKill();
 
@@ -292,12 +293,12 @@ void *TmThreadsSlot1(void *td) {
         }
     }
 
-    if (s->s.SlotExitPrintStats != NULL) {
-        s->s.SlotExitPrintStats(tv, s->s.slot_data);
+    if (s->s.SlotThreadExitPrintStats != NULL) {
+        s->s.SlotThreadExitPrintStats(tv, s->s.slot_data);
     }
 
-    if (s->s.SlotDeinit != NULL) {
-        r = s->s.SlotDeinit(tv, s->s.slot_data);
+    if (s->s.SlotThreadDeinit != NULL) {
+        r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
         if (r != 0) {
             tv->flags |= THV_CLOSED;
             pthread_exit((void *) -1);
@@ -362,8 +363,8 @@ void *TmThreadsSlotVar(void *td) {
     //printf("TmThreadsSlot1: %s starting\n", tv->name);
 
     for (slot = s->s; slot != NULL; slot = slot->slot_next) {
-        if (slot->SlotInit != NULL) {
-            r = slot->SlotInit(tv, slot->slot_initdata, &slot->slot_data);
+        if (slot->SlotThreadInit != NULL) {
+            r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot->slot_data);
             if (r != 0) {
                 EngineKill();
 
@@ -404,12 +405,12 @@ void *TmThreadsSlotVar(void *td) {
     }
 
     for (slot = s->s; slot != NULL; slot = slot->slot_next) {
-        if (slot->SlotExitPrintStats != NULL) {
-            slot->SlotExitPrintStats(tv, slot->slot_data);
+        if (slot->SlotThreadExitPrintStats != NULL) {
+            slot->SlotThreadExitPrintStats(tv, slot->slot_data);
         }
 
-        if (slot->SlotDeinit != NULL) {
-            r = slot->SlotDeinit(tv, slot->slot_data);
+        if (slot->SlotThreadDeinit != NULL) {
+            r = slot->SlotThreadDeinit(tv, slot->slot_data);
             if (r != 0) {
                 tv->flags |= THV_CLOSED;
                 pthread_exit((void *) -1);
@@ -477,26 +478,26 @@ void Tm1SlotSetFunc(ThreadVars *tv, TmModule *tm, void *data) {
         printf("Warning: slot 1 is already set tp %p, "
                "overwriting with %p\n", s1->s.SlotFunc, tm->Func);
 
-    s1->s.SlotInit = tm->Init;
+    s1->s.SlotThreadInit = tm->ThreadInit;
     s1->s.slot_initdata = data;
     s1->s.SlotFunc = tm->Func;
-    s1->s.SlotExitPrintStats = tm->ExitPrintStats;
-    s1->s.SlotDeinit = tm->Deinit;
+    s1->s.SlotThreadExitPrintStats = tm->ThreadExitPrintStats;
+    s1->s.SlotThreadDeinit = tm->ThreadDeinit;
 }
 
 void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data) {
     TmVarSlot *s = (TmVarSlot *)tv->tm_slots;
     TmSlot *slot = malloc(sizeof(TmSlot));
-    if (slot == NULL) 
+    if (slot == NULL)
         return;
 
     memset(slot, 0, sizeof(TmSlot));
 
-    slot->SlotInit = tm->Init;
+    slot->SlotThreadInit = tm->ThreadInit;
     slot->slot_initdata = data;
     slot->SlotFunc = tm->Func;
-    slot->SlotExitPrintStats = tm->ExitPrintStats;
-    slot->SlotDeinit = tm->Deinit;
+    slot->SlotThreadExitPrintStats = tm->ThreadExitPrintStats;
+    slot->SlotThreadDeinit = tm->ThreadDeinit;
 
     if (s->s == NULL) {
         s->s = slot;

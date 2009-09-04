@@ -7,8 +7,6 @@
 #include "packet-queue.h"
 #include "tm-modules.h"
 
-TmModule tmm_modules[TMM_SIZE];
-
 void TmModuleDebugList(void) {
     TmModule *t;
     uint16_t i;
@@ -17,17 +15,26 @@ void TmModuleDebugList(void) {
     for (i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
 
+        if (t->name == NULL)
+            continue;
+
         printf("TmModuleDebugList: %s:%p\n", t->name, t->Func);
     }
     printf("TmModuleDebugList: end\n");
 }
 
+/** \brief get a tm module ptr by name
+ *  \param name name string
+ *  \retval ptr to the module or NULL */
 TmModule *TmModuleGetByName(char *name) {
     TmModule *t;
     uint16_t i;
 
     for (i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
+
+        if (t->name == NULL)
+            continue;
 
         if (strcmp(t->name, name) == 0)
             return t;
@@ -36,12 +43,17 @@ TmModule *TmModuleGetByName(char *name) {
     return NULL;
 }
 
+/** \brief register all unittests for the tm modules */
 void TmModuleRegisterTests(void) {
+#ifdef UNITTESTS
     TmModule *t;
     uint16_t i;
 
     for (i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
+
+        if (t->name == NULL)
+            continue;
 
         if (t->RegisterTests == NULL) {
             printf("Warning: threading module %s has no unittest "
@@ -50,5 +62,6 @@ void TmModuleRegisterTests(void) {
             t->RegisterTests();
         }
     }
+#endif /* UNITTESTS */
 }
 

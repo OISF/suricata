@@ -77,10 +77,10 @@ typedef struct StreamTcpThread_ {
 
 void TmModuleStreamTcpRegister (void) {
     tmm_modules[TMM_STREAMTCP].name = "StreamTcp";
-    tmm_modules[TMM_STREAMTCP].Init = StreamTcpThreadInit;
+    tmm_modules[TMM_STREAMTCP].ThreadInit = StreamTcpThreadInit;
     tmm_modules[TMM_STREAMTCP].Func = StreamTcp;
-    tmm_modules[TMM_STREAMTCP].ExitPrintStats = StreamTcpExitPrintStats;
-    tmm_modules[TMM_STREAMTCP].Deinit = StreamTcpThreadDeinit;
+    tmm_modules[TMM_STREAMTCP].ThreadExitPrintStats = StreamTcpExitPrintStats;
+    tmm_modules[TMM_STREAMTCP].ThreadDeinit = StreamTcpThreadDeinit;
     tmm_modules[TMM_STREAMTCP].RegisterTests = StreamTcpRegisterTests;
 }
 

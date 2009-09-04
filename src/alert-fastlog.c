@@ -46,26 +46,28 @@ void AlertFastlogExitPrintStats(ThreadVars *, void *);
 
 void TmModuleAlertFastlogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].name = "AlertFastlog";
-    tmm_modules[TMM_ALERTFASTLOG].Init = AlertFastlogThreadInit;
+    tmm_modules[TMM_ALERTFASTLOG].ThreadInit = AlertFastlogThreadInit;
     tmm_modules[TMM_ALERTFASTLOG].Func = AlertFastlog;
-    tmm_modules[TMM_ALERTFASTLOG].ExitPrintStats = AlertFastlogExitPrintStats;
-    tmm_modules[TMM_ALERTFASTLOG].Deinit = AlertFastlogThreadDeinit;
+    tmm_modules[TMM_ALERTFASTLOG].ThreadExitPrintStats = AlertFastlogExitPrintStats;
+    tmm_modules[TMM_ALERTFASTLOG].ThreadDeinit = AlertFastlogThreadDeinit;
     tmm_modules[TMM_ALERTFASTLOG].RegisterTests = NULL;
 }
 
 void TmModuleAlertFastlogIPv4Register (void) {
     tmm_modules[TMM_ALERTFASTLOG4].name = "AlertFastlogIPv4";
-    tmm_modules[TMM_ALERTFASTLOG4].Init = AlertFastlogThreadInit;
+    tmm_modules[TMM_ALERTFASTLOG4].ThreadInit = AlertFastlogThreadInit;
     tmm_modules[TMM_ALERTFASTLOG4].Func = AlertFastlogIPv4;
-    tmm_modules[TMM_ALERTFASTLOG4].Deinit = AlertFastlogThreadDeinit;
+    tmm_modules[TMM_ALERTFASTLOG4].ThreadExitPrintStats = AlertFastlogExitPrintStats;
+    tmm_modules[TMM_ALERTFASTLOG4].ThreadDeinit = AlertFastlogThreadDeinit;
     tmm_modules[TMM_ALERTFASTLOG4].RegisterTests = NULL;
 }
 
 void TmModuleAlertFastlogIPv6Register (void) {
     tmm_modules[TMM_ALERTFASTLOG6].name = "AlertFastlogIPv6";
-    tmm_modules[TMM_ALERTFASTLOG6].Init = AlertFastlogThreadInit;
+    tmm_modules[TMM_ALERTFASTLOG6].ThreadInit = AlertFastlogThreadInit;
     tmm_modules[TMM_ALERTFASTLOG6].Func = AlertFastlogIPv6;
-    tmm_modules[TMM_ALERTFASTLOG6].Deinit = AlertFastlogThreadDeinit;
+    tmm_modules[TMM_ALERTFASTLOG6].ThreadExitPrintStats = AlertFastlogExitPrintStats;
+    tmm_modules[TMM_ALERTFASTLOG6].ThreadDeinit = AlertFastlogThreadDeinit;
     tmm_modules[TMM_ALERTFASTLOG6].RegisterTests = NULL;
 }
 

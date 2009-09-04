@@ -66,10 +66,10 @@ int DetectThreadDeinit(ThreadVars *, void *);
 
 void TmModuleDetectRegister (void) {
     tmm_modules[TMM_DETECT].name = "Detect";
-    tmm_modules[TMM_DETECT].Init = DetectThreadInit;
+    tmm_modules[TMM_DETECT].ThreadInit = DetectThreadInit;
     tmm_modules[TMM_DETECT].Func = Detect;
-    tmm_modules[TMM_DETECT].ExitPrintStats = DetectExitPrintStats;
-    tmm_modules[TMM_DETECT].Deinit = DetectThreadDeinit;
+    tmm_modules[TMM_DETECT].ThreadExitPrintStats = DetectExitPrintStats;
+    tmm_modules[TMM_DETECT].ThreadDeinit = DetectThreadDeinit;
     tmm_modules[TMM_DETECT].RegisterTests = SigRegisterTests;
 }
 
