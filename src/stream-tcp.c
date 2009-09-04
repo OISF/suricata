@@ -1602,6 +1602,8 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
 
 int StreamTcpGetFlowState(void *s) {
     TcpSession *ssn = (TcpSession *)s;
+    if (ssn == NULL)
+        return FLOW_STATE_CLOSED;
 
     switch(ssn->state) {
         case 0:

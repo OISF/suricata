@@ -89,6 +89,9 @@ enum {
     FLOW_PROTO_TCP,
     FLOW_PROTO_UDP,
     FLOW_PROTO_ICMP,
+
+    /* should be last */
+    FLOW_PROTO_MAX,
 };
 
 enum {
@@ -97,7 +100,7 @@ enum {
     FLOW_STATE_CLOSED,
 };
 
-typedef struct Protocols_ {
+typedef struct FlowProto_ {
     uint32_t new_timeout;
     uint32_t est_timeout;
     uint32_t closed_timeout;
@@ -106,7 +109,7 @@ typedef struct Protocols_ {
     uint32_t emerg_closed_timeout;
     void (*Freefunc)(void *);
     int (*GetProtoState)(void *);
-}Protocols;
+} FlowProto;
 
 void FlowHandlePacket (ThreadVars *, Packet *);
 void FlowInitConfig (char);

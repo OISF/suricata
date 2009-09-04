@@ -39,13 +39,12 @@ Flow *FlowAlloc(void)
     return f;
 }
 
+/** free the memory of a flow */
 void FlowFree(Flow *f)
 {
     mutex_lock(&flow_memuse_mutex);
     flow_memuse -= sizeof(Flow);
     mutex_unlock(&flow_memuse_mutex);
-
-    GenericVarFree(f->flowvar);
 
     free(f);
 }

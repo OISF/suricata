@@ -3,6 +3,9 @@
 #ifndef __FLOW_UTIL_H__
 #define __FLOW_UTIL_H__
 
+/** FlowProto specific timeouts and free/state functions */
+FlowProto flow_proto[FLOW_PROTO_MAX];
+
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
 
 /* only clear the parts that won't be overwritten
