@@ -1179,6 +1179,7 @@ int main(int argc, char **argv)
     TmModuleAlertFastlogIPv6Register();
     TmModuleAlertUnifiedLogRegister();
     TmModuleAlertUnifiedAlertRegister();
+    TmModuleStreamTcpRegister();
     TmModuleLogHttplogRegister();
     TmModuleLogHttplogIPv4Register();
     TmModuleLogHttplogIPv6Register();
@@ -1273,7 +1274,7 @@ int main(int argc, char **argv)
     /* Spawn the flow manager thread */
     FlowManagerThreadSpawn();
 
-    TmModuleStreamTcpRegister();
+    StreamTcpInitConfig(STREAM_VERBOSE);
 
     /* Spawn the L7 App Detect thread */
     AppLayerDetectProtoThreadSpawn();

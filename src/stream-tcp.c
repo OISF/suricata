@@ -75,7 +75,7 @@ void TmModuleStreamTcpRegister (void) {
     tmm_modules[TMM_STREAMTCP].ExitPrintStats = StreamTcpExitPrintStats;
     tmm_modules[TMM_STREAMTCP].Deinit = StreamTcpThreadDeinit;
     tmm_modules[TMM_STREAMTCP].RegisterTests = StreamTcpRegisterTests;
-    StreamTcpInitConfig(STREAM_VERBOSE);
+    //StreamTcpInitConfig(STREAM_VERBOSE);
 }
 
 void StreamTcpReturnStreamSegments (TcpStream *stream) {
