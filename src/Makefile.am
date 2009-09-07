@@ -59,6 +59,7 @@ detect-metadata.c detect-metadata.h \
 detect-msg.c detect-msg.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
+detect-stream_size.c detect-stream_size.h \
 detect-decode-event.c detect-decode-event.h \
 detect-noalert.c detect-noalert.h \
 detect-csum.c detect-csum.h \

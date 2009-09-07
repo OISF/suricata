@@ -44,6 +44,7 @@
 #include "detect-noalert.h"
 #include "detect-flowbits.h"
 #include "detect-csum.h"
+#include "detect-stream_size.h"
 
 #include "action-globals.h"
 #include "tm-modules.h"
@@ -2503,6 +2504,7 @@ void SigTableSetup(void) {
     DetectFlowbitsRegister();
     DetectDecodeEventRegister();
     DetectCsumRegister();
+    DetectStreamSizeRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
