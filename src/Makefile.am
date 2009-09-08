@@ -80,6 +80,7 @@ util-pool.c util-pool.h \
 util-time.c util-time.h \
 util-var.c util-var.h \
 util-var-name.c util-var-name.h \
+util-byte.c util-byte.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

@@ -29,6 +29,7 @@
 #include "util-bloomfilter.h"
 #include "util-bloomfilter-counting.h"
 #include "util-pool.h"
+#include "util-byte.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -388,6 +389,7 @@ int main(int argc, char **argv)
         BloomFilterRegisterTests();
         BloomFilterCountingRegisterTests();
         PoolRegisterTests();
+        ByteRegisterTests();
         MpmRegisterTests();
         FlowBitRegisterTests();
         PerfRegisterTests();
