@@ -73,6 +73,7 @@
 #include "util-time.h"
 
 #include "conf.h"
+#include "conf-yaml-loader.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -1378,6 +1379,7 @@ int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file) {
 void usage(const char *progname)
 {
     printf("USAGE: %s\n\n", progname);
+    printf("\t-c <path>: path to configuration file\n");
     printf("\t-i <dev> : run in pcap live mode\n");
     printf("\t-r <path>: run in pcap file/offline mode\n");
     printf("\t-q <qid> : run in inline nfqueue mode\n");
@@ -1397,6 +1399,8 @@ int main(int argc, char **argv)
     char *pcap_dev = NULL;
     char *sig_file = NULL;
     int nfq_id = 0;
+    char *conf_filename = NULL;
+    int dump_config = 0;
 
     /* registering signals we use */
     SignalHandlerSetup(SIGINT, SignalHandlerSigint);
@@ -1406,8 +1410,20 @@ int main(int argc, char **argv)
     /* Initialize the configuration module. */
     ConfInit();
 
-    while ((opt = getopt(argc, argv, "hi:l:q:r:us:")) != -1) {
+    struct option long_opts[] = {
+        {"dump-config", 0, &dump_config, 1},
+        {NULL, 0, NULL, 0}
+    };
+    char short_opts[] = "c:hi:l:q:r:us:";
+
+    while ((opt = getopt_long(argc, argv, short_opts, long_opts, NULL)) != -1) {
         switch (opt) {
+        case 0:
+            /* Long opt handler. */
+            break;
+        case 'c':
+            conf_filename = optarg;
+            break;
         case 'h':
             usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -1445,6 +1461,16 @@ int main(int argc, char **argv)
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
+    }
+
+    /* Load yaml configuration file if provided. */
+    if (conf_filename != NULL) {
+        LoadYamlConf(conf_filename);
+    }
+
+    if (dump_config) {
+        ConfDump();
+        exit(EXIT_SUCCESS);
     }
 
     if (mode == MODE_UNKNOWN) {

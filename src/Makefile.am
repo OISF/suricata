@@ -103,7 +103,8 @@ app-layer-parser.c app-layer-parser.h \
 app-layer-http.c app-layer-http.h \
 app-layer-tls.c app-layer-tls.h \
 app-layer-protos.h \
-conf.c conf.h
+conf.c conf.h \
+conf-yaml-loader.c conf-yaml-loader.h
 
 # set the include path found by configure
 INCLUDES= $(all_includes)
