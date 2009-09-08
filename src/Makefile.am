@@ -47,6 +47,8 @@ detect-depth.c detect-depth.h \
 detect-nocase.c detect-nocase.h \
 detect-recursive.c detect-recursive.h \
 detect-rawbytes.c detect-rawbytes.h \
+detect-bytetest.c detect-bytetest.h \
+detect-bytejump.c detect-bytejump.h \
 detect-within.c detect-within.h \
 detect-distance.c detect-distance.h \
 detect-offset.c detect-offset.h \

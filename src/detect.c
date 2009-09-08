@@ -26,6 +26,8 @@
 #include "detect-nocase.h"
 #include "detect-recursive.h"
 #include "detect-rawbytes.h"
+#include "detect-bytetest.h"
+#include "detect-bytejump.h"
 #include "detect-within.h"
 #include "detect-distance.h"
 #include "detect-offset.h"
@@ -2489,6 +2491,8 @@ void SigTableSetup(void) {
     DetectNocaseRegister();
     DetectRecursiveRegister();
     DetectRawbytesRegister();
+    DetectBytetestRegister();
+    DetectBytejumpRegister();
     DetectWithinRegister();
     DetectDistanceRegister();
     DetectOffsetRegister();
