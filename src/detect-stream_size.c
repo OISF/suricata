@@ -149,7 +149,7 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     int ov[MAX_SUBSTRINGS];
 
     ret = pcre_exec(parse_regex, parse_regex_study, streamstr, strlen(streamstr), 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret != 3) {
+    if (ret != 4) {
         printf("DetectStreamSizeSetup: parse error, ret %" PRId32 "\n", ret);
         goto error;
     }
@@ -225,6 +225,8 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
         }
         sd->flags |= STREAM_SIZE_EITHER;
 
+    } else {
+        goto error;
     }
 
     if (mode != NULL) free(mode);
@@ -342,7 +344,8 @@ static int DetectStreamSizeParseTest03 (void) {
     if (sd != NULL) {
         if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT && sd->ssize != 8)
             return 0;
-    }
+    } else
+        return 0;
 
     client.last_ack = 20;
     client.next_seq = 30;
@@ -352,7 +355,7 @@ static int DetectStreamSizeParseTest03 (void) {
     p.ip4h = &ip4h;
     sm.ctx = sd;
 
-    //result = DetectStreamSizeMatch(&tv, &dtx, &p, &s, &sm);
+    result = DetectStreamSizeMatch(&tv, &dtx, &p, &s, &sm);
 
     return result;
 }
@@ -385,7 +388,8 @@ static int DetectStreamSizeParseTest04 (void) {
     if (sd != NULL) {
         if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT && sd->ssize != 8)
             return 0;
-    }
+    } else
+        return 0;
 
     client.last_ack = 20;
     client.next_seq = 28;
@@ -395,7 +399,7 @@ static int DetectStreamSizeParseTest04 (void) {
     p.ip4h = &ip4h;
     sm.ctx = sd;
 
-    //if (!DetectStreamSizeMatch(&tv, &dtx, &p, &s, &sm))
+    if (!DetectStreamSizeMatch(&tv, &dtx, &p, &s, &sm))
         result = 1;
 
     return result;
