@@ -22,6 +22,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-sigorder.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
@@ -68,7 +69,7 @@
 #include "conf-yaml-loader.h"
 
 #include "runmodes.h"
-#include "detect-engine-sigorder.h"
+#include "util-debug.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -419,6 +420,7 @@ int main(int argc, char **argv)
         TmqhFlowRegisterTests();
         FlowRegisterTests();
         SCSigRegisterSignatureOrderingTests();
+        SCLogRegisterTests();
         uint32_t failed = UtRunTests();
         UtCleanup();
         if (failed) exit(EXIT_FAILURE);

@@ -57,5 +57,7 @@ int TmThreadWaitOnThreadInit(void);
 inline int TmThreadsCheckFlag(ThreadVars *, uint8_t);
 inline void TmThreadsSetFlag(ThreadVars *, uint8_t);
 
+ThreadVars *TmThreadsGetCallingThread(void);
+
 #endif /* __TM_THREADS_H__ */
 

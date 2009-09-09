@@ -738,12 +738,15 @@ ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *),
  */
 void TmThreadAppend(ThreadVars *tv, int type)
 {
+    pthread_mutex_lock(&tv_root_lock);
+
     if (tv_root[type] == NULL) {
         tv_root[type] = tv;
         tv->next = NULL;
         tv->prev = NULL;
 
         //printf("TmThreadAppend: thread \'%s\' is the first thread in the list.\n", tv->name);
+        pthread_mutex_unlock(&tv_root_lock);
         return;
     }
 
@@ -760,6 +763,7 @@ void TmThreadAppend(ThreadVars *tv, int type)
         t = t->next;
     }
 
+    pthread_mutex_unlock(&tv_root_lock);
     //printf("TmThreadAppend: thread \'%s\' is added to the list.\n", tv->name);
 }
 
@@ -1113,4 +1117,34 @@ int TmThreadWaitOnThreadInit(void)
     printf("All %"PRIu16" packet processing threads, %"PRIu16" management "
            "threads initialized, engine started.\n", ppt_num, mgt_num);
     return 0;
+}
+
+/**
+ * \brief Returns the TV for the calling thread.
+ *
+ * \retval tv Pointer to the ThreadVars instance for the calling thread;
+ *            NULL on no match
+ */
+ThreadVars *TmThreadsGetCallingThread(void)
+{
+    pthread_t self = pthread_self();
+    ThreadVars *tv = NULL;
+    int i = 0;
+
+    mutex_lock(&tv_root_lock);
+
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+        while (tv) {
+            if (pthread_equal(self, tv->t)) {
+                mutex_unlock(&tv_root_lock);
+                return tv;
+            }
+            tv = tv->next;
+        }
+    }
+
+    mutex_unlock(&tv_root_lock);
+
+    return NULL;
 }

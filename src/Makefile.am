@@ -88,6 +88,10 @@ util-time.c util-time.h \
 util-var.c util-var.h \
 util-var-name.c util-var-name.h \
 util-byte.c util-byte.h \
+util-debug.c util-debug.h \
+util-debug-filters.c util-debug-filters.h \
+util-error.c util-error.h \
+util-enum.c util-enum.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
