@@ -15,6 +15,11 @@
 #define DETECTSSIZE_GT 4
 #define DETECTSSIZE_GEQ 5
 
+#define STREAM_SIZE_SERVER 0x01
+#define STREAM_SIZE_CLIENT 0x02
+#define STREAM_SIZE_BOTH   0x04
+#define STREAM_SIZE_EITHER 0x08
+
 typedef struct DetectStreamSizeData_ {
     uint8_t flags;
     uint8_t mode;

@@ -14,11 +14,12 @@
 #include "detect.h"
 #include "flow.h"
 #include "detect-stream_size.h"
+#include "stream-tcp-private.h"
 
 /** XXX GS define it properly!!
  * \brief Regex for parsing our flow options
  */
-#define PARSE_REGEX  "^\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+))?\\s*(?:,\\s*([0-9]+))?\\s*$"
+#define PARSE_REGEX  "^\\s*([^\\s,]+)\\s*,\\s*([^\\s,]+)\\s*,([0-9]+)\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -58,6 +59,40 @@ error:
     return;
 }
 
+
+static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode) {
+
+    int ret = 0;
+    switch(mode) {
+            case DETECTSSIZE_LT:
+                if (diff < stream_size)
+                    ret = 1;
+                break;
+            case DETECTSSIZE_LEQ:
+                if (diff <= stream_size)
+                    ret = 1;
+                break;
+            case DETECTSSIZE_EQ:
+                if (diff == stream_size)
+                    ret = 1;
+                break;
+            case DETECTSSIZE_NEQ:
+                if (diff != stream_size)
+                    ret = 1;
+                break;
+            case DETECTSSIZE_GEQ:
+                if (diff >= stream_size)
+                    ret = 1;
+                break;
+            case DETECTSSIZE_GT:
+                if (diff > stream_size)
+                    ret = 1;
+                break;
+    }
+
+    return ret;
+}
+
 /**
  * \brief This function is used to match Stream size rule option on a packet with those passed via stream_size:
  *
@@ -76,11 +111,28 @@ int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
 
     if (p->ip4h == NULL)
         return ret;
+    if (sd == NULL)
+        printf("hello\n");
+    uint32_t csdiff = 0;
+    uint32_t ssdiff = 0;
+    TcpSession *ssn = (TcpSession *)p->flow->stream;
 
-    if (sd->flags & FLOW_PKT_TOCLIENT && p->flowflags & FLOW_PKT_TOCLIENT) {
-        ret = 1;
-    } else if (sd->flags & FLOW_PKT_TOSERVER && p->flowflags & FLOW_PKT_TOSERVER) {
-        ret = 1;
+    if (ssn != NULL) {
+        csdiff = ssn->client.next_seq - ssn->client.last_ack;
+        ssdiff = ssn->server.next_seq - ssn->server.last_ack;
+    } else
+        return ret;
+
+    if (sd->flags & STREAM_SIZE_SERVER) {
+        ret = DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode);
+    } else if (sd->flags & STREAM_SIZE_CLIENT) {
+        ret = DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode);
+    } else if (sd->flags & STREAM_SIZE_BOTH) {
+        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) && DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
+            ret = 1;
+    } else if (sd->flags & STREAM_SIZE_EITHER) {
+        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) || DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
+            ret = 1;
     }
 
     return ret;
@@ -144,33 +196,40 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     sd->ssize = (uint16_t)atoi(value);
 
     if (strcmp(arg, "server") == 0) {
-        if (sd->flags & FLOW_PKT_TOCLIENT) {
-            printf("DetectFlowParse error FLOW_PKT_TOCLIENT flag is already set \n");
+        if (sd->flags & STREAM_SIZE_SERVER) {
+            printf("DetectFlowParse error STREAM_SIZE_SERVER flag is already set \n");
             goto error;
         }
-        sd->flags |= FLOW_PKT_TOCLIENT;
+        sd->flags |= STREAM_SIZE_SERVER;
 
     } else if (strcmp(arg, "client") == 0) {
 
-        if (sd->flags & FLOW_PKT_TOSERVER) {
-            printf("DetectFlowParse error FLOW_PKT_SERVER flag is already set \n");
+        if (sd->flags & STREAM_SIZE_CLIENT) {
+            printf("DetectFlowParse error STREAM_SIZE_CLIENT flag is already set \n");
             goto error;
         }
-        sd->flags |= FLOW_PKT_TOSERVER;
+        sd->flags |= STREAM_SIZE_CLIENT;
 
-    } else if ((strcmp(arg, "both") == 0) || (strcmp(arg, "either") == 0)) {
+    } else if ((strcmp(arg, "both") == 0)) {
 
-        if (sd->flags & FLOW_PKT_TOCLIENT || sd->flags & FLOW_PKT_TOSERVER) {
-            printf("DetectFlowParse error FLOW_PKT_TOCLIENT or FLOW_PKT_TOSERVER flag is already set \n");
+        if (sd->flags & STREAM_SIZE_SERVER || sd->flags & STREAM_SIZE_CLIENT) {
+            printf("DetectFlowParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set \n");
             goto error;
         }
-        sd->flags |= FLOW_PKT_TOCLIENT|FLOW_PKT_TOSERVER;
+        sd->flags |= STREAM_SIZE_BOTH;
+    } else if (strcmp(arg, "either") == 0) {
+
+        if (sd->flags & STREAM_SIZE_SERVER || sd->flags & STREAM_SIZE_CLIENT) {
+            printf("DetectFlowParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set \n");
+            goto error;
+        }
+        sd->flags |= STREAM_SIZE_EITHER;
+
     }
 
     if (mode != NULL) free(mode);
     if (arg != NULL) free(arg);
     if (value != NULL) free(value);
-    if (sd != NULL) printf("hello in parse\n");
     return sd;
 
 error:
@@ -234,7 +293,7 @@ static int DetectStreamSizeParseTest01 (void) {
     DetectStreamSizeData *sd = NULL;
     sd = DetectStreamSizeParse("server,<,6");
     if (sd != NULL) {
-        if (sd->flags & FLOW_PKT_TOCLIENT && sd->mode == DETECTSSIZE_LT && sd->ssize == 6)
+        if (sd->flags & STREAM_SIZE_SERVER && sd->mode == DETECTSSIZE_LT && sd->ssize == 6)
             result = 1;
         DetectStreamSizeFree(sd);
     }
@@ -254,7 +313,98 @@ static int DetectStreamSizeParseTest02 (void) {
 
     return result;
 }
+
+static int DetectStreamSizeParseTest03 (void) {
+
+    int result = 0;
+    DetectStreamSizeData *sd = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+    DetectEngineThreadCtx dtx;
+    Packet p;
+    Signature s;
+    SigMatch sm;
+    TcpStream client;
+    Flow f;
+    IPV4Hdr ip4h;
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtx, 0, sizeof(DetectEngineThreadCtx));
+    memset(&p, 0, sizeof(Packet));
+    memset(&s, 0, sizeof(Signature));
+    memset(&sm, 0, sizeof(SigMatch));
+    memset(&client, 0, sizeof(TcpStream));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
+
+    sd = DetectStreamSizeParse("client,>,8");
+    if (sd != NULL) {
+        if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT && sd->ssize != 8)
+            return 0;
+    }
+
+    client.last_ack = 20;
+    client.next_seq = 30;
+    ssn.client = client;
+    f.stream = &ssn;
+    p.flow = &f;
+    p.ip4h = &ip4h;
+    sm.ctx = sd;
+
+    //result = DetectStreamSizeMatch(&tv, &dtx, &p, &s, &sm);
+
+    return result;
+}
+
+static int DetectStreamSizeParseTest04 (void) {
+
+    int result = 0;
+    DetectStreamSizeData *sd = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+    DetectEngineThreadCtx dtx;
+    Packet p;
+    Signature s;
+    SigMatch sm;
+    TcpStream client;
+    Flow f;
+    IPV4Hdr ip4h;
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtx, 0, sizeof(DetectEngineThreadCtx));
+    memset(&p, 0, sizeof(Packet));
+    memset(&s, 0, sizeof(Signature));
+    memset(&sm, 0, sizeof(SigMatch));
+    memset(&client, 0, sizeof(TcpStream));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
+
+    sd = DetectStreamSizeParse("client,>,8");
+    if (sd != NULL) {
+        if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT && sd->ssize != 8)
+            return 0;
+    }
+
+    client.last_ack = 20;
+    client.next_seq = 28;
+    ssn.client = client;
+    f.stream = &ssn;
+    p.flow = &f;
+    p.ip4h = &ip4h;
+    sm.ctx = sd;
+
+    //if (!DetectStreamSizeMatch(&tv, &dtx, &p, &s, &sm))
+        result = 1;
+
+    return result;
+}
+
 void DetectStreamSizeRegisterTests(void) {
 
     UtRegisterTest("DetectStreamSizeParseTest01", DetectStreamSizeParseTest01, 1);
+    UtRegisterTest("DetectStreamSizeParseTest02", DetectStreamSizeParseTest02, 1);
+    UtRegisterTest("DetectStreamSizeParseTest03", DetectStreamSizeParseTest03, 1);
+    UtRegisterTest("DetectStreamSizeParseTest04", DetectStreamSizeParseTest04, 1);
 }

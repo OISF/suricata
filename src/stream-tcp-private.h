@@ -18,6 +18,7 @@ typedef struct TcpStream_ {
     uint32_t window;    /**< current window setting */
     uint8_t wscale;     /**< wscale setting in this direction */
 
+    uint32_t last_ts; /*Time stamp of last seen packet*/
     /* reassembly */
     uint32_t ra_base_seq; /**< reassembled seq. We've reassembled up to this point. */
     TcpSegment *seg_list; /**< list of TCP segments that are not yet (fully) used in reassembly */

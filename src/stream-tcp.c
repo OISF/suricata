@@ -297,6 +297,8 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             ssn->client.isn = TCP_GET_SEQ(p);
             ssn->client.ra_base_seq = ssn->client.isn;
             ssn->client.next_seq = ssn->client.isn + 1;
+            if (p->tcpvars.ts != NULL)
+                ssn->client.last_ts = *p->tcpvars.ts->data;
 
             ssn->server.window = TCP_GET_WINDOW(p);
 #ifdef DEBUG
@@ -482,6 +484,13 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
 #ifdef DEBUG
             printf("StreamTcpPacketStateSynSent (%p): window %" PRIu32 "\n", ssn, ssn->server.window);
 #endif
+            if (p->tcpvars.ts != NULL) {
+                ssn->server.last_ts = *p->tcpvars.ts->data;
+            } else {
+                ssn->client.last_ts = 0;
+                ssn->server.last_ts = 0;
+            }
+
             ssn->client.last_ack = TCP_GET_ACK(p);
             ssn->server.last_ack = ssn->server.isn + 1;
 
