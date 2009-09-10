@@ -16,18 +16,23 @@
 #include "detect-stream_size.h"
 #include "stream-tcp-private.h"
 
-/** XXX GS define it properly!!
+/**
  * \brief Regex for parsing our flow options
  */
-#define PARSE_REGEX  "^\\s*([^\\s,]+)\\s*,\\s*([^\\s,]+)\\s*,([0-9]+)\\s*$"
+#define PARSE_REGEX  "^\\s*([^\\s]+)\\s*,\\s*([^\\s]+)\\s*,([0-9]+)\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
+/*prototypes*/
 int DetectStreamSizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectStreamSizeSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectStreamSizeFree(void *);
 void DetectStreamSizeRegisterTests(void);
+
+/**
+ * \brief Registration function for stream_size: keyword
+ */
 
 void DetectStreamSizeRegister(void) {
     sigmatch_table[DETECT_STREAM_SIZE].name = "stream_size";
@@ -59,6 +64,16 @@ error:
     return;
 }
 
+/**
+ * \brief Function to comapre the stream size against defined size in the user
+ *  options.
+ *
+ *  \param  diff    The stream size of server or client stream.
+ *  \param  stream_size User defined stream size
+ *  \param  mode    The mode defined by user.
+ *
+ *  \retval 1 on success and 0 on failure.
+ */
 
 static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode) {
 
@@ -111,32 +126,53 @@ int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
 
     if (p->ip4h == NULL)
         return ret;
-    if (sd == NULL)
-        printf("hello\n");
+
     uint32_t csdiff = 0;
     uint32_t ssdiff = 0;
+
+    if (p->flow == NULL)
+        return ret;
+
     TcpSession *ssn = (TcpSession *)p->flow->stream;
 
-    if (ssn != NULL) {
-        csdiff = ssn->client.next_seq - ssn->client.last_ack;
-        ssdiff = ssn->server.next_seq - ssn->server.last_ack;
-    } else
+    if (ssn == NULL)
         return ret;
 
     if (sd->flags & STREAM_SIZE_SERVER) {
+        /*get the server stream size*/
+        ssdiff = ssn->server.next_seq - ssn->server.isn;
         ret = DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode);
+
     } else if (sd->flags & STREAM_SIZE_CLIENT) {
+         /*get the client stream size*/
+        csdiff = ssn->client.next_seq - ssn->client.isn;
         ret = DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode);
+
+
     } else if (sd->flags & STREAM_SIZE_BOTH) {
+        ssdiff = ssn->server.next_seq - ssn->server.isn;
+        csdiff = ssn->client.next_seq - ssn->client.isn;
         if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) && DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
             ret = 1;
+
     } else if (sd->flags & STREAM_SIZE_EITHER) {
+        ssdiff = ssn->server.next_seq - ssn->server.isn;
+        csdiff = ssn->client.next_seq - ssn->client.isn;
         if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) || DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
             ret = 1;
     }
 
     return ret;
 }
+
+/**
+ * \brief This function is used to parse stream options passed via stream_size: keyword
+ *
+ * \param streamstr Pointer to the user provided stream_size options
+ *
+ * \retval sd pointer to DetectStreamSizeData on success
+ * \retval NULL on failure
+ */
 
 DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
 
@@ -195,6 +231,7 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     /* set the value */
     sd->ssize = (uint16_t)atoi(value);
 
+    /* inspect our options and set the flags */
     if (strcmp(arg, "server") == 0) {
         if (sd->flags & STREAM_SIZE_SERVER) {
             printf("DetectFlowParse error STREAM_SIZE_SERVER flag is already set \n");
@@ -290,6 +327,11 @@ void DetectStreamSizeFree(void *ptr) {
     free(sd);
 }
 
+/**
+ * \test DetectStreamSizeParseTest01 is a test to make sure that we parse the
+ *  user options correctly, when given valid stream_size options.
+ */
+
 static int DetectStreamSizeParseTest01 (void) {
     int result = 0;
     DetectStreamSizeData *sd = NULL;
@@ -303,6 +345,11 @@ static int DetectStreamSizeParseTest01 (void) {
     return result;
 }
 
+/**
+ * \test DetectStreamSizeParseTest02 is a test to make sure that we detect the
+ *  invalid stream_size options.
+ */
+
 static int DetectStreamSizeParseTest02 (void) {
     int result = 1;
     DetectStreamSizeData *sd = NULL;
@@ -315,6 +362,11 @@ static int DetectStreamSizeParseTest02 (void) {
 
     return result;
 }
+
+/**
+ * \test DetectStreamSizeParseTest03 is a test to make sure that we match the
+ *  packet correctly provided valid stream size.
+ */
 
 static int DetectStreamSizeParseTest03 (void) {
 
@@ -347,8 +399,8 @@ static int DetectStreamSizeParseTest03 (void) {
     } else
         return 0;
 
-    client.last_ack = 20;
-    client.next_seq = 30;
+    client.next_seq = 20;
+    client.isn = 10;
     ssn.client = client;
     f.stream = &ssn;
     p.flow = &f;
@@ -359,6 +411,11 @@ static int DetectStreamSizeParseTest03 (void) {
 
     return result;
 }
+
+/**
+ * \test DetectStreamSizeParseTest04 is a test to make sure that we match the
+ *  stream_size against invalid packet parameters.
+ */
 
 static int DetectStreamSizeParseTest04 (void) {
 
@@ -391,8 +448,8 @@ static int DetectStreamSizeParseTest04 (void) {
     } else
         return 0;
 
-    client.last_ack = 20;
-    client.next_seq = 28;
+    client.next_seq = 20;
+    client.isn = 12;
     ssn.client = client;
     f.stream = &ssn;
     p.flow = &f;
@@ -404,6 +461,10 @@ static int DetectStreamSizeParseTest04 (void) {
 
     return result;
 }
+
+/**
+ * \brief this function registers unit tests for DetectStreamSize
+ */
 
 void DetectStreamSizeRegisterTests(void) {
 
