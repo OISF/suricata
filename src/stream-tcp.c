@@ -2092,8 +2092,8 @@ static int StreamTcpTest06 (void) {
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
-    f.protoctx = &ssn;
     p.flow = &f;
+
     tcph.th_flags = TH_FIN;
     p.tcph = &tcph;
 

@@ -213,7 +213,9 @@ void PrintList(TcpSegment *seg) {
         }
 
 #ifdef DEBUG
-        printf("PrintList: seg %10"PRIu32" len %" PRIu16 ", seg %p, prev %p, next %p\n", seg->seq, seg->payload_len, seg, seg->prev, seg->next);
+        printf("PrintList: seg %10"PRIu32" len %" PRIu16 ", seg %p, prev %p, next %p: ", seg->seq, seg->payload_len, seg, seg->prev, seg->next);
+        PrintRawUriFp(stdout,seg->payload, seg->payload_len);
+        printf("\n");
 #endif /* DEBUG */
 
         if (seg->prev != NULL && SEQ_LT(seg->seq,seg->prev->seq)) {
@@ -351,7 +353,9 @@ end:
         StreamTcpSegmentReturntoPool(seg);
     }
 
-    //PrintList(stream->seg_list);
+#ifdef DEBUG
+    PrintList(stream->seg_list);
+#endif
     return 0;
 }
 
@@ -375,7 +379,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
     char end_after = FALSE;
     char end_same = FALSE;
 #ifdef DEBUG
-    printf("\nHandleSegmentStartsBeforeListSegment: seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "\n", seg->seq, seg->payload_len);
+    printf("HandleSegmentStartsBeforeListSegment: seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "\n", seg->seq, seg->payload_len);
     PrintList(stream->seg_list);
 #endif
 
@@ -650,7 +654,9 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
                 }
             }
 
-            printf("XXXXXX: fill_gap %s, handle_beyond %s\n", fill_gap?"TRUE":"FALSE", handle_beyond?"TRUE":"FALSE");
+#ifdef DEBUG
+            printf("HandleSegmentStartsAtSameListSegment: fill_gap %s, handle_beyond %s\n", fill_gap?"TRUE":"FALSE", handle_beyond?"TRUE":"FALSE");
+#endif
 
             if (fill_gap == TRUE) {
                 /* if there is a gap after this list_seg we fill it now with a new seg */
@@ -672,7 +678,9 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
                     new_seg->next->prev = new_seg;
                 new_seg->prev = list_seg;
                 list_seg->next = new_seg;
+#ifdef DEBUG
                 printf("HandleSegmentStartsAtSameListSegment: new_seg %p, new_seg->next %p, new_seg->prev %p, list_seg->next %p\n", new_seg, new_seg->next, new_seg->prev, list_seg->next);
+#endif
 
                 StreamTcpSegmentDataReplace(new_seg, seg, new_seg->seq, new_seg->payload_len);
             }
@@ -804,7 +812,9 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
 #ifdef DEBUG
                 printf("HandleSegmentStartsAfterListSegment: filling gap: list_seg->next->seq %"PRIu32"\n", list_seg->next?list_seg->next->seq:0);
 #endif
-                packet_length = seg->payload_len - overlap;
+                packet_length = list_seg->next->seq - (list_seg->seq + list_seg->payload_len);
+                if (packet_length > (seg->payload_len - overlap))
+                    packet_length = seg->payload_len - overlap;
 #ifdef DEBUG
                 printf("HandleSegmentStartsAfterListSegment: packet_length %"PRIu16"\n", packet_length);
 #endif
@@ -857,7 +867,10 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
 #endif
                 break;
         }
-        if (end_before == TRUE || end_same == TRUE || handle_beyond == TRUE) {
+        if (end_before == TRUE || end_same == TRUE || handle_beyond == FALSE) {
+#ifdef DEBUG
+            PrintList(stream->seg_list);
+#endif
             return 1;
         }
     }
@@ -1599,7 +1612,7 @@ void StreamTcpCreateTestPacket(uint8_t *payload, uint8_t value, uint8_t payload_
  *  \param  stream          Reassembled stream returned from the reassembly functions
  */
 
-static int StreamTcpCheckStreamContents(uint8_t *stream_policy, TcpStream *stream) {
+static int StreamTcpCheckStreamContents(uint8_t *stream_policy, uint16_t sp_size, TcpStream *stream) {
     TcpSegment *temp;
     uint16_t i = 0;
     uint8_t j;
@@ -1610,13 +1623,15 @@ static int StreamTcpCheckStreamContents(uint8_t *stream_policy, TcpStream *strea
     for (temp1 = stream->seg_list; temp1 != NULL; temp1 = temp1->next)
         PrintRawDataFp(stdout, temp1->payload, temp1->payload_len);
 
-    PrintRawDataFp(stdout, stream_policy, 10);
+    PrintRawDataFp(stdout, stream_policy, sp_size);
 #endif
 
     for (temp = stream->seg_list; temp != NULL; temp = temp->next) {
         j = 0;
         for (; j < temp->payload_len; j++) {
-            //printf("i is %" PRIu32 " and len is %" PRIu32 " stream %" PRIx32 " and temp is %" PRIx32 "\n", i, temp->payload_len, stream_policy[i], temp->payload[j]);
+#ifdef DEBUG
+            printf("i is %" PRIu32 " and len is %" PRIu32 " stream %" PRIx32 " and temp is %" PRIx32 "\n", i, temp->payload_len, stream_policy[i], temp->payload[j]);
+#endif
             if (stream_policy[i] == temp->payload[j]) {
                 i++;
                 continue;
@@ -1955,7 +1970,7 @@ static int StreamTcpReassembleTest01(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_before_bsd, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_before_bsd,sizeof(stream_before_bsd), &stream) == 0) {
         printf("failed in stream matching!!\n");
 exit(1);
         return 0;
@@ -1978,7 +1993,7 @@ static int StreamTcpReassembleTest02(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_same_bsd, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_same_bsd, sizeof(stream_same_bsd), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2000,7 +2015,7 @@ static int StreamTcpReassembleTest03(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_after_bsd, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_after_bsd, sizeof(stream_after_bsd), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2023,7 +2038,7 @@ static int StreamTcpReassembleTest04(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_bsd, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_bsd, sizeof(stream_bsd), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2045,7 +2060,7 @@ static int StreamTcpReassembleTest05(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_before_vista, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_before_vista, sizeof(stream_before_vista), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2067,7 +2082,7 @@ static int StreamTcpReassembleTest06(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_same_vista, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_same_vista, sizeof(stream_same_vista), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2089,7 +2104,7 @@ static int StreamTcpReassembleTest07(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_after_vista, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_after_vista, sizeof(stream_after_vista), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2112,7 +2127,7 @@ static int StreamTcpReassembleTest08(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_vista, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_vista, sizeof(stream_vista), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2134,7 +2149,7 @@ static int StreamTcpReassembleTest09(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_before_linux, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_before_linux, sizeof(stream_before_linux), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2156,7 +2171,7 @@ static int StreamTcpReassembleTest10(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_same_linux, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_same_linux, sizeof(stream_same_linux), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2178,7 +2193,7 @@ static int StreamTcpReassembleTest11(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_after_linux, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_after_linux, sizeof(stream_after_linux), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2201,7 +2216,7 @@ static int StreamTcpReassembleTest12(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_linux, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_linux, sizeof(stream_linux), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2223,7 +2238,7 @@ static int StreamTcpReassembleTest13(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_before_old_linux, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_before_old_linux, sizeof(stream_before_old_linux), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2245,7 +2260,7 @@ static int StreamTcpReassembleTest14(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_same_old_linux, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_same_old_linux, sizeof(stream_same_old_linux), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2267,7 +2282,7 @@ static int StreamTcpReassembleTest15(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_after_old_linux, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_after_old_linux, sizeof(stream_after_old_linux), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2290,7 +2305,7 @@ static int StreamTcpReassembleTest16(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_old_linux, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_old_linux, sizeof(stream_old_linux), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2312,7 +2327,7 @@ static int StreamTcpReassembleTest17(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_before_solaris, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_before_solaris, sizeof(stream_before_solaris), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2334,7 +2349,7 @@ static int StreamTcpReassembleTest18(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_same_solaris, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_same_solaris, sizeof(stream_same_solaris), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2356,7 +2371,7 @@ static int StreamTcpReassembleTest19(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_after_solaris, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_after_solaris, sizeof(stream_after_solaris), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2379,7 +2394,7 @@ static int StreamTcpReassembleTest20(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_solaris, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_solaris, sizeof(stream_solaris), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2401,7 +2416,7 @@ static int StreamTcpReassembleTest21(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_before_last, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_before_last, sizeof(stream_before_last), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2423,7 +2438,7 @@ static int StreamTcpReassembleTest22(void) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_same_last, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_same_last, sizeof(stream_same_last), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2434,19 +2449,20 @@ static int StreamTcpReassembleTest22(void) {
  *              after the list segment and LAST policy is used to reassemble
  *              segments.
  */
-
 static int StreamTcpReassembleTest23(void) {
     TcpStream stream;
-    uint8_t stream_after_last[8] = {0x41, 0x4a, 0x4a, 0x46, 0x4e, 0x46,
-                                     0x47, 0x4f};
+    uint8_t stream_after_last[8] = {0x41, 0x4a, 0x4a, 0x46, 0x4e, 0x46, 0x47, 0x4f};
     memset(&stream, 0, sizeof (TcpStream));
+
     stream.os_policy = OS_POLICY_LAST;
+
     if (StreamTcpTestStartsAfterListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_after_last, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(stream_after_last, sizeof(stream_after_last), &stream) == 0) {
         printf("failed in stream matching!!\n");
+exit(1);
         return 0;
     }
     return 1;
@@ -2460,16 +2476,18 @@ static int StreamTcpReassembleTest23(void) {
 static int StreamTcpReassembleTest24(void) {
     TcpStream stream;
     uint8_t stream_last[25] = {0x30, 0x41, 0x4a, 0x4a, 0x4a, 0x4a, 0x42, 0x4b,
-                                0x4b, 0x4b, 0x4c, 0x4c, 0x4c, 0x4d, 0x4d, 0x4d,
-                                0x46, 0x4e, 0x46, 0x47, 0x4f, 0x50, 0x48, 0x51, 0x51};
+                               0x4b, 0x4b, 0x4c, 0x4c, 0x4c, 0x4d, 0x4d, 0x4d,
+                               0x46, 0x4e, 0x46, 0x47, 0x4f, 0x50, 0x48, 0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
+
     stream.os_policy = OS_POLICY_LAST;
+
     if (StreamTcpReassembleStreamTest(&stream) == 0)  {
-        printf("failed in segments reassembly!!\n");
+        printf("failed in segments reassembly: ");
         return 0;
     }
-    if (StreamTcpCheckStreamContents(stream_last, &stream) == 0) {
-        printf("failed in stream matching!!\n");
+    if (StreamTcpCheckStreamContents(stream_last, sizeof(stream_last), &stream) == 0) {
+        printf("failed in stream matching: ");
         return 0;
     }
     return 1;
@@ -2584,7 +2602,7 @@ static int StreamTcpReassembleTest25 (void) {
         return 0;
     }
 
-    if (StreamTcpCheckStreamContents(check_contents, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(check_contents, sizeof(check_contents), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2634,7 +2652,7 @@ static int StreamTcpReassembleTest26 (void) {
         return 0;
     }
 
-    if (StreamTcpCheckStreamContents(check_contents, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(check_contents, sizeof(check_contents), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
@@ -2685,7 +2703,7 @@ static int StreamTcpReassembleTest27 (void) {
         return 0;
     }
 
-    if (StreamTcpCheckStreamContents(check_contents, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(check_contents, sizeof(check_contents), &stream) == 0) {
         printf("failed in stream matching!!\n");
         return 0;
     }
