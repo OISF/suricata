@@ -67,9 +67,15 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t bytecnt;
 
-    void *stream;
-    uint16_t use_cnt; /** how many pkts and stream msgs are
-                           using the flow *right now* */
+    /** mapping to Flow's protocol specific protocols for timeouts
+        and state and free functions. */
+    uint8_t protomap;
+
+    /** protocol specific data pointer, e.g. for TcpSession */
+    void *protoctx;
+
+    /** how many pkts and stream msgs are using the flow *right now* */
+    uint16_t use_cnt;
 
     pthread_mutex_t m;
 
@@ -83,16 +89,6 @@ typedef struct Flow_
 
     struct FlowBucket_ *fb;
 } Flow;
-
-enum {
-    FLOW_PROTO_DEFAULT = 0,
-    FLOW_PROTO_TCP,
-    FLOW_PROTO_UDP,
-    FLOW_PROTO_ICMP,
-
-    /* should be last */
-    FLOW_PROTO_MAX,
-};
 
 enum {
     FLOW_STATE_NEW = 0,
@@ -126,6 +122,7 @@ int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
 int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
+void FlowUpdateQueue(Flow *);
 
 #endif /* __FLOW_H__ */
 

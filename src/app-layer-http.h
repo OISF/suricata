@@ -3,6 +3,7 @@
 
 void RegisterHTTPParsers(void);
 void HTTPParserRegisterTests(void);
+void HTTPAtExitPrintStats(void);
 
 #endif /* __APP_LAYER_HTTP_H__ */
 

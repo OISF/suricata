@@ -402,13 +402,24 @@ uint16_t AlpGetStateIdx(uint16_t proto) {
     return al_proto_table[proto].storage_id;
 }
 
-AppLayerParserStateStore* AppLayerParserStateStoreAlloc(void) {
+AppLayerParserStateStore *AppLayerParserStateStoreAlloc(void) {
     AppLayerParserStateStore *s = (AppLayerParserStateStore *)malloc(sizeof(AppLayerParserStateStore));
     if (s == NULL)
         return NULL;
 
     memset(s, 0, sizeof(AppLayerParserStateStore));
     return s;
+}
+
+/** \brief free a AppLayerParserStateStore structure
+ *  \param s AppLayerParserStateStore structure to free */
+void AppLayerParserStateStoreFree(AppLayerParserStateStore *s) {
+    if (s->to_server.store != NULL)
+        free(s->to_server.store);
+    if (s->to_client.store != NULL)
+        free(s->to_client.store);
+
+    free(s);
 }
 
 static void AppLayerParserResultCleanup(AppLayerParserResult *result) {
@@ -493,22 +504,21 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
     uint16_t parser_idx = 0;
     AppLayerProto *p = &al_proto_table[proto];
 
-    TcpSession *ssn = f->stream;
+    TcpSession *ssn = f->protoctx;
     if (ssn == NULL) {
-        printf("AppLayerParse: no stream\n");
+        printf("AppLayerParse: no session\n");
         return -1;
     }
 
     /* Get the parser state (if any) */
-    AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)ssn->l7data[app_layer_sid];
+    AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)ssn->aldata[app_layer_sid];
     if (parser_state_store == NULL) {
         parser_state_store = AppLayerParserStateStoreAlloc();
         if (parser_state_store == NULL)
             return -1;
 
         mutex_lock(&f->m);
-        if (ssn->l7data != NULL) /** \todo remove once we fixed ssn timeouts */
-            ssn->l7data[app_layer_sid] = (void *)parser_state_store;
+        ssn->aldata[app_layer_sid] = (void *)parser_state_store;
         mutex_unlock(&f->m);
     }
 
@@ -546,8 +556,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
     /* See if we already have a 'app layer' state */
     void *app_layer_state = NULL;
     mutex_lock(&f->m);
-    if (ssn->l7data != NULL) /** \todo remove once we fixed ssn timeouts */
-        app_layer_state = ssn->l7data[p->storage_id];
+    app_layer_state = ssn->aldata[p->storage_id];
     mutex_unlock(&f->m);
     if (app_layer_state == NULL) {
         app_layer_state = p->StateAlloc();
@@ -555,8 +564,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
             return -1;
 
         mutex_lock(&f->m);
-        if (ssn->l7data != NULL) /** \todo remove once we fixed ssn timeouts */
-            ssn->l7data[p->storage_id] = app_layer_state;
+        ssn->aldata[p->storage_id] = app_layer_state;
         mutex_unlock(&f->m);
     }
 
@@ -578,6 +586,39 @@ void RegisterAppLayerParsers(void) {
     /** setup result pool
      * \todo Per thread pool */
     al_result_pool = PoolInit(100,10,AlpResultElmtPoolAlloc,NULL,AlpResultElmtPoolFree);
+}
+
+void AppLayerParserCleanupState(TcpSession *ssn) {
+    if (ssn == NULL) {
+        //printf("AppLayerParserCleanupState: no ssn\n");
+        return;
+    }
+
+    AppLayerProto *p = &al_proto_table[ssn->alproto];
+    if (p == NULL) {
+        //printf("AppLayerParserCleanupState: no parser state for %"PRIu16"\n", ssn->alproto);
+        return;
+    }
+
+    /* free the parser protocol state */
+    if (p->StateFree != NULL) {
+        if (ssn->aldata[p->storage_id] != NULL) {
+            //printf("AppLayerParserCleanupState: calling StateFree\n");
+            p->StateFree(ssn->aldata[p->storage_id]);
+            ssn->aldata[p->storage_id] = NULL;
+        }
+    }
+
+    if (ssn->aldata != NULL) {
+        if (ssn->aldata[app_layer_sid] != NULL) {
+            //printf("AppLayerParserCleanupState: calling AppLayerParserStateStoreFree\n");
+            AppLayerParserStateStoreFree(ssn->aldata[app_layer_sid]);
+            ssn->aldata[app_layer_sid] = NULL;
+        }
+
+        free(ssn->aldata);
+        ssn->aldata = NULL;
+    }
 }
 
 /** \brief Create a mapping between the individual parsers local field id's

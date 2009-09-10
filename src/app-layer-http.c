@@ -208,7 +208,8 @@ static int HTTPParseRequest(void *http_state, AppLayerParserState *pstate, uint8
                 }
                 break;
             }
-            case 2:
+#if 0
+            case 2: /* BODY */
             {
                 //printf("HTTPParseRequest: request body\n");
 
@@ -223,6 +224,7 @@ static int HTTPParseRequest(void *http_state, AppLayerParserState *pstate, uint8
 
                 break;
             }
+#endif
         }
     }
 
@@ -347,6 +349,7 @@ static int HTTPParseResponse(void *http_state, AppLayerParserState *pstate, uint
                 }
                 break;
             }
+#if 0
             case 2:
             {
                 //printf("HTTPParseResponse: response body\n");
@@ -362,6 +365,7 @@ static int HTTPParseResponse(void *http_state, AppLayerParserState *pstate, uint
 
                 break;
             }
+#endif
         }
     }
 
@@ -370,17 +374,36 @@ static int HTTPParseResponse(void *http_state, AppLayerParserState *pstate, uint
     return 1;
 }
 
+#ifdef DEBUG
+static pthread_mutex_t http_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
+static uint64_t http_state_memuse = 0;
+static uint64_t http_state_memcnt = 0;
+#endif
+
 static void *HTTPStateAlloc(void) {
     void *s = malloc(sizeof(HttpState));
     if (s == NULL)
         return NULL;
 
     memset(s, 0, sizeof(HttpState));
+
+#ifdef DEBUG
+    mutex_lock(&http_state_mem_lock);
+    http_state_memcnt++;
+    http_state_memuse+=sizeof(HttpState);
+    mutex_unlock(&http_state_mem_lock);
+#endif
     return s;
 }
 
 static void HTTPStateFree(void *s) {
     free(s);
+#ifdef DEBUG
+    mutex_lock(&http_state_mem_lock);
+    http_state_memcnt--;
+    http_state_memuse-=sizeof(HttpState);
+    mutex_unlock(&http_state_mem_lock);
+#endif
 }
 
 void RegisterHTTPParsers(void) {
@@ -394,6 +417,14 @@ void RegisterHTTPParsers(void) {
     AppLayerRegisterParser("http.response.code", ALPROTO_HTTP, HTTP_FIELD_RESPONSE_CODE, HTTPParseResponseCode, "http.response_line");
 
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTTPStateAlloc, HTTPStateFree);
+}
+
+void HTTPAtExitPrintStats(void) {
+#ifdef DEBUG
+    mutex_lock(&http_state_mem_lock);
+    printf("HTTPAtExitPrintStats: http_state_memcnt %"PRIu64", http_state_memuse %"PRIu64"\n", http_state_memcnt, http_state_memuse);
+    mutex_unlock(&http_state_mem_lock);
+#endif
 }
 
 /* UNITTESTS */
@@ -410,7 +441,7 @@ int HTTPParserTest01(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf, httplen);
     if (r != 0) {
@@ -419,7 +450,7 @@ int HTTPParserTest01(void) {
         goto end;
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -447,7 +478,7 @@ int HTTPParserTest02(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf, httplen);
     if (r != 0) {
@@ -456,7 +487,7 @@ int HTTPParserTest02(void) {
         goto end;
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         result = 0;
         goto end;
@@ -487,7 +518,7 @@ int HTTPParserTest03(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
@@ -510,7 +541,7 @@ int HTTPParserTest03(void) {
         goto end;
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -542,7 +573,7 @@ int HTTPParserTest04(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
@@ -565,7 +596,7 @@ int HTTPParserTest04(void) {
         goto end;
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -598,7 +629,7 @@ int HTTPParserTest05(void) {
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
 
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
@@ -621,7 +652,7 @@ int HTTPParserTest05(void) {
         goto end;
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -650,7 +681,7 @@ int HTTPParserTest06(void) {
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
 
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
@@ -659,7 +690,7 @@ int HTTPParserTest06(void) {
         goto end;
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -690,7 +721,7 @@ int HTTPParserTest07(void) {
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
 
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
@@ -706,7 +737,7 @@ int HTTPParserTest07(void) {
         goto end;
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -747,7 +778,7 @@ int HTTPParserTest08(void) {
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
 
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
@@ -791,7 +822,7 @@ int HTTPParserTest08(void) {
         goto end;
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -827,7 +858,7 @@ int HTTPParserTest09(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     uint32_t u;
     for (u = 0; u < httplen1; u++) {
@@ -860,7 +891,7 @@ int HTTPParserTest09(void) {
         }
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -894,7 +925,7 @@ int HTTPParserTest10(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
-    f.stream = (void *)&ssn;
+    f.protoctx = (void *)&ssn;
 
     uint32_t u;
     for (u = 0; u < httplen1; u++) {
@@ -912,7 +943,7 @@ int HTTPParserTest10(void) {
         }
     }
 
-    HttpState *http_state = ssn.l7data[AlpGetStateIdx(ALPROTO_HTTP)];
+    HttpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;

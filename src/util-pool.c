@@ -113,6 +113,11 @@ void *PoolGet(Pool *p) {
     } else {
         if (p->allocated < p->max_buckets) {
             p->allocated++;
+
+            p->outstanding++;
+            if (p->outstanding > p->max_outstanding)
+                p->max_outstanding = p->outstanding;
+
             return p->Alloc(p->AllocData);
         } else {
             return NULL;
@@ -121,6 +126,9 @@ void *PoolGet(Pool *p) {
 
     void *ptr = pb->data;
     pb->data = NULL;
+    p->outstanding++;
+    if (p->outstanding > p->max_outstanding)
+        p->max_outstanding = p->outstanding;
     return ptr;
 }
 
@@ -141,7 +149,12 @@ void PoolReturn(Pool *p, void *data) {
     p->alloc_list_size++;
 
     pb->data = data;
+    p->outstanding--;
     return;
+}
+
+void PoolPrintSaturation(Pool *p) {
+    printf("PoolPrintSaturation: Pool %p is using %"PRIu32" out of %"PRIu32" items (%02.1f%%), max %"PRIu32" (%02.1f%%): pool struct memory %"PRIu64".\n", p, p->outstanding, p->max_buckets, (float)(p->outstanding/(float)(p->max_buckets))*100, p->max_outstanding, (float)(p->max_outstanding/(float)(p->max_buckets))*100, (uint64_t)(p->max_buckets * sizeof(PoolBucket)));
 }
 
 /*

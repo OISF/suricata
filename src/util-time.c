@@ -4,6 +4,8 @@
 #include "detect.h"
 #include "threads.h"
 
+//#define DEBUG
+
 static struct timeval current_time = { 0,0 };
 static pthread_mutex_t current_time_mutex = PTHREAD_MUTEX_INITIALIZER;
 static char live = TRUE;
@@ -24,10 +26,13 @@ void TimeSet(struct timeval *tv) {
         return;
 
     mutex_lock(&current_time_mutex);
-    current_time.tv_sec = tv->tv_sec; 
+    current_time.tv_sec = tv->tv_sec;
     current_time.tv_usec = tv->tv_usec;
-    //printf("TimeSet: time set to %" PRIu64 " sec, %" PRIu64 " usec\n",
-    //    current_time.tv_sec, current_time.tv_usec);
+
+#ifdef DEBUG
+    printf("TimeSet: time set to %" PRIuMAX " sec, %" PRIuMAX " usec\n",
+        (uintmax_t)current_time.tv_sec, (uintmax_t)current_time.tv_usec);
+#endif
 
     mutex_unlock(&current_time_mutex);
 }
@@ -40,12 +45,14 @@ void TimeGet(struct timeval *tv) {
         gettimeofday(tv, NULL);
     } else {
         mutex_lock(&current_time_mutex);
-        tv->tv_sec = current_time.tv_sec; 
+        tv->tv_sec = current_time.tv_sec;
         tv->tv_usec = current_time.tv_usec;
         mutex_unlock(&current_time_mutex);
     }
 
-    //printf("TimeGet: time we got is %" PRIu64 " sec, %" PRIu64 " usec\n",
-    //    tv->tv_sec, tv->tv_usec);
+#ifdef DEBUG
+    printf("TimeGet: time we got is %" PRIuMAX " sec, %" PRIuMAX " usec\n",
+        (uintmax_t)tv->tv_sec, (uintmax_t)tv->tv_usec);
+#endif
 }
 

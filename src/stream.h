@@ -49,6 +49,7 @@ typedef struct StreamMsgQueue_ {
 
 /* prototypes */
 void StreamMsgQueuesInit(void);
+void StreamMsgQueuesDeinit(void);
 
 StreamMsg *StreamMsgGetFromPool(void);
 void StreamMsgReturnToPool(StreamMsg *);

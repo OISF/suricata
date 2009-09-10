@@ -34,7 +34,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
-#define INSPECT_BYTES   32
+#define INSPECT_BYTES  32
 #define ALP_DETECT_MAX 256
 
 typedef struct AlpProtoDetectDirectionThread_ {
@@ -61,25 +61,7 @@ typedef struct AlpProtoDetectCtx_ {
 
 static AlpProtoDetectCtx alp_proto_ctx;
 static AlpProtoDetectThreadCtx alp_proto_tctx;
-static uint8_t al_proto_id = 0;
 
-/** \brief data stored in the stream */
-typedef struct AppLayerDetectProtoData_ {
-    uint8_t proto;
-} AppLayerDetectProtoData;
-
-static Pool *al_detect_proto_pool = NULL;
-
-void *AppLayerDetectProtoAlloc(void *null) {
-    AppLayerDetectProtoData *d = malloc(sizeof(AppLayerDetectProtoData));
-    if (d == NULL) {
-        return NULL;
-    }
-
-    d->proto = ALPROTO_UNKNOWN;
-    return d;
-}
-#define AppLayerDetectProtoFree free
 
 void AlpProtoInit(AlpProtoDetectCtx *ctx) {
     memset(ctx, 0x00, sizeof(AlpProtoDetectCtx));
@@ -108,7 +90,7 @@ void AlpProtoDestroy(AlpProtoDetectCtx *ctx) {
  *  \param offset Offset setting for the content. E.g. 4 mean that the content has to match after the first 4 bytes of the stream.
  *  \param flags Set STREAM_TOCLIENT or STREAM_TOSERVER for the direction in which to try to match the content.
  */
-void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint8_t al_proto, char *content, uint16_t depth, uint16_t offset, uint8_t flags) {
+void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, char *content, uint16_t depth, uint16_t offset, uint8_t flags) {
     DetectContentData *cd = DetectContentParse(content);
     if (cd == NULL) {
         return;
@@ -159,13 +141,6 @@ void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
 }
 
 void AppLayerDetectProtoThreadInit(void) {
-    al_proto_id = StreamL7RegisterModule();
-
-    al_detect_proto_pool = PoolInit(262144, 32768, AppLayerDetectProtoAlloc, NULL, AppLayerDetectProtoFree);
-    if (al_detect_proto_pool == NULL) {
-        exit(1);
-    }
-
     AlpProtoInit(&alp_proto_ctx);
 
     /** \todo register these in the protocol parser api */
@@ -267,12 +242,17 @@ end:
     if (dir->mpm_ctx.Cleanup != NULL) {
         dir->mpm_ctx.Cleanup(&tdir->mpm_ctx);
     }
-
+//#define DEBUG
 #ifdef DEBUG
     printf("AppLayerDetectGetProto: returning %" PRIu16 " (%s): ", proto, flags & STREAM_TOCLIENT ? "TOCLIENT" : "TOSERVER");
     switch (proto) {
         case ALPROTO_HTTP:
-            printf("HTTP\n");
+            printf("HTTP: ");
+            /* print the first 32 bytes */
+            if (buflen > 0) {
+                PrintRawUriFp(stdout,buf,(buflen>32)?32:buflen);
+            }
+            printf("\n");
             break;
         case ALPROTO_FTP:
             printf("FTP\n");
@@ -282,6 +262,9 @@ end:
             break;
         case ALPROTO_SSH:
             printf("SSH\n");
+            break;
+        case ALPROTO_TLS:
+            printf("TLS\n");
             break;
         case ALPROTO_IMAP:
             printf("IMAP\n");
@@ -297,8 +280,12 @@ end:
             break;
         case ALPROTO_UNKNOWN:
         default:
-            printf("UNKNOWN\n");
-            PrintRawDataFp(stdout,buf,buflen);
+            printf("UNKNOWN (%u): cnt was %u (", proto, cnt);
+            /* print the first 32 bytes */
+            if (buflen > 0) {
+                PrintRawUriFp(stdout,buf,(buflen>32)?32:buflen);
+            }
+            printf(")\n");
             break;
     }
 #endif
@@ -309,9 +296,7 @@ void *AppLayerDetectProtoThread(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
     char run = TRUE;
-    AppLayerDetectProtoData *al_proto = NULL;
-    char store = 0;
-    void *al_data_ptr = NULL;
+    uint16_t alproto = ALPROTO_UNKNOWN;
 
     /* get the stream msg queue for this thread */
     StreamMsgQueue *stream_q = StreamMsgQueueGetByPort(0);
@@ -327,20 +312,13 @@ void *AppLayerDetectProtoThread(void *td)
         StreamMsg *smsg = StreamMsgGetFromQueue(stream_q);
         if (smsg != NULL) {
             mutex_lock(&smsg->flow->m);
-            TcpSession *ssn = smsg->flow->stream;
+            TcpSession *ssn = smsg->flow->protoctx;
             if (ssn != NULL) {
-                if (ssn->l7data == NULL) {
-                    /* XXX we can use a pool here,
-                       or make it part of the stream setup */
-                    StreamL7DataPtrInit(ssn,StreamL7GetStorageSize());
-                }
-                if (ssn->l7data != NULL) {
-                    al_data_ptr = ssn->l7data[al_proto_id];
-                }
+                alproto = ssn->alproto;
             }
             mutex_unlock(&smsg->flow->m);
 
-            if (ssn != NULL && ssn->l7data != NULL) {
+            if (ssn != NULL) {
                 if (smsg->flags & STREAM_START) {
                     //printf("L7AppDetectThread: stream initializer (len %" PRIu32 " (%" PRIu32 "))\n", smsg->data.data_len, MSG_DATA_SIZE);
 
@@ -348,17 +326,18 @@ void *AppLayerDetectProtoThread(void *td)
                     //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
                     //printf("=> Init Stream Data -- end\n");
 
-                    if (al_data_ptr == NULL) {
-                        al_proto = (AppLayerDetectProtoData *)PoolGet(al_detect_proto_pool);
-                        if (al_proto != NULL) {
-                            al_proto->proto = AppLayerDetectGetProto(&alp_proto_ctx, &alp_proto_tctx, smsg->data.data, smsg->data.data_len, smsg->flags);
-                            store = 1;
+                    alproto = AppLayerDetectGetProto(&alp_proto_ctx, &alp_proto_tctx, smsg->data.data, smsg->data.data_len, smsg->flags);
+                    if (alproto != ALPROTO_UNKNOWN) {
+                        /* store the proto and setup the L7 data array */
+                        mutex_lock(&smsg->flow->m);
+                        StreamL7DataPtrInit(ssn,StreamL7GetStorageSize());
+                        ssn->alproto = alproto;
+                        mutex_unlock(&smsg->flow->m);
 
-                            AppLayerParse(smsg->flow, al_proto->proto, smsg->flags, smsg->data.data, smsg->data.data_len);
-                        }
+                        AppLayerParse(smsg->flow, alproto, smsg->flags, smsg->data.data, smsg->data.data_len);
                     }
                 } else {
-                    //printf("AppLayerDetectThread: stream data (len %" PRIu32 " (%" PRIu32 "))\n", smsg->data.data_len, MSG_DATA_SIZE);
+                    //printf("AppLayerDetectThread: stream data (len %" PRIu32 " (%" PRIu32 ")), alproto %"PRIu16"\n", smsg->data.data_len, MSG_DATA_SIZE, alproto);
 
                     //printf("=> Stream Data -- start\n");
                     //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
@@ -366,11 +345,8 @@ void *AppLayerDetectProtoThread(void *td)
 
                     /* if we don't have a data object here we are not getting it
                      * a start msg should have gotten us one */
-                    if (al_data_ptr != NULL) {
-                        al_proto = (AppLayerDetectProtoData *)al_data_ptr;
-                        //printf("AppLayerDetectThread: already established that the proto is %" PRIu32 "\n", al_proto->proto);
-
-                        AppLayerParse(smsg->flow, al_proto->proto, smsg->flags, smsg->data.data, smsg->data.data_len);
+                    if (alproto != ALPROTO_UNKNOWN) {
+                        AppLayerParse(smsg->flow, alproto, smsg->flags, smsg->data.data, smsg->data.data_len);
                     } else {
                         //printf("AppLayerDetectThread: smsg not start, but no l7 data? Weird\n");
                     }
@@ -378,19 +354,9 @@ void *AppLayerDetectProtoThread(void *td)
             }
 
             mutex_lock(&smsg->flow->m);
-            if (store == 1) {
-                /* store */
-                if (ssn != NULL && ssn->l7data != NULL) {
-                    ssn->l7data[al_proto_id] = (void *)al_proto;
-                } else {
-                    al_proto->proto = 0;
-                    PoolReturn(al_detect_proto_pool,(void *)al_proto);
-                }
-                store = 0;
-            }
-            /* XXX we need to improve this logic */
             smsg->flow->use_cnt--;
             mutex_unlock(&smsg->flow->m);
+
             /* return the used message to the queue */
             StreamMsgReturnToPool(smsg);
         }

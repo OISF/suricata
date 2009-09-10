@@ -23,12 +23,16 @@ typedef struct Pool_ {
     void *(*Alloc)(void *);
     void *AllocData;
     void (*Free)(void *);
+
+    uint32_t outstanding;
+    uint32_t max_outstanding;
 } Pool;
 
 /* prototypes */
 Pool* PoolInit(uint32_t, uint32_t, void *(*Alloc)(void *), void *, void (*Free)(void *));
 void PoolFree(Pool *);
 void PoolPrint(Pool *);
+void PoolPrintSaturation(Pool *p);
 
 void *PoolGet(Pool *);
 void PoolReturn(Pool *, void *);

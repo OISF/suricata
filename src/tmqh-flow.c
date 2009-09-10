@@ -27,6 +27,7 @@
 typedef struct TmqhFlowCtx_ {
     uint16_t size;
     uint16_t *queues;
+    uint16_t last;
 } TmqhFlowCtx;
 
 Packet *TmqhInputFlow(ThreadVars *t);
@@ -167,7 +168,12 @@ void TmqhOutputFlow(ThreadVars *tv, Packet *p)
         uint16_t idx = addr % ctx->size;
         qid = ctx->queues[idx];
     } else {
-        qid = ctx->queues[0];
+        ctx->last++;
+
+        if (ctx->last == ctx->size)
+            ctx->last = 0;
+
+        qid = ctx->queues[ctx->last];
     }
 
     PacketQueue *q = &trans_q[qid];

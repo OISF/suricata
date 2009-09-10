@@ -49,6 +49,26 @@ void FlowFree(Flow *f)
     free(f);
 }
 
+/**
+ *  \brief   Function to map the protocol to the defined FLOW_PROTO_* enumeration.
+ *
+ *  \param   proto  protocol which is needed to be mapped
+ */
+
+int FlowGetProtoMapping(uint8_t proto) {
+
+    switch (proto) {
+        case IPPROTO_TCP:
+            return FLOW_PROTO_TCP;
+        case IPPROTO_UDP:
+            return FLOW_PROTO_UDP;
+        case IPPROTO_ICMP:
+            return FLOW_PROTO_ICMP;
+        default:
+            return FLOW_PROTO_DEFAULT;
+    }
+}
+
 /* initialize the flow from the first packet
  * we see from it. */
 void FlowInit(Flow *f, Packet *p)
@@ -81,5 +101,7 @@ void FlowInit(Flow *f, Packet *p)
     }
 
     COPY_TIMESTAMP(&p->ts, &f->startts);
+
+    f->protomap = FlowGetProtoMapping(f->proto);
 }
 

@@ -3,9 +3,6 @@
 #ifndef __FLOW_UTIL_H__
 #define __FLOW_UTIL_H__
 
-/** FlowProto specific timeouts and free/state functions */
-FlowProto flow_proto[FLOW_PROTO_MAX];
-
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
 
 /* only clear the parts that won't be overwritten
@@ -19,12 +16,13 @@ FlowProto flow_proto[FLOW_PROTO_MAX];
     (f)->lastts.tv_usec = 0; \
     GenericVarFree((f)->flowvar); \
     (f)->flowvar = NULL; \
-    (f)->stream = NULL; \
+    (f)->protoctx = NULL; \
     (f)->use_cnt = 0; \
 }
 
 Flow *FlowAlloc(void);
 void FlowFree(Flow *);
+int FlowGetProtoMapping(uint8_t);
 void FlowInit(Flow *, Packet *);
 
 #endif /* __FLOW_UTIL_H__ */

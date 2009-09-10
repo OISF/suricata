@@ -13,5 +13,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#include <assert.h>
+#define BUG_ON(x) assert(!(x))
+
 #endif /* __EIDPS_COMMON_H__ */
 

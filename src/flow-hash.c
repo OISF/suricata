@@ -98,7 +98,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
         /* got one, now lock, initialize and return */
         mutex_lock(&f->m);
         FlowInit(f,p);
-        FlowRequeue(f, NULL, &flow_new_q);
+        FlowRequeue(f, NULL, &flow_new_q[f->protomap]);
         f->flags |= FLOW_NEW_LIST;
         f->fb = fb;
 
@@ -139,14 +139,14 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 /* lock, initialize and return */
                 mutex_lock(&f->m);
                 FlowInit(f,p);
-                FlowRequeue(f, NULL, &flow_new_q);
+                FlowRequeue(f, NULL, &flow_new_q[f->protomap]);
 
                 f->flags |= FLOW_NEW_LIST;
                 f->fb = fb;
 
                 mutex_unlock(&fb->m);
                 return f;
-            } 
+            }
 
             mutex_lock(&f->m);
 

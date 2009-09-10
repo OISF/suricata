@@ -9,10 +9,13 @@
 /* per flow flags */
 #define FLOW_TO_SRC_SEEN         0x01
 #define FLOW_TO_DST_SEEN         0x02
+
 #define FLOW_NEW_LIST            0x04
 #define FLOW_EST_LIST            0x08
-#define FLOW_TOSERVER_IPONLY_SET 0x10
-#define FLOW_TOCLIENT_IPONLY_SET 0x20
+#define FLOW_CLOSED_LIST         0x10
+
+#define FLOW_TOSERVER_IPONLY_SET 0x20
+#define FLOW_TOCLIENT_IPONLY_SET 0x40
 
 /* global flow flags */
 #define FLOW_EMERGENCY   0x01
@@ -38,16 +41,41 @@
 #define FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT 10
 #define FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT 100
 
+enum {
+    FLOW_PROTO_DEFAULT = 0,
+    FLOW_PROTO_TCP,
+    FLOW_PROTO_UDP,
+    FLOW_PROTO_ICMP,
+
+    /* should be last */
+    FLOW_PROTO_MAX,
+};
+
 /*
  * Variables
  */
 
-FlowQueue flow_spare_q; /* Spare flow's. Prealloced flows in here */
-FlowQueue flow_new_q;   /* Flows in the unreplied state live here */
-FlowQueue flow_est_q;   /* All other flows live here, the top holds the
-                         * last recently used (lru) flow, so we can remove
-                         * that in case of memory problems and check it for
-                         * timeouts. */
+/** FlowProto specific timeouts and free/state functions */
+FlowProto flow_proto[FLOW_PROTO_MAX];
+
+/** spare/unused/prealloced flows live here */
+FlowQueue flow_spare_q;
+
+/** Flows in the new/unreplied state live here */
+FlowQueue flow_new_q[FLOW_PROTO_MAX];
+
+/** All "established" flows live here, the top holds the
+ *  last recently used (lru) flow, so we can remove
+ *  that in case of memory problems and check it for
+ *  timeouts. */
+FlowQueue flow_est_q[FLOW_PROTO_MAX];
+
+/** All "closing" flows live here, the top holds the
+ *  last recently used (lru) flow, so we can remove
+ *  that in case of memory problems and check it for
+ *  timeouts. */
+FlowQueue flow_close_q[FLOW_PROTO_MAX];
+
 FlowBucket *flow_hash;
 FlowConfig flow_config;
 

@@ -8,6 +8,10 @@
 
 #include "util-pool.h"
 
+static pthread_mutex_t stream_pool_memuse_mutex;
+static uint64_t stream_pool_memuse = 0;
+static uint64_t stream_pool_memcnt = 0;
+
 static StreamMsgQueue stream_q;
 
 /* per queue setting */
@@ -25,6 +29,11 @@ void *StreamMsgAlloc(void *null) {
         return NULL;
 
     memset(s, 0, sizeof(StreamMsg));
+
+    mutex_lock(&stream_pool_memuse_mutex);
+    stream_pool_memuse += sizeof(StreamMsg);
+    stream_pool_memcnt ++;
+    mutex_unlock(&stream_pool_memuse_mutex);
     return s;
 }
 
@@ -140,6 +149,14 @@ void StreamMsgQueuesInit(void) {
     stream_msg_pool = PoolInit(5000,250,StreamMsgAlloc,NULL,StreamMsgFree);
     if (stream_msg_pool == NULL)
         exit(1); /* XXX */ 
+
+    pthread_mutex_init(&stream_pool_memuse_mutex, NULL);
+}
+
+void StreamMsgQueuesDeinit(void) {
+    PoolFree(stream_msg_pool);
+
+    printf("StreamMsgQueuesDeinit: stream_pool_memuse %"PRIu64", stream_pool_memcnt %"PRIu64"\n", stream_pool_memuse, stream_pool_memcnt);
 }
 
 StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {

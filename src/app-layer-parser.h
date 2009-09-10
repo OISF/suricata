@@ -87,5 +87,8 @@ int AlpParseFieldByEOF(AppLayerParserResult *, AppLayerParserState *, uint16_t, 
 int AlpParseFieldByDelimiter(AppLayerParserResult *, AppLayerParserState *, uint16_t, const uint8_t *, uint8_t, uint8_t *, uint32_t, uint32_t *);
 uint16_t AlpGetStateIdx(uint16_t);
 
+#include "stream-tcp-private.h"
+void AppLayerParserCleanupState(TcpSession *);
+
 #endif /* __APP_LAYER_PARSER_H__ */
 

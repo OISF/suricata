@@ -624,6 +624,320 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface) {
     return 0;
 }
 
+/** \brief Live pcap mode with 4 stream tracking and reassembly threads, testing the flow queuehandler */
+int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface) {
+    TimeModeSetLive();
+
+    /* create the threads */
+    ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
+    if (tv_receivepcap == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmModule *tm_module = TmModuleGetByName("ReceivePcap");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
+
+    if (TmThreadSpawn(tv_receivepcap) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode1","pickup-queue","simple","decode-queue1,decode-queue2,decode-queue3,decode-queue4","flow","1slot");
+    if (tv_decode1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("DecodePcap");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodePcap failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_decode1) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv;
+    tv = TmThreadCreatePacketHandler("Stream1","decode-queue1","simple","packetpool","packetpool","varslot");
+    if (tv == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,(void *)de_ctx);
+
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertFastlog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("LogHttplog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedLog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedAlert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertDebuglog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv, 0);
+
+    if (TmThreadSpawn(tv) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    tv = TmThreadCreatePacketHandler("Stream2","decode-queue2","simple","packetpool","packetpool","varslot");
+    if (tv == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,(void *)de_ctx);
+
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertFastlog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("LogHttplog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedLog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedAlert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertDebuglog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv, 0);
+
+    if (TmThreadSpawn(tv) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    tv = TmThreadCreatePacketHandler("Stream3","decode-queue3","simple","packetpool","packetpool","varslot");
+    if (tv == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,(void *)de_ctx);
+
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertFastlog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("LogHttplog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedLog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedAlert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertDebuglog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv, 1);
+
+    if (TmThreadSpawn(tv) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    tv = TmThreadCreatePacketHandler("Stream4","decode-queue4","simple","packetpool","packetpool","varslot");
+    if (tv == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,(void *)de_ctx);
+
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertFastlog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("LogHttplog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedLog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertUnifiedAlert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("AlertDebuglog");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv, 1);
+
+    if (TmThreadSpawn(tv) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+    return 0;
+}
+
 int RunModeIpsNFQ(DetectEngineCtx *de_ctx) {
     TimeModeSetLive();
 
@@ -1256,7 +1570,8 @@ int main(int argc, char **argv)
     gettimeofday(&start_time, NULL);
 
     if (mode == MODE_PCAP_DEV) {
-        RunModeIdsPcap2(de_ctx, pcap_dev);
+        RunModeIdsPcap3(de_ctx, pcap_dev);
+        //RunModeIdsPcap2(de_ctx, pcap_dev);
         //RunModeIdsPcap(de_ctx, pcap_dev);
     }
     else if (mode == MODE_PCAP_FILE) {
@@ -1337,6 +1652,8 @@ int main(int argc, char **argv)
 
     FlowShutdown();
     FlowPrintQueueInfo();
+    StreamTcpFreeConfig(STREAM_VERBOSE);
+    HTTPAtExitPrintStats();
 
     /** \todo review whats needed here */
     SigGroupCleanup(de_ctx);
