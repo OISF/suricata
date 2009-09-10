@@ -19,7 +19,7 @@
 /**
  * \brief Regex for parsing our flow options
  */
-#define PARSE_REGEX  "^\\s*([^\\s]+)\\s*,\\s*([^\\s]+)\\s*,([0-9]+)\\s*$"
+#define PARSE_REGEX  "^\\s*([A-z_]+)\\s*,\\s*([<=>!]+)\\s*,\\s*([0-9]+)\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -441,7 +441,7 @@ static int DetectStreamSizeParseTest04 (void) {
     memset(&f, 0, sizeof(Flow));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
-    sd = DetectStreamSizeParse("client,>,8");
+    sd = DetectStreamSizeParse(" client , > , 8 ");
     if (sd != NULL) {
         if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT && sd->ssize != 8)
             return 0;
