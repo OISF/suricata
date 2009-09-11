@@ -369,7 +369,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         phdr.sp = htons(p->icmpv4h->type);
         phdr.dp = htons(p->icmpv4h->code);
     }
-    else if (phdr.protocol != 0xff)
+    else if (phdr.protocol != IPPROTO_RAW)
     {
         phdr.sp = htons(p->sp);
         phdr.dp = htons(p->dp);
@@ -472,7 +472,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         phdr.sp = htons(p->icmpv4h->type);
         phdr.dp = htons(p->icmpv4h->code);
     }
-    else if (phdr.protocol != 0xff)
+    else if (phdr.protocol != IPPROTO_RAW)
     {
         phdr.sp = htons(p->sp);
         phdr.dp = htons(p->dp);
