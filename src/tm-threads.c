@@ -81,6 +81,7 @@ void *TmThreadsSlot1NoIn(void *td) {
     }
     memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
+    tv->flags |= THV_INIT_DONE;
     while(run) {
         TmThreadTestThreadUnPaused(tv);
 
@@ -101,8 +102,10 @@ void *TmThreadsSlot1NoIn(void *td) {
 
         tv->tmqh_out(tv, p);
 
-        if (tv->flags & THV_KILL)
+        if (tv->flags & THV_KILL) {
+            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
             run = 0;
+        }
     }
 
     if (s->s.SlotThreadExitPrintStats != NULL) {
@@ -142,6 +145,7 @@ void *TmThreadsSlot1NoOut(void *td) {
     }
     memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
+    tv->flags |= THV_INIT_DONE;
     while(run) {
         TmThreadTestThreadUnPaused(tv);
 
@@ -156,8 +160,10 @@ void *TmThreadsSlot1NoOut(void *td) {
             break;
         }
 
-        if (tv->flags & THV_KILL)
+        if (tv->flags & THV_KILL) {
+            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
             run = 0;
+        }
     }
 
     if (s->s.SlotThreadExitPrintStats != NULL) {
@@ -198,6 +204,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
     }
     memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
+    tv->flags |= THV_INIT_DONE;
     while(run) {
         TmThreadTestThreadUnPaused(tv);
 
@@ -212,6 +219,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
 
         if (tv->flags & THV_KILL) {
             //printf("%s: TmThreadsSlot1NoInOut: KILL is set\n", tv->name);
+            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
             run = 0;
         }
     }
@@ -256,6 +264,7 @@ void *TmThreadsSlot1(void *td) {
     }
     memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
+    tv->flags |= THV_INIT_DONE;
     while(run) {
         TmThreadTestThreadUnPaused(tv);
 
@@ -289,6 +298,7 @@ void *TmThreadsSlot1(void *td) {
 
         if (tv->flags & THV_KILL) {
             //printf("%s: TmThreadsSlot1: KILL is set\n", tv->name);
+            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
             run = 0;
         }
     }
@@ -375,6 +385,7 @@ void *TmThreadsSlotVar(void *td) {
         memset(&slot->slot_pq, 0, sizeof(PacketQueue));
     }
 
+    tv->flags |= THV_INIT_DONE;
     while(run) {
         TmThreadTestThreadUnPaused(tv);
 
@@ -400,6 +411,7 @@ void *TmThreadsSlotVar(void *td) {
 
         if (tv->flags & THV_KILL) {
             //printf("%s: TmThreadsSlot1: KILL is set\n", tv->name);
+            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
             run = 0;
         }
     }
@@ -1027,6 +1039,27 @@ void TmThreadCheckThreadState(void)
                     EngineKill();
                 }
             }
+            tv = tv->next;
+        }
+    }
+
+    return;
+}
+
+/** \brief Used to check if all threads have finished their initialization.  On
+ *         finding an un-initialized thread, it waits till that thread completes
+ *         its initialization, before proceeding to the next thread.
+ */
+void TmThreadWaitOnThreadInit(void)
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+        while (tv != NULL) {
+            while (!(tv->flags & THV_INIT_DONE))
+                ;
             tv = tv->next;
         }
     }

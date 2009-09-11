@@ -8,11 +8,12 @@
 #include "counters.h"
 
 /** Thread flags set and read by threads to control the threads */
-#define THV_USE     0x01 /** thread is in use */
-#define THV_PAUSE   0x02 /** thread has been paused */
-#define THV_KILL    0x04 /** thread has been asked to cleanup and exit */
-#define THV_FAILED  0x08 /** thread has encountered an error and failed */
-#define THV_CLOSED  0x10 /** thread done, should be joinable */
+#define THV_USE       0x01 /** thread is in use */
+#define THV_INIT_DONE 0x02 /** thread initialization done */
+#define THV_PAUSE     0x04 /** thread has been paused */
+#define THV_KILL      0x08 /** thread has been asked to cleanup and exit */
+#define THV_FAILED    0x10 /** thread has encountered an error and failed */
+#define THV_CLOSED    0x20 /** thread done, should be joinable */
 
 /** Thread flags set and read by threads, to control the threads, when they
     encounter certain conditions like failure */

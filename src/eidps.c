@@ -1594,11 +1594,14 @@ int main(int argc, char **argv)
     /* Spawn the L7 App Detect thread */
     AppLayerDetectProtoThreadSpawn();
 
-    /* Spawn the perf counter threads */
+    /* Spawn the perf counter threads.  Let these be the last one spawned */
     PerfSpawnThreads();
 
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();
+
+    /* Waits till all the threads have been initialized */
+    TmThreadWaitOnThreadInit();
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();

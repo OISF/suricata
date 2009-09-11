@@ -144,6 +144,7 @@ void * PerfMgmtThread(void *arg)
         return NULL;
     }
 
+    tv_local->flags |= THV_INIT_DONE;
     while (run) {
         TmThreadTestThreadUnPaused(tv_local);
 
@@ -183,6 +184,7 @@ void * PerfWakeupThread(void *arg)
 
     printf("PerfWakeupThread: spawned\n");
 
+    tv_local->flags |= THV_INIT_DONE;
     while (run) {
         TmThreadTestThreadUnPaused(tv_local);
 

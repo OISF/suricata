@@ -50,5 +50,7 @@ void TmThreadPauseThreads(void);
 
 void TmThreadCheckThreadState(void);
 
+void TmThreadWaitOnThreadInit(void);
+
 #endif /* __TM_THREADS_H__ */
 
