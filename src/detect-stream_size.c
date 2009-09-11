@@ -75,34 +75,35 @@ error:
  *  \retval 1 on success and 0 on failure.
  */
 
-static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode) {
+static inline int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode) {
 
     int ret = 0;
-    switch(mode) {
-            case DETECTSSIZE_LT:
-                if (diff < stream_size)
-                    ret = 1;
-                break;
-            case DETECTSSIZE_LEQ:
-                if (diff <= stream_size)
-                    ret = 1;
-                break;
-            case DETECTSSIZE_EQ:
-                if (diff == stream_size)
-                    ret = 1;
-                break;
-            case DETECTSSIZE_NEQ:
-                if (diff != stream_size)
-                    ret = 1;
-                break;
-            case DETECTSSIZE_GEQ:
-                if (diff >= stream_size)
-                    ret = 1;
-                break;
-            case DETECTSSIZE_GT:
-                if (diff > stream_size)
-                    ret = 1;
-                break;
+    switch (mode) {
+        case DETECTSSIZE_LT:
+            if (diff < stream_size)
+                ret = 1;
+            break;
+        case DETECTSSIZE_LEQ:
+            if (diff <= stream_size)
+                ret = 1;
+            break;
+        case DETECTSSIZE_EQ:
+            if (diff == stream_size)
+                ret = 1;
+            break;
+        case DETECTSSIZE_NEQ:
+            if (diff != stream_size)
+                ret = 1;
+            break;
+        case DETECTSSIZE_GEQ:
+            if (diff >= stream_size)
+                ret = 1;
+            break;
+        case DETECTSSIZE_GT:
+            printf("diff %"PRIu32", stream_size %"PRIu32"\n", diff, stream_size);
+            if (diff > stream_size)
+                ret = 1;
+            break;
     }
 
     return ret;
@@ -124,7 +125,7 @@ int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
     int ret = 0;
     DetectStreamSizeData *sd = (DetectStreamSizeData *) m->ctx;
 
-    if (p->ip4h == NULL)
+    if (!(PKT_IS_TCP(p)))
         return ret;
 
     uint32_t csdiff = 0;
@@ -134,20 +135,18 @@ int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
         return ret;
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-
     if (ssn == NULL)
         return ret;
 
     if (sd->flags & STREAM_SIZE_SERVER) {
-        /*get the server stream size*/
+        /* get the server stream size */
         ssdiff = ssn->server.next_seq - ssn->server.isn;
         ret = DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode);
 
     } else if (sd->flags & STREAM_SIZE_CLIENT) {
-         /*get the client stream size*/
+        /* get the client stream size */
         csdiff = ssn->client.next_seq - ssn->client.isn;
         ret = DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode);
-
 
     } else if (sd->flags & STREAM_SIZE_BOTH) {
         ssdiff = ssn->server.next_seq - ssn->server.isn;
@@ -221,15 +220,21 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     sd->ssize = 0;
     sd->flags = 0;
 
+    if (strlen(mode) == 0)
+        goto error;
+
     if(mode[0] == '<') sd->mode = DETECTSSIZE_LT;
-    else if(strcmp("<=", mode) == 0) sd->mode = DETECTSSIZE_LEQ;
+    else if (strcmp("<=", mode) == 0) sd->mode = DETECTSSIZE_LEQ;
     else if (mode[0] == '>') sd->mode = DETECTSSIZE_GT;
-    else if(strcmp(">=", mode)) sd->mode = DETECTSSIZE_GEQ;
-    else if(strcmp("!=", mode)) sd->mode = DETECTSSIZE_NEQ;
-    else sd->mode = DETECTSSIZE_EQ;
+    else if (strcmp(">=", mode)) sd->mode = DETECTSSIZE_GEQ;
+    else if (strcmp("!=", mode)) sd->mode = DETECTSSIZE_NEQ;
+    else if (mode[0] == '=') sd->mode = DETECTSSIZE_EQ;
+    else {
+        goto error;
+    }
 
     /* set the value */
-    sd->ssize = (uint16_t)atoi(value);
+    sd->ssize = (uint32_t)atoi(value);
 
     /* inspect our options and set the flags */
     if (strcmp(arg, "server") == 0) {
@@ -380,7 +385,7 @@ static int DetectStreamSizeParseTest03 (void) {
     SigMatch sm;
     TcpStream client;
     Flow f;
-    IPV4Hdr ip4h;
+    TCPHdr tcph;
 
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof(ThreadVars));
@@ -390,25 +395,41 @@ static int DetectStreamSizeParseTest03 (void) {
     memset(&sm, 0, sizeof(SigMatch));
     memset(&client, 0, sizeof(TcpStream));
     memset(&f, 0, sizeof(Flow));
-    memset(&ip4h, 0, sizeof(IPV4Hdr));
+    memset(&tcph, 0, sizeof(TCPHdr));
 
     sd = DetectStreamSizeParse("client,>,8");
     if (sd != NULL) {
-        if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT && sd->ssize != 8)
+        if (!(sd->flags & STREAM_SIZE_CLIENT)) {
+            printf("sd->flags not STREAM_SIZE_CLIENT: ");
             return 0;
-    } else
+        }
+
+        if (sd->mode != DETECTSSIZE_GT) {
+            printf("sd->mode not DETECTSSIZE_GT: ");
+            return 0;
+        }
+
+        if (sd->ssize != 8) {
+            printf("sd->ssize is %"PRIu32", not 8: ", sd->ssize);
+            return 0;
+        }
+    } else {
+        printf("sd == NULL: ");
         return 0;
+    }
 
     client.next_seq = 20;
     client.isn = 10;
     ssn.client = client;
     f.protoctx = &ssn;
     p.flow = &f;
-    p.ip4h = &ip4h;
+    p.tcph = &tcph;
     sm.ctx = sd;
 
     result = DetectStreamSizeMatch(&tv, &dtx, &p, &s, &sm);
-
+    if (result == 0) {
+        printf("result 0 != 1: ");
+    }
     return result;
 }
 
@@ -473,3 +494,4 @@ void DetectStreamSizeRegisterTests(void) {
     UtRegisterTest("DetectStreamSizeParseTest03", DetectStreamSizeParseTest03, 1);
     UtRegisterTest("DetectStreamSizeParseTest04", DetectStreamSizeParseTest04, 1);
 }
+
