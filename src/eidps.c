@@ -45,6 +45,7 @@
 #include "alert-fastlog.h"
 #include "alert-unified-log.h"
 #include "alert-unified-alert.h"
+#include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 
 #include "log-httplog.h"
@@ -371,6 +372,7 @@ int main(int argc, char **argv)
     TmModuleAlertFastlogIPv6Register();
     TmModuleAlertUnifiedLogRegister();
     TmModuleAlertUnifiedAlertRegister();
+    TmModuleUnified2AlertRegister();
     TmModuleStreamTcpRegister();
     TmModuleLogHttplogRegister();
     TmModuleLogHttplogIPv4Register();

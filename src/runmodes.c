@@ -166,7 +166,24 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue3","simple","packetpool","packetpool","1slot");
+   ThreadVars *tv_unified2 = TmThreadCreatePacketHandler("Unified2Alert","alert-queue3","simple","alert-queue4","simple","1slot");
+    if (tv_unified2 == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("Unified2Alert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_unified2,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_unified2) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue4","simple","packetpool","packetpool","1slot");
     if (tv_debugalert == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -393,7 +410,24 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue3","simple","packetpool","packetpool","1slot");
+   ThreadVars *tv_unified2 = TmThreadCreatePacketHandler("Unified2Alert","alert-queue3","simple","alert-queue4","simple","1slot");
+    if (tv_unified2 == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("Unified2Alert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_unified2,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_unified2) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue4","simple","packetpool","packetpool","1slot");
     if (tv_debugalert == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -507,6 +541,13 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface) {
     }
     TmVarSlotSetFuncAppend(tv,tm_module,NULL);
 
+    tm_module = TmModuleGetByName("Unified2Alert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for Unified2Alert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
     tm_module = TmModuleGetByName("AlertDebuglog");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName failed\n");
@@ -571,6 +612,13 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface) {
     tm_module = TmModuleGetByName("AlertUnifiedAlert");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("Unified2Alert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for Unified2Alert failed\n");
         exit(EXIT_FAILURE);
     }
     TmVarSlotSetFuncAppend(tv,tm_module,NULL);
@@ -643,6 +691,13 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface) {
     }
     TmVarSlotSetFuncAppend(tv,tm_module,NULL);
 
+    tm_module = TmModuleGetByName("Unified2Alert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for Unified2Alert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
     tm_module = TmModuleGetByName("AlertDebuglog");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName failed\n");
@@ -707,6 +762,13 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface) {
     tm_module = TmModuleGetByName("AlertUnifiedAlert");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("Unified2Alert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for Unified2Alert failed\n");
         exit(EXIT_FAILURE);
     }
     TmVarSlotSetFuncAppend(tv,tm_module,NULL);
@@ -899,7 +961,24 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx) {
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue3","simple","packetpool","packetpool","1slot");
+   ThreadVars *tv_unified2 = TmThreadCreatePacketHandler("Unified2Alert","alert-queue3","simple","alert-queue4","simple","1slot");
+    if (tv_unified2 == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("Unified2Alert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_unified2,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_unified2) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue4","simple","packetpool","packetpool","1slot");
     if (tv_debugalert == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -1060,7 +1139,20 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file) {
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue3","simple","packetpool","packetpool","1slot");
+    ThreadVars *tv_unified2 = TmThreadCreatePacketHandler("Unified2Alert","alert-queue3","simple","alert-queue4","simple","1slot");
+    tm_module = TmModuleGetByName("Unified2Alert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for Unified2Alert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv_unified2,tm_module,NULL);
+
+    if (TmThreadSpawn(tv_unified2) != 0) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue4","simple","packetpool","packetpool","1slot");
     if (tv_debugalert == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -1149,6 +1241,12 @@ int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file) {
     }
     TmVarSlotSetFuncAppend(tv,tm_module,NULL);
 
+    tm_module = TmModuleGetByName("Unified2Alert");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for Unified2Alert failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
     tm_module = TmModuleGetByName("AlertDebuglog");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName failed\n");
