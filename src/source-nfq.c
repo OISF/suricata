@@ -110,10 +110,10 @@ void TmModuleVerdictNFQRegister (void) {
 
 void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].name = "DecodeNFQ";
-    tmm_modules[TMM_DECODENFQ].Init = DecodeNFQThreadInit;
+    tmm_modules[TMM_DECODENFQ].ThreadInit = DecodeNFQThreadInit;
     tmm_modules[TMM_DECODENFQ].Func = DecodeNFQ;
-    tmm_modules[TMM_DECODENFQ].ExitPrintStats = NULL;
-    tmm_modules[TMM_DECODENFQ].Deinit = NULL;
+    tmm_modules[TMM_DECODENFQ].ThreadExitPrintStats = NULL;
+    tmm_modules[TMM_DECODENFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
 }
 
