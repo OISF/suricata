@@ -440,5 +440,13 @@ Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, ui
 #define LINKTYPE_PPP	9
 #define PPP_OVER_GRE    11
 
+/* older libcs don't contain a def for IPPROTO_DCCP
+ * inside of <netinet/in.h>
+ * if it isn't defined let's define it here.
+ */
+#ifndef IPPROTO_DCCP
+#define IPPROTO_DCCP 33
+#endif
+
 #endif /* __DECODE_H__ */
 
