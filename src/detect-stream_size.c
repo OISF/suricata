@@ -133,7 +133,7 @@ int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
     if (p->flow == NULL)
         return ret;
 
-    TcpSession *ssn = (TcpSession *)p->flow->stream;
+    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
     if (ssn == NULL)
         return ret;
@@ -402,7 +402,7 @@ static int DetectStreamSizeParseTest03 (void) {
     client.next_seq = 20;
     client.isn = 10;
     ssn.client = client;
-    f.stream = &ssn;
+    f.protoctx = &ssn;
     p.flow = &f;
     p.ip4h = &ip4h;
     sm.ctx = sd;
@@ -451,7 +451,7 @@ static int DetectStreamSizeParseTest04 (void) {
     client.next_seq = 20;
     client.isn = 12;
     ssn.client = client;
-    f.stream = &ssn;
+    f.protoctx = &ssn;
     p.flow = &f;
     p.ip4h = &ip4h;
     sm.ctx = sd;
