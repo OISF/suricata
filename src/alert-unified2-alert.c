@@ -364,20 +364,24 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     else
         phdr.packet_action = 0;
 
-    if ((phdr.protocol == IPPROTO_ICMP) && p->icmpv4h)
-    {
-        phdr.sp = htons(p->icmpv4h->type);
-        phdr.dp = htons(p->icmpv4h->code);
-    }
-    else if (phdr.protocol != IPPROTO_RAW)
-    {
-        phdr.sp = htons(p->sp);
-        phdr.dp = htons(p->dp);
-    }
-    else    {
-        phdr.sp = 0;
-        phdr.dp = 0;
-    }
+    switch(phdr.protocol)  {
+        case IPPROTO_ICMP:
+            if(p->icmpv4h)  {
+                phdr.sp = htons(p->icmpv4h->type);
+                phdr.dp = htons(p->icmpv4h->code);
+            }
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            phdr.sp = htons(p->sp);
+            phdr.dp = htons(p->dp);
+            break;
+        default:
+            phdr.sp = 0;
+            phdr.dp = 0;
+            break;
+     }
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
 
@@ -466,21 +470,24 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     else
         phdr.packet_action = 0;
 
-
-    if ((phdr.protocol == IPPROTO_ICMP) && p->icmpv4h)
-    {
-        phdr.sp = htons(p->icmpv4h->type);
-        phdr.dp = htons(p->icmpv4h->code);
-    }
-    else if (phdr.protocol != IPPROTO_RAW)
-    {
-        phdr.sp = htons(p->sp);
-        phdr.dp = htons(p->dp);
-    }
-    else    {
-        phdr.sp = 0;
-        phdr.dp = 0;
-    }
+    switch(phdr.protocol)  {
+        case IPPROTO_ICMP:
+            if(p->icmpv4h)  {
+                phdr.sp = htons(p->icmpv4h->type);
+                phdr.dp = htons(p->icmpv4h->code);
+            }
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            phdr.sp = htons(p->sp);
+            phdr.dp = htons(p->dp);
+            break;
+        default:
+            phdr.sp = 0;
+            phdr.dp = 0;
+            break;
+     }
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
 
