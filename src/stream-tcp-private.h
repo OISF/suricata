@@ -18,7 +18,9 @@ typedef struct TcpStream_ {
     uint32_t window;    /**< current window setting */
     uint8_t wscale;     /**< wscale setting in this direction */
 
-    uint32_t last_ts; /*Time stamp of last seen packet*/
+    uint32_t last_ts; /**< Time stamp of last seen packet*/
+    uint32_t last_pkt_ts; /**< Time of last seen packet for this stream (needed for PAWS update)*/
+
     /* reassembly */
     uint32_t ra_base_seq; /**< reassembled seq. We've reassembled up to this point. */
     TcpSegment *seg_list; /**< list of TCP segments that are not yet (fully) used in reassembly */
@@ -44,7 +46,10 @@ enum
 
 #define STREAMTCP_FLAG_MIDSTREAM                0x01    /*Flag for mid stream session*/
 #define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x02    /*Flag for mid stream established session*/
+#define STREAMTCP_TIMESTAMP                     0x04    /*Flag for TCP Timestamp option*/
 #define STREAMTCP_FLAG_SERVER_WSCALE            0x08 /**< Server supports wscale (even though it can be 0) */
+
+#define PAWS_24DAYS         2073600         /* 24 days in seconds */
 
 /* Macro's for comparing Sequence numbers
  * Page 810 from TCP/IP Illustrated, Volume 2. */
@@ -53,6 +58,8 @@ enum
 #define SEQ_LEQ(a,b) ((int)((a) - (b)) <= 0)
 #define SEQ_GT(a,b)  ((int)((a) - (b)) >  0)
 #define SEQ_GEQ(a,b) ((int)((a) - (b)) >= 0)
+
+#define GET_TIMESTAMP(p)   ((u_int32_t) ntohl (*(u_int32_t *)(p)))
 
 typedef struct TcpSession_ {
     uint8_t state;

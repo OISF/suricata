@@ -36,6 +36,7 @@ void StreamTcpReturnStreamSegments (TcpStream *);
 void StreamTcpInitConfig(char);
 extern void StreamTcpSegmentReturntoPool(TcpSegment *);
 int StreamTcpGetFlowState(void *);
+static int ValidTimestamp(TcpSession * , Packet *);
 
 #define STREAMTCP_DEFAULT_SESSIONS      262144
 #define STREAMTCP_DEFAULT_PREALLOC      32768
@@ -292,8 +293,15 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             ssn->client.isn = TCP_GET_SEQ(p);
             ssn->client.ra_base_seq = ssn->client.isn;
             ssn->client.next_seq = ssn->client.isn + 1;
-            if (p->tcpvars.ts != NULL)
-                ssn->client.last_ts = *p->tcpvars.ts->data;
+
+            if (p->tcpvars.ts != NULL) {
+                ssn->client.last_ts = GET_TIMESTAMP(p->tcpvars.ts->data);
+#ifdef DEBUG
+                printf("StreamTcpPacketStateNone (%p): p->tcpvars.ts %p, %02x\n", ssn, p->tcpvars.ts, ssn->client.last_ts);
+#endif
+                ssn->client.last_pkt_ts = p->ts.tv_sec;
+            }
+
 
             ssn->server.window = TCP_GET_WINDOW(p);
             if (p->tcpvars.ws != NULL) {
@@ -351,6 +359,19 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             printf("StreamTcpPacketStateNone (%p): ssn->server.isn %"PRIu32", ssn->server.next_seq %"PRIu32", ssn->server.last_ack %"PRIu32"\n",
                     ssn, ssn->server.isn, ssn->server.next_seq, ssn->server.last_ack);
 #endif
+            if (p->tcpvars.ts != NULL) {
+                ssn->server.last_ts = GET_TIMESTAMP(p->tcpvars.ts->data);
+                ssn->client.last_ts = GET_TIMESTAMP((p->tcpvars.ts->data) + 4);
+#ifdef DEBUG
+                printf("StreamTcpPacketStateNone (%p): ssn->server.last_ts %" PRIu32" ssn->client.last_ts %" PRIu32"\n", ssn, ssn->server.last_ts, ssn->client.last_ts);
+#endif
+                ssn->flags |= STREAMTCP_TIMESTAMP;
+                ssn->server.last_pkt_ts = p->ts.tv_sec;
+            } else {
+                ssn->server.last_ts = 0;
+                ssn->client.last_ts = 0;
+            }
+
             break;
         /* Handle SYN/ACK and 3WHS shake missed together as it is almost similar. */
         case TH_ACK:
@@ -399,6 +420,19 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
              *  than assume that it's set to the max value: 14 */
             ssn->client.wscale = TCP_WSCALE_MAX;
             ssn->server.wscale = TCP_WSCALE_MAX;
+
+            if (p->tcpvars.ts != NULL) {
+                ssn->server.last_ts = GET_TIMESTAMP (p->tcpvars.ts->data);
+                ssn->client.last_ts = GET_TIMESTAMP ((p->tcpvars.ts->data) + 4);
+#ifdef DEBUG
+                printf("StreamTcpPacketStateNone (%p): ssn->server.last_ts %" PRIu32" ssn->client.last_ts %" PRIu32"\n", ssn, ssn->server.last_ts, ssn->client.last_ts);
+#endif
+                ssn->flags |= STREAMTCP_TIMESTAMP;
+                ssn->client.last_pkt_ts = p->ts.tv_sec;
+            } else {
+                ssn->server.last_ts = 0;
+                ssn->client.last_ts = 0;
+            }
 
             StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
             break;
@@ -477,8 +511,13 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
 #ifdef DEBUG
             printf("StreamTcpPacketStateSynSent (%p): window %" PRIu32 "\n", ssn, ssn->server.window);
 #endif
-            if (p->tcpvars.ts != NULL) {
-                ssn->server.last_ts = *p->tcpvars.ts->data;
+            if (p->tcpvars.ts != NULL && ssn->client.last_ts != 0) {
+                ssn->server.last_ts = GET_TIMESTAMP (p->tcpvars.ts->data);
+#ifdef DEBUG
+                printf("StreamTcpPacketStateSynSent (%p): ssn->server.last_ts %" PRIu32" ssn->client.last_ts %" PRIu32"\n", ssn, ssn->server.last_ts, ssn->client.last_ts);
+#endif
+                ssn->flags |= STREAMTCP_TIMESTAMP;
+                ssn->server.last_pkt_ts = p->ts.tv_sec;
             } else {
                 ssn->client.last_ts = 0;
                 ssn->server.last_ts = 0;
@@ -584,6 +623,9 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
             ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
             ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+
+            if (ssn->flags & STREAMTCP_TIMESTAMP)
+                ssn->client.last_pkt_ts = p->ts.tv_sec;
 #ifdef DEBUG
             printf("StreamTcpPacketStateSynRecv (%p): ssn->server.next_win %" PRIu32 ", ssn->server.last_ack %"PRIu32"\n", ssn, ssn->server.next_win, ssn->server.last_ack);
 #endif
@@ -638,6 +680,10 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
             break;
         case TH_ACK:
         case TH_ACK|TH_PUSH:
+
+            if (!ValidTimestamp(ssn, p))
+                return -1;
+
             if (PKT_IS_TOSERVER(p)) {
 #ifdef DEBUG
                 printf("StreamTcpPacketStateEstablished (%p): =+ pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 ", WIN %"PRIu16"\n",
@@ -648,6 +694,8 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
 #ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): ssn->client.next_seq %" PRIu32 "\n", ssn, ssn->client.next_seq);
 #endif
+                    if (ssn->flags & STREAMTCP_TIMESTAMP)
+                        ssn->client.last_ts = GET_TIMESTAMP(p->tcpvars.ts->data);
                 }
 
                 if (SEQ_GEQ(TCP_GET_SEQ(p), ssn->client.last_ack)) {
@@ -671,6 +719,8 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
                             printf("StreamTcpPacketStateEstablished (%p): seq %"PRIu32", updated ssn->server.next_win %" PRIu32 " (win %"PRIu32")\n", ssn, TCP_GET_SEQ(p), ssn->server.next_win, ssn->server.window);
 #endif
                         }
+                        if (ssn->flags & STREAMTCP_TIMESTAMP)
+                            ssn->client.last_pkt_ts = p->ts.tv_sec;
 
                         StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
                     } else {
@@ -712,6 +762,8 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
 #ifdef DEBUG
                     printf("StreamTcpPacketStateEstablished (%p): ssn->server.next_seq %" PRIu32 "\n", ssn, ssn->server.next_seq);
 #endif
+                    if (ssn->flags & STREAMTCP_TIMESTAMP)
+                        ssn->server.last_ts = GET_TIMESTAMP(p->tcpvars.ts->data);
                 }
 
                 if (SEQ_GEQ(TCP_GET_SEQ(p), ssn->server.last_ack)) {
@@ -738,6 +790,8 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
                             printf("StreamTcpPacketStateEstablished (%p): seq %"PRIu32", keeping ssn->client.next_win %" PRIu32 " the same (win %"PRIu32")\n", ssn, TCP_GET_SEQ(p), ssn->client.next_win, ssn->client.window);
 #endif
                         }
+                        if (ssn->flags & STREAMTCP_TIMESTAMP)
+                            ssn->server.last_pkt_ts = p->ts.tv_sec;
 
                         StreamTcpReassembleHandleSegment(ssn, &ssn->server, p);
                     } else {
@@ -1736,6 +1790,15 @@ int StreamTcpGetFlowState(void *s) {
     return FLOW_STATE_CLOSED;
 }
 
+static int ValidTimestamp (TcpSession *ssn, Packet *p) {
+    /*XXX GS its WIP*/
+    if (!(ssn->flags & STREAMTCP_TIMESTAMP)) {
+        return 1;
+    } else {
+
+    }
+    return 1;
+}
 
 #ifdef UNITTESTS
 
