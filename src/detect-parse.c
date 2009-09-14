@@ -330,8 +330,9 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
     }
 
     if (flag == 0) {
-        if (strcasecmp(port,"any") == 0)
+        if (strcasecmp(port,"any") == 0) {
             s->flags |= SIG_FLAG_SP_ANY;
+        }
 
         r = DetectPortParse(&s->sp,(char *)port);
     } else if (flag == 1) {
@@ -410,8 +411,13 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
     /* Parse Address & Ports */
     if (SigParseAddress(s, arr[CONFIG_SRC], 0) < 0)
         goto error;
+
+    /* For "ip" we parse the ports as well, even though they will
+       be just "any". We do this for later sgh building for the
+       tcp and udp protocols. */
     if (strcasecmp(arr[CONFIG_PROTO],"tcp") == 0 ||
-        strcasecmp(arr[CONFIG_PROTO],"udp") == 0) {
+        strcasecmp(arr[CONFIG_PROTO],"udp") == 0 ||
+        strcasecmp(arr[CONFIG_PROTO],"ip") == 0) {
         if (SigParsePort(s, arr[CONFIG_SP], 0) < 0)
             goto error;
         if (SigParsePort(s, arr[CONFIG_DP], 1) < 0)

@@ -60,6 +60,9 @@ SigMatch *SigMatchAlloc(void);
 void SigMatchFree(SigMatch *sm);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
 
+void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
+void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
+
 /* tm module api functions */
 int Detect(ThreadVars *, Packet *, void *, PacketQueue *);
 int DetectThreadInit(ThreadVars *, void *, void **);
@@ -173,6 +176,9 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
 
         sig = SigInit(de_ctx, line);
         if (sig != NULL) {
+#ifdef DEBUG
+            printf("Sig %"PRIu32" loaded\n", sig->id);
+#endif
             if (de_ctx->sig_list == NULL) {
                 de_ctx->sig_list = sig;
             } else {
@@ -696,6 +702,8 @@ static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, Det
     DetectAddressGroup *gr = NULL, *lookup_gr = NULL, *head = NULL;
     int proto;
 
+    //printf("DetectEngineLookupBuildSourceAddressList: sig %"PRIu32", family %"PRIi32"\n", s->id, family);
+
     if (family == AF_INET) {
         head = s->src.ipv4_head;
     } else if (family == AF_INET6) {
@@ -815,6 +823,8 @@ static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, DetectEngineLoo
         else
             dsize ? g_detectengine_any_big_toserver++ : g_detectengine_any_small_toserver++;
     } else {
+        //printf("DetectEngineLookupFlowAddSig: s->id %"PRIu32"\n", s->id);
+
         /* both */
         DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[0], s, family);
         DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[1], s, family);
@@ -972,7 +982,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
             unique_groups++;
 
         //printf(" 1 -= Address "); DetectAddressDataPrint(gr->ad); printf("\n");
-        //printf(" :  "); DbgPrintSigs2(gr->sh);
+        //printf(" :  "); DbgPrintSigs2(de_ctx, gr->sh);
 
         groups++;
 
@@ -1135,9 +1145,11 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
 #endif
     }
 
+#ifdef DEBUG
     for (gr = newhead->ipv4_head; gr != NULL; gr = gr->next) {
-        //printf(" 4 -= R Address "); DetectAddressDataPrint(gr->ad); printf(" :  "); DbgPrintSigs2(gr->sh);
+        printf(" 4 -= R Address "); DetectAddressDataPrint(gr->ad); printf(" :  "); DbgPrintSigs2(de_ctx, gr->sh);
     }
+#endif
 
     return 0;
 error:
@@ -1184,9 +1196,9 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
             unique_groups++;
 
         groups++;
-
-        //printf(":-:1:-: Port "); DetectPortPrint(gr); printf(" (cnt %" PRIu32 ", cost %" PRIu32 ", maxlen %" PRIu32 ") ", gr->cnt, gr->sh->cost, gr->sh->mpm_content_maxlen);DbgSghContainsSig(de_ctx,gr->sh,2001330);
-
+#ifdef DEBUG
+        printf("  -= 1:Port "); DetectPortPrint(gr); printf(" : "); DbgPrintSigs2(de_ctx, gr->sh);
+#endif
         /* alloc a copy */
         DetectPort *newtmp = DetectPortCopySingle(de_ctx,gr);
         if (newtmp == NULL) {
@@ -1284,11 +1296,12 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
         DetectPortInsert(de_ctx,newhead,joingr);
     }
 
+#ifdef DEBUG
     for (gr = *newhead; gr != NULL; gr = gr->next) {
-        //printf(":-:9:-: Port "); DetectPortPrint(gr); printf(" (cnt %" PRIu32 ", cost %" PRIu32 ") ", gr->cnt, gr->sh->cost); DbgSghContainsSig(de_ctx,gr->sh,2001330);
-        //printf("  -= Port "); DetectPortPrint(gr); printf(" : "); DbgPrintSigs2(gr->sh);
+        //printf(":-:9:-: Port "); DetectPortPrint(gr); printf(" (cnt %" PRIu32 "", gr->cnt); DbgSghContainsSig(de_ctx,gr->sh,489);
+        printf("  -= 9:Port "); DetectPortPrint(gr); printf(" : "); DbgPrintSigs2(de_ctx, gr->sh);
     }
-
+#endif
     return 0;
 error:
     return -1;
@@ -1325,6 +1338,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
 
     /* now for every rule add the source group to our temp lists */
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
+        //printf("SigAddressPrepareStage2 tmp_s->id %u\n", tmp_s->id);
         if (!(tmp_s->flags & SIG_FLAG_IPONLY)) {
             DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_INET);
             DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_INET6);
@@ -2154,7 +2168,7 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
 
 /* shortcut for debugging. If enabled Stage5 will
  * print sigid's for all groups */
-//#define PRINTSIGS
+#define PRINTSIGS
 
 /* just printing */
 int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
@@ -2211,13 +2225,6 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
-                                printf(" - ");
-                                for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
-                                    if (s->id == 2008335 || s->id == 2001329 || s->id == 2001330 ||
-                                            s->id == 2001331 || s->id == 2003321 || s->id == 2003322)
-                                        printf("%" PRIu32 " ", s->id);
-                                }
                                 printf("\n");
                             }
                         }
@@ -2254,8 +2261,8 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                         }
                     }
                 }
-#if 0
-                for (global_src_gr = de_ctx->src_gh[proto]->ipv6_head; global_src_gr != NULL;
+//#if 0
+                for (global_src_gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]->ipv6_head; global_src_gr != NULL;
                         global_src_gr = global_src_gr->next)
                 {
                     printf("- "); DetectAddressDataPrint(global_src_gr->ad);
@@ -2329,7 +2336,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                     }
                 }
 
-                for (global_src_gr = de_ctx->src_gh[proto]->any_head; global_src_gr != NULL;
+                for (global_src_gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]->any_head; global_src_gr != NULL;
                         global_src_gr = global_src_gr->next)
                 {
                     printf("- "); DetectAddressDataPrint(global_src_gr->ad);
@@ -2433,7 +2440,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                         }
                     }
                 }
-#endif
+//#endif
             }
         }
     }
@@ -2441,33 +2448,22 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
     return 0;
 }
 
+/** \brief Convert the signature list into the runtime
+ *         match structure. */
 int SigGroupBuild (DetectEngineCtx *de_ctx) {
     SigAddressPrepareStage1(de_ctx);
     SigAddressPrepareStage2(de_ctx);
     SigAddressPrepareStage3(de_ctx);
-//abort();
-//    SigAddressPrepareStage5();
+//    SigAddressPrepareStage5(de_ctx);
     DbgPrintScanSearchStats();
 //    DetectAddressGroupPrintMemory();
 //    DetectSigGroupPrintMemory();
 //    DetectPortPrintMemory();
-//SigGroupGetSrcAddress(NULL);
     return 0;
 }
 
 int SigGroupCleanup (DetectEngineCtx *de_ctx) {
     SigAddressCleanupStage1(de_ctx);
-    return 0;
-}
-
-int SigGroupGetSrcAddress(DetectAddressGroupsHead *src) {
-    uint32_t ip = 0x04030201; /* 1.2.3.4 */
-
-    printf("ip & 0x000000ff %8u 0x%08X >> 0  %" PRIu32 "\n", ip & 0x000000ff, ip & 0x000000ff, (ip & 0x000000ff) >> 0);
-    printf("ip & 0x0000ff00 %8u 0x%08X >> 8  %" PRIu32 "\n", ip & 0x0000ff00, ip & 0x0000ff00, (ip & 0x0000ff00) >> 8);
-    printf("ip & 0x00ff0000 %8u 0x%08X >> 16 %" PRIu32 "\n", ip & 0x00ff0000, ip & 0x00ff0000, (ip & 0x00ff0000) >> 16);
-    printf("ip & 0xff000000 %8u 0x%08X >> 24 %" PRIu32 "\n", ip & 0xff000000, ip & 0xff000000, (ip & 0xff000000) >> 24);
-
     return 0;
 }
 

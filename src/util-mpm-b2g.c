@@ -113,8 +113,7 @@ static inline void B2gEndMatchAppend(MpmCtx *mpm_ctx, B2gPattern *p,
     m->next = em;
 }
 
-/** \todo XXX Unused??? */
-#if 0
+#ifdef PRINTMATCH
 static void prt (uint8_t *buf, uint16_t buflen) {
     uint16_t i;
 
@@ -1148,7 +1147,9 @@ uint32_t B2gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
                                     continue;
 
                                 if (memcmp_lowercase(p->ci, buf+j, p->len) == 0) {
-                                    //printf("CI Exact match: "); prt(p->ci, p->len); printf("\n");
+#ifdef PRINTMATCH
+                                    printf("CI Exact match: "); prt(p->ci, p->len); printf("\n");
+#endif
                                     COUNT(tctx->scan_stat_loop_match++);
 
                                     MpmEndMatch *em;
@@ -1165,7 +1166,9 @@ uint32_t B2gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
                                     continue;
 
                                 if (memcmp(p->cs, buf+j, p->len) == 0) {
-                                    //printf("CS Exact match: "); prt(p->cs, p->len); printf("\n");
+#ifdef PRINTMATCH
+                                    printf("CS Exact match: "); prt(p->cs, p->len); printf("\n");
+#endif
                                     COUNT(tctx->scan_stat_loop_match++);
 
                                     MpmEndMatch *em;
@@ -1266,12 +1269,12 @@ uint32_t B2gScan(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQu
 #endif
                         COUNT(tctx->scan_stat_loop_match++);
 
-                        MpmEndMatch *em; 
+                        MpmEndMatch *em;
                         for (em = p->em; em; em = em->next) {
 #ifdef PRINTMATCH
-printf("(%" PRIu32 "%s) ", g_de_ctx->sig_array[em->sig_id]->id, em->flags & MPM_ENDMATCH_NOSEARCH ? "" : " (searchable)");
+                            printf("(%" PRIu32 "%s) ", g_de_ctx->sig_array[em->sig_id]->id, em->flags & MPM_ENDMATCH_NOSEARCH ? "" : " (searchable)");
+                            printf("em %p id %" PRIu32 "\n", em, em->id);
 #endif
-                            //printf("em %p id %" PRIu32 "\n", em, em->id);
                             if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id], pos, p->len))
                                 matches++;
                         }
@@ -1291,12 +1294,12 @@ printf("\n");
 #endif
                         COUNT(tctx->scan_stat_loop_match++);
 
-                        MpmEndMatch *em; 
+                        MpmEndMatch *em;
                         for (em = p->em; em; em = em->next) {
 #ifdef PRINTMATCH
-printf("(%" PRIu32 "%s) ", g_de_ctx->sig_array[em->sig_id]->id, em->flags & MPM_ENDMATCH_NOSEARCH ? "" : " (searchable)");
+                            printf("(%" PRIu32 "%s) ", g_de_ctx->sig_array[em->sig_id]->id, em->flags & MPM_ENDMATCH_NOSEARCH ? "" : " (searchable)");
+                            printf("em %p id %" PRIu32 "\n", em, em->id);
 #endif
-                            //printf("em %p id %" PRIu32 "\n", em, em->id);
                             if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id], pos, p->len))
                                 matches++;
                         }

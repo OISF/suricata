@@ -42,5 +42,7 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx);
 int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t max_idx);
 void SigGroupHeadFreeSigArrays(DetectEngineCtx *de_ctx);
 
+int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid);
+
 #endif /* __DETECT_ENGINE_SIGGROUP_H__ */
 

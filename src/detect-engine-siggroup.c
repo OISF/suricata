@@ -720,6 +720,9 @@ int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint3
         return 0;
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        if (sgh->sig_array == NULL)
+            return 0;
+
         if (!(sgh->sig_array[(sig/8)] & (1<<(sig%8))))
             continue;
 
