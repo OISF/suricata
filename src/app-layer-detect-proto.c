@@ -304,7 +304,7 @@ void *AppLayerDetectProtoThread(void *td)
     StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, INSPECT_BYTES);
     StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, INSPECT_BYTES);
 
-    tv->flags |= THV_INIT_DONE;
+    TmThreadsSetFlag(tv, THV_INIT_DONE);
 
     /* main loop */
     while(run) {
@@ -363,7 +363,7 @@ void *AppLayerDetectProtoThread(void *td)
             StreamMsgReturnToPool(smsg);
         }
 
-        if (tv->flags & THV_KILL) {
+        if (TmThreadsCheckFlag(tv, THV_KILL)) {
             PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
             run = 0;
         }

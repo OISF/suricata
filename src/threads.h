@@ -16,9 +16,13 @@ int mutex_unlock_dbg (pthread_mutex_t *);
 
 #else /* DBG_THREADS */
 
-#define mutex_lock    pthread_mutex_lock
-#define mutex_trylock pthread_mutex_trylock
-#define mutex_unlock  pthread_mutex_unlock
+#define mutex_lock      pthread_mutex_lock
+#define mutex_trylock   pthread_mutex_trylock
+#define mutex_unlock    pthread_mutex_unlock
+
+#define spin_lock       pthread_spin_lock
+#define spin_trylock    pthread_spin_trylock
+#define spin_unlock     pthread_spin_unlock
 
 #endif /* DBG_THREADS */
 

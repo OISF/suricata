@@ -27,7 +27,9 @@
 typedef struct ThreadVars_ {
     pthread_t t;
     char *name;
+
     uint8_t flags;
+    pthread_spinlock_t flags_spinlock;
 
     /** aof(action on failure) determines what should be done with the thread
         when it encounters certain conditions like failures */

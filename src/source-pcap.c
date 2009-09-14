@@ -22,6 +22,7 @@
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
 #include "tm-modules.h"
+#include "tm-threads.h"
 #include "source-pcap.h"
 
 /**
@@ -138,7 +139,7 @@ int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
             break;
         }
 
-        if (tv->flags & THV_KILL || tv->flags & THV_PAUSE) {
+        if (TmThreadsCheckFlag(tv, THV_KILL) || TmThreadsCheckFlag(tv, THV_PAUSE)) {
             printf("ReceivePcap: interrupted.\n");
             return 0;
         }
