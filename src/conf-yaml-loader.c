@@ -173,8 +173,9 @@ LoadYamlConf(const char *filename)
         case YAML_SCALAR_EVENT:
             DPRINT_STATE(("YAML_SCALAR_EVENT\n"));
             if (inseq) {
-                printf("Ignoring sequence value for %s\n",
-                    GetKeyName(key, level));
+                if (level > -1) {
+                    DPRINTF(("Ignoring sequence value for %s\n", GetKeyName(key, level)));
+                }
                 break;
             }
             if (state == CONF_KEY) {
