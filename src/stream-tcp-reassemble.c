@@ -37,6 +37,7 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
+#include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 
@@ -113,7 +114,7 @@ static uint64_t segment_pool_cnt = 0;
 /* index to the right pool for all packet sizes. */
 static uint16_t segment_pool_idx[65536]; /* O(1) lookups of the pool */
 
-int StreamTcpReassembleInit(void) {
+int StreamTcpReassembleInit(char quiet) {
     StreamMsgQueuesInit();
 #ifdef DEBUG
     pthread_mutex_init(&segment_pool_memuse_mutex, NULL);
@@ -144,13 +145,16 @@ int StreamTcpReassembleInit(void) {
     return 0;
 }
 
-void StreamTcpReassembleFree(void) {
+void StreamTcpReassembleFree(char quiet) {
     uint16_t u16 = 0;
     for (u16 = 0; u16 < segment_pool_num; u16++) {
-        PoolPrintSaturation(segment_pool[u16]);
-
-        printf("segment_pool[u16]->empty_list_size %"PRIu32", segment_pool[u16]->alloc_list_size %"PRIu32", alloced %"PRIu32"\n", segment_pool[u16]->empty_list_size, segment_pool[u16]->alloc_list_size, segment_pool[u16]->allocated);
+        if (quiet == FALSE) {
+            PoolPrintSaturation(segment_pool[u16]);
+            printf("segment_pool[u16]->empty_list_size %"PRIu32", segment_pool[u16]->alloc_list_size %"PRIu32", alloced %"PRIu32"\n", segment_pool[u16]->empty_list_size, segment_pool[u16]->alloc_list_size, segment_pool[u16]->allocated);
+        }
         PoolFree(segment_pool[u16]);
+
+        pthread_mutex_destroy(&segment_pool_mutex[u16]);
     }
 
 #ifdef DEBUG
@@ -159,7 +163,7 @@ void StreamTcpReassembleFree(void) {
     printf("segment_pool_memcnt %"PRIu64"\n", segment_pool_memcnt);
 #endif
 
-    StreamMsgQueuesDeinit();
+    StreamMsgQueuesDeinit(quiet);
 }
 
 void PrintList2(TcpSegment *seg) {
@@ -1966,15 +1970,19 @@ static int StreamTcpReassembleTest01(void) {
                                       0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
+
+    StreamTcpInitConfig(TRUE);
+
     if (StreamTcpTestStartsBeforeListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
     }
     if (StreamTcpCheckStreamContents(stream_before_bsd,sizeof(stream_before_bsd), &stream) == 0) {
         printf("failed in stream matching!!\n");
-exit(1);
         return 0;
     }
+
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -1989,6 +1997,9 @@ static int StreamTcpReassembleTest02(void) {
                                     0x49, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
+
+    StreamTcpInitConfig(TRUE);
+
     if (StreamTcpTestStartsAtSameListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -1997,6 +2008,7 @@ static int StreamTcpReassembleTest02(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2011,6 +2023,9 @@ static int StreamTcpReassembleTest03(void) {
                                      0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
+
+    StreamTcpInitConfig(TRUE);
+
     if (StreamTcpTestStartsAfterListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2019,6 +2034,7 @@ static int StreamTcpReassembleTest03(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2034,6 +2050,7 @@ static int StreamTcpReassembleTest04(void) {
                                0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x49, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpReassembleStreamTest(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2042,6 +2059,7 @@ static int StreamTcpReassembleTest04(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2056,6 +2074,7 @@ static int StreamTcpReassembleTest05(void) {
                                         0x4c, 0x4d, 0x45, 0x45};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_VISTA;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsBeforeListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2064,6 +2083,7 @@ static int StreamTcpReassembleTest05(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2078,6 +2098,9 @@ static int StreamTcpReassembleTest06(void) {
                                      0x49, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_VISTA;
+
+    StreamTcpInitConfig(TRUE);
+
     if (StreamTcpTestStartsAtSameListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2086,6 +2109,7 @@ static int StreamTcpReassembleTest06(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2100,6 +2124,9 @@ static int StreamTcpReassembleTest07(void) {
                                       0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_VISTA;
+
+    StreamTcpInitConfig(TRUE);
+
     if (StreamTcpTestStartsAfterListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2108,6 +2135,7 @@ static int StreamTcpReassembleTest07(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2123,6 +2151,7 @@ static int StreamTcpReassembleTest08(void) {
                                  0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x49, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_VISTA;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpReassembleStreamTest(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2131,6 +2160,7 @@ static int StreamTcpReassembleTest08(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2145,6 +2175,7 @@ static int StreamTcpReassembleTest09(void) {
                                         0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LINUX;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsBeforeListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2153,6 +2184,7 @@ static int StreamTcpReassembleTest09(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2167,6 +2199,7 @@ static int StreamTcpReassembleTest10(void) {
                                      0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LINUX;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsAtSameListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2175,6 +2208,7 @@ static int StreamTcpReassembleTest10(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2189,6 +2223,7 @@ static int StreamTcpReassembleTest11(void) {
                                       0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LINUX;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsAfterListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2197,6 +2232,7 @@ static int StreamTcpReassembleTest11(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2212,6 +2248,7 @@ static int StreamTcpReassembleTest12(void) {
                                  0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LINUX;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpReassembleStreamTest(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2220,6 +2257,7 @@ static int StreamTcpReassembleTest12(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2234,6 +2272,7 @@ static int StreamTcpReassembleTest13(void) {
                                             0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_OLD_LINUX;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsBeforeListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2242,6 +2281,7 @@ static int StreamTcpReassembleTest13(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2256,6 +2296,7 @@ static int StreamTcpReassembleTest14(void) {
                                          0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_OLD_LINUX;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsAtSameListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2264,6 +2305,7 @@ static int StreamTcpReassembleTest14(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2278,6 +2320,7 @@ static int StreamTcpReassembleTest15(void) {
                                           0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_OLD_LINUX;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsAfterListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2286,6 +2329,7 @@ static int StreamTcpReassembleTest15(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2301,6 +2345,7 @@ static int StreamTcpReassembleTest16(void) {
                                      0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_OLD_LINUX;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpReassembleStreamTest(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2309,6 +2354,7 @@ static int StreamTcpReassembleTest16(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2323,6 +2369,7 @@ static int StreamTcpReassembleTest17(void) {
                                           0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_SOLARIS;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsBeforeListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2331,6 +2378,7 @@ static int StreamTcpReassembleTest17(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2345,6 +2393,7 @@ static int StreamTcpReassembleTest18(void) {
                                        0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_SOLARIS;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsAtSameListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2353,6 +2402,7 @@ static int StreamTcpReassembleTest18(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2367,6 +2417,7 @@ static int StreamTcpReassembleTest19(void) {
                                         0x47, 0x47};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_SOLARIS;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsAfterListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2375,6 +2426,7 @@ static int StreamTcpReassembleTest19(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2390,6 +2442,7 @@ static int StreamTcpReassembleTest20(void) {
                                    0x46, 0x46, 0x46, 0x47, 0x47, 0x48, 0x48, 0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_SOLARIS;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpReassembleStreamTest(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2398,6 +2451,7 @@ static int StreamTcpReassembleTest20(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2412,6 +2466,7 @@ static int StreamTcpReassembleTest21(void) {
                                        0x4c, 0x4d, 0x4d, 0x4d};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LAST;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsBeforeListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2420,6 +2475,7 @@ static int StreamTcpReassembleTest21(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2434,6 +2490,7 @@ static int StreamTcpReassembleTest22(void) {
                                     0x51, 0x51};
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_LAST;
+    StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsAtSameListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
         return 0;
@@ -2442,6 +2499,7 @@ static int StreamTcpReassembleTest22(void) {
         printf("failed in stream matching!!\n");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2455,6 +2513,7 @@ static int StreamTcpReassembleTest23(void) {
     memset(&stream, 0, sizeof (TcpStream));
 
     stream.os_policy = OS_POLICY_LAST;
+    StreamTcpInitConfig(TRUE);
 
     if (StreamTcpTestStartsAfterListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
@@ -2462,9 +2521,9 @@ static int StreamTcpReassembleTest23(void) {
     }
     if (StreamTcpCheckStreamContents(stream_after_last, sizeof(stream_after_last), &stream) == 0) {
         printf("failed in stream matching!!\n");
-exit(1);
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2481,6 +2540,7 @@ static int StreamTcpReassembleTest24(void) {
     memset(&stream, 0, sizeof (TcpStream));
 
     stream.os_policy = OS_POLICY_LAST;
+    StreamTcpInitConfig(TRUE);
 
     if (StreamTcpReassembleStreamTest(&stream) == 0)  {
         printf("failed in segments reassembly: ");
@@ -2490,6 +2550,7 @@ static int StreamTcpReassembleTest24(void) {
         printf("failed in stream matching: ");
         return 0;
     }
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2580,6 +2641,7 @@ static int StreamTcpReassembleTest25 (void) {
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
     ack = 20;
+    StreamTcpInitConfig(TRUE);
 
     StreamTcpCreateTestPacket(payload, 0x42, 2); /*BB*/
     seq = 10;
@@ -2607,6 +2669,7 @@ static int StreamTcpReassembleTest25 (void) {
         return 0;
     }
 
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2630,6 +2693,7 @@ static int StreamTcpReassembleTest26 (void) {
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
     ack = 20;
+    StreamTcpInitConfig(TRUE);
 
     StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
     seq = 10;
@@ -2658,6 +2722,7 @@ static int StreamTcpReassembleTest26 (void) {
     }
 
 
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2681,6 +2746,7 @@ static int StreamTcpReassembleTest27 (void) {
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
     ack = 20;
+    StreamTcpInitConfig(TRUE);
 
     StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
     seq = 10;
@@ -2708,7 +2774,7 @@ static int StreamTcpReassembleTest27 (void) {
         return 0;
     }
 
-
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2731,6 +2797,8 @@ static int StreamTcpReassembleTest28 (void) {
     uint8_t flowflags;
     uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
     memset(&stream, 0, sizeof (TcpStream));
+
+    StreamTcpInitConfig(TRUE);
 
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
@@ -2782,6 +2850,7 @@ static int StreamTcpReassembleTest28 (void) {
         return 0;
     }
 
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2812,6 +2881,7 @@ static int StreamTcpReassembleTest29 (void) {
     stream.last_ack = 22;
     stream.ra_base_seq = 9;
     stream.isn = 9;
+    StreamTcpInitConfig(TRUE);
 
     StreamTcpCreateTestPacket(payload, 0x41, 2); /*AA*/
     seq = 10;
@@ -2855,6 +2925,7 @@ static int StreamTcpReassembleTest29 (void) {
         return 0;
     }
 
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 
@@ -2886,6 +2957,7 @@ static int StreamTcpReassembleTest30 (void) {
     stream.ra_base_seq = 9;
     stream.isn = 9;
 
+    StreamTcpInitConfig(TRUE);
     StreamTcpCreateTestPacket(payload, 0x41, 2); /*AA*/
     seq = 10;
     ack = 20;
@@ -2947,6 +3019,7 @@ static int StreamTcpReassembleTest30 (void) {
         return 0;
     }
 
+    StreamTcpFreeConfig(TRUE);
     return 1;
 }
 

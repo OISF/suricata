@@ -39,7 +39,9 @@ static int DetectAddressCut(DetectAddressData *, DetectAddressData *, DetectAddr
 static int DetectAddressCutNot(DetectAddressData *, DetectAddressData **);
 static int DetectAddressGroupCut(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
 
-/* memory usage counters */
+/** memory usage counters
+ * \todo not MT safe */
+#ifdef DEBUG
 static uint32_t detect_address_group_memory = 0;
 static uint32_t detect_address_group_init_cnt = 0;
 static uint32_t detect_address_group_free_cnt = 0;
@@ -51,6 +53,7 @@ static uint32_t detect_address_group_head_free_cnt = 0;
 static uint32_t detect_address_memory = 0;
 static uint32_t detect_address_init_cnt = 0;
 static uint32_t detect_address_free_cnt = 0;
+#endif
 
 DetectAddressGroup *DetectAddressGroupInit(void) {
     DetectAddressGroup *ag = malloc(sizeof(DetectAddressGroup));
@@ -58,10 +61,10 @@ DetectAddressGroup *DetectAddressGroupInit(void) {
         return NULL;
     }
     memset(ag,0,sizeof(DetectAddressGroup));
-
+#ifdef DEBUG
     detect_address_group_memory += sizeof(DetectAddressGroup);
     detect_address_group_init_cnt++;
-
+#endif
     return ag;
 }
 
@@ -91,13 +94,15 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
         }
         ag->port = NULL;
     }
-
+#ifdef DEBUG
     detect_address_group_memory -= sizeof(DetectAddressGroup);
     detect_address_group_free_cnt++;
+#endif
     free(ag);
 }
 
 void DetectAddressGroupPrintMemory(void) {
+#ifdef DEBUG
     printf(" * Address group memory stats (DetectAddressGroup %" PRIuMAX "):\n", (uintmax_t)sizeof(DetectAddressGroup));
     printf("  - detect_address_group_memory %" PRIu32 "\n", detect_address_group_memory);
     printf("  - detect_address_group_init_cnt %" PRIu32 "\n", detect_address_group_init_cnt);
@@ -117,6 +122,7 @@ void DetectAddressGroupPrintMemory(void) {
     printf("  - outstanding addresses %" PRIu32 "\n", detect_address_init_cnt - detect_address_free_cnt);
     printf(" * Address memory stats done\n");
     printf(" X Total %" PRIu32 "\n", detect_address_group_memory + detect_address_group_head_memory + detect_address_memory);
+#endif
 }
 
 /* used to see if the exact same address group exists in the list
@@ -832,10 +838,10 @@ DetectAddressGroupsHead *DetectAddressGroupsHeadInit(void) {
         return NULL;
     }
     memset(gh,0,sizeof(DetectAddressGroupsHead));
-
+#ifdef DEBUG
     detect_address_group_head_init_cnt++;
     detect_address_group_head_memory += sizeof(DetectAddressGroupsHead);
-
+#endif
     return gh;
 }
 
@@ -854,9 +860,10 @@ void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *gh) {
     if (gh != NULL) {
         DetectAddressGroupsHeadCleanup(gh);
         free(gh);
-
+#ifdef DEBUG
         detect_address_group_head_free_cnt++;
         detect_address_group_head_memory -= sizeof(DetectAddressGroupsHead);
+#endif
     }
 }
 
@@ -1124,10 +1131,10 @@ DetectAddressData *DetectAddressDataInit(void) {
         goto error;
     }
     memset(dd,0,sizeof(DetectAddressData));
-
+#ifdef DEBUG
     detect_address_init_cnt++;
     detect_address_memory += sizeof(DetectAddressData);
-
+#endif
     return dd;
 
 error:
@@ -1168,9 +1175,10 @@ int DetectAddressSetup (DetectEngineCtx * de_ctx, Signature *s, SigMatch *m, cha
 void DetectAddressDataFree(DetectAddressData *dd) {
     if (dd != NULL) {
         free(dd);
-
+#ifdef DEBUG
         detect_address_free_cnt++;
         detect_address_memory -= sizeof(DetectAddressData);
+#endif
     }
 }
 
