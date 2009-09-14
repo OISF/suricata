@@ -144,19 +144,20 @@ void StreamMsgPutInQueue(StreamMsg *s)
 }
 
 void StreamMsgQueuesInit(void) {
+    pthread_mutex_init(&stream_pool_memuse_mutex, NULL);
     memset(&stream_q, 0, sizeof(stream_q));
 
     stream_msg_pool = PoolInit(5000,250,StreamMsgAlloc,NULL,StreamMsgFree);
     if (stream_msg_pool == NULL)
-        exit(1); /* XXX */ 
-
-    pthread_mutex_init(&stream_pool_memuse_mutex, NULL);
+        exit(1); /* XXX */
 }
 
-void StreamMsgQueuesDeinit(void) {
+void StreamMsgQueuesDeinit(char quiet) {
     PoolFree(stream_msg_pool);
+    pthread_mutex_destroy(&stream_pool_memuse_mutex);
 
-    printf("StreamMsgQueuesDeinit: stream_pool_memuse %"PRIu64", stream_pool_memcnt %"PRIu64"\n", stream_pool_memuse, stream_pool_memcnt);
+    if (quiet == FALSE)
+        printf("StreamMsgQueuesDeinit: stream_pool_memuse %"PRIu64", stream_pool_memcnt %"PRIu64"\n", stream_pool_memuse, stream_pool_memcnt);
 }
 
 StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {

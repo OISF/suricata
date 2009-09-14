@@ -61,7 +61,7 @@ int StreamTcpGetFlowState(void *);
 #define STREAMTCP_EMERG_EST_TIMEOUT     300
 #define STREAMTCP_EMERG_CLOSED_TIMEOUT  20
 
-static Pool *ssn_pool;
+static Pool *ssn_pool = NULL;
 static pthread_mutex_t ssn_pool_mutex;
 
 #ifdef DEBUG
@@ -195,6 +195,7 @@ void StreamTcpInitConfig(char quiet) {
         printf("Initializing Stream:\n");
 
     memset(&stream_config,  0, sizeof(stream_config));
+
     /** set config defaults */
     stream_config.max_sessions = STREAMTCP_DEFAULT_SESSIONS;
     stream_config.prealloc_sessions = STREAMTCP_DEFAULT_PREALLOC;
@@ -207,7 +208,7 @@ void StreamTcpInitConfig(char quiet) {
 
     pthread_mutex_init(&ssn_pool_mutex, NULL);
 
-    StreamTcpReassembleInit();
+    StreamTcpReassembleInit(quiet);
 
     /* set the default TCP timeout, free function and flow state function values. */
     FlowSetProtoTimeout(IPPROTO_TCP, STREAMTCP_NEW_TIMEOUT, STREAMTCP_EST_TIMEOUT, STREAMTCP_CLOSED_TIMEOUT);
@@ -218,12 +219,19 @@ void StreamTcpInitConfig(char quiet) {
 }
 
 void StreamTcpFreeConfig(char quiet) {
-    StreamTcpReassembleFree();
+    StreamTcpReassembleFree(quiet);
 
-    PoolFree(ssn_pool);
+    if (ssn_pool != NULL) {
+        PoolFree(ssn_pool);
+        ssn_pool = NULL;
+    } else {
+        printf("ERROR: ssn_pool is NULL\n");
+        exit(1);
+    }
 #ifdef DEBUG
     printf("ssn_pool_cnt %"PRIu64"\n", ssn_pool_cnt);
 #endif
+    pthread_mutex_destroy(&ssn_pool_mutex);
 }
 
 /** \brief The function is used to to fetch a TCP session from the
@@ -1032,7 +1040,6 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
                 printf("StreamTcpPacketStateFinWait1 (%p): Reset received state changed to TCP_CLOSED\n", ssn);
 #endif
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-                //StreamTcpSessionPktFree(p);
             }
             else
                 return -1;
@@ -1125,7 +1132,6 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
                 printf("StreamTcpPacketStateFinWait2 (%p): Reset received state changed to TCP_CLOSED\n", ssn);
 #endif
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-                //StreamTcpSessionPktFree(p);
             }
             else
                 return -1;
@@ -1429,7 +1435,6 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
                 printf("StreamTcpPacketStateTimeWait (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->client.next_seq, ssn->server.last_ack);
 #endif
-                //StreamTcpSessionPktFree(p);
             } else {
 #ifdef DEBUG
                 printf("StreamTcpPacketStateTimeWait (%p): pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",
@@ -1456,7 +1461,6 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
                 printf("StreamTcpPacketStateTimeWait (%p): =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "\n",
                         ssn, ssn->server.next_seq, ssn->client.last_ack);
 #endif
-                //StreamTcpSessionPktFree(p);
             }
             break;
         default:
@@ -1760,30 +1764,35 @@ int StreamTcpGetFlowState(void *s) {
 static int StreamTcpTest01 (void) {
     Packet p;
     Flow f;
-    TcpSession ssn1;
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
-    memset(&ssn1, 0, sizeof (TcpSession));
-    f.protoctx = &ssn1;
     p.flow = &f;
+    int ret = 0;
 
     StreamTcpInitConfig(TRUE);
+
     TcpSession *ssn = StreamTcpNewSession(&p);
     if (ssn == NULL) {
         printf("Session can not be allocated \n");
-        return 0;
+        goto end;
     }
+    f.protoctx = ssn;
+
     if (ssn->aldata != NULL) {
         printf("AppLayer field not set to NULL \n");
-        return 0;
+        goto end;
     }
     if (ssn->state != 0) {
         printf("TCP state field not set to 0 \n");
-        return 0;
+        goto end;
     }
 
     StreamTcpSessionPktFree(&p);
-    return 1;
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
 }
 
 /**
@@ -1797,34 +1806,33 @@ static int StreamTcpTest01 (void) {
 static int StreamTcpTest02 (void) {
     Packet p;
     Flow f;
-    TcpSession ssn;
     ThreadVars tv;
     StreamTcpThread stt;
     u_int8_t payload[4];
     TCPHdr tcph;
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
-    memset(&ssn, 0, sizeof (TcpSession));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
-    f.protoctx = &ssn;
     p.flow = &f;
-
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN;
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_ack = htonl(1);
     p.tcph->th_flags = TH_SYN | TH_ACK;
     p.flowflags = FLOW_PKT_TOCLIENT;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_ack = htonl(1);
     p.tcph->th_seq = htonl(1);
@@ -1832,7 +1840,7 @@ static int StreamTcpTest02 (void) {
     p.flowflags = FLOW_PKT_TOSERVER;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_ack = htonl(1);
     p.tcph->th_seq = htonl(2);
@@ -1844,11 +1852,11 @@ static int StreamTcpTest02 (void) {
     p.payload_len = 3;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.flowflags = FLOW_PKT_TOCLIENT;
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_ack = htonl(1);
     p.tcph->th_seq = htonl(6);
@@ -1860,16 +1868,20 @@ static int StreamTcpTest02 (void) {
     p.payload_len = 3;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.flowflags = FLOW_PKT_TOCLIENT;
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     StreamTcpSessionPktFree(&p);
     if (p.flow->protoctx != NULL)
-        return 0;
-    return 1;
+        goto end;
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
 }
 
 /**
@@ -1883,27 +1895,27 @@ static int StreamTcpTest02 (void) {
 static int StreamTcpTest03 (void) {
     Packet p;
     Flow f;
-    TcpSession ssn;
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
-    memset(&ssn, 0, sizeof (TcpSession));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
-    f.protoctx = &ssn;
     p.flow = &f;
+
+    StreamTcpInitConfig(TRUE);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
     tcph.th_ack = htonl(20);
     tcph.th_flags = TH_SYN|TH_ACK;
     p.tcph = &tcph;
+    int ret = 0;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_seq = htonl(20);
     p.tcph->th_ack = htonl(11);
@@ -1911,7 +1923,7 @@ static int StreamTcpTest03 (void) {
     p.flowflags = FLOW_PKT_TOSERVER;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_seq = htonl(19);
     p.tcph->th_ack = htonl(11);
@@ -1919,19 +1931,25 @@ static int StreamTcpTest03 (void) {
     p.flowflags = FLOW_PKT_TOSERVER;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
-    if (stream_config.midstream != TRUE)
-        return 1;
+    if (stream_config.midstream != TRUE) {
+        ret = 1;
+        goto end;
+    }
     if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
-        return 0;
+        goto end;
 
     if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 20 ||
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 11)
-        return 0;
+        goto end;
 
     StreamTcpSessionPktFree(&p);
-    return 1;
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
 }
 
 /**
@@ -1945,18 +1963,17 @@ static int StreamTcpTest03 (void) {
 static int StreamTcpTest04 (void) {
     Packet p;
     Flow f;
-    TcpSession ssn;
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
-    memset(&ssn, 0, sizeof (TcpSession));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
-    f.protoctx = &ssn;
     p.flow = &f;
+
+    StreamTcpInitConfig(TRUE);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -1964,8 +1981,10 @@ static int StreamTcpTest04 (void) {
     tcph.th_flags = TH_ACK;
     p.tcph = &tcph;
 
+    int ret = 0;
+
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_seq = htonl(9);
     p.tcph->th_ack = htonl(19);
@@ -1973,19 +1992,25 @@ static int StreamTcpTest04 (void) {
     p.flowflags = FLOW_PKT_TOSERVER;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
-    if (stream_config.midstream != TRUE)
-        return 1;
+    if (stream_config.midstream != TRUE) {
+        ret = 1;
+        goto end;
+    }
     if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
-        return 0;
+        goto end;
 
     if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 10 ||
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 20)
-        return 0;
+        goto end;
 
     StreamTcpSessionPktFree(&p);
-    return 1;
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
 }
 
 /**
@@ -1999,19 +2024,19 @@ static int StreamTcpTest04 (void) {
 static int StreamTcpTest05 (void) {
     Packet p;
     Flow f;
-    TcpSession ssn;
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
     u_int8_t payload[4];
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
-    memset(&ssn, 0, sizeof (TcpSession));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
-    f.protoctx = &ssn;
     p.flow = &f;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
     StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
@@ -2030,7 +2055,7 @@ static int StreamTcpTest05 (void) {
     p.payload_len = 3;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_seq = htonl(20);
     p.tcph->th_ack = htonl(13);
@@ -2042,7 +2067,7 @@ static int StreamTcpTest05 (void) {
     p.payload_len = 3;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_seq = htonl(13);
     p.tcph->th_ack = htonl(23);
@@ -2054,7 +2079,7 @@ static int StreamTcpTest05 (void) {
     p.payload_len = 3;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     p.tcph->th_seq = htonl(19);
     p.tcph->th_ack = htonl(16);
@@ -2066,18 +2091,25 @@ static int StreamTcpTest05 (void) {
     p.payload_len = 3;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
-    if (stream_config.midstream != TRUE)
-        return 1;
+    if (stream_config.midstream != TRUE) {
+        ret = 1;
+        goto end;
+    }
     if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
-        return 0;
+        goto end;
 
     if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 16 ||
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 23)
-        return 0;
+        goto end;
+
     StreamTcpSessionPktFree(&p);
-    return 1;
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
 }
 
 /**
@@ -2102,23 +2134,30 @@ static int StreamTcpTest06 (void) {
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
     p.flow = &f;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
 
     tcph.th_flags = TH_FIN;
     p.tcph = &tcph;
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     if (((TcpSession *)(p.flow->protoctx)) != NULL)
-        return 0;
+        goto end;
 
     p.tcph->th_flags = TH_RST;
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
-        return 0;
+        goto end;
 
     if (((TcpSession *)(p.flow->protoctx)) != NULL)
-        return 0;
-    return 1;
+        goto end;
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
 }
 
 #endif /* UNITTESTS */

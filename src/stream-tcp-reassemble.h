@@ -30,8 +30,8 @@ enum
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
 
 int StreamTcpReassembleHandleSegment(TcpSession *, TcpStream *, Packet *);
-int StreamTcpReassembleInit(void);
-void StreamTcpReassembleFree(void);
+int StreamTcpReassembleInit(char);
+void StreamTcpReassembleFree(char);
 void StreamTcpReassembleRegisterTests(void);
 void StreamTcpCreateTestPacket(u_int8_t *, u_int8_t, u_int8_t);
 

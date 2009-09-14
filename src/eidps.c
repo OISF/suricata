@@ -1553,7 +1553,6 @@ int main(int argc, char **argv)
         AlpDetectRegisterTests();
         ConfRegisterTests();
         TmqhFlowRegisterTests();
-        StreamTcpRegisterTests();
         FlowRegisterTests();
         uint32_t failed = UtRunTests();
         UtCleanup();

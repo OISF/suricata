@@ -81,6 +81,7 @@ void PoolFree(Pool *p) {
         PoolBucket *pb = p->alloc_list;
         p->alloc_list = pb->next;
         p->Free(pb->data);
+        pb->data = NULL;
         free(pb);
     }
 
