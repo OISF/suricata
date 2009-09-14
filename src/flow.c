@@ -495,7 +495,7 @@ void *FlowManagerThread(void *td)
 
     printf("%s started...\n", th_v->name);
 
-    th_v->flags |= THV_INIT_DONE;
+    TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1)
     {
         TmThreadTestThreadUnPaused(th_v);
@@ -553,7 +553,7 @@ void *FlowManagerThread(void *td)
             }
         }
 
-        if (th_v->flags & THV_KILL) {
+        if (TmThreadsCheckFlag(th_v, THV_KILL)) {
             PerfUpdateCounterArray(th_v->pca, &th_v->pctx, 0);
             break;
         }

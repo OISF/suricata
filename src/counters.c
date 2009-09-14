@@ -137,14 +137,12 @@ void * PerfMgmtThread(void *arg)
     uint8_t run = 1;
     struct timespec cond_time;
 
-    printf("PerfMgmtThread: spawned\n");
-
     if (perf_op_ctx == NULL) {
         printf("error: PerfInitCounterApi() has to be called first\n");
         return NULL;
     }
 
-    tv_local->flags |= THV_INIT_DONE;
+    TmThreadsSetFlag(tv_local, THV_INIT_DONE);
     while (run) {
         TmThreadTestThreadUnPaused(tv_local);
 
@@ -155,12 +153,10 @@ void * PerfMgmtThread(void *arg)
         pthread_cond_timedwait(tv_local->cond, tv_local->m, &cond_time);
         pthread_mutex_unlock(tv_local->m);
 
-        // sleep(MGMTT_TTS);
-
         PerfOutputCounters();
 
-        if (tv_local->flags & THV_KILL) {
-            tv_local->flags |= THV_CLOSED;
+        if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
+            TmThreadsSetFlag(tv_local, THV_CLOSED);
             run = 0;
         }
     }
@@ -182,9 +178,7 @@ void * PerfWakeupThread(void *arg)
     PacketQueue *q = NULL;
     struct timespec cond_time;
 
-    printf("PerfWakeupThread: spawned\n");
-
-    tv_local->flags |= THV_INIT_DONE;
+    TmThreadsSetFlag(tv_local, THV_INIT_DONE);
     while (run) {
         TmThreadTestThreadUnPaused(tv_local);
 
@@ -215,8 +209,8 @@ void * PerfWakeupThread(void *arg)
             tv = tv->next;
         }
 
-        if (tv_local->flags & THV_KILL) {
-            tv_local->flags |= THV_CLOSED;
+        if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
+            TmThreadsSetFlag(tv_local, THV_CLOSED);
             run = 0;
         }
     }

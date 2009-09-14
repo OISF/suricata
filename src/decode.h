@@ -342,7 +342,6 @@ typedef struct DecodeThreadVars_
     (p)->pktlen = 0; \
     (p)->tunnel_pkt = 0; \
     (p)->tunnel_verdicted = 0; \
-    pthread_mutex_init(&(p)->mutex_rtv_cnt,NULL); \
     (p)->rtv_cnt = 0; \
     (p)->tpr_cnt = 0; \
     (p)->root = NULL; \

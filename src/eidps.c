@@ -156,6 +156,8 @@ Packet *SetupPkt (void)
 
         memset(p, 0, sizeof(Packet));
 
+        pthread_mutex_init(&p->mutex_rtv_cnt, NULL);
+
         printf("SetupPkt: allocated a new packet...\n");
     }
 
@@ -1576,6 +1578,7 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
         memset(p, 0, sizeof(Packet));
+        pthread_mutex_init(&p->mutex_rtv_cnt, NULL);
 
         PacketEnqueue(&packet_q,p);
     }

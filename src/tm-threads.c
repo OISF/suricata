@@ -613,7 +613,8 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
 
     tv->name = name;
     /* default state for every newly created thread */
-    TmThreadsSetFlag(tv,  THV_USE | THV_PAUSE);
+    TmThreadsSetFlag(tv, THV_PAUSE);
+    TmThreadsSetFlag(tv, THV_USE);
     /* default aof for every newly created thread */
     tv->aof = THV_RESTART_THREAD;
 
@@ -1028,8 +1029,8 @@ static void TmThreadRestartThread(ThreadVars *tv)
         return;
     }
 
-    /** \todo consider a TmThreadUnsetFlag func? */
-    TmThreadsUnsetFlag(tv, THV_CLOSED | THV_FAILED);
+    TmThreadsUnsetFlag(tv, THV_CLOSED);
+    TmThreadsUnsetFlag(tv, THV_FAILED);
 
     if (TmThreadSpawn(tv) != 0) {
         printf("Error: TmThreadSpawn failed\n");
