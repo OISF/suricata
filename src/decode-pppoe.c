@@ -21,7 +21,77 @@
  */
 void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    // TODO
+    PerfCounterIncr(dtv->counter_pppoe, tv->pca);
+
+    if (len < PPPOE_DISCOVERY_HEADER_MIN_LEN) {
+        DECODER_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);
+        return;
+    }
+
+    p->pppoedh = (PPPOEDiscoveryHdr *)pkt;
+    if (p->pppoedh == NULL)
+        return;
+
+    /* parse the PPPOE code */
+    switch (ntohs(p->pppoedh->pppoe_code))
+    {
+        case  PPPOE_CODE_PADI:
+            break;
+        case  PPPOE_CODE_PADO:
+            break;
+        case  PPPOE_CODE_PADR:
+            break;
+        case PPPOE_CODE_PADS:
+            break;
+        case PPPOE_CODE_PADT:
+            break;
+
+        default:
+#ifdef	DEBUG
+            printf("Unknown PPPOE code: %" PRIx32 "\n",ntohs(p->pppoedh->pppoe_code));
+#endif
+            DECODER_SET_EVENT(p,PPPOE_WRONG_CODE);
+    }
+
+    /* parse any tags we have in the packet */
+
+    uint16_t tag_type, tag_length;
+    PPPOEDiscoveryTag* pppoedt = (PPPOEDiscoveryTag*) (p->pppoedh +  PPPOE_DISCOVERY_HEADER_MIN_LEN);
+
+    uint16_t pppoe_length = ntohs(p->pppoedh->pppoe_length);
+    uint16_t packet_length = len - PPPOE_DISCOVERY_HEADER_MIN_LEN ;
+
+    if (pppoe_length>packet_length) {
+#ifdef	DEBUG
+        printf("Malformed PPPOE tags\n");
+#endif
+        DECODER_SET_EVENT(p,PPPOE_MALFORMED_TAGS);
+    }
+
+    while (pppoe_length>=4 && packet_length>=4)
+    {
+        tag_type = ntohs(pppoedt->pppoe_tag_type);
+        tag_length = ntohs(pppoedt->pppoe_tag_length);
+
+#ifdef DEBUG
+        printf ("PPPoE Tag type %x, length %u\n", tag_type, tag_length);
+#endif
+
+        if (pppoe_length >= 4+tag_length) {
+            pppoe_length -= (4 + tag_length);
+        } else {
+            pppoe_length = 0; // don't want an underflow
+        }
+
+        if (packet_length >= 4+tag_length) {
+            packet_length -= (4 + tag_length);
+        } else {
+            packet_length = 0; // don't want an underflow
+        }
+
+        pppoedt = pppoedt + (4 + tag_length);
+    }
+
 }
 
 /**
@@ -44,6 +114,8 @@ void DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_
     printf("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "\n",
            p->pppoesh->pppoe_version,  p->pppoesh->pppoe_type,  p->pppoesh->pppoe_code,  ntohs(p->pppoesh->session_id),  ntohs(p->pppoesh->pppoe_length));
 #endif
+
+    /* can't use DecodePPP() here because we only get a single 2-byte word to indicate protocol instead of the full PPP header */
 
     if (ntohs(p->pppoesh->pppoe_length) > 0) {
         /* decode contained PPP packet */
@@ -211,14 +283,14 @@ static int DecodePPPOEtest03 (void)   {
 }
 
 /** DecodePPPOEtest04
- *  \brief Valid exaple PADI PPPOE packet taken from RFC2516
- *  \retval 0 Expected test value
+ *  \brief Valid example PPPOE packet taken from RFC2516 - but with wrong PPPOE code
+ *  \retval 1 Expected test value
  */
 static int DecodePPPOEtest04 (void)   {
 
-    /* example PADI packet taken from RFC2516 */
+    /* example PADI packet taken from RFC2516, but with wrong code */
     uint8_t raw_pppoe[] = {
-        0x11, 0x09, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01,
+        0x11, 0xbb, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01,
         0x00, 0x00
     };
 
@@ -228,8 +300,41 @@ static int DecodePPPOEtest04 (void)   {
 
     DecodePPPOEDiscovery(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
-    return 0; // TODO
+    if(DECODER_ISSET_EVENT(&p,PPPOE_WRONG_CODE))  {
+        return 1;
+    }
+
+    return 0;
 }
+
+/** DecodePPPOEtest05
+ *  \brief Valid exaple PADO PPPOE packet taken from RFC2516, but too short for given length
+ *  \retval 0 Expected test value
+ */
+static int DecodePPPOEtest05 (void)   {
+
+    /* example PADI packet taken from RFC2516 */
+    uint8_t raw_pppoe[] = {
+        0x11, 0x07, 0x00, 0x00, 0x00, 0x20, 0x01, 0x01,
+        0x00, 0x00, 0x01, 0x02, 0x00, 0x18, 0x47, 0x6f,
+        0x20, 0x52, 0x65, 0x64, 0x42, 0x61, 0x63, 0x6b,
+        0x20, 0x2d, 0x20, 0x65, 0x73, 0x68, 0x73, 0x68
+    };
+
+    Packet p;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    DecodePPPOEDiscovery(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
+
+    if(DECODER_ISSET_EVENT(&p,PPPOE_MALFORMED_TAGS))  {
+        return 1;
+    }
+
+    return 0;
+}
+
+
 
 /**
  * \brief Registers PPPOE unit tests
@@ -239,6 +344,7 @@ void DecodePPPOERegisterTests(void) {
     UtRegisterTest("DecodePPPOEtest01", DecodePPPOEtest01, 1);
     UtRegisterTest("DecodePPPOEtest02", DecodePPPOEtest02, 0);
     UtRegisterTest("DecodePPPOEtest03", DecodePPPOEtest03, 0);
-    UtRegisterTest("DecodePPPOEtest04", DecodePPPOEtest04, 0);
+    UtRegisterTest("DecodePPPOEtest04", DecodePPPOEtest04, 1);
+    UtRegisterTest("DecodePPPOEtest05", DecodePPPOEtest05, 1);
 }
 

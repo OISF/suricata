@@ -242,6 +242,7 @@ typedef struct Packet_
     EthernetHdr *ethh;
     PPPHdr *ppph;
     PPPOESessionHdr *pppoesh;
+    PPPOEDiscoveryHdr *pppoedh;
     GREHdr *greh;
 
     IPV4Hdr *ip4h;
@@ -255,6 +256,7 @@ typedef struct Packet_
 
     ICMPV4Hdr *icmpv4h;
     ICMPV4Cache icmpv4c;
+    ICMPV4Vars icmpv4vars;
     ICMPV6Hdr *icmpv6h;
     ICMPV6Cache icmpv6c;
 

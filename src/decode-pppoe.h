@@ -18,6 +18,7 @@
 #include "threadvars.h"
 
 #define PPPOE_SESSION_HEADER_LEN 8
+#define PPPOE_DISCOVERY_HEADER_MIN_LEN 6
 
 typedef struct PPPOESessionHdr_
 {
@@ -33,7 +34,6 @@ typedef struct PPPOEDiscoveryTag_
 {
     uint16_t  pppoe_tag_type;
     uint16_t  pppoe_tag_length;
-    uint8_t   pppoe_tag_value[];
 } PPPOEDiscoveryTag;
 
 typedef struct PPPOEDiscoveryHdr_
@@ -43,7 +43,6 @@ typedef struct PPPOEDiscoveryHdr_
     uint8_t pppoe_code;
     uint16_t discovery_id;
     uint16_t pppoe_length;
-    PPPOEDiscoveryTag pppoe_tag_list[];
 } PPPOEDiscoveryHdr;
 
 /* see RFC 2516 - discovery codes */

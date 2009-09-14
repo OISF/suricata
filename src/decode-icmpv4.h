@@ -3,7 +3,8 @@
 #ifndef __DECODE_ICMPV4_H__
 #define __DECODE_ICMPV4_H__
 
-#define ICMPV4_HEADER_LEN         4
+#define ICMPV4_HEADER_LEN       8
+
 #ifndef ICMP_ECHOREPLY
 #define ICMP_ECHOREPLY          0       /* Echo Reply                   */
 #endif
@@ -93,6 +94,7 @@
 #endif
 #ifndef ICMP_PREC_VIOLATION
 #define ICMP_PREC_VIOLATION     14      /* Precedence violation */
+
 #endif
 #ifndef ICMP_PREC_CUTOFF
 #define ICMP_PREC_CUTOFF        15      /* Precedence cut off */
@@ -128,15 +130,31 @@
 /** marco for icmpv4 code access */
 #define ICMPV4_GET_CODE(p)      (p)->icmpv4h->code
 
+typedef struct ICMPV4Vars_
+{
+    uint8_t  id;
+    uint8_t  seq;
+} ICMPV4Vars;
+
 /* ICMPv4 header structure */
 typedef struct ICMPV4Hdr_
 {
     uint8_t  type;
     uint8_t  code;
     uint16_t checksum;
-
-    /* XXX incomplete */
 } ICMPV4Hdr;
+
+/* ICMPv4 header structure */
+typedef struct ICMPV4ExtHdr_
+{
+    uint8_t  type;
+    uint8_t  code;
+    uint16_t checksum;
+    uint16_t id;
+    uint16_t seq;
+} ICMPV4ExtHdr;
+
+#define ICMPV4_HEADER_PKT_OFFSET 8
 
 typedef struct ICMPV4Cache_ {
     /* checksum computed over the icmpv4 packet */
@@ -144,6 +162,7 @@ typedef struct ICMPV4Cache_ {
 } ICMPV4Cache;
 
 inline uint16_t ICMPV4CalculateChecksum(uint16_t *, uint16_t);
+
 void DecodeICMPV4RegisterTests(void);
 
 #endif /* __DECODE_ICMPV4_H__ */
