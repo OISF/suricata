@@ -27,17 +27,9 @@
 
 #include "util-unittest.h"
 #include "alert-unified2-alert.h"
+#include "decode-ipv4.h"
 
 #define DEBUG
-
-int Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
-int Unified2AlertThreadInit(ThreadVars *, void *, void **);
-int Unified2AlertThreadDeinit(ThreadVars *, void *);
-int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
-int Unified2IPv6TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
-int Unified2PacketTypeAlert(ThreadVars *, Packet *, void *);
-
-void Unified2RegisterTests();
 
 void TmModuleUnified2AlertRegister (void) {
     tmm_modules[TMM_ALERTUNIFIED2ALERT].name = "Unified2Alert";
@@ -47,81 +39,10 @@ void TmModuleUnified2AlertRegister (void) {
     tmm_modules[TMM_ALERTUNIFIED2ALERT].RegisterTests = Unified2RegisterTests;
 }
 
-typedef struct Unified2AlertThread_ {
-    FILE *fp;
-    uint32_t size_limit;
-    uint32_t size_current;
-} Unified2AlertThread;
-
-/* Type UNIFIED2_IDS_EVENT_IPV6_TYPE, UNIFIED2_IDS_EVENT_TYPE and UNIFIED2_PACKET_TYPE supported */
-
-#define UNIFIED2_EVENT_TYPE 1
-#define UNIFIED2_PACKET_TYPE 2
-#define UNIFIED2_IDS_EVENT_TYPE 7
-#define UNIFIED2_EVENT_EXTENDED_TYPE 66
-#define UNIFIED2_PERFORMANCE_TYPE 67
-#define UNIFIED2_PORTSCAN_TYPE 68
-#define UNIFIED2_IDS_EVENT_IPV6_TYPE 72
-#define UNIFIED2_IDS_EVENT_MPLS_TYPE 99
-#define UNIFIED2_IDS_EVENT_IPV6_MPLS_TYPE 100
-
-typedef struct Unified2AlertFileHeader_ {
-    uint32_t type;
-    uint32_t length;
-} Unified2AlertFileHeader;
-
-typedef struct AlertIPv4Unified2_ {
-    uint32_t sensor_id;
-    uint32_t event_id;
-    uint32_t event_second;
-    uint32_t event_microsecond;
-    uint32_t signature_id;
-    uint32_t generator_id;
-    uint32_t signature_revision;
-    uint32_t classification_id;
-    uint32_t priority_id;
-    uint32_t src_ip;
-    uint32_t dst_ip;
-    uint16_t sp;
-    uint16_t dp;
-    uint8_t  protocol;
-    uint8_t  packet_action;
-} AlertIPv4Unified2;
-
-typedef struct AlertIPv6Unified2_ {
-    uint32_t sensor_id;
-    uint32_t event_id;
-    uint32_t event_second;
-    uint32_t event_microsecond;
-    uint32_t signature_id;
-    uint32_t generator_id;
-    uint32_t signature_revision;
-    uint32_t classification_id;
-    uint32_t priority_id;
-    struct in6_addr src_ip;
-    struct in6_addr dst_ip;
-    uint16_t sp;
-    uint16_t dp;
-    uint8_t  protocol;
-    uint8_t  packet_action;
-} AlertIPv6Unified2;
-
-
-typedef struct AlertUnified2Packet_ {
-    uint32_t sensor_id;
-    uint32_t event_id;
-    uint32_t event_second;
-    uint32_t packet_second;
-    uint32_t packet_microsecond;
-    uint32_t linktype;
-    uint32_t packet_length;
-    uint8_t packet_data[4];
-} Unified2Packet;
-
 /**
  *  \brief Function to create unified2 file
  *
- *  \param t Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param aun Unified2 thread variable.
  *  \retval 0 on succces
  *  \retval -1 on failure
@@ -130,13 +51,13 @@ typedef struct AlertUnified2Packet_ {
 int Unified2AlertCreateFile(ThreadVars *t, Unified2AlertThread *aun) {
     char filename[PATH_MAX];
     struct timeval ts;
+    char *log_dir;
 
     memset (filename,0,PATH_MAX);
     memset (&ts, 0, sizeof(struct timeval));
     gettimeofday(&ts, NULL);
 
     /* create the filename to use */
-    char *log_dir;
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
     snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, log_dir, "unified2.alert", (uint32_t)ts.tv_sec);
@@ -158,21 +79,21 @@ int Unified2AlertCreateFile(ThreadVars *t, Unified2AlertThread *aun) {
 /**
  *  \brief Function to close unified2 file
  *
- *  \param t Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param aun Unified2 thread variable.
  */
 
-    int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
-        if (aun->fp != NULL)
-            fclose(aun->fp);
+int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
+    if (aun->fp != NULL)
+        fclose(aun->fp);
 
-        return 0;
-    }
+    return 0;
+}
 
 /**
  *  \brief Function to rotate unified2 file
  *
- *  \param t Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param aun Unified2 thread variable.
  *  \retval 0 on succces
  *  \retval -1 on failure
@@ -194,7 +115,7 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
 /**
  *  \brief Function to create unified2 file
  *
- *  \param t Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param p Packet struct used to decide for ipv4 or ipv6
  *  \param data Unified2 thread data.
  *  \param pq Packet queue
@@ -221,7 +142,7 @@ int Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 /**
  *  \brief Function to fill unified2 packet format into the file.
  *
- *  \param t Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param p Packet struct used to decide for ipv4 or ipv6
  *  \param data Unified2 thread data.
  *  \retval 0 on succces
@@ -234,15 +155,14 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     Unified2Packet phdr;
     Unified2AlertFileHeader hdr;
     int ret, len;
+    char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN];
 
     if(p->pktlen > 0)
         len = (sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet)) - 4 + p->pktlen;
     else
         len = (sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet)) - 4;
 
-    char write_buffer[len];
-
-    memset(write_buffer,0,len);
+    memset(write_buffer,0,sizeof(write_buffer));
 
     memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(&phdr, 0, sizeof(Unified2Packet));
@@ -295,7 +215,7 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
 /**
  *  \brief Function to fill unified2 ipv6 ids type format into the file.
  *
- *  \param t Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param p Packet struct used to decide for ipv4 or ipv6
  *  \param data Unified2 thread data.
  *  \param pq Packet queue
@@ -308,17 +228,17 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     AlertIPv6Unified2 phdr;
     Unified2AlertFileHeader hdr;
+    PacketAlert *pa;
     uint8_t ethh_offset = 0;
     int ret, len;
+    char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2)];
 
     if (p->alerts.cnt == 0)
         return -1;
 
     len = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2));
 
-    char write_buffer[len];
-
-    memset(write_buffer,0,len);
+    memset(write_buffer,0,sizeof(write_buffer));
 
     memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(&phdr, 0, sizeof(AlertIPv6Unified2));
@@ -342,7 +262,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */
-    PacketAlert *pa = &p->alerts.alerts[p->alerts.cnt-1];
+    pa = &p->alerts.alerts[p->alerts.cnt-1];
 
     /* fill the phdr structure */
 
@@ -381,7 +301,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             phdr.sp = 0;
             phdr.dp = 0;
             break;
-     }
+    }
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
 
@@ -402,7 +322,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 /**
  *  \brief Function to fill unified2 ipv4 ids type format into the file.
  *
- *  \param t Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param p Packet struct used to decide for ipv4 or ipv6
  *  \param data Unified2 thread data.
  *  \param pq Packet queue
@@ -415,17 +335,17 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     AlertIPv4Unified2 phdr;
     Unified2AlertFileHeader hdr;
+    PacketAlert *pa;
     uint8_t ethh_offset = 0;
     int ret, len;
+    char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2)];
 
     if (p->alerts.cnt == 0)
         return -1;
 
     len = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2));
 
-    char write_buffer[len];
-
-    memset(write_buffer,0,len);
+    memset(write_buffer,0,sizeof(write_buffer));
     memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(&phdr, 0, sizeof(AlertIPv4Unified2));
 
@@ -448,7 +368,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */
-    PacketAlert *pa = &p->alerts.alerts[p->alerts.cnt-1];
+    pa = &p->alerts.alerts[p->alerts.cnt-1];
 
     /* fill the hdr structure */
 
@@ -487,7 +407,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             phdr.sp = 0;
             phdr.dp = 0;
             break;
-     }
+    }
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
 
@@ -508,7 +428,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 /**
  *  \brief Thread init function.
  *
- *  \param t Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param initdata Unified2 thread initial data.
  *  \param data Unified2 thread data.
  *  \retval 0 on succces
@@ -517,6 +437,8 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
 int Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
 {
+    int ret;
+
     Unified2AlertThread *aun = malloc(sizeof(Unified2AlertThread));
     if (aun == NULL) {
         return -1;
@@ -525,7 +447,7 @@ int Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
 
     aun->fp = NULL;
 
-    int ret = Unified2AlertCreateFile(t, aun);
+    ret = Unified2AlertCreateFile(t, aun);
     if (ret != 0) {
         printf("Error: AlertUnified2CreateFile failed.\n");
         return -1;
@@ -541,7 +463,7 @@ int Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
 /**
  *  \brief Thread deinit function.
  *
- *  \param t Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param data Unified2 thread data.
  *  \retval 0 on succces
  *  \retval -1 on failure
