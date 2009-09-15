@@ -46,7 +46,7 @@ enum
 
 #define STREAMTCP_FLAG_MIDSTREAM                0x01    /*Flag for mid stream session*/
 #define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x02    /*Flag for mid stream established session*/
-#define STREAMTCP_TIMESTAMP                     0x04    /*Flag for TCP Timestamp option*/
+#define STREAMTCP_FLAG_TIMESTAMP                     0x04    /*Flag for TCP Timestamp option*/
 #define STREAMTCP_FLAG_SERVER_WSCALE            0x08 /**< Server supports wscale (even though it can be 0) */
 
 #define PAWS_24DAYS         2073600         /* 24 days in seconds */
