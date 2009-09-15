@@ -100,7 +100,7 @@ static inline int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, 
                 ret = 1;
             break;
         case DETECTSSIZE_GT:
-            printf("diff %"PRIu32", stream_size %"PRIu32"\n", diff, stream_size);
+            //printf("diff %"PRIu32", stream_size %"PRIu32"\n", diff, stream_size);
             if (diff > stream_size)
                 ret = 1;
             break;
