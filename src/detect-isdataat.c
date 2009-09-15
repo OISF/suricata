@@ -96,12 +96,13 @@ int DetectIsdataatMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *
         printf("detect-isdataat: Nothing now, this is checked in detect-content.c!\n");
         #endif
     }
-    else if( !(idad->flags & ISDATAAT_RELATIVE) && p->payload_len >= idad->dataat) {
-        ret=1; /* its not relative and we have more data in the packet than the offset of isdataat */
-        #ifdef DEBUG
-        printf("detect-isdataat: matched with payload len : %u , dataat? %u ; relative? %u ...\n", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
-        #endif
-    }
+    else
+        if( !(idad->flags & ISDATAAT_RELATIVE) && p->payload_len >= idad->dataat) {
+            ret=1; /* its not relative and we have more data in the packet than the offset of isdataat */
+            #ifdef DEBUG
+            printf("detect-isdataat: matched with payload len : %u , dataat? %u ; relative? %u ...\n", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
+            #endif
+        }
 
     return ret;
 }
