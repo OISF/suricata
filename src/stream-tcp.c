@@ -309,17 +309,15 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
                 ssn->client.last_ts = *p->tcpvars.ts->data;
 
             ssn->server.window = TCP_GET_WINDOW(p);
+            if (p->tcpvars.ws != NULL) {
+                ssn->flags |= STREAMTCP_FLAG_SERVER_WSCALE;
+                ssn->server.wscale = TCP_GET_WSCALE(p);
+            }
+
 #ifdef DEBUG
             printf("StreamTcpPacketStateNone (%p): ssn->client.isn %" PRIu32 ", ssn->client.next_seq %" PRIu32 ", ssn->client.last_ack %"PRIu32"\n",
                     ssn, ssn->client.isn, ssn->client.next_seq, ssn->client.last_ack);
 #endif
-
-            if (p->tcpvars.ws != NULL) {
-#ifdef DEBUG
-                printf("StreamTcpPacketStateNone (%p): p->tcpvars.ws %p, %02x\n", ssn, p->tcpvars.ws, *p->tcpvars.ws->data);
-#endif
-                ssn->server.wscale = *p->tcpvars.ws->data;
-            }
             break;
         }
         case TH_SYN|TH_ACK:
@@ -352,18 +350,17 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             ssn->client.next_seq = ssn->client.isn + 1;
 
             ssn->client.last_ack = TCP_GET_ACK(p);
+            /** If the client has a wscale option the server had it too,
+             *  so set the wscale for the server to max. Otherwise none
+             *  will have the wscale opt just like it should. */
+            if (p->tcpvars.ws != NULL) {
+                ssn->client.wscale = TCP_GET_WSCALE(p);
+                ssn->server.wscale = TCP_WSCALE_MAX;
+            }
 
 #ifdef DEBUG
             printf("StreamTcpPacketStateNone (%p): ssn->client.isn %"PRIu32", ssn->client.next_seq %"PRIu32", ssn->client.last_ack %"PRIu32"\n",
                     ssn, ssn->client.isn, ssn->client.next_seq, ssn->client.last_ack);
-#endif
-            if (p->tcpvars.ws != NULL) {
-#ifdef DEBUG
-                printf("StreamTcpPacketStateNone (%p): p->tcpvars.ws %p, %02x\n", ssn, p->tcpvars.ws, *p->tcpvars.ws->data);
-#endif
-                ssn->client.wscale = *p->tcpvars.ws->data;
-            }
-#ifdef DEBUG
             printf("StreamTcpPacketStateNone (%p): ssn->server.isn %"PRIu32", ssn->server.next_seq %"PRIu32", ssn->server.last_ack %"PRIu32"\n",
                     ssn, ssn->server.isn, ssn->server.next_seq, ssn->server.last_ack);
 #endif
@@ -411,9 +408,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
                     ssn, ssn->client.last_ack, ssn->server.last_ack);
 #endif
 
-            /** \todo window scaling for midstream pickups */
-            ssn->client.wscale = 0;
-            ssn->server.wscale = 0;
+            /** window scaling for midstream pickups, we can't do much other
+             *  than assume that it's set to the max value: 14 */
+            ssn->client.wscale = TCP_WSCALE_MAX;
+            ssn->server.wscale = TCP_WSCALE_MAX;
 
             StreamTcpReassembleHandleSegment(ssn, &ssn->client, p);
             break;
@@ -502,11 +500,10 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
             ssn->client.last_ack = TCP_GET_ACK(p);
             ssn->server.last_ack = ssn->server.isn + 1;
 
-            if (ssn->server.wscale != 0 && p->tcpvars.ws != NULL) {
-#ifdef DEBUG
-                printf("StreamTcpPacketStateSynSent (%p): p->tcpvars.ws %p, %02x\n", ssn, p->tcpvars.ws, *p->tcpvars.ws->data);
-#endif
-                ssn->client.wscale = *p->tcpvars.ws->data;
+            /** check for the presense of the ws ptr to determine if we
+             *  support wscale at all */
+            if (ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE && p->tcpvars.ws != NULL) {
+                ssn->client.wscale = TCP_GET_WSCALE(p);
             } else {
                 ssn->client.wscale = 0;
             }
@@ -583,9 +580,10 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
             if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
                 ssn->client.window = TCP_GET_WINDOW(p);
                 ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
-                /** \todo window scaling need to be addressed for midstream pickups */
-                ssn->server.wscale = 0;
-                ssn->client.wscale = 0;
+                /** window scaling for midstream pickups, we can't do much other
+                 *  than assume that it's set to the max value: 14 */
+                ssn->server.wscale = TCP_WSCALE_MAX;
+                ssn->client.wscale = TCP_WSCALE_MAX;
             }
 #ifdef DEBUG
             printf("StreamTcpPacketStateSynRecv (%p): pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ", ACK %" PRIu32 "\n",

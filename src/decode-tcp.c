@@ -367,6 +367,134 @@ static int TCPV6CalculateInvalidChecksumtest04(void)
                                            (uint16_t *)(raw_ipv6 + 54), 32));
 }
 
+/** \test Get the wscale of 2 */
+static int TCPGetWscaleTest01(void)
+{
+    int retval = 0;
+    static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x58,
+                                0x00, 0x00, 0x00, 0x00, 0xa0, 0x02, 0x16, 0xd0,
+                                0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+                                0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
+                                0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02};
+    Packet p;
+    IPV4Hdr ip4h;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.ip4h = &ip4h;
+
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeTCP(&tv, &dtv, &p, raw_tcp, sizeof(raw_tcp), NULL);
+    FlowShutdown();
+
+    if (p.tcph == NULL) {
+        printf("tcp packet decode failed: ");
+        goto end;
+    }
+
+    uint8_t wscale = TCP_GET_WSCALE(&p);
+    if (wscale != 2) {
+        printf("wscale %"PRIu8", expected 2: ", wscale);
+        goto end;
+    }
+
+    retval = 1;
+end:
+    return retval;
+}
+
+/** \test Get the wscale of 15, so see if return 0 properly */
+static int TCPGetWscaleTest02(void)
+{
+    int retval = 0;
+    static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x58,
+                                0x00, 0x00, 0x00, 0x00, 0xa0, 0x02, 0x16, 0xd0,
+                                0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+                                0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
+                                0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x0f};
+    Packet p;
+    IPV4Hdr ip4h;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.ip4h = &ip4h;
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeTCP(&tv, &dtv, &p, raw_tcp, sizeof(raw_tcp), NULL);
+    FlowShutdown();
+
+    if (p.tcph == NULL) {
+        printf("tcp packet decode failed: ");
+        goto end;
+    }
+
+    uint8_t wscale = TCP_GET_WSCALE(&p);
+    if (wscale != 0) {
+        printf("wscale %"PRIu8", expected 0: ", wscale);
+        goto end;
+    }
+
+    retval = 1;
+end:
+    return retval;
+}
+
+/** \test Get the wscale, but it's missing, so see if return 0 properly */
+static int TCPGetWscaleTest03(void)
+{
+    int retval = 0;
+    static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x59,
+                                0xdd, 0xa3, 0x6f, 0xf8, 0x80, 0x10, 0x05, 0xb4,
+                                0x7c, 0x70, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
+                                0x00, 0x62, 0x88, 0x9e, 0x00, 0x00, 0x00, 0x00};
+    Packet p;
+    IPV4Hdr ip4h;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.ip4h = &ip4h;
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeTCP(&tv, &dtv, &p, raw_tcp, sizeof(raw_tcp), NULL);
+    FlowShutdown();
+
+    if (p.tcph == NULL) {
+        printf("tcp packet decode failed: ");
+        goto end;
+    }
+
+    uint8_t wscale = TCP_GET_WSCALE(&p);
+    if (wscale != 0) {
+        printf("wscale %"PRIu8", expected 0: ", wscale);
+        goto end;
+    }
+
+    retval = 1;
+end:
+    return retval;
+}
 
 void DecodeTCPRegisterTests(void)
 {
@@ -378,4 +506,7 @@ void DecodeTCPRegisterTests(void)
                    TCPV6CalculateValidChecksumtest03, 1);
     UtRegisterTest("TCPV6CalculateInvalidChecksumtest04",
                    TCPV6CalculateInvalidChecksumtest04, 0);
+    UtRegisterTest("TCPGetWscaleTest01", TCPGetWscaleTest01, 1);
+    UtRegisterTest("TCPGetWscaleTest02", TCPGetWscaleTest02, 1);
+    UtRegisterTest("TCPGetWscaleTest03", TCPGetWscaleTest03, 1);
 }

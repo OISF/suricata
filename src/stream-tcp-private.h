@@ -44,6 +44,7 @@ enum
 
 #define STREAMTCP_FLAG_MIDSTREAM                0x01    /*Flag for mid stream session*/
 #define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x02    /*Flag for mid stream established session*/
+#define STREAMTCP_FLAG_SERVER_WSCALE            0x08 /**< Server supports wscale (even though it can be 0) */
 
 /* Macro's for comparing Sequence numbers
  * Page 810 from TCP/IP Illustrated, Volume 2. */

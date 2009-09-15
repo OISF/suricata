@@ -41,6 +41,9 @@
 #define TCP_OPT_TS_LEN                       10
 #define TCP_OPT_MSS_LEN                      4
 
+/** Max valid wscale value. */
+#define TCP_WSCALE_MAX                       14
+
 #define TCP_OPTS                             tcpvars.tcp_opts
 #define TCP_OPTS_CNT                         tcpvars.tcp_opt_cnt
 
@@ -65,6 +68,9 @@
  *  host order and either returned from the cache or from the packet directly. */
 #define TCP_GET_TS2(p)                       ((p)->tcpc.ts2 != 0 ? \
                                              (p)->tcpc.ts2 : (p)->tcpvars.ts ? ((p)->tcpc.ts2 = (uint32_t)ntohl((*(uint32_t *)((p)->tcpvars.ts->data+4)))) : 0)
+
+/** macro for getting the wscale from the packet. */
+#define TCP_GET_WSCALE(p)                    ((p)->tcpvars.ws ? (((*(uint8_t *)(p)->tcpvars.ws->data) <= TCP_WSCALE_MAX) ? (*(uint8_t *)((p)->tcpvars.ws->data)) : 0) : 0)
 
 #define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET(p->tcph)
 #define TCP_GET_HLEN(p)                      TCP_GET_OFFSET(p) << 2
