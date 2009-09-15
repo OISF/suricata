@@ -28,6 +28,8 @@ pkt-var.c pkt-var.h \
 host.c host.h \
 detect.c detect.h \
 detect-engine.c detect-engine.h \
+detect-isdataat.c detect-isdataat.h \
+detect-window.c detect-window.h \
 detect-engine-address.c detect-engine-address.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
 detect-engine-address-ipv6.c detect-engine-address-ipv6.h \

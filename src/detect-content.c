@@ -240,6 +240,28 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
             }
         }
     }
+
+    /* If it has matched, check if it's set a "isdataat" option and process it */
+    if( match == 1 && co->flags & DETECT_CONTENT_ISDATAAT_RELATIVE )
+    {
+        /* if the rest of the payload (from the last match) is less than
+          the "isdataat" there is no data where the rule expected
+          so match=0
+        */
+
+        #ifdef DEBUG
+        printf("detect-content: isdataat: payload_len: %u, used %u, rest %u, isdataat? %u\n", p->payload_len, (m->offset + co->content_len),p->payload_len - (m->offset + co->content_len), co->isdataat );
+        #endif
+        if( ! (p->payload_len - (m->offset + co->content_len) >= co->isdataat) )
+            match=0;
+        if(match)
+        {
+            #ifdef DEBUG
+            printf("detect-content: MATCHED\n");
+            #endif
+        }
+    }
+
     return match;
 }
 
@@ -458,6 +480,8 @@ void DetectContentFree(void *ptr) {
     free(cd);
 }
 
+#ifdef UNITTESTS /* UNITTESTS */
+
 /**
  * \test DetectCotentParseTest01 this is a test to make sure we can deal with escaped colons
  */
@@ -639,10 +663,13 @@ int DetectContentParseTest08 (void) {
 }
 
 
+#endif /* UNITTESTS */
+
 /**
  * \brief this function registers unit tests for DetectFlow
  */
 void DetectContentRegisterTests(void) {
+    #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectContentParseTest01", DetectContentParseTest01, 1);
     UtRegisterTest("DetectContentParseTest02", DetectContentParseTest02, 1);
     UtRegisterTest("DetectContentParseTest03", DetectContentParseTest03, 1);
@@ -651,5 +678,7 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentParseTest06", DetectContentParseTest06, 1);
     UtRegisterTest("DetectContentParseTest07", DetectContentParseTest07, 1);
     UtRegisterTest("DetectContentParseTest08", DetectContentParseTest08, 1);
+
+    #endif /* UNITTESTS */
 }
 

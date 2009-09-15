@@ -374,6 +374,8 @@ typedef struct SigGroupHead_ {
 /** sigmatch is compatible with a decode event only rule */
 #define SIGMATCH_DEONLY_COMPAT  0x04
 
+/** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
+
 enum {
     DETECT_SID,
     DETECT_PRIORITY,
@@ -396,6 +398,8 @@ enum {
     DETECT_BYTETEST,
     DETECT_BYTEJUMP,
     DETECT_FLOW,
+    DETECT_WINDOW,
+    DETECT_ISDATAAT,
     DETECT_DSIZE,
     DETECT_FLOWVAR,
     DETECT_PKTVAR,

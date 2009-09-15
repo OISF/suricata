@@ -1,3 +1,22 @@
+
+
+For Debian/Ubuntu Users
+=======================
+After getting the git copy, you will need to get some depends. This
+should be enought to get a binary:
+
+    cd your_local_git_branch
+    sudo apt-get -y install libpcre3 libpcre3-dbg libpcre3-dev build-essential autoconf automake libtool libpcap-dev libnet1-dev libyaml-0-1 libyaml-dev
+    bash autojunk.sh
+    ./configure --enable-unittests
+    sudo mkdir /var/log/eidps/
+    cd src
+    make
+    ./eidps
+
+*****************
+
+
 Basic Installation
 ==================
 

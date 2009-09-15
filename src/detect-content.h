@@ -7,6 +7,7 @@
 
 #define DETECT_CONTENT_DISTANCE_NEXT 0x08
 #define DETECT_CONTENT_WITHIN_NEXT   0x10
+#define DETECT_CONTENT_ISDATAAT_RELATIVE 0x16
 
 #define DETECT_CONTENT_RAWBYTES      0x20
 
@@ -17,6 +18,7 @@ typedef struct DetectContentData_ {
 
     uint16_t depth;
     uint16_t offset;
+    uint32_t isdataat;
     int32_t distance;
     int32_t within;
     uint8_t flags;
