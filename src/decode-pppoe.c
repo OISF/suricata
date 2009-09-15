@@ -277,6 +277,10 @@ static int DecodePPPOEtest03 (void)   {
     ThreadVars tv;
     DecodeThreadVars dtv;
 
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
     DecodePPPOEDiscovery(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
     return 0; // TODO
@@ -297,6 +301,10 @@ static int DecodePPPOEtest04 (void)   {
     Packet p;
     ThreadVars tv;
     DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodePPPOEDiscovery(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
@@ -324,6 +332,10 @@ static int DecodePPPOEtest05 (void)   {
     Packet p;
     ThreadVars tv;
     DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodePPPOEDiscovery(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
