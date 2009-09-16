@@ -1,6 +1,8 @@
 #ifndef __TM_THREADS_H__
 #define __TM_THREADS_H__
 
+#include "tm-modules.h"
+
 /* ThreadVars type */
 enum {
     TVT_PPT,

@@ -1,5 +1,6 @@
 bin_PROGRAMS = eidps
 eidps_SOURCES = eidps.c eidps.h \
+runmodes.c runmodes.h \
 packet-queue.c packet-queue.h \
 threads.c threads.h \
 source-nfq.c source-nfq.h \
