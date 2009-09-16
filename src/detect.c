@@ -5650,6 +5650,270 @@ end:
     return result;
 }
 
+int SigTest38Real(int mpm_type)
+{
+    Packet p1;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+    uint8_t raw_eth[] = {
+        0x00, 0x00, 0x03, 0x04, 0x00, 0x06, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x08, 0x00
+    };
+    uint8_t raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x7d, 0xd8, 0xf3, 0x40, 0x00,
+        0x40, 0x06, 0x63, 0x85, 0x7f, 0x00, 0x00, 0x01,
+        0x7f, 0x00, 0x00, 0x01
+    };
+    uint8_t raw_tcp[] = {
+        0xad, 0x22, 0x04, 0x00, 0x16, 0x39, 0x72,
+        0xe2, 0x16, 0x1f, 0x79, 0x84, 0x80, 0x18,
+        0x01, 0x01, 0xfe, 0x71, 0x00, 0x00, 0x01,
+        0x01, 0x08, 0x0a, 0x00, 0x22, 0xaa, 0x10,
+        0x00, 0x22, 0xaa, 0x10
+    };
+    uint8_t buf[] = {
+        0x00, 0x00, 0x00, 0x08, 0x62, 0x6f, 0x6f,
+        0x65, 0x65, 0x6b, 0x0d, 0x0a, 0x4c, 0x45,
+        0x4e, 0x31, 0x20, 0x38, 0x0d, 0x0a, 0x66,
+        0x6f, 0x6f, 0x62, 0x61, 0x72, 0x0d, 0x0a,
+        0x4c, 0x45, 0x4e, 0x32, 0x20, 0x39, 0x39,
+        0x39, 0x39, 0x39, 0x39, 0x39, 0x39, 0x39,
+        0x39, 0x39, 0x39, 0x39, 0x39, 0x39, 0x39,
+        0x39, 0x39, 0x39, 0x39, 0x39, 0x39, 0x39,
+        0x39, 0x39, 0x39, 0x0d, 0x0a, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x0d, 0x0a, 0x0d,
+        0x0a, 0x0d, 0x0a
+    };
+    uint16_t ethlen = sizeof(raw_eth);
+    uint16_t ipv4len = sizeof(raw_ipv4);
+    uint16_t tcplen = sizeof(raw_tcp);
+    uint16_t buflen = sizeof(buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+
+    /* Copy raw data into packet */
+    memcpy(&p1.pkt, raw_eth, ethlen);
+    memcpy(p1.pkt + ethlen, raw_ipv4, ipv4len);
+    memcpy(p1.pkt + ethlen + ipv4len, raw_tcp, tcplen);
+    memcpy(p1.pkt + ethlen + ipv4len + tcplen, buf, buflen);
+    p1.pktlen = ethlen + ipv4len + tcplen + buflen;
+
+    p1.tcpc.comp_csum = -1;
+    p1.ethh = (EthernetHdr *)raw_eth;
+    p1.ip4h = (IPV4Hdr *)raw_ipv4;
+    p1.tcph = (TCPHdr *)raw_tcp;
+    //p1.tcpvars.hlen = TCP_GET_HLEN((&p));
+    p1.tcpvars.hlen = 0;
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = p1.pkt + ethlen + ipv4len + tcplen;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"LEN1|20|\"; "
+                               "byte_test:4,=,8,0; "
+                               "msg:\"byte_test keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"LEN1|20|\"; "
+                               "byte_test:4,=,8,5,relative,string,dec; "
+                               "msg:\"byte_test keyword check(2)\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1)) {
+        result = 1;
+    } else {
+        result = 0;
+        printf("sid 1 didn't alert, but should have: ");
+        goto cleanup;
+    }
+    if (PacketAlertCheck(&p1, 2)) {
+        result = 1;
+    } else {
+        result = 0;
+        printf("sid 2 didn't alert, but should have: ");
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    return result;
+}
+static int SigTest38B2g (void) {
+    return SigTest38Real(MPM_B2G);
+}
+static int SigTest38B3g (void) {
+    return SigTest38Real(MPM_B3G);
+}
+static int SigTest38Wm (void) {
+    return SigTest38Real(MPM_WUMANBER);
+}
+
+int SigTest39Real(int mpm_type)
+{
+    Packet p1;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+    uint8_t raw_eth[] = {
+        0x00, 0x00, 0x03, 0x04, 0x00, 0x06, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x08, 0x00
+    };
+    uint8_t raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x7d, 0xd8, 0xf3, 0x40, 0x00,
+        0x40, 0x06, 0x63, 0x85, 0x7f, 0x00, 0x00, 0x01,
+        0x7f, 0x00, 0x00, 0x01
+    };
+    uint8_t raw_tcp[] = {
+        0xad, 0x22, 0x04, 0x00, 0x16, 0x39, 0x72,
+        0xe2, 0x16, 0x1f, 0x79, 0x84, 0x80, 0x18,
+        0x01, 0x01, 0xfe, 0x71, 0x00, 0x00, 0x01,
+        0x01, 0x08, 0x0a, 0x00, 0x22, 0xaa, 0x10,
+        0x00, 0x22, 0xaa, 0x10
+    };
+    uint8_t buf[] = {
+        0x00, 0x00, 0x00, 0x08, 0x62, 0x6f, 0x6f,
+        0x65, 0x65, 0x6b, 0x0d, 0x0a, 0x4c, 0x45,
+        0x4e, 0x31, 0x20, 0x38, 0x0d, 0x0a, 0x66,
+        0x6f, 0x6f, 0x62, 0x61, 0x72, 0x0d, 0x0a,
+        0x4c, 0x45, 0x4e, 0x32, 0x20, 0x39, 0x39,
+        0x39, 0x39, 0x39, 0x39, 0x39, 0x39, 0x39,
+        0x39, 0x39, 0x39, 0x39, 0x39, 0x39, 0x39,
+        0x39, 0x39, 0x39, 0x39, 0x39, 0x39, 0x39,
+        0x39, 0x39, 0x39, 0x0d, 0x0a, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x0d, 0x0a, 0x0d,
+        0x0a, 0x0d, 0x0a
+    };
+    uint16_t ethlen = sizeof(raw_eth);
+    uint16_t ipv4len = sizeof(raw_ipv4);
+    uint16_t tcplen = sizeof(raw_tcp);
+    uint16_t buflen = sizeof(buf);
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p1, 0, sizeof(Packet));
+
+    /* Copy raw data into packet */
+    memcpy(&p1.pkt, raw_eth, ethlen);
+    memcpy(p1.pkt + ethlen, raw_ipv4, ipv4len);
+    memcpy(p1.pkt + ethlen + ipv4len, raw_tcp, tcplen);
+    memcpy(p1.pkt + ethlen + ipv4len + tcplen, buf, buflen);
+    p1.pktlen = ethlen + ipv4len + tcplen + buflen;
+
+    p1.tcpc.comp_csum = -1;
+    p1.ethh = (EthernetHdr *)raw_eth;
+    p1.ip4h = (IPV4Hdr *)raw_ipv4;
+    p1.tcph = (TCPHdr *)raw_tcp;
+    //p1.tcpvars.hlen = TCP_GET_HLEN((&p));
+    p1.tcpvars.hlen = 0;
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = p1.pkt + ethlen + ipv4len + tcplen;
+    p1.payload_len = buflen;
+    p1.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"LEN1|20|\"; "
+                               "byte_test:4,=,8,0; "
+                               "byte_jump:4,0; "
+                               "byte_test:6,=,0x4c454e312038,0,relative; "
+                               "msg:\"byte_jump keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result &= 0;
+        goto end;
+    }
+    // XXX TODO
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(content:\"LEN1|20|\"; "
+                               "byte_test:4,=,8,4,relative,string,dec; "
+                               "byte_jump:4,4,relative,string,dec,post_offset 2; "
+                               "byte_test:4,=,0x4c454e32,0,relative; "
+                               "msg:\"byte_jump keyword check(2)\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result &= 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    if (PacketAlertCheck(&p1, 1)) {
+        result = 1;
+    } else {
+        result = 0;
+        printf("sid 1 didn't alert, but should have: ");
+        goto cleanup;
+    }
+    if (PacketAlertCheck(&p1, 2)) {
+        result = 1;
+    } else {
+        result = 0;
+        printf("sid 2 didn't alert, but should have: ");
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    return result;
+}
+static int SigTest39B2g (void) {
+    return SigTest39Real(MPM_B2G);
+}
+static int SigTest39B3g (void) {
+    return SigTest39Real(MPM_B3G);
+}
+static int SigTest39Wm (void) {
+    return SigTest39Real(MPM_WUMANBER);
+}
 
 
 #endif /* UNITTESTS */
@@ -5778,6 +6042,14 @@ void SigRegisterTests(void) {
     //UtRegisterTest("SigTest36ICMPV6Keyword", SigTest36ICMPV6Keyword, 1);
     //UtRegisterTest("SigTest37NegativeICMPV6Keyword",
     //               SigTest37NegativeICMPV6Keyword, 1);
+
+    UtRegisterTest("SigTest38B2g -- byte_test test (1)", SigTest38B2g, 1);
+    UtRegisterTest("SigTest38B3g -- byte_test test (1)", SigTest38B3g, 1);
+    UtRegisterTest("SigTest38Wm -- byte_test test (1)", SigTest38Wm, 1);
+
+    UtRegisterTest("SigTest39B2g -- byte_jump test (2)", SigTest39B2g, 1);
+    UtRegisterTest("SigTest39B3g -- byte_jump test (2)", SigTest39B3g, 1);
+    UtRegisterTest("SigTest39Wm -- byte_jump test (2)", SigTest39Wm, 1);
 
 #endif /* UNITTESTS */
 }
