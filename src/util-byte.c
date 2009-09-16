@@ -35,7 +35,7 @@ int ByteExtract(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
         //printf("ByteExtractUint64: %016" PRIx64 "/%016" PRIx64 "\n", (b << ((i & 7) << 3)), *res);
     }
 
-    return 0;
+    return len;
 }
 
 inline int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
@@ -50,7 +50,7 @@ inline int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *
     }
 
     ret = ByteExtract(&i64, e, len, bytes);
-    if (ret) {
+    if (ret <= 0) {
         return ret;
     }
 
@@ -71,7 +71,7 @@ inline int ByteExtractUint32(uint32_t *res, int e, uint16_t len, const uint8_t *
     }
 
     ret = ByteExtract(&i64, e, len, bytes);
-    if (ret) {
+    if (ret <= 0) {
         return ret;
     }
 
@@ -92,7 +92,7 @@ inline int ByteExtractUint16(uint16_t *res, int e, uint16_t len, const uint8_t *
     }
 
     ret = ByteExtract(&i64, e, len, bytes);
-    if (ret) {
+    if (ret <= 0) {
         return ret;
     }
 
@@ -150,7 +150,7 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
 
     //printf("ByteExtractString: Extracted base %d: 0x%" PRIx64 "\n", base, *res);
 
-    return 0;
+    return (endptr - ptr);
 }
 
 inline int ByteExtractStringUint64(uint64_t *res, int base, uint16_t len, const char *str)
@@ -164,7 +164,7 @@ inline int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const 
     int ret;
 
     ret = ByteExtractString(&i64, base, len, str);
-    if (ret != 0) {
+    if (ret <= 0) {
         return ret;
     }
 
@@ -175,7 +175,7 @@ inline int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const 
         return -1;
     }
 
-    return 0;
+    return ret;
 }
 
 inline int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *str)
@@ -184,7 +184,7 @@ inline int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const 
     int ret;
 
     ret = ByteExtractString(&i64, base, len, str);
-    if (ret != 0) {
+    if (ret <= 0) {
         return ret;
     }
 
@@ -195,7 +195,7 @@ inline int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const 
         return -1;
     }
 
-    return 0;
+    return ret;
 }
 
 inline int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str)
@@ -204,7 +204,7 @@ inline int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const ch
     int ret;
 
     ret = ByteExtractString(&i64, base, len, str);
-    if (ret != 0) {
+    if (ret <= 0) {
         return ret;
     }
 
@@ -215,7 +215,7 @@ inline int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const ch
         return -1;
     }
 
-    return 0;
+    return ret;
 }
 
 int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *str)
@@ -266,7 +266,7 @@ int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *st
 
     //printf("ByteExtractStringSigned: Extracted base %d: 0x%" PRIx64 "\n", base, *res);
 
-    return 0;
+    return (endptr - ptr);
 }
 
 inline int ByteExtractStringInt64(int64_t *res, int base, uint16_t len, const char *str)
@@ -280,7 +280,7 @@ inline int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const ch
     int ret;
 
     ret = ByteExtractStringSigned(&i64, base, len, str);
-    if (ret != 0) {
+    if (ret <= 0) {
         return ret;
     }
 
@@ -291,7 +291,7 @@ inline int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const ch
         return -1;
     }
 
-    return 0;
+    return ret;
 }
 
 inline int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const char *str)
@@ -300,7 +300,7 @@ inline int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const ch
     int ret;
 
     ret = ByteExtractStringSigned(&i64, base, len, str);
-    if (ret != 0) {
+    if (ret <= 0) {
         return ret;
     }
 
@@ -311,7 +311,7 @@ inline int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const ch
         return -1;
     }
 
-    return 0;
+    return ret;
 }
 
 inline int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char *str)
@@ -320,7 +320,7 @@ inline int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char
     int ret;
 
     ret = ByteExtractStringSigned(&i64, base, len, str);
-    if (ret != 0) {
+    if (ret <= 0) {
         return ret;
     }
 
@@ -331,7 +331,7 @@ inline int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char
         return -1;
     }
 
-    return 0;
+    return ret;
 }
 
 /* UNITTESTS */
@@ -343,7 +343,7 @@ static int ByteTest01 (void) {
     uint8_t bytes[2] = { 0x02, 0x01 };
     int ret = ByteExtractUint16(&i16, BYTE_LITTLE_ENDIAN, sizeof(bytes), bytes);
 
-    if ((ret == 0) && (i16 == val)) {
+    if ((ret == 2) && (i16 == val)) {
         return 1;
     }
 
@@ -356,7 +356,7 @@ static int ByteTest02 (void) {
     uint8_t bytes[2] = { 0x01, 0x02 };
     int ret = ByteExtractUint16(&i16, BYTE_BIG_ENDIAN, sizeof(bytes), bytes);
 
-    if ((ret == 0) && (i16 == val)) {
+    if ((ret == 2) && (i16 == val)) {
         return 1;
     }
 
@@ -369,7 +369,7 @@ static int ByteTest03 (void) {
     uint8_t bytes[4] = { 0x04, 0x03, 0x02, 0x01 };
     int ret = ByteExtractUint32(&i32, BYTE_LITTLE_ENDIAN, sizeof(bytes), bytes);
 
-    if ((ret == 0) && (i32 == val)) {
+    if ((ret == 4) && (i32 == val)) {
         return 1;
     }
 
@@ -382,7 +382,7 @@ static int ByteTest04 (void) {
     uint8_t bytes[4] = { 0x01, 0x02, 0x03, 0x04 };
     int ret = ByteExtractUint32(&i32, BYTE_BIG_ENDIAN, sizeof(bytes), bytes);
 
-    if ((ret == 0) && (i32 == val)) {
+    if ((ret == 4) && (i32 == val)) {
         return 1;
     }
 
@@ -395,7 +395,7 @@ static int ByteTest05 (void) {
     uint8_t bytes[8] = { 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01 };
     int ret = ByteExtractUint64(&i64, BYTE_LITTLE_ENDIAN, sizeof(bytes), bytes);
 
-    if ((ret == 0) && (i64 == val)) {
+    if ((ret == 8) && (i64 == val)) {
         return 1;
     }
 
@@ -408,7 +408,7 @@ static int ByteTest06 (void) {
     uint8_t bytes[8] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
     int ret = ByteExtractUint64(&i64, BYTE_BIG_ENDIAN, sizeof(bytes), bytes);
 
-    if ((ret == 0) && (i64 == val)) {
+    if ((ret == 8) && (i64 == val)) {
         return 1;
     }
 
@@ -421,7 +421,7 @@ static int ByteTest07 (void) {
     uint64_t i64 = 0xbfbfbfbfbfbfbfbf;
     int ret = ByteExtractStringUint64(&i64, 10, strlen(str), str);
 
-    if ((ret == 0) && (i64 == val)) {
+    if ((ret == 10) && (i64 == val)) {
         return 1;
     }
 
@@ -434,7 +434,7 @@ static int ByteTest08 (void) {
     uint32_t i32 = 0xbfbfbfbf;
     int ret = ByteExtractStringUint32(&i32, 10, strlen(str), str);
 
-    if ((ret == 0) && (i32 == val)) {
+    if ((ret == 10) && (i32 == val)) {
         return 1;
     }
 
@@ -447,7 +447,7 @@ static int ByteTest09 (void) {
     uint16_t i16 = 0xbfbf;
     int ret = ByteExtractStringUint16(&i16, 10, strlen(str), str);
 
-    if ((ret == 0) && (i16 == val)) {
+    if ((ret == 5) && (i16 == val)) {
         return 1;
     }
 
@@ -460,7 +460,7 @@ static int ByteTest10 (void) {
     uint8_t i8 = 0xbf;
     int ret = ByteExtractStringUint8(&i8, 10, strlen(str), str);
 
-    if ((ret == 0) && (i8 == val)) {
+    if ((ret == 3) && (i8 == val)) {
         return 1;
     }
 
@@ -473,7 +473,7 @@ static int ByteTest11 (void) {
     int64_t i64 = 0xbfbfbfbfbfbfbfbf;
     int ret = ByteExtractStringInt64(&i64, 10, strlen(str), str);
 
-    if ((ret == 0) && (i64 == val)) {
+    if ((ret == 11) && (i64 == val)) {
         return 1;
     }
 
@@ -486,7 +486,7 @@ static int ByteTest12 (void) {
     int32_t i32 = 0xbfbfbfbf;
     int ret = ByteExtractStringInt32(&i32, 10, strlen(str), str);
 
-    if ((ret == 0) && (i32 == val)) {
+    if ((ret == 11) && (i32 == val)) {
         return 1;
     }
 
@@ -499,7 +499,7 @@ static int ByteTest13 (void) {
     int16_t i16 = 0xbfbf;
     int ret = ByteExtractStringInt16(&i16, 10, strlen(str), str);
 
-    if ((ret == 0) && (i16 == val)) {
+    if ((ret == 6) && (i16 == val)) {
         return 1;
     }
 
@@ -512,7 +512,7 @@ static int ByteTest14 (void) {
     int8_t i8 = 0xbf;
     int ret = ByteExtractStringInt8(&i8, 10, strlen(str), str);
 
-    if ((ret == 0) && (i8 == val)) {
+    if ((ret == 4) && (i8 == val)) {
         return 1;
     }
 

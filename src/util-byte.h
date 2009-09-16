@@ -19,7 +19,8 @@
  * \param len Number of bytes to extract (8 max)
  * \param bytes Data to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes);
 
@@ -31,7 +32,8 @@ int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes);
  * \param len Number of bytes to extract (8 max)
  * \param bytes Data to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractUint32(uint32_t *res, int e, uint16_t len, const uint8_t *bytes);
 
@@ -43,7 +45,8 @@ inline int ByteExtractUint32(uint32_t *res, int e, uint16_t len, const uint8_t *
  * \param len Number of bytes to extract (8 max)
  * \param bytes Data to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractUint16(uint16_t *res, int e, uint16_t len, const uint8_t *bytes);
 
@@ -55,7 +58,8 @@ inline int ByteExtractUint16(uint16_t *res, int e, uint16_t len, const uint8_t *
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str);
 
@@ -68,7 +72,8 @@ inline int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *
  * \param len Number of bytes to extract (23 max)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractStringUint64(uint64_t *res, int base, uint16_t len, const char *str);
 
@@ -80,7 +85,8 @@ inline int ByteExtractStringUint64(uint64_t *res, int base, uint16_t len, const 
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *str);
 
@@ -92,7 +98,8 @@ inline int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const 
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *str);
 
@@ -104,7 +111,8 @@ inline int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const 
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str);
 
@@ -116,7 +124,8 @@ inline int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const ch
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *str);
 
@@ -128,7 +137,8 @@ inline int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const c
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractStringInt64(int64_t *res, int base, uint16_t len, const char *str);
 
@@ -140,7 +150,8 @@ inline int ByteExtractStringInt64(int64_t *res, int base, uint16_t len, const ch
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const char *str);
 
@@ -152,7 +163,8 @@ inline int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const ch
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const char *str);
 
@@ -164,7 +176,8 @@ inline int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const ch
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
  *
- * \return 0 On success
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
  */
 inline int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char *str);
 
