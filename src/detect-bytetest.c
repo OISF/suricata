@@ -73,6 +73,7 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     uint8_t *ptr = NULL;
     uint16_t len = 0;
     uint64_t val = 0;
+    int extbytes;
     int neg;
     int match;
 
@@ -112,9 +113,9 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 
     /* Extract the byte data */
     if (data->flags & DETECT_BYTETEST_STRING) {
-        int ret = ByteExtractStringUint64(&val, data->base, data->nbytes, (const char *)ptr);
-        if(ret != 0) {
-            printf("DetectBytetestMatch: Error extracting %d bytes of string data: %d\n", data->nbytes, ret);
+        extbytes = ByteExtractStringUint64(&val, data->base, data->nbytes, (const char *)ptr);
+        if(extbytes <= 0) {
+            printf("DetectBytetestMatch: Error extracting %d bytes of string data: %d\n", data->nbytes, extbytes);
             return -1;
         }
 #ifdef DEBUG
@@ -123,9 +124,9 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     }
     else {
         int endianness = (data->flags & DETECT_BYTETEST_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
-        int ret = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
-        if (ret != 0) {
-            printf("DetectBytetestMatch: Error extracting %d bytes of numeric data: %d\n", data->nbytes, ret);
+        extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
+        if (extbytes != data->nbytes) {
+            printf("DetectBytetestMatch: Error extracting %d bytes of numeric data: %d\n", data->nbytes, extbytes);
             return -1;
         }
 
@@ -227,7 +228,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
      */
 
     /* Number of bytes */
-    if (ByteExtractStringUint32(&nbytes, 10, 0, args[0]) != 0) {
+    if (ByteExtractStringUint32(&nbytes, 10, 0, args[0]) <= 0) {
         printf("DetectBytetestParse: Malformed number of bytes: %s\n", str_ptr);
         goto error;
     }
@@ -253,13 +254,13 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     }
 
     /* Value */
-    if (ByteExtractStringUint64(&data->value, 0, 0, args[3]) != 0) {
+    if (ByteExtractStringUint64(&data->value, 0, 0, args[3]) <= 0) {
         printf("DetectBytetestParse: Malformed value: %s\n", str_ptr);
         goto error;
     }
 
     /* Offset */
-    if (ByteExtractStringInt32(&data->offset, 0, 0, args[4]) != 0) {
+    if (ByteExtractStringInt32(&data->offset, 0, 0, args[4]) <= 0) {
         printf("DetectBytetestParse: Malformed offset: %s\n", str_ptr);
         goto error;
     }

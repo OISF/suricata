@@ -77,7 +77,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     uint8_t *jumpptr = ptr;
     uint16_t len = 0;
     uint64_t val = 0;
-    int match;
+    int extbytes;
 
     if (p->payload_len == 0) {
         return 0;
@@ -111,20 +111,22 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 
     /* Extract the byte data */
     if (data->flags & DETECT_BYTEJUMP_STRING) {
-        int ret = ByteExtractStringUint64(&val, data->base, data->nbytes, (const char *)ptr);
-        if(ret != 0) {
-            printf("DetectBytejumpMatch: Error extracting %d bytes of string data: %d\n", data->nbytes, ret);
+        extbytes = ByteExtractStringUint64(&val, data->base, data->nbytes, (const char *)ptr);
+        if(extbytes <= 0) {
+            printf("DetectBytejumpMatch: Error extracting %d bytes of string data: %d\n", data->nbytes, extbytes);
             return -1;
         }
     }
     else {
         int endianness = (data->flags & DETECT_BYTEJUMP_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
-        int ret = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
-        if (ret != 0) {
-            printf("DetectBytejumpMatch: Error extracting %d bytes of numeric data: %d\n", data->nbytes, ret);
+        extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
+        if (extbytes != data->nbytes) {
+            printf("DetectBytejumpMatch: Error extracting %d bytes of numeric data: %d\n", data->nbytes, extbytes);
             return -1;
         }
     }
+
+    //printf("VAL: (%" PRIu64 " x %" PRIu32 ") + %d + %" PRId32 "\n", val, data->multiplier, extbytes, data->post_offset);
 
     /* Adjust the jump value based on flags */
     val *= data->multiplier;
@@ -133,15 +135,18 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
             val += 4 - (val % 4);
         }
     }
-    val += data->post_offset;
+    val += extbytes + data->post_offset;
 
     /* Calculate the jump location */
     if (data->flags & DETECT_BYTEJUMP_BEGIN) {
         jumpptr = p->payload + val;
+        //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
     }
     else {
         jumpptr = ptr + val;
+        //printf("NEWVAL: ptr %p + %ld = %p\n", ptr, val, jumpptr);
     }
+
 
     /* Validate that the jump location is still in the packet
      * \todo Should this validate it is still in the *payload*?
@@ -162,16 +167,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     det_ctx->pkt_ptr = jumpptr;
     det_ctx->pkt_off = jumpptr - p->pkt;
 
-#ifdef DEBUG
-    if (match) {
-        printf("DetectBytejumpMatch: MATCH\n");
-    }
-    else {
-        printf("DetectBytejumpMatch: NO MATCH\n");
-    }
-#endif /* DEBUG */
-
-    return match;
+    return 1;
 }
 
 DetectBytejumpData *DetectBytejumpParse(char *optstr)
@@ -220,13 +216,13 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
      */
 
     /* Number of bytes */
-    if (ByteExtractStringUint32(&nbytes, 10, strlen(args[0]), args[0]) != 0) {
+    if (ByteExtractStringUint32(&nbytes, 10, strlen(args[0]), args[0]) <= 0) {
         printf("DetectBytejumpParse: Malformed number of bytes: %s\n", optstr);
         goto error;
     }
 
     /* Offset */
-    if (ByteExtractStringInt32(&data->offset, 0, strlen(args[1]), args[1]) != 0) {
+    if (ByteExtractStringInt32(&data->offset, 0, strlen(args[1]), args[1]) <= 0) {
         printf("DetectBytejumpParse: Malformed offset: %s\n", optstr);
         goto error;
     }
@@ -256,17 +252,15 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
         } else if (strcasecmp("align", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_ALIGN;
         } else if (strncasecmp("multiplier ", args[i], 11) == 0) {
-            if (ByteExtractStringUint32(&data->multiplier, 10, strlen(args[i]) - 11, args[i] + 11) != 0) {
+            if (ByteExtractStringUint32(&data->multiplier, 10, strlen(args[i]) - 11, args[i] + 11) <= 0) {
                 printf("DetectBytejumpParse: Malformed multiplier: %s\n", optstr);
                 goto error;
             }
-            printf("MULTIPLIER: %d\n", data->multiplier);
         } else if (strncasecmp("post_offset ", args[i], 12) == 0) {
-            if (ByteExtractStringInt32(&data->post_offset, 10, strlen(args[i]) - 12, args[i] + 12) != 0) {
+            if (ByteExtractStringInt32(&data->post_offset, 10, strlen(args[i]) - 12, args[i] + 12) <= 0) {
                 printf("DetectBytejumpParse: Malformed post_offset: %s\n", optstr);
                 goto error;
             }
-            printf("POST_OFFSET: %d\n", data->post_offset);
         } else {
             printf("DetectBytejumpParse: Unknown option: \"%s\"\n", args[i]);
             goto error;
