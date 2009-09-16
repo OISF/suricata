@@ -390,8 +390,8 @@ static int ByteTest04 (void) {
 }
 
 static int ByteTest05 (void) {
-    uint64_t val = 0x0102030405060708;
-    uint64_t i64 = 0xbfbfbfbfbfbfbfbf;
+    uint64_t val = 0x0102030405060708ULL;
+    uint64_t i64 = 0xbfbfbfbfbfbfbfbfULL;
     uint8_t bytes[8] = { 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01 };
     int ret = ByteExtractUint64(&i64, BYTE_LITTLE_ENDIAN, sizeof(bytes), bytes);
 
@@ -403,8 +403,8 @@ static int ByteTest05 (void) {
 }
 
 static int ByteTest06 (void) {
-    uint64_t val = 0x0102030405060708;
-    uint64_t i64 = 0xbfbfbfbfbfbfbfbf;
+    uint64_t val = 0x0102030405060708ULL;
+    uint64_t i64 = 0xbfbfbfbfbfbfbfbfULL;
     uint8_t bytes[8] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
     int ret = ByteExtractUint64(&i64, BYTE_BIG_ENDIAN, sizeof(bytes), bytes);
 
@@ -418,7 +418,7 @@ static int ByteTest06 (void) {
 static int ByteTest07 (void) {
     const char *str = "1234567890";
     uint64_t val = 1234567890;
-    uint64_t i64 = 0xbfbfbfbfbfbfbfbf;
+    uint64_t i64 = 0xbfbfbfbfbfbfbfbfULL;
     int ret = ByteExtractStringUint64(&i64, 10, strlen(str), str);
 
     if ((ret == 10) && (i64 == val)) {
@@ -470,7 +470,7 @@ static int ByteTest10 (void) {
 static int ByteTest11 (void) {
     const char *str = "-1234567890";
     int64_t val = -1234567890;
-    int64_t i64 = 0xbfbfbfbfbfbfbfbf;
+    int64_t i64 = 0xbfbfbfbfbfbfbfbfULL;
     int ret = ByteExtractStringInt64(&i64, 10, strlen(str), str);
 
     if ((ret == 11) && (i64 == val)) {

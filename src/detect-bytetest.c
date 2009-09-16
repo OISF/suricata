@@ -657,11 +657,11 @@ int DetectBytetestTestParse13(void) {
 int DetectBytetestTestParse14(void) {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("23,=,0xffffffffffffffff,0,string,oct");
+    data = DetectBytetestParse("23,=,0xffffffffffffffffULL,0,string,oct");
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_EQ)
             && (data->nbytes == 23)
-            && (data->value == 0xffffffffffffffff)
+            && (data->value == 0xffffffffffffffffULL)
             && (data->offset == 0)
             && (data->flags == DETECT_BYTETEST_STRING)
             && (data->base == DETECT_BYTETEST_BASE_OCT))
@@ -680,7 +680,7 @@ int DetectBytetestTestParse14(void) {
 int DetectBytetestTestParse15(void) {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("24, =, 0xffffffffffffffff, 0, string");
+    data = DetectBytetestParse("24, =, 0xffffffffffffffffULL, 0, string");
     if (data == NULL) {
         result = 1;
     }
@@ -694,7 +694,7 @@ int DetectBytetestTestParse15(void) {
 int DetectBytetestTestParse16(void) {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4,=,0,0xffffffffffffffff");
+    data = DetectBytetestParse("4,=,0,0xffffffffffffffffULL");
     if (data == NULL) {
         result = 1;
     }
