@@ -125,7 +125,7 @@ typedef struct IPV4Hdr_
     ((p)->ip4c.flags & IPV4_CACHE_MF ? \
     (p)->ip4c.mf : ((p)->ip4c.flags |= IPV4_CACHE_MF, (p)->ip4c.mf = (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x2000) >> 13)))
 #define IPV4_GET_IPTTL(p) \
-     IPV4_GET_RAW_IPTTL(p)
+     IPV4_GET_RAW_IPTTL(p->ip4h)
 #define IPV4_GET_IPPROTO(p) \
     ((p)->ip4c.flags & IPV4_CACHE_IPPROTO ? \
     (p)->ip4c.ip_proto : ((p)->ip4c.flags |= IPV4_CACHE_IPPROTO, (p)->ip4c.ip_proto = IPV4_GET_RAW_IPPROTO((p)->ip4h)))
