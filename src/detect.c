@@ -558,6 +558,17 @@ static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     }
 
     SigMatch *sm = s->match;
+
+    if (sm == NULL)
+        goto iponly;
+
+    for ( ; sm != NULL ; sm = sm->next)
+        if(!( sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
+            return 0;
+
+    /* Old way
+    SigMatch *sm = s->match;
+
     if (sm == NULL)
         goto iponly;
 
@@ -586,6 +597,7 @@ static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
             return 0;
         }
     }
+    */
 
 iponly:
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -5926,11 +5938,11 @@ static int SigTest39Wm (void) {
 
 
 /**
- * \test SigTestContentAndIsdataatKeywords01 is a test to check window with constructed packets,
+ * \test SigTest36ContentAndIsdataatKeywords01 is a test to check window with constructed packets,
  * \brief expecting to match a size
  */
 
-int SigTestContentAndIsdataatKeywords01Real (int mpm_type) {
+int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     int result = 0;
 
     // Buid and decode the packet
@@ -5988,7 +6000,7 @@ int SigTestContentAndIsdataatKeywords01Real (int mpm_type) {
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTestContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:404, relative; sid:101;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:404, relative; sid:101;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -6038,11 +6050,11 @@ end:
 
 
 /**
- * \test SigTestContentAndIsdataatKeywords02 is a test to check window with constructed packets,
+ * \test SigTest37ContentAndIsdataatKeywords02 is a test to check window with constructed packets,
  *  \brief not expecting to match a size
  */
 
-int SigTestContentAndIsdataatKeywords02Real (int mpm_type) {
+int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
     int result = 0;
 
     // Buid and decode the packet
@@ -6100,7 +6112,7 @@ int SigTestContentAndIsdataatKeywords02Real (int mpm_type) {
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTestContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:500, relative; sid:101;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:500, relative; sid:101;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -6150,26 +6162,203 @@ end:
 
 
 // Wrapper functions to pass the mpm_type
-static int SigTestContentAndIsdataatKeywords01B2g (void) {
-    return SigTestContentAndIsdataatKeywords01Real(MPM_B2G);
+static int SigTest36ContentAndIsdataatKeywords01B2g (void) {
+    return SigTest36ContentAndIsdataatKeywords01Real(MPM_B2G);
 }
-static int SigTestContentAndIsdataatKeywords01B3g (void) {
-    return SigTestContentAndIsdataatKeywords01Real(MPM_B3G);
+static int SigTest36ContentAndIsdataatKeywords01B3g (void) {
+    return SigTest36ContentAndIsdataatKeywords01Real(MPM_B3G);
 }
-static int SigTestContentAndIsdataatKeywords01Wm (void) {
-    return SigTestContentAndIsdataatKeywords01Real(MPM_WUMANBER);
-}
-
-static int SigTestContentAndIsdataatKeywords02B2g (void) {
-    return SigTestContentAndIsdataatKeywords02Real(MPM_B2G);
-}
-static int SigTestContentAndIsdataatKeywords02B3g (void) {
-    return SigTestContentAndIsdataatKeywords02Real(MPM_B3G);
-}
-static int SigTestContentAndIsdataatKeywords02Wm (void) {
-    return SigTestContentAndIsdataatKeywords02Real(MPM_WUMANBER);
+static int SigTest36ContentAndIsdataatKeywords01Wm (void) {
+    return SigTest36ContentAndIsdataatKeywords01Real(MPM_WUMANBER);
 }
 
+static int SigTest37ContentAndIsdataatKeywords02B2g (void) {
+    return SigTest37ContentAndIsdataatKeywords02Real(MPM_B2G);
+}
+static int SigTest37ContentAndIsdataatKeywords02B3g (void) {
+    return SigTest37ContentAndIsdataatKeywords02Real(MPM_B3G);
+}
+static int SigTest37ContentAndIsdataatKeywords02Wm (void) {
+    return SigTest37ContentAndIsdataatKeywords02Real(MPM_WUMANBER);
+}
+
+
+/**
+ * \test SigTest40IPOnly01 is a test to check that we set a Signature as IPOnly
+ *  because it has no rule option appending a SigMatch and no port is fixed
+ */
+
+static int SigTest40IPOnly01 (void) {
+    int result = 0;
+    DetectEngineCtx de_ctx;
+
+    de_ctx.flags |= DE_QUIET;
+
+    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-01 sig is IPOnly \"; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+        result=1;
+    else
+        printf("SigTest40IPOnly01: Failed: Expecting a IPOnly signature\n");
+
+    SigFree(s);
+end:
+    return result;
+}
+
+/**
+ * \test SigTest40IPOnly02 is a test to check that we dont set a Signature as IPOnly
+ *  because it has no rule option appending a SigMatch but a port is fixed
+ */
+
+static int SigTest40IPOnly02 (void) {
+    int result = 0;
+    DetectEngineCtx de_ctx;
+
+    de_ctx.flags |= DE_QUIET;
+
+    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any 80 (msg:\"SigTest40-02 sig is not IPOnly \"; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(!SignatureIsIPOnly(&de_ctx, s))
+        result=1;
+    else
+        printf("SigTest40IPOnly02: Failed: Got a IPOnly signature\n");
+
+    SigFree(s);
+
+end:
+    return result;
+}
+
+/**
+ * \test SigTest40IPOnly03 is a test to check that we set dont set a Signature as IPOnly
+ *  because it has rule options appending a SigMatch like content, and pcre
+ */
+
+static int SigTest40IPOnly03 (void) {
+    int result = 1;
+    DetectEngineCtx de_ctx;
+    Signature *s=NULL;
+
+    de_ctx.flags |= DE_QUIET;
+
+    /* combination of pcre and content */
+    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre and content) \"; content:\"php\"; pcre:\"/require(_once)?/i\"; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+    {
+        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (content)\n");
+        result=0;
+    }
+    SigFree(s);
+
+    /* content */
+    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (content) \"; content:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+    {
+        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (content)\n");
+        result=0;
+    }
+    SigFree(s);
+
+    /* uricontent */
+    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (uricontent) \"; uricontent:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+    {
+        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (uricontent)\n");
+        result=0;
+    }
+    SigFree(s);
+
+    /* pcre */
+    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre) \"; pcre:\"/e?idps rule[sz]/i\"; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+    {
+        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (pcre)\n");
+        result=0;
+    }
+    SigFree(s);
+
+    /* flow */
+    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flow) \"; flow:to_server; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+    {
+        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (flow)\n");
+        result=0;
+    }
+    SigFree(s);
+
+    /* dsize */
+    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (dsize) \"; dsize:100; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+    {
+        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (dsize)\n");
+        result=0;
+    }
+    SigFree(s);
+
+    /* flowbits */
+    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowbits) \"; flowbits:unset; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+    {
+        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (flowbits)\n");
+        result=0;
+    }
+    SigFree(s);
+
+    /* flowvar
+    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowvar) \"; flowvar:XXXXXX; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+    {
+        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (flowvar)\n");
+        result=0;
+    }
+    SigFree(s);
+    */
+
+    /* pktvar
+    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pktvar) \"; pktvar:XXXX; classtype:misc-activity; sid:400001; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if(SignatureIsIPOnly(&de_ctx, s))
+    {
+        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (pktvar)\n");
+        result=0;
+    }
+    SigFree(s);
+    */
+
+end:
+    return result;
+}
 
 #endif /* UNITTESTS */
 
@@ -6296,13 +6485,13 @@ void SigRegisterTests(void) {
        relative to that content match
     */
 
-    UtRegisterTest("SigTestContentAndIsdataatKeywords01B2g", SigTestContentAndIsdataatKeywords01B2g, 1);
-    UtRegisterTest("SigTestContentAndIsdataatKeywords01B3g", SigTestContentAndIsdataatKeywords01B3g, 1);
-    UtRegisterTest("SigTestContentAndIsdataatKeywords01Wm" , SigTestContentAndIsdataatKeywords01Wm,  1);
+    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01B2g", SigTest36ContentAndIsdataatKeywords01B2g, 1);
+    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01B3g", SigTest36ContentAndIsdataatKeywords01B3g, 1);
+    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01Wm" , SigTest36ContentAndIsdataatKeywords01Wm,  1);
 
-    UtRegisterTest("SigTestContentAndIsdataatKeywords02B2g", SigTestContentAndIsdataatKeywords02B2g, 1);
-    UtRegisterTest("SigTestContentAndIsdataatKeywords02B3g", SigTestContentAndIsdataatKeywords02B3g, 1);
-    UtRegisterTest("SigTestContentAndIsdataatKeywords02Wm" , SigTestContentAndIsdataatKeywords02Wm,  1);
+    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02B2g", SigTest37ContentAndIsdataatKeywords02B2g, 1);
+    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02B3g", SigTest37ContentAndIsdataatKeywords02B3g, 1);
+    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02Wm" , SigTest37ContentAndIsdataatKeywords02Wm,  1);
 
     /* We need to enable these tests, as soon as we add the ICMPv6 protocol
        support in our rules engine */
@@ -6317,6 +6506,10 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTest39B2g -- byte_jump test (2)", SigTest39B2g, 1);
     UtRegisterTest("SigTest39B3g -- byte_jump test (2)", SigTest39B3g, 1);
     UtRegisterTest("SigTest39Wm -- byte_jump test (2)", SigTest39Wm, 1);
+
+    UtRegisterTest("SigTest40SignatureIsIPOnly01", SigTest40IPOnly01, 1);
+    UtRegisterTest("SigTest40SignatureIsIPOnly02", SigTest40IPOnly02, 1);
+    UtRegisterTest("SigTest40SignatureIsIPOnly03", SigTest40IPOnly03, 1);
 
 #endif /* UNITTESTS */
 }
