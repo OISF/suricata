@@ -597,7 +597,9 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     Tmq *tmq = NULL;
     Tmqh *tmqh = NULL;
 
+#ifdef DEBUG
     printf("TmThreadCreate: creating thread \"%s\"...\n", name);
+#endif
 
     /* XXX create separate function for this: allocate a thread container */
     tv = malloc(sizeof(ThreadVars));
@@ -1074,20 +1076,41 @@ void TmThreadCheckThreadState(void)
 /** \brief Used to check if all threads have finished their initialization.  On
  *         finding an un-initialized thread, it waits till that thread completes
  *         its initialization, before proceeding to the next thread.
+ *  \retval 0 all initialized properly
+ *  \retval -1 failure
  */
-void TmThreadWaitOnThreadInit(void)
+int TmThreadWaitOnThreadInit(void)
 {
     ThreadVars *tv = NULL;
     int i = 0;
+    uint16_t mgt_num = 0;
+    uint16_t ppt_num = 0;
 
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
         while (tv != NULL) {
-            while (!(TmThreadsCheckFlag(tv, THV_INIT_DONE)))
-                ;
+            char started = FALSE;
+            while (started == FALSE) {
+                if (TmThreadsCheckFlag(tv, THV_INIT_DONE)) {
+                    started = TRUE;
+                }
+
+                if (TmThreadsCheckFlag(tv, THV_CLOSED) ||
+                    TmThreadsCheckFlag(tv, THV_FAILED))
+                {
+                    printf("Thread \"%s\" failed to initialize...\n", tv->name);
+                    return -1;
+                }
+            }
+
+            if (i == TVT_MGMT) mgt_num++;
+            else if (i == TVT_PPT) ppt_num++;
+
             tv = tv->next;
         }
     }
 
-    return;
+    printf("All %"PRIu16" packet processing threads, %"PRIu16" management "
+           "threads initialized, engine started.\n", ppt_num, mgt_num);
+    return 0;
 }

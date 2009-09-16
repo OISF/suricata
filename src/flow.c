@@ -493,7 +493,9 @@ void *FlowManagerThread(void *td)
     uint32_t sleeping = 0;
     uint8_t emerg = FALSE;
 
+#ifdef DEBUG
     printf("%s started...\n", th_v->name);
+#endif
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1)

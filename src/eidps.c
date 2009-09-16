@@ -469,8 +469,11 @@ int main(int argc, char **argv)
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();
 
-    /* Waits till all the threads have been initialized */
-    TmThreadWaitOnThreadInit();
+    /* Wait till all the threads have been initialized */
+    if (TmThreadWaitOnThreadInit() == -1) {
+        printf("ERROR: Engine initialization failed, aborting...\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();

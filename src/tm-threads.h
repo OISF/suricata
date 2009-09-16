@@ -52,7 +52,7 @@ void TmThreadPauseThreads(void);
 
 void TmThreadCheckThreadState(void);
 
-void TmThreadWaitOnThreadInit(void);
+int TmThreadWaitOnThreadInit(void);
 
 inline int TmThreadsCheckFlag(ThreadVars *, uint8_t);
 inline void TmThreadsSetFlag(ThreadVars *, uint8_t);

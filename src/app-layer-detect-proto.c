@@ -387,7 +387,9 @@ void AppLayerDetectProtoThreadSpawn()
         exit(1);
     }
 
+#ifdef DEBUG
     printf("AppLayerDetectProtoThread thread created\n");
+#endif
     return;
 }
 

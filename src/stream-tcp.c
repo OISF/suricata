@@ -178,8 +178,8 @@ void StreamTcpSessionPoolFree(void *s) {
 
 void StreamTcpInitConfig(char quiet) {
 
-    if (quiet == FALSE)
-        printf("Initializing Stream:\n");
+    //if (quiet == FALSE)
+    //    printf("Initializing Stream:\n");
 
     memset(&stream_config,  0, sizeof(stream_config));
 
