@@ -7,6 +7,8 @@
 #ifndef __CONF_H__
 #define __CONF_H__
 
+#include <inttypes.h>
+
 /**
  * The default log directory.
  */
@@ -14,6 +16,9 @@
 
 void ConfInit(void);
 int ConfGet(char *name, char **vptr);
+int ConfGetInt(char *name, intmax_t *val);
+int ConfGetBool(char *name, int *val);
+
 int ConfSet(char *name, char *val, int allow_override);
 void ConfDump(void);
 void ConfRegisterTests();

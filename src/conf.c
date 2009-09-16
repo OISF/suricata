@@ -16,7 +16,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include <string.h>
+#include <errno.h>
 
 #include "eidps-common.h"
 #include "conf.h"
@@ -191,6 +193,68 @@ ConfGet(char *name, char **vptr)
 }
 
 /**
+ * \brief Retrieve a configuration value as an integer.
+ *
+ * \param name Name of configuration parameter to get.
+ * \param val Pointer to an intmax_t that will be set the
+ * configuration value.
+ *
+ * \retval 1 will be returned if the name is found and was properly
+ * converted to an interger, otherwise 0 will be returned.
+ */
+int
+ConfGetInt(char *name, intmax_t *val)
+{
+    char *strval;
+    intmax_t tmpint;
+    char *endptr;
+
+    if (ConfGet(name, &strval) == 0)
+        return 0;
+
+    errno = 0;
+    tmpint = strtoimax(strval, &endptr, 0);
+    if (strval[0] == '\0' || *endptr != '\0')
+        return 0;
+    if (errno == ERANGE && (tmpint == INTMAX_MAX || tmpint == INTMAX_MIN))
+        return 0;
+
+    *val = tmpint;
+    return 1;
+}
+
+/**
+ * \brief Retrieve a configuration value as an boolen.
+ *
+ * \param name Name of configuration parameter to get.
+ * \param val Pointer to an int that will be set to 1 for true, or 0
+ * for false.
+ *
+ * \retval 1 will be returned if the name is found and was properly
+ * converted to a boolean, otherwise 0 will be returned.
+ */
+int
+ConfGetBool(char *name, int *val)
+{
+    char *strval;
+    char *trues[] = {"1", "yes", "true", "on"};
+    int i;
+
+    *val = 0;
+    if (ConfGet(name, &strval) != 1)
+        return 0;
+
+    for (i = 0; i < sizeof(trues) / sizeof(trues[0]); i++) {
+        if (strcasecmp(strval, trues[i]) == 0) {
+            *val = 1;
+            break;
+        }
+    }
+
+    return 1;
+}
+
+/**
  * \brief Remove a configuration parameter from the configuration db.
  *
  * \param name The name of the configuration parameter to remove.
@@ -325,6 +389,88 @@ ConfTestOverrideValue2(void)
     return rc;
 }
 
+/**
+ * Test retrieving an integer value from the configuration db.
+ */
+static int
+ConfTestGetInt(void)
+{
+    char name[] = "some-int";
+    intmax_t val;
+
+    if (ConfSet(name, "0", 1) != 1)
+        return 0;
+    if (ConfGetInt(name, &val) != 1)
+        return 0;
+    if (val != 0)
+        return 0;
+
+    if (ConfSet(name, "-1", 1) != 1)
+        return 0;
+    if (ConfGetInt(name, &val) != 1)
+        return 0;
+    if (val != -1)
+        return 0;
+
+    if (ConfSet(name, "0xffff", 1) != 1)
+        return 0;
+    if (ConfGetInt(name, &val) != 1)
+        return 0;
+    if (val != 0xffff)
+        return 0;
+
+    if (ConfSet(name, "not-an-int", 1) != 1)
+        return 0;
+    if (ConfGetInt(name, &val) != 0)
+        return 0;
+
+    return 1;
+}
+
+/**
+ * Test retrieving a boolean value from the configuration db.
+ */
+static int
+ConfTestGetBool(void)
+{
+    char name[] = "some-bool";
+    char *trues[] = {
+        "1",
+        "on", "ON",
+        "yes", "YeS",
+        "true", "TRUE",
+    };
+    char *falses[] = {
+        "0",
+        "something",
+        "off", "OFF",
+        "false", "FalSE",
+        "no", "NO",
+    };
+    int val;
+    int i;
+
+    for (i = 0; i < sizeof(trues) / sizeof(trues[0]); i++) {
+        if (ConfSet(name, trues[i], 1) != 1)
+            return 0;
+        if (ConfGetBool(name, &val) != 1)
+            return 0;
+        if (val != 1)
+            return 0;
+    }
+
+    for (i = 0; i < sizeof(falses) / sizeof(falses[0]); i++) {
+        if (ConfSet(name, falses[i], 1) != 1)
+            return 0;
+        if (ConfGetBool(name, &val) != 1)
+            return 0;
+        if (val != 0)
+            return 0;
+    }
+
+    return 1;
+}
+
 void
 ConfRegisterTests(void)
 {
@@ -332,6 +478,8 @@ ConfRegisterTests(void)
     UtRegisterTest("ConfTestSetAndGet", ConfTestSetAndGet, 1);
     UtRegisterTest("ConfTestOverrideValue1", ConfTestOverrideValue1, 1);
     UtRegisterTest("ConfTestOverrideValue2", ConfTestOverrideValue2, 1);
+    UtRegisterTest("ConfTestGetInt", ConfTestGetInt, 1);
+    UtRegisterTest("ConfTestGetBool", ConfTestGetBool, 1);
 }
 
 #endif /* UNITTESTS */
