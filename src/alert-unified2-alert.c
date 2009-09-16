@@ -1,8 +1,8 @@
-/** Copyright (c) 2009 Open Information Security Foundation
- *
+/* Copyright (c) 2009 Open Information Security Foundation */
+
+/** \file
  *  \author Breno Silva <breno.silva@gmail.com>
  */
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,9 +46,9 @@ void Unified2RegisterTests();
  * Used for storing file options.
  */
 typedef struct Unified2AlertThread_ {
-    FILE *fp;               /* file pointer */
-    uint32_t size_limit;    /* file size limit */
-    uint32_t size_current;  /* file current size */
+    FILE *fp;               /**< file pointer */
+    uint32_t size_limit;    /**< file size limit */
+    uint32_t size_current;  /**< file current size */
 } Unified2AlertThread;
 
 /**
@@ -57,8 +57,8 @@ typedef struct Unified2AlertThread_ {
  * Used for storing file header options.
  */
 typedef struct Unified2AlertFileHeader_ {
-    uint32_t type;      /* unified2 type header */
-    uint32_t length;    /* unified2 struct size length */
+    uint32_t type;      /**< unified2 type header */
+    uint32_t length;    /**< unified2 struct size length */
 } Unified2AlertFileHeader;
 
 /**
@@ -67,21 +67,21 @@ typedef struct Unified2AlertFileHeader_ {
  * Used for storing ipv4 type values.
  */
 typedef struct AlertIPv4Unified2_ {
-    uint32_t sensor_id;             /* sendor id */
-    uint32_t event_id;              /* event id */
-    uint32_t event_second;          /* event second */
-    uint32_t event_microsecond;     /* event microsecond */
-    uint32_t signature_id;          /* signature id */
-    uint32_t generator_id;          /* generator id */
-    uint32_t signature_revision;    /* signature revision */
-    uint32_t classification_id;     /* classification id */
-    uint32_t priority_id;           /* priority id */
-    uint32_t src_ip;                /* source ip */
-    uint32_t dst_ip;                /* destination ip */
-    uint16_t sp;                    /* source port */
-    uint16_t dp;                    /* destination port */
-    uint8_t  protocol;              /* protocol */
-    uint8_t  packet_action;         /* packet action */
+    uint32_t sensor_id;             /**< sendor id */
+    uint32_t event_id;              /**< event id */
+    uint32_t event_second;          /**< event second */
+    uint32_t event_microsecond;     /**< event microsecond */
+    uint32_t signature_id;          /**< signature id */
+    uint32_t generator_id;          /**< generator id */
+    uint32_t signature_revision;    /**< signature revision */
+    uint32_t classification_id;     /**< classification id */
+    uint32_t priority_id;           /**< priority id */
+    uint32_t src_ip;                /**< source ip */
+    uint32_t dst_ip;                /**< destination ip */
+    uint16_t sp;                    /**< source port */
+    uint16_t dp;                    /**< destination port */
+    uint8_t  protocol;              /**< protocol */
+    uint8_t  packet_action;         /**< packet action */
 } AlertIPv4Unified2;
 
 /**
@@ -90,21 +90,21 @@ typedef struct AlertIPv4Unified2_ {
  * Used for storing ipv6 type values.
  */
 typedef struct AlertIPv6Unified2_ {
-    uint32_t sensor_id;             /* sendor id */
-    uint32_t event_id;              /* event id */
-    uint32_t event_second;          /* event second */
-    uint32_t event_microsecond;     /* event microsecond */
-    uint32_t signature_id;          /* signature id */
-    uint32_t generator_id;          /* generator id */
-    uint32_t signature_revision;    /* signature revision */
-    uint32_t classification_id;     /* classification id */
-    uint32_t priority_id;           /* priority id */
-    struct in6_addr src_ip;         /* source ip */
-    struct in6_addr dst_ip;         /* destination ip */
-    uint16_t sp;                    /* source port */
-    uint16_t dp;                    /* destination port */
-    uint8_t  protocol;              /* protocol */
-    uint8_t  packet_action;         /* packet action */
+    uint32_t sensor_id;             /**< sendor id */
+    uint32_t event_id;              /**< event id */
+    uint32_t event_second;          /**< event second */
+    uint32_t event_microsecond;     /**< event microsecond */
+    uint32_t signature_id;          /**< signature id */
+    uint32_t generator_id;          /**< generator id */
+    uint32_t signature_revision;    /**< signature revision */
+    uint32_t classification_id;     /**< classification id */
+    uint32_t priority_id;           /**< priority id */
+    struct in6_addr src_ip;         /**< source ip */
+    struct in6_addr dst_ip;         /**< destination ip */
+    uint16_t sp;                    /**< source port */
+    uint16_t dp;                    /**< destination port */
+    uint8_t  protocol;              /**< protocol */
+    uint8_t  packet_action;         /**< packet action */
 } AlertIPv6Unified2;
 
 /**
@@ -113,14 +113,14 @@ typedef struct AlertIPv6Unified2_ {
  * Used for storing packet type values.
  */
 typedef struct AlertUnified2Packet_ {
-    uint32_t sensor_id;             /* sensor id */
-    uint32_t event_id;              /* event id */
-    uint32_t event_second;          /* event second */
-    uint32_t packet_second;         /* packet second */
-    uint32_t packet_microsecond;    /* packet microsecond */
-    uint32_t linktype;              /* link type */
-    uint32_t packet_length;         /* packet length */
-    uint8_t packet_data[4];         /* packet data */
+    uint32_t sensor_id;             /**< sensor id */
+    uint32_t event_id;              /**< event id */
+    uint32_t event_second;          /**< event second */
+    uint32_t packet_second;         /**< packet second */
+    uint32_t packet_microsecond;    /**< packet microsecond */
+    uint32_t linktype;              /**< link type */
+    uint32_t packet_length;         /**< packet length */
+    uint8_t packet_data[4];         /**< packet data */
 } Unified2Packet;
 
 void TmModuleUnified2AlertRegister (void) {
@@ -175,12 +175,12 @@ int Unified2AlertCreateFile(ThreadVars *t, Unified2AlertThread *aun) {
  *  \param aun Unified2 thread variable.
  */
 
-    int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
-        if (aun->fp != NULL)
-            fclose(aun->fp);
+int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
+    if (aun->fp != NULL)
+        fclose(aun->fp);
 
-        return 0;
-    }
+    return 0;
+}
 
 /**
  *  \brief Function to rotate unified2 file
@@ -217,7 +217,6 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
 
 int Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
-
     if(PKT_IS_IPV4(p))  {
         Unified2IPv4TypeAlert (t, p, data, pq);
         return 0;
@@ -247,7 +246,7 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     Unified2Packet phdr;
     Unified2AlertFileHeader hdr;
     int ret, len;
-    char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN];
+    char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN] = "";
 
     if(p->pktlen > 0)
         len = (sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet)) - 4 + p->pktlen;
@@ -278,24 +277,14 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(Unified2Packet) - 4);
 
-    if(p->pktlen > 0 && p->payload)
-    {
+    if(p->pktlen > 0 && p->payload) {
         memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) - 4 , p->payload, p->pktlen);
-        ret = fwrite(write_buffer,len, 1, aun->fp);
-        if (ret != 1) {
-            printf("Error: fwrite failed: %s\n", strerror(errno));
-            return -1;
-        }
-
     }
-    else    {
 
-        ret = fwrite(write_buffer,len, 1, aun->fp);
-        if (ret != 1) {
-            printf("Error: fwrite failed: %s\n", strerror(errno));
-            return -1;
-        }
-
+    ret = fwrite(write_buffer,len, 1, aun->fp);
+    if (ret != 1) {
+        printf("Error: fwrite failed: %s\n", strerror(errno));
+        return -1;
     }
 
     fflush(aun->fp);
