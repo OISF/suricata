@@ -40,7 +40,6 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <net/if.h>
 
 #include <assert.h>
 #define BUG_ON(x) assert(!(x))
