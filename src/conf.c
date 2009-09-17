@@ -14,12 +14,6 @@
  * \todo Consider using HashListTable to allow easy dumping of all data.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <limits.h>
-#include <string.h>
-#include <errno.h>
-
 #include "eidps-common.h"
 #include "conf.h"
 #include "util-hash.h"

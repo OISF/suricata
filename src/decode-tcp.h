@@ -6,12 +6,6 @@
 #ifndef __DECODE_TCP_H__
 #define __DECODE_TCP_H__
 
-#include <sys/types.h>
-#include <pcap.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-
 #define TCP_HEADER_LEN                       20
 #define TCP_OPTLENMAX                        40
 #define TCP_OPTMAX                           20 /* every opt is at least 2 bytes

@@ -1,20 +1,12 @@
 /* Copyright (c) 2009 Victor Julien <victor@inliniac.net> */
 
-#if HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include <sys/signal.h>
-
-/** \todo These are covered by HAVE_* macros */
-#include <pthread.h>
-
 #if LIBPCAP_VERSION_MAJOR == 1
 #include <pcap/pcap.h>
 #else
 #include <pcap.h>
 #endif
 
+#include "eidps-common.h"
 #include "eidps.h"
 #include "decode.h"
 #include "packet-queue.h"

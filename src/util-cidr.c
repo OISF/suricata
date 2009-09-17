@@ -1,7 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <arpa/inet.h>
+#include "eidps-common.h"
 
 static uint32_t cidrs[33];
 

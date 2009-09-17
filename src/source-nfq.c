@@ -7,9 +7,6 @@
  *
  */
 
-#include <pthread.h>
-#include <sys/signal.h>
-
 #include "eidps-common.h"
 #include "eidps.h"
 #include "decode.h"

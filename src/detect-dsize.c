@@ -9,8 +9,6 @@
 
 #include "util-unittest.h"
 
-#include <pcre.h>
-
 #define PARSE_REGEX "^(?:\\\")?(<|>)?([0-9]+)(?:(<>)([0-9]+))?(?:\\\")?$"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;

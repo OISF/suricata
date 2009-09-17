@@ -1,3 +1,4 @@
+#include "eidps-common.h"
 #include "host.h"
 
 Host *HostAlloc(void) {

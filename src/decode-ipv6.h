@@ -3,12 +3,6 @@
 #ifndef __DECODE_IPV6_H__
 #define __DECODE_IPV6_H__
 
-#include <sys/types.h>
-#include <pcap.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-
 #define IPV6_HEADER_LEN            40
 #define	IPV6_MAXPACKET	           65535 /* maximum packet size */
 #define IPV6_MAX_OPT               40

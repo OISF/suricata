@@ -1,10 +1,9 @@
 /* DISTANCE part of the detection engine. */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
-
-#include <pcre.h>
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"

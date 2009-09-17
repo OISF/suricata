@@ -1,14 +1,7 @@
 /* Copyright (c) 2008 by Victor Julien <victor@inliniac.net> */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-#include <string.h>
-
 #include "eidps-common.h"
-
 #include "util-pool.h"
-
 #include "util-unittest.h"
 
 Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), void *AllocData, void (*Free)(void *))

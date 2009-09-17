@@ -8,12 +8,6 @@
 #ifndef __DECODE_PPPOE_H__
 #define __DECODE_PPPOE_H__
 
-#include <sys/types.h>
-#include <pcap.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-
 #include "decode.h"
 #include "threadvars.h"
 

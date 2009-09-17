@@ -14,11 +14,11 @@
  * to be the default in flexresp and iptables
  */
 
-#include <pthread.h>
-#include <sys/signal.h>
-#include <libnet.h>
 
 #include "eidps-common.h"
+
+#include <libnet.h>
+
 #include "decode.h"
 #include "decode-ipv4.h"
 #include "decode-tcp.h"

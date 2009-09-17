@@ -5,11 +5,10 @@
  *
  * Note: non Snort compatible. */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
-
-#include <pcre.h>
 
 int DetectRecursiveSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 

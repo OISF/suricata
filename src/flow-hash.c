@@ -1,5 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#include "eidps-common.h"
 #include "threads.h"
 #include "decode.h"
 #include "debug.h"

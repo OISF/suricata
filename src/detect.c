@@ -1,7 +1,6 @@
 /* Basic detection engine */
 
-#include <pcre.h>
-
+#include "eidps-common.h"
 #include "eidps.h"
 #include "debug.h"
 #include "detect.h"

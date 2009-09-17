@@ -5,7 +5,6 @@
 #include "detect.h"
 #include "flow-var.h"
 
-#include <pcre.h>
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"

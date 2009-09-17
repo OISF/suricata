@@ -5,10 +5,7 @@
  * Stream size for the engine.
  */
 
-#include <pcre.h>
-#include <string.h>
-
-#include "eidps.h"
+#include "eidps-common.h"
 #include "stream-tcp.h"
 #include "util-unittest.h"
 #include "detect.h"

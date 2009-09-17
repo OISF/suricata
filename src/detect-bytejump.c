@@ -3,9 +3,6 @@
  * \author Brian Rectanus <brectanu@gmail.com>
  */
 
-#include <pcre.h>
-#include <stdlib.h>
-
 #include "eidps-common.h"
 #include "debug.h"
 #include "decode.h"

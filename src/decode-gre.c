@@ -3,7 +3,7 @@
  *  \author Breno Silva <breno.silva@gmail.com>
  */
 
-
+#include "eidps-common.h"
 #include "eidps.h"
 #include "decode.h"
 #include "decode-events.h"

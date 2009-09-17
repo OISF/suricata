@@ -12,12 +12,7 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <errno.h>
-
+#include "eidps-common.h"
 #include "eidps.h"
 #include "util-bloomfilter.h"
 #include "util-mpm-b3g.h"

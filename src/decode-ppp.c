@@ -2,7 +2,6 @@
  *  \author Breno Silva Pinto <breno.silva@gmail.com> */
 
 #include "eidps-common.h"
-
 #include "decode.h"
 #include "decode-ppp.h"
 #include "decode-events.h"

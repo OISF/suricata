@@ -18,9 +18,6 @@
  *
  */
 
-#include <ctype.h>
-#include <pcre.h>
-
 #include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"

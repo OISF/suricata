@@ -5,8 +5,6 @@
  * FLOW part of the detection engine.
  */
 
-#include <pcre.h>
-
 #include "eidps-common.h"
 #include "debug.h"
 #include "decode.h"

@@ -1,20 +1,8 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#if HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "eidps-common.h"
 
-#include <errno.h>
-#include <stdio.h>
-#include <sys/signal.h>
 #include <getopt.h>
-
-/** \todo These are covered by HAVE_* macros */
-#include <stdlib.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <string.h>
-#include <netinet/in.h>
 
 #include "eidps.h"
 #include "decode.h"

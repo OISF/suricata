@@ -1,8 +1,5 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include <stdio.h>
-#include <string.h>
-
 #include "eidps-common.h"
 #include "packet-queue.h"
 #include "tm-modules.h"

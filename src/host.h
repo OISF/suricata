@@ -2,7 +2,6 @@
 #define __HOST_H__
 
 #include "decode.h"
-
 #include "util-hash.h"
 #include "util-bloomfilter-counting.h"
 

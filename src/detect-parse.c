@@ -1,7 +1,5 @@
 /* signature parser */
 
-#include <pcre.h>
-
 #include "eidps-common.h"
 #include "debug.h"
 

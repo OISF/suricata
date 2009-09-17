@@ -2,9 +2,6 @@
  *
  * Copyright (C) 2008 by Victor Julien <victor@inliniac.net> */
 
-#include <ctype.h>
-#include <pcre.h>
-
 #include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"

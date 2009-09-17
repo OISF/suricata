@@ -1,9 +1,6 @@
 /* Multi pattern matcher */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#include "eidps-common.h"
 
 #include "decode.h"
 #include "detect.h"

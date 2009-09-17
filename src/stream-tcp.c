@@ -1,19 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 /*  2009 Gurvinder Singh <gurvindersinghdahiya@gmail.com>*/
 
-
-#include <malloc.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-
 #include "eidps-common.h"
 #include "decode.h"
 #include "debug.h"

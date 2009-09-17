@@ -11,10 +11,6 @@
  *   just return 0 always, error handling is a TODO in the threading model (VJ)
  */
 
-#include <pthread.h>
-#include <sys/signal.h>
-#include <libnet.h>
-
 #include "eidps-common.h"
 #include "decode.h"
 #include "packet-queue.h"

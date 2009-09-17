@@ -1,8 +1,7 @@
 /* METADATA part of the detection engine. */
 
-#include "decode.h"
+#include "eidps-common.h"
 #include "detect.h"
-#include "flow-var.h"
 
 int DetectMetadataSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 

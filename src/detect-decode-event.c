@@ -3,23 +3,18 @@
  *  \author Breno Silva <breno.silva@gmail.com>
  */
 
+#include "eidps-common.h"
+#include "eidps.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
-
-#include "eidps.h"
-
 #include "decode-events.h"
 
 /* Need to get the DEvents[] array */
 #define DETECT_EVENTS
 
 #include "detect-decode-event.h"
-
 #include "util-unittest.h"
-
-#include <pcre.h>
-#include <ctype.h>
 
 #define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z+]+$"
 

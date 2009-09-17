@@ -7,8 +7,6 @@
 #ifndef __CONF_H__
 #define __CONF_H__
 
-#include <inttypes.h>
-
 /**
  * The default log directory.
  */

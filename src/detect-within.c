@@ -4,11 +4,10 @@
  *  \author Victor Julien <victor@inliniac.net>
  *  \todo within logic is not Snort compat atm: it is applied to pcre and uricontent as well */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
-
-#include <pcre.h>
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"

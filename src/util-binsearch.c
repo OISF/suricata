@@ -1,11 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <ctype.h>
-#include <inttypes.h>
+#include "eidps-common.h"
 
-/* XXX replace this by a better algo */
+/** \todo replace this by a better algo */
 
 uint8_t nocasetable[256];
 #define _nc(c) nocasetable[(c)]

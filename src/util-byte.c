@@ -1,9 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <inttypes.h>
-
+#include "eidps-common.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 

@@ -8,10 +8,7 @@
  * YAML configuration loader.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include "eidps-common.h"
 
 #include <yaml.h>
 

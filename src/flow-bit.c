@@ -11,7 +11,7 @@
  *   multiple times, we can operate on all of them.
  */
 
-#include <ctype.h>
+#include "eidps-common.h"
 #include "threads.h"
 #include "flow-bit.h"
 #include "flow.h"

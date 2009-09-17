@@ -13,17 +13,6 @@
 //#define DBG_THREADS
 #define COUNTERS
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-
 #include "threadvars.h"
 
 #include "source-nfq.h"
@@ -447,6 +436,11 @@ Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, ui
  */
 #ifndef IPPROTO_DCCP
 #define IPPROTO_DCCP 33
+#endif
+
+/* pcap provides this, but we don't want to depend on libpcap */
+#ifndef DLT_EN10MB
+#define DLT_EN10MB 1
 #endif
 
 #endif /* __DECODE_H__ */

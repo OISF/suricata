@@ -5,15 +5,8 @@
  * The 'Free' pointer can be used to have the API free your
  * hashed data. If it's NULL it's the callers responsebility */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-#include <string.h>
-#include <stdint.h>
-#include <inttypes.h>
-
+#include "eidps-common.h"
 #include "util-hash.h"
-
 #include "util-unittest.h"
 
 HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *)) {

@@ -1,8 +1,7 @@
 /* SID part of the detection engine. */
 
-#include "decode.h"
+#include "eidps-common.h"
 #include "detect.h"
-#include "flow-var.h"
 
 int DetectSidSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);
 

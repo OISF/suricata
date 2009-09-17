@@ -1,8 +1,7 @@
 /* MSG part of the detection engine. */
 
-#include "decode.h"
+#include "eidps-common.h"
 #include "detect.h"
-#include "flow-var.h"
 
 int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *msgstr);
 

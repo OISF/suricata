@@ -26,23 +26,18 @@
  *
  */
 
-#include <ctype.h>
+#include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
-
-#include "eidps-common.h"
 #include "detect-engine-mpm.h"
 #include "util-mpm.h"
-
 #include "flow.h"
 #include "flow-var.h"
 #include "detect-flow.h"
-
 #include "util-unittest.h"
 #include "util-print.h"
-
 #include "threads.h"
 
 int DetectContentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);

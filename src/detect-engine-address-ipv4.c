@@ -5,6 +5,8 @@
  * XXX we need to unit test the hell out of this code
  */
 
+#include "eidps-common.h"
+
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"

@@ -1,7 +1,3 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
 #include "eidps-common.h"
 #include "util-unittest.h"
 

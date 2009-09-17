@@ -3,12 +3,7 @@
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#include <sys/types.h> /* for gettid(2) */
-#define _GNU_SOURCE
-#define __USE_GNU
-#include <sys/syscall.h>
-#include <sched.h>     /* for sched_setaffinity(2) */
-
+#include "eidps-common.h"
 #include "eidps.h"
 #include "stream.h"
 #include "threadvars.h"

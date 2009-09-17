@@ -1,5 +1,6 @@
 /* Copyright (c) 2009 Victor Julien <victor@inliniac.net> */
 
+#include "eidps-common.h"
 #include "decode.h"
 #include "decode-sll.h"
 #include "decode-events.h"

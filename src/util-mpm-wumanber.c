@@ -15,13 +15,8 @@
  *  - make sure runtime counters can be disabled (at compile time)
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <errno.h>
-
 #include "eidps-common.h"
+#include "eidps.h"
 #include "util-mpm.h"
 #include "util-mpm-wumanber.h"
 

@@ -1,8 +1,7 @@
 /* REV part of the detection engine. */
 
-#include "decode.h"
+#include "eidps-common.h"
 #include "detect.h"
-#include "flow-var.h"
 
 int DetectRevSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 

@@ -8,8 +8,6 @@
  *   multiple times, we can operate on all of them.
  */
 
-#include <ctype.h>
-
 #include "eidps-common.h"
 #include "decode.h"
 #include "pkt-var.h"

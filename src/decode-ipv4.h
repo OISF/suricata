@@ -3,12 +3,6 @@
 #ifndef __DECODE_IPV4_H__
 #define __DECODE_IPV4_H__
 
-#include <sys/types.h>
-#include <pcap.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-
 #define IPV4_HEADER_LEN           20    /**< Header length */
 #define IPV4_OPTMAX               40    /**< Max options length */
 #define	IPV4_MAXPACKET_LEN        65535 /**< Maximum packet size */

@@ -1,10 +1,5 @@
 /* Copyright (c) 2008 by Victor Julien <victor@inliniac.net> */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-
 #include "eidps-common.h"
 
 void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen) {

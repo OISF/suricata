@@ -1,10 +1,7 @@
 /* NOALERT part of the detection engine. */
 
-#include "decode.h"
+#include "eidps-common.h"
 #include "detect.h"
-#include "flow-var.h"
-
-#include <pcre.h>
 
 int DetectNoalertSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 
