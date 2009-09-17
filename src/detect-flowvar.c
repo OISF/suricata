@@ -177,13 +177,13 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
                 }
             }
         }
-//#ifdef DEBUG
+#ifdef DEBUG
         for (i = 0; i < x; i++) {
             if (isprint(str[i])) printf("%c", str[i]);
             else                 printf("\\x%02u", str[i]);
         }
         printf("\n");
-//#endif
+#endif
 
         if (converted)
             len = x;

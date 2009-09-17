@@ -108,7 +108,9 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
         varcontent = (char *)str_ptr;
     }
 
+#ifdef DEBUG
     printf("DetectPktvarSetup: varname %s, varcontent %s\n", varname, varcontent);
+#endif
 
     if (varcontent[0] == '\"' && varcontent[strlen(varcontent)-1] == '\"') {
         str = strdup(varcontent+1);
@@ -172,13 +174,13 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
                 }
             }
         }
-//#ifdef DEBUG
+#ifdef DEBUG
         for (i = 0; i < x; i++) {
             if (isprint(str[i])) printf("%c", str[i]);
             else                 printf("\\x%02u", str[i]);
         }
         printf("\n");
-//#endif
+#endif
 
         if (converted)
             len = x;

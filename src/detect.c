@@ -538,10 +538,11 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
     DetectEngineResetMaxSigId(de_ctx);
 }
 
-/* return codes:
- * 1: sig is ip only
- * 0: sig is not ip only
- *
+/** \brief Test is a initialized signature is IP only
+ *  \param de_ctx detection engine ctx
+ *  \param s the signature
+ *  \retval 1 sig is ip only
+ *  \retval 0 sig is not ip only
  */
 static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     /* in the case of tcp/udp, only consider sigs that
@@ -558,46 +559,12 @@ static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     }
 
     SigMatch *sm = s->match;
-
     if (sm == NULL)
         goto iponly;
 
     for ( ; sm != NULL ; sm = sm->next)
         if(!( sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
             return 0;
-
-    /* Old way
-    SigMatch *sm = s->match;
-
-    if (sm == NULL)
-        goto iponly;
-
-    for ( ; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_CONTENT) {
-            return 0;
-        } else if (sm->type == DETECT_URICONTENT) {
-            return 0;
-        } else if (sm->type == DETECT_PCRE) {
-            return 0;
-        } else if (sm->type == DETECT_FLOW) {
-            return 0;
-        } else if (sm->type == DETECT_WINDOW) {
-            return 0;
-        } else if (sm->type == DETECT_ISDATAAT) {
-            return 0;
-        } else if (sm->type == DETECT_PKTVAR) {
-            return 0;
-        } else if (sm->type == DETECT_FLOWVAR) {
-            return 0;
-        } else if (sm->type == DETECT_FLOWBITS) {
-            return 0;
-        } else if (sm->type == DETECT_DSIZE) {
-            return 0;
-        } else if (sm->type == DETECT_DECODE_EVENT) {
-            return 0;
-        }
-    }
-    */
 
 iponly:
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -6201,7 +6168,7 @@ static int SigTest40IPOnly01 (void) {
     if(SignatureIsIPOnly(&de_ctx, s))
         result=1;
     else
-        printf("SigTest40IPOnly01: Failed: Expecting a IPOnly signature\n");
+        printf("expected a IPOnly signature: ");
 
     SigFree(s);
 end:
@@ -6226,7 +6193,7 @@ static int SigTest40IPOnly02 (void) {
     if(!SignatureIsIPOnly(&de_ctx, s))
         result=1;
     else
-        printf("SigTest40IPOnly02: Failed: Got a IPOnly signature\n");
+        printf("got a IPOnly signature: ");
 
     SigFree(s);
 
@@ -6241,122 +6208,125 @@ end:
 
 static int SigTest40IPOnly03 (void) {
     int result = 1;
-    DetectEngineCtx de_ctx;
+    DetectEngineCtx *de_ctx;
     Signature *s=NULL;
 
-    de_ctx.flags |= DE_QUIET;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
 
     /* combination of pcre and content */
-    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre and content) \"; content:\"php\"; pcre:\"/require(_once)?/i\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre and content) \"; content:\"php\"; pcre:\"/require(_once)?/i\"; classtype:misc-activity; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
-    if(SignatureIsIPOnly(&de_ctx, s))
+    if(SignatureIsIPOnly(de_ctx, s))
     {
-        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (content)\n");
+        printf("got a IPOnly signature (content): ");
         result=0;
     }
     SigFree(s);
 
     /* content */
-    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (content) \"; content:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (content) \"; content:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
-    if(SignatureIsIPOnly(&de_ctx, s))
+    if(SignatureIsIPOnly(de_ctx, s))
     {
-        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (content)\n");
+        printf("got a IPOnly signature (content): ");
         result=0;
     }
     SigFree(s);
 
     /* uricontent */
-    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (uricontent) \"; uricontent:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (uricontent) \"; uricontent:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
-    if(SignatureIsIPOnly(&de_ctx, s))
+    if(SignatureIsIPOnly(de_ctx, s))
     {
-        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (uricontent)\n");
+        printf("got a IPOnly signature (uricontent): ");
         result=0;
     }
     SigFree(s);
 
     /* pcre */
-    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre) \"; pcre:\"/e?idps rule[sz]/i\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre) \"; pcre:\"/e?idps rule[sz]/i\"; classtype:misc-activity; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
-    if(SignatureIsIPOnly(&de_ctx, s))
+    if(SignatureIsIPOnly(de_ctx, s))
     {
-        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (pcre)\n");
+        printf("got a IPOnly signature (pcre): ");
         result=0;
     }
     SigFree(s);
 
     /* flow */
-    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flow) \"; flow:to_server; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flow) \"; flow:to_server; classtype:misc-activity; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
-    if(SignatureIsIPOnly(&de_ctx, s))
+    if(SignatureIsIPOnly(de_ctx, s))
     {
-        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (flow)\n");
+        printf("got a IPOnly signature (flow): ");
         result=0;
     }
     SigFree(s);
 
     /* dsize */
-    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (dsize) \"; dsize:100; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (dsize) \"; dsize:100; classtype:misc-activity; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
-    if(SignatureIsIPOnly(&de_ctx, s))
+    if(SignatureIsIPOnly(de_ctx, s))
     {
-        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (dsize)\n");
+        printf("got a IPOnly signature (dsize): ");
         result=0;
     }
     SigFree(s);
 
     /* flowbits */
-    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowbits) \"; flowbits:unset; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowbits) \"; flowbits:unset; classtype:misc-activity; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
-    if(SignatureIsIPOnly(&de_ctx, s))
+    if(SignatureIsIPOnly(de_ctx, s))
     {
-        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (flowbits)\n");
+        printf("got a IPOnly signature (flowbits): ");
         result=0;
     }
     SigFree(s);
 
-    /* flowvar
-    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowvar) \"; flowvar:XXXXXX; classtype:misc-activity; sid:400001; rev:1;)");
+    /* flowvar */
+    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowvar) \"; pcre:\"/(?<flow_var>.*)/i\"; flowvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
-    if(SignatureIsIPOnly(&de_ctx, s))
+    if(SignatureIsIPOnly(de_ctx, s))
     {
-        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (flowvar)\n");
+        printf("got a IPOnly signature (flowvar): ");
         result=0;
     }
     SigFree(s);
-    */
 
-    /* pktvar
-    s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pktvar) \"; pktvar:XXXX; classtype:misc-activity; sid:400001; rev:1;)");
+    /* pktvar */
+    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pktvar) \"; pcre:\"/(?<pkt_var>.*)/i\"; pktvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
-    if(SignatureIsIPOnly(&de_ctx, s))
+    if(SignatureIsIPOnly(de_ctx, s))
     {
-        printf("SigTest40IPOnly03: Failed: Got a IPOnly signature (pktvar)\n");
+        printf("got a IPOnly signature (pktvar): ");
         result=0;
     }
     SigFree(s);
-    */
 
 end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
