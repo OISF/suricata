@@ -248,22 +248,32 @@ AC_INIT(configure.in)
     if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v 1.1 >/dev/null"; then
     FAIL_MESSAGE("libnet 1.1.x (libnet.h)", $tmp)
     fi
-    CFLAGS="${CFLAGS} `libnet-config --defines` `libnet-config --cflags`"
-    LIBS="${LIBS} `libnet-config --libs`"
-    CPPFLAGS="${CPPFLAGS} -I${LIBNET_INC_DIR}"
+
+    #CentOS, Fedora, Ubuntu-LTS, Ubuntu all set defines to the same values. libnet-config seems
+    #to have been depreciated but all distro's seem to include it as part of the package.
+    LLIBNET=""
+    AC_CHECK_LIB(net, libnet_write,, LLIBNET="no")
+    if test "$LLIBNET" != "no"; then
+    CFLAGS="${CFLAGS} -D_BSD_SOURCE -D__BSD_SOURCE -D__FAVOR_BSD -DHAVE_NET_ETHERNET_H"
+    fi
     AC_MSG_RESULT($i)
     else
     AC_MSG_RESULT(no)
-    AC_MSG_ERROR("libnet 1.1.x could not be found.  please download and install the library from http://www.packetfactory.net/libnet/")
+    AC_MSG_ERROR("libnet 1.1.x could not be found.  please download and install the library from http://sourceforge.net/projects/libnet-dev/")
     fi
 
 # see if we have the patched libnet 1.1
 # http://www.inliniac.net/blog/2007/10/16/libnet-11-ipv6-fixes-and-additions.html
     LLIBNET=""
+
+#To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+#see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+    TMPLIBS="${LIBS}"
     AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
     if test "$LLIBNET" != "no"; then
     CFLAGS="$CFLAGS -DHAVE_LIBNET_ICMPV6_UNREACH"
     fi
+    LIBS="${TMPLIBS}"
 
 # libpfring (currently only supported for libpcap enabled pfring)
 # Error on the side of caution. If libpfring enabled pcap is being used and we don't link against -lpfring compilation will fail.
@@ -315,12 +325,16 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
 
 # pcap_activate and pcap_create only exists in libpcap >= 1.0
     LIBPCAPVTEST=""
+#To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+#see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+    TMPLIBS="${LIBS}"
     AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
     if test "$LPCAPVTEST" != "no"; then
     CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
     else
     CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=0"
     fi
+    LIBS="${TMPLIBS}"
 
 # enable the running of unit tests
     AC_ARG_ENABLE(unittests,
