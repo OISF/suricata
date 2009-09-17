@@ -265,8 +265,14 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(Unified2Packet) - 4);
 
-    if(p->pktlen > 0 && p->payload) {
-        memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) - 4 , p->payload, p->pktlen);
+    if(p->pktlen > 0 && p->pkt)
+    {
+        memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) - 4 , p->pkt, p->pktlen);
+        ret = fwrite(write_buffer,len, 1, aun->fp);
+        if (ret != 1) {
+            printf("Error: fwrite failed: %s\n", strerror(errno));
+            return -1;
+        }
     }
 
     ret = fwrite(write_buffer,len, 1, aun->fp);
