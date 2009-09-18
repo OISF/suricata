@@ -98,7 +98,7 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     ptv->pkts++;
     ptv->bytes += h->caplen;
 
-    p->pcap_v.datalink = ptv->datalink;
+    p->datalink = ptv->datalink;
     p->pktlen = h->caplen;
     memcpy(p->pkt, pkt, p->pktlen);
     //printf("PcapCallback: p->pktlen: %" PRIu32 " (pkt %02x, p->pkt %02x)\n", p->pktlen, *pkt, *p->pkt);
@@ -293,7 +293,7 @@ int DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     PerfCounterSetUI64(dtv->counter_max_pkt_size, tv->pca, p->pktlen);
 
     /* call the decoder */
-    switch(p->pcap_v.datalink)    {
+    switch(p->datalink) {
         case LINKTYPE_LINUX_SLL:
             DecodeSll(tv, dtv, p, p->pkt, p->pktlen, pq);
             break;
@@ -304,7 +304,7 @@ int DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
             DecodePPP(tv, dtv, p, p->pkt, p->pktlen, pq);
             break;
         default:
-            printf("Error: datalink type %" PRId32 " not yet supported in module DecodePcap.\n", p->pcap_v.datalink);
+            printf("Error: datalink type %" PRId32 " not yet supported in module DecodePcap.\n", p->datalink);
             break;
     }
 

@@ -213,8 +213,11 @@ typedef struct Packet_
     NFQPacketVars nfq_v;
 #endif /* NFQ */
 
-    /* libpcap vars */
+    /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
     PcapPacketVars pcap_v;
+
+    /** data linktype in host order */
+    int datalink;
 
     /* storage */
     uint8_t pkt[65536];
@@ -441,6 +444,15 @@ Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, ui
 /* pcap provides this, but we don't want to depend on libpcap */
 #ifndef DLT_EN10MB
 #define DLT_EN10MB 1
+#endif
+
+/* taken from pcap's bpf.h */
+#ifndef DLT_RAW
+#ifdef __OpenBSD__
+#define DLT_RAW     14  /* raw IP */
+#else
+#define DLT_RAW     12  /* raw IP */
+#endif
 #endif
 
 #endif /* __DECODE_H__ */

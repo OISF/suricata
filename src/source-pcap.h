@@ -14,7 +14,6 @@ void TmModuleDecodePcapRegister (void);
 /* per packet Pcap vars */
 typedef struct PcapPacketVars_
 {
-    int datalink; /* datalink from libpcap */
 } PcapPacketVars;
 
 #endif /* __SOURCE_PCAP_H__ */

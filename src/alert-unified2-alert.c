@@ -234,7 +234,7 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     Unified2Packet phdr;
     Unified2AlertFileHeader hdr;
     int ret, len;
-    char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN] = "";
+    char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN];
 
     if(p->pktlen > 0)
         len = (sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet)) - 4 + p->pktlen;
@@ -257,23 +257,14 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     }
 
     phdr.sensor_id = 0;
-    phdr.linktype = htonl(p->pcap_v.datalink);
+    phdr.linktype = htonl(p->datalink);
     phdr.event_id = 0;
     phdr.event_second = phdr.packet_second = htonl(p->ts.tv_sec);
     phdr.packet_microsecond = htonl(p->ts.tv_usec);
     phdr.packet_length = htonl(p->pktlen);
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(Unified2Packet) - 4);
-
-    if(p->pktlen > 0 && p->pkt)
-    {
-        memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) - 4 , p->pkt, p->pktlen);
-        ret = fwrite(write_buffer,len, 1, aun->fp);
-        if (ret != 1) {
-            printf("Error: fwrite failed: %s\n", strerror(errno));
-            return -1;
-        }
-    }
+    memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) - 4 , p->pkt, p->pktlen);
 
     ret = fwrite(write_buffer,len, 1, aun->fp);
     if (ret != 1) {

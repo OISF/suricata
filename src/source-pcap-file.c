@@ -26,6 +26,7 @@
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
     void (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
+    int datalink;
 } PcapFileGlobalVars;
 
 typedef struct PcapFileThreadVars_
@@ -84,6 +85,7 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     p->ts.tv_sec = h->ts.tv_sec;
     p->ts.tv_usec = h->ts.tv_usec;
     TimeSet(&p->ts);
+    p->datalink = pcap_g.datalink;
 
     ptv->pkts++;
     ptv->bytes += h->caplen;
@@ -128,9 +130,9 @@ int ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
         exit(1);
     }
 
-    int datalink = pcap_datalink(pcap_g.pcap_handle);
-    printf("TmModuleReceivePcapFileRegister: datalink %" PRId32 "\n", datalink);
-    switch(datalink)	{
+    pcap_g.datalink = pcap_datalink(pcap_g.pcap_handle);
+    printf("TmModuleReceivePcapFileRegister: datalink %" PRId32 "\n", pcap_g.datalink);
+    switch(pcap_g.datalink)	{
         case LINKTYPE_LINUX_SLL:
             pcap_g.Decoder = DecodeSll;
             break;
@@ -141,8 +143,8 @@ int ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
             pcap_g.Decoder = DecodePPP;
             break;
         default:
-            printf("Error: datalink type %" PRId32 " not yet supported in module PcapFile.\n", datalink);
-            break;
+            printf("Error: datalink type %" PRId32 " not yet supported in module PcapFile.\n", pcap_g.datalink);
+            return -1;
     }
 
     ptv->tv = tv;

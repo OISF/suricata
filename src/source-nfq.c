@@ -148,6 +148,7 @@ void NFQSetupPkt (Packet *p, void *data)
         gettimeofday(&p->ts, NULL);
     }
 
+    p->datalink = DLT_RAW;
     return;
 }
 
