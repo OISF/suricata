@@ -1140,12 +1140,17 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file) {
     }
 
     ThreadVars *tv_unified2 = TmThreadCreatePacketHandler("Unified2Alert","alert-queue3","simple","alert-queue4","simple","1slot");
+    if (tv_unified2 == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+
     tm_module = TmModuleGetByName("Unified2Alert");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName for Unified2Alert failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_unified2,tm_module,NULL);
+    Tm1SlotSetFunc(tv_unified2,tm_module,NULL);
 
     if (TmThreadSpawn(tv_unified2) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
