@@ -609,9 +609,9 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
 #endif
             break;
         case TH_ACK:
-
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOCLIENT(p)) {
@@ -663,8 +663,9 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
             break;
         case TH_FIN:
             /*FIN is handled in the same way as in TCP_ESTABLISHED case */;
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if((StreamTcpHandleFin(ssn, p)) == -1)
@@ -709,8 +710,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
         case TH_ACK:
         case TH_ACK|TH_PUSH:
 
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOSERVER(p)) {
@@ -835,8 +837,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p, StreamTcpT
         case TH_FIN|TH_ACK:
         case TH_FIN|TH_ACK|TH_PUSH:
 
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
 #ifdef DEBUG
@@ -1003,8 +1006,9 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
     switch (p->tcph->th_flags) {
         case TH_ACK:
 
-           if (!ValidTimestamp(ssn, p)) {
-                return -1;
+           if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOSERVER(p)) {
@@ -1048,8 +1052,9 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p, StreamTcpThre
         case TH_FIN|TH_ACK:
         case TH_FIN|TH_ACK|TH_PUSH:
 
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOSERVER(p)) {
@@ -1146,8 +1151,9 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
     switch (p->tcph->th_flags) {
         case TH_ACK:
 
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOSERVER(p)) {
@@ -1218,8 +1224,9 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p, StreamTcpThre
             break;
         case TH_FIN:
 
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOSERVER(p)) {
@@ -1305,8 +1312,9 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p, StreamTcpThrea
     switch(p->tcph->th_flags) {
         case TH_ACK:
 
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOSERVER(p)) {
@@ -1393,8 +1401,9 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p, StreamTcpThr
     switch(p->tcph->th_flags) {
         case TH_FIN:
 
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOCLIENT(p)) {
@@ -1453,8 +1462,9 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p, StreamTcpThrea
     switch(p->tcph->th_flags) {
         case TH_ACK:
 
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOSERVER(p)) {
@@ -1511,8 +1521,9 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
     switch(p->tcph->th_flags) {
         case TH_ACK:
 
-            if (!ValidTimestamp(ssn, p)) {
-                return -1;
+            if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                if (!ValidTimestamp(ssn, p))
+                    return -1;
             }
 
             if (PKT_IS_TOSERVER(p)) {
@@ -1723,8 +1734,9 @@ static int ValidReset(TcpSession *ssn, Packet *p) {
 
     uint8_t os_policy;
 
-    if (!ValidTimestamp(ssn, p)) {
-        return -1;
+    if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+        if (!ValidTimestamp(ssn, p))
+            return -1;
     }
 
     if (PKT_IS_TOSERVER(p))
@@ -1877,99 +1889,96 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p) {
         receiver_stream = &ssn->client;
     }
 
-    if ((ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP) && (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP)) {
-        if (p->tcpvars.ts != NULL) {
-            uint32_t ts = TCP_GET_TSVAL(p);
+    if (p->tcpvars.ts != NULL) {
+        uint32_t ts = TCP_GET_TSVAL(p);
 
-            if (sender_stream->flags & STREAMTCP_FLAG_ZERO_TIMESTAMP) {
+        if (sender_stream->flags & STREAMTCP_FLAG_ZERO_TIMESTAMP) {
 
-                switch (receiver_stream->os_policy) {
-                    case OS_POLICY_LINUX:
-                    case OS_POLICY_WINDOWS2K3:
-                        ssn->client.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
-                        ssn->server.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
-                        check_ts = 0;
-                        break;
-
-                    case OS_POLICY_OLD_LINUX:
-                    case OS_POLICY_WINDOWS:
-                    case OS_POLICY_VISTA:
-                        sender_stream->flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
-                        if (SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p))) {
-                            sender_stream->last_ts = ts;
-                            check_ts = 0;
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            if (receiver_stream->os_policy == OS_POLICY_HPUX11) {
-                if (!SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
+            switch (receiver_stream->os_policy) {
+                case OS_POLICY_LINUX:
+                case OS_POLICY_WINDOWS2K3:
+                    ssn->client.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
+                    ssn->server.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
                     check_ts = 0;
-            }
+                    break;
 
-            if (ts == 0) {
-                switch (receiver_stream->os_policy) {
-                    case OS_POLICY_OLD_LINUX:
-                    case OS_POLICY_WINDOWS:
-                    case OS_POLICY_WINDOWS2K3:
-                    case OS_POLICY_VISTA:
-                    case OS_POLICY_SOLARIS:
-                        /*Old Linux and windows allowed packet with 0 timestamp.*/
-                        break;
-                    default:
-                        return 0;
-                }
-            }
-
-            if (check_ts) {
-                int32_t result = 0;
-
-                if (receiver_stream->os_policy == OS_POLICY_LINUX) {
-                    result = (int32_t) ((ts - sender_stream->last_ts) + 1); /* Linux accepts TS which are off by one.*/
-                } else {
-                    result = (int32_t) (ts - sender_stream->last_ts);
-                }
-
-                if (sender_stream->last_pkt_ts == 0 && (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
-                    sender_stream->last_pkt_ts = p->ts.tv_sec;
-
-                if (result < 0) {
-#ifdef DEBUG
-                    printf("Timestamp is not valid sender_stream->last_ts %" PRIu32 " p->tcpvars->ts %" PRIu32 " result %" PRId32 "\n", sender_stream->last_ts, ts, result);
-#endif
-                    ret = 0;
-                } else if ((sender_stream->last_ts != 0) && (((uint32_t) p->ts.tv_sec) > sender_stream->last_pkt_ts + PAWS_24DAYS)) {
-#ifdef DEBUG
-                    printf("Packet is not valid sender_stream->last_pkt_ts %" PRIu32 " p->ts.tv_sec %" PRIu32 "\n", sender_stream->last_pkt_ts, (uint32_t) p->ts.tv_sec);
-#endif
-                    ret = 0;
-                }
-
-                if (ret == 1) {
-                    if (SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
+                case OS_POLICY_OLD_LINUX:
+                case OS_POLICY_WINDOWS:
+                case OS_POLICY_VISTA:
+                    sender_stream->flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                    if (SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p))) {
                         sender_stream->last_ts = ts;
-                    sender_stream->last_pkt_ts = p->ts.tv_sec;
-                }
-
-                if (ret == 0) {
-                    if ((SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
-                            && (((uint32_t) p->ts.tv_sec > (sender_stream->last_pkt_ts + PAWS_24DAYS)))) {
-                        sender_stream->last_ts = ts;
-                        sender_stream->last_pkt_ts = p->ts.tv_sec;
-                        ret = 1;
+                        check_ts = 0;
                     }
-                }
+                    break;
+                default:
+                    break;
             }
-        } else {
-            if (receiver_stream->os_policy == OS_POLICY_SOLARIS)
-                receiver_stream->flags &= ~STREAMTCP_FLAG_TIMESTAMP;
         }
 
+        if (receiver_stream->os_policy == OS_POLICY_HPUX11) {
+            if (!SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
+                check_ts = 0;
+        }
 
+        if (ts == 0) {
+            switch (receiver_stream->os_policy) {
+                case OS_POLICY_OLD_LINUX:
+                case OS_POLICY_WINDOWS:
+                case OS_POLICY_WINDOWS2K3:
+                case OS_POLICY_VISTA:
+                case OS_POLICY_SOLARIS:
+                    /*Old Linux and windows allowed packet with 0 timestamp.*/
+                    break;
+                default:
+                    return 0;
+            }
+        }
+
+        if (check_ts) {
+            int32_t result = 0;
+
+            if (receiver_stream->os_policy == OS_POLICY_LINUX) {
+                result = (int32_t) ((ts - sender_stream->last_ts) + 1); /* Linux accepts TS which are off by one.*/
+            } else {
+                result = (int32_t) (ts - sender_stream->last_ts);
+            }
+
+            if (sender_stream->last_pkt_ts == 0 && (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
+                sender_stream->last_pkt_ts = p->ts.tv_sec;
+
+            if (result < 0) {
+#ifdef DEBUG
+                printf("Timestamp is not valid sender_stream->last_ts %" PRIu32 " p->tcpvars->ts %" PRIu32 " result %" PRId32 "\n", sender_stream->last_ts, ts, result);
+#endif
+                ret = 0;
+            } else if ((sender_stream->last_ts != 0) && (((uint32_t) p->ts.tv_sec) > sender_stream->last_pkt_ts + PAWS_24DAYS)) {
+#ifdef DEBUG
+                printf("Packet is not valid sender_stream->last_pkt_ts %" PRIu32 " p->ts.tv_sec %" PRIu32 "\n", sender_stream->last_pkt_ts, (uint32_t) p->ts.tv_sec);
+#endif
+                ret = 0;
+            }
+
+            if (ret == 1) {
+                if (SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
+                    sender_stream->last_ts = ts;
+                sender_stream->last_pkt_ts = p->ts.tv_sec;
+            }
+
+            if (ret == 0) {
+                if ((SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
+                        && (((uint32_t) p->ts.tv_sec > (sender_stream->last_pkt_ts + PAWS_24DAYS)))) {
+                    sender_stream->last_ts = ts;
+                    sender_stream->last_pkt_ts = p->ts.tv_sec;
+                    ret = 1;
+                }
+            }
+        }
+    } else {
+        if (receiver_stream->os_policy == OS_POLICY_SOLARIS)
+            receiver_stream->flags &= ~STREAMTCP_FLAG_TIMESTAMP;
     }
+
     return ret;
 }
 
