@@ -25,6 +25,7 @@ typedef struct TcpStream_ {
     uint32_t ra_base_seq; /**< reassembled seq. We've reassembled up to this point. */
     TcpSegment *seg_list; /**< list of TCP segments that are not yet (fully) used in reassembly */
     uint8_t os_policy; /**< target based OS policy used for reassembly and handling packets*/
+    uint8_t flags;      /**< Flag specific to the stream e.g. Timestamp */
 } TcpStream;
 
 /* from /usr/include/netinet/tcp.h */
@@ -48,6 +49,7 @@ enum
 #define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x02    /*Flag for mid stream established session*/
 #define STREAMTCP_FLAG_TIMESTAMP                     0x04    /*Flag for TCP Timestamp option*/
 #define STREAMTCP_FLAG_SERVER_WSCALE            0x08 /**< Server supports wscale (even though it can be 0) */
+#define STREAMTCP_FLAG_ZERO_TIMESTAMP           0x10    /**< Flag to indicate the zero value of timestamp*/
 
 #define PAWS_24DAYS         2073600         /* 24 days in seconds */
 
@@ -58,8 +60,6 @@ enum
 #define SEQ_LEQ(a,b) ((int)((a) - (b)) <= 0)
 #define SEQ_GT(a,b)  ((int)((a) - (b)) >  0)
 #define SEQ_GEQ(a,b) ((int)((a) - (b)) >= 0)
-
-#define GET_TIMESTAMP(p)   ((u_int32_t) ntohl (*(u_int32_t *)(p)))
 
 typedef struct TcpSession_ {
     uint8_t state;

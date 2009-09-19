@@ -56,11 +56,11 @@
 
 /** macro for getting the first timestamp from the packet. Timestamp is in host
  *  order and either returned from the cache or from the packet directly. */
-#define TCP_GET_TS1(p)                       ((p)->tcpc.ts1 != 0 ? \
+#define TCP_GET_TSVAL(p)                       ((p)->tcpc.ts1 != 0 ? \
                                              (p)->tcpc.ts1 : (p)->tcpvars.ts ? ((p)->tcpc.ts1 = (uint32_t)ntohl((*(uint32_t *)(p)->tcpvars.ts->data))) : 0)
 /** macro for getting the second timestamp from the packet. Timestamp is in
  *  host order and either returned from the cache or from the packet directly. */
-#define TCP_GET_TS2(p)                       ((p)->tcpc.ts2 != 0 ? \
+#define TCP_GET_TSECR(p)                       ((p)->tcpc.ts2 != 0 ? \
                                              (p)->tcpc.ts2 : (p)->tcpvars.ts ? ((p)->tcpc.ts2 = (uint32_t)ntohl((*(uint32_t *)((p)->tcpvars.ts->data+4)))) : 0)
 
 /** macro for getting the wscale from the packet. */
