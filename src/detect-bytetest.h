@@ -55,7 +55,8 @@ void DetectBytetestRegister (void);
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *optstr);
+int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s,
+                        SigMatch *m, char *optstr);
 
 /**
  * \brief this function will free memory associated with DetectBytetestData
@@ -92,7 +93,8 @@ DetectBytetestData *DetectBytetestParse(char *optstr);
  *
  * \todo The return seems backwards.  We should return a non-zero error code.  One of the error codes is "no match".  As-is if someone accidentally does: if (DetectBytetestMatch(...)) { match }, then they catch an error as a match.
  */
-int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m);
+int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                        Packet *p, Signature *s, SigMatch *m);
 
 #endif /* __DETECT_BYTETEST_H__ */
 

@@ -16,11 +16,8 @@
 /**
  * \brief Regex for parsing our options
  */
-/** \todo We probably just need a simple tokenizer here */
-/** \todo Cannot have > 9 captures and we need 10 -- write a comma separated value tokenizer for this. */
 #define PARSE_REGEX  "^\\s*" \
-                     "([^\\s,]+)" \
-                     "\\s*,\\s*([^\\s,]+)" \
+                     "([^\\s,]+\\s*,\\s*[^\\s,]+)" \
                      "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
                      "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
                      "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
@@ -50,7 +47,8 @@ void DetectBytejumpRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("DetectBytejumpRegister: pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        printf("DetectBytejumpRegister: pcre compile of \"%s\" failed "
+               "at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
         goto error;
     }
 
@@ -67,7 +65,8 @@ error:
     return;
 }
 
-int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                        Packet *p, Signature *s, SigMatch *m)
 {
     DetectBytejumpData *data = (DetectBytejumpData *)m->ctx;
     uint8_t *ptr = NULL;
@@ -102,15 +101,19 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 
     /* Verify the to-be-extracted data is within the packet */
     if ((ptr < p->pkt) || (len < 0) || (data->nbytes > len)) {
-        printf("DetectBytejumpMatch: Data not within packet pkt=%p, ptr=%p, len=%d, nbytes=%d\n", p->pkt, ptr, len, data->nbytes);
+        printf("DetectBytejumpMatch: Data not within packet "
+               "pkt=%p, ptr=%p, len=%d, nbytes=%d\n",
+               p->pkt, ptr, len, data->nbytes);
         return 0;
     }
 
     /* Extract the byte data */
     if (data->flags & DETECT_BYTEJUMP_STRING) {
-        extbytes = ByteExtractStringUint64(&val, data->base, data->nbytes, (const char *)ptr);
+        extbytes = ByteExtractStringUint64(&val, data->base,
+                                           data->nbytes, (const char *)ptr);
         if(extbytes <= 0) {
-            printf("DetectBytejumpMatch: Error extracting %d bytes of string data: %d\n", data->nbytes, extbytes);
+            printf("DetectBytejumpMatch: Error extracting %d bytes "
+                   "of string data: %d\n", data->nbytes, extbytes);
             return -1;
         }
     }
@@ -118,7 +121,8 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
         int endianness = (data->flags & DETECT_BYTEJUMP_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
         if (extbytes != data->nbytes) {
-            printf("DetectBytejumpMatch: Error extracting %d bytes of numeric data: %d\n", data->nbytes, extbytes);
+            printf("DetectBytejumpMatch: Error extracting %d bytes "
+                   "of numeric data: %d\n", data->nbytes, extbytes);
             return -1;
         }
     }
@@ -149,14 +153,19 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
      * \todo Should this validate it is still in the *payload*?
      */
     if ((jumpptr < p->pkt) || (jumpptr >= p->pkt + p->pktlen)) {
-        printf("DetectBytejumpMatch: Jump location (%p) is not within packet (%p-%p)\n", jumpptr, p->pkt, p->pkt + p->pktlen - 1);
+        printf("DetectBytejumpMatch: Jump location (%p) is not within "
+               "packet (%p-%p)\n", jumpptr, p->pkt, p->pkt + p->pktlen - 1);
         return 0;
     }
 
 #ifdef DEBUG
     {
-        uint8_t *sptr = (data->flags & DETECT_BYTEJUMP_BEGIN) ? p->payload : ptr;
-        printf("DetectBytejumpMatch: Jumping %" PRId64 " bytes from %p (%08x) to %p (%08x)\n", val, sptr, (int)(sptr - p->payload), jumpptr, (int)(jumpptr - p->payload));
+        uint8_t *sptr = (data->flags & DETECT_BYTEJUMP_BEGIN) ? p->payload
+                                                              : ptr;
+        printf("DetectBytejumpMatch: Jumping %" PRId64 " bytes "
+               "from %p (%08x) to %p (%08x)\n",
+               val, sptr, (int)(sptr - p->payload),
+               jumpptr, (int)(jumpptr - p->payload));
     }
 #endif /* DEBUG */
 
@@ -177,23 +186,62 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
-    int i;
+    int numargs = 0;
+    int i = 0;
     uint32_t nbytes;
-    const char *str_ptr;
+    char *str_ptr;
+    char *end_ptr;
 
     /* Execute the regex and populate args with captures. */
-    ret = pcre_exec(parse_regex, parse_regex_study, optstr, strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(parse_regex, parse_regex_study, optstr,
+                    strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2 || ret > 10) {
-        printf("DetectBytejumpParse: parse error, ret %" PRId32 ", string \"%s\"\n", ret, optstr);
+        printf("DetectBytejumpParse: parse error, ret %" PRId32
+               ", string \"%s\"\n", ret, optstr);
         goto error;
     }
-    for (i = 0; i < (ret - 1); i++) {
-        res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS, i + 1, &str_ptr);
+
+    /* The first two arguments are stashed in the first PCRE substring.
+     * This is because byte_jump can take 10 arguments, but PCRE only
+     * supports 9 substrings, sigh.
+     */
+    res = pcre_get_substring((char *)optstr, ov,
+                             MAX_SUBSTRINGS, i + 1, (const char **)&str_ptr);
+    if (res < 0) {
+        printf("DetectBytejumpParse: pcre_get_substring failed "
+               "for arg %d\n", i + 1);
+        goto error;
+    }
+
+    /* Break up first substring into two parameters
+     *
+     * NOTE: Because of this, we cannot free args[1] as it is part of args[0],
+     * and *yes* this *is* ugly.
+     */
+    end_ptr = str_ptr;
+    while (!(isspace(*end_ptr) || (*end_ptr == ','))) end_ptr++;
+    *(end_ptr++) = '\0';
+    args[0] = str_ptr;
+    numargs++;
+
+    str_ptr = end_ptr;
+    while (isspace(*str_ptr) || (*str_ptr == ',')) str_ptr++;
+    end_ptr = str_ptr;
+    while (!(isspace(*end_ptr) || (*end_ptr == ',')) && (*end_ptr != '\0'))
+        end_ptr++;
+    *(end_ptr++) = '\0';
+    args[1] = str_ptr;
+    numargs++;
+
+    /* The remaining args are directly from PCRE substrings */
+    for (i = 1; i < (ret - 1); i++) {
+        res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS, i + 1, (const char **)&str_ptr);
         if (res < 0) {
             printf("DetectBytejumpParse: pcre_get_substring failed for arg %d\n", i + 1);
             goto error;
         }
-        args[i] = (char *)str_ptr;
+        args[i+1] = str_ptr;
+        numargs++;
     }
 
     /* Initialize the data */
@@ -227,7 +275,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
 
     /* The remaining options are flags. */
     /** \todo Error on dups? */
-    for (i = 2; i < (ret - 1); i++) {
+    for (i = 2; i < numargs; i++) {
         if (strcmp("relative", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_RELATIVE;
         } else if (strcasecmp("string", args[i]) == 0) {
@@ -249,12 +297,18 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
         } else if (strcasecmp("align", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_ALIGN;
         } else if (strncasecmp("multiplier ", args[i], 11) == 0) {
-            if (ByteExtractStringUint32(&data->multiplier, 10, strlen(args[i]) - 11, args[i] + 11) <= 0) {
+            if (ByteExtractStringUint32(&data->multiplier, 10,
+                                        strlen(args[i]) - 11,
+                                        args[i] + 11) <= 0)
+            {
                 printf("DetectBytejumpParse: Malformed multiplier: %s\n", optstr);
                 goto error;
             }
         } else if (strncasecmp("post_offset ", args[i], 12) == 0) {
-            if (ByteExtractStringInt32(&data->post_offset, 10, strlen(args[i]) - 12, args[i] + 12) <= 0) {
+            if (ByteExtractStringInt32(&data->post_offset, 10,
+                                       strlen(args[i]) - 12,
+                                       args[i] + 12) <= 0)
+            {
                 printf("DetectBytejumpParse: Malformed post_offset: %s\n", optstr);
                 goto error;
             }
@@ -273,16 +327,19 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
          * "01777777777777777777777" = 0xffffffffffffffff
          */
         if (nbytes > 23) {
-            printf("DetectBytejumpParse: Cannot test more than 23 bytes with \"string\": %s\n", optstr);
+            printf("DetectBytejumpParse: Cannot test more than 23 bytes "
+                   "with \"string\": %s\n", optstr);
             goto error;
         }
     } else {
         if (nbytes > 8) {
-            printf("DetectBytejumpParse: Cannot test more than 8 bytes without \"string\": %s\n", optstr);
+            printf("DetectBytejumpParse: Cannot test more than 8 bytes "
+                   "without \"string\": %s\n", optstr);
             goto error;
         }
         if (data->base != DETECT_BYTEJUMP_BASE_UNSET) {
-            printf("DetectBytejumpParse: Cannot use a base without \"string\": %s\n", optstr);
+            printf("DetectBytejumpParse: Cannot use a base "
+                   "without \"string\": %s\n", optstr);
             goto error;
         }
     }
@@ -290,20 +347,23 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
     /* This is max 23 so it will fit in a byte (see above) */
     data->nbytes = (uint8_t)nbytes;
 
-    for (i = 0; i < (ret - 1); i++){
+    for (i = 0; i < numargs; i++){
+        if (i == 1) continue; /* args[1] is part of args[0] */
         if (args[i] != NULL) free(args[i]);
     }
     return data;
 
 error:
-    for (i = 0; i < (ret - 1); i++){
+    for (i = 0; i < numargs; i++){
+        if (i == 1) continue; /* args[1] is part of args[0] */
         if (args[i] != NULL) free(args[i]);
     }
     if (data != NULL) DetectBytejumpFree(data);
     return NULL;
 }
 
-int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *optstr)
+int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s,
+                        SigMatch *m, char *optstr)
 {
     DetectBytejumpData *data = NULL;
     SigMatch *sm = NULL;
@@ -390,7 +450,8 @@ int DetectBytejumpTestParse02(void) {
 int DetectBytejumpTestParse03(void) {
     int result = 0;
     DetectBytejumpData *data = NULL;
-    data = DetectBytejumpParse(" 4,0 , relative , little, string, dec, align, from_beginning");
+    data = DetectBytejumpParse(" 4,0 , relative , little, string, "
+                               "dec, align, from_beginning");
     if (data != NULL) {
         if (   (data->nbytes == 4)
             && (data->offset == 0)
@@ -420,12 +481,14 @@ int DetectBytejumpTestParse03(void) {
 int DetectBytejumpTestParse04(void) {
     int result = 0;
     DetectBytejumpData *data = NULL;
-    data = DetectBytejumpParse(" 4,0 , relative , little, string, dec, align, from_beginning , multiplier 2 , post_offset -16 ");
+    data = DetectBytejumpParse(" 4,0 , relative , little, string, "
+                               "dec, align, from_beginning , "
+                               "multiplier 2 , post_offset -16 ");
     if (data != NULL) {
         if (   (data->nbytes == 4)
             && (data->offset == 0)
             && (data->multiplier == 2)
-            && (data->post_offset == 0)
+            && (data->post_offset == -16)
             && (data->flags == ( DETECT_BYTEJUMP_RELATIVE
                                 |DETECT_BYTEJUMP_LITTLE
                                 |DETECT_BYTEJUMP_ALIGN
@@ -447,7 +510,8 @@ int DetectBytejumpTestParse04(void) {
 int DetectBytejumpTestParse05(void) {
     int result = 0;
     DetectBytejumpData *data = NULL;
-    data = DetectBytejumpParse(" 4,0 , relative , little, dec, align, from_beginning");
+    data = DetectBytejumpParse(" 4,0 , relative , little, dec, "
+                               "align, from_beginning");
     if (data == NULL) {
         result = 1;
     }

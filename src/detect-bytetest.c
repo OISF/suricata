@@ -64,7 +64,8 @@ error:
     return;
 }
 
-int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                        Packet *p, Signature *s, SigMatch *m)
 {
     DetectBytetestData *data = (DetectBytetestData *)m->ctx;
     uint8_t *ptr = NULL;
@@ -102,7 +103,9 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
      * \todo Should this validate it is in the *payload*?
      */
     if ((ptr < p->pkt) || (len < 0) || (data->nbytes > len)) {
-        printf("DetectBytetestMatch: Data not within packet pkt=%p, ptr=%p, len=%d, nbytes=%d\n", p->pkt, ptr, len, data->nbytes);
+        printf("DetectBytetestMatch: Data not within packet "
+               "pkt=%p, ptr=%p, len=%d, nbytes=%d\n",
+               p->pkt, ptr, len, data->nbytes);
         return 0;
     }
 
@@ -110,25 +113,32 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 
     /* Extract the byte data */
     if (data->flags & DETECT_BYTETEST_STRING) {
-        extbytes = ByteExtractStringUint64(&val, data->base, data->nbytes, (const char *)ptr);
+        extbytes = ByteExtractStringUint64(&val, data->base,
+                                           data->nbytes, (const char *)ptr);
         if(extbytes <= 0) {
-            printf("DetectBytetestMatch: Error extracting %d bytes of string data: %d\n", data->nbytes, extbytes);
+            printf("DetectBytetestMatch: Error extracting %d "
+                   "bytes of string data: %d\n", data->nbytes, extbytes);
             return -1;
         }
 #ifdef DEBUG
-        printf("DetectBytetestMatch: Comparing base %d string 0x%" PRIx64 " %s%c 0x%" PRIx64 "\n", data->base, val, (neg ? "!" : ""), data->op, data->value);
+        printf("DetectBytetestMatch: Comparing base %d "
+               "string 0x%" PRIx64 " %s%c 0x%" PRIx64 "\n",
+               data->base, val, (neg ? "!" : ""), data->op, data->value);
 #endif /* DEBUG */
     }
     else {
         int endianness = (data->flags & DETECT_BYTETEST_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
         if (extbytes != data->nbytes) {
-            printf("DetectBytetestMatch: Error extracting %d bytes of numeric data: %d\n", data->nbytes, extbytes);
+            printf("DetectBytetestMatch: Error extracting %d bytes "
+                   "of numeric data: %d\n", data->nbytes, extbytes);
             return -1;
         }
 
 #ifdef DEBUG
-        printf("DetectBytetestMatch: Comparing numeric 0x%" PRIx64 " %s%c 0x%" PRIx64 "\n", val, (neg ? "!" : ""), data->op, data->value);
+        printf("DetectBytetestMatch: Comparing numeric 0x%" PRIx64
+               " %s%c 0x%" PRIx64 "\n",
+               val, (neg ? "!" : ""), data->op, data->value);
 #endif /* DEBUG */
     }
 
@@ -195,15 +205,19 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     const char *str_ptr;
 
     /* Execute the regex and populate args with captures. */
-    ret = pcre_exec(parse_regex, parse_regex_study, optstr, strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(parse_regex, parse_regex_study, optstr,
+                    strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 6 || ret > 10) {
-        printf("DetectBytetestParse: parse error, ret %" PRId32 ", string %s\n", ret, optstr);
+        printf("DetectBytetestParse: parse error, ret %" PRId32
+               ", string %s\n", ret, optstr);
         goto error;
     }
     for (i = 0; i < (ret - 1); i++) {
-        res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS, i + 1, &str_ptr);
+        res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS,
+                                 i + 1, &str_ptr);
         if (res < 0) {
-            printf("DetectBytetestParse: pcre_get_substring failed for arg %d\n", i + 1);
+            printf("DetectBytetestParse: pcre_get_substring failed "
+                   "for arg %d\n", i + 1);
             goto error;
         }
         args[i] = (char *)str_ptr;
@@ -297,16 +311,19 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
          * "01777777777777777777777" = 0xffffffffffffffff
          */
         if (nbytes > 23) {
-            printf("DetectBytetestParse: Cannot test more than 23 bytes with \"string\": %s\n", optstr);
+            printf("DetectBytetestParse: Cannot test more than "
+                   "23 bytes with \"string\": %s\n", optstr);
             goto error;
         }
     } else {
         if (nbytes > 8) {
-            printf("DetectBytetestParse: Cannot test more than 8 bytes without \"string\": %s\n", optstr);
+            printf("DetectBytetestParse: Cannot test more than "
+                   "8 bytes without \"string\": %s\n", optstr);
             goto error;
         }
         if (data->base != DETECT_BYTETEST_BASE_UNSET) {
-            printf("DetectBytetestParse: Cannot use a base without \"string\": %s\n", optstr);
+            printf("DetectBytetestParse: Cannot use a base "
+                   "without \"string\": %s\n", optstr);
             goto error;
         }
     }
@@ -327,7 +344,8 @@ error:
     return NULL;
 }
 
-int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *optstr)
+int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s,
+                        SigMatch *m, char *optstr)
 {
     DetectBytetestData *data = NULL;
     SigMatch *sm = NULL;

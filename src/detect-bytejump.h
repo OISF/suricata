@@ -49,7 +49,8 @@ void DetectBytejumpRegister (void);
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *optstr);
+int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s,
+                        SigMatch *m, char *optstr);
 
 /**
  * \brief this function will free memory associated with DetectBytejumpData
@@ -85,9 +86,13 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr);
  * \retval  0 no match
  * \retval  1 match
  *
- * \todo The return seems backwards.  We should return a non-zero error code.  One of the error codes is "no match".  As-is if someone accidentally does: if (DetectBytejumpMatch(...)) { match }, then they catch an error as a match.
+ * \todo The return seems backwards.  We should return a non-zero error code.
+ *       One of the error codes is "no match".  As-is if someone accidentally
+ *       does: if (DetectBytejumpMatch(...)) { match }, then they catch an
+ *       error as a match.
  */
-int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m);
+int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                        Packet *p, Signature *s, SigMatch *m);
 
 #endif /* __DETECT_BYTEJUMP_H__ */
 
