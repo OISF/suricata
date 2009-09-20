@@ -570,8 +570,8 @@ void *initdata = NULL;
 /**
  *  \test Test the ethernet+ipv4+tcp unified2 test
  *
- *  \retval 0 on succces
- *  \retval -1 on failure
+ *  \retval 1 on succces
+ *  \retval 0 on failure
  */
 
 static int Unified2Test01 (void)   {
@@ -619,8 +619,8 @@ static int Unified2Test01 (void)   {
 /**
  *  \test Test the ethernet+ipv6+tcp unified2 test
  *
- *  \retval 0 on succces
- *  \retval -1 on failure
+ *  \retval 1 on succces
+ *  \retval 0 on failure
  */
 
 static int Unified2Test02 (void)   {
@@ -665,8 +665,8 @@ static int Unified2Test02 (void)   {
 /**
  *  \test Test the GRE unified2 test
  *
- *  \retval 0 on succces
- *  \retval -1 on failure
+ *  \retval 1 on succces
+ *  \retval 0 on failure
  */
 
 static int Unified2Test03 (void)   {
@@ -715,8 +715,8 @@ static int Unified2Test03 (void)   {
 /**
  *  \test Test the PPP unified2 test
  *
- *  \retval 0 on succces
- *  \retval -1 on failure
+ *  \retval 1 on succces
+ *  \retval 0 on failure
  */
 
 static int Unified2Test04 (void)   {
@@ -754,8 +754,8 @@ static int Unified2Test04 (void)   {
 /**
  *  \test Test the ethernet+ipv4+tcp droped unified2 test
  *
- *  \retval 0 on succces
- *  \retval -1 on failure
+ *  \retval 1 on succces
+ *  \retval 0 on failure
  */
 
 static int Unified2Test05 (void)   {

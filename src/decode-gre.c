@@ -316,7 +316,7 @@ static int DecodeGREtest03 (void)   {
 }
 
 /**
- * \brief this function registers unit tests for DecodeEvent
+ * \brief this function registers unit tests for GRE decoder
  */
 
 void DecodeGRERegisterTests(void) {
