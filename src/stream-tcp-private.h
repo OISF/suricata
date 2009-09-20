@@ -18,8 +18,10 @@ typedef struct TcpStream_ {
     uint32_t window;    /**< current window setting */
     uint8_t wscale;     /**< wscale setting in this direction */
 
-    uint32_t last_ts; /**< Time stamp of last seen packet*/
-    uint32_t last_pkt_ts; /**< Time of last seen packet for this stream (needed for PAWS update)*/
+    uint32_t last_ts; /**< Time stamp (TSVAL) of the last seen packet for this stream*/
+    uint32_t last_pkt_ts; /**< Time of last seen packet for this stream (needed for PAWS update)
+                                This will be used to validate the last_ts, when connection has been idle for
+                                longer time.(RFC 1323)*/
 
     /* reassembly */
     uint32_t ra_base_seq; /**< reassembled seq. We've reassembled up to this point. */
