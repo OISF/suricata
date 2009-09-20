@@ -17,6 +17,7 @@
 #include "detect-engine-iponly.h"
 
 #include "detect-decode-event.h"
+#include "detect-ipopts.h"
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
@@ -2507,6 +2508,7 @@ void SigTableSetup(void) {
     DetectNoalertRegister();
     DetectFlowbitsRegister();
     DetectDecodeEventRegister();
+    DetectIpOptsRegister();
     DetectCsumRegister();
     DetectStreamSizeRegister();
 

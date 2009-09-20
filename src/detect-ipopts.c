@@ -1,0 +1,362 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
+/** \file
+ *  \author Breno Silva <breno.silva@gmail.com>
+ */
+
+#include "eidps-common.h"
+#include "eidps.h"
+#include "decode.h"
+#include "detect.h"
+#include "flow-var.h"
+#include "decode-events.h"
+
+/* Need to get the DIpOpts[] array */
+#define DETECT_EVENTS
+
+#include "detect-ipopts.h"
+#include "util-unittest.h"
+
+#define PARSE_REGEX "\\S[A-z]"
+
+static pcre *parse_regex;
+static pcre_extra *parse_regex_study;
+
+int DetectIpOptsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectIpOptsSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+void IpOptsRegisterTests(void);
+
+
+/**
+ * \brief Registration function for ipopts: keyword
+ */
+void DetectIpOptsRegister (void) {
+    sigmatch_table[DETECT_IPOPTS].name = "ipopts";
+    sigmatch_table[DETECT_IPOPTS].Match = DetectIpOptsMatch;
+    sigmatch_table[DETECT_IPOPTS].Setup = DetectIpOptsSetup;
+    sigmatch_table[DETECT_IPOPTS].Free  = NULL;
+    sigmatch_table[DETECT_IPOPTS].RegisterTests = IpOptsRegisterTests;
+
+    const char *eb;
+    int eo;
+    int opts = 0;
+
+    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
+    if(parse_regex == NULL)
+    {
+        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        goto error;
+    }
+
+    parse_regex_study = pcre_study(parse_regex, 0, &eb);
+    if(eb != NULL)
+    {
+        printf("pcre study failed: %s\n", eb);
+        goto error;
+    }
+    return;
+
+error:
+    return;
+
+}
+
+/**
+ * \brief This function is used to match ip option on a packet with those passed via ipopts:
+ *
+ * \param t pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param p pointer to the current packet
+ * \param s pointer to the Signature
+ * \param m pointer to the sigmatch
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+{
+    int ret = 0;
+    int ipopt = 0;
+    DetectIpOptsData *de = (DetectIpOptsData *)m->ctx;
+
+    if(!de || !PKT_IS_IPV4(p) || !p)
+        return ret;
+
+    while(ipopt < p->IPV4_OPTS_CNT) {
+
+        switch(de->ipopt)   {
+            case IPV4_OPT_RR:
+                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_RR)
+                    return 1;
+                break;
+            case IPV4_OPT_LSRR:
+                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_LSRR)
+                    return 1;
+                break;
+            case IPV4_OPT_EOL:
+                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_EOL)
+                    return 1;
+                break;
+            case IPV4_OPT_NOP:
+                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_NOP)
+                    return 1;
+                break;
+            case IPV4_OPT_TS:
+                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_TS)
+                    return 1;
+                break;
+            case IPV4_OPT_SEC:
+                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_SEC)
+                    return 1;
+                break;
+            case IPV4_OPT_SSRR:
+                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_SSRR)
+                    return 1;
+                break;
+            case IPV4_OPT_SID:
+                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_SID)
+                    return 1;
+                break;
+            case IPV4_OPT_ANY:
+                return 1;
+            default:
+                return ret;
+        }
+
+        ipopt++;
+
+    }
+
+    return ret;
+}
+
+/**
+ * \brief This function is used to parse ipopts options passed via ipopts: keyword
+ *
+ * \param rawstr Pointer to the user provided ipopts options
+ *
+ * \retval de pointer to DetectIpOptsData on success
+ * \retval NULL on failure
+ */
+DetectIpOptsData *DetectIpOptsParse (char *rawstr)
+{
+    int i;
+    DetectIpOptsData *de = NULL;
+#define MAX_SUBSTRINGS 30
+    int ret = 0, found = 0;
+    int ov[MAX_SUBSTRINGS];
+
+    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    if (ret < 1) {
+        goto error;
+    }
+
+    for(i = 0; DIpOpts[i].ipopt_name != NULL; i++)  {
+        if((strncasecmp(DIpOpts[i].ipopt_name,rawstr,strlen(DIpOpts[i].ipopt_name))) == 0) {
+            found = 1;
+            break;
+        }
+    }
+
+    if(found == 0)
+        goto error;
+
+    de = malloc(sizeof(DetectIpOptsData));
+    if (de == NULL) {
+        printf("DetectIpOptsSetup malloc failed\n");
+        goto error;
+    }
+
+    de->ipopt = DIpOpts[i].code;
+
+    return de;
+
+error:
+    if (de) free(de);
+    return NULL;
+}
+
+/**
+ * \brief this function is used to add the parsed ipopts into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param m pointer to the Current SigMatch
+ * \param rawstr pointer to the user provided ipopts options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+{
+    DetectIpOptsData *de = NULL;
+    SigMatch *sm = NULL;
+
+    de = DetectIpOptsParse(rawstr);
+    if (de == NULL)
+        goto error;
+
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_IPOPTS;
+    sm->ctx = (void *)de;
+
+    SigMatchAppend(s,m,sm);
+    return 0;
+
+error:
+    if (de) free(de);
+    if (sm) free(sm);
+    return -1;
+}
+
+/**
+ * \brief this function will free memory associated with DetectIpOptsData
+ *
+ * \param de pointer to DetectIpOptsData
+ */
+void DetectIpOptsFree(DetectIpOptsData *de) {
+    if(de) free(de);
+}
+
+/*
+ * ONLY TESTS BELOW THIS COMMENT
+ */
+
+/**
+ * \test IpOptsTestParse01 is a test for a  valid ipopts value
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+int IpOptsTestParse01 (void) {
+    DetectIpOptsData *de = NULL;
+    de = DetectIpOptsParse("lsrr");
+    if (de) {
+        DetectIpOptsFree(de);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * \test IpOptsTestParse02 is a test for an invalid ipopts value
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+int IpOptsTestParse02 (void) {
+    DetectIpOptsData *de = NULL;
+    de = DetectIpOptsParse("invalidopt");
+    if (de) {
+        DetectIpOptsFree(de);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * \test IpOptsTestParse03 test the match function on a packet that needs to match
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+int IpOptsTestParse03 (void) {
+    Packet p;
+    ThreadVars tv;
+    int ret = 0;
+    DetectIpOptsData *de = NULL;
+    SigMatch *sm = NULL;
+    IPV4Hdr ip4h;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
+
+    p.ip4h = &ip4h;
+    p.IPV4_OPTS[0].type = IPV4_OPT_RR;
+
+    p.IPV4_OPTS_CNT++;
+
+    de = DetectIpOptsParse("rr");
+
+    if (de == NULL)
+        goto error;
+
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_IPOPTS;
+    sm->ctx = (void *)de;
+
+    ret = DetectIpOptsMatch(&tv,NULL,&p,NULL,sm);
+
+    if(ret)
+        return 1;
+
+error:
+    if (de) free(de);
+    if (sm) free(sm);
+    return 0;
+}
+
+/**
+ * \test IpOptsTestParse04 test the match function on a packet that needs to not match
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+int IpOptsTestParse04 (void) {
+    Packet p;
+    ThreadVars tv;
+    int ret = 0;
+    DetectIpOptsData *de = NULL;
+    SigMatch *sm = NULL;
+    IPV4Hdr ip4h;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
+
+    p.ip4h = &ip4h;
+    p.IPV4_OPTS[0].type = IPV4_OPT_RR;
+
+    p.IPV4_OPTS_CNT++;
+
+    de = DetectIpOptsParse("lsrr");
+
+    if (de == NULL)
+        goto error;
+
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_IPOPTS;
+    sm->ctx = (void *)de;
+
+    ret = DetectIpOptsMatch(&tv,NULL,&p,NULL,sm);
+
+    if(ret)
+        return 1;
+
+error:
+    if (de) free(de);
+    if (sm) free(sm);
+    return 0;
+}
+
+/**
+ * \brief this function registers unit tests for IpOpts
+ */
+void IpOptsRegisterTests(void) {
+    UtRegisterTest("IpOptsTestParse01", IpOptsTestParse01, 1);
+    UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02, 0);
+    UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03, 1);
+    UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04, 0);
+}
