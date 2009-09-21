@@ -198,7 +198,7 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     if (sm == NULL)
         goto error;
 
-    sm->type = DETECT_FLOWVAR;
+    sm->type = DETECT_PKTVAR;
     sm->ctx = (void *)cd;
 
     SigMatchAppend(s,m,sm);

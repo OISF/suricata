@@ -49,6 +49,7 @@
 #include "detect-flowbits.h"
 #include "detect-csum.h"
 #include "detect-stream_size.h"
+#include "detect-engine-sigorder.h"
 
 #include "action-globals.h"
 #include "tm-modules.h"
@@ -238,6 +239,10 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
         if (r < 0)
             return -1;
     }
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+    SCSigSignatureOrderingModuleCleanup(de_ctx);
 
     /* Setup the signature group lookup structure and
      * pattern matchers */

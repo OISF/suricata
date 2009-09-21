@@ -1,6 +1,8 @@
 #ifndef __DETECT_H__
 #define __DETECT_H__
 
+#include <stdint.h>
+
 #include "detect-engine-proto.h"
 
 #include "packet-queue.h"
@@ -9,6 +11,10 @@
 #include "util-hashlist.h"
 
 #define COUNTER_DETECT_ALERTS 1
+
+/* forward declarations for the structures from detect-engine-sigorder.h */
+struct SCSigOrderFunc_;
+struct SCSigSignatureWrapper_;
 
 /*
  * DETECT ADDRESS
@@ -212,6 +218,10 @@ typedef struct DetectEngineCtx_ {
     uint32_t sig_array_len;  /* size in array members */
 
     uint32_t signum;
+
+    /* used by the signature ordering module */
+    struct SCSigOrderFunc_ *sc_sig_order_funcs;
+    struct SCSigSignatureWrapper_ *sc_sig_sig_wrapper;
 
     /* main sigs */
     DetectEngineLookupDsize dsize_gh[DSIZE_STATES];

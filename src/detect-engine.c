@@ -6,6 +6,7 @@
 #include "flow.h"
 
 #include "detect-parse.h"
+#include "detect-engine-sigorder.h"
 
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
@@ -55,6 +56,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     SigGroupHeadMpmUriHashFree(de_ctx);
     SigGroupHeadSPortHashFree(de_ctx);
     SigGroupHeadDPortHashFree(de_ctx);
+    SCSigSignatureOrderingModuleCleanup(de_ctx);
     DetectPortSpHashFree(de_ctx);
     DetectPortDpHashFree(de_ctx);
 

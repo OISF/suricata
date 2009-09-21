@@ -28,6 +28,7 @@ flow-bit.c flow-bit.h \
 pkt-var.c pkt-var.h \
 host.c host.h \
 detect.c detect.h \
+detect-engine-sigorder.c detect-engine-sigorder.h \
 detect-engine.c detect-engine.h \
 detect-isdataat.c detect-isdataat.h \
 detect-window.c detect-window.h \

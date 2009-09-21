@@ -68,6 +68,7 @@
 #include "conf-yaml-loader.h"
 
 #include "runmodes.h"
+#include "detect-engine-sigorder.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -417,6 +418,7 @@ int main(int argc, char **argv)
         ConfRegisterTests();
         TmqhFlowRegisterTests();
         FlowRegisterTests();
+        SCSigRegisterSignatureOrderingTests();
         uint32_t failed = UtRunTests();
         UtCleanup();
         if (failed) exit(EXIT_FAILURE);
