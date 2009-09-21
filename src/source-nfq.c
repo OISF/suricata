@@ -467,13 +467,19 @@ int DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     PerfCounterSetUI64(dtv->counter_max_pkt_size, tv->pca, p->pktlen);
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
+#ifdef DEBUG
         printf("DecodeNFQ ip4\n");
+#endif
         DecodeIPV4(tv, dtv, p, p->pkt, p->pktlen, pq);
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
+#ifdef DEBUG
         printf("DecodeNFQ ip6\n");
+#endif
         DecodeIPV6(tv, dtv, p, p->pkt, p->pktlen, pq);
     } else {
+#ifdef DEBUG
         printf("DecodeNFQ %02x\n", *p->pkt);
+#endif
     }
 
     return 0;
