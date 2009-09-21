@@ -54,8 +54,9 @@ void StreamMsgQueuesDeinit(char);
 StreamMsg *StreamMsgGetFromPool(void);
 void StreamMsgReturnToPool(StreamMsg *);
 StreamMsg *StreamMsgGetFromQueue(StreamMsgQueue *);
-void StreamMsgPutInQueue(StreamMsg *);
+void StreamMsgPutInQueue(StreamMsgQueue *, StreamMsg *);
 
+StreamMsgQueue *StreamMsgQueueGetNew(void);
 StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t);
 
 void StreamMsgQueueSetMinInitChunkLen(uint8_t, uint16_t);

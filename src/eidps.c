@@ -461,7 +461,7 @@ int main(int argc, char **argv)
     StreamTcpInitConfig(STREAM_VERBOSE);
 
     /* Spawn the L7 App Detect thread */
-    AppLayerDetectProtoThreadSpawn();
+    //AppLayerDetectProtoThreadSpawn();
 
     /* Spawn the perf counter threads.  Let these be the last one spawned */
     PerfSpawnThreads();

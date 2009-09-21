@@ -8,6 +8,8 @@
 #ifndef __STREAM_TCP_REASSEMBLE_H__
 #define __STREAM_TCP_REASSEMBLE_H__
 
+#include "stream.h"
+
 /** Supported OS list and default OS policy is BSD */
 enum
 {
@@ -27,12 +29,19 @@ enum
     OS_POLICY_LAST
 };
 
+typedef struct TcpReassemblyThreadCtx_ {
+    StreamMsgQueue *stream_q;
+} TcpReassemblyThreadCtx;
+
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
 
-int StreamTcpReassembleHandleSegment(TcpSession *, TcpStream *, Packet *);
+int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *);
 int StreamTcpReassembleInit(char);
 void StreamTcpReassembleFree(char);
 void StreamTcpReassembleRegisterTests(void);
+
+TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void);
+
 void StreamTcpCreateTestPacket(u_int8_t *, u_int8_t, u_int8_t);
 
 void StreamL7DataPtrInit(TcpSession *ssn, uint8_t cnt);

@@ -130,10 +130,8 @@ StreamMsg *StreamMsgGetFromQueue(StreamMsgQueue *q)
 }
 
 /* Used by stream reassembler to fill the queue for l7inspect reading */
-void StreamMsgPutInQueue(StreamMsg *s)
+void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
 {
-    StreamMsgQueue *q = &stream_q;
-
     mutex_lock(&q->mutex_q);
     StreamMsgEnqueue(q, s);
 #ifdef DEBUG
@@ -158,6 +156,18 @@ void StreamMsgQueuesDeinit(char quiet) {
 
     if (quiet == FALSE)
         printf("StreamMsgQueuesDeinit: stream_pool_memuse %"PRIu64", stream_pool_memcnt %"PRIu64"\n", stream_pool_memuse, stream_pool_memcnt);
+}
+
+/** \brief alloc a stream msg queue
+ *  \retval smq ptr to the queue or NULL */
+StreamMsgQueue *StreamMsgQueueGetNew(void) {
+    StreamMsgQueue *smq = malloc(sizeof(StreamMsgQueue));
+    if (smq == NULL) {
+        return NULL;
+    }
+
+    memset(smq, 0x00, sizeof(StreamMsgQueue));
+    return smq;
 }
 
 StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {
