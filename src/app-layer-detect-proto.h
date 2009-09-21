@@ -3,7 +3,7 @@
 
 #include "stream.h"
 
-int AppLayerHandleMsg(StreamMsg *smsg);
+int AppLayerHandleMsg(StreamMsg *smsg, char);
 void *AppLayerDetectProtoThread(void *td);
 
 void AppLayerDetectProtoThreadInit(void);

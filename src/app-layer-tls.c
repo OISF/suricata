@@ -151,7 +151,7 @@ static int TLSParserTest01(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
 
-    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER|STREAM_EOF, tlsbuf, tlslen);
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER|STREAM_EOF, tlsbuf, tlslen, FALSE);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -195,14 +195,14 @@ static int TLSParserTest02(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
 
-    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1);
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1, FALSE);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf2, tlslen2);
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf2, tlslen2, FALSE);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -248,21 +248,21 @@ static int TLSParserTest03(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
 
-    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1);
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1, FALSE);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf2, tlslen2);
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf2, tlslen2, FALSE);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf3, tlslen3);
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf3, tlslen3, FALSE);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -310,28 +310,28 @@ static int TLSParserTest04(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
 
-    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1);
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1, FALSE);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf2, tlslen2);
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf2, tlslen2, FALSE);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf3, tlslen3);
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf3, tlslen3, FALSE);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf4, tlslen4);
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf4, tlslen4, FALSE);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;

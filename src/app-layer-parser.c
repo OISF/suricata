@@ -493,11 +493,12 @@ static int AppLayerDoParse(void *app_layer_state, AppLayerParserState *parser_st
  * \param flags Stream flags
  * \param input Input L7 data
  * \param input_len Length of the input data.
+ * \param need_lock bool controlling locking for the flow
  *
  * \retval -1 error
  * \retval 0 ok
  */
-int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_t input_len) {
+int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_t input_len, char need_lock) {
     //printf("AppLayerParse: proto %" PRIu32 ", flags %02X\n", proto, flags);
     //PrintRawDataFp(stdout, input,input_len);
 
@@ -517,9 +518,9 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
         if (parser_state_store == NULL)
             return -1;
 
-        //mutex_lock(&f->m);
+        if (need_lock == TRUE) mutex_lock(&f->m);
         ssn->aldata[app_layer_sid] = (void *)parser_state_store;
-        //mutex_unlock(&f->m);
+        if (need_lock == TRUE) mutex_unlock(&f->m);
     }
 
     AppLayerParserState *parser_state = NULL;
@@ -563,9 +564,9 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
         if (app_layer_state == NULL)
             return -1;
 
-        //mutex_lock(&f->m);
+        if (need_lock == TRUE) mutex_lock(&f->m);
         ssn->aldata[p->storage_id] = app_layer_state;
-        //mutex_unlock(&f->m);
+        if (need_lock == TRUE) mutex_unlock(&f->m);
     }
 
     /* invoke the recursive parser */

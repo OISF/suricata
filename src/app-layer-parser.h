@@ -80,7 +80,7 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags, int (*AppLay
 int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id, int (*AppLayerParser)(void *protocol_state, AppLayerParserState *parser_state, uint8_t *input, uint32_t input_len, AppLayerParserResult *output), char *dependency);
 void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void), void (*StateFree)(void *));
 
-int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_t input_len);
+int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_t input_len, char);
 
 int AlpParseFieldBySize(AppLayerParserResult *, AppLayerParserState *, uint16_t, uint32_t, uint8_t *, uint32_t, uint32_t *);
 int AlpParseFieldByEOF(AppLayerParserResult *, AppLayerParserState *, uint16_t, uint8_t *, uint32_t);

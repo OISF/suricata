@@ -1272,17 +1272,15 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx, TcpSession 
     }
 
     /* Handle smsgs */
-    if (ra_ctx != NULL && ra_ctx->stream_q) {
-        printf("StreamTcpReassembleHandleSegment: ra_ctx %p, %u\n", ra_ctx, ra_ctx->stream_q->len);
-
+    if (ra_ctx != NULL && ra_ctx->stream_q && ra_ctx->stream_q->len > 0) {
         StreamMsg *smsg = NULL;
-        while (ra_ctx->stream_q->len > 0) {
+        do {
             smsg = StreamMsgGetFromQueue(ra_ctx->stream_q);
-            if (smsg != NULL) {
-                printf("ra_ctx %p, smsg %p, %u\n", ra_ctx, smsg, ra_ctx->stream_q->len);
-                AppLayerHandleMsg(smsg);
-            }
-        }
+            if (smsg == NULL)
+                break;
+
+            AppLayerHandleMsg(smsg, FALSE); /**< no need to use locking */
+        } while (ra_ctx->stream_q->len > 0);
     }
 
     return 0;
