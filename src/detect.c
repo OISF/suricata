@@ -498,17 +498,35 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 }
 
 /* tm module api functions */
-int Detect(ThreadVars *t, Packet *p, void *data, PacketQueue *pq) {
-    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
-    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
 
-    int r = SigMatchSignatures(t,de_ctx,det_ctx,p);
+/** \brief Detection engine thread wrapper.
+ *  \param tv thread vars
+ *  \param p packet to inspect
+ *  \param data thread specific data
+ *  \param pq packet queue
+ *  \retval 1 error
+ *  \retval 0 ok
+ */
+int Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
+    if (det_ctx == NULL) {
+        printf("ERROR: Detect has no thread ctx\n");
+        goto error;
+    }
+
+    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+    if (de_ctx == NULL) {
+        printf("ERROR: Detect has no detection engine ctx\n");
+        goto error;
+    }
+
+    /* see if the packet matches one or more of the sigs */
+    int r = SigMatchSignatures(tv,de_ctx,det_ctx,p);
     if (r >= 0) {
         return 0;
     }
 
-    // PerfCounterIncr(det_ctx->counter_alerts, t->pca);
-
+error:
     return 1;
 }
 
