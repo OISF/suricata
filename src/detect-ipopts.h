@@ -10,16 +10,38 @@
 #include "decode-events.h"
 #include "decode-ipv4.h"
 
+/**
+ * \struct DetectIpOptsData_
+ * DetectIpOptsData_ is used to store ipopts: input value
+ */
+
+/**
+ * \typedef DetectIpOptsData
+ * A typedef for DetectIpOptsData_
+ */
+
 typedef struct DetectIpOptsData_ {
     uint8_t ipopt;  /**< Ip option */
 } DetectIpOptsData;
 
-/* prototypes */
+/**
+ * Registration function for ipopts: keyword
+ */
+
 void DetectIpOptsRegister (void);
 
 #ifdef DETECT_EVENTS
 
+/**
+ * Used to check ipopts:any
+ */
+
 #define IPV4_OPT_ANY    0xff
+
+/**
+ * \struct DetectIpOptss_
+ * DetectIpOptss_ is used to store supported iptops values
+ */
 
 struct DetectIpOptss_ {
     char *ipopt_name;   /**< Ip option name */

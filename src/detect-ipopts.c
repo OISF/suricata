@@ -25,7 +25,7 @@ static pcre_extra *parse_regex_study;
 int DetectIpOptsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectIpOptsSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 void IpOptsRegisterTests(void);
-
+void DetectIpOptsFree(void *);
 
 /**
  * \brief Registration function for ipopts: keyword
@@ -34,7 +34,7 @@ void DetectIpOptsRegister (void) {
     sigmatch_table[DETECT_IPOPTS].name = "ipopts";
     sigmatch_table[DETECT_IPOPTS].Match = DetectIpOptsMatch;
     sigmatch_table[DETECT_IPOPTS].Setup = DetectIpOptsSetup;
-    sigmatch_table[DETECT_IPOPTS].Free  = NULL;
+    sigmatch_table[DETECT_IPOPTS].Free  = DetectIpOptsFree;
     sigmatch_table[DETECT_IPOPTS].RegisterTests = IpOptsRegisterTests;
 
     const char *eb;
@@ -62,6 +62,7 @@ error:
 }
 
 /**
+ * \internal
  * \brief This function is used to match ip option on a packet with those passed via ipopts:
  *
  * \param t pointer to thread vars
@@ -82,55 +83,28 @@ int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     if(!de || !PKT_IS_IPV4(p) || !p)
         return ret;
 
+    /* IPV4_OPT_ANY matches on any options */
+
+    if (p->IPV4_OPTS_CNT && (de->ipopt == IPV4_OPT_ANY)) {
+        return 1;
+    }
+
+    /* Loop through instead of using o_xxx direct access fields so that
+     * future options do not require any modification here.
+     */
+
     while(ipopt < p->IPV4_OPTS_CNT) {
-
-        switch(de->ipopt)   {
-            case IPV4_OPT_RR:
-                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_RR)
-                    return 1;
-                break;
-            case IPV4_OPT_LSRR:
-                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_LSRR)
-                    return 1;
-                break;
-            case IPV4_OPT_EOL:
-                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_EOL)
-                    return 1;
-                break;
-            case IPV4_OPT_NOP:
-                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_NOP)
-                    return 1;
-                break;
-            case IPV4_OPT_TS:
-                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_TS)
-                    return 1;
-                break;
-            case IPV4_OPT_SEC:
-                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_SEC)
-                    return 1;
-                break;
-            case IPV4_OPT_SSRR:
-                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_SSRR)
-                    return 1;
-                break;
-            case IPV4_OPT_SID:
-                if(p->IPV4_OPTS[ipopt].type == IPV4_OPT_SID)
-                    return 1;
-                break;
-            case IPV4_OPT_ANY:
-                return 1;
-            default:
-                return ret;
+        if (p->IPV4_OPTS[ipopt].type == de->ipopt) {
+            return 1;
         }
-
         ipopt++;
-
     }
 
     return ret;
 }
 
 /**
+ * \internal
  * \brief This function is used to parse ipopts options passed via ipopts: keyword
  *
  * \param rawstr Pointer to the user provided ipopts options
@@ -152,7 +126,7 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
     }
 
     for(i = 0; DIpOpts[i].ipopt_name != NULL; i++)  {
-        if((strncasecmp(DIpOpts[i].ipopt_name,rawstr,strlen(DIpOpts[i].ipopt_name))) == 0) {
+        if((strcasecmp(DIpOpts[i].ipopt_name,rawstr)) == 0) {
             found = 1;
             break;
         }
@@ -177,6 +151,7 @@ error:
 }
 
 /**
+ * \internal
  * \brief this function is used to add the parsed ipopts into the current signature
  *
  * \param de_ctx pointer to the Detection Engine Context
@@ -213,11 +188,13 @@ error:
 }
 
 /**
+ * \internal
  * \brief this function will free memory associated with DetectIpOptsData
  *
  * \param de pointer to DetectIpOptsData
  */
-void DetectIpOptsFree(DetectIpOptsData *de) {
+void DetectIpOptsFree(void *de_ptr) {
+    DetectIpOptsData *de = (DetectIpOptsData *)de_ptr;
     if(de) free(de);
 }
 
