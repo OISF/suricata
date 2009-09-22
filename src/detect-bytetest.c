@@ -202,7 +202,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     int ov[MAX_SUBSTRINGS];
     int i;
     uint32_t nbytes;
-    const char *str_ptr;
+    const char *str_ptr = NULL;
 
     /* Execute the regex and populate args with captures. */
     ret = pcre_exec(parse_regex, parse_regex_study, optstr,
