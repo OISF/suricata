@@ -5949,7 +5949,7 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     DecodeThreadVars dtv;
 
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
@@ -6061,7 +6061,7 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
     DecodeThreadVars dtv;
 
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
