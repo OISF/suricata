@@ -556,9 +556,10 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
 
     /* See if we already have a 'app layer' state */
     void *app_layer_state = NULL;
-    mutex_lock(&f->m);
+    if (need_lock == TRUE) mutex_lock(&f->m);
     app_layer_state = ssn->aldata[p->storage_id];
-    mutex_unlock(&f->m);
+    if (need_lock == TRUE) mutex_unlock(&f->m);
+
     if (app_layer_state == NULL) {
         app_layer_state = p->StateAlloc();
         if (app_layer_state == NULL)

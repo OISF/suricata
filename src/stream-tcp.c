@@ -1670,18 +1670,6 @@ int StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     if (p->flow == NULL)
         return 0;
 
-#if 0
-    printf("StreamTcp: seq %" PRIu32 ", ack %" PRIu32 ", %s%s%s%s%s%s%s%s: ", TCP_GET_SEQ(p), TCP_GET_ACK(p),
-        TCP_ISSET_FLAG_FIN(p) ? "FIN " :"",
-        TCP_ISSET_FLAG_SYN(p) ? "SYN " :"",
-        TCP_ISSET_FLAG_RST(p) ? "RST " :"",
-        TCP_ISSET_FLAG_PUSH(p)? "PUSH ":"",
-        TCP_ISSET_FLAG_ACK(p) ? "ACK " :"",
-        TCP_ISSET_FLAG_URG(p) ? "URG " :"",
-        TCP_ISSET_FLAG_RES2(p)? "RES2 ":"",
-        TCP_ISSET_FLAG_RES1(p)? "RES1 ":"");
-#endif
-
     mutex_lock(&p->flow->m);
     StreamTcpPacket(tv, p, stt);
     mutex_unlock(&p->flow->m);
