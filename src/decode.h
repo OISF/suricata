@@ -425,13 +425,6 @@ Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, ui
 #define DECODER_SET_EVENT(p, e)   ((p)->events[(e/8)] |= (1<<(e%8)))
 #define DECODER_ISSET_EVENT(p, e) ((p)->events[(e/8)] & (1<<(e%8)))
 
-/* libpcap shows us the way to linktype codes
- * XXX we need more & maybe put them in a separate
- * file? */
-#define LINKTYPE_ETHERNET   DLT_EN10MB
-#define LINKTYPE_LINUX_SLL  113
-#define LINKTYPE_PPP	9
-#define PPP_OVER_GRE    11
 
 /* older libcs don't contain a def for IPPROTO_DCCP
  * inside of <netinet/in.h>
@@ -454,6 +447,14 @@ Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, ui
 #define DLT_RAW     12  /* raw IP */
 #endif
 #endif
+
+/** libpcap shows us the way to linktype codes
+ * \todo we need more & maybe put them in a separate file? */
+#define LINKTYPE_ETHERNET   DLT_EN10MB
+#define LINKTYPE_LINUX_SLL  113
+#define LINKTYPE_PPP        9
+
+#define PPP_OVER_GRE        11
 
 #endif /* __DECODE_H__ */
 

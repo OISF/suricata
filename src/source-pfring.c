@@ -171,7 +171,7 @@ int ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
         PfringProcessPacket(ptv, &hdr, buffer,p);
     }else{
         printf("RecievePfring: pfring_recv error  %" PRId32 "\n", r);
-        return -1;
+        return 1;
     }
 
     return 0;
