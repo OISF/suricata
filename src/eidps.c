@@ -46,6 +46,8 @@
 #include "source-pcap.h"
 #include "source-pcap-file.h"
 
+#include "source-pfring.h"
+
 #include "respond-reject.h"
 
 #include "flow.h"
@@ -85,6 +87,7 @@ enum {
     MODE_UNKNOWN = 0,
     MODE_PCAP_DEV,
     MODE_PCAP_FILE,
+    MODE_PFRING,
     MODE_NFQ,
     MODE_UNITTEST
 };
@@ -238,6 +241,7 @@ int main(int argc, char **argv)
     int mode = MODE_UNKNOWN;
     char *pcap_file = NULL;
     char *pcap_dev = NULL;
+    char *pfring_dev = NULL;
     char *sig_file = NULL;
     int nfq_id = 0;
     char *conf_filename = NULL;
@@ -253,14 +257,33 @@ int main(int argc, char **argv)
 
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
+        {"pfring-int",  required_argument, 0, 0},
+        {"pfring-clusterid",  required_argument, 0, 0},
         {NULL, 0, NULL, 0}
     };
+
+    /* getopt_long stores the option index here. */
+    int option_index = 0;
+
     char short_opts[] = "c:hi:l:q:r:us:";
 
-    while ((opt = getopt_long(argc, argv, short_opts, long_opts, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
         case 0:
-            /* Long opt handler. */
+            if(strcmp((long_opts[option_index]).name , "pfring-int") == 0){
+                mode = MODE_PFRING;
+                if (ConfSet("pfring.interface", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set pfring interface.\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else if(strcmp((long_opts[option_index]).name , "pfring-clusterid") == 0){
+                printf ("clusterid %s\n",optarg);
+                if (ConfSet("pfring.clusterid", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set pfring clusterid.\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
             break;
         case 'c':
             conf_filename = optarg;
@@ -350,6 +373,8 @@ int main(int argc, char **argv)
     TmModuleDecodeNFQRegister();
     TmModuleReceivePcapRegister();
     TmModuleDecodePcapRegister();
+    TmModuleReceivePfringRegister();
+    TmModuleDecodePfringRegister();
     TmModuleReceivePcapFileRegister();
     TmModuleDecodePcapFileRegister();
     TmModuleDetectRegister();
@@ -446,6 +471,11 @@ int main(int argc, char **argv)
     else if (mode == MODE_PCAP_FILE) {
         RunModeFilePcap(de_ctx, pcap_file);
         //RunModeFilePcap2(de_ctx, pcap_file);
+    }
+    else if (mode == MODE_PFRING) {
+       //RunModeIdsPfring(de_ctx, pfring_dev);
+       RunModeIdsPfring2(de_ctx, pfring_dev);
+       //RunModeIdsPfring3(de_ctx, pfring_dev);
     }
     else if (mode == MODE_NFQ) {
         RunModeIpsNFQ(de_ctx);

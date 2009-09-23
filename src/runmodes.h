@@ -10,5 +10,9 @@ int RunModeIpsNFQ(DetectEngineCtx *);
 int RunModeFilePcap(DetectEngineCtx *, char *);
 int RunModeFilePcap2(DetectEngineCtx *, char *);
 
+int RunModeIdsPfring(DetectEngineCtx *, char *);
+int RunModeIdsPfring2(DetectEngineCtx *, char *);
+int RunModeIdsPfring3(DetectEngineCtx *, char *);
+
 #endif /* __RUNMODES_H__ */
 

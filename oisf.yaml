@@ -45,3 +45,15 @@ logging:
   - interface: syslog
     facility: local5
     format: "%l"
+
+# PF_RING configuration. for use with native PF_RING support
+# for more info see http://www.ntop.org/PF_RING.html
+pfring:
+
+  # Default interface we will listen on.
+  interface: eth0
+
+  # Default clusterid.  PR_RING will load balance packets based on flow.
+  # All threads/processes that will participate need to have the same
+  # clusterid.
+  clusterid: 99

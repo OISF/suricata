@@ -12,6 +12,9 @@
 #include "eidps-common.h"
 #include "packet-queue.h"
 
+/* the name of our binary */
+#define PROG_NAME "eidps"
+
 /* max packets processed simultaniously */
 #define MAX_PENDING 50
 
