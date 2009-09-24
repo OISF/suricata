@@ -1657,6 +1657,8 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
         }
     }
 
+    /* Process stream smsgs we may have in queue */
+    StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
     return 0;
 }
 

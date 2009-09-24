@@ -41,6 +41,7 @@ void StreamTcpReassembleFree(char);
 void StreamTcpReassembleRegisterTests(void);
 
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void);
+int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *);
 
 void StreamTcpCreateTestPacket(u_int8_t *, u_int8_t, u_int8_t);
 

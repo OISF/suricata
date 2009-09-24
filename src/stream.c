@@ -8,11 +8,13 @@
 
 #include "util-pool.h"
 
+//#define DEBUG
+
 static pthread_mutex_t stream_pool_memuse_mutex;
 static uint64_t stream_pool_memuse = 0;
 static uint64_t stream_pool_memcnt = 0;
 
-static StreamMsgQueue stream_q;
+//static StreamMsgQueue stream_q;
 
 /* per queue setting */
 static uint16_t toserver_min_init_chunk_len = 0;
@@ -143,7 +145,7 @@ void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
 
 void StreamMsgQueuesInit(void) {
     pthread_mutex_init(&stream_pool_memuse_mutex, NULL);
-    memset(&stream_q, 0, sizeof(stream_q));
+    //memset(&stream_q, 0, sizeof(stream_q));
 
     stream_msg_pool = PoolInit(5000,250,StreamMsgAlloc,NULL,StreamMsgFree);
     if (stream_msg_pool == NULL)
@@ -170,14 +172,22 @@ StreamMsgQueue *StreamMsgQueueGetNew(void) {
     return smq;
 }
 
+/** \brief Free a StreamMsgQueue
+ *  \param q the queue to free
+ *  \todo we may want to consider non empty queue's
+ */
+void StreamMsgQueueFree(StreamMsgQueue *q) {
+    free(q);
+}
+
 StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {
     /* XXX implement this */
-    return &stream_q;
+    return NULL;//&stream_q;
 }
 
 /* XXX hack */
 void StreamMsgSignalQueueHack(void) {
-    pthread_cond_signal(&stream_q.cond_q);
+    //pthread_cond_signal(&stream_q.cond_q);
 }
 
 void StreamMsgQueueSetMinInitChunkLen(uint8_t dir, uint16_t len) {
