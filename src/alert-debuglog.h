@@ -6,6 +6,7 @@
 void TmModuleAlertDebuglogRegister (void);
 void TmModuleAlertDebuglogIPv4Register (void);
 void TmModuleAlertDebuglogIPv6Register (void);
+LogFileCtx *AlertDebuglogInitCtx(char *);
 
 #endif /* __ALERT_DEBUGLOG_H__ */
 

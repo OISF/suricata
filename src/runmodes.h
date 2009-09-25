@@ -1,14 +1,14 @@
 #ifndef __RUNMODES_H__
 #define __RUNMODES_H__
 
-int RunModeIdsPcap(DetectEngineCtx *, char *);
-int RunModeIdsPcap2(DetectEngineCtx *, char *);
-int RunModeIdsPcap3(DetectEngineCtx *, char *);
+int RunModeIdsPcap(DetectEngineCtx *, char *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *);
+int RunModeIdsPcap2(DetectEngineCtx *, char *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *);
+int RunModeIdsPcap3(DetectEngineCtx *, char *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *);
 
-int RunModeIpsNFQ(DetectEngineCtx *);
+int RunModeIpsNFQ(DetectEngineCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *);
 
-int RunModeFilePcap(DetectEngineCtx *, char *);
-int RunModeFilePcap2(DetectEngineCtx *, char *);
+int RunModeFilePcap(DetectEngineCtx *, char *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *);
+int RunModeFilePcap2(DetectEngineCtx *, char *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *);
 
 int RunModeIdsPfring(DetectEngineCtx *, char *);
 int RunModeIdsPfring2(DetectEngineCtx *, char *);

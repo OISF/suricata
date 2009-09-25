@@ -28,6 +28,7 @@ int LogHttplogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 int LogHttplogThreadInit(ThreadVars *, void *, void **);
 int LogHttplogThreadDeinit(ThreadVars *, void *);
 void LogHttplogExitPrintStats(ThreadVars *, void *);
+int LogHttplogOpenFileCtx(LogFileCtx* , char *);
 
 void TmModuleLogHttplogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].name = "LogHttplog";
@@ -57,7 +58,8 @@ void TmModuleLogHttplogIPv6Register (void) {
 }
 
 typedef struct LogHttplogThread_ {
-    FILE *fp;
+    LogFileCtx *file_ctx;
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t uri_cnt;
 } LogHttplogThread;
 
@@ -91,23 +93,25 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
     inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
+    mutex_lock(&aft->file_ctx->fp_mutex);
     for (i = 0; i < p->http_uri.cnt; i++) {
         /* time */
-        fprintf(aft->fp, "%s ", timebuf);
+        fprintf(aft->file_ctx->fp, "%s ", timebuf);
         /* hostname */
-        if (pv_hn != NULL) PrintRawUriFp(aft->fp, pv_hn->value, pv_hn->value_len);
-        else fprintf(aft->fp, "<hostname unknown>");
-        fprintf(aft->fp, " [**] ");
+        if (pv_hn != NULL) PrintRawUriFp(aft->file_ctx->fp, pv_hn->value, pv_hn->value_len);
+        else fprintf(aft->file_ctx->fp, "<hostname unknown>");
+        fprintf(aft->file_ctx->fp, " [**] ");
         /* uri */
-        PrintRawUriFp(aft->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
-        fprintf(aft->fp, " [**] ");
+        PrintRawUriFp(aft->file_ctx->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
+        fprintf(aft->file_ctx->fp, " [**] ");
         /* user agent */
-        if (pv_ua != NULL) PrintRawUriFp(aft->fp, pv_ua->value, pv_ua->value_len);
-        else fprintf(aft->fp, "<useragent unknown>");
+        if (pv_ua != NULL) PrintRawUriFp(aft->file_ctx->fp, pv_ua->value, pv_ua->value_len);
+        else fprintf(aft->file_ctx->fp, "<useragent unknown>");
         /* ip/tcp header info */
-        fprintf(aft->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
+        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
     }
-    fflush(aft->fp);
+    fflush(aft->file_ctx->fp);
+    mutex_unlock(&aft->file_ctx->fp_mutex);
 
     aft->uri_cnt += p->http_uri.cnt;
     return 0;
@@ -132,23 +136,25 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
     inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
+    mutex_lock(&aft->file_ctx->fp_mutex);
     for (i = 0; i < p->http_uri.cnt; i++) {
         /* time */
-        fprintf(aft->fp, "%s ", timebuf);
+        fprintf(aft->file_ctx->fp, "%s ", timebuf);
         /* hostname */
-        if (pv_hn != NULL) PrintRawUriFp(aft->fp, pv_hn->value, pv_hn->value_len);
-        else fprintf(aft->fp, "<hostname unknown>");
-        fprintf(aft->fp, " [**] ");
+        if (pv_hn != NULL) PrintRawUriFp(aft->file_ctx->fp, pv_hn->value, pv_hn->value_len);
+        else fprintf(aft->file_ctx->fp, "<hostname unknown>");
+        fprintf(aft->file_ctx->fp, " [**] ");
         /* uri */
-        PrintRawUriFp(aft->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
-        fprintf(aft->fp, " [**] ");
+        PrintRawUriFp(aft->file_ctx->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
+        fprintf(aft->file_ctx->fp, " [**] ");
         /* user agent */
-        if (pv_ua != NULL) PrintRawUriFp(aft->fp, pv_ua->value, pv_ua->value_len);
-        else fprintf(aft->fp, "<useragent unknown>");
+        if (pv_ua != NULL) PrintRawUriFp(aft->file_ctx->fp, pv_ua->value, pv_ua->value_len);
+        else fprintf(aft->file_ctx->fp, "<useragent unknown>");
         /* ip/tcp header info */
-        fprintf(aft->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
+        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
     }
-    fflush(aft->fp);
+    fflush(aft->file_ctx->fp);
+    mutex_unlock(&aft->file_ctx->fp_mutex);
 
     aft->uri_cnt += p->http_uri.cnt;
     return 0;
@@ -176,15 +182,13 @@ int LogHttplogThreadInit(ThreadVars *t, void *initdata, void **data)
     }
     memset(aft, 0, sizeof(LogHttplogThread));
 
-    char log_path[PATH_MAX], *log_dir;
-    if (ConfGet("default-log-dir", &log_dir) != 1)
-        log_dir = DEFAULT_LOG_DIR;
-    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
-    aft->fp = fopen(log_path, "w");
-    if (aft->fp == NULL) {
-        printf("ERROR: failed to open %s: %s\n", log_path, strerror(errno));
+    if(initdata == NULL)
+    {
+        printf("Error getting context for the file\n");
         return -1;
     }
+    /** Use the Ouptut Context (file pointer and mutex) */
+    aft->file_ctx=(LogFileCtx*) initdata;
 
     *data = (void *)aft;
     return 0;
@@ -196,9 +200,6 @@ int LogHttplogThreadDeinit(ThreadVars *t, void *data)
     if (aft == NULL) {
         return 0;
     }
-
-    if (aft->fp != NULL)
-        fclose(aft->fp);
 
     /* clear memory */
     memset(aft, 0, sizeof(LogHttplogThread));
@@ -215,4 +216,67 @@ void LogHttplogExitPrintStats(ThreadVars *tv, void *data) {
 
     SCLogInfo("(%s) HTTP requests %" PRIu32 "", tv->name, aft->uri_cnt);
 }
+
+/** \brief Create a new file_ctx from config_file (if specified)
+ *  \param config_file for loading separate configs
+ *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
+ * */
+LogFileCtx *LogHttplogInitCtx(char *config_file)
+{
+    int ret=0;
+    LogFileCtx* file_ctx=LogFileNewCtx();
+
+    if(file_ctx == NULL)
+    {
+        printf("LogHttplogInitCtx: Couldn't create new file_ctx\n");
+        return NULL;
+    }
+
+    /** fill the new LogFileCtx with the specific LogHttplog configuration */
+    ret=LogHttplogOpenFileCtx(file_ctx, config_file);
+
+    if(ret < 0)
+        return NULL;
+
+    /** In LogHttplogOpenFileCtx the second parameter should be the configuration file to use
+    * but it's not implemented yet, so passing NULL to load the default
+    * configuration
+    */
+
+    return file_ctx;
+}
+
+/** \brief Read the config set the file pointer, open the file
+ *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
+ *  \param config_file for loading separate configs
+ *  \return -1 if failure, 0 if succesful
+ * */
+int LogHttplogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+{
+    if(config_file == NULL)
+    {
+        /** Separate config files not implemented at the moment,
+        * but it must be able to load from separate config file.
+        * Load the default configuration.
+        */
+
+        char log_path[PATH_MAX], *log_dir;
+        if (ConfGet("default-log-dir", &log_dir) != 1)
+            log_dir = DEFAULT_LOG_DIR;
+        snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
+
+        file_ctx->fp = fopen(log_path, "w");
+
+        if (file_ctx->fp == NULL) {
+            printf("ERROR: failed to open %s: %s\n", log_path, strerror(errno));
+            return -1;
+        }
+        if(file_ctx->config_file == NULL)
+            file_ctx->config_file = strdup("configfile.lh");
+            /** Remember the config file (or NULL if not indicated) */
+    }
+
+    return 0;
+}
+
 

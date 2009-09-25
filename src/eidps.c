@@ -464,6 +464,16 @@ int main(int argc, char **argv)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
+    /** Create file contexts for output modules */
+    /* ascii */
+    LogFileCtx *af_logfile_ctx = AlertFastlogInitCtx(NULL);
+    LogFileCtx *ad_logfile_ctx = AlertDebuglogInitCtx(NULL);
+    LogFileCtx *lh_logfile_ctx = LogHttplogInitCtx(NULL);
+    /* unified */
+    LogFileCtx *aul_logfile_ctx = AlertUnifiedLogInitCtx(NULL);
+    LogFileCtx *aua_logfile_ctx = AlertUnifiedAlertInitCtx(NULL);
+    LogFileCtx *au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
+
     if (SigLoadSignatures(de_ctx, sig_file) < 0) {
         printf("ERROR: loading signatures failed.\n");
         exit(EXIT_FAILURE);
@@ -474,13 +484,13 @@ int main(int argc, char **argv)
     gettimeofday(&start_time, NULL);
 
     if (mode == MODE_PCAP_DEV) {
-        //RunModeIdsPcap3(de_ctx, pcap_dev);
-        RunModeIdsPcap2(de_ctx, pcap_dev);
-        //RunModeIdsPcap(de_ctx, pcap_dev);
+        //RunModeIdsPcap3(de_ctx, pcap_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
+        RunModeIdsPcap2(de_ctx, pcap_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
+        //RunModeIdsPcap(de_ctx, pcap_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
     }
     else if (mode == MODE_PCAP_FILE) {
-        RunModeFilePcap(de_ctx, pcap_file);
-        //RunModeFilePcap2(de_ctx, pcap_file);
+        RunModeFilePcap(de_ctx, pcap_file, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
+        //RunModeFilePcap2(de_ctx, pcap_file, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
     }
     else if (mode == MODE_PFRING) {
        //RunModeIdsPfring(de_ctx, pfring_dev);
@@ -488,7 +498,7 @@ int main(int argc, char **argv)
        //RunModeIdsPfring3(de_ctx, pfring_dev);
     }
     else if (mode == MODE_NFQ) {
-        RunModeIpsNFQ(de_ctx);
+        RunModeIpsNFQ(de_ctx, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
     }
     else {
         printf("ERROR: Unknown runtime mode.\n");
@@ -573,6 +583,14 @@ int main(int argc, char **argv)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
+
+    /** Destroy file contexts for output modules */
+    LogFileFreeCtx(af_logfile_ctx);
+    LogFileFreeCtx(lh_logfile_ctx);
+    LogFileFreeCtx(ad_logfile_ctx);
+    LogFileFreeCtx(aul_logfile_ctx);
+    LogFileFreeCtx(aua_logfile_ctx);
+    LogFileFreeCtx(au2a_logfile_ctx);
 
     exit(EXIT_SUCCESS);
 }

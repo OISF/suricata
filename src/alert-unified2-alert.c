@@ -10,6 +10,7 @@
 #include "flow.h"
 #include "conf.h"
 
+#include "threads.h"
 #include "threadvars.h"
 #include "tm-modules.h"
 
@@ -27,6 +28,7 @@ int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
 int Unified2IPv6TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
 int Unified2PacketTypeAlert(ThreadVars *, Packet *, void *);
 void Unified2RegisterTests();
+int Unified2AlertOpenFileCtx(LogFileCtx *, char *);
 
 /**
  * Unified2 thread vars
@@ -34,7 +36,7 @@ void Unified2RegisterTests();
  * Used for storing file options.
  */
 typedef struct Unified2AlertThread_ {
-    FILE *fp;               /**< file pointer */
+    LogFileCtx *file_ctx;   /** LogFileCtx pointer */
     uint32_t size_limit;    /**< file size limit */
     uint32_t size_current;  /**< file current size */
 } Unified2AlertThread;
@@ -162,8 +164,8 @@ int Unified2AlertCreateFile(ThreadVars *t, Unified2AlertThread *aun) {
  */
 
 int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
-    if (aun->fp != NULL)
-        fclose(aun->fp);
+    if (aun->file_ctx->fp != NULL)
+        fclose(aun->file_ctx->fp);
 
     return 0;
 }
@@ -182,24 +184,12 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
         printf("Error: Unified2AlertCloseFile failed\n");
         return -1;
     }
-    if (Unified2AlertCreateFile(t, aun) < 0) {
-        printf("Error: AlertUnified2CreateFile failed\n");
+    if (Unified2AlertOpenFileCtx(aun->file_ctx,aun->file_ctx->config_file) < 0) {
+        printf("Error: Unified2AlertOpenFileCtx, open new log file failed\n");
         return -1;
     }
-
     return 0;
 }
-
-/**
- *  \brief Function to create unified2 file
- *
- *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
- *  \param p Packet struct used to decide for ipv4 or ipv6
- *  \param data Unified2 thread data.
- *  \param pq Packet queue
- *  \retval 0 on succces
- *  \retval -1 on failure
- */
 
 int Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
@@ -249,10 +239,15 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
 
     memcpy(write_buffer,&hdr,sizeof(Unified2AlertFileHeader));
 
+    mutex_lock(&aun->file_ctx->fp_mutex);
     if ((aun->size_current + (sizeof(hdr) + sizeof(phdr))) > aun->size_limit) {
         if (Unified2AlertRotateFile(t,aun) < 0)
+        {
+            mutex_unlock(&aun->file_ctx->fp_mutex);
             return -1;
+        }
     }
+    mutex_unlock(&aun->file_ctx->fp_mutex);
 
     phdr.sensor_id = 0;
     phdr.linktype = htonl(p->datalink);
@@ -264,13 +259,13 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(Unified2Packet) - 4);
     memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) - 4 , p->pkt, p->pktlen);
 
-    ret = fwrite(write_buffer,len, 1, aun->fp);
+    ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
     if (ret != 1) {
         printf("Error: fwrite failed: %s\n", strerror(errno));
         return -1;
     }
 
-    fflush(aun->fp);
+    fflush(aun->file_ctx->fp);
     aun->size_current += len;
 
     return 0;
@@ -319,10 +314,15 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     }
 
     /* check and enforce the filesize limit */
+    mutex_lock(&aun->file_ctx->fp_mutex);
     if ((aun->size_current +(sizeof(hdr) +  sizeof(phdr))) > aun->size_limit) {
         if (Unified2AlertRotateFile(t,aun) < 0)
+        {
+            mutex_unlock(&aun->file_ctx->fp_mutex);
             return -1;
+        }
     }
+    mutex_unlock(&aun->file_ctx->fp_mutex);
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */
@@ -369,13 +369,13 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
 
-    ret = fwrite(write_buffer,len, 1, aun->fp);
+    ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
     if (ret != 1) {
         printf("Error: fwrite failed: %s\n", strerror(errno));
         return -1;
     }
 
-    fflush(aun->fp);
+    fflush(aun->file_ctx->fp);
     aun->size_current += len;
 
     Unified2PacketTypeAlert(t, p, data);
@@ -425,10 +425,15 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     }
 
     /* check and enforce the filesize limit */
+    mutex_lock(&aun->file_ctx->fp_mutex);
     if ((aun->size_current +(sizeof(hdr) +  sizeof(phdr))) > aun->size_limit) {
         if (Unified2AlertRotateFile(tv,aun) < 0)
+        {
+            mutex_unlock(&aun->file_ctx->fp_mutex);
             return -1;
+        }
     }
+    mutex_unlock(&aun->file_ctx->fp_mutex);
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */
@@ -475,13 +480,13 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
 
-    ret = fwrite(write_buffer,len, 1, aun->fp);
+    ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
     if (ret != 1) {
         printf("Error: fwrite failed: %s\n", strerror(errno));
         return -1;
     }
 
-    fflush(aun->fp);
+    fflush(aun->file_ctx->fp);
     aun->size_current += len;
 
     Unified2PacketTypeAlert(tv, p, data);
@@ -501,21 +506,18 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
 int Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    int ret;
-
     Unified2AlertThread *aun = malloc(sizeof(Unified2AlertThread));
     if (aun == NULL) {
         return -1;
     }
     memset(aun, 0, sizeof(Unified2AlertThread));
-
-    aun->fp = NULL;
-
-    ret = Unified2AlertCreateFile(t, aun);
-    if (ret != 0) {
-        printf("Error: AlertUnified2CreateFile failed.\n");
+    if(initdata == NULL)
+    {
+        printf("Error getting context for the file\n");
         return -1;
     }
+    /** Use the Ouptut Context (file pointer and mutex) */
+    aun->file_ctx = (LogFileCtx*) initdata;
 
     /* XXX make configurable */
     aun->size_limit = 10 * 1024 * 1024;
@@ -540,9 +542,6 @@ int Unified2AlertThreadDeinit(ThreadVars *t, void *data)
         goto error;
     }
 
-    if (Unified2AlertCloseFile(t, aun) < 0)
-        goto error;
-
     /* clear memory */
     memset(aun, 0, sizeof(Unified2AlertThread));
     free(aun);
@@ -556,6 +555,82 @@ error:
     }
     return -1;
 }
+
+/** \brief Create a new file_ctx from config_file (if specified)
+ *  \param config_file for loading separate configs
+ *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
+ * */
+LogFileCtx *Unified2AlertInitCtx(char *config_file)
+{
+    int ret=0;
+    LogFileCtx* file_ctx=LogFileNewCtx();
+
+    if(file_ctx == NULL)
+    {
+        printf("Unified2AlertInitCtx: Couldn't create new file_ctx\n");
+        return NULL;
+    }
+
+    /** fill the new LogFileCtx with the specific Unified2Alert configuration */
+    ret=Unified2AlertOpenFileCtx(file_ctx, config_file);
+
+    if(ret < 0)
+        return NULL;
+
+    /** In Unified2AlertOpenFileCtx the second parameter should be the configuration file to use
+    * but it's not implemented yet, so passing NULL to load the default
+    * configuration
+    */
+
+    return file_ctx;
+}
+
+/** \brief Read the config set the file pointer, open the file
+ *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
+ *  \param config_file for loading separate configs
+ *  \return -1 if failure, 0 if succesful
+ * */
+int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+{
+    char filename[PATH_MAX]; /* XXX some sane default? */
+
+    if(config_file == NULL)
+    {
+        /** Separate config files not implemented at the moment,
+        * but it must be able to load from separate config file.
+        * Load the default configuration.
+        */
+
+        /** get the time so we can have a filename with seconds since epoch
+         * in it. XXX review if we can take this info from somewhere else.
+         * This is used both during init and runtime, so it must be thread
+         * safe. */
+        struct timeval ts;
+        memset (&ts, 0, sizeof(struct timeval));
+        gettimeofday(&ts, NULL);
+
+        /* create the filename to use */
+        char *log_dir;
+        if (ConfGet("default-log-dir", &log_dir) != 1)
+            log_dir = DEFAULT_LOG_DIR;
+        snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, log_dir, "unified2.alert", (uint32_t)ts.tv_sec);
+
+        /* XXX filename & location */
+        file_ctx->fp = fopen(filename, "wb");
+        if (file_ctx->fp == NULL) {
+            printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
+            return -1;
+        }
+
+        if(file_ctx->config_file == NULL)
+            file_ctx->config_file = strdup("configfile.au2a");
+            /** Remember the config file (or NULL if not indicated) */
+
+    }
+
+    return 0;
+}
+
 
 #ifdef UNITTESTS
 

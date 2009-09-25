@@ -18,14 +18,18 @@
 #include "flow.h"
 #include "conf.h"
 
+#include "threads.h"
 #include "threadvars.h"
 #include "tm-modules.h"
 
 #include "util-unittest.h"
 
+#define DEFAULT_LOG_FILENAME "unified.log"
+
 int AlertUnifiedLog (ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertUnifiedLogThreadInit(ThreadVars *, void *, void **);
 int AlertUnifiedLogThreadDeinit(ThreadVars *, void *);
+int AlertUnifiedLogOpenFileCtx(LogFileCtx *, char *);
 
 void TmModuleAlertUnifiedLogRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDLOG].name = "AlertUnifiedLog";
@@ -36,7 +40,8 @@ void TmModuleAlertUnifiedLogRegister (void) {
 }
 
 typedef struct AlertUnifiedLogThread_ {
-    FILE *fp;
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    LogFileCtx* file_ctx;
     uint32_t size_limit;
     uint32_t size_current;
 } AlertUnifiedLogThread;
@@ -77,32 +82,10 @@ typedef struct AlertUnifiedLogPacketHeader_ {
     uint32_t pktlen;
 } AlertUnifiedLogPacketHeader;
 
-int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
-    char filename[PATH_MAX]; /* XXX some sane default? */
+int AlertUnifiedLogWriteFileHeader(ThreadVars *t, AlertUnifiedLogThread *aun) {
     int ret;
-
-    /* get the time so we can have a filename with seconds since epoch
-     * in it. XXX review if we can take this info from somewhere else.
-     * This is used both during init and runtime, so it must be thread
-     * safe. */
-    struct timeval ts;
-    memset (&ts, 0, sizeof(struct timeval));
-    gettimeofday(&ts, NULL);
-
-    /* create the filename to use */
-    char *log_dir;
-    if (ConfGet("default-log-dir", &log_dir) != 1)
-        log_dir = DEFAULT_LOG_DIR;
-    snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, log_dir, "unified.log", (uint32_t)ts.tv_sec);
-
-    /* XXX filename & location */
-    aun->fp = fopen(filename, "wb");
-    if (aun->fp == NULL) {
-        printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
-        return -1;
-    }
-
     /* write the fileheader to the file so the reader can recognize it */
+
     AlertUnifiedLogFileHeader hdr;
     hdr.magic = ALERTUNIFIEDLOG_LOGMAGIC;
     hdr.ver_major = ALERTUNIFIEDLOG_VERMAJOR;
@@ -112,7 +95,7 @@ int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
     hdr.snaplen = 65536; /* XXX */
     hdr.linktype = DLT_EN10MB; /* XXX */
 
-    ret = fwrite(&hdr, sizeof(hdr), 1, aun->fp);
+    ret = fwrite(&hdr, sizeof(hdr), 1, aun->file_ctx->fp);
     if (ret != 1) {
         printf("Error: fwrite failed: ret = %" PRId32 ", %s\n", ret, strerror(errno));
         return -1;
@@ -123,8 +106,8 @@ int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
 }
 
 int AlertUnifiedLogCloseFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
-    if (aun->fp != NULL)
-        fclose(aun->fp);
+    if (aun->file_ctx->fp != NULL)
+        fclose(aun->file_ctx->fp);
     return 0;
 }
 
@@ -133,8 +116,12 @@ int AlertUnifiedLogRotateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
         printf("Error: AlertUnifiedLogCloseFile failed\n");
         return -1;
     }
-    if (AlertUnifiedLogCreateFile(t, aun) < 0) {
-        printf("Error: AlertUnifiedCreateFile failed\n");
+    if (AlertUnifiedLogOpenFileCtx(aun->file_ctx,aun->file_ctx->config_file) < 0) {
+        printf("Error: AlertUnifiedLogOpenFileCtx, open new log file failed\n");
+        return -1;
+    }
+    if (AlertUnifiedLogWriteFileHeader(t, aun) < 0) {
+        printf("Error: AlertUnifiedLogAppendFile, write unified header failed\n");
         return -1;
     }
     return 0;
@@ -160,10 +147,17 @@ int AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     }
 
     /* check and enforce the filesize limit */
+    /** Wait for the mutex. We dont want all the threads rotating the file
+     * at the same time :) */
+    mutex_lock(&aun->file_ctx->fp_mutex);
     if ((aun->size_current + sizeof(hdr) + p->pktlen + ethh_offset) > aun->size_limit) {
         if (AlertUnifiedLogRotateFile(tv,aun) < 0)
+        {
+            mutex_unlock(&aun->file_ctx->fp_mutex);
             return -1;
+        }
     }
+    mutex_unlock(&aun->file_ctx->fp_mutex);
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */
@@ -197,15 +191,15 @@ int AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     memcpy(buf+buflen,&p->pkt,p->pktlen);
     buflen += p->pktlen;
 
-    /* write and flush so it's written immediately */
-    ret = fwrite(buf, buflen, 1, aun->fp);
+    /** write and flush so it's written immediately, no need to lock her, no need to lock heree */
+    ret = fwrite(buf, buflen, 1, aun->file_ctx->fp);
     if (ret != 1) {
         printf("Error: fwrite failed: %s\n", strerror(errno));
         return -1;
     }
     /* force writing to disk so barnyard will not read half
      * written records and choke. */
-    fflush(aun->fp);
+    fflush(aun->file_ctx->fp);
 
     aun->size_current += buflen;
     return 0;
@@ -218,12 +212,18 @@ int AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return -1;
     }
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
+    if(initdata == NULL)
+    {
+        printf("Error getting context for the file\n");
+        return -1;
+    }
+    /** Use the Ouptut Context (file pointer and mutex) */
+    aun->file_ctx = (LogFileCtx*) initdata;
 
-    aun->fp = NULL;
-
-    int ret = AlertUnifiedLogCreateFile(t, aun);
+    /** Write Unified header */
+    int ret = AlertUnifiedLogWriteFileHeader(t, aun);
     if (ret != 0) {
-        printf("Error: AlertUnifiedCreateFile failed.\n");
+        printf("Error: AlertUnifiedLogWriteFileHeader failed.\n");
         return -1;
     }
 
@@ -241,9 +241,6 @@ int AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
         goto error;
     }
 
-    if (AlertUnifiedLogCloseFile(t, aun) < 0)
-        goto error;
-
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
     free(aun);
@@ -258,4 +255,81 @@ error:
     printf("AlertUnifiedLogThreadDeinit done (error)\n");
     return -1;
 }
+
+
+/** \brief Create a new file_ctx from config_file (if specified)
+ *  \param config_file for loading separate configs
+ *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
+ * */
+LogFileCtx *AlertUnifiedLogInitCtx(char *config_file)
+{
+    int ret=0;
+    LogFileCtx* file_ctx=LogFileNewCtx();
+
+    if(file_ctx == NULL)
+    {
+        printf("AlertUnifiedLogInitCtx: Couldn't create new file_ctx\n");
+        return NULL;
+    }
+
+    /** fill the new LogFileCtx with the specific AlertUnifiedLog configuration */
+    ret=AlertUnifiedLogOpenFileCtx(file_ctx, config_file);
+
+    if(ret < 0)
+        return NULL;
+
+    /** In AlertUnifiedLogOpenFileCtx the second parameter should be the configuration file to use
+    * but it's not implemented yet, so passing NULL to load the default
+    * configuration
+    */
+
+    return file_ctx;
+}
+
+/** \brief Read the config set the file pointer, open the file
+ *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
+ *  \param config_file for loading separate configs
+ *  \return -1 if failure, 0 if succesful
+ * */
+int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+{
+    char filename[PATH_MAX]; /* XXX some sane default? */
+
+    if(config_file == NULL)
+    {
+        /** Separate config files not implemented at the moment,
+        * but it must be able to load from separate config file.
+        * Load the default configuration.
+        */
+
+        /* get the time so we can have a filename with seconds since epoch
+         * in it. XXX review if we can take this info from somewhere else.
+         * This is used both during init and runtime, so it must be thread
+         * safe. */
+        struct timeval ts;
+        memset (&ts, 0, sizeof(struct timeval));
+        gettimeofday(&ts, NULL);
+
+        /* create the filename to use */
+        char *log_dir;
+        if (ConfGet("default-log-dir", &log_dir) != 1)
+            log_dir = DEFAULT_LOG_DIR;
+        snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, log_dir, "unified.log", (uint32_t)ts.tv_sec);
+
+        /* XXX filename & location */
+        file_ctx->fp = fopen(filename, "wb");
+        if (file_ctx->fp == NULL) {
+            printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
+            return -1;
+        }
+
+        if(file_ctx->config_file == NULL)
+            file_ctx->config_file = strdup("configfile.aul");
+            /** Remember the config file (or NULL if not indicated) */
+
+    }
+
+    return 0;
+}
+
 

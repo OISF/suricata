@@ -4,6 +4,7 @@
 #include "packet-queue.h"
 #include "tm-modules.h"
 #include "util-debug.h"
+#include "threads.h"
 
 void TmModuleDebugList(void) {
     TmModule *t;
@@ -37,6 +38,52 @@ TmModule *TmModuleGetByName(char *name) {
     }
 
     return NULL;
+}
+
+/** \brief LogFileNewCtx() Get a new LogFileCtx
+ *  \retval LogFileCtx * pointer if succesful, NULL if error
+ *  */
+LogFileCtx *LogFileNewCtx()
+{
+    LogFileCtx* lf_ctx;
+    lf_ctx=(LogFileCtx*)malloc(sizeof(LogFileCtx));
+
+    if(lf_ctx == NULL)
+    {
+        printf("LogFileCtxNew: Couldn't malloc \n");
+        return NULL;
+    }
+    memset(lf_ctx, 0, sizeof(LogFileCtx));
+    /** Ensure that it is unlocked */
+    pthread_mutex_init(&lf_ctx->fp_mutex,NULL);
+    mutex_unlock(&lf_ctx->fp_mutex);
+
+    return lf_ctx;
+}
+
+/** \brief LogFileFreeCtx() Destroy a LogFileCtx (Close the file and free memory)
+ *  \param motcx pointer to the OutputCtx
+ *  \retval int 1 if succesful, 0 if error
+ *  */
+int LogFileFreeCtx(LogFileCtx *lf_ctx)
+{
+    int ret=0;
+
+    if(lf_ctx != NULL)
+    {
+        if (lf_ctx->fp != NULL)
+        {
+            mutex_lock(&lf_ctx->fp_mutex);
+            fclose(lf_ctx->fp);
+            mutex_unlock(&lf_ctx->fp_mutex);
+        }
+        if (lf_ctx->config_file != NULL);
+            free(lf_ctx->config_file);
+        free(lf_ctx);
+        ret=1;
+    }
+
+    return ret;
 }
 
 /** \brief register all unittests for the tm modules */

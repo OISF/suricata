@@ -45,6 +45,21 @@ enum {
 
 TmModule tmm_modules[TMM_SIZE];
 
+/** Global structure for Output Context */
+typedef struct LogFileCtx_ {
+    FILE *fp;
+    pthread_mutex_t fp_mutex;
+    /** It will be locked if the log/alert
+     * record cannot be written to the file in one call */
+
+    char *config_file;
+    /** To know where did we read this config */
+
+} LogFileCtx;
+
+LogFileCtx *LogFileNewCtx();
+int LogFileFreeCtx(LogFileCtx *);
+
 TmModule *TmModuleGetByName(char *name);
 int TmModuleRegister(char *name, int (*module_func)(ThreadVars *, Packet *, void *));
 void TmModuleDebugList(void);

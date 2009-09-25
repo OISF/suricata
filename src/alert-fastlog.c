@@ -18,6 +18,7 @@
 #include "flow.h"
 #include "conf.h"
 
+#include "threads.h"
 #include "threadvars.h"
 #include "tm-modules.h"
 #include "util-debug.h"
@@ -31,6 +32,7 @@ int AlertFastlogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 int AlertFastlogThreadInit(ThreadVars *, void *, void **);
 int AlertFastlogThreadDeinit(ThreadVars *, void *);
 void AlertFastlogExitPrintStats(ThreadVars *, void *);
+int AlertFastlogOpenFileCtx(LogFileCtx *, char *);
 
 void TmModuleAlertFastlogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].name = "AlertFastlog";
@@ -60,7 +62,8 @@ void TmModuleAlertFastlogIPv6Register (void) {
 }
 
 typedef struct AlertFastlogThread_ {
-    FILE *fp;
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    LogFileCtx* file_ctx;
     uint32_t alerts;
 } AlertFastlogThread;
 
@@ -88,6 +91,8 @@ int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
+    mutex_lock(&aft->file_ctx->fp_mutex);
+
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
         char srcip[16], dstip[16];
@@ -95,10 +100,12 @@ int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
+        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
             timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
-        fflush(aft->fp);
     }
+    fflush(aft->file_ctx->fp);
+    mutex_unlock(&aft->file_ctx->fp_mutex);
+
     return 0;
 }
 
@@ -115,6 +122,8 @@ int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
+    mutex_lock(&aft->file_ctx->fp_mutex);
+
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
         char srcip[46], dstip[46];
@@ -122,10 +131,12 @@ int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
+        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
             timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
-        fflush(aft->fp);
+        fflush(aft->file_ctx->fp);
     }
+
+    mutex_unlock(&aft->file_ctx->fp_mutex);
 
     return 0;
 }
@@ -148,17 +159,13 @@ int AlertFastlogThreadInit(ThreadVars *t, void *initdata, void **data)
         return -1;
     }
     memset(aft, 0, sizeof(AlertFastlogThread));
-
-    char log_path[PATH_MAX], *log_dir;
-    if (ConfGet("default-log-dir", &log_dir) != 1)
-        log_dir = DEFAULT_LOG_DIR;
-    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
-    aft->fp = fopen(log_path, "w");
-    if (aft->fp == NULL) {
-        printf("ERROR: failed to open %s: %s\n", log_path, strerror(errno));
+    if(initdata == NULL)
+    {
+        printf("Error getting context for the file\n");
         return -1;
     }
-
+    /** Use the Ouptut Context (file pointer and mutex) */
+    aft->file_ctx = (LogFileCtx*) initdata;
     *data = (void *)aft;
     return 0;
 }
@@ -169,9 +176,6 @@ int AlertFastlogThreadDeinit(ThreadVars *t, void *data)
     if (aft == NULL) {
         return 0;
     }
-
-    if (aft->fp != NULL)
-        fclose(aft->fp);
 
     /* clear memory */
     memset(aft, 0, sizeof(AlertFastlogThread));
@@ -188,4 +192,67 @@ void AlertFastlogExitPrintStats(ThreadVars *tv, void *data) {
 
     SCLogInfo("(%s) Alerts %" PRIu32 "", tv->name, aft->alerts);
 }
+
+/** \brief Create a new file_ctx from config_file (if specified)
+ *  \param config_file for loading separate configs
+ *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
+ * */
+LogFileCtx *AlertFastlogInitCtx(char *config_file)
+{
+    int ret=0;
+    LogFileCtx* file_ctx=LogFileNewCtx();
+
+    if(file_ctx == NULL)
+    {
+        printf("AlertFastlogInitCtx: Couldn't create new file_ctx\n");
+        return NULL;
+    }
+
+    /** fill the new LogFileCtx with the specific AlertFastlog configuration */
+    ret=AlertFastlogOpenFileCtx(file_ctx, config_file);
+
+    if(ret < 0)
+        return NULL;
+
+    /** In AlertFastlogOpenFileCtx the second parameter should be the configuration file to use
+    * but it's not implemented yet, so passing NULL to load the default
+    * configuration
+    */
+
+    return file_ctx;
+}
+
+/** \brief Read the config set the file pointer, open the file
+ *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
+ *  \param config_file for loading separate configs
+ *  \return -1 if failure, 0 if succesful
+ * */
+int AlertFastlogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+{
+    if(config_file == NULL)
+    {
+        /** Separate config files not implemented at the moment,
+        * but it must be able to load from separate config file.
+        * Load the default configuration.
+        */
+
+        char log_path[PATH_MAX], *log_dir;
+        if (ConfGet("default-log-dir", &log_dir) != 1)
+            log_dir = DEFAULT_LOG_DIR;
+        snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
+
+        file_ctx->fp = fopen(log_path, "w");
+
+        if (file_ctx->fp == NULL) {
+            printf("ERROR: failed to open %s: %s\n", log_path, strerror(errno));
+            return -1;
+        }
+        if(file_ctx->config_file == NULL)
+            file_ctx->config_file = strdup("config.af");
+            /** Remember the config file (or NULL if not indicated) */
+    }
+
+    return 0;
+}
+
 
