@@ -43,9 +43,9 @@ static void AlpResultElmtPoolFree(void *e) {
 
 static AppLayerParserResultElmt *AlpGetResultElmt(void) {
     AppLayerParserResultElmt *e = (AppLayerParserResultElmt *)PoolGet(al_result_pool);
-    if (e == NULL)
+    if (e == NULL) {
         return NULL;
-
+    }
     e->next = NULL;
     return e;
 }

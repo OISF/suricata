@@ -912,7 +912,7 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p, Str
 static int StreamTcpReassembleCheckLimit(TcpSession *ssn, TcpStream *stream, Packet *p) {
 
     /* some states mean we reassemble no matter how much data we have */
-    if (ssn->state == TCP_TIME_WAIT)
+    if (ssn->state >= TCP_TIME_WAIT)
         return 1;
 
     /* check if we have enough data to send to L7 */
