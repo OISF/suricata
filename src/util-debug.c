@@ -87,7 +87,7 @@ static SCLogConfig *sc_log_config = NULL;
 /**
  * \brief Holds the global log level.  Is the same as sc_log_config->log_level
  */
-SCLogLevel sc_global_log_level;
+SCLogLevel sc_log_global_log_level;
 
 /**
  * \brief Used to indicate whether the logging module has been init or not
@@ -194,8 +194,8 @@ void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
     /* We need to add a \n for our messages, before logging them.  If the
      * messages have hit the 1023 length limit, strip the message to
      * accomodate the \n */
-    if (len == SC_MAX_LOG_MSG_LEN - 1)
-        len = SC_MAX_LOG_MSG_LEN - 2;
+    if (len == SC_LOG_MAX_LOG_MSG_LEN - 1)
+        len = SC_LOG_MAX_LOG_MSG_LEN - 2;
 
     temp[len] = '\n';
     temp[len + 1] = '\0';
@@ -291,7 +291,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                 gettimeofday(&tval, NULL);
                 tms = (struct tm *)localtime(&tval.tv_sec);
 
-                cw = snprintf(temp, SC_MAX_LOG_MSG_LEN,
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN,
                               "%s%d/%d/%04d -- %02d:%02d:%02d",
                               substr, tms->tm_mday, tms->tm_mon,
                               tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
@@ -306,7 +306,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_PID:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_MAX_LOG_MSG_LEN, "%s%u", substr,
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%u", substr,
                               getpid());
                 if (cw < 0)
                     goto error;
@@ -318,7 +318,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_TID:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_MAX_LOG_MSG_LEN, "%s%lu", substr,
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%lu", substr,
                               syscall(SYS_gettid));
                 if (cw < 0)
                     goto error;
@@ -331,7 +331,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
             case SC_LOG_FMT_TM:
                 temp_fmt[0] = '\0';
                 ThreadVars *tv = TmThreadsGetCallingThread();
-                cw = snprintf(temp, SC_MAX_LOG_MSG_LEN, "%s%s", substr,
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
                               ((tv != NULL)? tv->name: "UNKNOWN TM"));
                 if (cw < 0)
                     goto error;
@@ -345,9 +345,10 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                 temp_fmt[0] = '\0';
                 s = SCMapEnumValueToName(log_level, sc_log_level_map);
                 if (s != NULL)
-                    cw = snprintf(temp, SC_MAX_LOG_MSG_LEN, "%s%s", substr, s);
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
+                                  s);
                 else
-                    cw = snprintf(temp, SC_MAX_LOG_MSG_LEN, "%s%s", substr,
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
                                   "INVALID");
                 if (cw < 0)
                     goto error;
@@ -359,7 +360,8 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_FILE_NAME:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_MAX_LOG_MSG_LEN, "%s%s", substr, file);
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
+                              file);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -370,7 +372,8 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_LINE:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_MAX_LOG_MSG_LEN, "%s%d", substr, line);
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%d", substr,
+                              line);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -381,7 +384,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_FUNCTION:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_MAX_LOG_MSG_LEN, "%s%s", substr,
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
                               function);
                 if (cw < 0)
                     goto error;
@@ -394,7 +397,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         }
         temp_fmt++;
 	}
-    cw = snprintf(temp, SC_MAX_LOG_MSG_LEN, "%s - ", substr);
+    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s - ", substr);
     if (cw < 0)
         goto error;
 
@@ -406,6 +409,24 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
  error:
     return SC_SPRINTF_ERROR;
+}
+
+/**
+ * \brief Returns whether debug messages are enabled to be logged or not
+ *
+ * \retval 1 if debug messages are enabled to be logged
+ * \retval 0 if debug messages are not enabled to be logged
+ */
+int SCLogDebugEnabled()
+{
+#ifndef DEBUG
+    return 0;
+#endif
+
+    if (sc_log_global_log_level == SC_LOG_DEBUG)
+        return 1;
+    else
+        return 0;
 }
 
 /**
@@ -556,7 +577,7 @@ static inline SCLogOPIfaceCtx *SCLogInitSyslogOPIface(int facility,
     iface_ctx->iface = SC_LOG_OP_IFACE_SYSLOG;
 
     if (facility == -1)
-        facility = SC_DEF_SYSLOG_FACILITY;
+        facility = SC_LOG_DEF_SYSLOG_FACILITY;
     iface_ctx->facility = facility;
 
     if (log_format != NULL &&
@@ -619,7 +640,7 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     if (sc_lid != NULL)
         log_level = sc_lid->global_log_level;
     else {
-        s = getenv(SC_ENV_LOG_LEVEL);
+        s = getenv(SC_LOG_ENV_LOG_LEVEL);
         if (s != NULL)
             log_level = SCMapEnumNameToValue(s, sc_log_level_map);
     }
@@ -628,7 +649,7 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     if (log_level >= 0 && log_level < SC_LOG_LEVEL_MAX)
         sc_lc->log_level = log_level;
     else {
-        sc_lc->log_level = SC_DEF_LOG_LEVEL;
+        sc_lc->log_level = SC_LOG_DEF_LOG_LEVEL;
 #ifndef UNITTESTS
         printf("Warning: Invalid global_log_level assigned by user.  Falling "
                "back on the default_log_level \"%s\"\n",
@@ -637,10 +658,10 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     }
 
     /* we also set it to a global var, as it is easier to access it */
-    sc_global_log_level = sc_lc->log_level;
+    sc_log_global_log_level = sc_lc->log_level;
 
 #ifdef DEBUG
-    printf("sc_global_log_level: %d\n", sc_global_log_level);
+    printf("sc_log_global_log_level: %d\n", sc_log_global_log_level);
 #endif
 
     return;
@@ -660,15 +681,16 @@ static inline void SCLogSetLogFormat(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     if (sc_lid != NULL)
         format = sc_lid->global_log_format;
     else
-        format = getenv(SC_ENV_LOG_FORMAT);
+        format = getenv(SC_LOG_ENV_LOG_FORMAT);
 
     /* deal with the global log format to be used */
-    if (format == NULL || strlen(format) > SC_MAX_LOG_FORMAT_LEN) {
-        format = SC_DEF_LOG_FORMAT;
+    if (format == NULL || strlen(format) > SC_LOG_MAX_LOG_FORMAT_LEN) {
+        format = SC_LOG_DEF_LOG_FORMAT;
 #ifndef UNITTESTS
         printf("Warning: Invalid global_log_format supplied by user or format "
                "length exceeded limit of \"%d\" characters.  Falling back on "
-               "default log_format \"%s\"\n", SC_MAX_LOG_FORMAT_LEN, format);
+               "default log_format \"%s\"\n", SC_LOG_MAX_LOG_FORMAT_LEN,
+               format);
 #endif
     }
 
@@ -704,12 +726,12 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
         sc_lc->op_ifaces_cnt = sc_lid->op_ifaces_cnt;
     }
     else {
-        s = getenv(SC_ENV_LOG_OP_IFACE);
+        s = getenv(SC_LOG_ENV_LOG_OP_IFACE);
         if (s != NULL) {
             op_iface = SCMapEnumNameToValue(s, sc_log_op_iface_map);
 
             if(op_iface < 0 || op_iface >= SC_LOG_OP_IFACE_MAX) {
-                op_iface = SC_DEF_LOG_OP_IFACE;
+                op_iface = SC_LOG_DEF_LOG_OP_IFACE;
 #ifndef UNITTESTS
                 printf("Warning: Invalid output interface supplied by user.  "
                        "Falling back on default_output_interface \"%s\"\n",
@@ -718,7 +740,7 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
             }
         }
         else {
-            op_iface = SC_DEF_LOG_OP_IFACE;
+            op_iface = SC_LOG_DEF_LOG_OP_IFACE;
 #ifndef UNITTESTS
             printf("Warning: Output_interface not supplied by user.  Falling "
                    "back on default_output_interface \"%s\"\n",
@@ -731,16 +753,16 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
                 op_ifaces_ctx = SCLogInitConsoleOPIface(NULL, -1);
                 break;
             case SC_LOG_OP_IFACE_FILE:
-                s = getenv(SC_ENV_LOG_FILE);
+                s = getenv(SC_LOG_ENV_LOG_FILE);
                 if (s == NULL)
-                    s = SC_DEF_LOG_FILE;
+                    s = SC_LOG_DEF_LOG_FILE;
 
                 op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
-                s = getenv(SC_ENV_LOG_FACILITY);
+                s = getenv(SC_LOG_ENV_LOG_FACILITY);
                 if (s == NULL)
-                    s = SC_DEF_SYSLOG_FACILITY_STR;
+                    s = SC_LOG_DEF_SYSLOG_FACILITY_STR;
 
                 op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, sc_syslog_facility_map), NULL, -1);
                 break;
@@ -772,7 +794,7 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     if (sc_lid != NULL)
         filter = sc_lid->op_filter;
     else
-        filter = getenv(SC_ENV_LOG_OP_FILTER);
+        filter = getenv(SC_LOG_ENV_LOG_OP_FILTER);
 
     if (filter != NULL && strcmp(filter, "") != 0) {
         sc_lc->op_filter_regex = pcre_compile(filter, opts, &ep, &eo, NULL);
@@ -998,12 +1020,12 @@ void SCLogInitLogModuleIfEnvSet(void)
 
     /* Check if the user has set the op_iface env var.  Only if it is set,
      * we proceed with the initialization */
-    s = getenv(SC_ENV_LOG_OP_IFACE);
+    s = getenv(SC_LOG_ENV_LOG_OP_IFACE);
     if (s != NULL) {
         op_iface = SCMapEnumNameToValue(s, sc_log_op_iface_map);
 
         if(op_iface < 0 || op_iface >= SC_LOG_OP_IFACE_MAX) {
-            op_iface = SC_DEF_LOG_OP_IFACE;
+            op_iface = SC_LOG_DEF_LOG_OP_IFACE;
 #ifndef UNITTESTS
             printf("Warning: Invalid output interface supplied by user.  "
                    "Falling back on default_output_interface \"%s\"\n",
@@ -1021,16 +1043,16 @@ void SCLogInitLogModuleIfEnvSet(void)
             op_ifaces_ctx = SCLogInitConsoleOPIface(NULL, -1);
             break;
         case SC_LOG_OP_IFACE_FILE:
-            s = getenv(SC_ENV_LOG_FILE);
+            s = getenv(SC_LOG_ENV_LOG_FILE);
             if (s == NULL)
-                s = SC_DEF_LOG_FILE;
+                s = SC_LOG_DEF_LOG_FILE;
 
             op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
             break;
         case SC_LOG_OP_IFACE_SYSLOG:
-            s = getenv(SC_ENV_LOG_FACILITY);
+            s = getenv(SC_LOG_ENV_LOG_FACILITY);
             if (s == NULL)
-                s = SC_DEF_SYSLOG_FACILITY_STR;
+                s = SC_LOG_DEF_SYSLOG_FACILITY_STR;
 
             op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, sc_syslog_facility_map), NULL, -1);
             break;
@@ -1041,7 +1063,7 @@ void SCLogInitLogModuleIfEnvSet(void)
 
 
     /* Set the filter */
-    filter = getenv(SC_ENV_LOG_OP_FILTER);
+    filter = getenv(SC_LOG_ENV_LOG_OP_FILTER);
     if (filter != NULL && strcmp(filter, "") != 0) {
         sc_lc->op_filter_regex = pcre_compile(filter, opts, &ep, &eo, NULL);
         if (sc_lc->op_filter_regex == NULL) {
@@ -1059,13 +1081,14 @@ void SCLogInitLogModuleIfEnvSet(void)
     }
 
     /* Set the log_format */
-    format = getenv(SC_ENV_LOG_FORMAT);
-    if (format == NULL || strlen(format) > SC_MAX_LOG_FORMAT_LEN) {
-        format = SC_DEF_LOG_FORMAT;
+    format = getenv(SC_LOG_ENV_LOG_FORMAT);
+    if (format == NULL || strlen(format) > SC_LOG_MAX_LOG_FORMAT_LEN) {
+        format = SC_LOG_DEF_LOG_FORMAT;
 #ifndef UNITTESTS
         printf("Warning: Invalid global_log_format supplied by user or format "
                "length exceeded limit of \"%d\" characters.  Falling back on "
-               "default log_format \"%s\"\n", SC_MAX_LOG_FORMAT_LEN, format);
+               "default log_format \"%s\"\n", SC_LOG_MAX_LOG_FORMAT_LEN,
+               format);
 #endif
     }
 
@@ -1076,14 +1099,14 @@ void SCLogInitLogModuleIfEnvSet(void)
     }
 
     /* Set the log_level */
-    s = getenv(SC_ENV_LOG_LEVEL);
+    s = getenv(SC_LOG_ENV_LOG_LEVEL);
     if (s != NULL)
         log_level = SCMapEnumNameToValue(s, sc_log_level_map);
 
     if (log_level >= 0 && log_level < SC_LOG_LEVEL_MAX)
         sc_lc->log_level = log_level;
     else {
-        sc_lc->log_level = SC_DEF_LOG_LEVEL;
+        sc_lc->log_level = SC_LOG_DEF_LOG_LEVEL;
 #ifndef UNITTESTS
         printf("Warning: Invalid global_log_level assigned by user.  Falling "
                "back on default_log_level \"%s\"\n",
@@ -1092,7 +1115,7 @@ void SCLogInitLogModuleIfEnvSet(void)
     }
 
     /* we also set it to a global var, as it is easier to access it */
-    sc_global_log_level = sc_lc->log_level;
+    sc_log_global_log_level = sc_lc->log_level;
 
     sc_log_module_initialized = 1;
     sc_log_module_cleaned = 0;
@@ -1108,7 +1131,7 @@ void SCLogDeInitLogModule(void)
     SCLogFreeLogConfig(sc_log_config);
 
     /* reset the global logging_module variables */
-    sc_global_log_level = 0;
+    sc_log_global_log_level = 0;
     sc_log_module_initialized = 0;
     sc_log_module_cleaned = 1;
     sc_log_config = NULL;
@@ -1137,21 +1160,21 @@ int SCLogTestInit01()
     int result = 1;
 
     /* unset any environment variables set for the logging module */
-    unsetenv(SC_ENV_LOG_LEVEL);
-    unsetenv(SC_ENV_LOG_OP_IFACE);
-    unsetenv(SC_ENV_LOG_FORMAT);
+    unsetenv(SC_LOG_ENV_LOG_LEVEL);
+    unsetenv(SC_LOG_ENV_LOG_OP_IFACE);
+    unsetenv(SC_LOG_ENV_LOG_FORMAT);
 
     SCLogInitLogModule(NULL);
 
-    result &= (SC_DEF_LOG_LEVEL == sc_log_config->log_level);
-    result &= (SC_DEF_LOG_OP_IFACE == sc_log_config->op_ifaces->iface);
-    result &= (strcmp(SC_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
+    result &= (SC_LOG_DEF_LOG_LEVEL == sc_log_config->log_level);
+    result &= (SC_LOG_DEF_LOG_OP_IFACE == sc_log_config->op_ifaces->iface);
+    result &= (strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
 
     SCLogDeInitLogModule();
 
-    setenv(SC_ENV_LOG_LEVEL, "Debug", 1);
-    setenv(SC_ENV_LOG_OP_IFACE, "Console", 1);
-    setenv(SC_ENV_LOG_FORMAT, "%n- %l", 1);
+    setenv(SC_LOG_ENV_LOG_LEVEL, "Debug", 1);
+    setenv(SC_LOG_ENV_LOG_OP_IFACE, "Console", 1);
+    setenv(SC_LOG_ENV_LOG_FORMAT, "%n- %l", 1);
 
     SCLogInitLogModule(NULL);
 
@@ -1159,9 +1182,9 @@ int SCLogTestInit01()
     result &= (SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->iface);
     result &= !strcmp("%n- %l", sc_log_config->log_format);
 
-    unsetenv(SC_ENV_LOG_LEVEL);
-    unsetenv(SC_ENV_LOG_OP_IFACE);
-    unsetenv(SC_ENV_LOG_FORMAT);
+    unsetenv(SC_LOG_ENV_LOG_LEVEL);
+    unsetenv(SC_LOG_ENV_LOG_OP_IFACE);
+    unsetenv(SC_LOG_ENV_LOG_FORMAT);
 
     SCLogDeInitLogModule();
 
@@ -1190,7 +1213,7 @@ int SCLogTestInit02()
     result &= (SC_LOG_DEBUG == sc_log_config->log_level);
     result &= (SC_LOG_OP_IFACE_FILE == sc_log_config->op_ifaces->iface);
     result &= (SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->next->iface);
-    result &= (strcmp(SC_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
+    result &= (strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
     result &= (strcmp("%m - %d", sc_log_config->op_ifaces->log_format) == 0);
     result &= (sc_log_config->op_ifaces->next->log_format == NULL);
 

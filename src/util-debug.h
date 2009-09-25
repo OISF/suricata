@@ -18,12 +18,12 @@
 /**
  * \brief ENV vars that can be used to set the properties for the logging module
  */
-#define SC_ENV_LOG_LEVEL            "SC_LOG_LEVEL"
-#define SC_ENV_LOG_OP_IFACE         "SC_LOG_OP_IFACE"
-#define SC_ENV_LOG_FILE             "SC_LOG_FILE"
-#define SC_ENV_LOG_FACILITY         "SC_LOG_FACILITY"
-#define SC_ENV_LOG_FORMAT           "SC_LOG_FORMAT"
-#define SC_ENV_LOG_OP_FILTER        "SC_LOG_OP_FILTER"
+#define SC_LOG_ENV_LOG_LEVEL        "SC_LOG_LEVEL"
+#define SC_LOG_ENV_LOG_OP_IFACE     "SC_LOG_OP_IFACE"
+#define SC_LOG_ENV_LOG_FILE         "SC_LOG_FILE"
+#define SC_LOG_ENV_LOG_FACILITY     "SC_LOG_FACILITY"
+#define SC_LOG_ENV_LOG_FORMAT       "SC_LOG_FORMAT"
+#define SC_LOG_ENV_LOG_OP_FILTER    "SC_LOG_OP_FILTER"
 
 /**
  * \brief The various log levels
@@ -52,33 +52,33 @@ typedef enum {
 } SCLogOPIface;
 
 /* The default log_format, if it is not supplied by the user */
-#define SC_DEF_LOG_FORMAT "<%d> - <%t>"
+#define SC_LOG_DEF_LOG_FORMAT "<%d> - <%t>"
 
 /* The maximum length of the log message */
-#define SC_MAX_LOG_MSG_LEN 1024
+#define SC_LOG_MAX_LOG_MSG_LEN 1024
 
 /* The maximum length of the log format */
-#define SC_MAX_LOG_FORMAT_LEN 128
+#define SC_LOG_MAX_LOG_FORMAT_LEN 128
 
 /* The default log level, if it is not supplied by the user */
-#define SC_DEF_LOG_LEVEL SC_LOG_ERROR
+#define SC_LOG_DEF_LOG_LEVEL SC_LOG_ERROR
 
 /* The default output interface to be used */
-#define SC_DEF_LOG_OP_IFACE SC_LOG_OP_IFACE_FILE
+#define SC_LOG_DEF_LOG_OP_IFACE SC_LOG_OP_IFACE_FILE
 
 /* The default log file to be used */
-#define SC_DEF_LOG_FILE "/var/log/eidps/sc_ids_log.log"
+#define SC_LOG_DEF_LOG_FILE "/var/log/eidps/sc_ids_log.log"
 
 /* The default syslog facility to be used */
-#define SC_DEF_SYSLOG_FACILITY_STR "local0"
-#define SC_DEF_SYSLOG_FACILITY LOG_LOCAL0
+#define SC_LOG_DEF_SYSLOG_FACILITY_STR "local0"
+#define SC_LOG_DEF_SYSLOG_FACILITY LOG_LOCAL0
 
 /**
  * \brief Structure to be used when log_level override support would be provided
  *        by the logging module
  */
 typedef struct SCLogOPBuffer_ {
-    char msg[SC_MAX_LOG_MSG_LEN];
+    char msg[SC_LOG_MAX_LOG_MSG_LEN];
     char *temp;
     const char *log_format;
 } SCLogOPBuffer;
@@ -160,55 +160,55 @@ typedef struct SCLogConfig_ {
 /* The log format prefix for the format specifiers */
 #define SC_LOG_FMT_PREFIX           '%'
 
-extern SCLogLevel sc_global_log_level;
+extern SCLogLevel sc_log_global_log_level;
 
 extern int sc_log_module_initialized;
 
 extern int sc_log_module_cleaned;
 
 
-#define SCLog(x, ...)         do {                                    \
-                                  char msg[SC_MAX_LOG_MSG_LEN];       \
-                                  char *temp = msg;                   \
-                                  if ( !(                             \
-                                      (sc_global_log_level >= x) &&   \
-                                       SCLogMessage(x, &temp,         \
-                                                    __FILE__,         \
-                                                    __LINE__,         \
-                                                    __FUNCTION__)     \
-                                       == SC_OK) )                    \
-                                  { } else {                          \
-                                      snprintf(temp,                  \
-                                               (SC_MAX_LOG_MSG_LEN -  \
-                                                (msg - temp)),        \
-                                               __VA_ARGS__);          \
-                                      SCLogOutputBuffer(x, msg);      \
-                                  }                                   \
+#define SCLog(x, ...)         do {                                       \
+                                  char msg[SC_LOG_MAX_LOG_MSG_LEN];      \
+                                  char *temp = msg;                      \
+                                  if ( !(                                \
+                                      (sc_log_global_log_level >= x) &&  \
+                                       SCLogMessage(x, &temp,            \
+                                                    __FILE__,            \
+                                                    __LINE__,            \
+                                                    __FUNCTION__)        \
+                                       == SC_OK) )                       \
+                                  { } else {                             \
+                                      snprintf(temp,                     \
+                                               (SC_LOG_MAX_LOG_MSG_LEN - \
+                                                (msg - temp)),           \
+                                               __VA_ARGS__);             \
+                                      SCLogOutputBuffer(x, msg);         \
+                                  }                                      \
                               } while(0)
 
-#define SCLogErr(x, err, ...) do {                                    \
-                                  char msg[SC_MAX_LOG_MSG_LEN];       \
-                                  char *temp = msg;                   \
-                                  if ( !(                             \
-                                      (sc_global_log_level >= x) &&   \
-                                       SCLogMessage(x, &temp,         \
-                                                    __FILE__,         \
-                                                    __LINE__,         \
-                                                    __FUNCTION__)     \
-                                       == SC_OK) )                    \
-                                  { } else {                          \
-                                      temp = temp + snprintf(temp,    \
-                                               (SC_MAX_LOG_MSG_LEN -  \
-                                                (msg - temp)),        \
-                                               "[ERRCODE: %s(%d)] - ",\
-                                               SCErrorToString(err),  \
-                                               err);                  \
-                                      snprintf(temp,                  \
-                                               (SC_MAX_LOG_MSG_LEN -  \
-                                                (msg - temp)),        \
-                                               __VA_ARGS__);          \
-                                      SCLogOutputBuffer(x, msg);      \
-                                  }                                   \
+#define SCLogErr(x, err, ...) do {                                       \
+                                  char msg[SC_LOG_MAX_LOG_MSG_LEN];      \
+                                  char *temp = msg;                      \
+                                  if ( !(                                \
+                                      (sc_log_global_log_level >= x) &&  \
+                                       SCLogMessage(x, &temp,            \
+                                                    __FILE__,            \
+                                                    __LINE__,            \
+                                                    __FUNCTION__)        \
+                                       == SC_OK) )                       \
+                                  { } else {                             \
+                                      temp = temp + snprintf(temp,       \
+                                               (SC_LOG_MAX_LOG_MSG_LEN - \
+                                                (msg - temp)),           \
+                                               "[ERRCODE: %s(%d)] - ",   \
+                                               SCErrorToString(err),     \
+                                               err);                     \
+                                      snprintf(temp,                     \
+                                               (SC_LOG_MAX_LOG_MSG_LEN - \
+                                                (msg - temp)),           \
+                                               __VA_ARGS__);             \
+                                      SCLogOutputBuffer(x, msg);         \
+                                  }                                      \
                               } while(0)
 
 /**
@@ -216,14 +216,14 @@ extern int sc_log_module_cleaned;
  *
  * \retval ... Takes as argument(s), a printf style format message
  */
-#define SCInfo(...) SCLog(SC_LOG_INFO, __VA_ARGS__)
+#define SCLogInfo(...) SCLog(SC_LOG_INFO, __VA_ARGS__)
 
 /**
  * \brief Macro used to log NOTICE messages.
  *
  * \retval ... Takes as argument(s), a printf style format message
  */
-#define SCNotice(...) SCLog(SC_LOG_NOTICE, __VA_ARGS__)
+#define SCLogNotice(...) SCLog(SC_LOG_NOTICE, __VA_ARGS__)
 
 /**
  * \brief Macro used to log WARNING messages.
@@ -232,7 +232,7 @@ extern int sc_log_module_cleaned;
  *                  warning message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCWarning(err_code, ...) SCLogErr(SC_LOG_WARNING, err_code, \
+#define SCLogWarning(err_code, ...) SCLogErr(SC_LOG_WARNING, err_code, \
                                           __VA_ARGS__)
 /**
  * \brief Macro used to log ERROR messages.
@@ -241,7 +241,7 @@ extern int sc_log_module_cleaned;
  *                  error message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCErrorLog(err_code, ...) SCLogErr(SC_LOG_ERROR, err_code, \
+#define SCLogError(err_code, ...) SCLogErr(SC_LOG_ERROR, err_code, \
                                         __VA_ARGS__)
 /**
  * \brief Macro used to log CRITICAL messages.
@@ -250,7 +250,7 @@ extern int sc_log_module_cleaned;
  *                  critical message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCCritical(err_code, ...) SCLogErr(SC_LOG_CRITICAL, err_code, \
+#define SCLogCritical(err_code, ...) SCLogErr(SC_LOG_CRITICAL, err_code, \
                                            __VA_ARGS__)
 /**
  * \brief Macro used to log ALERT messages.
@@ -259,7 +259,7 @@ extern int sc_log_module_cleaned;
  *                  alert message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCAlert(err_code, ...) SCLogErr(SC_LOG_ALERT, err_code, \
+#define SCLogAlert(err_code, ...) SCLogErr(SC_LOG_ALERT, err_code, \
                                         __VA_ARGS__)
 /**
  * \brief Macro used to log EMERGENCY messages.
@@ -268,14 +268,14 @@ extern int sc_log_module_cleaned;
  *                  emergency message
  * \retval ...      Takes as argument(s), a printf style format message
  */
-#define SCEmerg(err_code, ...) SCLogErr(SC_LOG_EMERGENCY, err_code, \
+#define SCLogEmerg(err_code, ...) SCLogErr(SC_LOG_EMERGENCY, err_code, \
                                           __VA_ARGS__)
 
 
 /* Avoid the overhead of using the debugging subsystem, in production mode */
 #ifndef DEBUG
 
-#define SCDebug(...)
+#define SCLogDebug(...)
 
 #define SCEnter(...)
 
@@ -305,7 +305,7 @@ extern int sc_log_module_cleaned;
  *
  * \retval ... Takes as argument(s), a printf style format message
  */
-#define SCDebug(...)          SCLog(SC_LOG_DEBUG, __VA_ARGS__)
+#define SCLogDebug(...)       SCLog(SC_LOG_DEBUG, __VA_ARGS__)
 
 /**
  * \brief Macro used to log debug messages on function entry.  Comes under the
@@ -315,20 +315,20 @@ extern int sc_log_module_cleaned;
  *
  * \retval f An argument can be supplied, although it is not used
  */
-#define SCEnter(f)            do {                                           \
-                                  char msg[SC_MAX_LOG_MSG_LEN];              \
-                                  char *temp = msg;                          \
-                                  if (sc_global_log_level >= SC_LOG_DEBUG && \
-                                      SCLogCheckFDFilterEntry(__FUNCTION__) &&\
-                                      SCLogMessage(SC_LOG_DEBUG, &temp,      \
-                                                   __FILE__,                 \
-                                                   __LINE__,                 \
-                                                   __FUNCTION__) == SC_OK) { \
-                                      snprintf(temp, (SC_MAX_LOG_MSG_LEN -   \
-                                                      (msg - temp)),         \
-                                               "%s", "Entering ... >>");     \
-                                      SCLogOutputBuffer(SC_LOG_DEBUG, msg);  \
-                                  }                                          \
+#define SCEnter(f)            do {                                              \
+                                  char msg[SC_LOG_MAX_LOG_MSG_LEN];             \
+                                  char *temp = msg;                             \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG &&\
+                                      SCLogCheckFDFilterEntry(__FUNCTION__) &&  \
+                                      SCLogMessage(SC_LOG_DEBUG, &temp,         \
+                                                   __FILE__,                    \
+                                                   __LINE__,                    \
+                                                   __FUNCTION__) == SC_OK) {    \
+                                      snprintf(temp, (SC_LOG_MAX_LOG_MSG_LEN -  \
+                                                      (msg - temp)),            \
+                                               "%s", "Entering ... >>");        \
+                                      SCLogOutputBuffer(SC_LOG_DEBUG, msg);     \
+                                  }                                             \
                               } while(0)
 
 
@@ -341,9 +341,9 @@ extern int sc_log_module_cleaned;
  *        a value.
  */
 #define SCReturn              do {                                           \
-                                  if (sc_global_log_level >= SC_LOG_DEBUG) { \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCDebug("Returning ... <<" );          \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);   \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return;                                    \
                               } while(0)
@@ -359,9 +359,9 @@ extern int sc_log_module_cleaned;
  * \retval x Variable of type 'integer' that has to be returned
  */
 #define SCReturnInt(x)        do {                                           \
-                                  if (sc_global_log_level >= SC_LOG_DEBUG) { \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCDebug("Returning: %d ... <<", x);    \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);   \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \
                               } while(0)
@@ -377,9 +377,9 @@ extern int sc_log_module_cleaned;
  * \retval x Variable of type 'unsigned integer' that has to be returned
  */
 #define SCReturnUInt(x)       do {                                           \
-                                  if (sc_global_log_level >= SC_LOG_DEBUG) { \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCDebug("Returning: %u ... <<", x);    \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);   \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \
                               } while(0)
@@ -395,9 +395,9 @@ extern int sc_log_module_cleaned;
  * \retval x Variable of type 'float/double' that has to be returned
  */
 #define SCReturnDbl(x)        do {                                           \
-                                  if (sc_global_log_level >= SC_LOG_DEBUG) { \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCDebug("Returning: %f ... <<", x);    \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);   \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \
                               } while(0)
@@ -413,9 +413,9 @@ extern int sc_log_module_cleaned;
  * \retval x Variable of type 'char' that has to be returned
  */
 #define SCReturnChar(x)       do {                                           \
-                                  if (sc_global_log_level >= SC_LOG_DEBUG) { \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCDebug("Returning: %c ... <<", x);    \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);   \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \
                               } while(0)
@@ -431,9 +431,9 @@ extern int sc_log_module_cleaned;
  * \retval x Pointer to the char string that has to be returned
  */
 #define SCReturnCharPtr(x)    do {                                           \
-                                  if (sc_global_log_level >= SC_LOG_DEBUG) { \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCDebug("Returning: %s ... <<", x);    \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);   \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                  return x;                                   \
                               } while(0)
@@ -452,10 +452,10 @@ extern int sc_log_module_cleaned;
  *              type(the argument x) that has to be returned
  */
 #define SCReturnCT(x, type)   do {                                           \
-                                  if (sc_global_log_level >= SC_LOG_DEBUG) { \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCDebug("Returning var of "            \
                                               "type %s ... <<", type);       \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);   \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \
                               } while(0)
@@ -474,10 +474,10 @@ extern int sc_log_module_cleaned;
  *              type(the argument x) that has to be returned
  */
 #define SCReturnPtr(x, type)  do {                                           \
-                                  if (sc_global_log_level >= SC_LOG_DEBUG) { \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCDebug("Returning pointer of "        \
                                               "type %s ... <<", type);       \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);   \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \
                               } while(0)
@@ -504,7 +504,7 @@ void SCLogOutputBuffer(SCLogLevel, char *);
 
 SCLogOPBuffer *SCLogAllocLogOPBuffer(void);
 
-int SCLogAddFGFilter(const char *, const char *, unsigned, int);
+int SCLogDebugEnabled(void);
 
 void SCLogRegisterTests(void);
 
