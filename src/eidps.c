@@ -247,11 +247,6 @@ int main(int argc, char **argv)
     char *conf_filename = NULL;
     int dump_config = 0;
 
-    /* registering signals we use */
-    SignalHandlerSetup(SIGINT, SignalHandlerSigint);
-    SignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
-    SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
-
     /* Initialize the configuration module. */
     ConfInit();
 
@@ -428,6 +423,11 @@ int main(int argc, char **argv)
         else        exit(EXIT_SUCCESS);
     }
 #endif /* UNITTESTS */
+
+    /* registering signals we use */
+    SignalHandlerSetup(SIGINT, SignalHandlerSigint);
+    SignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+    SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
 
     /* initialize packet queues */
     memset(&packet_q,0,sizeof(packet_q));
