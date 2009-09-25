@@ -4,6 +4,7 @@
 
 #include "eidps-common.h"
 #include "decode.h"
+#include "util-debug.h"
 
 void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -16,7 +17,7 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
         case IPPROTO_IPV6:
             return DecodeIPV6(tv, dtv, p, pkt, len, pq);
         default:
-            printf("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.\n", p->tunnel_proto);
+            SCInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", p->tunnel_proto);
             break;
     }
 }

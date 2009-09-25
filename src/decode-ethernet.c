@@ -6,6 +6,7 @@
 #include "decode-events.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
 
 void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -20,9 +21,7 @@ void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *p
     if (ethh == NULL)
         return;
 
-#ifdef DEBUG
-    printf("DecodeEthernet: p %p pkt %p ether type %04x\n", p, pkt, ntohs(ethh->eth_type));
-#endif
+    SCDebug("p %p pkt %p ether type %04x", p, pkt, ntohs(ethh->eth_type));
 
     if (ntohs(ethh->eth_type) == ETHERNET_TYPE_IP) {
         //printf("DecodeEthernet ip4\n");

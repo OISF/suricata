@@ -146,6 +146,7 @@ static inline void SCLogPrintToStream(FILE *fd, char *msg)
     if (fprintf(fd, "%s", msg) < 0)
         printf("Error writing to stream using fprintf\n");
 
+    fflush(fd);
     return;
 }
 

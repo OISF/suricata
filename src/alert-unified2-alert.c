@@ -17,8 +17,6 @@
 #include "alert-unified2-alert.h"
 #include "decode-ipv4.h"
 
-#define DEBUG
-
 /*prototypes*/
 int Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
 int Unified2AlertThreadInit(ThreadVars *, void *, void **);

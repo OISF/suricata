@@ -9,7 +9,6 @@
  */
 
 #include "eidps-common.h"
-#include "debug.h"
 #include "decode.h"
 #include "threads.h"
 #include "tm-modules.h"
@@ -25,6 +24,8 @@
 #include "flow-var.h"
 #include "flow-private.h"
 #include "util-unittest.h"
+
+#include "util-debug.h"
 
 //#define FLOW_DEFAULT_HASHSIZE    262144
 #define FLOW_DEFAULT_HASHSIZE    65536
@@ -170,8 +171,8 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         }
     }
 
-    DEBUGPRINT("got lock, now check: %" PRId64 "+%" PRIu32 "=(%" PRId64 ") < %" PRId64 "", f->lastts.tv_sec,
-        timeout, f->lastts.tv_sec + timeout, ts->tv_sec);
+    SCDebug("got lock, now check: %" PRIdMAX "+%" PRIu32 "=(%" PRIdMAX ") < %" PRIdMAX "", (intmax_t)f->lastts.tv_sec,
+        timeout, (intmax_t)f->lastts.tv_sec + timeout, (intmax_t)ts->tv_sec);
 
     /* do the timeout check */
     if ((f->lastts.tv_sec + timeout) >= ts->tv_sec) {
@@ -183,14 +184,11 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     /** never prune a flow that is used by a packet or stream msg
      *  we are currently processing in one of the threads */
     if (f->use_cnt > 0) {
-        printf("FlowPrune: timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"\n", f->use_cnt, f, f->proto);
+        SCDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", f->use_cnt, f, f->proto);
         mutex_unlock(&f->fb->m);
         mutex_unlock(&f->m);
         return 0;
     }
-
-    //printf("timed out %" PRIuMAX "+%" PRIu32 "=(%" PRIuMAX ") < %" PRIuMAX ": %p, proto %"PRIu8"\n", (uintmax_t)f->lastts.tv_sec,
-    //    timeout, (uintmax_t)(f->lastts.tv_sec + timeout), (uintmax_t)ts->tv_sec, f, f->proto);
 
     /* remove from the hash */
     if (f->hprev)
@@ -515,7 +513,7 @@ void *FlowManagerThread(void *td)
             /* Get the time */
             memset(&ts, 0, sizeof(ts));
             TimeGet(&ts);
-            DEBUGPRINT("ts %" PRId64 "", ts.tv_sec);
+            SCDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
 
             /* see if we still have enough spare flows */
             FlowUpdateSpareFlows();
@@ -525,21 +523,21 @@ void *FlowManagerThread(void *td)
                 /* prune closing list */
                 nowcnt = FlowPruneFlows(&flow_close_q[i], &ts);
                 if (nowcnt) {
-                    DEBUGPRINT("Pruned %" PRIu32 " closing flows...\n", nowcnt);
+                    SCDebug("Pruned %" PRIu32 " closing flows...", nowcnt);
                     closing_cnt += nowcnt;
                 }
 
                 /* prune new list */
                 nowcnt = FlowPruneFlows(&flow_new_q[i], &ts);
                 if (nowcnt) {
-                    DEBUGPRINT("Pruned %" PRIu32 " new flows...\n", nowcnt);
+                    SCDebug("Pruned %" PRIu32 " new flows...", nowcnt);
                     new_cnt += nowcnt;
                 }
 
                 /* prune established list */
                 nowcnt = FlowPruneFlows(&flow_est_q[i], &ts);
                 if (nowcnt) {
-                    DEBUGPRINT("Pruned %" PRIu32 " established flows...\n", nowcnt);
+                    SCDebug("Pruned %" PRIu32 " established flows...", nowcnt);
                     established_cnt += nowcnt;
                 }
             }

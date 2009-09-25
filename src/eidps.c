@@ -71,6 +71,9 @@
 #include "runmodes.h"
 #include "util-debug.h"
 
+#include "util-debug.h"
+#include "util-error.h"
+
 /*
  * we put this here, because we only use it here in main.
  */
@@ -248,6 +251,9 @@ int main(int argc, char **argv)
     int nfq_id = 0;
     char *conf_filename = NULL;
     int dump_config = 0;
+
+    /* initialize the logging subsys */
+    SCLogInitLogModule(NULL);
 
     /* Initialize the configuration module. */
     ConfInit();
