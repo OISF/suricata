@@ -12,6 +12,7 @@ int DetectAddressCutNotIPv4(DetectAddressData *, DetectAddressData **);
 
 int DetectAddressGroupCutIPv4(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
 int DetectAddressGroupJoinIPv4(DetectEngineCtx *, DetectAddressGroup *target, DetectAddressGroup *source);
+int DetectAddressGroupIsCompleteIPSpaceIPv4(DetectAddressGroup *);
 
 #endif /* __DETECT_ENGINE_ADDRESS_IPV4_H__ */
 

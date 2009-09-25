@@ -614,6 +614,44 @@ error:
     return -1;
 }
 
+/** \brief check if the address group list covers the complete
+ *         IPv4 IP space.
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int DetectAddressGroupIsCompleteIPSpaceIPv4(DetectAddressGroup *ag) {
+    uint32_t next_ip = 0;
+
+    if (ag == NULL || ag->ad == NULL)
+        return 0;
+
+    /* if we don't start with 0.0.0.0 we know we're good */
+    if (ntohl(ag->ad->ip[0]) != 0x00000000)
+        return 0;
+
+    /* if we're ending with 255.255.255.255 while we know
+       we started with 0.0.0.0 it's the complete space */
+    if (ntohl(ag->ad->ip2[0]) == 0xFFFFFFFF)
+        return 1;
+
+    next_ip = htonl(ntohl(ag->ad->ip2[0]) + 1);
+    ag = ag->next;
+
+    for ( ; ag != NULL; ag = ag->next) {
+        if (ag == NULL || ag->ad == NULL)
+            return 0;
+
+        if (ag->ad->ip[0] != next_ip)
+            return 0;
+
+        if (ntohl(ag->ad->ip2[0]) == 0xFFFFFFFF)
+            return 1;
+
+        next_ip = htonl(ntohl(ag->ad->ip2[0]) + 1);
+    }
+
+    return 0;
+}
 
 /* a = 1.2.3.4
  * must result in: a == 0.0.0.0-1.2.3.3, b == 1.2.3.5-255.255.255.255

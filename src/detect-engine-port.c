@@ -20,6 +20,8 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-port.h"
 
+//#define DEBUG
+
 int DetectPortSetupTmp (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);
 void DetectPortTests (void);
 
@@ -849,6 +851,10 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
     DetectPort  *ad = NULL;
     int r = 0;
 
+#ifdef DEBUG
+    printf("DetectPortParseInsertString: head %p, *head %p, s %s\n", head, *head, s);
+#endif
+
     /* parse the address */
     ad = PortParse(s);
     if (ad == NULL) {
@@ -901,15 +907,27 @@ error:
 static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int negate) {
     int i, x;
     int o_set = 0, n_set = 0;
+    int range = 0;
     int depth = 0;
     size_t size = strlen(s);
     char address[1024] = "";
+
+#ifdef DEBUG
+    printf("DetectPortParseDo: head %p, *head %p\n", head, *head);
+#endif
 
     for (i = 0, x = 0; i < size && x < sizeof(address); i++) {
         address[x] = s[i];
         x++;
 
-        if (!o_set && s[i] == '!') {
+        if (s[i] == ':') {
+            range = 1;
+        } else if (range == 1 && s[i] == '!') {
+#ifdef DEBUG
+            printf("Can't have a negated value in a range.\n");
+#endif
+            return -1;
+        } else if (!o_set && s[i] == '!') {
             n_set = 1;
             x--;
         } else if (s[i] == '[') {
@@ -919,7 +937,8 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int 
             }
             depth++;
         } else if (s[i] == ']') {
-            if (depth == 1) { 
+            range = 0;
+            if (depth == 1) {
                 address[x-1] = '\0';
                 x = 0;
 
@@ -928,11 +947,11 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int 
             }
             depth--;
         } else if (depth == 0 && s[i] == ',') {
+            range = 0;
             if (o_set == 1) {
                 o_set = 0;
             } else {
                 address[x-1] = '\0';
-
                 if (negate == 0 && n_set == 0) {
                     DetectPortParseInsertString(head,address);
                 } else {
@@ -942,6 +961,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int 
             }
             x = 0;
         } else if (depth == 0 && i == size-1) {
+            range = 0;
             address[x] = '\0';
             x = 0;
 
@@ -959,16 +979,62 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int 
 //    return -1;
 }
 
+/** \brief check if the port group list covers the complete
+ *         port space.
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int DetectPortIsCompletePortSpace(DetectPort *p) {
+    uint16_t next_port = 0;
+
+    if (p == NULL)
+        return 0;
+
+    if (p->port != 0x0000)
+        return 0;
+
+    /* if we're ending with 0xFFFF while we know
+       we started with 0x0000 it's the complete space */
+    if (p->port2 == 0xFFFF)
+        return 1;
+
+    next_port = p->port2 + 1;
+    p = p->next;
+
+    for ( ; p != NULL; p = p->next) {
+        if (p == NULL)
+            return 0;
+
+        if (p->port != next_port)
+            return 0;
+
+        if (p->port2 == 0xFFFF)
+            return 1;
+
+        next_port = p->port2 + 1;
+    }
+
+    return 0;
+}
+
 /* part of the parsing routine */
 int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
     DetectPort *ad;
     DetectPort *ag, *ag2;
     int r = 0;
 
+    /* check if the full port space is negated */
+    if (DetectPortIsCompletePortSpace(*nhead) == 1) {
+        goto error;
+    }
+
     /* step 0: if the head list is empty, but the nhead list isn't
      * we have a pure not thingy. In that case we add a 0:65535
      * first. */
     if (*head == NULL && *nhead != NULL) {
+#ifdef DEBUG
+        printf("DetectPortParseMergeNotPorts: inserting 0:65535 into head\n");
+#endif
         r = DetectPortParseInsertString(head,"0:65535");
         if (r < 0) {
             goto error;
@@ -991,7 +1057,13 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
 
     /* step 2: pull the address blocks that match our 'not' blocks */
     for (ag = *nhead; ag != NULL; ag = ag->next) {
+#ifdef DEBUG
+        printf("DetectPortParseMergeNotPorts: ag %p ", ag); DetectPortPrint(ag); printf("\n");
+#endif
         for (ag2 = *head; ag2 != NULL; ) {
+#ifdef DEBUG
+            printf("DetectPortParseMergeNotPorts: ag2 %p ", ag2); DetectPortPrint(ag2); printf("\n");
+#endif
             r = DetectPortCmp(ag,ag2);
             if (r == PORT_EQ || r == PORT_EB) { /* XXX more ??? */
                 if (ag2->prev == NULL) {
@@ -1013,6 +1085,19 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
         }
     }
 
+    for (ag2 = *head; ag2 != NULL; ag2 = ag2->next) {
+#ifdef DEBUG
+        printf("DetectPortParseMergeNotPorts: ag2 %p ", ag2); DetectPortPrint(ag2); printf("\n");
+#endif
+    }
+
+    if (*head == NULL) {
+#ifdef DEBUG
+        printf("DetectPortParseMergeNotPorts: no ports left after merge\n");
+#endif
+        goto error;
+    }
+
     return 0;
 error:
     return -1;
@@ -1021,6 +1106,10 @@ error:
 int DetectPortParse(DetectPort **head, char *str) {
     int r;
 
+#ifdef DEBUG
+    printf("DetectPortParse: str %s\n", str);
+#endif
+
     /* negate port list */
     DetectPort *nhead = NULL;
 
@@ -1028,6 +1117,10 @@ int DetectPortParse(DetectPort **head, char *str) {
     if (r < 0) {
         goto error;
     }
+
+#ifdef DEBUG
+    printf("DetectPortParse: head %p %p, nhead %p\n", head, *head, nhead);
+#endif
 
     /* merge the 'not' address groups */
     if (DetectPortParseMergeNotPorts(head,&nhead) < 0) {
@@ -1339,6 +1432,20 @@ end:
     return result;
 }
 
+int PortTestParse08 (void) {
+    DetectPort *dd = NULL;
+    int result = 0;
+
+    int r = DetectPortParse(&dd,"[80:!80]");
+    if (r == 0)
+        goto end;
+
+    DetectPortCleanupList(dd);
+    result = 1;
+end:
+    return result;
+}
+
 
 void DetectPortTests(void) {
     UtRegisterTest("PortTestParse01", PortTestParse01, 1);
@@ -1348,5 +1455,6 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestParse05", PortTestParse05, 1);
     UtRegisterTest("PortTestParse06", PortTestParse06, 1);
     UtRegisterTest("PortTestParse07", PortTestParse07, 1);
+    UtRegisterTest("PortTestParse08", PortTestParse08, 1);
 }
 

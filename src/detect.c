@@ -6349,68 +6349,6 @@ end:
     return result;
 }
 
-/**
- * \test SigTest41Negation01 is a test to check that we don't allow invalid negation options
- */
-
-static int SigTest41Negation01 (void) {
-    int result = 1;
-    DetectEngineCtx *de_ctx;
-    Signature *s=NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-    de_ctx->flags |= DE_QUIET;
-
-    s = SigInit(de_ctx,"alert tcp !any any -> any any (msg:\"SigTest41-01 src address is !any \"; classtype:misc-activity; sid:410001; rev:1;)");
-    if (s != NULL) {
-        printf("We set src ip to !any and the sig was parsed successfully: ");
-        SigFree(s);
-        result = 0;
-    }
-
-    s = SigInit(de_ctx,"alert tcp any !any -> any any (msg:\"SigTest41-02 src ip is !any \"; classtype:misc-activity; sid:410002; rev:1;)");
-    if (s != NULL) {
-        printf("We set src port to !any and the sig was parsed successfully: ");
-        SigFree(s);
-        result = 0;
-    }
-
-    s = SigInit(de_ctx,"alert tcp any any -> any [80:!80] (msg:\"SigTest41-03 dst port [80:!80] \"; classtype:misc-activity; sid:410003; rev:1;)");
-    if (s != NULL) {
-        printf("We set dst port to [80:!80] and the sig was parsed successfully: ");
-        SigFree(s);
-        result = 0;
-    }
-
-    s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.2,!192.168.0.2] any (msg:\"SigTest41-04 dst ip [192.168.0.2,!192.168.0.2] \"; classtype:misc-activity; sid:410004; rev:1;)");
-    if (s != NULL) {
-        printf("We set dst ip to [192.168.0.2,!192.168.0.2] and the sig was parsed successfully: ");
-        SigFree(s);
-        result = 0;
-    }
-
-    s = SigInit(de_ctx,"alert tcp any any -> any [100:1000,!1:20000] (msg:\"SigTest41-05 dst port [100:1000,!1:20000] \"; classtype:misc-activity; sid:410005; rev:1;)");
-    if (s != NULL) {
-        printf("We set dst port to [100:1000,!1:20000] and the sig was parsed successfully: ");
-        SigFree(s);
-        result = 0;
-    }
-
-   s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.2,!192.168.0.0/24] any (msg:\"SigTest41-06 dst ip [192.168.0.2,!192.168.0.0/24] \"; classtype:misc-activity; sid:410006; rev:1;)");
-   if (s != NULL) {
-       printf("We set dst ip to [192.168.0.2,!192.168.0.0/24] and the sig was parsed successfully: ");
-       SigFree(s);
-       result = 0;
-   }
-
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
@@ -6561,9 +6499,6 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTest40SignatureIsIPOnly01", SigTest40IPOnly01, 1);
     UtRegisterTest("SigTest40SignatureIsIPOnly02", SigTest40IPOnly02, 1);
     UtRegisterTest("SigTest40SignatureIsIPOnly03", SigTest40IPOnly03, 1);
-
-    UtRegisterTest("SigTestSignature41Negation01", SigTest41Negation01, 1);
-
 #endif /* UNITTESTS */
 }
 

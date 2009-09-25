@@ -22,13 +22,15 @@
 #include "detect-engine-address-ipv6.h"
 #include "detect-engine-port.h"
 
+//#define DEBUG
+
 int DetectAddressSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);
 void DetectAddressTests (void);
 
 void DetectAddressRegister (void) {
     sigmatch_table[DETECT_ADDRESS].name = "__address__";
     sigmatch_table[DETECT_ADDRESS].Match = NULL;
-    sigmatch_table[DETECT_ADDRESS].Setup = DetectAddressSetup;
+    sigmatch_table[DETECT_ADDRESS].Setup = NULL;
     sigmatch_table[DETECT_ADDRESS].Free = NULL;
     sigmatch_table[DETECT_ADDRESS].RegisterTests = DetectAddressTests;
 }
@@ -76,6 +78,7 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
     if (ag->ad != NULL) {
         DetectAddressDataFree(ag->ad);
     }
+    ag->ad = NULL;
 
     /* only free the head if we have the original */
     if (ag->sh != NULL && !(ag->flags & ADDRESS_GROUP_SIGGROUPHEAD_COPY)) {
@@ -591,6 +594,10 @@ int DetectAddressGroupSetup(DetectAddressGroupsHead *gh, char *s) {
     DetectAddressData  *ad = NULL;
     int r = 0;
 
+#ifdef DEBUG
+    printf("DetectAddressGroupSetup: gh %p, s %s\n", gh, s);
+#endif
+
     /* parse the address */
     ad = DetectAddressParse(s);
     if (ad == NULL) {
@@ -630,9 +637,9 @@ int DetectAddressGroupSetup(DetectAddressGroupsHead *gh, char *s) {
 	if (DetectAddressInsert(gh, ad) < 0)
 	    goto error;
 
-        ad = DetectAddressParse("::/0");
-        if (ad == NULL)
-            goto error;
+    ad = DetectAddressParse("::/0");
+    if (ad == NULL)
+        goto error;
 
 	if (DetectAddressInsert(gh, ad) < 0)
 	    goto error;
@@ -707,11 +714,37 @@ int DetectAddressParse2(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *gh
 //    return -1;
 }
 
+/** \brief See if the addresses and ranges in a group head cover the entire
+ *         ip space.
+ *  \param gh group head to check
+ *  \retval 0 no
+ *  \retval 1 yes
+ *  \todo do the same for IPv6
+ *  \internal
+ */
+static int DetectAddressGroupIsCompleteIPSpace(DetectAddressGroupsHead *gh) {
+    int r = DetectAddressGroupIsCompleteIPSpaceIPv4(gh->ipv4_head);
+    if (r == 1) {
+        return 1;
+    }
+
+    return 0;
+}
+
 /** \brief Merge the + and the - list (+ positive match, - 'not' match) */
 int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *ghn) {
     DetectAddressData *ad;
     DetectAddressGroup *ag, *ag2;
     int r = 0;
+
+    /* check if the negated list covers the entire ip space. If so
+       the user screwed up the rules/vars. */
+    if (DetectAddressGroupIsCompleteIPSpace(ghn) == 1) {
+#ifdef DEBUG
+        printf("DetectAddressGroupMergeNot: complete IP space negated\n");
+#endif
+        goto error;
+    }
 
     /* step 0: if the gh list is empty, but the ghn list isn't
      * we have a pure not thingy. In that case we add a 0.0.0.0/0
@@ -738,6 +771,7 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
         if (ad == NULL) {
             goto error;
         }
+
         r = DetectAddressInsert(gh,ad);
         if (r < 0) {
             goto error;
@@ -751,6 +785,7 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
         if (ad == NULL) {
             goto error;
         }
+
         r = DetectAddressInsert(gh,ad);
         if (r < 0) {
             goto error;
@@ -759,7 +794,13 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
 
     /* step 2: pull the address blocks that match our 'not' blocks */
     for (ag = ghn->ipv4_head; ag != NULL; ag = ag->next) {
+#ifdef DEBUG
+        printf("DetectAddressGroupMergeNot: ag %p ", ag); DetectAddressDataPrint(ag->ad); printf("\n");
+#endif
         for (ag2 = gh->ipv4_head; ag2 != NULL; ) {
+#ifdef DEBUG
+            printf("DetectAddressGroupMergeNot: ag2 %p ", ag2); DetectAddressDataPrint(ag2->ad); printf("\n");
+#endif
             r = DetectAddressCmp(ag->ad,ag2->ad);
             if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
                 if (ag2->prev == NULL) {
@@ -771,6 +812,7 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
                 if (ag2->next != NULL) {
                     ag2->next->prev = ag2->prev;
                 }
+
                 /* store the next ptr and remove the group */
                 DetectAddressGroup *next_ag2 = ag2->next;
                 DetectAddressGroupFree(ag2);
@@ -782,11 +824,11 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
     }
     /* ... and the same for ipv6 */
     for (ag = ghn->ipv6_head; ag != NULL; ag = ag->next) {
-        for (ag2 = gh->ipv6_head; ag2 != NULL; ag2 = ag2->next) {
+        for (ag2 = gh->ipv6_head; ag2 != NULL; ) {
             r = DetectAddressCmp(ag->ad,ag2->ad);
             if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
                 if (ag2->prev == NULL) {
-                    gh->ipv4_head = ag2->next;
+                    gh->ipv6_head = ag2->next;
                 } else {
                     ag2->prev->next = ag2->next;
                 }
@@ -795,9 +837,22 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
                     ag2->next->prev = ag2->prev;
                 }
 
+                /* store the next ptr and remove the group */
+                DetectAddressGroup *next_ag2 = ag2->next;
                 DetectAddressGroupFree(ag2);
+                ag2 = next_ag2;
+            } else {
+                ag2 = ag2->next;
             }
         }
+    }
+
+    /* if the result is that we have no addresses we return error */
+    if (gh->ipv4_head == NULL && gh->ipv6_head == NULL) {
+#ifdef DEBUG
+        printf("DetectAddressGroupMergeNot: no addresses left after merge\n");
+#endif
+        goto error;
     }
 
     return 0;
@@ -808,6 +863,10 @@ error:
 /* XXX rename this so 'Group' is out of the name */
 int DetectAddressGroupParse(DetectAddressGroupsHead *gh, char *str) {
     int r;
+
+#ifdef DEBUG
+    printf("DetectAddressGroupParse: gh %p, str %s\n", gh, str);
+#endif
 
     DetectAddressGroupsHead *ghn = DetectAddressGroupsHeadInit();
     if (ghn == NULL) {
@@ -936,7 +995,7 @@ void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6) {
     }
 }
 
-int AddressParse(DetectAddressData *dd, char *str) {
+static int AddressParse(DetectAddressData *dd, char *str) {
     char *ipdup = strdup(str);
     char *ip2 = NULL;
     char *mask = NULL;
@@ -1155,23 +1214,6 @@ error:
     return NULL;
 }
 
-int DetectAddressSetup (DetectEngineCtx * de_ctx, Signature *s, SigMatch *m, char *addressstr)
-{
-    char *str = addressstr;
-    char dubbed = 0;
-
-    /* strip "'s */
-    if (addressstr[0] == '\"' && addressstr[strlen(addressstr)-1] == '\"') {
-        str = strdup(addressstr+1);
-        str[strlen(addressstr)-2] = '\0';
-        dubbed = 1;
-    }
-
-
-    if (dubbed) free(str);
-    return 0;
-}
-
 void DetectAddressDataFree(DetectAddressData *dd) {
     if (dd != NULL) {
         free(dd);
@@ -1240,7 +1282,7 @@ void DetectAddressDataPrint(DetectAddressData *ad) {
     }
 }
 
-/* find the group matching address in a group head */
+/** \brief find the group matching address in a group head */
 DetectAddressGroup *
 DetectAddressLookupGroup(DetectAddressGroupsHead *gh, Address *a) {
     DetectAddressGroup *g;
@@ -1718,6 +1760,7 @@ int AddressTestParse30 (void) {
     return 0;
 }
 
+/** \test make sure !any is rejected */
 int AddressTestParse31 (void) {
     DetectAddressData *dd = NULL;
     dd = DetectAddressParse("!any");

@@ -258,7 +258,7 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
         addr = "any";
     } else {
         addr = (char *)addrstr;
-        //printf("addr \"%s\"\n", addrstr);
+        //printf("SigParseAddress: addr \"%s\"\n", addrstr);
     }
 
     /* pass on to the address(list) parser */
@@ -342,7 +342,6 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
         //DetectPortPrint(s->dp);
     }
     if (r < 0) {
-        printf("SigParsePort: DetectPortParse \"%s\" failed\n", portstr);
         return -1;
     }
 
@@ -408,7 +407,7 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
 
     /* Parse Address & Ports */
     if (SigParseAddress(s, arr[CONFIG_SRC], 0) < 0)
-        goto error;
+       goto error;
 
     /* For "ip" we parse the ports as well, even though they will
        be just "any". We do this for later sgh building for the
@@ -438,8 +437,10 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr) {
     char **basics;
 
     int ret = SigParseBasics(s, sigstr, &basics);
-    if (ret < 0)
+    if (ret < 0) {
+        //printf("SigParseBasics failed\n");
         return -1;
+}
 
 #ifdef DEBUG
     DEBUGPRINT("SigParse: %p", basics);
@@ -570,8 +571,196 @@ end:
     return result;
 }
 
+/**
+ * \test check that we don't allow invalid negation options
+ */
+static int SigParseTestNegation01 (void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tcp !any any -> any any (msg:\"SigTest41-01 src address is !any \"; classtype:misc-activity; sid:410001; rev:1;)");
+    if (s != NULL) {
+        SigFree(s);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test check that we don't allow invalid negation options
+ */
+static int SigParseTestNegation02 (void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tcp any !any -> any any (msg:\"SigTest41-02 src ip is !any \"; classtype:misc-activity; sid:410002; rev:1;)");
+    if (s != NULL) {
+        SigFree(s);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+/**
+ * \test check that we don't allow invalid negation options
+ */
+static int SigParseTestNegation03 (void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tcp any any -> any [80:!80] (msg:\"SigTest41-03 dst port [80:!80] \"; classtype:misc-activity; sid:410003; rev:1;)");
+    if (s != NULL) {
+        SigFree(s);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+/**
+ * \test check that we don't allow invalid negation options
+ */
+static int SigParseTestNegation04 (void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tcp any any -> any [80,!80] (msg:\"SigTest41-03 dst port [80:!80] \"; classtype:misc-activity; sid:410003; rev:1;)");
+    if (s != NULL) {
+        SigFree(s);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+/**
+ * \test check that we don't allow invalid negation options
+ */
+static int SigParseTestNegation05 (void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.2,!192.168.0.2] any (msg:\"SigTest41-04 dst ip [192.168.0.2,!192.168.0.2] \"; classtype:misc-activity; sid:410004; rev:1;)");
+    if (s != NULL) {
+        SigFree(s);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+/**
+ * \test check that we don't allow invalid negation options
+ */
+static int SigParseTestNegation06 (void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tcp any any -> any [100:1000,!1:20000] (msg:\"SigTest41-05 dst port [100:1000,!1:20000] \"; classtype:misc-activity; sid:410005; rev:1;)");
+    if (s != NULL) {
+        SigFree(s);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+/**
+ * \test check that we don't allow invalid negation options
+ */
+static int SigParseTestNegation07 (void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.2,!192.168.0.0/24] any (msg:\"SigTest41-06 dst ip [192.168.0.2,!192.168.0.0/24] \"; classtype:misc-activity; sid:410006; rev:1;)");
+    if (s != NULL) {
+        SigFree(s);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+//printf("%s\n", result?"ok":"fail");
+//exit(1);
+    return result;
+}
+
+
 void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest01", SigParseTest01, 1);
     UtRegisterTest("SigParseTest02", SigParseTest02, 1);
+    UtRegisterTest("SigParseTestNegation01", SigParseTestNegation01, 1);
+    UtRegisterTest("SigParseTestNegation02", SigParseTestNegation02, 1);
+    UtRegisterTest("SigParseTestNegation03", SigParseTestNegation03, 1);
+    UtRegisterTest("SigParseTestNegation04", SigParseTestNegation04, 1);
+    UtRegisterTest("SigParseTestNegation05", SigParseTestNegation05, 1);
+    UtRegisterTest("SigParseTestNegation06", SigParseTestNegation06, 1);
+    UtRegisterTest("SigParseTestNegation07", SigParseTestNegation07, 1);
 }
 
