@@ -361,6 +361,15 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     CFLAGS="${CFLAGS} -DUNITTESTS"
     fi
 
+# enable debug output
+    AC_ARG_ENABLE(debug,
+            [  --enable-debug  Enable debug output],
+            [ enable_debug=yes
+            ])
+    if test "$enable_debug" = "yes"; then
+    CFLAGS="${CFLAGS} -DDEBUG"
+    fi
+
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
