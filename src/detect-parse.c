@@ -35,8 +35,8 @@ static uint32_t dbg_dstportany_cnt = 0;
 #define CONFIG_DP     6
 #define CONFIG_OPTS   7
 
-//                    action       protocol       src                                      sp                       dir                   dst                                    dp                            options
-#define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9]+)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/]+)\\s+([\\:A-z0-9_\\$\\!,]+)\\s+(\\<-|-\\>|\\<\\>)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,/]+)\\s+([\\:A-z0-9_\\$\\!,]+)(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?$"
+//                    action       protocol       src                                      sp                        dir              dst                                    dp                            options
+#define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9]+)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/]+)\\s+([\\:A-z0-9_\\$\\!,]+)\\s+(-\\>|\\<\\>)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,/]+)\\s+([\\:A-z0-9_\\$\\!,]+)(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?$"
 #define OPTION_PARTS 3
 #define OPTION_PCRE "^\\s*([A-z_0-9-]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
@@ -571,7 +571,31 @@ end:
     return result;
 }
 
+/**
+ * \test SigParseTest03 test for invalid direction operator in rule
+ */
 int SigParseTest03 (void) {
+    int result = 1;
+    Signature *sig = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 any <- !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
+    if (sig != NULL) {
+        result = 0;
+        printf("expected NULL got sig ptr %p: ",sig);
+        SigFree(sig);
+        goto end;
+    }
+
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int SigParseTest04 (void) {
     int result = 1;
     Signature *sig = NULL;
 
@@ -768,11 +792,11 @@ end:
     return result;
 }
 
-
 void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest01", SigParseTest01, 1);
     UtRegisterTest("SigParseTest02", SigParseTest02, 1);
     UtRegisterTest("SigParseTest03", SigParseTest03, 1);
+    UtRegisterTest("SigParseTest04", SigParseTest04, 1);
     UtRegisterTest("SigParseTestNegation01", SigParseTestNegation01, 1);
     UtRegisterTest("SigParseTestNegation02", SigParseTestNegation02, 1);
     UtRegisterTest("SigParseTestNegation03", SigParseTestNegation03, 1);
