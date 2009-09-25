@@ -5,7 +5,7 @@
 #include "decode-udp.h"
 #include "decode-events.h"
 #include "util-unittest.h"
-
+#include "util-debug.h"
 #include "flow.h"
 
 /**
@@ -168,10 +168,8 @@ void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         return;
     }
 
-#ifdef DEBUG
-    printf("UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "\n",
+    SCDebug("UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
         UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
-#endif
 
     /* Flow is an integral part of us */
     FlowHandlePacket(tv, p);

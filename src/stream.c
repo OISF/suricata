@@ -3,12 +3,9 @@
 #include "eidps-common.h"
 #include "decode.h"
 #include "threads.h"
-
 #include "stream.h"
-
 #include "util-pool.h"
-
-//#define DEBUG
+#include "util-debug.h"
 
 static pthread_mutex_t stream_pool_memuse_mutex;
 static uint64_t stream_pool_memuse = 0;
@@ -136,9 +133,7 @@ void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
 {
     mutex_lock(&q->mutex_q);
     StreamMsgEnqueue(q, s);
-#ifdef DEBUG
-    printf("StreamMsgPutInQueue: q->len %" PRIu32 "\n", q->len);
-#endif
+    SCDebug("q->len %" PRIu32 "", q->len);
     pthread_cond_signal(&q->cond_q);
     mutex_unlock(&q->mutex_q);
 }

@@ -10,6 +10,7 @@
 #include "decode-ipv4.h"
 #include "decode-events.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 /**
  * \brief Calculates the checksum for the IP packet
@@ -506,9 +507,6 @@ static int DecodeIPV4Options(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t l
 
 static int DecodeIPV4Packet(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
 {
-#ifdef DEBUG
-    printf("DecodeIPV4Packet\n");
-#endif
     if (len < IPV4_HEADER_LEN) {
         DECODER_SET_EVENT(p,IPV4_PKT_TOO_SMALL);
         return -1;
@@ -553,16 +551,12 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     /* reset the decoder cache flags */
     IPV4_CACHE_INIT(p);
 
-#ifdef DEBUG
-    printf("DecodeIPV4\n");
-#endif
+    SCDebug("pkt %p len %"PRIu16"", pkt, len);
 
     /* do the actual decoding */
     ret = DecodeIPV4Packet (tv, p, pkt, len);
     if (ret < 0) {
-#ifdef DEBUG
-        printf("DecodeIPV4 failed!\n");
-#endif
+        SCDebug("decoding IPv4 packet failed");
         p->ip4h = NULL;
         return;
     }
@@ -574,7 +568,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     char s[16], d[16];
     inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), s, sizeof(s));
     inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), d, sizeof(d));
-    printf("IPV4 %s->%s PROTO: %" PRIu32 " OFFSET: %" PRIu32 " RF: %" PRIu32 " DF: %" PRIu32 " MF: %" PRIu32 " ID: %" PRIu32 "\n", s,d,
+    SCDebug("IPV4 %s->%s PROTO: %" PRIu32 " OFFSET: %" PRIu32 " RF: %" PRIu32 " DF: %" PRIu32 " MF: %" PRIu32 " ID: %" PRIu32 "", s,d,
             IPV4_GET_IPPROTO(p), IPV4_GET_IPOFFSET(p), IPV4_GET_RF(p),
             IPV4_GET_DF(p), IPV4_GET_MF(p), IPV4_GET_IPID(p));
 #endif /* DEBUG */

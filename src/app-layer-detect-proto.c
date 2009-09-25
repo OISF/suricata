@@ -34,6 +34,8 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
+#include "util-debug.h"
+
 #define INSPECT_BYTES  32
 #define ALP_DETECT_MAX 256
 
@@ -242,8 +244,7 @@ end:
     if (dir->mpm_ctx.Cleanup != NULL) {
         dir->mpm_ctx.Cleanup(&tdir->mpm_ctx);
     }
-//#define DEBUG
-#ifdef DEBUG
+#if 0
     printf("AppLayerDetectGetProto: returning %" PRIu16 " (%s): ", proto, flags & STREAM_TOCLIENT ? "TOCLIENT" : "TOSERVER");
     switch (proto) {
         case ALPROTO_HTTP:

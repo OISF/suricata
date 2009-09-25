@@ -5,6 +5,7 @@
 #include "decode-ipv6.h"
 #include "decode-icmpv6.h"
 #include "decode-events.h"
+#include "util-debug.h"
 
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
@@ -380,7 +381,7 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     char s[46], d[46];
     inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), s, sizeof(s));
     inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), d, sizeof(d));
-    printf("IPV6 %s->%s - CLASS: %" PRIu32 " FLOW: %" PRIu32 " NH: %" PRIu32 " PLEN: %" PRIu32 " HLIM: %" PRIu32 "\n", s,d,
+    SCDebug("IPV6 %s->%s - CLASS: %" PRIu32 " FLOW: %" PRIu32 " NH: %" PRIu32 " PLEN: %" PRIu32 " HLIM: %" PRIu32 "", s,d,
         IPV6_GET_CLASS(p), IPV6_GET_FLOW(p), IPV6_GET_NH(p), IPV6_GET_PLEN(p),
         IPV6_GET_HLIM(p));
 #endif /* DEBUG */

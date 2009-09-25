@@ -1,5 +1,6 @@
 #include "eidps-common.h"
 #include "util-mpm.h"
+#include "util-debug.h"
 
 /* include pattern matchers */
 #include "util-mpm-wumanber.h"
@@ -84,9 +85,7 @@ void PmqFree(PatternMatcherQueue *pmq) {
  * used at search runtime (or actually once per search) */
 void
 MpmMatchCleanup(MpmThreadCtx *thread_ctx) {
-#ifdef DEBUG
-    printf("MpmMatchCleanup: mem %" PRIu32 "\n", thread_ctx->memory_size);
-#endif
+    SCDebug("mem %" PRIu32 "", thread_ctx->memory_size);
 
     MpmMatch *nxt;
     MpmMatch *m = thread_ctx->qlist;
@@ -214,9 +213,9 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
         }
     }
 
-#ifdef DEBUG
-    printf("MpmMatchAppend: len %" PRIu32 " (offset %" PRIu32 ")\n", mb->len, m->offset);
+    SCDebug("len %" PRIu32 " (offset %" PRIu32 ")", mb->len, m->offset);
 
+#if 0
     MpmMatch *tmp = thread_ctx->qlist;
     while (tmp) {
         printf("tmp %p tmp->next %p\n", tmp, tmp->next);

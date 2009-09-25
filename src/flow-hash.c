@@ -11,6 +11,8 @@
 #include "flow-util.h"
 #include "flow-private.h"
 
+#include "util-debug.h"
+
 /* calculate the hash key for this packet
  *
  * we're using:
@@ -77,7 +79,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
     FlowBucket *fb = &flow_hash[key];
     mutex_lock(&fb->m);
 
-    DEBUGPRINT("FlowGetFlowFromHash: fb %p fb->f %p", fb, fb->f);
+    SCDebug("FlowGetFlowFromHash: fb %p fb->f %p", fb, fb->f);
 
     /* see if the bucket already has a flow */
     if (fb->f == NULL) {

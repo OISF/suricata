@@ -5,7 +5,7 @@
 #include "decode-tcp.h"
 #include "decode-events.h"
 #include "util-unittest.h"
-
+#include "util-debug.h"
 #include "flow.h"
 
 /**
@@ -267,7 +267,7 @@ void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     }
 
 #ifdef DEBUG
-    printf("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s\n",
+    SCDebug("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s",
         GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), p->tcpvars.hlen, len,
         p->tcpvars.sackok ? "SACKOK " : "",
         p->tcpvars.ws ? "WS " : "",
