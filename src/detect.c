@@ -341,7 +341,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 
     /* if we don't need any pattern matcher or other content inspection, then return*/
-    if (p->flowflags & FLOW_PKT_NOPAYLOAD_INSPECTION)
+    if (p->flags & PKT_NOPAYLOAD_INSPECTION)
         return 1;
 
     /* we assume we don't have an uri when we start inspection */
@@ -519,7 +519,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 int Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
     /*No need to perform any detection on this packet, if the the given flag is set.*/
-    if (p->flowflags & FLOW_PKT_NOPACKET_INSPECTION)
+    if (p->flags & PKT_NOPACKET_INSPECTION)
         return 0;
 
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;

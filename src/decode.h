@@ -225,7 +225,10 @@ typedef struct Packet_
 
     /* flow */
     struct Flow_ *flow;
-    uint16_t flowflags;
+    uint8_t flowflags;
+
+    /*Pkt Flags*/
+    uint8_t flags;
 
     /* pkt vars */
     PktVar *pktvar;

@@ -10,18 +10,18 @@
 #define FLOW_VERBOSE    FALSE
 
 /* pkt flow flags */
-#define FLOW_PKT_TOSERVER               0x0001
-#define FLOW_PKT_TOCLIENT               0x0002
-#define FLOW_PKT_ESTABLISHED            0x0004
-#define FLOW_PKT_STATELESS              0x0008
-#define FLOW_PKT_TOSERVER_IPONLY_SET    0x0010
-#define FLOW_PKT_TOCLIENT_IPONLY_SET    0x0020
-#define FLOW_PKT_NOSTREAM               0x0040
-#define FLOW_PKT_STREAMONLY             0x0080
-#define FLOW_PKT_NOPACKET_INSPECTION    0x0100
-#define FLOW_PKT_NOPAYLOAD_INSPECTION   0x0200
-#define FLOW_PKT_NOCLIENT_REASSEMBLY    0x0400
-#define FLOW_PKT_NOSERVER_REASSEMBLY    0x0800
+#define FLOW_PKT_TOSERVER               0x01
+#define FLOW_PKT_TOCLIENT               0x02
+#define FLOW_PKT_ESTABLISHED            0x04
+#define FLOW_PKT_STATELESS              0x08
+#define FLOW_PKT_TOSERVER_IPONLY_SET    0x10
+#define FLOW_PKT_TOCLIENT_IPONLY_SET    0x20
+#define FLOW_PKT_NOSTREAM               0x40
+#define FLOW_PKT_STREAMONLY             0x80
+
+/*Packet Flags*/
+#define PKT_NOPACKET_INSPECTION         0x01
+#define PKT_NOPAYLOAD_INSPECTION        0x02
 
 /* global flow config */
 typedef struct FlowCnf_

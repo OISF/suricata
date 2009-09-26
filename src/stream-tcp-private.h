@@ -52,8 +52,10 @@ enum
 #define STREAMTCP_FLAG_TIMESTAMP                0x04    /**< Flag for TCP Timestamp option*/
 #define STREAMTCP_FLAG_SERVER_WSCALE            0x08    /**< Server supports wscale (even though it can be 0) */
 #define STREAMTCP_FLAG_ZERO_TIMESTAMP           0x10    /**< Flag to indicate the zero value of timestamp*/
-#define STREAMTCP_FLAG_NO_REASSEMBLY            0x20    /**< Flag to avoid stream reassembly / application layer
+#define STREAMTCP_FLAG_NOCLIENT_REASSEMBLY      0x20    /**< Flag to avoid stream reassembly / application layer
                                                              inspection for the client stream.*/
+#define STREAMTCP_FLAG_NOSERVER_REASSEMBLY      0x40    /**< Flag to avoid stream reassembly / application layer
+                                                             inspection for the server stream.*/
 
 #define PAWS_24DAYS         2073600         /* 24 days in seconds */
 

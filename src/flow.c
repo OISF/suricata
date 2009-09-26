@@ -42,6 +42,8 @@ int FlowSetProtoEmergencyTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
 static int FlowClearMemory(Flow *,uint8_t );
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
+void FlowSetPktNoPacketInspectionFlag(Packet *);
+void FlowSetPktNoPayloadInspectionFlag(Packet *);
 
 /** \brief Update the flows position in the queue's
  *  \param f Flow to requeue.
@@ -343,13 +345,9 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
 
     /*set the detection bypass flags*/
     if (f->flags & FLOW_NOPACKET_INSPECTION)
-        p->flowflags |= FLOW_PKT_NOPACKET_INSPECTION;
+        FlowSetPktNoPacketInspectionFlag(p);
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION)
-        p->flowflags |= FLOW_PKT_NOPAYLOAD_INSPECTION;
-    if (f->flags & FLOW_NOCLIENT_REASSEMBLY)
-        p->flowflags |= FLOW_PKT_NOCLIENT_REASSEMBLY;
-    if (f->flags & FLOW_NOSERVER_REASSEMBLY)
-        p->flowflags |= FLOW_PKT_NOSERVER_REASSEMBLY;
+        FlowSetPktNoPayloadInspectionFlag(p);
 
     /* set the flow in the packet */
     p->flow = f;
@@ -750,26 +748,6 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout, uint
     return 1;
 }
 
-/** \brief Set the No stream reassembly flag for 'direction'. This function
-  *        handles the locking too.
-  * \param f Flow to set the flag in
-  * \param direction direction to set the flag in
-  */
-void FlowLockSetNoStreamReassemblyFlag(Flow *f, char direction) {
-    mutex_lock(&f->m);
-    direction ? (f->flags |= FLOW_NOSERVER_REASSEMBLY) : (f->flags |= FLOW_NOCLIENT_REASSEMBLY);
-    mutex_unlock(&f->m);
-}
-
-/** \brief Set the No stream reassembly flag for 'direction' without any lock.
- *
-  * \param f Flow to set the flag in
-  * \param direction direction to set the flag in
-  */
-void FlowSetNoStreamReassemblyFlag(Flow *f, char direction) {
-    direction ? (f->flags |= FLOW_NOSERVER_REASSEMBLY) : (f->flags |= FLOW_NOCLIENT_REASSEMBLY);
-}
-
 /** \brief Set the No Packet Inspection Flag after locking the flow.
  *
   * \param f Flow to set the flag in
@@ -804,6 +782,22 @@ void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
   */
 void FlowSetNoPayloadInspectionFlag(Flow *f) {
     f->flags |= FLOW_NOPAYLOAD_INSPECTION;
+}
+
+/** \brief Set the No payload inspection Flag for the packet.
+ *
+  * \param p Packet to set the flag in
+  */
+void FlowSetPktNoPayloadInspectionFlag(Packet *p) {
+    p->flags |= PKT_NOPAYLOAD_INSPECTION;
+}
+
+/** \brief Set the No packet inspection Flag for the packet.
+ *
+  * \param p Packet to set the flag in
+  */
+void FlowSetPktNoPacketInspectionFlag(Packet *p) {
+    p->flags |= PKT_NOPACKET_INSPECTION;
 }
 
 #ifdef UNITTESTS
