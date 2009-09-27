@@ -133,7 +133,7 @@ void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
 {
     mutex_lock(&q->mutex_q);
     StreamMsgEnqueue(q, s);
-    SCDebug("q->len %" PRIu32 "", q->len);
+    SCLogDebug("q->len %" PRIu32 "", q->len);
     pthread_cond_signal(&q->cond_q);
     mutex_unlock(&q->mutex_q);
 }

@@ -85,7 +85,7 @@ void PmqFree(PatternMatcherQueue *pmq) {
  * used at search runtime (or actually once per search) */
 void
 MpmMatchCleanup(MpmThreadCtx *thread_ctx) {
-    SCDebug("mem %" PRIu32 "", thread_ctx->memory_size);
+    SCLogDebug("mem %" PRIu32 "", thread_ctx->memory_size);
 
     MpmMatch *nxt;
     MpmMatch *m = thread_ctx->qlist;
@@ -213,7 +213,7 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
         }
     }
 
-    SCDebug("len %" PRIu32 " (offset %" PRIu32 ")", mb->len, m->offset);
+    SCLogDebug("len %" PRIu32 " (offset %" PRIu32 ")", mb->len, m->offset);
 
 #if 0
     MpmMatch *tmp = thread_ctx->qlist;

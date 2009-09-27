@@ -88,7 +88,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
     p->icmpv6h = (ICMPV6Hdr *)pkt;
 
-    SCDebug("ICMPV6 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv6h->type, p->icmpv6h->code);
+    SCLogDebug("ICMPV6 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv6h->type, p->icmpv6h->code);
 
     p->proto = IPPROTO_ICMPV6;
     return;

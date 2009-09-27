@@ -17,6 +17,8 @@
 #include "alert-unified2-alert.h"
 #include "decode-ipv4.h"
 
+#include "util-debug.h"
+
 /*prototypes*/
 int Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
 int Unified2AlertThreadInit(ThreadVars *, void *, void **);
@@ -140,9 +142,7 @@ int Unified2AlertCreateFile(ThreadVars *t, Unified2AlertThread *aun) {
         log_dir = DEFAULT_LOG_DIR;
     snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, log_dir, "unified2.alert", (uint32_t)ts.tv_sec);
 
-#ifdef DEBUG
-    printf("Creating unified2 file %s\n",filename);
-#endif
+    SCLogInfo("creating unified2 file %s",filename);
 
     /* XXX filename & location */
     aun->fp = fopen(filename, "wb");

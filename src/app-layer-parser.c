@@ -16,6 +16,8 @@
 
 #include "util-binsearch.h"
 
+#include "util-debug.h"
+
 static Pool *al_result_pool = NULL;
 
 /** \brief Alloc a AppLayerParserResultElmt func for the pool */
@@ -356,7 +358,7 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id, int (
     al_parser_table[al_max_parsers].parser_local_id = parser_id;
     al_parser_table[al_max_parsers].AppLayerParser = AppLayerParser;
 
-    printf("AppLayerRegisterParser: registered %p at proto %" PRIu32 ", al_proto_table idx %" PRIu32 ", storage_id %" PRIu32 ", parser_local_id %" PRIu32 "\n",
+    SCLogDebug("registered %p at proto %" PRIu32 ", al_proto_table idx %" PRIu32 ", storage_id %" PRIu32 ", parser_local_id %" PRIu32 "",
         AppLayerParser, proto, al_max_parsers, al_proto_table[proto].storage_id, parser_id);
     return 0;
 }
@@ -388,7 +390,7 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags, int (*AppLay
         al_proto_table[proto].storage_id = StreamL7RegisterModule();
     }
 
-    printf("AppLayerRegisterProto: registered %p at proto %" PRIu32 " flags %02X, al_proto_table idx %" PRIu32 ", storage_id %" PRIu32 "\n",
+    SCLogDebug("registered %p at proto %" PRIu32 " flags %02X, al_proto_table idx %" PRIu32 ", storage_id %" PRIu32 "",
         AppLayerParser, proto, flags, al_max_parsers, al_proto_table[proto].storage_id);
     return 0;
 }
@@ -499,8 +501,7 @@ static int AppLayerDoParse(void *app_layer_state, AppLayerParserState *parser_st
  * \retval 0 ok
  */
 int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_t input_len, char need_lock) {
-    //printf("AppLayerParse: proto %" PRIu32 ", flags %02X\n", proto, flags);
-    //PrintRawDataFp(stdout, input,input_len);
+    SCEnter();
 
     uint16_t parser_idx = 0;
     AppLayerProto *p = &al_proto_table[proto];
@@ -508,7 +509,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
     TcpSession *ssn = f->protoctx;
     if (ssn == NULL) {
         printf("AppLayerParse: no session\n");
-        return -1;
+        goto error;
     }
 
     /* Get the parser state (if any) */
@@ -516,7 +517,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
     if (parser_state_store == NULL) {
         parser_state_store = AppLayerParserStateStoreAlloc();
         if (parser_state_store == NULL)
-            return -1;
+            goto error;
 
         if (need_lock == TRUE) mutex_lock(&f->m);
         ssn->aldata[app_layer_sid] = (void *)parser_state_store;
@@ -548,7 +549,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
 
     if (parser_idx == 0 || parser_state->flags & APP_LAYER_PARSER_DONE) {
         //printf("AppLayerParse: no parser for protocol %" PRIu32 "\n", proto);
-        return 0;
+        SCReturnInt(0);
     }
 
     if (flags & STREAM_EOF)
@@ -563,7 +564,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
     if (app_layer_state == NULL) {
         app_layer_state = p->StateAlloc();
         if (app_layer_state == NULL)
-            return -1;
+            goto error;
 
         if (need_lock == TRUE) mutex_lock(&f->m);
         ssn->aldata[p->storage_id] = app_layer_state;
@@ -573,9 +574,11 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
     /* invoke the recursive parser */
     int r = AppLayerDoParse(app_layer_state, parser_state, input, input_len, parser_idx, proto);
     if (r < 0)
-        return -1;
+        goto error;
 
-    return 0;
+    SCReturnInt(0);
+error:
+    SCReturnInt(-1);
 }
 
 void RegisterAppLayerParsers(void) {
@@ -628,7 +631,6 @@ void AppLayerParserCleanupState(TcpSession *ssn) {
  *
  */
 void AppLayerParsersInitPostProcess(void) {
-    printf("AppLayerParsersInitPostProcess: start\n");
     uint16_t u16 = 0;
 
     /* build local->global mapping */

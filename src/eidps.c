@@ -158,7 +158,7 @@ Packet *SetupPkt (void)
 
         pthread_mutex_init(&p->mutex_rtv_cnt, NULL);
 
-        printf("SetupPkt: allocated a new packet...\n");
+        SCLogDebug("allocated a new packet...");
     }
 
     /* reset the packet csum fields */
@@ -444,7 +444,7 @@ int main(int argc, char **argv)
     memset(&trans_q, 0,sizeof(trans_q));
 
     /* pre allocate packets */
-    printf("Preallocating packets... packet size %" PRIuMAX "\n", (uintmax_t)sizeof(Packet));
+    SCLogInfo("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)sizeof(Packet));
     int i = 0;
     for (i = 0; i < MAX_PENDING; i++) {
         /* XXX pkt alloc function */
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 
         PacketEnqueue(&packet_q,p);
     }
-    printf("Preallocating packets... done\n");
+    SCLogInfo("preallocating packets... done: total memory %"PRIuMAX"", (uintmax_t)(MAX_PENDING*sizeof(Packet)));
 
     FlowInitConfig(FLOW_VERBOSE);
 
@@ -520,10 +520,10 @@ int main(int argc, char **argv)
 
     while(1) {
         if (sigflags) {
-            printf("signal received\n");
+            SCLogInfo("signal received");
 
             if (sigflags & EIDPS_STOP)  {
-                printf ("SIGINT or EngineStop received\n");
+                SCLogInfo("SIGINT or EngineStop received");
 
                 /* Stop the engine so it quits after processing the pcap file
                  * but first make sure all packets are processed by all other
@@ -543,20 +543,19 @@ int main(int argc, char **argv)
                     }
                 } while (done == 0);
 
-                printf("main: all packets processed by threads, stopping engine\n");
+                SCLogInfo("all packets processed by threads, stopping engine");
             }
-            if (sigflags & EIDPS_SIGHUP)  printf ("SIGHUP\n");
-            if (sigflags & EIDPS_SIGTERM) printf ("SIGTERM\n");
+            if (sigflags & EIDPS_SIGHUP)  SCLogInfo("SIGHUP received");
+            if (sigflags & EIDPS_SIGTERM) SCLogInfo("SIGTERM received");
 
             struct timeval end_time;
             memset(&end_time, 0, sizeof(end_time));
             gettimeofday(&end_time, NULL);
 
-            printf("time elapsed %" PRIuMAX "s\n", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
+            SCLogInfo("time elapsed %" PRIuMAX "s", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
 
             TmThreadKillThreads();
             PerfReleaseResources();
-
             break;
         }
 

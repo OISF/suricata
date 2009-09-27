@@ -16,6 +16,7 @@
 #include "tm-modules.h"
 #include "tm-threads.h"
 #include "source-pcap.h"
+#include "util-debug.h"
 
 /**
  * \brief Structure to hold thread specific variables.
@@ -170,7 +171,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->tv = tv;
 
-    printf("ReceivePcapThreadInit: using interface %s\n", (char *)initdata);
+    SCLogInfo("using interface %s", (char *)initdata);
 
     /* XXX create a general pcap setup function */
     char errbuf[PCAP_ERRBUF_SIZE];

@@ -5,6 +5,7 @@
 #include "decode-events.h"
 #include "decode-icmpv4.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 /**
  * \brief Calculates the checksum for the ICMP packet
@@ -80,9 +81,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
     p->icmpv4h = (ICMPV4Hdr *)pkt;
 
-#ifdef DEBUG
-    printf("ICMPV4 TYPE %" PRIu32 " CODE %" PRIu32 "\n", p->icmpv4h->type, p->icmpv4h->code);
-#endif
+    SCLogDebug("ICMPV4 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv4h->type, p->icmpv4h->code);
 
     p->proto = IPPROTO_ICMP;
 

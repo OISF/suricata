@@ -286,7 +286,7 @@ void B2gFreePattern(MpmCtx *mpm_ctx, B2gPattern *p) {
     if (p) {
         free(p);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= sizeof(B2gPattern); 
+        mpm_ctx->memory_size -= sizeof(B2gPattern);
     }
 }
 

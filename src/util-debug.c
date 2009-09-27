@@ -813,7 +813,7 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     }
 
 #ifdef DEBUG
-    printf("filter: %s\n", filter);
+    printf("SCLogSetOPFilter: filter %s\n", filter ? filter : "no filter");
 #endif
 
     return;

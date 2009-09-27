@@ -13,6 +13,7 @@
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
 #include "threads.h"
+#include "util-debug.h"
 
 /* prototypes */
 static int SetCPUAffinity(int cpu);
@@ -212,7 +213,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
     if (tv->set_cpu_affinity == 1)
         SetCPUAffinity(tv->cpu_affinity);
 
-    //printf("TmThreadsSlot1NoInOut: %s starting\n", tv->name);
+    SCLogDebug("%s starting", tv->name);
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
@@ -272,7 +273,7 @@ void *TmThreadsSlot1(void *td) {
     if (tv->set_cpu_affinity == 1)
         SetCPUAffinity(tv->cpu_affinity);
 
-    //printf("TmThreadsSlot1: %s starting\n", tv->name);
+    SCLogDebug("%s starting", tv->name);
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
@@ -336,7 +337,7 @@ void *TmThreadsSlot1(void *td) {
         }
     }
 
-    //printf("TmThreadsSlot1: %s ending\n", tv->name);
+    SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
 }
@@ -452,7 +453,7 @@ void *TmThreadsSlotVar(void *td) {
         }
     }
 
-    //printf("TmThreadsSlot1: %s ending\n", tv->name);
+    SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
 }
@@ -597,9 +598,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     Tmq *tmq = NULL;
     Tmqh *tmqh = NULL;
 
-#ifdef DEBUG
-    printf("TmThreadCreate: creating thread \"%s\"...\n", name);
-#endif
+    SCLogDebug("creating thread \"%s\"...", name);
 
     /* XXX create separate function for this: allocate a thread container */
     tv = malloc(sizeof(ThreadVars));
@@ -777,9 +776,7 @@ void TmThreadKillThreads(void) {
 
         while (tv) {
             TmThreadsSetFlag(tv, THV_KILL);
-#ifdef DEBUG
-            printf("TmThreadKillThreads: told thread %s to stop\n", tv->name);
-#endif
+            SCLogDebug("told thread %s to stop", tv->name);
 
             /* XXX hack */
             StreamMsgSignalQueueHack();
@@ -801,9 +798,7 @@ void TmThreadKillThreads(void) {
                 int cnt = 0;
                 while (1) {
                     if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-#ifdef DEBUG
-                        printf("signalled the thread %" PRId32 " times\n", cnt);
-#endif
+                        SCLogDebug("signalled the thread %" PRId32 " times", cnt);
                         break;
                     }
 
@@ -815,19 +810,14 @@ void TmThreadKillThreads(void) {
                     usleep(100);
                 }
 
-#ifdef DEBUG
-                printf("TmThreadKillThreads: signalled tv->inq->id %" PRIu32 "\n", tv->inq->id);
-#endif
-
+                SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
             }
 
             if (tv->cond != NULL ) {
                 int cnt = 0;
                 while (1) {
                     if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-#ifdef DEBUG
-                        printf("signalled the thread %" PRId32 " times\n", cnt);
-#endif
+                        SCLogDebug("signalled the thread %" PRId32 " times", cnt);
                         break;
                     }
 
@@ -841,9 +831,7 @@ void TmThreadKillThreads(void) {
 
             /* join it */
             pthread_join(tv->t, NULL);
-#ifdef DEBUG
-            printf("TmThreadKillThreads: thread %s stopped\n", tv->name);
-#endif
+            SCLogDebug("thread %s stopped", tv->name);
 
             tv = tv->next;
         }
@@ -1039,7 +1027,7 @@ static void TmThreadRestartThread(ThreadVars *tv)
     }
 
     tv->restarted++;
-    printf("Thread \"%s\" restarted\n", tv->name);
+    SCLogInfo("thread \"%s\" restarted", tv->name);
 
     return;
 }
@@ -1114,8 +1102,8 @@ int TmThreadWaitOnThreadInit(void)
         }
     }
 
-    printf("All %"PRIu16" packet processing threads, %"PRIu16" management "
-           "threads initialized, engine started.\n", ppt_num, mgt_num);
+    SCLogInfo("all %"PRIu16" packet processing threads, %"PRIu16" management "
+           "threads initialized, engine started.", ppt_num, mgt_num);
     return 0;
 }
 

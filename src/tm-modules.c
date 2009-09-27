@@ -3,21 +3,20 @@
 #include "eidps-common.h"
 #include "packet-queue.h"
 #include "tm-modules.h"
+#include "util-debug.h"
 
 void TmModuleDebugList(void) {
     TmModule *t;
     uint16_t i;
 
-    printf("TmModuleDebugList: start\n");
     for (i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
 
         if (t->name == NULL)
             continue;
 
-        printf("TmModuleDebugList: %s:%p\n", t->name, t->Func);
+        SCLogDebug("%s:%p\n", t->name, t->Func);
     }
-    printf("TmModuleDebugList: end\n");
 }
 
 /** \brief get a tm module ptr by name
@@ -53,8 +52,8 @@ void TmModuleRegisterTests(void) {
             continue;
 
         if (t->RegisterTests == NULL) {
-            printf("Warning: threading module %s has no unittest "
-                   "registration function.\n", t->name);
+            SCLogDebug("threading module %s has no unittest "
+                   "registration function.", t->name);
         } else {
             t->RegisterTests();
         }

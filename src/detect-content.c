@@ -38,14 +38,12 @@
 #include "detect-flow.h"
 #include "util-unittest.h"
 #include "util-print.h"
+#include "util-debug.h"
 #include "threads.h"
 
 int DetectContentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectContentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectContentRegisterTests(void);
-
-uint8_t nocasetable[256];
-#define _nc(c) nocasetable[(c)]
 
 void DetectContentRegister (void) {
     sigmatch_table[DETECT_CONTENT].name = "content";
@@ -53,23 +51,6 @@ void DetectContentRegister (void) {
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
-
-    /* create table for O(1) case conversion lookup */
-    uint8_t c = 0;
-    for ( ; c < 255; c++) {
-       if ( c >= 'a' && c <= 'z')
-           nocasetable[c] = (c - ('a' - 'A'));
-       else if (c >= 'A' && c <= 'Z')
-           nocasetable[c] = (c + ('a' - 'A'));
-       else
-           nocasetable[c] = c;
-    }
-#ifdef DEBUG
-    for (c = 0; c < 255; c++) {
-        if (isprint(nocasetable[c]))
-            printf("nocasetable[%c]: %c\n", c, nocasetable[c]);
-    }
-#endif /* DEBUG */
 }
 
 /* pass on the content_max_id */
@@ -237,21 +218,19 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
     }
 
     /* If it has matched, check if it's set a "isdataat" option and process it */
-    if( match == 1 && co->flags & DETECT_CONTENT_ISDATAAT_RELATIVE )
+    if (match == 1 && co->flags & DETECT_CONTENT_ISDATAAT_RELATIVE)
     {
         /* if the rest of the payload (from the last match) is less than
           the "isdataat" there is no data where the rule expected
           so match=0
         */
 
-        SCDebug("isdataat: payload_len: %u, used %u, rest %u, isdataat? %u", p->payload_len, (m->offset + co->content_len),p->payload_len - (m->offset + co->content_len), co->isdataat);
-        if( ! (p->payload_len - (m->offset + co->content_len) >= co->isdataat) )
-            match=0;
-        if(match)
-        {
-            #ifdef DEBUG
-            printf("detect-content: MATCHED\n");
-            #endif
+        SCLogDebug("isdataat: payload_len: %u, used %u, rest %u, isdataat? %u", p->payload_len, (m->offset + co->content_len),p->payload_len - (m->offset + co->content_len), co->isdataat);
+        if(!(p->payload_len - (m->offset + co->content_len) >= co->isdataat))
+            match = 0;
+
+        if (match) {
+            SCLogDebug("still matching after isdataat check");
         }
     }
 
@@ -279,15 +258,17 @@ int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     if (len == 0)
         return 0;
 
-#ifdef DEBUG
-    printf("content \""); PrintRawUriFp(stdout, co->content, co->content_len);
-    printf("\" matched %" PRIu32 " time(s) at offsets: ", len);
+#if 0
+    if (SCLogDebugEnabled()) {
+        printf("content \""); PrintRawUriFp(stdout, co->content, co->content_len);
+        printf("\" matched %" PRIu32 " time(s) at offsets: ", len);
 
-    MpmMatch *tmpm = NULL;
-    for (tmpm = det_ctx->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
-        printf("%" PRIu32 " ", tmpm->offset);
+        MpmMatch *tmpm = NULL;
+        for (tmpm = det_ctx->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
+            printf("%" PRIu32 " ", tmpm->offset);
+        }
+        printf("\n");
     }
-    printf("\n");
 #endif
 
     return DoDetectContent(t, det_ctx, p, s, m, co);
@@ -357,9 +338,6 @@ DetectContentData *DetectContentParse (char *contentstr)
 
                         if (binpos == 2) {
                             uint8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
-#ifdef DEBUG
-                            printf("Binstr %" PRIX32 "\n", c);
-#endif
                             binpos = 0;
                             str[x] = c;
                             x++;
@@ -388,12 +366,14 @@ DetectContentData *DetectContentParse (char *contentstr)
                 }
             }
         }
-#ifdef DEBUG
-        for (i = 0; i < x; i++) {
-            if (isprint(str[i])) printf("%c", str[i]);
-            else                 printf("\\x%02u", str[i]);
+#if 0//def DEBUG
+        if (SCLogDebugEnabled()) {
+            for (i = 0; i < x; i++) {
+                if (isprint(str[i])) printf("%c", str[i]);
+                else                 printf("\\x%02u", str[i]);
+            }
+            printf("\n");
         }
-        printf("\n");
 #endif
 
         if (converted) {

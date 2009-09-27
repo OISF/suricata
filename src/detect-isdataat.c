@@ -18,6 +18,7 @@
 #include "flow.h"
 #include "flow-var.h"
 
+#include "util-debug.h"
 
 /**
  * \brief Regex for parsing our isdataat options
@@ -83,23 +84,17 @@ int DetectIsdataatMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *
     DetectIsdataatData *idad = (DetectIsdataatData *)m->ctx;
     int ret=0;
 
-    #ifdef DEBUG
-    printf("detect-isdataat: payload len : %u , dataat? %u ; relative? %u ...\n", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
-    #endif
+    SCLogDebug("payload_len: %u , dataat? %u ; relative? %u...", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
 
     if(idad->flags & ISDATAAT_RELATIVE)
     {
         /* Relative to the last matched content, is not performed here */
-        #ifdef DEBUG
-        printf("detect-isdataat: Nothing now, this is checked in detect-content.c!\n");
-        #endif
     }
     else
-        if( !(idad->flags & ISDATAAT_RELATIVE) && p->payload_len >= idad->dataat) {
-            ret=1; /* its not relative and we have more data in the packet than the offset of isdataat */
-            #ifdef DEBUG
-            printf("detect-isdataat: matched with payload len : %u , dataat? %u ; relative? %u ...\n", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
-            #endif
+        if(!(idad->flags & ISDATAAT_RELATIVE) && p->payload_len >= idad->dataat) {
+            ret = 1; /* its not relative and we have more data in the packet than the offset of isdataat */
+
+            SCLogDebug("matched with payload_len: %u , dataat? %u ; relative? %u...", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
         }
 
     return ret;
@@ -225,9 +220,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
     if(idad->flags & ISDATAAT_RELATIVE)
     {
         /// Set it in the last parsed contet because it is relative to that content match
-        #ifdef DEBUG
-        printf("detect-isdataat: Set it in the last parsed contet because it is relative to that content match\n");
-        #endif
+        SCLogDebug("set it in the last parsed content because it is relative to that content match");
 
         if( m == NULL )
         {
@@ -272,9 +265,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
     }
     else
     {
-        #ifdef DEBUG
-        printf("detect-isdataat: Set it as a normal SigMatch\n");
-        #endif
+        SCLogDebug("set it as a normal SigMatch");
+
         /// else Set it as a normal SigMatch
         sm = SigMatchAlloc();
         if (sm == NULL)

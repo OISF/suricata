@@ -1,28 +1,11 @@
 #include "eidps-common.h"
+#include "eidps.h"
 
 /** \todo replace this by a better algo */
 
-uint8_t nocasetable[256];
-#define _nc(c) nocasetable[(c)]
-
 void BinSearchInit (void)
 {
-    /* create table for O(1) case conversion lookup */
-    uint8_t c = 0;
-    for ( ; c < 255; c++) {
-       if ( c >= 'a' && c <= 'z')
-           nocasetable[c] = (c - ('a' - 'A'));
-       else if (c >= 'A' && c <= 'Z')
-           nocasetable[c] = (c + ('a' - 'A'));
-       else
-           nocasetable[c] = c;
-    }
-#ifdef DEBUG
-    for (c = 0; c < 255; c++) {
-        if (isprint(nocasetable[c]))
-            printf("nocasetable[%c]: %c\n", c, nocasetable[c]);
-    }
-#endif /* DEBUG */
+    /* nothing no more */
 }
 
 /* Binary search.
@@ -85,12 +68,11 @@ BinSearchNocase(const uint8_t *haystack, size_t haystack_len,
         return NULL;
 
     for (n = needle; haystack != hmax; haystack++) {
-        if (*haystack != *n && *haystack != _nc(*n)) {
+        if (*haystack != *n && *haystack != u8_tolower(*n)) {
             continue;
         }
         for (h = haystack+1, n++; h != hmax; h++, n++) {
-            //printf("h %c n %c\n", isprint(*h) ? *h : 'X', *n);
-            if (*h != *n && *h != _nc(*n)) {
+            if (*h != *n && *h != u8_tolower(*n)) {
                 break;
             }
             /* if we run out of needle we fully matched */

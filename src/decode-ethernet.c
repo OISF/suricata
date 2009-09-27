@@ -21,7 +21,7 @@ void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *p
     if (ethh == NULL)
         return;
 
-    SCDebug("p %p pkt %p ether type %04x", p, pkt, ntohs(ethh->eth_type));
+    SCLogDebug("p %p pkt %p ether type %04x", p, pkt, ntohs(ethh->eth_type));
 
     if (ntohs(ethh->eth_type) == ETHERNET_TYPE_IP) {
         //printf("DecodeEthernet ip4\n");

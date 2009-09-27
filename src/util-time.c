@@ -11,12 +11,12 @@ static char live = TRUE;
 
 void TimeModeSetLive(void) {
     live = TRUE;
-    SCDebug("live time mode enabled");
+    SCLogDebug("live time mode enabled");
 }
 
 void TimeModeSetOffline (void) {
     live = FALSE;
-    SCDebug("offline time mode enabled");
+    SCLogDebug("offline time mode enabled");
 }
 
 void TimeSet(struct timeval *tv) {
@@ -30,7 +30,7 @@ void TimeSet(struct timeval *tv) {
     current_time.tv_sec = tv->tv_sec;
     current_time.tv_usec = tv->tv_usec;
 
-    SCDebug("time set to %" PRIuMAX " sec, %" PRIuMAX " usec",
+    SCLogDebug("time set to %" PRIuMAX " sec, %" PRIuMAX " usec",
         (uintmax_t)current_time.tv_sec, (uintmax_t)current_time.tv_usec);
 
     mutex_unlock(&current_time_mutex);
@@ -49,7 +49,7 @@ void TimeGet(struct timeval *tv) {
         mutex_unlock(&current_time_mutex);
     }
 
-    SCDebug("time we got is %" PRIuMAX " sec, %" PRIuMAX " usec",
+    SCLogDebug("time we got is %" PRIuMAX " sec, %" PRIuMAX " usec",
         (uintmax_t)tv->tv_sec, (uintmax_t)tv->tv_usec);
 }
 

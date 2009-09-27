@@ -13,6 +13,7 @@
 #include "detect-engine-mpm.h"
 
 #include "util-var-name.h"
+#include "util-debug.h"
 
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*)(?<!\\\\)/([A-z]*)"
@@ -261,7 +262,7 @@ int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *r
 
     if (op != NULL) {
         while (*op) {
-            DEBUGPRINT("DetectPcreSetup: regex option %c", *op);
+            SCLogDebug("regex option %c", *op);
 
             switch (*op) {
                 case 'A':

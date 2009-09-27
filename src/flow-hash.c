@@ -79,7 +79,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
     FlowBucket *fb = &flow_hash[key];
     mutex_lock(&fb->m);
 
-    SCDebug("FlowGetFlowFromHash: fb %p fb->f %p", fb, fb->f);
+    SCLogDebug("FlowGetFlowFromHash: fb %p fb->f %p", fb, fb->f);
 
     /* see if the bucket already has a flow */
     if (fb->f == NULL) {

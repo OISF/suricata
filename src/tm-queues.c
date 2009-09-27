@@ -1,7 +1,7 @@
 #include "eidps.h"
 #include "threads.h"
-
 #include "tm-queues.h"
+#include "util-debug.h"
 
 #define TMQ_MAX_QUEUES 256
 
@@ -24,12 +24,11 @@ Tmq* TmqCreateQueue(char *name) {
     if (tmq_id >= TMQ_MAX_QUEUES)
         goto error;
 
-#ifdef DEBUG
-    printf("TmqCreateQueue: created queue \'%s\'...\n", name);
-#endif
     Tmq *q = &tmqs[tmq_id];
     q->name = name;
     q->id = tmq_id++;
+
+    SCLogDebug("created queue \'%s\', %p", name, q);
     return q;
 
 error:

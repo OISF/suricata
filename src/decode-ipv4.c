@@ -551,12 +551,12 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     /* reset the decoder cache flags */
     IPV4_CACHE_INIT(p);
 
-    SCDebug("pkt %p len %"PRIu16"", pkt, len);
+    SCLogDebug("pkt %p len %"PRIu16"", pkt, len);
 
     /* do the actual decoding */
     ret = DecodeIPV4Packet (tv, p, pkt, len);
     if (ret < 0) {
-        SCDebug("decoding IPv4 packet failed");
+        SCLogDebug("decoding IPv4 packet failed");
         p->ip4h = NULL;
         return;
     }
@@ -568,7 +568,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     char s[16], d[16];
     inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), s, sizeof(s));
     inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), d, sizeof(d));
-    SCDebug("IPV4 %s->%s PROTO: %" PRIu32 " OFFSET: %" PRIu32 " RF: %" PRIu32 " DF: %" PRIu32 " MF: %" PRIu32 " ID: %" PRIu32 "", s,d,
+    SCLogDebug("IPV4 %s->%s PROTO: %" PRIu32 " OFFSET: %" PRIu32 " RF: %" PRIu32 " DF: %" PRIu32 " MF: %" PRIu32 " ID: %" PRIu32 "", s,d,
             IPV4_GET_IPPROTO(p), IPV4_GET_IPOFFSET(p), IPV4_GET_RF(p),
             IPV4_GET_DF(p), IPV4_GET_MF(p), IPV4_GET_IPID(p));
 #endif /* DEBUG */

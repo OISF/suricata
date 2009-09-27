@@ -13,15 +13,12 @@
 #include "threads.h"
 #include "util-mpm.h"
 #include "util-print.h"
-
+#include "util-debug.h"
 #include "util-unittest.h"
 
 int DetectUricontentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectUricontentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void HttpUriRegisterTests(void);
-
-uint8_t nocasetable[256];
-#define _nc(c) nocasetable[(c)]
 
 void DetectUricontentRegister (void) {
     sigmatch_table[DETECT_URICONTENT].name = "uricontent";
@@ -29,23 +26,6 @@ void DetectUricontentRegister (void) {
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = NULL;
     sigmatch_table[DETECT_URICONTENT].RegisterTests = HttpUriRegisterTests;
-
-    /* create table for O(1) case conversion lookup */
-    uint8_t c = 0;
-    for ( ; c < 255; c++) {
-       if ( c >= 'a' && c <= 'z')
-           nocasetable[c] = (c - ('a' - 'A'));
-       else if (c >= 'A' && c <= 'Z')
-           nocasetable[c] = (c + ('a' - 'A'));
-       else
-           nocasetable[c] = c;
-    }
-#ifdef DEBUG
-    for (c = 0; c < 255; c++) {
-        if (isprint(nocasetable[c]))
-            printf("nocasetable[%c]: %c\n", c, nocasetable[c]);
-    }
-#endif /* DEBUG */
 }
 
 /* pass on the uricontent_max_id */
@@ -206,16 +186,18 @@ int DetectUricontentMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
     if (len == 0)
         return 0;
 
-#ifdef DEBUG
-    printf("uricontent \'");
-    PrintRawUriFp(stdout, co->uricontent, co->uricontent_len);
-    printf("\' matched %" PRIu32 " time(s) at offsets: ", len);
+#if 0
+    if (SCLogDebugEnabled()) {
+        printf("uricontent \'");
+        PrintRawUriFp(stdout, co->uricontent, co->uricontent_len);
+        printf("\' matched %" PRIu32 " time(s) at offsets: ", len);
 
-    MpmMatch *tmpm = NULL;
-    for (tmpm = det_ctx->mtcu.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
-        printf("%" PRIu32 " ", tmpm->offset);
+        MpmMatch *tmpm = NULL;
+        for (tmpm = det_ctx->mtcu.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
+            printf("%" PRIu32 " ", tmpm->offset);
+        }
+        printf("\n");
     }
-    printf("\n");
 #endif
 
     return DoDetectUricontent(t, det_ctx, p, m, co);
@@ -276,9 +258,6 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
 
                         if (binpos == 2) {
                             uint8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
-#ifdef DEBUG
-                            printf("Binstr %" PRIX32 "\n", c);
-#endif
                             binpos = 0;
                             str[x] = c;
                             x++;
@@ -294,20 +273,20 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
             }
         }
 #ifdef DEBUG
-        for (i = 0; i < x; i++) {
-            if (isprint(str[i])) printf("%c", str[i]);
-            else                 printf("\\x%02u", str[i]);
+        if (SCLogDebugEnabled()) {
+            for (i = 0; i < x; i++) {
+                if (isprint(str[i])) printf("%c", str[i]);
+                else                 printf("\\x%02u", str[i]);
+            }
+            printf("\n");
         }
-        printf("\n");
 #endif
 
         if (converted)
             len = x;
     }
 
-#ifdef DEBUG
-    printf("DetectUricontentSetup: len %" PRIu32 "\n", len);
-#endif
+    SCLogDebug("len %" PRIu32 "", len);
 
     cd->uricontent = malloc(len);
     if (cd->uricontent == NULL)

@@ -11,6 +11,7 @@
 #include "flow.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
 
 static pcre *config_pcre = NULL;
 static pcre *option_pcre = NULL;
@@ -389,7 +390,6 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
         printf("SigParseBasics: pcre_exec failed: ret %" PRId32 ", sigstr \"%s\"\n", ret, sigstr);
         goto error;
     }
-    DEBUGPRINT("SigParseBasics: pcre_exec returned %" PRId32, ret);
 
     for (i = 1; i <= ret-1; i++) {
         pcre_get_substring(sigstr, ov, MAX_SUBSTRINGS, i, &arr[i-1]);
@@ -424,7 +424,6 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
         goto error;
 
     *result = (char **)arr;
-    DEBUGPRINT("SigParseBasics: %p %p", arr, *result);
     return 0;
 
 error:
@@ -443,10 +442,11 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr) {
 }
 
 #ifdef DEBUG
-    DEBUGPRINT("SigParse: %p", basics);
-    int i;
-    for (i = 0; basics[i] != NULL; i++) {
-        DEBUGPRINT("SigParse: basics[%" PRId32 "]: %p, %s", i, basics[i], basics[i]);
+    if (SCLogDebugEnabled()) {
+        int i;
+        for (i = 0; basics[i] != NULL; i++) {
+            SCLogDebug("basics[%" PRId32 "]: %p, %s", i, basics[i], basics[i]);
+        }
     }
 #endif /* DEBUG */
 

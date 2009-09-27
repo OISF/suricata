@@ -23,6 +23,8 @@
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
 
+#include "util-debug.h"
+
 /* build a lookup tree for src, if we have one: save
  * build a lookup tree for dst, if we have one: save
  * compare tree's: if they have one (or more) matching
@@ -238,9 +240,9 @@ void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThr
 
 void IPOnlyPrint(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf(" * IP ONLY (SRC): %" PRIu32 " /16's in our hash, %" PRIu32 " total address ranges in them\n",
+        SCLogInfo("IP ONLY (SRC): %" PRIu32 " /16's in our hash, %" PRIu32 " total address ranges",
                 io_ctx->a_src_uniq16, io_ctx->a_src_uniq16 + io_ctx->a_src_total16);
-        printf(" * IP ONLY (DST): %" PRIu32 " /16's in our hash, %" PRIu32 " total address ranges in them\n",
+        SCLogInfo("IP ONLY (DST): %" PRIu32 " /16's in our hash, %" PRIu32 " total address ranges",
                 io_ctx->a_dst_uniq16, io_ctx->a_dst_uniq16 + io_ctx->a_dst_total16);
 /*
         printf(" * IP ONLY (SRC): %" PRIu32 " /24's in our hash, %" PRIu32 " total address ranges in them\n",

@@ -58,7 +58,7 @@
 
 #include "util-print.h"
 #include "util-unittest.h"
-
+#include "util-debug.h"
 #include "util-hashlist.h"
 
 SigMatch *SigMatchAlloc(void);
@@ -87,62 +87,62 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
     if (det_ctx == NULL)
         return;
 
-    printf(" - (%s) (1byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) (1byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned1,
         (float)(det_ctx->pkts_scanned1/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched1,
         (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts_scanned1)*100));
-    printf(" - (%s) (2byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) (2byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned2,
         (float)(det_ctx->pkts_scanned2/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched2,
         (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts_scanned2)*100));
-    printf(" - (%s) (3byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) (3byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned3,
         (float)(det_ctx->pkts_scanned3/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched3,
         (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts_scanned3)*100));
-    printf(" - (%s) (4byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) (4byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned4,
         (float)(det_ctx->pkts_scanned4/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched4,
         (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts_scanned4)*100));
-    printf(" - (%s) (+byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) (+byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned,
         (float)(det_ctx->pkts_scanned/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched,
         (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts_scanned)*100));
 
-    printf(" - (%s) URI (1byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) URI (1byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned1,
         (float)(det_ctx->pkts_uri_scanned1/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched1,
         (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->uris)*100),
         (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->pkts_uri_scanned1)*100));
-    printf(" - (%s) URI (2byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) URI (2byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned2,
         (float)(det_ctx->pkts_uri_scanned2/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched2,
         (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->uris)*100),
         (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->pkts_uri_scanned2)*100));
-    printf(" - (%s) URI (3byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) URI (3byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned3,
         (float)(det_ctx->pkts_uri_scanned3/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched3,
         (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->uris)*100),
         (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->pkts_uri_scanned3)*100));
-    printf(" - (%s) URI (4byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) URI (4byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned4,
         (float)(det_ctx->pkts_uri_scanned4/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched4,
         (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->uris)*100),
         (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->pkts_uri_scanned4)*100));
-    printf(" - (%s) URI (+byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.\n", tv->name,
+    SCLogInfo(" - (%s) URI (+byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned,
         (float)(det_ctx->pkts_uri_scanned/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched,
@@ -181,9 +181,8 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
 
         sig = SigInit(de_ctx, line);
         if (sig != NULL) {
-#ifdef DEBUG
-            printf("Sig %"PRIu32" loaded\n", sig->id);
-#endif
+            SCLogDebug("signature %"PRIu32" loaded", sig->id);
+
             if (de_ctx->sig_list == NULL) {
                 de_ctx->sig_list = sig;
             } else {
@@ -196,8 +195,8 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
         }
     }
     fclose(fp);
-    printf("DetectLoadSigFile: %" PRId32 " successfully loaded from file. %" PRId32 " sigs failed to load\n", good, bad);
 
+    SCLogInfo("%" PRId32 " successfully loaded from file. %" PRId32 " sigs failed to load", good, bad);
     return 0;
 }
 
@@ -591,7 +590,7 @@ static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
 
 iponly:
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("IP-ONLY (%" PRIu32 "): source %s, dest %s\n", s->id,
+        SCLogDebug("IP-ONLY (%" PRIu32 "): source %s, dest %s", s->id,
         s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",
         s->flags & SIG_FLAG_DST_ANY ? "ANY" : "SET");
     }
@@ -609,8 +608,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* Building signature grouping structure, stage 1: "
-               "adding signatures to signature source addresses...\n");
+        SCLogDebug("building signature grouping structure, stage 1: "
+               "adding signatures to signature source addresses...");
     }
 
     de_ctx->sig_array_len = DetectEngineGetMaxSigId(de_ctx);
@@ -620,10 +619,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
         goto error;
     memset(de_ctx->sig_array,0,de_ctx->sig_array_size);
 
-    if (!(de_ctx->flags & DE_QUIET)) {
-        printf(" - Signature lookup array: %" PRIu32 " sigs, %" PRIu32 " bytes.\n",
+    SCLogDebug("signature lookup array: %" PRIu32 " sigs, %" PRIu32 " bytes",
             de_ctx->sig_array_len, de_ctx->sig_array_size);
-    }
 
     /* now for every rule add the source group */
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
@@ -643,31 +640,32 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             //}
         }
 
-/* DEBUG */
-        uint16_t colen = 0;
-        char copresent = 0;
-        SigMatch *sm;
-        DetectContentData *co;
-        for (sm = tmp_s->match; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
+#ifdef DEBUG
+        if (SCLogDebugEnabled()) {
+            uint16_t colen = 0;
+            char copresent = 0;
+            SigMatch *sm;
+            DetectContentData *co;
+            for (sm = tmp_s->match; sm != NULL; sm = sm->next) {
+                if (sm->type != DETECT_CONTENT)
+                    continue;
 
-            copresent = 1;
-            co = (DetectContentData *)sm->ctx;
-            if (co->content_len > colen)
-                colen = co->content_len;
-        }
-
-        if (copresent && colen == 1) {
-            printf("==> Signature %8u content maxlen 1: ", tmp_s->id);
-            int proto;
-            for (proto = 0; proto < 256; proto++) {
-                if (tmp_s->proto.proto[(proto/8)] & (1<<(proto%8)))
-                    printf ("%" PRId32 " ", proto);
+                copresent = 1;
+                co = (DetectContentData *)sm->ctx;
+                if (co->content_len > colen)
+                    colen = co->content_len;
             }
-            printf("\n");
+
+            if (copresent && colen == 1) {
+                SCLogDebug("signature %8u content maxlen 1", tmp_s->id);
+                int proto;
+                for (proto = 0; proto < 256; proto++) {
+                    if (tmp_s->proto.proto[(proto/8)] & (1<<(proto%8)))
+                        SCLogDebug("=> proto %" PRId32 "", proto);
+                }
+            }
         }
-/* DEBUG */
+#endif /* DEBUG */
 
 
         for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
@@ -697,10 +695,10 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf(" * %" PRIu32 " signatures processed. %" PRIu32 " are IP-only rules.\n",
+        SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only rules",
             de_ctx->sig_cnt, cnt_iponly);
-        printf("* Building signature grouping structure, stage 1: "
-               "adding signatures to signature source addresses... done\n");
+        SCLogInfo("building signature grouping structure, stage 1: "
+               "adding signatures to signature source addresses... done");
     }
     return 0;
 error:
@@ -1155,9 +1153,11 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
 #endif
     }
 
-#ifdef DEBUG
-    for (gr = newhead->ipv4_head; gr != NULL; gr = gr->next) {
-        printf(" 4 -= R Address "); DetectAddressDataPrint(gr->ad); printf(" :  "); DbgPrintSigs2(de_ctx, gr->sh);
+#if 0//def DEBUG
+    if (SCLogDebugEnabled()) {
+        for (gr = newhead->ipv4_head; gr != NULL; gr = gr->next) {
+            printf(" 4 -= R Address "); DetectAddressDataPrint(gr->ad); printf(" :  "); DbgPrintSigs2(de_ctx, gr->sh);
+        }
     }
 #endif
 
@@ -1206,8 +1206,10 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
             unique_groups++;
 
         groups++;
-#ifdef DEBUG
-        printf("  -= 1:Port "); DetectPortPrint(gr); printf(" : "); DbgPrintSigs2(de_ctx, gr->sh);
+#if 0//def DEBUG
+        if (SCLogDebugEnabled()) {
+            printf("  -= 1:Port "); DetectPortPrint(gr); printf(" : "); DbgPrintSigs2(de_ctx, gr->sh);
+        }
 #endif
         /* alloc a copy */
         DetectPort *newtmp = DetectPortCopySingle(de_ctx,gr);
@@ -1306,10 +1308,12 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
         DetectPortInsert(de_ctx,newhead,joingr);
     }
 
-#ifdef DEBUG
-    for (gr = *newhead; gr != NULL; gr = gr->next) {
-        //printf(":-:9:-: Port "); DetectPortPrint(gr); printf(" (cnt %" PRIu32 "", gr->cnt); DbgSghContainsSig(de_ctx,gr->sh,489);
-        printf("  -= 9:Port "); DetectPortPrint(gr); printf(" : "); DbgPrintSigs2(de_ctx, gr->sh);
+#if 0//def DEBUG
+    if (SCLogDebugEnabled()) {
+        for (gr = *newhead; gr != NULL; gr = gr->next) {
+            //printf(":-:9:-: Port "); DetectPortPrint(gr); printf(" (cnt %" PRIu32 "", gr->cnt); DbgSghContainsSig(de_ctx,gr->sh,489);
+            printf("  -= 9:Port "); DetectPortPrint(gr); printf(" : "); DbgPrintSigs2(de_ctx, gr->sh);
+        }
     }
 #endif
     return 0;
@@ -1324,8 +1328,8 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     uint32_t sigs = 0;
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* Building signature grouping structure, stage 2: "
-               "building source address list...\n");
+        SCLogInfo("building signature grouping structure, stage 2: "
+               "building source address list...");
     }
 
     IPOnlyInit(de_ctx, &de_ctx->io_ctx);
@@ -1396,21 +1400,21 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     IPOnlyPrint(de_ctx, &de_ctx->io_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* %" PRIu32 " total signatures:\n", sigs);
-        printf(" *         %5u in ipv4 small group, %" PRIu32 " in rest\n", g_detectengine_ip4_small,g_detectengine_ip4_big);
-        printf(" *         %5u in ipv6 small group, %" PRIu32 " in rest\n", g_detectengine_ip6_small,g_detectengine_ip6_big);
-        printf(" *         %5u in any small group,  %" PRIu32 " in rest\n", g_detectengine_any_small,g_detectengine_any_big);
-        printf(" * Small   %5u in ipv4 toserver group, %" PRIu32 " in toclient\n",
+        SCLogInfo("%" PRIu32 " total signatures:", sigs);
+        SCLogInfo("%"PRIu32" in ipv4 small group, %" PRIu32 " in rest", g_detectengine_ip4_small,g_detectengine_ip4_big);
+        SCLogInfo("%"PRIu32" in ipv6 small group, %" PRIu32 " in rest", g_detectengine_ip6_small,g_detectengine_ip6_big);
+        SCLogInfo("%"PRIu32" in any small group,  %" PRIu32 " in rest", g_detectengine_any_small,g_detectengine_any_big);
+        SCLogInfo("small: %"PRIu32" in ipv4 toserver group, %" PRIu32 " in toclient",
             g_detectengine_ip4_small_toserver,g_detectengine_ip4_small_toclient);
-        printf(" *         %5u in ipv6 toserver group, %" PRIu32 " in toclient\n",
+        SCLogInfo("small: %"PRIu32" in ipv6 toserver group, %" PRIu32 " in toclient",
             g_detectengine_ip6_small_toserver,g_detectengine_ip6_small_toclient);
-        printf(" *         %5u in any toserver group,  %" PRIu32 " in toclient\n",
+        SCLogInfo("small: %"PRIu32" in any toserver group,  %" PRIu32 " in toclient",
             g_detectengine_any_small_toserver,g_detectengine_any_small_toclient);
-        printf(" * Big     %5u in ipv4 toserver group, %" PRIu32 " in toclient\n",
+        SCLogInfo("big: %"PRIu32" in ipv4 toserver group, %" PRIu32 " in toclient",
             g_detectengine_ip4_big_toserver,g_detectengine_ip4_big_toclient);
-        printf(" *         %5u in ipv6 toserver group, %" PRIu32 " in toclient\n",
+        SCLogInfo("big: %"PRIu32" in ipv6 toserver group, %" PRIu32 " in toclient",
             g_detectengine_ip6_big_toserver,g_detectengine_ip6_big_toclient);
-        printf(" *         %5u in any toserver group,  %" PRIu32 " in toclient\n",
+        SCLogInfo("big: %"PRIu32" in any toserver group,  %" PRIu32 " in toclient",
             g_detectengine_any_big_toserver,g_detectengine_any_big_toclient);
     }
 
@@ -1438,7 +1442,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         }
     }
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf(" * TCP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.\n", cnt_any, cnt_ipv4, cnt_ipv6);
+        SCLogInfo("TCP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
     }
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
@@ -1464,7 +1468,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         }
     }
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf(" * UDP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.\n", cnt_any, cnt_ipv4, cnt_ipv6);
+        SCLogInfo("UDP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
     }
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
@@ -1490,11 +1494,11 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         }
     }
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf(" * ICMP Source address blocks:    any: %4u, ipv4: %4u, ipv6: %4u.\n", cnt_any, cnt_ipv4, cnt_ipv6);
+        SCLogInfo("ICMP Source address blocks:    any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
     }
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* Building signature grouping structure, stage 2: building source address list... done\n");
+        SCLogInfo("building signature grouping structure, stage 2: building source address list... done");
     }
 
     return 0;
@@ -1996,8 +2000,8 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     int r;
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* Building signature grouping structure, stage 3: "
-               "building destination address lists...\n");
+        SCLogInfo("building signature grouping structure, stage 3: "
+               "building destination address lists...");
     }
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -2079,22 +2083,22 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     DetectPortSpHashFree(de_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* MPM memory %" PRIuMAX " (dynamic %" PRIu32 ", ctxs %" PRIuMAX ", avg per ctx %" PRIu32 ")\n",
+        SCLogInfo("MPM memory %" PRIuMAX " (dynamic %" PRIu32 ", ctxs %" PRIuMAX ", avg per ctx %" PRIu32 ")",
             de_ctx->mpm_memory_size + ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * (uintmax_t)sizeof(MpmCtx)),
             de_ctx->mpm_memory_size, ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * (uintmax_t)sizeof(MpmCtx)),
             de_ctx->mpm_unique ? de_ctx->mpm_memory_size / de_ctx->mpm_unique: 0);
 
-        printf(" * Max sig id %" PRIu32 ", array size %" PRIu32 "\n", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
-        printf("* Signature group heads: unique %" PRIu32 ", copies %" PRIu32 ".\n", de_ctx->gh_unique, de_ctx->gh_reuse);
-        printf("* MPM instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").\n",
+        SCLogInfo("max sig id %" PRIu32 ", array size %" PRIu32 "", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
+        SCLogInfo("signature group heads: unique %" PRIu32 ", copies %" PRIu32 ".", de_ctx->gh_unique, de_ctx->gh_reuse);
+        SCLogInfo("MPM instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
                 de_ctx->mpm_unique, de_ctx->mpm_reuse, de_ctx->mpm_none);
-        printf("* MPM (URI) instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").\n",
+        SCLogInfo("MPM (URI) instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
                 de_ctx->mpm_uri_unique, de_ctx->mpm_uri_reuse, de_ctx->mpm_uri_none);
-        printf("* MPM max patcnt %" PRIu32 ", avg %" PRIu32 "\n", de_ctx->mpm_max_patcnt, de_ctx->mpm_unique?de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique:0);
+        SCLogInfo("MPM max patcnt %" PRIu32 ", avg %" PRIu32 "", de_ctx->mpm_max_patcnt, de_ctx->mpm_unique?de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique:0);
         if (de_ctx->mpm_uri_tot_patcnt && de_ctx->mpm_uri_unique)
-            printf("* MPM (URI) max patcnt %" PRIu32 ", avg %" PRIu32 " (%" PRIu32 "/%" PRIu32 ")\n", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
-        printf("  = port maxgroups: %" PRIu32 ", avg %" PRIu32 ", tot %" PRIu32 "\n", g_groupportlist_maxgroups, g_groupportlist_totgroups/g_groupportlist_groupscnt, g_groupportlist_totgroups);
-        printf("* Building signature grouping structure, stage 3: building destination address lists... done\n");
+            SCLogInfo("MPM (URI) max patcnt %" PRIu32 ", avg %" PRIu32 " (%" PRIu32 "/%" PRIu32 ")", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
+        SCLogInfo("port maxgroups: %" PRIu32 ", avg %" PRIu32 ", tot %" PRIu32 "", g_groupportlist_maxgroups, g_groupportlist_totgroups/g_groupportlist_groupscnt, g_groupportlist_totgroups);
+        SCLogInfo("building signature grouping structure, stage 3: building destination address lists... done");
     }
     return 0;
 error:
@@ -2520,7 +2524,7 @@ void SigTableSetup(void) {
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
         if (sigmatch_table[i].RegisterTests == NULL) {
-            printf("Warning: detection plugin %s has no unittest "
+            SCLogDebug("detection plugin %s has no unittest "
                    "registration function.\n", sigmatch_table[i].name);
         }
     }

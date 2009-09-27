@@ -2,6 +2,7 @@
 
 #include "eidps-common.h"
 #include "detect.h"
+#include "util-debug.h"
 
 int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *msgstr);
 
@@ -69,11 +70,13 @@ int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ms
                 x++;
             }
         }
-#ifdef DEBUG
-        for (i = 0; i < x; i++) {
-            printf("%c", str[i]);
+#if 0 //def DEBUG
+        if (SCLogDebugEnabled()) {
+            for (i = 0; i < x; i++) {
+                printf("%c", str[i]);
+            }
+            printf("\n");
         }
-        printf("\n");
 #endif
 
         if (converted) {

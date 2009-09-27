@@ -17,7 +17,7 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
         case IPPROTO_IPV6:
             return DecodeIPV6(tv, dtv, p, pkt, len, pq);
         default:
-            SCInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", p->tunnel_proto);
+            SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", p->tunnel_proto);
             break;
     }
 }

@@ -171,7 +171,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         }
     }
 
-    SCDebug("got lock, now check: %" PRIdMAX "+%" PRIu32 "=(%" PRIdMAX ") < %" PRIdMAX "", (intmax_t)f->lastts.tv_sec,
+    SCLogDebug("got lock, now check: %" PRIdMAX "+%" PRIu32 "=(%" PRIdMAX ") < %" PRIdMAX "", (intmax_t)f->lastts.tv_sec,
         timeout, (intmax_t)f->lastts.tv_sec + timeout, (intmax_t)ts->tv_sec);
 
     /* do the timeout check */
@@ -184,7 +184,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     /** never prune a flow that is used by a packet or stream msg
      *  we are currently processing in one of the threads */
     if (f->use_cnt > 0) {
-        SCDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", f->use_cnt, f, f->proto);
+        SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", f->use_cnt, f, f->proto);
         mutex_unlock(&f->fb->m);
         mutex_unlock(&f->m);
         return 0;
@@ -352,7 +352,7 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
 void FlowInitConfig (char quiet)
 {
     if (quiet == FALSE)
-        printf("Initializing Flow:\n");
+        SCLogInfo("initializing flow engine...");
 
     memset(&flow_config,  0, sizeof(flow_config));
     memset(&flow_spare_q, 0, sizeof(flow_spare_q));
@@ -382,7 +382,7 @@ void FlowInitConfig (char quiet)
     flow_config.memuse += (flow_config.hash_size * sizeof(FlowBucket));
 
     if (quiet == FALSE)
-        printf("* Allocated %" PRIu32 " bytes of memory for the flow hash... %" PRIu32 " buckets of size %" PRIuMAX "\n",
+        SCLogInfo("allocated %" PRIu32 " bytes of memory for the flow hash... %" PRIu32 " buckets of size %" PRIuMAX "",
             flow_config.memuse, flow_config.hash_size, (uintmax_t)sizeof(FlowBucket));
 
     /* pre allocate flows */
@@ -397,9 +397,9 @@ void FlowInitConfig (char quiet)
     }
 
     if (quiet == FALSE) {
-        printf("* Preallocated %" PRIu32 " flows of size %" PRIuMAX "\n",
+        SCLogInfo("preallocated %" PRIu32 " flows of size %" PRIuMAX "",
                 flow_spare_q.len, (uintmax_t)sizeof(Flow));
-        printf("* Flow memory usage: %" PRIu32 " bytes. Maximum: %" PRIu32 "\n",
+        SCLogInfo("flow memory usage: %" PRIu32 " bytes, maximum: %" PRIu32 "",
                 flow_config.memuse, flow_config.memcap);
     }
 
@@ -412,28 +412,46 @@ void FlowInitConfig (char quiet)
 void FlowPrintQueueInfo (void)
 {
     int i;
-    printf("* Flow Queue info:\n");
-    printf(" - SPARE       %" PRIu32 " (", flow_spare_q.len);
+    SCLogInfo("flow queue info:");
+    SCLogInfo("spare flow queue %" PRIu32 "", flow_spare_q.len);
 #ifdef DBG_PERF
-    printf("flow_spare_q.dbg_maxlen %" PRIu32 ")\n", flow_spare_q.dbg_maxlen);
+    SCLogInfo("flow_spare_q.dbg_maxlen %" PRIu32 "", flow_spare_q.dbg_maxlen);
 #endif
     for (i = 0; i < FLOW_PROTO_MAX; i++) {
-        printf(" - NEW         %" PRIu32 " (", flow_new_q[i].len);
+        SCLogInfo("proto [%"PRId32"] new flow queue %" PRIu32 " "
 #ifdef DBG_PERF
-        printf("flow_new_q.dbg_maxlen %" PRIu32 ")\n", flow_new_q[i].dbg_maxlen);
+                  " - flow_new_q.dbg_maxlen %" PRIu32 ""
 #endif
-        printf(" - ESTABLISHED %" PRIu32 " (", flow_est_q[i].len);
+                  ,i,flow_new_q[i].len
 #ifdef DBG_PERF
-        printf("flow_est_q.dbg_maxlen %" PRIu32 ")\n", flow_est_q[i].dbg_maxlen);
+                  ,flow_new_q[i].dbg_maxlen
 #endif
-        printf(" - CLOSING %" PRIu32 " (", flow_close_q[i].len);
+                  );
+
+        SCLogInfo("proto [%"PRId32"] establised flow queue %" PRIu32 " "
 #ifdef DBG_PERF
-        printf("flow_closing_q.dbg_maxlen %" PRIu32 ")\n", flow_close_q[i].dbg_maxlen);
+                  " - flow_est_q.dbg_maxlen %" PRIu32 ""
 #endif
+                  ,i,flow_est_q[i].len
+#ifdef DBG_PERF
+                  ,flow_est_q[i].dbg_maxlen
+#endif
+                  );
+
+        SCLogInfo("proto [%"PRId32"] closing flow queue %" PRIu32 " "
+#ifdef DBG_PERF
+                  " - flow_closing_q.dbg_maxlen %" PRIu32 ""
+#endif
+                  ,i,flow_close_q[i].len
+#ifdef DBG_PERF
+                  ,flow_close_q[i].dbg_maxlen
+#endif
+                  );
+
     }
 #ifdef FLOWBITS_STATS
-    printf("* Flowbits added: %" PRIu32 ", removed: %" PRIu32 ", ", flowbits_added, flowbits_removed);
-    printf("max memory usage: %" PRIu32 "\n", flowbits_memuse_max);
+    SCLogInfo("flowbits added: %" PRIu32 ", removed: %" PRIu32 ", max memory usage: %" PRIu32 "",
+        flowbits_added, flowbits_removed, flowbits_memuse_max);
 #endif /* FLOWBITS_STATS */
 }
 
@@ -491,9 +509,7 @@ void *FlowManagerThread(void *td)
     uint32_t sleeping = 0;
     uint8_t emerg = FALSE;
 
-#ifdef DEBUG
-    printf("%s started...\n", th_v->name);
-#endif
+    SCLogDebug("%s started...", th_v->name);
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1)
@@ -513,7 +529,7 @@ void *FlowManagerThread(void *td)
             /* Get the time */
             memset(&ts, 0, sizeof(ts));
             TimeGet(&ts);
-            SCDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
+            SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
 
             /* see if we still have enough spare flows */
             FlowUpdateSpareFlows();
@@ -523,21 +539,21 @@ void *FlowManagerThread(void *td)
                 /* prune closing list */
                 nowcnt = FlowPruneFlows(&flow_close_q[i], &ts);
                 if (nowcnt) {
-                    SCDebug("Pruned %" PRIu32 " closing flows...", nowcnt);
+                    SCLogDebug("Pruned %" PRIu32 " closing flows...", nowcnt);
                     closing_cnt += nowcnt;
                 }
 
                 /* prune new list */
                 nowcnt = FlowPruneFlows(&flow_new_q[i], &ts);
                 if (nowcnt) {
-                    SCDebug("Pruned %" PRIu32 " new flows...", nowcnt);
+                    SCLogDebug("Pruned %" PRIu32 " new flows...", nowcnt);
                     new_cnt += nowcnt;
                 }
 
                 /* prune established list */
                 nowcnt = FlowPruneFlows(&flow_est_q[i], &ts);
                 if (nowcnt) {
-                    SCDebug("Pruned %" PRIu32 " established flows...", nowcnt);
+                    SCLogDebug("Pruned %" PRIu32 " established flows...", nowcnt);
                     established_cnt += nowcnt;
                 }
             }
@@ -562,7 +578,7 @@ void *FlowManagerThread(void *td)
         sleeping += 10;
     }
 
-    printf("* %s ended: %" PRIu32 " new flows, %" PRIu32 " established flows were pruned\n", th_v->name, new_cnt, established_cnt);
+    SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were timed out", new_cnt, established_cnt);
     pthread_exit((void *) 0);
 }
 
