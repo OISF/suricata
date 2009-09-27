@@ -104,9 +104,9 @@ int AlertUnifiedLogCreateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
 
     /* write the fileheader to the file so the reader can recognize it */
     AlertUnifiedLogFileHeader hdr;
-    hdr.magic = ALERTUNIFIEDLOG_LOGMAGIC;    
-    hdr.ver_major = ALERTUNIFIEDLOG_VERMAJOR;    
-    hdr.ver_minor = ALERTUNIFIEDLOG_VERMINOR;    
+    hdr.magic = ALERTUNIFIEDLOG_LOGMAGIC;
+    hdr.ver_major = ALERTUNIFIEDLOG_VERMAJOR;
+    hdr.ver_minor = ALERTUNIFIEDLOG_VERMINOR;
     hdr.timezone = 0; /* XXX */
     hdr.pad1 = 0; /* XXX */
     hdr.snaplen = 65536; /* XXX */
@@ -236,10 +236,6 @@ int AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
 int AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
 {
-#ifdef DEBUG
-    printf("AlertUnifiedLogThreadDeinit started\n");
-#endif
-
     AlertUnifiedLogThread *aun = (AlertUnifiedLogThread *)data;
     if (aun == NULL) {
         goto error;
@@ -251,9 +247,6 @@ int AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
     free(aun);
-#ifdef DEBUG
-    printf("AlertUnifiedLogThreadDeinit done\n");
-#endif
     return 0;
 
 error:

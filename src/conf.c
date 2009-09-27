@@ -18,13 +18,7 @@
 #include "conf.h"
 #include "util-hash.h"
 #include "util-unittest.h"
-
-#undef CONF_DEBUG
-#ifdef CONF_DEBUG
-#define DPRINTF(x)    do { printf x ; } while (0)
-#else
-#define DPRINTF(x)
-#endif /* CONF_DEBUG */
+#include "util-debug.h"
 
 #define CONF_HASH_TBL_SIZE 1024
 
@@ -56,7 +50,7 @@ ConfHashFunc(HashTable *ht, void *data, uint16_t len)
     uint32_t hash;
 
     hash = HashTableGenericHash(ht, cn->name, strlen(cn->name));
-    DPRINTF(("%s: %s -> %" PRIu32 "\n", __func__, cn->name, hash));
+    SCLogDebug("%s -> %" PRIu32 "", cn->name, hash);
     return hash;
 }
 
@@ -87,7 +81,7 @@ static void ConfHashFree(void *data)
 {
     ConfNode *cn = (ConfNode *)data;
 
-    DPRINTF(("%s: Freeing configuration parameter '%s'\n", __func__, cn->name));
+    SCLogDebug("freeing configuration parameter '%s'", cn->name);
     free(cn->name);
     free(cn->val);
     free(cn);
@@ -101,7 +95,7 @@ ConfInit(void)
 {
     /* Prevent double initialization. */
     if (conf_hash != NULL) {
-        DPRINTF(("%s: Already initialized.\n", __func__));
+        SCLogDebug("already initialized");
         return;
     }
 
@@ -112,7 +106,7 @@ ConfInit(void)
             "ERROR: Failed to allocate memory for configuration, aborting.\n");
         exit(1);
     }
-    DPRINTF(("%s: Configuration module initialized.\n", __func__));
+    SCLogDebug("configuration module initialized");
 }
 
 /**
@@ -151,7 +145,7 @@ ConfSet(char *name, char *val, int allow_override)
             name);
         exit(1);
     }
-    DPRINTF(("%s: Configuration parameter '%s' set.\n", __func__, name));
+    SCLogDebug("configuration parameter '%s' set", name);
 
     return 1;
 }
@@ -176,8 +170,7 @@ ConfGet(char *name, char **vptr)
 
     conf_node = HashTableLookup(conf_hash, &lookup_key, sizeof(lookup_key));
     if (conf_node == NULL) {
-        DPRINTF(("%s: Failed to lookup configuration parameter '%s'\n",
-                 __func__, name));
+        SCLogDebug("failed to lookup configuration parameter '%s'", name);
         return 0;
     }
     else {

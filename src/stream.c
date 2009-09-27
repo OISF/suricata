@@ -152,7 +152,7 @@ void StreamMsgQueuesDeinit(char quiet) {
     pthread_mutex_destroy(&stream_pool_memuse_mutex);
 
     if (quiet == FALSE)
-        printf("StreamMsgQueuesDeinit: stream_pool_memuse %"PRIu64", stream_pool_memcnt %"PRIu64"\n", stream_pool_memuse, stream_pool_memcnt);
+        SCLogDebug("stream_pool_memuse %"PRIu64", stream_pool_memcnt %"PRIu64"", stream_pool_memuse, stream_pool_memcnt);
 }
 
 /** \brief alloc a stream msg queue

@@ -102,9 +102,9 @@ int AlertUnifiedAlertCreateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
 
     /* write the fileheader to the file so the reader can recognize it */
     AlertUnifiedAlertFileHeader hdr;
-    hdr.magic = ALERTUNIFIEDALERT_ALERTMAGIC;    
-    hdr.ver_major = ALERTUNIFIEDALERT_VERMAJOR;    
-    hdr.ver_minor = ALERTUNIFIEDALERT_VERMINOR;    
+    hdr.magic = ALERTUNIFIEDALERT_ALERTMAGIC;
+    hdr.ver_major = ALERTUNIFIEDALERT_VERMAJOR;
+    hdr.ver_minor = ALERTUNIFIEDALERT_VERMINOR;
     hdr.timezone = 0; /* XXX */
 
     ret = fwrite(&hdr, sizeof(hdr), 1, aun->fp);

@@ -43,6 +43,9 @@ static void AlpResultElmtPoolFree(void *e) {
 
 static AppLayerParserResultElmt *AlpGetResultElmt(void) {
     AppLayerParserResultElmt *e = (AppLayerParserResultElmt *)PoolGet(al_result_pool);
+    if (e == NULL)
+        return NULL;
+
     e->next = NULL;
     return e;
 }
@@ -590,7 +593,7 @@ void RegisterAppLayerParsers(void) {
 
     /** setup result pool
      * \todo Per thread pool */
-    al_result_pool = PoolInit(100,10,AlpResultElmtPoolAlloc,NULL,AlpResultElmtPoolFree);
+    al_result_pool = PoolInit(250,10,AlpResultElmtPoolAlloc,NULL,AlpResultElmtPoolFree);
 }
 
 void AppLayerParserCleanupState(TcpSession *ssn) {

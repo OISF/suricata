@@ -9,22 +9,14 @@
  */
 
 #include "eidps-common.h"
-
 #include <yaml.h>
-
 #include "conf.h"
-
-#undef YAML_LOADER_DEBUG
-#ifdef YAML_LOADER_DEBUG
-#define DPRINTF(x)    do { printf x ; } while (0)
-#else
-#define DPRINTF(x)
-#endif /* YAML_LOADER_DEBUG */
+#include "util-debug.h"
 
 /* Define to print the current YAML state. */
 #undef PRINT_STATES
 #ifdef PRINT_STATES
-#define DPRINT_STATE(x) do { printf x ; } while (0)
+#define DPRINT_STATE(x) do { SCLogDebug x ; } while (0)
 #else
 #define DPRINT_STATE(x)
 #endif /* PRINT_STATES */
@@ -121,34 +113,34 @@ LoadYamlConf(const char *filename)
             exit(EXIT_FAILURE);
         }
         if (level > -1) {
-            DPRINTF(("Current key: %s\n", GetKeyName(key, level)));
+            SCLogDebug("current key: %s", GetKeyName(key, level));
         }
         switch (event.type) {
         case YAML_STREAM_START_EVENT:
-            DPRINT_STATE(("YAML_STREAM_START_EVENT\n"));
+            DPRINT_STATE(("YAML_STREAM_START_EVENT"));
             break;
         case YAML_STREAM_END_EVENT:
-            DPRINT_STATE(("YAML_STREAM_END_EVENT\n"));
+            DPRINT_STATE(("YAML_STREAM_END_EVENT"));
             done = 1;
             break;
         case YAML_DOCUMENT_START_EVENT:
-            DPRINT_STATE(("YAML_STREAM_END_EVENT\n"));
+            DPRINT_STATE(("YAML_STREAM_END_EVENT"));
             /* Ignored. */
             break;
         case YAML_DOCUMENT_END_EVENT:
-            DPRINT_STATE(("YAML_DOCUMENT_END_EVENT\n"));
+            DPRINT_STATE(("YAML_DOCUMENT_END_EVENT"));
             /* Ignored. */
             break;
         case YAML_SEQUENCE_START_EVENT:
-            DPRINT_STATE(("YAML_SEQUENCE_START_EVENT\n"));
+            DPRINT_STATE(("YAML_SEQUENCE_START_EVENT"));
             inseq = 1;
             break;
         case YAML_SEQUENCE_END_EVENT:
-            DPRINT_STATE(("YAML_SEQUENCE_END_EVENT\n"));
+            DPRINT_STATE(("YAML_SEQUENCE_END_EVENT"));
             inseq = 0;
             break;
         case YAML_MAPPING_START_EVENT:
-            DPRINT_STATE(("YAML_MAPPING_START_EVENT\n"));
+            DPRINT_STATE(("YAML_MAPPING_START_EVENT"));
             level++;
             if (level == MAX_LEVELS) {
                 fprintf(stderr, "Reached maximum configuration nesting level.\n");
@@ -160,7 +152,7 @@ LoadYamlConf(const char *filename)
 
             break;
         case YAML_MAPPING_END_EVENT:
-            DPRINT_STATE(("YAML_MAPPING_END_EVENT\n"));
+            DPRINT_STATE(("YAML_MAPPING_END_EVENT"));
             if (level > -1) {
                 free(key[level]);
                 key[level] = NULL;
@@ -168,10 +160,10 @@ LoadYamlConf(const char *filename)
             level--;
             break;
         case YAML_SCALAR_EVENT:
-            DPRINT_STATE(("YAML_SCALAR_EVENT\n"));
+            DPRINT_STATE(("YAML_SCALAR_EVENT"));
             if (inseq) {
                 if (level > -1) {
-                    DPRINTF(("Ignoring sequence value for %s\n", GetKeyName(key, level)));
+                    SCLogDebug("ignoring sequence value for %s", GetKeyName(key, level));
                 }
                 break;
             }
@@ -190,10 +182,10 @@ LoadYamlConf(const char *filename)
             }
             break;
         case YAML_ALIAS_EVENT:
-            DPRINT_STATE(("YAML_ALIAS_EVENT\n"));
+            DPRINT_STATE(("YAML_ALIAS_EVENT"));
             break;
         case YAML_NO_EVENT:
-            DPRINT_STATE(("YAML_NO_EVENT\n"));
+            DPRINT_STATE(("YAML_NO_EVENT"));
             break;
         }
         yaml_event_delete(&event);

@@ -220,7 +220,7 @@ void StreamTcpFreeConfig(char quiet) {
         exit(1);
     }
 #ifdef DEBUG
-    printf("ssn_pool_cnt %"PRIu64"\n", ssn_pool_cnt);
+    SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 #endif
     pthread_mutex_destroy(&ssn_pool_mutex);
 }

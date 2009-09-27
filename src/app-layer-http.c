@@ -17,6 +17,7 @@
 
 #include "util-binsearch.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 typedef enum {
     HTTP_METHOD_UNKNOWN = 0,
@@ -422,7 +423,7 @@ void RegisterHTTPParsers(void) {
 void HTTPAtExitPrintStats(void) {
 #ifdef DEBUG
     mutex_lock(&http_state_mem_lock);
-    printf("HTTPAtExitPrintStats: http_state_memcnt %"PRIu64", http_state_memuse %"PRIu64"\n", http_state_memcnt, http_state_memuse);
+    SCLogDebug("http_state_memcnt %"PRIu64", http_state_memuse %"PRIu64"", http_state_memcnt, http_state_memuse);
     mutex_unlock(&http_state_mem_lock);
 #endif
 }

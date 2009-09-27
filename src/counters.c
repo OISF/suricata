@@ -9,6 +9,7 @@
 #include "tm-threads.h"
 #include "util-unittest.h"
 #include "conf.h"
+#include "util-debug.h"
 
 /** \todo Get the default log directory from some global resource. */
 #define DEFAULT_LOG_FILENAME "stats.log"
@@ -922,9 +923,7 @@ int PerfUpdateCounterArray(PerfCounterArray *pca, PerfContext *pctx,
     uint32_t i = 0;
 
     if (pca == NULL || pctx == NULL) {
-#ifdef DEBUG
-        printf("pca or pctx is NULL inside PerfUpdateCounterArray\n");
-#endif
+        SCLogDebug("pca or pctx is NULL inside PerfUpdateCounterArray");
         return -1;
     }
 

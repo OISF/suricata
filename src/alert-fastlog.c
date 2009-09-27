@@ -20,7 +20,7 @@
 
 #include "threadvars.h"
 #include "tm-modules.h"
-
+#include "util-debug.h"
 #include "util-unittest.h"
 
 #define DEFAULT_LOG_FILENAME "fast.log"
@@ -186,6 +186,6 @@ void AlertFastlogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    printf(" - (%s) Alerts %" PRIu32 ".\n", tv->name, aft->alerts);
+    SCLogInfo("(%s) Alerts %" PRIu32 "", tv->name, aft->alerts);
 }
 

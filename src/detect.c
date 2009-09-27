@@ -87,62 +87,62 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
     if (det_ctx == NULL)
         return;
 
-    SCLogInfo(" - (%s) (1byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) (1byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned1,
         (float)(det_ctx->pkts_scanned1/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched1,
         (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts_scanned1)*100));
-    SCLogInfo(" - (%s) (2byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) (2byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned2,
         (float)(det_ctx->pkts_scanned2/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched2,
         (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts_scanned2)*100));
-    SCLogInfo(" - (%s) (3byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) (3byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned3,
         (float)(det_ctx->pkts_scanned3/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched3,
         (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts_scanned3)*100));
-    SCLogInfo(" - (%s) (4byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) (4byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned4,
         (float)(det_ctx->pkts_scanned4/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched4,
         (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts_scanned4)*100));
-    SCLogInfo(" - (%s) (+byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) (+byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->pkts, det_ctx->pkts_scanned,
         (float)(det_ctx->pkts_scanned/(float)(det_ctx->pkts)*100),
         det_ctx->pkts_searched,
         (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts)*100),
         (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts_scanned)*100));
 
-    SCLogInfo(" - (%s) URI (1byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) URI (1byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned1,
         (float)(det_ctx->pkts_uri_scanned1/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched1,
         (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->uris)*100),
         (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->pkts_uri_scanned1)*100));
-    SCLogInfo(" - (%s) URI (2byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) URI (2byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned2,
         (float)(det_ctx->pkts_uri_scanned2/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched2,
         (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->uris)*100),
         (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->pkts_uri_scanned2)*100));
-    SCLogInfo(" - (%s) URI (3byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) URI (3byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned3,
         (float)(det_ctx->pkts_uri_scanned3/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched3,
         (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->uris)*100),
         (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->pkts_uri_scanned3)*100));
-    SCLogInfo(" - (%s) URI (4byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) URI (4byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned4,
         (float)(det_ctx->pkts_uri_scanned4/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched4,
         (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->uris)*100),
         (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->pkts_uri_scanned4)*100));
-    SCLogInfo(" - (%s) URI (+byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
+    SCLogInfo("(%s) URI (+byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
         det_ctx->uris, det_ctx->pkts_uri_scanned,
         (float)(det_ctx->pkts_uri_scanned/(float)(det_ctx->uris)*100),
         det_ctx->pkts_uri_searched,
@@ -2108,7 +2108,7 @@ error:
 
 int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* Cleaning up signature grouping structure, stage 1...\n");
+        SCLogInfo("cleaning up signature grouping structure...");
     }
 
     int ds, f, proto;
@@ -2125,7 +2125,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
     IPOnlyDeinit(de_ctx, &de_ctx->io_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        printf("* Cleaning up signature grouping structure, stage 1... done\n");
+        SCLogInfo("cleaning up signature grouping structure... done");
     }
     return 0;
 }
