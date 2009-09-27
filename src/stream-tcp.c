@@ -2362,6 +2362,69 @@ end:
     return ret;
 }
 
+/*static int StreamTcpTest09 (void) {
+
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    u_int8_t payload[1] = {0x42};
+
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof(StreamTcpThread));
+    memset(&tcph, 0, sizeof(TCPHdr));
+
+    p.flow = &f;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    //prevent L7 from kicking in
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_ACK|TH_PUSH;
+    p.tcph = &tcph;
+
+    p.payload = payload;
+    p.payload_len = 1;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(12);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(11);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if (((TcpSession *) (p.flow->protoctx))->client.seg_list == NULL)
+        ret = 1;
+
+    StreamTcpSessionPktFree(&p);
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}*/
+
 #endif /* UNITTESTS */
 
 void StreamTcpRegisterTests (void) {
@@ -2374,6 +2437,7 @@ void StreamTcpRegisterTests (void) {
     UtRegisterTest("StreamTcpTest06 -- FIN, RST message MidStream session", StreamTcpTest06, 1);
     UtRegisterTest("StreamTcpTest07 -- PAWS invalid timestamp", StreamTcpTest07, 1);
     UtRegisterTest("StreamTcpTest08 -- PAWS valid timestamp", StreamTcpTest08, 1);
+    //UtRegisterTest("StreamTcpTest09 -- No Client Reassembly", StreamTcpTest09, 1);
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
 #endif /* UNITTESTS */
