@@ -14,6 +14,7 @@
 #include "detect-pcre.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
 
 #define DETECT_FLOWVAR_NOT_USED   1
 #define DETECT_FLOWVAR_TYPE_READ  2
@@ -783,7 +784,7 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 
     int i = 0;
 
-    printf("Ordering Signatures in memory\n");
+    SCLogInfo("ordering signatures in memory");
 
     sig = de_ctx->sig_list;
     while (sig != NULL) {
@@ -824,10 +825,8 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     }
 
 #ifndef UNITTESTS
-    printf("SCSigOrderSignatures: Total Signatures reordered by the sigordering"
-           "module: %d\n", i);
+    SCLogInfo("total signatures reordered by the sigordering module: %d", i);
 #endif
-
     return;
 }
 
@@ -844,7 +843,7 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
  */
 void SCSigRegisterSignatureOrderingFuncs(DetectEngineCtx *de_ctx)
 {
-    printf("Registering Signature Ordering functions\n");
+    SCLogDebug("registering signature ordering functions");
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);

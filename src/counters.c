@@ -237,17 +237,13 @@ static uint16_t PerfRegisterQualifiedCounter(char *cname, char *tm_name,
     PerfCounter *pc = NULL;
 
     if (cname == NULL || tm_name == NULL || pctx == NULL) {
-#ifdef DEBUG
-        printf("counter name, tm name null or PerfContext NULL\n");
-#endif
+        SCLogDebug("counter name, tm name null or PerfContext NULL");
         return 0;
     }
 
     /* (TYPE_MAX - 1) because we still haven't implemented TYPE_STR */
     if ((type >= (TYPE_MAX - 1)) || (type < 0)) {
-#ifdef DEBUG
         printf("Error: Counters of type %" PRId32 " can't be registered\n", type);
-#endif
         return 0;
     }
 
@@ -414,16 +410,12 @@ int PerfCounterDisplay(uint16_t id, PerfContext *pctx, int disp)
  */
 inline void PerfCounterIncr(uint16_t id, PerfCounterArray *pca)
 {
-    if (!pca) {
-#ifdef DEBUG
-        printf("counterarray is NULL\n");
-#endif
+    if (pca == NULL) {
+        SCLogDebug("counterarray is NULL");
         return;
     }
     if ((id < 1) || (id > pca->size)) {
-#ifdef DEBUG
-        printf("counter doesn't exist\n");
-#endif
+        SCLogDebug("counter doesn't exist");
         return;
     }
 
@@ -645,9 +637,7 @@ int PerfAddToClubbedTMTable(char *tm_name, PerfContext *pctx)
     int i = 0;
 
     if (tm_name == NULL || pctx == NULL) {
-#ifdef DEBUG
-        printf("Supplied argument(s) to PerfAddToClubbedTMTable NULL\n");
-#endif
+        SCLogDebug("supplied argument(s) to PerfAddToClubbedTMTable NULL");
         return 0;
     }
 
@@ -733,30 +723,22 @@ PerfCounterArray * PerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
     uint32_t i = 0;
 
     if (pctx == NULL) {
-#ifdef DEBUG
-        printf("pctx is NULL\n");
-#endif
+        SCLogDebug("pctx is NULL");
         return NULL;
     }
 
     if (s_id < 1 || e_id < 1 || s_id > e_id) {
-#ifdef DEBUG
-        printf("error with the counter ids\n");
-#endif
+        SCLogDebug("error with the counter ids");
         return NULL;
     }
 
     if (e_id > pctx->curr_id) {
-#ifdef DEBUG
-        printf("end id is greater than the max id for this tv\n");
-#endif
+        SCLogDebug("end id is greater than the max id for this tv");
         return NULL;
     }
 
     if (pctx == NULL) {
-#ifdef DEBUG
-        printf("perfcontext is NULL\n");
-#endif
+        SCLogDebug("perfcontext is NULL");
         return NULL;
     }
 

@@ -12,6 +12,8 @@
 
 #include "util-byte.h"
 #include "util-unittest.h"
+#include "util-debug.h"
+
 
 /**
  * \brief Regex for parsing our options
@@ -120,11 +122,9 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                    "bytes of string data: %d\n", data->nbytes, extbytes);
             return -1;
         }
-#ifdef DEBUG
-        printf("DetectBytetestMatch: Comparing base %d "
-               "string 0x%" PRIx64 " %s%c 0x%" PRIx64 "\n",
+
+        SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%c 0x%" PRIx64 "",
                data->base, val, (neg ? "!" : ""), data->op, data->value);
-#endif /* DEBUG */
     }
     else {
         int endianness = (data->flags & DETECT_BYTETEST_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
@@ -135,11 +135,8 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             return -1;
         }
 
-#ifdef DEBUG
-        printf("DetectBytetestMatch: Comparing numeric 0x%" PRIx64
-               " %s%c 0x%" PRIx64 "\n",
+        SCLogDebug("comparing numeric 0x%" PRIx64 " %s%c 0x%" PRIx64 "",
                val, (neg ? "!" : ""), data->op, data->value);
-#endif /* DEBUG */
     }
 
 
@@ -178,15 +175,11 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     /* A successful match depends on negation */
     if ((!neg && match) || (neg && !match)) {
-#ifdef DEBUG
-        printf("DetectBytetestMatch: MATCH\n");
-#endif /* DEBUG */
+        SCLogDebug("MATCH");
         return 1;
     }
 
-#ifdef DEBUG
-    printf("DetectBytetestMatch: NO MATCH\n");
-#endif /* DEBUG */
+    SCLogDebug("NO MATCH");
     return 0;
 }
 

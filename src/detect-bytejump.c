@@ -12,6 +12,7 @@
 
 #include "util-byte.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 /**
  * \brief Regex for parsing our options
@@ -159,11 +160,10 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
 #ifdef DEBUG
-    {
+    if (SCLogDebugEnabled()) {
         uint8_t *sptr = (data->flags & DETECT_BYTEJUMP_BEGIN) ? p->payload
                                                               : ptr;
-        printf("DetectBytejumpMatch: Jumping %" PRId64 " bytes "
-               "from %p (%08x) to %p (%08x)\n",
+        SCLogDebug("jumping %" PRId64 " bytes from %p (%08x) to %p (%08x)",
                val, sptr, (int)(sptr - p->payload),
                jumpptr, (int)(jumpptr - p->payload));
     }

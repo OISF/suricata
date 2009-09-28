@@ -18,6 +18,8 @@
 #include "util-print.h"
 #include "util-unittest.h"
 
+#include "util-debug.h"
+
 #define DEFAULT_LOG_FILENAME "http.log"
 
 int LogHttplog (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -211,6 +213,6 @@ void LogHttplogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    printf(" - (%s) HTTP requests %" PRIu32 ".\n", tv->name, aft->uri_cnt);
+    SCLogInfo("(%s) HTTP requests %" PRIu32 "", tv->name, aft->uri_cnt);
 }
 

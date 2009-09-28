@@ -24,7 +24,6 @@
 #include "util-pool.h"
 #include "util-unittest.h"
 #include "util-print.h"
-#include "util-debug.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
@@ -34,6 +33,7 @@
 
 #include "app-layer-detect-proto.h"
 
+#include "util-debug.h"
 //#define DEBUG
 
 #ifdef DEBUG
@@ -1549,20 +1549,21 @@ static int StreamTcpCheckStreamContents(uint8_t *stream_policy, uint16_t sp_size
     uint8_t j;
 
 #ifdef DEBUG
-    TcpSegment *temp1;
-    printf("check stream !!\n");
-    for (temp1 = stream->seg_list; temp1 != NULL; temp1 = temp1->next)
-        PrintRawDataFp(stdout, temp1->payload, temp1->payload_len);
+    if (SCLogDebugEnabled()) {
+        TcpSegment *temp1;
+        for (temp1 = stream->seg_list; temp1 != NULL; temp1 = temp1->next)
+            PrintRawDataFp(stdout, temp1->payload, temp1->payload_len);
 
-    PrintRawDataFp(stdout, stream_policy, sp_size);
+        PrintRawDataFp(stdout, stream_policy, sp_size);
+    }
 #endif
 
     for (temp = stream->seg_list; temp != NULL; temp = temp->next) {
         j = 0;
         for (; j < temp->payload_len; j++) {
-#ifdef DEBUG
-            printf("i is %" PRIu32 " and len is %" PRIu32 " stream %" PRIx32 " and temp is %" PRIx32 "\n", i, temp->payload_len, stream_policy[i], temp->payload[j]);
-#endif
+            SCLogDebug("i %"PRIu16", len %"PRIu32", stream %"PRIx32" and temp is %"PRIx8"",
+                i, temp->payload_len, stream_policy[i], temp->payload[j]);
+
             if (stream_policy[i] == temp->payload[j]) {
                 i++;
                 continue;
@@ -1618,14 +1619,12 @@ static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q, uin
                 break;
         }
 
-#ifdef DEBUG
-        printf("Gap is %" PRIu32"\n", msg->gap.gap_size);
-#endif
+        SCLogDebug("gap is %" PRIu32"", msg->gap.gap_size);
+
         j = 0;
         for (; j < msg->data.data_len; j++) {
-#ifdef DEBUG
-            printf("i is %" PRIu32 " and len is %" PRIu32 "  and temp is %" PRIx32 "\n", i, msg->data.data_len, msg->data.data[j]);
-#endif
+            SCLogDebug("i is %" PRIu32 " and len is %" PRIu32 "  and temp is %" PRIx32 "", i, msg->data.data_len, msg->data.data[j]);
+
             if (stream_contents[i] == msg->data.data[j]) {
                 i++;
                 continue;

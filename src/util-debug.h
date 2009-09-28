@@ -168,46 +168,48 @@ extern int sc_log_module_cleaned;
 
 
 #define SCLog(x, ...)         do {                                       \
-                                  char msg[SC_LOG_MAX_LOG_MSG_LEN];      \
-                                  char *temp = msg;                      \
+                                  char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN]; \
+                                  char *_sc_log_temp = _sc_log_msg;      \
                                   if ( !(                                \
                                       (sc_log_global_log_level >= x) &&  \
-                                       SCLogMessage(x, &temp,            \
+                                       SCLogMessage(x, &_sc_log_temp,    \
                                                     __FILE__,            \
                                                     __LINE__,            \
                                                     __FUNCTION__)        \
                                        == SC_OK) )                       \
                                   { } else {                             \
-                                      snprintf(temp,                     \
+                                      snprintf(_sc_log_temp,             \
                                                (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                (msg - temp)),           \
+                                                (_sc_log_msg - _sc_log_temp)), \
                                                __VA_ARGS__);             \
-                                      SCLogOutputBuffer(x, msg);         \
+                                      SCLogOutputBuffer(x, _sc_log_msg); \
                                   }                                      \
                               } while(0)
 
 #define SCLogErr(x, err, ...) do {                                       \
-                                  char msg[SC_LOG_MAX_LOG_MSG_LEN];      \
-                                  char *temp = msg;                      \
+                                  char _sc_log_err_msg[SC_LOG_MAX_LOG_MSG_LEN]; \
+                                  char *_sc_log_err_temp = _sc_log_err_msg; \
                                   if ( !(                                \
                                       (sc_log_global_log_level >= x) &&  \
-                                       SCLogMessage(x, &temp,            \
+                                       SCLogMessage(x, &_sc_log_err_temp,\
                                                     __FILE__,            \
                                                     __LINE__,            \
                                                     __FUNCTION__)        \
                                        == SC_OK) )                       \
                                   { } else {                             \
-                                      temp = temp + snprintf(temp,       \
+                                      _sc_log_err_temp =                 \
+                                                _sc_log_err_temp +       \
+                                                snprintf(_sc_log_err_temp, \
                                                (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                (msg - temp)),           \
+                                                (_sc_log_err_msg - _sc_log_err_temp)), \
                                                "[ERRCODE: %s(%d)] - ",   \
                                                SCErrorToString(err),     \
                                                err);                     \
-                                      snprintf(temp,                     \
+                                      snprintf(_sc_log_err_temp,         \
                                                (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                (msg - temp)),           \
+                                                (_sc_log_err_msg - _sc_log_err_temp)), \
                                                __VA_ARGS__);             \
-                                      SCLogOutputBuffer(x, msg);         \
+                                      SCLogOutputBuffer(x, _sc_log_err_msg); \
                                   }                                      \
                               } while(0)
 
@@ -316,18 +318,19 @@ extern int sc_log_module_cleaned;
  * \retval f An argument can be supplied, although it is not used
  */
 #define SCEnter(f)            do {                                              \
-                                  char msg[SC_LOG_MAX_LOG_MSG_LEN];             \
-                                  char *temp = msg;                             \
+                                  char _sc_enter_msg[SC_LOG_MAX_LOG_MSG_LEN];   \
+                                  char *_sc_enter_temp = _sc_enter_msg;         \
                                   if (sc_log_global_log_level >= SC_LOG_DEBUG &&\
                                       SCLogCheckFDFilterEntry(__FUNCTION__) &&  \
-                                      SCLogMessage(SC_LOG_DEBUG, &temp,         \
+                                      SCLogMessage(SC_LOG_DEBUG, &_sc_enter_temp, \
                                                    __FILE__,                    \
                                                    __LINE__,                    \
                                                    __FUNCTION__) == SC_OK) {    \
-                                      snprintf(temp, (SC_LOG_MAX_LOG_MSG_LEN -  \
-                                                      (msg - temp)),            \
+                                      snprintf(_sc_enter_temp, (SC_LOG_MAX_LOG_MSG_LEN - \
+                                                      (_sc_enter_msg - _sc_enter_temp)), \
                                                "%s", "Entering ... >>");        \
-                                      SCLogOutputBuffer(SC_LOG_DEBUG, msg);     \
+                                      SCLogOutputBuffer(SC_LOG_DEBUG,           \
+                                                        _sc_enter_msg);         \
                                   }                                             \
                               } while(0)
 

@@ -9,6 +9,7 @@
 #include "pkt-var.h"
 #include "detect-pktvar.h"
 #include "util-binsearch.h"
+#include "util-debug.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
 static pcre *parse_regex;
@@ -105,9 +106,7 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
         varcontent = (char *)str_ptr;
     }
 
-#ifdef DEBUG
-    printf("DetectPktvarSetup: varname %s, varcontent %s\n", varname, varcontent);
-#endif
+    SCLogDebug("varname %s, varcontent %s", varname, varcontent);
 
     if (varcontent[0] == '\"' && varcontent[strlen(varcontent)-1] == '\"') {
         str = strdup(varcontent+1);
@@ -154,9 +153,6 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
 
                         if (binpos == 2) {
                             uint8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
-#ifdef DEBUG
-                            printf("Binstr %" PRIX32 "\n", c);
-#endif
                             binpos = 0;
                             str[x] = c;
                             x++;
@@ -172,11 +168,13 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
             }
         }
 #ifdef DEBUG
+    if (SCLogDebugEnabled()) {
         for (i = 0; i < x; i++) {
             if (isprint(str[i])) printf("%c", str[i]);
             else                 printf("\\x%02u", str[i]);
         }
         printf("\n");
+    }
 #endif
 
         if (converted)

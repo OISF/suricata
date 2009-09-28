@@ -9,6 +9,7 @@
 #include "flow.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
 
 void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -23,9 +24,8 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     if(p->ppph == NULL)
         return;
 
-#ifdef DEBUG
-    printf("DecodePPP: p %p pkt %p PPP protocol %04x Len: %" PRId32 "\n", p, pkt, ntohs(p->ppph->protocol), len);
-#endif
+    SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRId32 "",
+        p, pkt, ntohs(p->ppph->protocol), len);
 
     switch (ntohs(p->ppph->protocol))
     {
@@ -92,9 +92,7 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             break;
 
         default:
-#ifdef	DEBUG
-            printf("Unknown PPP protocol: %" PRIx32 "\n",ntohs(p->ppph->protocol));
-#endif
+            SCLogDebug("unknown PPP protocol: %" PRIx32 "",ntohs(p->ppph->protocol));
             DECODER_SET_EVENT(p,PPP_WRONG_TYPE);
             return;
     }

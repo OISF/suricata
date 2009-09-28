@@ -22,6 +22,8 @@
 #include "detect-engine-address-ipv6.h"
 #include "detect-engine-port.h"
 
+#include "util-debug.h"
+
 //#define DEBUG
 
 int DetectAddressSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);
@@ -594,9 +596,7 @@ int DetectAddressGroupSetup(DetectAddressGroupsHead *gh, char *s) {
     DetectAddressData  *ad = NULL;
     int r = 0;
 
-#ifdef DEBUG
-    printf("DetectAddressGroupSetup: gh %p, s %s\n", gh, s);
-#endif
+    SCLogDebug("gh %p, s %s", gh, s);
 
     /* parse the address */
     ad = DetectAddressParse(s);
@@ -740,9 +740,7 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
     /* check if the negated list covers the entire ip space. If so
        the user screwed up the rules/vars. */
     if (DetectAddressGroupIsCompleteIPSpace(ghn) == 1) {
-#ifdef DEBUG
         printf("DetectAddressGroupMergeNot: complete IP space negated\n");
-#endif
         goto error;
     }
 
@@ -794,13 +792,13 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
 
     /* step 2: pull the address blocks that match our 'not' blocks */
     for (ag = ghn->ipv4_head; ag != NULL; ag = ag->next) {
-#ifdef DEBUG
-        printf("DetectAddressGroupMergeNot: ag %p ", ag); DetectAddressDataPrint(ag->ad); printf("\n");
-#endif
+        SCLogDebug("ag %p", ag);
+        DetectAddressDataPrint(ag->ad);
+
         for (ag2 = gh->ipv4_head; ag2 != NULL; ) {
-#ifdef DEBUG
-            printf("DetectAddressGroupMergeNot: ag2 %p ", ag2); DetectAddressDataPrint(ag2->ad); printf("\n");
-#endif
+            SCLogDebug("ag2 %p", ag2);
+            DetectAddressDataPrint(ag2->ad);
+
             r = DetectAddressCmp(ag->ad,ag2->ad);
             if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
                 if (ag2->prev == NULL) {
@@ -849,9 +847,7 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
 
     /* if the result is that we have no addresses we return error */
     if (gh->ipv4_head == NULL && gh->ipv6_head == NULL) {
-#ifdef DEBUG
-        printf("DetectAddressGroupMergeNot: no addresses left after merge\n");
-#endif
+        printf("no addresses left after merging addresses and not-addresses\n");
         goto error;
     }
 
@@ -864,9 +860,7 @@ error:
 int DetectAddressGroupParse(DetectAddressGroupsHead *gh, char *str) {
     int r;
 
-#ifdef DEBUG
-    printf("DetectAddressGroupParse: gh %p, str %s\n", gh, str);
-#endif
+    SCLogDebug("gh %p, str %s", gh, str);
 
     DetectAddressGroupsHead *ghn = DetectAddressGroupsHeadInit();
     if (ghn == NULL) {
@@ -1261,24 +1255,24 @@ void DetectAddressDataPrint(DetectAddressData *ad) {
         printf("ANY");
     } else if (ad->family == AF_INET) {
         struct in_addr in;
-        char s[16];
+        char ip[16], mask[16];
 
         memcpy(&in, &ad->ip[0], sizeof(in));
-        inet_ntop(AF_INET, &in, s, sizeof(s));
-        printf("%s/", s);
+        inet_ntop(AF_INET, &in, ip, sizeof(ip));
         memcpy(&in, &ad->ip2[0], sizeof(in));
-        inet_ntop(AF_INET, &in, s, sizeof(s));
-        printf("%s", s);
+        inet_ntop(AF_INET, &in, mask, sizeof(mask));
+
+        SCLogDebug("%s/%s", ip, mask);
     } else if (ad->family == AF_INET6) {
         struct in6_addr in6;
-        char s[66];
+        char ip[66], mask[66];
 
         memcpy(&in6, &ad->ip, sizeof(in6));
-        inet_ntop(AF_INET6, &in6, s, sizeof(s));
-        printf("%s/", s);
+        inet_ntop(AF_INET6, &in6, ip, sizeof(ip));
         memcpy(&in6, &ad->ip2, sizeof(in6));
-        inet_ntop(AF_INET6, &in6, s, sizeof(s));
-        printf("%s", s);
+        inet_ntop(AF_INET6, &in6, mask, sizeof(mask));
+
+        SCLogDebug("%s/%s", ip, mask);
     }
 }
 

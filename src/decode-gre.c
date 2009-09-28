@@ -10,6 +10,7 @@
 #include "decode-gre.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
 
 /**
  * \brief Function to decode GRE packets
@@ -31,9 +32,8 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     if(p->greh == NULL)
         return;
 
-#ifdef DEBUG
-    printf("DecodeGRE: p %p pkt %p GRE protocol %04x Len: %d GRE version %x\n", p, pkt, GRE_GET_PROTO(p->greh), len,GRE_GET_VERSION(p->greh));
-#endif
+    SCLogDebug("p %p pkt %p GRE protocol %04x Len: %d GRE version %x",
+        p, pkt, GRE_GET_PROTO(p->greh), len,GRE_GET_VERSION(p->greh));
 
     switch (GRE_GET_VERSION(p->greh))
     {

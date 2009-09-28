@@ -1502,7 +1502,7 @@ void StreamTcpExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    printf(" - (%s) Packets %" PRIu64 ".\n", tv->name, stt->pkts);
+    SCLogInfo("(%s) Packets %" PRIu64 "", tv->name, stt->pkts);
 }
 
 /**

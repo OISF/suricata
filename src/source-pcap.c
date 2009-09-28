@@ -133,7 +133,7 @@ int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL) || TmThreadsCheckFlag(tv, THV_PAUSE)) {
-            printf("ReceivePcap: interrupted.\n");
+            SCLogInfo("pcap packet reading interrupted");
             return 0;
         }
     }
@@ -231,7 +231,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->tv = tv;
 
-    printf("ReceivePcapThreadInit: using interface %s\n", (char *)initdata);
+    SCLogInfo("using interface %s", (char *)initdata);
 
     char errbuf[PCAP_ERRBUF_SIZE] = "";
     ptv->pcap_handle = pcap_open_live((char *)initdata, LIBPCAP_SNAPLEN,
@@ -256,7 +256,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
-    printf(" - (%s) Packets %" PRIu32 ", bytes %" PRIu64 ".\n", tv->name, ptv->pkts, ptv->bytes);
+    SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
     return;
 }
 

@@ -23,6 +23,8 @@
 
 #include "util-unittest.h"
 
+#include "util-debug.h"
+
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
 int AlertDebuglog (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -217,6 +219,6 @@ void AlertDebuglogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    printf(" - (%s) Alerts %" PRIu32 ".\n", tv->name, aft->alerts);
+    SCLogInfo("(%s) Alerts %" PRIu32 "", tv->name, aft->alerts);
 }
 

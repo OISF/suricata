@@ -571,6 +571,26 @@ end:
     return result;
 }
 
+int SigParseTest03 (void) {
+    int result = 1;
+    Signature *sig = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 1024: -> !1.2.3.4 1024: (msg:\"SigParseTest03\"; sid:1;)");
+    if (sig == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigFree(sig);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
 /**
  * \test check that we don't allow invalid negation options
  */
@@ -745,9 +765,6 @@ static int SigParseTestNegation07 (void) {
 end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
-
-//printf("%s\n", result?"ok":"fail");
-//exit(1);
     return result;
 }
 
@@ -755,6 +772,7 @@ end:
 void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest01", SigParseTest01, 1);
     UtRegisterTest("SigParseTest02", SigParseTest02, 1);
+    UtRegisterTest("SigParseTest03", SigParseTest03, 1);
     UtRegisterTest("SigParseTestNegation01", SigParseTestNegation01, 1);
     UtRegisterTest("SigParseTestNegation02", SigParseTestNegation02, 1);
     UtRegisterTest("SigParseTestNegation03", SigParseTestNegation03, 1);

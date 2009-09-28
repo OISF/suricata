@@ -397,7 +397,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         }
         temp_fmt++;
 	}
-    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s - ", substr);
+    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s", substr);
     if (cw < 0)
         goto error;
 
@@ -813,7 +813,7 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     }
 
 #ifdef DEBUG
-    printf("SCLogSetOPFilter: filter %s\n", filter ? filter : "no filter");
+    printf("SCLogSetOPFilter: filter: %s\n", filter ? filter : "<no filter>");
 #endif
 
     return;

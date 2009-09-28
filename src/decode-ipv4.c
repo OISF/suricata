@@ -312,14 +312,15 @@ static int DecodeIPV4Options(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t l
     p->IPV4_OPTS_CNT = 0;
 
 #ifdef DEBUG
-    printf("DecodeIPV4Options\n");
-    {
+    if (SCLogDebugEnabled()) {
         uint16_t i;
-        printf("IPV4OPTS: { ");
+        char buf[256] = "";
+        int offset = 0;
+
         for (i = 0; i < len; i++) {
-            printf("%02" PRIx8 " ", pkt[i]);
+            offset += snprintf(buf + offset, (sizeof(buf) - offset), "%02" PRIx8 " ", pkt[i]);
         }
-        printf("}\n");
+        SCLogDebug("IPV4OPTS: { %s}", buf);
     }
 #endif
 
@@ -334,20 +335,12 @@ static int DecodeIPV4Options(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t l
         /* single byte options */
         if (*pkt == IPV4_OPT_EOL) {
             /** \todo What if more data exist after EOL (possible covert channel or data leakage)? */
-#ifdef DEBUG
-            printf("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "\n",
-                   *pkt,
-                   (len - plen),
-                   (len - 1));
-#endif
+            SCLogDebug("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "",
+                   *pkt, (len - plen), (len - 1));
             break;
         } else if (*pkt == IPV4_OPT_NOP) {
-#ifdef DEBUG
-            printf("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "\n",
-                   *pkt,
-                   (len - plen),
-                   (len - 1));
-#endif
+            SCLogDebug("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "",
+                   *pkt, (len - plen), (len - 1));
             pkt++;
             plen--;
 
@@ -373,13 +366,9 @@ static int DecodeIPV4Options(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t l
             else
                 p->IPV4_OPTS[p->IPV4_OPTS_CNT].data = NULL;
 
-#ifdef DEBUG
-            printf("IPV4OPT %" PRIu16 " len %" PRIu16 " @ %" PRIu16 "/%" PRIu16 "\n",
-                   p->IPV4_OPTS[p->IPV4_OPTS_CNT].type,
-                   p->IPV4_OPTS[p->IPV4_OPTS_CNT].len,
-                   (len - plen),
-                   (len - 1));
-#endif
+            SCLogDebug("IPV4OPT %" PRIu16 " len %" PRIu16 " @ %" PRIu16 "/%" PRIu16 "",
+                   p->IPV4_OPTS[p->IPV4_OPTS_CNT].type, p->IPV4_OPTS[p->IPV4_OPTS_CNT].len,
+                   (len - plen), (len - 1));
 
             /* we already know that the total options len is valid,
              * so here the len of the specific option must be bad.
@@ -486,11 +475,9 @@ static int DecodeIPV4Options(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t l
                     p->ip4vars.o_rtralt = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
                     break;
                 default:
-#ifdef DEBUG
-                    printf("IPV4OPT <unknown> (%" PRIu8 ") len %" PRIu8 "\n",
+                    SCLogDebug("IPV4OPT <unknown> (%" PRIu8 ") len %" PRIu8 "",
                            p->IPV4_OPTS[p->IPV4_OPTS_CNT].type,
                            p->IPV4_OPTS[p->IPV4_OPTS_CNT].len);
-#endif
                     DECODER_SET_EVENT(p,IPV4_OPT_INVALID);
                     /* Warn - we can keep going */
                     break;

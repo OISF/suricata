@@ -15,6 +15,7 @@
 #include "decode-events.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
 
 /**
  * \brief Main decoding function for PPPOE Discovery packets
@@ -47,9 +48,7 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
             break;
 
         default:
-#ifdef	DEBUG
-            printf("Unknown PPPOE code: %" PRIx32 "\n",ntohs(p->pppoedh->pppoe_code));
-#endif
+            SCLogDebug("unknown PPPOE code: %" PRIx32 "",ntohs(p->pppoedh->pppoe_code));
             DECODER_SET_EVENT(p,PPPOE_WRONG_CODE);
     }
 
@@ -62,9 +61,7 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
     uint16_t packet_length = len - PPPOE_DISCOVERY_HEADER_MIN_LEN ;
 
     if (pppoe_length>packet_length) {
-#ifdef	DEBUG
-        printf("Malformed PPPOE tags\n");
-#endif
+        SCLogDebug("malformed PPPOE tags");
         DECODER_SET_EVENT(p,PPPOE_MALFORMED_TAGS);
     }
 
@@ -73,9 +70,7 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
         tag_type = ntohs(pppoedt->pppoe_tag_type);
         tag_length = ntohs(pppoedt->pppoe_tag_length);
 
-#ifdef DEBUG
-        printf ("PPPoE Tag type %x, length %u\n", tag_type, tag_length);
-#endif
+        SCLogDebug ("PPPoE Tag type %x, length %u", tag_type, tag_length);
 
         if (pppoe_length >= 4+tag_length) {
             pppoe_length -= (4 + tag_length);
@@ -110,10 +105,8 @@ void DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_
     if (p->pppoesh == NULL)
         return;
 
-#ifdef DEBUG
-    printf("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "\n",
+    SCLogDebug("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "",
            p->pppoesh->pppoe_version,  p->pppoesh->pppoe_type,  p->pppoesh->pppoe_code,  ntohs(p->pppoesh->session_id),  ntohs(p->pppoesh->pppoe_length));
-#endif
 
     /* can't use DecodePPP() here because we only get a single 2-byte word to indicate protocol instead of the full PPP header */
 
@@ -185,9 +178,7 @@ void DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_
                 break;
 
             default:
-#ifdef	DEBUG
-                printf("Unknown PPP protocol: %" PRIx32 "\n",ntohs(p->ppph->protocol));
-#endif
+                SCLogDebug("unknown PPP protocol: %" PRIx32 "",ntohs(p->ppph->protocol));
                 DECODER_SET_EVENT(p,PPP_WRONG_TYPE);
                 return;
         }
