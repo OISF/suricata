@@ -493,9 +493,9 @@ int main(int argc, char **argv)
         //RunModeFilePcap2(de_ctx, pcap_file, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
     }
     else if (mode == MODE_PFRING) {
-       //RunModeIdsPfring(de_ctx, pfring_dev);
-       RunModeIdsPfring2(de_ctx, pfring_dev);
-       //RunModeIdsPfring3(de_ctx, pfring_dev);
+        //RunModeIdsPfring3(de_ctx, pfring_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
+        RunModeIdsPfring2(de_ctx, pfring_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
+        //RunModeIdsPfring(de_ctx, pfring_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
     }
     else if (mode == MODE_NFQ) {
         RunModeIpsNFQ(de_ctx, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);

@@ -122,41 +122,6 @@ void TmModuleUnified2AlertRegister (void) {
 }
 
 /**
- *  \brief Function to create unified2 file
- *
- *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
- *  \param aun Unified2 thread variable.
- *  \retval 0 on succces
- *  \retval -1 on failure
- */
-
-int Unified2AlertCreateFile(ThreadVars *t, Unified2AlertThread *aun) {
-    char filename[PATH_MAX];
-    struct timeval ts;
-    char *log_dir;
-
-    memset (filename,0,PATH_MAX);
-    memset (&ts, 0, sizeof(struct timeval));
-    gettimeofday(&ts, NULL);
-
-    /* create the filename to use */
-    if (ConfGet("default-log-dir", &log_dir) != 1)
-        log_dir = DEFAULT_LOG_DIR;
-    snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, log_dir, "unified2.alert", (uint32_t)ts.tv_sec);
-
-    SCLogInfo("creating unified2 file %s",filename);
-
-    /* XXX filename & location */
-    aun->fp = fopen(filename, "wb");
-    if (aun->fp == NULL) {
-        printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
-        return -1;
-    }
-
-    return 0;
-}
-
-/**
  *  \brief Function to close unified2 file
  *
  *  \param t Thread Variable containing  input/output queue, cpu affinity etc.

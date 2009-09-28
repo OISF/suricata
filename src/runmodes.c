@@ -1267,7 +1267,7 @@ int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile
     return 0;
 }
 
-int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface) {
+int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_ctx, LogFileCtx *ad_logfile_ctx, LogFileCtx *lh_logfile_ctx, LogFileCtx *aul_logfile_ctx, LogFileCtx *aua_logfile_ctx, LogFileCtx *au2a_logfile_ctx) {
     TimeModeSetLive();
 
     /* create the threads */
@@ -1434,14 +1434,14 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_alert, tm_module, NULL);
+    TmVarSlotSetFuncAppend(tv_alert, tm_module, af_logfile_ctx);
 
     tm_module = TmModuleGetByName("LogHttplog");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_alert, tm_module, NULL);
+    TmVarSlotSetFuncAppend(tv_alert, tm_module, lh_logfile_ctx);
 
     if (TmThreadSpawn(tv_alert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1459,14 +1459,14 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_unified, tm_module, NULL);
+    TmVarSlotSetFuncAppend(tv_unified, tm_module, aul_logfile_ctx);
 
     tm_module = TmModuleGetByName("AlertUnifiedAlert");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_unified, tm_module, NULL);
+    TmVarSlotSetFuncAppend(tv_unified, tm_module, aua_logfile_ctx);
 
     if (TmThreadSpawn(tv_unified) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1483,7 +1483,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_debugalert,tm_module,NULL);
+    Tm1SlotSetFunc(tv_debugalert,tm_module,ad_logfile_ctx);
 
     if (TmThreadSpawn(tv_debugalert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1494,7 +1494,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface) {
 }
 
 /** \brief Live pfring mode with 4 stream tracking and reassembly threads, testing the flow queuehandler */
-int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface) {
+int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_ctx, LogFileCtx *ad_logfile_ctx, LogFileCtx *lh_logfile_ctx, LogFileCtx *aul_logfile_ctx, LogFileCtx *aua_logfile_ctx, LogFileCtx *au2a_logfile_ctx) {
     TimeModeSetLive();
 
     /* create the threads */
@@ -1661,14 +1661,14 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_alert, tm_module, NULL);
+    TmVarSlotSetFuncAppend(tv_alert, tm_module, af_logfile_ctx);
 
     tm_module = TmModuleGetByName("LogHttplog");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_alert, tm_module, NULL);
+    TmVarSlotSetFuncAppend(tv_alert, tm_module, lh_logfile_ctx);
 
     if (TmThreadSpawn(tv_alert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1686,14 +1686,14 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_unified,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_unified,tm_module,aul_logfile_ctx);
 
     tm_module = TmModuleGetByName("AlertUnifiedAlert");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_unified,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_unified,tm_module,aua_logfile_ctx);
 
     if (TmThreadSpawn(tv_unified) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1710,7 +1710,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_debugalert,tm_module,NULL);
+    Tm1SlotSetFunc(tv_debugalert,tm_module,ad_logfile_ctx);
 
     if (TmThreadSpawn(tv_debugalert) != 0) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1720,7 +1720,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface) {
     return 0;
 }
 /** \brief Live pfring mode with 4 stream tracking and reassembly threads, testing the flow queuehandler */
-int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface) {
+int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_ctx, LogFileCtx *ad_logfile_ctx, LogFileCtx *lh_logfile_ctx, LogFileCtx *aul_logfile_ctx, LogFileCtx *aua_logfile_ctx, LogFileCtx *au2a_logfile_ctx) {
     TimeModeSetLive();
 
     /* create the threads */
@@ -1790,7 +1790,7 @@ int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv,tm_module,af_logfile_ctx);
 
     tm_module = TmModuleGetByName("LogHttplog");
     if (tm_module == NULL) {
@@ -1865,21 +1865,21 @@ int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv,tm_module,lh_logfile_ctx);
 
     tm_module = TmModuleGetByName("AlertUnifiedLog");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv,tm_module,aul_logfile_ctx);
 
     tm_module = TmModuleGetByName("AlertUnifiedAlert");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv,tm_module,aua_logfile_ctx);
 
     tm_module = TmModuleGetByName("AlertDebuglog");
     if (tm_module == NULL) {
@@ -2022,7 +2022,7 @@ int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv,tm_module,ad_logfile_ctx);
 
     TmThreadSetCPUAffinity(tv, 1);
 
