@@ -555,8 +555,12 @@ int main(int argc, char **argv)
 
                 SCLogInfo("all packets processed by threads, stopping engine");
             }
-            if (sigflags & EIDPS_SIGHUP)  SCLogInfo("SIGHUP received");
-            if (sigflags & EIDPS_SIGTERM) SCLogInfo("SIGTERM received");
+            if (sigflags & EIDPS_SIGHUP) {
+                SCLogInfo("SIGHUP received");
+            }
+            if (sigflags & EIDPS_SIGTERM) {
+                SCLogInfo("SIGTERM received");
+            }
 
             struct timeval end_time;
             memset(&end_time, 0, sizeof(end_time));
