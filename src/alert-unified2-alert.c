@@ -639,6 +639,7 @@ DecodeThreadVars dtv;
 PacketQueue pq;
 void *data = NULL;
 void *initdata = NULL;
+LogFileCtx *lf;
 
 /**
  *  \test Test the ethernet+ipv4+tcp unified2 test
@@ -679,13 +680,15 @@ static int Unified2Test01 (void)   {
 
     FlowShutdown();
 
-    ret = Unified2AlertThreadInit(&tv, initdata, &data);
+    lf=Unified2AlertInitCtx(NULL);
+    if(lf == NULL)
+        return 0;
+    ret = Unified2AlertThreadInit(&tv, lf, &data);
     if(ret == -1)
         return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
     if(ret == -1)
         return 0;
-
     return 1;
 }
 
@@ -870,6 +873,9 @@ static int Unified2Test05 (void)   {
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == -1)
+        return 0;
+
+    if(LogFileFreeCtx(lf)==0)
         return 0;
 
     return 1;
