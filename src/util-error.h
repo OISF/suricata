@@ -16,6 +16,7 @@ typedef enum {
     SC_COUNTER_EXCEEDED,
     SC_INVALID_CHECKSUM,
     SC_SPRINTF_ERROR,
+    SC_INVALID_ARGUMENT,
 } SCError;
 
 const char *SCErrorToString(SCError);

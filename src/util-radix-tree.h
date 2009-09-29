@@ -16,6 +16,9 @@ typedef struct SCRadixPrefix_ {
 
     /* the key that has been stored in the tree */
     uint8_t *stream;
+
+    /* any user data that has to be associated with this key */
+    void *user;
 } SCRadixPrefix;
 
 /**
@@ -26,7 +29,7 @@ typedef struct SCRadixNode_ {
      * to determine the path to be taken during a lookup*/
     uint16_t bit;
 
-    /* Holds the prefix that the path to this node holds */
+    /* holds the prefix that the path to this node holds */
     SCRadixPrefix *prefix;
 
     /* the left and the right children of a node */
@@ -34,9 +37,6 @@ typedef struct SCRadixNode_ {
 
     /* the parent node for this tree */
     struct SCRadixNode_ *parent;
-
-    /* any user data that has to be associated with this node */
-    void *user;
 } SCRadixNode;
 
 /**
@@ -45,21 +45,27 @@ typedef struct SCRadixNode_ {
 typedef struct SCRadixTree_ {
     /* the root node in the radix tree */
     SCRadixNode *head;
+
+    /* function pointer that is supplied by the user to free the user data
+     * held by the user field of SCRadixNode */
+    void (*Free)(void *);
 } SCRadixTree;
 
 
-SCRadixTree *SCRadixCreateRadixTree();
+SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*));
 void SCRadixReleaseRadixTree(SCRadixTree *);
 
-SCRadixPrefix *SCRadixCreatePrefix(uint8_t *, uint16_t);
-SCRadixPrefix *SCRadixCreateIPV4Prefix(uint8_t *);
-SCRadixPrefix *SCRadixCreateIPV6Preix(uint8_t *);
-void SCRadixReleasePrefix(SCRadixPrefix *prefix);
+SCRadixNode *SCRadixAddKeyGeneric(uint8_t *, uint16_t, SCRadixTree *, void *);
+SCRadixNode *SCRadixAddKeyIPV4(uint8_t *, SCRadixTree *, void *);
+SCRadixNode *SCRadixAddKeyIPV6(uint8_t *, SCRadixTree *, void *);
 
-SCRadixNode *SCRadixAddKey(SCRadixPrefix *, SCRadixTree *);
-void SCRadixRemoveKey(SCRadixPrefix *, SCRadixTree *);
+void SCRadixRemoveKeyGeneric(uint8_t *, uint16_t, SCRadixTree *);
+void SCRadixRemoveKeyIPV4(uint8_t *, SCRadixTree *);
+void SCRadixRemoveKeyIPV6(uint8_t *, SCRadixTree *);
 
-SCRadixNode *SCRadixFindKey(SCRadixPrefix *, SCRadixTree *);
+SCRadixNode *SCRadixFindKeyGeneric(uint8_t *, uint16_t, SCRadixTree *);
+SCRadixNode *SCRadixFindKeyIPV4(uint8_t *, SCRadixTree *);
+SCRadixNode *SCRadixFindKeyIPV6(uint8_t *, SCRadixTree *);
 
 void SCRadixPrintTree(SCRadixTree *);
 
@@ -67,4 +73,3 @@ void SCRadixRegisterTests(void);
 
 
 #endif /* __UTIL_RADIX_TREE_H__ */
-

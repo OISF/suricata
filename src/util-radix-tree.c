@@ -11,7 +11,75 @@
 #include <arpa/inet.h>
 
 #include "util-radix-tree.h"
+#include "util-debug.h"
+#include "util-error.h"
 #include "util-unittest.h"
+
+/**
+ * \brief Creates a new Prefix for a key.  Used internally by the API.
+ *
+ * \param key_stream Data that has to be wrapped in a SCRadixPrefix instance to
+ *                   be processed for insertion/lookup/removal of a node by the
+ *                   radix tree
+ * \param key_bitlen The bitlen of the the above stream.  For example if the
+ *                   stream holds the ipv4 address(4 bytes), bitlen would be 32
+ * \param user       Pointer to the user data that has to be associated with
+ *                   this key
+ *
+ * \retval prefix The newly created prefix instance on success; NULL on failure
+ */
+static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
+                                          uint16_t key_bitlen, void *user)
+{
+    SCRadixPrefix *prefix = NULL;
+
+    if ((key_bitlen % 8 != 0) || key_bitlen == 0) {
+        SCLogError(SC_INVALID_ARGUMENT, "Invalid argument bitlen - %d", key_bitlen);
+        return NULL;
+    }
+
+    if (key_stream == NULL) {
+        SCLogError(SC_INVALID_ARGUMENT, "Argument \"stream\" NULL");
+        return NULL;
+    }
+
+    if ( (prefix = malloc(sizeof(SCRadixPrefix))) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(prefix, 0, sizeof(SCRadixPrefix));
+
+    if ( (prefix->stream = malloc(key_bitlen / 8)) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(prefix->stream, 0, key_bitlen / 8);
+
+    memcpy(prefix->stream, key_stream, key_bitlen / 8);
+    prefix->bitlen = key_bitlen;
+    prefix->user = user;
+
+    return prefix;
+}
+
+/**
+ * \brief Frees a SCRadixPrefix instance
+ *
+ * \param prefix Pointer to a prefix instance
+ * \param tree   Pointer to the Radix tree to which this prefix belongs
+ */
+static void SCRadixReleasePrefix(SCRadixPrefix *prefix, SCRadixTree *tree)
+{
+    if (prefix != NULL) {
+        if (tree->Free != NULL)
+            tree->Free(prefix->user);
+        if (prefix->stream != NULL)
+            free(prefix->stream);
+        free(prefix);
+    }
+
+    return;
+}
 
 /**
  * \brief Creates a new node for the Radix tree
@@ -23,7 +91,7 @@ static inline SCRadixNode *SCRadixCreateNode()
     SCRadixNode *node = NULL;
 
     if ( (node = malloc(sizeof(SCRadixNode))) == NULL) {
-        printf("Error allocating memory\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(node, 0, sizeof(SCRadixNode));
@@ -35,96 +103,13 @@ static inline SCRadixNode *SCRadixCreateNode()
  * \brief Frees a Radix tree node
  *
  * \param node Pointer to a Radix tree node
+ * \param tree Pointer to the Radix tree to which this node belongs
  */
-static inline void SCRadixReleaseNode(SCRadixNode *node)
+static inline void SCRadixReleaseNode(SCRadixNode *node, SCRadixTree *tree)
 {
     if (node != NULL) {
-        //SCRadixReleaseKeyPrefix(node->prefix);
+        SCRadixReleasePrefix(node->prefix, tree);
         free(node);
-    }
-
-    return;
-}
-
-/**
- * \brief Creates a new Prefix
- *
- * \param stream Data that has to be wrapped in a SCRadixPrefix instance to be
- *               processed for insertion/lookup by the radix tree
- * \param bitlen The bitlen of the the above stream.  For example if the stream
- *               holds the ipv4 address(in 1 byte), bitlen would be 32
- *
- * \retval prefix The newly created prefix instance on success; NULL on failure
- */
-SCRadixPrefix *SCRadixCreatePrefix(uint8_t *stream, uint16_t bitlen)
-{
-    SCRadixPrefix *prefix = NULL;
-
-    if ((bitlen % 8 != 0) || bitlen == 0) {
-        printf("Error: SCRadixCreatePrefix: Invalid bitlen: %d", bitlen);
-        return NULL;
-    }
-
-    if (stream == NULL) {
-        printf("Error: SCRadixCreatePrefix: Argument \"stream\" NULL");
-        return NULL;
-    }
-
-    if ( (prefix = malloc(sizeof(SCRadixPrefix))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-    memset(prefix, 0, sizeof(SCRadixPrefix));
-
-    if ( (prefix->stream = malloc(bitlen / 8)) == NULL) {
-        printf("Error allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-    memset(prefix->stream, 0, bitlen / 8);
-
-    memcpy(prefix->stream, stream, bitlen / 8);
-    prefix->bitlen = bitlen;
-
-    return prefix;
-}
-
-/**
- * \brief Creates a new Prefix for an IPV4 address
- *
- * \param stream IPV4 address that has to be wrapped in a SCRadixPrefix instance
- *               to be processed for insertion/lookup by the radix tree
- *
- * \retval prefix The newly created prefix instance on success; NULL on failure
- */
-SCRadixPrefix *SCRadixCreateIPV4Prefix(uint8_t *stream)
-{
-    return SCRadixCreatePrefix(stream, 32);
-}
-
-/**
- * \brief Creates a new Prefix for an IPV6 address
- *
- * \param stream IPV6 address that has to be wrapped in a SCRadixPrefix instance
- *               to be processed for insertion/lookup by the radix tree
- *
- * \retval prefix The newly created prefix instance on success; NULL on failure
- */
-SCRadixPrefix *SCRadixCreateIPV6Prefix(uint8_t *stream)
-{
-    return SCRadixCreatePrefix(stream, 128);
-}
-
-/**
- * \brief Frees a SCRadixPrefix instance
- *
- * \param prefix Pointer to a prefix instance
- */
-void SCRadixReleasePrefix(SCRadixPrefix *prefix)
-{
-    if (prefix != NULL) {
-        if (prefix->stream != NULL)
-            free(prefix->stream);
-        free(prefix);
     }
 
     return;
@@ -133,32 +118,39 @@ void SCRadixReleasePrefix(SCRadixPrefix *prefix)
 /**
  * \brief Creates a new Radix tree
  *
+ * \param Free Function pointer supplied by the user to be used by the Radix
+ *             cleanup API to free the user suppplied data
+ *
  * \retval tree The newly created radix tree on success
  */
-SCRadixTree *SCRadixCreateRadixTree()
+SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*))
 {
     SCRadixTree *tree = NULL;
 
     if ( (tree = malloc(sizeof(SCRadixTree))) == NULL) {
-        printf("Error allocating memory\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(tree, 0, sizeof(SCRadixTree));
+
+    tree->Free = Free;
 
     return tree;
 }
 
 /**
- * \brief Internal helper function used by SCRadixReleaseRadixTree to free a subtree
+ * \brief Internal helper function used by SCRadixReleaseRadixTree to free a
+ *        subtree
  *
  * \param node Pointer to the root of the subtree that has to be freed
+ * \param tree Pointer to the Radix tree to which this subtree belongs
  */
-static void SCRadixReleaseRadixSubtree(SCRadixNode *node)
+static void SCRadixReleaseRadixSubtree(SCRadixNode *node, SCRadixTree *tree)
 {
     if (node != NULL) {
-        SCRadixReleaseRadixSubtree(node->left);
-        SCRadixReleaseRadixSubtree(node->right);
-        SCRadixReleaseNode(node);
+        SCRadixReleaseRadixSubtree(node->left, tree);
+        SCRadixReleaseRadixSubtree(node->right, tree);
+        SCRadixReleaseNode(node, tree);
     }
 
     return;
@@ -171,7 +163,7 @@ static void SCRadixReleaseRadixSubtree(SCRadixNode *node)
  */
 void SCRadixReleaseRadixTree(SCRadixTree *tree)
 {
-    SCRadixReleaseRadixSubtree(tree->head);
+    SCRadixReleaseRadixSubtree(tree->head, tree);
 
     tree->head = NULL;
 
@@ -179,20 +171,28 @@ void SCRadixReleaseRadixTree(SCRadixTree *tree)
 }
 
 /**
- * \brief Adds a prefix to the Radix tree
+ * \brief Adds a key to the Radix tree.  Used internally by the API.
  *
- * \param tree   Pointer to the Radix tree
- * \param prefix The prefix that has to be added to the Radix tree
+ * \param key_stream Data that has to added to the Radix tree
+ * \param key_bitlen The bitlen of the the above stream.  For example if the
+ *                   stream is the string "abcd", the bitlen would be 32.  If
+ *                   the stream is an IPV6 address bitlen would be 128
+ * \param tree       Pointer to the Radix tree
+ * \param user       Pointer to the user data that has to be associated with
+ *                   this key
  *
  * \retval node Pointer to the newly created node
  */
-SCRadixNode *SCRadixAddKey(SCRadixPrefix *prefix, SCRadixTree *tree)
+static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
+                                  SCRadixTree *tree, void *user)
 {
     SCRadixNode *node = NULL;
     SCRadixNode *new_node = NULL;
     SCRadixNode *parent = NULL;
     SCRadixNode *inter_node = NULL;
     SCRadixNode *bottom_node = NULL;
+
+    SCRadixPrefix *prefix = NULL;
 
     uint8_t *stream = NULL;
     uint8_t bitlen = 0;
@@ -203,6 +203,14 @@ SCRadixNode *SCRadixAddKey(SCRadixPrefix *prefix, SCRadixTree *tree)
     int i = 0;
     int j = 0;
     int temp = 0;
+
+    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user)) == NULL)
+        return NULL;
+
+    if (tree == NULL) {
+        SCLogError(SC_INVALID_ARGUMENT, "Argument \"tree\" NULL");
+        return NULL;
+    }
 
     if (tree->head == NULL) {
         node = SCRadixCreateNode();
@@ -258,8 +266,8 @@ SCRadixNode *SCRadixAddKey(SCRadixPrefix *prefix, SCRadixTree *tree)
         }
 
         /* find out the position where the first bit differs.  This method is
-         * larger and faster, but with larger caches these days we don't have
-         * to worry about cache misses */
+         * faster, but at the cost of being larger.  But with larger caches
+         * these days we don't have to worry about cache misses */
         temp = temp * 2;
         if (temp >= 256)
             j = 0;
@@ -296,7 +304,7 @@ SCRadixNode *SCRadixAddKey(SCRadixPrefix *prefix, SCRadixTree *tree)
         if (node->prefix)
             return node;
 
-        node->prefix = SCRadixCreatePrefix(prefix->stream, prefix->bitlen);
+        node->prefix = SCRadixCreatePrefix(prefix->stream, prefix->bitlen, NULL);
         return node;
     }
 
@@ -354,20 +362,88 @@ SCRadixNode *SCRadixAddKey(SCRadixPrefix *prefix, SCRadixTree *tree)
 }
 
 /**
+ * \brief Adds a new generic key to the Radix tree
+ *
+ * \param key_stream Data that has to be added to the Radix tree
+ * \param key_bitlen The bitlen of the the above stream.  For example if the
+ *                   stream is the string "abcd", the bitlen would be 32
+ * \param tree       Pointer to the Radix tree
+ * \param user       Pointer to the user data that has to be associated with the
+ *                   key
+ *
+ * \retval node Pointer to the newly created node
+ */
+SCRadixNode *SCRadixAddKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
+                                  SCRadixTree *tree, void *user)
+{
+    SCRadixNode *node = SCRadixAddKey(key_stream, key_bitlen, tree, user);
+
+    return node;
+}
+
+/**
+ * \brief Adds a new IPV4 address to the Radix tree
+ *
+ * \param key_stream Data that has to be added to the Radix tree.  In this case
+ *                   a pointer to an IPV4 address
+ * \param tree       Pointer to the Radix tree
+ * \param user       Pointer to the user data that has to be associated with the
+ *                   key
+ *
+ * \retval node Pointer to the newly created node
+ */
+SCRadixNode *SCRadixAddKeyIPV4(uint8_t *key_stream, SCRadixTree *tree,
+                               void *user)
+{
+    SCRadixNode *node = SCRadixAddKey(key_stream, 32, tree, user);
+
+    return node;
+}
+
+/**
+ * \brief Adds a new IPV6 address to the Radix tree
+ *
+ * \param key_stream Data that has to be added to the Radix tree.  In this case
+ *                   the pointer to an IPV6 address
+ * \param tree       Pointer to the Radix tree
+ * \param user       Pointer to the user data that has to be associated with the
+ *                   key
+ *
+ * \retval node Pointer to the newly created node
+ */
+SCRadixNode *SCRadixAddKeyIPV6(uint8_t *key_stream, SCRadixTree *tree,
+                               void *user)
+{
+    SCRadixNode *node = SCRadixAddKey(key_stream, 128, tree, user);
+
+    return node;
+}
+
+/**
  * \brief Removes a key from the Radix tree
  *
- * \param prefix Pointer to the key instance that has to be removed
- * \param tree   Pointer to the Radix tree from which the key has to be removed
+ * \param key_stream Data that has to be removed from the Radix tree
+ * \param key_bitlen The bitlen of the the above stream.  For example if the
+ *                   stream holds an IPV4 address(4 bytes), bitlen would be 32
+ * \param tree       Pointer to the Radix tree from which the key has to be
+ *                   removed
  */
-void SCRadixRemoveKey(SCRadixPrefix *prefix, SCRadixTree *tree)
+static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
+                             SCRadixTree *tree)
 {
     SCRadixNode *node = tree->head;
     SCRadixNode *parent = NULL;
     SCRadixNode *temp = NULL;
+
+    SCRadixPrefix *prefix = NULL;
+
     int mask = 0;
     int i = 0;
 
     if (node == NULL)
+        return;
+
+    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL)) == NULL)
         return;
 
     while (node->bit < prefix->bitlen) {
@@ -394,6 +470,8 @@ void SCRadixRemoveKey(SCRadixPrefix *prefix, SCRadixTree *tree)
             ;
         else
             return;
+    } else {
+        return;
     }
 
     if (tree->head == node) {
@@ -421,8 +499,8 @@ void SCRadixRemoveKey(SCRadixPrefix *prefix, SCRadixTree *tree)
                 parent->left->parent = parent->parent;
             }
         }
-        SCRadixReleaseNode(parent);
-        SCRadixReleaseNode(node);
+        SCRadixReleaseNode(parent, tree);
+        SCRadixReleaseNode(node, tree);
     } else {
         temp = tree->head;
         if (parent->left == node) {
@@ -432,26 +510,71 @@ void SCRadixRemoveKey(SCRadixPrefix *prefix, SCRadixTree *tree)
             tree->head->left->parent = NULL;
             tree->head = tree->head->left;
         }
-        SCRadixReleaseNode(temp);
-        SCRadixReleaseNode(node);
+        SCRadixReleaseNode(temp, tree);
+        SCRadixReleaseNode(node, tree);
     }
     return;
 }
 
 /**
+ * \brief Removes a key from the Radix tree
+ *
+ * \param key_stream Data that has to be removed from the Radix tree
+ * \param key_bitlen The bitlen of the the above stream.
+ * \param tree       Pointer to the Radix tree from which the key has to be
+ *                   removed
+ */
+void SCRadixRemoveKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
+                             SCRadixTree *tree)
+{
+    return SCRadixRemoveKey(key_stream, key_bitlen, tree);
+}
+
+/**
+ * \brief Removes an IPV4 address key from the Radix tree
+ *
+ * \param key_stream Data that has to be removed from the Radix tree.  In this
+ *                   case an IPV4 address
+ * \param tree       Pointer to the Radix tree from which the key has to be
+ *                   removed
+ */
+void SCRadixRemoveKeyIPV4(uint8_t *key_stream, SCRadixTree *tree)
+{
+    return SCRadixRemoveKey(key_stream, 32, tree);
+}
+
+/**
+ * \brief Removes an IPV6 address key from the Radix tree
+ *
+ * \param key_stream Data that has to be removed from the Radix tree.  In this
+ *                   case an IPV6 address
+ * \param tree       Pointer to the Radix tree from which the key has to be
+ *                   removed
+ */
+void SCRadixRemoveKeyIPV6(uint8_t *key_stream, SCRadixTree *tree)
+{
+    return SCRadixRemoveKey(key_stream, 128, tree);
+}
+
+/**
  * \brief Checks if a key is present in the tree
  *
- * \param prefix Pointer to a SCRadixPrefix instance that holds the key to be
- *               checked
- * \param tree   Pointer to the Radix tree instance
+ * \param key_stream Data that has to be found in the Radix tree
+ * \param key_bitlen The bitlen of the above stream.
+ * \param tree       Pointer to the Radix tree
  */
-SCRadixNode *SCRadixFindKey(SCRadixPrefix *prefix, SCRadixTree *tree)
+static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
+                                   SCRadixTree *tree)
 {
     SCRadixNode *node = tree->head;
+    SCRadixPrefix *prefix = NULL;
     int mask = 0;
     int i = 0;
 
     if (tree->head == NULL)
+        return NULL;
+
+    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL)) == NULL)
         return NULL;
 
     while (node->bit < prefix->bitlen) {
@@ -479,6 +602,43 @@ SCRadixNode *SCRadixFindKey(SCRadixPrefix *prefix, SCRadixTree *tree)
     }
 
     return NULL;
+}
+
+/**
+ * \brief Checks if a key is present in the tree
+ *
+ * \param key_stream Data that has to be found in the Radix tree
+ * \param key_bitlen The bitlen of the the above stream.
+ * \param tree       Pointer to the Radix tree instance
+ */
+SCRadixNode *SCRadixFindKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
+                                   SCRadixTree *tree)
+{
+    return SCRadixFindKey(key_stream, key_bitlen, tree);
+}
+
+/**
+ * \brief Checks if an IPV4 address is present in the tree
+ *
+ * \param key_stream Data that has to be found in the Radix tree.  In this case
+ *                   an IPV4 address
+ * \param tree       Pointer to the Radix tree instance
+ */
+SCRadixNode *SCRadixFindKeyIPV4(uint8_t *key_stream, SCRadixTree *tree)
+{
+    return SCRadixFindKey(key_stream, 32, tree);
+}
+
+/**
+ * \brief Checks if an IPV6 address is present in the tree
+ *
+ * \param key_stream Data that has to be found in the Radix tree.  In this case
+ *                   an IPV6 address
+ * \param tree       Pointer to the Radix tree instance
+ */
+SCRadixNode *SCRadixFindKeyIPV6(uint8_t *key_stream, SCRadixTree *tree)
+{
+    return SCRadixFindKey(key_stream, 128, tree);
 }
 
 /**
@@ -564,16 +724,14 @@ void SCRadixPrintTree(SCRadixTree *tree)
 int SCRadixTestInsertion01(void)
 {
     SCRadixTree *tree = NULL;
-    SCRadixPrefix *prefix = NULL;
     SCRadixNode *node[2];
 
     int result = 1;
 
-    tree = SCRadixCreateRadixTree();
-    prefix = SCRadixCreatePrefix((uint8_t *)"abaa", 32);
-    node[0] = SCRadixAddKey(prefix, tree);
-    prefix = SCRadixCreatePrefix((uint8_t *)"abab", 32);
-    node[1] = SCRadixAddKey(prefix, tree);
+    tree = SCRadixCreateRadixTree(NULL);
+
+    node[0] = SCRadixAddKeyGeneric((uint8_t *)"abaa", 32, tree, NULL);
+    node[1] = SCRadixAddKeyGeneric((uint8_t *)"abab", 32, tree, NULL);
 
     result &= (tree->head->bit == 30);
     result &= (tree->head->right == node[0]);
@@ -587,106 +745,125 @@ int SCRadixTestInsertion01(void)
 int SCRadixTestInsertion02(void)
 {
     SCRadixTree *tree = NULL;
-    SCRadixPrefix *prefix = NULL;
-
     int result = 1;
 
-    tree = SCRadixCreateRadixTree();
-    prefix = SCRadixCreatePrefix((uint8_t *)"aaaaaa", 48);
-    SCRadixAddKey(prefix, tree);
-    prefix = SCRadixCreatePrefix((uint8_t *)"aaaaab", 48);
-    SCRadixAddKey(prefix, tree);
-    prefix = SCRadixCreatePrefix((uint8_t *)"aaaaaba", 56);
-    SCRadixAddKey(prefix, tree);
-    prefix = SCRadixCreatePrefix((uint8_t *)"abab", 32);
-    SCRadixAddKey(prefix, tree);
+    tree = SCRadixCreateRadixTree(NULL);
 
+    SCRadixAddKeyGeneric((uint8_t *)"aaaaaa", 48, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"aaaaab", 48, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"aaaaaba", 56, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"abab", 32, tree, NULL);
     SCRadixReleaseRadixTree(tree);
 
-    /* If we don't have a segfault till here we have succeeded */
+    /* If we don't have a segfault till here we have succeeded :) */
     return result;
 }
 
 int SCRadixTestIPV4Insertion03(void)
 {
     SCRadixTree *tree = NULL;
-    SCRadixPrefix *prefix[10];
-    SCRadixPrefix *temp_prefix = NULL;
-
     struct sockaddr_in servaddr;
-
     int result = 1;
+
+    tree = SCRadixCreateRadixTree(NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.1", &servaddr.sin_addr) <= 0)
         return 0;
-    tree = SCRadixCreateRadixTree();
-    prefix[0] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[0], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.2", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[1] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[1], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.167.1.3", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[2] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[2], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.167.1.4", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[3] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[3], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
-    /* Try to add the prefix that already exists in the tree */
-    SCRadixAddKey(prefix[2], tree);
+    /* add a key that already exists in the tree */
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
+    /* test for the existance of a key */
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.6", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) == NULL);
+
+    /* test for the existance of a key */
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.167.1.4", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    /* continue adding keys */
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "220.168.1.2", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[4] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[4], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
+    bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.5", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[5] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[5], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
+    bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.18", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[6] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[6], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
     /* test the existence of keys */
-    result &= (SCRadixFindKey(prefix[0], tree) != NULL);
-
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.3", &servaddr.sin_addr) <= 0)
         return 0;
-    temp_prefix = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) == NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "127.234.2.62", &servaddr.sin_addr) <= 0)
         return 0;
-    temp_prefix = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
-
-    result &= (SCRadixFindKey(prefix[2], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[3], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[4], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[5], tree) != NULL);
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) == NULL);
 
     bzero(&servaddr, sizeof(servaddr));
-    if (inet_pton(AF_INET, "192.168.1.6", &servaddr.sin_addr) <= 0)
+    if (inet_pton(AF_INET, "192.168.1.1", &servaddr.sin_addr) <= 0)
         return 0;
-    temp_prefix = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.5", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.2", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.167.1.3", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.167.1.4", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "220.168.1.2", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.18", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
 
     SCRadixReleaseRadixTree(tree);
 
@@ -696,71 +873,108 @@ int SCRadixTestIPV4Insertion03(void)
 int SCRadixTestIPV4Removal04(void)
 {
     SCRadixTree *tree = NULL;
-    SCRadixPrefix *prefix[10];
-
     struct sockaddr_in servaddr;
-
     int result = 1;
+
+    tree = SCRadixCreateRadixTree(NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.1", &servaddr.sin_addr) <= 0)
         return 0;
-    tree = SCRadixCreateRadixTree();
-    prefix[0] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[0], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.2", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[1] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[1], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.167.1.3", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[2] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[2], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.167.1.4", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[3] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[3], tree);
-
-    /* Try to add the prefix that already exists in the tree */
-    SCRadixAddKey(prefix[2], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "220.168.1.2", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[4] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[4], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
+    bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.5", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[5] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[5], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
+    bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.1.18", &servaddr.sin_addr) <= 0)
         return 0;
-    prefix[6] = SCRadixCreateIPV4Prefix((uint8_t *)&servaddr.sin_addr);
-    SCRadixAddKey(prefix[6], tree);
+    SCRadixAddKeyIPV4((uint8_t *)&servaddr.sin_addr, tree, NULL);
 
-    /* test the existence of keys */
-    SCRadixRemoveKey(prefix[0], tree);
-    SCRadixRemoveKey(prefix[2], tree);
-    SCRadixRemoveKey(prefix[5], tree);
-    SCRadixRemoveKey(prefix[3], tree);
+    /* remove the keys from the tree */
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.1", &servaddr.sin_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV4((uint8_t *)&servaddr.sin_addr, tree);
 
-    result &= (SCRadixFindKey(prefix[3], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[6], tree) != NULL);
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.167.1.3", &servaddr.sin_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV4((uint8_t *)&servaddr.sin_addr, tree);
 
-    SCRadixRemoveKey(prefix[1], tree);
-    SCRadixRemoveKey(prefix[4], tree);
-    SCRadixRemoveKey(prefix[6], tree);
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.167.1.4", &servaddr.sin_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV4((uint8_t *)&servaddr.sin_addr, tree);
 
-    result &= (SCRadixFindKey(prefix[5], tree) == NULL);
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.18", &servaddr.sin_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV4((uint8_t *)&servaddr.sin_addr, tree);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.167.1.1", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) == NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.2", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.167.1.3", &servaddr.sin_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV4((uint8_t *)&servaddr.sin_addr, tree);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "220.168.1.2", &servaddr.sin_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV4((uint8_t *)&servaddr.sin_addr, tree);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.5", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.2", &servaddr.sin_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV4((uint8_t *)&servaddr.sin_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.2", &servaddr.sin_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV4((uint8_t *)&servaddr.sin_addr, tree);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET, "192.168.1.5", &servaddr.sin_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV4((uint8_t *)&servaddr.sin_addr, tree);
+
     result &= (tree->head == NULL);
 
     SCRadixReleaseRadixTree(tree);
@@ -771,67 +985,37 @@ int SCRadixTestIPV4Removal04(void)
 int SCRadixTestCharacterInsertion05(void)
 {
     SCRadixTree *tree = NULL;
-    SCRadixPrefix *prefix[10];
-    SCRadixPrefix *temp_prefix = NULL;
-
     int result = 1;
 
-    tree = SCRadixCreateRadixTree();
+    tree = SCRadixCreateRadixTree(NULL);
 
     /* Let us have our team here ;-) */
-    prefix[0] = SCRadixCreatePrefix((uint8_t *)"Victor", 48);
-    SCRadixAddKey(prefix[0], tree);
+    SCRadixAddKeyGeneric((uint8_t *)"Victor", 48, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Matt", 32, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Josh", 32, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Margaret", 64, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Pablo", 40, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Brian", 40, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Jasonish", 64, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Jasonmc", 56, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Nathan", 48, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Anoop", 40, tree, NULL);
 
-    prefix[1] = SCRadixCreatePrefix((uint8_t *)"Matt", 32);
-    SCRadixAddKey(prefix[1], tree);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Victor", 48, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Matt", 32, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Josh", 32, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Margaret", 64, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Pablo", 40, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Brian", 40, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Jasonish", 64, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Jasonmc", 56, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Nathan", 48, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Anoop", 40, tree) != NULL);
 
-    prefix[2] = SCRadixCreatePrefix((uint8_t *)"Josh", 56);
-    SCRadixAddKey(prefix[2], tree);
-
-    prefix[3] = SCRadixCreatePrefix((uint8_t *)"Margaret", 64);
-    SCRadixAddKey(prefix[3], tree);
-
-    prefix[4] = SCRadixCreatePrefix((uint8_t *)"Pablo", 40);
-    SCRadixAddKey(prefix[4], tree);
-
-    prefix[5] = SCRadixCreatePrefix((uint8_t *)"Brian", 40);
-    SCRadixAddKey(prefix[5], tree);
-
-    prefix[6] = SCRadixCreatePrefix((uint8_t *)"Jasonish", 64);
-    SCRadixAddKey(prefix[6], tree);
-
-    prefix[7] = SCRadixCreatePrefix((uint8_t *)"Jasonmc", 56);
-    SCRadixAddKey(prefix[7], tree);
-
-    prefix[8] = SCRadixCreatePrefix((uint8_t *)"Nathan", 48);
-    SCRadixAddKey(prefix[8], tree);
-
-    prefix[9] = SCRadixCreatePrefix((uint8_t *)"Anoop", 40);
-    SCRadixAddKey(prefix[9], tree);
-
-    result &= (SCRadixFindKey(prefix[0], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[1], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[2], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[3], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[4], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[5], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[6], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[7], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[8], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[9], tree) != NULL);
-
-    temp_prefix = SCRadixCreatePrefix((uint8_t *)"bamboo", 48);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
-
-    temp_prefix = SCRadixCreatePrefix((uint8_t *)"bool", 32);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
-
-    temp_prefix = SCRadixCreatePrefix((uint8_t *)"meerkat", 56);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
-
-    temp_prefix = SCRadixCreatePrefix((uint8_t *)"Victor", 48);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
-
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"bamboo", 48, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"bool", 32, tree) == NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"meerkat", 56, tree) == NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Victor", 48, tree) == NULL);
 
     SCRadixReleaseRadixTree(tree);
 
@@ -841,70 +1025,49 @@ int SCRadixTestCharacterInsertion05(void)
 int SCRadixTestCharacterRemoval06(void)
 {
     SCRadixTree *tree = NULL;
-    SCRadixPrefix *prefix[10];
-
     int result = 1;
 
-    tree = SCRadixCreateRadixTree();
+    tree = SCRadixCreateRadixTree(NULL);
 
     /* Let us have our team here ;-) */
-    prefix[0] = SCRadixCreatePrefix((uint8_t *)"Victor", 48);
-    SCRadixAddKey(prefix[0], tree);
+    SCRadixAddKeyGeneric((uint8_t *)"Victor", 48, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Matt", 32, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Josh", 32, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Margaret", 64, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Pablo", 40, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Brian", 40, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Jasonish", 64, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Jasonmc", 56, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Nathan", 48, tree, NULL);
+    SCRadixAddKeyGeneric((uint8_t *)"Anoop", 40, tree, NULL);
 
-    prefix[1] = SCRadixCreatePrefix((uint8_t *)"Matt", 32);
-    SCRadixAddKey(prefix[1], tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Nathan", 48, tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Brian", 40, tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Margaret", 64, tree);
 
-    prefix[2] = SCRadixCreatePrefix((uint8_t *)"Josh", 56);
-    SCRadixAddKey(prefix[2], tree);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Victor", 48, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Matt", 32, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Josh", 32, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Margaret", 64, tree) == NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Brian", 40, tree) == NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Nathan", 48, tree) == NULL);
 
-    prefix[3] = SCRadixCreatePrefix((uint8_t *)"Margaret", 64);
-    SCRadixAddKey(prefix[3], tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Victor", 48, tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Josh", 32, tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Jasonmc", 56, tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Matt", 32, tree);
 
-    prefix[4] = SCRadixCreatePrefix((uint8_t *)"Pablo", 40);
-    SCRadixAddKey(prefix[4], tree);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Pablo", 40, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Jasonish", 64, tree) != NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Anoop", 40, tree) != NULL);
 
-    prefix[5] = SCRadixCreatePrefix((uint8_t *)"Brian", 40);
-    SCRadixAddKey(prefix[5], tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Pablo", 40, tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Jasonish", 64, tree);
+    SCRadixRemoveKeyGeneric((uint8_t *)"Anoop", 40, tree);
 
-    prefix[6] = SCRadixCreatePrefix((uint8_t *)"Jasonish", 64);
-    SCRadixAddKey(prefix[6], tree);
-
-    prefix[7] = SCRadixCreatePrefix((uint8_t *)"Jasonmc", 56);
-    SCRadixAddKey(prefix[7], tree);
-
-    prefix[8] = SCRadixCreatePrefix((uint8_t *)"Nathan", 48);
-    SCRadixAddKey(prefix[8], tree);
-
-    prefix[9] = SCRadixCreatePrefix((uint8_t *)"Anoop", 40);
-    SCRadixAddKey(prefix[9], tree);
-
-    SCRadixRemoveKey(prefix[8], tree);
-    SCRadixRemoveKey(prefix[5], tree);
-    SCRadixRemoveKey(prefix[3], tree);
-
-    result &= (SCRadixFindKey(prefix[0], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[1], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[2], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[3], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[5], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[8], tree) == NULL);
-
-    SCRadixRemoveKey(prefix[0], tree);
-    SCRadixRemoveKey(prefix[2], tree);
-    SCRadixRemoveKey(prefix[7], tree);
-    SCRadixRemoveKey(prefix[1], tree);
-
-    result &= (SCRadixFindKey(prefix[4], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[6], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[9], tree) != NULL);
-
-    SCRadixRemoveKey(prefix[4], tree);
-    SCRadixRemoveKey(prefix[6], tree);
-    SCRadixRemoveKey(prefix[9], tree);
-
-    result &= (SCRadixFindKey(prefix[4], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[6], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[9], tree) == NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Pablo", 40, tree) == NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Jasonish", 64, tree) == NULL);
+    result &= (SCRadixFindKeyGeneric((uint8_t *)"Anoop", 40, tree) == NULL);
 
     result &= (tree->head == NULL);
 
@@ -916,95 +1079,111 @@ int SCRadixTestCharacterRemoval06(void)
 int SCRadixTestIPV6Insertion07(void)
 {
     SCRadixTree *tree = NULL;
-    SCRadixPrefix *prefix[10];
-    SCRadixPrefix *temp_prefix = NULL;
-
     struct sockaddr_in6 servaddr;
-
     int result = 1;
+
+    tree = SCRadixCreateRadixTree(NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    tree = SCRadixCreateRadixTree();
-    prefix[0] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[0], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[1] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[1], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[2] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[2], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[3] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[3], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     /* Try to add the prefix that already exists in the tree */
-    SCRadixAddKey(prefix[2], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[4] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[4], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
+    bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[5] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[5], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
+    bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[6] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[6], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     /* test the existence of keys */
-    result &= (SCRadixFindKey(prefix[0], tree) != NULL);
-
     bzero(&servaddr, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "8888:0BF1:5346:BDEA:6422:8713:9124:2315",
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    temp_prefix = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
 
     bzero(&servaddr, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2006:0BF1:5346:BDEA:7422:8713:9124:2315",
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    temp_prefix = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
-
-    result &= (SCRadixFindKey(prefix[0], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[1], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[2], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[3], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[4], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[5], tree) != NULL);
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
 
     bzero(&servaddr, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:DDDD:2315",
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    temp_prefix = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "DBCA:ABC2:ABCD:DBCA:1245:2342:1111:2212",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "2003:0BF5:5346:1251:7422:1112:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
 
     SCRadixReleaseRadixTree(tree);
 
@@ -1014,123 +1193,241 @@ int SCRadixTestIPV6Insertion07(void)
 int SCRadixTestIPV6Removal08(void)
 {
     SCRadixTree *tree = NULL;
-    SCRadixPrefix *prefix[10];
-    SCRadixPrefix *temp_prefix = NULL;
-
     struct sockaddr_in6 servaddr;
-
     int result = 1;
+
+    tree = SCRadixCreateRadixTree(NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    tree = SCRadixCreateRadixTree();
-    prefix[0] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[0], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[1] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[1], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[2] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[2], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[3] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[3], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     /* Try to add the prefix that already exists in the tree */
-    SCRadixAddKey(prefix[2], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[4] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[4], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
+    bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[5] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[5], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
+    bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    prefix[6] = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    SCRadixAddKey(prefix[6], tree);
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     /* test the existence of keys */
-    result &= (SCRadixFindKey(prefix[0], tree) != NULL);
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "8888:0BF1:5346:BDEA:6422:8713:9124:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    temp_prefix = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "2006:0BF1:5346:BDEA:7422:8713:9124:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    temp_prefix = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
 
-    result &= (SCRadixFindKey(prefix[0], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[1], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[2], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[3], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[4], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[5], tree) != NULL);
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
+
+    /* test for existance */
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
 
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:DDDD:2315",
                   &servaddr.sin6_addr) <= 0)
         return 0;
-    temp_prefix = SCRadixCreateIPV6Prefix((uint8_t *)&servaddr.sin6_addr);
-    result &= (SCRadixFindKey(temp_prefix, tree) == NULL);
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
 
-    SCRadixRemoveKey(prefix[0], tree);
-    SCRadixRemoveKey(prefix[1], tree);
+    /* remove keys */
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
-    result &= (SCRadixFindKey(prefix[0], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[1], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[2], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[3], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[4], tree) != NULL);
-    result &= (SCRadixFindKey(prefix[5], tree) != NULL);
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
-    SCRadixRemoveKey(prefix[2], tree);
-    SCRadixRemoveKey(prefix[3], tree);
-    SCRadixRemoveKey(prefix[4], tree);
-    SCRadixRemoveKey(prefix[5], tree);
+    /* test for existance */
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
 
-    result &= (SCRadixFindKey(prefix[0], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[1], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[2], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[3], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[4], tree) == NULL);
-    result &= (SCRadixFindKey(prefix[5], tree) == NULL);
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) != NULL);
+
+    /* remove keys */
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
+
+    /* test for existance */
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
+
+    bzero(&servaddr, sizeof(servaddr));
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
+                  &servaddr.sin6_addr) <= 0)
+        return 0;
+    result &= (SCRadixFindKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree) == NULL);
 
     SCRadixReleaseRadixTree(tree);
 
     return result;
 }
-
 
 #endif
 
