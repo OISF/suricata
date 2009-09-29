@@ -61,6 +61,7 @@
 #include "app-layer-http.h"
 #include "app-layer-tls.h"
 
+#include "util-radix-tree.h"
 #include "util-cidr.h"
 #include "util-unittest.h"
 #include "util-time.h"
@@ -427,6 +428,7 @@ int main(int argc, char **argv)
         FlowRegisterTests();
         SCSigRegisterSignatureOrderingTests();
         SCLogRegisterTests();
+        SCRadixRegisterTests();
         uint32_t failed = UtRunTests();
         UtCleanup();
         if (failed) exit(EXIT_FAILURE);
