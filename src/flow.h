@@ -19,10 +19,6 @@
 #define FLOW_PKT_NOSTREAM               0x40
 #define FLOW_PKT_STREAMONLY             0x80
 
-/*Packet Flags*/
-#define PKT_NOPACKET_INSPECTION         0x01
-#define PKT_NOPAYLOAD_INSPECTION        0x02
-
 /* global flow config */
 typedef struct FlowCnf_
 {
@@ -127,6 +123,10 @@ int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
 int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
 void FlowUpdateQueue(Flow *);
+void FlowLockSetNoPacketInspectionFlag(Flow *);
+void FlowSetNoPacketInspectionFlag(Flow *);
+void FlowLockSetNoPayloadInspectionFlag(Flow *);
+void FlowSetNoPayloadInspectionFlag(Flow *);
 
 #endif /* __FLOW_H__ */
 

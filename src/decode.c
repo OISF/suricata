@@ -22,3 +22,19 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     }
 }
 
+/** \brief Set the No payload inspection Flag for the packet.
+ *
+ * \param p Packet to set the flag in
+ */
+void DecodeSetNoPayloadInspectionFlag(Packet *p) {
+    p->flags |= PKT_NOPAYLOAD_INSPECTION;
+}
+
+/** \brief Set the No packet inspection Flag for the packet.
+ *
+ * \param p Packet to set the flag in
+ */
+void DecodeSetNoPacketInspectionFlag(Packet *p) {
+    p->flags |= PKT_NOPACKET_INSPECTION;
+}
+

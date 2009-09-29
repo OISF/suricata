@@ -57,7 +57,7 @@ enum
 #define STREAMTCP_FLAG_NOSERVER_REASSEMBLY      0x40    /**< Flag to avoid stream reassembly / application layer
                                                              inspection for the server stream.*/
 
-#define PAWS_24DAYS         2073600         /* 24 days in seconds */
+#define PAWS_24DAYS         2073600         /**< 24 days in seconds */
 
 /* Macro's for comparing Sequence numbers
  * Page 810 from TCP/IP Illustrated, Volume 2. */

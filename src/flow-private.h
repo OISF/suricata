@@ -17,8 +17,8 @@
 #define FLOW_TOSERVER_IPONLY_SET    0x0020
 #define FLOW_TOCLIENT_IPONLY_SET    0x0040
 
-#define FLOW_NOPACKET_INSPECTION    0x0080
-#define FLOW_NOPAYLOAD_INSPECTION   0x0100
+#define FLOW_NOPACKET_INSPECTION    0x0080  /**< Flag to indicate the packet belongs to this flow should not be inspected*/
+#define FLOW_NOPAYLOAD_INSPECTION   0x0100  /**< Flag to indicate the contents or the packet which belongs to this flow should not be inspected*/
 
 /* global flow flags */
 #define FLOW_EMERGENCY   0x01

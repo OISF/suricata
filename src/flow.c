@@ -345,9 +345,9 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
 
     /*set the detection bypass flags*/
     if (f->flags & FLOW_NOPACKET_INSPECTION)
-        FlowSetPktNoPacketInspectionFlag(p);
+        DecodeSetNoPacketInspectionFlag(p);
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION)
-        FlowSetPktNoPayloadInspectionFlag(p);
+        DecodeSetNoPayloadInspectionFlag(p);
 
     /* set the flow in the packet */
     p->flow = f;
@@ -750,8 +750,8 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout, uint
 
 /** \brief Set the No Packet Inspection Flag after locking the flow.
  *
-  * \param f Flow to set the flag in
-  */
+ * \param f Flow to set the flag in
+ */
 void FlowLockSetNoPacketInspectionFlag(Flow *f) {
     mutex_lock(&f->m);
     f->flags |= FLOW_NOPACKET_INSPECTION;
@@ -760,16 +760,16 @@ void FlowLockSetNoPacketInspectionFlag(Flow *f) {
 
 /** \brief Set the No Packet Inspection Flag without locking the flow.
  *
-  * \param f Flow to set the flag in
-  */
+ * \param f Flow to set the flag in
+ */
 void FlowSetNoPacketInspectionFlag(Flow *f) {
     f->flags |= FLOW_NOPACKET_INSPECTION;
 }
 
 /** \brief Set the No payload inspection Flag after locking the flow.
  *
-  * \param f Flow to set the flag in
-  */
+ * \param f Flow to set the flag in
+ */
 void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
     mutex_lock(&f->m);
     f->flags |= FLOW_NOPAYLOAD_INSPECTION;
@@ -778,26 +778,10 @@ void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
 
 /** \brief Set the No payload inspection Flag without locking the flow.
  *
-  * \param f Flow to set the flag in
-  */
+ * \param f Flow to set the flag in
+ */
 void FlowSetNoPayloadInspectionFlag(Flow *f) {
     f->flags |= FLOW_NOPAYLOAD_INSPECTION;
-}
-
-/** \brief Set the No payload inspection Flag for the packet.
- *
-  * \param p Packet to set the flag in
-  */
-void FlowSetPktNoPayloadInspectionFlag(Packet *p) {
-    p->flags |= PKT_NOPAYLOAD_INSPECTION;
-}
-
-/** \brief Set the No packet inspection Flag for the packet.
- *
-  * \param p Packet to set the flag in
-  */
-void FlowSetPktNoPacketInspectionFlag(Packet *p) {
-    p->flags |= PKT_NOPACKET_INSPECTION;
 }
 
 #ifdef UNITTESTS
