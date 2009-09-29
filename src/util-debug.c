@@ -274,13 +274,15 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         return SC_LOG_MODULE_NOT_INIT;
     }
 
-    if (SCLogMatchFGFilterWL(file, function, line) != 1)
-        return SC_LOG_FG_FILTER_MATCH_FAILED;
+    if (sc_log_fg_filters_present == 1) {
+        if (SCLogMatchFGFilterWL(file, function, line) != 1)
+            return SC_LOG_FG_FILTER_MATCH_FAILED;
 
-    if (SCLogMatchFGFilterBL(file, function, line) != 1)
-        return SC_LOG_FG_FILTER_MATCH_FAILED;
+        if (SCLogMatchFGFilterBL(file, function, line) != 1)
+            return SC_LOG_FG_FILTER_MATCH_FAILED;
+    }
 
-    if (SCLogMatchFDFilter(function) != 1)
+    if (sc_log_fd_filters_present == 1 && SCLogMatchFDFilter(function) != 1)
         return SC_LOG_FG_FILTER_MATCH_FAILED;
 
 	while ( (temp_fmt = index(temp_fmt, SC_LOG_FMT_PREFIX)) ) {

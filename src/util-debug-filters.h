@@ -66,6 +66,12 @@ typedef struct SCLogFDFilter_ {
     struct SCLogFDFilter_ *next;
 } SCLogFDFilter;
 
+
+extern int sc_log_fg_filters_present;
+
+extern int sc_log_fd_filters_present;
+
+
 int SCLogAddFGFilterWL(const char *, const char *, int);
 
 int SCLogAddFGFilterBL(const char *, const char *, int);

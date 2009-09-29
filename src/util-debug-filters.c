@@ -18,6 +18,12 @@
 extern int sc_log_module_initialized;
 extern int sc_log_module_cleaned;
 
+/* used to indicate if any FG filters are registered */
+int sc_log_fg_filters_present = 0;
+
+/* used to indicate if any FD filters are registered */
+int sc_log_fd_filters_present = 0;
+
 /**
  * \brief Holds the fine-grained filters
  */
@@ -306,6 +312,8 @@ static inline int SCLogAddFGFilter(const char *file, const char *function,
 
  done:
     mutex_unlock(&sc_log_fg_filters_m[listtype]);
+    sc_log_fg_filters_present = 1;
+
     return 0;
 }
 
@@ -860,6 +868,7 @@ int SCLogAddFDFilter(const char *function)
     }
 
     mutex_unlock(&sc_log_fd_filters_m);
+    sc_log_fd_filters_present = 1;
 
     return 0;
 }
@@ -942,6 +951,9 @@ int SCLogRemoveFDFilter(const char *function)
     SCLogReleaseFDFilter(curr);
 
     mutex_unlock(&sc_log_fd_filters_m);
+
+    if (sc_log_fd_filters == NULL)
+        sc_log_fd_filters_present = 0;
 
     return 0;
 }
