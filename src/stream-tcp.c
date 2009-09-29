@@ -1787,6 +1787,16 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p) {
     return ret;
 }
 
+/** \brief Set the No reassembly flag for the given direction in given TCP session.
+ *
+ * \param ssn TCP Session to set the flag in
+ * \param direction direction to set the flag in
+ */
+
+void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction) {
+    direction ? (ssn->flags |= STREAMTCP_FLAG_NOSERVER_REASSEMBLY) : (ssn->flags |= STREAMTCP_FLAG_NOCLIENT_REASSEMBLY);
+}
+
 #ifdef UNITTESTS
 
 /**
@@ -2362,7 +2372,14 @@ end:
     return ret;
 }
 
-/*static int StreamTcpTest09 (void) {
+/**
+ *  \test   Test the working of No stream reassembly flag. The stream will not reassemble the
+ *          segment if the flag is set.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpTest09 (void) {
 
     Packet p;
     Flow f;
@@ -2405,6 +2422,8 @@ end:
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
+    StreamTcpSetSessionNoReassemblyFlag(((TcpSession *)(p.flow->protoctx)), 0);
+
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
         goto end;
 
@@ -2416,14 +2435,14 @@ end:
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
         goto end;
 
-    if (((TcpSession *) (p.flow->protoctx))->client.seg_list == NULL)
+    if (((TcpSession *) (p.flow->protoctx))->client.seg_list->next == NULL)
         ret = 1;
 
     StreamTcpSessionPktFree(&p);
 end:
     StreamTcpFreeConfig(TRUE);
     return ret;
-}*/
+}
 
 #endif /* UNITTESTS */
 
@@ -2437,7 +2456,7 @@ void StreamTcpRegisterTests (void) {
     UtRegisterTest("StreamTcpTest06 -- FIN, RST message MidStream session", StreamTcpTest06, 1);
     UtRegisterTest("StreamTcpTest07 -- PAWS invalid timestamp", StreamTcpTest07, 1);
     UtRegisterTest("StreamTcpTest08 -- PAWS valid timestamp", StreamTcpTest08, 1);
-    //UtRegisterTest("StreamTcpTest09 -- No Client Reassembly", StreamTcpTest09, 1);
+    UtRegisterTest("StreamTcpTest09 -- No Client Reassembly", StreamTcpTest09, 1);
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
 #endif /* UNITTESTS */

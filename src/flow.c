@@ -42,8 +42,6 @@ int FlowSetProtoEmergencyTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
 static int FlowClearMemory(Flow *,uint8_t );
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
-void FlowSetPktNoPacketInspectionFlag(Packet *);
-void FlowSetPktNoPayloadInspectionFlag(Packet *);
 
 /** \brief Update the flows position in the queue's
  *  \param f Flow to requeue.
