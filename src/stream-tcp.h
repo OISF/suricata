@@ -18,6 +18,7 @@ void TmModuleStreamTcpRegister (void);
 void StreamTcpInitConfig (char);
 void StreamTcpFreeConfig(char);
 void StreamTcpRegisterTests (void);
+void StreamTcpSetSessionNoReassemblyFlag (TcpSession *, char );
 
 #endif /* __STREAM_TCP_H__ */
 
