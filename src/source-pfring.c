@@ -16,18 +16,18 @@
 #include "source-pfring.h"
 
 
-int ReceivePfring(ThreadVars *, Packet *, void *, PacketQueue *);
-int ReceivePfringThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceivePfring(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
 void ReceivePfringThreadExitStats(ThreadVars *, void *);
-int ReceivePfringThreadDeinit(ThreadVars *, void *);
+TmEcode ReceivePfringThreadDeinit(ThreadVars *, void *);
 
-int DecodePfringThreadInit(ThreadVars *, void *, void **);
-int DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodePfringThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *);
 
 #ifndef HAVE_PFRING
 
 /*Handle cases where we don't have PF_RING support built-in*/
-int NoPfringSupportExit(ThreadVars *, void *, void **);
+TmEcode NoPfringSupportExit(ThreadVars *, void *, void **);
 
 void TmModuleReceivePfringRegister (void) {
     tmm_modules[TMM_RECEIVEPFRING].name = "ReceivePfring";
@@ -53,7 +53,7 @@ void TmModuleDecodePfringRegister (void) {
  * \param initdata pointer to the interface passed from the user
  * \param data pointer gets populated with PfringThreadVars
  */
-int NoPfringSupportExit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NoPfringSupportExit(ThreadVars *tv, void *initdata, void **data)
 {
     printf("Error creating thread %s: you do not have support for pfring "
            "enabled please recompile with --enable-pfring\n", tv->name);
@@ -151,7 +151,7 @@ void PfringProcessPacket(void *user, struct pfring_pkthdr *h, u_char *pkt, Packe
  * \retval 0 on success
  * \retval -1 on failure
  */
-int ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     PfringThreadVars *ptv = (PfringThreadVars *)data;
 
     struct pfring_pkthdr hdr;
@@ -160,7 +160,7 @@ int ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
     if (TmThreadsCheckFlag(tv, THV_KILL) || TmThreadsCheckFlag(tv, THV_PAUSE)) {
         printf("ReceivePfring: interrupted.\n");
-        return 0;
+        return TM_ECODE_OK;
     }
 
     /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
@@ -171,10 +171,10 @@ int ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
         PfringProcessPacket(ptv, &hdr, buffer,p);
     }else{
         printf("RecievePfring: pfring_recv error  %" PRId32 "\n", r);
-        return 1;
+        return TM_ECODE_FAILED;
     }
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -191,21 +191,21 @@ int ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
  * \retval 0 on success
  * \retval -1 on error
  */
-int ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     int rc;
     u_int32_t version;
     char *tmpclusterid;
 
     PfringThreadVars *ptv = malloc(sizeof(PfringThreadVars));
     if (ptv == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(ptv, 0, sizeof(PfringThreadVars));
 
     ptv->tv = tv;
     if (ConfGet("pfring.clusterid", &tmpclusterid) != 1){
         printf("could not get pfring.clusterid\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }else{
         ptv->cluster_id = (uint8_t)atoi(tmpclusterid);
         printf("ReceivePfringThreadInit: going to use clusterid %" PRId32 "\n", ptv->cluster_id);
@@ -213,7 +213,7 @@ int ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     if (ConfGet("pfring.interface", &ptv->interface) != 1){
          printf("ReceivePfringThreadInit: Could not get pfring.interface\n");
-         return -1;
+         return TM_ECODE_FAILED;
     }else{
          printf("ReceivePfringThreadInit: going to use interface %s\n",ptv->interface);
     }
@@ -221,7 +221,7 @@ int ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->pd = pfring_open(ptv->interface, LIBPFRING_PROMISC, LIBPFRING_SNAPLEN, LIBPFRING_REENTRANT);
     if(ptv->pd == NULL) {
         printf("pfring_open error\n");
-        return -1;
+        return TM_ECODE_FAILED;
     } else {
         pfring_set_application_name(ptv->pd, PROG_NAME);
         pfring_version(ptv->pd, &version);
@@ -235,11 +235,11 @@ int ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);
     if(rc != 0){
         printf("pfring_set_cluster returned %d\n", rc);
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     *data = (void *)ptv;
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -260,11 +260,11 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data) {
  * \param data pointer that gets cast into PfringThreadVars for ptvi
  * \retval 0 is always returned
  */
-int ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
+TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
     PfringThreadVars *ptv = (PfringThreadVars *)data;
     pfring_remove_from_cluster(ptv->pd);
     pfring_close(ptv->pd);
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -280,7 +280,7 @@ int ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
  * \todo Verify that PF_RING only deals with ethernet traffic
  * \retval 0 is always returned
  */
-int DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
@@ -292,7 +292,7 @@ int DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     DecodeEthernet(tv, dtv, p,p->pkt, p->pktlen, pq);
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -304,13 +304,13 @@ int DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
  * \retval 0 is returned on success
  * \retval -1 is returned on error
  */
-int DecodePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 
     if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
         printf("Error Allocating memory\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
@@ -337,7 +337,7 @@ int DecodePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
     PerfAddToClubbedTMTable(tv->name, &tv->pctx);
 
     *data = (void *)dtv;
-    return 0;
+    return TM_ECODE_OK;
 }
 #endif /* HAVE_PFRING */
 /* eof */

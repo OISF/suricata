@@ -21,6 +21,7 @@
 #include "util-hash.h"
 
 #include "util-var-name.h"
+#include "tm-modules.h"
 
 DetectEngineCtx *DetectEngineCtxInit(void) {
     DetectEngineCtx *de_ctx;
@@ -76,14 +77,14 @@ void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx) {
     de_ctx->signum = 0;
 }
 
-int DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;
     if (de_ctx == NULL)
-        return -1;
+        return TM_ECODE_FAILED;
 
     DetectEngineThreadCtx *det_ctx = malloc(sizeof(DetectEngineThreadCtx));
     if (det_ctx == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
@@ -110,17 +111,17 @@ int DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
 
     *data = (void *)det_ctx;
     //printf("DetectEngineThreadCtxInit: data %p det_ctx %p\n", *data, det_ctx);
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
+TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
 
     /** \todo get rid of this static */
     mpm_ctx[0].DestroyThreadCtx(&mpm_ctx[0], &det_ctx->mtc);
     mpm_ctx[0].DestroyThreadCtx(&mpm_ctx[0], &det_ctx->mtcu);
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
 void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {

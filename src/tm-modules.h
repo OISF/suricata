@@ -3,16 +3,22 @@
 
 #include "threadvars.h"
 
+/*Error codes for the thread modules*/
+typedef enum {
+    TM_ECODE_OK = 0,    /**< Thread module exits OK*/
+    TM_ECODE_FAILED,    /**< Thread module exits due to failure*/
+}TmEcode;
+
 typedef struct TmModule_ {
     char *name;
 
     /** thread handling */
-    int (*ThreadInit)(ThreadVars *, void *, void **);
+    TmEcode (*ThreadInit)(ThreadVars *, void *, void **);
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
-    int (*ThreadDeinit)(ThreadVars *, void *);
+    TmEcode (*ThreadDeinit)(ThreadVars *, void *);
 
     /** the packet processing function */
-    int (*Func)(ThreadVars *, Packet *, void *, PacketQueue *);
+    TmEcode (*Func)(ThreadVars *, Packet *, void *, PacketQueue *);
 
     void (*RegisterTests)(void);
 } TmModule;
@@ -44,12 +50,6 @@ enum {
 };
 
 TmModule tmm_modules[TMM_SIZE];
-
-/*Error codes for the thread modules*/
-typedef enum {
-    TM_ECODE_OK = 0,    /**< Thread module exits OK*/
-    TM_ECODE_FAILED,    /**< Thread module exits due to failure*/
-}TmEcode;
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {

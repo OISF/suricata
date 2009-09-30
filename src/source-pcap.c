@@ -37,13 +37,13 @@ typedef struct PcapThreadVars_
     ThreadVars *tv;
 } PcapThreadVars;
 
-int ReceivePcap(ThreadVars *, Packet *, void *, PacketQueue *);
-int ReceivePcapThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceivePcap(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode ReceivePcapThreadInit(ThreadVars *, void *, void **);
 void ReceivePcapThreadExitStats(ThreadVars *, void *);
-int ReceivePcapThreadDeinit(ThreadVars *, void *);
+TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
 
-int DecodePcapThreadInit(ThreadVars *, void *, void **);
-int DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodePcapThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *);
 
 /**
  * \brief Registration Function for RecievePcap.
@@ -118,7 +118,7 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
  * \param data pointer that gets cast into PcapThreadVars for ptv
  * \param pq pointer to the PacketQueue (not used here but part of the api)
  */
-int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
     /// Just read one packet at a time for now.
@@ -134,11 +134,11 @@ int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
         if (TmThreadsCheckFlag(tv, THV_KILL) || TmThreadsCheckFlag(tv, THV_PAUSE)) {
             SCLogInfo("pcap packet reading interrupted");
-            return 0;
+            return TM_ECODE_OK;
         }
     }
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -157,15 +157,15 @@ int ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
  * \todo Create a general pcap setup function.
  */
 #if LIBPCAP_VERSION_MAJOR == 1
-int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (initdata == NULL) {
         printf("ReceivePcapThreadInit error: initdata == NULL\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     PcapThreadVars *ptv = malloc(sizeof(PcapThreadVars));
     if (ptv == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(ptv, 0, sizeof(PcapThreadVars));
 
@@ -214,18 +214,18 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
 
     *data = (void *)ptv;
-    return 0;
+    return TM_ECODE_OK;
 }
 #else /* implied LIBPCAP_VERSION_MAJOR == 0 */
-int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (initdata == NULL) {
         printf("ReceivePcapThreadInit error: initdata == NULL\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     PcapThreadVars *ptv = malloc(sizeof(PcapThreadVars));
     if (ptv == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(ptv, 0, sizeof(PcapThreadVars));
 
@@ -244,7 +244,7 @@ int ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
 
     *data = (void *)ptv;
-    return 0;
+    return TM_ECODE_OK;
 }
 #endif /* LIBPCAP_VERSION_MAJOR */
 
@@ -265,11 +265,11 @@ void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into PcapThreadVars for ptv
  */
-int ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
+TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
     pcap_close(ptv->pcap_handle);
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -283,7 +283,7 @@ int ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
  * \param data pointer that gets cast into PcapThreadVars for ptv
  * \param pq pointer to the current PacketQueue
  */
-int DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
@@ -309,16 +309,16 @@ int DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
             break;
     }
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 
     if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
         printf("Error Allocating memory\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
@@ -345,7 +345,7 @@ int DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     PerfAddToClubbedTMTable(tv->name, &tv->pctx);
 
     *data = (void *)dtv;
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /* eof */

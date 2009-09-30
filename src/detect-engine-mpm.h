@@ -1,6 +1,8 @@
 #ifndef __DETECT_MPM_H__
 #define __DETECT_MPM_H__
 
+#include "tm-modules.h"
+
 /* XXX remove once */
 MpmCtx mpm_ctx[1];
 
@@ -14,8 +16,8 @@ void DetectEngineThreadCtxInfo(ThreadVars *, DetectEngineThreadCtx *);
 void PatternMatchDestroy(MpmCtx *);
 void PatternMatchDestroyGroup(SigGroupHead *);
 
-int DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
-int DetectEngineThreadCtxDeinit(ThreadVars *, void *);
+TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
+TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 
 void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *, SigGroupHead *);
 

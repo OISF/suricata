@@ -34,9 +34,9 @@ typedef struct StreamTcpThread_ {
     TcpReassemblyThreadCtx *ra_ctx;
 } StreamTcpThread;
 
-int StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *);
-int StreamTcpThreadInit(ThreadVars *, void *, void **);
-int StreamTcpThreadDeinit(ThreadVars *, void *);
+TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
+TmEcode StreamTcpThreadDeinit(ThreadVars *, void *);
 void StreamTcpExitPrintStats(ThreadVars *, void *);
 static int ValidReset(TcpSession * , Packet *);
 static int StreamTcpHandleFin(StreamTcpThread *, TcpSession *, Packet *);
@@ -1463,29 +1463,33 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
     return 0;
 }
 
-int StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     StreamTcpThread *stt = (StreamTcpThread *)data;
+    TmEcode ret = TM_ECODE_OK;
 
     if (!(PKT_IS_TCP(p)))
-        return 0;
+        return TM_ECODE_OK;
 
     if (p->flow == NULL)
-        return 0;
+        return TM_ECODE_OK;
 
     mutex_lock(&p->flow->m);
-    StreamTcpPacket(tv, p, stt);
+    ret = StreamTcpPacket(tv, p, stt);
     mutex_unlock(&p->flow->m);
 
+    if (ret)
+        return TM_ECODE_FAILED;
+
     stt->pkts++;
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     StreamTcpThread *stt = malloc(sizeof(StreamTcpThread));
     if (stt == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(stt, 0, sizeof(StreamTcpThread));
 
@@ -1498,17 +1502,17 @@ int StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx();
     if (stt->ra_ctx == NULL)
-        return -1;
+        return TM_ECODE_FAILED;
 
     SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p", stt, stt->ra_ctx);
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int StreamTcpThreadDeinit(ThreadVars *tv, void *data)
+TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data)
 {
     StreamTcpThread *stt = (StreamTcpThread *)data;
     if (stt == NULL) {
-        return 0;
+        return TM_ECODE_OK;
     }
 
     /* XXX */
@@ -1520,7 +1524,7 @@ int StreamTcpThreadDeinit(ThreadVars *tv, void *data)
     memset(stt, 0, sizeof(StreamTcpThread));
 
     free(stt);
-    return 0;
+    return TM_ECODE_OK;
 }
 
 void StreamTcpExitPrintStats(ThreadVars *tv, void *data) {

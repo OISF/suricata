@@ -30,11 +30,11 @@ uint8_t tv_aof = THV_RESTART_THREAD;
 
 typedef struct TmSlot_ {
     /* function pointers */
-    int (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
+    TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
 
-    int (*SlotThreadInit)(ThreadVars *, void *, void **);
+    TmEcode (*SlotThreadInit)(ThreadVars *, void *, void **);
     void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
-    int (*SlotThreadDeinit)(ThreadVars *, void *);
+    TmEcode (*SlotThreadDeinit)(ThreadVars *, void *);
 
     /* data storage */
     void *slot_initdata;
@@ -85,14 +85,14 @@ void *TmThreadsSlot1NoIn(void *td) {
     Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
-    int r = 0;
+    TmEcode r = TM_ECODE_OK;
 
     if (tv->set_cpu_affinity == 1)
         SetCPUAffinity(tv->cpu_affinity);
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
-        if (r != 0) {
+        if (r != TM_ECODE_OK) {
             EngineKill();
 
             TmThreadsSetFlag(tv, THV_CLOSED);
@@ -109,7 +109,7 @@ void *TmThreadsSlot1NoIn(void *td) {
         r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pq);
 
         /* handle error */
-        if (r == 1) {
+        if (r == TM_ECODE_FAILED) {
             TmqhReleasePacketsToPacketPool(&s->s.slot_pq);
             TmqhOutputPacketpool(tv, p);
             TmThreadsSetFlag(tv, THV_FAILED);
@@ -135,7 +135,7 @@ void *TmThreadsSlot1NoIn(void *td) {
 
     if (s->s.SlotThreadDeinit != NULL) {
         r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
-        if (r != 0) {
+        if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
         }
@@ -150,14 +150,14 @@ void *TmThreadsSlot1NoOut(void *td) {
     Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
-    int r = 0;
+    TmEcode r = TM_ECODE_OK;
 
     if (tv->set_cpu_affinity == 1)
         SetCPUAffinity(tv->cpu_affinity);
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
-        if (r != 0) {
+        if (r != TM_ECODE_OK) {
             EngineKill();
 
             TmThreadsSetFlag(tv, THV_CLOSED);
@@ -176,7 +176,7 @@ void *TmThreadsSlot1NoOut(void *td) {
         r = s->s.SlotFunc(tv, p, s->s.slot_data, /* no outqh no pq */NULL);
 
         /* handle error */
-        if (r == 1) {
+        if (r == TM_ECODE_FAILED) {
             TmqhOutputPacketpool(tv, p);
             TmThreadsSetFlag(tv, THV_FAILED);
             break;
@@ -194,7 +194,7 @@ void *TmThreadsSlot1NoOut(void *td) {
 
     if (s->s.SlotThreadDeinit != NULL) {
         r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
-        if (r != 0) {
+        if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
         }
@@ -208,7 +208,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
     Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     char run = 1;
-    int r = 0;
+    TmEcode r = TM_ECODE_OK;
 
     if (tv->set_cpu_affinity == 1)
         SetCPUAffinity(tv->cpu_affinity);
@@ -217,7 +217,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
-        if (r != 0) {
+        if (r != TM_ECODE_OK) {
             EngineKill();
 
             TmThreadsSetFlag(tv, THV_CLOSED);
@@ -234,7 +234,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
         //printf("%s: TmThreadsSlot1NoInNoOut: r %" PRId32 "\n", tv->name, r);
 
         /* handle error */
-        if (r == 1) {
+        if (r == TM_ECODE_FAILED) {
             TmThreadsSetFlag(tv, THV_FAILED);
             break;
         }
@@ -252,7 +252,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
 
     if (s->s.SlotThreadDeinit != NULL) {
         r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
-        if (r != 0) {
+        if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
         }
@@ -268,7 +268,7 @@ void *TmThreadsSlot1(void *td) {
     Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
-    int r = 0;
+    TmEcode r = TM_ECODE_OK;
 
     if (tv->set_cpu_affinity == 1)
         SetCPUAffinity(tv->cpu_affinity);
@@ -277,7 +277,7 @@ void *TmThreadsSlot1(void *td) {
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
-        if (r != 0) {
+        if (r != TM_ECODE_OK) {
             EngineKill();
 
             TmThreadsSetFlag(tv, THV_CLOSED);
@@ -299,7 +299,7 @@ void *TmThreadsSlot1(void *td) {
             r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pq);
 
             /* handle error */
-            if (r == 1) {
+            if (r == TM_ECODE_FAILED) {
                 TmqhReleasePacketsToPacketPool(&s->s.slot_pq);
                 TmqhOutputPacketpool(tv, p);
                 TmThreadsSetFlag(tv, THV_FAILED);
@@ -331,7 +331,7 @@ void *TmThreadsSlot1(void *td) {
 
     if (s->s.SlotThreadDeinit != NULL) {
         r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
-        if (r != 0) {
+        if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
         }
@@ -344,13 +344,13 @@ void *TmThreadsSlot1(void *td) {
 
 /* separate run function so we can call it recursively */
 static inline TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot) {
-    int r = 0;
+    TmEcode r = TM_ECODE_OK;
     TmSlot *s = NULL;
 
     for (s = slot; s != NULL; s = s->slot_next) {
         r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pq);
         /* handle error */
-        if (r == 1) {
+        if (r == TM_ECODE_FAILED) {
             //printf("TmThreadsSlotVarRun: s->SlotFunc %p returned 1\n", s->SlotFunc);
             /* Encountered error.  Return packets to packetpool and return */
             TmqhReleasePacketsToPacketPool(&s->slot_pq);
@@ -386,7 +386,7 @@ void *TmThreadsSlotVar(void *td) {
     TmVarSlot *s = (TmVarSlot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
-    int r = 0;
+    TmEcode r = TM_ECODE_OK;
     TmSlot *slot = NULL;
 
     if (tv->set_cpu_affinity == 1)
@@ -397,7 +397,7 @@ void *TmThreadsSlotVar(void *td) {
     for (slot = s->s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadInit != NULL) {
             r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot->slot_data);
-            if (r != 0) {
+            if (r != TM_ECODE_OK) {
                 EngineKill();
 
                 TmThreadsSetFlag(tv, THV_CLOSED);
@@ -446,7 +446,7 @@ void *TmThreadsSlotVar(void *td) {
 
         if (slot->SlotThreadDeinit != NULL) {
             r = slot->SlotThreadDeinit(tv, slot->slot_data);
-            if (r != 0) {
+            if (r != TM_ECODE_OK) {
                 TmThreadsSetFlag(tv, THV_CLOSED);
                 pthread_exit((void *) -1);
             }
@@ -491,7 +491,7 @@ TmEcode TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *)) {
             goto error;
 
         tv->tm_func = fn_p;
-        return 0;
+        return TM_ECODE_OK;
     } else {
         printf("Error: Slot \"%s\" not supported\n", name);
         goto error;

@@ -37,34 +37,42 @@ void TmModuleRespondRejectRegister (void) {
     tmm_modules[TMM_RESPONDREJECT].RegisterTests = NULL;
 }
 
-int RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
+    int ret = 0;
     /* ACTION_REJECT defaults to rejecting the SRC */
     if (p->action != ACTION_REJECT && p->action != ACTION_REJECT_DST &&
         p->action != ACTION_REJECT_BOTH) {
-        return 0;
+        return TM_ECODE_OK;
     }
 
     if (PKT_IS_IPV4(p)) {
         if (PKT_IS_TCP(p)) {
-            return RejectSendIPv4TCP(tv, p, data);
+            ret = RejectSendIPv4TCP(tv, p, data);
+            goto end;
         } else if(PKT_IS_UDP(p)) {
-            return RejectSendIPv4ICMP(tv, p, data);
+            ret = RejectSendIPv4ICMP(tv, p, data);
+            goto end;
         } else {
-            return 0;
+            return TM_ECODE_OK;
         }
     } else if (PKT_IS_IPV6(p)) {
         if (PKT_IS_TCP(p)) {
-            return RejectSendIPv6TCP(tv, p, data);
+            ret = RejectSendIPv6TCP(tv, p, data);
         } else if(PKT_IS_UDP(p)){
-            return RejectSendIPv6ICMP(tv, p, data);
+            ret = RejectSendIPv6ICMP(tv, p, data);
         } else {
-            return 0;
+            return TM_ECODE_OK;
         }
     } else {
         /* we're only supporting IPv4 and IPv6 */
-        return 0;
+        return TM_ECODE_OK;
     }
+end:
+    if (ret)
+        return TM_ECODE_FAILED;
+    else
+        return TM_ECODE_OK;
 }
 
 int RejectSendIPv4TCP(ThreadVars *tv, Packet *p, void *data) {

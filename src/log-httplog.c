@@ -22,11 +22,11 @@
 
 #define DEFAULT_LOG_FILENAME "http.log"
 
-int LogHttplog (ThreadVars *, Packet *, void *, PacketQueue *);
-int LogHttplogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
-int LogHttplogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
-int LogHttplogThreadInit(ThreadVars *, void *, void **);
-int LogHttplogThreadDeinit(ThreadVars *, void *);
+TmEcode LogHttplog (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode LogHttplogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode LogHttplogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode LogHttplogThreadInit(ThreadVars *, void *, void **);
+TmEcode LogHttplogThreadDeinit(ThreadVars *, void *);
 void LogHttplogExitPrintStats(ThreadVars *, void *);
 int LogHttplogOpenFileCtx(LogFileCtx* , char *);
 
@@ -74,7 +74,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (uint32_t) ts->tv_usec);
 }
 
-int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     LogHttplogThread *aft = (LogHttplogThread *)data;
     int i;
@@ -82,7 +82,7 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     /* XXX add a better check for this */
     if (p->http_uri.cnt == 0)
-        return 0;
+        return TM_ECODE_OK;
 
     PktVar *pv_hn = PktVarGet(p, "http_host");
     PktVar *pv_ua = PktVarGet(p, "http_ua");
@@ -114,10 +114,10 @@ int LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     mutex_unlock(&aft->file_ctx->fp_mutex);
 
     aft->uri_cnt += p->http_uri.cnt;
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     LogHttplogThread *aft = (LogHttplogThread *)data;
     int i;
@@ -125,7 +125,7 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     /* XXX add a better check for this */
     if (p->http_uri.cnt == 0)
-        return 0;
+        return TM_ECODE_OK;
 
     PktVar *pv_hn = PktVarGet(p, "http_host");
     PktVar *pv_ua = PktVarGet(p, "http_ua");
@@ -157,13 +157,13 @@ int LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     mutex_unlock(&aft->file_ctx->fp_mutex);
 
     aft->uri_cnt += p->http_uri.cnt;
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int LogHttplog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode LogHttplog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     if (!(PKT_IS_TCP(p)))
-        return 0;
+        return TM_ECODE_OK;
 
     if (PKT_IS_IPV4(p)) {
         return LogHttplogIPv4(tv, p, data, pq);
@@ -171,41 +171,41 @@ int LogHttplog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         return LogHttplogIPv6(tv, p, data, pq);
     }
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int LogHttplogThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode LogHttplogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogHttplogThread *aft = malloc(sizeof(LogHttplogThread));
     if (aft == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(aft, 0, sizeof(LogHttplogThread));
 
     if(initdata == NULL)
     {
         printf("Error getting context for the file\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx=(LogFileCtx*) initdata;
 
     *data = (void *)aft;
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int LogHttplogThreadDeinit(ThreadVars *t, void *data)
+TmEcode LogHttplogThreadDeinit(ThreadVars *t, void *data)
 {
     LogHttplogThread *aft = (LogHttplogThread *)data;
     if (aft == NULL) {
-        return 0;
+        return TM_ECODE_OK;
     }
 
     /* clear memory */
     memset(aft, 0, sizeof(LogHttplogThread));
 
     free(aft);
-    return 0;
+    return TM_ECODE_OK;
 }
 
 void LogHttplogExitPrintStats(ThreadVars *tv, void *data) {

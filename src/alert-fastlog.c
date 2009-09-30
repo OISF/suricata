@@ -26,11 +26,11 @@
 
 #define DEFAULT_LOG_FILENAME "fast.log"
 
-int AlertFastlog (ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertFastlogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertFastlogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertFastlogThreadInit(ThreadVars *, void *, void **);
-int AlertFastlogThreadDeinit(ThreadVars *, void *);
+TmEcode AlertFastlog (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertFastlogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertFastlogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertFastlogThreadInit(ThreadVars *, void *, void **);
+TmEcode AlertFastlogThreadDeinit(ThreadVars *, void *);
 void AlertFastlogExitPrintStats(ThreadVars *, void *);
 int AlertFastlogOpenFileCtx(LogFileCtx *, char *);
 
@@ -78,14 +78,14 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (uint32_t) ts->tv_usec);
 }
 
-int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertFastlogThread *aft = (AlertFastlogThread *)data;
     int i;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
-        return 0;
+        return TM_ECODE_OK;
 
     aft->alerts += p->alerts.cnt;
 
@@ -106,17 +106,17 @@ int AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     fflush(aft->file_ctx->fp);
     mutex_unlock(&aft->file_ctx->fp_mutex);
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertFastlogThread *aft = (AlertFastlogThread *)data;
     int i;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
-        return 0;
+        return TM_ECODE_OK;
 
     aft->alerts += p->alerts.cnt;
 
@@ -138,10 +138,10 @@ int AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     mutex_unlock(&aft->file_ctx->fp_mutex);
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertFastlog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertFastlog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     if (PKT_IS_IPV4(p)) {
         return AlertFastlogIPv4(tv, p, data, pq);
@@ -149,39 +149,39 @@ int AlertFastlog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         return AlertFastlogIPv6(tv, p, data, pq);
     }
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertFastlogThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode AlertFastlogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertFastlogThread *aft = malloc(sizeof(AlertFastlogThread));
     if (aft == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(aft, 0, sizeof(AlertFastlogThread));
     if(initdata == NULL)
     {
         printf("Error getting context for the file\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx = (LogFileCtx*) initdata;
     *data = (void *)aft;
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertFastlogThreadDeinit(ThreadVars *t, void *data)
+TmEcode AlertFastlogThreadDeinit(ThreadVars *t, void *data)
 {
     AlertFastlogThread *aft = (AlertFastlogThread *)data;
     if (aft == NULL) {
-        return 0;
+        return TM_ECODE_OK;
     }
 
     /* clear memory */
     memset(aft, 0, sizeof(AlertFastlogThread));
 
     free(aft);
-    return 0;
+    return TM_ECODE_OK;
 }
 
 void AlertFastlogExitPrintStats(ThreadVars *tv, void *data) {

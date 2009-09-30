@@ -24,7 +24,7 @@
  *
  */
 
-int NoNFQSupportExit(ThreadVars *, void *, void **);
+TmEcode NoNFQSupportExit(ThreadVars *, void *, void **);
 
 void TmModuleReceiveNFQRegister (void) {
     tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
@@ -53,11 +53,11 @@ void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
 }
 
-int NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 {
     printf("Error creating thread %s: you do not have support for nfqueue "
            "enabled please recompile with --enable-nfqueue\n", tv->name);
-    exit(1);
+    exit(TM_ECODE_FAILED);
 }
 
 #else /* implied we do have NFQ support */
@@ -70,17 +70,17 @@ static uint16_t receive_queue_num = 0;
 static uint16_t verdict_queue_num = 0;
 static pthread_mutex_t nfq_init_lock;
 
-int ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
-int ReceiveNFQThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode ReceiveNFQThreadInit(ThreadVars *, void *, void **);
 void ReceiveNFQThreadExitStats(ThreadVars *, void *);
 
-int VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
-int VerdictNFQThreadInit(ThreadVars *, void *, void **);
+TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode VerdictNFQThreadInit(ThreadVars *, void *, void **);
 void VerdictNFQThreadExitStats(ThreadVars *, void *);
-int VerdictNFQThreadDeinit(ThreadVars *, void *);
+TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 
-int DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
-int DecodeNFQThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodeNFQThreadInit(ThreadVars *, void *, void **);
 
 void TmModuleReceiveNFQRegister (void) {
     /* XXX create a general NFQ setup function */
@@ -173,7 +173,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     return 0;
 }
 
-int NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_maxlen)
+TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_maxlen)
 {
     struct timeval tv;
 
@@ -183,7 +183,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_maxle
     nfq_t->h = nfq_open();
     if (!nfq_t->h) {
         printf("error during nfq_open()\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     if (nfq_g.unbind == 0)
@@ -205,11 +205,11 @@ int NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_maxle
 
         if (nfq_bind_pf(nfq_t->h, AF_INET) < 0) {
             printf("error during nfq_bind_pf()\n");
-            return -1;
+            return TM_ECODE_FAILED;
         }
         if (nfq_bind_pf(nfq_t->h, AF_INET6) < 0) {
             printf("error during nfq_bind_pf()\n");
-            return -1;
+            return TM_ECODE_FAILED;
         }
     }
 
@@ -221,7 +221,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_maxle
     if (nfq_t->qh == NULL)
     {
         printf("error during nfq_create_queue()\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     printf("NFQInitThread: setting copy_packet mode\n");
@@ -230,7 +230,7 @@ int NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_maxle
     //if (nfq_set_mode(nfq_t->qh, NFQNL_COPY_PACKET, 0x05DC) < 0) {
     if (nfq_set_mode(nfq_t->qh, NFQNL_COPY_PACKET, 0xFFFF) < 0) {
         printf("can't set packet_copy mode\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     /* XXX detect this at configure time & make it an option */
@@ -260,10 +260,10 @@ int NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_maxle
     }
 
     //printf("NFQInitThread: nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %" PRId32 "\n", nfq_t->h, nfq_t->nh, nfq_t->qh, nfq_t->fd);
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     mutex_lock(&nfq_init_lock);
     printf("ReceiveNFQThreadInit: starting... will bind to queuenum %" PRIu32 "\n", receive_queue_num);
 
@@ -282,16 +282,16 @@ int ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
         printf("NFQInitThread failed\n");
         //return -1;
         mutex_unlock(&nfq_init_lock);
-        exit(1);
+        exit(TM_ECODE_FAILED);
     }
 
     *data = (void *)ntv;
     receive_queue_num++;
     mutex_unlock(&nfq_init_lock);
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     mutex_lock(&nfq_init_lock);
     printf("VerdictNFQThreadInit: starting... will bind to queuenum %" PRIu32 "\n", verdict_queue_num);
 
@@ -302,16 +302,16 @@ int VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     verdict_queue_num++;
 
     mutex_unlock(&nfq_init_lock);
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
+TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     printf("VerdictNFQThreadDeinit: starting... will close queuenum %" PRIu32 "\n", ntv->queue_num);
     nfq_destroy_queue(ntv->qh);
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
 void NFQRecvPkt(NFQThreadVars *t) {
@@ -347,7 +347,7 @@ void NFQRecvPkt(NFQThreadVars *t) {
     }
 }
 
-int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     //printf("%p receiving on queue %" PRIu32 "\n", ntv, ntv->queue_num);
@@ -362,7 +362,7 @@ int ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
         pthread_cond_wait(&cond_pending, &mutex_pending);
     }
     mutex_unlock(&mutex_pending);
-    return 0;
+    return TM_ECODE_OK;
 }
 
 void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
@@ -413,7 +413,7 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
         printf("NFQSetVerdict: nfq_set_verdict of %p failed %" PRId32 "\n", p, ret);
 }
 
-int VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     /* if this is a tunnel packet we check if we are ready to verdict
@@ -443,7 +443,7 @@ int VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
         /* no tunnel, verdict normally */
         NFQSetVerdict(ntv, p);
     }
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /*
@@ -451,7 +451,7 @@ int VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
  *
  *
  */
-int DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
     IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
@@ -482,16 +482,16 @@ int DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 #endif
     }
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 
     if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
         printf("Error Allocating memory\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
@@ -520,7 +520,7 @@ int DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)dtv;
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
 #endif /* NFQ */

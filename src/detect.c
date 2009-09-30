@@ -69,9 +69,9 @@ void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
 
 /* tm module api functions */
-int Detect(ThreadVars *, Packet *, void *, PacketQueue *);
-int DetectThreadInit(ThreadVars *, void *, void **);
-int DetectThreadDeinit(ThreadVars *, void *);
+TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DetectThreadInit(ThreadVars *, void *, void **);
+TmEcode DetectThreadDeinit(ThreadVars *, void *);
 
 void TmModuleDetectRegister (void) {
     tmm_modules[TMM_DETECT].name = "Detect";
@@ -517,7 +517,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
  *  \retval 1 error
  *  \retval 0 ok
  */
-int Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
     /*No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION)
@@ -538,19 +538,19 @@ int Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     /* see if the packet matches one or more of the sigs */
     int r = SigMatchSignatures(tv,de_ctx,det_ctx,p);
     if (r >= 0) {
-        return 0;
+        return TM_ECODE_OK;
     }
 
 error:
-    return 1;
+    return TM_ECODE_FAILED;
 }
 
-int DetectThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode DetectThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     return DetectEngineThreadCtxInit(t,initdata,data);
 }
 
-int DetectThreadDeinit(ThreadVars *t, void *data) {
+TmEcode DetectThreadDeinit(ThreadVars *t, void *data) {
     return DetectEngineThreadCtxDeinit(t,data);
 }
 

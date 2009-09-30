@@ -26,9 +26,9 @@
 
 #define DEFAULT_LOG_FILENAME "unified.alert"
 
-int AlertUnifiedAlert (ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertUnifiedAlertThreadInit(ThreadVars *, void *, void **);
-int AlertUnifiedAlertThreadDeinit(ThreadVars *, void *);
+TmEcode AlertUnifiedAlert (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertUnifiedAlertThreadInit(ThreadVars *, void *, void **);
+TmEcode AlertUnifiedAlertThreadDeinit(ThreadVars *, void *);
 int AlertUnifiedAlertOpenFileCtx(LogFileCtx *, char *);
 
 void TmModuleAlertUnifiedAlertRegister (void) {
@@ -125,7 +125,7 @@ int AlertUnifiedAlertRotateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
     return 0;
 }
 
-int AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertUnifiedAlertThread *aun = (AlertUnifiedAlertThread *)data;
     AlertUnifiedAlertPacketHeader hdr;
@@ -134,7 +134,7 @@ int AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     /* the unified1 format only supports IPv4. */
     if (p->alerts.cnt == 0 || !PKT_IS_IPV4(p))
-        return 0;
+        return TM_ECODE_OK;
 
     /* if we have no ethernet header (e.g. when using nfq), we have to create
      * one ourselves. */
@@ -148,7 +148,7 @@ int AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         if (AlertUnifiedAlertRotateFile(tv,aun) < 0)
         {
             mutex_unlock(&aun->file_ctx->fp_mutex);
-            return -1;
+            return TM_ECODE_FAILED;
         }
     }
     mutex_unlock(&aun->file_ctx->fp_mutex);
@@ -178,28 +178,28 @@ int AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     ret = fwrite(&hdr, sizeof(hdr), 1, aun->file_ctx->fp);
     if (ret != 1) {
         printf("Error: fwrite failed: %s\n", strerror(errno));
-        return -1;
+        return TM_ECODE_FAILED;
     }
     /* force writing to disk so barnyard will not read half
      * written records and choke. */
     fflush(aun->file_ctx->fp);
 
     aun->size_current += sizeof(hdr);
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertUnifiedAlertThread *aun = malloc(sizeof(AlertUnifiedAlertThread));
     if (aun == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(aun, 0, sizeof(AlertUnifiedAlertThread));
 
     if(initdata == NULL)
     {
         printf("Error getting context for the file\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
     aun->file_ctx = (LogFileCtx*) initdata;
@@ -208,17 +208,17 @@ int AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
     int ret = AlertUnifiedAlertWriteFileHeader(t, aun);
     if (ret != 0) {
         printf("Error: AlertUnifiedLogWriteFileHeader failed.\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     /* XXX make configurable */
     aun->size_limit = 10 * 1024 * 1024;
 
     *data = (void *)aun;
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertUnifiedAlertThreadDeinit(ThreadVars *t, void *data)
+TmEcode AlertUnifiedAlertThreadDeinit(ThreadVars *t, void *data)
 {
     AlertUnifiedAlertThread *aun = (AlertUnifiedAlertThread *)data;
     if (aun == NULL) {
@@ -228,7 +228,7 @@ int AlertUnifiedAlertThreadDeinit(ThreadVars *t, void *data)
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedAlertThread));
     free(aun);
-    return 0;
+    return TM_ECODE_OK;
 
 error:
     /* clear memory */
@@ -236,7 +236,7 @@ error:
         memset(aun, 0, sizeof(AlertUnifiedAlertThread));
         free(aun);
     }
-    return -1;
+    return TM_ECODE_FAILED;
 }
 
 

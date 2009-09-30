@@ -28,11 +28,11 @@
 
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
-int AlertDebuglog (ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertDebuglogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertDebuglogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
-int AlertDebuglogThreadInit(ThreadVars *, void*, void **);
-int AlertDebuglogThreadDeinit(ThreadVars *, void *);
+TmEcode AlertDebuglog (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertDebuglogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertDebuglogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertDebuglogThreadInit(ThreadVars *, void*, void **);
+TmEcode AlertDebuglogThreadDeinit(ThreadVars *, void *);
 void AlertDebuglogExitPrintStats(ThreadVars *, void *);
 int AlertDebuglogOpenFileCtx(LogFileCtx* , char *);
 
@@ -62,14 +62,14 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (uint32_t) ts->tv_usec);
 }
 
-int AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertDebuglogThread *aft = (AlertDebuglogThread *)data;
     int i;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
-        return 0;
+        return TM_ECODE_OK;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -139,17 +139,17 @@ int AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     fflush(aft->file_ctx->fp);
     mutex_unlock(&aft->file_ctx->fp_mutex);
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertDebuglogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertDebuglogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertDebuglogThread *aft = (AlertDebuglogThread *)data;
     int i;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
-        return 0;
+        return TM_ECODE_OK;
 
     aft->alerts += p->alerts.cnt;
 
@@ -169,10 +169,10 @@ int AlertDebuglogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     fflush(aft->file_ctx->fp);
     mutex_unlock(&aft->file_ctx->fp_mutex);
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertDebuglog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertDebuglog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     if (PKT_IS_IPV4(p)) {
         return AlertDebuglogIPv4(tv, p, data, pq);
@@ -180,41 +180,41 @@ int AlertDebuglog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         return AlertDebuglogIPv6(tv, p, data, pq);
     }
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertDebuglogThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode AlertDebuglogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertDebuglogThread *aft = malloc(sizeof(AlertDebuglogThread));
     if (aft == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(aft, 0, sizeof(AlertDebuglogThread));
 
     if(initdata == NULL)
     {
         printf("Error getting context for the file\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx=(LogFileCtx *) initdata;
 
     *data = (void *)aft;
-    return 0;
+    return TM_ECODE_OK;
 }
 
-int AlertDebuglogThreadDeinit(ThreadVars *t, void *data)
+TmEcode AlertDebuglogThreadDeinit(ThreadVars *t, void *data)
 {
     AlertDebuglogThread *aft = (AlertDebuglogThread *)data;
     if (aft == NULL) {
-        return 0;
+        return TM_ECODE_OK;
     }
 
     /* clear memory */
     memset(aft, 0, sizeof(AlertDebuglogThread));
 
     free(aft);
-    return 0;
+    return TM_ECODE_OK;
 }
 
 void AlertDebuglogExitPrintStats(ThreadVars *tv, void *data) {

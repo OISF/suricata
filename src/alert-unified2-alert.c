@@ -21,9 +21,9 @@
 #include "util-debug.h"
 
 /*prototypes*/
-int Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
-int Unified2AlertThreadInit(ThreadVars *, void *, void **);
-int Unified2AlertThreadDeinit(ThreadVars *, void *);
+TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode Unified2AlertThreadInit(ThreadVars *, void *, void **);
+TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
 int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
 int Unified2IPv6TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
 int Unified2PacketTypeAlert(ThreadVars *, Packet *, void *);
@@ -156,19 +156,21 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
     return 0;
 }
 
-int Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
+TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
     if(PKT_IS_IPV4(p))  {
-        Unified2IPv4TypeAlert (t, p, data, pq);
-        return 0;
+        if (Unified2IPv4TypeAlert (t, p, data, pq))
+	    return TM_ECODE_FAILED;
+        return TM_ECODE_OK;
     }
 
     if(PKT_IS_IPV6(p))  {
-        Unified2IPv6TypeAlert (t, p, data, pq);
-        return 0;
+        if (Unified2IPv6TypeAlert (t, p, data, pq))
+	    return TM_ECODE_FAILED;
+        return TM_ECODE_OK;
     }
 
-    return -1;
+    return TM_ECODE_FAILED;
 }
 
 /**
@@ -469,17 +471,17 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
  *  \retval -1 on failure
  */
 
-int Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     Unified2AlertThread *aun = malloc(sizeof(Unified2AlertThread));
     if (aun == NULL) {
-        return -1;
+        return TM_ECODE_FAILED;
     }
     memset(aun, 0, sizeof(Unified2AlertThread));
     if(initdata == NULL)
     {
         printf("Error getting context for the file\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
     aun->file_ctx = (LogFileCtx*) initdata;
@@ -488,7 +490,7 @@ int Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
     aun->size_limit = 10 * 1024 * 1024;
 
     *data = (void *)aun;
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -500,7 +502,7 @@ int Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
  *  \retval -1 on failure
  */
 
-int Unified2AlertThreadDeinit(ThreadVars *t, void *data)
+TmEcode Unified2AlertThreadDeinit(ThreadVars *t, void *data)
 {
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     if (aun == NULL) {
@@ -510,7 +512,7 @@ int Unified2AlertThreadDeinit(ThreadVars *t, void *data)
     /* clear memory */
     memset(aun, 0, sizeof(Unified2AlertThread));
     free(aun);
-    return 0;
+    return TM_ECODE_OK;
 
 error:
     /* clear memory */
@@ -518,7 +520,7 @@ error:
         memset(aun, 0, sizeof(Unified2AlertThread));
         free(aun);
     }
-    return -1;
+    return TM_ECODE_FAILED;
 }
 
 /** \brief Create a new file_ctx from config_file (if specified)
@@ -648,10 +650,10 @@ static int Unified2Test01 (void)   {
     if(lf == NULL)
         return 0;
     ret = Unified2AlertThreadInit(&tv, lf, &data);
-    if(ret == -1)
+    if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
-    if(ret == -1)
+    if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == -1)
@@ -716,7 +718,7 @@ static int Unified2Test02 (void)   {
     if(ret == -1)
         return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
-    if(ret == -1)
+    if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == -1)
@@ -788,7 +790,7 @@ static int Unified2Test03 (void)   {
     if(ret == -1)
         return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
-    if(ret == -1)
+    if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == -1)
@@ -848,7 +850,7 @@ static int Unified2Test04 (void)   {
     if(ret == -1)
         return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
-    if(ret == -1)
+    if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == -1)
@@ -914,10 +916,10 @@ static int Unified2Test05 (void)   {
     if(ret == -1)
         return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
-    if(ret == -1)
+    if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
-    if(ret == -1)
+    if(ret == TM_ECODE_FAILED)
         return 0;
 
     if(LogFileFreeCtx(lf)==0)
