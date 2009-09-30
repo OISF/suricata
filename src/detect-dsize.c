@@ -203,6 +203,7 @@ void DetectDsizeFree(DetectDsizeData *dd) {
  * ONLY TESTS BELOW THIS COMMENT
  */
 
+#ifdef UNITTESTS
 int DsizeTestParse01 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1");
@@ -393,8 +394,10 @@ int DsizeTestParse16 (void) {
 
     return 1;
 }
+#endif /* UNITTESTS */
 
 void DsizeRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("DsizeTestParse01", DsizeTestParse01, 1);
     UtRegisterTest("DsizeTestParse02", DsizeTestParse02, 1);
     UtRegisterTest("DsizeTestParse03", DsizeTestParse03, 1);
@@ -411,5 +414,6 @@ void DsizeRegisterTests(void) {
     UtRegisterTest("DsizeTestParse14", DsizeTestParse14, 1);
     UtRegisterTest("DsizeTestParse15", DsizeTestParse15, 1);
     UtRegisterTest("DsizeTestParse16", DsizeTestParse16, 1);
+#endif /* UNITTESTS */
 }
 

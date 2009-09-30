@@ -170,6 +170,7 @@ void PoolTestFree(void *ptr) {
     free(ptr);
 }
 
+#ifdef UNITTESTS
 static int PoolTestInit01 (void) {
     Pool *p = PoolInit(10,5,PoolTestAlloc,NULL,PoolTestFree);
     if (p == NULL)
@@ -403,13 +404,16 @@ end:
         PoolFree(p);
     return retval;
 }
+#endif /* UNITTESTS */
 
 void PoolRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("PoolTestInit01", PoolTestInit01, 1);
     UtRegisterTest("PoolTestInit02", PoolTestInit02, 1);
     UtRegisterTest("PoolTestInit03", PoolTestInit03, 1);
     UtRegisterTest("PoolTestInit04", PoolTestInit04, 1);
     UtRegisterTest("PoolTestInit05", PoolTestInit05, 1);
     UtRegisterTest("PoolTestInit06", PoolTestInit06, 1);
+#endif /* UNITTESTS */
 }
 

@@ -521,6 +521,7 @@ error:
  * TESTS
  */
 
+#ifdef UNITTESTS
 int SigParseTest01 (void) {
     int result = 1;
     Signature *sig = NULL;
@@ -791,8 +792,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     return result;
 }
+#endif /* UNITTESTS */
 
 void SigParseRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("SigParseTest01", SigParseTest01, 1);
     UtRegisterTest("SigParseTest02", SigParseTest02, 1);
     UtRegisterTest("SigParseTest03", SigParseTest03, 1);
@@ -804,5 +807,6 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTestNegation05", SigParseTestNegation05, 1);
     UtRegisterTest("SigParseTestNegation06", SigParseTestNegation06, 1);
     UtRegisterTest("SigParseTestNegation07", SigParseTestNegation07, 1);
+#endif /* UNITTESTS */
 }
 

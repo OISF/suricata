@@ -281,6 +281,7 @@ void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     return;
 }
 
+#ifdef UNITTESTS
 static int TCPCalculateValidChecksumtest01(void)
 {
     uint16_t csum = 0;
@@ -495,9 +496,11 @@ static int TCPGetWscaleTest03(void)
 end:
     return retval;
 }
+#endif /* UNITTESTS */
 
 void DecodeTCPRegisterTests(void)
 {
+#ifdef UNITTESTS
     UtRegisterTest("TCPCalculateValidChecksumtest01",
                    TCPCalculateValidChecksumtest01, 1);
     UtRegisterTest("TCPCalculateInvalidChecksumtest02",
@@ -509,4 +512,5 @@ void DecodeTCPRegisterTests(void)
     UtRegisterTest("TCPGetWscaleTest01", TCPGetWscaleTest01, 1);
     UtRegisterTest("TCPGetWscaleTest02", TCPGetWscaleTest02, 1);
     UtRegisterTest("TCPGetWscaleTest03", TCPGetWscaleTest03, 1);
+#endif /* UNITTESTS */
 }

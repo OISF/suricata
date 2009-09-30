@@ -2989,12 +2989,14 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     return ret;
 }
+#endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
  *          for various OS policies.
  */
 
 void StreamTcpReassembleRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("StreamTcpReassembleTest01 -- BSD OS Before Reassembly Test", StreamTcpReassembleTest01, 1);
     UtRegisterTest("StreamTcpReassembleTest02 -- BSD OS At Same Reassembly Test", StreamTcpReassembleTest02, 1);
     UtRegisterTest("StreamTcpReassembleTest03 -- BSD OS After Reassembly Test", StreamTcpReassembleTest03, 1);
@@ -3025,7 +3027,5 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest28 -- Gap at Start IDS missed packet Reassembly Test", StreamTcpReassembleTest28, 1);
     UtRegisterTest("StreamTcpReassembleTest29 -- Gap at Middle IDS missed packet Reassembly Test", StreamTcpReassembleTest29, 1);
     UtRegisterTest("StreamTcpReassembleTest30 -- Gap at End IDS missed packet Reassembly Test", StreamTcpReassembleTest30, 1);
-}
-
 #endif /* UNITTESTS */
-
+}

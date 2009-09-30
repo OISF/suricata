@@ -177,6 +177,7 @@ void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     return;
 }
 
+#ifdef UNITTESTS
 static int UDPV4CalculateValidChecksumtest01(void)
 {
     uint16_t csum = 0;
@@ -274,9 +275,11 @@ static int UDPV6CalculateInvalidChecksumtest04(void)
     return (csum == UDPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
                                            (uint16_t *)(raw_ipv6 + 54), 20));
 }
+#endif /* UNITTESTS */
 
 void DecodeUDPV4RegisterTests(void)
 {
+#ifdef UNITTESTS
     UtRegisterTest("UDPV4CalculateValidChecksumtest01",
                    UDPV4CalculateValidChecksumtest01, 1);
     UtRegisterTest("UDPV4CalculateInvalidChecksumtest02",
@@ -285,4 +288,5 @@ void DecodeUDPV4RegisterTests(void)
                    UDPV6CalculateValidChecksumtest03, 1);
     UtRegisterTest("UDPV6CalculateInvalidChecksumtest04",
                    UDPV6CalculateInvalidChecksumtest04, 0);
+#endif /* UNITTESTS */
 }

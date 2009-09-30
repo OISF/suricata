@@ -161,6 +161,7 @@ void FlowBitFree(FlowBit *fb) {
 
 
 /* TESTS */
+#ifdef UNITTESTS
 static int FlowBitTest01 (void) {
     int ret = 0;
 
@@ -410,8 +411,10 @@ end:
     GenericVarFree(f.flowvar);
     return ret;
 }
+#endif /* UNITTESTS */
 
 void FlowBitRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("FlowBitTest01", FlowBitTest01, 1);
     UtRegisterTest("FlowBitTest02", FlowBitTest02, 1);
     UtRegisterTest("FlowBitTest03", FlowBitTest03, 1);
@@ -423,5 +426,6 @@ void FlowBitRegisterTests(void) {
     UtRegisterTest("FlowBitTest09", FlowBitTest09, 1);
     UtRegisterTest("FlowBitTest10", FlowBitTest10, 1);
     UtRegisterTest("FlowBitTest11", FlowBitTest11, 1);
+#endif /* UNITTESTS */
 }
 

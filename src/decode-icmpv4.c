@@ -429,12 +429,14 @@ static int DecodeICMPV4test08(void) {
 
     return 0;
 }
+#endif /* UNITTESTS */
 
 /**
  * \brief Registers ICMPV4 unit test
  * \todo More ICMPv4 tests
  */
 void DecodeICMPV4RegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("DecodeICMPV4ttest01", DecodeICMPV4test01, 1);
     UtRegisterTest("DecodeICMPV4ttest02", DecodeICMPV4test02, 1);
     UtRegisterTest("DecodeICMPV4ttest03", DecodeICMPV4test03, 1);
@@ -445,7 +447,5 @@ void DecodeICMPV4RegisterTests(void) {
                    ICMPV4CalculateInvalidChecksumtest06, 0);
     UtRegisterTest("DecodeICMPV4InvalidType", ICMPV4InvalidType07, 1);
     UtRegisterTest("DecodeICMPV4ttest08", DecodeICMPV4test08, 1);
-}
-
 #endif /* UNITTESTS */
-
+}

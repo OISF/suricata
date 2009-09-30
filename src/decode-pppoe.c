@@ -185,6 +185,7 @@ void DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_
     }
 }
 
+#ifdef UNITTESTS
 /** DecodePPPOEtest01
  *  \brief Decode malformed PPPOE packet (too short)
  *  \retval 1 Expected test value
@@ -336,6 +337,7 @@ static int DecodePPPOEtest05 (void)   {
 
     return 0;
 }
+#endif /* UNITTESTS */
 
 
 
@@ -344,10 +346,12 @@ static int DecodePPPOEtest05 (void)   {
  * \todo More PPPOE tests
  */
 void DecodePPPOERegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("DecodePPPOEtest01", DecodePPPOEtest01, 1);
     UtRegisterTest("DecodePPPOEtest02", DecodePPPOEtest02, 0);
     UtRegisterTest("DecodePPPOEtest03", DecodePPPOEtest03, 0);
     UtRegisterTest("DecodePPPOEtest04", DecodePPPOEtest04, 1);
     UtRegisterTest("DecodePPPOEtest05", DecodePPPOEtest05, 1);
+#endif /* UNITTESTS */
 }
 

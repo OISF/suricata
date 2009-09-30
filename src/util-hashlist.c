@@ -232,6 +232,7 @@ HashListTableBucket *HashListTableGetListHead(HashListTable *ht) {
  * ONLY TESTS BELOW THIS COMMENT
  */
 
+#ifdef UNITTESTS
 static int HashListTableTestInit01 (void) {
     HashListTable *ht = HashListTableInit(1024, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -421,8 +422,10 @@ end:
     if (ht != NULL) HashListTableFree(ht);
     return result;
 }
+#endif /* UNITTESTS */
 
 void HashListTableRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("HashListTableTestInit01", HashListTableTestInit01, 1);
     UtRegisterTest("HashListTableTestInit02", HashListTableTestInit02, 1);
     UtRegisterTest("HashListTableTestInit03", HashListTableTestInit03, 1);
@@ -435,5 +438,6 @@ void HashListTableRegisterTests(void) {
 
     UtRegisterTest("HashListTableTestFull01", HashListTableTestFull01, 1);
     UtRegisterTest("HashListTableTestFull02", HashListTableTestFull02, 1);
+#endif /* UNITTESTS */
 }
 

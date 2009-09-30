@@ -2360,7 +2360,7 @@ void WmThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
  * ONLY TESTS BELOW THIS COMMENT
  */
 
-
+#ifdef UNITTESTS
 int WmTestInitCtx01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
@@ -3852,8 +3852,10 @@ static int WmTestSearch22Hash16 (void) {
     WmDestroyCtx(&mpm_ctx);
     return result;
 }
+#endif /* UNITTESTS */
 
 void WmRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("WmTestInitCtx01", WmTestInitCtx01, 1);
     UtRegisterTest("WmTestInitCtx02", WmTestInitCtx02, 1);
     UtRegisterTest("WmTestInitCtx03", WmTestInitCtx03, 1);
@@ -3929,5 +3931,6 @@ void WmRegisterTests(void) {
     UtRegisterTest("WmTestSearch22Hash14", WmTestSearch22Hash14, 1);
     UtRegisterTest("WmTestSearch22Hash15", WmTestSearch22Hash15, 1);
     UtRegisterTest("WmTestSearch22Hash16", WmTestSearch22Hash16, 1);
+#endif /* UNITTESTS */
 }
 

@@ -1,4 +1,8 @@
-/* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
+/** Copyright (c) 2009 Open Information Security Foundation
+ *
+ *  \author Victor Julien <victor@inliniac.net>
+ *  \author Breno Silva <breno.silva@gmail.com>
+ */
 
 #ifndef __UTIL_UNITTEST_H__
 #define __UTIL_UNITTEST_H__
@@ -15,10 +19,10 @@ typedef struct UtTest_ {
 
 
 void UtRegisterTest(char *name, int(*TestFn)(void), int evalue);
-uint32_t UtRunTests(void);
+uint32_t UtRunTests(char *regex_arg);
 void UtInitialize(void);
 void UtCleanup(void);
-int UtRunSelftest (void);
+int UtRunSelftest (char *regex_arg);
 
 #endif /* __UTIL_UNITTEST_H__ */
 

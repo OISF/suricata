@@ -1253,6 +1253,7 @@ DetectPort *DetectPortSpHashLookup(DetectEngineCtx *de_ctx, DetectPort *p) {
 
 /* TESTS */
 
+#ifdef UNITTESTS
 int PortTestParse01 (void) {
     DetectPort *dd = NULL;
 
@@ -1438,9 +1439,11 @@ int PortTestParse09 (void) {
 end:
     return result;
 }
+#endif /* UNITTESTS */
 
 
 void DetectPortTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("PortTestParse01", PortTestParse01, 1);
     UtRegisterTest("PortTestParse02", PortTestParse02, 1);
     UtRegisterTest("PortTestParse03", PortTestParse03, 1);
@@ -1450,5 +1453,6 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestParse07", PortTestParse07, 1);
     UtRegisterTest("PortTestParse08", PortTestParse08, 1);
     UtRegisterTest("PortTestParse09", PortTestParse09, 1);
+#endif /* UNITTESTS */
 }
 

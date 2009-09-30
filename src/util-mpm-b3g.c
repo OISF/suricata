@@ -1961,6 +1961,7 @@ uint32_t B3gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
  * TESTS
  */
 
+#ifdef UNITTESTS
 static int B3gTestInit01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
@@ -2714,8 +2715,10 @@ static int B3gTestSearch12 (void) {
     B3gDestroyCtx(&mpm_ctx);
     return result;
 }
+#endif /* UNITTESTS */
 
 void B3gRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("B3gTestInit01", B3gTestInit01, 1);
 /*
     UtRegisterTest("B3gTestS0Init01", B3gTestS0Init01, 1);
@@ -2750,7 +2753,7 @@ void B3gRegisterTests(void) {
     UtRegisterTest("B3gTestSearch10", B3gTestSearch10, 1);
     UtRegisterTest("B3gTestSearch11", B3gTestSearch11, 1);
     UtRegisterTest("B3gTestSearch12", B3gTestSearch12, 1);
-
+#endif /* UNITTESTS */
 }
 
 #if 0

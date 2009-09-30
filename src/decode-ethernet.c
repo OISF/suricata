@@ -40,6 +40,7 @@ void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *p
     return;
 }
 
+#ifdef UNITTESTS
 /** DecodeEthernettest01
  *  \brief Valid Ethernet packet
  *  \retval 0 Expected test value
@@ -77,6 +78,7 @@ static int DecodeEthernetTest01 (void)   {
 
     return 0;
 }
+#endif /* UNITTESTS */
 
 
 /**
@@ -84,5 +86,7 @@ static int DecodeEthernetTest01 (void)   {
  * \todo More Ethernet tests
  */
 void DecodeEthernetRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01, 0);
+#endif /* UNITTESTS */
 }

@@ -663,8 +663,10 @@ int AlpDetectTest07(void) {
     AlpProtoDestroy(&ctx);
     return r;
 }
+#endif /* UNITTESTS */
 
 void AlpDetectRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("AlpDetectTest01", AlpDetectTest01, 1);
     UtRegisterTest("AlpDetectTest02", AlpDetectTest02, 1);
     UtRegisterTest("AlpDetectTest03", AlpDetectTest03, 1);
@@ -672,7 +674,5 @@ void AlpDetectRegisterTests(void) {
     UtRegisterTest("AlpDetectTest05", AlpDetectTest05, 1);
     UtRegisterTest("AlpDetectTest06", AlpDetectTest06, 1);
     UtRegisterTest("AlpDetectTest07", AlpDetectTest07, 1);
-}
-
 #endif /* UNITTESTS */
-
+}

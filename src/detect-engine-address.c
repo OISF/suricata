@@ -1311,6 +1311,8 @@ DetectAddressLookupGroup(DetectAddressGroupsHead *gh, Address *a) {
 
 /* TESTS */
 
+
+#ifdef UNITTESTS
 int AddressTestParse01 (void) {
     DetectAddressData *dd = NULL;
     dd = DetectAddressParse("1.2.3.4");
@@ -3701,8 +3703,10 @@ error:
     DetectAddressDataFree(c);
     return 0;
 }
+#endif /* UNITTESTS */
 
 void DetectAddressTests(void) {
+#ifdef UNITTESTS
     DetectAddressIPv6Tests();
 
     UtRegisterTest("AddressTestParse01", AddressTestParse01, 1);
@@ -3822,6 +3826,7 @@ void DetectAddressTests(void) {
     UtRegisterTest("AddressTestCutIPv408", AddressTestCutIPv408, 1);
     UtRegisterTest("AddressTestCutIPv409", AddressTestCutIPv409, 1);
     UtRegisterTest("AddressTestCutIPv410", AddressTestCutIPv410, 1);
+#endif /* UNITTESTS */
 }
 
 

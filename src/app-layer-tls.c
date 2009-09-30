@@ -359,12 +359,13 @@ static int TLSParserTest04(void) {
 end:
     return result;
 }
+#endif /* UNITTESTS */
 
 void TLSParserRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("TLSParserTest01", TLSParserTest01, 1);
     UtRegisterTest("TLSParserTest02", TLSParserTest02, 1);
     UtRegisterTest("TLSParserTest03", TLSParserTest03, 1);
     UtRegisterTest("TLSParserTest04", TLSParserTest04, 1);
-}
-
 #endif /* UNITTESTS */
+}

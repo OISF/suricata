@@ -634,8 +634,6 @@ int DetectContentParseTest08 (void) {
     }
     return result;
 }
-
-
 #endif /* UNITTESTS */
 
 /**
@@ -651,7 +649,5 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentParseTest06", DetectContentParseTest06, 1);
     UtRegisterTest("DetectContentParseTest07", DetectContentParseTest07, 1);
     UtRegisterTest("DetectContentParseTest08", DetectContentParseTest08, 1);
-
     #endif /* UNITTESTS */
 }
-

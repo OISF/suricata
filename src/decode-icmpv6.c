@@ -94,6 +94,8 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     return;
 }
 
+#ifdef UNITTESTS
+
 static int ICMPV6CalculateValidChecksumtest01(void) {
     uint16_t csum = 0;
 
@@ -147,6 +149,7 @@ static int ICMPV6CalculateInvalidChecksumtest02(void) {
     return (csum == ICMPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
                                             (uint16_t *)(raw_ipv6 + 54), 68));
 }
+#endif /* UNITTESTS */
 
 /**
  * \brief Registers ICMPV6 unit tests
@@ -154,8 +157,10 @@ static int ICMPV6CalculateInvalidChecksumtest02(void) {
  */
 void DecodeICMPV6RegisterTests(void)
 {
+#ifdef UNITTESTS
     UtRegisterTest("ICMPV6CalculateValidChecksumtest01",
                    ICMPV6CalculateValidChecksumtest01, 1);
     UtRegisterTest("ICMPV6CalculateInValidChecksumtest02",
                    ICMPV6CalculateInvalidChecksumtest02, 0);
+#endif /* UNITTESTS */
 }

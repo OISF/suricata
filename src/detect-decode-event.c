@@ -183,6 +183,7 @@ void DetectDecodeEventFree(DetectDecodeEventData *de) {
 /*
  * ONLY TESTS BELOW THIS COMMENT
  */
+#ifdef UNITTESTS
 
 /**
  * \test DecodeEventTestParse01 is a test for a  valid decode-event value
@@ -294,15 +295,18 @@ error:
     if (sm) free(sm);
     return 0;
 }
+#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DecodeEvent
  */
 void DecodeEventRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("DecodeEventTestParse01", DecodeEventTestParse01, 1);
     UtRegisterTest("DecodeEventTestParse02", DecodeEventTestParse02, 1);
     UtRegisterTest("DecodeEventTestParse03", DecodeEventTestParse03, 1);
     UtRegisterTest("DecodeEventTestParse04", DecodeEventTestParse04, 0);
     UtRegisterTest("DecodeEventTestParse05", DecodeEventTestParse05, 0);
     UtRegisterTest("DecodeEventTestParse06", DecodeEventTestParse06, 1);
+#endif /* UNITTESTS */
 }

@@ -960,8 +960,10 @@ int HTTPParserTest10(void) {
 end:
     return result;
 }
+#endif /* UNITTESTS */
 
 void HTTPParserRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("HTTPParserTest01", HTTPParserTest01, 1);
     UtRegisterTest("HTTPParserTest02", HTTPParserTest02, 1);
     UtRegisterTest("HTTPParserTest03", HTTPParserTest03, 1);
@@ -972,7 +974,6 @@ void HTTPParserRegisterTests(void) {
     UtRegisterTest("HTTPParserTest08", HTTPParserTest08, 1);
     UtRegisterTest("HTTPParserTest09", HTTPParserTest09, 1);
     UtRegisterTest("HTTPParserTest10", HTTPParserTest10, 1);
-}
-
 #endif /* UNITTESTS */
+}
 

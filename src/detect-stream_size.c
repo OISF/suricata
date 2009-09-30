@@ -329,6 +329,7 @@ void DetectStreamSizeFree(void *ptr) {
     free(sd);
 }
 
+#ifdef UNITTESTS
 /**
  * \test DetectStreamSizeParseTest01 is a test to make sure that we parse the
  *  user options correctly, when given valid stream_size options.
@@ -479,16 +480,17 @@ static int DetectStreamSizeParseTest04 (void) {
 
     return result;
 }
+#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectStreamSize
  */
-
 void DetectStreamSizeRegisterTests(void) {
-
+#ifdef UNITTESTS
     UtRegisterTest("DetectStreamSizeParseTest01", DetectStreamSizeParseTest01, 1);
     UtRegisterTest("DetectStreamSizeParseTest02", DetectStreamSizeParseTest02, 1);
     UtRegisterTest("DetectStreamSizeParseTest03", DetectStreamSizeParseTest03, 1);
     UtRegisterTest("DetectStreamSizeParseTest04", DetectStreamSizeParseTest04, 1);
+#endif /* UNITTESTS */
 }
 

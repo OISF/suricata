@@ -75,6 +75,7 @@ int DetectProtoSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
 
 /* TESTS */
 
+#ifdef UNITTESTS
 static int ProtoTestParse01 (void) {
     DetectProto dp;
     memset(&dp,0,sizeof(DetectProto));
@@ -110,11 +111,14 @@ static int ProtoTestParse03 (void) {
 
     return 0;
 }
+#endif /* UNITTESTS */
 
 
 void DetectProtoTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("ProtoTestParse01", ProtoTestParse01, 1);
     UtRegisterTest("ProtoTestParse02", ProtoTestParse02, 1);
     UtRegisterTest("ProtoTestParse03", ProtoTestParse03, 1);
+#endif /* UNITTESTS */
 }
 

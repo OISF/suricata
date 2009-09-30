@@ -202,6 +202,7 @@ void DetectIpOptsFree(void *de_ptr) {
  * ONLY TESTS BELOW THIS COMMENT
  */
 
+#ifdef UNITTESTS
 /**
  * \test IpOptsTestParse01 is a test for a  valid ipopts value
  *
@@ -327,13 +328,16 @@ error:
     if (sm) free(sm);
     return 0;
 }
+#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for IpOpts
  */
 void IpOptsRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("IpOptsTestParse01", IpOptsTestParse01, 1);
     UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02, 0);
     UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03, 1);
     UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04, 0);
+#endif /* UNITTESTS */
 }

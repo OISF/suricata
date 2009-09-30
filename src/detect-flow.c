@@ -294,6 +294,7 @@ void DetectFlowFree(void *ptr) {
     free(fd);
 }
 
+#ifdef UNITTESTS
 /**
  * \test DetectFlowTestParse01 is a test to make sure that we return "something"
  *  when given valid flow opt
@@ -667,11 +668,13 @@ int DetectFlowTestParse21 (void) {
 
     return result;
 }
+#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectFlow
  */
 void DetectFlowRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("DetectFlowTestParse01", DetectFlowTestParse01, 1);
     UtRegisterTest("DetectFlowTestParse02", DetectFlowTestParse02, 1);
     UtRegisterTest("DetectFlowTestParse03", DetectFlowTestParse03, 1);
@@ -693,4 +696,5 @@ void DetectFlowRegisterTests(void) {
     UtRegisterTest("DetectFlowTestParse19", DetectFlowTestParse19, 1);
     UtRegisterTest("DetectFlowTestParse20", DetectFlowTestParse20, 1);
     UtRegisterTest("DetectFlowTestParse21", DetectFlowTestParse21, 1);
+#endif /* UNITTESTS */
 }

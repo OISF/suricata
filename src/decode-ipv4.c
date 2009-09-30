@@ -1425,8 +1425,10 @@ static int IPV4CalculateInvalidChecksumtest02(void)
 
     return (csum == IPV4CalculateChecksum((uint16_t *)raw_ipv4, sizeof(raw_ipv4)));
 }
+#endif /* UNITTESTS */
 
 void DecodeIPV4RegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("DecodeIPV4OptionsNONETest01", DecodeIPV4OptionsNONETest01, 1);
     UtRegisterTest("DecodeIPV4OptionsEOLTest01", DecodeIPV4OptionsEOLTest01, 1);
     UtRegisterTest("DecodeIPV4OptionsNOPTest01", DecodeIPV4OptionsNOPTest01, 1);
@@ -1459,7 +1461,5 @@ void DecodeIPV4RegisterTests(void) {
                    IPV4CalculateValidChecksumtest01, 1);
     UtRegisterTest("IPV4CalculateInvalidChecksumtest02",
                    IPV4CalculateInvalidChecksumtest02, 0);
-
-}
-
 #endif /* UNITTESTS */
+}

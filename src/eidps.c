@@ -229,14 +229,15 @@ void EngineKill(void) {
 void usage(const char *progname)
 {
     printf("USAGE: %s\n\n", progname);
-    printf("\t-c <path>: path to configuration file\n");
-    printf("\t-i <dev> : run in pcap live mode\n");
-    printf("\t-r <path>: run in pcap file/offline mode\n");
-    printf("\t-q <qid> : run in inline nfqueue mode\n");
-    printf("\t-s <path>: path to signature file (optional)\n");
-    printf("\t-l <dir> : default log directory\n");
+    printf("\t-c <path>                    : path to configuration file\n");
+    printf("\t-i <dev>                     : run in pcap live mode\n");
+    printf("\t-r <path>                    : run in pcap file/offline mode\n");
+    printf("\t-q <qid>                     : run in inline nfqueue mode\n");
+    printf("\t-s <path>                    : path to signature file (optional)\n");
+    printf("\t-l <dir>                     : default log directory\n");
 #ifdef UNITTESTS
-    printf("\t-u       : run the unittests and exit\n");
+    printf("\t-u                           : run the unittests and exit\n");
+    printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
 #endif /* UNITTESTS */
     printf("\n");
 }
@@ -251,6 +252,7 @@ int main(int argc, char **argv)
     char *sig_file = NULL;
     int nfq_id = 0;
     char *conf_filename = NULL;
+    char *regex_arg = NULL;
     int dump_config = 0;
 
     /* initialize the logging subsys */
@@ -263,13 +265,14 @@ int main(int argc, char **argv)
         {"dump-config", 0, &dump_config, 1},
         {"pfring-int",  required_argument, 0, 0},
         {"pfring-clusterid",  required_argument, 0, 0},
+        {"unittest-filter", required_argument, 0, 'U'},
         {NULL, 0, NULL, 0}
     };
 
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:hi:l:q:r:us:";
+    char short_opts[] = "c:hi:l:q:r:us:U:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -324,6 +327,14 @@ int main(int argc, char **argv)
             fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
             exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
+            break;
+        case 'U':
+#ifdef UNITTESTS
+            regex_arg = optarg;
+
+            if(strlen(regex_arg) == 0)
+            regex_arg = NULL;
+#endif
             break;
         default:
             usage(argv[0]);
@@ -399,7 +410,7 @@ int main(int argc, char **argv)
 #ifdef UNITTESTS
     if (mode == MODE_UNITTEST) {
         /* test and initialize the unittesting subsystem */
-        UtRunSelftest(); /* inits and cleans up again */
+        UtRunSelftest(regex_arg); /* inits and cleans up again */
         UtInitialize();
         TmModuleRegisterTests();
         SigTableRegisterTests();
@@ -429,7 +440,7 @@ int main(int argc, char **argv)
         SCSigRegisterSignatureOrderingTests();
         SCLogRegisterTests();
         SCRadixRegisterTests();
-        uint32_t failed = UtRunTests();
+        uint32_t failed = UtRunTests(regex_arg);
         UtCleanup();
         if (failed) exit(EXIT_FAILURE);
         else        exit(EXIT_SUCCESS);

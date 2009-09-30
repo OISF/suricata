@@ -127,6 +127,7 @@ static uint32_t BloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t h
  * ONLY TESTS BELOW THIS COMMENT
  */
 
+#ifdef UNITTESTS
 static int BloomFilterTestInit01 (void) {
     BloomFilter *bf = BloomFilterInit(1024, 4, BloomHash);
     if (bf == NULL)
@@ -248,8 +249,10 @@ end:
     if (bf != NULL) BloomFilterFree(bf);
     return result;
 }
+#endif /* UNITTESTS */
 
 void BloomFilterRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("BloomFilterTestInit01", BloomFilterTestInit01, 1);
     UtRegisterTest("BloomFilterTestInit02", BloomFilterTestInit02, 1);
     UtRegisterTest("BloomFilterTestInit03", BloomFilterTestInit03, 1);
@@ -261,5 +264,6 @@ void BloomFilterRegisterTests(void) {
 
     UtRegisterTest("BloomFilterTestFull01", BloomFilterTestFull01, 1);
     UtRegisterTest("BloomFilterTestFull02", BloomFilterTestFull02, 1);
+#endif /* UNITTESTS */
 }
 

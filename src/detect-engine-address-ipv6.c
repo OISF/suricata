@@ -768,7 +768,7 @@ int DetectAddressGroupJoinIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *targ
 
 /* TESTS */
 
-
+#ifdef UNITTESTS
 int AddressTestIPv6Gt01 (void) {
     int result = 0;
 
@@ -1093,8 +1093,10 @@ int AddressTestIPv6SubOne02 (void) {
 
     return result;
 }
+#endif /* UNITTESTS */
 
 void DetectAddressIPv6Tests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("AddressTestIPv6Gt01",   AddressTestIPv6Gt01, 1);
     UtRegisterTest("AddressTestIPv6Gt02",   AddressTestIPv6Gt02, 1);
     UtRegisterTest("AddressTestIPv6Gt03",   AddressTestIPv6Gt03, 1);
@@ -1124,6 +1126,7 @@ void DetectAddressIPv6Tests(void) {
 
     UtRegisterTest("AddressTestIPv6SubOne01",   AddressTestIPv6SubOne01, 1);
     UtRegisterTest("AddressTestIPv6SubOne02",   AddressTestIPv6SubOne02, 1);
+#endif /* UNITTESTS */
 }
 
 
