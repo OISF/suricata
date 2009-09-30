@@ -27,7 +27,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
 
-    if (TmThreadSpawn(tv_receivepcap) != 0) {
+    if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -44,7 +44,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode1) != 0) {
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -61,7 +61,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream1) != 0) {
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -78,7 +78,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect1) != 0) {
+    if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -95,7 +95,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect2) != 0) {
+    if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -112,7 +112,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_rreject) != 0) {
+    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -136,7 +136,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     TmVarSlotSetFuncAppend(tv_alert, tm_module, lh_logfile_ctx);
 
-    if (TmThreadSpawn(tv_alert) != 0) {
+    if (TmThreadSpawn(tv_alert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -161,7 +161,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     TmVarSlotSetFuncAppend(tv_unified, tm_module, aua_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified) != 0) {
+    if (TmThreadSpawn(tv_unified) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -178,7 +178,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_unified2,tm_module,au2a_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified2) != 0) {
+    if (TmThreadSpawn(tv_unified2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -195,7 +195,7 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_debugalert,tm_module, ad_logfile_ctx);
 
-    if (TmThreadSpawn(tv_debugalert) != 0) {
+    if (TmThreadSpawn(tv_debugalert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -220,7 +220,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
 
-    if (TmThreadSpawn(tv_receivepcap) != 0) {
+    if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -237,7 +237,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode1) != 0) {
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -254,7 +254,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream1) != 0) {
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -271,7 +271,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_stream2,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream2) != 0) {
+    if (TmThreadSpawn(tv_stream2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -288,7 +288,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_stream3,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream3) != 0) {
+    if (TmThreadSpawn(tv_stream3) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -305,7 +305,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_stream4,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream4) != 0) {
+    if (TmThreadSpawn(tv_stream4) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -322,7 +322,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect1) != 0) {
+    if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -339,7 +339,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect2) != 0) {
+    if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -356,7 +356,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_rreject) != 0) {
+    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -380,7 +380,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     TmVarSlotSetFuncAppend(tv_alert, tm_module, lh_logfile_ctx);
 
-    if (TmThreadSpawn(tv_alert) != 0) {
+    if (TmThreadSpawn(tv_alert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -405,7 +405,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     TmVarSlotSetFuncAppend(tv_unified,tm_module,aua_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified) != 0) {
+    if (TmThreadSpawn(tv_unified) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -422,7 +422,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_unified2,tm_module,au2a_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified2) != 0) {
+    if (TmThreadSpawn(tv_unified2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -439,7 +439,7 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_debugalert,tm_module, ad_logfile_ctx);
 
-    if (TmThreadSpawn(tv_debugalert) != 0) {
+    if (TmThreadSpawn(tv_debugalert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -464,7 +464,7 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
 
-    if (TmThreadSpawn(tv_receivepcap) != 0) {
+    if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -481,7 +481,7 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
     }
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode1) != 0) {
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -557,7 +557,7 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
 
     TmThreadSetCPUAffinity(tv, 0);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -632,7 +632,7 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
 
     TmThreadSetCPUAffinity(tv, 0);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -707,7 +707,7 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
 
     TmThreadSetCPUAffinity(tv, 1);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -782,7 +782,7 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfile
 
     TmThreadSetCPUAffinity(tv, 1);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -805,7 +805,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     Tm1SlotSetFunc(tv_receivenfq,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_receivenfq) != 0) {
+    if (TmThreadSpawn(tv_receivenfq) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -822,7 +822,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode1) != 0) {
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -839,7 +839,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream1) != 0) {
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -856,7 +856,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect1) != 0) {
+    if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -873,7 +873,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect2) != 0) {
+    if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -890,7 +890,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     Tm1SlotSetFunc(tv_verdict,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_verdict) != 0) {
+    if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -907,7 +907,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_rreject) != 0) {
+    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -931,7 +931,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     TmVarSlotSetFuncAppend(tv_alert, tm_module, lh_logfile_ctx);
 
-    if (TmThreadSpawn(tv_alert) != 0) {
+    if (TmThreadSpawn(tv_alert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -956,7 +956,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     TmVarSlotSetFuncAppend(tv_unified, tm_module, aua_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified) != 0) {
+    if (TmThreadSpawn(tv_unified) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -973,7 +973,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     Tm1SlotSetFunc(tv_unified2,tm_module,au2a_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified2) != 0) {
+    if (TmThreadSpawn(tv_unified2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -990,7 +990,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     }
     Tm1SlotSetFunc(tv_debugalert,tm_module, ad_logfile_ctx);
 
-    if (TmThreadSpawn(tv_debugalert) != 0) {
+    if (TmThreadSpawn(tv_debugalert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1015,7 +1015,7 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_receivepcap,tm_module,file);
 
-    if (TmThreadSpawn(tv_receivepcap) != 0) {
+    if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1032,7 +1032,7 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode1) != 0) {
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1049,7 +1049,7 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream1) != 0) {
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1068,7 +1068,7 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect1) != 0) {
+    if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1085,7 +1085,7 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect2) != 0) {
+    if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1109,7 +1109,7 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
     }
     TmVarSlotSetFuncAppend(tv_alert,tm_module, lh_logfile_ctx);
 
-    if (TmThreadSpawn(tv_alert) != 0) {
+    if (TmThreadSpawn(tv_alert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1134,7 +1134,7 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
     }
     TmVarSlotSetFuncAppend(tv_unified,tm_module,aua_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified) != 0) {
+    if (TmThreadSpawn(tv_unified) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1152,7 +1152,7 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_unified2,tm_module,au2a_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified2) != 0) {
+    if (TmThreadSpawn(tv_unified2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1169,7 +1169,7 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
     }
     Tm1SlotSetFunc(tv_debugalert,tm_module, ad_logfile_ctx);
 
-    if (TmThreadSpawn(tv_debugalert) != 0) {
+    if (TmThreadSpawn(tv_debugalert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1259,7 +1259,7 @@ int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile
     }
     TmVarSlotSetFuncAppend(tv,tm_module, ad_logfile_ctx);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1283,7 +1283,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_receivepfring,tm_module,(void *)iface);
 
-    if (TmThreadSpawn(tv_receivepfring) != 0) {
+    if (TmThreadSpawn(tv_receivepfring) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1300,7 +1300,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_receivepfring2,tm_module,(void *)iface);
 
-    if (TmThreadSpawn(tv_receivepfring2) != 0) {
+    if (TmThreadSpawn(tv_receivepfring2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1317,7 +1317,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode1) != 0) {
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1334,7 +1334,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_decode2,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode2) != 0) {
+    if (TmThreadSpawn(tv_decode2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1351,7 +1351,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream1) != 0) {
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1368,7 +1368,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_stream2,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream2) != 0) {
+    if (TmThreadSpawn(tv_stream2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1385,7 +1385,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect1) != 0) {
+    if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1402,7 +1402,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect2) != 0) {
+    if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1419,7 +1419,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_rreject) != 0) {
+    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1443,7 +1443,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     TmVarSlotSetFuncAppend(tv_alert, tm_module, lh_logfile_ctx);
 
-    if (TmThreadSpawn(tv_alert) != 0) {
+    if (TmThreadSpawn(tv_alert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1468,7 +1468,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     TmVarSlotSetFuncAppend(tv_unified, tm_module, aua_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified) != 0) {
+    if (TmThreadSpawn(tv_unified) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1485,7 +1485,7 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfil
     }
     Tm1SlotSetFunc(tv_debugalert,tm_module,ad_logfile_ctx);
 
-    if (TmThreadSpawn(tv_debugalert) != 0) {
+    if (TmThreadSpawn(tv_debugalert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1510,7 +1510,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_receivepfring,tm_module,(void *)iface);
 
-    if (TmThreadSpawn(tv_receivepfring) != 0) {
+    if (TmThreadSpawn(tv_receivepfring) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1527,7 +1527,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode1) != 0) {
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1544,7 +1544,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream1) != 0) {
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1561,7 +1561,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_stream2,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream2) != 0) {
+    if (TmThreadSpawn(tv_stream2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1578,7 +1578,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_stream3,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream3) != 0) {
+    if (TmThreadSpawn(tv_stream3) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1595,7 +1595,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_stream4,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_stream4) != 0) {
+    if (TmThreadSpawn(tv_stream4) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1612,7 +1612,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect1) != 0) {
+    if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1629,7 +1629,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
 
-    if (TmThreadSpawn(tv_detect2) != 0) {
+    if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1646,7 +1646,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_rreject) != 0) {
+    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1670,7 +1670,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     TmVarSlotSetFuncAppend(tv_alert, tm_module, lh_logfile_ctx);
 
-    if (TmThreadSpawn(tv_alert) != 0) {
+    if (TmThreadSpawn(tv_alert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1695,7 +1695,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     TmVarSlotSetFuncAppend(tv_unified,tm_module,aua_logfile_ctx);
 
-    if (TmThreadSpawn(tv_unified) != 0) {
+    if (TmThreadSpawn(tv_unified) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1712,7 +1712,7 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_debugalert,tm_module,ad_logfile_ctx);
 
-    if (TmThreadSpawn(tv_debugalert) != 0) {
+    if (TmThreadSpawn(tv_debugalert) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1736,7 +1736,7 @@ int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_receivepfring,tm_module,(void *)iface);
 
-    if (TmThreadSpawn(tv_receivepfring) != 0) {
+    if (TmThreadSpawn(tv_receivepfring) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1753,7 +1753,7 @@ int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
     }
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
-    if (TmThreadSpawn(tv_decode1) != 0) {
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1822,7 +1822,7 @@ int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
 
     TmThreadSetCPUAffinity(tv, 0);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1890,7 +1890,7 @@ int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
 
     TmThreadSetCPUAffinity(tv, 0);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1958,7 +1958,7 @@ int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
 
     TmThreadSetCPUAffinity(tv, 1);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -2026,7 +2026,7 @@ int RunModeIdsPfring3(DetectEngineCtx *de_ctx, char *iface, LogFileCtx *af_logfi
 
     TmThreadSetCPUAffinity(tv, 1);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }

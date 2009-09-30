@@ -159,14 +159,12 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
 TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
     if(PKT_IS_IPV4(p))  {
-        if (Unified2IPv4TypeAlert (t, p, data, pq))
-	    return TM_ECODE_FAILED;
+        Unified2IPv4TypeAlert (t, p, data, pq);
         return TM_ECODE_OK;
     }
 
     if(PKT_IS_IPV6(p))  {
-        if (Unified2IPv6TypeAlert (t, p, data, pq))
-	    return TM_ECODE_FAILED;
+        Unified2IPv6TypeAlert (t, p, data, pq);
         return TM_ECODE_OK;
     }
 
