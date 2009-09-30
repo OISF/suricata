@@ -599,7 +599,7 @@ void FlowManagerThreadSpawn()
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    if (TmThreadSpawn(tv_flowmgr) != 0) {
+    if (TmThreadSpawn(tv_flowmgr) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }

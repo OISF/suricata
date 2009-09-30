@@ -343,7 +343,7 @@ void *TmThreadsSlot1(void *td) {
 }
 
 /* separate run function so we can call it recursively */
-static inline int TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot) {
+static inline TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot) {
     int r = 0;
     TmSlot *s = NULL;
 
@@ -355,7 +355,7 @@ static inline int TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot) 
             /* Encountered error.  Return packets to packetpool and return */
             TmqhReleasePacketsToPacketPool(&s->slot_pq);
             TmThreadsSetFlag(tv, THV_FAILED);
-            return 1;
+            return TM_ECODE_FAILED;
         }
 
         /* handle new packets */
@@ -366,19 +366,19 @@ static inline int TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot) 
             if (s->slot_next != NULL) {
                 r = TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
                 /* XXX handle error */
-                if (r == 1) {
+                if (r == TM_ECODE_FAILED) {
                     //printf("TmThreadsSlotVarRun: recursive TmThreadsSlotVarRun returned 1\n");
                     TmqhReleasePacketsToPacketPool(&s->slot_pq);
                     TmqhOutputPacketpool(tv, extra_p);
                     TmThreadsSetFlag(tv, THV_FAILED);
-                    return 1;
+                    return TM_ECODE_FAILED;
                 }
             }
             tv->tmqh_out(tv, extra_p);
         }
     }
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
 void *TmThreadsSlotVar(void *td) {
@@ -421,7 +421,7 @@ void *TmThreadsSlotVar(void *td) {
         } else {
             r = TmThreadsSlotVarRun(tv, p, s->s);
             /* XXX handle error */
-            if (r == 1) {
+            if (r == TM_ECODE_FAILED) {
                 //printf("TmThreadsSlotVar: TmThreadsSlotVarRun returned 1, breaking out of the loop.\n");
                 TmqhOutputPacketpool(tv, p);
                 TmThreadsSetFlag(tv, THV_FAILED);
@@ -458,7 +458,7 @@ void *TmThreadsSlotVar(void *td) {
     pthread_exit((void *) 0);
 }
 
-int TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *)) {
+TmEcode TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *)) {
     uint16_t size = 0;
 
     if (name == NULL) {
@@ -501,9 +501,9 @@ int TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *)) {
     if (tv->tm_slots == NULL) goto error;
     memset(tv->tm_slots, 0, size);
 
-    return 0;
+    return TM_ECODE_OK;
 error:
-    return -1;
+    return TM_ECODE_FAILED;
 }
 
 void Tm1SlotSetFunc(ThreadVars *tv, TmModule *tm, void *data) {
@@ -569,10 +569,10 @@ static int SetCPUAffinity(int cpu) {
     return 0;
 }
 
-int TmThreadSetCPUAffinity(ThreadVars *tv, int cpu) {
+TmEcode TmThreadSetCPUAffinity(ThreadVars *tv, int cpu) {
     tv->set_cpu_affinity = 1;
     tv->cpu_affinity = cpu;
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -661,7 +661,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
         }
     }
 
-    if (TmThreadSetSlots(tv, slots, fn_p) != 0) {
+    if (TmThreadSetSlots(tv, slots, fn_p) != TM_ECODE_OK) {
         goto error;
     }
 
@@ -841,15 +841,15 @@ void TmThreadKillThreads(void) {
 /**
  * \brief Spawns a thread associated with the ThreadVars instance tv
  *
- * \retval 0 on success and -1 on failure
+ * \retval TM_ECODE_OK on success and TM_ECODE_FAILED on failure
  */
-int TmThreadSpawn(ThreadVars *tv)
+TmEcode TmThreadSpawn(ThreadVars *tv)
 {
     pthread_attr_t attr;
 
     if (tv->tm_func == NULL) {
         printf("ERROR: no thread function set\n");
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     /* Initialize and set thread detached attribute */
@@ -859,12 +859,12 @@ int TmThreadSpawn(ThreadVars *tv)
     int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
     if (rc) {
         printf("ERROR; return code from pthread_create() is %" PRId32 "\n", rc);
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     TmThreadAppend(tv, tv->type);
 
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -1021,7 +1021,7 @@ static void TmThreadRestartThread(ThreadVars *tv)
     TmThreadsUnsetFlag(tv, THV_CLOSED);
     TmThreadsUnsetFlag(tv, THV_FAILED);
 
-    if (TmThreadSpawn(tv) != 0) {
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("Error: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -1068,10 +1068,10 @@ void TmThreadCheckThreadState(void)
 /** \brief Used to check if all threads have finished their initialization.  On
  *         finding an un-initialized thread, it waits till that thread completes
  *         its initialization, before proceeding to the next thread.
- *  \retval 0 all initialized properly
- *  \retval -1 failure
+ *  \retval TM_ECODE_OK all initialized properly
+ *  \retval TM_ECODE_FAILED failure
  */
-int TmThreadWaitOnThreadInit(void)
+TmEcode TmThreadWaitOnThreadInit(void)
 {
     ThreadVars *tv = NULL;
     int i = 0;
@@ -1091,7 +1091,7 @@ int TmThreadWaitOnThreadInit(void)
                     TmThreadsCheckFlag(tv, THV_FAILED))
                 {
                     printf("Thread \"%s\" failed to initialize...\n", tv->name);
-                    return -1;
+                    return TM_ECODE_FAILED;
                 }
             }
 
@@ -1104,7 +1104,7 @@ int TmThreadWaitOnThreadInit(void)
 
     SCLogInfo("all %"PRIu16" packet processing threads, %"PRIu16" management "
            "threads initialized, engine started.", ppt_num, mgt_num);
-    return 0;
+    return TM_ECODE_OK;
 }
 
 /**

@@ -533,7 +533,7 @@ int main(int argc, char **argv)
     TmValidateQueueState();
 
     /* Wait till all the threads have been initialized */
-    if (TmThreadWaitOnThreadInit() == -1) {
+    if (TmThreadWaitOnThreadInit() == TM_ECODE_FAILED) {
         printf("ERROR: Engine initialization failed, aborting...\n");
         exit(EXIT_FAILURE);
     }

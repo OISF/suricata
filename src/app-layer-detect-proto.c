@@ -390,7 +390,7 @@ void AppLayerDetectProtoThreadSpawn()
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    if (TmThreadSpawn(tv_applayerdetect) != 0) {
+    if (TmThreadSpawn(tv_applayerdetect) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }

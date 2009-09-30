@@ -103,7 +103,7 @@ void PerfSpawnThreads(void)
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    if (TmThreadSpawn(tv_wakeup) != 0) {
+    if (TmThreadSpawn(tv_wakeup) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
@@ -114,7 +114,7 @@ void PerfSpawnThreads(void)
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);
     }
-    if (TmThreadSpawn(tv_mgmt) != 0) {
+    if (TmThreadSpawn(tv_mgmt) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }

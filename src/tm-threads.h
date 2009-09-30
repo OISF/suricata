@@ -26,7 +26,7 @@ ThreadVars *TmThreadCreatePacketHandler(char *, char *, char *, char *, char *,
 
 ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *), int);
 
-int TmThreadSpawn(ThreadVars *);
+TmEcode TmThreadSpawn(ThreadVars *);
 
 void TmThreadSetFlags(ThreadVars *, uint8_t);
 
@@ -36,7 +36,7 @@ void TmThreadKillThreads(void);
 
 void TmThreadAppend(ThreadVars *, int);
 
-int TmThreadSetCPUAffinity(ThreadVars *, int);
+TmEcode TmThreadSetCPUAffinity(ThreadVars *, int);
 
 void TmThreadInitMC(ThreadVars *);
 
@@ -52,7 +52,7 @@ void TmThreadPauseThreads(void);
 
 void TmThreadCheckThreadState(void);
 
-int TmThreadWaitOnThreadInit(void);
+TmEcode TmThreadWaitOnThreadInit(void);
 
 inline int TmThreadsCheckFlag(ThreadVars *, uint8_t);
 inline void TmThreadsSetFlag(ThreadVars *, uint8_t);
