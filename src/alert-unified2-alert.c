@@ -599,13 +599,6 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
 
 #ifdef UNITTESTS
 
-ThreadVars tv;
-DecodeThreadVars dtv;
-PacketQueue pq;
-void *data = NULL;
-void *initdata = NULL;
-LogFileCtx *lf;
-
 /**
  *  \test Test the ethernet+ipv4+tcp unified2 test
  *
@@ -614,6 +607,12 @@ LogFileCtx *lf;
  */
 
 static int Unified2Test01 (void)   {
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    PacketQueue pq;
+    void *data = NULL;
+    LogFileCtx *lf;
+
     uint8_t raw_ipv4_tcp[] = {
         0x00, 0x14, 0xbf, 0xe8, 0xcb, 0x26, 0xaa, 0x00,
         0x04, 0x00, 0x0a, 0x04, 0x08, 0x00, 0x45, 0x00,
@@ -654,6 +653,12 @@ static int Unified2Test01 (void)   {
     ret = Unified2Alert(&tv, &p, data, &pq);
     if(ret == -1)
         return 0;
+    ret = Unified2AlertThreadDeinit(&tv, data);
+    if(ret == -1)
+        return 0;
+
+    if(LogFileFreeCtx(lf)==0)
+        return 0;
     return 1;
 }
 
@@ -665,6 +670,12 @@ static int Unified2Test01 (void)   {
  */
 
 static int Unified2Test02 (void)   {
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    PacketQueue pq;
+    void *data = NULL;
+    LogFileCtx *lf;
+
     uint8_t raw_ipv6_tcp[] = {
         0x00, 0x11, 0x25, 0x82, 0x95, 0xb5, 0x00, 0xd0,
         0x09, 0xe3, 0xe8, 0xde, 0x86, 0xdd, 0x60, 0x00,
@@ -695,8 +706,20 @@ static int Unified2Test02 (void)   {
 
     FlowShutdown();
 
+    lf=Unified2AlertInitCtx(NULL);
+    if(lf == NULL)
+        return 0;
+    ret = Unified2AlertThreadInit(&tv, lf, &data);
+    if(ret == -1)
+        return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
     if(ret == -1)
+        return 0;
+    ret = Unified2AlertThreadDeinit(&tv, data);
+    if(ret == -1)
+        return 0;
+
+    if(LogFileFreeCtx(lf)==0)
         return 0;
 
     return 1;
@@ -711,6 +734,12 @@ static int Unified2Test02 (void)   {
  */
 
 static int Unified2Test03 (void)   {
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    PacketQueue pq;
+    void *data = NULL;
+    LogFileCtx *lf;
+
     uint8_t raw_gre[] = {
         0x00, 0x0e, 0x50, 0x06, 0x42, 0x96, 0xaa, 0x00,
         0x04, 0x00, 0x0a, 0x04, 0x08, 0x00, 0x45, 0x00,
@@ -746,8 +775,20 @@ static int Unified2Test03 (void)   {
 
     FlowShutdown();
 
+    lf=Unified2AlertInitCtx(NULL);
+    if(lf == NULL)
+        return 0;
+    ret = Unified2AlertThreadInit(&tv, lf, &data);
+    if(ret == -1)
+        return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
     if(ret == -1)
+        return 0;
+    ret = Unified2AlertThreadDeinit(&tv, data);
+    if(ret == -1)
+        return 0;
+
+    if(LogFileFreeCtx(lf)==0)
         return 0;
 
     return 1;
@@ -761,6 +802,12 @@ static int Unified2Test03 (void)   {
  */
 
 static int Unified2Test04 (void)   {
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    PacketQueue pq;
+    void *data = NULL;
+    LogFileCtx *lf;
+
     uint8_t raw_ppp[] = {
         0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00, 0x2c,
         0x4d, 0xed, 0x00, 0x00, 0xff, 0x06, 0xd5, 0x17,
@@ -785,8 +832,20 @@ static int Unified2Test04 (void)   {
 
     FlowShutdown();
 
+    lf=Unified2AlertInitCtx(NULL);
+    if(lf == NULL)
+        return 0;
+    ret = Unified2AlertThreadInit(&tv, lf, &data);
+    if(ret == -1)
+        return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
     if(ret == -1)
+        return 0;
+    ret = Unified2AlertThreadDeinit(&tv, data);
+    if(ret == -1)
+        return 0;
+
+    if(LogFileFreeCtx(lf)==0)
         return 0;
 
     return 1;
@@ -800,6 +859,12 @@ static int Unified2Test04 (void)   {
  */
 
 static int Unified2Test05 (void)   {
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    PacketQueue pq;
+    void *data = NULL;
+    LogFileCtx *lf;
+
     uint8_t raw_ipv4_tcp[] = {
         0x00, 0x14, 0xbf, 0xe8, 0xcb, 0x26, 0xaa, 0x00,
         0x04, 0x00, 0x0a, 0x04, 0x08, 0x00, 0x45, 0x00,
@@ -833,6 +898,12 @@ static int Unified2Test05 (void)   {
 
     p.action = ACTION_DROP;
 
+    lf=Unified2AlertInitCtx(NULL);
+    if(lf == NULL)
+        return 0;
+    ret = Unified2AlertThreadInit(&tv, lf, &data);
+    if(ret == -1)
+        return 0;
     ret = Unified2Alert(&tv, &p, data, &pq);
     if(ret == -1)
         return 0;
