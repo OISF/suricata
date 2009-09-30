@@ -47,5 +47,7 @@ void StreamTcpCreateTestPacket(u_int8_t *, u_int8_t, u_int8_t);
 
 void StreamL7DataPtrInit(TcpSession *ssn, uint8_t cnt);
 
+void StreamTcpSetSessionNoReassemblyFlag (TcpSession *, char );
+
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 
