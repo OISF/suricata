@@ -1512,6 +1512,25 @@ end:
     return result;
 
 }
+
+/** \test Test first port of range being too big */
+int PortTestParse13 (void) {
+    DetectPort *dd = NULL;
+    int result = 0;
+
+    int r = DetectPortParse(&dd,"65536:65535");
+    if (r != 0) {
+        result = 1 ;
+        goto end;
+    }
+
+    DetectPortFree(dd);
+
+end:
+    return result;
+
+}
+
 #endif /* UNITTESTS */
 
 void DetectPortTests(void) {
@@ -1528,6 +1547,7 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestParse10", PortTestParse10, 1);
     UtRegisterTest("PortTestParse11", PortTestParse11, 1);
     UtRegisterTest("PortTestParse12", PortTestParse12, 1);
+    UtRegisterTest("PortTestParse13", PortTestParse13, 1);
 #endif /* UNITTESTS */
 }
 
