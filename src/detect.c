@@ -514,8 +514,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
  *  \param p packet to inspect
  *  \param data thread specific data
  *  \param pq packet queue
- *  \retval 1 error
- *  \retval 0 ok
+ *  \retval TM_ECODE_FAILED error
+ *  \retval TM_ECODE_OK ok
  */
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 

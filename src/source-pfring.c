@@ -148,8 +148,8 @@ void PfringProcessPacket(void *user, struct pfring_pkthdr *h, u_char *pkt, Packe
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into PfringThreadVars for ptv
  * \param pq pointer to the PacketQueue (not used here but part of the api)
- * \retval 0 on success
- * \retval -1 on failure
+ * \retval TM_ECODE_OK on success
+ * \retval TM_ECODE_FAILED on failure
  */
 TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     PfringThreadVars *ptv = (PfringThreadVars *)data;
@@ -188,8 +188,8 @@ TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
  * \param data pointer gets populated with PfringThreadVars
  * \todo add a config option for setting cluster id
  * \todo Create a general pfring setup function.
- * \retval 0 on success
- * \retval -1 on error
+ * \retval TM_ECODE_OK on success
+ * \retval TM_ECODE_FAILED on error
  */
 TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     int rc;
@@ -258,7 +258,7 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data) {
  * \brief DeInit function closes pd at exit.
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into PfringThreadVars for ptvi
- * \retval 0 is always returned
+ * \retval TM_ECODE_OK is always returned
  */
 TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
     PfringThreadVars *ptv = (PfringThreadVars *)data;
@@ -278,7 +278,7 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
  * \param data pointer that gets cast into PfringThreadVars for ptv
  * \param pq pointer to the current PacketQueue
  * \todo Verify that PF_RING only deals with ethernet traffic
- * \retval 0 is always returned
+ * \retval TM_ECODE_OK is always returned
  */
 TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
@@ -301,8 +301,8 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
  * \param tv pointer to ThreadVars
  * \param initdata pointer to initilization data.
  * \param data pointer that gets cast into PfringThreadVars for ptv
- * \retval 0 is returned on success
- * \retval -1 is returned on error
+ * \retval TM_ECODE_OK is returned on success
+ * \retval TM_ECODE_FAILED is returned on error
  */
 TmEcode DecodePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
 {

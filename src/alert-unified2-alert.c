@@ -21,7 +21,7 @@
 #include "util-debug.h"
 
 /*prototypes*/
-TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
+int Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode Unified2AlertThreadInit(ThreadVars *, void *, void **);
 TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
 int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
@@ -156,7 +156,7 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
     return 0;
 }
 
-TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
+int Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
     if(PKT_IS_IPV4(p))  {
         Unified2IPv4TypeAlert (t, p, data, pq);
@@ -168,7 +168,7 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
         return TM_ECODE_OK;
     }
 
-    return TM_ECODE_FAILED;
+    return -1;
 }
 
 /**
@@ -465,8 +465,8 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
  *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param initdata Unified2 thread initial data.
  *  \param data Unified2 thread data.
- *  \retval 0 on succces
- *  \retval -1 on failure
+ *  \retval TM_ECODE_OK on succces
+ *  \retval TM_ECODE_FAILED on failure
  */
 
 TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
@@ -496,8 +496,8 @@ TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
  *
  *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param data Unified2 thread data.
- *  \retval 0 on succces
- *  \retval -1 on failure
+ *  \retval TM_ECODE_OK on succces
+ *  \retval TM_ECODE_FAILED on failure
  */
 
 TmEcode Unified2AlertThreadDeinit(ThreadVars *t, void *data)

@@ -1478,8 +1478,8 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     ret = StreamTcpPacket(tv, p, stt);
     mutex_unlock(&p->flow->m);
 
-    if (ret)
-        return TM_ECODE_FAILED;
+    //if (ret)
+      //  return TM_ECODE_FAILED;
 
     stt->pkts++;
     return TM_ECODE_OK;

@@ -49,10 +49,8 @@ TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     if (PKT_IS_IPV4(p)) {
         if (PKT_IS_TCP(p)) {
             ret = RejectSendIPv4TCP(tv, p, data);
-            goto end;
         } else if(PKT_IS_UDP(p)) {
             ret = RejectSendIPv4ICMP(tv, p, data);
-            goto end;
         } else {
             return TM_ECODE_OK;
         }
@@ -68,7 +66,6 @@ TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         /* we're only supporting IPv4 and IPv6 */
         return TM_ECODE_OK;
     }
-end:
     if (ret)
         return TM_ECODE_FAILED;
     else

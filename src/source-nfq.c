@@ -57,7 +57,7 @@ TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 {
     printf("Error creating thread %s: you do not have support for nfqueue "
            "enabled please recompile with --enable-nfqueue\n", tv->name);
-    exit(TM_ECODE_FAILED);
+    exit(EXIT_FAILURE);
 }
 
 #else /* implied we do have NFQ support */
@@ -282,7 +282,7 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
         printf("NFQInitThread failed\n");
         //return -1;
         mutex_unlock(&nfq_init_lock);
-        exit(TM_ECODE_FAILED);
+        exit(EXIT_FAILURE);
     }
 
     *data = (void *)ntv;

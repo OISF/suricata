@@ -117,6 +117,7 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into PcapThreadVars for ptv
  * \param pq pointer to the PacketQueue (not used here but part of the api)
+ * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
 TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
