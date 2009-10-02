@@ -692,6 +692,9 @@ static int Unified2Test02 (void)   {
     Packet p;
     int ret;
 
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&pq, 0, sizeof(PacketQueue));
     memset(&p, 0, sizeof(Packet));
 
     p.alerts.cnt++;
@@ -761,6 +764,9 @@ static int Unified2Test03 (void)   {
     Packet p;
     int ret;
 
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&pq, 0, sizeof(PacketQueue));
     memset(&p, 0, sizeof(Packet));
 
     p.alerts.cnt++;
@@ -818,6 +824,9 @@ static int Unified2Test04 (void)   {
     Packet p;
     int ret;
 
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&pq, 0, sizeof(PacketQueue));
     memset(&p, 0, sizeof(Packet));
 
     p.alerts.cnt++;
