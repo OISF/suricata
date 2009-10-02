@@ -92,7 +92,6 @@ void *TmThreadsSlot1NoIn(void *td) {
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
-        //printf("%s: TmThreadsSlot1NoIn: init r %" PRId32 "\n", tv->name, r);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
@@ -108,7 +107,6 @@ void *TmThreadsSlot1NoIn(void *td) {
         TmThreadTestThreadUnPaused(tv);
 
         r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pq);
-        //printf("%s: TmThreadsSlot1NoIn: func r %" PRId32 "\n", tv->name, r);
         /* handle error */
         if (r == TM_ECODE_FAILED) {
             TmqhReleasePacketsToPacketPool(&s->s.slot_pq);
@@ -136,7 +134,6 @@ void *TmThreadsSlot1NoIn(void *td) {
 
     if (s->s.SlotThreadDeinit != NULL) {
         r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
-        //printf("%s: TmThreadsSlot1NoIn: deinit r %" PRId32 "\n", tv->name, r);
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
@@ -159,7 +156,6 @@ void *TmThreadsSlot1NoOut(void *td) {
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
-        //printf("%s: TmThreadsSlot1NoOut: init r %" PRId32 "\n", tv->name, r);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
@@ -177,7 +173,6 @@ void *TmThreadsSlot1NoOut(void *td) {
         p = tv->tmqh_in(tv);
 
         r = s->s.SlotFunc(tv, p, s->s.slot_data, /* no outqh no pq */NULL);
-        //printf("%s: TmThreadsSlot1NoOut: func r %" PRId32 "\n", tv->name, r);
         /* handle error */
         if (r == TM_ECODE_FAILED) {
             TmqhOutputPacketpool(tv, p);
@@ -197,7 +192,6 @@ void *TmThreadsSlot1NoOut(void *td) {
 
     if (s->s.SlotThreadDeinit != NULL) {
         r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
-        //printf("%s: TmThreadsSlot1NoOut: r %" PRId32 "\n", tv->name, r);
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
@@ -221,7 +215,6 @@ void *TmThreadsSlot1NoInOut(void *td) {
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
-        //printf("%s: TmThreadsSlot1NoInOut: init r %" PRId32 "\n", tv->name, r);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
@@ -236,7 +229,6 @@ void *TmThreadsSlot1NoInOut(void *td) {
         TmThreadTestThreadUnPaused(tv);
 
         r = s->s.SlotFunc(tv, NULL, s->s.slot_data, /* no outqh, no pq */NULL);
-        //printf("%s: TmThreadsSlot1NoInOut: func r %" PRId32 "\n", tv->name, r);
         //printf("%s: TmThreadsSlot1NoInNoOut: r %" PRId32 "\n", tv->name, r);
 
         /* handle error */
@@ -258,7 +250,6 @@ void *TmThreadsSlot1NoInOut(void *td) {
 
     if (s->s.SlotThreadDeinit != NULL) {
         r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
-        //printf("%s: TmThreadsSlot1NoInOut: deinit r %" PRId32 "\n", tv->name, r);
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
@@ -284,7 +275,6 @@ void *TmThreadsSlot1(void *td) {
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
-        //printf("%s: TmThreadsSlot1: init r %" PRId32 "\n", tv->name, r);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
@@ -305,7 +295,6 @@ void *TmThreadsSlot1(void *td) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
             r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pq);
-            printf("%s: TmThreadsSlot1: func r %" PRId32 "\n", tv->name, r);
             /* handle error */
             if (r == TM_ECODE_FAILED) {
                 TmqhReleasePacketsToPacketPool(&s->s.slot_pq);
@@ -339,7 +328,6 @@ void *TmThreadsSlot1(void *td) {
 
     if (s->s.SlotThreadDeinit != NULL) {
         r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
-        //printf("%s: TmThreadsSlot1: deinit r %" PRId32 "\n", tv->name, r);
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
@@ -358,10 +346,8 @@ static inline TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *sl
 
     for (s = slot; s != NULL; s = s->slot_next) {
         r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pq);
-        //printf("TmThreadsSlotVarRun: s->SlotFunc %p returned r %" PRId32 "\n", s->SlotFunc, r);
         /* handle error */
         if (r == TM_ECODE_FAILED) {
-            //printf("TmThreadsSlotVarRun: s->SlotFunc %p returned 1\n", s->SlotFunc);
             /* Encountered error.  Return packets to packetpool and return */
             TmqhReleasePacketsToPacketPool(&s->slot_pq);
             TmThreadsSetFlag(tv, THV_FAILED);
@@ -375,7 +361,6 @@ static inline TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *sl
             /* see if we need to process the packet */
             if (s->slot_next != NULL) {
                 r = TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
-                //printf("%s: TmThreadsSlotvarrun: run r %" PRId32 "\n", tv->name, r);
                 /* XXX handle error */
                 if (r == TM_ECODE_FAILED) {
                     //printf("TmThreadsSlotVarRun: recursive TmThreadsSlotVarRun returned 1\n");
@@ -408,7 +393,6 @@ void *TmThreadsSlotVar(void *td) {
     for (slot = s->s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadInit != NULL) {
             r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot->slot_data);
-            //printf("%s: TmThreadsSlotvar: init r %" PRId32 "\n", tv->name, r);
             if (r != TM_ECODE_OK) {
                 EngineKill();
 
@@ -432,7 +416,6 @@ void *TmThreadsSlotVar(void *td) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
             r = TmThreadsSlotVarRun(tv, p, s->s);
-            //printf("%s: TmThreadsSlotvar: var run r %" PRId32 "\n", tv->name, r);
             /* XXX handle error */
             if (r == TM_ECODE_FAILED) {
                 //printf("TmThreadsSlotVar: TmThreadsSlotVarRun returned 1, breaking out of the loop.\n");
@@ -611,7 +594,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     Tmq *tmq = NULL;
     Tmqh *tmqh = NULL;
 
-    printf("creating thread \"%s\"...\n", name);
+    SCLogDebug("creating thread \"%s\"...", name);
 
     /* XXX create separate function for this: allocate a thread container */
     tv = malloc(sizeof(ThreadVars));
@@ -789,7 +772,7 @@ void TmThreadKillThreads(void) {
 
         while (tv) {
             TmThreadsSetFlag(tv, THV_KILL);
-            printf("told thread %s to stop\n", tv->name);
+            SCLogDebug("told thread %s to stop", tv->name);
 
             /* XXX hack */
             StreamMsgSignalQueueHack();
@@ -811,7 +794,7 @@ void TmThreadKillThreads(void) {
                 int cnt = 0;
                 while (1) {
                     if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                        printf("signalled the thread %" PRId32 " times\n", cnt);
+                        SCLogDebug("signalled the thread %" PRId32 " times\n", cnt);
                         break;
                     }
 
@@ -823,14 +806,14 @@ void TmThreadKillThreads(void) {
                     usleep(100);
                 }
 
-                printf("signalled tv->inq->id %" PRIu32 "\n", tv->inq->id);
+                SCLogDebug("signalled tv->inq->id %" PRIu32 "\n", tv->inq->id);
             }
 
             if (tv->cond != NULL ) {
                 int cnt = 0;
                 while (1) {
                     if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                        printf("signalled the thread %" PRId32 " times\n", cnt);
+                        SCLogDebug("signalled the thread %" PRId32 " times\n", cnt);
                         break;
                     }
 
@@ -844,7 +827,7 @@ void TmThreadKillThreads(void) {
 
             /* join it */
             pthread_join(tv->t, NULL);
-            printf("thread %s stopped\n", tv->name);
+            SCLogDebug("thread %s stopped\n", tv->name);
 
             tv = tv->next;
         }
@@ -1040,7 +1023,7 @@ static void TmThreadRestartThread(ThreadVars *tv)
     }
 
     tv->restarted++;
-    printf("thread \"%s\" restarted\n", tv->name);
+    SCLogInfo("thread \"%s\" restarted\n", tv->name);
 
     return;
 }

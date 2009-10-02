@@ -21,7 +21,7 @@
 #include "util-debug.h"
 
 /*prototypes*/
-int Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode Unified2AlertThreadInit(ThreadVars *, void *, void **);
 TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
 int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
@@ -156,19 +156,23 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
     return 0;
 }
 
-int Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
+TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
+    int ret = 0;
+
     if(PKT_IS_IPV4(p))  {
-        Unified2IPv4TypeAlert (t, p, data, pq);
+        ret = Unified2IPv4TypeAlert (t, p, data, pq);
+    }else if(PKT_IS_IPV6(p))  {
+        ret = Unified2IPv6TypeAlert (t, p, data, pq);
+    } else {
+        /* we're only supporting IPv4 and IPv6 */
         return TM_ECODE_OK;
     }
 
-    if(PKT_IS_IPV6(p))  {
-        Unified2IPv6TypeAlert (t, p, data, pq);
-        return TM_ECODE_OK;
-    }
+    if (ret)
+	return TM_ECODE_FAILED;
 
-    return -1;
+    return TM_ECODE_OK;
 }
 
 /**
@@ -258,7 +262,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2)];
 
     if (p->alerts.cnt == 0)
-        return -1;
+        return 0;
 
     len = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2));
 
@@ -370,7 +374,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2)];
 
     if (p->alerts.cnt == 0)
-        return -1;
+        return 0;
 
     len = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2));
 
