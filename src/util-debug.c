@@ -31,6 +31,8 @@
 
 #include "util-unittest.h"
 
+#include "conf.h"
+
 /* holds the string-enum mapping for the enums held in the table SCLogLevel */
 SCEnumCharMap sc_log_level_map[ ] = {
     { "None",           SC_LOG_NONE },
@@ -83,6 +85,11 @@ SCEnumCharMap sc_syslog_facility_map[] = {
  * \brief Holds the config state for the logging module
  */
 static SCLogConfig *sc_log_config = NULL;
+
+/**
+ * \brief Returns the full path given a file and configured log dir
+ */
+static char * ScGetLogFilename(char *);
 
 /**
  * \brief Holds the global log level.  Is the same as sc_log_config->log_level
@@ -757,7 +764,7 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
             case SC_LOG_OP_IFACE_FILE:
                 s = getenv(SC_LOG_ENV_LOG_FILE);
                 if (s == NULL)
-                    s = SC_LOG_DEF_LOG_FILE;
+                    s = ScGetLogFilename(SC_LOG_DEF_LOG_FILE);
 
                 op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
                 break;
@@ -1047,8 +1054,7 @@ void SCLogInitLogModuleIfEnvSet(void)
         case SC_LOG_OP_IFACE_FILE:
             s = getenv(SC_LOG_ENV_LOG_FILE);
             if (s == NULL)
-                s = SC_LOG_DEF_LOG_FILE;
-
+                s = ScGetLogFilename(SC_LOG_DEF_LOG_FILE);
             op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
             break;
         case SC_LOG_OP_IFACE_SYSLOG:
@@ -1126,6 +1132,28 @@ void SCLogInitLogModuleIfEnvSet(void)
 }
 
 /**
+ * \brief returns a full file path given a filename uses log dir specified in conf or DEFAULT_LOG_DIR
+ *
+ * \param filearg the relative filename for which we want a full path include log directory
+ * \retval log_filename the fullpath of the logfile to open.
+ */
+static char *
+ScGetLogFilename(char *filearg)
+{
+    char *log_dir;
+    char *log_filename;
+
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
+    log_filename = malloc(PATH_MAX);
+    if (log_filename == NULL)
+        return NULL;
+    snprintf(log_filename, PATH_MAX, "%s/%s", log_dir, filearg);
+
+    return log_filename;
+}
+
+/**
  * \brief De-Initializes the logging module
  */
 void SCLogDeInitLogModule(void)
@@ -1198,13 +1226,13 @@ int SCLogTestInit02()
     SCLogInitData *sc_lid = NULL;
     SCLogOPIfaceCtx *sc_iface_ctx = NULL;
     int result = 1;
-
+    char *logfile = ScGetLogFilename("boo.txt");
     sc_lid = SCLogAllocLogInitData();
     sc_lid->startup_message = "Test02";
     sc_lid->global_log_level = SC_LOG_DEBUG;
     sc_lid->op_filter = "boo";
     sc_iface_ctx = SCLogInitOPIfaceCtx("file", "%m - %d", SC_LOG_ALERT,
-                                       "boo.txt");
+                                       logfile);
     SCLogAppendOPIfaceCtx(sc_iface_ctx, sc_lid);
     sc_iface_ctx = SCLogInitOPIfaceCtx("console", NULL, SC_LOG_ERROR,
                                        NULL);
