@@ -534,7 +534,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 {
     int ret;
 
-    PerfCounterIncr(dtv->counter_ipv4, tv->pca);
+    SCPerfCounterIncr(dtv->counter_ipv4, tv->sc_perf_pca);
 
     /* reset the decoder cache flags */
     IPV4_CACHE_INIT(p);

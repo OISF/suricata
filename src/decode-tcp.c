@@ -259,7 +259,7 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len
 
 void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    PerfCounterIncr(dtv->counter_tcp, tv->pca);
+    SCPerfCounterIncr(dtv->counter_tcp, tv->sc_perf_pca);
 
     if (DecodeTCPPacket(tv, p,pkt,len) < 0) {
         p->tcph = NULL;

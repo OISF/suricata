@@ -10,7 +10,7 @@
 
 void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    PerfCounterIncr(dtv->counter_eth, tv->pca);
+    SCPerfCounterIncr(dtv->counter_eth, tv->sc_perf_pca);
 
     if (len < ETHERNET_HEADER_LEN) {
         DECODER_SET_EVENT(p,ETHERNET_PKT_TOO_SMALL);

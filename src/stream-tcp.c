@@ -284,7 +284,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
                 if (ssn == NULL)
                     return -1;
 
-                PerfCounterIncr(stt->counter_tcp_sessions, tv->pca);
+                SCPerfCounterIncr(stt->counter_tcp_sessions, tv->sc_perf_pca);
             }
 
             /* set the state */
@@ -326,7 +326,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
                 ssn = StreamTcpNewSession(p);
                 if (ssn == NULL)
                     return -1;
-                PerfCounterIncr(stt->counter_tcp_sessions, tv->pca);
+                SCPerfCounterIncr(stt->counter_tcp_sessions, tv->sc_perf_pca);
             }
             /* set the state */
             StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
@@ -387,7 +387,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
                 ssn = StreamTcpNewSession(p);
                 if (ssn == NULL)
                     return -1;
-                PerfCounterIncr(stt->counter_tcp_sessions, tv->pca);
+                SCPerfCounterIncr(stt->counter_tcp_sessions, tv->sc_perf_pca);
             }
             /* set the state */
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
@@ -1495,9 +1495,10 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)stt;
 
-    stt->counter_tcp_sessions = PerfTVRegisterCounter("tcp.sessions", tv, TYPE_UINT64, "NULL");
-    tv->pca = PerfGetAllCountersArray(&tv->pctx);
-    PerfAddToClubbedTMTable(tv->name, &tv->pctx);
+    stt->counter_tcp_sessions = SCPerfTVRegisterCounter("tcp.sessions", tv,
+                                                        SC_PERF_TYPE_UINT64, "NULL");
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable(tv->name, &tv->sc_perf_pctx);
 
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx();

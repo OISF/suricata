@@ -576,7 +576,7 @@ void *FlowManagerThread(void *td)
         }
 
         if (TmThreadsCheckFlag(th_v, THV_KILL)) {
-            PerfUpdateCounterArray(th_v->pca, &th_v->pctx, 0);
+            SCPerfUpdateCounterArray(th_v->sc_perf_pca, &th_v->sc_perf_pctx, 0);
             break;
         }
 

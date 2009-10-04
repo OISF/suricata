@@ -120,9 +120,10 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
 
     /** alert counter setup */
-    det_ctx->counter_alerts = PerfTVRegisterCounter("detect.alert", tv, TYPE_UINT64, "NULL");
-    tv->pca = PerfGetAllCountersArray(&tv->pctx);
-    PerfAddToClubbedTMTable(tv->name, &tv->pctx);
+    det_ctx->counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
+                                                      SC_PERF_TYPE_UINT64, "NULL");
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable(tv->name, &tv->sc_perf_pctx);
 
     *data = (void *)det_ctx;
     //printf("DetectEngineThreadCtxInit: data %p det_ctx %p\n", *data, det_ctx);

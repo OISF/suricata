@@ -21,7 +21,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     uint16_t header_len = GRE_HDR_LEN;
     GRESreHdr *gsre = NULL;
 
-    PerfCounterIncr(dtv->counter_gre, tv->pca);
+    SCPerfCounterIncr(dtv->counter_gre, tv->sc_perf_pca);
 
     if(len < GRE_HDR_LEN)    {
         DECODER_SET_EVENT(p,GRE_PKT_TOO_SMALL);

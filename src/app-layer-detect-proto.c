@@ -380,7 +380,7 @@ void *AppLayerDetectProtoThread(void *td)
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
+            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
             run = 0;
         }
     }

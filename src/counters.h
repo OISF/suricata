@@ -9,55 +9,71 @@
 struct ThreadVars_;
 
 /* Time interval for syncing the local counters with the global ones */
-#define WUT_TTS 3
+#define SC_PERF_WUT_TTS 3
+
 /* Time interval at which the mgmt thread o/p the stats */
-#define MGMTT_TTS 8
+#define SC_PERF_MGMTT_TTS 8
 
-/* Type of counter */
+/**
+ * \brief Data type for different kind of Perf counters that can be registered
+ */
 enum {
-    TYPE_UINT64,
-    TYPE_DOUBLE,
-    TYPE_STR,
-    TYPE_MAX,
+    SC_PERF_TYPE_UINT64,
+    SC_PERF_TYPE_DOUBLE,
+    SC_PERF_TYPE_STR,
+    SC_PERF_TYPE_MAX,
 };
 
-/* Qualifier for the counter */
+/**
+ * \brief Different kinds of qualifier that can be used to modify the behaviour
+ *        of the Perf counter to be registered
+ */
 enum {
-    TYPE_Q_NORMAL = 0x01,
-    TYPE_Q_AVERAGE = 0x02,
-    TYPE_Q_MAXIMUM = 0x04,
-    TYPE_Q_TIMEBASED = 0x08,
-    TYPE_Q_MAX = 0x10,
+    SC_PERF_TYPE_Q_NORMAL = 0x01,
+    SC_PERF_TYPE_Q_AVERAGE = 0x02,
+    SC_PERF_TYPE_Q_MAXIMUM = 0x04,
+    SC_PERF_TYPE_Q_TIMEBASED = 0x08,
+    SC_PERF_TYPE_Q_MAX = 0x10,
 };
 
-/* Output interfaces */
+/**
+ * \brief Different output interfaces made available by the Perf counter API
+ */
 enum {
-    IFACE_FILE,
-    IFACE_CONSOLE,
-    IFACE_NETWORK,
-    IFACE_SYSLOG,
+    SC_PERF_IFACE_FILE,
+    SC_PERF_IFACE_CONSOLE,
+    SC_PERF_IFACE_SYSLOG,
+    SC_PERF_IFACE_MAX,
 };
 
-typedef struct PerfCounterName_ {
+/**
+ * \brief Name of the counter.  Basically like a primary key for a counter
+ */
+typedef struct SCPerfCounterName_ {
     char *cname;
     char *tm_name;
-    pthread_t tid;
-} PerfCounterName;
+} SCPerfCounterName;
 
-typedef struct PerfCounterValue_ {
+/**
+ * \brief Holds the counter value, type, and the size of the type
+ */
+typedef struct SCPerfCounterValue_ {
     void *cvalue;
     uint32_t size;
     uint32_t type;
-} PerfCounterValue;
+} SCPerfCounterValue;
 
-/* Container to hold the counter variable */
-typedef struct PerfCounter_ {
-    PerfCounterName *name;
-    PerfCounterValue *value;
+/**
+ * \brief Container to hold the counter variable
+ */
+typedef struct SCPerfCounter_ {
+    SCPerfCounterName *name;
+    SCPerfCounterValue *value;
 
     /* local id for this counter in this tm */
     uint16_t id;
 
+    /* description of this counter */
     char *desc;
 
     /* no of times the local counter has been synced with this counter */
@@ -70,25 +86,36 @@ typedef struct PerfCounter_ {
     int type_q;
 
     /* the next perfcounter for this tv's tm instance */
-    struct PerfCounter_ *next;
-} PerfCounter;
+    struct SCPerfCounter_ *next;
+} SCPerfCounter;
 
-/* Holds the Perf Context for a ThreadVars instance */
-typedef struct PerfContext_ {
-    PerfCounter *head;
+/**
+ * \brief Holds the Perf Context for a ThreadVars instance
+ */
+typedef struct SCPerfContext_ {
+    /* pointer to the head of a list of counters assigned under this context */
+    SCPerfCounter *head;
 
     /* flag set by the wakeup thread, to inform the client threads to sync */
     uint32_t perf_flag;
+
+    /* holds the total no of counters already assigned for this perf context */
     uint16_t curr_id;
 
     /* mutex to prevent simultaneous access during update_counter/output_stat */
     pthread_mutex_t m;
-} PerfContext;
+} SCPerfContext;
 
-/* PerfCounterArray(PCA) Node*/
-typedef struct PCAElem_ {
-    PerfCounter *pc;
+/**
+ * \brief Node elements used by the SCPerfCounterArray(PCA) Node
+ */
+typedef struct SCPCAElem_ {
+    /* pointer to the PerfCounter that corresponds to this PCAElem */
+    SCPerfCounter *pc;
+
+    /* counter id of the above counter(pc) */
     uint16_t id;
+
     union {
         uint64_t ui64_cnt;
         double d_cnt;
@@ -99,106 +126,95 @@ typedef struct PCAElem_ {
 
     /* indicates the times syncs has overflowed */
     uint64_t wrapped_syncs;
-} PCAElem;
+} SCPCAElem;
 
-/* The PerfCounterArray */
-typedef struct PerfCounterArray_ {
+/**
+ * \brief The SCPerfCounterArray used to hold the local version of the counters
+ *        registered
+ */
+typedef struct SCPerfCounterArray_ {
     /* points to the array holding PCAElems */
-    PCAElem *head;
+    SCPCAElem *head;
 
     /* no of PCAElems in head */
     uint32_t size;
-} PerfCounterArray;
+} SCPerfCounterArray;
 
-/* Holds multiple instances of the same TM together, used when the stats
- * have to be clubbed based on TM, before being sent out*/
-typedef struct PerfClubTMInst_ {
+/**
+ * \brief Holds multiple instances of the same TM together, used when the stats
+ *        have to be clubbed based on TM, before being sent out
+ */
+typedef struct SCPerfClubTMInst_ {
     char *tm_name;
 
-    PerfContext **head;
+    SCPerfContext **head;
     uint32_t size;
 
-    struct PerfClubTMInst_ *next;
-} PerfClubTMInst;
+    struct SCPerfClubTMInst_ *next;
+} SCPerfClubTMInst;
 
-/* Holds the output interface context for the counter api */
-typedef struct PerfOPIfaceContext_ {
+/**
+ * \brief Holds the output interface context for the counter api
+ */
+typedef struct SCPerfOPIfaceContext_ {
+    /* the iface to be used for output */
     uint32_t iface;
+
+    /* the file to be used if the output interface used is SC_PERF_IFACE_FILE */
     char *file;
 
     /* more interfaces to be supported later.  For now just a file */
     FILE *fp;
 
+    /* indicates whether the counter values from the same threading module
+     * should be clubbed or not, during output */
     uint32_t club_tm;
 
-    PerfClubTMInst *pctmi;
+    SCPerfClubTMInst *pctmi;
     pthread_mutex_t pctmi_lock;
-} PerfOPIfaceContext;
-
-void PerfInitCounterApi(void);
-
-void PerfInitOPCtx(void);
-
-void PerfSpawnThreads(void);
-
-void * PerfMgmtThread(void *);
-
-void * PerfWakeupThread(void *);
-
-uint16_t PerfTVRegisterCounter(char *, struct ThreadVars_ *, int, char *);
-
-uint16_t PerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int, char *);
-
-uint16_t PerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int, char *);
-
-uint16_t PerfTVRegisterIntervalCounter(char *, struct ThreadVars_ *, int, char *);
-
-uint16_t PerfRegisterCounter(char *, char *, int, char *, PerfContext *);
-
-uint16_t PerfRegisterAvgCounter(char *, char *, int, char *, PerfContext *);
-
-uint16_t PerfRegisterMaxCounter(char *, char *, int, char *, PerfContext *);
-
-uint16_t PerfRegisterIntervalCounter(char *, char *, int, char *, PerfContext *);
-
-int PerfCounterDisplay(uint16_t, PerfContext *, int);
-
-inline void PerfCounterIncr(uint16_t, PerfCounterArray *);
-
-inline void PerfCounterAddUI64(uint16_t, PerfCounterArray *, uint64_t);
-
-inline void PerfCounterAddDouble(uint16_t, PerfCounterArray *, double);
-
-inline void PerfCounterSetUI64(uint16_t, PerfCounterArray *, uint64_t);
-
-inline void PerfCounterSetDouble(uint16_t, PerfCounterArray *, double);
-
-int PerfAddToClubbedTMTable(char *, PerfContext *);
-
-PerfCounterArray * PerfGetCounterArrayRange(uint16_t, uint16_t,
-                                            PerfContext *);
-
-PerfCounterArray * PerfGetAllCountersArray(PerfContext *);
+} SCPerfOPIfaceContext;
 
 
-int PerfUpdateCounter(char *, char *, uint64_t, void *, PerfContext *);
+/* the initialization functions */
+void SCPerfInitCounterApi(void);
+void SCPerfSpawnThreads(void);
 
-int PerfUpdateCounterArray(PerfCounterArray *, PerfContext *, int);
+/* the ThreadVars counter registration functions */
+uint16_t SCPerfTVRegisterCounter(char *, struct ThreadVars_ *, int, char *);
+uint16_t SCPerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int, char *);
+uint16_t SCPerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int, char *);
+uint16_t SCPerfTVRegisterIntervalCounter(char *, struct ThreadVars_ *, int,
+                                         char *, char *);
 
-void PerfOutputCounters(void);
+/* the non-ThreadVars counter registration functions */
+uint16_t SCPerfRegisterCounter(char *, char *, int, char *, SCPerfContext *);
+uint16_t SCPerfRegisterAvgCounter(char *, char *, int, char *, SCPerfContext *);
+uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfContext *);
+uint16_t SCPerfRegisterIntervalCounter(char *, char *, int, char *,
+                                       SCPerfContext *, char *);
 
-int PerfOutputCounterFileIface(void);
+/* utility functions */
+int SCPerfAddToClubbedTMTable(char *, SCPerfContext *);
+SCPerfCounterArray *SCPerfGetCounterArrayRange(uint16_t, uint16_t, SCPerfContext *);
+SCPerfCounterArray * SCPerfGetAllCountersArray(SCPerfContext *);
+int SCPerfCounterDisplay(uint16_t, SCPerfContext *, int);
 
-void PerfReleaseResources(void);
+/* functions used to update local counter values */
+inline void SCPerfCounterIncr(uint16_t, SCPerfCounterArray *);
+inline void SCPerfCounterAddUI64(uint16_t, SCPerfCounterArray *, uint64_t);
+inline void SCPerfCounterAddDouble(uint16_t, SCPerfCounterArray *, double);
+inline void SCPerfCounterSetUI64(uint16_t, SCPerfCounterArray *, uint64_t);
+inline void SCPerfCounterSetDouble(uint16_t, SCPerfCounterArray *, double);
 
-void PerfReleaseOPCtx(void);
+int SCPerfUpdateCounterArray(SCPerfCounterArray *, SCPerfContext *, int);
 
-void PerfReleasePerfCounterS(PerfCounter *);
+void SCPerfOutputCounters(void);
 
-void PerfReleaseCounter(PerfCounter *);
+/* functions used to free the resources alloted by the Perf counter API */
+void SCPerfReleaseResources(void);
+void SCPerfReleaseSCPerfCounterS(SCPerfCounter *);
+void SCPerfReleasePCA(SCPerfCounterArray *);
 
-void PerfReleasePCA(PerfCounterArray *);
-
-void PerfRegisterTests(void);
+void SCPerfRegisterTests(void);
 
 #endif /* __COUNTERS_H__ */

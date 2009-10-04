@@ -393,7 +393,7 @@ int main(int argc, char **argv)
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
-    PerfInitCounterApi();
+    SCPerfInitCounterApi();
 
     /** \todo we need an api for these */
     AppLayerDetectProtoThreadInit();
@@ -446,7 +446,7 @@ int main(int argc, char **argv)
         ByteRegisterTests();
         MpmRegisterTests();
         FlowBitRegisterTests();
-        PerfRegisterTests();
+        SCPerfRegisterTests();
         DecodePPPRegisterTests();
         HTTPParserRegisterTests();
         TLSParserRegisterTests();
@@ -567,7 +567,7 @@ int main(int argc, char **argv)
     //AppLayerDetectProtoThreadSpawn();
 
     /* Spawn the perf counter threads.  Let these be the last one spawned */
-    PerfSpawnThreads();
+    SCPerfSpawnThreads();
 
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();
@@ -622,7 +622,7 @@ int main(int argc, char **argv)
             SCLogInfo("time elapsed %" PRIuMAX "s", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
 
             TmThreadKillThreads();
-            PerfReleaseResources();
+            SCPerfReleaseResources();
             break;
         }
 

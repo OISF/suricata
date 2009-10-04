@@ -202,7 +202,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
 void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    PerfCounterIncr(dtv->counter_icmpv6, tv->pca);
+    SCPerfCounterIncr(dtv->counter_icmpv6, tv->sc_perf_pca);
 
     if (len < ICMPV6_HEADER_LEN) {
         SCLogDebug("ICMPV6_PKT_TOO_SMALL");

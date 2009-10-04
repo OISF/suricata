@@ -26,8 +26,8 @@ Packet *TmqhInputSimple(ThreadVars *t)
         pthread_cond_wait(&q->cond_q, &q->mutex_q);
     }
 
-    if (t->pctx.perf_flag == 1)
-        PerfUpdateCounterArray(t->pca, &t->pctx, 0);
+    if (t->sc_perf_pctx.perf_flag == 1)
+        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
 
     if (q->len > 0) {
         Packet *p = PacketDequeue(q);

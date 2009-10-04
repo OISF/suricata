@@ -55,8 +55,8 @@ Packet *TmqhInputFlow(ThreadVars *tv)
         pthread_cond_wait(&q->cond_q, &q->mutex_q);
     }
 
-    if (tv->pctx.perf_flag == 1)
-        PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
+    if (tv->sc_perf_pctx.perf_flag == 1)
+        SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
 
     if (q->len > 0) {
         Packet *p = PacketDequeue(q);

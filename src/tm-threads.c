@@ -135,7 +135,7 @@ void *TmThreadsSlot1NoIn(void *td) {
         tv->tmqh_out(tv, p);
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
+            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
             run = 0;
         }
     }
@@ -193,7 +193,7 @@ void *TmThreadsSlot1NoOut(void *td) {
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
+            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
             run = 0;
         }
     }
@@ -252,7 +252,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             //printf("%s: TmThreadsSlot1NoInOut: KILL is set\n", tv->name);
-            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
+            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
             run = 0;
         }
     }
@@ -330,7 +330,7 @@ void *TmThreadsSlot1(void *td) {
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             //printf("%s: TmThreadsSlot1: KILL is set\n", tv->name);
-            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
+            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
             run = 0;
         }
     }
@@ -443,7 +443,7 @@ void *TmThreadsSlotVar(void *td) {
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             //printf("%s: TmThreadsSlot1: KILL is set\n", tv->name);
-            PerfUpdateCounterArray(tv->pca, &tv->pctx, 0);
+            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
             run = 0;
         }
     }

@@ -161,7 +161,7 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 
 void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    PerfCounterIncr(dtv->counter_udp, tv->pca);
+    SCPerfCounterIncr(dtv->counter_udp, tv->sc_perf_pca);
 
     if (DecodeUDPPacket(tv, p,pkt,len) < 0) {
         p->udph = NULL;

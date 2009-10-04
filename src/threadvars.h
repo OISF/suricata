@@ -57,8 +57,9 @@ typedef struct ThreadVars_ {
     char set_cpu_affinity; /** bool: 0 no, 1 yes */
     int cpu_affinity; /** cpu or core number to set affinity to */
 
-    PerfContext pctx;
-    PerfCounterArray *pca;
+    /* the perf counter context and the perf counter array */
+    SCPerfContext sc_perf_pctx;
+    SCPerfCounterArray *sc_perf_pca;
 
     pthread_mutex_t *m;
     pthread_cond_t *cond;
