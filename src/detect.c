@@ -351,7 +351,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         return 0;
     }
 
-    if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL) {
+    if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL && !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
         /* run the pattern matcher against the packet */
         if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
             //printf("Not scanning as pkt payload is smaller than the largest content length we need to match");
