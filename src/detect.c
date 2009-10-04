@@ -340,10 +340,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
     }
 
-    /* if we don't need any pattern matcher or other content inspection, then return*/
-    if (p->flags & PKT_NOPAYLOAD_INSPECTION)
-        return 1;
-
     /* we assume we don't have an uri when we start inspection */
     det_ctx->de_have_httpuri = 0;
 
@@ -396,6 +392,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         sig = det_ctx->sgh->match_array[idx];
         //sig = det_ctx->pmq.sig_id_array[idx];
         s = de_ctx->sig_array[sig];
+
+        /* filter out the sigs that inspects the payload, if packet
+           no payload inspection flag is set*/
+        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD))
+            continue;
 
         /* filter out sigs that want pattern matches, but
          * have no matches */
@@ -605,12 +606,35 @@ iponly:
     }
     return 1;
 }
+/**
+ * \brief Check if the initialized signature is inspecting the packet payload
+ *  \param de_ctx detection engine ctx
+ *  \param s the signature
+ *  \retval 1 sig is inspecting the payload
+ *  \retval 0 sig is not inspecting the payload
+ */
+static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
+
+    SigMatch *sm = s->match;
+    if (sm == NULL)
+        goto inspect_payload;
+
+    for (; sm != NULL; sm = sm->next)
+        if (!(sigmatch_table[sm->type].flags & SIGMATCH_PAYLOAD))
+            return 0;
+
+inspect_payload:
+    if (!(de_ctx->flags & DE_QUIET))
+        SCLogDebug("Signature (%" PRIu32 "): is inspecting payload.", s->id);
+    return 1;
+}
 
 /* add all signatures to their own source address group */
 int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL;
     uint32_t cnt = 0, cnt_iponly = 0;
+    uint32_t cnt_payload = 0;
 
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -642,7 +666,9 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             tmp_s->flags |= SIG_FLAG_IPONLY;
             cnt_iponly++;
             //printf("(IP only)\n");
-        } else {
+        } else if (SignatureIsInspectingPayload(de_ctx, tmp_s) == 1) {
+            tmp_s->flags |= SIG_FLAG_PAYLOAD;
+            cnt_payload++;
             //printf("\n");
             //if (tmp_s->proto.flags & DETECT_PROTO_ANY) {
             //printf("Signature %" PRIu32 " applies to all protocols.\n",tmp_s->id);
@@ -704,8 +730,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only rules",
-            de_ctx->sig_cnt, cnt_iponly);
+        SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only rules and %" PRIu32 " are inspecting packet payload",
+            de_ctx->sig_cnt, cnt_iponly, cnt_payload);
         SCLogInfo("building signature grouping structure, stage 1: "
                "adding signatures to signature source addresses... done");
     }

@@ -46,6 +46,8 @@ void DetectBytetestRegister (void) {
     sigmatch_table[DETECT_BYTETEST].Free  = DetectBytetestFree;
     sigmatch_table[DETECT_BYTETEST].RegisterTests = DetectBytetestRegisterTests;
 
+    sigmatch_table[DETECT_BYTETEST].flags |= SIGMATCH_PAYLOAD;
+
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {

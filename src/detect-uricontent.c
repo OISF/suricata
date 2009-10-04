@@ -26,6 +26,8 @@ void DetectUricontentRegister (void) {
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = NULL;
     sigmatch_table[DETECT_URICONTENT].RegisterTests = HttpUriRegisterTests;
+
+    sigmatch_table[DETECT_URICONTENT].flags |= SIGMATCH_PAYLOAD;
 }
 
 /* pass on the uricontent_max_id */

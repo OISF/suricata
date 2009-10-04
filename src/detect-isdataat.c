@@ -43,6 +43,8 @@ void DetectIsdataatRegister (void) {
     sigmatch_table[DETECT_ISDATAAT].Free  = DetectIsdataatFree;
     sigmatch_table[DETECT_ISDATAAT].RegisterTests = DetectIsdataatRegisterTests;
 
+    sigmatch_table[DETECT_ISDATAAT].flags |= SIGMATCH_PAYLOAD;
+
     const char *eb;
     int eo;
     int opts = 0;

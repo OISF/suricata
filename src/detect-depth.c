@@ -15,6 +15,8 @@ void DetectDepthRegister (void) {
     sigmatch_table[DETECT_DEPTH].Setup = DetectDepthSetup;
     sigmatch_table[DETECT_DEPTH].Free  = NULL;
     sigmatch_table[DETECT_DEPTH].RegisterTests = NULL;
+
+    sigmatch_table[DETECT_DEPTH].flags |= SIGMATCH_PAYLOAD;
 }
 
 int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *depthstr)

@@ -20,6 +20,8 @@ void DetectWithinRegister (void) {
     sigmatch_table[DETECT_WITHIN].Setup = DetectWithinSetup;
     sigmatch_table[DETECT_WITHIN].Free  = NULL;
     sigmatch_table[DETECT_WITHIN].RegisterTests = NULL;
+
+    sigmatch_table[DETECT_WITHIN].flags |= SIGMATCH_PAYLOAD;
 }
 
 int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *withinstr)

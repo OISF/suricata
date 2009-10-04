@@ -45,6 +45,8 @@ void DetectBytejumpRegister (void) {
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
     sigmatch_table[DETECT_BYTEJUMP].RegisterTests = DetectBytejumpRegisterTests;
 
+    sigmatch_table[DETECT_BYTEJUMP].flags |= SIGMATCH_PAYLOAD;
+
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {

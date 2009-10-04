@@ -33,6 +33,8 @@ void DetectPcreRegister (void) {
     sigmatch_table[DETECT_PCRE].Free  = DetectPcreFree;
     sigmatch_table[DETECT_PCRE].RegisterTests  = NULL;
 
+    sigmatch_table[DETECT_PCRE].flags |= SIGMATCH_PAYLOAD;
+
     const char *eb;
     int eo;
     int opts = 0;
