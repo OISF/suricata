@@ -70,25 +70,40 @@ error:
 
 
 static int DetectFlowbitMatchToggle (Packet *p, DetectFlowbitsData *fd) {
+    if (p->flow == NULL)
+        return 0;
+
     FlowBitToggle(p->flow,fd->idx);
     return 1;
 }
 
 static int DetectFlowbitMatchUnset (Packet *p, DetectFlowbitsData *fd) {
+    if (p->flow == NULL)
+        return 0;
+
     FlowBitUnset(p->flow,fd->idx);
     return 1;
 }
 
 static int DetectFlowbitMatchSet (Packet *p, DetectFlowbitsData *fd) {
+    if (p->flow == NULL)
+        return 0;
+
     FlowBitSet(p->flow,fd->idx);
     return 1;
 }
 
 static int DetectFlowbitMatchIsset (Packet *p, DetectFlowbitsData *fd) {
+    if (p->flow == NULL)
+        return 0;
+
     return FlowBitIsset(p->flow,fd->idx);
 }
 
 static int DetectFlowbitMatchIsnotset (Packet *p, DetectFlowbitsData *fd) {
+    if (p->flow == NULL)
+        return 0;
+
     return FlowBitIsnotset(p->flow,fd->idx);
 }
 
