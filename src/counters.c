@@ -15,6 +15,9 @@
 /** \todo Get the default log directory from some global resource. */
 #define SC_PERF_DEFAULT_LOG_FILENAME "stats.log"
 
+/* Used to parse the interval for Timebased counters */
+#define SC_PERF_PCRE_TIMEBASED_INTERVAL "^(?:(\\d+)([shm]))(?:(\\d+)([shm]))?(?:(\\d+)([shm]))?$"
+
 static SCPerfOPIfaceContext *sc_perf_op_ctx = NULL;
 
 /**
@@ -71,7 +74,8 @@ static void SCPerfInitOPCtx(void)
     }
 
     if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, "w+")) == NULL) {
-        SCLogError(SC_ERR_OPENING_FILE, "fopen error opening file %s\n",
+        SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
+                   "to using the standard output for output",
                    sc_perf_op_ctx->file);
         sc_perf_op_ctx->fp = stdout;
     }
@@ -132,8 +136,8 @@ static void *SCPerfMgmtThread(void *arg)
     struct timespec cond_time;
 
     if (sc_perf_op_ctx == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "SCPerfInitCounterApi() has to be "
-                   "called first");
+        SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
+                   "SCPerfInitCounterApi() has to be called first");
         return NULL;
     }
 
@@ -174,6 +178,12 @@ static void *SCPerfWakeupThread(void *arg)
     ThreadVars *tv = NULL;
     PacketQueue *q = NULL;
     struct timespec cond_time;
+
+    if (sc_perf_op_ctx == NULL) {
+        SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
+                   "SCPerfInitCounterApi() has to be called first");
+        return NULL;
+    }
 
     TmThreadsSetFlag(tv_local, THV_INIT_DONE);
     while (run) {
@@ -219,15 +229,133 @@ static void *SCPerfWakeupThread(void *arg)
  * \param pc       Pointer to the PerfCounter that has to be updated with the
  *                 interval
  * \param interval Pointer to a character string that holds the time interval
+ *
+ * \retval  0 on successfully parsing the time_interval
+ * \retval -1 on error
  */
-static void SCPerfParseTBCounterInterval(SCPerfCounter *pc, char *interval)
+static int SCPerfParseTBCounterInterval(SCPerfCounter *pc, char *interval)
 {
-    char *temp_interval = NULL;
-    char *substr = NULL;
+    pcre *regex = NULL;
+    pcre_extra *regex_study = NULL;
+    int opts = 0;
+    const char *ep = NULL;
+    const char *str_ptr = NULL;
+    int eo = 0;
+    int ret = 0;
+    int res = 0;
+    int ov[30];
+    int temp_value = 0;
+    int i = 0;
 
-    if ( (temp_interval = strdup(interval)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+    regex = pcre_compile(SC_PERF_PCRE_TIMEBASED_INTERVAL, opts, &ep, &eo, NULL);
+    if (regex == NULL) {
+        SCLogInfo("pcre compile of \"%s\" failed at offset %d: %s", interval,
+                  eo, ep);
+        goto error;
+    }
+
+    regex_study = pcre_study(regex, 0, &ep);
+    if (ep != NULL) {
+        SCLogInfo("pcre study failed: %s", ep);
+        goto error;
+    }
+
+    ret = pcre_exec(regex, regex_study, interval, strlen(interval), 0, 0, ov, 30);
+    if (ret < 0) {
+        SCLogWarning(SC_INVALID_ARGUMENTS, "Invalid Timebased interval");
+        goto error;
+    }
+
+    for (i = 1; i < ret; i += 2) {
+        res = pcre_get_substring((char *)interval, ov, 30, i, &str_ptr);
+        if (res < 0) {
+            SCLogInfo("SCPerfParseTBCounterInterval:pcre_get_substring failed");
+            goto error;
+        }
+        temp_value = atoi(str_ptr);
+
+        res = pcre_get_substring((char *)interval, ov, 30, i + 1, &str_ptr);
+        if (res < 0) {
+            SCLogInfo("SCPerfParseTBCounterInterval:pcre_get_substring failed");
+            goto error;
+        }
+
+        switch (*str_ptr) {
+            case 'h':
+                if (temp_value < 0 || temp_value > 24) {
+                    SCLogInfo("Invalid timebased counter interval");
+                    goto error;
+                }
+                pc->type_q->hours = temp_value;
+
+                break;
+            case 'm':
+                if (temp_value < 0 || temp_value >= 60) {
+                    SCLogInfo("Invalid timebased counter interval");
+                    goto error;
+                }
+                pc->type_q->minutes = temp_value;
+
+                break;
+            case 's':
+                if (temp_value < 0 || temp_value >= 60) {
+                    SCLogInfo("Invalid timebased counter interval");
+                    goto error;
+                }
+                pc->type_q->seconds = temp_value;
+
+                break;
+        }
+    }
+
+    if ( !(pc->type_q->hours | pc->type_q->minutes | pc->type_q->seconds)) {
+        SCLogInfo("Invalid timebased counter interval");
+        goto error;
+    }
+
+    pc->type_q->total_secs = ((pc->type_q->hours * 60 * 60) +
+                              (pc->type_q->minutes * 60) + pc->type_q->seconds);
+    pc->type_q->ts = time(NULL);
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Releases a perf counter.  Used internally by
+ *        SCPerfReleasePerfCounterS()
+ *
+ * \param pc Pointer to the SCPerfCounter to be freed
+ */
+static void SCPerfReleaseCounter(SCPerfCounter *pc)
+{
+    if (pc != NULL) {
+        if (pc->name != NULL) {
+            if (pc->name->cname != NULL)
+                free(pc->name->cname);
+
+            if (pc->name->tm_name != NULL)
+                free(pc->name->tm_name);
+
+            free(pc->name);
+        }
+
+        if (pc->value != NULL) {
+            if (pc->value->cvalue != NULL)
+                free(pc->value->cvalue);
+
+            free(pc->value);
+        }
+
+        if (pc->desc != NULL)
+            free(pc->desc);
+
+        if (pc->type_q != NULL)
+            free(pc->type_q);
+
+        free(pc);
     }
 
     return;
@@ -286,16 +414,12 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     if (temp != NULL)
         return(temp->id);
 
+    /* if we reach this point we don't have a counter registered by this cname */
     if ( (pc = malloc(sizeof(SCPerfCounter))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(pc, 0, sizeof(SCPerfCounter));
-
-    if (prev == NULL)
-        *head = pc;
-    else
-        prev->next = pc;
 
     if ( (pc->name = malloc(sizeof(SCPerfCounterName))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -322,6 +446,33 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
         exit(EXIT_FAILURE);
     }
 
+    /* assign a unique id to this SCPerfCounter.  The id is local to this
+     * PerfContext.  Please note that the id start from 1, and not 0 */
+    pc->id = ++(pctx->curr_id);
+
+    if (desc != NULL && (pc->desc = strdup(desc)) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    if ( (pc->type_q = malloc(sizeof(SCPerfCounterTypeQ))) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(pc->type_q, 0, sizeof(SCPerfCounterTypeQ));
+
+    pc->type_q->type = type_q;
+
+    /* handle timebased counters */
+    if (pc->type_q->type & SC_PERF_TYPE_Q_TIMEBASED) {
+        /* override for all timebased counters */
+        type = SC_PERF_TYPE_DOUBLE;
+        if (SCPerfParseTBCounterInterval(pc, interval) == -1) {
+            SCPerfReleaseCounter(pc);
+            return 0;
+        }
+    }
+
     /* allocate memory to hold this counter value */
     pc->value->type = type;
     switch (pc->value->type) {
@@ -341,61 +492,16 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     }
     memset(pc->value->cvalue, 0, pc->value->size);
 
-    /* assign a unique id to this SCPerfCounter.  The id is local to this
-     * PerfContext.  please note that the id start from 1, and not 0 */
-    pc->id = ++(pctx->curr_id);
-
-    if (desc != NULL && (pc->desc = strdup(desc)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
-
-    pc->type_q = type_q;
-
-    /* handle timebased counters */
-    if (pc->type_q & SC_PERF_TYPE_Q_TIMEBASED)
-        SCPerfParseTBCounterInterval(pc, interval);
-
-    /* the display flag which specifies whether the counter should be displayed
-     * or not */
+    /* display flag which specifies if the counter should be displayed or not */
     pc->disp = 1;
 
+    /* we now add the counter to the list */
+    if (prev == NULL)
+        *head = pc;
+    else
+        prev->next = pc;
+
     return pc->id;
-}
-
-/**
- * \brief Releases a perf counter.  Used internally by
- *        SCPerfReleaseSCPerfCounterS()
- *
- * \param pc Pointer to the SCPerfCounter to be freed
- */
-static void SCPerfReleaseCounter(SCPerfCounter *pc)
-{
-    if (pc != NULL) {
-        if (pc->name != NULL) {
-            if (pc->name->cname != NULL)
-                free(pc->name->cname);
-
-            if (pc->name->tm_name != NULL)
-                free(pc->name->tm_name);
-
-            free(pc->name);
-        }
-
-        if (pc->value != NULL) {
-            if (pc->value->cvalue != NULL)
-                free(pc->value->cvalue);
-
-            free(pc->value);
-        }
-
-        if (pc->desc != NULL)
-            free(pc->desc);
-
-        free(pc);
-    }
-
-    return;
 }
 
 /**
@@ -413,6 +519,7 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
     SCPerfCounter *pc = NULL;
     double d_temp = 0;
     uint64_t ui64_temp = 0;
+
     int i = 0;
 
     pc = pcae->pc;
@@ -420,14 +527,23 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
         case SC_PERF_TYPE_UINT64:
             ui64_temp = pcae->ui64_cnt;
 
-            if (pc->type_q & SC_PERF_TYPE_Q_AVERAGE) {
+            if (pc->type_q->type & SC_PERF_TYPE_Q_AVERAGE) {
                 for (i = 0; i < pcae->wrapped_syncs; i++)
                     ui64_temp /= ULONG_MAX;
 
                 if (pcae->syncs != 0)
                     ui64_temp /= pcae->syncs;
+
+                *((uint64_t *)pc->value->cvalue) = ui64_temp;
+            } else if (pc->type_q->type & SC_PERF_TYPE_Q_TIMEBASED) {
+                /* special treatment for timebased counters.  We add instead of
+                 * copying to the global counters.  The job of resetting the
+                 * global counters is done by the output function */
+                *((uint64_t *)pc->value->cvalue) += ui64_temp;
+                pcae->ui64_cnt = 0;
+            } else {
+                *((uint64_t *)pc->value->cvalue) = ui64_temp;
             }
-            memcpy(pc->value->cvalue, &ui64_temp, pc->value->size);
 
             if (reset_lc)
                 pcae->ui64_cnt = 0;
@@ -436,20 +552,92 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
         case SC_PERF_TYPE_DOUBLE:
             d_temp = pcae->d_cnt;
 
-            if (pc->type_q & SC_PERF_TYPE_Q_AVERAGE) {
+            if (pc->type_q->type & SC_PERF_TYPE_Q_AVERAGE) {
                 for (i = 0; i < pcae->wrapped_syncs; i++)
                     d_temp /= ULONG_MAX;
 
                 if (pcae->syncs != 0)
                     d_temp /= pcae->syncs;
+
+                *((double *)pc->value->cvalue) = d_temp;
+            } else if (pc->type_q->type & SC_PERF_TYPE_Q_TIMEBASED) {
+                /* special treatment for timebased counters.  We add instead of
+                 * copying to the global counters.  The job of resetting the
+                 * global counters is done by the output function */
+                *((double *)pc->value->cvalue) += d_temp;
+                pcae->d_cnt = 0;
+            } else {
+                *((double *)pc->value->cvalue) = d_temp;
             }
-            memcpy(pc->value->cvalue, &d_temp, pc->value->size);
 
             if (reset_lc)
                 pcae->d_cnt = 0;
 
             break;
     }
+
+    return;
+}
+
+/**
+ * \brief Calculates counter value that should be sent as output
+ *
+ *        If we aren't dealing with timebased counters, we just return the
+ *        the counter value.  In case of Timebased counters, if we haven't
+ *        crossed the interval, we display the current value without any
+ *        modifications.  If we have crossed the limit, we calculate the counter
+ *        value for the time period and also return 1, to indicate that the
+ *        counter value can be reset after use
+ *
+ * \param pc Pointer to the PerfCounter for which the timebased counter has to
+ *           be calculated
+ */
+static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op)
+{
+    time_t curr_ts;
+    int elapsed_secs = 0;
+    double divisor = 0;
+
+    switch (pc->value->type) {
+        case SC_PERF_TYPE_UINT64:
+            *((uint64_t *)cvalue_op) = *((uint64_t *)pc->value->cvalue);
+
+            break;
+        case SC_PERF_TYPE_DOUBLE:
+            *((double *)cvalue_op) = *((double *)pc->value->cvalue);
+
+            break;
+    }
+
+    /* if we don't have a Timebased counter, we are out of here */
+    if ( !(pc->type_q->type & SC_PERF_TYPE_Q_TIMEBASED))
+        return;
+
+    /* we have a timebased counter.  Awesome.  Time for some more processing */
+    curr_ts = time(NULL);
+    elapsed_secs = curr_ts - pc->type_q->ts;
+
+    if (elapsed_secs < pc->type_q->total_secs)
+        return;
+
+    divisor = elapsed_secs/pc->type_q->total_secs;
+    divisor += ((double)(elapsed_secs % pc->type_q->total_secs)/
+                pc->type_q->total_secs);
+
+    switch (pc->value->type) {
+        case SC_PERF_TYPE_UINT64:
+            *((uint64_t *)cvalue_op) = *((uint64_t *)pc->value->cvalue) / divisor;
+
+            break;
+        case SC_PERF_TYPE_DOUBLE:
+            *((double *)cvalue_op) = *((double *)pc->value->cvalue) / divisor;
+
+            break;
+    }
+
+    pc->type_q->ts = time(NULL);
+
+    memset(pc->value->cvalue, 0, pc->value->size);
 
     return;
 }
@@ -464,10 +652,10 @@ static int SCPerfOutputCounterFileIface()
     SCPerfCounter *pc = NULL;
     SCPerfCounter **pc_heads = NULL;
 
-    uint64_t *ui64_cvalue = NULL;
+    uint64_t ui64_temp = 0;
     uint64_t ui64_result = 0;
 
-    double *double_cvalue = NULL;
+    double double_temp = 0;
     double double_result = 0;
 
     struct timeval tval;
@@ -475,6 +663,7 @@ static int SCPerfOutputCounterFileIface()
 
     int i = 0;
     int flag = 0;
+    int tb_flag = 0;
 
     if (sc_perf_op_ctx->fp == NULL) {
         SCLogDebug("perf_op_ctx->fp is NULL");
@@ -512,9 +701,20 @@ static int SCPerfOutputCounterFileIface()
                         continue;
                     }
 
-                    ui64_cvalue = (uint64_t *)pc->value->cvalue;
-                    fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
-                            pc->name->cname, pc->name->tm_name, *ui64_cvalue);
+                    switch (pc->value->type) {
+                        case SC_PERF_TYPE_UINT64:
+                            SCPerfOutputCalculateCounterValue(pc_heads[i], &ui64_temp);
+                            fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
+                                    pc->name->cname, pc->name->tm_name, ui64_temp);
+
+                            break;
+                        case SC_PERF_TYPE_DOUBLE:
+                            SCPerfOutputCalculateCounterValue(pc_heads[i], &double_temp);
+                            fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-lf\n",
+                                    pc->name->cname, pc->name->tm_name, double_temp);
+
+                            break;
+                    }
 
                     pc = pc->next;
                 }
@@ -554,13 +754,13 @@ static int SCPerfOutputCounterFileIface()
             for (i = 0; i < pctmi->size; i++) {
                 switch (pc->value->type) {
                     case SC_PERF_TYPE_UINT64:
-                        ui64_cvalue = pc_heads[i]->value->cvalue;
-                        ui64_result += *ui64_cvalue;
+                        SCPerfOutputCalculateCounterValue(pc_heads[i], &ui64_temp);
+                        ui64_result += ui64_temp;
 
                         break;
                     case SC_PERF_TYPE_DOUBLE:
-                        double_cvalue = pc_heads[i]->value->cvalue;
-                        double_result += *double_cvalue;
+                        SCPerfOutputCalculateCounterValue(pc_heads[i], &double_temp);
+                        double_result += double_temp;
 
                         break;
                 }
@@ -622,7 +822,7 @@ void SCPerfSpawnThreads(void)
     ThreadVars *tv_wakeup = NULL;
     ThreadVars *tv_mgmt = NULL;
 
-    /* Spawn the stats wakeup thread */
+    /* spawn the stats wakeup thread */
     tv_wakeup = TmThreadCreateMgmtThread("SCPerfWakeupThread",
                                          SCPerfWakeupThread, 1);
     if (tv_wakeup == NULL) {
@@ -636,7 +836,7 @@ void SCPerfSpawnThreads(void)
         exit(EXIT_FAILURE);
     }
 
-    /* Spawn the stats mgmt thread */
+    /* spawn the stats mgmt thread */
     tv_mgmt = TmThreadCreateMgmtThread("SCPerfMgmtThread",
                                        SCPerfMgmtThread, 1);
     if (tv_mgmt == NULL) {
@@ -744,7 +944,8 @@ uint16_t SCPerfTVRegisterIntervalCounter(char *cname, struct ThreadVars_ *tv,
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname, tv->name, type, desc,
                                                  &tv->sc_perf_pctx,
-                                                 SC_PERF_TYPE_Q_MAXIMUM,
+                                                 SC_PERF_TYPE_Q_TIMEBASED |
+                                                 SC_PERF_TYPE_Q_NORMAL,
                                                  time_interval);
 
     return id;
@@ -848,7 +1049,9 @@ uint16_t SCPerfRegisterIntervalCounter(char *cname, char *tm_name, int type,
                                      char *time_interval)
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, desc,
-                                                 pctx, SC_PERF_TYPE_Q_MAXIMUM,
+                                                 pctx,
+                                                 SC_PERF_TYPE_Q_TIMEBASED |
+                                                 SC_PERF_TYPE_Q_NORMAL,
                                                  time_interval);
 
     return id;
@@ -856,7 +1059,7 @@ uint16_t SCPerfRegisterIntervalCounter(char *cname, char *tm_name, int type,
 
 /**
  * \brief Adds a TM to the clubbed TM table.  Multiple instances of the same TM
- *        are stacked together in a PCTMI container
+ *        are stacked together in a PCTMI container.
  *
  * \param tm_name Name of the tm to be added to the table
  * \param pctx    SCPerfContext associated with the TM tm_name
@@ -890,6 +1093,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
         break;
     }
 
+    /* get me the bugger who wrote this junk of a code :P */
     if (pctmi == NULL) {
         if ( (temp = malloc(sizeof(SCPerfClubTMInst))) == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -1010,11 +1214,16 @@ SCPerfCounterArray *SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
  *
  * \param pctx Pointer to the tv's SCPerfContext
  *
- * \retval a counter-array for all counters of this tm instance
+ * \retval pca Pointer to a counter-array for all counter of this tm instance
+ *             on success; NULL on failure
  */
 SCPerfCounterArray *SCPerfGetAllCountersArray(SCPerfContext *pctx)
 {
-    return ((pctx)? SCPerfGetCounterArrayRange(1, pctx->curr_id, pctx): NULL);
+    SCPerfCounterArray *pca = ((pctx)?
+                               SCPerfGetCounterArrayRange(1, pctx->curr_id, pctx):
+                               NULL);
+
+    return pca;
 }
 
 /**
@@ -1026,7 +1235,8 @@ SCPerfCounterArray *SCPerfGetAllCountersArray(SCPerfContext *pctx)
  * \param disp Holds a 0 or a non-zero value, based on whether the counter
  *             should be displayed or not, in the output
  *
- * \retval 1 on success, 0 on failure
+ * \retval 1 on success
+ * \retval 0 on failure
  */
 int SCPerfCounterDisplay(uint16_t id, SCPerfContext *pctx, int disp)
 {
@@ -1183,19 +1393,19 @@ inline void SCPerfCounterSetUI64(uint16_t id, SCPerfCounterArray *pca,
 
     switch (pca->head[id].pc->value->type) {
         case SC_PERF_TYPE_UINT64:
-            if ( (pca->head[id].pc->type_q & SC_PERF_TYPE_Q_MAXIMUM) &&
+            if ( (pca->head[id].pc->type_q->type & SC_PERF_TYPE_Q_MAXIMUM) &&
                  (x > pca->head[id].ui64_cnt)) {
                 pca->head[id].ui64_cnt = x;
-            } else if (pca->head[id].pc->type_q & SC_PERF_TYPE_Q_NORMAL) {
+            } else if (pca->head[id].pc->type_q->type & SC_PERF_TYPE_Q_NORMAL) {
                 pca->head[id].ui64_cnt = x;
             }
 
             break;
         case SC_PERF_TYPE_DOUBLE:
-            if ( (pca->head[id].pc->type_q & SC_PERF_TYPE_Q_MAXIMUM) &&
+            if ( (pca->head[id].pc->type_q->type & SC_PERF_TYPE_Q_MAXIMUM) &&
                  (x > pca->head[id].d_cnt)) {
                 pca->head[id].d_cnt = x;
-            } else if (pca->head[id].pc->type_q & SC_PERF_TYPE_Q_NORMAL) {
+            } else if (pca->head[id].pc->type_q->type & SC_PERF_TYPE_Q_NORMAL) {
                 pca->head[id].d_cnt = x;
             }
 
@@ -1233,19 +1443,19 @@ inline void SCPerfCounterSetDouble(uint16_t id, SCPerfCounterArray *pca,
 
     switch (pca->head[id].pc->value->type) {
         case SC_PERF_TYPE_UINT64:
-            if ( (pca->head[id].pc->type_q & SC_PERF_TYPE_Q_MAXIMUM) &&
+            if ( (pca->head[id].pc->type_q->type & SC_PERF_TYPE_Q_MAXIMUM) &&
                  (x > pca->head[id].ui64_cnt)) {
                 pca->head[id].ui64_cnt = x;
-            } else if (pca->head[id].pc->type_q & SC_PERF_TYPE_Q_NORMAL) {
+            } else if (pca->head[id].pc->type_q->type & SC_PERF_TYPE_Q_NORMAL) {
                 pca->head[id].ui64_cnt = x;
             }
 
             break;
         case SC_PERF_TYPE_DOUBLE:
-            if ( (pca->head[id].pc->type_q & SC_PERF_TYPE_Q_MAXIMUM) &&
+            if ( (pca->head[id].pc->type_q->type & SC_PERF_TYPE_Q_MAXIMUM) &&
                  (x > pca->head[id].d_cnt)) {
                 pca->head[id].d_cnt = x;
-            } else if (pca->head[id].pc->type_q & SC_PERF_TYPE_Q_NORMAL) {
+            } else if (pca->head[id].pc->type_q->type & SC_PERF_TYPE_Q_NORMAL) {
                 pca->head[id].d_cnt = x;
             }
 
@@ -1350,7 +1560,7 @@ void SCPerfReleaseResources()
  * \param head Pointer to the head of the list of perf counters that have to
  *             be freed
  */
-void SCPerfReleaseSCPerfCounterS(SCPerfCounter *head)
+void SCPerfReleasePerfCounterS(SCPerfCounter *head)
 {
     SCPerfCounter *pc = NULL;
 
@@ -1412,7 +1622,7 @@ static int SCPerfTestCounterReg03()
 
     result = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL, &pctx);
 
-    SCPerfReleaseSCPerfCounterS(pctx.head);
+    SCPerfReleasePerfCounterS(pctx.head);
 
     return result;
 }
@@ -1430,7 +1640,7 @@ static int SCPerfTestCounterReg04()
 
     result = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL, &pctx);
 
-    SCPerfReleaseSCPerfCounterS(pctx.head);
+    SCPerfReleasePerfCounterS(pctx.head);
 
     return result;
 }
@@ -1465,7 +1675,7 @@ static int SCPerfTestGetCntArray06()
 
     result = (tv.sc_perf_pca)?1:0;
 
-    SCPerfReleaseSCPerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
     SCPerfReleasePCA(tv.sc_perf_pca);
 
     return result;
@@ -1493,7 +1703,7 @@ static int SCPerfTestCntArraySize07()
 
     result = pca->size;
 
-    SCPerfReleaseSCPerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
     SCPerfReleasePCA(pca);
 
     return result;
@@ -1518,7 +1728,7 @@ static int SCPerfTestUpdateCounter08()
 
     result = pca->head[id].ui64_cnt;
 
-    SCPerfReleaseSCPerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
     SCPerfReleasePCA(pca);
 
     return result;
@@ -1551,7 +1761,7 @@ static int SCPerfTestUpdateCounter09()
 
     result = (pca->head[id1].ui64_cnt == 0) && (pca->head[id2].ui64_cnt == 101);
 
-    SCPerfReleaseSCPerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
     SCPerfReleasePCA(pca);
 
     return result;
@@ -1564,7 +1774,6 @@ static int SCPerfTestUpdateGlobalCounter10()
 
     int result = 1;
     uint16_t id1, id2, id3;
-    uint64_t *p = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -1584,16 +1793,11 @@ static int SCPerfTestUpdateGlobalCounter10()
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
 
-    p = (uint64_t *)tv.sc_perf_pctx.head->value->cvalue;
-    result = (1 == *p);
+    result = (1 == *((uint64_t *)tv.sc_perf_pctx.head->value->cvalue) );
+    result &= (100 == *((uint64_t *)tv.sc_perf_pctx.head->next->value->cvalue) );
+    result &= (101 == *((uint64_t *)tv.sc_perf_pctx.head->next->next->value->cvalue) );
 
-    p = (uint64_t *)tv.sc_perf_pctx.head->next->value->cvalue;
-    result &= (100 == *p);
-
-    p = (uint64_t *)tv.sc_perf_pctx.head->next->next->value->cvalue;
-    result &= (101 == *p);
-
-    SCPerfReleaseSCPerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
     SCPerfReleasePCA(pca);
 
     return result;
@@ -1652,7 +1856,7 @@ static int SCPerfTestCounterValues11()
     result &= (1 == *(u8p + 2));
     result &= (1 == *(u8p + 3));
 
-    SCPerfReleaseSCPerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
     SCPerfReleasePCA(pca);
 
     return result;
@@ -1662,8 +1866,6 @@ static int SCPerfTestAverageQual12()
 {
     ThreadVars tv;
     SCPerfCounterArray *pca = NULL;
-    uint64_t *ui64_temp = NULL;
-    double *d_temp = NULL;
 
     int result = 1;
     uint16_t id1, id2;
@@ -1689,8 +1891,7 @@ static int SCPerfTestAverageQual12()
     result &= (21 == pca->head[1].d_cnt);
     result &= (6 == pca->head[1].syncs);
     result &= (0 == pca->head[1].wrapped_syncs);
-    d_temp = tv.sc_perf_pctx.head->value->cvalue;
-    result &= (3.5 == *d_temp);
+    result &= (3.5 == *((double *)tv.sc_perf_pctx.head->value->cvalue) );
 
     SCPerfCounterAddUI64(id2, pca, 1.635);
     SCPerfCounterAddUI64(id2, pca, 2.12);
@@ -1704,8 +1905,7 @@ static int SCPerfTestAverageQual12()
     result &= (21 == pca->head[2].ui64_cnt);
     result &= (6 == pca->head[2].syncs);
     result &= (0 == pca->head[2].wrapped_syncs);
-    ui64_temp = tv.sc_perf_pctx.head->next->value->cvalue;
-    result &= (3 == *ui64_temp);
+    result &= (3 == *((uint64_t *)tv.sc_perf_pctx.head->next->value->cvalue));
 
     return result;
 }
@@ -1714,7 +1914,6 @@ static int SCPerfTestMaxQual13()
 {
     ThreadVars tv;
     SCPerfCounterArray *pca = NULL;
-    double *p;
 
     int result = 1;
     uint16_t id1;
@@ -1723,8 +1922,6 @@ static int SCPerfTestMaxQual13()
 
     id1 = SCPerfRegisterMaxCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
                                    &tv.sc_perf_pctx);
-
-    p = tv.sc_perf_pctx.head->value->cvalue;
 
     pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
 
@@ -1735,20 +1932,199 @@ static int SCPerfTestMaxQual13()
     SCPerfCounterSetDouble(id1, pca, 1.2342);
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
-    result &= (5.13562 == *p);
+    result &= (5.13562 == *((double *)tv.sc_perf_pctx.head->value->cvalue));
 
     SCPerfCounterSetDouble(id1, pca, 8);
     SCPerfCounterSetDouble(id1, pca, 7);
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
-    result &= (8 == *p);
+    result &= (8 == *((double *)tv.sc_perf_pctx.head->value->cvalue));
 
     SCPerfCounterSetDouble(id1, pca, 6);
     SCPerfCounterSetUI64(id1, pca, 10);
     SCPerfCounterSetDouble(id1, pca, 9.562);
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
-    result &= (10 == *p);
+    result &= (10 == *((double *)tv.sc_perf_pctx.head->value->cvalue));
+
+    return result;
+}
+
+static int SCPerfTestIntervalQual14()
+{
+    ThreadVars tv;
+    int result = 1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                  &tv.sc_perf_pctx, "10s");
+
+    result &= (tv.sc_perf_pctx.head->type_q->hours == 0);
+    result &= (tv.sc_perf_pctx.head->type_q->minutes == 0);
+    result &= (tv.sc_perf_pctx.head->type_q->seconds == 10);
+
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                  &tv.sc_perf_pctx, "20h10s");
+
+    result &= (tv.sc_perf_pctx.head->type_q->hours == 20);
+    result &= (tv.sc_perf_pctx.head->type_q->minutes == 0);
+    result &= (tv.sc_perf_pctx.head->type_q->seconds == 10);
+
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                  &tv.sc_perf_pctx, "20h30m10s");
+
+    result &= (tv.sc_perf_pctx.head->type_q->hours == 20);
+    result &= (tv.sc_perf_pctx.head->type_q->minutes == 30);
+    result &= (tv.sc_perf_pctx.head->type_q->seconds == 10);
+
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                  &tv.sc_perf_pctx, "30m10s");
+
+    result &= (tv.sc_perf_pctx.head->type_q->hours == 0);
+    result &= (tv.sc_perf_pctx.head->type_q->minutes == 30);
+    result &= (tv.sc_perf_pctx.head->type_q->seconds == 10);
+
+    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+
+    return result;
+}
+
+static int SCPerfTestIntervalQual15()
+{
+    ThreadVars tv;
+    int result = 1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "25h") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "24h61m") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "24h60m") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "24h58m61s") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "24h61m60s") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "24h61ms") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "236m") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "67s") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    result &= (SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                             &tv.sc_perf_pctx, "0h0m0s") == 0);
+    result &= (tv.sc_perf_pctx.head == NULL);
+
+    return result;
+}
+
+static int SCPerfTestIntervalQual16()
+{
+    ThreadVars tv;
+    SCPerfCounterArray *pca = NULL;
+    double d_temp = 0;
+
+    int result = 1;
+    uint16_t id1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    id1 = SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                        &tv.sc_perf_pctx, "3s");
+
+    pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+
+    SCPerfCounterAddDouble(id1, pca, 1);
+    SCPerfCounterAddDouble(id1, pca, 2);
+    SCPerfCounterAddDouble(id1, pca, 3);
+    SCPerfCounterAddDouble(id1, pca, 4);
+    SCPerfCounterAddDouble(id1, pca, 5);
+    SCPerfCounterAddDouble(id1, pca, 6);
+
+    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
+
+    printf("\nHang on.  Testing an interval counter.  Sleeping for 6 seconds\n");
+    sleep(6);
+
+    SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
+
+    result &= (d_temp > 10 || d_temp < 11);
+
+    return result;
+}
+
+static int SCPerfTestIntervalQual17()
+{
+    ThreadVars tv;
+    SCPerfCounterArray *pca = NULL;
+    double d_temp = 0;
+
+    int result = 1;
+    uint16_t id1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    id1 = SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                        &tv.sc_perf_pctx, "2m30s");
+
+    pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+
+    SCPerfCounterAddDouble(id1, pca, 1);
+    SCPerfCounterAddDouble(id1, pca, 2);
+    SCPerfCounterAddDouble(id1, pca, 3);
+    SCPerfCounterAddDouble(id1, pca, 4);
+    SCPerfCounterAddDouble(id1, pca, 5);
+    SCPerfCounterAddDouble(id1, pca, 6);
+
+    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
+
+    printf("\nHang on.  Testing an interval counter.  Sleeping for 3 seconds\n");
+    sleep(3);
+
+    SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
+
+    result &= (d_temp == 21);
 
     return result;
 }
@@ -1769,6 +2145,10 @@ void SCPerfRegisterTests()
     UtRegisterTest("SCPerfTestCounterValues11", SCPerfTestCounterValues11, 1);
     UtRegisterTest("SCPerfTestAverageQual12", SCPerfTestAverageQual12, 1);
     UtRegisterTest("SCPerfTestMaxQual13", SCPerfTestMaxQual13, 1);
+    UtRegisterTest("SCPerfTestIntervalQual14", SCPerfTestIntervalQual14, 1);
+    UtRegisterTest("SCPerfTestIntervalQual15", SCPerfTestIntervalQual15, 1);
+    UtRegisterTest("SCPerfTestIntervalQual16", SCPerfTestIntervalQual16, 1);
+    UtRegisterTest("SCPerfTestIntervalQual17", SCPerfTestIntervalQual17, 1);
 
     return;
 }

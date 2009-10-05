@@ -309,7 +309,10 @@ typedef struct DecodeThreadVars_
 {
     /** stats/counters */
     uint16_t counter_pkts;
+    uint16_t counter_pkts_per_sec;
     uint16_t counter_bytes;
+    uint16_t counter_bytes_per_sec;
+    uint16_t counter_mbit_per_sec;
     uint16_t counter_ipv4;
     uint16_t counter_ipv6;
     uint16_t counter_eth;
@@ -408,6 +411,8 @@ typedef struct DecodeThreadVars_
 #define IS_TUNNEL_PKT(p)       (((p)->tunnel_pkt == 1))
 #define SET_TUNNEL_PKT(p)      ((p)->tunnel_pkt = 1)
 
+
+void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
 
 /* decoder functions */
 void DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);

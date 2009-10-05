@@ -64,6 +64,22 @@ typedef struct SCPerfCounterValue_ {
 } SCPerfCounterValue;
 
 /**
+ * \brief Container that holds the type qualifier for a counter
+ */
+typedef struct SCPerfCounterTypeQ_ {
+    int type;
+
+    int hours;
+    int minutes;
+    int seconds;
+
+    int total_secs;
+
+    /* timestamp to indicate the time, when the counter was last reset */
+    time_t ts;
+} SCPerfCounterTypeQ;
+
+/**
  * \brief Container to hold the counter variable
  */
 typedef struct SCPerfCounter_ {
@@ -83,7 +99,7 @@ typedef struct SCPerfCounter_ {
     int disp;
 
     /* counter qualifier */
-    int type_q;
+    SCPerfCounterTypeQ *type_q;
 
     /* the next perfcounter for this tv's tm instance */
     struct SCPerfCounter_ *next;
@@ -212,7 +228,7 @@ void SCPerfOutputCounters(void);
 
 /* functions used to free the resources alloted by the Perf counter API */
 void SCPerfReleaseResources(void);
-void SCPerfReleaseSCPerfCounterS(SCPerfCounter *);
+void SCPerfReleasePerfCounterS(SCPerfCounter *);
 void SCPerfReleasePCA(SCPerfCounterArray *);
 
 void SCPerfRegisterTests(void);

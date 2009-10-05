@@ -169,7 +169,13 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     /* update counters */
     SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->sc_perf_pca);
+
     SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->sc_perf_pca,
+                           (p->pktlen * 8)/1000000.0 );
+
     SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
     SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
 
@@ -189,40 +195,7 @@ TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
-    /* register counters */
-    dtv->counter_pkts = SCPerfTVRegisterCounter("decoder.pkts", tv,
-                                                SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_bytes = SCPerfTVRegisterCounter("decoder.bytes", tv,
-                                                 SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_ipv4 = SCPerfTVRegisterCounter("decoder.ipv4", tv,
-                                                SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_ipv6 = SCPerfTVRegisterCounter("decoder.ipv6", tv,
-                                                SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_eth = SCPerfTVRegisterCounter("decoder.ethernet", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_sll = SCPerfTVRegisterCounter("decoder.sll", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_tcp = SCPerfTVRegisterCounter("decoder.tcp", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_udp = SCPerfTVRegisterCounter("decoder.udp", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_icmpv4 = SCPerfTVRegisterCounter("decoder.icmpv4", tv,
-                                                  SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_icmpv6 = SCPerfTVRegisterCounter("decoder.icmpv6", tv,
-                                                  SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_ppp = SCPerfTVRegisterCounter("decoder.ppp", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_pppoe = SCPerfTVRegisterCounter("decoder.pppoe", tv,
-                                                 SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_gre = SCPerfTVRegisterCounter("decoder.gre", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
-    dtv->counter_avg_pkt_size = SCPerfTVRegisterAvgCounter("decoder.avg_pkt_size", tv,
-                                                           SC_PERF_TYPE_DOUBLE, "NULL");
-    dtv->counter_max_pkt_size = SCPerfTVRegisterMaxCounter("decoder.max_pkt_size", tv,
-                                                           SC_PERF_TYPE_UINT64, "NULL");
-
-    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
-    SCPerfAddToClubbedTMTable(tv->name, &tv->sc_perf_pctx);
+    DecodeRegisterPerfCounters(dtv, tv);
 
     *data = (void *)dtv;
 
