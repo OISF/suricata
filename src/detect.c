@@ -620,8 +620,10 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
         goto inspect_payload;
 
     for (; sm != NULL; sm = sm->next)
-        if (!(sigmatch_table[sm->type].flags & SIGMATCH_PAYLOAD))
-            return 0;
+        if (sigmatch_table[sm->type].flags & SIGMATCH_PAYLOAD)
+            goto inspect_payload;
+
+    return 0;
 
 inspect_payload:
     if (!(de_ctx->flags & DE_QUIET))
