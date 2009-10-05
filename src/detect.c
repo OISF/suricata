@@ -667,6 +667,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             tmp_s->flags |= SIG_FLAG_IPONLY;
             cnt_iponly++;
             //printf("(IP only)\n");
+            /*see if any sig is inspecting the packet payload*/
         } else if (SignatureIsInspectingPayload(de_ctx, tmp_s) == 1) {
             tmp_s->flags |= SIG_FLAG_PAYLOAD;
             cnt_payload++;
@@ -2580,7 +2581,7 @@ void SigTableRegisterTests(void) {
  * TESTS
  */
 
-//#ifdef UNITTESTS
+#ifdef UNITTESTS
 #include "flow-util.h"
 
 static int SigTest01Real (int mpm_type) {
@@ -6527,7 +6528,7 @@ end:
     return result;
 }
 
-//#endif /* UNITTESTS */
+#endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
 #ifdef UNITTESTS
