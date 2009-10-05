@@ -617,18 +617,17 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
 
     SigMatch *sm = s->match;
     if (sm == NULL)
-        goto inspect_payload;
+        return 0;
 
-    for (; sm != NULL; sm = sm->next)
-        if (sigmatch_table[sm->type].flags & SIGMATCH_PAYLOAD)
-            goto inspect_payload;
+    for (; sm != NULL; sm = sm->next) {
+        if (sigmatch_table[sm->type].flags & SIGMATCH_PAYLOAD) {
+            if (!(de_ctx->flags & DE_QUIET))
+                SCLogDebug("Signature (%" PRIu32 "): is inspecting payload.", s->id);
+            return 1;
+        }
+    }
 
     return 0;
-
-inspect_payload:
-    if (!(de_ctx->flags & DE_QUIET))
-        SCLogDebug("Signature (%" PRIu32 "): is inspecting payload.", s->id);
-    return 1;
 }
 
 /* add all signatures to their own source address group */
@@ -2581,7 +2580,7 @@ void SigTableRegisterTests(void) {
  * TESTS
  */
 
-#ifdef UNITTESTS
+//#ifdef UNITTESTS
 #include "flow-util.h"
 
 static int SigTest01Real (int mpm_type) {
@@ -6474,7 +6473,7 @@ int SigTest42NoPayloadInspection(void) {
     Packet p;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
+    int result = 1;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -6487,6 +6486,7 @@ int SigTest42NoPayloadInspection(void) {
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
+        result = 0;
         goto end;
     }
 
@@ -6498,15 +6498,25 @@ int SigTest42NoPayloadInspection(void) {
         goto end;
     }
 
+    sigmatch_table[DETECT_CONTENT].flags |= SIGMATCH_PAYLOAD;
+    de_ctx->sig_list->match->type = DETECT_CONTENT;
+
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx,MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1))
+    if (!(de_ctx->sig_list->flags & SIG_FLAG_PAYLOAD))
         result = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    if (PacketAlertCheck(&p, 1))
+        result &= 0;
     else
-        result = 1;
+        result &= 1;
+
+    if (det_ctx->pkts_scanned == 1)
+        result &= 0;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -6517,7 +6527,7 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
+//#endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
 #ifdef UNITTESTS
