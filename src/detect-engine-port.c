@@ -39,6 +39,7 @@ void DetectPortRegister (void) {
 static int DetectPortCutNot(DetectPort *, DetectPort **);
 static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *, DetectPort **);
 DetectPort *PortParse(char *str);
+int DetectPortIsValidRange(char *);
 
 /* memory usage counters */
 static uint32_t detect_port_memory = 0;
@@ -1132,11 +1133,20 @@ DetectPort *PortParse(char *str) {
         /* 80:81 range format */
         port[port2 - port] = '\0';
         port2++;
-        dp->port = atoi(port);
-        if (strcmp(port2,"") != 0)
-            dp->port2 = atoi(port2);
+
+        if(DetectPortIsValidRange(port))
+            dp->port = atoi(port);
         else
+            goto error;
+
+        if (strcmp(port2,"") != 0){
+            if(DetectPortIsValidRange(port2))
+                dp->port2 = atoi(port2);
+            else
+                goto error;
+        } else {
             dp->port2 = 65535;
+        }
 
         /* a>b is illegal, a=b is ok */
         if (dp->port > dp->port2)
@@ -1146,8 +1156,10 @@ DetectPort *PortParse(char *str) {
         if (strcasecmp(port,"any") == 0) {
             dp->port = 0;
             dp->port2 = 65535;
-        } else {
+        } else if(DetectPortIsValidRange(port)){
             dp->port = dp->port2 = atoi(port);
+        } else {
+            goto error;
         }
     }
 
@@ -1157,6 +1169,13 @@ DetectPort *PortParse(char *str) {
 error:
     if (portdup) free(portdup);
     return NULL;
+}
+
+int DetectPortIsValidRange(char *port){
+    if(atoi(port) >= 0 && atoi(port) <= 65535)
+        return 1;
+    else
+        return 0;
 }
 
 /* end parsing routines */
@@ -1439,8 +1458,61 @@ int PortTestParse09 (void) {
 end:
     return result;
 }
-#endif /* UNITTESTS */
 
+/** \test Test port that is too big */
+int PortTestParse10 (void) {
+    DetectPort *dd = NULL;
+    int result = 0;
+
+    int r = DetectPortParse(&dd,"777777777777777777777777777777777777777777777777777777777");
+    if (r != 0) {
+        result = 1 ;
+        goto end;
+    }
+
+    DetectPortFree(dd);
+
+end:
+    return result;
+
+}
+
+/** \test Test second port of range being too big */
+int PortTestParse11 (void) {
+    DetectPort *dd = NULL;
+    int result = 0;
+
+    int r = DetectPortParse(&dd,"1024:65536");
+    if (r != 0) {
+        result = 1 ;
+        goto end;
+    }
+
+    DetectPortFree(dd);
+
+end:
+    return result;
+
+}
+
+/** \test Test second port of range being just right */
+int PortTestParse12 (void) {
+    DetectPort *dd = NULL;
+    int result = 0;
+
+    int r = DetectPortParse(&dd,"1024:65535");
+    if (r != 0) {
+        goto end;
+    }
+
+    DetectPortFree(dd);
+
+    result = 1 ;
+end:
+    return result;
+
+}
+#endif /* UNITTESTS */
 
 void DetectPortTests(void) {
 #ifdef UNITTESTS
@@ -1453,6 +1525,9 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestParse07", PortTestParse07, 1);
     UtRegisterTest("PortTestParse08", PortTestParse08, 1);
     UtRegisterTest("PortTestParse09", PortTestParse09, 1);
+    UtRegisterTest("PortTestParse10", PortTestParse10, 1);
+    UtRegisterTest("PortTestParse11", PortTestParse11, 1);
+    UtRegisterTest("PortTestParse12", PortTestParse12, 1);
 #endif /* UNITTESTS */
 }
 

@@ -583,7 +583,7 @@ int SigParseTest03 (void) {
     if (de_ctx == NULL)
         goto end;
 
-    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 any <- !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
+    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 any <- !1.2.3.4 any (msg:\"SigParseTest03\"; sid:1;)");
     if (sig != NULL) {
         result = 0;
         printf("expected NULL got sig ptr %p: ",sig);
@@ -604,13 +604,34 @@ int SigParseTest04 (void) {
     if (de_ctx == NULL)
         goto end;
 
-    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 1024: -> !1.2.3.4 1024: (msg:\"SigParseTest03\"; sid:1;)");
+    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 1024: -> !1.2.3.4 1024: (msg:\"SigParseTest04\"; sid:1;)");
     if (sig == NULL) {
         result = 0;
         goto end;
     }
 
     SigFree(sig);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+/** \test Port validation */
+int SigParseTest05 (void) {
+    int result = 1;
+    Signature *sig = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 1024:65536 -> !1.2.3.4 any (msg:\"SigParseTest05\"; sid:1;)");
+    if (sig != NULL) {
+        result = 1;
+        SigFree(sig);
+        goto end;
+    }
+
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -800,6 +821,7 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest02", SigParseTest02, 1);
     UtRegisterTest("SigParseTest03", SigParseTest03, 1);
     UtRegisterTest("SigParseTest04", SigParseTest04, 1);
+    UtRegisterTest("SigParseTest05", SigParseTest05, 1);
     UtRegisterTest("SigParseTestNegation01", SigParseTestNegation01, 1);
     UtRegisterTest("SigParseTestNegation02", SigParseTestNegation02, 1);
     UtRegisterTest("SigParseTestNegation03", SigParseTestNegation03, 1);
