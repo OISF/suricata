@@ -64,6 +64,7 @@
 #include "app-layer-dcerpc.h"
 
 #include "util-radix-tree.h"
+#include "util-host-os-info.h"
 #include "util-cidr.h"
 #include "util-unittest.h"
 #include "util-time.h"
@@ -74,7 +75,6 @@
 #include "defrag.h"
 
 #include "runmodes.h"
-#include "util-debug.h"
 
 #include "util-debug.h"
 #include "util-error.h"
@@ -468,6 +468,7 @@ int main(int argc, char **argv)
         SCRadixRegisterTests();
         DefragRegisterTests();
         SigGroupHeadRegisterTests();
+        SCHInfoRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

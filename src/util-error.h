@@ -18,6 +18,10 @@ typedef enum {
     SC_SPRINTF_ERROR,
     SC_INVALID_ARGUMENT,
     SC_SPINLOCK_ERROR,
+    SC_INVALID_ENUM_MAP,
+    SC_INVALID_IP_NETBLOCK,
+    SC_INVALID_IPV4_ADDR,
+    SC_INVALID_IPV6_ADDR,
 } SCError;
 
 const char *SCErrorToString(SCError);

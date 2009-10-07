@@ -8,7 +8,9 @@
 #include "util-enum.h"
 
 /**
- * \brief Maps a string name to an enum value from the supplied table
+ * \brief Maps a string name to an enum value from the supplied table.  Please
+ *        specify the last element of any map table with a {NULL, -1}.  If
+ *        missing, you will be welcomed with a segfault :)
  *
  * \param enum_name Character string that has to be mapped to an enum value
  *                  from the table

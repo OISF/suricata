@@ -1,0 +1,801 @@
+/** Copyright (c) 2009 Open Information Security Foundation.
+ *  \author Anoop Saldanha <poonaatsoc@gmail.com>
+ */
+
+#include "eidps-common.h"
+#include "util-host-os-info.h"
+#include "util-error.h"
+#include "util-debug.h"
+#include "util-radix-tree.h"
+#include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
+
+#include "util-enum.h"
+#include "util-unittest.h"
+
+/** Enum map for the various OS flavours */
+SCEnumCharMap sc_hinfo_os_policy_map[ ] = {
+    { "none",       OS_POLICY_NONE },
+    { "bsd",        OS_POLICY_BSD },
+    { "old_linux",  OS_POLICY_OLD_LINUX },
+    { "linux",      OS_POLICY_LINUX },
+    { "solaris",    OS_POLICY_SOLARIS },
+    { "hpux10",     OS_POLICY_HPUX10 },
+    { "hpux11",     OS_POLICY_HPUX11 },
+    { "irix",       OS_POLICY_IRIX },
+    { "macos",      OS_POLICY_MACOS },
+    { "windows",    OS_POLICY_WINDOWS },
+    { "vista",      OS_POLICY_VISTA },
+    { "windows2k3", OS_POLICY_WINDOWS2K3 },
+    { NULL,         -1 },
+};
+
+/** Radix tree that holds the host OS information */
+static SCRadixTree *sc_hinfo_tree = NULL;
+
+/**
+ * \brief Validates an IPV4 address and returns the network endian arranged
+ *        version of the IPV4 address
+ *
+ * \param addr Pointer to a character string containing an IPV4 address.  A
+ *             valid IPV4 address is a character string containing a dotted
+ *             format of "ddd.ddd.ddd.ddd"
+ *
+ * \retval Pointer to an in_addr instance containing the network endian format
+ *         of the IPV4 address
+ * \retval NULL if the IPV4 address is invalid
+ */
+static struct in_addr *SCHInfoValidateIPV4Address(const char *addr_str)
+{
+    struct in_addr *addr = NULL;
+
+    if ( (addr = malloc(sizeof(struct in_addr))) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    if (inet_pton(AF_INET, addr_str, addr) <= 0) {
+        free(addr);
+        return NULL;
+    }
+
+    return addr;
+}
+
+/**
+ * \brief Validates an IPV6 address and returns the network endian arranged
+ *        version of the IPV6 addresss
+ *
+ * \param addr Pointer to a character string containing an IPV6 address
+ *
+ * \retval Pointer to a in6_addr instance containing the network endian format
+ *         of the IPV6 address
+ * \retval NULL if the IPV6 address is invalid
+ */
+static struct in6_addr *SCHInfoValidateIPV6Address(const char *addr_str)
+{
+    struct in6_addr *addr = NULL;
+
+    if ( (addr = malloc(sizeof(struct in6_addr))) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    if (inet_pton(AF_INET6, addr_str, addr) <= 0) {
+        free(addr);
+        return NULL;
+    }
+
+    return addr;
+}
+
+/**
+ * \brief Allocates the host_os flavour wrapped in user_data variable to be sent
+ *        along with the key to the radix tree
+ *
+ * \param host_os Pointer to a character string containing the host_os flavour
+ *
+ * \retval user_data On success, pointer to the user_data that has to be sent
+ *                   along with the key, to be added to the Radix tree; NULL on
+ *                   failure
+ */
+static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
+{
+    int *user_data = NULL;
+
+    if ( (user_data = malloc(sizeof(int))) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    /* the host os flavour that has to be sent as user data */
+    if ( (*user_data = SCMapEnumNameToValue(host_os, sc_hinfo_os_policy_map)) == -1) {
+        SCLogError(SC_INVALID_ENUM_MAP, "Invalid enum map inside "
+                   "SCHInfoAddHostOSInfo()");
+        free(user_data);
+        return NULL;
+    }
+
+    return (void *)user_data;
+}
+
+/**
+ * \brief Used to free the user data that is allocated by host_os_info API
+ *
+ * \param Pointer to the data that has to be freed
+ */
+static void SCHInfoFreeUserDataOSPolicy(void *data)
+{
+    if (data != NULL)
+        free(data);
+
+    return;
+}
+
+/**
+ * \brief Culls the non-netmask portion of the ip address.
+ *
+ *        This function can also be used for any general purpose use, to mask
+ *        the first netmask bits of the stream data sent as argument
+ *
+ * \param stream  Pointer to the data to be masked
+ * \param netmask The mask length(netmask)
+ * \param bitlen  The bitlen of the stream
+ */
+static void SCHInfoMaskIPNetblock(uint8_t *stream, int netmask, int bitlen)
+{
+    int bytes = 0;
+    int mask = 0;
+    int i = 0;
+
+    bytes = bitlen / 8;
+    for (i = 0; i < bytes; i++) {
+        mask = -1;
+        if ( ((i + 1) * 8) > netmask) {
+            if ( ((i + 1) * 8 - netmask) < 8)
+                mask = -1 << ((i + 1) * 8 - netmask);
+            else
+                mask = 0;
+        }
+        stream[i] &= mask;
+    }
+
+    return;
+}
+
+/**
+ * \brief Used to add the host-os-info data obtained from the conf
+ *
+ * \param host_os          The host_os name/flavour from the conf file
+ * \param host_os_ip_range Pointer to a char string holding the ip/ip_netblock
+ *                         for the host_os specified in the first argument
+ * \param is_ipv4          Indicates if the ip address to be considered for the
+ *                         default configuration is IPV4; if not it is IPV6.
+ *                         Specified using SC_HINFO_IS_IPV6 or SC_HINFO_IS_IPV4
+ *
+ * \retval  0 On successfully adding the host os info to the Radix tree
+ * \retval -1 On failure
+ */
+int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
+{
+    char *ip_str = NULL;
+    struct in_addr *ipv4_addr = NULL;
+    struct in6_addr *ipv6_addr = NULL;
+    char *netmask_str = NULL;
+    int netmask_value = 0;
+    int *user_data = NULL;
+
+    if (host_os == NULL || host_os_ip_range == NULL) {
+        SCLogError(SC_INVALID_ARGUMENT, "Invalid arguments");
+        return -1;
+    }
+
+    /* create the radix tree that would hold all the host os info */
+    if (sc_hinfo_tree == NULL)
+        sc_hinfo_tree = SCRadixCreateRadixTree(SCHInfoFreeUserDataOSPolicy);
+
+    /* the host os flavour that has to be sent as user data */
+    if ( (user_data = SCHInfoAllocUserDataOSPolicy(host_os)) == NULL) {
+        SCLogError(SC_INVALID_ENUM_MAP, "Invalid enum map inside");
+        return -1;
+    }
+
+    /* if we have a default configuration set the appropriate values for the
+     * netblocks */
+    if ( (strcasecmp(host_os_ip_range, "default")) == 0) {
+        if (is_ipv4)
+            host_os_ip_range = "0.0.0.0/0";
+        else
+            host_os_ip_range = "::/0";
+    }
+
+    if ( (ip_str = strdup(host_os_ip_range)) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    /* check if we have received a netblock */
+    if ( (netmask_str = index(ip_str, '/')) != NULL) {
+        netmask_str[0] = '\0';
+        netmask_str++;
+    }
+
+    if (index(ip_str, ':') == NULL) {
+        /* if we are here, we have an IPV4 address */
+        if ( (ipv4_addr = SCHInfoValidateIPV4Address(ip_str)) == NULL) {
+            SCLogError(SC_INVALID_IPV4_ADDR, "Invalid IPV4 address");
+            return -1;
+        }
+
+        if (netmask_str == NULL) {
+            SCRadixAddKeyIPV4((uint8_t *)ipv4_addr, sc_hinfo_tree,
+                              (void *)user_data);
+        } else {
+            netmask_value = atoi(netmask_str);
+            if (netmask_value < 0 || netmask_value > 32) {
+                SCLogError(SC_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
+                free(ipv4_addr);
+                return -1;
+            }
+
+            SCHInfoMaskIPNetblock((uint8_t *)ipv4_addr, netmask_value, 32);
+            SCRadixAddKeyIPV4Netblock((uint8_t *)ipv4_addr, sc_hinfo_tree,
+                                      (void *)user_data, netmask_value);
+        }
+    } else {
+        /* if we are here, we have an IPV6 address */
+        if ( (ipv6_addr = SCHInfoValidateIPV6Address(ip_str)) == NULL) {
+            SCLogError(SC_INVALID_IPV6_ADDR, "Invalid IPV6 address inside");
+            return -1;
+        }
+
+        if (netmask_str == NULL) {
+            SCRadixAddKeyIPV6((uint8_t *)ipv6_addr, sc_hinfo_tree,
+                              (void *)user_data);
+        } else {
+            netmask_value = atoi(netmask_str);
+            if (netmask_value < 0 || netmask_value > 128) {
+                SCLogError(SC_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
+                free(ipv6_addr);
+                return -1;
+            }
+
+            SCHInfoMaskIPNetblock((uint8_t *)ipv6_addr, netmask_value, 128);
+            SCRadixAddKeyIPV6Netblock((uint8_t *)ipv6_addr, sc_hinfo_tree,
+                                      (void *)user_data, netmask_value);
+        }
+    }
+
+    return *user_data;
+}
+
+/**
+ * \brief Retrieves the host os flavour, given the ip address
+ *
+ * \param Pointer to a string containing an IP address
+ *
+ * \retval The host os flavour
+ */
+int SCHInfoGetHostOSFlavour(char *ip_addr_str)
+{
+    SCRadixNode *node = NULL;
+    struct in_addr *ipv4_addr = NULL;
+    struct in6_addr *ipv6_addr = NULL;
+
+    if (index(ip_addr_str, ':') != NULL) {
+        if ( (ipv6_addr = SCHInfoValidateIPV6Address(ip_addr_str)) == NULL) {
+            SCLogError(SC_INVALID_IPV4_ADDR, "Invalid IPV4 address");
+            return -1;
+        }
+
+        if ( (node = SCRadixFindKeyIPV6((uint8_t *)ipv6_addr, sc_hinfo_tree)) == NULL)
+            return -1;
+        else
+            return *((int *)node->prefix->user);
+    } else {
+        if ( (ipv4_addr = SCHInfoValidateIPV4Address(ip_addr_str)) == NULL) {
+            SCLogError(SC_INVALID_IPV4_ADDR, "Invalid IPV4 address");
+            return -1;
+        }
+
+        if ( (node = SCRadixFindKeyIPV4((uint8_t *)ipv4_addr, sc_hinfo_tree)) == NULL)
+            return -1;
+        else
+            return *((int *)node->prefix->user);
+    }
+}
+
+void SCHInfoCleanResources(void)
+{
+    if (sc_hinfo_tree != NULL) {
+        SCRadixReleaseRadixTree(sc_hinfo_tree);
+        sc_hinfo_tree = NULL;
+    }
+
+    return;
+}
+
+/*------------------------------------Unit_Tests------------------------------*/
+
+#ifdef UNITTESTS
+
+int SCHInfoTestInvalidOSFlavour01(void)
+{
+    int result = 1;
+
+    result &= (SCHInfoAddHostOSInfo("bamboo", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("windows", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("solaris", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("hpux10", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("hpux11", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("irix", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("bsd", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("bsd", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("old_linux", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("old_linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("macos", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("macos", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("vista", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoAddHostOSInfo("windows2k3", "192.168.1.1", SC_HINFO_IS_IPV4) ==
+               SCMapEnumNameToValue("windows2k3", sc_hinfo_os_policy_map));
+
+    SCHInfoCleanResources();
+
+    return result;
+}
+
+int SCHInfoTestInvalidIPV4Address02(void)
+{
+    int result = 1;
+
+    result &= (SCHInfoAddHostOSInfo("linux", "192.168.1.566", SC_HINFO_IS_IPV4) ==
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "192.168.1", SC_HINFO_IS_IPV4) ==
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "192.", SC_HINFO_IS_IPV4) == -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "192.168", SC_HINFO_IS_IPV4) ==
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "", SC_HINFO_IS_IPV4) == -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "192.168.1.1/33", SC_HINFO_IS_IPV4) ==
+               -1);
+
+    SCHInfoCleanResources();
+
+    return result;
+}
+
+int SCHInfoTestInvalidIPV6Address03(void)
+{
+    int result = 1;
+
+    result &= (SCHInfoAddHostOSInfo("linux", "2362:7322", SC_HINFO_IS_IPV6) ==
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "19YW:", SC_HINFO_IS_IPV6) == -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "1235", SC_HINFO_IS_IPV6) == -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "1922:236115:", SC_HINFO_IS_IPV6) ==
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "", SC_HINFO_IS_IPV6) == -1);
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "1921.6311:6241:6422:7352:ABBB:DDDD:EEEE/129",
+                                    SC_HINFO_IS_IPV6) == -1);
+
+    SCHInfoCleanResources();
+
+    return result;
+}
+
+int SCHInfoTestValidIPV4Address04(void)
+{
+    int result = 1;
+
+    result &= (SCHInfoAddHostOSInfo("linux", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("windows", "192.192.1.2", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("solaris", "192.168.1.100", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("hpux10", "192.168.2.4", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "192.192.1.5", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("vista", "192.168.10.20", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("solaris", "111.163.151.62", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("solaris", "11.1.120.210", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "19.18.110.210", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("windows", "19.18.120.110", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("hpux11", "191.168.11.128", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("vista", "191.168.11.192", SC_HINFO_IS_IPV4) !=
+               -1);
+
+    result &= (SCHInfoGetHostOSFlavour("192.168.1.1") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("192.168.1.2") == -1);
+    result &= (SCHInfoGetHostOSFlavour("192.168.1.100") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("192.192.2.4") == -1);
+    result &= (SCHInfoGetHostOSFlavour("192.168.2.4") ==
+               SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("192.192.1.5") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("192.168.10.20") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.163.151.62") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("11.1.120.210") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("19.18.110.210") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("19.18.120.110") ==
+               SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("191.168.11.128") ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("191.168.11.192") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("191.168.11.224") == -1);
+
+    SCHInfoCleanResources();
+
+    return result;
+}
+
+int SCHInfoTestValidIPV4Address05(void)
+{
+    int result = 1;
+
+    result &= (SCHInfoAddHostOSInfo("linux", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("windows", "192.192.1.2", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("solaris", "192.168.1.100", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("hpux10", "192.168.2.4", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "192.192.1.5", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("vista", "192.168.10.20", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("solaris", "111.163.151.62", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("hpux11", "111.162.208.124/20", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("windows", "111.162.240.1", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("solaris", "111.162.214.100", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("vista", "111.162.208.100", SC_HINFO_IS_IPV4) !=
+               -1);
+    result &= (SCHInfoAddHostOSInfo("linux", "111.162.194.112", SC_HINFO_IS_IPV4) !=
+               -1);
+
+    result &= (SCHInfoGetHostOSFlavour("192.168.1.1") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("192.168.1.2") == -1);
+    result &= (SCHInfoGetHostOSFlavour("192.168.1.100") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("192.192.2.4") == -1);
+    result &= (SCHInfoGetHostOSFlavour("192.168.2.4") ==
+               SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("192.192.1.5") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("192.168.10.20") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.163.151.62") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.208.0") ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.210.1") ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.214.1") ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.0.0") == -1);
+    result &= (SCHInfoGetHostOSFlavour("111.162.240.112") == -1);
+    result &= (SCHInfoGetHostOSFlavour("111.162.240.1") ==
+               SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.214.100") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.208.100") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.194.112") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.208.200") ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.208.200") ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("111.162.200.201") == -1);
+
+    SCHInfoCleanResources();
+
+    return result;
+}
+
+int SCHInfoTestValidIPV6Address06(void)
+{
+    int result = 1;
+
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "2351:2512:6211:6246:235A:6242:2352:62AD",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("windows",
+                                    "6961:6121:2132:6241:423A:2135:2461:621D",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("solaris",
+                                    "DD13:613D:F312:62DD:6213:421A:6212:2652",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("hpux10",
+                                    "9891:2131:2151:6426:1342:674D:622F:2342",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "3525:2351:4223:6211:2311:2667:6242:2154",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("vista",
+                                    "1511:6211:6726:7777:1212:2333:6222:7722",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("solaris",
+                                    "2666:6222:7222:2335:6223:7722:3425:2362",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("solaris",
+                                    "8762:2352:6241:7245:EE23:21AD:2312:622C",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "6422:EE1A:2621:34AD:2462:432D:642E:E13A",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("windows",
+                                    "3521:7622:6241:6242:7277:1234:2352:6234",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("hpux11",
+                                    "2141:6232:6252:2223:7734:2345:6245:6222",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("vista",
+                                    "5222:6432:6432:2322:6662:3423:4322:3245",
+                                    SC_HINFO_IS_IPV6) != -1);
+
+    result &= (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:62AD") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:6FFFE") ==
+               -1);
+    result &= (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2652") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2222") ==
+               -1);
+    result &= (SCHInfoGetHostOSFlavour("9891:2131:2151:6426:1342:674D:622F:2342") ==
+               SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("3525:2351:4223:6211:2311:2667:6242:2154") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("1511:6211:6726:7777:1212:2333:6222:7722") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("2666:6222:7222:2335:6223:7722:3425:2362") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("6422:EE1A:2621:34AD:2462:432D:642E:E13A") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("3521:7622:6241:6242:7277:1234:2352:6234") ==
+               SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("2141:6232:6252:2223:7734:2345:6245:6222") ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("5222:6432:6432:2322:6662:3423:4322:3245") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("5222:6432:6432:2322:6662:3423:4322:DDDD") ==
+               -1);
+
+    SCHInfoCleanResources();
+
+    return result;
+}
+
+int SCHInfoTestValidIPV6Address07(void)
+{
+    int result = 1;
+
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "2351:2512:6211:6246:235A:6242:2352:62AD",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("windows",
+                                    "6961:6121:2132:6241:423A:2135:2461:621D",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("solaris",
+                                    "DD13:613D:F312:62DD:6213:421A:6212:2652",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("hpux10",
+                                    "9891:2131:2151:6426:1342:674D:622F:2342",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "3525:2351:4223:6211:2311:2667:6242:2154",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("vista",
+                                    "1511:6211:6726:7777:1212:2333:6222:7722",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("solaris",
+                                    "2666:6222:7222:2335:6223:7722:3425:2362",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("solaris",
+                                    "8762:2352:6241:7245:EE23:21AD:2312:622C/68",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "8762:2352:6241:7245:EE23:21AD:2412:622C",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("windows",
+                                    "8762:2352:6241:7245:EE23:21AD:FFFF:622C",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("hpux11",
+                                    "8762:2352:6241:7245:EE23:21AD:2312:62FF",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("vista",
+                                    "8762:2352:6241:7245:EE23:21AD:2121:1212",
+                                    SC_HINFO_IS_IPV6) != -1);
+
+    result &= (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:62AD") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:6FFFE") ==
+               -1);
+    result &= (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2652") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2222") ==
+               -1);
+    result &= (SCHInfoGetHostOSFlavour("9891:2131:2151:6426:1342:674D:622F:2342") ==
+               SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("3525:2351:4223:6211:2311:2667:6242:2154") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("1511:6211:6726:7777:1212:2333:6222:7722") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("2666:6222:7222:2335:6223:7722:3425:2362") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2412:622C") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:FFFF:622C") ==
+               SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:62FF") ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2121:1212") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("5222:6432:6432:2322:6662:3423:4322:DDDD") ==
+               -1);
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2121:1DDD") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:FFFF:2121:1DDD") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE00:0000:0000:0000") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:E000:0000:0000:0000") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+
+    SCHInfoCleanResources();
+
+    return result;
+}
+
+int SCHInfoTestValidIPV6Address08(void)
+{
+    int result = 1;
+
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "2351:2512:6211:6246:235A:6242:2352:62AD",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("windows",
+                                    "6961:6121:2132:6241:423A:2135:2461:621D",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("solaris",
+                                    "DD13:613D:F312:62DD:6213:421A:6212:2652",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("hpux10",
+                                    "9891:2131:2151:6426:1342:674D:622F:2342",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "3525:2351:4223:6211:2311:2667:6242:2154",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("vista",
+                                    "1511:6211:6726:7777:1212:2333:6222:7722",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("solaris",
+                                    "2666:6222:7222:2335:6223:7722:3425:2362",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("solaris",
+                                    "8762:2352:6241:7245:EE23:21AD:2312:622C/68",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("linux",
+                                    "8762:2352:6241:7245:EE23:21AD:2412:622C",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("windows",
+                                    "8762:2352:6241:7245:EE23:21AD:FFFF:622C",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("hpux11",
+                                    "8762:2352:6241:7245:EE23:21AD:2312:62FF",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("vista",
+                                    "8762:2352:6241:7245:EE23:21AD:2121:1212",
+                                    SC_HINFO_IS_IPV6) != -1);
+    result &= (SCHInfoAddHostOSInfo("irix", "default", SC_HINFO_IS_IPV6) != -1);
+
+    result &= (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:62AD") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:6FFF") ==
+               SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2652") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2222") ==
+               SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("9891:2131:2151:6426:1342:674D:622F:2342") ==
+               SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("3525:2351:4223:6211:2311:2667:6242:2154") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("1511:6211:6726:7777:1212:2333:6222:7722") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("2666:6222:7222:2335:6223:7722:3425:2362") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2412:622C") ==
+               SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:FFFF:622C") ==
+               SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:62FF") ==
+               SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2121:1212") ==
+               SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("5222:6432:6432:2322:6662:3423:4322:DDDD") ==
+               SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2121:1DDD") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:FFFF:2121:1DDD") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE00:0000:0000:0000") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:E000:0000:0000:0000") ==
+               SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    result &= (SCHInfoGetHostOSFlavour("AD23:2DDA:6D1D:A223:E235:0232:1241:1666") ==
+               SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map));
+
+
+    SCHInfoCleanResources();
+
+    return result;
+}
+
+#endif /* UNITTESTS */
+
+void SCHInfoRegisterTests(void)
+{
+
+#ifdef UNITTESTS
+
+    UtRegisterTest("SCHInfoTesInvalidOSFlavour01",
+                   SCHInfoTestInvalidOSFlavour01, 1);
+    UtRegisterTest("SCHInfoTestInvalidIPV4Address02",
+                   SCHInfoTestInvalidIPV4Address02, 1);
+    UtRegisterTest("SCHInfoTestInvalidIPV6Address03",
+                   SCHInfoTestInvalidIPV6Address03, 1);
+    UtRegisterTest("SCHInfoTestValidIPV4Address04",
+                   SCHInfoTestValidIPV4Address04, 1);
+    UtRegisterTest("SCHInfoTestValidIPV4Address05",
+                   SCHInfoTestValidIPV4Address05, 1);
+    UtRegisterTest("SCHInfoTestValidIPV6Address06",
+                   SCHInfoTestValidIPV6Address06, 1);
+    UtRegisterTest("SCHInfoTestValidIPV6Address07",
+                   SCHInfoTestValidIPV6Address07, 1);
+    UtRegisterTest("SCHInfoTestValidIPV6Address08",
+                   SCHInfoTestValidIPV6Address08, 1);
+
+#endif /* UNITTESTS */
+
+}
