@@ -70,6 +70,7 @@ detect-dsize.c detect-dsize.h \
 detect-stream_size.c detect-stream_size.h \
 detect-decode-event.c detect-decode-event.h \
 detect-ipopts.c detect-ipopts.h \
+detect-flags.c detect-flags.h \
 detect-noalert.c detect-noalert.h \
 detect-csum.c detect-csum.h \
 util-print.c util-print.h \

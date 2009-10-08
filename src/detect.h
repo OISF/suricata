@@ -433,6 +433,7 @@ enum {
     DETECT_PORT,
     DETECT_DECODE_EVENT,
     DETECT_IPOPTS,
+    DETECT_FLAGS,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
