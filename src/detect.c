@@ -6405,7 +6405,140 @@ end:
     return result;
 }
 
-static int SigTest41Real (int mpm_type) {
+/**
+ * \test SigTest41NoPacketInspection is a test to check that when PKT_NOPACKET_INSPECTION
+ *  flag is set, we don't need to inspect the packet protocol header or its contents.
+ */
+
+int SigTest41NoPacketInspection(void) {
+
+    uint8_t *buf = (uint8_t *)
+                    "220 (vsFTPd 2.0.5)\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    PacketQueue pq;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&pq, 0, sizeof(pq));
+
+    p.src.family = AF_INET;
+    p.src.addr_data32[0] = 0x0102080a;
+    p.dst.addr_data32[0] = 0x04030201;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+    p.dp = 34260;
+    p.sp = 21;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flags |= PKT_NOPACKET_INSPECTION;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> 1.2.3.4 any (msg:\"No Packet Inspection Test\"; sid:2; rev:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
+    det_ctx->de_ctx = de_ctx;
+
+    Detect(&th_v, &p, det_ctx, &pq);
+    if (PacketAlertCheck(&p, 2))
+        result = 0;
+    else
+        result = 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+/**
+ * \test SigTest42NoPayloadInspection is a test to check that when PKT_NOPAYLOAD_INSPECTION
+ *  flasg is set, we don't need to inspect the packet contents.
+ */
+
+int SigTest42NoPayloadInspection(void) {
+
+    uint8_t *buf = (uint8_t *)
+                    "220 (vsFTPd 2.0.5)\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+    p.flags |= PKT_NOPAYLOAD_INSPECTION;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"No Payload TEST\"; content:\"220 (vsFTPd 2.0.5)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    sigmatch_table[DETECT_CONTENT].flags |= SIGMATCH_PAYLOAD;
+    de_ctx->sig_list->match->type = DETECT_CONTENT;
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx,MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    if (!(de_ctx->sig_list->flags & SIG_FLAG_PAYLOAD))
+        result = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    if (PacketAlertCheck(&p, 1))
+        result &= 0;
+    else
+        result &= 1;
+
+    if (det_ctx->pkts_scanned == 1)
+        result &= 0;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+static int SigTest43Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -6485,14 +6618,14 @@ end:
     return result;
 }
 
-static int SigTest41B2g (void) {
-    return SigTest41Real(MPM_B2G);
+static int SigTest43B2g (void) {
+    return SigTest43Real(MPM_B2G);
 }
-static int SigTest41B3g (void) {
-    return SigTest41Real(MPM_B3G);
+static int SigTest43B3g (void) {
+    return SigTest43Real(MPM_B3G);
 }
-static int SigTest41Wm (void) {
-    return SigTest41Real(MPM_WUMANBER);
+static int SigTest43Wm (void) {
+    return SigTest43Real(MPM_WUMANBER);
 }
 
 #endif /* UNITTESTS */
@@ -6646,9 +6779,12 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTest40SignatureIsIPOnly02", SigTest40IPOnly02, 1);
     UtRegisterTest("SigTest40SignatureIsIPOnly03", SigTest40IPOnly03, 1);
 
-    UtRegisterTest("SigTest41B2g -- ip_proto test", SigTest41B2g, 1);
-    UtRegisterTest("SigTest41B3g -- ip_proto test", SigTest41B3g, 1);
-    UtRegisterTest("SigTest41Wm -- ip_proto test", SigTest41Wm, 1);
+    UtRegisterTest("SigTest41NoPacketInspection", SigTest41NoPacketInspection, 1);
+    UtRegisterTest("SigTest42NoPayloadInspection", SigTest42NoPayloadInspection, 1);
+
+    UtRegisterTest("SigTest43B2g -- ip_proto test", SigTest43B2g, 1);
+    UtRegisterTest("SigTest43B3g -- ip_proto test", SigTest43B3g, 1);
+    UtRegisterTest("SigTest43Wm -- ip_proto test", SigTest43Wm, 1);
 #endif /* UNITTESTS */
 }
 
