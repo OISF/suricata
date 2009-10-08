@@ -594,15 +594,16 @@ static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (sm == NULL)
         goto iponly;
 
-    for ( ; sm != NULL ; sm = sm->next)
-        if(!( sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
+    for ( ;sm != NULL ;sm = sm->next) {
+        if (!( sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
             return 0;
+    }
 
 iponly:
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("IP-ONLY (%" PRIu32 "): source %s, dest %s", s->id,
-        s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",
-        s->flags & SIG_FLAG_DST_ANY ? "ANY" : "SET");
+                   s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",
+                   s->flags & SIG_FLAG_DST_ANY ? "ANY" : "SET");
     }
     return 1;
 }
@@ -630,7 +631,14 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
     return 0;
 }
 
-/* add all signatures to their own source address group */
+/**
+ * \brief Add all signatures to their own source address group
+ *
+ * \param de_ctx Pointer to the Detection Engine Context
+ *
+ * \retval  0 on success
+ * \retval -1 on failure
+ */
 int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL;
@@ -643,7 +651,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("building signature grouping structure, stage 1: "
-               "adding signatures to signature source addresses...");
+                   "adding signatures to signature source addresses...");
     }
 
     de_ctx->sig_array_len = DetectEngineGetMaxSigId(de_ctx);
@@ -654,7 +662,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     memset(de_ctx->sig_array,0,de_ctx->sig_array_size);
 
     SCLogDebug("signature lookup array: %" PRIu32 " sigs, %" PRIu32 " bytes",
-            de_ctx->sig_array_len, de_ctx->sig_array_size);
+               de_ctx->sig_array_len, de_ctx->sig_array_size);
 
     /* now for every rule add the source group */
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {

@@ -36,7 +36,11 @@ DetectProto *DetectProtoInit(void) {
     return dp;
 }
 
-/* free a DetectAddressGroup object */
+/**
+ * \brief Free a DetectAddressGroup object
+ *
+ * \param dp Pointer to the DetectProto instance to be freed
+ */
 void DetectProtoFree(DetectProto *dp) {
     if (dp == NULL)
         return;
@@ -44,24 +48,33 @@ void DetectProtoFree(DetectProto *dp) {
     free(dp);
 }
 
+/**
+ * \brief Parses a protocol sent as a string.
+ *
+ * \param dp  Pointer to the DetectProto instance which will be updated with the
+ *            incoming protocol information.
+ * \param str Pointer to the string containing the protocol name.
+ *
+ * \retval 0 Always return 0.
+ */
 int DetectProtoParse(DetectProto *dp, char *str) {
     int proto;
 
-    if (strcasecmp(str,"tcp") == 0) {
+    if (strcasecmp(str, "tcp") == 0) {
         proto = IPPROTO_TCP;
-        dp->proto[(proto/8)] |= 1<<(proto%8);
-    } else if (strcasecmp(str,"udp") == 0) {
+        dp->proto[proto / 8] |= 1 << (proto % 8);
+    } else if (strcasecmp(str, "udp") == 0) {
         proto = IPPROTO_UDP;
-        dp->proto[(proto/8)] |= 1<<(proto%8);
-    } else if (strcasecmp(str,"icmp") == 0) {
+        dp->proto[proto / 8] |= 1 << (proto % 8);
+    } else if (strcasecmp(str, "icmp") == 0) {
         proto = IPPROTO_ICMP;
-        dp->proto[(proto/8)] |= 1<<(proto%8);
-    } else if (strcasecmp(str,"ip") == 0) {
+        dp->proto[proto / 8] |= 1 << (proto % 8);
+    } else if (strcasecmp(str, "ip") == 0) {
         dp->flags |= DETECT_PROTO_ANY;
-        memset(&dp->proto,0xFF,sizeof(dp->proto));
+        memset(&dp->proto, 0xFF, sizeof(dp->proto));
     } else {
         proto = atoi(str);
-        dp->proto[(proto/8)] |= 1<<(proto%8);
+        dp->proto[proto / 8] |= 1 << (proto % 8);
     }
 
     return 0;

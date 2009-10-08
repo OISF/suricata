@@ -238,24 +238,24 @@ error:
 int SigParseAddress(Signature *s, const char *addrstr, char flag) {
     char *addr = NULL;
 
-    if (strcmp(addrstr,"$HOME_NET") == 0) {
+    if (strcmp(addrstr, "$HOME_NET") == 0) {
         addr = "[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]";
-//        addr = "[192.168.0.0/16,10.8.0.0/16,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]";
-    } else if (strcmp(addrstr,"$EXTERNAL_NET") == 0) {
+        //addr = "[192.168.0.0/16,10.8.0.0/16,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]";
+    } else if (strcmp(addrstr, "$EXTERNAL_NET") == 0) {
         addr = "[!192.168.0.0/16,2000::/3]";
-    } else if (strcmp(addrstr,"$HTTP_SERVERS") == 0) {
+    } else if (strcmp(addrstr, "$HTTP_SERVERS") == 0) {
         addr = "!192.168.0.0/16";
-    } else if (strcmp(addrstr,"$SMTP_SERVERS") == 0) {
+    } else if (strcmp(addrstr, "$SMTP_SERVERS") == 0) {
         addr = "!192.168.0.0/16";
-    } else if (strcmp(addrstr,"$SQL_SERVERS") == 0) {
+    } else if (strcmp(addrstr, "$SQL_SERVERS") == 0) {
         addr = "!192.168.0.0/16";
-    } else if (strcmp(addrstr,"$DNS_SERVERS") == 0) {
+    } else if (strcmp(addrstr, "$DNS_SERVERS") == 0) {
         addr = "any";
-    } else if (strcmp(addrstr,"$TELNET_SERVERS") == 0) {
+    } else if (strcmp(addrstr, "$TELNET_SERVERS") == 0) {
         addr = "any";
-    } else if (strcmp(addrstr,"$AIM_SERVERS") == 0) {
+    } else if (strcmp(addrstr, "$AIM_SERVERS") == 0) {
         addr = "any";
-    } else if (strcmp(addrstr,"any") == 0) {
+    } else if (strcmp(addrstr, "any") == 0) {
         addr = "any";
     } else {
         addr = (char *)addrstr;
@@ -264,32 +264,39 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
 
     /* pass on to the address(list) parser */
     if (flag == 0) {
-        if (strcasecmp(addrstr,"any") == 0)
+        if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_SRC_ANY;
 
-        if (DetectAddressGroupParse(&s->src,addr) < 0) {
+        if (DetectAddressGroupParse(&s->src, addr) < 0)
             goto error;
-        }
     } else {
-        if (strcasecmp(addrstr,"any") == 0)
+        if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_DST_ANY;
 
-        if (DetectAddressGroupParse(&s->dst,addr) < 0) {
+        if (DetectAddressGroupParse(&s->dst, addr) < 0)
             goto error;
-        }
     }
 
-
     return 0;
+
 error:
     return -1;
 }
 
-/* http://www.iana.org/assignments/protocol-numbers
+/**
+ * \brief Parses the protocol supplied by the Signature.
  *
+ *        http://www.iana.org/assignments/protocol-numbers
+ *
+ * \param s        Pointer to the Signature instance to which the parsed
+ *                 protocol has to be added.
+ * \param protostr Pointer to the character string containing the protocol name.
+ *
+ * \retval  0 On successfully parsing the protocl sent as the argument.
+ * \retval -1 On failure
  */
 int SigParseProto(Signature *s, const char *protostr) {
-    int r = DetectProtoParse(&s->proto,(char *)protostr);
+    int r = DetectProtoParse(&s->proto, (char *)protostr);
     if (r < 0) {
         return -1;
     }
@@ -349,6 +356,17 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
     return 0;
 }
 
+/**
+ * \brief Parses the action that has been used by the Signature and allots it
+ *        to its Signatue instance.
+ *
+ * \param s      Pointer to the Signatue instance to which the action belongs.
+ * \param action Pointer to the action string used by the Signature.
+ *
+ * \retval  0 On successfully parsing the action string and adding it to the
+ *            Signature.
+ * \retval -1 On failure.
+ */
 int SigParseAction(Signature *s, const char *action) {
     if (strcasecmp(action, "alert") == 0) {
         s->action = ACTION_ALERT;
@@ -381,7 +399,7 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
     int ov[MAX_SUBSTRINGS];
     int ret = 0, i = 0;
 
-    const char **arr = calloc(CONFIG_PARTS+1, sizeof(char *));
+    const char **arr = calloc(CONFIG_PARTS + 1, sizeof(char *));
     if (arr == NULL)
         return -1;
 
@@ -391,11 +409,11 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
         goto error;
     }
 
-    for (i = 1; i <= ret-1; i++) {
-        pcre_get_substring(sigstr, ov, MAX_SUBSTRINGS, i, &arr[i-1]);
+    for (i = 1; i <= ret - 1; i++) {
+        pcre_get_substring(sigstr, ov, MAX_SUBSTRINGS, i, &arr[i - 1]);
         //printf("SigParseBasics: arr[%" PRId32 "] = \"%s\"\n", i-1, arr[i-1]);
     }
-    arr[i-1]=NULL;
+    arr[i - 1] = NULL;
 
     /* Parse Action */
     if (SigParseAction(s, arr[CONFIG_ACTION]) < 0)
@@ -409,9 +427,8 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
     if (SigParseAddress(s, arr[CONFIG_SRC], 0) < 0)
        goto error;
 
-    /* For "ip" we parse the ports as well, even though they will
-       be just "any". We do this for later sgh building for the
-       tcp and udp protocols. */
+    /* For "ip" we parse the ports as well, even though they will be just "any".
+     *  We do this for later sgh building for the tcp and udp protocols. */
     if (strcasecmp(arr[CONFIG_PROTO],"tcp") == 0 ||
         strcasecmp(arr[CONFIG_PROTO],"udp") == 0 ||
         strcasecmp(arr[CONFIG_PROTO],"ip") == 0) {
@@ -456,7 +473,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr) {
     }
 
     /* cleanup */
-    if (basics) {
+    if (basics != NULL) {
         int i = 0;
         while (basics[i] != NULL) {
             free(basics[i]);
@@ -464,6 +481,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr) {
         }
         free(basics);
     }
+
     return ret;
 }
 
@@ -495,6 +513,15 @@ void SigFree(Signature *s) {
     free(s);
 }
 
+/**
+ * \brief Parses a signature and adds it to the Detection Engine Context
+ *
+ * \param de_ctx Pointer to the Detection Engine Context
+ * \param sigstr Pointer to a character string containing the signature to be
+ *               parsed
+ *
+ * \retval Pointer to the Signature instance on success; NULL on failure
+ */
 Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     Signature *sig = SigAlloc();
     if (sig == NULL)

@@ -653,7 +653,9 @@ error:
 }
 
 /* XXX error handling */
-int DetectAddressParse2(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *ghn, char *s,int negate) {
+int DetectAddressParse2(DetectAddressGroupsHead *gh,
+                        DetectAddressGroupsHead *ghn,
+                        char *s, int negate) {
     int i, x;
     int o_set = 0, n_set = 0;
     int depth = 0;
@@ -675,10 +677,10 @@ int DetectAddressParse2(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *gh
             depth++;
         } else if (s[i] == ']') {
             if (depth == 1) {
-                address[x-1] = '\0';
+                address[x - 1] = '\0';
                 x = 0;
 
-                DetectAddressParse2(gh,ghn,address,negate ? negate : n_set);
+                DetectAddressParse2(gh, ghn, address, negate? negate: n_set);
                 n_set = 0;
             }
             depth--;
@@ -686,24 +688,24 @@ int DetectAddressParse2(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *gh
             if (o_set == 1) {
                 o_set = 0;
             } else {
-                address[x-1] = '\0';
+                address[x - 1] = '\0';
 
                 if (negate == 0 && n_set == 0) {
-                    DetectAddressGroupSetup(gh,address);
+                    DetectAddressGroupSetup(gh, address);
                 } else {
-                    DetectAddressGroupSetup(ghn,address);
+                    DetectAddressGroupSetup(ghn, address);
                 }
                 n_set = 0;
             }
             x = 0;
-        } else if (depth == 0 && i == size-1) {
+        } else if (depth == 0 && i == size - 1) {
             address[x] = '\0';
             x = 0;
 
             if (negate == 0 && n_set == 0) {
-                DetectAddressGroupSetup(gh,address);
+                DetectAddressGroupSetup(gh, address);
             } else {
-                DetectAddressGroupSetup(ghn,address);
+                DetectAddressGroupSetup(ghn, address);
             }
             n_set = 0;
         }
@@ -867,19 +869,20 @@ int DetectAddressGroupParse(DetectAddressGroupsHead *gh, char *str) {
         goto error;
     }
 
-    r = DetectAddressParse2(gh,ghn,str,/* start with negate no */0);
+    r = DetectAddressParse2(gh, ghn, str,/* start with negate no */0);
     if (r < 0) {
         goto error;
     }
 
     /* merge the 'not' address groups */
-    if (DetectAddressGroupMergeNot(gh,ghn) < 0) {
+    if (DetectAddressGroupMergeNot(gh, ghn) < 0) {
         goto error;
     }
 
     /* free the temp negate head */
     DetectAddressGroupsHeadFree(ghn);
     return 0;
+
 error:
     DetectAddressGroupsHeadFree(ghn);
     return -1;
@@ -887,14 +890,15 @@ error:
 
 DetectAddressGroupsHead *DetectAddressGroupsHeadInit(void) {
     DetectAddressGroupsHead *gh = malloc(sizeof(DetectAddressGroupsHead));
-    if (gh == NULL) {
+    if (gh == NULL)
         return NULL;
-    }
-    memset(gh,0,sizeof(DetectAddressGroupsHead));
+    memset(gh, 0, sizeof(DetectAddressGroupsHead));
+
 #ifdef DEBUG
     detect_address_group_head_init_cnt++;
     detect_address_group_head_memory += sizeof(DetectAddressGroupsHead);
 #endif
+
     return gh;
 }
 
