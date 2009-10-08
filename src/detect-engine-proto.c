@@ -73,6 +73,7 @@ int DetectProtoParse(DetectProto *dp, char *str) {
     } else if (strcasecmp(str,"ip") == 0) {
         /* Proto "ip" is treated as an "any" */
         dp->flags |= DETECT_PROTO_ANY;
+        memset(dp->proto, 0xff, sizeof(dp->proto));
     } else {
         uint8_t proto_u8; /* Used to avoid sign extension */
 

@@ -166,7 +166,10 @@ int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s,
     data = DetectIPProtoParse((const char *)optstr);
     if (data == NULL) goto error;
 
+    /* reset our "any" (or "ip") state */
     s->proto.flags &= ~DETECT_PROTO_ANY;
+    memset(s->proto.proto, 0x00, sizeof(s->proto.proto));
+
     switch (data->op) {
         case DETECT_IPPROTO_OP_EQ:
             s->proto.proto[data->proto/8] |= 1 << (data->proto%8);
