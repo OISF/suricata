@@ -21,7 +21,7 @@
 #define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120]+)(?:\\s*,\\s*([SAPRFU120]+))?\\s*$"
 
 /**
- * Flags modifiers *(3) +(2) !(1)
+ * Flags args[0] *(3) +(2) !(1)
  *
  */
 
@@ -133,7 +133,9 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     int ret = 0, found = 0, ignore = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
-    char *curr_flags = NULL, *ignore_flags = NULL, *modifiers = NULL;
+    char *args[3] = { NULL, NULL, NULL };
+    char *ptr;
+    int i;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
 
@@ -141,31 +143,18 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
         goto error;
     }
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    for (i = 0; i < (ret - 1); i++) {
 
-    if(res == 0) {
-        str_ptr = NULL;
+        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,i + 1, &str_ptr);
+
+        if (res < 0) {
+            goto error;
+        }
+
+        args[i] = (char *)str_ptr;
     }
 
-    modifiers = (char *)str_ptr;
-
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
-
-    if(res == 0) {
-        str_ptr = NULL;
-    }
-
-    curr_flags = (char *)str_ptr;
-
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
-
-    if(res == 0) {
-        str_ptr = NULL;
-    }
-
-    ignore_flags = (char *)str_ptr;
-
-    if(curr_flags == NULL)
+    if(args[1] == NULL)
         goto error;
 
     de = malloc(sizeof(DetectFlagsData));
@@ -178,12 +167,14 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
 
     de->ignored_flags = 0xff;
 
-    /** First parse modifiers */
+    /** First parse args[0] */
 
-    if(modifiers)   {
+    if(args[0])   {
 
-        while (*modifiers != '\0') {
-            switch (*modifiers) {
+    ptr = args[0];
+
+        while (*args[0] != '\0') {
+            switch (*args[0]) {
                 case '!':
                     de->modifier = MODIFIER_NOT;
                     break;
@@ -194,14 +185,19 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     de->modifier = MODIFIER_ANY;
                     break;
             }
-            modifiers++;
+            args[0]++;
         }
+
+    args[0] = ptr;
     }
 
     /** Second parse first set of flags */
 
-    while (*curr_flags != '\0') {
-        switch (*curr_flags) {
+    ptr = args[1];
+    printf("%p %p\n",ptr,args[1]);
+
+    while (*args[1] != '\0') {
+        switch (*args[1]) {
             case 'S':
             case 's':
                 de->flags |= TH_SYN;
@@ -248,18 +244,22 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                 found = 0;
                 break;
         }
-        curr_flags++;
+        args[1]++;
     }
+
+    args[1] = ptr;
 
     if(found == 0)
         goto error;
 
     /** Finally parse ignored flags */
 
-    if(ignore_flags)    {
+    if(args[2])    {
 
-        while (*ignore_flags != '\0') {
-            switch (*ignore_flags) {
+    ptr = args[2];
+
+        while (*args[2] != '\0') {
+            switch (*args[2]) {
                 case 'S':
                 case 's':
                     de->ignored_flags &= ~TH_SYN;
@@ -304,16 +304,24 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     ignore = 0;
                     break;
             }
-            ignore_flags++;
+            args[2]++;
         }
+
+        args[2] = ptr;
 
         if(ignore == 0)
             goto error;
     }
 
+    for (i = 0; i < (ret - 1); i++){
+        if (args[i] != NULL) free(args[i]);
+    }
     return de;
 
 error:
+    for (i = 0; i < (ret - 1); i++){
+        if (args[i] != NULL) free(args[i]);
+    }
     if (de) free(de);
     return NULL;
 }
