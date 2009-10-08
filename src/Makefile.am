@@ -65,6 +65,7 @@ detect-reference.c detect-reference.h \
 detect-threshold.c detect-threshold.h \
 detect-metadata.c detect-metadata.h \
 detect-msg.c detect-msg.h \
+detect-id.c detect-id.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
 detect-stream_size.c detect-stream_size.h \

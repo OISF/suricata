@@ -44,6 +44,7 @@
 #include "detect-flow.h"
 #include "detect-window.h"
 #include "detect-isdataat.h"
+#include "detect-id.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-pktvar.h"
@@ -1914,7 +1915,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
 
                         int dpgroups = dsize ? (flow ? MAX_UNIQ_TOSERVER_DP_GROUPS : MAX_UNIQ_TOCLIENT_DP_GROUPS) :
                                                (flow ? MAX_UNIQ_SMALL_TOSERVER_DP_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_DP_GROUPS);
-                        CreateGroupedPortList(de_ctx, de_ctx->dport_hash_table, 
+                        CreateGroupedPortList(de_ctx, de_ctx->dport_hash_table,
                             &sp->dst_ph, dpgroups,
                             CreateGroupedPortListCmpMpmMaxlen, max_idx);
 
@@ -2451,7 +2452,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                                 printf("\n");
                             }
                         }
-                    } 
+                    }
                     for (global_dst_gr = global_dst_gh->ipv4_head;
                             global_dst_gr != NULL;
                             global_dst_gr = global_dst_gr->next)
@@ -2579,6 +2580,7 @@ void SigTableSetup(void) {
     DetectFlowRegister();
     DetectWindowRegister();
     DetectIsdataatRegister();
+    DetectIdRegister();
     DetectDsizeRegister();
     DetectFlowvarRegister();
     DetectPktvarRegister();
@@ -6380,6 +6382,211 @@ end:
     return result;
 }
 
+/**
+ * \test SigTest41IdKeyword01Real
+ * \brief Test to check "id" keyword with constructed packets,
+ * \brief expecting to match the ip->id
+ */
+int SigTest41IdKeyword01Real(int mpm_type) {
+    int result = 1;
+
+    // Buid and decode the packet
+
+    uint8_t raw_eth [] = {
+        0x00, 0x14, 0xf8, 0x50, 0xf9, 0x09, 0x00, 0x10,
+        0xdc, 0x4f, 0xe6, 0x09, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x3c, 0xa0, 0xc6, 0x40, 0x00, 0x40, 0x06,
+        0xab, 0x46, 0xc0, 0xa8, 0x00, 0xdc, 0x4b, 0x7d,
+        0xe1, 0xad, 0xbe, 0x23, 0x00, 0x50, 0xf4, 0x66,
+        0x71, 0xe5, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x02,
+        0x16, 0xd0, 0x45, 0xf0, 0x00, 0x00, 0x02, 0x04,
+        0x05, 0xb4, 0x04, 0x02, 0x08, 0x0a, 0x06, 0xae,
+        0xd1, 0x23, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
+        0x03, 0x06 };
+
+    Packet p;
+    DecodeThreadVars dtv;
+
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeEthernet(&th_v, &dtv, &p, raw_eth, sizeof(raw_eth), NULL);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any"
+                                      " (msg:\"SigTest41IdKeyword01 match\";"
+                                      " id:41158; sid:10141;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 10141) == 0) {
+        result=0;
+        goto end;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+    FlowShutdown();
+
+    return result;
+
+end:
+    if (de_ctx)
+    {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    PatternMatchDestroy(mpm_ctx);
+
+    if (de_ctx)
+             DetectEngineCtxFree(de_ctx);
+
+    FlowShutdown();
+
+    return result;
+}
+
+/**
+ * \test SigTest42IdKeyword01Real
+ * \brief Test to check "id" keyword with constructed packets,
+ * \brief not expecting to match the ip->id
+ */
+int SigTest42IdKeyword02Real(int mpm_type) {
+    int result = 1;
+
+    // Buid and decode the packet
+
+    uint8_t raw_eth [] = {
+        0x00, 0x14, 0xf8, 0x50, 0xf9, 0x09, 0x00, 0x10,
+        0xdc, 0x4f, 0xe6, 0x09, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x3c, 0xa0, 0xc6, 0x40, 0x00, 0x40, 0x06,
+        0xab, 0x46, 0xc0, 0xa8, 0x00, 0xdc, 0x4b, 0x7d,
+        0xe1, 0xad, 0xbe, 0x23, 0x00, 0x50, 0xf4, 0x66,
+        0x71, 0xe5, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x02,
+        0x16, 0xd0, 0x45, 0xf0, 0x00, 0x00, 0x02, 0x04,
+        0x05, 0xb4, 0x04, 0x02, 0x08, 0x0a, 0x06, 0xae,
+        0xd1, 0x23, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
+        0x03, 0x06 };
+
+    Packet p;
+    DecodeThreadVars dtv;
+
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeEthernet(&th_v, &dtv, &p, raw_eth, sizeof(raw_eth), NULL);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        result=0;
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any"
+                                      " (msg:\"SigTest42IdKeyword02"
+                                      " I should not match!\";"
+                                      " id:41159; sid:10142;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (!PacketAlertCheck(&p, 10142) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+    FlowShutdown();
+
+    return result;
+
+end:
+    if (de_ctx)
+    {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    PatternMatchDestroy(mpm_ctx);
+
+    if (de_ctx)
+             DetectEngineCtxFree(de_ctx);
+
+    FlowShutdown();
+
+    return result;
+}
+
+// Wrapper functions to pass the mpm_type
+static int SigTest41IdKeyword01B2g (void) {
+    return SigTest41IdKeyword01Real(MPM_B2G);
+}
+static int SigTest41IdKeyword01B3g (void) {
+    return SigTest41IdKeyword01Real(MPM_B3G);
+}
+static int SigTest41IdKeyword01Wm (void) {
+    return SigTest41IdKeyword01Real(MPM_WUMANBER);
+}
+
+static int SigTest42IdKeyword02B2g (void) {
+    return SigTest42IdKeyword02Real(MPM_B2G);
+}
+static int SigTest42IdKeyword02B3g (void) {
+    return SigTest42IdKeyword02Real(MPM_B3G);
+}
+static int SigTest42IdKeyword02Wm (void) {
+    return SigTest42IdKeyword02Real(MPM_WUMANBER);
+}
+
+
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
@@ -6507,13 +6714,19 @@ void SigRegisterTests(void) {
        relative to that content match
     */
 
-    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01B2g", SigTest36ContentAndIsdataatKeywords01B2g, 1);
-    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01B3g", SigTest36ContentAndIsdataatKeywords01B3g, 1);
-    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01Wm" , SigTest36ContentAndIsdataatKeywords01Wm,  1);
+    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01B2g",
+                    SigTest36ContentAndIsdataatKeywords01B2g, 1);
+    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01B3g",
+                    SigTest36ContentAndIsdataatKeywords01B3g, 1);
+    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01Wm" ,
+                    SigTest36ContentAndIsdataatKeywords01Wm,  1);
 
-    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02B2g", SigTest37ContentAndIsdataatKeywords02B2g, 1);
-    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02B3g", SigTest37ContentAndIsdataatKeywords02B3g, 1);
-    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02Wm" , SigTest37ContentAndIsdataatKeywords02Wm,  1);
+    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02B2g",
+                    SigTest37ContentAndIsdataatKeywords02B2g, 1);
+    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02B3g",
+                    SigTest37ContentAndIsdataatKeywords02B3g, 1);
+    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02Wm" ,
+                    SigTest37ContentAndIsdataatKeywords02Wm,  1);
 
     /* We need to enable these tests, as soon as we add the ICMPv6 protocol
        support in our rules engine */
@@ -6531,6 +6744,21 @@ void SigRegisterTests(void) {
 
     UtRegisterTest("SigTest40NoPacketInspection01", SigTest40NoPacketInspection01, 1);
     UtRegisterTest("SigTest40NoPayloadInspection02", SigTest40NoPayloadInspection02, 1);
+
+    UtRegisterTest("SigTest41IdKeyword01B2g",
+                    SigTest41IdKeyword01B2g, 1);
+    UtRegisterTest("SigTest41IdKeywords01B3g",
+                    SigTest41IdKeyword01B3g, 1);
+    UtRegisterTest("SigTest41IdKeyword01Wm" ,
+                    SigTest41IdKeyword01Wm,  1);
+
+    UtRegisterTest("SigTest42IdKeyword02B2g",
+                    SigTest42IdKeyword02B2g, 1);
+    UtRegisterTest("SigTest42IdKeywords02B3g",
+                    SigTest42IdKeyword02B3g, 1);
+    UtRegisterTest("SigTest42IdKeyword02Wm" ,
+                    SigTest42IdKeyword02Wm,  1);
+
 #endif /* UNITTESTS */
 }
 
