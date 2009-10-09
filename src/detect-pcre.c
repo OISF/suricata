@@ -10,6 +10,8 @@
 
 #include "detect-pcre.h"
 
+#include "detect-parse.h"
+#include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
 #include "util-var-name.h"
@@ -522,6 +524,70 @@ int DetectPcreParseTest07 (void) {
     DetectPcreFree(pd);
     return result;
 }
+
+static int DetectPcreTestSig01Real(int mpm_type) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n\r\n"
+                    "GET /two/ HTTP/1.1\r\n"
+                    "Host: two.example.org\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"^/gEt/i\"; pcre:\"/\\/two\\//U; pcre:\"/GET \\/two\\//\"; pcre:\"/\\s+HTTP/R\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx,mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1))
+        result = 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+static int DetectPcreTestSig01B2g (void) {
+    return DetectPcreTestSig01Real(MPM_B2G);
+}
+static int DetectPcreTestSig01B3g (void) {
+    return DetectPcreTestSig01Real(MPM_B3G);
+}
+static int DetectPcreTestSig01Wm (void) {
+    return DetectPcreTestSig01Real(MPM_WUMANBER);
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -536,6 +602,9 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreParseTest05", DetectPcreParseTest05, 1);
     UtRegisterTest("DetectPcreParseTest06", DetectPcreParseTest06, 1);
     UtRegisterTest("DetectPcreParseTest07", DetectPcreParseTest07, 1);
+    UtRegisterTest("DetectPcreTestSig01B2g -- pcre test", DetectPcreTestSig01B2g, 1);
+    UtRegisterTest("DetectPcreTestSig01B3g -- pcre test", DetectPcreTestSig01B3g, 1);
+    UtRegisterTest("DetectPcreTestSig01Wm -- pcre test", DetectPcreTestSig01Wm, 1);
 #endif /* UNITTESTS */
 }
 
