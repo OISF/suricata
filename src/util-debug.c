@@ -89,7 +89,7 @@ static SCLogConfig *sc_log_config = NULL;
 /**
  * \brief Returns the full path given a file and configured log dir
  */
-static char * ScGetLogFilename(char *);
+static char *SCLogGetLogFilename(char *);
 
 /**
  * \brief Holds the global log level.  Is the same as sc_log_config->log_level
@@ -764,7 +764,7 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
             case SC_LOG_OP_IFACE_FILE:
                 s = getenv(SC_LOG_ENV_LOG_FILE);
                 if (s == NULL)
-                    s = ScGetLogFilename(SC_LOG_DEF_LOG_FILE);
+                    s = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
 
                 op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
                 break;
@@ -1054,7 +1054,7 @@ void SCLogInitLogModuleIfEnvSet(void)
         case SC_LOG_OP_IFACE_FILE:
             s = getenv(SC_LOG_ENV_LOG_FILE);
             if (s == NULL)
-                s = ScGetLogFilename(SC_LOG_DEF_LOG_FILE);
+                s = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
             op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
             break;
         case SC_LOG_OP_IFACE_SYSLOG:
@@ -1132,19 +1132,22 @@ void SCLogInitLogModuleIfEnvSet(void)
 }
 
 /**
- * \brief returns a full file path given a filename uses log dir specified in conf or DEFAULT_LOG_DIR
+ * \brief Returns a full file path given a filename uses log dir specified in
+ *        conf or DEFAULT_LOG_DIR
  *
- * \param filearg the relative filename for which we want a full path include log directory
- * \retval log_filename the fullpath of the logfile to open.
+ * \param filearg The relative filename for which we want a full path include
+ *                log directory
+ *
+ * \retval log_filename The fullpath of the logfile to open
  */
-static char *
-ScGetLogFilename(char *filearg)
+static char *SCLogGetLogFilename(char *filearg)
 {
     char *log_dir;
     char *log_filename;
 
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
+
     log_filename = malloc(PATH_MAX);
     if (log_filename == NULL)
         return NULL;
@@ -1196,9 +1199,14 @@ int SCLogTestInit01()
 
     SCLogInitLogModule(NULL);
 
+    if (sc_log_config == NULL)
+        return 0;
+
     result &= (SC_LOG_DEF_LOG_LEVEL == sc_log_config->log_level);
-    result &= (SC_LOG_DEF_LOG_OP_IFACE == sc_log_config->op_ifaces->iface);
-    result &= (strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               SC_LOG_DEF_LOG_OP_IFACE == sc_log_config->op_ifaces->iface);
+    result &= (sc_log_config->log_format != NULL &&
+               strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
 
     SCLogDeInitLogModule();
 
@@ -1209,8 +1217,10 @@ int SCLogTestInit01()
     SCLogInitLogModule(NULL);
 
     result &= (SC_LOG_DEBUG == sc_log_config->log_level);
-    result &= (SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->iface);
-    result &= !strcmp("%n- %l", sc_log_config->log_format);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->iface);
+    result &= (sc_log_config->log_format != NULL &&
+               !strcmp("%n- %l", sc_log_config->log_format));
 
     unsetenv(SC_LOG_ENV_LOG_LEVEL);
     unsetenv(SC_LOG_ENV_LOG_OP_IFACE);
@@ -1226,7 +1236,7 @@ int SCLogTestInit02()
     SCLogInitData *sc_lid = NULL;
     SCLogOPIfaceCtx *sc_iface_ctx = NULL;
     int result = 1;
-    char *logfile = ScGetLogFilename("boo.txt");
+    char *logfile = SCLogGetLogFilename("boo.txt");
     sc_lid = SCLogAllocLogInitData();
     sc_lid->startup_message = "Test02";
     sc_lid->global_log_level = SC_LOG_DEBUG;
@@ -1240,12 +1250,23 @@ int SCLogTestInit02()
 
     SCLogInitLogModule(sc_lid);
 
+    if (sc_log_config == NULL)
+        return 0;
+
     result &= (SC_LOG_DEBUG == sc_log_config->log_level);
-    result &= (SC_LOG_OP_IFACE_FILE == sc_log_config->op_ifaces->iface);
-    result &= (SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->next->iface);
-    result &= (strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
-    result &= (strcmp("%m - %d", sc_log_config->op_ifaces->log_format) == 0);
-    result &= (sc_log_config->op_ifaces->next->log_format == NULL);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               SC_LOG_OP_IFACE_FILE == sc_log_config->op_ifaces->iface);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               sc_log_config->op_ifaces->next != NULL &&
+               SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->next->iface);
+    result &= (sc_log_config->log_format != NULL &&
+               strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               sc_log_config->op_ifaces->log_format != NULL &&
+               strcmp("%m - %d", sc_log_config->op_ifaces->log_format) == 0);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               sc_log_config->op_ifaces->next != NULL &&
+               sc_log_config->op_ifaces->next->log_format == NULL);
 
     SCLogDeInitLogModule();
 
@@ -1257,12 +1278,20 @@ int SCLogTestInit02()
 
     SCLogInitLogModule(sc_lid);
 
+    if (sc_log_config == NULL)
+        return 0;
+
     result &= (SC_LOG_DEBUG == sc_log_config->log_level);
-    result &= (SC_LOG_OP_IFACE_FILE == sc_log_config->op_ifaces->iface);
-    result &= (sc_log_config->op_ifaces->next == NULL);
-    result &= (strcmp("kaboo", sc_log_config->log_format) == 0);
-    result &= (sc_log_config->op_ifaces->log_format == NULL);
-    result &= (sc_log_config->op_ifaces->next == NULL);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               SC_LOG_OP_IFACE_FILE == sc_log_config->op_ifaces->iface);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               sc_log_config->op_ifaces->next == NULL);
+    result &= (sc_log_config->log_format != NULL &&
+               strcmp("kaboo", sc_log_config->log_format) == 0);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               sc_log_config->op_ifaces->log_format == NULL);
+    result &= (sc_log_config->op_ifaces != NULL &&
+               sc_log_config->op_ifaces->next == NULL);
 
     SCLogDeInitLogModule();
 

@@ -255,11 +255,11 @@ int main(int argc, char **argv)
     char *regex_arg = NULL;
     int dump_config = 0;
 
-    /* Initialize the configuration module. */
-    ConfInit();
-
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
+
+    /* Initialize the configuration module. */
+    ConfInit();
 
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
