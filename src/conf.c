@@ -166,6 +166,9 @@ ConfGet(char *name, char **vptr)
     ConfNode lookup_key;
     ConfNode *conf_node;
 
+    if (conf_hash == NULL)
+        return 0;
+
     lookup_key.name = name;
 
     conf_node = HashTableLookup(conf_hash, &lookup_key, sizeof(lookup_key));
