@@ -585,7 +585,7 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
  *  \retval 1 sig is ip only
  *  \retval 0 sig is not ip only
  */
-static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
+int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     /* for tcp/udp, only consider sigs that don't have ports set, as ip-only */
     if (!(s->proto.flags & DETECT_PROTO_ANY)) {
         if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8)) ||
@@ -6248,191 +6248,11 @@ static int SigTest37ContentAndIsdataatKeywords02Wm (void) {
 
 
 /**
- * \test SigTest40IPOnly01 is a test to check that we set a Signature as IPOnly
- *  because it has no rule option appending a SigMatch and no port is fixed
- */
-
-static int SigTest40IPOnly01 (void) {
-    int result = 0;
-    DetectEngineCtx de_ctx;
-
-    de_ctx.flags |= DE_QUIET;
-
-    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-01 sig is IPOnly \"; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(&de_ctx, s))
-        result=1;
-    else
-        printf("expected a IPOnly signature: ");
-
-    SigFree(s);
-end:
-    return result;
-}
-
-/**
- * \test SigTest40IPOnly02 is a test to check that we dont set a Signature as IPOnly
- *  because it has no rule option appending a SigMatch but a port is fixed
- */
-
-static int SigTest40IPOnly02 (void) {
-    int result = 0;
-    DetectEngineCtx de_ctx;
-
-    de_ctx.flags |= DE_QUIET;
-
-    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any 80 (msg:\"SigTest40-02 sig is not IPOnly \"; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(!SignatureIsIPOnly(&de_ctx, s))
-        result=1;
-    else
-        printf("got a IPOnly signature: ");
-
-    SigFree(s);
-
-end:
-    return result;
-}
-
-/**
- * \test SigTest40IPOnly03 is a test to check that we set dont set a Signature as IPOnly
- *  because it has rule options appending a SigMatch like content, and pcre
- */
-
-static int SigTest40IPOnly03 (void) {
-    int result = 1;
-    DetectEngineCtx *de_ctx;
-    Signature *s=NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-    de_ctx->flags |= DE_QUIET;
-
-    /* combination of pcre and content */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre and content) \"; content:\"php\"; pcre:\"/require(_once)?/i\"; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(de_ctx, s))
-    {
-        printf("got a IPOnly signature (content): ");
-        result=0;
-    }
-    SigFree(s);
-
-    /* content */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (content) \"; content:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(de_ctx, s))
-    {
-        printf("got a IPOnly signature (content): ");
-        result=0;
-    }
-    SigFree(s);
-
-    /* uricontent */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (uricontent) \"; uricontent:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(de_ctx, s))
-    {
-        printf("got a IPOnly signature (uricontent): ");
-        result=0;
-    }
-    SigFree(s);
-
-    /* pcre */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre) \"; pcre:\"/e?idps rule[sz]/i\"; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(de_ctx, s))
-    {
-        printf("got a IPOnly signature (pcre): ");
-        result=0;
-    }
-    SigFree(s);
-
-    /* flow */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flow) \"; flow:to_server; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(de_ctx, s))
-    {
-        printf("got a IPOnly signature (flow): ");
-        result=0;
-    }
-    SigFree(s);
-
-    /* dsize */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (dsize) \"; dsize:100; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(de_ctx, s))
-    {
-        printf("got a IPOnly signature (dsize): ");
-        result=0;
-    }
-    SigFree(s);
-
-    /* flowbits */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowbits) \"; flowbits:unset; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(de_ctx, s))
-    {
-        printf("got a IPOnly signature (flowbits): ");
-        result=0;
-    }
-    SigFree(s);
-
-    /* flowvar */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowvar) \"; pcre:\"/(?<flow_var>.*)/i\"; flowvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(de_ctx, s))
-    {
-        printf("got a IPOnly signature (flowvar): ");
-        result=0;
-    }
-    SigFree(s);
-
-    /* pktvar */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pktvar) \"; pcre:\"/(?<pkt_var>.*)/i\"; pktvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(de_ctx, s))
-    {
-        printf("got a IPOnly signature (pktvar): ");
-        result=0;
-    }
-    SigFree(s);
-
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/**
  * \test SigTest41NoPacketInspection is a test to check that when PKT_NOPACKET_INSPECTION
  *  flag is set, we don't need to inspect the packet protocol header or its contents.
  */
 
-int SigTest41NoPacketInspection(void) {
+int SigTest40NoPacketInspection01(void) {
 
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
@@ -6498,7 +6318,7 @@ end:
  *  flasg is set, we don't need to inspect the packet contents.
  */
 
-int SigTest42NoPayloadInspection(void) {
+int SigTest40NoPayloadInspection02(void) {
 
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
@@ -6560,101 +6380,13 @@ end:
     return result;
 }
 
-static int SigTest43Real (int mpm_type) {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n";
-    uint16_t buflen = strlen((char *)buf);
-    Packet p;
-    Signature *s = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    //de_ctx->flags |= DE_QUIET;
-
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Not tcp\"; ip_proto:!tcp; content:\"GET \"; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Less than 7\"; content:\"GET \"; ip_proto:<7; sid:2;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Greater than 5\"; content:\"GET \"; ip_proto:>5; sid:3;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Equals tcp\"; content:\"GET \"; ip_proto:tcp; sid:4;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
-        printf("sid 1 alerted, but should not have: ");
-        goto cleanup;
-    } else if (PacketAlertCheck(&p, 2) == 0) {
-        printf("sid 2 did not alert, but should have: ");
-        goto cleanup;
-    } else if (PacketAlertCheck(&p, 3) == 0) {
-        printf("sid 3 did not alert, but should have: ");
-        goto cleanup;
-    } else if (PacketAlertCheck(&p, 4) == 0) {
-        printf("sid 4 did not alert, but should have: ");
-        goto cleanup;
-    }
-
-    result = 1;
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-end:
-    return result;
-}
-
-static int SigTest43B2g (void) {
-    return SigTest43Real(MPM_B2G);
-}
-static int SigTest43B3g (void) {
-    return SigTest43Real(MPM_B3G);
-}
-static int SigTest43Wm (void) {
-    return SigTest43Real(MPM_WUMANBER);
-}
-
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
 #ifdef UNITTESTS
     SigParseRegisterTests();
+    IPOnlyRegisterTests();
+
     UtRegisterTest("SigTest01B2g -- HTTP URI cap", SigTest01B2g, 1);
     UtRegisterTest("SigTest01B3g -- HTTP URI cap", SigTest01B3g, 1);
     UtRegisterTest("SigTest01Wm -- HTTP URI cap", SigTest01Wm, 1);
@@ -6797,16 +6529,8 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTest39B3g -- byte_jump test (2)", SigTest39B3g, 1);
     UtRegisterTest("SigTest39Wm -- byte_jump test (2)", SigTest39Wm, 1);
 
-    UtRegisterTest("SigTest40SignatureIsIPOnly01", SigTest40IPOnly01, 1);
-    UtRegisterTest("SigTest40SignatureIsIPOnly02", SigTest40IPOnly02, 1);
-    UtRegisterTest("SigTest40SignatureIsIPOnly03", SigTest40IPOnly03, 1);
-
-    UtRegisterTest("SigTest41NoPacketInspection", SigTest41NoPacketInspection, 1);
-    UtRegisterTest("SigTest42NoPayloadInspection", SigTest42NoPayloadInspection, 1);
-
-    UtRegisterTest("SigTest43B2g -- ip_proto test", SigTest43B2g, 1);
-    UtRegisterTest("SigTest43B3g -- ip_proto test", SigTest43B3g, 1);
-    UtRegisterTest("SigTest43Wm -- ip_proto test", SigTest43Wm, 1);
+    UtRegisterTest("SigTest40NoPacketInspection01", SigTest40NoPacketInspection01, 1);
+    UtRegisterTest("SigTest40NoPayloadInspection02", SigTest40NoPayloadInspection02, 1);
 #endif /* UNITTESTS */
 }
 

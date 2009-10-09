@@ -459,5 +459,9 @@ int PacketAlertAppend(Packet *, uint8_t, uint32_t, uint8_t, uint8_t, char *);
 int SigLoadSignatures (DetectEngineCtx *, char *);
 void SigTableSetup(void);
 
+int PacketAlertCheck(Packet *p, uint32_t sid);
+int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
+int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s);
+
 #endif /* __DETECT_H__ */
 

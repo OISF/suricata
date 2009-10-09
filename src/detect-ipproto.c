@@ -14,6 +14,10 @@
 
 #include "detect-ipproto.h"
 
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+
 #include "util-byte.h"
 #include "util-unittest.h"
 
@@ -509,6 +513,86 @@ end:
     return result;
 }
 
+static int DetectIPProtoTestSig1(void) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    //de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Not tcp\"; ip_proto:!tcp; content:\"GET \"; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Less than 7\"; content:\"GET \"; ip_proto:<7; sid:2;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Greater than 5\"; content:\"GET \"; ip_proto:>5; sid:3;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Equals tcp\"; content:\"GET \"; ip_proto:tcp; sid:4;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1)) {
+        printf("sid 1 alerted, but should not have: ");
+        goto cleanup;
+    } else if (PacketAlertCheck(&p, 2) == 0) {
+        printf("sid 2 did not alert, but should have: ");
+        goto cleanup;
+    } else if (PacketAlertCheck(&p, 3) == 0) {
+        printf("sid 3 did not alert, but should have: ");
+        goto cleanup;
+    } else if (PacketAlertCheck(&p, 4) == 0) {
+        printf("sid 4 did not alert, but should have: ");
+        goto cleanup;
+    }
+
+    result = 1;
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -524,6 +608,7 @@ static void DetectIPProtoRegisterTests(void) {
     UtRegisterTest("DetectIPProtoTestSetup03", DetectIPProtoTestSetup03, 1);
     UtRegisterTest("DetectIPProtoTestSetup04", DetectIPProtoTestSetup04, 1);
     UtRegisterTest("DetectIPProtoTestSetup05", DetectIPProtoTestSetup05, 1);
+    UtRegisterTest("DetectIPProtoTestSig1", DetectIPProtoTestSig1, 1);
 #endif /* UNITTESTS */
 }
 
