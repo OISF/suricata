@@ -878,7 +878,8 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
 
 error:
     printf("DetectPortParseInsertString error\n");
-    if (ad != NULL) free(ad);
+    if (ad != NULL)
+        DetectPortFree(ad);
     return -1;
 }
 
