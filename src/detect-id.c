@@ -12,6 +12,10 @@
 #include "decode.h"
 #include "detect.h"
 
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+
 #include "detect-id.h"
 #include "flow.h"
 #include "flow-var.h"
@@ -413,17 +417,205 @@ int DetectIdTestPacket02 (void) {
         return 1;
 }
 
+/**
+ * \test SigTest41IdKeyword01Real
+ * \brief Test to check "id" keyword with constructed packets,
+ * \brief expecting to match the ip->id
+ */
+int DetectIdTestSig1(void) {
+    int result = 1;
+
+    // Buid and decode the packet
+
+    uint8_t raw_eth [] = {
+        0x00, 0x14, 0xf8, 0x50, 0xf9, 0x09, 0x00, 0x10,
+        0xdc, 0x4f, 0xe6, 0x09, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x3c, 0xa0, 0xc6, 0x40, 0x00, 0x40, 0x06,
+        0xab, 0x46, 0xc0, 0xa8, 0x00, 0xdc, 0x4b, 0x7d,
+        0xe1, 0xad, 0xbe, 0x23, 0x00, 0x50, 0xf4, 0x66,
+        0x71, 0xe5, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x02,
+        0x16, 0xd0, 0x45, 0xf0, 0x00, 0x00, 0x02, 0x04,
+        0x05, 0xb4, 0x04, 0x02, 0x08, 0x0a, 0x06, 0xae,
+        0xd1, 0x23, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
+        0x03, 0x06 };
+
+    Packet p;
+    DecodeThreadVars dtv;
+
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeEthernet(&th_v, &dtv, &p, raw_eth, sizeof(raw_eth), NULL);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any"
+                                      " (msg:\"SigTest41IdKeyword01 match\";"
+                                      " id:41158; sid:10141;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 10141) == 0) {
+        result=0;
+        goto end;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+    FlowShutdown();
+
+    return result;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+
+    PatternMatchDestroy(mpm_ctx);
+
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowShutdown();
+
+    return result;
+}
+
+/**
+ * \test
+ * \brief Test to check "id" keyword with constructed packets,
+ * \brief not expecting to match the ip->id
+ */
+int DetectIdTestSig2(void) {
+    int result = 1;
+
+    // Buid and decode the packet
+
+    uint8_t raw_eth [] = {
+        0x00, 0x14, 0xf8, 0x50, 0xf9, 0x09, 0x00, 0x10,
+        0xdc, 0x4f, 0xe6, 0x09, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x3c, 0xa0, 0xc6, 0x40, 0x00, 0x40, 0x06,
+        0xab, 0x46, 0xc0, 0xa8, 0x00, 0xdc, 0x4b, 0x7d,
+        0xe1, 0xad, 0xbe, 0x23, 0x00, 0x50, 0xf4, 0x66,
+        0x71, 0xe5, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x02,
+        0x16, 0xd0, 0x45, 0xf0, 0x00, 0x00, 0x02, 0x04,
+        0x05, 0xb4, 0x04, 0x02, 0x08, 0x0a, 0x06, 0xae,
+        0xd1, 0x23, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
+        0x03, 0x06 };
+
+    Packet p;
+    DecodeThreadVars dtv;
+
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeEthernet(&th_v, &dtv, &p, raw_eth, sizeof(raw_eth), NULL);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        result=0;
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any"
+                                      " (msg:\"SigTest42IdKeyword02"
+                                      " I should not match!\";"
+                                      " id:41159; sid:10142;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 10142) == 1) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+    FlowShutdown();
+
+    return result;
+
+end:
+    if (de_ctx)
+    {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    PatternMatchDestroy(mpm_ctx);
+
+    if (de_ctx)
+             DetectEngineCtxFree(de_ctx);
+
+    FlowShutdown();
+
+    return result;
+}
+
 #endif /* UNITTESTS */
+
 /**
  * \brief this function registers unit tests for DetectId
  */
 void DetectIdRegisterTests(void) {
-    #ifdef UNITTESTS /* UNITTESTS */
+#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectIdTestParse01", DetectIdTestParse01, 1);
     UtRegisterTest("DetectIdTestParse02", DetectIdTestParse02, 1);
     UtRegisterTest("DetectIdTestParse03", DetectIdTestParse03, 1);
     UtRegisterTest("DetectIdTestParse04", DetectIdTestParse04, 1);
     UtRegisterTest("DetectIdTestPacket01"  , DetectIdTestPacket01  , 1);
     UtRegisterTest("DetectIdTestPacket02"  , DetectIdTestPacket02  , 1);
-    #endif /* UNITTESTS */
+    UtRegisterTest("DetectIdTestSig1", DetectIdTestSig1, 1);
+    UtRegisterTest("DetectIdTestSig2", DetectIdTestSig2, 1);
+
+#endif /* UNITTESTS */
 }
