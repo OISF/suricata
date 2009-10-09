@@ -52,7 +52,7 @@ typedef enum {
 } SCLogOPIface;
 
 /* The default log_format, if it is not supplied by the user */
-#define SC_LOG_DEF_LOG_FORMAT "<%d> - <%t>"
+#define SC_LOG_DEF_LOG_FORMAT "%t - (%f:%l) <%d> -- "
 
 /* The maximum length of the log message */
 #define SC_LOG_MAX_LOG_MSG_LEN 1024
@@ -61,10 +61,10 @@ typedef enum {
 #define SC_LOG_MAX_LOG_FORMAT_LEN 128
 
 /* The default log level, if it is not supplied by the user */
-#define SC_LOG_DEF_LOG_LEVEL SC_LOG_ERROR
+#define SC_LOG_DEF_LOG_LEVEL SC_LOG_INFO
 
 /* The default output interface to be used */
-#define SC_LOG_DEF_LOG_OP_IFACE SC_LOG_OP_IFACE_FILE
+#define SC_LOG_DEF_LOG_OP_IFACE SC_LOG_OP_IFACE_CONSOLE
 
 /* The default log file to be used */
 #define SC_LOG_DEF_LOG_FILE "/var/log/eidps/sc_ids_log.log"
