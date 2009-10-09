@@ -458,15 +458,15 @@ int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
     DetectAddressGroup *head = NULL;
 
     /* get our head ptr based on the address we want to insert */
-    head = GetHeadPtr(gh,new);
+    head = GetHeadPtr(gh, new);
 
     /* see if it already exists or overlaps with existing ag's */
     if (head != NULL) {
-        DetectAddressGroup *ag = NULL,*cur = NULL;
+        DetectAddressGroup *ag = NULL, *cur = NULL;
         int r = 0;
 
         for (cur = head; cur != NULL; cur = cur->next) {
-            r = DetectAddressCmp(new,cur->ad);
+            r = DetectAddressCmp(new, cur->ad);
             if (r == ADDRESS_ER) {
                 printf("ADDRESS_ER DetectAddressCmp compared:\n");
                 DetectAddressDataPrint(new);
@@ -519,7 +519,7 @@ int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
                 if (head == cur) {
                     head = ag;
 
-                    if (SetHeadPtr(gh,head) < 0)
+                    if (SetHeadPtr(gh, head) < 0)
                         goto error;
                 }
                 return 1;
@@ -529,7 +529,7 @@ int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
 
             } else if (r == ADDRESS_ES) {
                 DetectAddressData *c = NULL;
-                r = DetectAddressCut(cur->ad,new,&c);
+                r = DetectAddressCut(cur->ad, new, &c);
                 if (r == -1)
                     goto error;
 
@@ -540,7 +540,7 @@ int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
                 return 1;
             } else if (r == ADDRESS_EB) {
                 DetectAddressData *c = NULL;
-                r = DetectAddressCut(cur->ad,new,&c);
+                r = DetectAddressCut(cur->ad, new, &c);
                 if (r == -1)
                     goto error;
 
@@ -551,7 +551,7 @@ int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
                 return 1;
             } else if (r == ADDRESS_LE) {
                 DetectAddressData *c = NULL;
-                r = DetectAddressCut(cur->ad,new,&c);
+                r = DetectAddressCut(cur->ad, new, &c);
                 if (r == -1)
                     goto error;
 
@@ -562,7 +562,7 @@ int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
                 return 1;
             } else if (r == ADDRESS_GE) {
                 DetectAddressData *c = NULL;
-                r = DetectAddressCut(cur->ad,new,&c);
+                r = DetectAddressCut(cur->ad, new, &c);
                 if (r == -1)
                     goto error;
 
@@ -582,7 +582,7 @@ int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
         }
         head->ad = new;
 
-        if (SetHeadPtr(gh,head) < 0)
+        if (SetHeadPtr(gh, head) < 0)
             goto error;
     }
 
@@ -610,7 +610,7 @@ int DetectAddressGroupSetup(DetectAddressGroupsHead *gh, char *s) {
     if (ad->flags & ADDRESS_FLAG_NOT) {
         DetectAddressData *ad2 = NULL;
 
-        if (DetectAddressCutNot(ad,&ad2) < 0) {
+        if (DetectAddressCutNot(ad, &ad2) < 0) {
             goto error;
         }
 
@@ -938,9 +938,9 @@ int DetectAddressGroupCut(DetectEngineCtx *de_ctx, DetectAddressGroup *a, Detect
  *  \retval -1 error */
 int DetectAddressCut(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
     if (a->family == AF_INET) {
-        return DetectAddressCutIPv4(a,b,c);
+        return DetectAddressCutIPv4(a, b, c);
     } else if (a->family == AF_INET6) {
-        return DetectAddressCutIPv6(a,b,c);
+        return DetectAddressCutIPv6(a, b, c);
     }
 
     return -1;
@@ -966,9 +966,9 @@ int DetectAddressCmp(DetectAddressData *a, DetectAddressData *b) {
     if (a->flags & ADDRESS_FLAG_ANY && b->flags & ADDRESS_FLAG_ANY)
         return ADDRESS_EQ;
     else if (a->family == AF_INET)
-        return DetectAddressCmpIPv4(a,b);
+        return DetectAddressCmpIPv4(a, b);
     else if (a->family == AF_INET6)
-        return DetectAddressCmpIPv6(a,b);
+        return DetectAddressCmpIPv6(a, b);
 
     return ADDRESS_ER;
 }

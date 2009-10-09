@@ -244,13 +244,20 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
 
-    /* Setup the signature group lookup structure and
-     * pattern matchers */
+    /* Setup the signature group lookup structure and pattern matchers */
     SigGroupBuild(de_ctx);
+
     return 0;
 }
 
-/* check if a certain sid alerted, this is used in the test functions */
+/**
+ * \brief Check if a certain sid alerted, this is used in the test functions
+ *
+ * \param p   Packet on which we want to check if the signature alerted or not
+ * \param sid Signature id of the signature that thas to be checked for a match
+ *
+ * \retval match A value > 0 on a match; 0 on no match
+ */
 int PacketAlertCheck(Packet *p, uint32_t sid)
 {
     uint16_t i = 0;
@@ -578,11 +585,10 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
  *  \retval 0 sig is not ip only
  */
 static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
-    /* in the case of tcp/udp, only consider sigs that
-     * don't have ports set ip-only. */
+    /* for tcp/udp, only consider sigs that don't have ports set, as ip-only */
     if (!(s->proto.flags & DETECT_PROTO_ANY)) {
-        if (s->proto.proto[(IPPROTO_TCP/8)] & (1<<(IPPROTO_TCP%8)) ||
-            s->proto.proto[(IPPROTO_UDP/8)] & (1<<(IPPROTO_UDP%8))) {
+        if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8)) ||
+            s->proto.proto[IPPROTO_UDP / 8] & (1 << (IPPROTO_UDP % 8))) {
             if (!(s->flags & SIG_FLAG_SP_ANY))
                 return 0;
 
@@ -595,8 +601,8 @@ static int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (sm == NULL)
         goto iponly;
 
-    for ( ;sm != NULL ;sm = sm->next) {
-        if (!( sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
+    for ( ;sm != NULL; sm = sm->next) {
+        if ( !(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
             return 0;
     }
 
@@ -716,19 +722,19 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 
         for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
             //printf("Stage1: ip4 ");DetectAddressDataPrint(gr->ad);printf("\n");
-            if (SigGroupHeadAppendSig(de_ctx, &gr->sh,tmp_s) < 0) {
+            if (SigGroupHeadAppendSig(de_ctx, &gr->sh, tmp_s) < 0) {
                 goto error;
             }
             cnt++;
         }
         for (gr = tmp_s->src.ipv6_head; gr != NULL; gr = gr->next) {
-            if (SigGroupHeadAppendSig(de_ctx, &gr->sh,tmp_s) < 0) {
+            if (SigGroupHeadAppendSig(de_ctx, &gr->sh, tmp_s) < 0) {
                 goto error;
             }
             cnt++;
         }
         for (gr = tmp_s->src.any_head; gr != NULL; gr = gr->next) {
-            if (SigGroupHeadAppendSig(de_ctx, &gr->sh,tmp_s) < 0) {
+            if (SigGroupHeadAppendSig(de_ctx, &gr->sh, tmp_s) < 0) {
                 goto error;
             }
             cnt++;
@@ -1367,7 +1373,15 @@ error:
     return -1;
 }
 
-/* fill the global src group head, with the sigs included */
+/**
+ * \brief Fill the global src group head, with the sigs included
+ *
+ * \param de_ctx Pointer to the Detection Engine Context whose Signatures have
+ *               to be processed
+ *
+ * \retval  0 On success
+ * \retval -1 On failure
+ */
 int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
     DetectAddressGroup *gr = NULL;
@@ -1375,7 +1389,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogInfo("building signature grouping structure, stage 2: "
-               "building source address list...");
+                  "building source address list...");
     }
 
     IPOnlyInit(de_ctx, &de_ctx->io_ctx);
@@ -2508,8 +2522,14 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-/** \brief Convert the signature list into the runtime
- *         match structure. */
+/**
+ * \brief Convert the signature list into the runtime match structure.
+ *
+ * \param de_ctx Pointer to the Detection Engine Context whose Signatures have
+ *               to be processed
+ *
+ * \retval 0 Always
+ */
 int SigGroupBuild (DetectEngineCtx *de_ctx) {
     SigAddressPrepareStage1(de_ctx);
     SigAddressPrepareStage2(de_ctx);

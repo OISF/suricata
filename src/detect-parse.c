@@ -297,15 +297,23 @@ error:
  */
 int SigParseProto(Signature *s, const char *protostr) {
     int r = DetectProtoParse(&s->proto, (char *)protostr);
-    if (r < 0) {
+    if (r < 0)
         return -1;
-    }
 
     return 0;
 }
 
-/* src: flag = 0, dst: flag = 1
+/**
+ * \brief Parses the port(source or destination) field, from a Signature
  *
+ * \param s       Pointer to the signature which has to be updated with the
+ *                port information
+ * \param portstr Pointer to the character string containing the port info
+ * \param         Flag which indicates if the portstr received is sort or dst
+ *                port.  For src port: flag = 0, dst port: flag = 1
+ *
+ * \retval  0 On success
+ * \retval -1 On failure
  */
 int SigParsePort(Signature *s, const char *portstr, char flag) {
     int r = 0;
@@ -320,15 +328,15 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
         negate = 1;
     }
 
-    if (strcmp(portstr,"$HTTP_PORTS") == 0) {
+    if (strcmp(portstr, "$HTTP_PORTS") == 0) {
         if (negate) port = "![80:81,88]";
         else port = "80:81,88";
-    } else if (strcmp(portstr,"$SHELLCODE_PORTS") == 0) {
+    } else if (strcmp(portstr, "$SHELLCODE_PORTS") == 0) {
         port = "!80";
-    } else if (strcmp(portstr,"$ORACLE_PORTS") == 0) {
+    } else if (strcmp(portstr, "$ORACLE_PORTS") == 0) {
         if (negate) port = "!1521";
         else port = "1521";
-    } else if (strcmp(portstr,"$SSH_PORTS") == 0) {
+    } else if (strcmp(portstr, "$SSH_PORTS") == 0) {
         if (negate) port = "!22";
         else port = "22";
     } else {
@@ -336,22 +344,19 @@ int SigParsePort(Signature *s, const char *portstr, char flag) {
     }
 
     if (flag == 0) {
-        if (strcasecmp(port,"any") == 0) {
+        if (strcasecmp(port, "any") == 0)
             s->flags |= SIG_FLAG_SP_ANY;
-        }
 
-        r = DetectPortParse(&s->sp,(char *)port);
+        r = DetectPortParse(&s->sp, (char *)port);
     } else if (flag == 1) {
-        if (strcasecmp(port,"any") == 0)
+        if (strcasecmp(port, "any") == 0)
             s->flags |= SIG_FLAG_DP_ANY;
 
-        r = DetectPortParse(&s->dp,(char *)port);
+        r = DetectPortParse(&s->dp, (char *)port);
+    }
 
-        //DetectPortPrint(s->dp);
-    }
-    if (r < 0) {
+    if (r < 0)
         return -1;
-    }
 
     return 0;
 }

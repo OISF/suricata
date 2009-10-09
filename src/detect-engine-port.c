@@ -51,7 +51,7 @@ DetectPort *DetectPortInit(void) {
     if (dp == NULL) {
         return NULL;
     }
-    memset(dp,0,sizeof(DetectPort));
+    memset(dp, 0, sizeof(DetectPort));
 
     detect_port_memory += sizeof(DetectPort);
     detect_port_init_cnt++;
@@ -228,7 +228,7 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
                 SCLogDebug("PORT_EQ %p %p", cur, new);
                 /* exact overlap/match */
                 if (cur != new) {
-                    SigGroupHeadCopySigs(de_ctx,new->sh,&cur->sh);
+                    SigGroupHeadCopySigs(de_ctx, new->sh, &cur->sh);
                     cur->cnt += new->cnt;
                     DetectPortFree(new);
                     return 0;
@@ -372,7 +372,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, 
     if (tmp == NULL) {
         goto error;
     }
-    memset(tmp,0,sizeof(DetectPort));
+    memset(tmp, 0, sizeof(DetectPort));
 
     /* we have 3 parts: [aaa[abab]bbb]
      * part a: a_port1 <-> b_port1 - 1
@@ -730,11 +730,11 @@ DetectPort *DetectPortCopy(DetectEngineCtx *de_ctx, DetectPort *src) {
         goto error;
     }
 
-    memcpy(dst,src,sizeof(DetectPort));
+    memcpy(dst, src, sizeof(DetectPort));
     dst->sh = NULL;
 
     if (src->next != NULL)
-        dst->next = DetectPortCopy(de_ctx,src->next);
+        dst->next = DetectPortCopy(de_ctx, src->next);
 
     return dst;
 error:
@@ -830,7 +830,7 @@ static int DetectPortParseInsert(DetectPort **head, DetectPort *new) {
 }
 
 static int DetectPortParseInsertString(DetectPort **head, char *s) {
-    DetectPort  *ad = NULL;
+    DetectPort *ad = NULL;
     int r = 0;
 
     SCLogDebug("head %p, *head %p, s %s", head, *head, s);
@@ -842,22 +842,21 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
         goto error;
     }
 
-    /* handle the not case, we apply the negation
-     * then insert the part(s) */
+    /* handle the not case, we apply the negation then insert the part(s) */
     if (ad->flags & PORT_FLAG_NOT) {
         DetectPort *ad2 = NULL;
 
-        if (DetectPortCutNot(ad,&ad2) < 0) {
+        if (DetectPortCutNot(ad, &ad2) < 0) {
             goto error;
         }
 
-        /* normally a 'not' will result in two ad's
-         * unless the 'not' is on the start or end
-         * of the address space (e.g. 0.0.0.0 or
-         * 255.255.255.255). */
+        /* normally a 'not' will result in two ad's unless the 'not' is on the
+         * start or end of the address space(e.g. 0.0.0.0 or 255.255.255.255) */
         if (ad2 != NULL) {
-            if (DetectPortParseInsert(head, ad2) < 0)
+            if (DetectPortParseInsert(head, ad2) < 0) {
+                if (ad2 != NULL) free(ad2);
                 goto error;
+            }
         }
     }
 
@@ -879,12 +878,13 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
 
 error:
     printf("DetectPortParseInsertString error\n");
-    /* XXX cleanup */
+    if (ad != NULL) free(ad);
     return -1;
 }
 
 /* XXX error handling */
-static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int negate) {
+static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
+                             int negate) {
     int i, x;
     int o_set = 0, n_set = 0;
     int range = 0;
@@ -898,9 +898,8 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int 
         address[x] = s[i];
         x++;
 
-        if (s[i] == ':') {
+        if (s[i] == ':')
             range = 1;
-        }
 
         if (range == 1 && s[i] == '!') {
             printf("Can't have a negated value in a range.\n");
@@ -916,11 +915,11 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int 
             depth++;
         } else if (s[i] == ']') {
             if (depth == 1) {
-                address[x-1] = '\0';
-                SCLogDebug("%s", address);
+                address[x - 1] = '\0';
+                SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
                 x = 0;
 
-                DetectPortParseDo(head,nhead,address,negate ? negate : n_set);
+                DetectPortParseDo(head, nhead, address, negate? negate: n_set);
                 n_set = 0;
             }
             depth--;
@@ -929,13 +928,13 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,int 
             if (o_set == 1) {
                 o_set = 0;
             } else {
-                address[x-1] = '\0';
-                SCLogDebug("%s", address);
+                address[x - 1] = '\0';
+                SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
 
                 if (negate == 0 && n_set == 0) {
-                    DetectPortParseInsertString(head,address);
+                    DetectPortParseInsertString(head, address);
                 } else {
-                    DetectPortParseInsertString(nhead,address);
+                    DetectPortParseInsertString(nhead, address);
                 }
                 n_set = 0;
             }
@@ -1026,7 +1025,7 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
     for (ag = *nhead; ag != NULL; ag = ag->next) {
         /* work with a copy of the ad so we can easily clean up
          * the ghn group later. */
-        ad = DetectPortCopy(NULL,ag);
+        ad = DetectPortCopy(NULL, ag);
         if (ad == NULL) {
             goto error;
         }
@@ -1045,7 +1044,7 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
             SCLogDebug("ag2 %p", ag2);
             DetectPortPrint(ag2);
 
-            r = DetectPortCmp(ag,ag2);
+            r = DetectPortCmp(ag, ag2);
             if (r == PORT_EQ || r == PORT_EB) { /* XXX more ??? */
                 if (ag2->prev == NULL) {
                     *head = ag2->next;
@@ -1084,26 +1083,25 @@ error:
 int DetectPortParse(DetectPort **head, char *str) {
     int r;
 
-    SCLogDebug("str %s", str);
+    SCLogDebug("Port string to be parsed - str %s", str);
 
     /* negate port list */
     DetectPort *nhead = NULL;
 
-    r = DetectPortParseDo(head,&nhead,str,/* start with negate no */0);
-    if (r < 0) {
+    r = DetectPortParseDo(head, &nhead, str,/* start with negate no */0);
+    if (r < 0)
         goto error;
-    }
 
     SCLogDebug("head %p %p, nhead %p", head, *head, nhead);
 
     /* merge the 'not' address groups */
-    if (DetectPortParseMergeNotPorts(head,&nhead) < 0) {
+    if (DetectPortParseMergeNotPorts(head, &nhead) < 0)
         goto error;
-    }
 
     /* free the temp negate head */
     DetectPortFree(nhead);
     return 0;
+
 error:
     DetectPortFree(nhead);
     return -1;
@@ -1131,7 +1129,7 @@ DetectPort *PortParse(char *str) {
     /* see if the address is an ipv4 or ipv6 address */
     if ((port2 = strchr(port, ':')) != NULL)  {
         /* 80:81 range format */
-        port[port2 - port] = '\0';
+        port2[0] = '\0';
         port2++;
 
         if(DetectPortIsValidRange(port))
@@ -1139,8 +1137,8 @@ DetectPort *PortParse(char *str) {
         else
             goto error;
 
-        if (strcmp(port2,"") != 0){
-            if(DetectPortIsValidRange(port2))
+        if (strcmp(port2, "") != 0) {
+            if (DetectPortIsValidRange(port2))
                 dp->port2 = atoi(port2);
             else
                 goto error;
@@ -1148,10 +1146,9 @@ DetectPort *PortParse(char *str) {
             dp->port2 = 65535;
         }
 
-        /* a>b is illegal, a=b is ok */
+        /* a > b is illegal, a == b is ok */
         if (dp->port > dp->port2)
             goto error;
-
     } else {
         if (strcasecmp(port,"any") == 0) {
             dp->port = 0;

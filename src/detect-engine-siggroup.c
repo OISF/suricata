@@ -36,9 +36,14 @@ static uint32_t detect_siggroup_matcharray_memory = 0;
 static uint32_t detect_siggroup_matcharray_init_cnt = 0;
 static uint32_t detect_siggroup_matcharray_free_cnt = 0;
 
-/** \brief alloc a sig group head and it's sig_array
- *  \param size size of the sig array
- *  \retval sgh or NULL in case of error */
+/**
+ * \brief Alloc a sig group head and it's sig_array
+ *
+ * \param size Size of the sig array
+
+ * \retval sgh Pointer to newly init SigGroupHead on succuess; or NULL in case
+ *             of error
+ */
 static SigGroupHead *SigGroupHeadAlloc(uint32_t size) {
     SigGroupHead *sgh = malloc(sizeof(SigGroupHead));
     if (sgh == NULL) {
@@ -54,7 +59,7 @@ static SigGroupHead *SigGroupHeadAlloc(uint32_t size) {
     sgh->sig_array = malloc(sgh->sig_size);
     if (sgh->sig_array == NULL)
         goto error;
-    memset(sgh->sig_array,0,sgh->sig_size);
+    memset(sgh->sig_array, 0, sgh->sig_size);
 
     detect_siggroup_sigarray_init_cnt++;
     detect_siggroup_sigarray_memory += sgh->sig_size;
@@ -441,13 +446,12 @@ int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh, Signature
     /* see if we have a head already */
     if (*sgh == NULL) {
         *sgh = SigGroupHeadAlloc(DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
-        if (*sgh == NULL) {
+        if (*sgh == NULL)
             goto error;
-        }
     }
 
     /* enable the sig in the bitarray */
-    (*sgh)->sig_array[(s->num/8)] |= 1<<(s->num%8);
+    (*sgh)->sig_array[s->num / 8] |= 1 << (s->num % 8);
 
     return 0;
 error:

@@ -216,7 +216,10 @@ void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
     io_ctx->ht24_dst = HashListTableInit(65536, IPOnlyHashFunc24, IPOnlyCompareFunc, NULL);
 */
     io_ctx->sig_init_size = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-    io_ctx->sig_init_array = malloc(io_ctx->sig_init_size);
+    if ( (io_ctx->sig_init_array = malloc(io_ctx->sig_init_size)) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
     memset(io_ctx->sig_init_array, 0, io_ctx->sig_init_size);
 }
 
