@@ -6382,6 +6382,68 @@ end:
     return result;
 }
 
+static int SigTest41Real (int mpm_type) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n\r\n"
+                    "GET /two/ HTTP/1.1\r\n"
+                    "Host: two.example.org\r\n"
+                    "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"^/gEt/i\"; pcre:\"/\\/two\\//U; pcre:\"/GET \\/two\\//\"; pcre:\"/\\s+HTTP/R\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx,mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1))
+        result = 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+static int SigTest41B2g (void) {
+    return SigTest41Real(MPM_B2G);
+}
+static int SigTest41B3g (void) {
+    return SigTest41Real(MPM_B3G);
+}
+static int SigTest41Wm (void) {
+    return SigTest41Real(MPM_WUMANBER);
+}
+
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
@@ -6539,7 +6601,6 @@ void SigRegisterTests(void) {
 
     UtRegisterTest("SigTest40NoPacketInspection01", SigTest40NoPacketInspection01, 1);
     UtRegisterTest("SigTest40NoPayloadInspection02", SigTest40NoPayloadInspection02, 1);
-
 #endif /* UNITTESTS */
 }
 
