@@ -249,6 +249,7 @@ uint32_t PatternStrength(uint8_t *pat, uint16_t patlen, uint16_t len) {
 /** \brief Setup the content portion of the sig group head */
 static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     uint32_t sig;
+    int fast_pattern = 0;
 
     HashTable *ht = HashTableInit(4096, ContentHashFunc, ContentHashCompareFunc, ContentHashFree);
     if (ht == NULL)
@@ -264,6 +265,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
 
         int cnt = 0;
         SigMatch *sm;
+        /* get the total no of patterns in this Signature */
         for (sm = s->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
@@ -273,14 +275,33 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 cnt++;
             }
         }
+
+        /* Find out if we have a fast pattern set in this Signature */
         for (sm = s->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
                 if (co == NULL)
                     continue;
 
-                if (co->content_len < sgh->mpm_content_maxlen)
+                if (co->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    fast_pattern = 1;
+                    break;
+                }
+            }
+        }
+
+        for (sm = s->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_CONTENT) {
+                DetectContentData *co = (DetectContentData *)sm->ctx;
+                if (co == NULL)
                     continue;
+
+                if (fast_pattern == 1) {
+                    if (!(co->flags & DETECT_CONTENT_FAST_PATTERN))
+                        continue;
+                } else if (co->content_len < sgh->mpm_content_maxlen) {
+                    continue;
+                }
 
                 ContentHash *ch = ContentHashAlloc(co);
                 if (ch == NULL)
@@ -331,8 +352,12 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 if (co == NULL)
                     continue;
 
-                if (co->content_len < sgh->mpm_content_maxlen)
+                if (fast_pattern == 1) {
+                    if (!(co->flags & DETECT_CONTENT_FAST_PATTERN))
+                        continue;
+                } else if (co->content_len < sgh->mpm_content_maxlen) {
                     continue;
+                }
 
                 ContentHash *ch = ContentHashAlloc(co);
                 if (ch == NULL)

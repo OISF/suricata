@@ -59,6 +59,7 @@
 #include "detect-stream_size.h"
 #include "detect-engine-sigorder.h"
 #include "detect-ttl.h"
+#include "detect-fast-pattern.h"
 
 #include "util-rule-vars.h"
 #include "action-globals.h"
@@ -299,7 +300,7 @@ int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev, uint8_
     return 0;
 }
 
-static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
+inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
     int ds,f;
     SigGroupHead *sgh = NULL;
 
@@ -2620,6 +2621,7 @@ void SigTableSetup(void) {
     DetectCsumRegister();
     DetectStreamSizeRegister();
     DetectTtlRegister();
+    DetectFastPatternRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
