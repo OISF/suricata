@@ -274,7 +274,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
  *
  * \param Pointer to a string containing an IP address
  *
- * \retval The host os flavour
+ * \retval The OS flavour on success; -1 on failure, or on not finding the key
  */
 int SCHInfoGetHostOSFlavour(char *ip_addr_str)
 {
