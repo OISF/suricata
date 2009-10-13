@@ -70,14 +70,21 @@ static void SCPerfInitOPCtx(void)
 
     if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename()) == NULL) {
         SCLogInfo("Error retrieving Perf Counter API output file path");
-        sc_perf_op_ctx->file = NULL;
     }
 
     if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, "w+")) == NULL) {
         SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
                    "to using the standard output for output",
                    sc_perf_op_ctx->file);
+
+        free(sc_perf_op_ctx->file);
+
+        /* Let us use the standard output for output */
         sc_perf_op_ctx->fp = stdout;
+        if ( (sc_perf_op_ctx->file = strdup("stdout")) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
     }
 
     /* club the counter from multiple instances of the tm before o/p */
@@ -626,11 +633,11 @@ static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op
 
     switch (pc->value->type) {
         case SC_PERF_TYPE_UINT64:
-            *((uint64_t *)cvalue_op) = *((uint64_t *)pc->value->cvalue) / divisor;
+            *((uint64_t *)cvalue_op) /= divisor;
 
             break;
         case SC_PERF_TYPE_DOUBLE:
-            *((double *)cvalue_op) = *((double *)pc->value->cvalue) / divisor;
+            *((double *)cvalue_op) /= divisor;
 
             break;
     }
@@ -663,7 +670,6 @@ static int SCPerfOutputCounterFileIface()
 
     int i = 0;
     int flag = 0;
-    int tb_flag = 0;
 
     if (sc_perf_op_ctx->fp == NULL) {
         SCLogDebug("perf_op_ctx->fp is NULL");
@@ -2089,7 +2095,7 @@ static int SCPerfTestIntervalQual16()
 
     SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
 
-    result &= (d_temp > 10 || d_temp < 11);
+    result &= (d_temp > 10 && d_temp < 11);
 
     return result;
 }
@@ -2100,7 +2106,6 @@ static int SCPerfTestIntervalQual17()
     SCPerfCounterArray *pca = NULL;
     double d_temp = 0;
 
-    int result = 1;
     uint16_t id1;
 
     memset(&tv, 0, sizeof(ThreadVars));
@@ -2124,9 +2129,7 @@ static int SCPerfTestIntervalQual17()
 
     SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
 
-    result &= (d_temp == 21);
-
-    return result;
+    return (d_temp == 21);
 }
 
 void SCPerfRegisterTests()
