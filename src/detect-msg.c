@@ -46,29 +46,29 @@ int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ms
         uint16_t i, x;
         uint8_t escape = 0;
 
+        /* it doesn't matter if we need to escape or not we remove the extra "\" to mimic snort */
         for (i = 0, x = 0; i < len; i++) {
             //printf("str[%02u]: %c\n", i, str[i]);
             if(!escape && str[i] == '\\') {
                 escape = 1;
             } else if (escape) {
-                if (str[i] == ':' ||
-                        str[i] == ';' ||
-                        str[i] == '\\' ||
-                        str[i] == '\"')
+                if (str[i] != ':' &&
+                        str[i] != ';' &&
+                        str[i] != '\\' &&
+                        str[i] != '\"')
                 {
-                    str[x] = str[i];
-                    x++;
-                } else {
-                    printf("Can't escape %c\n", str[i]);
-                    goto error;
+                    printf("DetectMsgSetup:%c does not need to be escaped but is\n",str[i]);
                 }
-
                 escape = 0;
                 converted = 1;
-            } else {
+
+                str[x] = str[i];
+                x++;
+            }else{
                 str[x] = str[i];
                 x++;
             }
+
         }
 #if 0 //def DEBUG
         if (SCLogDebugEnabled()) {
@@ -84,7 +84,11 @@ int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ms
         }
     }
 
-    s->msg = strdup(str);
+    s->msg = malloc(len);
+    if (s->msg == NULL)
+        goto error;
+
+    memcpy(s->msg, str, len);
 
     free(str);
     return 0;
