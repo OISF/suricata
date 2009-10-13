@@ -95,7 +95,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
 {
     /** Check the sizes, the header must fit at least */
     if (len < IPV6_HEADER_LEN) {
-        SCLogDebug("DecodePartialIPV6: ICMPV6_IPV6_TRUNC_PKT");
+        SCLogDebug("ICMPV6_IPV6_TRUNC_PKT");
         DECODER_SET_EVENT(p, ICMPV6_IPV6_TRUNC_PKT);
         return;
     }
@@ -106,7 +106,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     if(((icmp6_ip6h->s_ip6_vfc & 0xf0) >> 4) != 6)
     /** Check the embedded version */
         {
-        SCLogDebug("DecodePartialIPV6: ICMPv6 contains Unknown IPV6 version "
+        SCLogDebug("ICMPv6 contains Unknown IPV6 version "
                    "ICMPV6_IPV6_UNKNOWN_VER");
         DECODER_SET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER);
         return;
@@ -136,11 +136,11 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
                 p->icmpv6vars.emb_sport = p->icmpv6vars.emb_tcph->th_sport;
                 p->icmpv6vars.emb_dport = p->icmpv6vars.emb_tcph->th_dport;
 
-                SCLogDebug("DecodePartialIPV6: ICMPV6->IPV6->TCP header sport: "
+                SCLogDebug("ICMPV6->IPV6->TCP header sport: "
                            "%"PRIu8" dport %"PRIu8"", p->icmpv6vars.emb_sport,
                             p->icmpv6vars.emb_dport);
             } else {
-                SCLogDebug("DecodePartialIPV6: Warning, ICMPV6->IPV6->TCP "
+                SCLogDebug("Warning, ICMPV6->IPV6->TCP "
                            "header Didn't fit in the packet!");
                 p->icmpv6vars.emb_sport = 0;
                 p->icmpv6vars.emb_dport = 0;
@@ -153,11 +153,11 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
                 p->icmpv6vars.emb_sport = p->icmpv6vars.emb_udph->uh_sport;
                 p->icmpv6vars.emb_dport = p->icmpv6vars.emb_udph->uh_dport;
 
-                SCLogDebug("DecodePartialIPV6: ICMPV6->IPV6->UDP header sport: "
+                SCLogDebug("ICMPV6->IPV6->UDP header sport: "
                            "%"PRIu8" dport %"PRIu8"", p->icmpv6vars.emb_sport,
                             p->icmpv6vars.emb_dport);
             } else {
-                SCLogDebug("DecodePartialIPV6: Warning, ICMPV6->IPV6->UDP "
+                SCLogDebug("Warning, ICMPV6->IPV6->UDP "
                            "header Didn't fit in the packet!");
                 p->icmpv6vars.emb_sport = 0;
                 p->icmpv6vars.emb_dport = 0;
@@ -169,7 +169,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
             p->icmpv6vars.emb_sport = 0;
             p->icmpv6vars.emb_dport = 0;
 
-            SCLogDebug("DecodePartialIPV6: ICMPV6->IPV6->ICMP header");
+            SCLogDebug("ICMPV6->IPV6->ICMP header");
 
             break;
     }
@@ -206,7 +206,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     PerfCounterIncr(dtv->counter_icmpv6, tv->pca);
 
     if (len < ICMPV6_HEADER_LEN) {
-        SCLogDebug("DecodeICMPV6: ICMPV6_PKT_TOO_SMALL");
+        SCLogDebug("ICMPV6_PKT_TOO_SMALL");
         DECODER_SET_EVENT(p, ICMPV6_PKT_TOO_SMALL);
         return;
     }
@@ -219,7 +219,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     switch (ICMPV6_GET_TYPE(p)) {
         case ICMP6_DST_UNREACH:
-            SCLogDebug("DecodeICMPV6: ICMP6_DST_UNREACH");
+            SCLogDebug("ICMP6_DST_UNREACH");
 
             if (ICMPV6_GET_CODE(p) > ICMP6_DST_UNREACH_REJECTROUTE) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
@@ -232,7 +232,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             break;
         case ICMP6_PACKET_TOO_BIG:
-            SCLogDebug("DecodeICMPV6: ICMP6_PACKET_TOO_BIG");
+            SCLogDebug("ICMP6_PACKET_TOO_BIG");
 
             if (ICMPV6_GET_CODE(p) != 0) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
@@ -246,7 +246,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             break;
         case ICMP6_TIME_EXCEEDED:
-            SCLogDebug("DecodeICMPV6: ICMP6_TIME_EXCEEDED");
+            SCLogDebug("ICMP6_TIME_EXCEEDED");
 
             if (ICMPV6_GET_CODE(p) > ICMP6_TIME_EXCEED_REASSEMBLY) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
@@ -259,7 +259,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             break;
         case ICMP6_PARAM_PROB:
-            SCLogDebug("DecodeICMPV6: ICMP6_PARAM_PROB");
+            SCLogDebug("ICMP6_PARAM_PROB");
 
             if (ICMPV6_GET_CODE(p) > ICMP6_PARAMPROB_OPTION) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
@@ -273,7 +273,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             break;
         case ICMP6_ECHO_REQUEST:
-            SCLogDebug("DecodeICMPV6: ICMP6_ECHO_REQUEST id: %u seq: %u",
+            SCLogDebug("ICMP6_ECHO_REQUEST id: %u seq: %u",
                        ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
 
             if (ICMPV6_GET_CODE(p) != 0) {
@@ -287,7 +287,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             break;
         case ICMP6_ECHO_REPLY:
-            SCLogDebug("DecodeICMPV6: ICMP6_ECHO_REPLY id: %u seq: %u",
+            SCLogDebug("ICMP6_ECHO_REPLY id: %u seq: %u",
                        ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
 
             if (p->icmpv6h->code != 0) {
@@ -301,17 +301,17 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             break;
         default:
-            SCLogDebug("DecodeICMPV6: ICMPV6 Message type %" PRIu8 " not "
+            SCLogDebug("ICMPV6 Message type %" PRIu8 " not "
                        "implemented yet", ICMPV6_GET_TYPE(p));
             DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_TYPE);
     }
 
 
     if (DECODER_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE))
-        SCLogDebug("DecodeICMPV6: Unknown Code, ICMPV6_UNKNOWN_CODE");
+        SCLogDebug("Unknown Code, ICMPV6_UNKNOWN_CODE");
 
     if (DECODER_ISSET_EVENT(p, ICMPV6_UNKNOWN_TYPE))
-        SCLogDebug("DecodeICMPV6: Unknown Type, ICMPV6_UNKNOWN_TYPE");
+        SCLogDebug("Unknown Type, ICMPV6_UNKNOWN_TYPE");
 
     return;
 }
