@@ -252,8 +252,10 @@ typedef struct Packet_
     ICMPV4Hdr *icmpv4h;
     ICMPV4Cache icmpv4c;
     ICMPV4Vars icmpv4vars;
+
     ICMPV6Hdr *icmpv6h;
     ICMPV6Cache icmpv6c;
+    ICMPV6Vars icmpv6vars;
 
     TCPHdr *tcph;
     TCPVars tcpvars;
