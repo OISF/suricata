@@ -162,7 +162,7 @@ uint32_t UtRunTests(char *regex_arg) {
         if(rcomp == 1)  {
             ret = pcre_exec(parse_regex, parse_regex_study, ut->name, strlen(ut->name), 0, 0, ov, MAX_SUBSTRINGS);
             if( ret >= 1 )  {
-                printf("Test %-60s : ", ut->name);
+                printf("Test %-60.60s : ", ut->name);
                 fflush(stdout); /* flush so in case of a segv we see the testname */
                 ret = ut->TestFn();
                 printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
@@ -174,7 +174,7 @@ uint32_t UtRunTests(char *regex_arg) {
             }
         }
         else    {
-            printf("Test %-60s : ", ut->name);
+            printf("Test %-60.60s : ", ut->name);
             fflush(stdout); /* flush so in case of a segv we see the testname */
             ret = ut->TestFn();
             printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
