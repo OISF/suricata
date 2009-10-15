@@ -194,7 +194,6 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     /** Second parse first set of flags */
 
     ptr = args[1];
-    printf("%p %p\n",ptr,args[1]);
 
     while (*args[1] != '\0') {
         switch (*args[1]) {
