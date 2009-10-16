@@ -265,28 +265,18 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
 
         int cnt = 0;
         SigMatch *sm;
-        /* get the total no of patterns in this Signature */
+        /* get the total no of patterns in this Signature, as well as find out
+         * if we have a fast_pattern set in this Signature */
         for (sm = s->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
                 if (co == NULL)
                     continue;
+
+                if (co->flags & DETECT_CONTENT_FAST_PATTERN)
+                    fast_pattern = 1;
 
                 cnt++;
-            }
-        }
-
-        /* Find out if we have a fast pattern set in this Signature */
-        for (sm = s->match; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *co = (DetectContentData *)sm->ctx;
-                if (co == NULL)
-                    continue;
-
-                if (co->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    fast_pattern = 1;
-                    break;
-                }
             }
         }
 

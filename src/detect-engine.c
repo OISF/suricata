@@ -53,6 +53,8 @@ error:
 
 void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
 
+    if (de_ctx == NULL)
+        return;
 
     /* Normally the hashes are freed elsewhere, but
      * to be sure look at them again here.

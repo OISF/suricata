@@ -623,6 +623,8 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
         s = ns;
     }
 
+    de_ctx->sig_list = NULL;
+
     DetectEngineResetMaxSigId(de_ctx);
     de_ctx->sig_list = NULL;
 }

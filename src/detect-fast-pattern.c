@@ -77,25 +77,24 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *,
                                               DetectEngineThreadCtx *,
                                               Packet *);
 
+/**
+ * \test Checks if a fast_pattern is registered in a Signature
+ */
 int DetectFastPatternTest01(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
+    int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL) {
-        result = 0;
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
-    }
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"/one/\"; fast_pattern; "
                                "msg:\"Testing fast_pattern\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
+    if (de_ctx->sig_list == NULL)
         goto end;
-    }
 
     result = 0;
     sm = de_ctx->sig_list->match;
@@ -103,7 +102,7 @@ int DetectFastPatternTest01(void)
         if (sm->type == DETECT_CONTENT) {
             if ( ((DetectContentData *)sm->ctx)->flags &
                  DETECT_CONTENT_FAST_PATTERN) {
-                result |= 1;
+                result = 1;
                 break;
             } else {
                 result = 0;
@@ -119,16 +118,17 @@ int DetectFastPatternTest01(void)
     return result;
 }
 
+/**
+ * \test Checks if a fast_pattern is registered in a Signature
+ */
 int DetectFastPatternTest02(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
+    int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL) {
-        result = 0;
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
-    }
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
@@ -136,7 +136,7 @@ int DetectFastPatternTest02(void)
                                "content:boo; fast_pattern; "
                                "msg:\"Testing fast_pattern\"; sid:1;)");
     if (de_ctx->sig_list == NULL)
-        result = 0;
+        goto end;
 
     result = 0;
     sm = de_ctx->sig_list->match;
@@ -144,7 +144,7 @@ int DetectFastPatternTest02(void)
         if (sm->type == DETECT_CONTENT) {
             if (((DetectContentData *)sm->ctx)->flags &
                 DETECT_CONTENT_FAST_PATTERN) {
-                result |= 1;
+                result = 1;
             } else {
                 result = 0;
                 break;
@@ -159,23 +159,25 @@ int DetectFastPatternTest02(void)
     return result;
 }
 
+/**
+ * \test Checks that we have no fast_pattern registerd for a Signature when the
+ *       Signature doesn't contain a fast_pattern
+ */
 int DetectFastPatternTest03(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
+    int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL) {
-        result = 0;
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
-    }
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"/one/\"; "
                                "msg:\"Testing fast_pattern\"; sid:1;)");
     if (de_ctx->sig_list == NULL)
-        result = 0;
+        goto end;
 
     result = 0;
     sm = de_ctx->sig_list->match;
@@ -183,7 +185,7 @@ int DetectFastPatternTest03(void)
         if (sm->type == DETECT_CONTENT) {
             if ( !(((DetectContentData *)sm->ctx)->flags &
                    DETECT_CONTENT_FAST_PATTERN)) {
-                result |= 1;
+                result = 1;
             } else {
                 result = 0;
                 break;
@@ -198,15 +200,17 @@ int DetectFastPatternTest03(void)
     return result;
 }
 
+/**
+ * \test Checks that a fast_pattern is not registered in a Signature, when we
+ *       supply a fast_pattern with an argument
+ */
 int DetectFastPatternTest04(void)
 {
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
+    int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL) {
-        result = 0;
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
-    }
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
@@ -221,6 +225,9 @@ int DetectFastPatternTest04(void)
     return result;
 }
 
+/**
+ * \test Checks that a fast_pattern is used in the Scan phase.
+ */
 int DetectFastPatternTest05(void)
 {
     uint8_t *buf = (uint8_t *) "Oh strin1.  But what "
@@ -241,9 +248,8 @@ int DetectFastPatternTest05(void)
     p.proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
+    if (de_ctx == NULL)
         goto end;
-    }
 
     de_ctx->flags |= DE_QUIET;
 
@@ -252,10 +258,8 @@ int DetectFastPatternTest05(void)
                                "content:string2; content:strings3; fast_pattern; "
                                "content:strings_str4; content:strings_string5; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
+    if (de_ctx->sig_list == NULL)
         goto end;
-    }
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -271,12 +275,15 @@ int DetectFastPatternTest05(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 
 end:
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
+/**
+ * \test Checks that a fast_pattern is used in the Scan phase.
+ */
 int DetectFastPatternTest06(void)
 {
     uint8_t *buf = (uint8_t *) "Oh this is a string1.  But what is this with "
@@ -297,9 +304,8 @@ int DetectFastPatternTest06(void)
     p.proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
+    if (de_ctx == NULL)
         goto end;
-    }
 
     de_ctx->flags |= DE_QUIET;
 
@@ -308,10 +314,8 @@ int DetectFastPatternTest06(void)
                                "content:string2; content:strings3; fast_pattern; "
                                "content:strings_str4; content:strings_string5; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
+    if (de_ctx->sig_list == NULL)
         goto end;
-    }
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -327,12 +331,16 @@ int DetectFastPatternTest06(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 
 end:
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
+/**
+ * \test Checks that a fast_pattern is used in the Scan phase, when the payload
+ *       doesn't contain the fast_pattern string within it.
+ */
 int DetectFastPatternTest07(void)
 {
     uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
@@ -353,9 +361,8 @@ int DetectFastPatternTest07(void)
     p.proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
+    if (de_ctx == NULL)
         goto end;
-    }
 
     de_ctx->flags |= DE_QUIET;
 
@@ -364,10 +371,8 @@ int DetectFastPatternTest07(void)
                                "content:string2; content:strings3; fast_pattern; "
                                "content:strings_str4; content:strings_string5; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
+    if (de_ctx->sig_list == NULL)
         goto end;
-    }
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -383,12 +388,16 @@ int DetectFastPatternTest07(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 
 end:
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
+/**
+ * \test Checks that a fast_pattern is used in the Scan phase and that we get
+ *       exactly 1 match for the scan phase.
+ */
 int DetectFastPatternTest08(void)
 {
     uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
@@ -419,10 +428,8 @@ int DetectFastPatternTest08(void)
                                "content:string2; content:strings3; fast_pattern; "
                                "content:strings_str4; content:strings_string5; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
+    if (de_ctx->sig_list == NULL)
         goto end;
-    }
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -438,12 +445,16 @@ int DetectFastPatternTest08(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 
 end:
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
+/**
+ * \test Checks that a fast_pattern is used in the Scan phase, when the payload
+ *       doesn't contain the fast_pattern string within it.
+ */
 int DetectFastPatternTest09(void)
 {
     uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
@@ -474,10 +485,8 @@ int DetectFastPatternTest09(void)
                                "content:string2; content:strings3; fast_pattern; "
                                "content:strings4_imp; fast_pattern; "
                                "content:strings_string5; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
+    if (de_ctx->sig_list == NULL)
         goto end;
-    }
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -493,12 +502,17 @@ int DetectFastPatternTest09(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 
 end:
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
+/**
+ * \test Checks that a the SigInit chooses the fast_pattern with better pattern
+ *       strength, when we have multiple fast_patterns in the Signature.  Also
+ *       checks that we get a match for the fast_pattern from the Scan phase.
+ */
 int DetectFastPatternTest10(void)
 {
     uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
@@ -530,8 +544,7 @@ int DetectFastPatternTest10(void)
                                "content:strings4_imp; fast_pattern; "
                                "content:strings_string5; sid:1;)");
     if (de_ctx->sig_list == NULL)
-        result = 0;
-
+        goto end;
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -547,12 +560,17 @@ int DetectFastPatternTest10(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 
 end:
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
+/**
+ * \test Checks that a the SigInit chooses the fast_pattern with better pattern
+ *       strength, when we have multiple fast_patterns in the Signature.  Also
+ *       checks that we get no matches for the fast_pattern from the Scan phase.
+ */
 int DetectFastPatternTest11(void)
 {
     uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
@@ -583,10 +601,8 @@ int DetectFastPatternTest11(void)
                                "content:string2; content:strings3; fast_pattern; "
                                "content:strings4_imp; fast_pattern; "
                                "content:strings_string5; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
+    if (de_ctx->sig_list == NULL)
         goto end;
-    }
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -602,12 +618,15 @@ int DetectFastPatternTest11(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 
 end:
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
+/**
+ * \test Checks that we don't get a match for the scan phase.
+ */
 int DetectFastPatternTest12(void)
 {
     uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
@@ -638,10 +657,8 @@ int DetectFastPatternTest12(void)
                                "content:string2; content:strings3; "
                                "content:strings4_imp; "
                                "content:strings_string5; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
+    if (de_ctx->sig_list == NULL)
         goto end;
-    }
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -657,12 +674,18 @@ int DetectFastPatternTest12(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 
 end:
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
+/**
+ * \test Checks that a the SigInit chooses the fast_pattern with a better
+ *       strength from the available patterns, when we don't specify a
+ *       fast_pattern.  We also check that we get a match from the Scan
+ *       phase.
+ */
 int DetectFastPatternTest13(void)
 {
     uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
@@ -693,10 +716,8 @@ int DetectFastPatternTest13(void)
                                "content:string2; content:strings3; "
                                "content:strings4_imp; "
                                "content:strings_string5; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
+    if (de_ctx->sig_list == NULL)
         goto end;
-    }
 
     SigGroupBuild(de_ctx);
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -712,9 +733,9 @@ int DetectFastPatternTest13(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 
 end:
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
