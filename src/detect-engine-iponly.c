@@ -24,8 +24,8 @@
 #include "detect-engine-mpm.h"
 
 #include "detect-engine-threshold.h"
-
 #include "detect-threshold.h"
+#include "util-classification-config.h"
 
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -377,9 +377,7 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
                 continue;
         }
 
-
         if (!(s->flags & SIG_FLAG_NOALERT)) {
-
             PacketAlertHandle(de_ctx,s,p);
             /* set verdict on packet */
             p->action = s->action;
@@ -499,7 +497,13 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, 
 static int IPOnlyTestSig01(void) {
     int result = 0;
     DetectEngineCtx de_ctx;
-    memset (&de_ctx, 0, sizeof(DetectEngineCtx));
+
+    memset(&de_ctx, 0, sizeof(DetectEngineCtx));
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(&de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+
     de_ctx.flags |= DE_QUIET;
 
     Signature *s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-01 sig is IPOnly \"; classtype:misc-activity; sid:400001; rev:1;)");
@@ -525,6 +529,12 @@ static int IPOnlyTestSig02 (void) {
     int result = 0;
     DetectEngineCtx de_ctx;
     memset (&de_ctx, 0, sizeof(DetectEngineCtx));
+
+    memset(&de_ctx, 0, sizeof(DetectEngineCtx));
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(&de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
 
     de_ctx.flags |= DE_QUIET;
 

@@ -1,35 +1,354 @@
-/* CLASSTYPE part of the detection engine. */
+/** Copyright (c) 2009 Open Information Security Foundation.
+ *  \author Anoop Saldanha <poonaatsoc@gmail.com>
+ */
 
 #include "suricata-common.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "detect-classtype.h"
 #include "flow-var.h"
+#include "util-classification-config.h"
+#include "util-error.h"
+#include "util-debug.h"
+#include "util-unittest.h"
 
-int DetectClasstypeSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+#define DETECT_CLASSTYPE_REGEX "^\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*$"
 
-void DetectClasstypeRegister (void) {
+static pcre *regex = NULL;
+static pcre_extra *regex_study = NULL;
+
+int DetectClasstypeSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+void DetectClasstypeRegisterTests(void);
+
+/**
+ * \brief Registers the handler functions for the "Classtype" keyword.
+ */
+void DetectClasstypeRegister(void)
+{
+    const char *eb = NULL;
+    int eo;
+    int opts = 0;
+
+    SCLogDebug("Registering the Classtype keyword handler");
+
     sigmatch_table[DETECT_CLASSTYPE].name = "classtype";
     sigmatch_table[DETECT_CLASSTYPE].Match = NULL;
     sigmatch_table[DETECT_CLASSTYPE].Setup = DetectClasstypeSetup;
     sigmatch_table[DETECT_CLASSTYPE].Free  = NULL;
-    sigmatch_table[DETECT_CLASSTYPE].RegisterTests = NULL;
-}
+    sigmatch_table[DETECT_CLASSTYPE].RegisterTests = DetectClasstypeRegisterTests;
 
-int DetectClasstypeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
-{
-    char *str = rawstr;
-    char dubbed = 0;
-
-    /* strip "'s */
-    if (rawstr[0] == '\"' && rawstr[strlen(rawstr)-1] == '\"') {
-        str = strdup(rawstr+1);
-        str[strlen(rawstr)-2] = '\0';
-        dubbed = 1;
+    regex = pcre_compile(DETECT_CLASSTYPE_REGEX, opts, &eb, &eo, NULL);
+    if (regex == NULL) {
+        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
+                   DETECT_CLASSTYPE_REGEX, eo, eb);
+        goto end;
     }
 
-    /* XXX */
+    regex_study = pcre_study(regex, 0, &eb);
+    if (eb != NULL) {
+        SCLogDebug("pcre study failed: %s", eb);
+        goto end;
+    }
 
-    if (dubbed) free(str);
-    return 0;
+ end:
+    return;
 }
 
+/**
+ * \brief Parses the raw string supplied with the "Classtype" keyword.
+ *
+ * \param Pointer to the string to be parsed.
+ *
+ * \retval ct_name Pointer to the parsed string on Success; NULL on failure.
+ */
+static inline const char *DetectClasstypeParseRawString(char *rawstr)
+{
+    const char *ct_name = NULL;
+#define MAX_SUBSTRINGS 30
+    int ret = 0;
+    int ov[MAX_SUBSTRINGS];
+
+    /* get rid of the double quotes if present */
+    if (rawstr[0] == '\"' && rawstr[strlen(rawstr) - 1] == '\"') {
+        if ( (rawstr = strdup(rawstr + 1)) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        rawstr[strlen(rawstr) - 1] = '\0';
+    }
+
+    ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
+    if (ret < 0) {
+        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "Invalid Classtype in Signature");
+        goto end;
+    }
+
+    ret = pcre_get_substring((char *)rawstr, ov, 30, 1, &ct_name);
+    if (ret < 0) {
+        SCLogInfo("pcre_get_substring() failed");
+        goto end;
+    }
+
+ end:
+    return ct_name;
+}
+
+/**
+ * \brief Gets the classtype from the corresponding hash table stored
+ *        in the Detection Engine Context, given the classtype name.
+ *
+ * \param ct_name Pointer to the classtype name that has to be looked up.
+ * \param de_ctx  Pointer to the Detection Engine Context.
+ *
+ * \retval lookup_ct_info Pointer to the SCClassConfClasstype instance from
+ *                        the hash table on success; NULL on failure.
+ */
+static inline SCClassConfClasstype *DetectClasstypeGetClasstypeInfo(const char *ct_name,
+                                                                    DetectEngineCtx *de_ctx)
+{
+    SCClassConfClasstype *ct_info = SCClassConfAllocClasstype(ct_name, NULL,
+                                                              0);
+    SCClassConfClasstype *lookup_ct_info = HashTableLookup(de_ctx->class_conf_ht,
+                                                           ct_info, 0);
+
+    SCClassConfDeAllocClasstype(ct_info);
+    return lookup_ct_info;
+}
+
+/**
+ * \brief The setup function that would be called when the Signature parsing
+ *        module encounters the "Classtype" keyword.
+ *
+ * \param de_ctx Pointer to the Detection Engine Context.
+ * \param s      Pointer the current Signature instance that is being parsed.
+ * \param m      Pointer to the previous SigMatch.
+ * \param rawstr Pointer to the argument supplied to the classtype keyword.
+ *
+ * \retval  0 On success
+ * \retval -1 On failure
+ */
+int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+                         char *rawstr)
+{
+    const char *parsed_ct_name = NULL;
+    SCClassConfClasstype *ct = NULL;
+
+    if ( (parsed_ct_name = DetectClasstypeParseRawString(rawstr)) == NULL) {
+        SCLogDebug("Error parsing classtype argument supplied with the "
+                   "classtype keyword");
+        goto error;
+    }
+
+    ct = DetectClasstypeGetClasstypeInfo(parsed_ct_name, de_ctx);
+    if (ct == NULL) {
+        SCLogDebug("Unknown Classtype: \"%s\".  Invalidating the Signature",
+                   parsed_ct_name);
+        goto error;
+    }
+
+    /* if we have retrieved the classtype, assign the message to be displayed
+     * for this Signature by fast.log, if a Packet matches this Signature */
+    s->class_msg = ct->classtype_desc;
+
+    /* if a priority keyword has appeared before the classtype, s->prio would
+     * hold a value which is != -1, in which case we don't overwrite the value.
+     * Otherwise, overwrite the value */
+    if (s->prio == -1)
+        s->prio = ct->priority;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/*------------------------------Unittests-------------------------------------*/
+
+#ifdef UNITTESTS
+
+/**
+ * \test Check that supplying an invalid classtype in the rule, results in the
+ *       rule being invalidated.
+ */
+int DetectClasstypeTest01()
+{
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Classtype test\"; "
+                               "Classtype:not_available; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        result = 1;
+
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    return result;
+}
+
+/**
+ * \test Check that both valid and invalid classtypes in a rule are handled
+ *       properly, with rules containing invalid classtypes being rejected
+ *       and the ones containing valid classtypes parsed and returned.
+ */
+int DetectClasstypeTest02()
+{
+    int result = 0;
+    Signature *last = NULL;
+    Signature *sig = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Classtype test\"; Classtype:unknown; sid:1;)");
+    de_ctx->sig_list = last = sig;
+    result = (sig != NULL);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Classtype test\"; Classtype:not-there; sid:1;)");
+    last->next = sig;
+    result &= (sig == NULL);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Classtype test\"; Classtype:atteMPted-dos; sid:1;)");
+    last->next = sig;
+    last = sig;
+    result &= (sig != NULL);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Classtype test\"; Classtype:attempted-dos; sid:1;)");
+    last->next = sig;
+    last = sig;
+    result &= (sig != NULL);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Classtype test\"; Classtype:attempted_dos; sid:1;)");
+    last->next = sig;
+    result &= (sig == NULL);
+
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    return result;
+}
+
+/**
+ * \test Check that the signatures are assigned priority based on classtype they
+ *       are given.
+ */
+int DetectClasstypeTest03()
+{
+    int result = 0;
+    Signature *last = NULL;
+    Signature *sig = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Classtype test\"; Classtype:bad-unknown; priority:1; sid:1;)");
+    de_ctx->sig_list = last = sig;
+    result = (sig != NULL);
+    result &= (sig->prio == 1);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Classtype test\"; Classtype:atteMPted-dos; "
+                  "priority:3; sid:1;)");
+    last->next = sig;
+    last = sig;
+    result &= (sig != NULL);
+    result &= (sig->prio == 3);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
+                  "Classtype:attempted-dos; priority:1; sid:1;)");
+    last->next = sig;
+    last = sig;
+    result &= (sig != NULL);
+    result &= (sig->prio == 1);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
+                  "priority:1; Classtype:unknown; sid:1;)");
+    last->next = sig;
+    last = sig;
+    result &= (sig != NULL);
+    result &= (sig->prio == 1);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
+                  "priority:2; Classtype:unknown; sid:1;)");
+    last->next = sig;
+    last = sig;
+    result &= (sig != NULL);
+    result &= (sig->prio == 2);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
+                  "sid:1;)");
+    last->next = sig;
+    last = sig;
+    result &= (sig != NULL);
+    result &= (sig->prio == 3);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
+                  "Classtype:unknown; sid:1;)");
+    last->next = sig;
+    last = sig;
+    result &= (sig != NULL);
+    result &= (sig->prio == 3);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
+                  "Classtype:bad-unknown; sid:1;)");
+    last->next = sig;
+    last = sig;
+    result &= (sig != NULL);
+    result &= (sig->prio == 2);
+
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    return result;
+}
+
+#endif /* UNITTESTS */
+
+/**
+ * \brief This function registers unit tests for Classification Config API.
+ */
+void DetectClasstypeRegisterTests(void)
+{
+
+#ifdef UNITTESTS
+
+    UtRegisterTest("DetectClasstypeTest01", DetectClasstypeTest01, 1);
+    UtRegisterTest("DetectClasstypeTest02", DetectClasstypeTest02, 1);
+    UtRegisterTest("DetectClasstypeTest03", DetectClasstypeTest03, 1);
+
+#endif /* UNITTESTS */
+
+}

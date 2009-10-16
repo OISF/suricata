@@ -84,7 +84,8 @@
 
 #include "conf.h"
 #include "conf-yaml-loader.h"
-#include <yaml.h>
+
+#include "util-classification-config.h"
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -404,7 +405,8 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
     return match;
 }
 
-int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev, uint8_t prio, char *msg)
+int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev,
+                      uint8_t prio, char *msg, char *class_msg)
 {
     /* XXX overflow check? */
 
@@ -419,6 +421,7 @@ int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev, uint8_
     p->alerts.alerts[p->alerts.cnt].rev = rev;
     p->alerts.alerts[p->alerts.cnt].prio = prio;
     p->alerts.alerts[p->alerts.cnt].msg = msg;
+    p->alerts.alerts[p->alerts.cnt].class_msg = class_msg;
     p->alerts.cnt++;
 
     return 0;
@@ -579,7 +582,6 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
         if (s->match == NULL) {
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
-
                 PacketAlertHandle(de_ctx,s,p);
 
                 /* set verdict on packet */
@@ -797,7 +799,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
-
                 PacketAlertHandle(de_ctx,s,p);
                 /* set verdict on packet */
                 p->action = s->action;
@@ -832,7 +833,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                                     /* only add once */
                                     if (rmatch == 0) {
-
                                         PacketAlertHandle(de_ctx,s,p);
                                         /* set verdict on packet */
                                         p->action = s->action;
@@ -4040,6 +4040,11 @@ static int SigTest15Real (int mpm_type) {
     }
 
     de_ctx->mpm_matcher = mpm_type;
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
@@ -4105,6 +4110,11 @@ static int SigTest16Real (int mpm_type) {
     }
 
     de_ctx->mpm_matcher = mpm_type;
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
@@ -4244,6 +4254,11 @@ static int SigTest18Real (int mpm_type) {
     }
 
     de_ctx->mpm_matcher = mpm_type;
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");

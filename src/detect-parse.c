@@ -21,6 +21,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
+#include "util-classification-config.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "string.h"
@@ -558,6 +559,11 @@ Signature *SigAlloc (void) {
         return NULL;
 
     memset(sig, 0, sizeof(Signature));
+
+    /* assign it to -1, so that we can later check if the value has been
+     * overwritten after the Signature has been parsed, and if it hasn't been
+     * overwritten, we can then assign the default value of 3 */
+    sig->prio = -1;
     return sig;
 }
 
@@ -603,12 +609,12 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     if (sig == NULL)
         goto error;
 
-    /* XXX one day we will support this the way Snort does,
-     * through classifications.config */
-    sig->prio = 3;
-
     if (SigParse(de_ctx, sig, sigstr, SIG_DIREC_NORMAL) < 0)
         goto error;
+
+    /* signature priority hasn't been overwritten.  Using default priority */
+    if (sig->prio == -1)
+        sig->prio = 3;
 
     sig->num = de_ctx->signum;
     de_ctx->signum++;
@@ -883,9 +889,15 @@ int SigParseTest02 (void) {
     int result = 0;
     Signature *sig = NULL;
 
+
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+
     if (de_ctx == NULL)
         goto end;
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
 
     sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
     if (sig == NULL) {
@@ -1755,7 +1767,7 @@ static int SigParseTestAppLayerTLS01(void) {
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS01 \"; classtype:misc-activity; sid:410006; rev:1;)");
+    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS01 \"; sid:410006; rev:1;)");
     if (s == NULL) {
         printf("parsing sig failed: ");
         goto end;
@@ -1789,7 +1801,7 @@ static int SigParseTestAppLayerTLS02(void) {
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS02 \"; tls.version:1.0; classtype:misc-activity; sid:410006; rev:1;)");
+    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS02 \"; tls.version:1.0; sid:410006; rev:1;)");
     if (s == NULL) {
         printf("parsing sig failed: ");
         goto end;

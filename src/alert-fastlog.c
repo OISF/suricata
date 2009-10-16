@@ -24,6 +24,12 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 
+#include "detect.h"
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "util-classification-config.h"
+
 #define DEFAULT_LOG_FILENAME "fast.log"
 
 TmEcode AlertFastlog (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -33,6 +39,7 @@ TmEcode AlertFastlogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertFastlogThreadDeinit(ThreadVars *, void *);
 void AlertFastlogExitPrintStats(ThreadVars *, void *);
 int AlertFastlogOpenFileCtx(LogFileCtx *, char *);
+void AlertFastLogRegisterTests(void);
 
 void TmModuleAlertFastlogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].name = "AlertFastlog";
@@ -40,7 +47,7 @@ void TmModuleAlertFastlogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].Func = AlertFastlog;
     tmm_modules[TMM_ALERTFASTLOG].ThreadExitPrintStats = AlertFastlogExitPrintStats;
     tmm_modules[TMM_ALERTFASTLOG].ThreadDeinit = AlertFastlogThreadDeinit;
-    tmm_modules[TMM_ALERTFASTLOG].RegisterTests = NULL;
+    tmm_modules[TMM_ALERTFASTLOG].RegisterTests = AlertFastLogRegisterTests;
 }
 
 void TmModuleAlertFastlogIPv4Register (void) {
@@ -131,8 +138,8 @@ TmEcode AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
-            timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
+        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
+                timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         fflush(aft->file_ctx->fp);
     }
 
@@ -256,3 +263,133 @@ int AlertFastlogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
 }
 
 
+/*------------------------------Unittests-------------------------------------*/
+
+#ifdef UNITTESTS
+
+int AlertFastLogTest01()
+{
+    int result = 0;
+    uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
+        "Host: one.example.org\r\n";
+
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        return result;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Fastlog test\"; content:GET; "
+                               "Classtype:unknown; sid:1;)");
+    result = (de_ctx->sig_list != NULL);
+
+    SigGroupBuild(de_ctx);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (p.alerts.cnt == 1)
+        result = (strcmp(p.alerts.alerts[0].class_msg, "Unknown Traffic") == 0);
+    else
+        result = 0;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    //PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int AlertFastLogTest02()
+{
+    int result = 0;
+    uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
+        "Host: one.example.org\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        return result;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Fastlog test\"; content:GET; "
+                               "Classtype:attempted-admin; sid:1;)");
+    result = (de_ctx->sig_list != NULL);
+
+    SigGroupBuild(de_ctx);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (p.alerts.cnt == 1) {
+        result = (strcmp(p.alerts.alerts[0].class_msg, "Unknown Traffic") != 0);
+        result = (strcmp(p.alerts.alerts[0].class_msg,
+                         "Attempted Administrator Privilege Gain") == 0);
+    } else {
+        result = 0;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    //PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+#endif /* UNITTESTS */
+
+/**
+ * \brief This function registers unit tests for AlertFastLog API.
+ */
+void AlertFastLogRegisterTests(void)
+{
+
+#ifdef UNITTESTS
+
+    UtRegisterTest("AlertFastLogTest01", AlertFastLogTest01, 1);
+    UtRegisterTest("AlertFastLogTest02", AlertFastLogTest02, 1);
+
+#endif /* UNITTESTS */
+
+}

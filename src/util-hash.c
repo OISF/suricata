@@ -108,6 +108,8 @@ int HashTableAdd(HashTable *ht, void *data, uint16_t datalen) {
         ht->array[hash] = hb;
     }
 
+    ht->count++;
+
     return 0;
 
 error:
@@ -155,14 +157,19 @@ int HashTableRemove(HashTable *ht, void *data, uint16_t datalen) {
 }
 
 void *HashTableLookup(HashTable *ht, void *data, uint16_t datalen) {
-    uint32_t hash = ht->Hash(ht, data, datalen);
+    uint32_t hash = 0;
+
+    if (ht == NULL)
+        return NULL;
+
+    hash = ht->Hash(ht, data, datalen);
 
     if (ht->array[hash] == NULL)
         return NULL;
 
     HashTableBucket *hashbucket = ht->array[hash];
     do {
-        if (ht->Compare(hashbucket->data,hashbucket->size,data,datalen) == 1)
+        if (ht->Compare(hashbucket->data, hashbucket->size, data, datalen) == 1)
             return hashbucket->data;
 
         hashbucket = hashbucket->next;

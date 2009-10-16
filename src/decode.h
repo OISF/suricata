@@ -147,7 +147,8 @@ typedef struct PacketAlert_ {
     uint8_t  rev;
     uint8_t class;
     uint8_t prio;
-    char      *msg;
+    char *msg;
+    char *class_msg;
 } PacketAlert;
 
 #define PACKET_ALERT_MAX 256
@@ -277,7 +278,7 @@ typedef struct Packet_
     uint16_t payload_len;
 
     /* decoder events: review how many events we have */
-    uint8_t events[65535/8];
+    uint8_t events[65535 / 8];
 
     HttpUri http_uri;
 

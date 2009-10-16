@@ -74,6 +74,7 @@
 #include "util-unittest.h"
 #include "util-time.h"
 #include "util-rule-vars.h"
+#include "util-classification-config.h"
 
 #include "conf.h"
 #include "conf-yaml-loader.h"
@@ -555,7 +556,7 @@ int main(int argc, char **argv)
         SCRuleVarsRegisterTests();
         AppLayerParserRegisterTests();
         ThreadMacrosRegisterTests();
-
+        SCClassConfRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }
@@ -598,6 +599,8 @@ int main(int argc, char **argv)
     FlowInitConfig(FLOW_VERBOSE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+
+    SCClassConfLoadClassficationConfigFile(de_ctx);
 
     /** Create file contexts for output modules */
     /* ascii */

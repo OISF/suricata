@@ -150,13 +150,16 @@ typedef struct Signature_ {
     uint16_t flags;
 
     uint8_t rev;
-    uint8_t prio;
+    int prio;
 
     uint32_t gid; /**< generator id */
     SigIntId num; /**< signature number, internal id */
     uint32_t id;  /**< sid, set by the 'sid' rule keyword */
     uint8_t nchunk_groups; /**< Internal chunk grp id (for splitted patterns) */
     char *msg;
+
+    /* classification message */
+    char *class_msg;
 
     /** addresses, ports and proto this sig matches on */
     DetectAddressHead src, dst;
@@ -250,15 +253,18 @@ typedef struct DetectEngineCtx_ {
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
     struct SCSigSignatureWrapper_ *sc_sig_sig_wrapper;
 
+    /* hash table used for holding the classification config info */
+    HashTable *class_conf_ht;
+
     /* main sigs */
     DetectEngineLookupDsize dsize_gh[DSIZE_STATES];
 
     uint32_t mpm_unique, mpm_reuse, mpm_none,
-              mpm_uri_unique, mpm_uri_reuse, mpm_uri_none;
+        mpm_uri_unique, mpm_uri_reuse, mpm_uri_none;
     uint32_t gh_unique, gh_reuse;
 
     uint32_t mpm_max_patcnt, mpm_min_patcnt, mpm_tot_patcnt,
-              mpm_uri_max_patcnt, mpm_uri_min_patcnt, mpm_uri_tot_patcnt;
+        mpm_uri_max_patcnt, mpm_uri_min_patcnt, mpm_uri_tot_patcnt;
 
     /* content and uricontent vars */
     uint32_t content_max_id;
@@ -512,15 +518,18 @@ int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup();
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
-int PacketAlertAppend(Packet *, uint32_t, uint32_t, uint8_t, uint8_t, char *);
+int PacketAlertAppend(Packet *, uint32_t, uint32_t, uint8_t, uint8_t, char *,
+                      char *);
 
 int SigLoadSignatures (DetectEngineCtx *, char *);
 void SigTableSetup(void);
 int PacketAlertCheck(Packet *p, uint32_t sid);
-int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
+int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
+                       DetectEngineThreadCtx *det_ctx, Packet *p);
 
 int PacketAlertCheck(Packet *p, uint32_t sid);
-int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
+int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
+                       DetectEngineThreadCtx *det_ctx, Packet *p);
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s);
 
 #endif /* __DETECT_H__ */
