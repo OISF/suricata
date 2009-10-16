@@ -319,6 +319,10 @@ void SCHInfoCleanResources(void)
 
 #ifdef UNITTESTS
 
+/**
+ * \test Check if we the IPs with the right OS flavours are added to the host OS
+ *       radix tree, and the IPS with invalid flavours returns an error(-1)
+ */
 int SCHInfoTestInvalidOSFlavour01(void)
 {
     int result = 1;
@@ -353,6 +357,10 @@ int SCHInfoTestInvalidOSFlavour01(void)
     return result;
 }
 
+/**
+ * \test Check that invalid ipv4 addresses and ipv4 netblocks are rejected by
+ *       the host os info API
+ */
 int SCHInfoTestInvalidIPV4Address02(void)
 {
     int result = 1;
@@ -373,6 +381,10 @@ int SCHInfoTestInvalidIPV4Address02(void)
     return result;
 }
 
+/**
+ * \test Check that invalid ipv4 addresses and ipv4 netblocks are rejected by
+ *       the host os info API
+ */
 int SCHInfoTestInvalidIPV6Address03(void)
 {
     int result = 1;
@@ -393,6 +405,12 @@ int SCHInfoTestInvalidIPV6Address03(void)
     return result;
 }
 
+/**
+ * \test Check that valid ipv4 addresses are inserted into the host os radix
+ *       tree, and the host os api retrieves the right value for the host os
+ *       flavour, on supplying as arg an ipv4 addresses that has been added to
+ *       the host os radix tree.
+ */
 int SCHInfoTestValidIPV4Address04(void)
 {
     int result = 1;
@@ -453,6 +471,12 @@ int SCHInfoTestValidIPV4Address04(void)
     return result;
 }
 
+/**
+ * \test Check that valid ipv4 addresses/netblocks are inserted into the host os
+ *       radix tree, and the host os api retrieves the right value for the host
+ *       os flavour, on supplying as arg an ipv4 addresses that has been added
+ *       to the host os radix tree.
+ */
 int SCHInfoTestValidIPV4Address05(void)
 {
     int result = 1;
@@ -523,6 +547,12 @@ int SCHInfoTestValidIPV4Address05(void)
     return result;
 }
 
+/**
+ * \test Check that valid ipv6 addresses are inserted into the host os radix
+ *       tree, and the host os api retrieves the right value for the host os
+ *       flavour, on supplying as arg an ipv6 address that has been added to
+ *       the host os radix tree.
+ */
 int SCHInfoTestValidIPV6Address06(void)
 {
     int result = 1;
@@ -598,6 +628,12 @@ int SCHInfoTestValidIPV6Address06(void)
     return result;
 }
 
+/**
+ * \test Check that valid ipv6 addresses/netblocks are inserted into the host os
+ *       radix tree, and the host os api retrieves the right value for the host
+ *       os flavour, on supplying as arg an ipv6 address that has been added to
+ *       the host os radix tree.
+ */
 int SCHInfoTestValidIPV6Address07(void)
 {
     int result = 1;
@@ -683,6 +719,12 @@ int SCHInfoTestValidIPV6Address07(void)
     return result;
 }
 
+/**
+ * \test Check that valid ipv6 addresses/netblocks are inserted into the host os
+ *       radix tree, and the host os api retrieves the right value for the host
+ *       os flavour, on supplying as arg an ipv6 address that has been added to
+ *       the host os radix tree.
+ */
 int SCHInfoTestValidIPV6Address08(void)
 {
     int result = 1;
