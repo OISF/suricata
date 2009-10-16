@@ -1283,7 +1283,7 @@ int SCLogTestInit02()
 
     result &= (SC_LOG_DEBUG == sc_log_config->log_level);
     result &= (sc_log_config->op_ifaces != NULL &&
-               SC_LOG_OP_IFACE_FILE == sc_log_config->op_ifaces->iface);
+               SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->iface);
     result &= (sc_log_config->op_ifaces != NULL &&
                sc_log_config->op_ifaces->next == NULL);
     result &= (sc_log_config->log_format != NULL &&
