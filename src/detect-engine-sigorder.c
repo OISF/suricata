@@ -783,9 +783,9 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     SCSigSignatureWrapper *sigw = NULL;
 
     int i = 0;
-
+#ifndef UNITTESTS
     SCLogInfo("ordering signatures in memory");
-
+#endif
     sig = de_ctx->sig_list;
     while (sig != NULL) {
         i++;
@@ -894,7 +894,7 @@ Signature *SigInit(DetectEngineCtx *, char *);
 void SigFree(Signature *);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
-#ifndef UNITTESTS
+#ifdef UNITTESTS
 
 static int SCSigTestSignatureOrdering01(void)
 {
@@ -1487,13 +1487,13 @@ static int SCSigTestSignatureOrdering06(void)
 
     sw = de_ctx->sc_sig_sig_wrapper;
 #ifdef DEBUG
-    printf("%d - ", sw->sig->prio));
+    printf("%d - ", sw->sig->prio);
 #endif
     prev_code = sw->sig->prio;
     sw = sw->next;
     while (sw != NULL) {
 #ifdef DEBUG
-        printf("%d - ", sw->sig->prio));
+        printf("%d - ", sw->sig->prio);
 #endif
         result &= (prev_code <= sw->sig->prio);
         prev_code = sw->sig->prio;
@@ -1511,7 +1511,7 @@ end:
 void SCSigRegisterSignatureOrderingTests(void)
 {
 
-#ifndef UNITTESTS
+#ifdef UNITTESTS
 
     UtRegisterTest("SCSigTestSignatureOrdering01", SCSigTestSignatureOrdering01, 1);
     UtRegisterTest("SCSigTestSignatureOrdering02", SCSigTestSignatureOrdering02, 1);
