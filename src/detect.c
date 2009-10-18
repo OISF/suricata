@@ -58,6 +58,7 @@
 #include "detect-csum.h"
 #include "detect-stream_size.h"
 #include "detect-engine-sigorder.h"
+#include "detect-ttl.h"
 
 #include "action-globals.h"
 #include "tm-modules.h"
@@ -2576,6 +2577,7 @@ void SigTableSetup(void) {
     DetectGidRegister();
     DetectCsumRegister();
     DetectStreamSizeRegister();
+    DetectTtlRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

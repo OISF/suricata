@@ -79,6 +79,7 @@ detect-fragbits.c detect-fragbits.h \
 detect-gid.c detect-gid.h \
 detect-noalert.c detect-noalert.h \
 detect-csum.c detect-csum.h \
+detect-ttl.c detect-ttl.h \
 util-print.c util-print.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \

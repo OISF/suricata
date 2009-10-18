@@ -12,6 +12,7 @@
 #include "flow.h"
 #include "detect-stream_size.h"
 #include "stream-tcp-private.h"
+#include "util-debug.h"
 
 /**
  * \brief Regex for parsing our flow options
@@ -44,13 +45,13 @@ void DetectStreamSizeRegister(void) {
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if (parse_regex == NULL) {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogDebug("pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if (eb != NULL) {
-        printf("pcre study failed: %s\n", eb);
+        SCLogDebug("pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -97,7 +98,6 @@ static inline int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, 
                 ret = 1;
             break;
         case DETECTSSIZE_GT:
-            //printf("diff %"PRIu32", stream_size %"PRIu32"\n", diff, stream_size);
             if (diff > stream_size)
                 ret = 1;
             break;
@@ -182,7 +182,7 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
 
     ret = pcre_exec(parse_regex, parse_regex_study, streamstr, strlen(streamstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 4) {
-        printf("DetectStreamSizeSetup: parse error, ret %" PRId32 "\n", ret);
+        SCLogDebug("DetectStreamSizeSetup: parse error, ret %" PRId32 "", ret);
         goto error;
     }
 
@@ -190,28 +190,28 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
 
     res = pcre_get_substring((char *)streamstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
-        printf("DetectStreamSizeSetup: pcre_get_substring failed\n");
+        SCLogDebug("DetectStreamSizeSetup: pcre_get_substring failed");
         goto error;
     }
     arg = (char *)str_ptr;
 
     res = pcre_get_substring((char *)streamstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
     if (res < 0) {
-        printf("DetectDsizeSetup: pcre_get_substring failed\n");
+        SCLogDebug("DetectStreamSizeSetup: pcre_get_substring failed");
         goto error;
     }
     mode = (char *)str_ptr;
 
     res = pcre_get_substring((char *)streamstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
     if (res < 0) {
-        printf("DetectDsizeSetup: pcre_get_substring failed\n");
+        SCLogDebug("DetectStreamSizeSetup: pcre_get_substring failed");
         goto error;
     }
     value = (char *)str_ptr;
 
     sd = malloc(sizeof(DetectStreamSizeData));
     if (sd == NULL) {
-        printf("DetectStreamSizeSetup malloc failed\n");
+        SCLogDebug("DetectStreamSizeSetup malloc failed");
         goto error;
     }
     sd->ssize = 0;
@@ -236,7 +236,7 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     /* inspect our options and set the flags */
     if (strcmp(arg, "server") == 0) {
         if (sd->flags & STREAM_SIZE_SERVER) {
-            printf("DetectFlowParse error STREAM_SIZE_SERVER flag is already set \n");
+            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_SERVER flag is already set ");
             goto error;
         }
         sd->flags |= STREAM_SIZE_SERVER;
@@ -244,7 +244,7 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     } else if (strcmp(arg, "client") == 0) {
 
         if (sd->flags & STREAM_SIZE_CLIENT) {
-            printf("DetectFlowParse error STREAM_SIZE_CLIENT flag is already set \n");
+            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_CLIENT flag is already set ");
             goto error;
         }
         sd->flags |= STREAM_SIZE_CLIENT;
@@ -252,14 +252,14 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     } else if ((strcmp(arg, "both") == 0)) {
 
         if (sd->flags & STREAM_SIZE_SERVER || sd->flags & STREAM_SIZE_CLIENT) {
-            printf("DetectFlowParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set \n");
+            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set ");
             goto error;
         }
         sd->flags |= STREAM_SIZE_BOTH;
     } else if (strcmp(arg, "either") == 0) {
 
         if (sd->flags & STREAM_SIZE_SERVER || sd->flags & STREAM_SIZE_CLIENT) {
-            printf("DetectFlowParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set \n");
+            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set ");
             goto error;
         }
         sd->flags |= STREAM_SIZE_EITHER;
