@@ -1036,7 +1036,12 @@ int CreateGroupedAddrListCmpMpmMaxlen(DetectAddress *a, DetectAddress *b) {
  * srchead is a ordered "inserted" list w/o internal overlap
  *
  */
-int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead, int family, DetectAddresssHead *newhead, uint32_t unique_groups, int (*CompareFunc)(DetectAddress *, DetectAddress *), uint32_t max_idx) {
+int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
+                          int family, DetectAddresssHead *newhead,
+                          uint32_t unique_groups,
+                          int (*CompareFunc)(DetectAddress *, DetectAddress *),
+                          uint32_t max_idx)
+{
     DetectAddress *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
     char insert = 0;
     DetectAddress *gr, *next_gr;
@@ -1541,7 +1546,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddresssHead *he
     DetectAddress *grhead = NULL, *grdsthead = NULL, *grsighead = NULL;
 
     /* based on the family, select the list we are using in the head */
-    grhead = GetHeadPtr(head,family);
+    grhead = GetHeadPtr(head, family);
 
     /* loop through the global source address list */
     for (gr = grhead; gr != NULL; gr = gr->next) {
@@ -1564,6 +1569,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddresssHead *he
                 continue;
 
             tmp_s = de_ctx->sig_array[sig];
+
             if (tmp_s == NULL)
                 continue;
 
@@ -1582,7 +1588,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddresssHead *he
                     DetectAddressAdd(&tmp_gr_list,grtmp);
                 } else {
                     /* our group will only have one sig, this one. So add that. */
-                    SigGroupHeadAppendSig(de_ctx,&lookup_gr->sh,tmp_s);
+                    SigGroupHeadAppendSig(de_ctx, &lookup_gr->sh, tmp_s);
                     lookup_gr->cnt++;
                 }
             }
@@ -1610,7 +1616,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddresssHead *he
             if (sgh == NULL) {
                 /* put the contents in our sig group head */
                 SigGroupHeadSetSigCnt(sgr->sh, max_idx);
-                SigGroupHeadBuildMatchArray(de_ctx,sgr->sh, max_idx);
+                SigGroupHeadBuildMatchArray(de_ctx, sgr->sh, max_idx);
 
                 /* content */
                 SigGroupHeadLoadContent(de_ctx, sgr->sh);

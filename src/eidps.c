@@ -78,6 +78,7 @@
 
 #include "util-debug.h"
 #include "util-error.h"
+#include "detect-engine-siggroup.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -466,6 +467,7 @@ int main(int argc, char **argv)
         SCLogRegisterTests();
         SCRadixRegisterTests();
         DefragRegisterTests();
+        SigGroupHeadRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

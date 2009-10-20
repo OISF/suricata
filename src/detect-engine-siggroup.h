@@ -1,3 +1,7 @@
+/** Copyright (c) 2009 Open Information Security Foundation.
+ *  \author Victor Julien <victor@inliniac.net>
+ */
+
 #ifndef __DETECT_ENGINE_SIGGROUP_H__
 #define __DETECT_ENGINE_SIGGROUP_H__
 
@@ -45,10 +49,13 @@ int SigGroupHeadSPortHashRemove(DetectEngineCtx *, SigGroupHead *);
 
 void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid);
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx);
-int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t max_idx);
+int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+                                 uint32_t max_idx);
 void SigGroupHeadFreeSigArrays(DetectEngineCtx *de_ctx);
 
-int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid);
+int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+                               uint32_t sid);
+
+void SigGroupHeadRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_SIGGROUP_H__ */
-
