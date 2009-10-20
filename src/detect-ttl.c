@@ -15,7 +15,7 @@
 /**
  * \brief Regex for parsing our flow options
  */
-#define PARSE_REGEX  "^\\s*?\\s*([0-9]*)?\\s*([<>=-]+)?\\s*([0-9]+)?\\s*$"
+#define PARSE_REGEX  "^\\s*([0-9]*)?\\s*([<>=-]+)?\\s*([0-9]+)?\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -156,38 +156,46 @@ DetectTtlData *DetectTtlParse (char *ttlstr) {
     ttld->ttl1 = 0;
     ttld->ttl2 = 0;
 
-    if (arg2[0] == '<') ttld->mode = DETECT_TTL_LT;
-    else if (arg2[0] == '>') ttld->mode = DETECT_TTL_GT;
-    else if (arg2[0] == '-') {
-        if (strlen(arg1)== 0)
-            goto error;
-
-        ttld->mode = DETECT_TTL_RA;
-    } else ttld->mode = DETECT_TTL_EQ;
-
-    /* set the value */
-    switch (ttld->mode) {
-        case DETECT_TTL_EQ:
-            ttld->ttl1 = (uint8_t) atoi(arg1);
-            if (strlen(arg2) > 0 || strlen(arg3) > 0)
-                goto error;
-
-            break;
-        case DETECT_TTL_LT:
-        case DETECT_TTL_GT:
+    /*set the values*/
+    switch(arg2[0]) {
+        case '<':
+            ttld->mode = DETECT_TTL_LT;
             ttld->ttl1 = (uint8_t) atoi(arg3);
+
             SCLogDebug("ttl is %"PRIu8"",ttld->ttl1);
             if (strlen(arg1) > 0)
                 goto error;
 
             break;
-        case DETECT_TTL_RA:
+        case '>':
+            ttld->mode = DETECT_TTL_GT;
+            ttld->ttl1 = (uint8_t) atoi(arg3);
+
+            SCLogDebug("ttl is %"PRIu8"",ttld->ttl1);
+            if (strlen(arg1) > 0)
+                goto error;
+
+            break;
+        case '-':
+            if (strlen(arg1)== 0)
+                goto error;
+
+            ttld->mode = DETECT_TTL_RA;
             ttld->ttl1 = (uint8_t) atoi(arg1);
             if (strlen(arg3) == 0)
                 goto error;
 
             ttld->ttl2 = (uint8_t) atoi(arg3);
-            SCLogDebug("ttl is %"PRIu8" and  %"PRIu8"",ttld->ttl1, ttld->ttl2);
+            SCLogDebug("ttl is %"PRIu8" and %"PRIu8"",ttld->ttl1, ttld->ttl2);
+
+            break;
+        default:
+            ttld->mode = DETECT_TTL_EQ;
+
+            if (strlen(arg2) > 0 || strlen(arg3) > 0 || strlen(arg1) == 0)
+                goto error;
+
+            ttld->ttl1 = (uint8_t) atoi(arg1);
             break;
     }
 
@@ -257,6 +265,12 @@ void DetectTtlFree(void *ptr) {
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
+/**
+ * \brief this function is used to initialize the detection engine context and
+ *        setup the signature with passed values.
+ *
+ */
+
 static int DetectTtlInitTest(DetectEngineCtx **de_ctx, Signature **sig, DetectTtlData **ttld, char *str) {
     char fullstr[1024];
     int result = 0;
@@ -290,12 +304,16 @@ end:
     return result;
 }
 
-int DetectTtlParseTest01 (void) {
+/**
+ * \test DetectTtlParseTest01 is a test for setting up an valid ttl value.
+ */
+
+static int DetectTtlParseTest01 (void) {
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
     ttld = DetectTtlParse("10");
-    if (ttld) {
+    if (ttld != NULL) {
         if (ttld->ttl1 == 10 && ttld->mode == DETECT_TTL_EQ)
             res = 1;
 
@@ -305,11 +323,16 @@ int DetectTtlParseTest01 (void) {
     return res;
 }
 
-int DetectTtlParseTest02 (void) {
+/**
+ * \test DetectTtlParseTest02 is a test for setting up an valid ttl value with
+ *       "<" operator.
+ */
+
+static int DetectTtlParseTest02 (void) {
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
     ttld = DetectTtlParse("<10");
-    if (ttld) {
+    if (ttld != NULL) {
         if (ttld->ttl1 == 10 && ttld->mode == DETECT_TTL_LT)
             res = 1;
         DetectTtlFree(ttld);
@@ -318,11 +341,16 @@ int DetectTtlParseTest02 (void) {
     return res;
 }
 
-int DetectTtlParseTest03 (void) {
+/**
+ * \test DetectTtlParseTest03 is a test for setting up an valid ttl values with
+ *       "-" operator.
+ */
+
+static int DetectTtlParseTest03 (void) {
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
     ttld = DetectTtlParse("1-2");
-    if (ttld) {
+    if (ttld != NULL) {
         if (ttld->ttl1 == 1 && ttld->ttl2 == 2 && ttld->mode == DETECT_TTL_RA)
             res = 1;
         DetectTtlFree(ttld);
@@ -331,12 +359,17 @@ int DetectTtlParseTest03 (void) {
     return res;
 }
 
-int DetectTtlParseTest04 (void) {
+/**
+ * \test DetectTtlParseTest04 is a test for setting up an valid ttl value with
+ *       ">" operator and include spaces arround the given values.
+ */
+
+static int DetectTtlParseTest04 (void) {
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
     ttld = DetectTtlParse(" > 10 ");
-    if (ttld) {
+    if (ttld != NULL) {
         if (ttld->ttl1 == 10 && ttld->mode == DETECT_TTL_GT)
             res = 1;
 
@@ -346,12 +379,17 @@ int DetectTtlParseTest04 (void) {
     return res;
 }
 
-int DetectTtlParseTest05 (void) {
+/**
+ * \test DetectTtlParseTest05 is a test for setting up an valid ttl values with
+ *       "-" operator and include spaces arround the given values.
+ */
+
+static int DetectTtlParseTest05 (void) {
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
     ttld = DetectTtlParse(" 1 - 2 ");
-    if (ttld) {
+    if (ttld != NULL) {
         if (ttld->ttl1 == 1 && ttld->ttl2 == 2 && ttld->mode == DETECT_TTL_RA)
             res = 1;
         DetectTtlFree(ttld);
@@ -360,30 +398,47 @@ int DetectTtlParseTest05 (void) {
     return res;
 }
 
-int DetectTtlParseTest06 (void) {
+/**
+ * \test DetectTtlParseTest06 is a test for setting up an valid ttl values with
+ *       invalid "=" operator and include spaces arround the given values.
+ */
+
+static int DetectTtlParseTest06 (void) {
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
     ttld = DetectTtlParse(" 1 = 2 ");
     if (ttld == NULL)
-            res = 1;
+        res = 1;
     if (ttld) free(ttld);
 
     return res;
 }
 
-int DetectTtlParseTest07 (void) {
+/**
+ * \test DetectTtlParseTest07 is a test for setting up an valid ttl values with
+ *       invalid "<>" operator and include spaces arround the given values.
+ */
+
+static int DetectTtlParseTest07 (void) {
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
     ttld = DetectTtlParse(" 1<>2 ");
     if (ttld == NULL)
-            res = 1;
+        res = 1;
 
     if (ttld) free(ttld);
 
     return res;
 }
+
+/**
+ * \test DetectTtlSetpTest01 is a test for setting up an valid ttl values with
+ *       valid "-" operator and include spaces arround the given values. In the
+ *       test the values are setup with initializing the detection engine context
+ *       setting up the signature itself.
+ */
 
 static int DetectTtlSetpTest01(void) {
 
@@ -400,7 +455,7 @@ static int DetectTtlSetpTest01(void) {
     if(ttld == NULL)
         goto cleanup;
 
-    if (ttld) {
+    if (ttld != NULL) {
         if (ttld->ttl1 == 1 && ttld->ttl2 == 2 && ttld->mode == DETECT_TTL_RA)
             res = 1;
     }
@@ -413,6 +468,12 @@ cleanup:
 end:
     return res;
 }
+
+/**
+ * \test DetectTtlTestSig01 is a test for checking the working of ttl keyword
+ *       by setting up the signature and later testing its working by matching
+ *       the received packet against the sig.
+ */
 
 static int DetectTtlTestSig1(void) {
 
