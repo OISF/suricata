@@ -17,10 +17,11 @@
 #include "detect-engine-iponly.h"
 
 #include "detect-decode-event.h"
+
 #include "detect-ipopts.h"
 #include "detect-flags.h"
 #include "detect-fragbits.h"
-
+#include "detect-gid.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
@@ -274,11 +275,14 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
     return match;
 }
 
-int PacketAlertAppend(Packet *p, uint8_t gid, uint32_t sid, uint8_t rev, uint8_t prio, char *msg)
+int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev, uint8_t prio, char *msg)
 {
     /* XXX overflow check? */
 
+    if(gid > 1)
     p->alerts.alerts[p->alerts.cnt].gid = gid;
+    else
+    p->alerts.alerts[p->alerts.cnt].gid = 1;
     p->alerts.alerts[p->alerts.cnt].sid = sid;
     p->alerts.alerts[p->alerts.cnt].rev = rev;
     p->alerts.alerts[p->alerts.cnt].prio = prio;
@@ -466,7 +470,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
                                 /* only add once */
                                 if (rmatch == 0) {
-                                    PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+                                    PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
 
                                     /* set verdict on packet */
                                     p->action = s->action;
@@ -499,7 +503,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         fmatch = 1;
 //printf("DE : sig %" PRIu32 " matched\n", s->id);
                         if (!(s->flags & SIG_FLAG_NOALERT)) {
-                            PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+                            PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
 
                             /* set verdict on packet */
                             p->action = s->action;
@@ -2590,7 +2594,11 @@ void SigTableSetup(void) {
     DetectDecodeEventRegister();
     DetectIpOptsRegister();
     DetectFlagsRegister();
+<<<<<<< HEAD:src/detect.c
     DetectFragBitsRegister();
+=======
+    DetectGidRegister();
+>>>>>>> Gid Keyword:src/detect.c
     DetectCsumRegister();
     DetectStreamSizeRegister();
 

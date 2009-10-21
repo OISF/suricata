@@ -142,7 +142,7 @@ typedef uint16_t Port;
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
 typedef struct PacketAlert_ {
-    uint8_t  gid;
+    uint32_t  gid;
     uint32_t sid;
     uint8_t  rev;
     uint8_t class;

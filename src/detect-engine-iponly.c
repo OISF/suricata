@@ -378,7 +378,7 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
-            PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+            PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
 
             /* set verdict on packet */
             p->action = s->action;

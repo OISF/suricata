@@ -145,6 +145,7 @@ typedef struct Signature_ {
     uint8_t rev;
     uint8_t prio;
 
+    uint32_t gid; /**< generator id */
     uint32_t num; /**< signature number, internal id */
     uint32_t id;  /**< sid, set by the 'sid' rule keyword */
     char *msg;
@@ -436,6 +437,7 @@ enum {
     DETECT_IPOPTS,
     DETECT_FLAGS,
     DETECT_FRAGBITS,
+    DETECT_GID,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
@@ -456,7 +458,7 @@ void TmModuleDetectRegister (void);
 int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup();
 
-int PacketAlertAppend(Packet *, uint8_t, uint32_t, uint8_t, uint8_t, char *);
+int PacketAlertAppend(Packet *, uint32_t, uint32_t, uint8_t, uint8_t, char *);
 
 int SigLoadSignatures (DetectEngineCtx *, char *);
 void SigTableSetup(void);
