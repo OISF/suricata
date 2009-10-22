@@ -279,10 +279,11 @@ int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev, uint8_
 {
     /* XXX overflow check? */
 
-    if(gid > 1)
-    p->alerts.alerts[p->alerts.cnt].gid = gid;
+    if (gid > 1)
+        p->alerts.alerts[p->alerts.cnt].gid = gid;
     else
-    p->alerts.alerts[p->alerts.cnt].gid = 1;
+        p->alerts.alerts[p->alerts.cnt].gid = 1;
+
     p->alerts.alerts[p->alerts.cnt].sid = sid;
     p->alerts.alerts[p->alerts.cnt].rev = rev;
     p->alerts.alerts[p->alerts.cnt].prio = prio;
