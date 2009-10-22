@@ -171,10 +171,10 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
 
     if(args[0])   {
 
-    ptr = args[0];
+        ptr = args[0];
 
-        while (*args[0] != '\0') {
-            switch (*args[0]) {
+        while (*ptr != '\0') {
+            switch (*ptr) {
                 case '!':
                     de->modifier = MODIFIER_NOT;
                     break;
@@ -185,18 +185,17 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     de->modifier = MODIFIER_ANY;
                     break;
             }
-            args[0]++;
+            ptr++;
         }
 
-    args[0] = ptr;
     }
 
     /** Second parse first set of flags */
 
     ptr = args[1];
 
-    while (*args[1] != '\0') {
-        switch (*args[1]) {
+    while (*ptr != '\0') {
+        switch (*ptr) {
             case 'S':
             case 's':
                 de->flags |= TH_SYN;
@@ -243,10 +242,8 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                 found = 0;
                 break;
         }
-        args[1]++;
+        ptr++;
     }
-
-    args[1] = ptr;
 
     if(found == 0)
         goto error;
@@ -255,10 +252,10 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
 
     if(args[2])    {
 
-    ptr = args[2];
+        ptr = args[2];
 
-        while (*args[2] != '\0') {
-            switch (*args[2]) {
+        while (*ptr != '\0') {
+            switch (*ptr) {
                 case 'S':
                 case 's':
                     de->ignored_flags &= ~TH_SYN;
@@ -303,10 +300,8 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     ignore = 0;
                     break;
             }
-            args[2]++;
+            ptr++;
         }
-
-        args[2] = ptr;
 
         if(ignore == 0)
             goto error;
@@ -438,7 +433,7 @@ static int FlagsTestParse03 (void) {
 
     de = DetectFlagsParse("AP");
 
-    if (de == NULL && (de->flags != (TH_ACK|TH_PUSH)) )
+    if (de == NULL || (de->flags != (TH_ACK|TH_PUSH)) )
         goto error;
 
     sm = SigMatchAlloc();
@@ -450,8 +445,11 @@ static int FlagsTestParse03 (void) {
 
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
         return 1;
+    }
 
 error:
     if (de) free(de);
@@ -485,7 +483,7 @@ static int FlagsTestParse04 (void) {
 
     de = DetectFlagsParse("A");
 
-    if (de == NULL && de->flags != TH_ACK)
+    if (de == NULL || de->flags != TH_ACK)
         goto error;
 
     sm = SigMatchAlloc();
@@ -497,8 +495,11 @@ static int FlagsTestParse04 (void) {
 
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
         return 1;
+    }
 
 error:
     if (de) free(de);
@@ -532,7 +533,7 @@ static int FlagsTestParse05 (void) {
 
     de = DetectFlagsParse("+AP,SR");
 
-    if (de == NULL && (de->modifier != MODIFIER_PLUS) && (de->flags != (TH_ACK|TH_PUSH)) && (de->ignored_flags != (TH_SYN|TH_RST)))
+    if (de == NULL || (de->modifier != MODIFIER_PLUS) || (de->flags != (TH_ACK|TH_PUSH)) || (de->ignored_flags != (TH_SYN|TH_RST)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -544,8 +545,11 @@ static int FlagsTestParse05 (void) {
 
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
         return 1;
+    }
 
 error:
     if (de) free(de);
@@ -579,7 +583,7 @@ static int FlagsTestParse06 (void) {
 
     de = DetectFlagsParse("+AP,UR");
 
-    if (de == NULL && (de->modifier != MODIFIER_PLUS) && (de->flags != (TH_ACK|TH_PUSH)) && (de->ignored_flags != (TH_URG|TH_RST)))
+    if (de == NULL || (de->modifier != MODIFIER_PLUS) || (de->flags != (TH_ACK|TH_PUSH)) || ((0xff - de->ignored_flags) != (TH_URG|TH_RST)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -591,8 +595,11 @@ static int FlagsTestParse06 (void) {
 
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
         return 1;
+    }
 
 error:
     if (de) free(de);
@@ -626,7 +633,7 @@ static int FlagsTestParse07 (void) {
 
     de = DetectFlagsParse("*AP");
 
-    if (de == NULL && (de->modifier != MODIFIER_ANY) && (de->flags != (TH_ACK|TH_PUSH)))
+    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK|TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -638,8 +645,11 @@ static int FlagsTestParse07 (void) {
 
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
         return 1;
+    }
 
 error:
     if (de) free(de);
@@ -673,7 +683,7 @@ static int FlagsTestParse08 (void) {
 
     de = DetectFlagsParse("*SA");
 
-    if (de == NULL && (de->modifier != MODIFIER_ANY) && (de->flags != (TH_ACK|TH_SYN)))
+    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK|TH_SYN)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -685,8 +695,11 @@ static int FlagsTestParse08 (void) {
 
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
         return 1;
+    }
 
 error:
     if (de) free(de);
@@ -720,7 +733,7 @@ static int FlagsTestParse09 (void) {
 
     de = DetectFlagsParse("!PA");
 
-    if (de == NULL && (de->modifier != MODIFIER_NOT) && (de->flags != (TH_ACK|TH_PUSH)))
+    if (de == NULL || (de->modifier != MODIFIER_NOT) || (de->flags != (TH_ACK|TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -732,8 +745,11 @@ static int FlagsTestParse09 (void) {
 
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
         return 1;
+    }
 
 error:
     if (de) free(de);
@@ -767,7 +783,7 @@ static int FlagsTestParse10 (void) {
 
     de = DetectFlagsParse("!AP");
 
-    if (de == NULL && (de->modifier != MODIFIER_NOT) && (de->flags != (TH_ACK|TH_PUSH)))
+    if (de == NULL || (de->modifier != MODIFIER_NOT) || (de->flags != (TH_ACK|TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -779,8 +795,11 @@ static int FlagsTestParse10 (void) {
 
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
         return 1;
+    }
 
 error:
     if (de) free(de);
@@ -814,7 +833,7 @@ static int FlagsTestParse11 (void) {
 
     de = DetectFlagsParse("*AP,SR");
 
-    if (de == NULL && (de->modifier != MODIFIER_ANY) && (de->flags != (TH_ACK|TH_PUSH)) && (de->ignored_flags != (TH_SYN|TH_RST)))
+    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK|TH_PUSH)) || ((0xff - de->ignored_flags) != (TH_SYN|TH_RST)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -826,8 +845,11 @@ static int FlagsTestParse11 (void) {
 
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
         return 1;
+    }
 
 error:
     if (de) free(de);
