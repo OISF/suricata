@@ -23,6 +23,7 @@ uint32_t UtRunTests(char *regex_arg);
 void UtInitialize(void);
 void UtCleanup(void);
 int UtRunSelftest (char *regex_arg);
+void UtListTests(char *regex_arg);
 
 #endif /* __UTIL_UNITTEST_H__ */
 

@@ -238,6 +238,7 @@ void usage(const char *progname)
 #ifdef UNITTESTS
     printf("\t-u                           : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
+    printf("\t--list-unittests             : list unit tests\n");
 #endif /* UNITTESTS */
     printf("\n");
 }
@@ -254,6 +255,7 @@ int main(int argc, char **argv)
     char *conf_filename = NULL;
     char *regex_arg = NULL;
     int dump_config = 0;
+    int list_unittests = 0;
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
@@ -266,6 +268,7 @@ int main(int argc, char **argv)
         {"pfring-int",  required_argument, 0, 0},
         {"pfring-clusterid",  required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
+        {"list-unittests", 0, &list_unittests, 1},
         {NULL, 0, NULL, 0}
     };
 
@@ -290,6 +293,15 @@ int main(int argc, char **argv)
                     fprintf(stderr, "ERROR: Failed to set pfring clusterid.\n");
                     exit(EXIT_FAILURE);
                 }
+            }
+            else if(strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
+#ifdef UNITTESTS
+                /* Set mode to unit tests. */
+                mode = MODE_UNITTEST;
+#else
+                fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
+                exit(EXIT_FAILURE);
+#endif /* UNITTESTS */
             }
             break;
         case 'c':
@@ -440,10 +452,16 @@ int main(int argc, char **argv)
         SCSigRegisterSignatureOrderingTests();
         SCLogRegisterTests();
         SCRadixRegisterTests();
-        uint32_t failed = UtRunTests(regex_arg);
-        UtCleanup();
-        if (failed) exit(EXIT_FAILURE);
-        else        exit(EXIT_SUCCESS);
+        if (list_unittests) {
+            UtListTests(regex_arg);
+        }
+        else {
+            uint32_t failed = UtRunTests(regex_arg);
+            UtCleanup();
+            if (failed)
+                exit(EXIT_FAILURE);
+        }
+        exit(EXIT_SUCCESS);
     }
 #endif /* UNITTESTS */
 

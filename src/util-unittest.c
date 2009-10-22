@@ -115,6 +115,33 @@ error:
     return -1;
 }
 
+#define MAX_SUBSTRINGS 30
+
+/** \brief List all registered unit tests.
+ *
+ *  \param regex_arg Regular expression to limit listed tests.
+ */
+void UtListTests(char *regex_arg) {
+    UtTest *ut;
+    int ret = 0, rcomp = 0;
+    int ov[MAX_SUBSTRINGS];
+
+    rcomp = UtRegex(regex_arg);
+
+    for (ut = ut_list; ut != NULL; ut = ut->next) {
+        if (rcomp == 1)  {
+            ret = pcre_exec(parse_regex, parse_regex_study, ut->name,
+                strlen(ut->name), 0, 0, ov, MAX_SUBSTRINGS);
+            if (ret >= 1) {
+                printf("%s\n", ut->name);
+            }
+        }
+        else {
+            printf("%s\n", ut->name);
+        }
+    }
+}
+
 /** \brief Run all registered unittests.
  *
  *  \param regex_arg The regular expression
@@ -126,7 +153,6 @@ error:
 uint32_t UtRunTests(char *regex_arg) {
     UtTest *ut;
     uint32_t good = 0, bad = 0;
-#define MAX_SUBSTRINGS 30
     int ret = 0, rcomp = 0;
     int ov[MAX_SUBSTRINGS];
 
