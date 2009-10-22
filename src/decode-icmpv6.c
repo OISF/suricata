@@ -104,10 +104,9 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
 
     /** Check the embedded version */
     if(((icmp6_ip6h->s_ip6_vfc & 0xf0) >> 4) != 6)
-    /** Check the embedded version */
-        {
+    {
         SCLogDebug("ICMPv6 contains Unknown IPV6 version "
-                   "ICMPV6_IPV6_UNKNOWN_VER");
+                "ICMPV6_IPV6_UNKNOWN_VER");
         DECODER_SET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER);
         return;
     }
