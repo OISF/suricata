@@ -2594,11 +2594,8 @@ void SigTableSetup(void) {
     DetectDecodeEventRegister();
     DetectIpOptsRegister();
     DetectFlagsRegister();
-<<<<<<< HEAD:src/detect.c
     DetectFragBitsRegister();
-=======
     DetectGidRegister();
->>>>>>> Gid Keyword:src/detect.c
     DetectCsumRegister();
     DetectStreamSizeRegister();
 
