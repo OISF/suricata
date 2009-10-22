@@ -19,6 +19,7 @@
 #include "detect-decode-event.h"
 #include "detect-ipopts.h"
 #include "detect-flags.h"
+#include "detect-fragbits.h"
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
@@ -2589,6 +2590,7 @@ void SigTableSetup(void) {
     DetectDecodeEventRegister();
     DetectIpOptsRegister();
     DetectFlagsRegister();
+    DetectFragBitsRegister();
     DetectCsumRegister();
     DetectStreamSizeRegister();
 

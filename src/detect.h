@@ -435,6 +435,7 @@ enum {
     DETECT_DECODE_EVENT,
     DETECT_IPOPTS,
     DETECT_FLAGS,
+    DETECT_FRAGBITS,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
