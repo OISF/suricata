@@ -31,6 +31,7 @@
 #include "detect-rawbytes.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
+#include "detect-sameip.h"
 #include "detect-ipproto.h"
 #include "detect-within.h"
 #include "detect-distance.h"
@@ -2579,6 +2580,7 @@ void SigTableSetup(void) {
     DetectRawbytesRegister();
     DetectBytetestRegister();
     DetectBytejumpRegister();
+    DetectSameipRegister();
     DetectIPProtoRegister();
     DetectWithinRegister();
     DetectDistanceRegister();
