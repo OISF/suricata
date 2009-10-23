@@ -69,6 +69,8 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
+#include "defrag.h"
+
 #include "runmodes.h"
 #include "util-debug.h"
 
@@ -168,6 +170,7 @@ Packet *SetupPkt (void)
     return p;
 }
 
+/* \todo dtv not used. */
 Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
 {
     //printf("TunnelPktSetup: pkt %p, len %" PRIu32 ", proto %" PRIu32 "\n", pkt, len, proto);
@@ -388,6 +391,8 @@ int main(int argc, char **argv)
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
     PerfInitCounterApi();
 
+    DefragInit();
+
     /** \todo we need an api for these */
     AppLayerDetectProtoThreadInit();
     RegisterAppLayerParsers();
@@ -452,6 +457,7 @@ int main(int argc, char **argv)
         SCSigRegisterSignatureOrderingTests();
         SCLogRegisterTests();
         SCRadixRegisterTests();
+        DefragRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

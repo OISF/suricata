@@ -3,6 +3,11 @@
 # overridden with the -l command line parameter.
 default-log-dir: /var/log/eidps
 
+defrag:
+  max-frags: 65535
+  prealloc: yes
+  timeout: 60
+
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.
 logging:

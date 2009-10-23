@@ -9,6 +9,7 @@
 #include "decode.h"
 #include "decode-ipv4.h"
 #include "decode-events.h"
+#include "defrag.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -565,23 +566,23 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         case IPPROTO_IP:
             /* check PPP VJ uncompressed packets and decode tcp dummy */
             if(p->ppph != NULL && ntohs(p->ppph->protocol) == PPP_VJ_UCOMP)    {
-                return(DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                                 IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p), pq));
+                DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
+                          IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p), pq);
             }
             break;
         case IPPROTO_TCP:
-            return(DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                             IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq));
+            DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
+                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
             break;
         case IPPROTO_UDP:
             //printf("DecodeIPV4: next layer is UDP\n");
-            return(DecodeUDP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                             IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq));
+            DecodeUDP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
+                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
             break;
         case IPPROTO_ICMP:
             //printf("DecodeIPV4: next layer is ICMP\n");
-            return(DecodeICMPV4(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                                IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq));
+            DecodeICMPV4(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
+                         IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
             break;
         case IPPROTO_IPV6:
             {
@@ -604,9 +605,23 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
                 break;
             }
         case IPPROTO_GRE:
-            return(DecodeGRE(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                             IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq));
+            DecodeGRE(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
+                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
             break;
+    }
+
+    /* If a fragment, pass off for re-assembly. */
+    if (IPV4_GET_IPOFFSET(p) > 0 || IPV4_GET_MF(p) == 1) {
+        Packet *rp = Defrag4(tv, NULL, p);
+        if (rp != NULL) {
+            /* Got re-assembled packet, re-run through decoder. */
+            DecodeIPV4(tv, dtv, rp, rp->pkt, rp->pktlen, pq);
+            PacketEnqueue(pq, rp);
+
+            /* Not really a tunnel packet, but we're piggybacking that
+             * functionality for now. */
+            SET_TUNNEL_PKT(p);
+        }
     }
 
     return;
