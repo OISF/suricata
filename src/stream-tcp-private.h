@@ -28,6 +28,7 @@ typedef struct TcpStream_ {
     TcpSegment *seg_list; /**< list of TCP segments that are not yet (fully) used in reassembly */
     uint8_t os_policy; /**< target based OS policy used for reassembly and handling packets*/
     uint8_t flags;      /**< Flag specific to the stream e.g. Timestamp */
+    TcpSegment *seg_list_tail;  /**< Last segment in the reassembled stream seg list*/
 } TcpStream;
 
 /* from /usr/include/netinet/tcp.h */

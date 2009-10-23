@@ -274,7 +274,20 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg) {
             seg, seg->seq, seg->payload_len);
         stream->seg_list = seg;
         seg->prev = NULL;
+        stream->seg_list_tail = seg;
         goto end;
+    }
+
+    /* insert the segment in the stream list using this fast track, if seg->seq
+       is equal or higher than stream->seg_list_tail.*/
+    if (SEQ_GEQ(seg->seq, (stream->seg_list_tail->seq +
+            stream->seg_list_tail->payload_len))) {
+
+        stream->seg_list_tail->next = seg;
+        seg->prev = stream->seg_list_tail;
+        stream->seg_list_tail = seg;
+
+        return 0;
     }
 
     for (; list_seg != NULL; list_seg = list_seg->next) {
@@ -441,6 +454,10 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                 StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq + list_seg->payload_len), (uint16_t) (((seg->seq + seg->payload_len) - (list_seg->seq + list_seg->payload_len))));
             }
 
+            /*update the stream last_seg in case of removal of list_seg*/
+            if (stream->seg_list_tail == list_seg)
+                stream->seg_list_tail = new_seg;
+
             StreamTcpSegmentReturntoPool(list_seg);
             list_seg = new_seg;
             if (new_seg->prev != NULL) {
@@ -475,6 +492,10 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                 uint16_t copy_len = (uint16_t) (list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
                 SCLogDebug("copy_len %" PRIu32 " (%" PRIu32 " - %" PRIu32 ")", copy_len, list_seg->seq, (list_seg->prev->seq + list_seg->prev->payload_len));
                 StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->prev->seq + list_seg->prev->payload_len), copy_len);
+
+                /*update the stream last_seg in case of removal of list_seg*/
+                if (stream->seg_list_tail == list_seg)
+                    stream->seg_list_tail = new_seg;
 
                 StreamTcpSegmentReturntoPool(list_seg);
                 list_seg = new_seg;
@@ -524,6 +545,10 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream, TcpSegment *l
                     if (new_seg->next != NULL) {
                         new_seg->next->prev = new_seg;
                     }
+                    /*update the stream last_seg in case of removal of list_seg*/
+                    if (stream->seg_list_tail == list_seg)
+                        stream->seg_list_tail = new_seg;
+
                     StreamTcpSegmentReturntoPool(list_seg);
                     list_seg = new_seg;
                 }
@@ -658,6 +683,10 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream, TcpSegment *l
                 list_seg->next = new_seg;
                 SCLogDebug("new_seg %p, new_seg->next %p, new_seg->prev %p, list_seg->next %p", new_seg, new_seg->next, new_seg->prev, list_seg->next);
                 StreamTcpSegmentDataReplace(new_seg, seg, new_seg->seq, new_seg->payload_len);
+
+                /*update the stream last_seg in case of removal of list_seg*/
+                if (stream->seg_list_tail == list_seg)
+                    stream->seg_list_tail = new_seg;
             }
         }
         switch (os_policy) {
@@ -809,6 +838,10 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream, TcpSegment *li
                 SCLogDebug("new_seg %p, new_seg->next %p, new_seg->prev %p, list_seg->next %p", new_seg, new_seg->next, new_seg->prev, list_seg->next);
 
                 StreamTcpSegmentDataReplace(new_seg, seg, new_seg->seq, new_seg->payload_len);
+
+                /*update the stream last_seg in case of removal of list_seg*/
+                if (stream->seg_list_tail == list_seg)
+                    stream->seg_list_tail = new_seg;
             }
         }
         switch (os_policy) {
@@ -982,6 +1015,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx, T
             SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32" len %"PRIu16"", stream->ra_base_seq, seg, seg->seq, seg->payload_len);
 
             TcpSegment *next_seg = seg->next;
+
             if (seg->prev == NULL) {
                 stream->seg_list = seg->next;
                 if (stream->seg_list != NULL)
@@ -992,6 +1026,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx, T
                     seg->next->prev = seg->prev;
             }
 
+            if (stream->seg_list_tail == seg)
+                stream->seg_list_tail = next_seg;
             StreamTcpSegmentReturntoPool(seg);
             seg = next_seg;
             continue;
@@ -1159,6 +1195,10 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx, T
         stream->seg_list = seg->next;
         if (stream->seg_list != NULL)
             stream->seg_list->prev = NULL;
+
+        /* Update seg_list_tail, in case it also points to this segment*/
+        if (stream->seg_list_tail == seg)
+            stream->seg_list_tail = next_seg;
 
         StreamTcpSegmentReturntoPool(seg);
         seg = next_seg;
@@ -2601,7 +2641,7 @@ static int StreamTcpReassembleTest25 (void) {
         printf("failed in segments reassembly: ");
         goto end;
     }
-
+    stream.next_seq = 14;
     StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
     seq = 7;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
@@ -2989,6 +3029,87 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     return ret;
 }
+
+/**
+ *  \test   Test to reassemble the packets using the fast track method, as most
+ *          packets arrives in order.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpReassembleTest31 (void) {
+    int ret = 0;
+    uint8_t payload[4];
+    uint32_t seq;
+    uint32_t ack;
+    uint8_t th_flag;
+    uint8_t th_flags;
+    uint8_t flowflags;
+    uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpStream stream;
+    memset(&stream, 0, sizeof (TcpStream));
+
+    flowflags = FLOW_PKT_TOSERVER;
+    th_flag = TH_ACK|TH_PUSH;
+    th_flags = TH_ACK;
+
+    stream.ra_base_seq = 9;
+    stream.isn = 9;
+    StreamTcpInitConfig(TRUE);
+
+    StreamTcpCreateTestPacket(payload, 0x41, 2); /*AA*/
+    seq = 10;
+    ack = 20;
+    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+        printf("failed in segments reassembly: ");
+        goto end;
+    }
+
+    flowflags = FLOW_PKT_TOSERVER;
+    StreamTcpCreateTestPacket(payload, 0x42, 1); /*B*/
+    seq = 15;
+    ack = 20;
+    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+        printf("failed in segments reassembly: ");
+        goto end;
+    }
+
+    flowflags = FLOW_PKT_TOSERVER;
+    StreamTcpCreateTestPacket(payload, 0x42, 1); /*B*/
+    seq = 12;
+    ack = 20;
+    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+        printf("failed in segments reassembly: ");
+        goto end;
+    }
+
+    flowflags = FLOW_PKT_TOSERVER;
+    StreamTcpCreateTestPacket(payload, 0x42, 1); /*B*/
+    seq = 16;
+    ack = 20;
+    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+        printf("failed in segments reassembly: ");
+        goto end;
+    }
+
+    if (StreamTcpCheckStreamContents(check_contents, 5, &stream) == 0) {
+        printf("failed in stream matching: ");
+        goto end;
+    }
+
+    if (stream.seg_list_tail->seq != 16) {
+        printf("failed in fast track handling: ");
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    StreamTcpReassembleFreeThreadCtx(ra_ctx);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
@@ -3027,5 +3148,6 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest28 -- Gap at Start IDS missed packet Reassembly Test", StreamTcpReassembleTest28, 1);
     UtRegisterTest("StreamTcpReassembleTest29 -- Gap at Middle IDS missed packet Reassembly Test", StreamTcpReassembleTest29, 1);
     UtRegisterTest("StreamTcpReassembleTest30 -- Gap at End IDS missed packet Reassembly Test", StreamTcpReassembleTest30, 1);
+    UtRegisterTest("StreamTcpReassembleTest31 -- Fast Track Reassembly Test", StreamTcpReassembleTest31, 1);
 #endif /* UNITTESTS */
 }
