@@ -60,20 +60,32 @@ typedef struct TmVarSlot_ {
  */
 inline int TmThreadsCheckFlag(ThreadVars *tv, uint8_t flag) {
     int r;
-    spin_lock(&tv->flags_spinlock);
+    if (spin_lock(&tv->flags_spinlock) != 0) {
+        SCLogError(SC_SPINLOCK_ERROR,"spin lock errno=%d",errno);
+        return 0;
+    }
+
     r = (tv->flags & flag);
     spin_unlock(&tv->flags_spinlock);
     return r;
 }
 
 inline void TmThreadsSetFlag(ThreadVars *tv, uint8_t flag) {
-    spin_lock(&tv->flags_spinlock);
+    if (spin_lock(&tv->flags_spinlock) != 0) {
+        SCLogError(SC_SPINLOCK_ERROR,"spin lock errno=%d",errno);
+        return;
+    }
+
     tv->flags |= flag;
     spin_unlock(&tv->flags_spinlock);
 }
 
 inline void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag) {
-    spin_lock(&tv->flags_spinlock);
+    if (spin_lock(&tv->flags_spinlock) != 0) {
+        SCLogError(SC_SPINLOCK_ERROR,"spin lock errno=%d",errno);
+        return;
+    }
+
     tv->flags &= ~flag;
     spin_unlock(&tv->flags_spinlock);
 }
@@ -225,6 +237,7 @@ void *TmThreadsSlot1NoInOut(void *td) {
     memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
+
     while(run) {
         TmThreadTestThreadUnPaused(tv);
 
@@ -932,6 +945,7 @@ void TmThreadTestThreadUnPaused(ThreadVars *tv)
 {
     while (TmThreadsCheckFlag(tv, THV_PAUSE)) {
         usleep(100);
+
         if (TmThreadsCheckFlag(tv, THV_KILL))
             break;
     }
@@ -1083,10 +1097,12 @@ TmEcode TmThreadWaitOnThreadInit(void)
                     started = TRUE;
                 }
 
-                if (TmThreadsCheckFlag(tv, THV_CLOSED) ||
-                    TmThreadsCheckFlag(tv, THV_FAILED))
-                {
+                if (TmThreadsCheckFlag(tv, THV_FAILED)) {
                     printf("Thread \"%s\" failed to initialize...\n", tv->name);
+                    return TM_ECODE_FAILED;
+                }
+                if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                    printf("Thread \"%s\" closed on initialization...\n", tv->name);
                     return TM_ECODE_FAILED;
                 }
             }
