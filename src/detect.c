@@ -22,6 +22,8 @@
 #include "detect-flags.h"
 #include "detect-fragbits.h"
 #include "detect-gid.h"
+#include "detect-ack.h"
+#include "detect-seq.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
@@ -2571,6 +2573,8 @@ void SigTableSetup(void) {
     DetectThresholdRegister();
     DetectMetadataRegister();
     DetectMsgRegister();
+    DetectAckRegister();
+    DetectSeqRegister();
     DetectContentRegister();
     DetectUricontentRegister();
     DetectPcreRegister();

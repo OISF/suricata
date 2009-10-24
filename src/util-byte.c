@@ -2,6 +2,8 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 
+/** \todo: Remove the fprintf errors in favor of logging */
+
 int ByteExtract(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
 {
     uint64_t b = 0;
@@ -27,7 +29,6 @@ int ByteExtract(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
 
         *res |= (b << ((i & 7) << 3));
 
-        //printf("ByteExtractUint64: %016" PRIx64 "/%016" PRIx64 "\n", (b << ((i & 7) << 3)), *res);
     }
 
     return len;
@@ -110,9 +111,8 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
      */
     char strbuf[24];
 
-//printf("ByteExtractString(%p,%d,%d,\"%s\")", res, base, len, str);
     if (len > 23) {
-        printf("ByteExtractString: len too large (23 max)\n");
+        fprintf(stderr, "ByteExtractString: len too large (23 max)\n");
         return -1;
     }
 
@@ -127,10 +127,10 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
     *res = strtoull(ptr, &endptr, base);
 
     if (errno == ERANGE) {
-        printf("ByteExtractString: Numeric value out of range.\n");
+        fprintf(stderr, "ByteExtractString: Numeric value out of range\n");
         return -1;
     } else if (endptr == str) {
-        printf("ByteExtractString: Invalid numeric value.\n");
+        fprintf(stderr, "ByteExtractString: Invalid numeric value\n");
         return -1;
     }
     /* This will interfere with some rules that do not know the length
@@ -138,12 +138,10 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
      */
 #if 0
     else if (len && *endptr != '\0') {
-        printf("ByteExtractString: Extra characters following numeric value.\n");
+        fprintf(stderr, "ByteExtractString: Extra characters following numeric value\n");
         return -1;
     }
 #endif
-
-    //printf("ByteExtractString: Extracted base %d: 0x%" PRIx64 "\n", base, *res);
 
     return (endptr - ptr);
 }
@@ -166,7 +164,7 @@ inline int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const 
     *res = (uint32_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        printf("ByteExtractStringUint32: Numeric value out of range (%" PRIx64 " != %" PRIx64 ").", (uint64_t)(*res), i64);
+        fprintf(stderr, "ByteExtractStringUint32: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (uint64_t)(*res), i64);
         return -1;
     }
 
@@ -186,7 +184,7 @@ inline int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const 
     *res = (uint16_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        printf("ByteExtractStringUint16: Numeric value out of range (%" PRIx64 " != %" PRIx64 ").", (uint64_t)(*res), i64);
+        fprintf(stderr, "ByteExtractStringUint16: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (uint64_t)(*res), i64);
         return -1;
     }
 
@@ -206,7 +204,7 @@ inline int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const ch
     *res = (uint8_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        printf("ByteExtractStringUint8: Numeric value out of range (%" PRIx64 " != %" PRIx64 ").", (uint64_t)(*res), i64);
+        fprintf(stderr, "ByteExtractStringUint8: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (uint64_t)(*res), i64);
         return -1;
     }
 
@@ -228,7 +226,7 @@ int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *st
     char strbuf[24];
 
     if (len > 23) {
-        printf("ByteExtractStringSigned: len too large (23 max)\n");
+        fprintf(stderr, "ByteExtractStringSigned: len too large (23 max)\n");
         return -1;
     }
 
@@ -243,10 +241,10 @@ int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *st
     *res = strtoll(ptr, &endptr, base);
 
     if (errno == ERANGE) {
-        printf("ByteExtractStringSigned: Numeric value out of range.\n");
+        fprintf(stderr, "ByteExtractStringSigned: Numeric value out of range\n");
         return -1;
     } else if (endptr == str) {
-        printf("ByteExtractStringSigned: Invalid numeric value.\n");
+        fprintf(stderr, "ByteExtractStringSigned: Invalid numeric value\n");
         return -1;
     }
     /* This will interfere with some rules that do not know the length
@@ -254,12 +252,12 @@ int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *st
      */
 #if 0
     else if (len && *endptr != '\0') {
-        printf("ByteExtractStringSigned: Extra characters following numeric value.\n");
+        fprintf(stderr, "ByteExtractStringSigned: Extra characters following numeric value\n");
         return -1;
     }
 #endif
 
-    //printf("ByteExtractStringSigned: Extracted base %d: 0x%" PRIx64 "\n", base, *res);
+    //fprintf(stderr, "ByteExtractStringSigned: Extracted base %d: 0x%" PRIx64 "\n", base, *res);
 
     return (endptr - ptr);
 }
@@ -282,7 +280,7 @@ inline int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const ch
     *res = (int32_t)i64;
 
     if ((int64_t)(*res) != i64) {
-        printf("ByteExtractStringUint32: Numeric value out of range (%" PRIx64 " != %" PRIx64 ").", (int64_t)(*res), i64);
+        fprintf(stderr, "ByteExtractStringUint32: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (int64_t)(*res), i64);
         return -1;
     }
 
@@ -302,7 +300,7 @@ inline int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const ch
     *res = (int16_t)i64;
 
     if ((int64_t)(*res) != i64) {
-        printf("ByteExtractStringInt16: Numeric value out of range (%" PRIx64 " != %" PRIx64 ").", (int64_t)(*res), i64);
+        fprintf(stderr, "ByteExtractStringInt16: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (int64_t)(*res), i64);
         return -1;
     }
 
@@ -322,7 +320,7 @@ inline int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char
     *res = (int8_t)i64;
 
     if ((int64_t)(*res) != i64) {
-        printf("ByteExtractStringInt8: Numeric value out of range (%" PRIx64 " != %" PRIx64 ").", (int64_t)(*res), i64);
+        fprintf(stderr, "ByteExtractStringInt8: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (int64_t)(*res), i64);
         return -1;
     }
 

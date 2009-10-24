@@ -41,6 +41,8 @@ detect-engine-siggroup.c detect-engine-siggroup.h \
 detect-engine-mpm.c detect-engine-mpm.h \
 detect-engine-iponly.c detect-engine-iponly.h \
 detect-parse.c detect-parse.h \
+detect-ack.c detect-ack.h \
+detect-seq.c detect-seq.h \
 detect-content.c detect-content.h \
 detect-uricontent.c detect-uricontent.h \
 detect-flowbits.c detect-flowbits.h \
