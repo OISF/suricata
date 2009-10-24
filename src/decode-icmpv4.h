@@ -3,6 +3,10 @@
 #ifndef __DECODE_ICMPV4_H__
 #define __DECODE_ICMPV4_H__
 
+#include "decode.h"
+#include "decode-tcp.h"
+#include "decode-udp.h"
+
 #define ICMPV4_HEADER_LEN       8
 
 #ifndef ICMP_ECHOREPLY
@@ -130,12 +134,6 @@
 /** marco for icmpv4 code access */
 #define ICMPV4_GET_CODE(p)      (p)->icmpv4h->code
 
-typedef struct ICMPV4Vars_
-{
-    uint8_t  id;
-    uint8_t  seq;
-} ICMPV4Vars;
-
 /* ICMPv4 header structure */
 typedef struct ICMPV4Hdr_
 {
@@ -154,7 +152,68 @@ typedef struct ICMPV4ExtHdr_
     uint16_t seq;
 } ICMPV4ExtHdr;
 
+/* ICMPv4 vars */
+typedef struct ICMPV4Vars_
+{
+    uint8_t  type;
+    uint8_t  code;
+
+    /* checksum of the icmpv4 packet */
+    uint16_t  csum;
+    uint16_t  id;
+    uint16_t  seq;
+    uint32_t  mtu;
+    uint32_t  error_ptr;
+
+    /** Pointers to the embedded packet headers */
+    IPV4Hdr *emb_ipv4h;
+    TCPHdr *emb_tcph;
+    UDPHdr *emb_udph;
+    ICMPV4Hdr *emb_icmpv4h;
+
+    /** IPv4 src and dst address */
+    struct in_addr emb_ip4_src;
+    struct in_addr emb_ip4_dst;
+    uint8_t emb_ip4_hlen;
+
+    /** TCP/UDP ports */
+    uint16_t emb_sport;
+    uint16_t emb_dport;
+} ICMPV4Vars;
+
 #define ICMPV4_HEADER_PKT_OFFSET 8
+
+/** macro for icmpv4 "type" access */
+#define ICMPV4_GET_TYPE(p)      (p)->icmpv4h->type
+/** macro for icmpv4 "code" access */
+ #define ICMPV4_GET_CODE(p)      (p)->icmpv4h->code
+/** macro for icmpv4 "csum" access */
+#define ICMPV4_GET_CSUM(p)      (p)->icmpv4h->csum
+
+/** If message is informational */
+/** macro for icmpv4 "id" access */
+#define ICMPV4_GET_ID(p)        (p)->icmpv4h->icmpv4b.icmpv4i.id
+/** macro for icmpv4 "seq" access */
+#define ICMPV4_GET_SEQ(p)       (p)->icmpv4h->icmpv4b.icmpv4i.seq
+
+/** If message is Error */
+/** macro for icmpv4 "unused" access */
+#define ICMPV4_GET_UNUSED(p)       (p)->icmpv4h->icmpv4b.icmpv4e.unused
+/** macro for icmpv4 "error_ptr" access */
+#define ICMPV4_GET_ERROR_PTR(p)    (p)->icmpv4h->icmpv4b.icmpv4e.error_ptr
+/** macro for icmpv4 "mtu" access */
+#define ICMPV4_GET_MTU(p)          (p)->icmpv4h->icmpv4b.icmpv4e.mtu
+
+/** macro for icmpv4 embedded "protocol" access */
+#define ICMPV4_GET_EMB_PROTO(p)    (p)->icmpv4vars.emb_ip6_proto_next
+/** macro for icmpv4 embedded "ipv4h" header access */
+#define ICMPV4_GET_EMB_IPV4(p)     (p)->icmpv4vars.emb_ipv4h
+/** macro for icmpv4 embedded "tcph" header access */
+#define ICMPV4_GET_EMB_TCP(p)      (p)->icmpv4vars.emb_tcph
+/** macro for icmpv4 embedded "udph" header access */
+#define ICMPV4_GET_EMB_UDP(p)      (p)->icmpv4vars.emb_udph
+/** macro for icmpv4 embedded "icmpv4h" header access */
+#define ICMPV4_GET_EMB_ICMPV4H(p)  (p)->icmpv4vars.emb_icmpv4h
 
 typedef struct ICMPV4Cache_ {
     /* checksum computed over the icmpv4 packet */

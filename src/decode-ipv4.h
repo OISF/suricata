@@ -67,6 +67,8 @@ typedef struct IPV4Hdr_
 #define IPV4_GET_RAW_IPOFFSET(ip4h)       ((ip4h)->ip_off)
 #define IPV4_GET_RAW_IPTTL(ip4h)          ((ip4h)->ip_ttl)
 #define IPV4_GET_RAW_IPPROTO(ip4h)        ((ip4h)->ip_proto)
+#define IPV4_GET_RAW_IPSRC(ip4h)          ((ip4h)->ip_src)
+#define IPV4_GET_RAW_IPDST(ip4h)          ((ip4h)->ip_dst)
 
 /* we need to change them as well as get them */
 #define IPV4_SET_RAW_VER(ip4h, value)     ((ip4h)->ip_verhl = (((ip4h)->ip_verhl & 0x0f) | (value << 4)))

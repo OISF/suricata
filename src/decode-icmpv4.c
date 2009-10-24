@@ -60,11 +60,97 @@ inline uint16_t ICMPV4CalculateChecksum(uint16_t *pkt, uint16_t tlen)
 }
 
 /**
- * \todo
  * Note, this is the IP header, plus a bit of the original packet, not the whole thing!
  */
-void DecodePartialIPV4( uint8_t* partial_packet, uint16_t len )
+void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
 {
+    /** Check the sizes, the header must fit at least */
+    if (len < IPV4_HEADER_LEN) {
+        SCLogDebug("DecodePartialIPV4: ICMPV4_IPV4_TRUNC_PKT");
+        DECODER_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
+        return;
+    }
+
+    IPV4Hdr *icmp4_ip4h = (IPV4Hdr*)partial_packet;
+
+    uint8_t* foo=(uint8_t*)icmp4_ip4h;
+
+    /** Check the embedded version */
+    if (IPV4_GET_RAW_VER(icmp4_ip4h)!=4) {
+        /** Check the embedded version */
+        SCLogDebug("DecodePartialIPV4: ICMPv4 contains Unknown IPV4 version "
+                   "ICMPV4_IPV4_UNKNOWN_VER");
+        DECODER_SET_EVENT(p, ICMPV4_IPV4_UNKNOWN_VER);
+        return;
+    }
+
+    /** We need to fill icmpv4vars */
+    p->icmpv4vars.emb_ipv4h = icmp4_ip4h;
+
+    /** Get the IP address from the contained packet */
+    p->icmpv4vars.emb_ip4_src = IPV4_GET_RAW_IPSRC(icmp4_ip4h);
+    p->icmpv4vars.emb_ip4_dst = IPV4_GET_RAW_IPDST(icmp4_ip4h);
+
+    p->icmpv4vars.emb_ip4_hlen=IPV4_GET_RAW_HLEN(icmp4_ip4h) << 2;
+
+    switch (IPV4_GET_RAW_IPPROTO(icmp4_ip4h)) {
+        case IPPROTO_TCP:
+            if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN ) {
+                p->icmpv4vars.emb_tcph = (TCPHdr*)(partial_packet + IPV4_HEADER_LEN);
+                p->icmpv4vars.emb_sport = p->icmpv4vars.emb_tcph->th_sport;
+                p->icmpv4vars.emb_dport = p->icmpv4vars.emb_tcph->th_dport;
+
+                SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP header sport: "
+                           "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
+                            p->icmpv4vars.emb_dport);
+            } else {
+                SCLogDebug("DecodePartialIPV4: Warning, ICMPV4->IPV4->TCP "
+                           "header Didn't fit in the packet!");
+                p->icmpv4vars.emb_sport = 0;
+                p->icmpv4vars.emb_dport = 0;
+            }
+
+            break;
+        case IPPROTO_UDP:
+            if (len >= IPV4_HEADER_LEN + UDP_HEADER_LEN ) {
+                p->icmpv4vars.emb_udph = (UDPHdr*)(partial_packet + IPV4_HEADER_LEN);
+                p->icmpv4vars.emb_sport = p->icmpv4vars.emb_udph->uh_sport;
+                p->icmpv4vars.emb_dport = p->icmpv4vars.emb_udph->uh_dport;
+
+                SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->UDP header sport: "
+                           "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
+                            p->icmpv4vars.emb_dport);
+            } else {
+                SCLogDebug("DecodePartialIPV4: Warning, ICMPV4->IPV4->UDP "
+                           "header Didn't fit in the packet!");
+                p->icmpv4vars.emb_sport = 0;
+                p->icmpv4vars.emb_dport = 0;
+            }
+
+            break;
+        case IPPROTO_ICMP:
+            p->icmpv4vars.emb_icmpv4h = (ICMPV4Hdr*)(partial_packet + IPV4_HEADER_LEN);
+            p->icmpv4vars.emb_sport = 0;
+            p->icmpv4vars.emb_dport = 0;
+
+            SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->ICMP header");
+
+            break;
+    }
+
+    /* debug print */
+#ifdef DEBUG
+    char s[16], d[16];
+    inet_ntop(AF_INET, &(p->icmpv4vars.emb_ip4_src), s, sizeof(s));
+    inet_ntop(AF_INET, &(p->icmpv4vars.emb_ip4_dst), d, sizeof(d));
+    SCLogDebug("ICMPv4 embedding IPV4 %s->%s - CLASS: %" PRIu32 " FLOW: "
+               "%" PRIu32 " NH: %" PRIu32 " PLEN: %" PRIu32 " HLIM: %" PRIu32,
+               s, d, IPV4_GET_RAW_CLASS(icmp4_ip4h), IPV4_GET_RAW_FLOW(icmp4_ip4h),
+               IPV4_GET_RAW_NH(icmp4_ip4h), IPV4_GET_RAW_PLEN(icmp4_ip4h), IPV4_GET_RAW_HLIM(icmp4_ip4h));
+#endif
+
+    return;
+
 }
 
 /** DecodeICMPV4
@@ -98,12 +184,12 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             break;
 
         case ICMP_DEST_UNREACH:
-            if (p->icmpv4h->code>ICMP_SR_FAILED) {
+            if (p->icmpv4h->code>NR_ICMP_UNREACH) {
                 DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
-                    DecodePartialIPV4( (uint8_t*) (p->icmpv4h + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
             }
             break;
 
@@ -113,7 +199,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
-                    DecodePartialIPV4( (uint8_t*) (p->icmpv4h + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET  );
+                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET  );
             }
             break;
 
@@ -123,7 +209,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
-                    DecodePartialIPV4( (uint8_t*) (p->icmpv4h + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
             }
             break;
 
@@ -141,7 +227,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
-                    DecodePartialIPV4( (uint8_t*) (p->icmpv4h + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
             }
             break;
 
@@ -151,7 +237,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
-                    DecodePartialIPV4( (uint8_t*) (p->icmpv4h + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
             }
             break;
 
@@ -299,13 +385,32 @@ static int DecodeICMPV4test03(void) {
 
     DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if (NULL!=p.icmpv4h) {
-        if (p.icmpv4h->type==11 && p.icmpv4h->code==0) {
-            return 1;
-        }
+    if (NULL==p.icmpv4h) {
+        return 0;
     }
 
-    return 0;
+    // check it's type 11 code 0
+    if (p.icmpv4h->type!=11 || p.icmpv4h->code!=0) {
+        return 0;
+    }
+
+    // check it's source port 4747 to port 43650
+    if (p.icmpv4vars.emb_sport != 4747 || p.icmpv4vars.emb_dport != 43650) {
+        return 0;
+    }
+
+    // check the src,dst IPs contained inside
+    char s[16], d[16];
+
+    inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_src), s, sizeof(s));
+    inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_dst), d, sizeof(d));
+
+    // ICMPv4 embedding IPV4 192.168.1.13->209.85.227.147 pass
+    if (strcmp(s,"192.168.1.13")!=0 || strcmp(d,"209.85.227.147")!=0 ) {
+        return 0;
+    }
+
+    return 1;
 }
 
 /** DecodeICMPV4test04
@@ -331,13 +436,32 @@ static int DecodeICMPV4test04(void) {
 
     DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if (NULL!=p.icmpv4h) {
-        if (p.icmpv4h->type==3 && p.icmpv4h->code==10) {
-            return 1;
-        }
+    if (NULL==p.icmpv4h) {
+        return 0;
     }
 
-    return 0;
+    // check the type,code pair is correct - type 3, code 10
+    if (p.icmpv4h->type!=3 || p.icmpv4h->code!=10) {
+        return 0;
+    }
+
+    // check it's src port 2737 to dst port 12800
+    if (p.icmpv4vars.emb_sport != 2737 || p.icmpv4vars.emb_dport != 12800) {
+        return 0;
+    }
+
+    // check the src,dst IPs contained inside
+    char s[16], d[16];
+
+    inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_src), s, sizeof(s));
+    inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_dst), d, sizeof(d));
+
+    // ICMPv4 embedding IPV4 192.168.1.13->88.96.22.41
+    if (strcmp(s,"192.168.1.13")!=0 || strcmp(d,"88.96.22.41")!=0 ) {
+        return 0;
+    }
+
+    return 1;
 }
 
 static int ICMPV4CalculateValidChecksumtest05(void) {
@@ -433,7 +557,6 @@ static int DecodeICMPV4test08(void) {
 
 /**
  * \brief Registers ICMPV4 unit test
- * \todo More ICMPv4 tests
  */
 void DecodeICMPV4RegisterTests(void) {
 #ifdef UNITTESTS
