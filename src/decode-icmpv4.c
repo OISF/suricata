@@ -1,9 +1,12 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
 #include "eidps-common.h"
+
 #include "decode.h"
 #include "decode-events.h"
+#include "decode-ipv4.h"
 #include "decode-icmpv4.h"
+
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -73,10 +76,8 @@ void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
 
     IPV4Hdr *icmp4_ip4h = (IPV4Hdr*)partial_packet;
 
-    uint8_t* foo=(uint8_t*)icmp4_ip4h;
-
     /** Check the embedded version */
-    if (IPV4_GET_RAW_VER(icmp4_ip4h)!=4) {
+    if (IPV4_GET_RAW_VER(icmp4_ip4h) != 4) {
         /** Check the embedded version */
         SCLogDebug("DecodePartialIPV4: ICMPv4 contains Unknown IPV4 version "
                    "ICMPV4_IPV4_UNKNOWN_VER");
@@ -143,10 +144,8 @@ void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
     char s[16], d[16];
     inet_ntop(AF_INET, &(p->icmpv4vars.emb_ip4_src), s, sizeof(s));
     inet_ntop(AF_INET, &(p->icmpv4vars.emb_ip4_dst), d, sizeof(d));
-    SCLogDebug("ICMPv4 embedding IPV4 %s->%s - CLASS: %" PRIu32 " FLOW: "
-               "%" PRIu32 " NH: %" PRIu32 " PLEN: %" PRIu32 " HLIM: %" PRIu32,
-               s, d, IPV4_GET_RAW_CLASS(icmp4_ip4h), IPV4_GET_RAW_FLOW(icmp4_ip4h),
-               IPV4_GET_RAW_NH(icmp4_ip4h), IPV4_GET_RAW_PLEN(icmp4_ip4h), IPV4_GET_RAW_HLIM(icmp4_ip4h));
+    SCLogDebug("ICMPv4 embedding IPV4 %s->%s - PROTO: %" PRIu32 " ID: %" PRIu32 "", s,d,
+            IPV4_GET_RAW_IPPROTO(icmp4_ip4h), IPV4_GET_RAW_IPID(icmp4_ip4h));
 #endif
 
     return;
