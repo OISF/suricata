@@ -18,6 +18,8 @@
 
 #include "conf.h"
 
+#include "app-layer-tls.h"
+
 #include "util-binsearch.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -111,7 +113,17 @@ static int TLSParseClientVersion(void *tls_state, AppLayerParserState *pstate,
     } *u16conv;
     u16conv = (struct u16conv_ *)input;
 
-    state->client_version = ntohs(u16conv->u);
+    switch (ntohs(u16conv->u)) {
+        case 0x0301:
+            state->client_version = TLS_VERSION_10;
+            break;
+        case 0x0302:
+            state->client_version = TLS_VERSION_11;
+            break;
+        case 0x0303:
+            state->client_version = TLS_VERSION_12;
+            break;
+    }
 
     SCLogDebug("version %04"PRIx16"", state->client_version);
     return 1;
@@ -517,9 +529,8 @@ static int TLSParserTest01(void) {
         goto end;
     }
 
-    if (tls_state->client_version != 0x0301) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
-                tls_state->client_version);
+    if (tls_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }
@@ -571,9 +582,8 @@ static int TLSParserTest02(void) {
         goto end;
     }
 
-    if (tls_state->client_version != 0x0301) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
-                tls_state->client_version);
+    if (tls_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }
@@ -634,9 +644,8 @@ static int TLSParserTest03(void) {
         goto end;
     }
 
-    if (tls_state->client_version != 0x0301) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
-                tls_state->client_version);
+    if (tls_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }
@@ -1005,9 +1014,8 @@ static int TLSParserMultimsgTest01(void) {
         goto end;
     }
 
-    if (tls_state->client_version != 0x0301) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
-                tls_state->client_version);
+    if (tls_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }

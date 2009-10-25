@@ -34,6 +34,14 @@ typedef struct TlsState_ {
     uint8_t records;                /**< no of records */
 } TlsState;
 
+enum {
+    TLS_VERSION_INVALID = 0,
+    TLS_VERSION_VALID,
+    TLS_VERSION_10,
+    TLS_VERSION_11,
+    TLS_VERSION_12,
+};
+
 void RegisterTLSParsers(void);
 void TLSParserRegisterTests(void);
 

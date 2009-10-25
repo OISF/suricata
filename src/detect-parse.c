@@ -16,6 +16,10 @@
 #include "util-rule-vars.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
+
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
+
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -44,7 +48,7 @@ static uint32_t dbg_dstportany_cnt = 0;
 //                    action       protocol       src                                      sp                        dir              dst                                    dp                            options
 #define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9]+)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/]+)\\s+([\\:A-z0-9_\\$\\!,]+)\\s+(-\\>|\\<\\>)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,/]+)\\s+([\\:A-z0-9_\\$\\!,]+)(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?$"
 #define OPTION_PARTS 3
-#define OPTION_PCRE "^\\s*([A-z_0-9-]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
+#define OPTION_PCRE "^\\s*([A-z_0-9-\\.]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
 uint32_t DbgGetSrcPortAnyCnt(void) {
     return dbg_srcportany_cnt;
@@ -308,8 +312,16 @@ error:
  */
 int SigParseProto(Signature *s, const char *protostr) {
     int r = DetectProtoParse(&s->proto, (char *)protostr);
-    if (r < 0)
+    if (r < 0) {
+        s->alproto = AppLayerGetProtoByName(protostr);
+        if (s->alproto != ALPROTO_UNKNOWN) {
+            /* indicate that the signature is app-layer */
+            s->flags |= SIG_FLAG_APPLAYER;
+            return 0;
+        }
+
         return -1;
+    }
 
     return 0;
 }
@@ -854,6 +866,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     return result;
 }
+
 /**
  * \test check that we don't allow invalid negation options
  */
@@ -960,6 +973,100 @@ end:
     return result;
 }
 
+/**
+ * \test test tls (app layer) rule
+ */
+static int SigParseTestAppLayerTLS01(void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS01 \"; classtype:misc-activity; sid:410006; rev:1;)");
+    if (s == NULL) {
+        printf("parsing sig failed: ");
+        goto end;
+    }
+
+    if (s->alproto == 0) {
+        printf("alproto not set: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (s->alproto == 0) {
+        printf("alproto not set: ");
+    if (s != NULL)
+        SigFree(s);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test test tls (app layer) rule
+ */
+static int SigParseTestAppLayerTLS02(void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS02 \"; tls.version:1.0; classtype:misc-activity; sid:410006; rev:1;)");
+    if (s == NULL) {
+        printf("parsing sig failed: ");
+        goto end;
+    }
+
+    if (s->alproto == 0) {
+        printf("alproto not set: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (s != NULL)
+        SigFree(s);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test test tls (app layer) rule
+ */
+static int SigParseTestAppLayerTLS03(void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS03 \"; tls.version:2.5; classtype:misc-activity; sid:410006; rev:1;)");
+    if (s != NULL) {
+        SigFree(s);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
 #endif /* UNITTESTS */
 
 void SigParseRegisterTests(void) {
@@ -978,5 +1085,8 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTestNegation07", SigParseTestNegation07, 1);
     UtRegisterTest("SigParseTestMpm01", SigParseTestMpm01, 1);
     UtRegisterTest("SigParseTestMpm02", SigParseTestMpm02, 1);
+    UtRegisterTest("SigParseTestAppLayerTLS01", SigParseTestAppLayerTLS01, 1);
+    UtRegisterTest("SigParseTestAppLayerTLS02", SigParseTestAppLayerTLS02, 1);
+    UtRegisterTest("SigParseTestAppLayerTLS03", SigParseTestAppLayerTLS03, 1);
 #endif /* UNITTESTS */
 }

@@ -12,6 +12,8 @@ typedef struct AppLayerLocalMap_ {
  * Map the proto to the parsers for the to_client and to_server directions.
  */
 typedef struct AppLayerProto_ {
+    char *name; /**< name of the registered proto */
+
     uint16_t to_server;
     uint16_t to_client;
     uint8_t storage_id;
@@ -92,6 +94,8 @@ int AlpParseFieldBySize(AppLayerParserResult *, AppLayerParserState *, uint16_t,
 int AlpParseFieldByEOF(AppLayerParserResult *, AppLayerParserState *, uint16_t, uint8_t *, uint32_t);
 int AlpParseFieldByDelimiter(AppLayerParserResult *, AppLayerParserState *, uint16_t, const uint8_t *, uint8_t, uint8_t *, uint32_t, uint32_t *);
 uint16_t AlpGetStateIdx(uint16_t);
+
+uint16_t AppLayerGetProtoByName(const char *);
 
 #include "stream-tcp-private.h"
 void AppLayerParserCleanupState(TcpSession *);

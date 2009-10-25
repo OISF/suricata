@@ -62,6 +62,10 @@
 #include "detect-fast-pattern.h"
 
 #include "util-rule-vars.h"
+
+#include "app-layer.h"
+#include "app-layer-tls-detect-version.h"
+
 #include "action-globals.h"
 #include "tm-modules.h"
 
@@ -344,6 +348,102 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
     return sgh;
 }
 
+static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh, Packet *p)
+{
+    int match = 0, fmatch = 0;
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    uint32_t idx,sig;
+
+    void *alstate = AppLayerGetProtoStateFromPacket(p);
+    if (alstate == NULL)
+        return 0;
+
+    uint8_t flags = 0;
+
+    /* if we didn't get a sig group head, we
+     * have nothing to do.... */
+    if (sgh == NULL) {
+        return 0;
+    }
+
+    /* inspect the sigs against the packet */
+    for (idx = 0; idx < sgh->sig_cnt; idx++) {
+        sig = sgh->match_array[idx];
+        s = de_ctx->sig_array[sig];
+
+        /* only inspect app layer sigs here */
+        if (!(s->flags & SIG_FLAG_APPLAYER))
+            continue;
+
+        /* filter out the sigs that inspects the payload, if packet
+           no payload inspection flag is set*/
+        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD))
+            continue;
+
+        /* check the source & dst port in the sig */
+        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
+            if (!(s->flags & SIG_FLAG_DP_ANY)) {
+                DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
+                if (dport == NULL)
+                    continue;
+
+            }
+            if (!(s->flags & SIG_FLAG_SP_ANY)) {
+                DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
+                if (sport == NULL)
+                    continue;
+            }
+        }
+
+        /* check the source address */
+        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
+            DetectAddressGroup *saddr = DetectAddressLookupGroup(&s->src,&p->src);
+            if (saddr == NULL)
+                continue;
+        }
+        /* check the destination address */
+        if (!(s->flags & SIG_FLAG_DST_ANY)) {
+            DetectAddressGroup *daddr = DetectAddressLookupGroup(&s->dst,&p->dst);
+            if (daddr == NULL)
+                continue;
+        }
+
+        /* reset pkt ptr and offset */
+        det_ctx->pkt_ptr = NULL;
+        det_ctx->pkt_off = 0;
+
+        sm = s->match;
+        while (sm) {
+            if (sigmatch_table[sm->type].AppLayerMatch == NULL)
+                continue;
+
+            match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
+            if (match) {
+                /* okay, try the next match */
+                sm = sm->next;
+
+                /* only if the last matched as well, we have a hit */
+                if (sm == NULL) {
+                    fmatch = 1;
+                    //printf("DE : sig %" PRIu32 " matched\n", s->id);
+                    if (!(s->flags & SIG_FLAG_NOALERT)) {
+                        PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+
+                        /* set verdict on packet */
+                        p->action = s->action;
+                    }
+                }
+            } else {
+                /* done with this sig */
+                sm = NULL;
+            }
+        }
+    }
+
+    return fmatch;
+}
+
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     int match = 0, fmatch = 0;
@@ -427,6 +527,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             continue;
         }
 
+        /* don't inspect app layer sigs here */
+        if (s->flags & SIG_FLAG_APPLAYER)
+            continue;
+
         /* filter out sigs that want pattern matches, but
          * have no matches */
         if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
@@ -499,6 +603,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 do {
                     sm = s->match;
                     while (sm) {
+                        if (sigmatch_table[sm->type].Match == NULL)
+                            continue;
+
                         match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                         if (match) {
                             /* okay, try the next match */
@@ -534,6 +641,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                 SCLogDebug("running match functions, sm %p", sm);
                 while (sm) {
+                    if (sigmatch_table[sm->type].Match == NULL)
+                        continue;
+
                     match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                     if (match) {
                         /* okay, try the next match */
@@ -560,6 +670,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
+
+    match = SigMatchSignaturesAppLayer(th_v, de_ctx, det_ctx, det_ctx->sgh, p);
+    if (match > 0) {
+        fmatch = 1;
+    }
+
     SCReturnInt(fmatch);
 }
 
@@ -627,6 +743,13 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
 
     DetectEngineResetMaxSigId(de_ctx);
     de_ctx->sig_list = NULL;
+}
+
+int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s) {
+    if (s->alproto != 0)
+        return 1;
+
+    return 0;
 }
 
 /** \brief Test is a initialized signature is IP only
@@ -2184,7 +2307,7 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
         SCLogInfo("MPM max patcnt %" PRIu32 ", avg %" PRIu32 "", de_ctx->mpm_max_patcnt, de_ctx->mpm_unique?de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique:0);
         if (de_ctx->mpm_uri_tot_patcnt && de_ctx->mpm_uri_unique)
             SCLogInfo("MPM (URI) max patcnt %" PRIu32 ", avg %" PRIu32 " (%" PRIu32 "/%" PRIu32 ")", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
-        SCLogInfo("port maxgroups: %" PRIu32 ", avg %" PRIu32 ", tot %" PRIu32 "", g_groupportlist_maxgroups, g_groupportlist_totgroups/g_groupportlist_groupscnt, g_groupportlist_totgroups);
+        SCLogInfo("port maxgroups: %" PRIu32 ", avg %" PRIu32 ", tot %" PRIu32 "", g_groupportlist_maxgroups, g_groupportlist_groupscnt ? g_groupportlist_totgroups/g_groupportlist_groupscnt : 0, g_groupportlist_totgroups);
         SCLogInfo("building signature grouping structure, stage 3: building destination address lists... done");
     }
     return 0;
@@ -2624,6 +2747,8 @@ void SigTableSetup(void) {
     DetectStreamSizeRegister();
     DetectTtlRegister();
     DetectFastPatternRegister();
+
+    AppLayerTlsDetectVersionRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

@@ -343,6 +343,26 @@ uint16_t AppLayerParserGetStorageId(void) {
     return app_layer_sid;
 }
 
+uint16_t AppLayerGetProtoByName(const char *name) {
+    uint8_t u = 1;
+    SCLogDebug("looking for name %s", name);
+
+    for ( ; u < ALPROTO_MAX; u++) {
+        if (al_proto_table[u].name == NULL)
+            continue;
+
+        SCLogDebug("name %s proto %"PRIu16"",
+            al_proto_table[u].name, u);
+
+        if (strcasecmp(name,al_proto_table[u].name) == 0) {
+            SCLogDebug("match, returning %"PRIu16"", u);
+            return u;
+        }
+    }
+
+    return ALPROTO_UNKNOWN;
+}
+
 /** \brief Description: register a parser.
  *
  * \param name full parser name, e.g. "http.request_line"
@@ -392,6 +412,8 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags, int (*AppLay
 
     al_parser_table[al_max_parsers].name = name;
     al_parser_table[al_max_parsers].AppLayerParser = AppLayerParser;
+
+    al_proto_table[proto].name = name;
 
     /* create proto, direction -- parser mapping */
     if (flags & STREAM_TOSERVER) {

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "flow.h"
+
 #include "detect-engine-proto.h"
 
 #include "packet-queue.h"
@@ -127,6 +129,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_DSIZE     0x0400   /**< signature has a dsize setting */
 #define SIG_FLAG_FLOW      0x0800   /**< signature has a flow setting */
 #define SIG_FLAG_MPM_NEGCONTENT 0x1000  /**< sig has negative mpm portion(!content) */
+#define SIG_FLAG_APPLAYER  0x2000   /**< signature applies to app layer instead of packets */
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
@@ -166,6 +169,9 @@ typedef struct Signature_ {
     /* helper for init phase */
     uint16_t mpm_content_maxlen;
     uint16_t mpm_uricontent_maxlen;
+
+    /* app layer signature stuff */
+    uint8_t alproto;
 } Signature;
 
 /** \brief IP only rules matching ctx.
@@ -332,7 +338,11 @@ typedef struct SigMatch_ {
 
 /** \brief element in sigmatch type table. */
 typedef struct SigTableElmt_ {
+    /** Packet match function */
     int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+    /** AppLayer match function */
+    int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);
+
     int (*Setup)(DetectEngineCtx *, Signature *, SigMatch *, char *);
     void (*Free)(void *);
     void (*RegisterTests)(void);
@@ -452,6 +462,8 @@ enum {
     DETECT_FLAGS,
     DETECT_FRAGBITS,
     DETECT_GID,
+
+    DETECT_AL_TLS_VERSION,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

@@ -95,6 +95,10 @@ int DetectProtoParse(DetectProto *dp, char *str)
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("DetectProtoParse: IP protocol detected");
     } else {
+        goto error;
+
+        /** \todo are numeric protocols even valid? */
+#if 0
         uint8_t proto_u8; /* Used to avoid sign extension */
 
         /* Extract out a 0-256 value with validation checks */
@@ -111,8 +115,8 @@ int DetectProtoParse(DetectProto *dp, char *str)
         } else {
             dp->proto[proto / 8] |= 1<<(proto % 8);
         }
+#endif
     }
-
     return 0;
 
 error:
