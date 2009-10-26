@@ -359,7 +359,7 @@ int main(int argc, char **argv)
 
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
-        LoadYamlConf(conf_filename);
+        ConfYamlLoadFile(conf_filename);
     }
 
     if (dump_config) {

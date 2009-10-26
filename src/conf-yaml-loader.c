@@ -8,8 +8,8 @@
  * YAML configuration loader.
  */
 
-#include "eidps-common.h"
 #include <yaml.h>
+#include "eidps-common.h"
 #include "conf.h"
 #include "util-debug.h"
 
@@ -68,18 +68,15 @@ GetKeyName(char **key, int level)
 }
 
 /**
- * \brief Load a configuration file.
+ * \brief Process a YAML parser.
  *
- * Loads the IDS configuration file.  On failure, the program will
- * exist with an error message.
+ * Loads a configuration from a setup YAML parser.
  *
- * \param filename Name of the filename to load.
+ * \param parser A YAML parser setup for processing.
  */
-void
-LoadYamlConf(const char *filename)
+static void
+ConfYamlParse(yaml_parser_t *parser)
 {
-    FILE *conf_file;
-    yaml_parser_t parser;
     yaml_event_t event;
     int done;
     int level;
@@ -89,27 +86,14 @@ LoadYamlConf(const char *filename)
 
     memset(key, 0, sizeof(key));
 
-    if (yaml_parser_initialize(&parser) != 1) {
-        fprintf(stderr, "Failed to initialize yaml parser.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    conf_file = fopen(filename, "r");
-    if (conf_file == NULL) {
-        fprintf(stderr, "Failed to open file: %s: %s\n", filename,
-            strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    yaml_parser_set_input_file(&parser, conf_file);
-
     state = CONF_KEY;
     done = 0;
     level = -1;
     inseq = 0;
     while (!done) {
-        if (!yaml_parser_parse(&parser, &event)) {
+        if (!yaml_parser_parse(parser, &event)) {
             fprintf(stderr, "Failed to parse configuration file: %s\n",
-                parser.problem);
+                parser->problem);
             exit(EXIT_FAILURE);
         }
         if (level > -1) {
@@ -190,7 +174,47 @@ LoadYamlConf(const char *filename)
         }
         yaml_event_delete(&event);
     }
+}
 
+/**
+ * \brief Load configuration from a YAML file.
+ */
+void
+ConfYamlLoadFile(const char *filename)
+{
+    FILE *infile;
+    yaml_parser_t parser;
+
+    if (yaml_parser_initialize(&parser) != 1) {
+        fprintf(stderr, "Failed to initialize yaml parser.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    infile = fopen(filename, "r");
+    if (infile == NULL) {
+        fprintf(stderr, "Failed to open file: %s: %s\n", filename,
+            strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    yaml_parser_set_input_file(&parser, infile);
+    ConfYamlParse(&parser);
     yaml_parser_delete(&parser);
-    fclose(conf_file);
+    fclose(infile);
+}
+
+/**
+ * \brief Load configuration from a YAML string.
+ */
+static void
+ConfYamlLoadString(const u_char *string, size_t len)
+{
+    yaml_parser_t parser;
+
+    if (yaml_parser_initialize(&parser) != 1) {
+        fprintf(stderr, "Failed to initialize yaml parser.\n");
+        exit(EXIT_FAILURE);
+    }
+    yaml_parser_set_input_string(&parser, string, len);
+    ConfYamlParse(&parser);
+    yaml_parser_delete(&parser);
 }
