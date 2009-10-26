@@ -154,6 +154,7 @@ static DefragContext *defrag_context;
  * Utility/debugging function to dump the frags associated with a
  * tracker.  Only enable when unit tests are enabled.
  */
+#if 0
 #ifdef UNITTESTS
 static void
 DumpFrags(DefragTracker *tracker)
@@ -167,6 +168,7 @@ DumpFrags(DefragTracker *tracker)
     }
 }
 #endif /* UNITTESTS */
+#endif
 
 /**
  * Generate a key for looking of a fragtracker in a hash
@@ -459,7 +461,7 @@ Defrag4InsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
     uint8_t more_frags = IPV4_GET_MF(p);
     int end = offset + len - hlen;
 
-    int ltrim; /* Number of bytes to trim from front of packet. */
+    int ltrim = 0; /* Number of bytes to trim from front of packet. */
 
     int remove = 0; /* Will be set if we need to remove a fragment. */
 
@@ -618,6 +620,7 @@ insert:
         mutex_unlock(&dc->frag_pool_lock);
         goto done;
     }
+    BUG_ON(ltrim > len);
     memcpy(new->pkt, (uint8_t *)p->ip4h + ltrim, len - ltrim);
     new->offset = offset + ltrim;
     new->len = len - ltrim;
@@ -1424,6 +1427,6 @@ DefragInit(void)
     if (defrag_context == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Failed to allocate memory for the Defrag module.");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
