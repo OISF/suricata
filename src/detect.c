@@ -1169,7 +1169,6 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
      *
      * Start with inserting the unique groups */
     for (gr = tmplist2; gr != NULL; ) {
-//        printf(" 2 -= U Address "); DetectAddressDataPrint(gr->ad); printf(" :  "); DbgPrintSigs2(gr->sh);
         DetectAddressGroup *newtmp = DetectAddressGroupInit();
         if (newtmp == NULL) {
             goto error;
@@ -1191,38 +1190,14 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
         DetectAddressGroupInsert(de_ctx, newhead, newtmp);
 
         next_gr = gr->next;
-//        DetectAddressGroupFree(gr);
+        DetectAddressGroupFree(gr);
         gr = next_gr;
     }
+
     /* if present, insert the joingr that covers the rest */
     if (joingr != NULL) {
-//        printf(" 3 -= J Address "); DetectAddressDataPrint(joingr->ad); printf(" :  "); DbgPrintSigs2(joingr->sh);
         DetectAddressGroupInsert(de_ctx, newhead, joingr);
-#if 0
-        /* mark the groups that are not unique */
-        DetectAddressGroup *ag = GetHeadPtr(newhead,family);
-        DetectAddressGroup *agr = NULL;
-
-        for (agr = ag; agr != NULL; agr = agr->next) {
-            DetectAddressGroup *sgr = tmplist2;
-            for ( ; sgr != NULL; sgr = sgr->next) {
-                int r = DetectAddressCmp(agr->ad,sgr->ad);
-                if (r == ADDRESS_ES || r == ADDRESS_EB) {
-//                    printf("AGR "); DetectAddressDataPrint(agr->ad);printf(" -> ");
-//                    printf(" sgr "); DetectAddressDataPrint(sgr->ad);printf("\n");
-                }
-            }
-        }
-#endif
     }
-
-#if 0//def DEBUG
-    if (SCLogDebugEnabled()) {
-        for (gr = newhead->ipv4_head; gr != NULL; gr = gr->next) {
-            printf(" 4 -= R Address "); DetectAddressDataPrint(gr->ad); printf(" :  "); DbgPrintSigs2(de_ctx, gr->sh);
-        }
-    }
-#endif
 
     return 0;
 error:
