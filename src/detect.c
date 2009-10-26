@@ -60,11 +60,14 @@
 #include "detect-engine-sigorder.h"
 #include "detect-ttl.h"
 
+#include "util-rule-vars.h"
 #include "action-globals.h"
 #include "tm-modules.h"
 
 #include "pkt-var.h"
 
+#include "conf.h"
+#include "conf-yaml-loader.h"
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -2611,6 +2614,69 @@ void SigTableRegisterTests(void) {
 #ifdef UNITTESTS
 #include "flow-util.h"
 
+static const char *dummy_conf_string =
+    "default-log-dir: /var/log/eidps\n"
+    "\n"
+    "logging:\n"
+    "\n"
+    "  default-log-level: debug\n"
+    "\n"
+    "  default-format: \"<%t> - <%l>\"\n"
+    "\n"
+    "  default-startup-message: Your IDS has started.\n"
+    "\n"
+    "  default-output-filter:\n"
+    "\n"
+    "  output:\n"
+    "\n"
+    "  - interface: console\n"
+    "    log-level: info\n"
+    "\n"
+    "  - interface: file\n"
+    "    filename: /var/log/eidps.log\n"
+    "\n"
+    "  - interface: syslog\n"
+    "    facility: local5\n"
+    "    format: \"%l\"\n"
+    "\n"
+    "pfring:\n"
+    "\n"
+    "  interface: eth0\n"
+    "\n"
+    "  clusterid: 99\n"
+    "\n"
+    "vars:\n"
+    "\n"
+    "  address-groups:\n"
+    "\n"
+    "    HOME_NET: \"[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:"
+    "13c5:5AFE::/64,2001:888:13c5:CAFE::/64]\"\n"
+    "\n"
+    "    EXTERNAL_NET: \"[!192.168.0.0/16,2000::/3]\"\n"
+    "\n"
+    "    HTTP_SERVERS: \"!192.168.0.0/16\"\n"
+    "\n"
+    "    SMTP_SERVERS: \"!192.168.0.0/16\"\n"
+    "\n"
+    "    SQL_SERVERS: \"!192.168.0.0/16\"\n"
+    "\n"
+    "    DNS_SERVERS: any\n"
+    "\n"
+    "    TELNET_SERVERS: any\n"
+    "\n"
+    "    AIM_SERVERS: any\n"
+    "\n"
+    "  port-groups:\n"
+    "\n"
+    "    HTTP_PORTS: \"80:81,88\"\n"
+    "\n"
+    "    SHELLCODE_PORTS: 80\n"
+    "\n"
+    "    ORACLE_PORTS: 1521\n"
+    "\n"
+    "    SSH_PORTS: 22\n"
+    "\n";
+
 static int SigTest01Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
@@ -3554,6 +3620,10 @@ static int SigTest15Real (int mpm_type) {
     p.proto = IPPROTO_TCP;
     p.dp = 80;
 
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
@@ -3584,6 +3654,8 @@ static int SigTest15Real (int mpm_type) {
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
     return result;
 }
 static int SigTest15B2g (void) {
@@ -3615,6 +3687,10 @@ static int SigTest16Real (int mpm_type) {
     p.proto = IPPROTO_TCP;
     p.dp = 1234;
 
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
@@ -3641,6 +3717,8 @@ static int SigTest16Real (int mpm_type) {
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
     return result;
 }
 static int SigTest16B2g (void) {
@@ -3676,6 +3754,10 @@ static int SigTest17Real (int mpm_type) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
     p.dp = 80;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3714,6 +3796,8 @@ static int SigTest17Real (int mpm_type) {
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
     return result;
 }
 static int SigTest17B2g (void) {
@@ -3809,6 +3893,10 @@ int SigTest19Real (int mpm_type) {
     p.sp = 21;
     p.flowflags |= FLOW_PKT_TOSERVER;
 
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
@@ -3836,6 +3924,8 @@ int SigTest19Real (int mpm_type) {
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
     return result;
 }
 static int SigTest19B2g (void) {
@@ -3870,6 +3960,10 @@ static int SigTest20Real (int mpm_type) {
     p.sp = 21;
     p.flowflags |= FLOW_PKT_TOSERVER;
 
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
@@ -3901,6 +3995,8 @@ static int SigTest20Real (int mpm_type) {
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
     return result;
 }
 static int SigTest20B2g (void) {

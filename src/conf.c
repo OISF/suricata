@@ -24,6 +24,12 @@
 
 static HashTable *conf_hash = NULL;
 
+/* temporary variable that would be used to hold the hash_table instance
+ * present in conf_hash.  Used while running tests that require their
+ * own yaml conf file.  The backup can be set and then be reused by using
+ * the function ConfCreateContextBackup() and ConfRestoreContextBackup() */
+static HashTable *backup_conf_hash = NULL;
+
 /**
  * \brief Function to generate the hash of a configuration value.
  *
@@ -334,6 +340,45 @@ ConfRemove(char *name)
         return 1;
     else
         return 0;
+}
+
+/**
+ * \brief Creates a backup of the conf_hash hash_table used by the conf API.
+ */
+void
+ConfCreateContextBackup(void)
+{
+    backup_conf_hash = conf_hash;
+    conf_hash = NULL;
+
+    return;
+}
+
+/**
+ * \brief Restores the backup of the hash_table present in backup_conf_hash
+ *        back to conf_hash.
+ */
+void
+ConfRestoreContextBackup(void)
+{
+    conf_hash = backup_conf_hash;
+
+    return;
+}
+
+/**
+ * \brief De-initializes the configuration system.
+ */
+void
+ConfDeInit(void)
+{
+    if (conf_hash == NULL)
+        return;
+
+    HashTableFree(conf_hash);
+    conf_hash = NULL;
+
+    SCLogDebug("configuration module de-initialized");
 }
 
 /**

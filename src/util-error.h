@@ -22,6 +22,7 @@ typedef enum {
     SC_INVALID_IP_NETBLOCK,
     SC_INVALID_IPV4_ADDR,
     SC_INVALID_IPV6_ADDR,
+    SC_ERR_INVALID_SIGNATURE,
 } SCError;
 
 const char *SCErrorToString(SCError);

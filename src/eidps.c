@@ -68,6 +68,7 @@
 #include "util-cidr.h"
 #include "util-unittest.h"
 #include "util-time.h"
+#include "util-rule-vars.h"
 
 #include "conf.h"
 #include "conf-yaml-loader.h"
@@ -469,6 +470,7 @@ int main(int argc, char **argv)
         DefragRegisterTests();
         SigGroupHeadRegisterTests();
         SCHInfoRegisterTests();
+        SCRuleVarsRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

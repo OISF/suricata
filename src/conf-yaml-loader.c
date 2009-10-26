@@ -272,7 +272,7 @@ ConfYamlLoadFile(const char *filename)
 /**
  * \brief Load configuration from a YAML string.
  */
-static void
+void
 ConfYamlLoadString(const u_char *string, size_t len)
 {
     yaml_parser_t parser;

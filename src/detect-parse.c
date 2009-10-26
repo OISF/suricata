@@ -13,6 +13,9 @@
 
 #include "flow.h"
 
+#include "util-rule-vars.h"
+#include "conf.h"
+#include "conf-yaml-loader.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -238,45 +241,22 @@ error:
 /* XXX implement this for real
  *
  */
-int SigParseAddress(Signature *s, const char *addrstr, char flag) {
-    char *addr = NULL;
-
-    if (strcmp(addrstr, "$HOME_NET") == 0) {
-        addr = "[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]";
-        //addr = "[192.168.0.0/16,10.8.0.0/16,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]";
-    } else if (strcmp(addrstr, "$EXTERNAL_NET") == 0) {
-        addr = "[!192.168.0.0/16,2000::/3]";
-    } else if (strcmp(addrstr, "$HTTP_SERVERS") == 0) {
-        addr = "!192.168.0.0/16";
-    } else if (strcmp(addrstr, "$SMTP_SERVERS") == 0) {
-        addr = "!192.168.0.0/16";
-    } else if (strcmp(addrstr, "$SQL_SERVERS") == 0) {
-        addr = "!192.168.0.0/16";
-    } else if (strcmp(addrstr, "$DNS_SERVERS") == 0) {
-        addr = "any";
-    } else if (strcmp(addrstr, "$TELNET_SERVERS") == 0) {
-        addr = "any";
-    } else if (strcmp(addrstr, "$AIM_SERVERS") == 0) {
-        addr = "any";
-    } else if (strcmp(addrstr, "any") == 0) {
-        addr = "any";
-    } else {
-        addr = (char *)addrstr;
-        //printf("SigParseAddress: addr \"%s\"\n", addrstr);
-    }
+int SigParseAddress(Signature *s, const char *addrstr, char flag)
+{
+    SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
 
     /* pass on to the address(list) parser */
     if (flag == 0) {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_SRC_ANY;
 
-        if (DetectAddressParse(&s->src, addr) < 0)
+        if (DetectAddressParse(&s->src, (char *)addrstr) < 0)
             goto error;
     } else {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_DST_ANY;
 
-        if (DetectAddressParse(&s->dst, addr) < 0)
+        if (DetectAddressParse(&s->dst, (char *)addrstr) < 0)
             goto error;
     }
 
@@ -307,55 +287,35 @@ int SigParseProto(Signature *s, const char *protostr) {
 }
 
 /**
- * \brief Parses the port(source or destination) field, from a Signature
+ * \brief Parses the port(source or destination) field, from a Signature.
  *
  * \param s       Pointer to the signature which has to be updated with the
- *                port information
- * \param portstr Pointer to the character string containing the port info
- * \param         Flag which indicates if the portstr received is sort or dst
- *                port.  For src port: flag = 0, dst port: flag = 1
+ *                port information.
+ * \param portstr Pointer to the character string containing the port info.
+ * \param         Flag which indicates if the portstr received is src or dst
+ *                port.  For src port: flag = 0, dst port: flag = 1.
  *
- * \retval  0 On success
- * \retval -1 On failure
+ * \retval  0 On success.
+ * \retval -1 On failure.
  */
-int SigParsePort(Signature *s, const char *portstr, char flag) {
+int SigParsePort(Signature *s, const char *portstr, char flag)
+{
     int r = 0;
-    char *port;
-    char negate = 0;
 
     /* XXX VJ exclude handling this for none UDP/TCP proto's */
 
-    /* XXX hack, fix this */
-    if (portstr[0] == '!' && portstr[1] == '$') {
-        portstr++;
-        negate = 1;
-    }
-
-    if (strcmp(portstr, "$HTTP_PORTS") == 0) {
-        if (negate) port = "![80:81,88]";
-        else port = "80:81,88";
-    } else if (strcmp(portstr, "$SHELLCODE_PORTS") == 0) {
-        port = "!80";
-    } else if (strcmp(portstr, "$ORACLE_PORTS") == 0) {
-        if (negate) port = "!1521";
-        else port = "1521";
-    } else if (strcmp(portstr, "$SSH_PORTS") == 0) {
-        if (negate) port = "!22";
-        else port = "22";
-    } else {
-        port = (char *)portstr;
-    }
+    SCLogDebug("Port group \"%s\" to be parsed", portstr);
 
     if (flag == 0) {
-        if (strcasecmp(port, "any") == 0)
+        if (strcasecmp(portstr, "any") == 0)
             s->flags |= SIG_FLAG_SP_ANY;
 
-        r = DetectPortParse(&s->sp, (char *)port);
+        r = DetectPortParse(&s->sp, (char *)portstr);
     } else if (flag == 1) {
-        if (strcasecmp(port, "any") == 0)
+        if (strcasecmp(portstr, "any") == 0)
             s->flags |= SIG_FLAG_DP_ANY;
 
-        r = DetectPortParse(&s->dp, (char *)port);
+        r = DetectPortParse(&s->dp, (char *)portstr);
     }
 
     if (r < 0)
@@ -992,4 +952,3 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTestMpm02", SigParseTestMpm02, 1);
 #endif /* UNITTESTS */
 }
-

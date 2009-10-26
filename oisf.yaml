@@ -66,3 +66,38 @@ pfring:
 rule-files:
   - netbios.rules
   - x11.rules
+
+# Holds variables that would be used by the engine.
+vars:
+
+  # Holds the address group vars that would be passed in a Signature.
+  # These would be retrieved during the Signature address parsing stage.
+  address-groups:
+
+    HOME_NET: "[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]"
+
+    EXTERNAL_NET: "[!192.168.0.0/16,2000::/3]"
+
+    HTTP_SERVERS: "!192.168.0.0/16"
+
+    SMTP_SERVERS: "!192.168.0.0/16"
+
+    SQL_SERVERS: "!192.168.0.0/16"
+
+    DNS_SERVERS: any
+
+    TELNET_SERVERS: any
+
+    AIM_SERVERS: any
+
+  # Holds the port group vars that would be passed in a Signature.
+  # These would be retrieved during the Signature port parsing stage.
+  port-groups:
+
+    HTTP_PORTS: "80:81,88"
+
+    SHELLCODE_PORTS: 80
+
+    ORACLE_PORTS: 1521
+
+    SSH_PORTS: 22

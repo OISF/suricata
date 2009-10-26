@@ -15,6 +15,7 @@
 
 #include "util-cidr.h"
 #include "util-unittest.h"
+#include "util-rule-vars.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -981,11 +982,13 @@ error:
 static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                              int negate) {
     int i, x;
-    int o_set = 0, n_set = 0;
+    int o_set = 0, n_set = 0, d_set = 0;
     int range = 0;
     int depth = 0;
     size_t size = strlen(s);
     char address[1024] = "";
+    char *rule_var_port = NULL;
+    char *temp_rule_var_port = NULL;
 
     SCLogDebug("head %p, *head %p", head, *head);
 
@@ -1022,6 +1025,29 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
         } else if (depth == 0 && s[i] == ',') {
             if (o_set == 1) {
                 o_set = 0;
+            } else if (d_set == 1) {
+                address[x - 1] = '\0';
+                x = 0;
+                rule_var_port = SCRuleVarsGetConfVar(address,
+                                                     SC_RULE_VARS_PORT_GROUPS);
+                if (rule_var_port == NULL)
+                    goto error;
+                temp_rule_var_port = rule_var_port;
+                if (negate == 1 || n_set == 1) {
+                    temp_rule_var_port = malloc(strlen(rule_var_port) + 3);
+                    if (temp_rule_var_port == NULL) {
+                        SCLogDebug(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        goto error;
+                    }
+                    snprintf(temp_rule_var_port, strlen(rule_var_port) + 3,
+                             "[%s]", rule_var_port);
+                }
+                DetectPortParseDo(head, nhead, temp_rule_var_port,
+                                  negate? negate: n_set);
+                d_set = 0;
+                n_set = 0;
+                if (temp_rule_var_port != rule_var_port)
+                    free(temp_rule_var_port);
             } else {
                 address[x - 1] = '\0';
                 SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
@@ -1035,25 +1061,47 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
             }
             x = 0;
             range = 0;
+        } else if (depth == 0 && s[i] == '$') {
+            d_set = 1;
         } else if (depth == 0 && i == size-1) {
             range = 0;
             address[x] = '\0';
             SCLogDebug("%s", address);
-
             x = 0;
-
-            if (negate == 0 && n_set == 0) {
-                DetectPortParseInsertString(head,address);
+            if (d_set == 1) {
+                rule_var_port = SCRuleVarsGetConfVar(address,
+                                                     SC_RULE_VARS_PORT_GROUPS);
+                if (rule_var_port == NULL)
+                    goto error;
+                temp_rule_var_port = rule_var_port;
+                if (negate == 1 || n_set == 1) {
+                    temp_rule_var_port = malloc(strlen(rule_var_port) + 3);
+                    if (temp_rule_var_port == NULL) {
+                        SCLogDebug(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        goto error;
+                    }
+                    snprintf(temp_rule_var_port, strlen(rule_var_port) + 3,
+                            "[%s]", rule_var_port);
+                }
+                DetectPortParseDo(head, nhead, temp_rule_var_port,
+                                  negate? negate: n_set);
+                d_set = 0;
+                if (temp_rule_var_port != rule_var_port)
+                    free(temp_rule_var_port);
             } else {
-                DetectPortParseInsertString(nhead,address);
+                if (negate == 0 && n_set == 0) {
+                    DetectPortParseInsertString(head,address);
+                } else {
+                    DetectPortParseInsertString(nhead,address);
+                }
             }
             n_set = 0;
         }
     }
 
     return 0;
-//error:
-//    return -1;
+ error:
+    return -1;
 }
 
 /**

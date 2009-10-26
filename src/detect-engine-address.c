@@ -15,6 +15,7 @@
 
 #include "util-cidr.h"
 #include "util-unittest.h"
+#include "util-rule-vars.h"
 
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
@@ -727,10 +728,12 @@ int DetectAddressParse2(DetectAddressHead *gh,
                         DetectAddressHead *ghn,
                         char *s, int negate) {
     int i, x;
-    int o_set = 0, n_set = 0;
+    int o_set = 0, n_set = 0, d_set = 0;
     int depth = 0;
     size_t size = strlen(s);
     char address[1024] = "";
+    char *rule_var_address = NULL;
+    char *temp_rule_var_address = NULL;
 
     SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
 
@@ -760,6 +763,29 @@ int DetectAddressParse2(DetectAddressHead *gh,
         } else if (depth == 0 && s[i] == ',') {
             if (o_set == 1) {
                 o_set = 0;
+            } else if (d_set == 1) {
+                address[x - 1] = '\0';
+                x = 0;
+                rule_var_address = SCRuleVarsGetConfVar(address,
+                                                        SC_RULE_VARS_ADDRESS_GROUPS);
+                if (rule_var_address == NULL)
+                    goto error;
+                temp_rule_var_address = rule_var_address;
+                if (negate == 1 || n_set == 1) {
+                    temp_rule_var_address = malloc(strlen(rule_var_address) + 3);
+                    if (temp_rule_var_address == NULL) {
+                        SCLogDebug(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        goto error;
+                    }
+                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
+                             "[%s]", rule_var_address);
+                }
+                DetectAddressParse2(gh, ghn, temp_rule_var_address,
+                                    negate? negate: n_set);
+                d_set = 0;
+                n_set = 0;
+                if (temp_rule_var_address != rule_var_address)
+                    free(temp_rule_var_address);
             } else {
                 address[x - 1] = '\0';
 
@@ -773,16 +799,40 @@ int DetectAddressParse2(DetectAddressHead *gh,
                 n_set = 0;
             }
             x = 0;
+        } else if (depth == 0 && s[i] == '$') {
+            d_set = 1;
         } else if (depth == 0 && i == size - 1) {
             address[x] = '\0';
             x = 0;
 
-            if (negate == 0 && n_set == 0) {
-                if (DetectAddressSetup(gh, address) < 0)
+            if (d_set == 1) {
+                rule_var_address = SCRuleVarsGetConfVar(address,
+                                                        SC_RULE_VARS_ADDRESS_GROUPS);
+                if (rule_var_address == NULL)
                     goto error;
+                temp_rule_var_address = rule_var_address;
+                if (negate == 1 || n_set == 1) {
+                    temp_rule_var_address = malloc(strlen(rule_var_address) + 3);
+                    if (temp_rule_var_address == NULL) {
+                        SCLogDebug(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        goto error;
+                    }
+                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
+                            "[%s]", rule_var_address);
+                }
+                DetectAddressParse2(gh, ghn, temp_rule_var_address,
+                                    negate? negate: n_set);
+                d_set = 0;
+                if (temp_rule_var_address != rule_var_address)
+                    free(temp_rule_var_address);
             } else {
-                if (DetectAddressSetup(ghn, address) < 0)
-                    goto error;
+                if (negate == 0 && n_set == 0) {
+                    if (DetectAddressSetup(gh, address) < 0)
+                        goto error;
+                } else {
+                    if (DetectAddressSetup(ghn, address) < 0)
+                        goto error;
+                }
             }
             n_set = 0;
         }

@@ -39,6 +39,9 @@ ConfNode *ConfNodeNew(void);
 void ConfNodeFree(ConfNode *);
 int ConfSetNode(ConfNode *node);
 ConfNode *ConfGetNode(char *key);
+void ConfCreateContextBackup(void);
+void ConfRestoreContextBackup(void);
+void ConfDeInit(void);
 void ConfRegisterTests();
 
 #endif /* ! __CONF_H__ */
