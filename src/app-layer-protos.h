@@ -12,6 +12,8 @@ enum {
     ALPROTO_IMAP,
     ALPROTO_MSN,
     ALPROTO_JABBER,
+    ALPROTO_SMB,
+    ALPROTO_DCERPC,
 
     /* keep last */
     ALPROTO_MAX,

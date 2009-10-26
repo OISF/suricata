@@ -60,6 +60,8 @@
 #include "app-layer-parser.h"
 #include "app-layer-http.h"
 #include "app-layer-tls.h"
+#include "app-layer-smb.h"
+#include "app-layer-dcerpc.h"
 
 #include "util-radix-tree.h"
 #include "util-cidr.h"
@@ -396,6 +398,8 @@ int main(int argc, char **argv)
     RegisterAppLayerParsers();
     RegisterHTTPParsers();
     RegisterTLSParsers();
+    RegisterSMBParsers();
+    RegisterDCERPCParsers();
     AppLayerParsersInitPostProcess();
 
     TmModuleReceiveNFQRegister();
@@ -444,6 +448,8 @@ int main(int argc, char **argv)
         DecodePPPRegisterTests();
         HTTPParserRegisterTests();
         TLSParserRegisterTests();
+        SMBParserRegisterTests();
+        DCERPCParserRegisterTests();
         DecodePPPOERegisterTests();
         DecodeICMPV4RegisterTests();
         DecodeICMPV6RegisterTests();

@@ -125,6 +125,8 @@ app-layer-detect-proto.c app-layer-detect-proto.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-http.c app-layer-http.h \
 app-layer-tls.c app-layer-tls.h \
+app-layer-smb.c app-layer-smb.h \
+app-layer-dcerpc.c app-layer-dcerpc.h \
 app-layer-protos.h \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \
