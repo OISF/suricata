@@ -52,14 +52,14 @@ void DetectAckRegister(void) {
 static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                           Packet *p, Signature *s, SigMatch *m)
 {
-    uint32_t *data = (uint32_t *)m->ctx;
+    DetectAckData *data = (DetectAckData *)m->ctx;
 
     /* This is only needed on TCP packets */
     if (IPPROTO_TCP != p->proto) {
         return 0;
     }
 
-    return (*data == TCP_GET_ACK(p)) ? 1 : 0;
+    return (data->ack == TCP_GET_ACK(p)) ? 1 : 0;
 }
 
 /**
@@ -77,12 +77,12 @@ static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s,
                           SigMatch *m, char *optstr)
 {
-    uint32_t *data = malloc(sizeof(uint32_t));
+    DetectAckData *data = malloc(sizeof(DetectAckData));
     SigMatch *sm = NULL;
 
     //printf("DetectAckSetup: \'%s\'\n", optstr);
 
-    data = malloc(sizeof(uint32_t));
+    data = malloc(sizeof(DetectAckData));
     if (data == NULL) {
         printf("DetectAckSetup: malloc failed\n");
         goto error;
@@ -95,10 +95,10 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     sm->type = DETECT_ACK;
 
-    if (-1 == ByteExtractStringUint32(data, 10, 0, optstr)) {
+    if (-1 == ByteExtractStringUint32(&data->ack, 10, 0, optstr)) {
         goto error;
     }
-    sm->ctx = (void *)data;
+    sm->ctx = data;
 
     SigMatchAppend(s, m, sm);
 
@@ -118,7 +118,7 @@ error:
  */
 static void DetectAckFree(void *ptr)
 {
-    uint32_t *data = (uint32_t *)ptr;
+    DetectAckData *data = (DetectAckData *)ptr;
     free(data);
 }
 
@@ -194,35 +194,35 @@ static int DetectAckSigTest01Real(int mpm_type)
                 "(msg:\"Testing ack\";ack:foo;sid:1;)") != NULL)
     {
         printf("invalid ack accepted: ");
-        goto end;
+        goto cleanup_engine;
     }
     if (SigInit(de_ctx,
                 "alert tcp any any -> any any "
                 "(msg:\"Testing ack\";ack:9999999999;sid:1;)") != NULL)
     {
         printf("overflowing ack accepted: ");
-        goto end;
+        goto cleanup_engine;
     }
     if (SigInit(de_ctx,
                 "alert tcp any any -> any any "
                 "(msg:\"Testing ack\";ack:-100;sid:1;)") != NULL)
     {
         printf("negative ack accepted: ");
-        goto end;
+        goto cleanup_engine;
     }
 
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert tcp any any -> any any "
                                "(msg:\"Testing ack\";sid:1;)");
     if (de_ctx->sig_list == NULL) {
-        goto end;
+        goto cleanup_engine;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert tcp any any -> any any "
                                      "(msg:\"Testing ack\";ack:42;sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
-        goto end;
+        goto cleanup_engine;
     }
 
     SigGroupBuild(de_ctx);
@@ -267,6 +267,8 @@ cleanup:
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
+
+cleanup_engine:
     DetectEngineCtxFree(de_ctx);
 
 end:

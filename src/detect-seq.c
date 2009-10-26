@@ -52,14 +52,14 @@ void DetectSeqRegister(void) {
 static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                           Packet *p, Signature *s, SigMatch *m)
 {
-    uint32_t *data = (uint32_t *)m->ctx;
+    DetectSeqData *data = (DetectSeqData *)m->ctx;
 
     /* This is only needed on TCP packets */
     if (IPPROTO_TCP != p->proto) {
         return 0;
     }
 
-    return (*data == TCP_GET_SEQ(p)) ? 1 : 0;
+    return (data->seq == TCP_GET_SEQ(p)) ? 1 : 0;
 }
 
 /**
@@ -77,12 +77,12 @@ static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s,
                            SigMatch *m, char *optstr)
 {
-    uint32_t *data = malloc(sizeof(uint32_t));
+    DetectSeqData *data = malloc(sizeof(DetectSeqData));
     SigMatch *sm = NULL;
 
     //printf("DetectSeqSetup: \'%s\'\n", optstr);
 
-    data = malloc(sizeof(uint32_t));
+    data = malloc(sizeof(DetectSeqData));
     if (data == NULL) {
         printf("DetectSeqSetup: malloc failed\n");
         goto error;
@@ -95,10 +95,10 @@ static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     sm->type = DETECT_SEQ;
 
-    if (-1 == ByteExtractStringUint32(data, 10, 0, optstr)) {
+    if (-1 == ByteExtractStringUint32(&data->seq, 10, 0, optstr)) {
         goto error;
     }
-    sm->ctx = (void *)data;
+    sm->ctx = data;
 
     SigMatchAppend(s, m, sm);
 
@@ -118,7 +118,7 @@ error:
  */
 static void DetectSeqFree(void *ptr)
 {
-    uint32_t *data = (uint32_t *)ptr;
+    DetectSeqData *data = (DetectSeqData *)ptr;
     free(data);
 }
 
@@ -194,35 +194,35 @@ static int DetectSeqSigTest01Real(int mpm_type)
                 "(msg:\"Testing seq\";seq:foo;sid:1;)") != NULL)
     {
         printf("invalid seq accepted: ");
-        goto end;
+        goto cleanup_engine;
     }
     if (SigInit(de_ctx,
                 "alert tcp any any -> any any "
                 "(msg:\"Testing seq\";seq:9999999999;sid:1;)") != NULL)
     {
         printf("overflowing seq accepted: ");
-        goto end;
+        goto cleanup_engine;
     }
     if (SigInit(de_ctx,
                 "alert tcp any any -> any any "
                 "(msg:\"Testing seq\";seq:-100;sid:1;)") != NULL)
     {
         printf("negative seq accepted: ");
-        goto end;
+        goto cleanup_engine;
     }
 
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert tcp any any -> any any "
                                "(msg:\"Testing seq\";sid:1;)");
     if (de_ctx->sig_list == NULL) {
-        goto end;
+        goto cleanup_engine;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert tcp any any -> any any "
                                      "(msg:\"Testing seq\";seq:42;sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
-        goto end;
+        goto cleanup_engine;
     }
 
     SigGroupBuild(de_ctx);
@@ -267,6 +267,8 @@ cleanup:
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     PatternMatchDestroy(mpm_ctx);
+
+cleanup_engine:
     DetectEngineCtxFree(de_ctx);
 
 end:
