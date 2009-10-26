@@ -39,13 +39,13 @@ enum {
 static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
-   // hexdump(p, input_len);
+    //hexdump(p, input_len);
     if (input_len) {
         switch (sstate->bytesprocessed) {
             case 0:
-                if (input_len >= DCERPC_HDR_LEN + 1) {
-                    if (*p != 5) return 1;
-                    if (!(*(p + 1 ) == 0 || (*(p + 1) == 1))) return 2;
+                if (input_len >= DCERPC_HDR_LEN) {
+                    //if (*p != 5) return 1;
+                    //if (!(*(p + 1 ) == 0 || (*(p + 1) == 1))) return 2;
                     sstate->dcerpc.rpc_vers = *p;
                     sstate->dcerpc.rpc_vers_minor = *(p + 1);
                     sstate->dcerpc.type = *(p + 2);
@@ -54,19 +54,20 @@ static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, ui
                     sstate->dcerpc.packed_drep[1] = *(p + 5);
                     sstate->dcerpc.packed_drep[2] = *(p + 6);
                     sstate->dcerpc.packed_drep[3] = *(p + 7);
-                    sstate->dcerpc.frag_length |= *(p + 8) << 8;
+                    sstate->dcerpc.frag_length = *(p + 8) << 8;
                     sstate->dcerpc.frag_length |= *(p + 9);
-                    sstate->dcerpc.auth_length |= *(p + 10) << 8;
+                    sstate->dcerpc.auth_length = *(p + 10) << 8;
                     sstate->dcerpc.auth_length |= *(p + 11);
-                    sstate->dcerpc.call_id |= *(p + 12) << 24;
+                    sstate->dcerpc.call_id = *(p + 12) << 24;
                     sstate->dcerpc.call_id |= *(p + 13) << 16;
                     sstate->dcerpc.call_id |= *(p + 14) << 8;
                     sstate->dcerpc.call_id |= *(p + 15);
+		    sstate->bytesprocessed = 16;
                     return 1;
                     break;
                 } else {
-			sstate->dcerpc.rpc_vers = *(p++);
-                    if (sstate->dcerpc.rpc_vers != 5) return 2;
+		    sstate->dcerpc.rpc_vers = *(p++);
+                   // if (sstate->dcerpc.rpc_vers != 5) return 2;
                     if (!(--input_len)) break;
                 }
             case 1:
@@ -93,19 +94,19 @@ static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, ui
                 sstate->dcerpc.packed_drep[3] = *(p++);
                 if (!(--input_len)) break;
             case 8:
-                sstate->dcerpc.frag_length |= *(p++) << 8;
+                sstate->dcerpc.frag_length = *(p++) << 8;
                 if (!(--input_len)) break;
             case 9:
                 sstate->dcerpc.frag_length |= *(p++);
                 if (!(--input_len)) break;
             case 10:
-                sstate->dcerpc.auth_length |= *(p++) << 8;
+                sstate->dcerpc.auth_length = *(p++) << 8;
                 if (!(--input_len)) break;
             case 11:
                 sstate->dcerpc.auth_length |= *(p++);
                 if (!(--input_len)) break;
             case 12:
-		sstate->dcerpc.call_id |= *(p++) << 24;
+		sstate->dcerpc.call_id = *(p++) << 24;
                 if (!(--input_len)) break;
             case 13:
 		sstate->dcerpc.call_id |= *(p++) << 16;

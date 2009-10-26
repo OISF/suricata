@@ -330,7 +330,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
 static uint16_t app_layer_sid = 0;
 static AppLayerProto al_proto_table[ALPROTO_MAX];
 
-#define MAX_PARSERS 16
+#define MAX_PARSERS 100
 static AppLayerParserTableElement al_parser_table[MAX_PARSERS];
 static uint16_t al_max_parsers = 0; /* incremented for every registered parser */
 
