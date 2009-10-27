@@ -356,6 +356,11 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id, int (
 
     al_max_parsers++;
 
+    if(al_max_parsers >= MAX_PARSERS){
+        SCLogInfo("Failed to register %s al_parser_table array full",name);
+        exit(EXIT_FAILURE);
+    }
+
     al_parser_table[al_max_parsers].name = name;
     al_parser_table[al_max_parsers].proto = proto;
     al_parser_table[al_max_parsers].parser_local_id = parser_id;
@@ -378,6 +383,11 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id, int (
 int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags, int (*AppLayerParser)(void *protocol_state, AppLayerParserState *parser_state, uint8_t *input, uint32_t input_len, AppLayerParserResult *output)) {
 
     al_max_parsers++;
+
+    if(al_max_parsers >= MAX_PARSERS){
+        SCLogInfo("Failed to register %s al_parser_table array full",name);
+        exit(EXIT_FAILURE);
+    }
 
     al_parser_table[al_max_parsers].name = name;
     al_parser_table[al_max_parsers].AppLayerParser = AppLayerParser;
