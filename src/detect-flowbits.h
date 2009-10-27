@@ -1,3 +1,10 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
+/** \file
+ *  \author Victor Julien <victor@inliniac.net>
+ *  \author Breno Silva <breno.silva@gmail.com>
+ */
+
 #ifndef __DETECT_FLOWBITS_H__
 #define __DETECT_FLOWBITS_H__
 

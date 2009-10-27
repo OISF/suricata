@@ -1,21 +1,8 @@
-/* Simple Snort compatible flowbits implementation.
- *
- * Copyright (C) 2008 by Victor Julien <victor@inliniac.net>
- *
- *
- * Option looks like:
- *
- * flowbits:isset,SoberEhlo;
- *  - set
- *  - unset
- *  - toggle
- *  - isset
- *  - isnotset
- *
- * or
- *
- * flowbits:noalert;
- *
+/* Copyright (c) 2009 Open Information Security Foundation */
+
+/** \file
+ *  \author Victor Julien <victor@inliniac.net>
+ *  \author Breno Silva <breno.silva@gmail.com>
  */
 
 #include "eidps-common.h"
@@ -27,7 +14,13 @@
 #include "detect-flowbits.h"
 #include "util-binsearch.h"
 
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+
+#include "flow-bit.h"
 #include "util-var-name.h"
+#include "util-unittest.h"
 
 #define PARSE_REGEX         "([a-z]+)(?:,(.*))?"
 static pcre *parse_regex;
@@ -36,13 +29,14 @@ static pcre_extra *parse_regex_study;
 int DetectFlowbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectFlowbitSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectFlowbitFree (void *);
+void FlowBitsRegisterTests(void);
 
 void DetectFlowbitsRegister (void) {
     sigmatch_table[DETECT_FLOWBITS].name = "flowbits";
     sigmatch_table[DETECT_FLOWBITS].Match = DetectFlowbitMatch;
     sigmatch_table[DETECT_FLOWBITS].Setup = DetectFlowbitSetup;
     sigmatch_table[DETECT_FLOWBITS].Free  = DetectFlowbitFree;
-    sigmatch_table[DETECT_FLOWBITS].RegisterTests  = NULL;
+    sigmatch_table[DETECT_FLOWBITS].RegisterTests = FlowBitsRegisterTests;
 
     const char *eb;
     int eo;
@@ -190,9 +184,20 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         return -1;
     }
 
-    if (fb_cmd == DETECT_FLOWBITS_CMD_NOALERT) {
-        s->flags |= SIG_FLAG_NOALERT;
-        return 0;
+    switch(fb_cmd)  {
+        case DETECT_FLOWBITS_CMD_NOALERT:
+            if(fb_name != NULL)
+            goto error;
+            s->flags |= SIG_FLAG_NOALERT;
+            return 0;
+        case DETECT_FLOWBITS_CMD_ISNOTSET:
+        case DETECT_FLOWBITS_CMD_ISSET:
+        case DETECT_FLOWBITS_CMD_SET:
+        case DETECT_FLOWBITS_CMD_UNSET:
+        case DETECT_FLOWBITS_CMD_TOGGLE:
+            if(fb_name == NULL)
+            goto error;
+            break;
     }
 
     cd = malloc(sizeof(DetectFlowbitsData));
@@ -207,7 +212,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         cd->idx = 0;
     }
     cd->cmd = fb_cmd;
-    //printf("DetectFlowbitSetup: idx %" PRIu32 ", cmd %s, name %s\n", cd->idx, fb_cmd_str, fb_name ? fb_name : "(null)");
+    printf("DetectFlowbitSetup: idx %" PRIu32 ", cmd %s, name %s\n", cd->idx, fb_cmd_str, fb_name ? fb_name : "(null)");
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -238,3 +243,732 @@ void DetectFlowbitFree (void *ptr) {
     free(fd);
 }
 
+#ifdef UNITTESTS
+/**
+ * \test FlowBitsTestSig01 is a test for a valid noalert flowbits option
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig01(void) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Noalert\"; flowbits:noalert,wrongusage; content:\"GET \"; sid:1;)");
+
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    result = 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+
+    PatternMatchDestroy(mpm_ctx);
+
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    return result;
+}
+
+/**
+ * \test FlowBitsTestSig02 is a test for a valid isset,set,isnotset,unset,toggle flowbits options
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig02(void) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int error_count = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset rule need an option\"; flowbits:isset; content:\"GET \"; sid:1;)");
+
+    if (s == NULL) {
+        error_count++;
+    }
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isnotset rule need an option\"; flowbits:isnotset; content:\"GET \"; sid:2;)");
+
+    if (s == NULL) {
+        error_count++;
+    }
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"set rule need an option\"; flowbits:set; content:\"GET \"; sid:3;)");
+
+    if (s == NULL) {
+        error_count++;
+    }
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"unset rule need an option\"; flowbits:unset; content:\"GET \"; sid:4;)");
+
+    if (s == NULL) {
+        error_count++;
+    }
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"toggle rule need an option\"; flowbits:toggle; content:\"GET \"; sid:5;)");
+
+    if (s == NULL) {
+        error_count++;
+    }
+
+   if(error_count == 5)
+    goto end;
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    if (PacketAlertCheck(&p, 1)) {
+        goto cleanup;
+    }
+    if (PacketAlertCheck(&p, 2)) {
+        goto cleanup;
+    }
+    if (PacketAlertCheck(&p, 3)) {
+        goto cleanup;
+    }
+    if (PacketAlertCheck(&p, 4)) {
+        goto cleanup;
+    }
+    if (PacketAlertCheck(&p, 5)) {
+        goto cleanup;
+    }
+
+    result = 1;
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    return result;
+}
+
+/**
+ * \test FlowBitsTestSig03 is a test for a invalid flowbits option
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig03(void) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Unknown cmd\"; flowbits:wrongcmd; content:\"GET \"; sid:1;)");
+
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    result = 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+
+
+    return result;
+}
+
+/**
+ * \test FlowBitsTestSig04 is a test check idx value
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig04(void) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int idx = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; flowbits:isset,fbt; content:\"GET \"; sid:1;)");
+
+    idx = VariableNameGetIdx(de_ctx,"fbt",DETECT_FLOWBITS);
+
+    if (s == NULL || idx != 1) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    result = 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+
+end:
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    return result;
+}
+
+/**
+ * \test FlowBitsTestSig05 is a test check noalert flag
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig05(void) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Noalert\"; flowbits:noalert; content:\"GET \"; sid:1;)");
+
+    if (s == NULL || ((s->flags & SIG_FLAG_NOALERT) != SIG_FLAG_NOALERT)) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    result = 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+end:
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    return result;
+}
+
+/**
+ * \test FlowBitsTestSig06 is a test set flowbits option
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig06(void) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    Flow f;
+    GenericVar flowvar, *gv = NULL;
+    int result = 0;
+    int idx = 0;
+
+    memset(&p, 0, sizeof(Packet));
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(Flow));
+    memset(&flowvar, 0, sizeof(GenericVar));
+
+    p.flow = &f;
+    p.flow->flowvar = &flowvar;
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow; sid:10;)");
+
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    idx = VariableNameGetIdx(de_ctx,"myflow",DETECT_FLOWBITS);
+
+    gv = p.flow->flowvar;
+
+    for ( ; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
+                result = 1;
+        }
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    if(gv) GenericVarFree(gv);
+
+    return result;
+end:
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    if(gv) GenericVarFree(gv);
+
+    return result;
+}
+
+/**
+ * \test FlowBitsTestSig07 is a test unset flowbits option
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig07(void) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    Flow f;
+    GenericVar flowvar, *gv = NULL;
+    int result = 0;
+    int idx = 0;
+
+    memset(&p, 0, sizeof(Packet));
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(Flow));
+    memset(&flowvar, 0, sizeof(GenericVar));
+
+    p.flow = &f;
+    p.flow->flowvar = &flowvar;
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow2; sid:10;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:unset,myflow2; sid:11;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    idx = VariableNameGetIdx(de_ctx,"myflow",DETECT_FLOWBITS);
+
+    gv = p.flow->flowvar;
+
+    for ( ; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
+                result = 1;
+        }
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    if(gv) GenericVarFree(gv);
+
+    return result;
+end:
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    if(gv) GenericVarFree(gv);
+
+    return result;
+}
+
+/**
+ * \test FlowBitsTestSig08 is a test toogle flowbits option
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig08(void) {
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    Flow f;
+    GenericVar flowvar, *gv = NULL;
+    int result = 0;
+    int idx = 0;
+
+    memset(&p, 0, sizeof(Packet));
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(Flow));
+    memset(&flowvar, 0, sizeof(GenericVar));
+
+    p.flow = &f;
+    p.flow->flowvar = &flowvar;
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow2; sid:10;)");
+
+    if (s == NULL) {
+        goto end;
+    }
+
+    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:toggle,myflow2; sid:11;)");
+
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    idx = VariableNameGetIdx(de_ctx,"myflow",DETECT_FLOWBITS);
+
+    gv = p.flow->flowvar;
+
+    for ( ; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
+                result = 1;
+        }
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    if(gv) GenericVarFree(gv);
+
+    return result;
+end:
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    if(gv) GenericVarFree(gv);
+
+    return result;
+}
+#endif /* UNITTESTS */
+
+/**
+ * \brief this function registers unit tests for FlowBits
+ */
+void FlowBitsRegisterTests(void) {
+#ifdef UNITTESTS
+    UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01, 0);
+    UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02, 0);
+    UtRegisterTest("FlowBitsTestSig03", FlowBitsTestSig03, 0);
+    UtRegisterTest("FlowBitsTestSig04", FlowBitsTestSig04, 1);
+    UtRegisterTest("FlowBitsTestSig05", FlowBitsTestSig05, 1);
+    UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06, 1);
+    UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07, 0);
+    UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08, 0);
+#endif /* UNITTESTS */
+}
