@@ -453,6 +453,7 @@ int main(int argc, char **argv)
         DecodeGRERegisterTests();
         AlpDetectRegisterTests();
         ConfRegisterTests();
+        ConfYamlRegisterTests();
         TmqhFlowRegisterTests();
         FlowRegisterTests();
         SCSigRegisterSignatureOrderingTests();

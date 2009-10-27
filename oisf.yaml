@@ -62,3 +62,7 @@ pfring:
   # All threads/processes that will participate need to have the same
   # clusterid.
   clusterid: 99
+
+rule-files:
+  - netbios.rules
+  - x11.rules

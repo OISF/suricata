@@ -9,7 +9,7 @@
  * configuration data.  Allowing run time changes to the configuration
  * will require some locks.
  *
- * \author Endace Technology Limited
+ * \author Endace Technology Limited - Jason Ish <jason.ish@endace.com>
  *
  * \todo Consider using HashListTable to allow easy dumping of all data.
  */
@@ -23,16 +23,6 @@
 #define CONF_HASH_TBL_SIZE 1024
 
 static HashTable *conf_hash = NULL;
-
-/**
- * Structure of a configuration parameter.
- */
-typedef struct ConfNode_ {
-    char *name;
-    char *val;
-
-    int allow_override;
-} ConfNode;
 
 /**
  * \brief Function to generate the hash of a configuration value.
@@ -81,10 +71,7 @@ static void ConfHashFree(void *data)
 {
     ConfNode *cn = (ConfNode *)data;
 
-    SCLogDebug("freeing configuration parameter '%s'", cn->name);
-    free(cn->name);
-    free(cn->val);
-    free(cn);
+    ConfNodeFree(cn);
 }
 
 /**
@@ -110,6 +97,91 @@ ConfInit(void)
 }
 
 /**
+ * \brief Allocate a new configuration node.
+ *
+ * \retval An allocated configuration node on success, NULL on failure.
+ */
+ConfNode *
+ConfNodeNew(void)
+{
+    ConfNode *new;
+
+    new = calloc(1, sizeof(*new));
+    if (new == NULL)
+        return NULL;
+    TAILQ_INIT(&new->head);
+
+    return new;
+}
+
+/**
+ * \brief Free a ConfNode and all of its children.
+ *
+ * \param node The configuration node to free.
+ */
+void
+ConfNodeFree(ConfNode *node)
+{
+    ConfNode *tmp;
+
+    TAILQ_FOREACH(tmp, &node->head, next)
+        ConfNodeFree(tmp);
+
+    if (node->name != NULL)
+        free(node->name);
+    if (node->val != NULL)
+        free(node->val);
+    free(node);
+}
+
+/**
+ * \brief Set a configuration node.
+ *
+ * \retval 1 on success, 0 on failure.
+ */
+int
+ConfSetNode(ConfNode *node)
+{
+    ConfNode lookup;
+    ConfNode *pnode;
+
+    lookup.name = node->name;
+    pnode = HashTableLookup(conf_hash, &lookup, sizeof(lookup));
+    if (pnode != NULL) {
+        if (!pnode->allow_override) {
+            return 0;
+        }
+        HashTableRemove(conf_hash, pnode, sizeof(*pnode));
+    }
+
+    if (HashTableAdd(conf_hash, node, sizeof(*node)) != 0) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to add new configuration node.");
+        exit(EXIT_FAILURE);
+    }
+
+    return 1;
+}
+
+/**
+ * \brief Get a ConfNode by key.
+ *
+ * \param key The lookup key of the node to find.
+ *
+ * \retval The node matching the key or NULL if not found.
+ */
+ConfNode *
+ConfGetNode(char *key)
+{
+    ConfNode lookup;
+    ConfNode *node;
+
+    lookup.name = key;
+
+    node = HashTableLookup(conf_hash, &lookup, sizeof(lookup));
+    return node;
+}
+
+/**
  * \brief Set a configuration value.
  *
  * \param name The name of the configuration parameter to set.
@@ -132,7 +204,7 @@ ConfSet(char *name, char *val, int allow_override)
         HashTableRemove(conf_hash, conf_node, sizeof(*conf_node));
     }
 
-    conf_node = calloc(1, sizeof(*conf_node));
+    conf_node = ConfNodeNew();
     if (conf_node == NULL) {
         return 0;
     }
@@ -280,6 +352,12 @@ ConfDump(void)
             while (b != NULL) {
                 cn = (ConfNode *)b->data;
                 printf("%s=%s\n", cn->name, cn->val);
+                if (!TAILQ_EMPTY(&cn->head)) {
+                    ConfNode *n0;
+                    TAILQ_FOREACH(n0, &cn->head, next) {
+                        printf(".%s\n", n0->val);
+                    }
+                }
                 b = b->next;
             }
         }
@@ -319,6 +397,38 @@ ConfTestSetAndGet(void)
 
     /* Cleanup. */
     ConfRemove(name);
+
+    return 1;
+}
+
+static int
+ConfTestSetGetNode(void)
+{
+    ConfNode *set;
+    ConfNode *get;
+    const char key[] = "some-key";
+    const char val[] = "some-val";
+
+    set = ConfNodeNew();
+    if (set == NULL)
+        return 0;
+    set->name = strdup(key);
+    set->val = strdup(val);
+    if (ConfSetNode(set) != 1)
+        return 0;
+
+    get = ConfGetNode(key);
+    if (get == NULL)
+        return 0;
+    if (strcmp(get->name, key) != 0)
+        return 0;
+    if (strcmp(get->val, val) != 0)
+        return 0;
+
+    ConfRemove(key);
+    get = ConfGetNode(key);
+    if (get != NULL)
+        return 0;
 
     return 1;
 }
@@ -465,6 +575,7 @@ void
 ConfRegisterTests(void)
 {
     UtRegisterTest("ConfTestGetNonExistant", ConfTestGetNonExistant, 1);
+    UtRegisterTest("ConfTestSetGetNode", ConfTestSetGetNode, 1);
     UtRegisterTest("ConfTestSetAndGet", ConfTestSetAndGet, 1);
     UtRegisterTest("ConfTestOverrideValue1", ConfTestOverrideValue1, 1);
     UtRegisterTest("ConfTestOverrideValue2", ConfTestOverrideValue2, 1);
