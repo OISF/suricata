@@ -49,6 +49,8 @@ error:
 
 void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
 
+    SigCleanSignatures(de_ctx);
+
     /* Normally the hashes are freed elsewhere, but
      * to be sure look at them again here.
      */
@@ -62,6 +64,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     DetectPortDpHashFree(de_ctx);
 
     VariableNameFreeHash(de_ctx);
+    if (de_ctx->sig_array)
+        free(de_ctx->sig_array);
     free(de_ctx);
 }
 

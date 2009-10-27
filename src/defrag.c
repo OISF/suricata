@@ -446,6 +446,16 @@ DefragContextNew(void)
     return dc;
 }
 
+void DefragContextDestroy(DefragContext *dc) {
+    if (dc == NULL)
+        return;
+
+    HashListTableFree(dc->frag_table);
+    PoolFree(dc->frag_pool);
+    PoolFree(dc->tracker_pool);
+    free(dc);
+}
+
 /**
  * Insert a new IPv4 fragment into a tracker.
  *
@@ -926,6 +936,27 @@ Defrag6(DefragContext *dc, Packet *p)
     return NULL;
 }
 
+void
+DefragInit(void)
+{
+    /* Initialize random value for hashing and hash table size. */
+    defrag_hash_rand = rand();
+    defrag_hash_size = DEFAULT_DEFRAG_HASH_SIZE;
+
+    /* Allocate the DefragContext. */
+    defrag_context = DefragContextNew();
+    if (defrag_context == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate memory for the Defrag module.");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void DefragDestroy(void) {
+    DefragContextDestroy(defrag_context);
+    defrag_context = NULL;
+}
+
 #ifdef UNITTESTS
 #define IP_MF 0x2000
 
@@ -937,7 +968,7 @@ static Packet *
 BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     int content_len)
 {
-    Packet *p;
+    Packet *p = NULL;
     int hlen = 20;
     int ttl = 64;
 
@@ -970,23 +1001,27 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     /* Self test. */
     IPV4_CACHE_INIT(p);
     if (IPV4_GET_VER(p) != 4)
-        return NULL;
+        goto error;
     if (IPV4_GET_HLEN(p) != hlen)
-        return NULL;
+        goto error;
     if (IPV4_GET_IPLEN(p) != hlen + content_len)
-        return NULL;
+        goto error;
     if (IPV4_GET_IPID(p) != id)
-        return NULL;
+        goto error;
     if (IPV4_GET_IPOFFSET(p) != off)
-        return NULL;
+        goto error;
     if (IPV4_GET_MF(p) != mf)
-        return NULL;
+        goto error;
     if (IPV4_GET_IPTTL(p) != ttl)
-        return NULL;
+        goto error;
     if (IPV4_GET_IPPROTO(p) != IPPROTO_ICMP)
-        return NULL;
+        goto error;
 
     return p;
+error:
+    if (p != NULL)
+        free(p);
+    return NULL;
 }
 
 /**
@@ -996,59 +1031,80 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
 static int
 DefragInOrderSimpleTest(void)
 {
-    DefragContext *dc;
-    Packet *p1, *p2, *p3;
-    Packet *reassembled;
+    DefragContext *dc = NULL;
+    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
+    Packet *reassembled = NULL;
     int id = 12;
     int i;
+    int ret = 0;
+
+    DefragInit();
 
     dc = DefragContextNew();
     if (dc == NULL)
-        return 0;
+        goto end;
 
     p1 = BuildTestPacket(id, 0, 1, 'A', 8);
     if (p1 == NULL)
-        return 0;
+        goto end;
     p2 = BuildTestPacket(id, 1, 1, 'B', 8);
     if (p2 == NULL)
-        return 0;
+        goto end;
     p3 = BuildTestPacket(id, 2, 0, 'C', 3);
     if (p3 == NULL)
-        return 0;
+        goto end;
 
     if (Defrag4(NULL, dc, p1) != NULL)
-        return 0;
+        goto end;
     if (Defrag4(NULL, dc, p2) != NULL)
-        return 0;
+        goto end;
     reassembled = Defrag4(NULL, dc, p3);
     if (reassembled == NULL)
-        return 0;
+        goto end;
 
     /* 20 bytes in we should find 8 bytes of A. */
     for (i = 20; i < 20 + 8; i++) {
         if (reassembled->pkt[i] != 'A')
-            return 0;
+            goto end;
     }
 
     /* 28 bytes in we should find 8 bytes of B. */
     for (i = 28; i < 28 + 8; i++) {
         if (reassembled->pkt[i] != 'B')
-            return 0;
+            goto end;
     }
 
     /* And 36 bytes in we should find 3 bytes of C. */
     for (i = 36; i < 36 + 3; i++) {
         if (reassembled->pkt[i] != 'C')
-            return 0;
+            goto end;
     }
 
-    return 1;
+    ret = 1;
+end:
+    if (dc != NULL)
+        DefragContextDestroy(dc);
+    if (p1 != NULL)
+        free(p1);
+    if (p2 != NULL)
+        free(p2);
+    if (p3 != NULL)
+        free(p3);
+    if (reassembled != NULL)
+        free(reassembled);
+
+    DefragDestroy();
+    return ret;
 }
 
 static int
 DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
 {
     int i;
+    int ret = 0;
+    DefragContext *dc = NULL;
+
+    DefragInit();
 
     /*
      * Build the packets.
@@ -1056,6 +1112,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
 
     int id = 1;
     Packet *packets[17];
+    memset(packets, 0x00, sizeof(packets));
 
     /*
      * Original fragments.
@@ -1116,26 +1173,37 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     /* Q*16 at 176. */
     packets[16] = BuildTestPacket(id, 176 >> 3, 0, 'Q', 16);
 
-    DefragContext *dc = DefragContextNew();
+    dc = DefragContextNew();
     if (dc == NULL)
-        return 0;
+        goto end;
     dc->default_policy = policy;
 
     /* Send all but the last. */
     for (i = 0; i < 16; i++) {
-        if (Defrag4(NULL, dc, packets[i]) != NULL)
-            return 0;
+        Packet *tp = Defrag4(NULL, dc, packets[i]);
+        if (tp != NULL) {
+            free(tp);
+            goto end;
+        }
     }
 
     /* And now the last one. */
     Packet *reassembled = Defrag4(NULL, dc, packets[16]);
     if (reassembled == NULL)
-        return 0;
-
+        goto end;
     if (memcmp(reassembled->pkt + 20, expected, expected_len) != 0)
-        return 0;
+        goto end;
+    free(reassembled);
 
-    return 1;
+    ret = 1;
+end:
+    if (dc != NULL)
+        DefragContextDestroy(dc);
+    for (i = 0; i < 17; i++) {
+        free(packets[i]);
+    }
+    DefragDestroy();
+    return ret;
 }
 
 static int
@@ -1346,33 +1414,55 @@ static int
 DefragTimeoutTest(void)
 {
     int i;
+    int ret = 0;
+    DefragContext *dc = NULL;
+
+    DefragInit();
 
     /* Setup a small numberr of trackers. */
     ConfSet("defrag.trackers", "16", 1);
 
-    DefragContext *dc = DefragContextNew();
+    dc = DefragContextNew();
     if (dc == NULL)
-        return 0;
+        goto end;
 
     /* Load in 16 packets. */
     for (i = 0; i < 16; i++) {
         Packet *p = BuildTestPacket(i, 0, 1, 'A' + i, 16);
-        if (Defrag4(NULL, dc, p) != NULL)
-            return 0;
+        if (p == NULL)
+            goto end;
+
+        Packet *tp = Defrag4(NULL, dc, p);
+
+        free(p);
+
+        if (tp != NULL) {
+            free(tp);
+            goto end;
+        }
     }
 
     /* Build a new packet but push the timestamp out by our timeout.
      * This should force our previous fragments to be timed out. */
     Packet *p = BuildTestPacket(99, 0, 1, 'A' + i, 16);
+    if (p == NULL)
+        goto end;
+
     p->ts.tv_sec += dc->timeout;
-    if (Defrag4(NULL, dc, p) != NULL)
-        return 0;
+    Packet *tp = Defrag4(NULL, dc, p);
+
+    free(p);
+
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
 
     /* Iterate our HashList and look for the trackerr with id 99. */
     int found = 0;
     HashListTableBucket *next = HashListTableGetListHead(dc->frag_table);
     if (next == NULL)
-        return 0;
+        goto end;
     for (;;) {
         if (next == NULL)
             break;
@@ -1385,9 +1475,14 @@ DefragTimeoutTest(void)
         next = HashListTableGetListNext(next);
     }
     if (found == 0)
-        return 0;
+        goto end;
 
-    return 1;
+    ret = 1;
+end:
+    if (dc != NULL)
+        DefragContextDestroy(dc);
+    DefragDestroy();
+    return ret;
 }
 
 #endif /* UNITTESTS */
@@ -1415,18 +1510,3 @@ DefragRegisterTests(void)
 #endif /* UNITTESTS */
 }
 
-void
-DefragInit(void)
-{
-    /* Initialize random value for hashing and hash table size. */
-    defrag_hash_rand = rand();
-    defrag_hash_size = DEFAULT_DEFRAG_HASH_SIZE;
-
-    /* Allocate the DefragContext. */
-    defrag_context = DefragContextNew();
-    if (defrag_context == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate memory for the Defrag module.");
-        exit(EXIT_FAILURE);
-    }
-}

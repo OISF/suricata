@@ -587,6 +587,7 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
     }
 
     DetectEngineResetMaxSigId(de_ctx);
+    de_ctx->sig_list = NULL;
 }
 
 /** \brief Test is a initialized signature is IP only
@@ -6277,7 +6278,7 @@ int SigTest40NoPacketInspection01(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> 1.2.3.4 any (msg:\"No Packet Inspection Test\"; sid:2; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> 1.2.3.4 any (msg:\"No Packet Inspection Test\"; flow:to_server; sid:2; rev:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;

@@ -177,13 +177,8 @@ int DetectPortAdd(DetectPort **head, DetectPort *dp) {
 
 int DetectPortInsertCopy(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new) {
     DetectPort *copy = DetectPortCopySingle(de_ctx,new);
-
-    //printf("new  (%p): ", new); DetectPortPrint(new);  printf(" "); DbgPrintSigs2(new->sh);
-    //printf("copy (%p): ",copy); DetectPortPrint(copy); printf(" "); DbgPrintSigs2(copy->sh);
-
-    if (copy != NULL) {
-        //printf("DetectPortInsertCopy: "); DetectPortPrint(copy); printf("\n");
-    }
+    if (copy == NULL)
+        return -1;
 
     return DetectPortInsert(de_ctx, head, copy);
 }
@@ -730,11 +725,15 @@ DetectPort *DetectPortCopy(DetectEngineCtx *de_ctx, DetectPort *src) {
         goto error;
     }
 
-    memcpy(dst, src, sizeof(DetectPort));
-    dst->sh = NULL;
+    dst->port = src->port;
+    dst->port2 = src->port2;
 
-    if (src->next != NULL)
+    if (src->next != NULL) {
         dst->next = DetectPortCopy(de_ctx, src->next);
+        if (dst->next != NULL) {
+            dst->next->prev = dst;
+        }
+    }
 
     return dst;
 error:
@@ -750,10 +749,8 @@ DetectPort *DetectPortCopySingle(DetectEngineCtx *de_ctx,DetectPort *src) {
         goto error;
     }
 
-    memcpy(dst,src,sizeof(DetectPort));
-    dst->sh = NULL;
-    dst->next = NULL;
-    dst->prev = NULL;
+    dst->port = src->port;
+    dst->port2 = src->port2;
 
     SigGroupHeadCopySigs(de_ctx,src->sh,&dst->sh);
 
@@ -830,7 +827,7 @@ static int DetectPortParseInsert(DetectPort **head, DetectPort *new) {
 }
 
 static int DetectPortParseInsertString(DetectPort **head, char *s) {
-    DetectPort *ad = NULL;
+    DetectPort *ad = NULL, *ad_any = NULL;
     int r = 0;
 
     SCLogDebug("head %p, *head %p, s %s", head, *head, s);
@@ -866,11 +863,11 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
 
     /* if any, insert 0.0.0.0/0 and ::/0 as well */
     if (r == 1 && ad->flags & PORT_FLAG_ANY) {
-        ad = PortParse("0:65535");
-        if (ad == NULL)
+        ad_any = PortParse("0:65535");
+        if (ad_any == NULL)
             goto error;
 
-        if (DetectPortParseInsert(head, ad) < 0)
+        if (DetectPortParseInsert(head, ad_any) < 0)
 	        goto error;
     }
 
@@ -879,7 +876,9 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
 error:
     printf("DetectPortParseInsertString error\n");
     if (ad != NULL)
-        DetectPortFree(ad);
+        DetectPortCleanupList(ad);
+    if (ad_any != NULL)
+        DetectPortCleanupList(ad_any);
     return -1;
 }
 
@@ -1002,7 +1001,7 @@ int DetectPortIsCompletePortSpace(DetectPort *p) {
 
 /* part of the parsing routine */
 int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
-    DetectPort *ad;
+    DetectPort *ad = NULL;
     DetectPort *ag, *ag2;
     int r = 0;
 
@@ -1034,6 +1033,7 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
         if (r < 0) {
             goto error;
         }
+        ad = NULL;
     }
 
     /* step 2: pull the address blocks that match our 'not' blocks */
@@ -1078,6 +1078,8 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
 
     return 0;
 error:
+    if (ad != NULL)
+        DetectPortFree(ad);
     return -1;
 }
 
@@ -1104,15 +1106,16 @@ int DetectPortParse(DetectPort **head, char *str) {
     return 0;
 
 error:
-    DetectPortFree(nhead);
+    DetectPortCleanupList(nhead);
     return -1;
 }
 
 DetectPort *PortParse(char *str) {
     char *portdup = strdup(str);
     char *port2 = NULL;
+    DetectPort *dp = NULL;
 
-    DetectPort *dp = DetectPortInit();
+    dp = DetectPortInit();
     if (dp == NULL)
         goto error;
 
@@ -1165,6 +1168,9 @@ DetectPort *PortParse(char *str) {
     return dp;
 
 error:
+    if (dp != NULL)
+        DetectPortCleanupList(dp);
+
     if (portdup) free(portdup);
     return NULL;
 }
@@ -1396,7 +1402,10 @@ int PortTestParse06 (void) {
     result = 1;
 
 end:
-    DetectPortCleanupList(dd);
+    if (copy != NULL)
+        DetectPortCleanupList(copy);
+    if (dd != NULL)
+        DetectPortCleanupList(dd);
     return result;
 }
 
@@ -1529,6 +1538,57 @@ end:
 
 }
 
+int PortTestParse14 (void) {
+    DetectPort *dd = NULL, *copy = NULL;
+    int result = 0;
+
+    int r = DetectPortParse(&dd,"22");
+    if (r != 0)
+        goto end;
+
+    r = DetectPortParse(&dd,"80");
+    if (r != 0)
+        goto end;
+
+    r = DetectPortParse(&dd,"143");
+    if (r != 0)
+        goto end;
+
+    copy = DetectPortCopy(NULL,dd);
+    if (copy == NULL)
+        goto end;
+
+    if (DetectPortCmp(dd,copy) != PORT_EQ)
+        goto end;
+
+    if (copy->next == NULL)
+        goto end;
+
+    if (DetectPortCmp(dd->next,copy->next) != PORT_EQ)
+        goto end;
+
+    if (copy->next->next == NULL)
+        goto end;
+
+    if (DetectPortCmp(dd->next->next,copy->next->next) != PORT_EQ)
+        goto end;
+
+    if (copy->port != 22 || copy->next->port != 80 || copy->next->next->port != 143)
+        goto end;
+
+    if (copy->next->prev != copy)
+        goto end;
+
+    result = 1;
+
+end:
+    if (copy != NULL)
+        DetectPortCleanupList(copy);
+    if (dd != NULL)
+        DetectPortCleanupList(dd);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectPortTests(void) {
@@ -1546,6 +1606,7 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestParse11", PortTestParse11, 1);
     UtRegisterTest("PortTestParse12", PortTestParse12, 1);
     UtRegisterTest("PortTestParse13", PortTestParse13, 1);
+    UtRegisterTest("PortTestParse14", PortTestParse14, 1);
 #endif /* UNITTESTS */
 }
 

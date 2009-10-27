@@ -449,7 +449,15 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
     return 0;
 
 error:
-    if (arr) free(arr);
+    if (arr != NULL) {
+        for (i = 1; i <= ret - 1; i++) {
+            if (arr[i - 1] == NULL)
+                continue;
+
+            pcre_free_substring(arr[i - 1]);
+        }
+        free(arr);
+    }
     *result = NULL;
     return -1;
 }
@@ -512,6 +520,9 @@ void SigFree(Signature *s) {
 
     DetectAddressGroupsHeadCleanup(&s->src);
     DetectAddressGroupsHeadCleanup(&s->dst);
+
+    DetectPortCleanupList(s->sp);
+    DetectPortCleanupList(s->dp);
 
     if (s->msg != NULL) free(s->msg);
 
@@ -598,6 +609,7 @@ int SigParseTest02 (void) {
         DetectPortPrint(port); printf(" != "); DetectPortPrint(sig->sp); printf(": ");
     }
 
+    DetectPortCleanupList(port);
     SigFree(sig);
     DetectEngineCtxFree(de_ctx);
 end:

@@ -391,8 +391,6 @@ int main(int argc, char **argv)
     PatternMatchPrepare(mpm_ctx, MPM_B2G);
     PerfInitCounterApi();
 
-    DefragInit();
-
     /** \todo we need an api for these */
     AppLayerDetectProtoThreadInit();
     RegisterAppLayerParsers();
@@ -546,6 +544,7 @@ int main(int argc, char **argv)
     FlowManagerThreadSpawn();
 
     StreamTcpInitConfig(STREAM_VERBOSE);
+    DefragInit();
 
     /* Spawn the L7 App Detect thread */
     //AppLayerDetectProtoThreadSpawn();

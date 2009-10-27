@@ -213,7 +213,7 @@ static int DetectSeqSigTest01Real(int mpm_type)
 
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert tcp any any -> any any "
-                               "(msg:\"Testing seq\";sid:1;)");
+                               "(msg:\"Testing seq\";seq:41;sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto cleanup_engine;
     }

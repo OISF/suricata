@@ -21,6 +21,7 @@
 #include "util-mpm-b2g.h"
 #include "util-print.h"
 
+#include "util-debug.h"
 #include "util-unittest.h"
 
 #define INIT_HASH_SIZE 65536
@@ -888,7 +889,9 @@ memcmp_lowercase(uint8_t *s1, uint8_t *s2, uint16_t n) {
 }
 
 void B2gInitCtx (MpmCtx *mpm_ctx) {
-    //printf("B2gInitCtx: mpm_ctx %p\n", mpm_ctx);
+    SCLogDebug("mpm_ctx %p, ctx %p", mpm_ctx, mpm_ctx->ctx);
+
+    BUG_ON(mpm_ctx->ctx != NULL);
 
     memset(mpm_ctx, 0, sizeof(MpmCtx));
 
@@ -911,6 +914,8 @@ void B2gInitCtx (MpmCtx *mpm_ctx) {
 }
 
 void B2gDestroyCtx(MpmCtx *mpm_ctx) {
+    SCLogDebug("mpm_ctx %p", mpm_ctx);
+
     B2gCtx *ctx = (B2gCtx *)mpm_ctx->ctx;
     if (ctx == NULL)
         return;
@@ -1744,6 +1749,7 @@ uint32_t B2gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
 static int B2gTestInit01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmInitCtx(&mpm_ctx, MPM_B2G);
     B2gCtx *ctx = (B2gCtx *)mpm_ctx.ctx;
 
@@ -1862,6 +1868,7 @@ static int B2gTestS0Init05 (void) {
 static int B2gTestScan01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -1887,6 +1894,7 @@ static int B2gTestScan01 (void) {
 static int B2gTestScan02 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -1912,6 +1920,7 @@ static int B2gTestScan02 (void) {
 static int B2gTestScan03 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -1940,6 +1949,7 @@ static int B2gTestScan03 (void) {
 static int B2gTestScan04 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -1968,6 +1978,7 @@ static int B2gTestScan04 (void) {
 static int B2gTestScan05 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -1995,6 +2006,7 @@ static int B2gTestScan05 (void) {
 static int B2gTestScan06 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2020,6 +2032,7 @@ static int B2gTestScan06 (void) {
 static int B2gTestScan07 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
     //B2gCtx *ctx = (B2gCtx *)mpm_ctx.ctx;
@@ -2052,6 +2065,7 @@ static int B2gTestScan07 (void) {
 static int B2gTestScan08 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2077,6 +2091,7 @@ static int B2gTestScan08 (void) {
 static int B2gTestScan09 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2102,6 +2117,7 @@ static int B2gTestScan09 (void) {
 static int B2gTestScan10 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2127,6 +2143,7 @@ static int B2gTestScan10 (void) {
 static int B2gTestScan11 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2153,6 +2170,7 @@ static int B2gTestScan11 (void) {
 static int B2gTestScan12 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2179,6 +2197,7 @@ static int B2gTestScan12 (void) {
 static int B2gTestSearch01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2204,6 +2223,7 @@ static int B2gTestSearch01 (void) {
 static int B2gTestSearch02 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2229,6 +2249,7 @@ static int B2gTestSearch02 (void) {
 static int B2gTestSearch03 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2257,6 +2278,7 @@ static int B2gTestSearch03 (void) {
 static int B2gTestSearch04 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2285,6 +2307,7 @@ static int B2gTestSearch04 (void) {
 static int B2gTestSearch05 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2312,6 +2335,7 @@ static int B2gTestSearch05 (void) {
 static int B2gTestSearch06 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2337,6 +2361,7 @@ static int B2gTestSearch06 (void) {
 static int B2gTestSearch07 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
     //B2gCtx *ctx = (B2gCtx *)mpm_ctx.ctx;
@@ -2369,6 +2394,7 @@ static int B2gTestSearch07 (void) {
 static int B2gTestSearch08 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2394,6 +2420,7 @@ static int B2gTestSearch08 (void) {
 static int B2gTestSearch09 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2419,6 +2446,7 @@ static int B2gTestSearch09 (void) {
 static int B2gTestSearch10 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2444,6 +2472,7 @@ static int B2gTestSearch10 (void) {
 static int B2gTestSearch11 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 
@@ -2470,6 +2499,7 @@ static int B2gTestSearch11 (void) {
 static int B2gTestSearch12 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B2G);
 

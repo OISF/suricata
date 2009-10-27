@@ -23,6 +23,8 @@
 #include "util-hash.h"
 #include "util-hashlist.h"
 
+#include "util-debug.h"
+
 /* prototypes */
 int SigGroupHeadClearSigs(SigGroupHead *);
 
@@ -74,6 +76,8 @@ error:
 /** \brief Free a sgh
  *  \param sgh the sig group head to free */
 void SigGroupHeadFree(SigGroupHead *sgh) {
+    SCLogDebug("sgh %p", sgh);
+
     if (sgh == NULL)
         return;
 

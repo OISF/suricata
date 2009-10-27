@@ -345,19 +345,19 @@ static int DetectProtoTestSig01(void) {
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert udp any any -> any any "
-            "(msg:\"Not tcp\"; sid:1;)");
+            "(msg:\"Not tcp\"; flow:to_server; sid:1;)");
 
     if (s == NULL)
         goto end;
 
     s = s->next = SigInit(de_ctx,"alert ip any any -> any any "
-            "(msg:\"IP\"; sid:2;)");
+            "(msg:\"IP\"; flow:to_server; sid:2;)");
 
     if (s == NULL)
         goto end;
 
     s = s->next = SigInit(de_ctx,"alert tcp any any -> any any "
-            "(msg:\"TCP\"; sid:3;)");
+            "(msg:\"TCP\"; flow:to_server; sid:3;)");
 
     if (s == NULL)
         goto end;

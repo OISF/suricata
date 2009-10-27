@@ -17,6 +17,8 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
+#include "util-debug.h"
+
 /** \todo make it possible to use multiple pattern matcher algorithms next to
           eachother. */
 //#define PM   MPM_WUMANBER
@@ -71,13 +73,15 @@ void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
     }
 }
 
-void PatternMatchDestroy(MpmCtx *mc) {
-    mc->DestroyCtx(mc);
+void PatternMatchDestroy(MpmCtx *mpm_ctx) {
+    SCLogDebug("mpm_ctx %p", mpm_ctx);
+    mpm_ctx->DestroyCtx(mpm_ctx);
 }
 
-void PatternMatchPrepare(MpmCtx *mc, int type)
-{
-    MpmInitCtx(mc, type);
+void PatternMatchPrepare(MpmCtx *mpm_ctx, int type) {
+    SCLogDebug("mpm_ctx %p, type %d", mpm_ctx, type);
+    memset(mpm_ctx, 0x00, sizeof(MpmCtx));
+    MpmInitCtx(mpm_ctx, type);
 }
 
 
@@ -86,6 +90,7 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
     /* content */
     if (sh->flags & SIG_GROUP_HAVECONTENT && sh->mpm_ctx != NULL &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
+        SCLogDebug("destroying mpm_ctx %p (sh %p)", sh->mpm_ctx, sh);
         sh->mpm_ctx->DestroyCtx(sh->mpm_ctx);
         free(sh->mpm_ctx);
 
@@ -97,6 +102,7 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
     /* uricontent */
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && sh->mpm_uri_ctx != NULL &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
+        SCLogDebug("destroying mpm_uri_ctx %p (sh %p)", sh->mpm_uri_ctx, sh);
         sh->mpm_uri_ctx->DestroyCtx(sh->mpm_uri_ctx);
         free(sh->mpm_uri_ctx);
 
@@ -503,6 +509,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (sh->mpm_ctx == NULL)
             goto error;
 
+        memset(sh->mpm_ctx, 0x00, sizeof(MpmCtx));
         MpmInitCtx(sh->mpm_ctx, PM);
     }
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
@@ -510,6 +517,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (sh->mpm_uri_ctx == NULL)
             goto error;
 
+        memset(sh->mpm_uri_ctx, 0x00, sizeof(MpmCtx));
         MpmInitCtx(sh->mpm_uri_ctx, PM);
     }
 

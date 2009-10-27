@@ -144,16 +144,9 @@ static int DetectSameipSigTest01Real(int mpm_type)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing sameip\";sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
-
-    de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert tcp any any -> any any "
-                                     "(msg:\"Testing sameip\";sameip;sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
+                                     "(msg:\"Testing sameip\"; sameip; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
@@ -162,21 +155,13 @@ static int DetectSameipSigTest01Real(int mpm_type)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[0]);
-    if (PacketAlertCheck(&p[0], 1) != 0) {
-        printf("sid 1 alerted, but should not have: ");
-        goto cleanup;
-    }
-    if (PacketAlertCheck(&p[0], 2) == 0) {
+    if (PacketAlertCheck(&p[0], 1) == 0) {
         printf("sid 2 did not alert, but should have: ");
         goto cleanup;
     }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[1]);
     if (PacketAlertCheck(&p[1], 1) != 0) {
-        printf("sid 1 alerted, but should not have: ");
-        goto cleanup;
-    }
-    if (PacketAlertCheck(&p[1], 2) != 0) {
         printf("sid 2 alerted, but should not have: ");
         goto cleanup;
     }
