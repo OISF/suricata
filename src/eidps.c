@@ -388,7 +388,7 @@ int main(int argc, char **argv)
     BinSearchInit();
     CIDRInit();
     SigParsePrepare();
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     PerfInitCounterApi();
 
     /** \todo we need an api for these */
@@ -462,9 +462,11 @@ int main(int argc, char **argv)
         else {
             uint32_t failed = UtRunTests(regex_arg);
             UtCleanup();
-            if (failed)
+            if (failed) {
                 exit(EXIT_FAILURE);
+            }
         }
+
         exit(EXIT_SUCCESS);
     }
 #endif /* UNITTESTS */

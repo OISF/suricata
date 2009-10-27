@@ -2634,6 +2634,7 @@ static int SigTest01Real (int mpm_type) {
     if (de_ctx == NULL) {
         goto end;
     }
+    de_ctx->mpm_matcher = mpm_type;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -2644,7 +2645,7 @@ static int SigTest01Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -2668,7 +2669,7 @@ static int SigTest01Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -2711,6 +2712,7 @@ static int SigTest02Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)");
@@ -2720,7 +2722,7 @@ static int SigTest02Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx,mpm_type);
+    //PatternMatchPrepare(mpm_ctx,mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -2731,7 +2733,7 @@ static int SigTest02Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -2774,6 +2776,7 @@ static int SigTest03Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:40; sid:1;)");
@@ -2783,7 +2786,7 @@ static int SigTest03Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -2794,7 +2797,7 @@ static int SigTest03Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -2838,6 +2841,7 @@ static int SigTest04Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:47; within:52; sid:1;)");
@@ -2847,7 +2851,7 @@ static int SigTest04Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -2858,7 +2862,7 @@ static int SigTest04Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -2901,6 +2905,7 @@ static int SigTest05Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
@@ -2910,7 +2915,7 @@ static int SigTest05Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -2921,7 +2926,7 @@ static int SigTest05Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -2964,6 +2969,7 @@ static int SigTest06Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
@@ -2978,7 +2984,7 @@ static int SigTest06Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -2993,7 +2999,7 @@ static int SigTest06Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3036,6 +3042,7 @@ static int SigTest07Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
@@ -3050,7 +3057,7 @@ static int SigTest07Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3063,7 +3070,7 @@ static int SigTest07Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3106,6 +3113,7 @@ static int SigTest08Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
@@ -3120,7 +3128,7 @@ static int SigTest08Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3135,7 +3143,7 @@ static int SigTest08Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3178,6 +3186,7 @@ static int SigTest09Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
@@ -3192,7 +3201,7 @@ static int SigTest09Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3204,7 +3213,7 @@ static int SigTest09Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3242,6 +3251,7 @@ static int SigTest10Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)");
@@ -3256,7 +3266,7 @@ static int SigTest10Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3268,7 +3278,7 @@ static int SigTest10Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3306,6 +3316,7 @@ static int SigTest11Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Scan vs Search (1)\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
@@ -3320,7 +3331,7 @@ static int SigTest11Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3332,7 +3343,7 @@ static int SigTest11Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3370,6 +3381,7 @@ static int SigTest12Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
@@ -3379,7 +3391,7 @@ static int SigTest12Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3391,7 +3403,7 @@ static int SigTest12Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3429,6 +3441,7 @@ static int SigTest13Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
@@ -3438,7 +3451,7 @@ static int SigTest13Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3450,7 +3463,7 @@ static int SigTest13Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3488,6 +3501,7 @@ static int SigTest14Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
@@ -3497,7 +3511,7 @@ static int SigTest14Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3509,7 +3523,7 @@ static int SigTest14Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3548,6 +3562,7 @@ static int SigTest15Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
@@ -3557,7 +3572,7 @@ static int SigTest15Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3569,7 +3584,7 @@ static int SigTest15Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3608,6 +3623,7 @@ static int SigTest16Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
@@ -3616,7 +3632,7 @@ static int SigTest16Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3628,7 +3644,7 @@ static int SigTest16Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3672,6 +3688,7 @@ static int SigTest17Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
@@ -3681,7 +3698,7 @@ static int SigTest17Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3702,7 +3719,7 @@ static int SigTest17Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3742,6 +3759,7 @@ static int SigTest18Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
@@ -3751,7 +3769,7 @@ static int SigTest18Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3763,7 +3781,7 @@ static int SigTest18Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3806,6 +3824,7 @@ int SigTest19Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> 1.2.3.4 any (msg:\"IP-ONLY test (1)\"; sid:999; rev:1;)");
@@ -3815,7 +3834,7 @@ int SigTest19Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
     //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
 
@@ -3828,7 +3847,7 @@ int SigTest19Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3870,6 +3889,7 @@ static int SigTest20Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> [99.99.99.99,1.2.3.0/24,1.1.1.1,3.0.0.0/8] any (msg:\"IP-ONLY test (2)\"; sid:999; rev:1;)");
@@ -3879,7 +3899,7 @@ static int SigTest20Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
     //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
 
@@ -3892,7 +3912,7 @@ static int SigTest20Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -3950,6 +3970,7 @@ static int SigTest21Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
@@ -3964,7 +3985,7 @@ static int SigTest21Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -3980,7 +4001,7 @@ static int SigTest21Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -4038,6 +4059,7 @@ static int SigTest22Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
@@ -4052,7 +4074,7 @@ static int SigTest22Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -4070,7 +4092,7 @@ static int SigTest22Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -4127,6 +4149,7 @@ static int SigTest23Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
@@ -4141,7 +4164,7 @@ static int SigTest23Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -4159,7 +4182,7 @@ static int SigTest23Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -4244,7 +4267,7 @@ int SigTest24IPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -4264,7 +4287,7 @@ int SigTest24IPV4Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -4340,7 +4363,7 @@ int SigTest25NegativeIPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -4358,7 +4381,7 @@ int SigTest25NegativeIPV4Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -4448,7 +4471,7 @@ int SigTest26TCPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -4466,7 +4489,7 @@ int SigTest26TCPV4Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -4556,7 +4579,7 @@ int SigTest27NegativeTCPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -4575,7 +4598,7 @@ int SigTest27NegativeTCPV4Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -4670,7 +4693,7 @@ int SigTest28TCPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -4688,7 +4711,7 @@ int SigTest28TCPV6Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -4784,7 +4807,7 @@ int SigTest29NegativeTCPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -4802,7 +4825,7 @@ int SigTest29NegativeTCPV6Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -4901,7 +4924,7 @@ int SigTest30UDPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -4919,7 +4942,7 @@ int SigTest30UDPV4Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -5017,7 +5040,7 @@ int SigTest31NegativeUDPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -5036,7 +5059,7 @@ int SigTest31NegativeUDPV4Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -5128,7 +5151,7 @@ int SigTest32UDPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -5146,7 +5169,7 @@ int SigTest32UDPV6Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -5237,7 +5260,7 @@ int SigTest33NegativeUDPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -5255,7 +5278,7 @@ int SigTest33NegativeUDPV6Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -5347,7 +5370,6 @@ int SigTest34ICMPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -5365,7 +5387,6 @@ int SigTest34ICMPV4Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -5457,7 +5478,7 @@ int SigTest35NegativeICMPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -5476,7 +5497,7 @@ int SigTest35NegativeICMPV4Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -5580,7 +5601,7 @@ int SigTest36ICMPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -5598,7 +5619,7 @@ int SigTest36ICMPV6Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -5702,7 +5723,7 @@ int SigTest37NegativeICMPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -5720,7 +5741,7 @@ int SigTest37NegativeICMPV6Keyword(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -5794,6 +5815,7 @@ int SigTest38Real(int mpm_type)
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -5816,7 +5838,7 @@ int SigTest38Real(int mpm_type)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -5840,7 +5862,7 @@ cleanup:
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
@@ -5924,6 +5946,7 @@ int SigTest39Real(int mpm_type)
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -5951,7 +5974,7 @@ int SigTest39Real(int mpm_type)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
@@ -5975,7 +5998,7 @@ cleanup:
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
@@ -6054,6 +6077,7 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:404, relative; sid:101;)");
@@ -6063,7 +6087,7 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -6078,7 +6102,7 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
 
@@ -6094,7 +6118,7 @@ end:
     if(det_ctx)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
 
     if(de_ctx)
              DetectEngineCtxFree(de_ctx);
@@ -6166,6 +6190,7 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:500, relative; sid:101;)");
@@ -6175,7 +6200,7 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -6190,7 +6215,7 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
 
@@ -6206,7 +6231,7 @@ end:
     if(det_ctx)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
 
     if(de_ctx)
              DetectEngineCtxFree(de_ctx);
@@ -6285,7 +6310,7 @@ int SigTest40NoPacketInspection01(void) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
     //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
     det_ctx->de_ctx = de_ctx;
@@ -6299,7 +6324,7 @@ int SigTest40NoPacketInspection01(void) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -6347,7 +6372,7 @@ int SigTest40NoPayloadInspection02(void) {
     de_ctx->sig_list->match->type = DETECT_CONTENT;
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx,MPM_B2G);
+    //PatternMatchPrepare(mpm_ctx,MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     if (!(de_ctx->sig_list->flags & SIG_FLAG_PAYLOAD))
@@ -6366,7 +6391,7 @@ int SigTest40NoPayloadInspection02(void) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
+    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;

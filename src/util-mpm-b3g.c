@@ -919,8 +919,6 @@ memcmp_lowercase(uint8_t *s1, uint8_t *s2, uint16_t n) {
 void B3gInitCtx (MpmCtx *mpm_ctx) {
     //printf("B3gInitCtx: mpm_ctx %p\n", mpm_ctx);
 
-    memset(mpm_ctx, 0, sizeof(MpmCtx));
-
     mpm_ctx->ctx = malloc(sizeof(B3gCtx));
     if (mpm_ctx->ctx == NULL)
         return;
@@ -1110,6 +1108,8 @@ void B3gThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t ma
         mpm_thread_ctx->memory_cnt++;
         mpm_thread_ctx->memory_size += (keys * sizeof(MpmMatchBucket));
     }
+
+    mpm_thread_ctx->matchsize = matchsize;
 }
 
 void B3gThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
@@ -1120,7 +1120,7 @@ void B3gThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
     if (ctx) {
         if (mpm_thread_ctx->match != NULL) {
             mpm_thread_ctx->memory_cnt--;
-            mpm_thread_ctx->memory_size -= ((mpm_ctx->max_pattern_id + 1) * sizeof(MpmMatchBucket));
+            mpm_thread_ctx->memory_size -= ((mpm_thread_ctx->matchsize + 1) * sizeof(MpmMatchBucket));
             free(mpm_thread_ctx->match);
         }
 
@@ -1965,6 +1965,7 @@ uint32_t B3gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
 static int B3gTestInit01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmInitCtx(&mpm_ctx, MPM_B3G);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
@@ -1987,6 +1988,7 @@ static int B3gTestInit01 (void) {
 static int B3gTestS0Init01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmInitCtx(&mpm_ctx, MPM_B3G);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
@@ -2006,6 +2008,7 @@ static int B3gTestS0Init01 (void) {
 static int B3gTestS0Init02 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmInitCtx(&mpm_ctx, MPM_B3G);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
@@ -2026,6 +2029,7 @@ static int B3gTestS0Init02 (void) {
 static int B3gTestS0Init03 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmInitCtx(&mpm_ctx, MPM_B3G);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
@@ -2046,6 +2050,7 @@ static int B3gTestS0Init03 (void) {
 static int B3gTestS0Init04 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmInitCtx(&mpm_ctx, MPM_B3G);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
@@ -2065,6 +2070,7 @@ static int B3gTestS0Init04 (void) {
 static int B3gTestS0Init05 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmInitCtx(&mpm_ctx, MPM_B3G);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
@@ -2085,6 +2091,7 @@ static int B3gTestS0Init05 (void) {
 static int B3gTestScan01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2110,6 +2117,7 @@ static int B3gTestScan01 (void) {
 static int B3gTestScan02 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2135,6 +2143,7 @@ static int B3gTestScan02 (void) {
 static int B3gTestScan03 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2163,6 +2172,7 @@ static int B3gTestScan03 (void) {
 static int B3gTestScan04 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2191,6 +2201,7 @@ static int B3gTestScan04 (void) {
 static int B3gTestScan05 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2218,6 +2229,7 @@ static int B3gTestScan05 (void) {
 static int B3gTestScan06 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2243,6 +2255,7 @@ static int B3gTestScan06 (void) {
 static int B3gTestScan07 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
     //B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
@@ -2275,6 +2288,7 @@ static int B3gTestScan07 (void) {
 static int B3gTestScan08 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2300,6 +2314,7 @@ static int B3gTestScan08 (void) {
 static int B3gTestScan09 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2325,6 +2340,7 @@ static int B3gTestScan09 (void) {
 static int B3gTestScan10 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2350,6 +2366,7 @@ static int B3gTestScan10 (void) {
 static int B3gTestScan11 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2376,6 +2393,7 @@ static int B3gTestScan11 (void) {
 static int B3gTestScan12 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2402,6 +2420,7 @@ static int B3gTestScan12 (void) {
 static int B3gTestSearch01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2427,6 +2446,7 @@ static int B3gTestSearch01 (void) {
 static int B3gTestSearch02 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2452,6 +2472,7 @@ static int B3gTestSearch02 (void) {
 static int B3gTestSearch03 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2480,6 +2501,7 @@ static int B3gTestSearch03 (void) {
 static int B3gTestSearch04 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2508,6 +2530,7 @@ static int B3gTestSearch04 (void) {
 static int B3gTestSearch05 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2535,6 +2558,7 @@ static int B3gTestSearch05 (void) {
 static int B3gTestSearch06 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2560,6 +2584,7 @@ static int B3gTestSearch06 (void) {
 static int B3gTestSearch07 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
     //B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
@@ -2592,6 +2617,7 @@ static int B3gTestSearch07 (void) {
 static int B3gTestSearch08 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2617,6 +2643,7 @@ static int B3gTestSearch08 (void) {
 static int B3gTestSearch09 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2642,6 +2669,7 @@ static int B3gTestSearch09 (void) {
 static int B3gTestSearch10 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2667,6 +2695,7 @@ static int B3gTestSearch10 (void) {
 static int B3gTestSearch11 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 
@@ -2693,6 +2722,7 @@ static int B3gTestSearch11 (void) {
 static int B3gTestSearch12 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
     MpmInitCtx(&mpm_ctx, MPM_B3G);
 

@@ -186,6 +186,7 @@ static int DetectAckSigTest01Real(int mpm_type)
         goto end;
     }
 
+    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     /* These three are crammed in here as there is no Parse */
@@ -226,7 +227,6 @@ static int DetectAckSigTest01Real(int mpm_type)
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[0]);
@@ -266,7 +266,6 @@ cleanup:
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
 
 cleanup_engine:
     DetectEngineCtxFree(de_ctx);

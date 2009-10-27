@@ -33,6 +33,8 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
 
+    de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
+
     SigGroupHeadHashInit(de_ctx);
     SigGroupHeadMpmHashInit(de_ctx);
     SigGroupHeadMpmUriHashInit(de_ctx);
@@ -49,7 +51,6 @@ error:
 
 void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
 
-    SigCleanSignatures(de_ctx);
 
     /* Normally the hashes are freed elsewhere, but
      * to be sure look at them again here.
@@ -62,6 +63,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     DetectPortSpHashFree(de_ctx);
     DetectPortDpHashFree(de_ctx);
+
+    SigCleanSignatures(de_ctx);
 
     VariableNameFreeHash(de_ctx);
     if (de_ctx->sig_array)
@@ -100,8 +103,10 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
      * of the content and uricontent id's so our match lookup
      * table is always big enough
      */
-    mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &det_ctx->mtc, DetectContentMaxId(de_ctx));
-    mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &det_ctx->mtcu, DetectUricontentMaxId(de_ctx));
+    PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher, DetectContentMaxId(de_ctx));
+    PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher, DetectUricontentMaxId(de_ctx));
+    //mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &det_ctx->mtc, DetectContentMaxId(de_ctx));
+    //mpm_ctx[0].InitThreadCtx(&mpm_ctx[0], &det_ctx->mtcu, DetectUricontentMaxId(de_ctx));
 
     PmqSetup(&det_ctx->pmq, DetectEngineGetMaxSigId(de_ctx));
 
@@ -122,15 +127,19 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
 
     /** \todo get rid of this static */
-    mpm_ctx[0].DestroyThreadCtx(&mpm_ctx[0], &det_ctx->mtc);
-    mpm_ctx[0].DestroyThreadCtx(&mpm_ctx[0], &det_ctx->mtcu);
+    PatternMatchThreadDestroy(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
+    PatternMatchThreadDestroy(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
+    //mpm_ctx[0].DestroyThreadCtx(&mpm_ctx[0], &det_ctx->mtc);
+    //mpm_ctx[0].DestroyThreadCtx(&mpm_ctx[0], &det_ctx->mtcu);
 
     return TM_ECODE_OK;
 }
 
 void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
     /* XXX */
-    mpm_ctx[0].PrintThreadCtx(&det_ctx->mtc);
-    mpm_ctx[0].PrintThreadCtx(&det_ctx->mtcu);
+    PatternMatchThreadPrint(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
+    PatternMatchThreadPrint(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
+    //mpm_ctx[0].PrintThreadCtx(&det_ctx->mtc);
+    //mpm_ctx[0].PrintThreadCtx(&det_ctx->mtcu);
 }
 

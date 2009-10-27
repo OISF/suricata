@@ -271,13 +271,14 @@ void MpmEndMatchFreeAll(MpmCtx *mpm_ctx, MpmEndMatch *em) {
     }
 }
 
+void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher, uint32_t max_id) {
+    mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx, max_id);
+}
+
 void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher) {
+    mpm_ctx->mpm_type = matcher;
     mpm_table[matcher].InitCtx(mpm_ctx);
 
-    mpm_ctx->InitCtx              = mpm_table[matcher].InitCtx;
-    mpm_ctx->InitThreadCtx        = mpm_table[matcher].InitThreadCtx;
-    mpm_ctx->DestroyCtx           = mpm_table[matcher].DestroyCtx;
-    mpm_ctx->DestroyThreadCtx     = mpm_table[matcher].DestroyThreadCtx;
     mpm_ctx->AddScanPattern       = mpm_table[matcher].AddScanPattern;
     mpm_ctx->AddScanPatternNocase = mpm_table[matcher].AddScanPatternNocase;
     mpm_ctx->AddPattern           = mpm_table[matcher].AddPattern;
@@ -285,8 +286,6 @@ void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher) {
     mpm_ctx->Prepare              = mpm_table[matcher].Prepare;
     mpm_ctx->Scan                 = mpm_table[matcher].Scan;
     mpm_ctx->Search               = mpm_table[matcher].Search;
-    mpm_ctx->PrintCtx             = mpm_table[matcher].PrintCtx;
-    mpm_ctx->PrintThreadCtx       = mpm_table[matcher].PrintThreadCtx;
     mpm_ctx->Cleanup              = mpm_table[matcher].Cleanup;
 }
 

@@ -1070,7 +1070,6 @@ static int SCSigTestSignatureOrdering02(void)
         sw = sw->next;
     }
 
-    SigFree(sig);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -1208,7 +1207,6 @@ static int SCSigTestSignatureOrdering03(void)
         sw = sw->next;
     }
 
-    SigFree(sig);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -1310,7 +1308,6 @@ static int SCSigTestSignatureOrdering04(void)
         sw = sw->next;
     }
 
-    SigFree(sig);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -1405,7 +1402,6 @@ static int SCSigTestSignatureOrdering05(void)
         sw = sw->next;
     }
 
-    SigFree(sig);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;
@@ -1500,7 +1496,6 @@ static int SCSigTestSignatureOrdering06(void)
         sw = sw->next;
     }
 
-    SigFree(sig);
     DetectEngineCtxFree(de_ctx);
 end:
     return result;

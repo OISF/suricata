@@ -469,7 +469,6 @@ int DetectIdTestSig1(void) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -482,7 +481,6 @@ int DetectIdTestSig1(void) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
 
@@ -497,8 +495,6 @@ end:
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
-
-    PatternMatchDestroy(mpm_ctx);
 
     if (de_ctx != NULL) {
         DetectEngineCtxFree(de_ctx);
@@ -562,7 +558,6 @@ int DetectIdTestSig2(void) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -575,7 +570,6 @@ int DetectIdTestSig2(void) {
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
 
@@ -590,8 +584,6 @@ end:
 
     if (det_ctx)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-    PatternMatchDestroy(mpm_ctx);
 
     if (de_ctx)
              DetectEngineCtxFree(de_ctx);

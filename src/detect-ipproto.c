@@ -561,7 +561,6 @@ static int DetectIPProtoTestSig1(void) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -586,7 +585,6 @@ cleanup:
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:

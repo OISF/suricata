@@ -79,8 +79,8 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
 }
 
 void AlpProtoDestroy(AlpProtoDetectCtx *ctx) {
-    ctx->toserver.mpm_ctx.DestroyCtx(&ctx->toserver.mpm_ctx);
-    ctx->toclient.mpm_ctx.DestroyCtx(&ctx->toclient.mpm_ctx);
+    mpm_table[ctx->toserver.mpm_ctx.mpm_type].DestroyCtx(&ctx->toserver.mpm_ctx);
+    mpm_table[ctx->toclient.mpm_ctx.mpm_type].DestroyCtx(&ctx->toclient.mpm_ctx);
 }
 
 /** \brief Add a proto detection string to the detection ctx.
@@ -124,12 +124,12 @@ void AlpProtoFinalizeThread(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tct
 
     if (ctx->toclient.id > 0) {
         maxid = ctx->toclient.id;
-        ctx->toclient.mpm_ctx.InitThreadCtx(&ctx->toclient.mpm_ctx, &tctx->toclient.mpm_ctx, maxid);
+        mpm_table[ctx->toclient.mpm_ctx.mpm_type].InitThreadCtx(&ctx->toclient.mpm_ctx, &tctx->toclient.mpm_ctx, maxid);
         PmqSetup(&tctx->toclient.pmq, maxid);
     }
     if (ctx->toserver.id > 0) {
         maxid = ctx->toserver.id;
-        ctx->toserver.mpm_ctx.InitThreadCtx(&ctx->toserver.mpm_ctx, &tctx->toserver.mpm_ctx, maxid);
+        mpm_table[ctx->toserver.mpm_ctx.mpm_type].InitThreadCtx(&ctx->toserver.mpm_ctx, &tctx->toserver.mpm_ctx, maxid);
         PmqSetup(&tctx->toserver.pmq, maxid);
     }
 }

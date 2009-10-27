@@ -9,7 +9,7 @@
 #define MPM_ENDMATCH_NOSEARCH 0x08 /* if this matches, no search is required (for this pattern) */
 
 enum {
-    MPM_WUMANBER,
+    MPM_WUMANBER = 0,
     MPM_B2G,
     MPM_B3G,
 
@@ -53,6 +53,8 @@ typedef struct MpmThreadCtx_ {
     MpmMatch *qlist;
     /* spare list */
     MpmMatch *sparelist;
+
+    uint32_t matchsize;
 } MpmThreadCtx;
 
 #define PMQ_MODE_SCAN   0
@@ -74,11 +76,12 @@ typedef struct PatternMatcherQueue_ {
 
 typedef struct MpmCtx_ {
     void *ctx;
+    uint16_t mpm_type;
 
-    void (*InitCtx)(struct MpmCtx_ *);
-    void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *, uint32_t);
-    void (*DestroyCtx)(struct MpmCtx_ *);
-    void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
+//    void (*InitCtx)(struct MpmCtx_ *);
+//    void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *, uint32_t);
+//    void (*DestroyCtx)(struct MpmCtx_ *);
+//    void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
     int  (*AddScanPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
     int  (*AddScanPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
     int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t);
@@ -87,8 +90,8 @@ typedef struct MpmCtx_ {
     uint32_t (*Scan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     void (*Cleanup)(struct MpmThreadCtx_ *);
-    void (*PrintCtx)(struct MpmCtx_ *);
-    void (*PrintThreadCtx)(struct MpmThreadCtx_ *);
+//    void (*PrintCtx)(struct MpmCtx_ *);
+//    void (*PrintThreadCtx)(struct MpmThreadCtx_ *);
 
     uint32_t memory_cnt;
     uint32_t memory_size;
@@ -148,6 +151,7 @@ void MpmTableSetup(void);
 void MpmRegisterTests(void);
 
 void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher);
+void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
 
 #endif /* __UTIL_MPM_H__ */
 

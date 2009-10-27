@@ -25,6 +25,10 @@
 #define PM   MPM_B2G
 //#define PM   MPM_B3G
 
+uint16_t PatternMatchDefaultMatcher(void) {
+    return PM;
+}
+
 /** \brief Pattern match, scan part -- searches for only 'scan' patterns,
  *         normally one per signature.
  *  \param tv threadvars
@@ -73,15 +77,27 @@ void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
     }
 }
 
-void PatternMatchDestroy(MpmCtx *mpm_ctx) {
-    SCLogDebug("mpm_ctx %p", mpm_ctx);
-    mpm_ctx->DestroyCtx(mpm_ctx);
+void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher) {
+    SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
+    mpm_table[mpm_matcher].DestroyCtx(mpm_ctx);
 }
 
-void PatternMatchPrepare(MpmCtx *mpm_ctx, int type) {
-    SCLogDebug("mpm_ctx %p, type %d", mpm_ctx, type);
-    memset(mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmInitCtx(mpm_ctx, type);
+void PatternMatchPrepare(MpmCtx *mpm_ctx, uint16_t mpm_matcher) {
+    SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
+    MpmInitCtx(mpm_ctx, mpm_matcher);
+}
+
+void PatternMatchThreadPrint(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher) {
+    SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16" defunct", mpm_thread_ctx, mpm_matcher);
+    //mpm_table[mpm_matcher].PrintThreadCtx(mpm_thread_ctx);
+}
+void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher) {
+    SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16"", mpm_thread_ctx, mpm_matcher);
+    mpm_table[mpm_matcher].DestroyThreadCtx(NULL, mpm_thread_ctx);
+}
+void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher, uint32_t max_id) {
+    SCLogDebug("mpm_thread_ctx %p, type %"PRIu16", max_id %"PRIu32"", mpm_thread_ctx, mpm_matcher, max_id);
+    MpmInitThreadCtx(mpm_thread_ctx, mpm_matcher, max_id);
 }
 
 
@@ -91,7 +107,7 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
     if (sh->flags & SIG_GROUP_HAVECONTENT && sh->mpm_ctx != NULL &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
         SCLogDebug("destroying mpm_ctx %p (sh %p)", sh->mpm_ctx, sh);
-        sh->mpm_ctx->DestroyCtx(sh->mpm_ctx);
+        mpm_table[sh->mpm_ctx->mpm_type].DestroyCtx(sh->mpm_ctx);
         free(sh->mpm_ctx);
 
         /* ready for reuse */
@@ -103,7 +119,7 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && sh->mpm_uri_ctx != NULL &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         SCLogDebug("destroying mpm_uri_ctx %p (sh %p)", sh->mpm_uri_ctx, sh);
-        sh->mpm_uri_ctx->DestroyCtx(sh->mpm_uri_ctx);
+        mpm_table[sh->mpm_uri_ctx->mpm_type].DestroyCtx(sh->mpm_uri_ctx);
         free(sh->mpm_uri_ctx);
 
         /* ready for reuse */

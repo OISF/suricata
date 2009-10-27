@@ -521,8 +521,12 @@ void SigFree(Signature *s) {
     DetectAddressGroupsHeadCleanup(&s->src);
     DetectAddressGroupsHeadCleanup(&s->dst);
 
-    DetectPortCleanupList(s->sp);
-    DetectPortCleanupList(s->dp);
+    if (s->sp != NULL) {
+        DetectPortCleanupList(s->sp);
+    }
+    if (s->dp != NULL) {
+        DetectPortCleanupList(s->dp);
+    }
 
     if (s->msg != NULL) free(s->msg);
 

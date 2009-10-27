@@ -258,6 +258,8 @@ typedef struct DetectEngineCtx_ {
     uint32_t mpm_memory_size;
 
     DetectEngineIPOnlyCtx io_ctx;
+
+    uint16_t mpm_matcher; /**< mpm matcher this ctx uses */
 } DetectEngineCtx;
 
 /**

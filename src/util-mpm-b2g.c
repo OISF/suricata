@@ -893,8 +893,6 @@ void B2gInitCtx (MpmCtx *mpm_ctx) {
 
     BUG_ON(mpm_ctx->ctx != NULL);
 
-    memset(mpm_ctx, 0, sizeof(MpmCtx));
-
     mpm_ctx->ctx = malloc(sizeof(B2gCtx));
     if (mpm_ctx->ctx == NULL)
         return;
@@ -1060,6 +1058,8 @@ void B2gThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t ma
         mpm_thread_ctx->memory_cnt++;
         mpm_thread_ctx->memory_size += (keys * sizeof(MpmMatchBucket));
     }
+
+    mpm_thread_ctx->matchsize = matchsize;
 }
 
 void B2gThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
@@ -1070,7 +1070,7 @@ void B2gThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
     if (ctx) {
         if (mpm_thread_ctx->match != NULL) {
             mpm_thread_ctx->memory_cnt--;
-            mpm_thread_ctx->memory_size -= ((mpm_ctx->max_pattern_id + 1) * sizeof(MpmMatchBucket));
+            mpm_thread_ctx->memory_size -= ((mpm_thread_ctx->matchsize + 1) * sizeof(MpmMatchBucket));
             free(mpm_thread_ctx->match);
         }
 
