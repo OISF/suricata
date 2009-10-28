@@ -38,9 +38,8 @@ void DetectAddressRegister (void) {
 }
 
 /* prototypes */
-void DetectAddressDataPrint(DetectAddressData *);
-static int DetectAddressCut(DetectAddressData *, DetectAddressData *, DetectAddressData **);
-static int DetectAddressCutNot(DetectAddressData *, DetectAddressData **);
+void DetectAddressPrint(DetectAddressGroup *);
+static int DetectAddressGroupCutNot(DetectAddressGroup *, DetectAddressGroup **);
 static int DetectAddressGroupCut(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
 
 /** memory usage counters
@@ -53,10 +52,6 @@ static uint32_t detect_address_group_free_cnt = 0;
 static uint32_t detect_address_group_head_memory = 0;
 static uint32_t detect_address_group_head_init_cnt = 0;
 static uint32_t detect_address_group_head_free_cnt = 0;
-
-static uint32_t detect_address_memory = 0;
-static uint32_t detect_address_init_cnt = 0;
-static uint32_t detect_address_free_cnt = 0;
 #endif
 
 DetectAddressGroup *DetectAddressGroupInit(void) {
@@ -77,23 +72,16 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
     if (ag == NULL)
         return;
 
-    SCLogDebug("ag %p", ag);
+    SCLogDebug("ag %p, sh %p", ag, ag->sh);
 
-    SCLogDebug("- ag %p, ad %p", ag, ag->ad);
-    if (ag->ad != NULL) {
-        DetectAddressDataFree(ag->ad);
-    }
-    ag->ad = NULL;
-
-    SCLogDebug("- ag %p, sh %p", ag, ag->sh);
     /* only free the head if we have the original */
-    if (ag->sh != NULL && !(ag->flags & ADDRESS_GROUP_SIGGROUPHEAD_COPY)) {
+    if (ag->sh != NULL && !(ag->flags & ADDRESS_SIGGROUPHEAD_COPY)) {
         SCLogDebug("- ag %p, sh %p not a copy, so call SigGroupHeadFree", ag, ag->sh);
         SigGroupHeadFree(ag->sh);
     }
     ag->sh = NULL;
 
-    if (!(ag->flags & ADDRESS_GROUP_HAVEPORT)) {
+    if (!(ag->flags & ADDRESS_HAVEPORT)) {
         SCLogDebug("- ag %p dst_gh %p", ag, ag->dst_gh);
 
         if (ag->dst_gh != NULL) {
@@ -103,7 +91,7 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
     } else {
         SCLogDebug("- ag %p port %p", ag, ag->port);
 
-        if (ag->port != NULL && !(ag->flags & ADDRESS_GROUP_PORTS_COPY)) {
+        if (ag->port != NULL && !(ag->flags & ADDRESS_PORTS_COPY)) {
             SCLogDebug("- ag %p port %p, not a copy so call DetectPortCleanupList", ag, ag->port);
             DetectPortCleanupList(ag->port);
         }
@@ -114,6 +102,34 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
     detect_address_group_free_cnt++;
 #endif
     free(ag);
+}
+
+/** \brief simple copy, no sgh and stuff */
+DetectAddressGroup *DetectAddressGroupCopy(DetectAddressGroup *orig) {
+    DetectAddressGroup *ag = DetectAddressGroupInit();
+    if (ag == NULL) {
+        return NULL;
+    }
+
+    ag->flags = orig->flags;
+    ag->family = orig->family;
+
+    if (ag->family == AF_INET) {
+        ag->ip[0] = orig->ip[0];
+        ag->ip2[0] = orig->ip2[0];
+    } else if (ag->family == AF_INET6) {
+        ag->ip[0] = orig->ip[0];
+        ag->ip[1] = orig->ip[1];
+        ag->ip[2] = orig->ip[2];
+        ag->ip[3] = orig->ip[3];
+        ag->ip2[0] = orig->ip2[0];
+        ag->ip2[1] = orig->ip2[1];
+        ag->ip2[2] = orig->ip2[2];
+        ag->ip2[3] = orig->ip2[3];
+    }
+
+    ag->cnt = 1;
+    return ag;
 }
 
 void DetectAddressGroupPrintMemory(void) {
@@ -130,25 +146,19 @@ void DetectAddressGroupPrintMemory(void) {
     printf("  - detect_address_group_head_free_cnt %" PRIu32 "\n", detect_address_group_head_free_cnt);
     printf("  - outstanding groups %" PRIu32 "\n", detect_address_group_head_init_cnt - detect_address_group_head_free_cnt);
     printf(" * Address group head memory stats done\n");
-    printf(" * Address memory stats (DetectAddressData %" PRIuMAX "):\n", (uintmax_t)sizeof(DetectAddressData));
-    printf("  - detect_address_memory %" PRIu32 "\n", detect_address_memory);
-    printf("  - detect_address_init_cnt %" PRIu32 "\n", detect_address_init_cnt);
-    printf("  - detect_address_free_cnt %" PRIu32 "\n", detect_address_free_cnt);
-    printf("  - outstanding addresses %" PRIu32 "\n", detect_address_init_cnt - detect_address_free_cnt);
-    printf(" * Address memory stats done\n");
-    printf(" X Total %" PRIu32 "\n", detect_address_group_memory + detect_address_group_head_memory + detect_address_memory);
+    printf(" X Total %" PRIu32 "\n", detect_address_group_memory + detect_address_group_head_memory);
 #endif
 }
 
 /* used to see if the exact same address group exists in the list
  * returns a ptr to the match, or NULL if no match
  */
-DetectAddressGroup *DetectAddressGroupLookup(DetectAddressGroup *head, DetectAddressData *ad) {
+DetectAddressGroup *DetectAddressGroupLookup(DetectAddressGroup *head, DetectAddressGroup *gr) {
     DetectAddressGroup *cur;
 
     if (head != NULL) {
         for (cur = head; cur != NULL; cur = cur->next) {
-             if (DetectAddressCmp(cur->ad, ad) == ADDRESS_EQ)
+             if (DetectAddressCmp(cur, gr) == ADDRESS_EQ)
                  return cur;
         }
     }
@@ -164,7 +174,7 @@ void DetectAddressGroupPrintList(DetectAddressGroup *head) {
         for (cur = head; cur != NULL; cur = cur->next) {
              printf("SIGS %6u ", cur->sh ? cur->sh->sig_cnt : 0);
 
-             DetectAddressDataPrint(cur->ad);
+             DetectAddressPrint(cur);
 
              printf("\n");
         }
@@ -194,12 +204,11 @@ void DetectAddressGroupCleanupList (DetectAddressGroup *head) {
 int DetectAddressGroupAdd(DetectAddressGroup **head, DetectAddressGroup *ag) {
     DetectAddressGroup *cur, *prev_cur = NULL;
 
-    //printf("DetectAddressGroupAdd: adding "); DetectAddressDataPrint(ag->ad); printf("\n");
     if (*head != NULL) {
         for (cur = *head; cur != NULL; cur = cur->next) {
             prev_cur = cur;
 
-            int r = DetectAddressCmp(ag->ad,cur->ad);
+            int r = DetectAddressCmp(ag,cur);
             if (r == ADDRESS_EB) {
                 //printf("r == EB, inserting here\n");
 
@@ -231,19 +240,21 @@ int DetectAddressGroupAdd(DetectAddressGroup **head, DetectAddressGroup *ag) {
  * set & get the head ptr
  */
 static int SetHeadPtr(DetectAddressGroupsHead *gh, DetectAddressGroup *newhead) {
-    if (newhead->ad->flags & ADDRESS_FLAG_ANY)
+    if (newhead->flags & ADDRESS_FLAG_ANY)
         gh->any_head = newhead;
-    else if (newhead->ad->family == AF_INET)
+    else if (newhead->family == AF_INET)
         gh->ipv4_head = newhead;
-    else if (newhead->ad->family == AF_INET6)
+    else if (newhead->family == AF_INET6)
         gh->ipv6_head = newhead;
-    else
+    else {
+        SCLogDebug("newhead->family %u not supported", newhead->family);
         return -1;
+    }
 
     return 0;
 }
 
-static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *gh, DetectAddressData *new) {
+static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *gh, DetectAddressGroup *new) {
     DetectAddressGroup *head = NULL;
 
     if (new->flags & ADDRESS_FLAG_ANY)
@@ -272,12 +283,10 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
     if (new == NULL)
         return 0;
 
-#ifdef DBG
-    printf("DetectAddressGroupInsert: inserting (sig %" PRIu32 ") ", new->sh?new->sh->sig_cnt:0); DetectAddressDataPrint(new->ad); printf("\n");
-    DetectAddressGroupPrintList(gh->ipv4_head);
-#endif
+    BUG_ON(new->family == 0 && !(new->flags & ADDRESS_FLAG_ANY));
+
     /* get our head ptr based on the address we want to insert */
-    head = GetHeadPtr(gh,new->ad);
+    head = GetHeadPtr(gh,new);
 
     /* see if it already exists or overlaps with existing ag's */
     if (head != NULL) {
@@ -285,18 +294,11 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
         int r = 0;
 
         for (cur = head; cur != NULL; cur = cur->next) {
-            r = DetectAddressCmp(new->ad,cur->ad);
-            if (r == ADDRESS_ER) {
-                printf("ADDRESS_ER DetectAddressCmp compared:\n");
-                DetectAddressDataPrint(new->ad); printf(" vs. ");
-                DetectAddressDataPrint(cur->ad); printf("\n");
-                goto error;
-            }
+            r = DetectAddressCmp(new,cur);
+            BUG_ON(r == ADDRESS_ER);
+
             /* if so, handle that */
             if (r == ADDRESS_EQ) {
-#ifdef DBG
-                printf("DetectAddressGroupInsert: ADDRESS_EQ %p %p\n", cur, new);
-#endif
                 /* exact overlap/match */
                 if (cur != new) {
                     DetectPort *port = new->port;
@@ -310,24 +312,15 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
                 }
                 return 1;
             } else if (r == ADDRESS_GT) {
-#ifdef DBG
-                printf("DetectAddressGroupInsert: ADDRESS_GT\n");
-#endif
                 /* only add it now if we are bigger than the last
                  * group. Otherwise we'll handle it later. */
                 if (cur->next == NULL) {
-#ifdef DBG
-                    printf("DetectAddressGroupInsert: adding GT\n");
-#endif
                     /* put in the list */
                     new->prev = cur;
                     cur->next = new;
                     return 1;
                 }
             } else if (r == ADDRESS_LT) {
-#ifdef DBG
-                printf("DetectAddressGroupInsert: ADDRESS_LT\n");
-#endif
                 /* see if we need to insert the ag anywhere */
                 /* put in the list */
                 if (cur->prev != NULL)
@@ -349,9 +342,6 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
              * lets handle the more complex ones now */
 
             } else if (r == ADDRESS_ES) {
-#ifdef DBG
-                printf("DetectAddressGroupInsert: ADDRESS_ES\n");
-#endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(de_ctx, cur,new,&c);
                 if (r == -1)
@@ -359,16 +349,10 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
 
                 DetectAddressGroupInsert(de_ctx, gh, new);
                 if (c != NULL) {
-#ifdef DBG
-                    printf("DetectAddressGroupInsert: inserting C "); DetectAddressDataPrint(c->ad); printf("\n");
-#endif
                     DetectAddressGroupInsert(de_ctx, gh, c);
                 }
                 return 1;
             } else if (r == ADDRESS_EB) {
-#ifdef DBG
-                printf("ADDRESS_EB\n");
-#endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(de_ctx, cur,new,&c);
                 if (r == -1)
@@ -377,16 +361,10 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
                 //printf("DetectAddressGroupCut returned %" PRId32 "\n", r);
                 DetectAddressGroupInsert(de_ctx, gh, new);
                 if (c != NULL) {
-#ifdef DBG
-                    printf("DetectAddressGroupInsert: inserting C "); DetectAddressDataPrint(c->ad); printf("\n");
-#endif
                     DetectAddressGroupInsert(de_ctx, gh, c);
                 }
                 return 1;
             } else if (r == ADDRESS_LE) {
-#ifdef DBG
-                printf("ADDRESS_LE\n");
-#endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(de_ctx, cur,new,&c);
                 if (r == -1)
@@ -394,16 +372,10 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
 
                 DetectAddressGroupInsert(de_ctx, gh, new);
                 if (c != NULL) {
-#ifdef DBG
-                    printf("DetectAddressGroupInsert: inserting C "); DetectAddressDataPrint(c->ad); printf("\n");
-#endif
                     DetectAddressGroupInsert(de_ctx, gh, c);
                 }
                 return 1;
             } else if (r == ADDRESS_GE) {
-#ifdef DBG
-                printf("DetectAddressGroupInsert: ADDRESS_GE\n");
-#endif
                 DetectAddressGroup *c = NULL;
                 r = DetectAddressGroupCut(de_ctx, cur,new,&c);
                 if (r == -1)
@@ -411,9 +383,6 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
 
                 DetectAddressGroupInsert(de_ctx, gh, new);
                 if (c != NULL) {
-#ifdef DBG
-                    printf("DetectAddressGroupInsert: inserting C "); DetectAddressDataPrint(c->ad); printf("\n");
-#endif
                     DetectAddressGroupInsert(de_ctx, gh, c);
                 }
                 return 1;
@@ -422,12 +391,11 @@ int DetectAddressGroupInsert(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *g
 
     /* head is NULL, so get a group and set head to it */
     } else {
-#ifdef DBG
-        printf("DetectAddressGroupInsert: Setting new head\n");
-#endif
         head = new;
-        if (SetHeadPtr(gh,head) < 0)
+        if (SetHeadPtr(gh,head) < 0) {
+            SCLogDebug("SetHeadPtr failed");
             goto error;
+        }
     }
 
     return 1;
@@ -441,7 +409,7 @@ int DetectAddressGroupJoin(DetectEngineCtx *de_ctx, DetectAddressGroup *target, 
     if (target == NULL || source == NULL)
         return -1;
 
-    if (target->ad->family != source->ad->family)
+    if (target->family != source->family)
         return -1;
 
     target->cnt += source->cnt;
@@ -452,160 +420,17 @@ int DetectAddressGroupJoin(DetectEngineCtx *de_ctx, DetectAddressGroup *target, 
         DetectPortInsertCopy(de_ctx,&target->port, port);
     }
 
-    if (target->ad->family == AF_INET) {
+    if (target->family == AF_INET) {
         return DetectAddressGroupJoinIPv4(de_ctx, target,source);
-    } else if (target->ad->family == AF_INET6) {
+    } else if (target->family == AF_INET6) {
         return DetectAddressGroupJoinIPv6(de_ctx, target,source);
     }
 
     return -1;
 }
 
-/**
- *  \retval 1 inserted
- *  \retval 0 not inserted (no error), memory is cleared
- *  \retval -1 error
- */
-int DetectAddressInsert(DetectAddressGroupsHead *gh, DetectAddressData *new) {
-    DetectAddressGroup *head = NULL;
-
-    /* get our head ptr based on the address we want to insert */
-    head = GetHeadPtr(gh, new);
-
-    /* see if it already exists or overlaps with existing ag's */
-    if (head != NULL) {
-        DetectAddressGroup *ag = NULL, *cur = NULL;
-        int r = 0;
-
-        for (cur = head; cur != NULL; cur = cur->next) {
-            r = DetectAddressCmp(new, cur->ad);
-            if (r == ADDRESS_ER) {
-                printf("ADDRESS_ER DetectAddressCmp compared:\n");
-                DetectAddressDataPrint(new);
-                DetectAddressDataPrint(cur->ad);
-                goto error;
-            }
-            /* if so, handle that */
-            if (r == ADDRESS_EQ) {
-                /* exact overlap/match, we don't need to do a thing
-                 */
-                if (cur->ad != new) {
-                    DetectAddressDataFree(new);
-                    return 0;
-                }
-
-                return 1;
-            } else if (r == ADDRESS_GT) {
-                /* only add it now if we are bigger than the last
-                 * group. Otherwise we'll handle it later. */
-                if (cur->next == NULL) {
-                    /* append */
-                    ag = DetectAddressGroupInit();
-                    if (ag == NULL) {
-                        goto error;
-                    }
-                    ag->ad = new;
-
-                    /* put in the list */
-                    ag->prev = cur;
-                    cur->next = ag;
-                    return 1;
-                }
-            } else if (r == ADDRESS_LT) {
-                /* see if we need to insert the ag anywhere */
-
-                ag = DetectAddressGroupInit();
-                if (ag == NULL) {
-                    goto error;
-                }
-                ag->ad = new;
-
-                /* put in the list */
-                if (cur->prev != NULL)
-                    cur->prev->next = ag;
-                ag->prev = cur->prev;
-                ag->next = cur;
-                cur->prev = ag;
-
-                /* update head if required */
-                if (head == cur) {
-                    head = ag;
-
-                    if (SetHeadPtr(gh, head) < 0)
-                        goto error;
-                }
-                return 1;
-
-            /* alright, those were the simple cases, 
-             * lets handle the more complex ones now */
-
-            } else if (r == ADDRESS_ES) {
-                DetectAddressData *c = NULL;
-                r = DetectAddressCut(cur->ad, new, &c);
-                if (r == -1)
-                    goto error;
-
-                DetectAddressInsert(gh, new);
-                if (c != NULL)
-                    DetectAddressInsert(gh, c);
-
-                return 1;
-            } else if (r == ADDRESS_EB) {
-                DetectAddressData *c = NULL;
-                r = DetectAddressCut(cur->ad, new, &c);
-                if (r == -1)
-                    goto error;
-
-                DetectAddressInsert(gh, new);
-                if (c != NULL)
-                    DetectAddressInsert(gh, c);
-
-                return 1;
-            } else if (r == ADDRESS_LE) {
-                DetectAddressData *c = NULL;
-                r = DetectAddressCut(cur->ad, new, &c);
-                if (r == -1)
-                    goto error;
-
-                DetectAddressInsert(gh, new);
-                if (c != NULL)
-                    DetectAddressInsert(gh, c);
-
-                return 1;
-            } else if (r == ADDRESS_GE) {
-                DetectAddressData *c = NULL;
-                r = DetectAddressCut(cur->ad, new, &c);
-                if (r == -1)
-                    goto error;
-
-                DetectAddressInsert(gh, new);
-                if (c != NULL)
-                    DetectAddressInsert(gh, c);
-
-                return 1;
-            }
-        }
-
-    /* head is NULL, so get a group and set head to it */
-    } else {
-        head = DetectAddressGroupInit();
-        if (head == NULL) {
-            goto error;
-        }
-        head->ad = new;
-
-        if (SetHeadPtr(gh, head) < 0)
-            goto error;
-    }
-
-    return 1;
-error:
-    /* XXX */
-    return -1;
-}
-
 int DetectAddressGroupSetup(DetectAddressGroupsHead *gh, char *s) {
-    DetectAddressData  *ad = NULL;
+    DetectAddressGroup *ad = NULL;
     int r = 0;
 
     SCLogDebug("gh %p, s %s", gh, s);
@@ -620,9 +445,10 @@ int DetectAddressGroupSetup(DetectAddressGroupsHead *gh, char *s) {
     /* handle the not case, we apply the negation
      * then insert the part(s) */
     if (ad->flags & ADDRESS_FLAG_NOT) {
-        DetectAddressData *ad2 = NULL;
+        DetectAddressGroup *ad2 = NULL;
 
-        if (DetectAddressCutNot(ad, &ad2) < 0) {
+        if (DetectAddressGroupCutNot(ad, &ad2) < 0) {
+            SCLogDebug("DetectAddressGroupCutNot failed");
             goto error;
         }
 
@@ -631,30 +457,44 @@ int DetectAddressGroupSetup(DetectAddressGroupsHead *gh, char *s) {
          * of the address space (e.g. 0.0.0.0 or
          * 255.255.255.255). */
         if (ad2 != NULL) {
-            if (DetectAddressInsert(gh, ad2) < 0)
+            if (DetectAddressGroupInsert(NULL, gh, ad2) < 0) {
+                SCLogDebug("DetectAddressGroupInsert failed");
                 goto error;
+            }
         }
     }
 
-    r = DetectAddressInsert(gh, ad);
-    if (r < 0)
+    r = DetectAddressGroupInsert(NULL, gh, ad);
+    if (r < 0) {
+        SCLogDebug("DetectAddressGroupInsert failed");
         goto error;
+    }
+    SCLogDebug("r %d",r);
 
     /* if any, insert 0.0.0.0/0 and ::/0 as well */
     if (r == 1 && ad->flags & ADDRESS_FLAG_ANY) {
+        SCLogDebug("adding 0.0.0.0/0 and ::/0 as we\'re handling \'any\'");
+
         ad = DetectAddressParse("0.0.0.0/0");
         if (ad == NULL)
             goto error;
 
-	if (DetectAddressInsert(gh, ad) < 0)
-	    goto error;
+        BUG_ON(ad->family == 0);
 
-    ad = DetectAddressParse("::/0");
-    if (ad == NULL)
-        goto error;
+        if (DetectAddressGroupInsert(NULL, gh, ad) < 0) {
+            SCLogDebug("DetectAddressGroupInsert failed");
+            goto error;
+        }
+        ad = DetectAddressParse("::/0");
+        if (ad == NULL)
+            goto error;
 
-	if (DetectAddressInsert(gh, ad) < 0)
-	    goto error;
+        BUG_ON(ad->family == 0);
+
+        if (DetectAddressGroupInsert(NULL, gh, ad) < 0) {
+            SCLogDebug("DetectAddressGroupInsert failed");
+            goto error;
+        }
     }
     return 0;
 
@@ -674,6 +514,8 @@ int DetectAddressParse2(DetectAddressGroupsHead *gh,
     size_t size = strlen(s);
     char address[1024] = "";
 
+    SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
+
     for (i = 0, x = 0; i < size && x < sizeof(address); i++) {
         address[x] = s[i];
         x++;
@@ -692,7 +534,8 @@ int DetectAddressParse2(DetectAddressGroupsHead *gh,
                 address[x - 1] = '\0';
                 x = 0;
 
-                DetectAddressParse2(gh, ghn, address, negate? negate: n_set);
+                if (DetectAddressParse2(gh, ghn, address, negate? negate: n_set) < 0)
+                    goto error;
                 n_set = 0;
             }
             depth--;
@@ -703,9 +546,11 @@ int DetectAddressParse2(DetectAddressGroupsHead *gh,
                 address[x - 1] = '\0';
 
                 if (negate == 0 && n_set == 0) {
-                    DetectAddressGroupSetup(gh, address);
+                    if (DetectAddressGroupSetup(gh, address) < 0)
+                        goto error;
                 } else {
-                    DetectAddressGroupSetup(ghn, address);
+                    if (DetectAddressGroupSetup(ghn, address) < 0)
+                        goto error;
                 }
                 n_set = 0;
             }
@@ -715,17 +560,19 @@ int DetectAddressParse2(DetectAddressGroupsHead *gh,
             x = 0;
 
             if (negate == 0 && n_set == 0) {
-                DetectAddressGroupSetup(gh, address);
+                if (DetectAddressGroupSetup(gh, address) < 0)
+                    goto error;
             } else {
-                DetectAddressGroupSetup(ghn, address);
+                if (DetectAddressGroupSetup(ghn, address) < 0)
+                    goto error;
             }
             n_set = 0;
         }
     }
 
     return 0;
-//error:
-//    return -1;
+error:
+    return -1;
 }
 
 /** \brief See if the addresses and ranges in a group head cover the entire
@@ -747,9 +594,11 @@ static int DetectAddressGroupIsCompleteIPSpace(DetectAddressGroupsHead *gh) {
 
 /** \brief Merge the + and the - list (+ positive match, - 'not' match) */
 int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsHead *ghn) {
-    DetectAddressData *ad;
+    DetectAddressGroup *ad;
     DetectAddressGroup *ag, *ag2;
     int r = 0;
+
+    SCLogDebug("gh->ipv4_head %p, ghn->ipv4_head %p", gh->ipv4_head, ghn->ipv4_head);
 
     /* check if the negated list covers the entire ip space. If so
        the user screwed up the rules/vars. */
@@ -764,6 +613,7 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
     if (gh->ipv4_head == NULL && ghn->ipv4_head != NULL) {
         r = DetectAddressGroupSetup(gh,"0.0.0.0/0");
         if (r < 0) {
+            SCLogDebug("DetectAddressGroupSetup for 0.0.0.0/0 failed");
             goto error;
         }
     }
@@ -771,6 +621,7 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
     if (gh->ipv6_head == NULL && ghn->ipv6_head != NULL) {
         r = DetectAddressGroupSetup(gh,"::/0");
         if (r < 0) {
+            SCLogDebug("DetectAddressGroupSetup for ::/0 failed");
             goto error;
         }
     }
@@ -779,13 +630,15 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
     for (ag = ghn->ipv4_head; ag != NULL; ag = ag->next) {
         /* work with a copy of the ad so we can easily clean up
          * the ghn group later. */
-        ad = DetectAddressDataCopy(ag->ad);
+        ad = DetectAddressGroupCopy(ag);
         if (ad == NULL) {
+            SCLogDebug("DetectAddressGroupCopy failed");
             goto error;
         }
 
-        r = DetectAddressInsert(gh,ad);
+        r = DetectAddressGroupInsert(NULL, gh, ad);
         if (r < 0) {
+            SCLogDebug("DetectAddressGroupInsert failed");
             goto error;
         }
     }
@@ -793,13 +646,15 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
     for (ag = ghn->ipv6_head; ag != NULL; ag = ag->next) {
         /* work with a copy of the ad so we can easily clean up
          * the ghn group later. */
-        ad = DetectAddressDataCopy(ag->ad);
+        ad = DetectAddressGroupCopy(ag);
         if (ad == NULL) {
+            SCLogDebug("DetectAddressGroupCopy failed");
             goto error;
         }
 
-        r = DetectAddressInsert(gh,ad);
+        r = DetectAddressGroupInsert(NULL, gh, ad);
         if (r < 0) {
+            SCLogDebug("DetectAddressGroupInsert failed");
             goto error;
         }
     }
@@ -807,13 +662,13 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
     /* step 2: pull the address blocks that match our 'not' blocks */
     for (ag = ghn->ipv4_head; ag != NULL; ag = ag->next) {
         SCLogDebug("ag %p", ag);
-        DetectAddressDataPrint(ag->ad);
+        DetectAddressPrint(ag);
 
         for (ag2 = gh->ipv4_head; ag2 != NULL; ) {
             SCLogDebug("ag2 %p", ag2);
-            DetectAddressDataPrint(ag2->ad);
+            DetectAddressPrint(ag2);
 
-            r = DetectAddressCmp(ag->ad,ag2->ad);
+            r = DetectAddressCmp(ag, ag2);
             if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
                 if (ag2->prev == NULL) {
                     gh->ipv4_head = ag2->next;
@@ -837,7 +692,7 @@ int DetectAddressGroupMergeNot(DetectAddressGroupsHead *gh, DetectAddressGroupsH
     /* ... and the same for ipv6 */
     for (ag = ghn->ipv6_head; ag != NULL; ag = ag->next) {
         for (ag2 = gh->ipv6_head; ag2 != NULL; ) {
-            r = DetectAddressCmp(ag->ad,ag2->ad);
+            r = DetectAddressCmp(ag, ag2);
             if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
                 if (ag2->prev == NULL) {
                     gh->ipv6_head = ag2->next;
@@ -878,16 +733,21 @@ int DetectAddressGroupParse(DetectAddressGroupsHead *gh, char *str) {
 
     DetectAddressGroupsHead *ghn = DetectAddressGroupsHeadInit();
     if (ghn == NULL) {
+        SCLogDebug("DetectAddressGroupsHeadInit for ghn failed");
         goto error;
     }
 
     r = DetectAddressParse2(gh, ghn, str,/* start with negate no */0);
     if (r < 0) {
+        SCLogDebug("DetectAddressParse2 returned %d", r);
         goto error;
     }
 
+    SCLogDebug("gh->ipv4_head %p, ghn->ipv4_head %p", gh->ipv4_head, ghn->ipv4_head);
+
     /* merge the 'not' address groups */
     if (DetectAddressGroupMergeNot(gh, ghn) < 0) {
+        SCLogDebug("DetectAddressGroupMergeNot failed");
         goto error;
     }
 
@@ -941,9 +801,9 @@ void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *gh) {
 }
 
 int DetectAddressGroupCut(DetectEngineCtx *de_ctx, DetectAddressGroup *a, DetectAddressGroup *b, DetectAddressGroup **c) {
-    if (a->ad->family == AF_INET) {
+    if (a->family == AF_INET) {
         return DetectAddressGroupCutIPv4(de_ctx, a,b,c);
-    } else if (a->ad->family == AF_INET6) {
+    } else if (a->family == AF_INET6) {
         return DetectAddressGroupCutIPv6(de_ctx, a,b,c);
     }
 
@@ -952,29 +812,17 @@ int DetectAddressGroupCut(DetectEngineCtx *de_ctx, DetectAddressGroup *a, Detect
 
 /** \retval 0 ok
  *  \retval -1 error */
-int DetectAddressCut(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
+int DetectAddressGroupCutNot(DetectAddressGroup *a, DetectAddressGroup **b) {
     if (a->family == AF_INET) {
-        return DetectAddressCutIPv4(a, b, c);
+        return DetectAddressGroupCutNotIPv4(a,b);
     } else if (a->family == AF_INET6) {
-        return DetectAddressCutIPv6(a, b, c);
+        return DetectAddressGroupCutNotIPv6(a,b);
     }
 
     return -1;
 }
 
-/** \retval 0 ok
- *  \retval -1 error */
-int DetectAddressCutNot(DetectAddressData *a, DetectAddressData **b) {
-    if (a->family == AF_INET) {
-        return DetectAddressCutNotIPv4(a,b);
-    } else if (a->family == AF_INET6) {
-        return DetectAddressCutNotIPv6(a,b);
-    }
-
-    return -1;
-}
-
-int DetectAddressCmp(DetectAddressData *a, DetectAddressData *b) {
+int DetectAddressCmp(DetectAddressGroup *a, DetectAddressGroup *b) {
     if (a->family != b->family)
         return ADDRESS_ER;
 
@@ -982,17 +830,15 @@ int DetectAddressCmp(DetectAddressData *a, DetectAddressData *b) {
     if (a->flags & ADDRESS_FLAG_ANY && b->flags & ADDRESS_FLAG_ANY)
         return ADDRESS_EQ;
     else if (a->family == AF_INET)
-        return DetectAddressCmpIPv4(a, b);
+        return DetectAddressGroupCmpIPv4(a, b);
     else if (a->family == AF_INET6)
-        return DetectAddressCmpIPv6(a, b);
+        return DetectAddressGroupCmpIPv6(a, b);
 
     return ADDRESS_ER;
 }
 
 void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6) {
     int i = 0;
-
-    //printf("CIDR: %" PRId32 "\n", cidr);
 
     memset(in6, 0, sizeof(struct in6_addr));
 
@@ -1009,16 +855,20 @@ void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6) {
     }
 }
 
-static int AddressParse(DetectAddressData *dd, char *str) {
+static int AddressParse(DetectAddressGroup *dd, char *str) {
     char *ipdup = strdup(str);
     char *ip2 = NULL;
     char *mask = NULL;
     int r = 0;
 
+    SCLogDebug("str %s", str);
+
     /* first handle 'any' */
     if (strcasecmp(str,"any") == 0) {
         dd->flags |= ADDRESS_FLAG_ANY;
         free(ipdup);
+
+        SCLogDebug("address is \'any\'");
         return 0;
     }
 
@@ -1169,6 +1019,8 @@ static int AddressParse(DetectAddressData *dd, char *str) {
     }
 
     free(ipdup);
+
+    BUG_ON(dd->family == 0);
     return 0;
 
 error:
@@ -1176,69 +1028,30 @@ error:
     return -1;
 }
 
-DetectAddressData *DetectAddressParse(char *str) {
-    DetectAddressData *dd;
+DetectAddressGroup *DetectAddressParse(char *str) {
+    DetectAddressGroup *dd;
 
-    dd = DetectAddressDataInit();
+    SCLogDebug("str %s", str);
+
+    dd = DetectAddressGroupInit();
     if (dd == NULL) {
         goto error;
     }
 
     if (AddressParse(dd, str) < 0) {
+        SCLogDebug("AddressParse failed");
         goto error;
     }
 
     return dd;
 
 error:
-    if (dd) DetectAddressDataFree(dd);
+    if (dd != NULL)
+        DetectAddressGroupFree(dd);
     return NULL;
 }
 
-DetectAddressData *DetectAddressDataInit(void) {
-    DetectAddressData *dd;
-
-    dd = malloc(sizeof(DetectAddressData));
-    if (dd == NULL) {
-        printf("DetectAddressSetup malloc failed\n");
-        goto error;
-    }
-    memset(dd,0,sizeof(DetectAddressData));
-#ifdef DEBUG
-    detect_address_init_cnt++;
-    detect_address_memory += sizeof(DetectAddressData);
-#endif
-    return dd;
-
-error:
-    if (dd) free(dd);
-    return NULL;
-}
-
-DetectAddressData *DetectAddressDataCopy(DetectAddressData *src) {
-    DetectAddressData *dst = DetectAddressDataInit();
-    if (dst == NULL) {
-        goto error;
-    }
-
-    memcpy(dst,src,sizeof(DetectAddressData));
-
-    return dst;
-error:
-    return NULL;
-}
-
-void DetectAddressDataFree(DetectAddressData *dd) {
-    if (dd != NULL) {
-        free(dd);
-#ifdef DEBUG
-        detect_address_free_cnt++;
-        detect_address_memory -= sizeof(DetectAddressData);
-#endif
-    }
-}
-
-int DetectAddressMatch (DetectAddressData *dd, Address *a) {
+int DetectAddressMatch (DetectAddressGroup *dd, Address *a) {
     if (dd->family != a->family)
         return 0;
 
@@ -1267,29 +1080,29 @@ int DetectAddressMatch (DetectAddressData *dd, Address *a) {
     return 0;
 }
 
-void DetectAddressDataPrint(DetectAddressData *ad) {
-    if (ad == NULL)
+void DetectAddressPrint(DetectAddressGroup *gr) {
+    if (gr == NULL)
         return;
 
-    if (ad->flags & ADDRESS_FLAG_ANY) {
+    if (gr->flags & ADDRESS_FLAG_ANY) {
         printf("ANY");
-    } else if (ad->family == AF_INET) {
+    } else if (gr->family == AF_INET) {
         struct in_addr in;
         char ip[16], mask[16];
 
-        memcpy(&in, &ad->ip[0], sizeof(in));
+        memcpy(&in, &gr->ip[0], sizeof(in));
         inet_ntop(AF_INET, &in, ip, sizeof(ip));
-        memcpy(&in, &ad->ip2[0], sizeof(in));
+        memcpy(&in, &gr->ip2[0], sizeof(in));
         inet_ntop(AF_INET, &in, mask, sizeof(mask));
 
         SCLogDebug("%s/%s", ip, mask);
-    } else if (ad->family == AF_INET6) {
+    } else if (gr->family == AF_INET6) {
         struct in6_addr in6;
         char ip[66], mask[66];
 
-        memcpy(&in6, &ad->ip, sizeof(in6));
+        memcpy(&in6, &gr->ip, sizeof(in6));
         inet_ntop(AF_INET6, &in6, ip, sizeof(ip));
-        memcpy(&in6, &ad->ip2, sizeof(in6));
+        memcpy(&in6, &gr->ip2, sizeof(in6));
         inet_ntop(AF_INET6, &in6, mask, sizeof(mask));
 
         SCLogDebug("%s/%s", ip, mask);
@@ -1320,8 +1133,8 @@ DetectAddressLookupGroup(DetectAddressGroupsHead *gh, Address *a) {
     //printf("g %p\n", g);
 
     for ( ; g != NULL; g = g->next) {
-        //printf("DetectAddressLookupGroup: checking \n"); DetectAddressDataPrint(g->ad); printf("\n");
-        if (DetectAddressMatch(g->ad,a) == 1) {
+        //printf("DetectAddressLookupGroup: checking \n"); DetectAddressDataPrint(g->ad2); printf("\n");
+        if (DetectAddressMatch(g,a) == 1) {
             return g;
         }
     }
@@ -1334,10 +1147,10 @@ DetectAddressLookupGroup(DetectAddressGroupsHead *gh, Address *a) {
 
 #ifdef UNITTESTS
 int AddressTestParse01 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("1.2.3.4");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1345,17 +1158,17 @@ int AddressTestParse01 (void) {
 }
 
 int AddressTestParse02 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("1.2.3.4");
     if (dd) {
         if (dd->ip2[0] != 0x04030201 ||
-            dd->ip[0]   != 0x04030201) {
+            dd->ip[0]  != 0x04030201) {
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1363,10 +1176,10 @@ int AddressTestParse02 (void) {
 }
 
 int AddressTestParse03 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("1.2.3.4/255.255.255.0");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1374,17 +1187,17 @@ int AddressTestParse03 (void) {
 }
 
 int AddressTestParse04 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("1.2.3.4/255.255.255.0");
     if (dd) {
         if (dd->ip2[0] != 0xff030201 ||
-            dd->ip[0]   != 0x00030201) {
+            dd->ip[0]  != 0x00030201) {
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1392,10 +1205,10 @@ int AddressTestParse04 (void) {
 }
 
 int AddressTestParse05 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("1.2.3.4/24");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1403,17 +1216,17 @@ int AddressTestParse05 (void) {
 }
 
 int AddressTestParse06 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("1.2.3.4/24");
     if (dd) {
         if (dd->ip2[0] != 0xff030201 ||
-            dd->ip[0]   != 0x00030201) {
+            dd->ip[0]  != 0x00030201) {
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1421,10 +1234,10 @@ int AddressTestParse06 (void) {
 }
 
 int AddressTestParse07 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::/3");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1432,7 +1245,7 @@ int AddressTestParse07 (void) {
 }
 
 int AddressTestParse08 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::/3");
     if (dd) {
         int result = 1;
@@ -1443,11 +1256,11 @@ int AddressTestParse08 (void) {
             dd->ip2[0] != 0xFFFFFF3F || dd->ip2[1] != 0xFFFFFFFF ||
             dd->ip2[2] != 0xFFFFFFFF || dd->ip2[3] != 0xFFFFFFFF)
         {
-            DetectAddressDataPrint(dd);
+            DetectAddressPrint(dd);
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1455,10 +1268,10 @@ int AddressTestParse08 (void) {
 }
 
 int AddressTestParse09 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::1/128");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1466,7 +1279,7 @@ int AddressTestParse09 (void) {
 }
 
 int AddressTestParse10 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::/128");
     if (dd) {
         int result = 1;
@@ -1477,11 +1290,11 @@ int AddressTestParse10 (void) {
             dd->ip2[0] != 0x00000120 || dd->ip2[1] != 0x00000000 ||
             dd->ip2[2] != 0x00000000 || dd->ip2[3] != 0x00000000)
         {
-            DetectAddressDataPrint(dd);
+            DetectAddressPrint(dd);
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1489,10 +1302,10 @@ int AddressTestParse10 (void) {
 }
 
 int AddressTestParse11 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::/48");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1500,7 +1313,7 @@ int AddressTestParse11 (void) {
 }
 
 int AddressTestParse12 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::/48");
     if (dd) {
         int result = 1;
@@ -1511,21 +1324,21 @@ int AddressTestParse12 (void) {
             dd->ip2[0] != 0x00000120 || dd->ip2[1] != 0xFFFF0000 ||
             dd->ip2[2] != 0xFFFFFFFF || dd->ip2[3] != 0xFFFFFFFF)
         {
-            DetectAddressDataPrint(dd);
+            DetectAddressPrint(dd);
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
     return 0;
 }
 int AddressTestParse13 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::/16");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1533,7 +1346,7 @@ int AddressTestParse13 (void) {
 }
 
 int AddressTestParse14 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::/16");
     if (dd) {
         int result = 1;
@@ -1547,7 +1360,7 @@ int AddressTestParse14 (void) {
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1555,10 +1368,10 @@ int AddressTestParse14 (void) {
 }
 
 int AddressTestParse15 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::/0");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1566,7 +1379,7 @@ int AddressTestParse15 (void) {
 }
 
 int AddressTestParse16 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::/0");
     if (dd) {
         int result = 1;
@@ -1580,7 +1393,7 @@ int AddressTestParse16 (void) {
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1588,10 +1401,10 @@ int AddressTestParse16 (void) {
 }
 
 int AddressTestParse17 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("1.2.3.4-1.2.3.6");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1599,17 +1412,17 @@ int AddressTestParse17 (void) {
 }
 
 int AddressTestParse18 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("1.2.3.4-1.2.3.6");
     if (dd) {
         if (dd->ip2[0] != 0x06030201 ||
-            dd->ip[0]   != 0x04030201) {
+            dd->ip[0]  != 0x04030201) {
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1617,10 +1430,10 @@ int AddressTestParse18 (void) {
 }
 
 int AddressTestParse19 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("1.2.3.6-1.2.3.4");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 0;
     }
 
@@ -1628,10 +1441,10 @@ int AddressTestParse19 (void) {
 }
 
 int AddressTestParse20 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::1-2001::4");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1639,7 +1452,7 @@ int AddressTestParse20 (void) {
 }
 
 int AddressTestParse21 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("2001::1-2001::4");
@@ -1653,7 +1466,7 @@ int AddressTestParse21 (void) {
             result = 0;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1661,10 +1474,10 @@ int AddressTestParse21 (void) {
 }
 
 int AddressTestParse22 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("2001::4-2001::1");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 0;
     }
 
@@ -1672,10 +1485,10 @@ int AddressTestParse22 (void) {
 }
 
 int AddressTestParse23 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("any");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1683,10 +1496,10 @@ int AddressTestParse23 (void) {
 }
 
 int AddressTestParse24 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("Any");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1694,10 +1507,10 @@ int AddressTestParse24 (void) {
 }
 
 int AddressTestParse25 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("ANY");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1706,13 +1519,13 @@ int AddressTestParse25 (void) {
 
 int AddressTestParse26 (void) {
     int result = 0;
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("any");
     if (dd) {
         if (dd->flags & ADDRESS_FLAG_ANY)
             result = 1;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1720,10 +1533,10 @@ int AddressTestParse26 (void) {
 }
 
 int AddressTestParse27 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("!192.168.0.1");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1732,7 +1545,7 @@ int AddressTestParse27 (void) {
 
 int AddressTestParse28 (void) {
     int result = 0;
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("!1.2.3.4");
     if (dd) {
         if (dd->flags & ADDRESS_FLAG_NOT &&
@@ -1740,7 +1553,7 @@ int AddressTestParse28 (void) {
             result = 1;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1748,10 +1561,10 @@ int AddressTestParse28 (void) {
 }
 
 int AddressTestParse29 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("!1.2.3.0/24");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1760,7 +1573,7 @@ int AddressTestParse29 (void) {
 
 int AddressTestParse30 (void) {
     int result = 0;
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("!1.2.3.4/24");
     if (dd) {
         if (dd->flags & ADDRESS_FLAG_NOT &&
@@ -1769,7 +1582,7 @@ int AddressTestParse30 (void) {
             result = 1;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1778,10 +1591,10 @@ int AddressTestParse30 (void) {
 
 /** \test make sure !any is rejected */
 int AddressTestParse31 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("!any");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 0;
     }
 
@@ -1789,10 +1602,10 @@ int AddressTestParse31 (void) {
 }
 
 int AddressTestParse32 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("!2001::1");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1801,7 +1614,7 @@ int AddressTestParse32 (void) {
 
 int AddressTestParse33 (void) {
     int result = 0;
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("!2001::1");
     if (dd) {
         if (dd->flags & ADDRESS_FLAG_NOT &&
@@ -1810,7 +1623,7 @@ int AddressTestParse33 (void) {
             result = 1;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1818,10 +1631,10 @@ int AddressTestParse33 (void) {
 }
 
 int AddressTestParse34 (void) {
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("!2001::/16");
     if (dd) {
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return 1;
     }
 
@@ -1830,7 +1643,7 @@ int AddressTestParse34 (void) {
 
 int AddressTestParse35 (void) {
     int result = 0;
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     dd = DetectAddressParse("!2001::/16");
     if (dd) {
         if (dd->flags & ADDRESS_FLAG_NOT &&
@@ -1843,7 +1656,7 @@ int AddressTestParse35 (void) {
             result = 1;
         }
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1860,7 +1673,7 @@ int AddressTestMatch01 (void) {
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("1.2.3.4/24");
@@ -1868,7 +1681,7 @@ int AddressTestMatch01 (void) {
         if (DetectAddressMatch(dd,&a) == 0)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1885,7 +1698,7 @@ int AddressTestMatch02 (void) {
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("1.2.3.4/25");
@@ -1893,7 +1706,7 @@ int AddressTestMatch02 (void) {
         if (DetectAddressMatch(dd,&a) == 0)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1910,7 +1723,7 @@ int AddressTestMatch03 (void) {
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("1.2.3.4/25");
@@ -1918,7 +1731,7 @@ int AddressTestMatch03 (void) {
         if (DetectAddressMatch(dd,&a) == 1)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1935,7 +1748,7 @@ int AddressTestMatch04 (void) {
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("1.2.3.4/25");
@@ -1943,7 +1756,7 @@ int AddressTestMatch04 (void) {
         if (DetectAddressMatch(dd,&a) == 1)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1960,7 +1773,7 @@ int AddressTestMatch05 (void) {
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("1.2.3.4/32");
@@ -1968,7 +1781,7 @@ int AddressTestMatch05 (void) {
         if (DetectAddressMatch(dd,&a) == 0)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -1985,7 +1798,7 @@ int AddressTestMatch06 (void) {
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("0.0.0.0/0.0.0.0");
@@ -1993,7 +1806,7 @@ int AddressTestMatch06 (void) {
         if (DetectAddressMatch(dd,&a) == 0)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -2009,7 +1822,7 @@ int AddressTestMatch07 (void) {
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("2001::/3");
@@ -2017,7 +1830,7 @@ int AddressTestMatch07 (void) {
         if (DetectAddressMatch(dd,&a) == 0)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -2033,7 +1846,7 @@ int AddressTestMatch08 (void) {
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("2001::/3");
@@ -2041,7 +1854,7 @@ int AddressTestMatch08 (void) {
         if (DetectAddressMatch(dd,&a) == 1) {
             result = 0;
         }
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -2057,7 +1870,7 @@ int AddressTestMatch09 (void) {
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("2001::1/128");
@@ -2065,7 +1878,7 @@ int AddressTestMatch09 (void) {
         if (DetectAddressMatch(dd,&a) == 1)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -2081,7 +1894,7 @@ int AddressTestMatch10 (void) {
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("2001::1/126");
@@ -2089,7 +1902,7 @@ int AddressTestMatch10 (void) {
         if (DetectAddressMatch(dd,&a) == 0)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -2105,7 +1918,7 @@ int AddressTestMatch11 (void) {
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));
 
-    DetectAddressData *dd = NULL;
+    DetectAddressGroup *dd = NULL;
     int result = 1;
 
     dd = DetectAddressParse("2001::1/127");
@@ -2113,7 +1926,7 @@ int AddressTestMatch11 (void) {
         if (DetectAddressMatch(dd,&a) == 1)
             result = 0;
 
-        DetectAddressDataFree(dd);
+        DetectAddressGroupFree(dd);
         return result;
     }
 
@@ -2121,7 +1934,7 @@ int AddressTestMatch11 (void) {
 }
 
 int AddressTestCmp01 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("192.168.0.0/255.255.255.0");
@@ -2132,18 +1945,18 @@ int AddressTestCmp01 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_EQ)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp02 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("192.168.0.0/255.255.0.0");
@@ -2154,18 +1967,18 @@ int AddressTestCmp02 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_EB)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp03 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("192.168.0.0/255.255.255.0");
@@ -2176,18 +1989,18 @@ int AddressTestCmp03 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_ES)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp04 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("192.168.0.0/255.255.255.0");
@@ -2198,18 +2011,18 @@ int AddressTestCmp04 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_LT)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp05 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("192.168.1.0/255.255.255.0");
@@ -2220,18 +2033,18 @@ int AddressTestCmp05 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_GT)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp06 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("192.168.1.0/255.255.0.0");
@@ -2242,18 +2055,18 @@ int AddressTestCmp06 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_EQ)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmpIPv407 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("192.168.1.0/255.255.255.0");
@@ -2264,18 +2077,18 @@ int AddressTestCmpIPv407 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_LE)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmpIPv408 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("192.168.1.128-192.168.2.128");
@@ -2286,18 +2099,18 @@ int AddressTestCmpIPv408 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_GE)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp07 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("2001::/3");
@@ -2308,18 +2121,18 @@ int AddressTestCmp07 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_EQ)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp08 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("2001::/3");
@@ -2330,18 +2143,18 @@ int AddressTestCmp08 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_EB)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp09 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("2001::/8");
@@ -2352,18 +2165,18 @@ int AddressTestCmp09 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_ES)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp10 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("2001:1:2:3:0:0:0:0/64");
@@ -2374,18 +2187,18 @@ int AddressTestCmp10 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_LT)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp11 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("2001:1:2:4:0:0:0:0/64");
@@ -2396,18 +2209,18 @@ int AddressTestCmp11 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_GT)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
 int AddressTestCmp12 (void) {
-    DetectAddressData *da = NULL, *db = NULL;
+    DetectAddressGroup *da = NULL, *db = NULL;
     int result = 1;
 
     da = DetectAddressParse("2001:1:2:3:1:0:0:0/64");
@@ -2418,13 +2231,13 @@ int AddressTestCmp12 (void) {
     if (DetectAddressCmp(da,db) != ADDRESS_EQ)
         result = 0;
 
-    DetectAddressDataFree(da);
-    DetectAddressDataFree(db);
+    DetectAddressGroupFree(da);
+    DetectAddressGroupFree(db);
     return result;
 
 error:
-    if (da) DetectAddressDataFree(da);
-    if (db) DetectAddressDataFree(db);
+    if (da) DetectAddressGroupFree(da);
+    if (db) DetectAddressGroupFree(db);
     return 0;
 }
 
@@ -2666,11 +2479,11 @@ int AddressTestAddressGroupSetup11 (void) {
                      * 10.10.11.0/10.10.11.1
                      * 10.10.11.2/255.255.255.255
                      */
-                    if (one->ad->ip[0]   == 0x00000000 && one->ad->ip2[0]   == 0xFF090A0A &&
-                        two->ad->ip[0]   == 0x000A0A0A && two->ad->ip2[0]   == 0x090A0A0A &&
-                        three->ad->ip[0] == 0x0A0A0A0A && three->ad->ip2[0] == 0xFF0A0A0A &&
-                        four->ad->ip[0]  == 0x000B0A0A && four->ad->ip2[0]  == 0x010B0A0A &&
-                        five->ad->ip[0]  == 0x020B0A0A && five->ad->ip2[0]  == 0xFFFFFFFF) {
+                    if (one->ip[0]   == 0x00000000 && one->ip2[0]   == 0xFF090A0A &&
+                        two->ip[0]   == 0x000A0A0A && two->ip2[0]   == 0x090A0A0A &&
+                        three->ip[0] == 0x0A0A0A0A && three->ip2[0] == 0xFF0A0A0A &&
+                        four->ip[0]  == 0x000B0A0A && four->ip2[0]  == 0x010B0A0A &&
+                        five->ip[0]  == 0x020B0A0A && five->ip2[0]  == 0xFFFFFFFF) {
                         result = 1;
                     }
                 }
@@ -2704,11 +2517,11 @@ int AddressTestAddressGroupSetup12 (void) {
                      * 10.10.11.0/10.10.11.1
                      * 10.10.11.2/255.255.255.255
                      */
-                    if (one->ad->ip[0]   == 0x00000000 && one->ad->ip2[0]   == 0xFF090A0A &&
-                        two->ad->ip[0]   == 0x000A0A0A && two->ad->ip2[0]   == 0x090A0A0A &&
-                        three->ad->ip[0] == 0x0A0A0A0A && three->ad->ip2[0] == 0xFF0A0A0A &&
-                        four->ad->ip[0]  == 0x000B0A0A && four->ad->ip2[0]  == 0x010B0A0A &&
-                        five->ad->ip[0]  == 0x020B0A0A && five->ad->ip2[0]  == 0xFFFFFFFF) {
+                    if (one->ip[0]   == 0x00000000 && one->ip2[0]   == 0xFF090A0A &&
+                        two->ip[0]   == 0x000A0A0A && two->ip2[0]   == 0x090A0A0A &&
+                        three->ip[0] == 0x0A0A0A0A && three->ip2[0] == 0xFF0A0A0A &&
+                        four->ip[0]  == 0x000B0A0A && four->ip2[0]  == 0x010B0A0A &&
+                        five->ip[0]  == 0x020B0A0A && five->ip2[0]  == 0xFFFFFFFF) {
                         result = 1;
                     }
                 }
@@ -2742,11 +2555,11 @@ int AddressTestAddressGroupSetup13 (void) {
                      * 10.10.11.0/10.10.11.1
                      * 10.10.11.2/255.255.255.255
                      */
-                    if (one->ad->ip[0]   == 0x00000000 && one->ad->ip2[0]   == 0xFF090A0A &&
-                        two->ad->ip[0]   == 0x000A0A0A && two->ad->ip2[0]   == 0x090A0A0A &&
-                        three->ad->ip[0] == 0x0A0A0A0A && three->ad->ip2[0] == 0xFF0A0A0A &&
-                        four->ad->ip[0]  == 0x000B0A0A && four->ad->ip2[0]  == 0x010B0A0A &&
-                        five->ad->ip[0]  == 0x020B0A0A && five->ad->ip2[0]  == 0xFFFFFFFF) {
+                    if (one->ip[0]   == 0x00000000 && one->ip2[0]   == 0xFF090A0A &&
+                        two->ip[0]   == 0x000A0A0A && two->ip2[0]   == 0x090A0A0A &&
+                        three->ip[0] == 0x0A0A0A0A && three->ip2[0] == 0xFF0A0A0A &&
+                        four->ip[0]  == 0x000B0A0A && four->ip2[0]  == 0x010B0A0A &&
+                        five->ip[0]  == 0x020B0A0A && five->ip2[0]  == 0xFFFFFFFF) {
                         result = 1;
                     }
                 }
@@ -2773,11 +2586,17 @@ int AddressTestAddressGroupSetupIPv414 (void) {
                  * 0.0.0.0/1.2.3.3
                  * 1.2.3.5/255.255.255.255
                  */
-                if (one->ad->ip[0]   == 0x00000000 && one->ad->ip2[0]   == 0x03030201 &&
-                    two->ad->ip[0]   == 0x05030201 && two->ad->ip2[0]   == 0xFFFFFFFF) {
+                if (one->ip[0]   == 0x00000000 && one->ip2[0]   == 0x03030201 &&
+                    two->ip[0]   == 0x05030201 && two->ip2[0]   == 0xFFFFFFFF) {
                     result = 1;
+                } else {
+                    printf("unexpected addresses: ");
                 }
+            } else {
+                printf("one %p two %p: ", one, two);
             }
+        } else {
+            printf("DetectAddressGroupParse returned %d, expected 0: ", r);
         }
 
         DetectAddressGroupsHeadFree(gh);
@@ -2798,7 +2617,7 @@ int AddressTestAddressGroupSetupIPv415 (void) {
                 /* result should be:
                  * 0.0.0.1/255.255.255.255
                  */
-                if (one->ad->ip[0]   == 0x01000000 && one->ad->ip2[0]   == 0xFFFFFFFF) {
+                if (one->ip[0]   == 0x01000000 && one->ip2[0]   == 0xFFFFFFFF) {
                     result = 1;
                 }
             }
@@ -2822,7 +2641,7 @@ int AddressTestAddressGroupSetupIPv416 (void) {
                 /* result should be:
                  * 0.0.0.0/255.255.255.254
                  */
-                if (one->ad->ip[0]   == 0x00000000 && one->ad->ip2[0]   == 0xFEFFFFFF) {
+                if (one->ip[0]   == 0x00000000 && one->ip2[0]   == 0xFEFFFFFF) {
                     result = 1;
                 }
             }
@@ -3063,50 +2882,50 @@ int AddressTestAddressGroupSetup24 (void) {
                     DetectAddressGroup *one = gh->ipv6_head, *two = one->next,
                                        *three = two->next, *four = three->next,
                                        *five = four->next;
-                    if (one->ad->ip[0]   == 0x00000000 &&
-                        one->ad->ip[1]   == 0x00000000 &&
-                        one->ad->ip[2]   == 0x00000000 &&
-                        one->ad->ip[3]   == 0x00000000 &&
-                        one->ad->ip2[0]   == 0xFFFFFF1F &&
-                        one->ad->ip2[1]   == 0xFFFFFFFF &&
-                        one->ad->ip2[2]   == 0xFFFFFFFF &&
-                        one->ad->ip2[3]   == 0xFFFFFFFF &&
+                    if (one->ip[0]   == 0x00000000 &&
+                        one->ip[1]   == 0x00000000 &&
+                        one->ip[2]   == 0x00000000 &&
+                        one->ip[3]   == 0x00000000 &&
+                        one->ip2[0]   == 0xFFFFFF1F &&
+                        one->ip2[1]   == 0xFFFFFFFF &&
+                        one->ip2[2]   == 0xFFFFFFFF &&
+                        one->ip2[3]   == 0xFFFFFFFF &&
 
-                        two->ad->ip[0]   == 0x00000020 &&
-                        two->ad->ip[1]   == 0x00000000 &&
-                        two->ad->ip[2]   == 0x00000000 &&
-                        two->ad->ip[3]   == 0x00000000 &&
-                        two->ad->ip2[0]   == 0x00000120 &&
-                        two->ad->ip2[1]   == 0x00000000 &&
-                        two->ad->ip2[2]   == 0x00000000 &&
-                        two->ad->ip2[3]   == 0x03000000 &&
+                        two->ip[0]   == 0x00000020 &&
+                        two->ip[1]   == 0x00000000 &&
+                        two->ip[2]   == 0x00000000 &&
+                        two->ip[3]   == 0x00000000 &&
+                        two->ip2[0]   == 0x00000120 &&
+                        two->ip2[1]   == 0x00000000 &&
+                        two->ip2[2]   == 0x00000000 &&
+                        two->ip2[3]   == 0x03000000 &&
 
-                        three->ad->ip[0] == 0x00000120 &&
-                        three->ad->ip[1] == 0x00000000 &&
-                        three->ad->ip[2] == 0x00000000 &&
-                        three->ad->ip[3] == 0x04000000 &&
-                        three->ad->ip2[0] == 0x00000120 &&
-                        three->ad->ip2[1] == 0x00000000 &&
-                        three->ad->ip2[2] == 0x00000000 &&
-                        three->ad->ip2[3] == 0x06000000 &&
+                        three->ip[0] == 0x00000120 &&
+                        three->ip[1] == 0x00000000 &&
+                        three->ip[2] == 0x00000000 &&
+                        three->ip[3] == 0x04000000 &&
+                        three->ip2[0] == 0x00000120 &&
+                        three->ip2[1] == 0x00000000 &&
+                        three->ip2[2] == 0x00000000 &&
+                        three->ip2[3] == 0x06000000 &&
 
-                        four->ad->ip[0]  == 0x00000120 &&
-                        four->ad->ip[1]  == 0x00000000 &&
-                        four->ad->ip[2]  == 0x00000000 &&
-                        four->ad->ip[3]  == 0x07000000 &&
-                        four->ad->ip2[0]  == 0xFFFFFF3F &&
-                        four->ad->ip2[1]  == 0xFFFFFFFF &&
-                        four->ad->ip2[2]  == 0xFFFFFFFF &&
-                        four->ad->ip2[3]  == 0xFFFFFFFF &&
+                        four->ip[0]  == 0x00000120 &&
+                        four->ip[1]  == 0x00000000 &&
+                        four->ip[2]  == 0x00000000 &&
+                        four->ip[3]  == 0x07000000 &&
+                        four->ip2[0]  == 0xFFFFFF3F &&
+                        four->ip2[1]  == 0xFFFFFFFF &&
+                        four->ip2[2]  == 0xFFFFFFFF &&
+                        four->ip2[3]  == 0xFFFFFFFF &&
 
-                        five->ad->ip[0]  == 0x00000040 && 
-                        five->ad->ip[1]  == 0x00000000 && 
-                        five->ad->ip[2]  == 0x00000000 && 
-                        five->ad->ip[3]  == 0x00000000 && 
-                        five->ad->ip2[0]  == 0xFFFFFFFF &&
-                        five->ad->ip2[1]  == 0xFFFFFFFF &&
-                        five->ad->ip2[2]  == 0xFFFFFFFF &&
-                        five->ad->ip2[3]  == 0xFFFFFFFF) {
+                        five->ip[0]  == 0x00000040 && 
+                        five->ip[1]  == 0x00000000 && 
+                        five->ip[2]  == 0x00000000 && 
+                        five->ip[3]  == 0x00000000 && 
+                        five->ip2[0]  == 0xFFFFFFFF &&
+                        five->ip2[1]  == 0xFFFFFFFF &&
+                        five->ip2[2]  == 0xFFFFFFFF &&
+                        five->ip2[3]  == 0xFFFFFFFF) {
                         result = 1;
                     }
                 }
@@ -3132,50 +2951,50 @@ int AddressTestAddressGroupSetup25 (void) {
                     DetectAddressGroup *one = gh->ipv6_head, *two = one->next,
                                        *three = two->next, *four = three->next,
                                        *five = four->next;
-                    if (one->ad->ip[0]   == 0x00000000 &&
-                        one->ad->ip[1]   == 0x00000000 &&
-                        one->ad->ip[2]   == 0x00000000 &&
-                        one->ad->ip[3]   == 0x00000000 &&
-                        one->ad->ip2[0]   == 0xFFFFFF1F &&
-                        one->ad->ip2[1]   == 0xFFFFFFFF &&
-                        one->ad->ip2[2]   == 0xFFFFFFFF &&
-                        one->ad->ip2[3]   == 0xFFFFFFFF &&
+                    if (one->ip[0]   == 0x00000000 &&
+                        one->ip[1]   == 0x00000000 &&
+                        one->ip[2]   == 0x00000000 &&
+                        one->ip[3]   == 0x00000000 &&
+                        one->ip2[0]   == 0xFFFFFF1F &&
+                        one->ip2[1]   == 0xFFFFFFFF &&
+                        one->ip2[2]   == 0xFFFFFFFF &&
+                        one->ip2[3]   == 0xFFFFFFFF &&
 
-                        two->ad->ip[0]   == 0x00000020 &&
-                        two->ad->ip[1]   == 0x00000000 &&
-                        two->ad->ip[2]   == 0x00000000 &&
-                        two->ad->ip[3]   == 0x00000000 &&
-                        two->ad->ip2[0]   == 0x00000120 &&
-                        two->ad->ip2[1]   == 0x00000000 &&
-                        two->ad->ip2[2]   == 0x00000000 &&
-                        two->ad->ip2[3]   == 0x03000000 &&
+                        two->ip[0]   == 0x00000020 &&
+                        two->ip[1]   == 0x00000000 &&
+                        two->ip[2]   == 0x00000000 &&
+                        two->ip[3]   == 0x00000000 &&
+                        two->ip2[0]   == 0x00000120 &&
+                        two->ip2[1]   == 0x00000000 &&
+                        two->ip2[2]   == 0x00000000 &&
+                        two->ip2[3]   == 0x03000000 &&
 
-                        three->ad->ip[0] == 0x00000120 &&
-                        three->ad->ip[1] == 0x00000000 &&
-                        three->ad->ip[2] == 0x00000000 &&
-                        three->ad->ip[3] == 0x04000000 &&
-                        three->ad->ip2[0] == 0x00000120 &&
-                        three->ad->ip2[1] == 0x00000000 &&
-                        three->ad->ip2[2] == 0x00000000 &&
-                        three->ad->ip2[3] == 0x06000000 &&
+                        three->ip[0] == 0x00000120 &&
+                        three->ip[1] == 0x00000000 &&
+                        three->ip[2] == 0x00000000 &&
+                        three->ip[3] == 0x04000000 &&
+                        three->ip2[0] == 0x00000120 &&
+                        three->ip2[1] == 0x00000000 &&
+                        three->ip2[2] == 0x00000000 &&
+                        three->ip2[3] == 0x06000000 &&
 
-                        four->ad->ip[0]  == 0x00000120 &&
-                        four->ad->ip[1]  == 0x00000000 &&
-                        four->ad->ip[2]  == 0x00000000 &&
-                        four->ad->ip[3]  == 0x07000000 &&
-                        four->ad->ip2[0]  == 0xFFFFFF3F &&
-                        four->ad->ip2[1]  == 0xFFFFFFFF &&
-                        four->ad->ip2[2]  == 0xFFFFFFFF &&
-                        four->ad->ip2[3]  == 0xFFFFFFFF &&
+                        four->ip[0]  == 0x00000120 &&
+                        four->ip[1]  == 0x00000000 &&
+                        four->ip[2]  == 0x00000000 &&
+                        four->ip[3]  == 0x07000000 &&
+                        four->ip2[0]  == 0xFFFFFF3F &&
+                        four->ip2[1]  == 0xFFFFFFFF &&
+                        four->ip2[2]  == 0xFFFFFFFF &&
+                        four->ip2[3]  == 0xFFFFFFFF &&
 
-                        five->ad->ip[0]  == 0x00000040 && 
-                        five->ad->ip[1]  == 0x00000000 && 
-                        five->ad->ip[2]  == 0x00000000 && 
-                        five->ad->ip[3]  == 0x00000000 && 
-                        five->ad->ip2[0]  == 0xFFFFFFFF &&
-                        five->ad->ip2[1]  == 0xFFFFFFFF &&
-                        five->ad->ip2[2]  == 0xFFFFFFFF &&
-                        five->ad->ip2[3]  == 0xFFFFFFFF) {
+                        five->ip[0]  == 0x00000040 && 
+                        five->ip[1]  == 0x00000000 && 
+                        five->ip[2]  == 0x00000000 && 
+                        five->ip[3]  == 0x00000000 && 
+                        five->ip2[0]  == 0xFFFFFFFF &&
+                        five->ip2[1]  == 0xFFFFFFFF &&
+                        five->ip2[2]  == 0xFFFFFFFF &&
+                        five->ip2[3]  == 0xFFFFFFFF) {
                         result = 1;
                     }
                 }
@@ -3201,50 +3020,50 @@ int AddressTestAddressGroupSetup26 (void) {
                     DetectAddressGroup *one = gh->ipv6_head, *two = one->next,
                                        *three = two->next, *four = three->next,
                                        *five = four->next;
-                    if (one->ad->ip[0]   == 0x00000000 &&
-                        one->ad->ip[1]   == 0x00000000 &&
-                        one->ad->ip[2]   == 0x00000000 &&
-                        one->ad->ip[3]   == 0x00000000 &&
-                        one->ad->ip2[0]   == 0xFFFFFF1F &&
-                        one->ad->ip2[1]   == 0xFFFFFFFF &&
-                        one->ad->ip2[2]   == 0xFFFFFFFF &&
-                        one->ad->ip2[3]   == 0xFFFFFFFF &&
+                    if (one->ip[0]   == 0x00000000 &&
+                        one->ip[1]   == 0x00000000 &&
+                        one->ip[2]   == 0x00000000 &&
+                        one->ip[3]   == 0x00000000 &&
+                        one->ip2[0]   == 0xFFFFFF1F &&
+                        one->ip2[1]   == 0xFFFFFFFF &&
+                        one->ip2[2]   == 0xFFFFFFFF &&
+                        one->ip2[3]   == 0xFFFFFFFF &&
 
-                        two->ad->ip[0]   == 0x00000020 &&
-                        two->ad->ip[1]   == 0x00000000 &&
-                        two->ad->ip[2]   == 0x00000000 &&
-                        two->ad->ip[3]   == 0x00000000 &&
-                        two->ad->ip2[0]   == 0x00000120 &&
-                        two->ad->ip2[1]   == 0x00000000 &&
-                        two->ad->ip2[2]   == 0x00000000 &&
-                        two->ad->ip2[3]   == 0x03000000 &&
+                        two->ip[0]   == 0x00000020 &&
+                        two->ip[1]   == 0x00000000 &&
+                        two->ip[2]   == 0x00000000 &&
+                        two->ip[3]   == 0x00000000 &&
+                        two->ip2[0]   == 0x00000120 &&
+                        two->ip2[1]   == 0x00000000 &&
+                        two->ip2[2]   == 0x00000000 &&
+                        two->ip2[3]   == 0x03000000 &&
 
-                        three->ad->ip[0] == 0x00000120 &&
-                        three->ad->ip[1] == 0x00000000 &&
-                        three->ad->ip[2] == 0x00000000 &&
-                        three->ad->ip[3] == 0x04000000 &&
-                        three->ad->ip2[0] == 0x00000120 &&
-                        three->ad->ip2[1] == 0x00000000 &&
-                        three->ad->ip2[2] == 0x00000000 &&
-                        three->ad->ip2[3] == 0x06000000 &&
+                        three->ip[0] == 0x00000120 &&
+                        three->ip[1] == 0x00000000 &&
+                        three->ip[2] == 0x00000000 &&
+                        three->ip[3] == 0x04000000 &&
+                        three->ip2[0] == 0x00000120 &&
+                        three->ip2[1] == 0x00000000 &&
+                        three->ip2[2] == 0x00000000 &&
+                        three->ip2[3] == 0x06000000 &&
 
-                        four->ad->ip[0]  == 0x00000120 &&
-                        four->ad->ip[1]  == 0x00000000 &&
-                        four->ad->ip[2]  == 0x00000000 &&
-                        four->ad->ip[3]  == 0x07000000 &&
-                        four->ad->ip2[0]  == 0xFFFFFF3F &&
-                        four->ad->ip2[1]  == 0xFFFFFFFF &&
-                        four->ad->ip2[2]  == 0xFFFFFFFF &&
-                        four->ad->ip2[3]  == 0xFFFFFFFF &&
+                        four->ip[0]  == 0x00000120 &&
+                        four->ip[1]  == 0x00000000 &&
+                        four->ip[2]  == 0x00000000 &&
+                        four->ip[3]  == 0x07000000 &&
+                        four->ip2[0]  == 0xFFFFFF3F &&
+                        four->ip2[1]  == 0xFFFFFFFF &&
+                        four->ip2[2]  == 0xFFFFFFFF &&
+                        four->ip2[3]  == 0xFFFFFFFF &&
 
-                        five->ad->ip[0]  == 0x00000040 && 
-                        five->ad->ip[1]  == 0x00000000 && 
-                        five->ad->ip[2]  == 0x00000000 && 
-                        five->ad->ip[3]  == 0x00000000 && 
-                        five->ad->ip2[0]  == 0xFFFFFFFF &&
-                        five->ad->ip2[1]  == 0xFFFFFFFF &&
-                        five->ad->ip2[2]  == 0xFFFFFFFF &&
-                        five->ad->ip2[3]  == 0xFFFFFFFF) {
+                        five->ip[0]  == 0x00000040 && 
+                        five->ip[1]  == 0x00000000 && 
+                        five->ip[2]  == 0x00000000 && 
+                        five->ip[3]  == 0x00000000 && 
+                        five->ip2[0]  == 0xFFFFFFFF &&
+                        five->ip2[1]  == 0xFFFFFFFF &&
+                        five->ip2[2]  == 0xFFFFFFFF &&
+                        five->ip2[3]  == 0xFFFFFFFF) {
                         result = 1;
                     }
                 }
@@ -3420,32 +3239,33 @@ int AddressTestAddressGroupSetup37 (void) {
     }
     return result;
 }
+
 int AddressTestCutIPv401(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.0/255.255.255.0");
     b = DetectAddressParse("1.2.2.0-1.2.3.4");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 
 int AddressTestCutIPv402(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.0/255.255.255.0");
     b = DetectAddressParse("1.2.2.0-1.2.3.4");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
@@ -3453,23 +3273,23 @@ int AddressTestCutIPv402(void) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 
 int AddressTestCutIPv403(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.0/255.255.255.0");
     b = DetectAddressParse("1.2.2.0-1.2.3.4");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
@@ -3487,23 +3307,23 @@ int AddressTestCutIPv403(void) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 
 int AddressTestCutIPv404(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.3-1.2.3.6");
     b = DetectAddressParse("1.2.3.0-1.2.3.5");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
@@ -3521,23 +3341,23 @@ int AddressTestCutIPv404(void) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 
 int AddressTestCutIPv405(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.3-1.2.3.6");
     b = DetectAddressParse("1.2.3.0-1.2.3.9");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
@@ -3555,23 +3375,23 @@ int AddressTestCutIPv405(void) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 
 int AddressTestCutIPv406(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.0-1.2.3.9");
     b = DetectAddressParse("1.2.3.3-1.2.3.6");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
@@ -3589,23 +3409,23 @@ int AddressTestCutIPv406(void) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 
 int AddressTestCutIPv407(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.0-1.2.3.6");
     b = DetectAddressParse("1.2.3.0-1.2.3.9");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
@@ -3620,23 +3440,23 @@ int AddressTestCutIPv407(void) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 
 int AddressTestCutIPv408(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.3-1.2.3.9");
     b = DetectAddressParse("1.2.3.0-1.2.3.9");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
@@ -3651,23 +3471,23 @@ int AddressTestCutIPv408(void) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 
 int AddressTestCutIPv409(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.0-1.2.3.9");
     b = DetectAddressParse("1.2.3.0-1.2.3.6");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
@@ -3682,23 +3502,23 @@ int AddressTestCutIPv409(void) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 
 int AddressTestCutIPv410(void) {
-    DetectAddressData *a, *b, *c;
+    DetectAddressGroup *a, *b, *c;
     a = DetectAddressParse("1.2.3.0-1.2.3.9");
     b = DetectAddressParse("1.2.3.3-1.2.3.9");
 
-    if (DetectAddressCut(a,b,&c) == -1) {
+    if (DetectAddressGroupCut(NULL,a,b,&c) == -1) {
         goto error;
     }
 
@@ -3713,14 +3533,14 @@ int AddressTestCutIPv410(void) {
         goto error;
     }
 
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 1;
 error:
-    DetectAddressDataFree(a);
-    DetectAddressDataFree(b);
-    DetectAddressDataFree(c);
+    DetectAddressGroupFree(a);
+    DetectAddressGroupFree(b);
+    DetectAddressGroupFree(c);
     return 0;
 }
 #endif /* UNITTESTS */

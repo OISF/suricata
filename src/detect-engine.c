@@ -71,16 +71,16 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
         free(de_ctx->sig_array);
     free(de_ctx);
 
-    DetectAddressGroupPrintMemory();
-    DetectSigGroupPrintMemory();
-    DetectPortPrintMemory();
+    //DetectAddressGroupPrintMemory();
+    //DetectSigGroupPrintMemory();
+    //DetectPortPrintMemory();
 }
 
 /*
  * getting & (re)setting the internal sig i
  */
 
-uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx) {
+inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx) {
     return de_ctx->signum;
 }
 

@@ -12,9 +12,9 @@ int AddressIPv6Eq(uint32_t *, uint32_t *);
 int AddressIPv6Le(uint32_t *, uint32_t *);
 int AddressIPv6Ge(uint32_t *, uint32_t *);
 
-int DetectAddressCutIPv6(DetectAddressData *, DetectAddressData *, DetectAddressData **);
-int DetectAddressCutNotIPv6(DetectAddressData *, DetectAddressData **);
-int DetectAddressCmpIPv6(DetectAddressData *, DetectAddressData *);
+//int DetectAddressCutIPv6(DetectAddressData *, DetectAddressData *, DetectAddressData **);
+int DetectAddressGroupCutNotIPv6(DetectAddressGroup *, DetectAddressGroup **);
+int DetectAddressGroupCmpIPv6(DetectAddressGroup *a, DetectAddressGroup *b);
 
 int DetectAddressGroupCutIPv6(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
 int DetectAddressGroupJoinIPv6(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *);

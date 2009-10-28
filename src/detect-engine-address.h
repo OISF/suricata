@@ -6,18 +6,10 @@ void DetectAddressRegister (void);
 DetectAddressGroupsHead *DetectAddressGroupsHeadInit();
 void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *);
 void DetectAddressGroupsHeadCleanup(DetectAddressGroupsHead *);
-DetectAddressData *DetectAddressDataInit(void);
-void DetectAddressDataFree(DetectAddressData *);
-void DetectAddressDataPrint(DetectAddressData *);
-DetectAddressData *DetectAddressDataCopy(DetectAddressData *);
 int DetectAddressGroupSetup(DetectAddressGroupsHead *, char *);
-int DetectAddressCmp(DetectAddressData *, DetectAddressData *);
-DetectAddressData *DetectAddressParse(char *);
-DetectAddressGroup *DetectAddressLookupGroup(DetectAddressGroupsHead *, Address *);
 int DetectAddressGroupParse(DetectAddressGroupsHead *, char *);
 DetectAddressGroup *DetectAddressGroupInit(void);
 int DetectAddressGroupAdd(DetectAddressGroup **, DetectAddressGroup *);
-DetectAddressGroup *DetectAddressGroupLookup(DetectAddressGroup *, DetectAddressData *);
 void DetectAddressGroupPrintList(DetectAddressGroup *);
 void DetectAddressGroupFree(DetectAddressGroup *);
 int DetectAddressGroupInsert(DetectEngineCtx *, DetectAddressGroupsHead *, DetectAddressGroup *);
@@ -25,5 +17,16 @@ void DetectAddressGroupPrintMemory(void);
 void DetectAddressGroupCleanupList (DetectAddressGroup *);
 int DetectAddressGroupJoin(DetectEngineCtx *, DetectAddressGroup *target, DetectAddressGroup *source);
 
+DetectAddressGroup *DetectAddressLookupGroup(DetectAddressGroupsHead *, Address *);
+DetectAddressGroup *DetectAddressGroupLookup(DetectAddressGroup *, DetectAddressGroup *);
+
+/** \brief address only copy of ag */
+DetectAddressGroup *DetectAddressGroupCopy(DetectAddressGroup *);
+/** \brief debugging: print a detect address */
+void DetectAddressPrint(DetectAddressGroup *);
+/** \brief compare the address part of two DetectAddress objects */
+int DetectAddressCmp(DetectAddressGroup *, DetectAddressGroup *);
+/** \brief parse a address string */
+DetectAddressGroup *DetectAddressParse(char *);
 #endif /* __DETECT_ADDRESS_H__ */
 

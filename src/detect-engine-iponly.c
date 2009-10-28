@@ -40,7 +40,7 @@
 static uint32_t IPOnlyHashFunc16(HashListTable *ht, void *data, uint16_t len) {
     DetectAddressGroup *gr = (DetectAddressGroup *) data;
 
-    uint32_t hash = IPONLY_EXTRACT_16(gr->ad) % ht->array_size;
+    uint32_t hash = IPONLY_EXTRACT_16(gr) % ht->array_size;
     return hash;
 }
 
@@ -54,10 +54,10 @@ static uint32_t IPOnlyHashFunc24(HashListTable *ht, void *data, uint16_t len) {
 */
 
 static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, HashListTable *ht, DetectAddressGroup *gr, char direction, Signature *s) {
-    uint32_t high = ntohl(gr->ad->ip2[0]);
-    uint32_t low = ntohl(gr->ad->ip[0]);
+    uint32_t high = ntohl(gr->ip2[0]);
+    uint32_t low = ntohl(gr->ip[0]);
 
-    if ((ntohl(gr->ad->ip2[0]) - ntohl(gr->ad->ip[0])) > 65536) {
+    if ((ntohl(gr->ip2[0]) - ntohl(gr->ip[0])) > 65536) {
         //printf("Bigger than a class/16:\n"); DetectAddressDataPrint(gr->ad);
 
         uint32_t s16_cnt = 0;
@@ -65,18 +65,12 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
         while (high > low) {
             s16_cnt++;
 
-            DetectAddressGroup *grtmp = DetectAddressGroupInit();
+            DetectAddressGroup *grtmp = DetectAddressGroupCopy(gr);
             if (grtmp == NULL) {
                 goto error;
             }
-            DetectAddressData *adtmp = DetectAddressDataCopy(gr->ad);
-            if (adtmp == NULL) {
-                goto error;
-            }
-            adtmp->ip[0] = htonl(high - 65535);
-            adtmp->ip2[0] = htonl(high);
-            grtmp->ad = adtmp;
-            grtmp->cnt = 1;
+            grtmp->ip[0] = htonl(high - 65535);
+            grtmp->ip2[0] = htonl(high);
 
             SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
 
@@ -99,18 +93,12 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
                 high = 0;
         }
     } else {
-        DetectAddressGroup *grtmp = DetectAddressGroupInit();
+        DetectAddressGroup *grtmp = DetectAddressGroupCopy(gr);
         if (grtmp == NULL) {
             goto error;
         }
-        DetectAddressData *adtmp = DetectAddressDataCopy(gr->ad);
-        if (adtmp == NULL) {
-            goto error;
-        }
-        adtmp->ip[0] = IPONLY_EXTRACT_16(gr->ad);
-        adtmp->ip2[0] = IPONLY_EXTRACT_16(gr->ad) | IPONLY_HTONL_65535;
-        grtmp->ad = adtmp;
-        grtmp->cnt = 1;
+        grtmp->ip[0] = IPONLY_EXTRACT_16(gr);
+        grtmp->ip2[0] = IPONLY_EXTRACT_16(gr) | IPONLY_HTONL_65535;
 
         DetectAddressGroup *rgr = HashListTableLookup(ht,grtmp,0);
         if (rgr == NULL) {
@@ -195,7 +183,7 @@ static char IPOnlyCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t 
     //printf("IPOnlyCompareFunc: "); DetectAddressDataPrint(a1->ad);
     //printf(" "); DetectAddressDataPrint(a2->ad); printf("\n");
 
-    if (DetectAddressCmp(a1->ad,a2->ad) != ADDRESS_EQ)
+    if (DetectAddressCmp(a1,a2) != ADDRESS_EQ)
         return 0;
 
     return 1;
@@ -228,15 +216,10 @@ void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
 
 /* XXX error checking */
 void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx) {
-    DetectAddressData *sad = DetectAddressDataInit();
-    sad->family = AF_INET;
-    DetectAddressData *dad = DetectAddressDataInit();
-    dad->family = AF_INET;
-
     io_tctx->src = DetectAddressGroupInit();
-    io_tctx->src->ad = sad;
+    io_tctx->src->family = AF_INET;
     io_tctx->dst = DetectAddressGroupInit();
-    io_tctx->dst->ad = dad;
+    io_tctx->dst->family = AF_INET;
 
         /* initialize the signature bitarray */
     io_tctx->sig_match_size = de_ctx->io_ctx.max_idx / 8 + 1;
@@ -285,8 +268,8 @@ void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
 }
 
 DetectAddressGroup *IPOnlyLookupSrc16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
-    io_tctx->src->ad->ip[0] = GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff;
-    io_tctx->src->ad->ip2[0] = (GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
+    io_tctx->src->ip[0] = GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff;
+    io_tctx->src->ip2[0] = (GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
 
     //printf("IPOnlyLookupSrc16: "); DetectAddressDataPrint(io_tctx->src->ad); printf("\n");
 
@@ -296,8 +279,8 @@ DetectAddressGroup *IPOnlyLookupSrc16(DetectEngineCtx *de_ctx, DetectEngineIPOnl
 }
 
 DetectAddressGroup *IPOnlyLookupDst16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
-    io_tctx->dst->ad->ip[0] = GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff;
-    io_tctx->dst->ad->ip2[0] = (GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
+    io_tctx->dst->ip[0] = GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff;
+    io_tctx->dst->ip2[0] = (GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
 
     //printf("IPOnlyLookupDst16: "); DetectAddressDataPrint(io_tctx->dst->ad); printf("\n");
 

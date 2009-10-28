@@ -81,7 +81,7 @@ int AddressIPv6Ge(uint32_t *a, uint32_t *b) {
     return 0;
 }
 
-int DetectAddressCmpIPv6(DetectAddressData *a, DetectAddressData *b) {
+int DetectAddressGroupCmpIPv6(DetectAddressGroup *a, DetectAddressGroup *b) {
     /* ADDRESS_EQ */
     if (AddressIPv6Eq(a->ip, b->ip) == 1 &&
         AddressIPv6Eq(a->ip2, b->ip2) == 1) {
@@ -193,21 +193,21 @@ static void AddressCutIPv6Copy(uint32_t *a, uint32_t *b) {
 }
 
 int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, DetectAddressGroup *b, DetectAddressGroup **c) {
-    uint32_t a_ip1[4] = { ntohl(a->ad->ip[0]),  ntohl(a->ad->ip[1]),
-                           ntohl(a->ad->ip[2]),  ntohl(a->ad->ip[3]) };
-    uint32_t a_ip2[4] = { ntohl(a->ad->ip2[0]), ntohl(a->ad->ip2[1]),
-                           ntohl(a->ad->ip2[2]), ntohl(a->ad->ip2[3]) };
-    uint32_t b_ip1[4] = { ntohl(b->ad->ip[0]),  ntohl(b->ad->ip[1]),
-                           ntohl(b->ad->ip[2]),  ntohl(b->ad->ip[3]) };
-    uint32_t b_ip2[4] = { ntohl(b->ad->ip2[0]), ntohl(b->ad->ip2[1]),
-                           ntohl(b->ad->ip2[2]), ntohl(b->ad->ip2[3]) };
+    uint32_t a_ip1[4] = { ntohl(a->ip[0]),  ntohl(a->ip[1]),
+                           ntohl(a->ip[2]),  ntohl(a->ip[3]) };
+    uint32_t a_ip2[4] = { ntohl(a->ip2[0]), ntohl(a->ip2[1]),
+                           ntohl(a->ip2[2]), ntohl(a->ip2[3]) };
+    uint32_t b_ip1[4] = { ntohl(b->ip[0]),  ntohl(b->ip[1]),
+                           ntohl(b->ip[2]),  ntohl(b->ip[3]) };
+    uint32_t b_ip2[4] = { ntohl(b->ip2[0]), ntohl(b->ip2[1]),
+                           ntohl(b->ip2[2]), ntohl(b->ip2[3]) };
     DetectPort *port = NULL;
     DetectAddressGroup *tmp = NULL;
 
     /* default to NULL */
     *c = NULL;
 
-    int r = DetectAddressCmpIPv6(a->ad,b->ad);
+    int r = DetectAddressGroupCmpIPv6(a,b);
     if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
         goto error;
     }
@@ -225,24 +225,20 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
      * part c: a_ip2 + 1 <-> b_ip2
      */
     if (r == ADDRESS_LE) {
-        AddressCutIPv6Copy(a_ip1, a->ad->ip);
-        AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
+        AddressCutIPv6Copy(a_ip1, a->ip);
+        AddressCutIPv6CopySubOne(b_ip1, a->ip2);
 
-        AddressCutIPv6Copy(b_ip1, b->ad->ip);
-        AddressCutIPv6Copy(a_ip2, b->ad->ip2);
+        AddressCutIPv6Copy(b_ip1, b->ip);
+        AddressCutIPv6Copy(a_ip2, b->ip2);
 
         DetectAddressGroup *tmp_c;
         tmp_c = DetectAddressGroupInit();
         if (tmp_c == NULL) {
             goto error;
         }
-        tmp_c->ad = DetectAddressDataInit();
-        if (tmp_c->ad == NULL) {
-            goto error;
-        }
-        tmp_c->ad->family  = AF_INET6;
-        AddressCutIPv6CopyAddOne(a_ip2, tmp_c->ad->ip);
-        AddressCutIPv6Copy(b_ip2, tmp_c->ad->ip2);
+        tmp_c->family  = AF_INET6;
+        AddressCutIPv6CopyAddOne(a_ip2, tmp_c->ip);
+        AddressCutIPv6Copy(b_ip2, tmp_c->ip2);
         *c = tmp_c;
 
         SigGroupHeadCopySigs(de_ctx, b->sh, &tmp_c->sh); /* copy old b to c */
@@ -264,24 +260,20 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
      * part c: b_ip2 + 1 <-> a_ip2
      */
     } else if (r == ADDRESS_GE) {
-        AddressCutIPv6Copy(b_ip1, a->ad->ip);
-        AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
+        AddressCutIPv6Copy(b_ip1, a->ip);
+        AddressCutIPv6CopySubOne(a_ip1, a->ip2);
 
-        AddressCutIPv6Copy(a_ip1, b->ad->ip);
-        AddressCutIPv6Copy(b_ip2, b->ad->ip2);
+        AddressCutIPv6Copy(a_ip1, b->ip);
+        AddressCutIPv6Copy(b_ip2, b->ip2);
 
         DetectAddressGroup *tmp_c;
         tmp_c = DetectAddressGroupInit();
         if (tmp_c == NULL) {
             goto error;
         }
-        tmp_c->ad = DetectAddressDataInit();
-        if (tmp_c->ad == NULL) {
-            goto error;
-        }
-        tmp_c->ad->family  = AF_INET6;
-        AddressCutIPv6CopyAddOne(b_ip2, tmp_c->ad->ip);
-        AddressCutIPv6Copy(a_ip2, tmp_c->ad->ip2);
+        tmp_c->family  = AF_INET6;
+        AddressCutIPv6CopyAddOne(b_ip2, tmp_c->ip);
+        AddressCutIPv6Copy(a_ip2, tmp_c->ip2);
         *c = tmp_c;
 
         /* 'a' gets clean and then 'b' sigs
@@ -331,11 +323,11 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
      */
     } else if (r == ADDRESS_ES) {
         if (AddressIPv6Eq(a_ip1,b_ip1) == 1) {
-            AddressCutIPv6Copy(a_ip1, a->ad->ip);
-            AddressCutIPv6Copy(a_ip2, a->ad->ip2);
+            AddressCutIPv6Copy(a_ip1, a->ip);
+            AddressCutIPv6Copy(a_ip2, a->ip2);
 
-            AddressCutIPv6CopyAddOne(a_ip2, b->ad->ip);
-            AddressCutIPv6Copy(b_ip2, b->ad->ip2);
+            AddressCutIPv6CopyAddOne(a_ip2, b->ip);
+            AddressCutIPv6Copy(b_ip2, b->ip2);
 
             /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
             SigGroupHeadCopySigs(de_ctx, b->sh,&a->sh);
@@ -346,11 +338,11 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             a->cnt += b->cnt;
 
         } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
-            AddressCutIPv6Copy(b_ip1, a->ad->ip);
-            AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
+            AddressCutIPv6Copy(b_ip1, a->ip);
+            AddressCutIPv6CopySubOne(a_ip1, a->ip2);
 
-            AddressCutIPv6Copy(a_ip1, b->ad->ip);
-            AddressCutIPv6Copy(a_ip2, b->ad->ip2);
+            AddressCutIPv6Copy(a_ip1, b->ip);
+            AddressCutIPv6Copy(a_ip2, b->ip2);
 
             /* 'a' overlaps 'b' so 'b' needs the 'a' sigs */
             SigGroupHeadCopySigs(de_ctx, a->sh, &tmp->sh);
@@ -374,24 +366,20 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             b->cnt += tmp->cnt;
             tmp->cnt = 0;
         } else {
-            AddressCutIPv6Copy(b_ip1, a->ad->ip);
-            AddressCutIPv6CopySubOne(a_ip1, a->ad->ip2);
+            AddressCutIPv6Copy(b_ip1, a->ip);
+            AddressCutIPv6CopySubOne(a_ip1, a->ip2);
 
-            AddressCutIPv6Copy(a_ip1, b->ad->ip);
-            AddressCutIPv6Copy(a_ip2, b->ad->ip2);
+            AddressCutIPv6Copy(a_ip1, b->ip);
+            AddressCutIPv6Copy(a_ip2, b->ip2);
 
             DetectAddressGroup *tmp_c;
             tmp_c = DetectAddressGroupInit();
             if (tmp_c == NULL) {
                 goto error;
             }
-            tmp_c->ad = DetectAddressDataInit();
-            if (tmp_c->ad == NULL) {
-                goto error;
-            }
-            tmp_c->ad->family  = AF_INET6;
-            AddressCutIPv6CopyAddOne(a_ip2, tmp_c->ad->ip);
-            AddressCutIPv6Copy(b_ip2, tmp_c->ad->ip2);
+            tmp_c->family  = AF_INET6;
+            AddressCutIPv6CopyAddOne(a_ip2, tmp_c->ip);
+            AddressCutIPv6Copy(b_ip2, tmp_c->ip2);
             *c = tmp_c;
 
             /* 'a' gets clean and then 'b' sigs
@@ -440,11 +428,11 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
      */
     } else if (r == ADDRESS_EB) {
         if (AddressIPv6Eq(a_ip1, b_ip1) == 1) {
-            AddressCutIPv6Copy(b_ip1, a->ad->ip);
-            AddressCutIPv6Copy(b_ip2, a->ad->ip2);
+            AddressCutIPv6Copy(b_ip1, a->ip);
+            AddressCutIPv6Copy(b_ip2, a->ip2);
 
-            AddressCutIPv6CopyAddOne(b_ip2, b->ad->ip);
-            AddressCutIPv6Copy(a_ip2, b->ad->ip2);
+            AddressCutIPv6CopyAddOne(b_ip2, b->ip);
+            AddressCutIPv6Copy(a_ip2, b->ip2);
 
             /* 'b' overlaps 'a' so a needs the 'b' sigs */
             SigGroupHeadCopySigs(de_ctx, b->sh, &tmp->sh);
@@ -468,11 +456,11 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             a->cnt += tmp->cnt;
             tmp->cnt = 0;
         } else if (AddressIPv6Eq(a_ip2, b_ip2) == 1) {
-            AddressCutIPv6Copy(a_ip1, a->ad->ip);
-            AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
+            AddressCutIPv6Copy(a_ip1, a->ip);
+            AddressCutIPv6CopySubOne(b_ip1, a->ip2);
 
-            AddressCutIPv6Copy(b_ip1, b->ad->ip);
-            AddressCutIPv6Copy(b_ip2, b->ad->ip2);
+            AddressCutIPv6Copy(b_ip1, b->ip);
+            AddressCutIPv6Copy(b_ip2, b->ip2);
 
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
             SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
@@ -483,24 +471,20 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
 
             b->cnt += a->cnt;
         } else {
-            AddressCutIPv6Copy(a_ip1, a->ad->ip);
-            AddressCutIPv6CopySubOne(b_ip1, a->ad->ip2);
+            AddressCutIPv6Copy(a_ip1, a->ip);
+            AddressCutIPv6CopySubOne(b_ip1, a->ip2);
 
-            AddressCutIPv6Copy(b_ip1, b->ad->ip);
-            AddressCutIPv6Copy(b_ip2, b->ad->ip2);
+            AddressCutIPv6Copy(b_ip1, b->ip);
+            AddressCutIPv6Copy(b_ip2, b->ip2);
 
             DetectAddressGroup *tmp_c;
             tmp_c = DetectAddressGroupInit();
             if (tmp_c == NULL) {
                 goto error;
             }
-            tmp_c->ad = DetectAddressDataInit();
-            if (tmp_c->ad == NULL) {
-                goto error;
-            }
-            tmp_c->ad->family  = AF_INET6;
-            AddressCutIPv6CopyAddOne(b_ip2, tmp_c->ad->ip);
-            AddressCutIPv6Copy(a_ip2, tmp_c->ad->ip2);
+            tmp_c->family  = AF_INET6;
+            AddressCutIPv6CopyAddOne(b_ip2, tmp_c->ip);
+            AddressCutIPv6Copy(a_ip2, tmp_c->ip2);
             *c = tmp_c;
 
             /* 'a' stays the same wrt sigs
@@ -530,7 +514,7 @@ error:
         DetectAddressGroupFree(tmp);
     return -1;
 }
-
+#if 0
 int DetectAddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddressData **c) {
     uint32_t a_ip1[4] = { ntohl(a->ip[0]), ntohl(a->ip[1]), ntohl(a->ip[2]), ntohl(a->ip[3]) };
     uint32_t a_ip2[4] = { ntohl(a->ip2[0]), ntohl(a->ip2[1]), ntohl(a->ip2[2]), ntohl(a->ip2[3]) };
@@ -684,7 +668,7 @@ int DetectAddressCutIPv6(DetectAddressData *a, DetectAddressData *b, DetectAddre
 error:
     return -1;
 }
-
+#endif
 /* a = 1.2.3.4
  * must result in: a == 0.0.0.0-1.2.3.3, b == 1.2.3.5-255.255.255.255
  *
@@ -695,7 +679,7 @@ error:
  * must result in: a == 0.0.0.0-255.255.255.254, b == NULL
  *
  */
-int DetectAddressCutNotIPv6(DetectAddressData *a, DetectAddressData **b) {
+int DetectAddressGroupCutNotIPv6(DetectAddressGroup *a, DetectAddressGroup **b) {
     uint32_t a_ip1[4] = { ntohl(a->ip[0]), ntohl(a->ip[1]), ntohl(a->ip[2]), ntohl(a->ip[3]) };
     uint32_t a_ip2[4] = { ntohl(a->ip2[0]), ntohl(a->ip2[1]), ntohl(a->ip2[2]), ntohl(a->ip2[3]) };
     uint32_t ip_nul[4] = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
@@ -712,8 +696,7 @@ int DetectAddressCutNotIPv6(DetectAddressData *a, DetectAddressData **b) {
         AddressCutIPv6Copy(ip_nul, a->ip);
         AddressCutIPv6CopySubOne(a_ip1, a->ip2);
 
-        DetectAddressData *tmp_b;
-        tmp_b = DetectAddressDataInit();
+        DetectAddressGroup *tmp_b = DetectAddressGroupInit();
         if (tmp_b == NULL) {
             goto error;
         }
@@ -749,18 +732,18 @@ error:
 }
 
 int DetectAddressGroupJoinIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *target, DetectAddressGroup *source) {
-    if (AddressIPv6Lt(source->ad->ip,target->ad->ip)) {
-        target->ad->ip[0] = source->ad->ip[0];
-        target->ad->ip[1] = source->ad->ip[1];
-        target->ad->ip[2] = source->ad->ip[2];
-        target->ad->ip[3] = source->ad->ip[3];
+    if (AddressIPv6Lt(source->ip,target->ip)) {
+        target->ip[0] = source->ip[0];
+        target->ip[1] = source->ip[1];
+        target->ip[2] = source->ip[2];
+        target->ip[3] = source->ip[3];
     }
 
-    if (AddressIPv6Gt(source->ad->ip,target->ad->ip)) {
-        target->ad->ip2[0] = source->ad->ip2[0];
-        target->ad->ip2[1] = source->ad->ip2[1];
-        target->ad->ip2[2] = source->ad->ip2[2];
-        target->ad->ip2[3] = source->ad->ip2[3];
+    if (AddressIPv6Gt(source->ip,target->ip)) {
+        target->ip2[0] = source->ip2[0];
+        target->ip2[1] = source->ip2[1];
+        target->ip2[2] = source->ip2[2];
+        target->ip2[3] = source->ip2[3];
     }
 
     return 0;

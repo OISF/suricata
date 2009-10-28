@@ -32,25 +32,19 @@ enum {
     ADDRESS_GT,      /* bigger               [bbb] [aaa] */
 };
 
-#define ADDRESS_FLAG_ANY 0x1
-#define ADDRESS_FLAG_NOT 0x2
+#define ADDRESS_FLAG_ANY            0x01
+#define ADDRESS_FLAG_NOT            0x02
 
-#define ADDRESS_GROUP_SIGGROUPHEAD_COPY  0x01
-#define ADDRESS_GROUP_PORTS_COPY         0x02
-#define ADDRESS_GROUP_PORTS_NOTUNIQ      0x04
-#define ADDRESS_GROUP_HAVEPORT           0x08
-
-typedef struct DetectAddressData_ {
-    /* XXX convert to use a Address datatype to replace family, ip,ip2*/
-    uint8_t family;
-    uint32_t ip[4];
-    uint32_t ip2[4];
-    uint8_t flags;
-} DetectAddressData;
+#define ADDRESS_SIGGROUPHEAD_COPY   0x04
+#define ADDRESS_PORTS_COPY          0x08
+#define ADDRESS_PORTS_NOTUNIQ       0x10
+#define ADDRESS_HAVEPORT            0x20
 
 typedef struct DetectAddressGroup_ {
     /* address data for this group */
-    DetectAddressData *ad;
+    uint8_t family;
+    uint32_t ip[4];
+    uint32_t ip2[4];
 
     /* XXX ptr to rules, or PortGroup or whatever */
     union {
