@@ -35,6 +35,7 @@ void DetectPortSpHashReset(DetectEngineCtx *);
 int DetectPortJoin(DetectEngineCtx *,DetectPort *target, DetectPort *source);
 
 void DetectPortPrint(DetectPort *);
+void DetectPortPrintList(DetectPort *head);
 int DetectPortCmp(DetectPort *, DetectPort *);
 void DetectPortFree(DetectPort *);
 

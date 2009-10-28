@@ -77,24 +77,34 @@ void DetectAddressGroupFree(DetectAddressGroup *ag) {
     if (ag == NULL)
         return;
 
+    SCLogDebug("ag %p", ag);
+
+    SCLogDebug("- ag %p, ad %p", ag, ag->ad);
     if (ag->ad != NULL) {
         DetectAddressDataFree(ag->ad);
     }
     ag->ad = NULL;
 
+    SCLogDebug("- ag %p, sh %p", ag, ag->sh);
     /* only free the head if we have the original */
     if (ag->sh != NULL && !(ag->flags & ADDRESS_GROUP_SIGGROUPHEAD_COPY)) {
+        SCLogDebug("- ag %p, sh %p not a copy, so call SigGroupHeadFree", ag, ag->sh);
         SigGroupHeadFree(ag->sh);
     }
     ag->sh = NULL;
 
     if (!(ag->flags & ADDRESS_GROUP_HAVEPORT)) {
+        SCLogDebug("- ag %p dst_gh %p", ag, ag->dst_gh);
+
         if (ag->dst_gh != NULL) {
             DetectAddressGroupsHeadFree(ag->dst_gh);
         }
         ag->dst_gh = NULL;
     } else {
-        if (ag->port != NULL && !(ag->flags & PORT_GROUP_PORTS_COPY)) {
+        SCLogDebug("- ag %p port %p", ag, ag->port);
+
+        if (ag->port != NULL && !(ag->flags & ADDRESS_GROUP_PORTS_COPY)) {
+            SCLogDebug("- ag %p port %p, not a copy so call DetectPortCleanupList", ag, ag->port);
             DetectPortCleanupList(ag->port);
         }
         ag->port = NULL;
@@ -163,6 +173,8 @@ void DetectAddressGroupPrintList(DetectAddressGroup *head) {
 }
 
 void DetectAddressGroupCleanupList (DetectAddressGroup *head) {
+    //SCLogDebug("head %p", head);
+
     if (head == NULL)
         return;
 
@@ -903,6 +915,8 @@ DetectAddressGroupsHead *DetectAddressGroupsHeadInit(void) {
 }
 
 void DetectAddressGroupsHeadCleanup(DetectAddressGroupsHead *gh) {
+    //SCLogDebug("gh %p", gh);
+
     if (gh != NULL) {
         DetectAddressGroupCleanupList(gh->any_head);
         gh->any_head = NULL;
@@ -914,6 +928,8 @@ void DetectAddressGroupsHeadCleanup(DetectAddressGroupsHead *gh) {
 }
 
 void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *gh) {
+    //SCLogDebug("gh %p", gh);
+
     if (gh != NULL) {
         DetectAddressGroupsHeadCleanup(gh);
         free(gh);

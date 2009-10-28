@@ -1,6 +1,8 @@
 #ifndef __DETECT_ENGINE_SIGGROUP_H__
 #define __DETECT_ENGINE_SIGGROUP_H__
 
+void DetectSigGroupPrintMemory(void);
+
 int SigGroupHeadAppendSig(DetectEngineCtx *, SigGroupHead **, Signature *);
 int SigGroupHeadClearSigs(SigGroupHead *);
 int SigGroupHeadCopySigs(DetectEngineCtx *, SigGroupHead *, SigGroupHead **);
@@ -37,6 +39,9 @@ int SigGroupHeadMpmHashInit(DetectEngineCtx *);
 int SigGroupHeadMpmUriHashInit(DetectEngineCtx *);
 int SigGroupHeadDPortHashInit(DetectEngineCtx *);
 int SigGroupHeadSPortHashInit(DetectEngineCtx *);
+
+int SigGroupHeadHashRemove(DetectEngineCtx *, SigGroupHead *);
+int SigGroupHeadSPortHashRemove(DetectEngineCtx *, SigGroupHead *);
 
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx);
 int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t max_idx);

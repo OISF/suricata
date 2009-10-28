@@ -105,7 +105,7 @@ void SigGroupHeadFree(SigGroupHead *sgh) {
     }
 
     if (sgh->match_array != NULL) {
-        detect_siggroup_matcharray_init_cnt--;
+        detect_siggroup_matcharray_free_cnt++;
         detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(uint32_t));
         free(sgh->match_array);
         sgh->match_array = NULL;
@@ -268,6 +268,10 @@ int SigGroupHeadHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     return HashListTableAdd(de_ctx->sgh_hash_table, (void *)sgh, 0);
 }
 
+int SigGroupHeadHashRemove(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+    return HashListTableRemove(de_ctx->sgh_hash_table, (void *)sgh, 0);
+}
+
 SigGroupHead *SigGroupHeadHashLookup(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     SigGroupHead *rsgh = HashListTableLookup(de_ctx->sgh_hash_table, (void *)sgh, 0);
     return rsgh;
@@ -328,6 +332,9 @@ int SigGroupHeadSPortHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     return HashListTableAdd(de_ctx->sgh_sport_hash_table, (void *)sgh, 0);
 }
 
+int SigGroupHeadSPortHashRemove(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+    return HashListTableRemove(de_ctx->sgh_sport_hash_table, (void *)sgh, 0);
+}
 SigGroupHead *SigGroupHeadSPortHashLookup(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     SigGroupHead *rsgh = HashListTableLookup(de_ctx->sgh_sport_hash_table, (void *)sgh, 0);
     return rsgh;
@@ -377,6 +384,8 @@ static void SigGroupHeadFreeSigArraysHash(DetectEngineCtx *de_ctx, HashListTable
 
     for (htb = HashListTableGetListHead(ht); htb != NULL; htb = HashListTableGetListNext(htb)) {
         SigGroupHead *sgh = (SigGroupHead *)HashListTableGetListData(htb);
+
+        SCLogDebug("sgh %p", sgh);
 
         if (sgh->sig_array != NULL) {
             detect_siggroup_sigarray_free_cnt++;
@@ -689,6 +698,8 @@ int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uin
 
     if (sgh == NULL)
         return 0;
+
+    BUG_ON(sgh->match_array != NULL);
 
     sgh->match_array = malloc(sgh->sig_cnt * sizeof(uint32_t));
     if (sgh->match_array == NULL)

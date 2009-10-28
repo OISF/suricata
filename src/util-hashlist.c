@@ -134,14 +134,35 @@ int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen) {
         return -1;
     }
 
+    /* fast track for just one data part */
     if (ht->array[hash]->bucknext == NULL) {
-        if (ht->Free != NULL)
-            ht->Free(ht->array[hash]->data);
-        free(ht->array[hash]);
-        ht->array[hash] = NULL;
-        return 0;
+        HashListTableBucket *hb = ht->array[hash];
+
+        if (ht->Compare(hb->data,hb->size,data,datalen) == 1) {
+            /* remove from the list */
+            if (hb->listprev == NULL) {
+                ht->listhead = hb->listnext;
+            } else {
+                hb->listprev->listnext = hb->listnext;
+            }
+            if (hb->listnext == NULL) {
+                ht->listtail = hb->listprev;
+            } else {
+                hb->listnext->listprev = hb->listprev;
+            }
+
+            if (ht->Free != NULL)
+                ht->Free(hb->data);
+
+            free(ht->array[hash]);
+            ht->array[hash] = NULL;
+            return 0;
+        }
+
+        return -1;
     }
 
+    /* more data in this bucket */
     HashListTableBucket *hashbucket = ht->array[hash], *prev_hashbucket = NULL;
     do {
         if (ht->Compare(hashbucket->data,hashbucket->size,data,datalen) == 1) {

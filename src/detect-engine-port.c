@@ -75,6 +75,8 @@ void DetectPortFree(DetectPort *dp) {
     }
     dp->dst_ph = NULL;
 
+    //BUG_ON(dp->next != NULL);
+
     detect_port_memory -= sizeof(DetectPort);
     detect_port_free_cnt++;
     free(dp);
@@ -109,17 +111,14 @@ void DetectPortPrintList(DetectPort *head) {
     DetectPort *cur;
     uint16_t cnt = 0;
 
-    printf("list:\n");
+    SCLogDebug("= list start:");
     if (head != NULL) {
         for (cur = head; cur != NULL; cur = cur->next) {
-             printf("SIGS %6u ", cur->sh ? cur->sh->sig_cnt : 0);
-
              DetectPortPrint(cur);
              cnt++;
-             printf("\n");
         }
     }
-    printf("endlist (cnt %" PRIu32 ")\n", cnt);
+    SCLogDebug("= list end (cnt %" PRIu32 ")", cnt);
 }
 
 void DetectPortCleanupList (DetectPort *head) {
@@ -129,10 +128,10 @@ void DetectPortCleanupList (DetectPort *head) {
     DetectPort *cur, *next;
 
     for (cur = head; cur != NULL; ) {
-         next = cur->next;
-
-         DetectPortFree(cur);
-         cur = next;
+        next = cur->next;
+        cur->next = NULL;
+        DetectPortFree(cur);
+        cur = next;
     }
 
     head = NULL;
@@ -194,14 +193,8 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
     if (new == NULL)
         return 0;
 
-#ifdef DEBUG
-    SCLogDebug("head %p, new %p", head, new);
-    SCLogDebug("inserting (sig %" PRIu32 ")", new->sh ? new->sh->sig_cnt : 0);
-    if (SCLogDebugEnabled()) {
-        DetectPortPrint(new);
-        DetectPortPrintList(*head);
-    }
-#endif
+    //BUG_ON(new->next != NULL);
+    //BUG_ON(new->prev != NULL);
 
     /* see if it already exists or overlaps with existing ag's */
     if (*head != NULL) {
@@ -210,14 +203,8 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
 
         for (cur = *head; cur != NULL; cur = cur->next) {
             r = DetectPortCmp(new,cur);
-            if (r == PORT_ER) {
-                SCLogDebug("PORT_ER DetectPortCmp compared:");
-                if (SCLogDebugEnabled()) {
-                    DetectPortPrint(new);
-                    DetectPortPrint(cur);
-                }
-                goto error;
-            }
+            BUG_ON(r == PORT_ER);
+
             /* if so, handle that */
             if (r == PORT_EQ) {
                 SCLogDebug("PORT_EQ %p %p", cur, new);
@@ -262,70 +249,27 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new
             /* alright, those were the simple cases,
              * lets handle the more complex ones now */
 
-            } else if (r == PORT_ES) {
-                SCLogDebug("PORT_ES");
+            } else {
                 DetectPort *c = NULL;
-                r = DetectPortCut(de_ctx,cur,new,&c);
+                r = DetectPortCut(de_ctx, cur, new, &c);
                 if (r == -1)
                     goto error;
 
-                DetectPortInsert(de_ctx, head, new);
-                if (c != NULL) {
-                    SCLogDebug("inserting C (%p)",c);
-                    if (SCLogDebugEnabled()) {
-                        DetectPortPrint(c);
-                    }
-                    DetectPortInsert(de_ctx, head, c);
-                }
-                return 1;
-            } else if (r == PORT_EB) {
-                SCLogDebug("PORT_EB");
-                DetectPort *c = NULL;
-                r = DetectPortCut(de_ctx,cur,new,&c);
+                r = DetectPortInsert(de_ctx, head, new);
                 if (r == -1)
                     goto error;
 
-                DetectPortInsert(de_ctx, head, new);
                 if (c != NULL) {
-                    SCLogDebug("inserting C");
+                    SCLogDebug("inserting C (%p)", c);
                     if (SCLogDebugEnabled()) {
                         DetectPortPrint(c);
                     }
-                    DetectPortInsert(de_ctx, head, c);
+                    r = DetectPortInsert(de_ctx, head, c);
+                    if (r == -1)
+                        goto error;
                 }
                 return 1;
-            } else if (r == PORT_LE) {
-                SCLogDebug("PORT_LE");
-                DetectPort *c = NULL;
-                r = DetectPortCut(de_ctx,cur,new,&c);
-                if (r == -1)
-                    goto error;
 
-                DetectPortInsert(de_ctx, head, new);
-                if (c != NULL) {
-                    SCLogDebug("inserting C");
-                    if (SCLogDebugEnabled()) {
-                        DetectPortPrint(c);
-                    }
-                    DetectPortInsert(de_ctx, head, c);
-                }
-                return 1;
-            } else if (r == PORT_GE) {
-                SCLogDebug("PORT_GE");
-                DetectPort *c = NULL;
-                r = DetectPortCut(de_ctx,cur,new,&c);
-                if (r == -1)
-                    goto error;
-
-                DetectPortInsert(de_ctx, head, new);
-                if (c != NULL) {
-                    SCLogDebug("inserting C");
-                    if (SCLogDebugEnabled()) {
-                        DetectPortPrint(c);
-                    }
-                    DetectPortInsert(de_ctx, head, c);
-                }
-                return 1;
             }
         }
 
@@ -389,16 +333,16 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, 
         if (tmp_c == NULL) {
             goto error;
         }
+        *c = tmp_c;
 
         tmp_c->port  = a_port2 + 1;
         tmp_c->port2 = b_port2;
-        *c = tmp_c;
 
         SigGroupHeadCopySigs(de_ctx,b->sh,&tmp_c->sh); /* copy old b to c */
-        SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh); /* copy old b to a */
+        SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh); /* copy a to b */
 
         tmp_c->cnt += b->cnt;
-        b->cnt += a->cnt; 
+        b->cnt += a->cnt;
 
     /* we have 3 parts: [bbb[baba]aaa]
      * part a: b_port1 <-> a_port1 - 1
@@ -420,10 +364,10 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, 
         if (tmp_c == NULL) {
             goto error;
         }
+        *c = tmp_c;
 
         tmp_c->port  = b_port2 + 1;
         tmp_c->port2 = a_port2;
-        *c = tmp_c;
 
         /* 'a' gets clean and then 'b' sigs
          * 'b' gets clean, then 'a' then 'b' sigs
@@ -506,10 +450,10 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, 
             if (tmp_c == NULL) {
                 goto error;
             }
+            *c = tmp_c;
 
             tmp_c->port  = a_port2 + 1;
             tmp_c->port2 = b_port2;
-            *c = tmp_c;
 
             /* 'a' gets clean and then 'b' sigs
              * 'b' gets clean, then 'a' then 'b' sigs
@@ -605,10 +549,10 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, 
             if (tmp_c == NULL) {
                 goto error;
             }
+            *c = tmp_c;
 
             tmp_c->port  = b_port2 + 1;
             tmp_c->port2 = a_port2;
-            *c = tmp_c;
 
             SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
             SigGroupHeadCopySigs(de_ctx,a->sh,&tmp_c->sh);
@@ -618,13 +562,12 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, 
         }
     }
 
-    /* XXX free tmp */
-    if (tmp != NULL)
+    if (tmp != NULL) {
         DetectPortFree(tmp);
+    }
     return 0;
 
 error:
-    /* XXX free tmp */
     if (tmp != NULL)
         DetectPortFree(tmp);
     return -1;
@@ -779,9 +722,9 @@ void DetectPortPrint(DetectPort *dp) {
         return;
 
     if (dp->flags & PORT_FLAG_ANY) {
-        SCLogDebug("ANY");
+        SCLogDebug("=> port %p: ANY", dp);
     } else {
-        SCLogDebug("%" PRIu32 "-%" PRIu32 "", dp->port, dp->port2);
+        SCLogDebug("=> port %p %" PRIu32 "-%" PRIu32 "", dp, dp->port, dp->port2);
     }
 }
 
@@ -817,7 +760,7 @@ int DetectPortJoin(DetectEngineCtx *de_ctx, DetectPort *target, DetectPort *sour
     if (source->port2 > target->port2)
         target->port2 = source->port2;
 
-    return -1;
+    return 0;
 }
 
 /* parsing routines */
@@ -1102,7 +1045,7 @@ int DetectPortParse(DetectPort **head, char *str) {
         goto error;
 
     /* free the temp negate head */
-    DetectPortFree(nhead);
+    DetectPortCleanupList(nhead);
     return 0;
 
 error:
@@ -1204,10 +1147,15 @@ char DetectPortCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len
     return 0;
 }
 
+void DetectPortFreeFunc(void *p) {
+    DetectPort *dp = (DetectPort *)p;
+    DetectPortFree(dp);
+}
+
 /* dp hash */
 
 int DetectPortDpHashInit(DetectEngineCtx *de_ctx) {
-    de_ctx->dport_hash_table = HashListTableInit(PORT_HASH_SIZE, DetectPortHashFunc, DetectPortCompareFunc, NULL);
+    de_ctx->dport_hash_table = HashListTableInit(PORT_HASH_SIZE, DetectPortHashFunc, DetectPortCompareFunc, DetectPortFreeFunc);
     if (de_ctx->dport_hash_table == NULL)
         goto error;
 
@@ -1241,7 +1189,7 @@ DetectPort *DetectPortDpHashLookup(DetectEngineCtx *de_ctx, DetectPort *p) {
 /* sp hash */
 
 int DetectPortSpHashInit(DetectEngineCtx *de_ctx) {
-    de_ctx->sport_hash_table = HashListTableInit(PORT_HASH_SIZE, DetectPortHashFunc, DetectPortCompareFunc, NULL);
+    de_ctx->sport_hash_table = HashListTableInit(PORT_HASH_SIZE, DetectPortHashFunc, DetectPortCompareFunc, DetectPortFreeFunc);
     if (de_ctx->sport_hash_table == NULL)
         goto error;
 

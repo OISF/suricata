@@ -348,7 +348,7 @@ typedef struct SigGroupHead_ {
     uint8_t flags;
 
     /* pattern matcher instance */
-    MpmCtx *mpm_ctx;      /* search */
+    MpmCtx *mpm_ctx;
     uint16_t mpm_content_maxlen;
     MpmCtx *mpm_uri_ctx;
     uint16_t mpm_uricontent_maxlen;
@@ -379,6 +379,8 @@ typedef struct SigGroupHead_ {
     uint16_t mpm_len2;
     uint16_t mpm_len3;
     uint16_t mpm_len4; /* 4+ */
+
+    uint32_t refcnt;
 } SigGroupHead;
 
 /** sigmatch has no options, so the parser shouldn't expect any */

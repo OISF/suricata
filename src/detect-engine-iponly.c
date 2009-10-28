@@ -79,7 +79,6 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
             grtmp->cnt = 1;
 
             SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
-            //printf("  -=-  "); DetectAddressDataPrint(na);
 
             DetectAddressGroup *rgr = HashListTableLookup(ht,grtmp,0);
             if (rgr == NULL) {
@@ -87,13 +86,11 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
 
                 HashListTableAdd(ht,grtmp,0);
                 direction ? io_ctx->a_dst_uniq16++ : io_ctx->a_src_uniq16++;
-                //printf(" uniq\n");
             } else {
                 SigGroupHeadAppendSig(de_ctx, &rgr->sh, s);
 
                 DetectAddressGroupFree(grtmp);
                 direction ? io_ctx->a_dst_total16++ : io_ctx->a_src_total16++;
-                //printf(" dup\n");
             }
 
             if (high >= 65536)
@@ -101,8 +98,6 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
             else
                 high = 0;
         }
-        //printf(" contains %" PRIu32 " /16's\n", s16_cnt);
-
     } else {
         DetectAddressGroup *grtmp = DetectAddressGroupInit();
         if (grtmp == NULL) {
@@ -116,8 +111,6 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
         adtmp->ip2[0] = IPONLY_EXTRACT_16(gr->ad) | IPONLY_HTONL_65535;
         grtmp->ad = adtmp;
         grtmp->cnt = 1;
-
-        //SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
 
         DetectAddressGroup *rgr = HashListTableLookup(ht,grtmp,0);
         if (rgr == NULL) {
@@ -208,13 +201,22 @@ static char IPOnlyCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t 
     return 1;
 }
 
+
+static void IPOnlyFreeFunc(void *g) {
+    if (g == NULL)
+        return;
+
+    DetectAddressGroup *ag = (DetectAddressGroup *)g;
+    DetectAddressGroupFree(ag);
+}
+
 /* XXX error checking */
 void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
-    io_ctx->ht16_src = HashListTableInit(65536, IPOnlyHashFunc16, IPOnlyCompareFunc, NULL);
-    io_ctx->ht16_dst = HashListTableInit(65536, IPOnlyHashFunc16, IPOnlyCompareFunc, NULL);
+    io_ctx->ht16_src = HashListTableInit(65536, IPOnlyHashFunc16, IPOnlyCompareFunc, IPOnlyFreeFunc);
+    io_ctx->ht16_dst = HashListTableInit(65536, IPOnlyHashFunc16, IPOnlyCompareFunc, IPOnlyFreeFunc);
 /*
-    io_ctx->ht24_src = HashListTableInit(65536, IPOnlyHashFunc24, IPOnlyCompareFunc, NULL);
-    io_ctx->ht24_dst = HashListTableInit(65536, IPOnlyHashFunc24, IPOnlyCompareFunc, NULL);
+    io_ctx->ht24_src = HashListTableInit(65536, IPOnlyHashFunc24, IPOnlyCompareFunc, IPOnlyFreeFunc);
+    io_ctx->ht24_dst = HashListTableInit(65536, IPOnlyHashFunc24, IPOnlyCompareFunc, IPOnlyFreeFunc);
 */
     io_ctx->sig_init_size = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
     if ( (io_ctx->sig_init_array = malloc(io_ctx->sig_init_size)) == NULL) {
@@ -270,6 +272,16 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
 */
     free(io_ctx->sig_init_array);
     io_ctx->sig_init_array = NULL;
+}
+
+void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
+    if (io_tctx->src != NULL) {
+        DetectAddressGroupFree(io_tctx->src);
+    }
+    if (io_tctx->dst != NULL) {
+        DetectAddressGroupFree(io_tctx->dst);
+    }
+    free(io_tctx->sig_match_array);
 }
 
 DetectAddressGroup *IPOnlyLookupSrc16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {

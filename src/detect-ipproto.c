@@ -18,6 +18,9 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
+#include "detect-engine-siggroup.h"
+#include "detect-engine-address.h"
+
 #include "util-byte.h"
 #include "util-unittest.h"
 
@@ -586,6 +589,9 @@ cleanup:
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+
+    DetectSigGroupPrintMemory();
+    DetectAddressGroupPrintMemory();
 
 end:
     return result;
