@@ -425,7 +425,10 @@ int main(int argc, char **argv)
 #ifdef UNITTESTS
     if (mode == MODE_UNITTEST) {
         /* test and initialize the unittesting subsystem */
-        UtRunSelftest(regex_arg); /* inits and cleans up again */
+        if(regex_arg == NULL){
+            regex_arg = ".*";
+            UtRunSelftest(regex_arg); /* inits and cleans up again */
+        }
         UtInitialize();
         TmModuleRegisterTests();
         SigTableRegisterTests();

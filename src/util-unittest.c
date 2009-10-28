@@ -7,6 +7,7 @@
 
 #include "eidps-common.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -47,7 +48,7 @@ static int UtAppendTest(UtTest **list, UtTest *test) {
         UtTest *tmp = *list;
 
         while (tmp->next != NULL) {
-             tmp = tmp->next;
+            tmp = tmp->next;
         }
         tmp->next = test;
     }
@@ -90,7 +91,7 @@ void UtRegisterTest(char *name, int(*TestFn)(void), int evalue) {
 int UtRegex (char *regex_arg) {
     const char *eb;
     int eo;
-    int opts = 0;
+    int opts = PCRE_CASELESS;;
 
     if(regex_arg == NULL)
         return -1;
@@ -152,17 +153,18 @@ void UtListTests(char *regex_arg) {
 
 uint32_t UtRunTests(char *regex_arg) {
     UtTest *ut;
-    uint32_t good = 0, bad = 0;
+    uint32_t good = 0, bad = 0, matchcnt = 0;
     int ret = 0, rcomp = 0;
     int ov[MAX_SUBSTRINGS];
 
     rcomp = UtRegex(regex_arg);
 
-    for (ut = ut_list; ut != NULL; ut = ut->next) {
-        if(rcomp == 1)  {
+    if(rcomp == 1){
+        for (ut = ut_list; ut != NULL; ut = ut->next) {
             ret = pcre_exec(parse_regex, parse_regex_study, ut->name, strlen(ut->name), 0, 0, ov, MAX_SUBSTRINGS);
             if( ret >= 1 )  {
                 printf("Test %-60.60s : ", ut->name);
+                matchcnt++;
                 fflush(stdout); /* flush so in case of a segv we see the testname */
                 ret = ut->TestFn();
                 printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
@@ -173,25 +175,19 @@ uint32_t UtRunTests(char *regex_arg) {
                 }
             }
         }
-        else    {
-            printf("Test %-60.60s : ", ut->name);
-            fflush(stdout); /* flush so in case of a segv we see the testname */
-            ret = ut->TestFn();
-            printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
-            if (ret != ut->evalue) {
-                bad++;
-            } else {
-                good++;
-            }
+        if(matchcnt > 0){
+            printf("==== TEST RESULTS ====\n");
+            printf("PASSED: %" PRIu32 "\n", good);
+            printf("FAILED: %" PRIu32 "\n", bad);
+            printf("======================\n");
+        } else {
+            SCLogInfo("UtRunTests: regex provided regex_arg: %s did not match any tests",regex_arg);
         }
+    } else {
+        SCLogInfo("UtRunTests: pcre compilation failed");
     }
-    printf("==== TEST RESULTS ====\n");
-    printf("PASSED: %" PRIu32 "\n", good);
-    printf("FAILED: %" PRIu32 "\n", bad);
-    printf("======================\n");
     return bad;
 }
-
 /**
  * \brief Initialize unit test list
  */
@@ -259,7 +255,6 @@ int UtRunSelftest (char *regex_arg) {
     UtRegisterTest("false", UtSelftestFalse, 0);
 
     int ret = UtRunTests(regex_arg);
-
     if (ret == 0)
         printf("* Done running Unittesting subsystem selftests...\n");
     else
