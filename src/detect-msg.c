@@ -3,15 +3,22 @@
 #include "eidps-common.h"
 #include "detect.h"
 #include "util-debug.h"
+#include "util-unittest.h"
+
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+
 
 int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *msgstr);
+void DetectMsgRegisterTests(void);
 
 void DetectMsgRegister (void) {
     sigmatch_table[DETECT_MSG].name = "msg";
     sigmatch_table[DETECT_MSG].Match = NULL;
     sigmatch_table[DETECT_MSG].Setup = DetectMsgSetup;
     sigmatch_table[DETECT_MSG].Free = NULL;
-    sigmatch_table[DETECT_MSG].RegisterTests = NULL;
+    sigmatch_table[DETECT_MSG].RegisterTests = DetectMsgRegisterTests;
 }
 
 int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *msgstr)
@@ -85,11 +92,14 @@ int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ms
     }
 
     s->msg = malloc(len);
+
     if (s->msg == NULL)
         goto error;
 
-    memcpy(s->msg, str, len);
+    memset(s->msg, 0, sizeof(s->msg));
 
+    strncpy(s->msg, str, len);
+    //printf("s->msg %s  strlen(s->msg) %i str %s strlen(str) %i len %i\n",s->msg,strlen(s->msg),str,strlen(str),len);
     free(str);
     return 0;
 
@@ -97,3 +107,75 @@ error:
     free(str);
     return -1;
 }
+
+/* -------------------------------------Unittests-----------------------------*/
+
+#ifdef UNITTESTS
+static int DetectMsgParseTest01(void)
+{
+    int result = 0;
+    Signature *sig = NULL;
+    char *teststringparsed = "flow stateless to_server";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"flow stateless to_server\"; flow:stateless,to_server; content:\"flowstatelesscheck\"; classtype:bad-unknown; sid: 40000002; rev: 1;)");
+
+    if(sig == NULL)
+        goto end;
+
+    if (memcmp(sig->msg, teststringparsed, strlen(sig->msg)) != 0) {
+        printf("got %s: expected: %s",sig->msg,teststringparsed);
+        goto end;
+    }else{
+        result = 1;
+    }
+
+    SigFree(sig);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    return result;
+}
+
+static int DetectMsgParseTest02(void)
+{
+    int result = 0;
+    Signature *sig = NULL;
+    char *teststringparsed = "msg escape tests wxy'\"\\;:";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"msg escape tests \\w\\x\\y\\'\\\"\\\\;\\:\"; flow:to_server,established; content:\"blah\"; uricontent:\"/blah/\"; sid: 100;)");
+
+    if(sig == NULL)
+        goto end;
+
+    if (memcmp(sig->msg, teststringparsed, strlen(sig->msg)) != 0) {
+        printf("got %s: expected: %s",sig->msg,teststringparsed);
+        goto end;
+    }else{
+        result = 1;
+    }
+
+    SigFree(sig);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    return result;
+}
+
+#endif /* UNITTESTS */
+
+/**
+ * \brief this function registers unit tests for DetectMsg
+ */
+void DetectMsgRegisterTests(void) {
+#ifdef UNITTESTS /* UNITTESTS */
+    UtRegisterTest("DetectMsgParseTest01", DetectMsgParseTest01, 1);
+    UtRegisterTest("DetectMsgParseTest02", DetectMsgParseTest02, 1);
+#endif /* UNITTESTS */
+}
+
