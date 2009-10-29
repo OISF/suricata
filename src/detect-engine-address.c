@@ -489,6 +489,10 @@ static int DetectAddressParseString(DetectAddress *dd, char *str) {
                 /* 1.2.3.4/24 format */
 
                 int cidr = atoi(mask);
+                if(cidr < 0 || cidr > 32){
+                    goto error;
+                }
+
                 netmask = CIDRGet(cidr);
             } else {
                 /* 1.2.3.4/255.255.255.0 format */
@@ -3543,6 +3547,28 @@ error:
     DetectAddressFree(c);
     return 0;
 }
+
+int AddressTestParseInvalidMask01 (void) {
+    int result = 1;
+    DetectAddress *dd = NULL;
+    dd = DetectAddressParseSingle("192.168.2.0/33");
+    if (dd != NULL) {
+        DetectAddressFree(dd);
+        result = 0;
+    }
+    return result;
+}
+
+int AddressTestParseInvalidMask02 (void) {
+    int result = 1;
+    DetectAddress *dd = NULL;
+    dd = DetectAddressParseSingle("192.168.2.0/255.255.257.0");
+    if (dd != NULL) {
+        DetectAddressFree(dd);
+        result = 0;
+    }
+    return result;
+}
 #endif /* UNITTESTS */
 
 void DetectAddressTests(void) {
@@ -3666,6 +3692,9 @@ void DetectAddressTests(void) {
     UtRegisterTest("AddressTestCutIPv408", AddressTestCutIPv408, 1);
     UtRegisterTest("AddressTestCutIPv409", AddressTestCutIPv409, 1);
     UtRegisterTest("AddressTestCutIPv410", AddressTestCutIPv410, 1);
+
+    UtRegisterTest("AddressTestParseInvalidMask01",AddressTestParseInvalidMask01, 1);
+    UtRegisterTest("AddressTestParseInvalidMask02",AddressTestParseInvalidMask02, 1);
 #endif /* UNITTESTS */
 }
 
