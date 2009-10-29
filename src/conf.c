@@ -406,8 +406,8 @@ ConfTestSetGetNode(void)
 {
     ConfNode *set;
     ConfNode *get;
-    const char key[] = "some-key";
-    const char val[] = "some-val";
+    char key[] = "some-key";
+    char val[] = "some-val";
 
     set = ConfNodeNew();
     if (set == NULL)
