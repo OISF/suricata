@@ -260,7 +260,8 @@ static int FlowBitsTestSig01(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -271,7 +272,7 @@ static int FlowBitsTestSig01(void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
 
     if (de_ctx == NULL) {
         goto end;
@@ -334,7 +335,8 @@ static int FlowBitsTestSig02(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     int error_count = 0;
 
@@ -346,7 +348,8 @@ static int FlowBitsTestSig02(void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
+
     if (de_ctx == NULL) {
         goto end;
     }
@@ -452,7 +455,8 @@ static int FlowBitsTestSig03(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -463,7 +467,8 @@ static int FlowBitsTestSig03(void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
+
     if (de_ctx == NULL) {
         goto end;
     }
@@ -526,7 +531,8 @@ static int FlowBitsTestSig04(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     int idx = 0;
 
@@ -538,7 +544,8 @@ static int FlowBitsTestSig04(void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
+
     if (de_ctx == NULL) {
         goto end;
     }
@@ -603,7 +610,8 @@ static int FlowBitsTestSig05(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -614,7 +622,8 @@ static int FlowBitsTestSig05(void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
+
     if (de_ctx == NULL) {
         goto end;
     }
@@ -677,7 +686,8 @@ static int FlowBitsTestSig06(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
     Flow f;
     GenericVar flowvar, *gv = NULL;
     int result = 0;
@@ -697,7 +707,8 @@ static int FlowBitsTestSig06(void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
+
     if (de_ctx == NULL) {
         goto end;
     }
@@ -772,7 +783,8 @@ static int FlowBitsTestSig07(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
     Flow f;
     GenericVar flowvar, *gv = NULL;
     int result = 0;
@@ -792,7 +804,8 @@ static int FlowBitsTestSig07(void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
+
     if (de_ctx == NULL) {
         goto end;
     }
@@ -871,7 +884,8 @@ static int FlowBitsTestSig08(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
     Flow f;
     GenericVar flowvar, *gv = NULL;
     int result = 0;
@@ -891,7 +905,8 @@ static int FlowBitsTestSig08(void) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
+
     if (de_ctx == NULL) {
         goto end;
     }
