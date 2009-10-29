@@ -279,14 +279,14 @@ void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher) {
     mpm_ctx->mpm_type = matcher;
     mpm_table[matcher].InitCtx(mpm_ctx);
 
-    mpm_ctx->AddScanPattern       = mpm_table[matcher].AddScanPattern;
-    mpm_ctx->AddScanPatternNocase = mpm_table[matcher].AddScanPatternNocase;
-    mpm_ctx->AddPattern           = mpm_table[matcher].AddPattern;
-    mpm_ctx->AddPatternNocase     = mpm_table[matcher].AddPatternNocase;
-    mpm_ctx->Prepare              = mpm_table[matcher].Prepare;
-    mpm_ctx->Scan                 = mpm_table[matcher].Scan;
-    mpm_ctx->Search               = mpm_table[matcher].Search;
-    mpm_ctx->Cleanup              = mpm_table[matcher].Cleanup;
+//    mpm_ctx->AddScanPattern       = mpm_table[matcher].AddScanPattern;
+//    mpm_ctx->AddScanPatternNocase = mpm_table[matcher].AddScanPatternNocase;
+//    mpm_ctx->AddPattern           = mpm_table[matcher].AddPattern;
+//    mpm_ctx->AddPatternNocase     = mpm_table[matcher].AddPatternNocase;
+//    mpm_ctx->Prepare              = mpm_table[matcher].Prepare;
+//    mpm_ctx->Scan                 = mpm_table[matcher].Scan;
+//    mpm_ctx->Search               = mpm_table[matcher].Search;
+//    mpm_ctx->Cleanup              = mpm_table[matcher].Cleanup;
 }
 
 

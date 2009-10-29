@@ -99,6 +99,11 @@ typedef struct B2gCtx_ {
     uint8_t search_s0;
 
     /* we store our own multi byte scan ptr here for B2gSearch1 */
+    uint32_t (*Scan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+    /* we store our own multi byte search ptr here for B2gSearch1 */
+    uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+
+    /* we store our own multi byte scan ptr here for B2gSearch1 */
     uint32_t (*MBScan2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     uint32_t (*MBScan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     /* we store our own multi byte search ptr here for B2gSearch1 */

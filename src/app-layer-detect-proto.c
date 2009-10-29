@@ -109,7 +109,7 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
         dir = &ctx->toserver;
     }
 
-    dir->mpm_ctx.AddScanPattern(&dir->mpm_ctx, cd->content, cd->content_len,
+    mpm_table[dir->mpm_ctx.mpm_type].AddScanPattern(&dir->mpm_ctx, cd->content, cd->content_len,
                                 cd->offset, cd->depth, dir->id, dir->id, 0);
     dir->map[dir->id] = al_proto;
     dir->id++;
@@ -138,8 +138,8 @@ void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
     if (ctx == NULL)
         return;
 
-    ctx->toclient.mpm_ctx.Prepare(&ctx->toclient.mpm_ctx);
-    ctx->toserver.mpm_ctx.Prepare(&ctx->toserver.mpm_ctx);
+    mpm_table[ctx->toclient.mpm_ctx.mpm_type].Prepare(&ctx->toclient.mpm_ctx);
+    mpm_table[ctx->toserver.mpm_ctx.mpm_type].Prepare(&ctx->toserver.mpm_ctx);
 }
 
 void AppLayerDetectProtoThreadInit(void) {
@@ -227,7 +227,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
         return ALPROTO_UNKNOWN;
 
     uint16_t proto;
-    uint32_t cnt = dir->mpm_ctx.Scan(&dir->mpm_ctx, &tdir->mpm_ctx, &tdir->pmq, buf, buflen);
+    uint32_t cnt = mpm_table[dir->mpm_ctx.mpm_type].Scan(&dir->mpm_ctx, &tdir->mpm_ctx, &tdir->pmq, buf, buflen);
     //printf("AppLayerDetectGetProto: scan cnt %" PRIu32 "\n", cnt);
     if (cnt == 0) {
         proto = ALPROTO_UNKNOWN;
@@ -241,8 +241,8 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
 end:
     PmqReset(&tdir->pmq);
 
-    if (dir->mpm_ctx.Cleanup != NULL) {
-        dir->mpm_ctx.Cleanup(&tdir->mpm_ctx);
+    if (mpm_table[dir->mpm_ctx.mpm_type].Cleanup != NULL) {
+        mpm_table[dir->mpm_ctx.mpm_type].Cleanup(&tdir->mpm_ctx);
     }
 #if 0
     printf("AppLayerDetectGetProto: returning %" PRIu16 " (%s): ", proto, flags & STREAM_TOCLIENT ? "TOCLIENT" : "TOSERVER");
@@ -497,7 +497,7 @@ int AlpDetectTest03(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint32_t cnt = ctx.toclient.mpm_ctx.Scan(&ctx.toclient.mpm_ctx, &tctx.toclient.mpm_ctx, NULL, l7data, sizeof(l7data));
+    uint32_t cnt = mpm_table[ctx.toclient.mpm_ctx.mpm_type].Scan(&ctx.toclient.mpm_ctx, &tctx.toclient.mpm_ctx, NULL, l7data, sizeof(l7data));
     if (cnt != 1) {
         printf("cnt %u != 1: ", cnt);
         r = 0;
@@ -530,7 +530,7 @@ int AlpDetectTest04(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint32_t cnt = ctx.toclient.mpm_ctx.Scan(&ctx.toclient.mpm_ctx, &tctx.toclient.mpm_ctx, NULL, l7data, sizeof(l7data));
+    uint32_t cnt = mpm_table[ctx.toclient.mpm_ctx.mpm_type].Scan(&ctx.toclient.mpm_ctx, &tctx.toclient.mpm_ctx, NULL, l7data, sizeof(l7data));
     if (cnt != 0) {
         printf("cnt %u != 0: ", cnt);
         r = 0;

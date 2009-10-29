@@ -187,6 +187,9 @@ int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
     sm->ctx = (void *)dd;
 
     SigMatchAppend(s,m,sm);
+
+    /* tell the sig it has a dsize to speed up engine init */
+    s->flags |= SIG_FLAG_DSIZE;
     return 0;
 
 error:

@@ -8,6 +8,9 @@
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
 
+#include "detect-content.h"
+#include "detect-uricontent.h"
+
 #include "flow.h"
 
 #include "util-unittest.h"
@@ -556,6 +559,33 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
 
     sig->num = de_ctx->signum;
     de_ctx->signum++;
+
+    /* set mpm_content_len */
+
+    /* determine the length of the longest pattern in the sig */
+    if (sig->flags & SIG_FLAG_MPM) {
+        sig->mpm_content_maxlen = 0;
+        sig->mpm_uricontent_maxlen = 0;
+
+        SigMatch *sm;
+        for (sm = sig->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_CONTENT) {
+                DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+                if (sig->mpm_content_maxlen == 0)
+                    sig->mpm_content_maxlen = cd->content_len;
+                if (sig->mpm_content_maxlen < cd->content_len)
+                    sig->mpm_content_maxlen = cd->content_len;
+            } else if (sm->type == DETECT_URICONTENT) {
+                DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                if (sig->mpm_uricontent_maxlen == 0)
+                    sig->mpm_uricontent_maxlen = ud->uricontent_len;
+                if (sig->mpm_uricontent_maxlen < ud->uricontent_len)
+                    sig->mpm_uricontent_maxlen = ud->uricontent_len;
+            }
+        }
+    }
+
     return sig;
 
 error:
@@ -861,6 +891,87 @@ end:
         DetectEngineCtxFree(de_ctx);
     return result;
 }
+
+/**
+ * \test mpm
+ */
+int SigParseTestMpm01 (void) {
+    int result = 0;
+    Signature *sig = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"mpm test\"; content:\"abcd\"; sid:1;)");
+    if (sig == NULL) {
+        printf("sig failed to init: ");
+        goto end;
+    }
+
+    if (!(sig->flags & SIG_FLAG_MPM)) {
+        printf("sig doesn't have mpm flag set: ");
+        goto end;
+    }
+
+    if (sig->mpm_content_maxlen != 4) {
+        printf("mpm content max len %"PRIu16", expected 4: ", sig->mpm_content_maxlen);
+        goto end;
+    }
+
+    if (sig->mpm_uricontent_maxlen != 0) {
+        printf("mpm uricontent max len %"PRIu16", expected 0: ", sig->mpm_uricontent_maxlen);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (sig != NULL)
+        SigFree(sig);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test mpm
+ */
+int SigParseTestMpm02 (void) {
+    int result = 0;
+    Signature *sig = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"mpm test\"; content:\"abcd\"; content:\"abcdef\"; sid:1;)");
+    if (sig == NULL) {
+        printf("sig failed to init: ");
+        goto end;
+    }
+
+    if (!(sig->flags & SIG_FLAG_MPM)) {
+        printf("sig doesn't have mpm flag set: ");
+        goto end;
+    }
+
+    if (sig->mpm_content_maxlen != 6) {
+        printf("mpm content max len %"PRIu16", expected 6: ", sig->mpm_content_maxlen);
+        goto end;
+    }
+
+    if (sig->mpm_uricontent_maxlen != 0) {
+        printf("mpm uricontent max len %"PRIu16", expected 0: ", sig->mpm_uricontent_maxlen);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (sig != NULL)
+        SigFree(sig);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void SigParseRegisterTests(void) {
@@ -877,6 +988,8 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTestNegation05", SigParseTestNegation05, 1);
     UtRegisterTest("SigParseTestNegation06", SigParseTestNegation06, 1);
     UtRegisterTest("SigParseTestNegation07", SigParseTestNegation07, 1);
+    UtRegisterTest("SigParseTestMpm01", SigParseTestMpm01, 1);
+    UtRegisterTest("SigParseTestMpm02", SigParseTestMpm02, 1);
 #endif /* UNITTESTS */
 }
 

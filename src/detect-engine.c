@@ -14,6 +14,8 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 
+#include "detect-engine.h"
+
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
@@ -80,9 +82,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
  * getting & (re)setting the internal sig i
  */
 
-inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx) {
-    return de_ctx->signum;
-}
+//inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx) {
+//    return de_ctx->signum;
+//}
 
 void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx) {
     de_ctx->signum = 0;

@@ -116,12 +116,16 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_SRC_ANY   0x0002   /**< source is any */
 #define SIG_FLAG_DST_ANY   0x0004   /**< destination is any */
 #define SIG_FLAG_SP_ANY    0x0008   /**< source port is any */
+
 #define SIG_FLAG_DP_ANY    0x0010   /**< destination port is any */
 #define SIG_FLAG_NOALERT   0x0020   /**< no alert flag is set */
 #define SIG_FLAG_IPONLY    0x0040   /**< ip only signature */
 #define SIG_FLAG_MPM       0x0080   /**< sig has mpm portion (content, uricontent, etc) */
+
 #define SIG_FLAG_DEONLY    0x0100   /**< decode event only signature */
 #define SIG_FLAG_PAYLOAD   0x0200   /**< signature is inspecting the packet payload */
+#define SIG_FLAG_DSIZE     0x0400   /**< signature has a dsize setting */
+#define SIG_FLAG_FLOW      0x0800   /**< signature has a flow setting */
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
@@ -156,6 +160,10 @@ typedef struct Signature_ {
 
     /** inline -- action */
     uint8_t action;
+
+    /* helper for init phase */
+    uint16_t mpm_content_maxlen;
+    uint16_t mpm_uricontent_maxlen;
 } Signature;
 
 /** \brief IP only rules matching ctx.
@@ -369,10 +377,10 @@ typedef struct SigGroupHead_ {
     /* port ptr */
     struct DetectPort_ *port;
 
-    uint16_t mpm_len1;
-    uint16_t mpm_len2;
-    uint16_t mpm_len3;
-    uint16_t mpm_len4; /* 4+ */
+//    uint16_t mpm_len1;
+//    uint16_t mpm_len2;
+//    uint16_t mpm_len3;
+//    uint16_t mpm_len4; /* 4+ */
 
     uint32_t refcnt;
 } SigGroupHead;

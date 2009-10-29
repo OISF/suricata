@@ -140,7 +140,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
                             else                                           det_ctx->pkts_uri_scanned++;
 
                             det_ctx->pmq.mode = PMQ_MODE_SCAN;
-                            ret = det_ctx->sgh->mpm_uri_ctx->Scan(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
+                            ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
                             if (ret > 0) {
                                 if (det_ctx->sgh->mpm_uricontent_maxlen == 1)      det_ctx->pkts_uri_searched1++;
                                 else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_searched2++;
@@ -149,7 +149,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
                                 else                                           det_ctx->pkts_uri_searched++;
 
                                 det_ctx->pmq.mode = PMQ_MODE_SEARCH;
-                                ret += det_ctx->sgh->mpm_uri_ctx->Search(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
+                                ret += mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
 
                                 /* indicate to uricontent that we have a uri,
                                  * we scanned it _AND_ we found pattern matches. */

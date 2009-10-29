@@ -39,7 +39,7 @@ uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packe
     uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SCAN;
-    ret = det_ctx->sgh->mpm_ctx->Scan(det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload, p->payload_len);
+    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Scan(det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload, p->payload_len);
 
     //printf("PacketPatternScan: ret %" PRIu32 "\n", ret);
     return ret;
@@ -54,7 +54,7 @@ uint32_t PacketPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Pack
     uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SEARCH;
-    ret = det_ctx->sgh->mpm_ctx->Search(det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload, p->payload_len);
+    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload, p->payload_len);
 
     //printf("PacketPatternMatch: ret %" PRIu32 "\n", ret);
     return ret;
@@ -68,12 +68,12 @@ void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
         return;
 
     /* content */
-    if (det_ctx->sgh->mpm_ctx != NULL && det_ctx->sgh->mpm_ctx->Cleanup != NULL) {
-        det_ctx->sgh->mpm_ctx->Cleanup(&det_ctx->mtc);
+    if (det_ctx->sgh->mpm_ctx != NULL && mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Cleanup != NULL) {
+        mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Cleanup(&det_ctx->mtc);
     }
     /* uricontent */
-    if (det_ctx->sgh->mpm_uri_ctx != NULL && det_ctx->sgh->mpm_uri_ctx->Cleanup != NULL) {
-        det_ctx->sgh->mpm_uri_ctx->Cleanup(&det_ctx->mtcu);
+    if (det_ctx->sgh->mpm_uri_ctx != NULL && mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Cleanup != NULL) {
+        mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Cleanup(&det_ctx->mtcu);
     }
 }
 
@@ -159,53 +159,6 @@ void DbgPrintScanSearchStats() {
     printf(" - MPM: 5+len %" PRIu32 " (%02.1f%%)\n", g_content_sigcnt5, (float)(g_content_sigcnt5/(float)(g_content_sigcnt))*100);
     printf(" - MPM: 10+ln %" PRIu32 " (%02.1f%%)\n", g_content_sigcnt10,(float)(g_content_sigcnt10/(float)(g_content_sigcnt))*100);
 #endif
-}
-
-/** \brief set the mpm_content_maxlen and mpm_uricontent_maxlen variables in
- *         a sig group head */
-void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    SigMatch *sm;
-    uint32_t sig;
-
-    sgh->mpm_content_maxlen = 0;
-    sgh->mpm_uricontent_maxlen = 0;
-
-    /* for each signature in this group do */
-    for (sig = 0; sig < DetectEngineGetMaxSigId(de_ctx); sig++) {
-        if (!(sgh->sig_array[(sig/8)] & (1<<(sig%8))))
-            continue;
-
-        Signature *s = de_ctx->sig_array[sig];
-        if (s == NULL)
-            continue;
-
-        if (!(s->flags & SIG_FLAG_MPM))
-            continue;
-
-        uint16_t content_maxlen = 0, uricontent_maxlen = 0;
-
-        /* determine the length of the longest pattern */
-        for (sm = s->match; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-
-                if (cd->content_len > content_maxlen)
-                    content_maxlen = cd->content_len;
-            } else if (sm->type == DETECT_URICONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
-                DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
-                if (ud->uricontent_len > uricontent_maxlen)
-                    uricontent_maxlen = ud->uricontent_len;
-            }
-        }
-
-        if (sgh->mpm_content_maxlen == 0) sgh->mpm_content_maxlen = content_maxlen;
-        if (sgh->mpm_content_maxlen > content_maxlen)
-            sgh->mpm_content_maxlen = content_maxlen;
-        if (sgh->mpm_uricontent_maxlen == 0) sgh->mpm_uricontent_maxlen = uricontent_maxlen;
-        if (sgh->mpm_uricontent_maxlen > uricontent_maxlen)
-            sgh->mpm_uricontent_maxlen = uricontent_maxlen;
-    }
 }
 
 /** \brief Hash for looking up contents that are most used,
@@ -432,9 +385,9 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             depth = scan_ch->cnt ? 0 : depth;
 
             if (co->flags & DETECT_CONTENT_NOCASE) {
-                sgh->mpm_ctx->AddScanPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
+                mpm_table[sgh->mpm_ctx->mpm_type].AddScanPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
             } else {
-                sgh->mpm_ctx->AddScanPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
+                mpm_table[sgh->mpm_ctx->mpm_type].AddScanPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
             }
         }
         /* add the rest of the patterns to the search ctx */
@@ -452,9 +405,9 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 uint16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->depth;
 
                 if (co->flags & DETECT_CONTENT_NOCASE) {
-                    sgh->mpm_ctx->AddPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num);
+                    mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num);
                 } else {
-                    sgh->mpm_ctx->AddPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num);
+                    mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num);
                 }
             }
         }
@@ -735,18 +688,18 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                  * length is the same as maxlen (ie we only add the longest pattern) */
                 if (!uricontent_scanadded && uricontent_maxlen == ud->uricontent_len) {
                     if (ud->flags & DETECT_URICONTENT_NOCASE) {
-                        sh->mpm_uri_ctx->AddScanPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
+                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddScanPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
                     } else {
-                        sh->mpm_uri_ctx->AddScanPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
+                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddScanPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
                     }
                     uricontent_scanadded = 1;
 
                 /* otherwise it's a 'search' pattern */
                 } else {
                     if (ud->flags & DETECT_URICONTENT_NOCASE) {
-                        sh->mpm_uri_ctx->AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
+                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
                     } else {
-                        sh->mpm_uri_ctx->AddPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
+                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
                     }
                 }
             }
@@ -758,8 +711,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         /* load the patterns */
         PatternMatchPreprarePopulateMpm(de_ctx, sh);
 
-        if (sh->mpm_ctx->Prepare != NULL) {
-            sh->mpm_ctx->Prepare(sh->mpm_ctx);
+        if (mpm_table[sh->mpm_ctx->mpm_type].Prepare != NULL) {
+            mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
         }
 
         if (mpm_content_maxdepth) {
@@ -779,8 +732,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     /* uricontent */
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
-        if (sh->mpm_uri_ctx->Prepare != NULL) {
-            sh->mpm_uri_ctx->Prepare(sh->mpm_uri_ctx);
+        if (mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare != NULL) {
+            mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare(sh->mpm_uri_ctx);
         }
         if (mpm_uricontent_cnt && sh->mpm_uricontent_maxlen > 1) {
             // printf("mpm_uricontent_cnt %" PRIu32 ", mpm_uricontent_maxlen %" PRId32 "\n", mpm_uricontent_cnt, mpm_uricontent_maxlen);

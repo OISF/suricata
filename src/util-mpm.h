@@ -78,21 +78,6 @@ typedef struct MpmCtx_ {
     void *ctx;
     uint16_t mpm_type;
 
-//    void (*InitCtx)(struct MpmCtx_ *);
-//    void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *, uint32_t);
-//    void (*DestroyCtx)(struct MpmCtx_ *);
-//    void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
-    int  (*AddScanPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
-    int  (*AddScanPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
-    int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t);
-    int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t);
-    int  (*Prepare)(struct MpmCtx_ *);
-    uint32_t (*Scan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
-    uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
-    void (*Cleanup)(struct MpmThreadCtx_ *);
-//    void (*PrintCtx)(struct MpmCtx_ *);
-//    void (*PrintThreadCtx)(struct MpmThreadCtx_ *);
-
     uint32_t memory_cnt;
     uint32_t memory_size;
 
@@ -110,7 +95,6 @@ typedef struct MpmCtx_ {
     /* this is used to determine the size of the match
      * loopup table */
     uint32_t max_pattern_id;
-
 } MpmCtx;
 
 typedef struct MpmTableElmt_ {

@@ -275,6 +275,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *f
 
     SigMatchAppend(s,m,sm);
 
+    s->flags |= SIG_FLAG_FLOW;
     return 0;
 
 error:

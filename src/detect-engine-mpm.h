@@ -3,9 +3,6 @@
 
 #include "tm-modules.h"
 
-/* XXX remove once */
-//MpmCtx mpm_ctx[1];
-
 uint16_t PatternMatchDefaultMatcher(void);
 uint32_t PacketPatternScan(ThreadVars *, DetectEngineThreadCtx *, Packet *);
 uint32_t PacketPatternMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *);
@@ -25,8 +22,6 @@ void PatternMatchDestroyGroup(SigGroupHead *);
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
-
-void SigGroupHeadSetMpmMaxlen(DetectEngineCtx *, SigGroupHead *);
 
 void DbgPrintScanSearchStats();
 

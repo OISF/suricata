@@ -150,8 +150,10 @@ void DetectAddressGroupPrintMemory(void) {
 #endif
 }
 
-/* used to see if the exact same address group exists in the list
- * returns a ptr to the match, or NULL if no match
+/** \brief lookup a address in a group list
+ *  used to see if the exact same address group exists in the list
+ *  returns a ptr to the match, or NULL if no match
+ *  \todo hash/hashlist
  */
 DetectAddressGroup *DetectAddressGroupLookup(DetectAddressGroup *head, DetectAddressGroup *gr) {
     DetectAddressGroup *cur;
@@ -208,10 +210,8 @@ int DetectAddressGroupAdd(DetectAddressGroup **head, DetectAddressGroup *ag) {
         for (cur = *head; cur != NULL; cur = cur->next) {
             prev_cur = cur;
 
-            int r = DetectAddressCmp(ag,cur);
+            int r = DetectAddressCmp(ag, cur);
             if (r == ADDRESS_EB) {
-                //printf("r == EB, inserting here\n");
-
                 /* insert here */
                 ag->prev = cur->prev;
                 ag->next = cur;
@@ -225,7 +225,6 @@ int DetectAddressGroupAdd(DetectAddressGroup **head, DetectAddressGroup *ag) {
                 return 0;
             }
         }
-        //printf("default append\n");
         ag->prev = prev_cur;
         if (prev_cur != NULL)
             prev_cur->next = ag;

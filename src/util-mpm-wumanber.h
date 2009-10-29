@@ -48,6 +48,10 @@ typedef struct WmCtx_ {
     WmHashItem **search_hash;
     WmHashItem search_hash1[256];
 
+    /* we store our own scan ptr here for WmSearch1 */
+    uint32_t (*Scan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+    /* we store our own search ptr here for WmSearch1 */
+    uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     /* we store our own multi byte scan ptr here for WmSearch1 */
     uint32_t (*MBScan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     /* we store our own multi byte search ptr here for WmSearch1 */
