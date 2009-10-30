@@ -27,10 +27,6 @@
 #include "util-debug.h"
 #include "util-error.h"
 
-/** prototypes */
-int DetectPortSetupTmp(DetectEngineCtx *, Signature *s, SigMatch *m,
-                       char *sidstr);
-
 void DetectPortTests(void);
 static int DetectPortCutNot(DetectPort *, DetectPort **);
 static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *,
@@ -368,10 +364,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
     *c = NULL;
 
     int r = DetectPortCmp(a,b);
-    if (r != PORT_ES && r != PORT_EB && r != PORT_LE && r != PORT_GE) {
-        SCLogDebug("DetectPortCut: we shouldn't be here");
-        goto error;
-    }
+    BUG_ON(r != PORT_ES && r != PORT_EB && r != PORT_LE && r != PORT_GE);
 
     /* get a place to temporary put sigs lists */
     tmp = DetectPortInit();
@@ -387,7 +380,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
      * part c: a_port2 + 1 <-> b_port2
      */
     if (r == PORT_LE) {
-        SCLogDebug("DetectPortCut: cut r == PORT_LE");
+        SCLogDebug("cut r == PORT_LE");
         a->port = a_port1;
         a->port2 = b_port1 - 1;
 
@@ -417,7 +410,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
      * part c: b_port2 + 1 <-> a_port2
      */
     } else if (r == PORT_GE) {
-        SCLogDebug("DetectPortCut: cut r == PORT_GE");
+        SCLogDebug("cut r == PORT_GE");
         a->port = b_port1;
         a->port2 = a_port1 - 1;
 
@@ -472,9 +465,9 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
      * part c: a_port2 + 1 <-> b_port2
      */
     } else if (r == PORT_ES) {
-        SCLogDebug("DetectPortCut: cut r == PORT_ES");
+        SCLogDebug("cut r == PORT_ES");
         if (a_port1 == b_port1) {
-            SCLogDebug("DetectPortCut: 1");
+            SCLogDebug("1");
             a->port = a_port1;
             a->port2 = a_port2;
 
@@ -486,7 +479,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             a->cnt += b->cnt;
 
         } else if (a_port2 == b_port2) {
-            SCLogDebug("DetectPortCut: 2");
+            SCLogDebug("2");
             a->port = b_port1;
             a->port2 = a_port1 - 1;
 
@@ -498,7 +491,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             b->cnt += a->cnt;
 
         } else {
-            SCLogDebug("DetectPortCut: 3");
+            SCLogDebug("3");
             a->port = b_port1;
             a->port2 = a_port1 - 1;
 
@@ -553,9 +546,9 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
      * part c: b_port2 + 1 <-> a_port2
      */
     } else if (r == PORT_EB) {
-        SCLogDebug("DetectPortCut: cut r == PORT_EB");
+        SCLogDebug("cut r == PORT_EB");
         if (a_port1 == b_port1) {
-            SCLogDebug("DetectPortCut: 1");
+            SCLogDebug("1");
             a->port = b_port1;
             a->port2 = b_port2;
 
@@ -577,7 +570,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             tmp->cnt = 0;
 
         } else if (a_port2 == b_port2) {
-            SCLogDebug("DetectPortCut: 2");
+            SCLogDebug("2");
             a->port = a_port1;
             a->port2 = b_port1 - 1;
 
@@ -590,7 +583,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             b->cnt += a->cnt;
 
         } else {
-            SCLogDebug("DetectPortCut: 3");
+            SCLogDebug("3");
             a->port = a_port1;
             a->port2 = b_port1 - 1;
 
@@ -722,7 +715,7 @@ int DetectPortCmp(DetectPort *a, DetectPort *b) {
         return PORT_GT;
     } else {
         /* should be unreachable */
-        SCLogDebug("Internal Error: should be unreachable");
+        BUG_ON(1);
     }
 
     return PORT_ER;
@@ -920,7 +913,7 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
     /** parse the address */
     ad = PortParse(s);
     if (ad == NULL) {
-        SCLogDebug("PortParse error \"%s\"",s);
+        SCLogError(SC_INVALID_ARGUMENT,"PortParse error \"%s\"",s);
         goto error;
     }
 
@@ -960,7 +953,7 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
     return 0;
 
 error:
-    SCLogDebug("DetectPortParseInsertString error");
+    SCLogError(SC_PORT_PARSE_INSERT_STRING_ERR,"DetectPortParseInsertString error");
     if (ad != NULL)
         DetectPortCleanupList(ad);
     if (ad_any != NULL)
@@ -1011,7 +1004,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
             range = 1;
 
         if (range == 1 && s[i] == '!') {
-            SCLogDebug("Can't have a negated value in a range.");
+            SCLogError(SC_NEGATED_VALUE_IN_PORT_RANGE,"Can't have a negated value in a range.");
             return -1;
         } else if (!o_set && s[i] == '!') {
             n_set = 1;
@@ -1169,6 +1162,7 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
 
     /** check if the full port space is negated */
     if (DetectPortIsCompletePortSpace(*nhead) == 1) {
+        SCLogError(SC_COMPLETE_PORT_SPACE_NEGATED,"Complete port space is negated");
         goto error;
     }
 
@@ -1237,7 +1231,7 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
     }
 
     if (*head == NULL) {
-        SCLogDebug("DetectPortParseMergeNotPorts: no ports left after merge");
+        SCLogError(SC_NO_PORTS_LEFT_AFTER_MERGE,"no ports left after merging ports with negated ports");
         goto error;
     }
 
