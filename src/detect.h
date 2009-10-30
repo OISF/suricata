@@ -339,11 +339,12 @@ typedef struct SigTableElmt_ {
     char *name;
 } SigTableElmt;
 
-#define SIG_GROUP_HAVECONTENT          0x01
-#define SIG_GROUP_HAVEURICONTENT       0x02
-#define SIG_GROUP_HEAD_MPM_COPY        0x04
-#define SIG_GROUP_HEAD_MPM_URI_COPY    0x08
-#define SIG_GROUP_HEAD_FREE            0x10
+#define SIG_GROUP_HAVECONTENT       0x01
+#define SIG_GROUP_HAVEURICONTENT    0x02
+#define SIG_GROUP_HEAD_MPM_COPY     0x04
+#define SIG_GROUP_HEAD_MPM_URI_COPY 0x08
+#define SIG_GROUP_HEAD_FREE         0x10
+#define SIG_GROUP_HEAD_REFERENCED   0x20 /**< sgh is being referenced by others, don't clear */
 
 /** \brief head of the list of containers. */
 typedef struct SigGroupHead_ {
@@ -376,13 +377,6 @@ typedef struct SigGroupHead_ {
 
     /* port ptr */
     struct DetectPort_ *port;
-
-//    uint16_t mpm_len1;
-//    uint16_t mpm_len2;
-//    uint16_t mpm_len3;
-//    uint16_t mpm_len4; /* 4+ */
-
-    uint32_t refcnt;
 } SigGroupHead;
 
 /** sigmatch has no options, so the parser shouldn't expect any */

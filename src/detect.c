@@ -253,7 +253,6 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 
     /* Setup the signature group lookup structure and pattern matchers */
     SigGroupBuild(de_ctx);
-
     return 0;
 }
 
@@ -1686,7 +1685,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHea
 
                 de_ctx->gh_reuse++;
                 sgr->flags |= ADDRESS_SIGGROUPHEAD_COPY;
-                sgr->sh->refcnt++;
+                sgr->sh->flags |= SIG_GROUP_HEAD_REFERENCED;
             }
         }
 
@@ -1973,7 +1972,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                 SigGroupHeadFree(dp->sh);
                                 dp->sh = lookup_dp_sgh;
                                 dp->flags |= PORT_SIGGROUPHEAD_COPY;
-                                dp->sh->refcnt++;
+                                dp->sh->flags |= SIG_GROUP_HEAD_REFERENCED;
 
                                 de_ctx->gh_reuse++;
                             }
@@ -1983,7 +1982,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                         SigGroupHeadFree(sp->sh);
                         sp->sh = lookup_sp_sgh;
                         sp->flags |= PORT_SIGGROUPHEAD_COPY;
-                        sp->sh->refcnt++;
+                        sp->sh->flags |= SIG_GROUP_HEAD_REFERENCED;
 
                         SCLogDebug("replacing sp->dst_ph %p with lookup_sp_sgh->port %p", sp->dst_ph, lookup_sp_sgh->port);
                         DetectPortCleanupList(sp->dst_ph);
@@ -1997,7 +1996,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                 SigGroupHeadFree(dst_gr->sh);
                 dst_gr->sh = lookup_sgh;
                 dst_gr->flags |= ADDRESS_SIGGROUPHEAD_COPY;
-                dst_gr->sh->refcnt++;
+                dst_gr->sh->flags |= SIG_GROUP_HEAD_REFERENCED;
 
                 SCLogDebug("replacing dst_gr->port %p with lookup_sgh->port %p", dst_gr->port, lookup_sgh->port);
                 DetectPortCleanupList(dst_gr->port);
@@ -2011,10 +2010,9 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                 DetectPort *sp = dst_gr->port;
                 for ( ; sp != NULL; sp = sp->next) {
                     if (!(sp->flags & PORT_SIGGROUPHEAD_COPY)) {
-                        if (sp->sh->refcnt == 0) {
+                        if (!(sp->sh->flags & SIG_GROUP_HEAD_REFERENCED)) {
                             if (SigGroupHeadHashRemove(de_ctx,sp->sh) == 0 &&
                                     SigGroupHeadSPortHashRemove(de_ctx,sp->sh) == 0) {
-                                //printf("BothPorts: removed sgh %p\n", sp->sh);
                                 SigGroupHeadFree(sp->sh);
                                 sp->sh = NULL;
                             }
@@ -2032,7 +2030,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
         dst_gr_head = GetHeadPtr(src_gr->dst_gh,family);
         for (dst_gr = dst_gr_head; dst_gr != NULL; dst_gr = dst_gr->next) {
             if (!(dst_gr->flags & ADDRESS_SIGGROUPHEAD_COPY)) {
-                if (dst_gr->sh->refcnt == 0) {
+                if (!(dst_gr->sh->flags & SIG_GROUP_HEAD_REFERENCED)) {
                     if (SigGroupHeadHashRemove(de_ctx,dst_gr->sh) == 0) {
                         //printf("BothPorts: removed sgh %p\n", dst_gr->sh);
                         SigGroupHeadFree(dst_gr->sh);
