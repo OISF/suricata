@@ -360,13 +360,13 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 
         /* check the source address */
         if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddressGroup *saddr = DetectAddressLookupGroup(&s->src,&p->src);
+            DetectAddressGroup *saddr = DetectAddressLookupInHead(&s->src,&p->src);
             if (saddr == NULL)
                 continue;
         }
         /* check the destination address */
         if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddressGroup *daddr = DetectAddressLookupGroup(&s->dst,&p->dst);
+            DetectAddressGroup *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
             if (daddr == NULL)
                 continue;
         }

@@ -312,10 +312,10 @@ static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEng
         f = 1;
 
     /* find the right mpm instance */
-    DetectAddressGroup *ag = DetectAddressLookupGroup(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[p->proto],&p->src);
+    DetectAddressGroup *ag = DetectAddressLookupInHead(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[p->proto],&p->src);
     if (ag != NULL) {
         /* source group found, lets try a dst group */
-        ag = DetectAddressLookupGroup(ag->dst_gh,&p->dst);
+        ag = DetectAddressLookupInHead(ag->dst_gh,&p->dst);
         if (ag != NULL) {
             if (ag->port == NULL) {
                 sgh = ag->sh;
@@ -441,13 +441,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* check the source address */
         if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddressGroup *saddr = DetectAddressLookupGroup(&s->src,&p->src);
+            DetectAddressGroup *saddr = DetectAddressLookupInHead(&s->src,&p->src);
             if (saddr == NULL)
                 continue;
         }
         /* check the destination address */
         if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddressGroup *daddr = DetectAddressLookupGroup(&s->dst,&p->dst);
+            DetectAddressGroup *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
             if (daddr == NULL)
                 continue;
         }
@@ -789,11 +789,11 @@ static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, Det
             if ((s->proto.proto[(proto/8)] & (1<<(proto%8))) || (s->proto.flags & DETECT_PROTO_ANY)) {
                 /* ...see if the group is in the tmp list, and if not add it. */
                 if (family == AF_INET) {
-                    lookup_gr = DetectAddressGroupLookup(flow_gh->tmp_gh[proto]->ipv4_head,gr);
+                    lookup_gr = DetectAddressLookupInList(flow_gh->tmp_gh[proto]->ipv4_head,gr);
                 } else if (family == AF_INET6) {
-                    lookup_gr = DetectAddressGroupLookup(flow_gh->tmp_gh[proto]->ipv6_head,gr);
+                    lookup_gr = DetectAddressLookupInList(flow_gh->tmp_gh[proto]->ipv6_head,gr);
                 } else {
-                    lookup_gr = DetectAddressGroupLookup(flow_gh->tmp_gh[proto]->any_head,gr);
+                    lookup_gr = DetectAddressLookupInList(flow_gh->tmp_gh[proto]->any_head,gr);
                 }
 
                 if (lookup_gr == NULL) {
@@ -1571,7 +1571,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHea
             /* build the temp list */
             grsighead = GetHeadPtr(&tmp_s->dst, family);
             for (sgr = grsighead; sgr != NULL; sgr = sgr->next) {
-                if ((lookup_gr = DetectAddressGroupLookup(tmp_gr_list, sgr)) == NULL) {
+                if ((lookup_gr = DetectAddressLookupInList(tmp_gr_list, sgr)) == NULL) {
                     DetectAddressGroup *grtmp = DetectAddressGroupCopy(gr);
                     if (grtmp == NULL) {
                         goto error;
@@ -1742,7 +1742,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
             for (sig_gr = sig_gr_head; sig_gr != NULL; sig_gr = sig_gr->next) {
                 //printf("  * Sig dst addr: "); DetectAddressPrint(sig_gr); printf("\n");
 
-                if ((lookup_gr = DetectAddressGroupLookup(tmp_gr_list, sig_gr)) == NULL) {
+                if ((lookup_gr = DetectAddressLookupInList(tmp_gr_list, sig_gr)) == NULL) {
                     DetectAddressGroup *grtmp = DetectAddressGroupCopy(sig_gr);
                     if (grtmp == NULL) {
                         goto error;
