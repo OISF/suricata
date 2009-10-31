@@ -214,15 +214,6 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
     }
 
     SCLogDebug("len %" PRIu32 " (offset %" PRIu32 ")", mb->len, m->offset);
-
-#if 0
-    MpmMatch *tmp = thread_ctx->qlist;
-    while (tmp) {
-        printf("tmp %p tmp->next %p\n", tmp, tmp->next);
-        tmp = tmp->qnext;
-    }
-#endif
-
     return 1;
 }
 
@@ -278,17 +269,7 @@ void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher, uint32_t m
 void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher) {
     mpm_ctx->mpm_type = matcher;
     mpm_table[matcher].InitCtx(mpm_ctx);
-
-//    mpm_ctx->AddScanPattern       = mpm_table[matcher].AddScanPattern;
-//    mpm_ctx->AddScanPatternNocase = mpm_table[matcher].AddScanPatternNocase;
-//    mpm_ctx->AddPattern           = mpm_table[matcher].AddPattern;
-//    mpm_ctx->AddPatternNocase     = mpm_table[matcher].AddPatternNocase;
-//    mpm_ctx->Prepare              = mpm_table[matcher].Prepare;
-//    mpm_ctx->Scan                 = mpm_table[matcher].Scan;
-//    mpm_ctx->Search               = mpm_table[matcher].Search;
-//    mpm_ctx->Cleanup              = mpm_table[matcher].Cleanup;
 }
-
 
 void MpmTableSetup(void) {
     memset(mpm_table, 0, sizeof(mpm_table));

@@ -1613,7 +1613,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHea
 
                 /* content */
                 SigGroupHeadLoadContent(de_ctx, sgr->sh);
-                if (sgr->sh->content_size == 0) {
+                if (sgr->sh->init->content_size == 0) {
                     de_ctx->mpm_none++;
                 } else {
                     /* now have a look if we can reuse a mpm ctx */
@@ -1633,7 +1633,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHea
 
                 /* uricontent */
                 SigGroupHeadLoadUricontent(de_ctx, sgr->sh);
-                if (sgr->sh->uri_content_size == 0) {
+                if (sgr->sh->init->uri_content_size == 0) {
                     de_ctx->mpm_uri_none++;
                 } else {
                     /* now have a look if we can reuse a uri mpm ctx */
@@ -1819,9 +1819,10 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                        (flow ? MAX_UNIQ_SMALL_TOSERVER_SP_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_SP_GROUPS);
                 CreateGroupedPortList(de_ctx, de_ctx->sport_hash_table, &dst_gr->port, spgroups, CreateGroupedPortListCmpMpmMaxlen, max_idx);
 
+                SCLogDebug("adding sgh %p to the hash", dst_gr->sh);
                 SigGroupHeadHashAdd(de_ctx, dst_gr->sh);
 
-                dst_gr->sh->port = dst_gr->port;
+                dst_gr->sh->init->port = dst_gr->port;
                 /* mark this head for deletion once we no longer need
                  * the hash. We're only using the port ptr, so no problem
                  * when we remove this after initialization is done */
@@ -1876,7 +1877,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
 
                         SigGroupHeadSPortHashAdd(de_ctx, sp->sh);
 
-                        sp->sh->port = sp->dst_ph;
+                        sp->sh->init->port = sp->dst_ph;
                         /* mark this head for deletion once we no longer need
                          * the hash. We're only using the port ptr, so no problem
                          * when we remove this after initialization is done */
@@ -1899,7 +1900,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                 SigGroupHeadBuildMatchArray(de_ctx,dp->sh, max_idx);
 
                                 SigGroupHeadLoadContent(de_ctx, dp->sh);
-                                if (dp->sh->content_size == 0) {
+                                if (dp->sh->init->content_size == 0) {
                                     de_ctx->mpm_none++;
                                 } else {
                                     /* now have a look if we can reuse a mpm ctx */
@@ -1920,7 +1921,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                                 }
 
                                 SigGroupHeadLoadUricontent(de_ctx, dp->sh);
-                                if (dp->sh->uri_content_size == 0) {
+                                if (dp->sh->init->uri_content_size == 0) {
                                     de_ctx->mpm_uri_none++;
                                 } else {
                                     /* now have a look if we can reuse a uri mpm ctx */
@@ -1984,9 +1985,9 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                         sp->flags |= PORT_SIGGROUPHEAD_COPY;
                         sp->sh->flags |= SIG_GROUP_HEAD_REFERENCED;
 
-                        SCLogDebug("replacing sp->dst_ph %p with lookup_sp_sgh->port %p", sp->dst_ph, lookup_sp_sgh->port);
+                        SCLogDebug("replacing sp->dst_ph %p with lookup_sp_sgh->init->port %p", sp->dst_ph, lookup_sp_sgh->init->port);
                         DetectPortCleanupList(sp->dst_ph);
-                        sp->dst_ph = lookup_sp_sgh->port;
+                        sp->dst_ph = lookup_sp_sgh->init->port;
                         sp->flags |= PORT_GROUP_PORTS_COPY;
 
                         de_ctx->gh_reuse++;
@@ -1998,27 +1999,12 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                 dst_gr->flags |= ADDRESS_SIGGROUPHEAD_COPY;
                 dst_gr->sh->flags |= SIG_GROUP_HEAD_REFERENCED;
 
-                SCLogDebug("replacing dst_gr->port %p with lookup_sgh->port %p", dst_gr->port, lookup_sgh->port);
+                SCLogDebug("replacing dst_gr->port %p with lookup_sgh->init->port %p", dst_gr->port, lookup_sgh->init->port);
                 DetectPortCleanupList(dst_gr->port);
-                dst_gr->port = lookup_sgh->port;
+                dst_gr->port = lookup_sgh->init->port;
                 dst_gr->flags |= ADDRESS_PORTS_COPY;
 
                 de_ctx->gh_reuse++;
-            }
-            /* free source port sgh's */
-            if (!(dst_gr->flags & ADDRESS_PORTS_COPY)) {
-                DetectPort *sp = dst_gr->port;
-                for ( ; sp != NULL; sp = sp->next) {
-                    if (!(sp->flags & PORT_SIGGROUPHEAD_COPY)) {
-                        if (!(sp->sh->flags & SIG_GROUP_HEAD_REFERENCED)) {
-                            if (SigGroupHeadHashRemove(de_ctx,sp->sh) == 0 &&
-                                    SigGroupHeadSPortHashRemove(de_ctx,sp->sh) == 0) {
-                                SigGroupHeadFree(sp->sh);
-                                sp->sh = NULL;
-                            }
-                        }
-                    }
-                }
             }
         }
         /* free the temp list */
@@ -2026,13 +2012,18 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
         /* clear now unneeded sig group head */
         SigGroupHeadFree(src_gr->sh);
         src_gr->sh = NULL;
+
         /* free dst addr sgh's */
         dst_gr_head = GetHeadPtr(src_gr->dst_gh,family);
         for (dst_gr = dst_gr_head; dst_gr != NULL; dst_gr = dst_gr->next) {
             if (!(dst_gr->flags & ADDRESS_SIGGROUPHEAD_COPY)) {
                 if (!(dst_gr->sh->flags & SIG_GROUP_HEAD_REFERENCED)) {
-                    if (SigGroupHeadHashRemove(de_ctx,dst_gr->sh) == 0) {
-                        //printf("BothPorts: removed sgh %p\n", dst_gr->sh);
+                    SCLogDebug("removing sgh %p from hash", dst_gr->sh);
+
+                    int r = SigGroupHeadHashRemove(de_ctx,dst_gr->sh);
+                    BUG_ON(r == -1);
+                    if (r == 0) {
+                        SCLogDebug("removed sgh %p from hash", dst_gr->sh);
                         SigGroupHeadFree(dst_gr->sh);
                         dst_gr->sh = NULL;
                     }
@@ -2121,9 +2112,6 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     SigGroupHeadFreeMpmArrays(de_ctx);
     /* cleanup group head sig arrays */
     SigGroupHeadFreeSigArrays(de_ctx);
-    /* cleanup heads left over in *WithPorts */
-    /* XXX VJ breaks SigGroupCleanup */
-    //SigGroupHeadFreeHeads();
 
     /* cleanup the hashes now since we won't need them
      * after the initialization phase. */

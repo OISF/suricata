@@ -144,7 +144,7 @@ typedef struct Signature_ {
     uint8_t prio;
 
     uint32_t gid; /**< generator id */
-    uint32_t num; /**< signature number, internal id */
+    SigIntId num; /**< signature number, internal id */
     uint32_t id;  /**< sid, set by the 'sid' rule keyword */
     char *msg;
 
@@ -346,6 +346,21 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_FREE         0x10
 #define SIG_GROUP_HEAD_REFERENCED   0x20 /**< sgh is being referenced by others, don't clear */
 
+typedef struct SigGroupHeadInitData_ {
+    /* list of content containers
+     * XXX move into a separate data struct
+     * with only a ptr to it. Saves some memory
+     * after initialization
+     */
+    uint8_t *content_array;
+    uint32_t content_size;
+    uint8_t *uri_content_array;
+    uint32_t uri_content_size;
+
+    /* port ptr */
+    struct DetectPort_ *port;
+} SigGroupHeadInitData;
+
 /** \brief head of the list of containers. */
 typedef struct SigGroupHead_ {
     uint8_t flags;
@@ -359,24 +374,16 @@ typedef struct SigGroupHead_ {
     /* number of sigs in this head */
     uint32_t sig_cnt;
 
-    uint8_t *sig_array; /* bit array of sig nums */
-    uint32_t sig_size; /* size in bytes */
+    /* "Normal" detection uses these only at init, but ip-only
+     * uses it during runtime as well, thus not in init... */
+    uint8_t *sig_array; /**< bit array of sig nums (internal id's) */
+    uint32_t sig_size; /**< size in bytes */
 
-    /* array with sig nums... size is sig_cnt * sizeof(uint32_t) */
-    uint32_t *match_array;
+    /* Array with sig nums... size is sig_cnt * sizeof(SigIntId) */
+    SigIntId *match_array;
 
-    /* list of content containers
-     * XXX move into a separate data struct
-     * with only a ptr to it. Saves some memory
-     * after initialization
-     */
-    uint32_t *content_array;
-    uint32_t content_size;
-    uint32_t *uri_content_array;
-    uint32_t uri_content_size;
-
-    /* port ptr */
-    struct DetectPort_ *port;
+    /* ptr to our init data we only use at... init :) */
+    SigGroupHeadInitData *init;
 } SigGroupHead;
 
 /** sigmatch has no options, so the parser shouldn't expect any */

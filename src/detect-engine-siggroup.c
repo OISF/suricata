@@ -31,12 +31,44 @@ int SigGroupHeadClearSigs(SigGroupHead *);
 static uint32_t detect_siggroup_head_memory = 0;
 static uint32_t detect_siggroup_head_init_cnt = 0;
 static uint32_t detect_siggroup_head_free_cnt = 0;
+static uint32_t detect_siggroup_head_initdata_memory = 0;
+static uint32_t detect_siggroup_head_initdata_init_cnt = 0;
+static uint32_t detect_siggroup_head_initdata_free_cnt = 0;
 static uint32_t detect_siggroup_sigarray_memory = 0;
 static uint32_t detect_siggroup_sigarray_init_cnt = 0;
 static uint32_t detect_siggroup_sigarray_free_cnt = 0;
 static uint32_t detect_siggroup_matcharray_memory = 0;
 static uint32_t detect_siggroup_matcharray_init_cnt = 0;
 static uint32_t detect_siggroup_matcharray_free_cnt = 0;
+
+static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size) {
+    SigGroupHeadInitData *sghid = malloc(sizeof(SigGroupHeadInitData));
+    if (sghid == NULL)
+        return NULL;
+
+    memset(sghid, 0x00, sizeof(SigGroupHeadInitData));
+
+    detect_siggroup_head_initdata_init_cnt++;
+    detect_siggroup_head_initdata_memory += sizeof(SigGroupHeadInitData);
+    return sghid;
+}
+
+void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid) {
+    if (sghid->content_array != NULL) {
+        free(sghid->content_array);
+        sghid->content_array = NULL;
+        sghid->content_size = 0;
+    }
+    if (sghid->uri_content_array != NULL) {
+        free(sghid->uri_content_array);
+        sghid->uri_content_array = NULL;
+        sghid->uri_content_size = 0;
+    }
+    free(sghid);
+
+    detect_siggroup_head_initdata_free_cnt++;
+    detect_siggroup_head_initdata_memory -= sizeof(SigGroupHeadInitData);
+}
 
 /**
  * \brief Alloc a sig group head and it's sig_array
@@ -52,6 +84,10 @@ static SigGroupHead *SigGroupHeadAlloc(uint32_t size) {
         return NULL;
     }
     memset(sgh, 0, sizeof(SigGroupHead));
+
+    sgh->init = SigGroupHeadInitDataAlloc(size);
+    if (sgh->init == NULL)
+        goto error;
 
     detect_siggroup_head_init_cnt++;
     detect_siggroup_head_memory += sizeof(SigGroupHead);
@@ -69,7 +105,7 @@ static SigGroupHead *SigGroupHeadAlloc(uint32_t size) {
     return sgh;
 error:
     if (sgh != NULL)
-        free(sgh);
+        SigGroupHeadFree(sgh);
     return NULL;
 }
 
@@ -82,7 +118,6 @@ void SigGroupHeadFree(SigGroupHead *sgh) {
         return;
 
     PatternMatchDestroyGroup(sgh);
-    SigGroupHeadClearSigs(sgh);
 
     if (sgh->sig_array != NULL) {
         free(sgh->sig_array);
@@ -92,25 +127,18 @@ void SigGroupHeadFree(SigGroupHead *sgh) {
         detect_siggroup_sigarray_memory -= sgh->sig_size;
     }
 
-    if (sgh->content_array != NULL) {
-        free(sgh->content_array);
-        sgh->content_array = NULL;
-        sgh->content_size = 0;
-    }
-
-    if (sgh->uri_content_array != NULL) {
-        free(sgh->uri_content_array);
-        sgh->uri_content_array = NULL;
-        sgh->uri_content_size = 0;
-    }
-
     if (sgh->match_array != NULL) {
         detect_siggroup_matcharray_free_cnt++;
-        detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(uint32_t));
+        detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(SigIntId));
         free(sgh->match_array);
         sgh->match_array = NULL;
         sgh->sig_cnt = 0;
     }
+
+    if (sgh->init != NULL) {
+        SigGroupHeadInitDataFree(sgh->init);
+    }
+
     free(sgh);
 
     detect_siggroup_head_free_cnt++;
@@ -127,8 +155,8 @@ uint32_t SigGroupHeadMpmHashFunc(HashListTable *ht, void *data, uint16_t datalen
     uint32_t hash = 0;
 
     uint32_t b;
-    for (b = 0; b < sgh->content_size; b+=1) {
-        hash += sgh->content_array[b];
+    for (b = 0; b < sgh->init->content_size; b+=1) {
+        hash += sgh->init->content_array[b];
     }
     return hash % ht->array_size;
 }
@@ -137,10 +165,10 @@ char SigGroupHeadMpmCompareFunc(void *data1, uint16_t len1, void *data2, uint16_
     SigGroupHead *sgh1 = (SigGroupHead *)data1;
     SigGroupHead *sgh2 = (SigGroupHead *)data2;
 
-    if (sgh1->content_size != sgh2->content_size)
+    if (sgh1->init->content_size != sgh2->init->content_size)
         return 0;
 
-    if (memcmp(sgh1->content_array,sgh2->content_array,sgh1->content_size) != 0)
+    if (memcmp(sgh1->init->content_array,sgh2->init->content_array,sgh1->init->content_size) != 0)
         return 0;
 
     return 1;
@@ -180,8 +208,8 @@ uint32_t SigGroupHeadMpmUriHashFunc(HashListTable *ht, void *data, uint16_t data
     uint32_t hash = 0;
 
     uint32_t b;
-    for (b = 0; b < sgh->uri_content_size; b+=1) {
-        hash += sgh->uri_content_array[b];
+    for (b = 0; b < sgh->init->uri_content_size; b+=1) {
+        hash += sgh->init->uri_content_array[b];
     }
     return hash % ht->array_size;
 }
@@ -190,10 +218,10 @@ char SigGroupHeadMpmUriCompareFunc(void *data1, uint16_t len1, void *data2, uint
     SigGroupHead *sgh1 = (SigGroupHead *)data1;
     SigGroupHead *sgh2 = (SigGroupHead *)data2;
 
-    if (sgh1->uri_content_size != sgh2->uri_content_size)
+    if (sgh1->init->uri_content_size != sgh2->init->uri_content_size)
         return 0;
 
-    if (memcmp(sgh1->uri_content_array,sgh2->uri_content_array,sgh1->uri_content_size) != 0)
+    if (memcmp(sgh1->init->uri_content_array,sgh2->init->uri_content_array,sgh1->init->uri_content_size) != 0)
         return 0;
 
     return 1;
@@ -231,12 +259,16 @@ void SigGroupHeadMpmUriHashFree(DetectEngineCtx *de_ctx) {
 uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t datalen) {
     SigGroupHead *sgh = (SigGroupHead *)data;
     uint32_t hash = 0;
+    SCLogDebug("hashing sgh %p", sgh);
 
     uint32_t b;
     for (b = 0; b < sgh->sig_size; b+=1) {
         hash += sgh->sig_array[b];
     }
-    return hash % ht->array_size;
+
+    hash %= ht->array_size;
+    SCLogDebug("hash %"PRIu32" (sig_size %"PRIu32")", hash, sgh->sig_size);
+    return hash;
 }
 
 char SigGroupHeadCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
@@ -335,6 +367,7 @@ int SigGroupHeadSPortHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 int SigGroupHeadSPortHashRemove(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     return HashListTableRemove(de_ctx->sgh_sport_hash_table, (void *)sgh, 0);
 }
+
 SigGroupHead *SigGroupHeadSPortHashLookup(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     SigGroupHead *rsgh = HashListTableLookup(de_ctx->sgh_sport_hash_table, (void *)sgh, 0);
     return rsgh;
@@ -365,16 +398,9 @@ static void SigGroupHeadFreeSigArraysHash2(DetectEngineCtx *de_ctx, HashListTabl
             sgh->sig_size = 0;
         }
 
-        if (sgh->content_array != NULL) {
-            free(sgh->content_array);
-            sgh->content_array = NULL;
-            sgh->content_size = 0;
-        }
-
-        if (sgh->uri_content_array != NULL) {
-            free(sgh->uri_content_array);
-            sgh->uri_content_array = NULL;
-            sgh->uri_content_size = 0;
+        if (sgh->init != NULL) {
+            SigGroupHeadInitDataFree(sgh->init);
+            sgh->init = NULL;
         }
     }
 }
@@ -385,8 +411,6 @@ static void SigGroupHeadFreeSigArraysHash(DetectEngineCtx *de_ctx, HashListTable
     for (htb = HashListTableGetListHead(ht); htb != NULL; htb = HashListTableGetListNext(htb)) {
         SigGroupHead *sgh = (SigGroupHead *)HashListTableGetListData(htb);
 
-        SCLogDebug("sgh %p", sgh);
-
         if (sgh->sig_array != NULL) {
             detect_siggroup_sigarray_free_cnt++;
             detect_siggroup_sigarray_memory -= sgh->sig_size;
@@ -394,6 +418,11 @@ static void SigGroupHeadFreeSigArraysHash(DetectEngineCtx *de_ctx, HashListTable
             free(sgh->sig_array);
             sgh->sig_array = NULL;
             sgh->sig_size = 0;
+        }
+
+        if (sgh->init != NULL) {
+            SigGroupHeadInitDataFree(sgh->init);
+            sgh->init = NULL;
         }
     }
 }
@@ -414,33 +443,17 @@ void SigGroupHeadFreeMpmArrays(DetectEngineCtx *de_ctx) {
 
     for (htb = HashListTableGetListHead(de_ctx->sgh_dport_hash_table); htb != NULL; htb = HashListTableGetListNext(htb)) {
         SigGroupHead *sgh = (SigGroupHead *)HashListTableGetListData(htb);
-
-        if (sgh->content_array != NULL) {
-            free(sgh->content_array);
-            sgh->content_array = NULL;
-            sgh->content_size = 0;
-        }
-
-        if (sgh->uri_content_array != NULL) {
-            free(sgh->uri_content_array);
-            sgh->uri_content_array = NULL;
-            sgh->uri_content_size = 0;
+        if (sgh->init != NULL) {
+            SigGroupHeadInitDataFree(sgh->init);
+            sgh->init = NULL;
         }
     }
 
     for (htb = HashListTableGetListHead(de_ctx->sgh_sport_hash_table); htb != NULL; htb = HashListTableGetListNext(htb)) {
         SigGroupHead *sgh = (SigGroupHead *)HashListTableGetListData(htb);
-
-        if (sgh->content_array != NULL) {
-            free(sgh->content_array);
-            sgh->content_array = NULL;
-            sgh->content_size = 0;
-        }
-
-        if (sgh->uri_content_array != NULL) {
-            free(sgh->uri_content_array);
-            sgh->uri_content_array = NULL;
-            sgh->uri_content_size = 0;
+        if (sgh->init != NULL) {
+            SigGroupHeadInitDataFree(sgh->init);
+            sgh->init = NULL;
         }
     }
 }
@@ -561,6 +574,12 @@ void DetectSigGroupPrintMemory(void) {
     printf("  - detect_siggroup_head_free_cnt %" PRIu32 "\n", detect_siggroup_head_free_cnt);
     printf("  - outstanding sig group heads %" PRIu32 "\n", detect_siggroup_head_init_cnt - detect_siggroup_head_free_cnt);
     printf(" * Sig group head memory stats done\n");
+    printf(" * Sig group head initdata memory stats (SigGroupHeadInitData %" PRIuMAX "):\n", (uintmax_t)sizeof(SigGroupHeadInitData));
+    printf("  - detect_siggroup_head_initdata_memory %" PRIu32 "\n", detect_siggroup_head_initdata_memory);
+    printf("  - detect_siggroup_head_initdata_init_cnt %" PRIu32 "\n", detect_siggroup_head_initdata_init_cnt);
+    printf("  - detect_siggroup_head_initdata_free_cnt %" PRIu32 "\n", detect_siggroup_head_initdata_free_cnt);
+    printf("  - outstanding sig group head initdatas %" PRIu32 "\n", detect_siggroup_head_initdata_init_cnt - detect_siggroup_head_initdata_free_cnt);
+    printf(" * Sig group head memory initdata stats done\n");
     printf(" * Sig group sigarray memory stats:\n");
     printf("  - detect_siggroup_sigarray_memory %" PRIu32 "\n", detect_siggroup_sigarray_memory);
     printf("  - detect_siggroup_sigarray_init_cnt %" PRIu32 "\n", detect_siggroup_sigarray_init_cnt);
@@ -594,7 +613,7 @@ void SigGroupHeadPrintContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 
     uint32_t i;
     for (i = 0; i < DetectContentMaxId(de_ctx); i++) {
-        if (sgh->content_array[(i/8)] & (1<<(i%8))) {
+        if (sgh->init->content_array[(i/8)] & (1<<(i%8))) {
             printf("%" PRIu32 " ", i);
         }
     }
@@ -607,7 +626,7 @@ void SigGroupHeadPrintContentCnt(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 
     uint32_t i, cnt = 0;
     for (i = 0; i < DetectContentMaxId(de_ctx); i++) {
-        if (sgh->content_array[(i/8)] & (1<<(i%8))) {
+        if (sgh->init->content_array[(i/8)] & (1<<(i%8))) {
             cnt++;
         }
     }
@@ -628,16 +647,18 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     if (DetectContentMaxId(de_ctx) == 0)
         return 0;
 
-    sgh->content_size = (DetectContentMaxId(de_ctx) / 8) + 1;
-    sgh->content_array = malloc(sgh->content_size * sizeof(uint32_t));
-    if (sgh->content_array == NULL)
+    BUG_ON(sgh->init == NULL);
+
+    sgh->init->content_size = (DetectContentMaxId(de_ctx) / 8) + 1;
+    sgh->init->content_array = malloc(sgh->init->content_size);
+    if (sgh->init->content_array == NULL)
         return -1;
 
-    memset(sgh->content_array,0, sgh->content_size * sizeof(uint32_t));
+    memset(sgh->init->content_array,0, sgh->init->content_size);
 
     uint32_t sig;
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        uint32_t num = sgh->match_array[sig];
+        SigIntId num = sgh->match_array[sig];
 
         s = de_ctx->sig_array[num];
         if (s == NULL)
@@ -654,7 +675,7 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
 
-                sgh->content_array[(co->id/8)] |= 1<<(co->id%8);
+                sgh->init->content_array[(co->id/8)] |= 1<<(co->id%8);
             }
         }
     }
@@ -663,13 +684,13 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 }
 
 int SigGroupHeadClearContent(SigGroupHead *sh) {
-    if (sh == NULL)
+    if (sh == NULL || sh->init == NULL)
         return 0;
 
-    if (sh->content_array != NULL) {
-        free(sh->content_array);
-        sh->content_array = NULL;
-        sh->content_size = 0;
+    if (sh->init->content_array != NULL) {
+        free(sh->init->content_array);
+        sh->init->content_array = NULL;
+        sh->init->content_size = 0;
     }
     return 0;
 }
@@ -684,16 +705,18 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     if (DetectUricontentMaxId(de_ctx) == 0)
         return 0;
 
-    sgh->uri_content_size = (DetectUricontentMaxId(de_ctx) / 8) + 1;
-    sgh->uri_content_array = malloc(sgh->uri_content_size * sizeof(uint32_t));
-    if (sgh->uri_content_array == NULL)
+    BUG_ON(sgh->init == NULL);
+
+    sgh->init->uri_content_size = (DetectUricontentMaxId(de_ctx) / 8) + 1;
+    sgh->init->uri_content_array = malloc(sgh->init->uri_content_size);
+    if (sgh->init->uri_content_array == NULL)
         return -1;
 
-    memset(sgh->uri_content_array,0, sgh->uri_content_size * sizeof(uint32_t));
+    memset(sgh->init->uri_content_array, 0, sgh->init->uri_content_size);
 
     uint32_t sig;
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        uint32_t num = sgh->match_array[sig];
+        SigIntId num = sgh->match_array[sig];
 
         s = de_ctx->sig_array[num];
         if (s == NULL)
@@ -710,7 +733,7 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
             if (sm->type == DETECT_URICONTENT) {
                 DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
 
-                sgh->uri_content_array[(co->id/8)] |= 1<<(co->id%8);
+                sgh->init->uri_content_array[(co->id/8)] |= 1<<(co->id%8);
             }
         }
     }
@@ -718,13 +741,13 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 }
 
 int SigGroupHeadClearUricontent(SigGroupHead *sh) {
-    if (sh == NULL)
-	return 0;
+    if (sh == NULL||sh->init == NULL)
+        return 0;
 
-    if (sh->uri_content_array != NULL) {
-        free(sh->uri_content_array);
-        sh->uri_content_array = NULL;
-        sh->uri_content_size = 0;
+    if (sh->init->uri_content_array != NULL) {
+        free(sh->init->uri_content_array);
+        sh->init->uri_content_array = NULL;
+        sh->init->uri_content_size = 0;
     }
 
     return 0;
@@ -747,14 +770,14 @@ int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh, uin
 
     BUG_ON(sgh->match_array != NULL);
 
-    sgh->match_array = malloc(sgh->sig_cnt * sizeof(uint32_t));
+    sgh->match_array = malloc(sgh->sig_cnt * sizeof(SigIntId));
     if (sgh->match_array == NULL)
         return -1;
 
-    memset(sgh->match_array,0, sgh->sig_cnt * sizeof(uint32_t));
+    memset(sgh->match_array,0, sgh->sig_cnt * sizeof(SigIntId));
 
     detect_siggroup_matcharray_init_cnt++;
-    detect_siggroup_matcharray_memory += (sgh->sig_cnt * sizeof(uint32_t));
+    detect_siggroup_matcharray_memory += (sgh->sig_cnt * sizeof(SigIntId));
 
     for (sig = 0; sig < max_idx+1; sig++) {
         if (!(sgh->sig_array[(sig/8)] & (1<<(sig%8))))

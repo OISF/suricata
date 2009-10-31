@@ -375,12 +375,7 @@ static inline int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, 
     /* we need a match */
     B2gEndMatchAppend(mpm_ctx, p, offset, depth, pid, sid, nosearch);
 
-    /* keep track of highest pattern id XXX still used? */
-    if (pid > mpm_ctx->max_pattern_id)
-        mpm_ctx->max_pattern_id = pid;
-
     mpm_ctx->total_pattern_cnt++;
-
     return 0;
 
 error:

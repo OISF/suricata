@@ -435,6 +435,8 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
             continue;
 
         SigGroupHeadSetSigCnt(gr->sh, de_ctx->io_ctx.max_idx);
+        SigGroupHeadInitDataFree(gr->sh->init);
+        gr->sh->init = NULL;
         //printf(PRIu32 " ", gr->sh->sig_cnt);
     }
     //printf("\n");
@@ -451,6 +453,8 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
             continue;
 
         SigGroupHeadSetSigCnt(gr->sh, de_ctx->io_ctx.max_idx);
+        SigGroupHeadInitDataFree(gr->sh->init);
+        gr->sh->init = NULL;
         //printf(PRIu32 " ", gr->sh->sig_cnt);
     }
     //printf("\n");

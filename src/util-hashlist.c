@@ -8,6 +8,7 @@
 #include "eidps-common.h"
 #include "util-hashlist.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *)) {
 
@@ -94,6 +95,8 @@ int HashListTableAdd(HashListTable *ht, void *data, uint16_t datalen) {
 
     uint32_t hash = ht->Hash(ht, data, datalen);
 
+    SCLogDebug("ht %p hash %"PRIu32"", ht, hash);
+
     HashListTableBucket *hb = malloc(sizeof(HashListTableBucket));
     if (hb == NULL) {
         goto error;
@@ -130,7 +133,10 @@ error:
 int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen) {
     uint32_t hash = ht->Hash(ht, data, datalen);
 
+    SCLogDebug("ht %p hash %"PRIu32"", ht, hash);
+
     if (ht->array[hash] == NULL) {
+        SCLogDebug("ht->array[hash] NULL");
         return -1;
     }
 
@@ -159,6 +165,7 @@ int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen) {
             return 0;
         }
 
+        SCLogDebug("fast track default case");
         return -1;
     }
 
@@ -198,6 +205,7 @@ int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen) {
         hashbucket = hashbucket->bucknext;
     } while (hashbucket != NULL);
 
+    SCLogDebug("slow track default case");
     return -1;
 }
 

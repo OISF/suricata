@@ -440,12 +440,7 @@ static inline int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, u
     /* we need a match */
     WmEndMatchAppend(mpm_ctx, p, offset, depth, pid, sid, nosearch);
 
-    /* keep track of highest pattern id XXX still used? */
-    if (pid > mpm_ctx->max_pattern_id)
-        mpm_ctx->max_pattern_id = pid;
-
     mpm_ctx->total_pattern_cnt++;
-
     return 0;
 
 error:
@@ -2579,25 +2574,6 @@ int WmTestInitAddPattern06 (void) {
     return result;
 }
 
-int WmTestInitAddPattern07 (void) {
-    int result = 0;
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
-
-    WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1, 0, 1234, 0, 0);
-
-    if (mpm_ctx.max_pattern_id == 1234)
-        result = 1;
-
-    WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    WmDestroyCtx(&mpm_ctx);
-    return result;
-}
-
 int WmTestPrepare01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
@@ -3967,7 +3943,6 @@ void WmRegisterTests(void) {
     UtRegisterTest("WmTestInitAddPattern04", WmTestInitAddPattern04, 1);
     UtRegisterTest("WmTestInitAddPattern05", WmTestInitAddPattern05, 1);
     UtRegisterTest("WmTestInitAddPattern06", WmTestInitAddPattern06, 1);
-    UtRegisterTest("WmTestInitAddPattern07", WmTestInitAddPattern07, 1);
 
     UtRegisterTest("WmTestPrepare01", WmTestPrepare01, 1);
     UtRegisterTest("WmTestPrepare02", WmTestPrepare02, 1);

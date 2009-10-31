@@ -46,7 +46,7 @@
 
 typedef struct B2gPattern_ {
     uint8_t flags;
-    uint16_t len;
+    uint16_t len; /** \todo we're limited to 32/64 byte lengths, uint8_t would be fine here */
     uint8_t *cs; /* case sensitive */
     uint8_t *ci; /* case INsensitive */
     struct B2gPattern_ *next;
@@ -55,8 +55,8 @@ typedef struct B2gPattern_ {
 
 typedef struct B2gHashItem_ {
     uint16_t idx;
-    struct B2gHashItem_ *nxt;
     uint8_t flags;
+    struct B2gHashItem_ *nxt;
 } B2gHashItem;
 
 typedef struct B2gCtx_ {

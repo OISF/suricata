@@ -19,21 +19,21 @@ enum {
 
 /* Data structures */
 typedef struct MpmEndMatch_ {
-    uint32_t id;
+    uint32_t id;        /**< pattern id storage */
     uint16_t depth;
     uint16_t offset;
-    uint8_t flags;
     struct MpmEndMatch_ *next;
-    uint32_t sig_id; /* sig callback stuff -- internal id */
+    SigIntId sig_id;    /**< sig callback stuff -- internal id */
+    uint8_t flags;
 } MpmEndMatch;
 
 typedef struct MpmMatch_ {
-    uint16_t offset; /* offset of this match in the search buffer */
-    struct MpmMatch_ *next; /* match list -- used to connect a match to a
-                             * pattern id. */
-    struct MpmMatch_ *qnext; /* queue list -- used to cleanup all matches after
-                              * the inspection. */
-    struct MpmMatchBucket_ *mb; /* pointer back to the bucket */
+    struct MpmMatch_ *next; /**< match list -- used to connect a match to a
+                             *   pattern id. */
+    struct MpmMatch_ *qnext; /**< queue list -- used to cleanup all matches
+                              *   after the inspection. */
+    struct MpmMatchBucket_ *mb; /**< pointer back to the bucket */
+    uint16_t offset; /**< offset of this match in the search buffer */
 } MpmMatch;
 
 typedef struct MpmMatchBucket_ {
@@ -91,10 +91,6 @@ typedef struct MpmCtx_ {
     uint16_t scan_maxlen;
     uint16_t search_minlen;
     uint16_t search_maxlen;
-
-    /* this is used to determine the size of the match
-     * loopup table */
-    uint32_t max_pattern_id;
 } MpmCtx;
 
 typedef struct MpmTableElmt_ {
