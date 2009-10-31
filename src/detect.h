@@ -40,7 +40,7 @@ enum {
 #define ADDRESS_PORTS_NOTUNIQ       0x10
 #define ADDRESS_HAVEPORT            0x20
 
-typedef struct DetectAddressGroup_ {
+typedef struct DetectAddress_ {
     /* address data for this group */
     uint8_t family;
     uint32_t ip[4];
@@ -48,7 +48,7 @@ typedef struct DetectAddressGroup_ {
 
     /* XXX ptr to rules, or PortGroup or whatever */
     union {
-        struct DetectAddressGroupsHead_ *dst_gh;
+        struct DetectAddresssHead_ *dst_gh;
         struct DetectPort_ *port;
     };
     /* signatures that belong in this group */
@@ -56,18 +56,18 @@ typedef struct DetectAddressGroup_ {
     uint8_t flags;
 
     /* double linked list */
-    struct DetectAddressGroup_ *prev;
-    struct DetectAddressGroup_ *next;
+    struct DetectAddress_ *prev;
+    struct DetectAddress_ *next;
 
     uint32_t cnt;
-} DetectAddressGroup;
+} DetectAddress;
 
 /** Signature grouping head. Here 'any', ipv4 and ipv6 are split out */
-typedef struct DetectAddressGroupsHead_ {
-    DetectAddressGroup *any_head;
-    DetectAddressGroup *ipv4_head;
-    DetectAddressGroup *ipv6_head;
-} DetectAddressGroupsHead;
+typedef struct DetectAddresssHead_ {
+    DetectAddress *any_head;
+    DetectAddress *ipv4_head;
+    DetectAddress *ipv6_head;
+} DetectAddresssHead;
 
 /*
  * DETECT PORT
@@ -131,7 +131,7 @@ typedef struct DetectPort_ {
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {
-    DetectAddressGroup *src, *dst;
+    DetectAddress *src, *dst;
     uint8_t *sig_match_array; /* bit array of sig nums */
     uint32_t sig_match_size;  /* size in bytes of the array */
 } DetectEngineIPOnlyThreadCtx;
@@ -149,7 +149,7 @@ typedef struct Signature_ {
     char *msg;
 
     /** addresses, ports and proto this sig matches on */
-    DetectAddressGroupsHead src, dst;
+    DetectAddresssHead src, dst;
     DetectProto proto;
     DetectPort *sp, *dp;
 
@@ -190,8 +190,8 @@ typedef struct DetectEngineIPOnlyCtx_ {
 } DetectEngineIPOnlyCtx;
 
 typedef struct DetectEngineLookupFlow_ {
-    DetectAddressGroupsHead *src_gh[256]; /* a head for each protocol */
-    DetectAddressGroupsHead *tmp_gh[256];
+    DetectAddresssHead *src_gh[256]; /* a head for each protocol */
+    DetectAddresssHead *tmp_gh[256];
 } DetectEngineLookupFlow;
 
 /* Flow status

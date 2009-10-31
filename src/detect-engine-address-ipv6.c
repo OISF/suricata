@@ -81,7 +81,7 @@ int AddressIPv6Ge(uint32_t *a, uint32_t *b) {
     return 0;
 }
 
-int DetectAddressGroupCmpIPv6(DetectAddressGroup *a, DetectAddressGroup *b) {
+int DetectAddressCmpIPv6(DetectAddress *a, DetectAddress *b) {
     /* ADDRESS_EQ */
     if (AddressIPv6Eq(a->ip, b->ip) == 1 &&
         AddressIPv6Eq(a->ip2, b->ip2) == 1) {
@@ -192,7 +192,7 @@ static void AddressCutIPv6Copy(uint32_t *a, uint32_t *b) {
     b[3] = htonl(a[3]);
 }
 
-int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, DetectAddressGroup *b, DetectAddressGroup **c) {
+int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a, DetectAddress *b, DetectAddress **c) {
     uint32_t a_ip1[4] = { ntohl(a->ip[0]),  ntohl(a->ip[1]),
                            ntohl(a->ip[2]),  ntohl(a->ip[3]) };
     uint32_t a_ip2[4] = { ntohl(a->ip2[0]), ntohl(a->ip2[1]),
@@ -202,22 +202,22 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
     uint32_t b_ip2[4] = { ntohl(b->ip2[0]), ntohl(b->ip2[1]),
                            ntohl(b->ip2[2]), ntohl(b->ip2[3]) };
     DetectPort *port = NULL;
-    DetectAddressGroup *tmp = NULL;
+    DetectAddress *tmp = NULL;
 
     /* default to NULL */
     *c = NULL;
 
-    int r = DetectAddressGroupCmpIPv6(a,b);
+    int r = DetectAddressCmpIPv6(a,b);
     if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
         goto error;
     }
 
     /* get a place to temporary put sigs lists */
-    tmp = DetectAddressGroupInit();
+    tmp = DetectAddressInit();
     if (tmp == NULL) {
         goto error;
     }
-    memset(tmp,0,sizeof(DetectAddressGroup));
+    memset(tmp,0,sizeof(DetectAddress));
 
     /* we have 3 parts: [aaa[abab]bbb]
      * part a: a_ip1 <-> b_ip1 - 1
@@ -231,8 +231,8 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
         AddressCutIPv6Copy(b_ip1, b->ip);
         AddressCutIPv6Copy(a_ip2, b->ip2);
 
-        DetectAddressGroup *tmp_c;
-        tmp_c = DetectAddressGroupInit();
+        DetectAddress *tmp_c;
+        tmp_c = DetectAddressInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -266,8 +266,8 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
         AddressCutIPv6Copy(a_ip1, b->ip);
         AddressCutIPv6Copy(b_ip2, b->ip2);
 
-        DetectAddressGroup *tmp_c;
-        tmp_c = DetectAddressGroupInit();
+        DetectAddress *tmp_c;
+        tmp_c = DetectAddressInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -372,8 +372,8 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             AddressCutIPv6Copy(a_ip1, b->ip);
             AddressCutIPv6Copy(a_ip2, b->ip2);
 
-            DetectAddressGroup *tmp_c;
-            tmp_c = DetectAddressGroupInit();
+            DetectAddress *tmp_c;
+            tmp_c = DetectAddressInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -477,8 +477,8 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             AddressCutIPv6Copy(b_ip1, b->ip);
             AddressCutIPv6Copy(b_ip2, b->ip2);
 
-            DetectAddressGroup *tmp_c;
-            tmp_c = DetectAddressGroupInit();
+            DetectAddress *tmp_c;
+            tmp_c = DetectAddressInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -506,12 +506,12 @@ int DetectAddressGroupCutIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
     }
 
     if (tmp != NULL)
-        DetectAddressGroupFree(tmp);
+        DetectAddressFree(tmp);
     return 0;
 
 error:
     if (tmp != NULL)
-        DetectAddressGroupFree(tmp);
+        DetectAddressFree(tmp);
     return -1;
 }
 #if 0
@@ -679,7 +679,7 @@ error:
  * must result in: a == 0.0.0.0-255.255.255.254, b == NULL
  *
  */
-int DetectAddressGroupCutNotIPv6(DetectAddressGroup *a, DetectAddressGroup **b) {
+int DetectAddressCutNotIPv6(DetectAddress *a, DetectAddress **b) {
     uint32_t a_ip1[4] = { ntohl(a->ip[0]), ntohl(a->ip[1]), ntohl(a->ip[2]), ntohl(a->ip[3]) };
     uint32_t a_ip2[4] = { ntohl(a->ip2[0]), ntohl(a->ip2[1]), ntohl(a->ip2[2]), ntohl(a->ip2[3]) };
     uint32_t ip_nul[4] = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
@@ -696,7 +696,7 @@ int DetectAddressGroupCutNotIPv6(DetectAddressGroup *a, DetectAddressGroup **b) 
         AddressCutIPv6Copy(ip_nul, a->ip);
         AddressCutIPv6CopySubOne(a_ip1, a->ip2);
 
-        DetectAddressGroup *tmp_b = DetectAddressGroupInit();
+        DetectAddress *tmp_b = DetectAddressInit();
         if (tmp_b == NULL) {
             goto error;
         }
@@ -731,7 +731,7 @@ error:
     return -1;
 }
 
-int DetectAddressGroupJoinIPv6(DetectEngineCtx *de_ctx, DetectAddressGroup *target, DetectAddressGroup *source) {
+int DetectAddressJoinIPv6(DetectEngineCtx *de_ctx, DetectAddress *target, DetectAddress *source) {
     if (AddressIPv6Lt(source->ip,target->ip)) {
         target->ip[0] = source->ip[0];
         target->ip[1] = source->ip[1];

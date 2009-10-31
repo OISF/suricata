@@ -8,12 +8,12 @@
 
 //int DetectAddressCmpIPv4(DetectAddressData *, DetectAddressData *);
 //int DetectAddressCutIPv4(DetectAddressData *, DetectAddressData *, DetectAddressData **);
-int DetectAddressGroupCutNotIPv4(DetectAddressGroup *, DetectAddressGroup **);
-int DetectAddressGroupCmpIPv4(DetectAddressGroup *a, DetectAddressGroup *b);
+int DetectAddressCutNotIPv4(DetectAddress *, DetectAddress **);
+int DetectAddressCmpIPv4(DetectAddress *a, DetectAddress *b);
 
-int DetectAddressGroupCutIPv4(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
-int DetectAddressGroupJoinIPv4(DetectEngineCtx *, DetectAddressGroup *target, DetectAddressGroup *source);
-int DetectAddressGroupIsCompleteIPSpaceIPv4(DetectAddressGroup *);
+int DetectAddressCutIPv4(DetectEngineCtx *, DetectAddress *, DetectAddress *, DetectAddress **);
+int DetectAddressJoinIPv4(DetectEngineCtx *, DetectAddress *target, DetectAddress *source);
+int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *);
 
 #endif /* __DETECT_ENGINE_ADDRESS_IPV4_H__ */
 

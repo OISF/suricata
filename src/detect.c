@@ -312,7 +312,7 @@ static inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEng
         f = 1;
 
     /* find the right mpm instance */
-    DetectAddressGroup *ag = DetectAddressLookupInHead(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[p->proto],&p->src);
+    DetectAddress *ag = DetectAddressLookupInHead(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[p->proto],&p->src);
     if (ag != NULL) {
         /* source group found, lets try a dst group */
         ag = DetectAddressLookupInHead(ag->dst_gh,&p->dst);
@@ -441,13 +441,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* check the source address */
         if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddressGroup *saddr = DetectAddressLookupInHead(&s->src,&p->src);
+            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
             if (saddr == NULL)
                 continue;
         }
         /* check the destination address */
         if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddressGroup *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
+            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
             if (daddr == NULL)
                 continue;
         }
@@ -659,11 +659,11 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
  */
 int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
-    DetectAddressGroup *gr = NULL;
+    DetectAddress *gr = NULL;
     uint32_t cnt = 0, cnt_iponly = 0;
     uint32_t cnt_payload = 0;
 
-    //DetectAddressGroupPrintMemory();
+    //DetectAddressPrintMemory();
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
 
@@ -752,7 +752,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
         de_ctx->sig_cnt++;
     }
 
-    //DetectAddressGroupPrintMemory();
+    //DetectAddressPrintMemory();
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
 
@@ -769,7 +769,7 @@ error:
 }
 
 static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, DetectEngineLookupFlow *flow_gh, Signature *s, int family) {
-    DetectAddressGroup *gr = NULL, *lookup_gr = NULL, *head = NULL;
+    DetectAddress *gr = NULL, *lookup_gr = NULL, *head = NULL;
     int proto;
 
     if (family == AF_INET) {
@@ -797,7 +797,7 @@ static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, Det
                 }
 
                 if (lookup_gr == NULL) {
-                    DetectAddressGroup *grtmp = DetectAddressGroupCopy(gr);
+                    DetectAddress *grtmp = DetectAddressCopy(gr);
                     if (grtmp == NULL) {
                         goto error;
                     }
@@ -805,11 +805,11 @@ static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, Det
 
                     /* add to the lookup list */
                     if (family == AF_INET) {
-                        DetectAddressGroupAdd(&flow_gh->tmp_gh[proto]->ipv4_head, grtmp);
+                        DetectAddressAdd(&flow_gh->tmp_gh[proto]->ipv4_head, grtmp);
                     } else if (family == AF_INET6) {
-                        DetectAddressGroupAdd(&flow_gh->tmp_gh[proto]->ipv6_head, grtmp);
+                        DetectAddressAdd(&flow_gh->tmp_gh[proto]->ipv6_head, grtmp);
                     } else {
-                        DetectAddressGroupAdd(&flow_gh->tmp_gh[proto]->any_head, grtmp);
+                        DetectAddressAdd(&flow_gh->tmp_gh[proto]->any_head, grtmp);
                     }
                 } else {
                     /* our group will only have one sig, this one. So add that. */
@@ -970,8 +970,8 @@ static int DetectEngineLookupDsizeAddSig(DetectEngineCtx *de_ctx, Signature *s, 
     return 0;
 }
 
-static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *head, int family) {
-    DetectAddressGroup *grhead;
+static DetectAddress *GetHeadPtr(DetectAddresssHead *head, int family) {
+    DetectAddress *grhead;
 
     if (head == NULL)
         return NULL;
@@ -1012,13 +1012,13 @@ static DetectAddressGroup *GetHeadPtr(DetectAddressGroupsHead *head, int family)
 // || (c) == 2)
 // || (c) == 3)
 
-int CreateGroupedAddrListCmpCnt(DetectAddressGroup *a, DetectAddressGroup *b) {
+int CreateGroupedAddrListCmpCnt(DetectAddress *a, DetectAddress *b) {
     if (a->cnt > b->cnt)
         return 1;
     return 0;
 }
 
-int CreateGroupedAddrListCmpMpmMaxlen(DetectAddressGroup *a, DetectAddressGroup *b) {
+int CreateGroupedAddrListCmpMpmMaxlen(DetectAddress *a, DetectAddress *b) {
     if (a->sh == NULL || b->sh == NULL)
         return 0;
 
@@ -1035,10 +1035,10 @@ int CreateGroupedAddrListCmpMpmMaxlen(DetectAddressGroup *a, DetectAddressGroup 
  * srchead is a ordered "inserted" list w/o internal overlap
  *
  */
-int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, int family, DetectAddressGroupsHead *newhead, uint32_t unique_groups, int (*CompareFunc)(DetectAddressGroup *, DetectAddressGroup *), uint32_t max_idx) {
-    DetectAddressGroup *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
+int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead, int family, DetectAddresssHead *newhead, uint32_t unique_groups, int (*CompareFunc)(DetectAddress *, DetectAddress *), uint32_t max_idx) {
+    DetectAddress *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
     char insert = 0;
-    DetectAddressGroup *gr, *next_gr;
+    DetectAddress *gr, *next_gr;
     uint32_t groups = 0;
 
     /* insert the addresses into the tmplist, where it will
@@ -1052,7 +1052,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
         groups++;
 
         /* alloc a copy */
-        DetectAddressGroup *newtmp = DetectAddressGroupCopy(gr);
+        DetectAddress *newtmp = DetectAddressCopy(gr);
         if (newtmp == NULL) {
             goto error;
         }
@@ -1065,7 +1065,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
         }
 
         /* insert it */
-        DetectAddressGroup *tmpgr = tmplist, *prevtmpgr = NULL;
+        DetectAddress *tmpgr = tmplist, *prevtmpgr = NULL;
         if (tmplist == NULL) {
             /* empty list, set head */
             tmplist = newtmp;
@@ -1100,7 +1100,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
 
         if (i == 0) {
             if (joingr == NULL) {
-                joingr = DetectAddressGroupCopy(gr);
+                joingr = DetectAddressCopy(gr);
                 if (joingr == NULL) {
                     goto error;
                 }
@@ -1113,10 +1113,10 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
                     joingr->flags |= ADDRESS_HAVEPORT;
                 }
             } else {
-                DetectAddressGroupJoin(de_ctx, joingr, gr);
+                DetectAddressJoin(de_ctx, joingr, gr);
             }
         } else {
-            DetectAddressGroup *newtmp = DetectAddressGroupCopy(gr);
+            DetectAddress *newtmp = DetectAddressCopy(gr);
             if (newtmp == NULL) {
                 goto error;
             }
@@ -1139,7 +1139,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
         if (i)i--;
 
         next_gr = gr->next;
-        DetectAddressGroupFree(gr);
+        DetectAddressFree(gr);
         gr = next_gr;
     }
 
@@ -1151,7 +1151,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
     for (gr = tmplist2; gr != NULL; ) {
         BUG_ON(gr->family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
 
-        DetectAddressGroup *newtmp = DetectAddressGroupCopy(gr);
+        DetectAddress *newtmp = DetectAddressCopy(gr);
         if (newtmp == NULL) {
             goto error;
         }
@@ -1163,16 +1163,16 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddressGroup *srchead, 
             newtmp->flags |= ADDRESS_HAVEPORT;
         }
 
-        DetectAddressGroupInsert(de_ctx, newhead, newtmp);
+        DetectAddressInsert(de_ctx, newhead, newtmp);
 
         next_gr = gr->next;
-        DetectAddressGroupFree(gr);
+        DetectAddressFree(gr);
         gr = next_gr;
     }
 
     /* if present, insert the joingr that covers the rest */
     if (joingr != NULL) {
-        DetectAddressGroupInsert(de_ctx, newhead, joingr);
+        DetectAddressInsert(de_ctx, newhead, joingr);
     }
 
     return 0;
@@ -1349,7 +1349,7 @@ error:
  */
 int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
-    DetectAddressGroup *gr = NULL;
+    DetectAddress *gr = NULL;
     uint32_t sigs = 0;
 
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -1363,11 +1363,11 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     for (ds = 0; ds < DSIZE_STATES; ds++) {
         for (f = 0; f < FLOW_STATES; f++) {
             for (proto = 0; proto < 256; proto++) {
-                de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] = DetectAddressGroupsHeadInit();
+                de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] = DetectAddresssHeadInit();
                 if (de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] == NULL) {
                     goto error;
                 }
-                de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] = DetectAddressGroupsHeadInit();
+                de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] = DetectAddresssHeadInit();
                 if (de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] == NULL) {
                     goto error;
                 }
@@ -1409,16 +1409,16 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
                     de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], groups,
                     CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
 
-                DetectAddressGroupsHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]);
+                DetectAddresssHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]);
                 de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] = NULL;
             }
         }
     }
-    //DetectAddressGroupPrintMemory();
+    //DetectAddressPrintMemory();
     //DetectSigGroupPrintMemory();
 
     //printf("g_src_gh strt\n");
-    //DetectAddressGroupPrintList(g_src_gh->ipv4_head);
+    //DetectAddressPrintList(g_src_gh->ipv4_head);
     //printf("g_src_gh end\n");
 
     IPOnlyPrepare(de_ctx);
@@ -1532,12 +1532,12 @@ error:
     return -1;
 }
 
-int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *head, int family, int dsize, int flow) {
+int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddresssHead *head, int family, int dsize, int flow) {
     Signature *tmp_s = NULL;
-    DetectAddressGroup *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
+    DetectAddress *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
     uint32_t max_idx = 0;
 
-    DetectAddressGroup *grhead = NULL, *grdsthead = NULL, *grsighead = NULL;
+    DetectAddress *grhead = NULL, *grdsthead = NULL, *grsighead = NULL;
 
     /* based on the family, select the list we are using in the head */
     grhead = GetHeadPtr(head,family);
@@ -1547,13 +1547,13 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHea
         //printf(" * Source group: "); DetectAddressPrint(gr); printf("\n");
 
         /* initialize the destination group head */
-        gr->dst_gh = DetectAddressGroupsHeadInit();
+        gr->dst_gh = DetectAddresssHeadInit();
         if (gr->dst_gh == NULL) {
             goto error;
         }
 
         /* use a tmp list for speeding up insertions */
-        DetectAddressGroup *tmp_gr_list = NULL;
+        DetectAddress *tmp_gr_list = NULL;
 
         /* loop through all signatures in this source address group
          * and build the temporary destination address list for it */
@@ -1572,13 +1572,13 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHea
             grsighead = GetHeadPtr(&tmp_s->dst, family);
             for (sgr = grsighead; sgr != NULL; sgr = sgr->next) {
                 if ((lookup_gr = DetectAddressLookupInList(tmp_gr_list, sgr)) == NULL) {
-                    DetectAddressGroup *grtmp = DetectAddressGroupCopy(gr);
+                    DetectAddress *grtmp = DetectAddressCopy(gr);
                     if (grtmp == NULL) {
                         goto error;
                     }
                     SigGroupHeadAppendSig(de_ctx,&grtmp->sh,tmp_s);
 
-                    DetectAddressGroupAdd(&tmp_gr_list,grtmp);
+                    DetectAddressAdd(&tmp_gr_list,grtmp);
                 } else {
                     /* our group will only have one sig, this one. So add that. */
                     SigGroupHeadAppendSig(de_ctx,&lookup_gr->sh,tmp_s);
@@ -1690,7 +1690,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressGroupsHea
         }
 
         /* free the temp list */
-        DetectAddressGroupCleanupList(tmp_gr_list);
+        DetectAddressCleanupList(tmp_gr_list);
         /* clear now unneeded sig group head */
         SCLogDebug("calling SigGroupHeadFree gr %p, gr->sh %p", gr, gr->sh);
         SigGroupHeadFree(gr->sh);
@@ -1702,10 +1702,10 @@ error:
     return -1;
 }
 
-static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddressGroupsHead *head, int family, int dsize, int flow) {
+static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddresssHead *head, int family, int dsize, int flow) {
     Signature *tmp_s = NULL;
-    DetectAddressGroup *src_gr = NULL, *dst_gr = NULL, *sig_gr = NULL, *lookup_gr = NULL;
-    DetectAddressGroup *src_gr_head = NULL, *dst_gr_head = NULL, *sig_gr_head = NULL;
+    DetectAddress *src_gr = NULL, *dst_gr = NULL, *sig_gr = NULL, *lookup_gr = NULL;
+    DetectAddress *src_gr_head = NULL, *dst_gr_head = NULL, *sig_gr_head = NULL;
     uint32_t max_idx = 0;
 
     /* loop through the global source address list */
@@ -1714,13 +1714,13 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
         //printf(" * Source group: "); DetectAddressPrint(src_gr); printf("\n");
 
         /* initialize the destination group head */
-        src_gr->dst_gh = DetectAddressGroupsHeadInit();
+        src_gr->dst_gh = DetectAddresssHeadInit();
         if (src_gr->dst_gh == NULL) {
             goto error;
         }
 
         /* use a tmp list for speeding up insertions */
-        DetectAddressGroup *tmp_gr_list = NULL;
+        DetectAddress *tmp_gr_list = NULL;
 
         /* loop through all signatures in this source address group
          * and build the temporary destination address list for it */
@@ -1743,13 +1743,13 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                 //printf("  * Sig dst addr: "); DetectAddressPrint(sig_gr); printf("\n");
 
                 if ((lookup_gr = DetectAddressLookupInList(tmp_gr_list, sig_gr)) == NULL) {
-                    DetectAddressGroup *grtmp = DetectAddressGroupCopy(sig_gr);
+                    DetectAddress *grtmp = DetectAddressCopy(sig_gr);
                     if (grtmp == NULL) {
                         goto error;
                     }
                     SigGroupHeadAppendSig(de_ctx, &grtmp->sh, tmp_s);
 
-                    DetectAddressGroupAdd(&tmp_gr_list,grtmp);
+                    DetectAddressAdd(&tmp_gr_list,grtmp);
                 } else {
                     /* our group will only have one sig, this one. So add that. */
                     SigGroupHeadAppendSig(de_ctx, &lookup_gr->sh, tmp_s);
@@ -2008,7 +2008,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
             }
         }
         /* free the temp list */
-        DetectAddressGroupCleanupList(tmp_gr_list);
+        DetectAddressCleanupList(tmp_gr_list);
         /* clear now unneeded sig group head */
         SigGroupHeadFree(src_gr->sh);
         src_gr->sh = NULL;
@@ -2044,7 +2044,7 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
         SCLogInfo("building signature grouping structure, stage 3: "
                "building destination address lists...");
     }
-    //DetectAddressGroupPrintMemory();
+    //DetectAddressPrintMemory();
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
 
@@ -2157,7 +2157,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
         for (f = 0; f < FLOW_STATES; f++) {
             for (proto = 0; proto < 256; proto++) {
                 /* XXX fix this */
-                DetectAddressGroupsHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]);
+                DetectAddresssHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]);
                 de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] = NULL;
             }
         }
@@ -2227,8 +2227,8 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
 
 /* just printing */
 int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
-    DetectAddressGroupsHead *global_dst_gh = NULL;
-    DetectAddressGroup *global_src_gr = NULL, *global_dst_gr = NULL;
+    DetectAddresssHead *global_dst_gh = NULL;
+    DetectAddress *global_src_gr = NULL, *global_dst_gr = NULL;
     int i;
 
     printf("* Building signature grouping structure, stage 5: print...\n");
@@ -2517,7 +2517,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
     SigAddressPrepareStage3(de_ctx);
 //    SigAddressPrepareStage5(de_ctx);
     DbgPrintScanSearchStats();
-//    DetectAddressGroupPrintMemory();
+//    DetectAddressPrintMemory();
 //    DetectSigGroupPrintMemory();
 //    DetectPortPrintMemory();
     return 0;
@@ -6415,7 +6415,7 @@ static int SigTestMemory01 (void) {
 
 printf("@pre cleanup\n\n");
     DetectSigGroupPrintMemory();
-    DetectAddressGroupPrintMemory();
+    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
     SigGroupCleanup(de_ctx);
@@ -6424,7 +6424,7 @@ printf("@pre cleanup\n\n");
 
 printf("@exit\n\n");
     DetectSigGroupPrintMemory();
-    DetectAddressGroupPrintMemory();
+    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
     result = 1;
@@ -6463,11 +6463,11 @@ printf("@cleanup\n\n");
 
 printf("@exit\n\n");
     DetectSigGroupPrintMemory();
-    DetectAddressGroupPrintMemory();
+    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 printf("@exit\n\n");
     DetectSigGroupPrintMemory();
-    DetectAddressGroupPrintMemory();
+    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
     result = 1;
@@ -6511,7 +6511,7 @@ printf("@cleanup\n\n");
 
 printf("@exit\n\n");
     DetectSigGroupPrintMemory();
-    DetectAddressGroupPrintMemory();
+    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
     result = 1;

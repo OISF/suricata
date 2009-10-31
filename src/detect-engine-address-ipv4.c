@@ -18,7 +18,7 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-port.h"
 
-int DetectAddressGroupCmpIPv4(DetectAddressGroup *a, DetectAddressGroup *b) {
+int DetectAddressCmpIPv4(DetectAddress *a, DetectAddress *b) {
     uint32_t a_ip1 = ntohl(a->ip[0]);
     uint32_t a_ip2 = ntohl(a->ip2[0]);
     uint32_t b_ip1 = ntohl(b->ip[0]);
@@ -71,25 +71,25 @@ int DetectAddressGroupCmpIPv4(DetectAddressGroup *a, DetectAddressGroup *b) {
  * a = 1.2.3.4, b = 1.2.3.0/24
  * must result in: a == 1.2.3.0-1.2.3.3, b == 1.2.3.4, c == 1.2.3.5-1.2.3.255
  */
-int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, DetectAddressGroup *b, DetectAddressGroup **c) {
+int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a, DetectAddress *b, DetectAddress **c) {
     uint32_t a_ip1 = ntohl(a->ip[0]);
     uint32_t a_ip2 = ntohl(a->ip2[0]);
     uint32_t b_ip1 = ntohl(b->ip[0]);
     uint32_t b_ip2 = ntohl(b->ip2[0]);
     DetectPort *port = NULL;
-    DetectAddressGroup *tmp = NULL;
+    DetectAddress *tmp = NULL;
 
     /* default to NULL */
     *c = NULL;
 
-    int r = DetectAddressGroupCmpIPv4(a,b);
+    int r = DetectAddressCmpIPv4(a,b);
     if (r != ADDRESS_ES && r != ADDRESS_EB && r != ADDRESS_LE && r != ADDRESS_GE) {
         printf("we shouldn't be here\n");
         goto error;
     }
 
     /* get a place to temporary put sigs lists */
-    tmp = DetectAddressGroupInit();
+    tmp = DetectAddressInit();
     if (tmp == NULL) {
         goto error;
     }
@@ -101,7 +101,7 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
      */
     if (r == ADDRESS_LE) {
 #ifdef DBG
-        printf("DetectAddressGroupCutIPv4: r == ADDRESS_LE\n");
+        printf("DetectAddressCutIPv4: r == ADDRESS_LE\n");
 #endif
         a->ip[0]  = htonl(a_ip1);
         a->ip2[0] = htonl(b_ip1 - 1);
@@ -109,8 +109,8 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
         b->ip[0]  = htonl(b_ip1);
         b->ip2[0] = htonl(a_ip2);
 
-        DetectAddressGroup *tmp_c;
-        tmp_c = DetectAddressGroupInit();
+        DetectAddress *tmp_c;
+        tmp_c = DetectAddressInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -142,7 +142,7 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
      */
     } else if (r == ADDRESS_GE) {
 #ifdef DBG
-        printf("DetectAddressGroupCutIPv4: r == ADDRESS_GE\n");
+        printf("DetectAddressCutIPv4: r == ADDRESS_GE\n");
 #endif
         a->ip[0]   = htonl(b_ip1);
         a->ip2[0] = htonl(a_ip1 - 1);
@@ -150,8 +150,8 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
         b->ip[0]   = htonl(a_ip1);
         b->ip2[0] = htonl(b_ip2);
 
-        DetectAddressGroup *tmp_c;
-        tmp_c = DetectAddressGroupInit();
+        DetectAddress *tmp_c;
+        tmp_c = DetectAddressInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -211,11 +211,11 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
      */
     } else if (r == ADDRESS_ES) {
 #ifdef DBG
-        printf("DetectAddressGroupCutIPv4: r == ADDRESS_ES\n");
+        printf("DetectAddressCutIPv4: r == ADDRESS_ES\n");
 #endif
         if (a_ip1 == b_ip1) {
 #ifdef DBG
-            printf("DetectAddressGroupCutIPv4: 1\n");
+            printf("DetectAddressCutIPv4: 1\n");
 #endif
             a->ip[0]   = htonl(a_ip1);
             a->ip2[0] = htonl(a_ip2);
@@ -234,7 +234,7 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             }
         } else if (a_ip2 == b_ip2) {
 #ifdef DBG
-            printf("DetectAddressGroupCutIPv4: 2\n");
+            printf("DetectAddressCutIPv4: 2\n");
 #endif
             a->ip[0]   = htonl(b_ip1);
             a->ip2[0] = htonl(a_ip1 - 1);
@@ -275,8 +275,8 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             b->ip[0]   = htonl(a_ip1);
             b->ip2[0] = htonl(a_ip2);
 
-            DetectAddressGroup *tmp_c;
-            tmp_c = DetectAddressGroupInit();
+            DetectAddress *tmp_c;
+            tmp_c = DetectAddressInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -335,11 +335,11 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
      */
     } else if (r == ADDRESS_EB) {
 #ifdef DBG
-        printf("DetectAddressGroupCutIPv4: r == ADDRESS_EB\n");
+        printf("DetectAddressCutIPv4: r == ADDRESS_EB\n");
 #endif
         if (a_ip1 == b_ip1) {
 #ifdef DBG
-            printf("DetectAddressGroupCutIPv4: 1\n");
+            printf("DetectAddressCutIPv4: 1\n");
 #endif
             a->ip[0]   = htonl(b_ip1);
             a->ip2[0] = htonl(b_ip2);
@@ -372,7 +372,7 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             }
         } else if (a_ip2 == b_ip2) {
 #ifdef DBG
-            printf("DetectAddressGroupCutIPv4: 2\n");
+            printf("DetectAddressCutIPv4: 2\n");
 #endif
             a->ip[0]   = htonl(a_ip1);
             a->ip2[0] = htonl(b_ip1 - 1);
@@ -392,7 +392,7 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             }
         } else {
 #ifdef DBG
-            printf("DetectAddressGroupCutIPv4: 3\n");
+            printf("DetectAddressCutIPv4: 3\n");
 #endif
             a->ip[0]   = htonl(a_ip1);
             a->ip2[0] = htonl(b_ip1 - 1);
@@ -400,8 +400,8 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
             b->ip[0]   = htonl(b_ip1);
             b->ip2[0] = htonl(b_ip2);
 
-            DetectAddressGroup *tmp_c;
-            tmp_c = DetectAddressGroupInit();
+            DetectAddress *tmp_c;
+            tmp_c = DetectAddressInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -432,12 +432,12 @@ int DetectAddressGroupCutIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *a, De
     }
 
     if (tmp != NULL)
-        DetectAddressGroupFree(tmp);
+        DetectAddressFree(tmp);
     return 0;
 
 error:
     if (tmp != NULL)
-        DetectAddressGroupFree(tmp);
+        DetectAddressFree(tmp);
     return -1;
 }
 
@@ -446,7 +446,7 @@ error:
  *  \retval 0 no
  *  \retval 1 yes
  */
-int DetectAddressGroupIsCompleteIPSpaceIPv4(DetectAddressGroup *ag) {
+int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *ag) {
     uint32_t next_ip = 0;
 
     if (ag == NULL)
@@ -490,7 +490,7 @@ int DetectAddressGroupIsCompleteIPSpaceIPv4(DetectAddressGroup *ag) {
  * must result in: a == 0.0.0.0-255.255.255.254, b == NULL
  *
  */
-int DetectAddressGroupCutNotIPv4(DetectAddressGroup *a, DetectAddressGroup **b) {
+int DetectAddressCutNotIPv4(DetectAddress *a, DetectAddress **b) {
     uint32_t a_ip1 = ntohl(a->ip[0]);
     uint32_t a_ip2 = ntohl(a->ip2[0]);
 
@@ -501,7 +501,7 @@ int DetectAddressGroupCutNotIPv4(DetectAddressGroup *a, DetectAddressGroup **b) 
         a->ip[0]  = htonl(0x00000000);
         a->ip2[0] = htonl(a_ip1 - 1);
 
-        DetectAddressGroup *tmp_b = DetectAddressGroupInit();
+        DetectAddress *tmp_b = DetectAddressInit();
         if (tmp_b == NULL) {
             goto error;
         }
@@ -527,7 +527,7 @@ error:
     return -1;
 }
 
-int DetectAddressGroupJoinIPv4(DetectEngineCtx *de_ctx, DetectAddressGroup *target, DetectAddressGroup *source) {
+int DetectAddressJoinIPv4(DetectEngineCtx *de_ctx, DetectAddress *target, DetectAddress *source) {
     if (ntohl(source->ip[0]) < ntohl(target->ip[0]))
         target->ip[0] = source->ip[0];
 

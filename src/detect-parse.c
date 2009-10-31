@@ -270,13 +270,13 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag) {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_SRC_ANY;
 
-        if (DetectAddressGroupParse(&s->src, addr) < 0)
+        if (DetectAddressParse(&s->src, addr) < 0)
             goto error;
     } else {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_DST_ANY;
 
-        if (DetectAddressGroupParse(&s->dst, addr) < 0)
+        if (DetectAddressParse(&s->dst, addr) < 0)
             goto error;
     }
 
@@ -521,8 +521,8 @@ void SigFree(Signature *s) {
         sm = nsm;
     }
 
-    DetectAddressGroupsHeadCleanup(&s->src);
-    DetectAddressGroupsHeadCleanup(&s->dst);
+    DetectAddresssHeadCleanup(&s->src);
+    DetectAddresssHeadCleanup(&s->dst);
 
     if (s->sp != NULL) {
         DetectPortCleanupList(s->sp);

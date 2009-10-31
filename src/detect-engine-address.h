@@ -3,33 +3,33 @@
 
 /* prototypes */
 void DetectAddressRegister (void);
-void DetectAddressGroupPrintMemory(void);
+void DetectAddressPrintMemory(void);
 
-DetectAddressGroupsHead *DetectAddressGroupsHeadInit(void);
-void DetectAddressGroupsHeadFree(DetectAddressGroupsHead *);
-void DetectAddressGroupsHeadCleanup(DetectAddressGroupsHead *);
+DetectAddresssHead *DetectAddresssHeadInit(void);
+void DetectAddresssHeadFree(DetectAddresssHead *);
+void DetectAddresssHeadCleanup(DetectAddresssHead *);
 
-int DetectAddressGroupParse(DetectAddressGroupsHead *, char *);
+int DetectAddressParse(DetectAddresssHead *, char *);
 
-DetectAddressGroup *DetectAddressGroupInit(void);
-void DetectAddressGroupFree(DetectAddressGroup *);
+DetectAddress *DetectAddressInit(void);
+void DetectAddressFree(DetectAddress *);
 
-void DetectAddressGroupCleanupList (DetectAddressGroup *);
-int DetectAddressGroupAdd(DetectAddressGroup **, DetectAddressGroup *);
-void DetectAddressGroupPrintList(DetectAddressGroup *);
+void DetectAddressCleanupList (DetectAddress *);
+int DetectAddressAdd(DetectAddress **, DetectAddress *);
+void DetectAddressPrintList(DetectAddress *);
 
-int DetectAddressGroupInsert(DetectEngineCtx *, DetectAddressGroupsHead *, DetectAddressGroup *);
-int DetectAddressGroupJoin(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *);
+int DetectAddressInsert(DetectEngineCtx *, DetectAddresssHead *, DetectAddress *);
+int DetectAddressJoin(DetectEngineCtx *, DetectAddress *, DetectAddress *);
 
-DetectAddressGroup *DetectAddressLookupInHead(DetectAddressGroupsHead *, Address *);
-DetectAddressGroup *DetectAddressLookupInList(DetectAddressGroup *, DetectAddressGroup *);
+DetectAddress *DetectAddressLookupInHead(DetectAddresssHead *, Address *);
+DetectAddress *DetectAddressLookupInList(DetectAddress *, DetectAddress *);
 
 /** \brief address only copy of ag */
-DetectAddressGroup *DetectAddressGroupCopy(DetectAddressGroup *);
+DetectAddress *DetectAddressCopy(DetectAddress *);
 /** \brief debugging: print a detect address */
-void DetectAddressPrint(DetectAddressGroup *);
+void DetectAddressPrint(DetectAddress *);
 /** \brief compare the address part of two DetectAddress objects */
-int DetectAddressCmp(DetectAddressGroup *, DetectAddressGroup *);
+int DetectAddressCmp(DetectAddress *, DetectAddress *);
 
 #endif /* __DETECT_ADDRESS_H__ */
 

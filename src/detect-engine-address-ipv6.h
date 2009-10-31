@@ -13,11 +13,11 @@ int AddressIPv6Le(uint32_t *, uint32_t *);
 int AddressIPv6Ge(uint32_t *, uint32_t *);
 
 //int DetectAddressCutIPv6(DetectAddressData *, DetectAddressData *, DetectAddressData **);
-int DetectAddressGroupCutNotIPv6(DetectAddressGroup *, DetectAddressGroup **);
-int DetectAddressGroupCmpIPv6(DetectAddressGroup *a, DetectAddressGroup *b);
+int DetectAddressCutNotIPv6(DetectAddress *, DetectAddress **);
+int DetectAddressCmpIPv6(DetectAddress *a, DetectAddress *b);
 
-int DetectAddressGroupCutIPv6(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *, DetectAddressGroup **);
-int DetectAddressGroupJoinIPv6(DetectEngineCtx *, DetectAddressGroup *, DetectAddressGroup *);
+int DetectAddressCutIPv6(DetectEngineCtx *, DetectAddress *, DetectAddress *, DetectAddress **);
+int DetectAddressJoinIPv6(DetectEngineCtx *, DetectAddress *, DetectAddress *);
 
 void DetectAddressIPv6Tests(void);
 

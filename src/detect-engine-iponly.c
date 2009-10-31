@@ -38,7 +38,7 @@
 #define IPONLY_HTONL_65535 4294901760UL
 
 static uint32_t IPOnlyHashFunc16(HashListTable *ht, void *data, uint16_t len) {
-    DetectAddressGroup *gr = (DetectAddressGroup *) data;
+    DetectAddress *gr = (DetectAddress *) data;
 
     uint32_t hash = IPONLY_EXTRACT_16(gr) % ht->array_size;
     return hash;
@@ -46,14 +46,14 @@ static uint32_t IPOnlyHashFunc16(HashListTable *ht, void *data, uint16_t len) {
 
 /*
 static uint32_t IPOnlyHashFunc24(HashListTable *ht, void *data, uint16_t len) {
-    DetectAddressGroup *gr = (DetectAddressGroup *) data;
+    DetectAddress *gr = (DetectAddress *) data;
 
     uint32_t hash = IPONLY_EXTRACT_24(gr->ad) % ht->array_size;
     return hash;
 }
 */
 
-static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, HashListTable *ht, DetectAddressGroup *gr, char direction, Signature *s) {
+static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, HashListTable *ht, DetectAddress *gr, char direction, Signature *s) {
     uint32_t high = ntohl(gr->ip2[0]);
     uint32_t low = ntohl(gr->ip[0]);
 
@@ -65,7 +65,7 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
         while (high > low) {
             s16_cnt++;
 
-            DetectAddressGroup *grtmp = DetectAddressGroupCopy(gr);
+            DetectAddress *grtmp = DetectAddressCopy(gr);
             if (grtmp == NULL) {
                 goto error;
             }
@@ -74,7 +74,7 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
 
             SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
 
-            DetectAddressGroup *rgr = HashListTableLookup(ht,grtmp,0);
+            DetectAddress *rgr = HashListTableLookup(ht,grtmp,0);
             if (rgr == NULL) {
                 SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
 
@@ -83,7 +83,7 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
             } else {
                 SigGroupHeadAppendSig(de_ctx, &rgr->sh, s);
 
-                DetectAddressGroupFree(grtmp);
+                DetectAddressFree(grtmp);
                 direction ? io_ctx->a_dst_total16++ : io_ctx->a_src_total16++;
             }
 
@@ -93,14 +93,14 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
                 high = 0;
         }
     } else {
-        DetectAddressGroup *grtmp = DetectAddressGroupCopy(gr);
+        DetectAddress *grtmp = DetectAddressCopy(gr);
         if (grtmp == NULL) {
             goto error;
         }
         grtmp->ip[0] = IPONLY_EXTRACT_16(gr);
         grtmp->ip2[0] = IPONLY_EXTRACT_16(gr) | IPONLY_HTONL_65535;
 
-        DetectAddressGroup *rgr = HashListTableLookup(ht,grtmp,0);
+        DetectAddress *rgr = HashListTableLookup(ht,grtmp,0);
         if (rgr == NULL) {
             SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
 
@@ -109,7 +109,7 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
         } else {
             SigGroupHeadAppendSig(de_ctx, &rgr->sh, s);
 
-            DetectAddressGroupFree(grtmp);
+            DetectAddressFree(grtmp);
             direction ? io_ctx->a_dst_total16++ : io_ctx->a_src_total16++;
         }
     }
@@ -118,7 +118,7 @@ error:
 }
 
 /*
-static void IPOnlyAddSlash24(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, HashListTable *ht, DetectAddressGroup *gr, char direction, Signature *s) {
+static void IPOnlyAddSlash24(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, HashListTable *ht, DetectAddress *gr, char direction, Signature *s) {
     if ((ntohl(gr->ad->ip2[0]) - ntohl(gr->ad->ip[0])) > 256) {
         //printf("Bigger than a class/24:\n"); DetectAddressDataPrint(a);
 
@@ -129,7 +129,7 @@ static void IPOnlyAddSlash24(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
         while (high > low) {
             s24_cnt++;
 
-            DetectAddressGroup *grtmp = DetectAddressGroupInit();
+            DetectAddress *grtmp = DetectAddressInit();
             if (grtmp == NULL) {
                 goto error;
             }
@@ -144,13 +144,13 @@ static void IPOnlyAddSlash24(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
 
             //printf("  -=-  "); DetectAddressDataPrint(na);
 
-            DetectAddressGroup *rgr = HashListTableLookup(ht,grtmp,0);
+            DetectAddress *rgr = HashListTableLookup(ht,grtmp,0);
             if (rgr == NULL) {
                 HashListTableAdd(ht,grtmp,0);
                 direction ? io_ctx->a_dst_uniq24++ : io_ctx->a_src_uniq24++;
                 //printf(" uniq\n");
             } else {
-                DetectAddressGroupFree(grtmp);
+                DetectAddressFree(grtmp);
                 direction ? io_ctx->a_dst_total24++ : io_ctx->a_src_total24++;
                 //printf(" dup\n");
             }
@@ -163,7 +163,7 @@ static void IPOnlyAddSlash24(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
         //printf(" contains %" PRIu32 " /24's\n", s24_cnt);
 
     } else {
-        DetectAddressGroup *rgr = HashListTableLookup(ht,gr,0);
+        DetectAddress *rgr = HashListTableLookup(ht,gr,0);
         if (rgr == NULL) {
             HashListTableAdd(ht,gr,0);
             direction ? io_ctx->a_dst_uniq24++ : io_ctx->a_src_uniq24++;
@@ -177,8 +177,8 @@ error:
 */
 
 static char IPOnlyCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
-    DetectAddressGroup *a1 = (DetectAddressGroup *)data1;
-    DetectAddressGroup *a2 = (DetectAddressGroup *)data2;
+    DetectAddress *a1 = (DetectAddress *)data1;
+    DetectAddress *a2 = (DetectAddress *)data2;
 
     //printf("IPOnlyCompareFunc: "); DetectAddressDataPrint(a1->ad);
     //printf(" "); DetectAddressDataPrint(a2->ad); printf("\n");
@@ -194,8 +194,8 @@ static void IPOnlyFreeFunc(void *g) {
     if (g == NULL)
         return;
 
-    DetectAddressGroup *ag = (DetectAddressGroup *)g;
-    DetectAddressGroupFree(ag);
+    DetectAddress *ag = (DetectAddress *)g;
+    DetectAddressFree(ag);
 }
 
 /* XXX error checking */
@@ -216,9 +216,9 @@ void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
 
 /* XXX error checking */
 void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx) {
-    io_tctx->src = DetectAddressGroupInit();
+    io_tctx->src = DetectAddressInit();
     io_tctx->src->family = AF_INET;
-    io_tctx->dst = DetectAddressGroupInit();
+    io_tctx->dst = DetectAddressInit();
     io_tctx->dst->family = AF_INET;
 
         /* initialize the signature bitarray */
@@ -259,32 +259,32 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
 
 void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
     if (io_tctx->src != NULL) {
-        DetectAddressGroupFree(io_tctx->src);
+        DetectAddressFree(io_tctx->src);
     }
     if (io_tctx->dst != NULL) {
-        DetectAddressGroupFree(io_tctx->dst);
+        DetectAddressFree(io_tctx->dst);
     }
     free(io_tctx->sig_match_array);
 }
 
-DetectAddressGroup *IPOnlyLookupSrc16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
+DetectAddress *IPOnlyLookupSrc16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
     io_tctx->src->ip[0] = GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff;
     io_tctx->src->ip2[0] = (GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
 
     //printf("IPOnlyLookupSrc16: "); DetectAddressDataPrint(io_tctx->src->ad); printf("\n");
 
-    DetectAddressGroup *rgr = HashListTableLookup(de_ctx->io_ctx.ht16_src, io_tctx->src, 0);
+    DetectAddress *rgr = HashListTableLookup(de_ctx->io_ctx.ht16_src, io_tctx->src, 0);
 
     return rgr;
 }
 
-DetectAddressGroup *IPOnlyLookupDst16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
+DetectAddress *IPOnlyLookupDst16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
     io_tctx->dst->ip[0] = GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff;
     io_tctx->dst->ip2[0] = (GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
 
     //printf("IPOnlyLookupDst16: "); DetectAddressDataPrint(io_tctx->dst->ad); printf("\n");
 
-    DetectAddressGroup *rgr = HashListTableLookup(de_ctx->io_ctx.ht16_dst, io_tctx->dst, 0);
+    DetectAddress *rgr = HashListTableLookup(de_ctx->io_ctx.ht16_dst, io_tctx->dst, 0);
 
     return rgr;
 }
@@ -294,7 +294,7 @@ DetectAddressGroup *IPOnlyLookupDst16(DetectEngineCtx *de_ctx, DetectEngineIPOnl
  * array. */
 void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
                        DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
-    DetectAddressGroup *src = NULL, *dst = NULL;
+    DetectAddress *src = NULL, *dst = NULL;
 #if 0
     /* debug print */
     char s[16], d[16];
@@ -360,13 +360,13 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 
         /* check the source address */
         if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddressGroup *saddr = DetectAddressLookupInHead(&s->src,&p->src);
+            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
             if (saddr == NULL)
                 continue;
         }
         /* check the destination address */
         if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddressGroup *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
+            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
             if (daddr == NULL)
                 continue;
         }
@@ -430,7 +430,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
 
     //printf("SRC: ");
     for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
-        DetectAddressGroup *gr = (DetectAddressGroup *)HashListTableGetListData(hb);
+        DetectAddress *gr = (DetectAddress *)HashListTableGetListData(hb);
         if (gr == NULL)
             continue;
 
@@ -448,7 +448,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
 
     //printf("DST: ");
     for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
-        DetectAddressGroup *gr = (DetectAddressGroup *)HashListTableGetListData(hb);
+        DetectAddress *gr = (DetectAddress *)HashListTableGetListData(hb);
         if (gr == NULL)
             continue;
 
@@ -464,8 +464,8 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, 
     if (!(s->flags & SIG_FLAG_IPONLY))
         return;
 
-    DetectAddressGroup *src = s->src.ipv4_head;
-    DetectAddressGroup *dst = s->dst.ipv4_head;
+    DetectAddress *src = s->src.ipv4_head;
+    DetectAddress *dst = s->dst.ipv4_head;
 
     for ( ; src != NULL; src = src->next) {
         IPOnlyAddSlash16(de_ctx, io_ctx, io_ctx->ht16_src, src, 0, s);

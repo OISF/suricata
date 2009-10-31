@@ -591,7 +591,7 @@ cleanup:
     DetectEngineCtxFree(de_ctx);
 
     DetectSigGroupPrintMemory();
-    DetectAddressGroupPrintMemory();
+    DetectAddressPrintMemory();
 
 end:
     return result;
