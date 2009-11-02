@@ -6,6 +6,7 @@
 
 #include "eidps-common.h"
 #include "eidps.h"
+#include "conf.h"
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"
@@ -14,7 +15,6 @@
 #include "tm-modules.h"
 #include "tm-threads.h"
 #include "source-pfring.h"
-
 
 TmEcode ReceivePfring(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
