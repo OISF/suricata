@@ -2447,7 +2447,7 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestMatchReal16", PortTestMatchReal16, 1);
     UtRegisterTest("PortTestMatchReal17", PortTestMatchReal17, 1);
     UtRegisterTest("PortTestMatchReal18", PortTestMatchReal18, 1);
-    UtRegisterTest("PortTestMatchReal19 (theres a bug here, it will fail, look at bugzilla)",
+    UtRegisterTest("PortTestMatchReal19 (expected to fail, see bug #8)",
                    PortTestMatchReal19, 1);
 #endif /* UNITTESTS */
 }
