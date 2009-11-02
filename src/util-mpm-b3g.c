@@ -1084,14 +1084,16 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
 void B3gThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t matchsize) {
     memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
-    mpm_thread_ctx->ctx = malloc(sizeof(B3gThreadCtx));
-    if (mpm_thread_ctx->ctx == NULL)
-        return;
+    if (sizeof(B3gThreadCtx) > 0) { /* size can be 0 when optimized */
+        mpm_thread_ctx->ctx = malloc(sizeof(B3gThreadCtx));
+        if (mpm_thread_ctx->ctx == NULL)
+            return;
 
-    memset(mpm_thread_ctx->ctx, 0, sizeof(B3gThreadCtx));
+        memset(mpm_thread_ctx->ctx, 0, sizeof(B3gThreadCtx));
 
-    mpm_thread_ctx->memory_cnt++;
-    mpm_thread_ctx->memory_size += sizeof(B3gThreadCtx);
+        mpm_thread_ctx->memory_cnt++;
+        mpm_thread_ctx->memory_size += sizeof(B3gThreadCtx);
+    }
 
     /* alloc an array with the size of _all_ keys in all instances.
      * this is done so the detect engine won't have to care about
@@ -1118,16 +1120,16 @@ void B3gThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
 
     B3gPrintSearchStats(mpm_thread_ctx);
 
-    if (ctx) {
-        if (mpm_thread_ctx->match != NULL) {
-            mpm_thread_ctx->memory_cnt--;
-            mpm_thread_ctx->memory_size -= ((mpm_thread_ctx->matchsize + 1) * sizeof(MpmMatchBucket));
-            free(mpm_thread_ctx->match);
-        }
-
+    if (ctx != NULL) { /* can be NULL when optimized */
         mpm_thread_ctx->memory_cnt--;
         mpm_thread_ctx->memory_size -= sizeof(B3gThreadCtx);
         free(mpm_thread_ctx->ctx);
+    }
+
+    if (mpm_thread_ctx->match != NULL) {
+        mpm_thread_ctx->memory_cnt--;
+        mpm_thread_ctx->memory_size -= ((mpm_thread_ctx->matchsize + 1) * sizeof(MpmMatchBucket));
+        free(mpm_thread_ctx->match);
     }
 
     MpmMatchFreeSpares(mpm_thread_ctx, mpm_thread_ctx->sparelist);

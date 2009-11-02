@@ -2316,14 +2316,16 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
 void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t matchsize) {
     memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
-    mpm_thread_ctx->ctx = malloc(sizeof(WmThreadCtx));
-    if (mpm_thread_ctx->ctx == NULL)
-        return;
+    if (sizeof(WmThreadCtx) > 0) { /* size can be 0 when optimized */
+        mpm_thread_ctx->ctx = malloc(sizeof(WmThreadCtx));
+        if (mpm_thread_ctx->ctx == NULL)
+            return;
 
-    memset(mpm_thread_ctx->ctx, 0, sizeof(WmThreadCtx));
+        memset(mpm_thread_ctx->ctx, 0, sizeof(WmThreadCtx));
 
-    mpm_thread_ctx->memory_cnt++;
-    mpm_thread_ctx->memory_size += sizeof(WmThreadCtx);
+        mpm_thread_ctx->memory_cnt++;
+        mpm_thread_ctx->memory_size += sizeof(WmThreadCtx);
+    }
 
     /* alloc an array with the size of _all_ keys in all instances.
      * this is done so the detect engine won't have to care about
@@ -2347,16 +2349,16 @@ void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t mat
 
 void WmThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
     WmThreadCtx *ctx = (WmThreadCtx *)mpm_thread_ctx->ctx;
-    if (ctx) {
-        if (mpm_thread_ctx->match != NULL) {
-            mpm_thread_ctx->memory_cnt--;
-            mpm_thread_ctx->memory_size -= ((mpm_thread_ctx->matchsize + 1) * sizeof(MpmMatchBucket));
-            free(mpm_thread_ctx->match);
-        }
-
+    if (ctx != NULL) { /* size can be 0 when optimized */
         mpm_thread_ctx->memory_cnt--;
         mpm_thread_ctx->memory_size -= sizeof(WmThreadCtx);
         free(mpm_thread_ctx->ctx);
+    }
+
+    if (mpm_thread_ctx->match != NULL) {
+        mpm_thread_ctx->memory_cnt--;
+        mpm_thread_ctx->memory_size -= ((mpm_thread_ctx->matchsize + 1) * sizeof(MpmMatchBucket));
+        free(mpm_thread_ctx->match);
     }
 
     MpmMatchFreeSpares(mpm_thread_ctx, mpm_thread_ctx->sparelist);
@@ -2410,20 +2412,24 @@ int WmTestInitCtx03 (void) {
 }
 
 int WmTestThreadInitCtx01 (void) {
-    int result = 0;
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
+    if (sizeof(WmThreadCtx) > 0) {
+        int result = 0;
+        MpmCtx mpm_ctx;
+        memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+        MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
-    WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
+        MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
+        WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
-    if (mpm_thread_ctx.memory_cnt == 2)
-        result = 1;
+        if (mpm_thread_ctx.memory_cnt == 2)
+            result = 1;
 
-    WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    WmDestroyCtx(&mpm_ctx);
-    return result;
+        WmThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
+        WmDestroyCtx(&mpm_ctx);
+        return result;
+    } else {
+        return 1;
+    }
 }
 
 int WmTestThreadInitCtx02 (void) {
