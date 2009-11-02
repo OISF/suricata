@@ -78,9 +78,9 @@ int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
     DetectTtlData *ttld = (DetectTtlData *) m->ctx;
 
     if (PKT_IS_IPV4(p)) {
-        pttl = p->ip4c.ip_ttl;
+        pttl = IPV4_GET_IPTTL(p);
     } else if (PKT_IS_IPV6(p)) {
-        pttl = p->ip6c.hlim;
+        pttl = IPV6_GET_HLIM(p);
     } else {
         SCLogDebug("Packet is of not IPv4 or IPv6");
         return ret;
@@ -482,19 +482,16 @@ static int DetectTtlTestSig1(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
-    IPV4Cache ip4c;
     IPV4Hdr ip4h;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
-    memset(&ip4c, 0, sizeof(ip4c));
     memset(&ip4h, 0, sizeof(ip4h));
 
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.proto = IPPROTO_TCP;
-    ip4c.ip_ttl = 15;
-    p.ip4c =ip4c;
+    ip4h.ip_ttl = 15;
     p.ip4h = &ip4h;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -525,7 +522,6 @@ static int DetectTtlTestSig1(void) {
     }
 
     SigGroupBuild(de_ctx);
-    PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -550,7 +546,6 @@ cleanup:
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
