@@ -5,11 +5,11 @@
 void DetectAddressRegister (void);
 void DetectAddressPrintMemory(void);
 
-DetectAddresssHead *DetectAddresssHeadInit(void);
-void DetectAddresssHeadFree(DetectAddresssHead *);
-void DetectAddresssHeadCleanup(DetectAddresssHead *);
+DetectAddressHead *DetectAddressHeadInit(void);
+void DetectAddressHeadFree(DetectAddressHead *);
+void DetectAddressHeadCleanup(DetectAddressHead *);
 
-int DetectAddressParse(DetectAddresssHead *, char *);
+int DetectAddressParse(DetectAddressHead *, char *);
 
 DetectAddress *DetectAddressInit(void);
 void DetectAddressFree(DetectAddress *);
@@ -18,10 +18,10 @@ void DetectAddressCleanupList (DetectAddress *);
 int DetectAddressAdd(DetectAddress **, DetectAddress *);
 void DetectAddressPrintList(DetectAddress *);
 
-int DetectAddressInsert(DetectEngineCtx *, DetectAddresssHead *, DetectAddress *);
+int DetectAddressInsert(DetectEngineCtx *, DetectAddressHead *, DetectAddress *);
 int DetectAddressJoin(DetectEngineCtx *, DetectAddress *, DetectAddress *);
 
-DetectAddress *DetectAddressLookupInHead(DetectAddresssHead *, Address *);
+DetectAddress *DetectAddressLookupInHead(DetectAddressHead *, Address *);
 DetectAddress *DetectAddressLookupInList(DetectAddress *, DetectAddress *);
 
 /** \brief address only copy of ag */

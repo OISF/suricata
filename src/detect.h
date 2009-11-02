@@ -48,7 +48,7 @@ typedef struct DetectAddress_ {
 
     /* XXX ptr to rules, or PortGroup or whatever */
     union {
-        struct DetectAddresssHead_ *dst_gh;
+        struct DetectAddressHead_ *dst_gh;
         struct DetectPort_ *port;
     };
     /* signatures that belong in this group */
@@ -63,11 +63,11 @@ typedef struct DetectAddress_ {
 } DetectAddress;
 
 /** Signature grouping head. Here 'any', ipv4 and ipv6 are split out */
-typedef struct DetectAddresssHead_ {
+typedef struct DetectAddressHead_ {
     DetectAddress *any_head;
     DetectAddress *ipv4_head;
     DetectAddress *ipv6_head;
-} DetectAddresssHead;
+} DetectAddressHead;
 
 /*
  * DETECT PORT
@@ -149,7 +149,7 @@ typedef struct Signature_ {
     char *msg;
 
     /** addresses, ports and proto this sig matches on */
-    DetectAddresssHead src, dst;
+    DetectAddressHead src, dst;
     DetectProto proto;
     DetectPort *sp, *dp;
 
@@ -190,8 +190,8 @@ typedef struct DetectEngineIPOnlyCtx_ {
 } DetectEngineIPOnlyCtx;
 
 typedef struct DetectEngineLookupFlow_ {
-    DetectAddresssHead *src_gh[256]; /* a head for each protocol */
-    DetectAddresssHead *tmp_gh[256];
+    DetectAddressHead *src_gh[256]; /* a head for each protocol */
+    DetectAddressHead *tmp_gh[256];
 } DetectEngineLookupFlow;
 
 /* Flow status

@@ -971,7 +971,7 @@ static int DetectEngineLookupDsizeAddSig(DetectEngineCtx *de_ctx, Signature *s, 
     return 0;
 }
 
-static DetectAddress *GetHeadPtr(DetectAddresssHead *head, int family) {
+static DetectAddress *GetHeadPtr(DetectAddressHead *head, int family) {
     DetectAddress *grhead;
 
     if (head == NULL)
@@ -1037,7 +1037,7 @@ int CreateGroupedAddrListCmpMpmMaxlen(DetectAddress *a, DetectAddress *b) {
  *
  */
 int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
-                          int family, DetectAddresssHead *newhead,
+                          int family, DetectAddressHead *newhead,
                           uint32_t unique_groups,
                           int (*CompareFunc)(DetectAddress *, DetectAddress *),
                           uint32_t max_idx)
@@ -1369,11 +1369,11 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     for (ds = 0; ds < DSIZE_STATES; ds++) {
         for (f = 0; f < FLOW_STATES; f++) {
             for (proto = 0; proto < 256; proto++) {
-                de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] = DetectAddresssHeadInit();
+                de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] = DetectAddressHeadInit();
                 if (de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] == NULL) {
                     goto error;
                 }
-                de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] = DetectAddresssHeadInit();
+                de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] = DetectAddressHeadInit();
                 if (de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] == NULL) {
                     goto error;
                 }
@@ -1415,7 +1415,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
                     de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], groups,
                     CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
 
-                DetectAddresssHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]);
+                DetectAddressHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]);
                 de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] = NULL;
             }
         }
@@ -1538,7 +1538,7 @@ error:
     return -1;
 }
 
-int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddresssHead *head, int family, int dsize, int flow) {
+int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int dsize, int flow) {
     Signature *tmp_s = NULL;
     DetectAddress *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
     uint32_t max_idx = 0;
@@ -1553,7 +1553,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddresssHead *he
         //printf(" * Source group: "); DetectAddressPrint(gr); printf("\n");
 
         /* initialize the destination group head */
-        gr->dst_gh = DetectAddresssHeadInit();
+        gr->dst_gh = DetectAddressHeadInit();
         if (gr->dst_gh == NULL) {
             goto error;
         }
@@ -1709,7 +1709,7 @@ error:
     return -1;
 }
 
-static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddresssHead *head, int family, int dsize, int flow) {
+static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int dsize, int flow) {
     Signature *tmp_s = NULL;
     DetectAddress *src_gr = NULL, *dst_gr = NULL, *sig_gr = NULL, *lookup_gr = NULL;
     DetectAddress *src_gr_head = NULL, *dst_gr_head = NULL, *sig_gr_head = NULL;
@@ -1721,7 +1721,7 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
         //printf(" * Source group: "); DetectAddressPrint(src_gr); printf("\n");
 
         /* initialize the destination group head */
-        src_gr->dst_gh = DetectAddresssHeadInit();
+        src_gr->dst_gh = DetectAddressHeadInit();
         if (src_gr->dst_gh == NULL) {
             goto error;
         }
@@ -2164,7 +2164,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
         for (f = 0; f < FLOW_STATES; f++) {
             for (proto = 0; proto < 256; proto++) {
                 /* XXX fix this */
-                DetectAddresssHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]);
+                DetectAddressHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]);
                 de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] = NULL;
             }
         }
@@ -2234,7 +2234,7 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
 
 /* just printing */
 int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
-    DetectAddresssHead *global_dst_gh = NULL;
+    DetectAddressHead *global_dst_gh = NULL;
     DetectAddress *global_src_gr = NULL, *global_dst_gr = NULL;
     int i;
 

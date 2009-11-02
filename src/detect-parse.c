@@ -521,8 +521,8 @@ void SigFree(Signature *s) {
         sm = nsm;
     }
 
-    DetectAddresssHeadCleanup(&s->src);
-    DetectAddresssHeadCleanup(&s->dst);
+    DetectAddressHeadCleanup(&s->src);
+    DetectAddressHeadCleanup(&s->dst);
 
     if (s->sp != NULL) {
         DetectPortCleanupList(s->sp);
