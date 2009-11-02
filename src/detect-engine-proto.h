@@ -5,7 +5,7 @@
                                   is considered as IP */
 
 typedef struct DetectProto_ {
-    uint8_t proto[256/8]; /* bit array for 256 bits */
+    uint8_t proto[256/8]; /**< bit array for 256 protocol bits */
     uint8_t flags;
 } DetectProto;
 

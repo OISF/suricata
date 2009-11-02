@@ -18,8 +18,6 @@
 #include "detect-engine-siggroup.h"
 
 /*Prototypes*/
-int DetectProtoSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
-                      char *sidstr);
 void DetectProtoTests (void);
 
 /**
@@ -29,7 +27,7 @@ void DetectProtoRegister (void)
 {
     sigmatch_table[DETECT_PROTO].name = "__proto__";
     sigmatch_table[DETECT_PROTO].Match = NULL;
-    sigmatch_table[DETECT_PROTO].Setup = DetectProtoSetup;
+    sigmatch_table[DETECT_PROTO].Setup = NULL;
     sigmatch_table[DETECT_PROTO].Free = NULL;
     sigmatch_table[DETECT_PROTO].RegisterTests = DetectProtoTests;
 }
@@ -38,14 +36,14 @@ void DetectProtoRegister (void)
  *  \brief   Function to initialize the protocol detection and
  *           allocate memory to the DetectProto structure.
  *
- *  \retval  DetectProtoc instance pointer if successful otherwise NULL
+ *  \retval  DetectProto instance pointer if successful otherwise NULL
  */
 
 DetectProto *DetectProtoInit(void)
 {
     DetectProto *dp = malloc(sizeof(DetectProto));
     if (dp == NULL) {
-        SCLogDebug("DetectProtoInit: Error in memory allocation");
+        SCLogError(SC_ERR_MEM_ALLOC, "error in memory allocation");
         return NULL;
     }
     memset(dp,0,sizeof(DetectProto));
@@ -119,24 +117,6 @@ int DetectProtoParse(DetectProto *dp, char *str)
 
 error:
     return -1;
-}
-
-/**
- * \brief   this function is used to add the parsed protocol into the current
- *          signature currently it is not used for the defined function.
- *
- * \param de_ctx pointer to the Detection Engine Context
- * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
- * \param str pointer to the user provided protocol string
- *
- * \retval 0 on Success
- */
-/* XXX remove */
-int DetectProtoSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
-                      char *str)
-{
-    return 0;
 }
 
 /* TESTS */
