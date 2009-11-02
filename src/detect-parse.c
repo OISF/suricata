@@ -999,8 +999,6 @@ static int SigParseTestAppLayerTLS01(void) {
 
     result = 1;
 end:
-    if (s->alproto == 0) {
-        printf("alproto not set: ");
     if (s != NULL)
         SigFree(s);
     if (de_ctx != NULL)

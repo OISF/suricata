@@ -398,13 +398,13 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
 
         /* check the source address */
         if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddressGroup *saddr = DetectAddressLookupGroup(&s->src,&p->src);
+            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
             if (saddr == NULL)
                 continue;
         }
         /* check the destination address */
         if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddressGroup *daddr = DetectAddressLookupGroup(&s->dst,&p->dst);
+            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
             if (daddr == NULL)
                 continue;
         }
