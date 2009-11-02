@@ -84,7 +84,7 @@ static SigGroupHead *SigGroupHeadAlloc(uint32_t size)
 {
     SigGroupHead *sgh = malloc(sizeof(SigGroupHead));
     if (sgh == NULL) {
-        SCLogDebug(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         return NULL;
     }
     memset(sgh, 0, sizeof(SigGroupHead));
@@ -99,7 +99,7 @@ static SigGroupHead *SigGroupHeadAlloc(uint32_t size)
     /* initialize the signature bitarray */
     sgh->sig_size = size;
     if ( (sgh->sig_array = malloc(sgh->sig_size)) == NULL) {
-        SCLogDebug(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
     memset(sgh->sig_array, 0, sgh->sig_size);
@@ -429,8 +429,8 @@ uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 
     SCLogDebug("hashing sgh %p", sgh);
 
-    for (b = 0; b < sgh->init->sig_size; b++)
-        hash += sgh->init->sig_array[b];
+    for (b = 0; b < sgh->sig_size; b++)
+        hash += sgh->sig_array[b];
 
     hash %= ht->array_size;
     SCLogDebug("hash %"PRIu32" (sig_size %"PRIu32")", hash, sgh->sig_size);
@@ -800,7 +800,7 @@ void SigGroupHeadFreeMpmArrays(DetectEngineCtx *de_ctx)
     SigGroupHead *sgh = NULL;
 
     for (htb = HashListTableGetListHead(de_ctx->sgh_dport_hash_table); htb != NULL; htb = HashListTableGetListNext(htb)) {
-        SigGroupHead *sgh = (SigGroupHead *)HashListTableGetListData(htb);
+        sgh = (SigGroupHead *)HashListTableGetListData(htb);
         if (sgh->init != NULL) {
             SigGroupHeadInitDataFree(sgh->init);
             sgh->init = NULL;
@@ -808,7 +808,7 @@ void SigGroupHeadFreeMpmArrays(DetectEngineCtx *de_ctx)
     }
 
     for (htb = HashListTableGetListHead(de_ctx->sgh_sport_hash_table); htb != NULL; htb = HashListTableGetListNext(htb)) {
-        SigGroupHead *sgh = (SigGroupHead *)HashListTableGetListData(htb);
+        sgh = (SigGroupHead *)HashListTableGetListData(htb);
         if (sgh->init != NULL) {
             SigGroupHeadInitDataFree(sgh->init);
             sgh->init = NULL;
