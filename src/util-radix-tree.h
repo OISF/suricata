@@ -18,8 +18,8 @@ typedef struct SCRadixPrefix_ {
     uint8_t *stream;
 
     /* if this is a prefix that holds a netblock, this field holds the
-     * netmask, -1 otherwise */
-    int netmask;
+     * netmask, 255 otherwise */
+    uint8_t netmask;
 
     /* any user data that has to be associated with this key */
     void *user;
@@ -34,7 +34,7 @@ typedef struct SCRadixNode_ {
     uint16_t bit;
 
     /* holds a list of netmaks that come under this node in the tree */
-    int *netmasks;
+    uint8_t *netmasks;
     /* total no of netmasks that are registered under this node */
     int netmask_cnt;
 
@@ -67,8 +67,10 @@ void SCRadixReleaseRadixTree(SCRadixTree *);
 SCRadixNode *SCRadixAddKeyGeneric(uint8_t *, uint16_t, SCRadixTree *, void *);
 SCRadixNode *SCRadixAddKeyIPV4(uint8_t *, SCRadixTree *, void *);
 SCRadixNode *SCRadixAddKeyIPV6(uint8_t *, SCRadixTree *, void *);
-SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *, SCRadixTree *, void *, int);
-SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *, SCRadixTree *, void *, int);
+SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *, SCRadixTree *, void *,
+                                       uint8_t);
+SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *, SCRadixTree *, void *,
+                                       uint8_t);
 
 void SCRadixRemoveKeyGeneric(uint8_t *, uint16_t, SCRadixTree *);
 void SCRadixRemoveKeyIPV4(uint8_t *, SCRadixTree *);

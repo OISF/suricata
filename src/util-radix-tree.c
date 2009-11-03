@@ -30,7 +30,7 @@
  */
 static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
                                           uint16_t key_bitlen, void *user,
-                                          int netmask)
+                                          uint8_t netmask)
 {
     SCRadixPrefix *prefix = NULL;
 
@@ -183,13 +183,13 @@ void SCRadixReleaseRadixTree(SCRadixTree *tree)
  * \param tree       Pointer to the Radix tree
  * \param user       Pointer to the user data that has to be associated with
  *                   this key
- * \param netmask    The netmask if we are adding an IP netblock; -1 if we are
+ * \param netmask    The netmask if we are adding an IP netblock; 255 if we are
  *                   not adding an IP netblock
  *
  * \retval node Pointer to the newly created node
  */
 static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
-                                  SCRadixTree *tree, void *user, int netmask)
+                                  SCRadixTree *tree, void *user, uint8_t netmask)
 {
     SCRadixNode *node = NULL;
     SCRadixNode *new_node = NULL;
@@ -312,7 +312,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
             return node;
 
         node->prefix = SCRadixCreatePrefix(prefix->stream, prefix->bitlen, NULL,
-                                           -1);
+                                           255);
         return node;
     }
 
@@ -380,7 +380,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
         node->parent = inter_node;
     }
 
-    if (netmask != -1) {
+    if (netmask != 255) {
         node = new_node;
         parent = new_node->parent;
         while (parent != NULL && netmask < (parent->bit + 1)) {
@@ -431,7 +431,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
 SCRadixNode *SCRadixAddKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
                                   SCRadixTree *tree, void *user)
 {
-    SCRadixNode *node = SCRadixAddKey(key_stream, key_bitlen, tree, user, -1);
+    SCRadixNode *node = SCRadixAddKey(key_stream, key_bitlen, tree, user, 255);
 
     return node;
 }
@@ -450,7 +450,7 @@ SCRadixNode *SCRadixAddKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
 SCRadixNode *SCRadixAddKeyIPV4(uint8_t *key_stream, SCRadixTree *tree,
                                void *user)
 {
-    SCRadixNode *node = SCRadixAddKey(key_stream, 32, tree, user, -1);
+    SCRadixNode *node = SCRadixAddKey(key_stream, 32, tree, user, 255);
 
     return node;
 }
@@ -469,7 +469,7 @@ SCRadixNode *SCRadixAddKeyIPV4(uint8_t *key_stream, SCRadixTree *tree,
 SCRadixNode *SCRadixAddKeyIPV6(uint8_t *key_stream, SCRadixTree *tree,
                                void *user)
 {
-    SCRadixNode *node = SCRadixAddKey(key_stream, 128, tree, user, -1);
+    SCRadixNode *node = SCRadixAddKey(key_stream, 128, tree, user, 255);
 
     return node;
 }
@@ -487,7 +487,7 @@ SCRadixNode *SCRadixAddKeyIPV6(uint8_t *key_stream, SCRadixTree *tree,
  * \retval node Pointer to the newly created node
  */
 SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
-                                       void *user, int netmask)
+                                       void *user, uint8_t netmask)
 {
     SCRadixNode *node = SCRadixAddKey(key_stream, 32, tree, user, netmask);
 
@@ -507,7 +507,7 @@ SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
  * \retval node Pointer to the newly created node
  */
 SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
-                                       void *user, int netmask)
+                                       void *user, uint8_t netmask)
 {
     SCRadixNode *node = SCRadixAddKey(key_stream, 128, tree, user, netmask);
 
@@ -538,7 +538,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
     if (node == NULL)
         return;
 
-    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL, -1)) == NULL)
+    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL, 255)) == NULL)
         return;
 
     while (node->bit < prefix->bitlen) {
@@ -651,7 +651,6 @@ void SCRadixRemoveKeyIPV6(uint8_t *key_stream, SCRadixTree *tree)
     return SCRadixRemoveKey(key_stream, 128, tree);
 }
 
-
 /**
  * \brief Checks if an IP prefix falls under a netblock, in the path to the root
  *        of the tree, from the node.  Used internally by SCRadixFindKey()
@@ -738,7 +737,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
     if (tree->head == NULL)
         return NULL;
 
-    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL, -1)) == NULL)
+    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL, 255)) == NULL)
         return NULL;
 
     while (node->bit < prefix->bitlen) {

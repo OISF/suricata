@@ -672,8 +672,8 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     Frag *frag, *prev = NULL;
     Packet *rp = NULL;
     int offset = 0;
-    int hlen;
-    int len;
+    int hlen = 0;
+    int len = 0;
 
     /* Lock the tracker. */
     mutex_lock(&tracker->lock);
@@ -683,7 +683,6 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         return NULL;
 
     /* Check that we have all the data. */
-    len = 0;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
         if (frag == TAILQ_FIRST(&tracker->frags)) {
             /* First frag should have an offset of 0. */
