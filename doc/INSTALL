@@ -1,18 +1,90 @@
+About
+=====
+Suricata is a multi-threaded intrusion detection/prevention engine.
+After getting the git copy, you will need to get some depends.
 
+Build Requirements
+==================
+gcc
+automake
+autoconf
+libtool
+make
+g++
+
+
+Library Requirements
+====================
+libpcre
+libnet 1.1.x
+libyaml
+libpcap
+libnetfilter-queue and libfnetlink (optional for use with ./configure --enable-nfq)
+libpthread (should be part of most glibc's)
+libpfring(optional for use with ./configure --enable-pfring)
 
 For Debian/Ubuntu Users
 =======================
-After getting the git copy, you will need to get some depends. This
-should be enought to get a binary:
 
     cd your_local_git_branch
     sudo apt-get -y install libpcre3 libpcre3-dbg libpcre3-dev build-essential autoconf automake libtool libpcap-dev libnet1-dev libyaml-0-1 libyaml-dev
+
+    #if using ubuntu-8.04 to use prebuilt yaml packages you need to uncomment the following two lines in your /etc/apt/sources.list to enable hardy-backports.
+    #deb http://us.archive.ubuntu.com/ubuntu/ hardy-backports main restricted universe multiverse
+    #deb-src http://us.archive.ubuntu.com/ubuntu/ hardy-backports main restricted universe multiverse
+
+    #if building with IPS capabilities via ./configure --enable-nfq
+    sudo apt-get -y install libnetfilter-queue-dev libnetfilter-queue1 libnfnetlink-dev libnfnetlink0
+
     bash autojunk.sh
     ./configure --enable-unittests
     sudo mkdir /var/log/eidps/
     cd src
     make
     ./eidps
+
+For Fedora Core Users
+=====================
+
+    cd your_local_git_branch
+    sudo yum -y install libpcap libpcap-devel libnet libnet-devel pcre pcre-devel gcc gcc-c++ automake autoconf libtool make libyaml libyaml-devel
+
+    #if building with IPS capabilities via ./configure --enable-nfq
+    sudo yum -y install libnfnetlink libnfnetlink-devel libnetfilter_queue libnetfilter_queue-devel
+
+    bash autojunk.sh
+    ./configure --enable-unittests
+    sudo mkdir /var/log/eidps/
+    cd src
+    make
+    ./eidps
+
+For CentOS5 Users
+=================
+
+    cd your_local_git_branch
+
+    #You will be required to use the fedora EPEL repository for some packages to enable this repo it is the same for i386 or x86_64
+    sudo rpm -Uvh http://download.fedora.redhat.com/pub/epel/5/i386/epel-release-5-3.noarch.rpm
+
+    sudo yum -y install libpcap libpcap-devel libnet libnet-devel pcre pcre-devel gcc automake autoconf libtool make gcc-c++ libyaml libyaml-devel
+
+    #if building with IPS capabilities via ./configure --enable-nfq there are no pre-built packages in CentOS base or EPEL for libnfnetlink and libnetfilter_queue.
+    #If you wish you can use the rpms in the emerging threats CentOS 5 repo.
+
+    #i386
+    sudo rpm -Uvh http://www.emergingthreats.net/emergingrepo/i386/libnetfilter_queue-0.0.15-1.i386.rpm http://www.emergingthreats.net/emergingrepo/i386/libnetfilter_queue-devel-0.0.15-1.i386.rpm http://www.emergingthreats.net/emergingrepo/i386/libnfnetlink-0.0.30-1.i386.rpm http://www.emergingthreats.net/emergingrepo/i386/libnfnetlink-devel-0.0.30-1.i386.rpm
+
+    #x86_64
+    sudo rpm -Uvh http://www.emergingthreats.net/emergingrepo/x86_64/libnetfilter_queue-0.0.15-1.x86_64.rpm http://www.emergingthreats.net/emergingrepo/x86_64/libnetfilter_queue-devel-0.0.15-1.x86_64.rpm http://www.emergingthreats.net/emergingrepo/x86_64/libnfnetlink-0.0.30-1.x86_64.rpm http://www.emergingthreats.net/emergingrepo/x86_64/libnfnetlink-devel-0.0.30-1.x86_64.rpm
+
+    bash autojunk.sh
+    ./configure --enable-unittests
+    sudo mkdir /var/log/eidps/
+    cd src
+    make
+    ./eidps
+
 
 *****************
 
@@ -59,7 +131,7 @@ The simplest way to compile this package is:
      documentation.
 
   4. You can remove the program binaries and object files from the
-     source code directory by typing `make clean'.  
+     source code directory by typing `make clean'.
 
 Compilers and Options
 =====================
