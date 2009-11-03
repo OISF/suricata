@@ -113,6 +113,29 @@ void SigMatchAppend(Signature *s, SigMatch *m, SigMatch *new) {
     }
 }
 
+/**
+ * \brief Returns a pointer to the last SigMatch instance of a particular type
+ *        in a Signature.
+ *
+ * \param s    Pointer to the Signature.
+ * \param type SigMatch type which has to be searched for in the Signature.
+ *
+ * \retval match Pointer to the last SigMatch instance of type 'type'.
+ */
+SigMatch *SigMatchGetLastSM(Signature *s, uint8_t type)
+{
+    SigMatch *sm = s->match;
+    SigMatch *match = NULL;
+
+    while (sm != NULL) {
+        if (sm->type == type)
+            match = sm;
+        sm = sm->next;
+    }
+
+    return match;
+}
+
 void SigParsePrepare(void) {
     char *regexstr = CONFIG_PCRE;
     const char *eb;
