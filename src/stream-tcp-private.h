@@ -1,6 +1,7 @@
 #ifndef __STREAM_TCP_PRIVATE_H__
 #define __STREAM_TCP_PRIVATE_H__
 
+#include "decode.h"
 typedef struct TcpSegment_ {
     uint8_t *payload;
     uint16_t payload_len; /* actual size of the payload */
@@ -27,7 +28,7 @@ typedef struct TcpStream_ {
     uint32_t ra_base_seq; /**< reassembled seq. We've reassembled up to this point. */
     TcpSegment *seg_list; /**< list of TCP segments that are not yet (fully) used in reassembly */
     uint8_t os_policy; /**< target based OS policy used for reassembly and handling packets*/
-    uint8_t flags;      /**< Flag specific to the stream e.g. Timestamp */
+    uint16_t flags;      /**< Flag specific to the stream e.g. Timestamp */
     TcpSegment *seg_list_tail;  /**< Last segment in the reassembled stream seg list*/
 } TcpStream;
 
@@ -48,17 +49,25 @@ enum
     TCP_CLOSED,
 };
 
-#define STREAMTCP_FLAG_MIDSTREAM                0x01    /**< Flag for mid stream session*/
-#define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x02    /**< Flag for mid stream established session*/
-#define STREAMTCP_FLAG_TIMESTAMP                0x04    /**< Flag for TCP Timestamp option*/
-#define STREAMTCP_FLAG_SERVER_WSCALE            0x08    /**< Server supports wscale (even though it can be 0) */
-#define STREAMTCP_FLAG_ZERO_TIMESTAMP           0x10    /**< Flag to indicate the zero value of timestamp*/
-#define STREAMTCP_FLAG_NOCLIENT_REASSEMBLY      0x20    /**< Flag to avoid stream reassembly / application layer
+#define STREAMTCP_FLAG_MIDSTREAM                0x0001    /**< Flag for mid stream session*/
+#define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x0002    /**< Flag for mid stream established session*/
+#define STREAMTCP_FLAG_MIDSTREAM_SYNACK         0x0004  /**<Flag for mid session when syn/ack is received*/
+#define STREAMTCP_FLAG_TIMESTAMP                0x0008    /**< Flag for TCP Timestamp option*/
+#define STREAMTCP_FLAG_SERVER_WSCALE            0x0010    /**< Server supports wscale (even though it can be 0) */
+#define STREAMTCP_FLAG_ZERO_TIMESTAMP           0x0020    /**< Flag to indicate the zero value of timestamp*/
+#define STREAMTCP_FLAG_NOCLIENT_REASSEMBLY      0x0040    /**< Flag to avoid stream reassembly / application layer
                                                              inspection for the client stream.*/
-#define STREAMTCP_FLAG_NOSERVER_REASSEMBLY      0x40    /**< Flag to avoid stream reassembly / application layer
+#define STREAMTCP_FLAG_NOSERVER_REASSEMBLY      0x0080    /**< Flag to avoid stream reassembly / application layer
                                                              inspection for the server stream.*/
+#define STREAMTCP_FLAG_ASYNC                    0x0100    /**< Flag to indicate that the session is handling
+                                                             asynchronous stream.*/
 
 #define PAWS_24DAYS         2073600         /**< 24 days in seconds */
+
+#define PKT_IS_IN_RIGHT_DIR(ssn, p)        ((ssn)->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK ? \
+                                            PKT_IS_TOSERVER(p) ? (p)->flowflags &= ~FLOW_PKT_TOSERVER \
+                                            (p)->flowflags |= FLOW_PKT_TOCLIENT : (p)->flowflags &= ~FLOW_PKT_TOCLIENT \
+                                            (p)->flowflags |= FLOW_PKT_TOSERVER : 0)
 
 /* Macro's for comparing Sequence numbers
  * Page 810 from TCP/IP Illustrated, Volume 2. */
@@ -70,7 +79,7 @@ enum
 
 typedef struct TcpSession_ {
     uint8_t state;
-    uint8_t flags;
+    uint16_t flags;
     uint16_t alproto; /**< application level protocol */
     TcpStream server;
     TcpStream client;
