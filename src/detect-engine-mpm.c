@@ -273,11 +273,38 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 if (co == NULL)
                     continue;
 
-                if (co->flags & DETECT_CONTENT_FAST_PATTERN)
+                if (co->flags & DETECT_CONTENT_FAST_PATTERN) {
                     fast_pattern = 1;
 
+                    ContentHash *ch = ContentHashAlloc(co);
+                    if (ch == NULL)
+                        goto error;
+
+                    ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
+                    if (lookup_ch == NULL) {
+                        if (HashTableAdd(ht, ch, 0) < 0)
+                            printf("Add hash failed\n");
+                    } else {
+                        /* only set the nosearch flag if all sigs have it
+                         * as their sole pattern */
+                        if (ch->nosearch == 0)
+                            lookup_ch->nosearch = 0;
+
+                        lookup_ch->cnt++;
+                        ContentHashFree(ch);
+                    }
+                }
                 cnt++;
             }
+        }
+
+        if (fast_pattern == 1) {
+            if (cnt == 1) {
+                ContentHash *ch = ContentHashAlloc(s->match->ctx);
+                ch->nosearch = 1;
+                ch->use = 1;
+            }
+            break;
         }
 
         for (sm = s->match; sm != NULL; sm = sm->next) {
@@ -286,10 +313,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 if (co == NULL)
                     continue;
 
-                if (fast_pattern == 1) {
-                    if (!(co->flags & DETECT_CONTENT_FAST_PATTERN))
-                        continue;
-                } else if (co->content_len < sgh->mpm_content_maxlen) {
+                if (co->content_len < sgh->mpm_content_maxlen) {
                     continue;
                 }
 
