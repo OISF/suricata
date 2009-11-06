@@ -795,6 +795,7 @@ static int FlowTest01 (void) {
 
     uint8_t proto_map;
 
+    FlowInitFlowProto();
     proto_map = FlowGetProtoMapping(IPPROTO_TCP);
 
     if ((flow_proto[proto_map].new_timeout != FLOW_IPPROTO_TCP_NEW_TIMEOUT) && (flow_proto[proto_map].est_timeout != FLOW_IPPROTO_TCP_EST_TIMEOUT)

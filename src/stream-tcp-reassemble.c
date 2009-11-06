@@ -1654,8 +1654,11 @@ static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q, uin
                 break;
             /*Gap at end*/
             case 3:
-                if (cnt == 2 && msg->gap.gap_size != 3)
+                if (cnt == 3 && msg->gap.gap_size != 3 &&
+                        msg->flags & STREAM_GAP)
+                {
                     return 0;
+                }
                 break;
         }
 
