@@ -10,6 +10,8 @@
 
 int SCHInfoAddHostOSInfo(char *, char *, int);
 int SCHInfoGetHostOSFlavour(char *);
+int SCHInfoGetIPv4HostOSFlavour(uint8_t *);
+int SCHInfoGetIPv6HostOSFlavour(uint8_t *);
 void SCHInfoCleanResources(void);
 void SCHInfoRegisterTests(void);
 

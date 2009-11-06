@@ -270,7 +270,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
 }
 
 /**
- * \brief Retrieves the host os flavour, given the ip address
+ * \brief Retrieves the host os flavour, given an ipv4/ipv6 address as a string.
  *
  * \param Pointer to a string containing an IP address
  *
@@ -281,6 +281,9 @@ int SCHInfoGetHostOSFlavour(char *ip_addr_str)
     SCRadixNode *node = NULL;
     struct in_addr *ipv4_addr = NULL;
     struct in6_addr *ipv6_addr = NULL;
+
+    if (ip_addr_str == NULL || index(ip_addr_str, '/') != NULL)
+        return -1;
 
     if (index(ip_addr_str, ':') != NULL) {
         if ( (ipv6_addr = SCHInfoValidateIPV6Address(ip_addr_str)) == NULL) {
@@ -303,6 +306,40 @@ int SCHInfoGetHostOSFlavour(char *ip_addr_str)
         else
             return *((int *)node->prefix->user);
     }
+}
+
+/**
+ * \brief Retrieves the host os flavour, given an ipv4 address in the raw
+ *        address format.
+ *
+ * \param Pointer to a raw ipv4 address.
+ *
+ * \retval The OS flavour on success; -1 on failure, or on not finding the key
+ */
+int SCHInfoGetIPv4HostOSFlavour(uint8_t *ipv4_addr)
+{
+    SCRadixNode *node = SCRadixFindKeyIPV4(ipv4_addr, sc_hinfo_tree);
+    if (node == NULL)
+        return -1;
+    else
+        return *((int *)node->prefix->user);
+}
+
+/**
+ * \brief Retrieves the host os flavour, given an ipv6 address in the raw
+ *        address format.
+ *
+ * \param Pointer to a raw ipv6 address.
+ *
+ * \retval The OS flavour on success; -1 on failure, or on not finding the key
+ */
+int SCHInfoGetIPv6HostOSFlavour(uint8_t *ipv6_addr)
+{
+    SCRadixNode *node = SCRadixFindKeyIPV6(ipv6_addr, sc_hinfo_tree);
+    if (node == NULL)
+        return -1;
+    else
+        return *((int *)node->prefix->user);
 }
 
 void SCHInfoCleanResources(void)
@@ -479,6 +516,7 @@ int SCHInfoTestValidIPV4Address04(void)
  */
 int SCHInfoTestValidIPV4Address05(void)
 {
+    struct in_addr in;
     int result = 1;
 
     result &= (SCHInfoAddHostOSInfo("linux", "192.168.1.1", SC_HINFO_IS_IPV4) !=
@@ -532,13 +570,17 @@ int SCHInfoTestValidIPV4Address05(void)
                SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map));
     result &= (SCHInfoGetHostOSFlavour("111.162.214.100") ==
                SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
-    result &= (SCHInfoGetHostOSFlavour("111.162.208.100") ==
+    if (inet_pton(AF_INET, "111.162.208.100", &in) < 0)
+         result = 0;
+    result &= (SCHInfoGetIPv4HostOSFlavour((uint8_t *)&in) ==
                SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
     result &= (SCHInfoGetHostOSFlavour("111.162.194.112") ==
                SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
     result &= (SCHInfoGetHostOSFlavour("111.162.208.200") ==
                SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
-    result &= (SCHInfoGetHostOSFlavour("111.162.208.200") ==
+    if (inet_pton(AF_INET, "111.162.208.200", &in) < 0)
+         result = 0;
+    result &= (SCHInfoGetIPv4HostOSFlavour((uint8_t *)&in) ==
                SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
     result &= (SCHInfoGetHostOSFlavour("111.162.200.201") == -1);
 
@@ -727,6 +769,7 @@ int SCHInfoTestValidIPV6Address07(void)
  */
 int SCHInfoTestValidIPV6Address08(void)
 {
+    struct in6_addr in6;
     int result = 1;
 
     result &= (SCHInfoAddHostOSInfo("linux",
@@ -803,9 +846,13 @@ int SCHInfoTestValidIPV6Address08(void)
                SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
     result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE00:0000:0000:0000") ==
                SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
-    result &= (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:E000:0000:0000:0000") ==
+    if (inet_pton(AF_INET6, "8762:2352:6241:7245:E000:0000:0000:0000", &in6) < 0)
+         result = 0;
+    result &= (SCHInfoGetIPv6HostOSFlavour((uint8_t *)&in6) ==
                SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
-    result &= (SCHInfoGetHostOSFlavour("AD23:2DDA:6D1D:A223:E235:0232:1241:1666") ==
+    if (inet_pton(AF_INET6, "AD23:2DDA:6D1D:A223:E235:0232:1241:1666", &in6) < 0)
+         result = 0;
+    result &= (SCHInfoGetIPv6HostOSFlavour((uint8_t *)&in6) ==
                SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map));
 
 
