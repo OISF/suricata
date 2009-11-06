@@ -41,10 +41,32 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
             //DetectPcreData *pe = (DetectPcreData *)pm->ctx;
             //pe->offset = (uint32_t)atoi(str); /* XXX */
             //printf("DetectOffsetSetup: set offset %" PRIu32 " for previous pcre\n", pe->offset);
+
         } else if (pm->type == DETECT_CONTENT) {
+            /** Search for the first previous DetectContent
+              * SigMatch (it can be the same as this one) */
+            pm = DetectContentFindApplicableSM(m);
+            if (pm == NULL) {
+                printf("DetectOffsetSetup: Unknown previous keyword!\n");
+                return -1;
+            }
+
             DetectContentData *cd = (DetectContentData *)pm->ctx;
+            if (cd == NULL) {
+                printf("DetectOffsetSetup: Unknown previous keyword!\n");
+                return -1;
+            }
+
             cd->offset = (uint32_t)atoi(str); /* XXX */
+
+            /** Propagate the modifiers through the first chunk
+              * (SigMatch) if we're dealing with chunks */
+            if (cd->flags & DETECT_CONTENT_IS_CHUNK)
+                DetectContentPropagateOffset(pm);
+
+            //DetectContentPrint(cd);
             //printf("DetectOffsetSetup: set offset %" PRIu32 " for previous content\n", cd->offset);
+
         } else {
             printf("DetectOffsetSetup: Unknown previous keyword!\n");
         }

@@ -97,6 +97,7 @@ typedef struct MpmCtx_ {
 
 typedef struct MpmTableElmt_ {
     char *name;
+    uint8_t max_pattern_length;
     void (*InitCtx)(struct MpmCtx_ *);
     void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *, uint32_t);
     void (*DestroyCtx)(struct MpmCtx_ *);
@@ -131,6 +132,9 @@ void MpmMatchFreeSpares(MpmThreadCtx *mpm_ctx, MpmMatch *m);
 
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
+
+/** Return the max pattern length of a Matcher type given as arg */
+int32_t MpmMatcherGetMaxPatternLength(uint16_t);
 
 void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher);
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);

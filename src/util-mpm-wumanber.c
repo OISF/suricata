@@ -76,6 +76,7 @@ static uint8_t lowercasetable[256];
 
 void MpmWuManberRegister (void) {
     mpm_table[MPM_WUMANBER].name = "wumanber";
+    mpm_table[MPM_WUMANBER].max_pattern_length = 0;
     mpm_table[MPM_WUMANBER].InitCtx = WmInitCtx;
     mpm_table[MPM_WUMANBER].InitThreadCtx = WmThreadInitCtx;
     mpm_table[MPM_WUMANBER].DestroyCtx = WmDestroyCtx;

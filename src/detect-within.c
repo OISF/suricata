@@ -50,14 +50,32 @@ int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
 
         pe->within = strtol(str, NULL, 10);
         pe->flags |= DETECT_PCRE_WITHIN;
-
         //printf("DetectWithinSetup: set within %" PRId32 " for previous pcre\n", pe->within);
+
     } else if (pm->type == DETECT_CONTENT) {
+        /** Search for the first previous DetectContent
+          * SigMatch (it can be the same as this one) */
+        pm = DetectContentFindApplicableSM(m);
+        if (pm == NULL) {
+            printf("DetectWithinSetup: Unknown previous keyword!\n");
+            return -1;
+        }
+
         DetectContentData *cd = (DetectContentData *)pm->ctx;
+        if (cd == NULL) {
+            printf("DetectWithinSetup: Unknown previous keyword!\n");
+            return -1;
+        }
 
         cd->within = strtol(str, NULL, 10);
         cd->flags |= DETECT_CONTENT_WITHIN;
 
+        /** Propagate the modifiers through the first chunk
+          * (SigMatch) if we're dealing with chunks */
+        if (cd->flags & DETECT_CONTENT_IS_CHUNK)
+            DetectContentPropagateWithin(pm);
+
+        //DetectContentPrint(cd);
         //printf("DetectWithinSetup: set within %" PRId32 " for previous content\n", cd->within);
     } else if (pm->type == DETECT_URICONTENT) {
         DetectUricontentData *ud = (DetectUricontentData *)pm->ctx;

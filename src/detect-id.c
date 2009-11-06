@@ -604,8 +604,8 @@ void DetectIdRegisterTests(void) {
     UtRegisterTest("DetectIdTestParse02", DetectIdTestParse02, 1);
     UtRegisterTest("DetectIdTestParse03", DetectIdTestParse03, 1);
     UtRegisterTest("DetectIdTestParse04", DetectIdTestParse04, 1);
-    UtRegisterTest("DetectIdTestPacket01"  , DetectIdTestPacket01  , 1);
-    UtRegisterTest("DetectIdTestPacket02"  , DetectIdTestPacket02  , 1);
+    UtRegisterTest("DetectIdTestPacket01", DetectIdTestPacket01  , 1);
+    UtRegisterTest("DetectIdTestPacket02", DetectIdTestPacket02  , 1);
     UtRegisterTest("DetectIdTestSig1", DetectIdTestSig1, 1);
     UtRegisterTest("DetectIdTestSig2", DetectIdTestSig2, 1);
 

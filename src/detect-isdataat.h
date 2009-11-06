@@ -8,7 +8,7 @@
 #define ISDATAAT_MAX 65535
 
 typedef struct DetectIsdataatData_ {
-    uint32_t dataat;     /* data offset to match */
+    uint16_t dataat;     /* data offset to match */
     uint8_t flags; /* isdataat options*/
 } DetectIsdataatData;
 

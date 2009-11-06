@@ -59,6 +59,7 @@ void B2gRegisterTests(void);
 
 void MpmB2gRegister (void) {
     mpm_table[MPM_B2G].name = "b2g";
+    mpm_table[MPM_B2G].max_pattern_length = B2G_WORD_SIZE;
     mpm_table[MPM_B2G].InitCtx = B2gInitCtx;
     mpm_table[MPM_B2G].InitThreadCtx = B2gThreadInitCtx;
     mpm_table[MPM_B2G].DestroyCtx = B2gDestroyCtx;

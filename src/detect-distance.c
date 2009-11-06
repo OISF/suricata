@@ -45,14 +45,32 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
 
         pe->distance = strtol(str, NULL, 10);
         pe->flags |= DETECT_PCRE_DISTANCE;
-
         //printf("DetectDistanceSetup: set distance %" PRId32 " for previous pcre\n", pe->distance);
+
     } else if (pm->type == DETECT_CONTENT) {
+        /** Search for the first previous DetectContent
+          * SigMatch (it can be the same as this one) */
+        pm = DetectContentFindApplicableSM(m);
+        if (pm == NULL) {
+            printf("DetectDistanceSetup: Unknown previous keyword!\n");
+            return -1;
+        }
+
         DetectContentData *cd = (DetectContentData *)pm->ctx;
+        if (cd == NULL) {
+            printf("DetectDistanceSetup: Unknown previous keyword!\n");
+            return -1;
+        }
 
         cd->distance = strtol(str, NULL, 10);
         cd->flags |= DETECT_CONTENT_DISTANCE;
 
+        /** Propagate the modifiers through the first chunk
+          * (SigMatch) if we're dealing with chunks */
+        if (cd->flags & DETECT_CONTENT_IS_CHUNK)
+            DetectContentPropagateDistance(pm);
+
+        //DetectContentPrint(cd);
         //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
     } else if (pm->type == DETECT_URICONTENT) {
         DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;

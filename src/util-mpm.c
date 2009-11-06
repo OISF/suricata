@@ -248,6 +248,19 @@ MpmEndMatch *MpmAllocEndMatch (MpmCtx *ctx)
     return e;
 }
 
+/**
+ * \brief Return the pattern max length of a registered matcher
+ * \retval 0 if it has no limit
+ * \retval max_pattern_length of the specified matcher type
+ * \retval -1 if the type is not registered return -1
+ */
+int32_t MpmMatcherGetMaxPatternLength(uint16_t matcher) {
+    if (matcher < MPM_TABLE_SIZE && matcher >= 0)
+        return mpm_table[matcher].max_pattern_length;
+    else
+        return -1;
+}
+
 void MpmEndMatchFree(MpmCtx *ctx, MpmEndMatch *em) {
     ctx->memory_cnt--;
     ctx->memory_size -= sizeof(MpmEndMatch);

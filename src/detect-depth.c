@@ -39,10 +39,32 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
             DetectPcreData *pe = (DetectPcreData *)pm->ctx;
             pe->depth = (uint32_t)atoi(str);
             //printf("DetectDepthSetup: set depth %" PRIu32 " for previous pcre\n", pe->depth);
+
         } else if (pm->type == DETECT_CONTENT) {
+            /** Search for the first previous DetectContent
+              * SigMatch (it can be the same as this one) */
+            pm = DetectContentFindApplicableSM(m);
+            if (pm == NULL) {
+                printf("DetectDepthSetup: Unknown previous keyword!\n");
+                return -1;
+            }
+
             DetectContentData *cd = (DetectContentData *)pm->ctx;
+            if (cd == NULL) {
+                printf("DetectDepthSetup: Unknown previous keyword!\n");
+                return -1;
+            }
+
             cd->depth = (uint32_t)atoi(str);
+
+            /** Propagate the modifiers through the first chunk
+              * (SigMatch) if we're dealing with chunks */
+            if (cd->flags & DETECT_CONTENT_IS_CHUNK)
+                DetectContentPropagateDepth(pm);
+
+            //DetectContentPrint(cd);
             //printf("DetectDepthSetup: set depth %" PRIu32 " for previous content\n", cd->depth);
+
         } else {
             printf("DetectDepthSetup: Unknown previous keyword!\n");
         }

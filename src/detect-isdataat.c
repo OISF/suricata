@@ -19,11 +19,12 @@
 #include "flow-var.h"
 
 #include "util-debug.h"
+#include "util-byte.h"
 
 /**
  * \brief Regex for parsing our isdataat options
  */
-#define PARSE_REGEX  "^\\s*([0-9]{1,10})\\s*(,\\s*relative)?\\s*(,\\s*rawbytes\\s*)?\\s*$"
+#define PARSE_REGEX  "^\\s*([0-9]{1,5})\\s*(,\\s*relative)?\\s*(,\\s*rawbytes\\s*)?\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -50,15 +51,13 @@ void DetectIsdataatRegister (void) {
     int opts = 0;
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
+    if(parse_regex == NULL) {
         printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
+    if(eb != NULL) {
         printf("pcre study failed: %s\n", eb);
         goto error;
     }
@@ -88,16 +87,12 @@ int DetectIsdataatMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *
 
     SCLogDebug("payload_len: %u , dataat? %u ; relative? %u...", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
 
-    if(idad->flags & ISDATAAT_RELATIVE)
-    {
-        /* Relative to the last matched content, is not performed here */
-    }
-    else
-        if(!(idad->flags & ISDATAAT_RELATIVE) && p->payload_len >= idad->dataat) {
-            ret = 1; /* its not relative and we have more data in the packet than the offset of isdataat */
+        /* Relative to the last matched content is not performed here */
+    if(!(idad->flags & ISDATAAT_RELATIVE) && p->payload_len >= idad->dataat) {
+        ret = 1; /* its not relative and we have more data in the packet than the offset of isdataat */
 
-            SCLogDebug("matched with payload_len: %u , dataat? %u ; relative? %u...", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
-        }
+        SCLogDebug("matched with payload_len: %u , dataat? %u ; relative? %u...", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
+    }
 
     return ret;
 }
@@ -158,27 +153,28 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
         }
 
         idad->flags = 0;
-        idad->dataat= 0;
+        idad->dataat = 0;
 
-        if(args[0] != NULL)
-            idad->dataat=atoi(args[0]);
-
-        if(idad->dataat < ISDATAAT_MIN || idad->dataat > ISDATAAT_MAX) {
-            printf("detect-isdataat: DetectIsdataatParse: isdataat out of range\n");
-            free(idad);
-            idad=NULL;
+        if (args[0] != NULL) {
+            if (ByteExtractStringUint16(&idad->dataat, 10,
+                strlen(args[0]), args[0]) < 0 ) {
+                printf("detect-isdataat: DetectIsdataatParse: isdataat out of range\n");
+                free(idad);
+                idad=NULL;
+                goto error;
+            }
+        } else {
             goto error;
         }
 
-        if(args[1] !=NULL)
-        {
+        if (args[1] !=NULL) {
             idad->flags |= ISDATAAT_RELATIVE;
 
             if(args[2] !=NULL)
                 idad->flags |= ISDATAAT_RAWBYTES;
         }
 
-        for (i = 0; i < (ret -1); i++){
+        for (i = 0; i < (ret -1); i++) {
             if (args[i] != NULL) free(args[i]);
         }
 
@@ -212,64 +208,45 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
 {
     DetectIsdataatData *idad = NULL;
     SigMatch *sm = NULL;
-    SigMatch *search_sm_content = NULL;
     DetectContentData *cd = NULL;
-
 
     idad = DetectIsdataatParse(isdataatstr);
     if (idad == NULL) goto error;
 
-    if(idad->flags & ISDATAAT_RELATIVE)
-    {
-        /// Set it in the last parsed contet because it is relative to that content match
+    if(idad->flags & ISDATAAT_RELATIVE) {
+        /** Set it in the last parsed contet because it is relative to that content match */
         SCLogDebug("set it in the last parsed content because it is relative to that content match");
 
-        if( m == NULL )
-        {
+        if( m == NULL ) {
             printf("detect-isdataat: No previous content, the flag 'relative' cant be used without content\n");
             goto  error;
-        }
-        else
-        {
-            search_sm_content=m;
-            /// Searching last content
-            uint8_t found=0;
-            while(search_sm_content != NULL && !found)
-            {
-                if(search_sm_content->type== DETECT_CONTENT) //Found content
-                    found=1;
-                else
-                    search_sm_content=search_sm_content->prev;
+        } else {
+            SigMatch *pm = NULL;
+            /** Search for the first previous DetectContent
+              * SigMatch (it can be the same as this one) */
+            pm = DetectContentFindApplicableSM(m);
+            if (pm == NULL) {
+                printf("DetectIsdataatSetup: Unknown previous keyword!\n");
+                return -1;
             }
 
-            if(search_sm_content != NULL)
-            {
-                /* Found */
-                cd=(DetectContentData*)search_sm_content->ctx;
-                if(cd != NULL)
-                {
-                    cd->flags |= DETECT_CONTENT_ISDATAAT_RELATIVE;
-                    cd->isdataat=idad->dataat;
-                }
-                else
-                {
-                    printf("detect-isdataat: No content data found in a SigMatch of DETECT_CONTENT type\n");
-                    goto error;
-                }
-            }
-            else
-            {
-                printf("detect-isdataat: No previous content, the flag 'relative' cant be used without content\n");
-                goto  error;
+            cd = (DetectContentData *)pm->ctx;
+            if (cd == NULL) {
+                printf("DetectIsdataatSetup: Unknown previous keyword!\n");
+                return -1;
             }
 
+            cd->flags |= DETECT_CONTENT_ISDATAAT_RELATIVE;
+            cd->isdataat = idad->dataat;
+
+            /** Propagate the changes */
+            DetectContentPropagateIsdataat(pm);
         }
     }
-    else
-    {
+    else {
         SCLogDebug("set it as a normal SigMatch");
 
-        /// else Set it as a normal SigMatch
+        /** else Set it as a normal SigMatch */
         sm = SigMatchAlloc();
         if (sm == NULL)
             goto error;
@@ -362,8 +339,7 @@ int DetectIsdataatTestPacket01 (void) {
     /// Parse Isdataat Data: if packet data len is greater or equal than 50 byte it should match
     /// The packet has 190 bytes of data so it must match
     idad = DetectIsdataatParse("50");
-    if (idad == NULL)
-    {
+    if (idad == NULL) {
         printf("DetectIsdataatTestPacket01: expected a DetectIsdataatData pointer (got NULL)\n");
         return 0;
     }

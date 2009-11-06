@@ -54,6 +54,7 @@ void B3gRegisterTests(void);
 
 void MpmB3gRegister (void) {
     mpm_table[MPM_B3G].name = "b3g";
+    mpm_table[MPM_B3G].max_pattern_length = B3G_WORD_SIZE;
     mpm_table[MPM_B3G].InitCtx = B3gInitCtx;
     mpm_table[MPM_B3G].InitThreadCtx = B3gThreadInitCtx;
     mpm_table[MPM_B3G].DestroyCtx = B3gDestroyCtx;

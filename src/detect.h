@@ -146,6 +146,7 @@ typedef struct Signature_ {
     uint32_t gid; /**< generator id */
     SigIntId num; /**< signature number, internal id */
     uint32_t id;  /**< sid, set by the 'sid' rule keyword */
+    uint8_t nchunk_groups; /**< Internal chunk grp id (for splitted patterns) */
     char *msg;
 
     /** addresses, ports and proto this sig matches on */
