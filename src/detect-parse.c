@@ -205,11 +205,15 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
     if (st->Setup(de_ctx, s, m, optvalue) < 0)
         goto error;
 
-    /* thats why we check for that here */
+    /* thats why we check for that here
+     * (it may install more than one SigMatch!) */
     if (m != NULL && m->next != NULL)
-        m = m->next;
+        while (m != NULL && m->next != NULL)
+            m = m->next;
     else if (m == NULL && s->match != NULL)
-        m = s->match;
+            m = s->match;
+    while (m != NULL && m->next != NULL)
+        m = m->next;
 
     if (ret == 4 && optmore != NULL) {
         //printf("SigParseOptions: recursive call for more options... (s:%p,m:%p)\n", s, m);

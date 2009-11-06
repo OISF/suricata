@@ -755,8 +755,7 @@ void DetectContentPrintAll(SigMatch *sm)
 
        /* Print all of them */
         for (; first_sm != NULL; first_sm = first_sm->next)
-            if (first_sm->type == DETECT_CONTENT)
-            {
+            if (first_sm->type == DETECT_CONTENT) {
                 SCLogDebug("Printing SigMatch DETECT_CONTENT %d", ++i);
                 DetectContentPrint(first_sm->ctx);
             }
@@ -1113,7 +1112,7 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
             sm->type = DETECT_CONTENT;
             sm->ctx = (void *)aux;
             SigMatchAppend(s,m,sm);
-            m=sm;
+            m = sm;
 
             aux->id = de_ctx->content_max_id;
             de_ctx->content_max_id++;
@@ -1123,7 +1122,7 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
             /** We need to setup the modifiers for the chunks respect
               * the last chunk installed inmediatelly before
               * so do the propagation from the first one
-              * The function DetectContentPropagateModifiers() should
+              * The function DetectContentPropagate*Modifier*() should
               * be called when a new content modifier is
               * parsed/installed
               */
@@ -2150,10 +2149,25 @@ int DetectContentChunkMatchTest04()
  */
 int DetectContentChunkMatchTest05()
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"Hi, this is a big test to check content matches\";"
-                " content:\"of splitted\"; distance:1; within:12; "
-                //" content:\" patterns between multiple splitted chunks!\";"
+    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+                " content:\"Hi, this is a big test to check content matches\"; "
+                " content:\"of splitted\"; within:15; "
+                " sid:1;)";
+    return DetectContentChunkMatchTestWrp(sig, 1);
+}
+
+/**
+ * \test Check that we match packets with multiple chunks and not chunks
+ * Here we should specify contents that fit and contents that must be splitted
+ * Each of them with their modifier values
+ */
+int DetectContentChunkMatchTest07()
+{
+    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+                " content:\"Hi, this is a big\"; "
+                " content:\"test\"; "
+                " content:\"of splitted\"; "
+                " content:\"patterns\"; "
                 " sid:1;)";
     return DetectContentChunkMatchTestWrp(sig, 1);
 }
@@ -2187,5 +2201,6 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentChunkMatchTest03", DetectContentChunkMatchTest03, 1);
     UtRegisterTest("DetectContentChunkMatchTest04", DetectContentChunkMatchTest04, 1);
     UtRegisterTest("DetectContentChunkMatchTest05", DetectContentChunkMatchTest05, 1);
+    UtRegisterTest("DetectContentChunkMatchTest07", DetectContentChunkMatchTest07, 1);
     #endif /* UNITTESTS */
 }
