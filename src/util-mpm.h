@@ -9,7 +9,9 @@
 #define MPM_ENDMATCH_NOSEARCH 0x08 /* if this matches, no search is required (for this pattern) */
 
 enum {
-    MPM_WUMANBER = 0,
+    MPM_NOTSET = 0,
+
+    MPM_WUMANBER,
     MPM_B2G,
     MPM_B3G,
 

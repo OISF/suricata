@@ -820,16 +820,15 @@ int B3gPreparePatterns(MpmCtx *mpm_ctx) {
     ctx->scan_m = mpm_ctx->scan_minlen;
     ctx->search_m = mpm_ctx->search_minlen;
 
-    /* make sure 'm' stays in bounds */
-    if (ctx->scan_m > B3G_WORD_SIZE) {
-        printf("Warning: 'm' bigger than word size: %" PRIu32 " > %" PRIu32 " (scan).", ctx->scan_m, B3G_WORD_SIZE);
-        ctx->scan_m = B3G_WORD_SIZE;
+    /* make sure 'm' stays in bounds
+       m can be max WORD_SIZE - 1 */
+    if (ctx->scan_m >= B3G_WORD_SIZE) {
+        ctx->scan_m = B3G_WORD_SIZE - 1;
     }
     if (ctx->scan_m < 3) ctx->scan_m = 3;
 
-    if (ctx->search_m > B3G_WORD_SIZE) {
-        printf("Warning: 'm' bigger than word size: %" PRIu32 " > %" PRIu32 " (search).", ctx->search_m, B3G_WORD_SIZE);
-        ctx->search_m = B3G_WORD_SIZE;
+    if (ctx->search_m >= B3G_WORD_SIZE) {
+        ctx->search_m = B3G_WORD_SIZE - 1;
     }
     if (ctx->search_m < 3) ctx->search_m = 3;
 

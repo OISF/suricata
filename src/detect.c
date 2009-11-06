@@ -366,17 +366,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
     if (det_ctx->sgh == NULL) {
-        //printf("SigMatchSignatures: no sgh\n");
+        SCLogDebug("no sgh");
         return 0;
     }
 
     if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL && !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
         /* run the pattern matcher against the packet */
         if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
-            //printf("Not scanning as pkt payload is smaller than the largest content length we need to match");
+            SCLogDebug("not scanning as pkt payload is smaller than the largest content length we need to match");
         } else {
             uint32_t cnt = 0;
-            //printf("scan: (%p, maxlen %" PRIu32 ", cnt %" PRIu32 ")\n", det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
+            SCLogDebug("scan: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")", det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
             /* scan, but only if the noscan flag isn't set */
 
             if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_scanned1++;
@@ -388,7 +388,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             cnt += PacketPatternScan(th_v, det_ctx, p);
 
             //if (cnt != det_ctx->pmq.searchable)
-            //printf("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "\n", cnt, det_ctx->pmq.searchable);
+            SCLogDebug("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "", cnt, det_ctx->pmq.searchable);
             if (det_ctx->pmq.searchable > 0) {
                 //printf("now search\n");
                 if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_searched1++;
@@ -7192,6 +7192,244 @@ static int SigTestSgh04 (void) {
 end:
     return result;
 }
+
+/** \test setting of mpm type */
+static int SigTestSgh05 (void) {
+    ThreadVars th_v;
+    int result = 0;
+    Packet p;
+    DetectEngineThreadCtx *det_ctx;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload_len = 1;
+    p.proto = IPPROTO_TCP;
+    p.dp = 80;
+    p.dst.addr_data32[0] = 0x04030201;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->mpm_matcher = MPM_WUMANBER;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> 1.2.3.4-1.2.3.6 any (msg:\"1\"; content:\"one\"; content:\"1\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    if (sgh == NULL) {
+        printf("no sgh: ");
+        goto end;
+    }
+
+    if (sgh->mpm_ctx == NULL) {
+        printf("sgh->mpm_type == NULL: ");
+        goto end;
+    }
+
+    if (sgh->mpm_ctx->mpm_type != MPM_WUMANBER) {
+        printf("sgh->mpm_type != MPM_WUMANBER, expected %d, got %d: ", MPM_WUMANBER, sgh->mpm_ctx->mpm_type);
+        goto end;
+    }
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    result = 1;
+end:
+    return result;
+}
+static int SigTestContent01Real (int mpm_type) {
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = mpm_type;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1))
+        result = 1;
+    else
+        printf("sig 1 didn't match: ");
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+static int SigTestContent01B2g (void) {
+    return SigTestContent01Real(MPM_B2G);
+}
+static int SigTestContent01B3g (void) {
+    return SigTestContent01Real(MPM_B3G);
+}
+static int SigTestContent01Wm (void) {
+    return SigTestContent01Real(MPM_WUMANBER);
+}
+
+static int SigTestContent02Real (int mpm_type) {
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = mpm_type;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 31\"; content:\"0123456789012345678901234567890\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1)) {
+        if (PacketAlertCheck(&p, 2)) {
+            result = 1;
+        } else
+            printf("sig 2 didn't match: ");
+    }
+    else
+        printf("sig 1 didn't match: ");
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+static int SigTestContent02B2g (void) {
+    return SigTestContent02Real(MPM_B2G);
+}
+static int SigTestContent02B3g (void) {
+    return SigTestContent02Real(MPM_B3G);
+}
+static int SigTestContent02Wm (void) {
+    return SigTestContent02Real(MPM_WUMANBER);
+}
+
+static int SigTestContent03Real (int mpm_type) {
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = mpm_type;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1))
+        result = 1;
+    else
+        printf("sig 1 didn't match: ");
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+static int SigTestContent03B2g (void) {
+    return SigTestContent03Real(MPM_B2G);
+}
+static int SigTestContent03B3g (void) {
+    return SigTestContent03Real(MPM_B3G);
+}
+static int SigTestContent03Wm (void) {
+    return SigTestContent03Real(MPM_WUMANBER);
+}
+
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
@@ -7358,6 +7596,19 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTestSgh02", SigTestSgh02, 1);
     UtRegisterTest("SigTestSgh03", SigTestSgh03, 1);
     UtRegisterTest("SigTestSgh04", SigTestSgh04, 1);
+    UtRegisterTest("SigTestSgh05", SigTestSgh05, 1);
+
+    UtRegisterTest("SigTestContent01B2g -- 32 byte pattern", SigTestContent01B2g, 1);
+    UtRegisterTest("SigTestContent01B3g -- 32 byte pattern", SigTestContent01B3g, 1);
+    UtRegisterTest("SigTestContent01Wm -- 32 byte pattern", SigTestContent01Wm, 1);
+
+    UtRegisterTest("SigTestContent02B2g -- 32+31 byte pattern", SigTestContent02B2g, 1);
+    UtRegisterTest("SigTestContent02B3g -- 32+31 byte pattern", SigTestContent02B3g, 1);
+    UtRegisterTest("SigTestContent02Wm -- 32+31 byte pattern", SigTestContent02Wm, 1);
+
+    UtRegisterTest("SigTestContent03B2g -- 32 byte pattern, x2 + distance", SigTestContent03B2g, 1);
+    UtRegisterTest("SigTestContent03B3g -- 32 byte pattern, x2 + distance", SigTestContent03B3g, 1);
+    UtRegisterTest("SigTestContent03Wm -- 32 byte pattern, x2 + distance", SigTestContent03Wm, 1);
 #endif /* UNITTESTS */
 }
 

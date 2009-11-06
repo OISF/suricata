@@ -479,7 +479,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             goto error;
 
         memset(sh->mpm_ctx, 0x00, sizeof(MpmCtx));
-        MpmInitCtx(sh->mpm_ctx, PM);
+        MpmInitCtx(sh->mpm_ctx, de_ctx->mpm_matcher);
     }
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         sh->mpm_uri_ctx = malloc(sizeof(MpmCtx));
@@ -487,7 +487,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             goto error;
 
         memset(sh->mpm_uri_ctx, 0x00, sizeof(MpmCtx));
-        MpmInitCtx(sh->mpm_uri_ctx, PM);
+        MpmInitCtx(sh->mpm_uri_ctx, de_ctx->mpm_matcher);
     }
 
     uint32_t mpm_content_cnt = 0, mpm_uricontent_cnt = 0;
