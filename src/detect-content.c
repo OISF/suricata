@@ -2201,13 +2201,13 @@ int DetectContentChunkMatchTest05()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is a big\"; depth:17; "
-                //" isdataat:30, relative; "
-                //" content:\"test\"; within: 5; distance:1; depth:22; "
-                //" isdataat:15, relative; offset:18; "
-                //" content:\"of splitted\"; within:37; distance:15; "
-                //" depth:60; isdataat:20,relative; offset: 48; "
-                //" content:\"patterns\"; within:9; distance:1; depth:69; "
-                //" isdataat:10, relative; offset:60; "
+                " isdataat:30, relative; "
+                " content:\"test\"; within: 5; distance:1; depth:22; "
+                " isdataat:15, relative; offset:18; "
+                " content:\"of splitted\"; within:37; distance:15; "
+                " depth:60; isdataat:20,relative; offset: 48; "
+                " content:\"patterns\"; within:9; distance:1; depth:69; "
+                " isdataat:10, relative; offset:60; "
                 " sid:1;)";
     return DetectContentChunkMatchTestWrp(sig, 1);
 }
