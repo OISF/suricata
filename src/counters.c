@@ -8,8 +8,9 @@
 #include "threadvars.h"
 #include "tm-modules.h"
 #include "tm-threads.h"
-#include "util-unittest.h"
 #include "conf.h"
+#include "util-time.h"
+#include "util-unittest.h"
 #include "util-debug.h"
 
 /** \todo Get the default log directory from some global resource. */
@@ -322,7 +323,7 @@ static int SCPerfParseTBCounterInterval(SCPerfCounter *pc, char *interval)
 
     pc->type_q->total_secs = ((pc->type_q->hours * 60 * 60) +
                               (pc->type_q->minutes * 60) + pc->type_q->seconds);
-    pc->type_q->ts = time(NULL);
+    TimeGet(&pc->type_q->ts);
 
     return 0;
 
@@ -601,7 +602,7 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
  */
 static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op)
 {
-    time_t curr_ts;
+    struct timeval curr_ts;
     int elapsed_secs = 0;
     double divisor = 0;
 
@@ -621,8 +622,9 @@ static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op
         return;
 
     /* we have a timebased counter.  Awesome.  Time for some more processing */
-    curr_ts = time(NULL);
-    elapsed_secs = curr_ts - pc->type_q->ts;
+    TimeGet(&curr_ts);
+    elapsed_secs = ((curr_ts.tv_sec + curr_ts.tv_usec / 1000000.0) -
+                    (pc->type_q->ts.tv_sec + pc->type_q->ts.tv_usec / 1000000.0));
 
     if (elapsed_secs < pc->type_q->total_secs)
         return;
@@ -642,8 +644,9 @@ static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op
             break;
     }
 
-    pc->type_q->ts = time(NULL);
-
+    /* reset the timestamp to the current time */
+    TimeGet(&pc->type_q->ts);
+    /* reset the local counter back to 0 */
     memset(pc->value->cvalue, 0, pc->value->size);
 
     return;

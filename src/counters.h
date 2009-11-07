@@ -76,7 +76,7 @@ typedef struct SCPerfCounterTypeQ_ {
     int total_secs;
 
     /* timestamp to indicate the time, when the counter was last reset */
-    time_t ts;
+    struct timeval ts;
 } SCPerfCounterTypeQ;
 
 /**
