@@ -1,4 +1,9 @@
 /* DSIZE part of the detection engine. */
+/* Copyright (c) 2009 Open Information Security Foundation */
+
+/** \file
+ *  \author Victor Julien <victor@inliniac.net>
+ */
 
 #include "eidps-common.h"
 #include "decode.h"
@@ -8,20 +13,29 @@
 #include "detect-dsize.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
+#include "util-byte.h"
 
-#define PARSE_REGEX "^(?:\\\")?(<|>)?([0-9]+)(?:(<>)([0-9]+))?(?:\\\")?$"
+/**
+ *  dsize:[<>]<0-65535>[<><0-65535>];
+ */
+#define PARSE_REGEX "^\\s*(<|>)?\\s*([0-9]{1,5})\\s*(?:(<>)\\s*([0-9]{1,5}))?\\s*$"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectDsizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectDsizeSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 void DsizeRegisterTests(void);
+static void DetectDsizeFree(void *);
 
+/**
+ * \brief Registration function for dsize: keyword
+ */
 void DetectDsizeRegister (void) {
     sigmatch_table[DETECT_DSIZE].name = "dsize";
     sigmatch_table[DETECT_DSIZE].Match = DetectDsizeMatch;
     sigmatch_table[DETECT_DSIZE].Setup = DetectDsizeSetup;
-    sigmatch_table[DETECT_DSIZE].Free  = NULL;
+    sigmatch_table[DETECT_DSIZE].Free  = DetectDsizeFree;
     sigmatch_table[DETECT_DSIZE].RegisterTests = DsizeRegisterTests;
 
     const char *eb;
@@ -31,14 +45,14 @@ void DetectDsizeRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_PCRE_COMPILE_FAILED,"pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_PCRE_STUDY_FAILED,"pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -48,12 +62,19 @@ error:
     return;
 }
 
-/*
- * returns 0: no match
- *         1: match
- *        -1: error
+/**
+ * \internal
+ * \brief This function is used to match flags on a packet with those passed via dsize:
+ *
+ * \param t pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param p pointer to the current packet
+ * \param s pointer to the Signature
+ * \param m pointer to the sigmatch
+ *
+ * \retval 0 no match
+ * \retval 1 match
  */
-
 int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     int ret = 0;
@@ -72,6 +93,15 @@ int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
     return ret;
 }
 
+/**
+ * \internal
+ * \brief This function is used to parse dsize options passed via dsize: keyword
+ *
+ * \param rawstr Pointer to the user provided dsize options
+ *
+ * \retval dd pointer to DetectDsizeData on success
+ * \retval NULL on failure
+ */
 DetectDsizeData *DetectDsizeParse (char *rawstr)
 {
     DetectDsizeData *dd = NULL;
@@ -83,7 +113,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
-        //printf("DetectDsizeSetup: parse error, ret %" PRId32 "\n", ret);
+        SCLogError(SC_PCRE_MATCH_FAILED,"Parse error %s", rawstr);
         goto error;
     }
 
@@ -91,39 +121,39 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
-        printf("DetectDsizeSetup: pcre_get_substring failed\n");
+        SCLogError(SC_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
         goto error;
     }
     mode = (char *)str_ptr;
-    //printf("mode \"%s\"\n", mode);
+    SCLogDebug("mode \"%s\"", mode);
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
     if (res < 0) {
-        printf("DetectDsizeSetup: pcre_get_substring failed\n");
+        SCLogError(SC_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
         goto error;
     }
     value1 = (char *)str_ptr;
-    //printf("value1 \"%s\"\n", value1);
+    SCLogDebug("value1 \"%s\"", value1);
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
     if (res < 0) {
-        printf("DetectDsizeSetup: pcre_get_substring failed\n");
+        SCLogError(SC_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
         goto error;
     }
     range = (char *)str_ptr;
-    //printf("range \"%s\"\n", range);
+    SCLogDebug("range \"%s\"", range);
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
     if (res < 0) {
-        printf("DetectDsizeSetup: pcre_get_substring failed\n");
+        SCLogError(SC_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
         goto error;
     }
     value2 = (char *)str_ptr;
-    //printf("value2 \"%s\"\n", value2);
+    SCLogDebug("value2 \"%s\"", value2);
 
     dd = malloc(sizeof(DetectDsizeData));
     if (dd == NULL) {
-        printf("DetectDsizeSetup malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
     dd->dsize = 0;
@@ -134,23 +164,38 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     else dd->mode = DETECTDSIZE_EQ;
 
     if (strcmp("<>", range) == 0) {
-        if (strlen(mode) != 0)
+        if (strlen(mode) != 0) {
+            SCLogError(SC_INVALID_ARGUMENT,"Range specified but mode also set");
             goto error;
-
+        }
         dd->mode = DETECTDSIZE_RA;
     }
 
-    /* set the value */
-    dd->dsize = (uint16_t)atoi(value1);
-    if (strlen(value2) > 0) {
-        if (dd->mode != DETECTDSIZE_RA)
-            goto error;
-
-        dd->dsize2 = (uint16_t)atoi(value2);
-
-        if (dd->dsize2 <= dd->dsize)
-            goto error;
+    /** set the first dsize value */
+    if(ByteExtractStringUint16(&dd->dsize,10,strlen(value1),value1) <= 0){
+        SCLogError(SC_INVALID_ARGUMENT,"Invalid size value1:\"%s\"",value1);
+        goto error;
     }
+
+    /** set the second dsize value if specified */
+    if (strlen(value2) > 0) {
+        if (dd->mode != DETECTDSIZE_RA) {
+            SCLogError(SC_INVALID_ARGUMENT,"Multiple dsize values specified but mode is not range");
+            goto error;
+        }
+
+        if(ByteExtractStringUint16(&dd->dsize2,10,strlen(value2),value2) <= 0){
+            SCLogError(SC_INVALID_ARGUMENT,"Invalid size value2:\"%s\"",value2);
+            goto error;
+        }
+
+        if (dd->dsize2 <= dd->dsize){
+            SCLogError(SC_INVALID_ARGUMENT,"dsize2:%"PRIu16" <= dsize:%"PRIu16"",dd->dsize2,dd->dsize);
+            goto error;
+        }
+    }
+
+    SCLogDebug("dsize parsed succesfully dsize: %"PRIu16" dsize2: %"PRIu16"",dd->dsize,dd->dsize2);
 
     free(value1);
     free(value2);
@@ -167,21 +212,38 @@ error:
     return NULL;
 }
 
+/**
+ * \internal
+ * \brief this function is used to add the parsed dsize into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param m pointer to the Current SigMatch
+ * \param rawstr pointer to the user provided flags options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
 int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
 {
     DetectDsizeData *dd = NULL;
     SigMatch *sm = NULL;
 
-    //printf("DetectDsizeSetup: \'%s\'\n", rawstr);
+    SCLogDebug("\'%s\'", rawstr);
 
     dd = DetectDsizeParse(rawstr);
-    if (dd == NULL) goto error;
+    if (dd == NULL) {
+        SCLogError(SC_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
+        goto error;
+    }
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (sm == NULL){
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for SigMatch");
         goto error;
+    }
 
     sm->type = DETECT_DSIZE;
     sm->ctx = (void *)dd;
@@ -198,8 +260,15 @@ error:
     return -1;
 }
 
-void DetectDsizeFree(DetectDsizeData *dd) {
-    free(dd);
+/**
+ * \internal
+ * \brief this function will free memory associated with DetectDsizeData
+ *
+ * \param de pointer to DetectDsizeData
+ */
+void DetectDsizeFree(void *de_ptr) {
+    DetectDsizeData *dd = (DetectDsizeData *)de_ptr;
+    if(dd) free(dd);
 }
 
 /*
@@ -207,6 +276,12 @@ void DetectDsizeFree(DetectDsizeData *dd) {
  */
 
 #ifdef UNITTESTS
+/**
+ * \test this is a test for a valid dsize value 1
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse01 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1");
@@ -218,6 +293,12 @@ int DsizeTestParse01 (void) {
     return 0;
 }
 
+/**
+ * \test this is a test for a valid dsize value >10
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse02 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse(">10");
@@ -229,6 +310,12 @@ int DsizeTestParse02 (void) {
     return 0;
 }
 
+/**
+ * \test this is a test for a valid dsize value <100
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse03 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("<100");
@@ -240,6 +327,12 @@ int DsizeTestParse03 (void) {
     return 0;
 }
 
+/**
+ * \test this is a test for a valid dsize value 1<>2
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse04 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1<>2");
@@ -251,6 +344,12 @@ int DsizeTestParse04 (void) {
     return 0;
 }
 
+/**
+ * \test this is a test for a valid dsize value 1
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse05 (void) {
     int result = 0;
     DetectDsizeData *dd = NULL;
@@ -265,6 +364,12 @@ int DsizeTestParse05 (void) {
     return result;
 }
 
+/**
+ * \test this is a test for a valid dsize value >10
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse06 (void) {
     int result = 0;
     DetectDsizeData *dd = NULL;
@@ -279,6 +384,12 @@ int DsizeTestParse06 (void) {
     return result;
 }
 
+/**
+ * \test this is a test for a valid dsize value <100
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse07 (void) {
     int result = 0;
     DetectDsizeData *dd = NULL;
@@ -293,6 +404,12 @@ int DsizeTestParse07 (void) {
     return result;
 }
 
+/**
+ * \test this is a test for a valid dsize value 1<>2
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse08 (void) {
     int result = 0;
     DetectDsizeData *dd = NULL;
@@ -307,6 +424,12 @@ int DsizeTestParse08 (void) {
     return result;
 }
 
+/**
+ * \test this is a test for a invalid dsize value A
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse09 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("A");
@@ -318,6 +441,12 @@ int DsizeTestParse09 (void) {
     return 1;
 }
 
+/**
+ * \test this is a test for a invalid dsize value >10<>10
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse10 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse(">10<>10");
@@ -329,6 +458,12 @@ int DsizeTestParse10 (void) {
     return 1;
 }
 
+/**
+ * \test this is a test for a invalid dsize value <>10
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse11 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("<>10");
@@ -340,6 +475,12 @@ int DsizeTestParse11 (void) {
     return 1;
 }
 
+/**
+ * \test this is a test for a invalid dsize value 1<>
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse12 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1<>");
@@ -351,6 +492,12 @@ int DsizeTestParse12 (void) {
     return 1;
 }
 
+/**
+ * \test this is a test for a valid dsize value 1
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse13 (void) {
     int result = 0;
     DetectDsizeData *dd = NULL;
@@ -365,6 +512,12 @@ int DsizeTestParse13 (void) {
     return result;
 }
 
+/**
+ * \test this is a test for a invalid dsize value ""
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse14 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("");
@@ -376,6 +529,12 @@ int DsizeTestParse14 (void) {
     return 1;
 }
 
+/**
+ * \test this is a test for a invalid dsize value " "
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse15 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse(" ");
@@ -387,6 +546,12 @@ int DsizeTestParse15 (void) {
     return 1;
 }
 
+/**
+ * \test this is a test for a invalid dsize value 2<>1
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
 int DsizeTestParse16 (void) {
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("2<>1");
@@ -397,8 +562,91 @@ int DsizeTestParse16 (void) {
 
     return 1;
 }
+
+/**
+ * \test this is a test for a valid dsize value 1 <> 2
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+int DsizeTestParse17 (void) {
+    int result = 0;
+    DetectDsizeData *dd = NULL;
+    dd = DetectDsizeParse(" 1 <> 2 ");
+    if (dd) {
+        if (dd->dsize == 1 && dd->dsize2 == 2 && dd->mode == DETECTDSIZE_RA)
+            result = 1;
+
+        DetectDsizeFree(dd);
+    }
+
+    return result;
+}
+
+/**
+ * \test this is test for a valid dsize value > 2
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+int DsizeTestParse18 (void) {
+    int result = 0;
+    DetectDsizeData *dd = NULL;
+    dd = DetectDsizeParse("> 2 ");
+    if (dd) {
+        if (dd->dsize == 2 && dd->mode == DETECTDSIZE_GT)
+            result = 1;
+
+        DetectDsizeFree(dd);
+    }
+
+    return result;
+}
+
+/**
+ * \test test for a valid dsize value <   12
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+int DsizeTestParse19 (void) {
+    int result = 0;
+    DetectDsizeData *dd = NULL;
+    dd = DetectDsizeParse("<   12 ");
+    if (dd) {
+        if (dd->dsize == 12 && dd->mode == DETECTDSIZE_LT)
+            result = 1;
+
+        DetectDsizeFree(dd);
+    }
+
+    return result;
+}
+
+/**
+ * \test test for a valid dsize value    12
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+int DsizeTestParse20 (void) {
+    int result = 0;
+    DetectDsizeData *dd = NULL;
+    dd = DetectDsizeParse("   12 ");
+    if (dd) {
+        if (dd->dsize == 12 && dd->mode == DETECTDSIZE_EQ)
+            result = 1;
+
+        DetectDsizeFree(dd);
+    }
+
+    return result;
+}
 #endif /* UNITTESTS */
 
+/**
+ * \brief this function registers unit tests for dsize
+ */
 void DsizeRegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("DsizeTestParse01", DsizeTestParse01, 1);
@@ -417,6 +665,10 @@ void DsizeRegisterTests(void) {
     UtRegisterTest("DsizeTestParse14", DsizeTestParse14, 1);
     UtRegisterTest("DsizeTestParse15", DsizeTestParse15, 1);
     UtRegisterTest("DsizeTestParse16", DsizeTestParse16, 1);
+    UtRegisterTest("DsizeTestParse17", DsizeTestParse17, 1);
+    UtRegisterTest("DsizeTestParse18", DsizeTestParse18, 1);
+    UtRegisterTest("DsizeTestParse19", DsizeTestParse19, 1);
+    UtRegisterTest("DsizeTestParse20", DsizeTestParse20, 1);
 #endif /* UNITTESTS */
 }
 
