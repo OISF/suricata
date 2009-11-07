@@ -89,54 +89,83 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
  *         that turn out to fail being followed by full matches later in the
  *         packet. This adds some runtime complexity however.
  *
+ *         WITHIN
+ *         The within check, if enabled, works as follows. The check is done
+ *         against the current match "m". This is the pattern that we check
+ *         the next against. So we will figure out if the next pattern exists
+ *         within X bytes of "m".
+ *
+ *         To do this, we take the next pattern (nsm) and loop through all
+ *         matches of it. We then for each of the matches "nm" below, see if
+ *         it is in the within limit.
+ *
+ *         The within limit is checked as follows. It's checked against the
+ *         current match "m". "m->offset" indicates the start of that match.
+ *         So we need to consider m->offset + co->content_len. This will give
+ *         us the end of the match "m". The next match then needs to occur
+ *         before that point + the lenght of the pattern we're checking,
+ *         nco->content_len.
+ *
  *  \param t thread vars
  *  \param det_ctx thread local data of the detection engine ctx
  *  \param m match we are inspecting
- *  \param nsm sigmatch to work with
+ *  \param nm current sigmatch to work with
+ *  \param nsm next sigmatch to work with
  *  \param pktoff packet offset
  */
 static inline int
-TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *det_ctx, MpmMatch *m, SigMatch *nsm, uint16_t pktoff)
+TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *det_ctx, MpmMatch *m, SigMatch *sm, SigMatch *nsm, uint16_t pktoff)
 {
     if (nsm == NULL)
         return 1;
 
-    DetectContentData *co = (DetectContentData *)nsm->ctx;
-    MpmMatch *nm = det_ctx->mtc.match[co->id].top;
+    /** content match of current pattern */
+    DetectContentData *co = (DetectContentData *)sm->ctx;
+    /** content match of next pattern */
+    DetectContentData *nco = (DetectContentData *)nsm->ctx;
+    /** list of matches of the next pattern */
+    MpmMatch *nm = det_ctx->mtc.match[nco->id].top;
 
+    /* recursively check if we have a next pattern that matches */
     for (; nm; nm = nm->next) {
         SCLogDebug("nm->offset %" PRIu32 ", m->offset %" PRIu32 ", pktoff %" PRIu32 "", nm->offset, m->offset, pktoff);
+        SCLogDebug("nm->offset + nco->content_len = %"PRIu32" + %"PRIu32" = %"PRIu32"",
+                nm->offset, nco->content_len, nm->offset + nco->content_len);
+        SCLogDebug("within (0 if disabled) = %"PRIu32" (nco->within %"PRIu32" + co->content_len %"PRIu32")",
+                nco->flags & DETECT_CONTENT_WITHIN ? (nco->within + co->content_len) : 0, nco->within, co->content_len);
 
         if (nm->offset >= pktoff) {
-            if ((!(co->flags & DETECT_CONTENT_WITHIN) || (co->within > 0 &&
-                (nm->offset > m->offset) &&
-                ((nm->offset - m->offset) <= co->within))))
+            if ((!(nco->flags & DETECT_CONTENT_WITHIN) ||
+                (nco->within > 0 && (nm->offset > m->offset) &&
+                (((nm->offset + nco->content_len) - m->offset) <= (nco->within + co->content_len)))))
             {
-                SCLogDebug("MATCH: %" PRIu32 " <= WITHIN(%" PRIu32 "), "
-                        "nm->offset %" PRIu32 ", m->offset %" PRIu32 "",
-                        nm->offset - m->offset,
-                        co->within, nm->offset, m->offset);
+                SCLogDebug("MATCH: %" PRIu32 " <= WITHIN(%" PRIu32 ")",
+                        (nm->offset + nco->content_len) - m->offset,
+                        nco->within + co->content_len);
 
-                if (!(co->flags & DETECT_CONTENT_DISTANCE) ||
-                    ((nm->offset > m->offset) &&
-                    ((nm->offset - m->offset) >= co->distance)))
+                if (!(nco->flags & DETECT_CONTENT_DISTANCE) ||
+                    ((nm->offset >= (m->offset + co->content_len)) &&
+                    ((nm->offset - (m->offset + co->content_len)) >= nco->distance)))
                 {
-                    SCLogDebug("MATCH: %" PRIu32 " >= DISTANCE(%" PRIu32 "), "
-                        "nm->offset %" PRIu32 ", m->offset %" PRIu32 "",
-                        nm->offset - m->offset, co->distance, nm->offset, m->offset);
-                    if (TestOffsetDepth(nm, co, pktoff) == 1) {
-                        return TestWithinDistanceOffsetDepth(t, det_ctx, nm, nsm->next, pktoff);
+                    SCLogDebug("MATCH: %" PRIu32 " >= DISTANCE(%" PRIu32 ")",
+                        nm->offset - (m->offset + co->content_len), nco->distance);
+
+                    if (TestOffsetDepth(nm, nco, pktoff) == 1) {
+                        return TestWithinDistanceOffsetDepth(t, det_ctx, nm, nsm, nsm->next, pktoff);
                     }
                 } else {
-                    SCLogDebug("NO MATCH: %" PRIu32 " >= DISTANCE(%" PRIu32 "), "
-                         "nm->offset %" PRIu32 ", m->offset %" PRIu32 "",
-                        nm->offset - m->offset, co->distance, nm->offset, m->offset);
+                    SCLogDebug("NO MATCH: %" PRIu32 " < DISTANCE(%" PRIu32 ")",
+                        nm->offset - (m->offset + co->content_len), nco->distance);
                 }
             } else {
-                SCLogDebug("NO MATCH: %" PRIu32 " > WITHIN(%" PRIu32 "), "
-                    "nm->offset %" PRIu32 ", m->offset %" PRIu32 "",
-                    nm->offset - m->offset,
-                    co->within, nm->offset, m->offset);
+                if (nm->offset <= m->offset) {
+                    SCLogDebug("NO MATCH: nm->offset before or on m->offset: %"PRIu32" <= %"PRIu32"",
+                            nm->offset, m->offset);
+                } else {
+                    SCLogDebug("NO MATCH: %" PRIu32 " > WITHIN(%" PRIu32 ")",
+                            (nm->offset + nco->content_len) - m->offset,
+                            (nco->within + co->content_len));
+                }
             }
         }
     }
@@ -175,7 +204,7 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
             if (TestOffsetDepth(m, co, det_ctx->pkt_off) == 1) {
                 SCLogDebug("TestOffsetDepth returned 1, for co->id %"PRIu32"", co->id);
 
-                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm->next, det_ctx->pkt_off);
+                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm, sm->next, det_ctx->pkt_off);
                 if (ret == 1) {
                     SCLogDebug("TestWithinDistanceOffsetDepth returned 1");
                     det_ctx->pkt_ptr = p->payload + m->offset;

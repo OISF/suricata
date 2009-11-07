@@ -460,6 +460,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         det_ctx->pkt_ptr = NULL;
         det_ctx->pkt_off = 0;
 
+        /* new signature, so reset indicator of checking distance and within */
+        det_ctx->de_checking_distancewithin = 0;
+
         if (s->flags & SIG_FLAG_RECURSIVE) {
             uint8_t rmatch = 0;
             det_ctx->pkt_cnt = 0;
@@ -2881,12 +2884,12 @@ static int SigTest03Wm (void) {
 
 static int SigTest04Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n\r\n"
-                    "GET /two/ HTTP/1.1\r\n"
-                    "Host: two.example.org\r\n"
-                    "\r\n\r\n";
+                    "GET /one/ HTTP/1.1\r\n" /* 20*/
+                    "Host: one.example.org\r\n" /* 23, post "Host:" 18 */
+                    "\r\n\r\n" /* 4 */
+                    "GET /two/ HTTP/1.1\r\n" /* 20 */
+                    "Host: two.example.org\r\n" /* 23 */
+                    "\r\n\r\n"; /* 4 */
     uint16_t buflen = strlen((char *)buf);
 
     Packet p;
@@ -2910,7 +2913,7 @@ static int SigTest04Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:47; within:52; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:42; within:47; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -7583,11 +7586,77 @@ static int SigTestContent04Wm (void) {
     return SigTestContent04Real(MPM_WUMANBER);
 }
 
+static int SigTestContent05Real (int mpm_type) {
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = mpm_type;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:31; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:1; within:33; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    if (PacketAlertCheck(&p, 1)) {
+        printf("sig 1 matched but shouldn't: ");
+        goto end;
+    }
+
+    if (PacketAlertCheck(&p, 2)) {
+        printf("sig 2 matched but shouldn't: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+static int SigTestContent05B2g (void) {
+    return SigTestContent05Real(MPM_B2G);
+}
+static int SigTestContent05B3g (void) {
+    return SigTestContent05Real(MPM_B3G);
+}
+static int SigTestContent05Wm (void) {
+    return SigTestContent05Real(MPM_WUMANBER);
+}
+
 static int SigTestWithinReal01 (int mpm_type) {
     DecodeThreadVars dtv;
     ThreadVars th_v;
     int result = 0;
-    int alertcnt = 0;
 
     uint8_t rawpkt1[] = {
         0x00,0x04,0x76,0xd3,0xd8,0x6a,0x00,0x24,
@@ -7706,11 +7775,9 @@ static int SigTestWithinReal01 (int mpm_type) {
     memset(&p1, 0, sizeof(Packet));
     DecodeEthernet(&th_v, &dtv, &p1, rawpkt1, sizeof(rawpkt1), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 556)) {
-        //printf("match of sid on packet 1\n");
-        alertcnt++;
-    }else{
-        SCLogInfo("failed to match on packet 1");
+    if (!(PacketAlertCheck(&p1, 556))) {
+        printf("failed to match on packet 1: ");
+        goto end;
     }
 
     /* packet 2 */
@@ -7718,11 +7785,9 @@ static int SigTestWithinReal01 (int mpm_type) {
     memset(&p2, 0, sizeof(Packet));
     DecodeEthernet(&th_v, &dtv, &p2, rawpkt2, sizeof(rawpkt2), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 556)) {
-        //printf("match of sid on packet 2\n");
-        alertcnt++;
-    }else{
-        SCLogInfo("failed to match on packet 2");
+    if (!(PacketAlertCheck(&p2, 556))) {
+        printf("failed to match on packet 2: ");
+        goto end;
     }
 
     /* packet 3 */
@@ -7730,11 +7795,9 @@ static int SigTestWithinReal01 (int mpm_type) {
     memset(&p3, 0, sizeof(Packet));
     DecodeEthernet(&th_v, &dtv, &p3, rawpkt3, sizeof(rawpkt3), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p3);
-    if (PacketAlertCheck(&p3, 556)){
-        //printf("match of sid on packet 3\n");
-        alertcnt++;
-    }else{
-        SCLogInfo("failed to match on packet 3");
+    if (!(PacketAlertCheck(&p3, 556))) {
+        printf("failed to match on packet 3: ");
+        goto end;
     }
 
     /* packet 4 */
@@ -7742,11 +7805,9 @@ static int SigTestWithinReal01 (int mpm_type) {
     memset(&p4, 0, sizeof(Packet));
     DecodeEthernet(&th_v, &dtv, &p4, rawpkt4, sizeof(rawpkt4), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p4);
-    if (PacketAlertCheck(&p4, 556)){
-        //printf("match of sid on packet 4\n");
-        alertcnt++;
-    }else{
-        SCLogInfo("failed to match on packet 4");
+    if (!(PacketAlertCheck(&p4, 556))) {
+        printf("failed to match on packet 4: ");
+        goto end;
     }
 
     /* packet 5 */
@@ -7760,35 +7821,25 @@ static int SigTestWithinReal01 (int mpm_type) {
     p5.payload_len = p5buflen;
     p5.proto = IPPROTO_TCP;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p5);
-    if (PacketAlertCheck(&p5, 556)){
-        //printf("match of sid on packet 5\n");
-        alertcnt++;
-    }else{
-        SCLogInfo("failed to match on packet 5");
+    if (!(PacketAlertCheck(&p5, 556))) {
+        printf("failed to match on packet 5: ");
+        goto end;
     }
 
-    /* do all five packets alert ? */
-    if(alertcnt == 5){
-        result = 1;
-    }else{
-        SCLogInfo("expected 5 alerts got %i",alertcnt);
-    }
-
+    result = 1;
 end:
-    if(de_ctx)
-    {
+    if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
     }
 
-    if(det_ctx)
+    if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
-    if(de_ctx)
-             DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
 
     FlowShutdown();
-
     return result;
 }
 
@@ -7984,6 +8035,10 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTestContent04B2g -- 32 byte pattern, x2 + distance/within", SigTestContent04B2g, 1);
     UtRegisterTest("SigTestContent04B3g -- 32 byte pattern, x2 + distance/within", SigTestContent04B3g, 1);
     UtRegisterTest("SigTestContent04Wm -- 32 byte pattern, x2 + distance/within", SigTestContent04Wm, 1);
+
+    UtRegisterTest("SigTestContent05B2g -- distance/within", SigTestContent05B2g, 1);
+    UtRegisterTest("SigTestContent05B3g -- distance/within", SigTestContent05B3g, 1);
+    UtRegisterTest("SigTestContent05Wm -- distance/within", SigTestContent05Wm, 1);
 
     UtRegisterTest("SigTestWithinReal01B2g", SigTestWithinReal01B2g, 1);
     UtRegisterTest("SigTestWithinReal01B3g", SigTestWithinReal01B3g, 1);
