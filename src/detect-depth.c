@@ -43,7 +43,7 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
         } else if (pm->type == DETECT_CONTENT) {
             /** Search for the first previous DetectContent
               * SigMatch (it can be the same as this one) */
-            pm = DetectContentFindApplicableSM(m);
+            pm = DetectContentFindPrevApplicableSM(m);
             if (pm == NULL) {
                 printf("DetectDepthSetup: Unknown previous keyword!\n");
                 return -1;

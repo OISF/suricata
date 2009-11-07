@@ -57,8 +57,17 @@ DetectContentData *DetectContentParse (char *contentstr);
 void DetectContentPrint(DetectContentData *);
 
 /** This function search backwards the first applicable SigMatch holding
- * a DETECT_CONTENT context. Modifiers must call this */
-SigMatch *DetectContentFindApplicableSM(SigMatch *);
+ * a DETECT_CONTENT context (If it belongs to a chunk group, the first chunk
+ * of the group will be returned). Modifiers must call this */
+SigMatch *DetectContentFindPrevApplicableSM(SigMatch *);
+
+/** This function search forwards the first applicable SigMatch holding
+ * a DETECT_CONTENT context. The Match process call this */
+SigMatch *DetectContentFindNextApplicableSM(SigMatch *);
+
+/** This function search backwards if we have a SigMatch holding
+ * a Pattern before the SigMatch passed as argument */
+SigMatch *DetectContentHasPrevSMPattern(SigMatch *);
 
 /** After setting a new modifier, we should call one of the followings */
 int DetectContentPropagateDepth(SigMatch *);

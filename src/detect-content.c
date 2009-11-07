@@ -161,7 +161,8 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Mpm
                         nm->offset - (m->offset + co->content_len), nco->distance);
 
                     if (TestOffsetDepth(nm, nco, pktoff) == 1) {
-                        return TestWithinDistanceOffsetDepth(t, det_ctx, nm, nsm, nsm->next, pktoff);
+                        SigMatch *real_nsm_next = DetectContentFindNextApplicableSM(nsm->next);
+                        return TestWithinDistanceOffsetDepth(t, det_ctx, nm, nsm, real_nsm_next, pktoff);
                     }
                 } else {
                     SCLogDebug("NO MATCH: %" PRIu32 " < DISTANCE(%" PRIu32 ")",
@@ -214,7 +215,9 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
             if (TestOffsetDepth(m, co, det_ctx->pkt_off) == 1) {
                 SCLogDebug("TestOffsetDepth returned 1, for co->id %"PRIu32"", co->id);
 
-                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm, sm->next, det_ctx->pkt_off);
+                SigMatch *real_sm_next = DetectContentFindNextApplicableSM(sm->next);
+                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm, real_sm_next, det_ctx->pkt_off);
+
                 if (ret == 1) {
                     SCLogDebug("TestWithinDistanceOffsetDepth returned 1");
                     det_ctx->pkt_ptr = p->payload + m->offset;
@@ -556,6 +559,51 @@ error:
 }
 
 /**
+ * \brief Search the next applicable DETECT_CONTENT SigMatch
+          (includes the current sm)
+ *
+ * \param sm pointer to the current SigMatch of a parsing process
+ *
+ * \retval null if no applicable DetectContent was found
+ * \retval pointer to the SigMatch next DETECT_CONTENT SigMatch
+ */
+SigMatch *DetectContentFindNextApplicableSM(SigMatch *sm)
+{
+    if (sm == NULL)
+        return NULL;
+    while ( sm != NULL && sm->type != DETECT_CONTENT)
+        sm = sm->next;
+
+    return sm;
+}
+
+/**
+ * \brief Helper function to determine if there are patterns before this one,
+ *        this is used before installing a new within or distance modifier
+ *        because if this return NULL, it will never match!
+ *
+ * \param sm pointer to the current SigMatch of a parsing process
+ *
+ * \retval null if no applicable SigMatch pattern was found
+ * \retval pointer to the SigMatch that has the previous SigMatch
+ *                 of type DetectContent, (and is the first chunk if
+ *                 the pattern was splitted)
+ *
+ * \todo: should we add here DETECT_PCRE, DETECT_URI_CONTENT, etc?
+ */
+SigMatch *DetectContentHasPrevSMPattern(SigMatch *sm)
+{
+    if (sm == NULL)
+        return NULL;
+
+    /* the current SM doesn't apply */
+    sm = sm->prev;
+    while (sm != NULL && sm->type != DETECT_CONTENT)
+        sm = sm->prev;
+    return sm;
+}
+
+/**
  * \brief Search the first DETECT_CONTENT chunk of the last group in the
  *        previous SigMatches or the first DETECT_CONTENT not chunked
  * \retval pointer to the SigMatch holding the DetectContent
@@ -565,7 +613,7 @@ error:
  *                 of type DetectContent, (and is the first chunk if
  *                 the pattern was splitted)
  */
-SigMatch *DetectContentFindApplicableSM(SigMatch *sm)
+SigMatch *DetectContentFindPrevApplicableSM(SigMatch *sm)
 {
     if (sm == NULL)
         return NULL;
@@ -620,7 +668,7 @@ int DetectContentCountChunksInGroup(SigMatch *sm, uint8_t chunk_group_id)
         return -1;
 
     DetectContentData *cd = NULL;
-    SigMatch *first_sm = DetectContentFindApplicableSM(sm);
+    SigMatch *first_sm = DetectContentFindPrevApplicableSM(sm);
     for (; first_sm != NULL &&
            first_sm->type == DETECT_CONTENT &&
            first_sm->ctx != NULL &&
@@ -688,7 +736,7 @@ int DetectContentChunksGetPreviousLength(SigMatch *sm)
     uint8_t chunk_group_id = cd->chunk_group_id;
     uint8_t chunk_id = cd->chunk_id;
 
-    SigMatch *first_sm = DetectContentFindApplicableSM(sm);
+    SigMatch *first_sm = DetectContentFindPrevApplicableSM(sm);
 
     for (; first_sm != NULL &&
            first_sm->type == DETECT_CONTENT &&
@@ -725,7 +773,7 @@ int DetectContentChunksGetTotalLength(SigMatch *sm)
     uint8_t chunk_group_id = cd->chunk_group_id;
 
     /** Go to the first SigMatch of this Chunk group */
-    SigMatch *first_sm = DetectContentFindApplicableSM(sm);
+    SigMatch *first_sm = DetectContentFindPrevApplicableSM(sm);
 
     for (; first_sm != NULL &&
            first_sm->type == DETECT_CONTENT &&
@@ -907,7 +955,7 @@ int DetectContentPropagateModifiers(SigMatch *first_sm)
         return -1;
 
     /** Rewind the pointer to the start of the chunk if we have a chunk group */
-    first_sm = DetectContentFindApplicableSM(first_sm);
+    first_sm = DetectContentFindPrevApplicableSM(first_sm);
 
     if (first_sm->ctx == NULL)
         return -1;
@@ -2028,11 +2076,12 @@ int DetectContentChunkMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, char *si
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, sig);
-    de_ctx->sig_list->next = NULL;
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
+    de_ctx->sig_list->next = NULL;
+
     SCLogDebug("---DetectContentChunkMatchTest---");
     DetectContentPrintAll(de_ctx->sig_list->match);
 
@@ -2052,7 +2101,8 @@ end:
         //PatternMatchDestroy(mpm_ctx);
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+        if (det_ctx != NULL)
+            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
     }
     FlowShutdown();
@@ -2144,14 +2194,20 @@ int DetectContentChunkMatchTest04()
 
 /**
  * \test Check that we match packets with multiple chunks and not chunks
- * Here we should specify contents that fit and contents that must be splitted
+ * Here we should specify only contents that fit in 32 bytes
  * Each of them with their modifier values
  */
 int DetectContentChunkMatchTest05()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"Hi, this is a big test to check content matches\"; "
-                " content:\"of splitted\"; within:15; "
+                " content:\"Hi, this is a big\"; depth:17; "
+                //" isdataat:30, relative; "
+                //" content:\"test\"; within: 5; distance:1; depth:22; "
+                //" isdataat:15, relative; offset:18; "
+                //" content:\"of splitted\"; within:37; distance:15; "
+                //" depth:60; isdataat:20,relative; offset: 48; "
+                //" content:\"patterns\"; within:9; distance:1; depth:69; "
+                //" isdataat:10, relative; offset:60; "
                 " sid:1;)";
     return DetectContentChunkMatchTestWrp(sig, 1);
 }
@@ -2161,13 +2217,15 @@ int DetectContentChunkMatchTest05()
  * Here we should specify contents that fit and contents that must be splitted
  * Each of them with their modifier values
  */
-int DetectContentChunkMatchTest07()
+int DetectContentChunkMatchTest06()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"Hi, this is a big\"; "
-                " content:\"test\"; "
-                " content:\"of splitted\"; "
-                " content:\"patterns\"; "
+                " content:\"Hi, this is a big test to check cont\"; depth:36;"
+                " content:\"ent matches\"; within:11; distance:0; "
+                " content:\"of splitted patterns between multiple\"; "
+                " within:38; distance:1; offset:47; depth:85; "
+                " content:\"chunks!\"; within: 8; distance:1; "
+                " depth:94; offset: 50; "
                 " sid:1;)";
     return DetectContentChunkMatchTestWrp(sig, 1);
 }
@@ -2201,6 +2259,6 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentChunkMatchTest03", DetectContentChunkMatchTest03, 1);
     UtRegisterTest("DetectContentChunkMatchTest04", DetectContentChunkMatchTest04, 1);
     UtRegisterTest("DetectContentChunkMatchTest05", DetectContentChunkMatchTest05, 1);
-    UtRegisterTest("DetectContentChunkMatchTest07", DetectContentChunkMatchTest07, 1);
+    UtRegisterTest("DetectContentChunkMatchTest06", DetectContentChunkMatchTest06, 1);
     #endif /* UNITTESTS */
 }

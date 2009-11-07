@@ -258,13 +258,15 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
 }
 
 void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
-    if (io_tctx->src != NULL) {
-        DetectAddressFree(io_tctx->src);
+    if (io_tctx != NULL) {
+        if (io_tctx->src != NULL) {
+            DetectAddressFree(io_tctx->src);
+        }
+        if (io_tctx->dst != NULL) {
+            DetectAddressFree(io_tctx->dst);
+        }
+        free(io_tctx->sig_match_array);
     }
-    if (io_tctx->dst != NULL) {
-        DetectAddressFree(io_tctx->dst);
-    }
-    free(io_tctx->sig_match_array);
 }
 
 DetectAddress *IPOnlyLookupSrc16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {

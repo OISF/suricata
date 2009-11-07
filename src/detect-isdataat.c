@@ -224,7 +224,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
             SigMatch *pm = NULL;
             /** Search for the first previous DetectContent
               * SigMatch (it can be the same as this one) */
-            pm = DetectContentFindApplicableSM(m);
+            pm = DetectContentFindPrevApplicableSM(m);
             if (pm == NULL) {
                 printf("DetectIsdataatSetup: Unknown previous keyword!\n");
                 return -1;

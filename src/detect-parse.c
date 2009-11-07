@@ -212,6 +212,7 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
             m = m->next;
     else if (m == NULL && s->match != NULL)
             m = s->match;
+
     while (m != NULL && m->next != NULL)
         m = m->next;
 

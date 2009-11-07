@@ -55,8 +55,8 @@ int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     } else if (pm->type == DETECT_CONTENT) {
         /** Search for the first previous DetectContent
           * SigMatch (it can be the same as this one) */
-        pm = DetectContentFindApplicableSM(m);
-        if (pm == NULL) {
+        pm = DetectContentFindPrevApplicableSM(m);
+        if (pm == NULL || DetectContentHasPrevSMPattern(pm) == NULL) {
             printf("DetectWithinSetup: Unknown previous keyword!\n");
             return -1;
         }
