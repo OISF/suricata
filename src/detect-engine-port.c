@@ -969,15 +969,26 @@ error:
 }
 
 /**
- * \brief Real function that parse the ports string and fragment it into groups
+ * \brief Parses a port string and updates the 2 port heads with the
+ *        port groups.
  *
- * \param head Pointer to the head of the DetectPort group list
- * \param nhead Pointer to the new head of the DetectPort group list
- * \param s Pointer to the port string
- * \param negate Flag to know if the group is negated
+ * \todo We don't seem to be handling negated cases, like [port,![!port,port]],
+ *       since we pass around negate without keeping a count of ! with depth.
+ *       Can solve this by keeping a count of the negations with depth, so that
+ *       an even no of negations would count as no negation and an odd no of
+ *       negations would count as a negation.
  *
- * \retval 0 on success
- * \retval -1 on error
+ * \param gh     Pointer to the port group head that should hold port ranges
+ *               that are not negated.
+ * \param ghn    Pointer to the port group head that should hold port ranges
+ *               that are negated.
+ * \param s      Pointer to the character string holding the port to be
+ *               parsed.
+ * \param negate Flag that indicates if the receieved address string is negated
+ *               or not.  0 if it is not, 1 it it is.
+ *
+ * \retval  0 On successfully parsing.
+ * \retval -1 On failure.
  */
 static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                              int negate) {

@@ -727,7 +727,28 @@ error:
     return -1;
 }
 
-/* XXX error handling */
+/**
+ * \brief Parses an address string and updates the 2 address heads with the
+ *        address data.
+ *
+ * \todo We don't seem to be handling negated cases, like [addr,![!addr,addr]],
+ *       since we pass around negate without keeping a count of ! with depth.
+ *       Can solve this by keeping a count of the negations with depth, so that
+ *       an even no of negations would count as no negation and an odd no of
+ *       negations would count as a negation.
+ *
+ * \param gh     Pointer to the address head that should hold address ranges
+ *               that are not negated.
+ * \param ghn    Pointer to the address head that should hold address ranges
+ *               that are negated.
+ * \param s      Pointer to the character string holding the address to be
+ *               parsed.
+ * \param negate Flag that indicates if the receieved address string is negated
+ *               or not.  0 if it is not, 1 it it is.
+ *
+ * \retval  0 On successfully parsing.
+ * \retval -1 On failure.
+ */
 int DetectAddressParse2(DetectAddressHead *gh,
                         DetectAddressHead *ghn,
                         char *s, int negate) {
