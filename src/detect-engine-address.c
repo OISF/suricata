@@ -651,6 +651,7 @@ error:
 int DetectAddressSetup(DetectAddressHead *gh, char *s) {
     DetectAddress *ad = NULL;
     int r = 0;
+    char any = FALSE;
 
     SCLogDebug("gh %p, s %s", gh, s);
 
@@ -660,6 +661,9 @@ int DetectAddressSetup(DetectAddressHead *gh, char *s) {
         printf("DetectAddressParse error \"%s\"\n",s);
         goto error;
     }
+
+    if (ad->flags & ADDRESS_FLAG_ANY)
+        any = TRUE;
 
     /* handle the not case, we apply the negation
      * then insert the part(s) */
@@ -691,7 +695,7 @@ int DetectAddressSetup(DetectAddressHead *gh, char *s) {
     SCLogDebug("r %d",r);
 
     /* if any, insert 0.0.0.0/0 and ::/0 as well */
-    if (r == 1 && ad->flags & ADDRESS_FLAG_ANY) {
+    if (r == 1 && any == TRUE) {
         SCLogDebug("adding 0.0.0.0/0 and ::/0 as we\'re handling \'any\'");
 
         ad = DetectAddressParseSingle("0.0.0.0/0");

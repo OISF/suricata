@@ -273,7 +273,7 @@ ConfYamlLoadFile(const char *filename)
  * \brief Load configuration from a YAML string.
  */
 void
-ConfYamlLoadString(const u_char *string, size_t len)
+ConfYamlLoadString(const char *string, size_t len)
 {
     yaml_parser_t parser;
 
@@ -281,7 +281,7 @@ ConfYamlLoadString(const u_char *string, size_t len)
         fprintf(stderr, "Failed to initialize yaml parser.\n");
         exit(EXIT_FAILURE);
     }
-    yaml_parser_set_input_string(&parser, string, len);
+    yaml_parser_set_input_string(&parser, (const unsigned char *)string, len);
     ConfYamlParse(&parser);
     yaml_parser_delete(&parser);
 }
@@ -303,7 +303,7 @@ default-log-dir: /tmp\n\
 ";
 
     ConfNode *node;
-    ConfYamlLoadString((u_char *)input, strlen(input));
+    ConfYamlLoadString(input, strlen(input));
     node = ConfGetNode("rule-files");
     if (node == NULL)
         return 0;

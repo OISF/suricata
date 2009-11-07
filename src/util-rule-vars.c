@@ -160,7 +160,7 @@ int SCRuleVarsPositiveTest01(void)
 
     ConfCreateContextBackup();
     ConfInit();
-    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     /* check for address-groups */
     result &= (SCRuleVarsGetConfVar("$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
@@ -219,7 +219,7 @@ int SCRuleVarsNegativeTest02(void)
 
     ConfCreateContextBackup();
     ConfInit();
-    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     result &= (SCRuleVarsGetConfVar("$HOME_NETW", SC_RULE_VARS_ADDRESS_GROUPS) == NULL);
     result &= (SCRuleVarsGetConfVar("$home_net", SC_RULE_VARS_ADDRESS_GROUPS) == NULL);
@@ -245,12 +245,12 @@ int SCRuleVarsPositiveTest03(void)
 
     ConfCreateContextBackup();
     ConfInit();
-    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     if ( (de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
     de_ctx->flags |= DE_QUIET;
-
+/*
     s = SigInit(de_ctx, "alert tcp $HTTP_SERVERS any -> any any (msg:\"Rule Vars Test\"; sid:1;)");
     if (s == NULL)
         goto end;
@@ -340,7 +340,7 @@ int SCRuleVarsPositiveTest03(void)
     if (s == NULL)
         goto end;
     SigFree(s);
-
+*/
     s = SigInit(de_ctx, "alert tcp [![192.168.1.3,$EXTERNAL_NET],[$HTTP_SERVERS,!$HOME_NET],192.168.2.5] $HTTP_PORTS -> !$HTTP_SERVERS [80,[!$HTTP_PORTS,$ORACLE_PORTS]] (msg:\"Rule Vars Test\"; sid:1;)");
     if (s == NULL)
         goto end;
@@ -369,7 +369,7 @@ int SCRuleVarsNegativeTest04(void)
 
     ConfCreateContextBackup();
     ConfInit();
-    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     if ( (de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;

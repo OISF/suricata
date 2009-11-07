@@ -76,8 +76,20 @@ ConfHashComp(void *a, uint16_t a_len, void *b, uint16_t b_len)
 static void ConfHashFree(void *data)
 {
     ConfNode *cn = (ConfNode *)data;
+    if (cn == NULL)
+        return;
 
-    ConfNodeFree(cn);
+    /** \todo VJ apparently the list that is free is also in the hash
+     *           individually resulting in double free errors if we
+     *           call ConfNodeFree (that clears the list) from this
+     *           hash free function */
+
+    if (cn->name != NULL)
+        free(cn->name);
+    if (cn->val != NULL)
+        free(cn->val);
+    free(cn);
+    //ConfNodeFree(cn);
 }
 
 /**

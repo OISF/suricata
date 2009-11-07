@@ -3625,7 +3625,7 @@ static int SigTest15Real (int mpm_type) {
 
     ConfCreateContextBackup();
     ConfInit();
-    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3642,7 +3642,6 @@ static int SigTest15Real (int mpm_type) {
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -3654,7 +3653,6 @@ static int SigTest15Real (int mpm_type) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     ConfDeInit();
@@ -3692,7 +3690,7 @@ static int SigTest16Real (int mpm_type) {
 
     ConfCreateContextBackup();
     ConfInit();
-    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3760,7 +3758,7 @@ static int SigTest17Real (int mpm_type) {
 
     ConfCreateContextBackup();
     ConfInit();
-    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3898,7 +3896,7 @@ int SigTest19Real (int mpm_type) {
 
     ConfCreateContextBackup();
     ConfInit();
-    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3965,7 +3963,7 @@ static int SigTest20Real (int mpm_type) {
 
     ConfCreateContextBackup();
     ConfInit();
-    ConfYamlLoadString((u_char *)dummy_conf_string, strlen(dummy_conf_string));
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
