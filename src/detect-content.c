@@ -2230,6 +2230,38 @@ int DetectContentChunkMatchTest06()
     return DetectContentChunkMatchTestWrp(sig, 1);
 }
 
+/**
+ * \test Check if we match contents that are in the payload
+ * but not in the same order as specified in the signature
+ */
+int DetectContentChunkMatchTest07()
+{
+    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+                " content:\"chunks!\"; "
+                " content:\"content matches\"; offset:32; depth:47; "
+                " content:\"of splitted patterns between multiple\"; "
+                " content:\"Hi, this is a big\"; offset:0; depth:17; "
+                " sid:1;)";
+    return DetectContentChunkMatchTestWrp(sig, 1);
+}
+
+/**
+ * \test Check if we match contents that are in the payload
+ * but not in the same order as specified in the signature
+ */
+int DetectContentChunkMatchTest08()
+{
+    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+                " content:\"ent matches\"; "
+                " content:\"of splitted patterns between multiple\"; "
+                " within:38; distance:1; offset:47; depth:85; "
+                " content:\"chunks!\"; within: 8; distance:1; "
+                " depth:94; offset: 50; "
+                " content:\"Hi, this is a big test to check cont\"; depth:36;"
+                " sid:1;)";
+    return DetectContentChunkMatchTestWrp(sig, 1);
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -2260,5 +2292,7 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentChunkMatchTest04", DetectContentChunkMatchTest04, 1);
     UtRegisterTest("DetectContentChunkMatchTest05", DetectContentChunkMatchTest05, 1);
     UtRegisterTest("DetectContentChunkMatchTest06", DetectContentChunkMatchTest06, 1);
+    UtRegisterTest("DetectContentChunkMatchTest07", DetectContentChunkMatchTest07, 1);
+    UtRegisterTest("DetectContentChunkMatchTest08", DetectContentChunkMatchTest08, 1);
     #endif /* UNITTESTS */
 }
