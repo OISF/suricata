@@ -71,6 +71,35 @@ uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
     return de_ctx->content_max_id;
 }
 
+#ifdef DEBUG
+static void DetectContentDebugPrint(DetectContentData *co) {
+    char buf[2048] = "";
+    char tmp[4] = "";
+    uint16_t u = 0;
+
+    for (u = 0; u < co->content_len; u++) {
+        if (isprint((char)co->content[u])) {
+            snprintf(tmp,sizeof(tmp),"%c", (char)co->content[u]);
+        } else {
+            snprintf(tmp,sizeof(tmp),"\\%02x", co->content[u]);
+        }
+        strncat(buf,tmp,sizeof(buf));
+    }
+
+    SCLogDebug("content \"%s\"",buf);
+}
+
+static void DetectContentPrintMatches(DetectEngineThreadCtx *det_ctx, DetectContentData *co) {
+    DetectContentDebugPrint(co);
+    SCLogDebug("matched %" PRIu32 " time(s) at offsets: ", det_ctx->mtc.match[co->id].len);
+
+    MpmMatch *tmpm = NULL;
+    for (tmpm = det_ctx->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
+        SCLogDebug("%" PRIu32 " ", tmpm->offset);
+    }
+}
+#endif
+
 static inline int
 TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
     if (m->offset >= pktoff) {
@@ -126,13 +155,26 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
 static inline int
 TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *det_ctx, MpmMatch *m, SigMatch *sm, SigMatch *nsm, uint16_t pktoff)
 {
-    if (nsm == NULL)
+    if (nsm == NULL) {
+        SCLogDebug("No next sigmatch, all sigmatches matched.");
         return 1;
+    }
 
     /** content match of current pattern */
     DetectContentData *co = (DetectContentData *)sm->ctx;
+
+    if (!(co->flags & DETECT_CONTENT_DISTANCE_NEXT) && !(co->flags & DETECT_CONTENT_WITHIN_NEXT)) {
+        SCLogDebug("Next content is does not need distance/within checking.");
+        return 1;
+    }
+
     /** content match of next pattern */
     DetectContentData *nco = (DetectContentData *)nsm->ctx;
+#ifdef DEBUG
+    if (SCLogDebugEnabled()) {
+        DetectContentPrintMatches(det_ctx, nco);
+    }
+#endif
     /** list of matches of the next pattern */
     MpmMatch *nm = det_ctx->mtc.match[nco->id].top;
 
@@ -178,8 +220,11 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Mpm
                             (nco->within + co->content_len));
                 }
             }
+        } else {
+            SCLogDebug("pktoff %"PRIu16" > nm->offset %"PRIu32"", pktoff, nm->offset);
         }
     }
+    SCLogDebug("no match found, returning 0");
     return 0;
 }
 
@@ -188,11 +233,25 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
 {
     int ret = 0;
     char match = 0;
+    uint16_t pkt_off = det_ctx->pkt_off;
 
     /* Get the top match, we already know we have one. */
     MpmMatch *m = det_ctx->mtc.match[co->id].top;
 
     SCLogDebug("det_ctx->mtc.match[co->id].len %"PRIu32"", det_ctx->mtc.match[co->id].len);
+
+    /* reset de_checking_distancewithin */
+    if (!(co->flags & DETECT_CONTENT_WITHIN) &&
+        !(co->flags & DETECT_CONTENT_DISTANCE))
+    {
+        det_ctx->de_checking_distancewithin = 0;
+
+        /* only use pkt offset of previous matches
+         * on relative matches. */
+        pkt_off = 0;
+    }
+
+    SCLogDebug("using pkt_off %"PRIu16"", pkt_off);
 
     /*  if we have within or distance coming up next, check this match
      *  for distance and/or within and check the rest of this match
@@ -212,19 +271,22 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
 
         for (; m != NULL; m = m->next) {
             /* first check our match for offset and depth */
-            if (TestOffsetDepth(m, co, det_ctx->pkt_off) == 1) {
+            if (TestOffsetDepth(m, co, pkt_off) == 1) {
                 SCLogDebug("TestOffsetDepth returned 1, for co->id %"PRIu32"", co->id);
 
                 SigMatch *real_sm_next = DetectContentFindNextApplicableSM(sm->next);
-                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm, real_sm_next, det_ctx->pkt_off);
+                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm, real_sm_next, pkt_off);
 
                 if (ret == 1) {
                     SCLogDebug("TestWithinDistanceOffsetDepth returned 1");
                     det_ctx->pkt_ptr = p->payload + m->offset;
-                    det_ctx->pkt_off = m->offset;
+                    /* update both the local and ctx pkt_off */
+                    pkt_off = det_ctx->pkt_off = m->offset;
                     match = 1;
                     break;
                 }
+            } else {
+                SCLogDebug("TestOffsetDepth returned 0, for co->id %"PRIu32"", co->id);
             }
         }
 
@@ -318,16 +380,9 @@ int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     if (len == 0)
         return 0;
 
-#if 0
+#ifdef DEBUG
     if (SCLogDebugEnabled()) {
-        SCLogDebug("content \""); PrintRawUriFp(stdout, co->content, co->content_len);
-        SCLogDebug("\" matched %" PRIu32 " time(s) at offsets: ", len);
-
-        MpmMatch *tmpm = NULL;
-        for (tmpm = det_ctx->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
-            SCLogDebug("%" PRIu32 " ", tmpm->offset);
-        }
-        SCLogDebug("");
+        DetectContentPrintMatches(det_ctx, co);
     }
 #endif
 
@@ -2262,6 +2317,24 @@ int DetectContentChunkMatchTest08()
     return DetectContentChunkMatchTestWrp(sig, 1);
 }
 
+/**
+ * \test Check if we match contents that are in the payload
+ * but not in the same order as specified in the signature
+ */
+int DetectContentChunkMatchTest09()
+{
+    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+                " content:\"ent matches\"; "
+                " content:\"of splitted patterns between multiple\"; "
+                " within:38; distance:1; offset:47; depth:85; "
+                " content:\"chunks!\"; within: 8; distance:1; "
+                " depth:94; offset: 50; "
+                " content:\"Hi, this is a big test to chec\"; depth:36;"
+                " content:\"k cont\"; distance:0; within:6;"
+                " sid:1;)";
+    return DetectContentChunkMatchTestWrp(sig, 1);
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -2294,5 +2367,6 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentChunkMatchTest06", DetectContentChunkMatchTest06, 1);
     UtRegisterTest("DetectContentChunkMatchTest07", DetectContentChunkMatchTest07, 1);
     UtRegisterTest("DetectContentChunkMatchTest08", DetectContentChunkMatchTest08, 1);
+    UtRegisterTest("DetectContentChunkMatchTest09", DetectContentChunkMatchTest09, 1);
     #endif /* UNITTESTS */
 }
