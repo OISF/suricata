@@ -28,6 +28,8 @@ typedef struct DetectContentData_ {
     uint8_t content_len;
     uint32_t id;
 
+    uint8_t negated;
+
     uint16_t depth;
     uint16_t offset;
     uint32_t isdataat;

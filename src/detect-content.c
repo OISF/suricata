@@ -103,23 +103,53 @@ static void DetectContentPrintMatches(DetectEngineThreadCtx *det_ctx, DetectCont
 static inline int
 TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
     if (m->offset >= pktoff) {
-        if (co->offset == 0 ||
-           (co->offset && m->offset >= co->offset)) {
-            if (co->depth == 0 ||
-               (co->depth && (m->offset+co->content_len) <= co->depth))
-            {
-                SCLogDebug("depth %" PRIu32 ", offset %" PRIu32 ", m->offset %" PRIu32 ", return 1",
-                        co->depth, co->offset, m->offset);
-                return 1;
+        if (co->offset == 0 || (m->offset >= co->offset)) {
+            if (co->depth == 0 || ((m->offset + co->content_len) <= co->depth)) {
+                SCLogDebug("depth %" PRIu32 ", offset %" PRIu32 ", m->offset "
+                           "%" PRIu32 ", return 1", co->depth, co->offset,
+                           m->offset);
+
+                /* If we reach this point, it means we have obtained a depth and
+                 * offset match, which indicates that we have a FAILURE if the
+                 * content is negated, and SUCCESS if the content is not negated */
+                if (co->negated == 1)
+                    return 0;
+                else
+                    return 1;
+            } else {
+                /* We have success so far with offset, but a failure with
+                 * depth.  We can return a match at the bottom of this function
+                 * for negated_content, provided offset is 0.  If offset
+                 * isn't 0 for negated_content, we have a failure and we return
+                 * a no match here.  If the content is not negated, we have a no
+                 * match, which we return at the end of this function. */
+                if (co->offset && co->negated == 1)
+                    return 0;
+            }
+        } else {
+            /* If offset fails, and if the content is negated, we check if depth
+             * succeeds.  If it succeeds, we have a no match for negated content.
+             * Else we have a success for negated content.  If the content is
+             * not negated, we go down till the end and return a no match. */
+            if (co->negated == 1 &&
+                (co->depth && (m->offset+co->content_len) <= co->depth)) {
+                return 0;
             }
         }
     }
-    SCLogDebug("depth %" PRIu32 ", offset %" PRIu32 ", m->offset %" PRIu32 ", return 0",
-        co->depth, co->offset, m->offset);
-    return 0;
+    SCLogDebug("depth %" PRIu32 ", offset %" PRIu32 ", m->offset %" PRIu32 ", "
+               "return 0", co->depth, co->offset, m->offset);
+
+    /* If we reach this point, we have a match for negated content and no match
+     * otherwise */
+    if (co->negated == 1)
+        return 1;
+    else
+        return 0;
 }
 
-/** \brief test the within, distance, offset and depth of a match
+/**
+ * \brief test the within, distance, offset and depth of a match
  *
  *         This function is called recursively (if nescessary) to be able
  *         to determine whether or not a chain of content matches connected
@@ -145,16 +175,24 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
  *         before that point + the lenght of the pattern we're checking,
  *         nco->content_len.
  *
- *  \param t thread vars
- *  \param det_ctx thread local data of the detection engine ctx
- *  \param m match we are inspecting
- *  \param nm current sigmatch to work with
- *  \param nsm next sigmatch to work with
- *  \param pktoff packet offset
+ * \param t       thread vars
+ * \param det_ctx thread local data of the detection engine ctx
+ * \param m       match we are inspecting
+ * \param nm      current sigmatch to work with
+ * \param nsm     next sigmatch to work with
+ * \param pktoff  packet offset
+ *
+ * \retval  1 On success.
+ * \retval  0 On failure because of non-negated content.
+ * \retval -1 On failure because of negated content.
  */
-static inline int
-TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *det_ctx, MpmMatch *m, SigMatch *sm, SigMatch *nsm, uint16_t pktoff)
+int TestWithinDistanceOffsetDepth(ThreadVars *t,
+                                  DetectEngineThreadCtx *det_ctx,
+                                  MpmMatch *m, SigMatch *sm,
+                                  SigMatch *nsm, uint16_t pktoff)
 {
+    int neg_success_flag = 0;
+
     if (nsm == NULL) {
         SCLogDebug("No next sigmatch, all sigmatches matched.");
         return 1;
@@ -178,62 +216,155 @@ TestWithinDistanceOffsetDepth(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Mpm
     /** list of matches of the next pattern */
     MpmMatch *nm = det_ctx->mtc.match[nco->id].top;
 
+    /* if we have no matches and the content is negated, we can return a success */
+    if (nm == NULL && nco->negated == 1)
+        return 1;
+
     /* recursively check if we have a next pattern that matches */
-    for (; nm; nm = nm->next) {
-        SCLogDebug("nm->offset %" PRIu32 ", m->offset %" PRIu32 ", pktoff %" PRIu32 "", nm->offset, m->offset, pktoff);
-        SCLogDebug("nm->offset + nco->content_len = %"PRIu32" + %"PRIu32" = %"PRIu32"",
-                nm->offset, nco->content_len, nm->offset + nco->content_len);
-        SCLogDebug("within (0 if disabled) = %"PRIu32" (nco->within %"PRIu32" + co->content_len %"PRIu32")",
-                nco->flags & DETECT_CONTENT_WITHIN ? (nco->within + co->content_len) : 0, nco->within, co->content_len);
+    for ( ; nm != NULL; nm = nm->next) {
+        SCLogDebug("nm->offset %" PRIu32 ", m->offset %" PRIu32 ", pktoff "
+                   "%" PRIu32 "", nm->offset, m->offset, pktoff);
+        SCLogDebug("nm->offset + nco->content_len = %"PRIu32" + %"PRIu32" = "
+                   "%"PRIu32"", nm->offset, nco->content_len,
+                   nm->offset + nco->content_len);
+        SCLogDebug("within (0 if disabled) = %"PRIu32" (nco->within "
+                   "%"PRIu32" + co->content_len %"PRIu32")",
+                   (nco->flags & DETECT_CONTENT_WITHIN) ?
+                   (nco->within + co->content_len) : 0, nco->within,
+                   co->content_len);
 
         if (nm->offset >= pktoff) {
             if ((!(nco->flags & DETECT_CONTENT_WITHIN) ||
                 (nco->within > 0 && (nm->offset > m->offset) &&
-                (((nm->offset + nco->content_len) - m->offset) <= (nco->within + co->content_len)))))
-            {
+                (((nm->offset + nco->content_len) - m->offset) <= (nco->within + co->content_len)))))  {
                 SCLogDebug("MATCH: %" PRIu32 " <= WITHIN(%" PRIu32 ")",
-                        (nm->offset + nco->content_len) - m->offset,
-                        nco->within + co->content_len);
+                           (nm->offset + nco->content_len) - m->offset,
+                           nco->within + co->content_len);
 
                 if (!(nco->flags & DETECT_CONTENT_DISTANCE) ||
                     ((nm->offset >= (m->offset + co->content_len)) &&
-                    ((nm->offset - (m->offset + co->content_len)) >= nco->distance)))
-                {
+                    ((nm->offset - (m->offset + co->content_len)) >= nco->distance))) {
                     SCLogDebug("MATCH: %" PRIu32 " >= DISTANCE(%" PRIu32 ")",
                         nm->offset - (m->offset + co->content_len), nco->distance);
 
-                    if (TestOffsetDepth(nm, nco, pktoff) == 1) {
-                        SigMatch *real_nsm_next = DetectContentFindNextApplicableSM(nsm->next);
-                        return TestWithinDistanceOffsetDepth(t, det_ctx, nm, nsm, real_nsm_next, pktoff);
+                    if (TestOffsetDepth(nm, nco, pktoff) == 0) {
+                        /* if the content is not negated, we have to return a 0
+                         * under all circumstances, because we can't afford for
+                         * the offset and depth match to fail.  If the content
+                         * is negated, we have 2 cases.  First case is when we
+                         * have a distance or within and TestOffsetDepth() fails.
+                         * In this case we have to return a 0, irrespective of
+                         * whether we have a depth or offset, because we seem to
+                         * be having a match for within or distance.  If we don't
+                         * have distance and within, and if the depth/offset
+                         * check failed, then we still have a failure because of
+                         * the obvious reason that in the absence of within and
+                         * distance, offset/depth check has to succeed. */
+                        if (nco->negated == 1)
+                            return -1;
+                        else
+                            return 0;
+                    } else {
+                        /* if the content is negated and we had a within or a
+                         * distance, it indicates that we passed through the
+                         * within/distance, which is a failure */
+                        if (nco->negated == 1 &&
+                            ((nco->flags & DETECT_CONTENT_WITHIN) ||
+                             (nco->flags & DETECT_CONTENT_DISTANCE))) {
+                            return -1;
+                        } else {
+                            return TestWithinDistanceOffsetDepth(t, det_ctx, nm,
+                                                                 nsm, nsm->next,
+                                                                 pktoff);
+                        }
                     }
                 } else {
                     SCLogDebug("NO MATCH: %" PRIu32 " < DISTANCE(%" PRIu32 ")",
-                        nm->offset - (m->offset + co->content_len), nco->distance);
+                               nm->offset - (m->offset + co->content_len),
+                               nco->distance);
+                    /* looks like we got through within, but failed at distance.
+                     * An obvious failure in case of non-negated content, in which
+                     * case we move on to the next match.
+                     * In case of negated content, if there was a within
+                     * previously, it indicates that we got through the within
+                     * and we have a nomatch now with distance.  If we didn't
+                     * have within, we made it through, but we check for depth
+                     * and offset now.  If depth/offset check succeeds we have a
+                     * temporary success and we move on to the next match.  If
+                     * it fails, we check if it failed because we didn't have
+                     * offset and depth, in which case, it is not a failure and
+                     * we on to the nextmatch.  Otherwise it is a failure */
+                    if (nco->negated == 1 && (nm->offset >= (m->offset + co->content_len))) {
+                        if (nco->flags & DETECT_CONTENT_WITHIN)
+                            return -1;
+
+                        if (TestOffsetDepth(nm, nco, pktoff) == 1) {
+                            neg_success_flag = 1;
+                        } else {
+                            if (nco->offset == 0 && nco->depth == 0)
+                                neg_success_flag = 1;
+                            else
+                                return -1;
+                        }
+                    }
                 }
             } else {
-                if (nm->offset <= m->offset) {
-                    SCLogDebug("NO MATCH: nm->offset before or on m->offset: %"PRIu32" <= %"PRIu32"",
-                            nm->offset, m->offset);
-                } else {
-                    SCLogDebug("NO MATCH: %" PRIu32 " > WITHIN(%" PRIu32 ")",
-                            (nm->offset + nco->content_len) - m->offset,
-                            (nco->within + co->content_len));
+                /* We have failed at within.  If the content is not negated we
+                 * have an obvious failure and we move on to the next match.  If
+                 * the content is negated, we check if distance exists.  If it
+                 * does, and if the distance check succeeds, we have a failure
+                 * for negated content.  If we don't have a failure or if distance
+                 * doesn't exist, we move on to test offset/depth check.  The
+                 * offset/depth test is the same as in the previous else. */
+                if (nco->negated == 1 && nm->offset > m->offset) {
+                    if ((nco->flags & DETECT_CONTENT_DISTANCE) &&
+                        ((nm->offset - (m->offset + co->content_len)) >= nco->distance)) {
+                            return -1;
+                        /* distance check meets non-negated requirements.  Let
+                         * us move on and check depth/offset */
+                    }
+
+                    if (TestOffsetDepth(nm, nco, pktoff) == 1) {
+                        /* offset, depth success for negated content.  A temp
+                         * success for us.  Let us set the flag indicating
+                         * this and move on to the next match. */
+                        neg_success_flag = 1;
+                    } else {
+                        /* looks like offset/depth failed.  If it failed because
+                         * both offset and depth weren't present, then it is not
+                         * precisely a failure, because the existance of negated
+                         * content is governed by the presence of within/distance.
+                         * So we set the flag and move on to the next content.
+                         * But if offset and depth do exist, then it indicates
+                         * that the negated content doesn't meet the requirements
+                         * of offset/depth and we have a failure. */
+                        if (nco->offset == 0 && nco->depth == 0)
+                            neg_success_flag = 1;
+                        else
+                            return -1;
+                    }
                 }
             }
         } else {
             SCLogDebug("pktoff %"PRIu16" > nm->offset %"PRIu32"", pktoff, nm->offset);
         }
     }
+
+    if (neg_success_flag == 1) {
+        return 1;
+    }
+
     SCLogDebug("no match found, returning 0");
     return 0;
 }
 
-static inline int
+int
 DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm, DetectContentData *co)
 {
     int ret = 0;
     char match = 0;
     uint16_t pkt_off = det_ctx->pkt_off;
+    MpmMatch *temp_m = NULL;
 
     /* Get the top match, we already know we have one. */
     MpmMatch *m = det_ctx->mtc.match[co->id].top;
@@ -284,6 +415,8 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
                     pkt_off = det_ctx->pkt_off = m->offset;
                     match = 1;
                     break;
+                } else if (ret == -1) {
+                    break;
                 }
             } else {
                 SCLogDebug("TestOffsetDepth returned 0, for co->id %"PRIu32"", co->id);
@@ -310,6 +443,17 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
      * settings. If so, return a match.
      */
     } else {
+        /* if we have no matches, we return MATCH if the content is negated, or
+         * NOMATCH if the content is not negated */
+        if (m == NULL) {
+            if (co->negated == 1)
+                match = 1;
+            else
+                match = 0;
+
+            return match;
+        }
+
         /* when in recursive capture mode don't check depth and offset
          * after the first match */
         if (s->flags & SIG_FLAG_RECURSIVE && det_ctx->pkt_cnt) {
@@ -324,31 +468,57 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
                 }
             }
         } else {
+            temp_m = m;
             for (; m != NULL; m = m->next) {
-                ret = TestOffsetDepth(m,co, 0); /* no offset as we inspect each
-                                                 * match on it's own */
-                if (ret == 1) {
-                    /* update pkt ptrs, this content run doesn't
-                     * use this, but pcre does */
-                    det_ctx->pkt_ptr = p->payload + m->offset;
-                    det_ctx->pkt_off = m->offset;
-                    match = 1;
-                    break;
+                /* no offset as we inspect each match on it's own */
+                ret = TestOffsetDepth(m, co, 0);
+
+                /* If ret is 0 and content is negated, we have a failure and we
+                 * break.  If ret is 0 and content is not negated, we have a
+                 * failure for this match, so we will continue in this loop
+                 * testing other matches.  If ret is 1, and the content is
+                 * negated we have a success and we will continue along the loop
+                 * to check that other matches also return 1 for TestOffsetDepth()
+                 * with the negated content.  But if ret is 1, and the content
+                 * is not negated, we have a match, which is sufficient for us to
+                 * return with a break, with match = 1. */
+                if (ret == 0) {
+                    if (co->negated == 1) {
+                        match = 0;
+                        break;
+                    }
+                } else {
+                    if (co->negated == 0) {
+                        /* update pkt ptrs, this content run doesn't
+                         * use this, but pcre does */
+                        det_ctx->pkt_ptr = p->payload + m->offset;
+                        det_ctx->pkt_off = m->offset;
+                        match = 1;
+                        break;
+                    }
                 }
             }
+            /* If there were matches, with the content being negated, and all of
+             * them passed TestOffsetDepth(), we have a match.  This is the
+             * reason why we continue in the else part if ret == 1, if the
+             * content is negated */
+            if (temp_m != NULL && ret == 1 && co->negated == 1)
+                match = 1;
         }
     }
 
     /* If it has matched, check if it's set a "isdataat" option and process it */
-    if (match == 1 && co->flags & DETECT_CONTENT_ISDATAAT_RELATIVE)
-    {
+    /* If it has matched, check if it's set a "isdataat" option and process it */
+    if (match == 1 && (co->flags & DETECT_CONTENT_ISDATAAT_RELATIVE) &&
+        co->negated == 0) {
         /* if the rest of the payload (from the last match) is less than
           the "isdataat" there is no data where the rule expected
           so match=0
         */
 
         SCLogDebug("isdataat: payload_len: %u, used %u, rest %u, isdataat? %u", p->payload_len, (m->offset + co->content_len),p->payload_len - (m->offset + co->content_len), co->isdataat);
-        if(!(p->payload_len - (m->offset + co->content_len) >= co->isdataat))
+
+        if ( ((p->payload_len - (m->offset + co->content_len)) < co->isdataat) )
             match = 0;
 
         if (match) {
@@ -368,17 +538,10 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
 
 int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
-    uint32_t len = 0;
-
     if (p->payload_len == 0)
         return 0;
 
     DetectContentData *co = (DetectContentData *)m->ctx;
-
-    /* see if we had a match */
-    len = det_ctx->mtc.match[co->id].len;
-    if (len == 0)
-        return 0;
 
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
@@ -392,29 +555,46 @@ int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 DetectContentData *DetectContentParse (char *contentstr)
 {
     DetectContentData *cd = NULL;
-    char *str;
+    char *str = NULL;
+    char *temp = NULL;
     uint16_t len;
 
-    if (strlen(contentstr) == 0)
-        return NULL;
+    if ((temp = strdup(contentstr)) == NULL)
+        goto error;
 
-    if (contentstr[0] == '\"' && contentstr[strlen(contentstr)-1] == '\"') {
-        str = strdup(contentstr+1);
-        str[strlen(contentstr)-2] = '\0';
-    } else {
-        str = strdup(contentstr);
+    if (strlen(temp) == 0) {
+        if (temp) free(temp);
+        return NULL;
     }
+
+    cd = malloc(sizeof(DetectContentData));
+    if (cd == NULL) {
+        printf("DetectContentParse malloc failed\n");
+        goto error;
+    }
+    memset(cd, 0, sizeof(DetectContentData));
+
+    if (temp[0] == '!') {
+        free(temp);
+        if ( (temp = strdup(contentstr + 1)) == NULL)
+            goto error;
+        cd->negated = 1;
+    }
+
+    if (temp[0] == '\"' && temp[strlen(temp)-1] == '\"') {
+        if ( (str = strdup(temp + 1)) == NULL)
+            goto error;
+        str[strlen(temp) - 2] = '\0';
+    } else {
+        if ( (str = strdup(temp)) == NULL)
+            goto error;
+    }
+
+    free(temp);
 
     len = strlen(str);
     if (len == 0)
         goto error;
-
-    cd = malloc(sizeof(DetectContentData));
-    if (cd == NULL) {
-        SCLogDebug("DetectContentParse malloc failed");
-        goto error;
-    }
-    memset(cd,0,sizeof(DetectContentData));
 
     //SCLogDebug("DetectContentParse: \"%s\", len %" PRIu32 "", str, len);
     char converted = 0;
@@ -849,7 +1029,6 @@ int DetectContentChunksGetTotalLength(SigMatch *sm)
 void DetectContentPrintAll(SigMatch *sm)
 {
     if (SCLogDebugEnabled()) {
-        int i = 0;
         if (sm == NULL)
             return;
 
@@ -1263,6 +1442,8 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         de_ctx->content_max_id++;
 
         s->flags |= SIG_FLAG_MPM;
+        if (cd->negated == 1)
+            s->flags |= SIG_FLAG_MPM_NEGCONTENT;
 
         //DetectContentPrint(cd);
     }
@@ -2335,13 +2516,408 @@ int DetectContentChunkMatchTest09()
     return DetectContentChunkMatchTestWrp(sig, 1);
 }
 
+int DetectContentParseTest09(void) {
+    int result = 0;
+    DetectContentData *cd = NULL;
+    char *teststring = "!boo";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        result = (cd->negated == 1);
+        DetectContentFree(cd);
+    }
+
+    return result;
+}
+
+int DetectContentParseTest10(void) {
+    int result = 0;
+    DetectContentData *cd = NULL;
+    char *teststring = "!\"boo\"";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        result = (cd->negated == 1);
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
+int DetectContentParseNegTest11(void) {
+    int result = 0;
+    DetectContentData *cd = NULL;
+    char *teststring = "boo";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        result = (cd->negated == 0);
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
+int DetectContentParseNegTest12(void) {
+    int result = 0;
+    DetectContentData *cd = NULL;
+    char *teststring = "\"boo\"";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        result = (cd->negated == 0);
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
+static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
+{
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, rule);
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1) == 1) {
+        result = 1;
+        goto end;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    //PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+static int SigTestNegativeTestContent(char *rule, uint8_t *buf)
+{
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, rule);
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1) == 0) {
+        result = 1;
+        goto end;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    //PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+/**
+ * \test A positive test that checks that the content string doesn't contain
+ *       the negated content
+ */
+static int SigTest41TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!GES; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+}
+
+/**
+ * \test A positive test that checks that the content string doesn't contain
+ *       the negated content within the specified depth
+ */
+static int SigTest42TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!twentythree; depth:22; offset:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A negative test that checks that the content string doesn't contain
+ *       the negated content within the specified depth, and also after the
+ *       specified offset.  If it is present in the depth we get a failure
+ *       anyways, and we don't do a check on the offset
+ */
+static int SigTest43TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!twentythree; depth:15; offset:22; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A negative test that checks that the content string doesn't contain
+ *       the negated content after the specified offset and within the specified
+ *       depth.
+ */
+static int SigTest44TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!twentythree; offset:40; depth:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A positive test that uses a combination of content string with negated
+ *       content string
+ */
+static int SigTest45TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:5; content:!twentythree; depth:23; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A negative test that uses a combination of content string with negated
+ *       content string, with we receiving a failure for 'onee' itself.
+ */
+static int SigTest46TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:onee; content:!twentythree; depth:23; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A negative test that uses a combination of content string with negated
+ *       content string, with we receiving a failure of first content's offset
+ *       condition
+ */
+static int SigTest47TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; offset:5; content:!twentythree; depth:23; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A positive test that checks that we don't have a negated content within
+ *       the specified length from the previous content match.
+ */
+static int SigTest48TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:GET; content:!GES; within:26; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+}
+
+/**
+ * \test A negative test that checks the combined use of content and negated
+ *        content with the use of within
+ */
+static int SigTest49TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:GET; content:!Host; within:26; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+}
+
+/**
+ * \test A positive test that checks the combined use of content and negated
+ *        content with the use of distance
+ */
+static int SigTest50TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:GET; content:!GES; distance:25; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+}
+
+/**
+ * \test A negative test that checks the combined use of content and negated
+ *       content with the use of distance
+ */
+static int SigTest51TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:GET; content:!Host; distance:18; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+}
+
+/**
+ * \test A negative test that checks the combined use of content and negated
+ *       content, with the content not being present
+ */
+static int SigTest52TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:GES; content:!BOO; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+}
+
+/**
+ * \test A negative test that checks the combined use of content and negated
+ *       content, in the presence of within
+ */
+static int SigTest53TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A positive test that checks the combined use of content and negated
+ *       content, in the presence of within
+ */
+static int SigTest54TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; within:20; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A negative test that checks the use of negated content along with
+ *       the presence of depth
+ */
+static int SigTest55TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!one; depth:5; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A positive test that checks the combined use of 2 contents in the
+ *       presence of within
+ */
+static int SigTest56TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:fourty; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A negative test that checks the combined use of content and negated
+ *       content, in the presence of within
+ */
+static int SigTest57TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A positive test that checks the combined use of content and negated
+ *       content, in the presence of distance
+ */
+static int SigTest58TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; distance:57; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+/**
+ * \test A negative test that checks the combined use of content and negated
+ *       content, in the presence of distance
+ */
+static int SigTest59TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; distance:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest60TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!one; content:fourty; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest61TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest62TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; depth:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest63TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest64TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; depth:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest65TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; offset:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest66TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; offset:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest67TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!four; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest68TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:nine; offset:8; content:!fourty; within:28; content:fiftysix; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest69TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:nine; offset:8; content:!fourty; within:48; content:fiftysix; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest70TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; within:52; distance:45 sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest71TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; within:40; distance:43; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest72TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; within:52; distance:47; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
+static int SigTest73TestNegatedContent(void)
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:5; content:!twentythree; depth:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+}
+
 #endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectContent
  */
-void DetectContentRegisterTests(void) {
-    #ifdef UNITTESTS /* UNITTESTS */
+void DetectContentRegisterTests(void)
+{
+#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectContentParseTest01", DetectContentParseTest01, 1);
     UtRegisterTest("DetectContentParseTest02", DetectContentParseTest02, 1);
     UtRegisterTest("DetectContentParseTest03", DetectContentParseTest03, 1);
@@ -2350,6 +2926,11 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentParseTest06", DetectContentParseTest06, 1);
     UtRegisterTest("DetectContentParseTest07", DetectContentParseTest07, 1);
     UtRegisterTest("DetectContentParseTest08", DetectContentParseTest08, 1);
+    UtRegisterTest("DetectContentParseTest09", DetectContentParseTest09, 1);
+    UtRegisterTest("DetectContentParseTest10", DetectContentParseTest10, 1);
+    UtRegisterTest("DetectContentParseTest11", DetectContentParseNegTest11, 1);
+    UtRegisterTest("DetectContentParseTest12", DetectContentParseNegTest12, 1);
+
     UtRegisterTest("DetectContentChunkTestB2G01 l=32", DetectContentChunkTestB2G01, 1);
     UtRegisterTest("DetectContentChunkTestB3G01 l=32", DetectContentChunkTestB3G01, 1);
     UtRegisterTest("DetectContentChunkTestB2G02 l=33", DetectContentChunkTestB2G02, 1);
@@ -2358,6 +2939,7 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentChunkTestB3G03 l=100", DetectContentChunkTestB3G03, 1);
     UtRegisterTest("DetectContentChunkModifiersTest01", DetectContentChunkModifiersTest01, 1);
     UtRegisterTest("DetectContentChunkModifiersTest02", DetectContentChunkModifiersTest02, 1);
+
     /* The reals */
     UtRegisterTest("DetectContentChunkMatchTest01", DetectContentChunkMatchTest01, 1);
     UtRegisterTest("DetectContentChunkMatchTest02", DetectContentChunkMatchTest02, 1);
@@ -2368,5 +2950,41 @@ void DetectContentRegisterTests(void) {
     UtRegisterTest("DetectContentChunkMatchTest07", DetectContentChunkMatchTest07, 1);
     UtRegisterTest("DetectContentChunkMatchTest08", DetectContentChunkMatchTest08, 1);
     UtRegisterTest("DetectContentChunkMatchTest09", DetectContentChunkMatchTest09, 1);
-    #endif /* UNITTESTS */
+
+    /* Negated content tests */
+    UtRegisterTest("SigTest41TestNegatedContent", SigTest41TestNegatedContent, 1);
+    UtRegisterTest("SigTest42TestNegatedContent", SigTest42TestNegatedContent, 1);
+    UtRegisterTest("SigTest43TestNegatedContent", SigTest43TestNegatedContent, 1);
+    UtRegisterTest("SigTest44TestNegatedContent", SigTest44TestNegatedContent, 1);
+    UtRegisterTest("SigTest45TestNegatedContent", SigTest45TestNegatedContent, 1);
+    UtRegisterTest("SigTest46TestNegatedContent", SigTest46TestNegatedContent, 1);
+    UtRegisterTest("SigTest47TestNegatedContent", SigTest47TestNegatedContent, 1);
+    UtRegisterTest("SigTest48TestNegatedContent", SigTest48TestNegatedContent, 1);
+    UtRegisterTest("SigTest49TestNegatedContent", SigTest49TestNegatedContent, 1);
+    UtRegisterTest("SigTest50TestNegatedContent", SigTest50TestNegatedContent, 1);
+    UtRegisterTest("SigTest51TestNegatedContent", SigTest51TestNegatedContent, 1);
+    UtRegisterTest("SigTest52TestNegatedContent", SigTest52TestNegatedContent, 1);
+    UtRegisterTest("SigTest53TestNegatedContent", SigTest53TestNegatedContent, 1);
+    UtRegisterTest("SigTest54TestNegatedContent", SigTest54TestNegatedContent, 1);
+    UtRegisterTest("SigTest55TestNegatedContent", SigTest55TestNegatedContent, 1);
+    UtRegisterTest("SigTest56TestNegatedContent", SigTest56TestNegatedContent, 1);
+    UtRegisterTest("SigTest57TestNegatedContent", SigTest57TestNegatedContent, 1);
+    UtRegisterTest("SigTest58TestNegatedContent", SigTest58TestNegatedContent, 1);
+    UtRegisterTest("SigTest59TestNegatedContent", SigTest59TestNegatedContent, 1);
+    UtRegisterTest("SigTest60TestNegatedContent", SigTest60TestNegatedContent, 1);
+    UtRegisterTest("SigTest61TestNegatedContent", SigTest61TestNegatedContent, 1);
+    UtRegisterTest("SigTest62TestNegatedContent", SigTest62TestNegatedContent, 1);
+    UtRegisterTest("SigTest63TestNegatedContent", SigTest63TestNegatedContent, 1);
+    UtRegisterTest("SigTest64TestNegatedContent", SigTest64TestNegatedContent, 1);
+    UtRegisterTest("SigTest65TestNegatedContent", SigTest65TestNegatedContent, 1);
+    UtRegisterTest("SigTest66TestNegatedContent", SigTest66TestNegatedContent, 1);
+    UtRegisterTest("SigTest67TestNegatedContent", SigTest67TestNegatedContent, 1);
+    UtRegisterTest("SigTest68TestNegatedContent", SigTest68TestNegatedContent, 1);
+    UtRegisterTest("SigTest69TestNegatedContent", SigTest69TestNegatedContent, 1);
+    UtRegisterTest("SigTest70TestNegatedContent", SigTest70TestNegatedContent, 1);
+    UtRegisterTest("SigTest71TestNegatedContent", SigTest71TestNegatedContent, 1);
+    UtRegisterTest("SigTest72TestNegatedContent", SigTest72TestNegatedContent, 1);
+    UtRegisterTest("SigTest73TestNegatedContent", SigTest73TestNegatedContent, 1);
+
+#endif /* UNITTESTS */
 }

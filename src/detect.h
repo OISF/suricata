@@ -126,6 +126,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_PAYLOAD   0x0200   /**< signature is inspecting the packet payload */
 #define SIG_FLAG_DSIZE     0x0400   /**< signature has a dsize setting */
 #define SIG_FLAG_FLOW      0x0800   /**< signature has a flow setting */
+#define SIG_FLAG_MPM_NEGCONTENT 0x1000  /**< sig has negative mpm portion(!content) */
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */

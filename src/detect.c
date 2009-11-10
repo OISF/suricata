@@ -423,8 +423,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         /* filter out sigs that want pattern matches, but
          * have no matches */
         if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
-            (s->flags & SIG_FLAG_MPM))
+            (s->flags & SIG_FLAG_MPM) &&
+            !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
             continue;
+        }
 
         //printf("idx %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 ", s->id %" PRIu32 " (MPM? %s)\n", idx, det_ctx->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
         //printf("Sig %" PRIu32 "\n", s->id);
