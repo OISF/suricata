@@ -1304,6 +1304,10 @@ int DetectContentPropagateModifiers(SigMatch *first_sm)
                  */
                 cur_chunk->flags |= DETECT_CONTENT_WITHIN;
                 cur_chunk->within = cur_chunk->content_len;
+
+                /* set the within next flag on the previous chunk */
+                if (last_chunk != NULL)
+                    last_chunk->flags |= DETECT_CONTENT_WITHIN_NEXT;
             }
 
             /** We are iterating in the chunks after the first one, so distance
@@ -1317,6 +1321,10 @@ int DetectContentPropagateModifiers(SigMatch *first_sm)
                  */
                 cur_chunk->flags |= DETECT_CONTENT_DISTANCE;
                 cur_chunk->distance = 0;
+
+                /* set the distance next flag on the previous chunk */
+                if (last_chunk != NULL)
+                    last_chunk->flags |= DETECT_CONTENT_DISTANCE_NEXT;
             }
 
             /** The isdataat (relative) is updated to the
