@@ -77,6 +77,7 @@ typedef struct andxcount_ {
 	uint8_t andxcommand;
 	uint16_t andxoffset;
 	uint16_t andxbytesprocessed;
+	uint64_t writeandxoffset;
 }andx_t, *pandx_t;
 
 typedef struct SMBState_ {

@@ -117,6 +117,22 @@ typedef struct DCERPCState_ {
 #define DEFAULT_CONTEXT_NOT_SUPPORTED   5 /* not used */
 #define USER_DATA_NOT_READABLE          6 /* not used */
 #define NO_PSAP_AVAILABLE               7 /* not used */
+/*
+typedef uint16_t p_context_id_t;
+typedef   struct   {
+             uuid_t   if_uuid;
+             uint32_t if_version;
+} p_syntax_id_t;
+
+typedef   struct {
+	p_context_id_t   p_cont_id;
+    uint8_t n_transfer_syn;     // number of items
+    uint8_t reserved;           // alignment pad, m.b.z.
+    p_syntax_id_t    abstract_syntax;    // transfer syntax list
+    p_syntax_id_t [size_is(n_transfer_syn)] transfer_syntaxes[];
+} p_cont_elem_t;
+*/
+
 
 #endif /* APPLAYERDCERPC_H_ */
 

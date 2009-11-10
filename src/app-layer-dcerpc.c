@@ -36,6 +36,47 @@ enum {
 	DCERPC_FIELD_MAX,
 };
 
+static int DCERPCParseBIND(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+    DCERPCState *sstate = (DCERPCState *)dcerpc_state;
+    uint8_t *p = input;
+    if (input_len) {
+	switch (sstate->bytesprocessed) {
+	case 16:
+		/* max_xmit_frag */
+		if (!(--input_len)) break;
+	case 17:
+		/* max_xmit_frag */
+		if (!(--input_len)) break;
+	case 18:
+		/* max_recv_frag */
+		if (!(--input_len)) break;
+	case 19:
+		/* max_recv_frag */
+		if (!(--input_len)) break;
+	case 20:
+		/* assoc_group_id */
+		if (!(--input_len)) break;
+	case 21:
+		/* assoc_group_id */
+		if (!(--input_len)) break;
+	case 22:
+		/* assoc_group_id */
+		if (!(--input_len)) break;
+	case 23:
+		/* assoc_group_id */
+		if (!(--input_len)) break;
+
+	}
+    }
+    return 0;
+}
+
+static int DCERPCParseBINDACK(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+    DCERPCState *sstate = (DCERPCState *)dcerpc_state;
+    uint8_t *p = input;
+    return 0;
+}
+
 static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;

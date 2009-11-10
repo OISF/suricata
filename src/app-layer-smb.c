@@ -95,6 +95,7 @@ void hexdump(const void *buf, size_t len) {
     }
 }
 
+/* For WriteAndX we need to get writeandxdataoffset */
 static int SMBParseAndX(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMBState *sstate = (SMBState *) smb_state;
@@ -131,7 +132,7 @@ static int SMBGetWordCount(void *smb_state, AppLayerParserState *pstate,
         sstate->bytesprocessed++;
         sstate->bytecount.bytecountbytes = 0;
         sstate->andx.isandx = isAndX(sstate);
-        printf("Wordcount (%u):\n", sstate->wordcount.wordcount);
+        --input_len;
         return 1;
     }
     return 0;
@@ -141,28 +142,25 @@ static int SMBGetWordCount(void *smb_state, AppLayerParserState *pstate,
  * Obtain SMB Bytecount. Handle the corner obfuscation case where a packet boundary
  * is after the first bytecount byte.
  */
+
 static int SMBGetByteCount(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
-    if (input_len) {
-        SMBState *sstate = (SMBState *) smb_state;
-        uint8_t *p = input;
-        switch(sstate->bytecount.bytecountbytes) {
-            case 0:
-                sstate->bytecount.bytecount = *(p++) << 8;
-                sstate->bytecount.bytecountbytes++;
-                if (!(--input_len)) break;
-            case 1:
-                sstate->bytecount.bytecount |= *(p++);
-                sstate->bytecount.bytecountbytes++;
-                printf("Bytecount %u\n", sstate->bytecount.bytecount);
-                break;
-            default:
-                return 0;
-        }
-        sstate->bytesprocessed += (p - input);
-        return 1;
+    SMBState *sstate = (SMBState *) smb_state;
+    uint8_t *p = input;
+    if (input_len && sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN +
+		1 + sstate->wordcount.wordcount) {
+            sstate->bytecount.bytecount = *(p++);
+            sstate->bytesprocessed++;
+            --input_len;
     }
-    return 0;
+    if (input_len && sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN +
+		2 + sstate->wordcount.wordcount) {
+            sstate->bytecount.bytecount |= *(p++) << 8;
+            sstate->bytesprocessed++;
+            printf("Bytecount (%u)\n", sstate->bytecount.bytecount);
+            --input_len;
+    }
+    return (p - input);
 }
 
 static int SMBParseWordCount(void *smb_state, AppLayerParserState *pstate,
@@ -173,10 +171,11 @@ static int SMBParseWordCount(void *smb_state, AppLayerParserState *pstate,
         if (sstate->andx.isandx) {
             SMBParseAndX(smb_state, pstate, input, input_len, output);
         }
-        printf("0x%02x\n", *(p++));
+        printf("0x%02x ", *(p++));
     }
+    printf("\n");
     sstate->bytesprocessed += (p - input);
-    return 0;
+    return (p - input);
 }
 
 static int SMBParseByteCount(void *smb_state, AppLayerParserState *pstate,
@@ -184,10 +183,12 @@ static int SMBParseByteCount(void *smb_state, AppLayerParserState *pstate,
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     while (sstate->bytecount.bytecount-- && input_len--) {
-        printf("0x%02x\n", *(p++));
+        printf("0x%02x bytecount %u input_len %u\n", *(p++),
+			sstate->bytecount.bytecount, input_len);
     }
+    printf("\n");
     sstate->bytesprocessed += (p - input);
-    return 0;
+    return (p - input);
 }
 
 #define DEBUG 1
@@ -195,9 +196,12 @@ static int NBSSParseHeader(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
+
     if (input_len && sstate->bytesprocessed < NBSS_HDR_LEN - 1) {
         switch (sstate->bytesprocessed) {
             case 0:
+		/* Initialize */
+		sstate->andx.andxcommand = SMB_NO_SECONDARY_ANDX_COMMAND;
                 if (input_len >= NBSS_HDR_LEN) {
                     sstate->nbss.type = *p;
                     sstate->nbss.length = (*(p + 1) & 0x01) << 16;
@@ -205,7 +209,7 @@ static int NBSSParseHeader(void *smb_state, AppLayerParserState *pstate,
                     sstate->nbss.length |= *(p + 3);
                     input_len -= NBSS_HDR_LEN;
                     sstate->bytesprocessed += NBSS_HDR_LEN;
-                    return 0;
+                    return NBSS_HDR_LEN;
                 } else {
                     sstate->nbss.type = *(p++);
                     if (!(--input_len)) break;
@@ -226,23 +230,20 @@ static int NBSSParseHeader(void *smb_state, AppLayerParserState *pstate,
         }
         sstate->bytesprocessed += (p - input);
     }
-    return 0;
+    return (p - input);
 }
 
 static int SMBParseHeader(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    hexdump(p, input_len);
     if (input_len) {
         switch (sstate->bytesprocessed) {
             case 4:
                 if (input_len >= SMB_HDR_LEN) {
-                    //if (sstate->nbss.type != NBSS_SESSION_MESSAGE) return 1;
-                    //if (sstate->nbss.length < MINIMUM_SMB_LEN) return 2;
                     if (memcmp(p, "\xff\x53\x4d\x42", 4) != 0) {
                         printf("SMB Header did not validate\n");
-                        return 3;
+                        return 0;
                     }
                     sstate->smb.command = *(p + 4);
                     sstate->smb.status = *(p + 5) << 24;
@@ -270,30 +271,30 @@ static int SMBParseHeader(void *smb_state, AppLayerParserState *pstate,
                     sstate->smb.uid |= *(p + 29);
                     sstate->smb.mid = *(p + 30) << 8;
                     sstate->smb.mid |= *(p + 31);
-                    input_len -= (SMB_HDR_LEN + 1);
-                    sstate->bytesprocessed += (SMB_HDR_LEN + 1);
-                    return 1;
+                    input_len -= SMB_HDR_LEN;
+                    sstate->bytesprocessed += SMB_HDR_LEN;
+                    return SMB_HDR_LEN;
                     break;
                 } else {
                     //sstate->smb.protocol[0] = *(p++);
                     if (*(p++) != 0xff)
-                        return 4;
+                        return 0;
                     if (!(--input_len)) break;
                 }
             case 5:
                 //sstate->smb.protocol[1] = *(p++);
                 if (*(p++) != 'S')
-                    return 5;
+                    return 0;
                 if (!(--input_len)) break;
             case 6:
                 //sstate->smb.protocol[2] = *(p++);
                 if (*(p++) != 'M')
-                    return 6;
+                    return 0;
                 if (!(--input_len)) break;
             case 7:
                 //sstate->smb.protocol[3] = *(p++);
                 if (*(p++) != 'B')
-                    return 7;
+                    return 0;
                 if (!(--input_len)) break;
             case 8:
                 sstate->smb.command = *(p++);
@@ -381,106 +382,81 @@ static int SMBParseHeader(void *smb_state, AppLayerParserState *pstate,
                 --input_len;
                 break;
             default: // SHOULD NEVER OCCUR
-                return 8;
+                return 0;
         }
     }
     sstate->bytesprocessed += (p - input);
-    return 0;
+    return (p - input);
 }
 
 static int SMBParse(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMBState *sstate = (SMBState *) smb_state;
-    uint16_t max_fields = 3;
-    uint16_t u = 0;
-    uint32_t offset = 0;
+    uint32_t retval = 0;
+    uint32_t parsed = 0;
 
     if (pstate == NULL)
         return -1;
 
-    for (u = pstate->parse_field; u < max_fields; u++) {
-        printf("SMBParse: u %" PRIu32 "\n", u);
-        switch (u) {
-            case 0:
-                {
-                    int r = AlpParseFieldBySize(output, pstate, SMB_PARSE_NBSS_HEADER,
-                            NBSS_HDR_LEN, input, input_len, &offset);
-
-                    if (r == 0) {
-                        pstate->parse_field = 0;
-                        return 0;
-                    }
-                    break;
-                }
-            case 1:
-                {
-                    uint8_t *data = input + offset;
-                    uint32_t data_len = input_len - offset;
-                    if (sstate->nbss.type == NBSS_SESSION_MESSAGE) {
-                        int r = AlpParseFieldBySize(output, pstate, SMB_PARSE_SMB_HEADER,
-                                SMB_HDR_LEN, data, data_len, &offset);
-                        if (r == 0) {
-                            pstate->parse_field = 1;
-                            return 0;
-                        }
-                    }
-                    break;
-                }
-            case 2:
-                {
-                    uint8_t *data = input + offset;
-                    uint32_t data_len = input_len - offset;
-                    int r = AlpParseFieldBySize(output, pstate, SMB_PARSE_GET_WORDCOUNT,
-                            1, data, data_len, &offset);
-                    if (r == 0) {
-                        pstate->parse_field = 2;
-                        return 0;
-                    }
-                    break;
-                }
-            case 3:
-                {
-                    uint8_t *data = input + offset;
-                    uint32_t data_len = input_len - offset;
-                    printf("wordcount %d\n", sstate->wordcount.wordcount);
-
-                    int r = AlpParseFieldBySize(output, pstate, SMB_PARSE_WORDCOUNT,
-                            sstate->wordcount.wordcount, data, data_len, &offset);
-                    if (r == 0) {
-                        pstate->parse_field = 3;
-                        return 0;
-                    }
-                    break;
-                }
-            case 4:
-                {
-                    uint8_t *data = input + offset;
-                    uint32_t data_len = input_len - offset;
-
-                    int r = AlpParseFieldBySize(output, pstate, SMB_PARSE_GET_BYTECOUNT,
-                            2, data, data_len, &offset);
-                    if (r == 0) {
-                        pstate->parse_field = 4;
-                        return 0;
-                    }
-                    break;
-                }
-            case 5:
-                {
-                    uint8_t *data = input + offset;
-                    uint32_t data_len = input_len - offset;
-
-                    int r = AlpParseFieldBySize(output, pstate, SMB_PARSE_BYTECOUNT,
-                            sstate->bytecount.bytecount, data, data_len, &offset);
-                    if (r == 0) {
-                        pstate->parse_field = 5;
-                        return 0;
-                    }
-                    break;
-                }
-        }
+    while (sstate->bytesprocessed <  NBSS_HDR_LEN) {
+	retval = NBSSParseHeader(smb_state, pstate, input, input_len, output);
+	parsed += retval;
+	input_len -= retval;
+	printf("\nNBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %u input_len %u\n",
+			sstate->bytesprocessed, NBSS_HDR_LEN, sstate->nbss.type,
+			sstate->nbss.length, parsed, input_len);
     }
 
+    switch(sstate->nbss.type) {
+    case NBSS_SESSION_MESSAGE:
+		while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN &&
+				sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN)) {
+			retval = SMBParseHeader(smb_state, pstate, input + parsed, input_len, output);
+			parsed += retval;
+			input_len -= retval;
+			printf("SMB Header (%u/%u) Command 0x%02x parsed %u input_len %u\n",
+					sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN,
+					sstate->smb.command, parsed, input_len);
+		}
+
+		do {
+			if (input_len && (sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN)) {
+				retval = SMBGetWordCount(smb_state, pstate, input + parsed, input_len, output);
+				parsed += retval;
+				input_len -= retval;
+				printf("Wordcount (%u) parsed %u input_len %u\n",
+						sstate->wordcount.wordcount, parsed, input_len);
+			}
+
+			while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN + SMB_HDR_LEN + 1 &&
+					sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 1
+					+ sstate->wordcount.wordcount)) {
+				retval = SMBParseWordCount(smb_state, pstate, input + parsed, input_len, output);
+				parsed += retval;
+				input_len -= retval;
+			}
+
+			while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN + SMB_HDR_LEN +
+					1 + sstate->wordcount.wordcount && sstate->bytesprocessed < NBSS_HDR_LEN +
+					SMB_HDR_LEN + 3 + sstate->wordcount.wordcount)) {
+				retval = SMBGetByteCount(smb_state, pstate, input + parsed, input_len, output);
+				parsed += retval;
+				input_len -= retval;
+			}
+
+			while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN +
+					SMB_HDR_LEN + 3 + sstate->wordcount.wordcount &&
+					sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 3
+					+ sstate->wordcount.wordcount + sstate->bytecount.bytecount)) {
+				retval = SMBParseByteCount(smb_state, pstate, input + parsed, input_len, output);
+				parsed += retval;
+				input_len -= retval;
+			}
+		} while (sstate->andx.andxcommand != SMB_NO_SECONDARY_ANDX_COMMAND);
+		break;
+    default:
+	break;
+    }
     pstate->parse_field = 0;
     pstate->flags |= APP_LAYER_PARSER_DONE;
     return 1;
@@ -522,7 +498,7 @@ static void SMBStateFree(void *s) {
 void RegisterSMBParsers(void) {
     AppLayerRegisterProto("smb", ALPROTO_SMB, STREAM_TOSERVER, SMBParse);
     AppLayerRegisterProto("smb", ALPROTO_SMB, STREAM_TOCLIENT, SMBParse);
-    AppLayerRegisterParser("nbss.hdr", ALPROTO_SMB, SMB_PARSE_NBSS_HEADER,
+    /*AppLayerRegisterParser("nbss.hdr", ALPROTO_SMB, SMB_PARSE_NBSS_HEADER,
             NBSSParseHeader, "smb");
     AppLayerRegisterParser("smb.hdr", ALPROTO_SMB, SMB_PARSE_SMB_HEADER,
             SMBParseHeader, "smb");
@@ -534,6 +510,7 @@ void RegisterSMBParsers(void) {
             SMBGetByteCount, "smb");
     AppLayerRegisterParser("smb.bytecount", ALPROTO_SMB, SMB_PARSE_BYTECOUNT,
             SMBParseByteCount, "smb");
+            */
     AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
 }
 
@@ -543,9 +520,14 @@ void RegisterSMBParsers(void) {
 int SMBParserTest01(void) {
     int result = 1;
     Flow f;
-    uint8_t smbbuf[] = "\x00\x00\x00\x85\xff\x53\x4d\x42\x72\x00\x00\x00\x00"
-        "\x18\x53\xc8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xfe\x00\x00\x00\x00"
-        "\x00\x62\x00\x02\x50\x43\x20\x4e\x45\x54\x57\x4f\x52\x4b\x20\x50\x52\x4f\x47\x52\x41\x4d\x20"
+    uint8_t smbbuf[] = "\x00\x00\x00\x85"  // NBSS
+	"\xff\x53\x4d\x42\x72\x00\x00\x00" // SMB
+	"\x00\x18\x53\xc8\x00\x00\x00\x00"
+	"\x00\x00\x00\x00\x00\x00\x00\x00"
+	"\x00\x00\xff\xfe\x00\x00\x00\x00"
+        "\x00" // WordCount
+	"\x62\x00" // ByteCount
+	"\x02\x50\x43\x20\x4e\x45\x54\x57\x4f\x52\x4b\x20\x50\x52\x4f\x47\x52\x41\x4d\x20"
         "\x31\x2e\x30\x00\x02\x4c\x41\x4e\x4d\x41\x4e\x31\x2e\x30\x00\x02\x57\x69\x6e\x64\x6f\x77\x73"
         "\x20\x66\x6f\x72\x20\x57\x6f\x72\x6b\x67\x72\x6f\x75\x70\x73\x20\x33\x2e\x31\x61\x00\x02\x4c"
         "\x4d\x31\x2e\x32\x58\x30\x30\x32\x00\x02\x4c\x41\x4e\x4d\x41\x4e\x32\x2e\x31\x00\x02\x4e\x54"
@@ -590,6 +572,7 @@ int SMBParserTest01(void) {
         result = 0;
         goto end;
     }
+
 
 end:
     return result;
