@@ -1029,6 +1029,8 @@ int DetectContentChunksGetTotalLength(SigMatch *sm)
 void DetectContentPrintAll(SigMatch *sm)
 {
     if (SCLogDebugEnabled()) {
+        int i = 0;
+
         if (sm == NULL)
             return;
 
