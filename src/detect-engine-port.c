@@ -43,7 +43,7 @@ static uint32_t detect_port_free_cnt = 0;
 void DetectPortRegister(void) {
     sigmatch_table[DETECT_PORT].name = "__port__";
     sigmatch_table[DETECT_PORT].Match = NULL;
-    sigmatch_table[DETECT_PORT].Setup = DetectPortSetupTmp;
+    sigmatch_table[DETECT_PORT].Setup = NULL;
     sigmatch_table[DETECT_PORT].Free = NULL;
     sigmatch_table[DETECT_PORT].RegisterTests = DetectPortTests;
 }
@@ -780,16 +780,6 @@ DetectPort *DetectPortCopySingle(DetectEngineCtx *de_ctx,DetectPort *src) {
     return dst;
 error:
     return NULL;
-}
-
-/**
- * \brief Fake function that initialize the Port SigMatch and Address
- * \retval 0 on success
- */
-int DetectPortSetupTmp(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
-                        char *addressstr)
-{
-    return 0;
 }
 
 /**
