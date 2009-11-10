@@ -267,7 +267,6 @@ int DetectFastPatternTest05(void)
         goto end;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the scan phase */
@@ -279,7 +278,6 @@ int DetectFastPatternTest05(void)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
 
 end:
     DetectEngineCtxFree(de_ctx);
@@ -323,7 +321,6 @@ int DetectFastPatternTest06(void)
         goto end;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the scan phase */
@@ -335,7 +332,6 @@ int DetectFastPatternTest06(void)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
 
 end:
     DetectEngineCtxFree(de_ctx);
@@ -380,7 +376,6 @@ int DetectFastPatternTest07(void)
         goto end;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the scan phase */
@@ -392,7 +387,6 @@ int DetectFastPatternTest07(void)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
 
 end:
     DetectEngineCtxFree(de_ctx);
@@ -437,7 +431,6 @@ int DetectFastPatternTest08(void)
         goto end;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the scan phase */
@@ -449,7 +442,6 @@ int DetectFastPatternTest08(void)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
 
 end:
     DetectEngineCtxFree(de_ctx);
@@ -494,7 +486,6 @@ int DetectFastPatternTest09(void)
         goto end;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the scan phase */
@@ -506,7 +497,6 @@ int DetectFastPatternTest09(void)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
 
 end:
     DetectEngineCtxFree(de_ctx);
@@ -552,7 +542,6 @@ int DetectFastPatternTest10(void)
         goto end;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the scan phase */
@@ -564,7 +553,6 @@ int DetectFastPatternTest10(void)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
 
 end:
     DetectEngineCtxFree(de_ctx);
@@ -610,7 +598,6 @@ int DetectFastPatternTest11(void)
         goto end;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the scan phase */
@@ -622,7 +609,6 @@ int DetectFastPatternTest11(void)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
 
 end:
     DetectEngineCtxFree(de_ctx);
@@ -666,7 +652,6 @@ int DetectFastPatternTest12(void)
         goto end;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the scan phase */
@@ -678,7 +663,6 @@ int DetectFastPatternTest12(void)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
 
 end:
     DetectEngineCtxFree(de_ctx);
@@ -725,7 +709,6 @@ int DetectFastPatternTest13(void)
         goto end;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the scan phase */
@@ -737,7 +720,6 @@ int DetectFastPatternTest13(void)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
 
 end:
     DetectEngineCtxFree(de_ctx);
