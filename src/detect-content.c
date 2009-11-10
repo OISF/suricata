@@ -91,11 +91,14 @@ static void DetectContentDebugPrint(DetectContentData *co) {
 
 static void DetectContentPrintMatches(DetectEngineThreadCtx *det_ctx, DetectContentData *co) {
     DetectContentDebugPrint(co);
-    SCLogDebug("matched %" PRIu32 " time(s) at offsets: ", det_ctx->mtc.match[co->id].len);
+    if (det_ctx->mtc.match[co->id].len == 0)
+        SCLogDebug("pattern did not match");
+    else
+        SCLogDebug("matched %" PRIu32 " time(s) at offsets: ", det_ctx->mtc.match[co->id].len);
 
     MpmMatch *tmpm = NULL;
     for (tmpm = det_ctx->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
-        SCLogDebug("%" PRIu32 " ", tmpm->offset);
+        SCLogDebug("pattern matched at offset %" PRIu32 " ", tmpm->offset);
     }
 }
 #endif
@@ -202,7 +205,7 @@ int TestWithinDistanceOffsetDepth(ThreadVars *t,
     DetectContentData *co = (DetectContentData *)sm->ctx;
 
     if (!(co->flags & DETECT_CONTENT_DISTANCE_NEXT) && !(co->flags & DETECT_CONTENT_WITHIN_NEXT)) {
-        SCLogDebug("Next content is does not need distance/within checking.");
+        SCLogDebug("Next content does not need distance/within checking.");
         return 1;
     }
 
@@ -210,6 +213,7 @@ int TestWithinDistanceOffsetDepth(ThreadVars *t,
     DetectContentData *nco = (DetectContentData *)nsm->ctx;
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
+        SCLogDebug("printing matches");
         DetectContentPrintMatches(det_ctx, nco);
     }
 #endif
@@ -217,8 +221,14 @@ int TestWithinDistanceOffsetDepth(ThreadVars *t,
     MpmMatch *nm = det_ctx->mtc.match[nco->id].top;
 
     /* if we have no matches and the content is negated, we can return a success */
-    if (nm == NULL && nco->negated == 1)
-        return 1;
+    if (nm == NULL) {
+        SCLogDebug("no nm to inspect");
+
+        if (nco->negated == 1)
+            return 1;
+        else
+            return 0;
+    }
 
     /* recursively check if we have a next pattern that matches */
     for ( ; nm != NULL; nm = nm->next) {
@@ -416,6 +426,7 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
                     match = 1;
                     break;
                 } else if (ret == -1) {
+                    SCLogDebug("TestWithinDistanceOffsetDepth returned -1");
                     break;
                 }
             } else {
@@ -434,6 +445,8 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
     } else if (co->flags & DETECT_CONTENT_WITHIN ||
                co->flags & DETECT_CONTENT_DISTANCE)
     {
+        SCLogDebug("distance/within checking already done, returning 1");
+
         det_ctx->de_checking_distancewithin = 0;
         match = 1;
 
@@ -443,6 +456,8 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
      * settings. If so, return a match.
      */
     } else {
+        SCLogDebug("no distance/within checking");
+
         /* if we have no matches, we return MATCH if the content is negated, or
          * NOMATCH if the content is not negated */
         if (m == NULL) {
@@ -451,6 +466,7 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
             else
                 match = 0;
 
+            SCLogDebug("returning %d", match);
             return match;
         }
 
@@ -502,8 +518,10 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
              * them passed TestOffsetDepth(), we have a match.  This is the
              * reason why we continue in the else part if ret == 1, if the
              * content is negated */
-            if (temp_m != NULL && ret == 1 && co->negated == 1)
+            if (temp_m != NULL && ret == 1 && co->negated == 1) {
+                SCLogDebug("setting match to true");
                 match = 1;
+            }
         }
     }
 
@@ -526,6 +544,7 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
         }
     }
 
+    SCLogDebug("returning %d", match);
     return match;
 }
 
@@ -545,6 +564,7 @@ int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
+        SCLogDebug("printing matches");
         DetectContentPrintMatches(det_ctx, co);
     }
 #endif
