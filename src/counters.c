@@ -2079,6 +2079,12 @@ static int SCPerfTestIntervalQual16()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
+    TimeModeSetOffline();
+    struct timeval timev;
+    memset(&timev, 0x00, sizeof(timev));
+    gettimeofday(&timev, NULL);
+    TimeSet(&timev);
+
     id1 = SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
                                         &tv.sc_perf_pctx, "3s");
 
@@ -2093,8 +2099,11 @@ static int SCPerfTestIntervalQual16()
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
 
-    printf("\nHang on.  Testing an interval counter.  Sleeping for 6 seconds\n");
-    sleep(6);
+    /* forward the time 6 seconds */
+    memset(&timev, 0x00, sizeof(timev));
+    TimeGet(&timev);
+    timev.tv_sec += 6;
+    TimeSet(&timev);
 
     SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
 
@@ -2113,6 +2122,12 @@ static int SCPerfTestIntervalQual17()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
+    TimeModeSetOffline();
+    struct timeval timev;
+    memset(&timev, 0x00, sizeof(timev));
+    gettimeofday(&timev, NULL);
+    TimeSet(&timev);
+
     id1 = SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
                                         &tv.sc_perf_pctx, "2m30s");
 
@@ -2127,8 +2142,11 @@ static int SCPerfTestIntervalQual17()
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
 
-    printf("\nHang on.  Testing an interval counter.  Sleeping for 3 seconds\n");
-    sleep(3);
+    /* forward the time 3 seconds */
+    memset(&timev, 0x00, sizeof(timev));
+    TimeGet(&timev);
+    timev.tv_sec += 3;
+    TimeSet(&timev);
 
     SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
 
