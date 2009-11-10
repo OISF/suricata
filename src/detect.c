@@ -350,6 +350,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     SigMatch *sm = NULL;
     uint32_t idx,sig;
 
+    SCEnter();
+
     det_ctx->pkts++;
 
     /* match the ip only signatures */
@@ -369,8 +371,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
     if (det_ctx->sgh == NULL) {
-        SCLogDebug("no sgh");
-        return 0;
+        SCLogDebug("no sgh for this packet, nothing to match against");
+        SCReturnInt(0);
     }
 
     if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL && !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
@@ -415,16 +417,20 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         //sig = det_ctx->pmq.sig_id_array[idx];
         s = de_ctx->sig_array[sig];
 
+        SCLogDebug("inspecting signature id %"PRIu32"", s->id);
+
         /* filter out the sigs that inspects the payload, if packet
            no payload inspection flag is set*/
-        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD))
+        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD)) {
+            SCLogDebug("no payload inspection enabled and sig has payload portion.");
             continue;
+        }
 
         /* filter out sigs that want pattern matches, but
          * have no matches */
         if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
-            (s->flags & SIG_FLAG_MPM) &&
-            !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+            (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+            SCLogDebug("mpm sig without matches.");
             continue;
         }
 
@@ -434,43 +440,98 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
             if (!(s->flags & SIG_FLAG_DP_ANY)) {
                 DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
-                if (dport == NULL)
+                if (dport == NULL) {
+                    SCLogDebug("dport didn't match.");
                     continue;
-
+                }
             }
             if (!(s->flags & SIG_FLAG_SP_ANY)) {
                 DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
-                if (sport == NULL)
+                if (sport == NULL) {
+                    SCLogDebug("sport didn't match.");
                     continue;
+                }
             }
         }
 
         /* check the source address */
         if (!(s->flags & SIG_FLAG_SRC_ANY)) {
             DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
-            if (saddr == NULL)
+            if (saddr == NULL) {
+                SCLogDebug("src addr didn't match.");
                 continue;
+            }
         }
         /* check the destination address */
         if (!(s->flags & SIG_FLAG_DST_ANY)) {
             DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
-            if (daddr == NULL)
+            if (daddr == NULL) {
+                SCLogDebug("dst addr didn't match.");
                 continue;
+            }
         }
 
-        /* reset pkt ptr and offset */
-        det_ctx->pkt_ptr = NULL;
-        det_ctx->pkt_off = 0;
+        /* if we get here but have no sigmatches to match against,
+         * we consider the sig matched. */
+        if (s->match == NULL) {
+            SCLogDebug("signature matched without sigmatches");
 
-        /* new signature, so reset indicator of checking distance and within */
-        det_ctx->de_checking_distancewithin = 0;
+            fmatch = 1;
+            if (!(s->flags & SIG_FLAG_NOALERT)) {
+                PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
 
-        if (s->flags & SIG_FLAG_RECURSIVE) {
-            uint8_t rmatch = 0;
-            det_ctx->pkt_cnt = 0;
+                /* set verdict on packet */
+                p->action = s->action;
+            }
+        } else {
+            /* reset pkt ptr and offset */
+            det_ctx->pkt_ptr = NULL;
+            det_ctx->pkt_off = 0;
 
-            do {
+            /* new signature, so reset indicator of checking distance and within */
+            det_ctx->de_checking_distancewithin = 0;
+
+            if (s->flags & SIG_FLAG_RECURSIVE) {
+                uint8_t rmatch = 0;
+                det_ctx->pkt_cnt = 0;
+
+                do {
+                    sm = s->match;
+                    while (sm) {
+                        match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
+                        if (match) {
+                            /* okay, try the next match */
+                            sm = sm->next;
+
+                            /* only if the last matched as well, we have a hit */
+                            if (sm == NULL) {
+                                if (!(s->flags & SIG_FLAG_NOALERT)) {
+                                    /* only add once */
+                                    if (rmatch == 0) {
+                                        PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
+
+                                        /* set verdict on packet */
+                                        p->action = s->action;
+                                    }
+                                }
+                                rmatch = fmatch = 1;
+                                det_ctx->pkt_cnt++;
+                            }
+                        } else {
+                            /* done with this sig */
+                            sm = NULL;
+                            rmatch = 0;
+                        }
+                    }
+                    /* Limit the number of times we do this recursive thing.
+                     * XXX is this a sane limit? Should it be configurable? */
+                    if (det_ctx->pkt_cnt == 10)
+                        break;
+                } while (rmatch);
+            } else {
                 sm = s->match;
+
+                SCLogDebug("running match functions, sm %p", sm);
                 while (sm) {
                     match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                     if (match) {
@@ -479,51 +540,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                         /* only if the last matched as well, we have a hit */
                         if (sm == NULL) {
+                            fmatch = 1;
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                                /* only add once */
-                                if (rmatch == 0) {
-                                    PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
+                                PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
 
-                                    /* set verdict on packet */
-                                    p->action = s->action;
-                                }
+                                /* set verdict on packet */
+                                p->action = s->action;
                             }
-                            rmatch = fmatch = 1;
-                            det_ctx->pkt_cnt++;
                         }
                     } else {
                         /* done with this sig */
                         sm = NULL;
-                        rmatch = 0;
                     }
-                }
-                /* Limit the number of times we do this recursive thing.
-                 * XXX is this a sane limit? Should it be configurable? */
-                if (det_ctx->pkt_cnt == 10)
-                    break;
-            } while (rmatch);
-        } else {
-            sm = s->match;
-            while (sm) {
-                match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
-                if (match) {
-                    /* okay, try the next match */
-                    sm = sm->next;
-
-                    /* only if the last matched as well, we have a hit */
-                    if (sm == NULL) {
-                        fmatch = 1;
-//printf("DE : sig %" PRIu32 " matched\n", s->id);
-                        if (!(s->flags & SIG_FLAG_NOALERT)) {
-                            PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
-
-                            /* set verdict on packet */
-                            p->action = s->action;
-                        }
-                    }
-                } else {
-                    /* done with this sig */
-                    sm = NULL;
                 }
             }
         }
@@ -531,7 +559,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
-    return fmatch;
+    SCReturnInt(fmatch);
 }
 
 /* tm module api functions */
