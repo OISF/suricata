@@ -478,8 +478,8 @@ extern int sc_log_module_cleaned;
  */
 #define SCReturnPtr(x, type)  do {                                           \
                                   if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning pointer of "     \
-                                              "type %s ... <<", type);       \
+                                      SCLogDebug("Returning pointer %p of "  \
+                                              "type %s ... <<", x, type);    \
                                       SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \

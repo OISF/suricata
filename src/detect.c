@@ -64,7 +64,7 @@
 #include "util-rule-vars.h"
 
 #include "app-layer.h"
-#include "app-layer-tls-detect-version.h"
+#include "detect-tls-version.h"
 
 #include "action-globals.h"
 #include "tm-modules.h"
@@ -305,6 +305,8 @@ int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev, uint8_
 }
 
 inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
+    SCEnter();
+
     int ds,f;
     SigGroupHead *sgh = NULL;
 
@@ -320,6 +322,8 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
     else
         f = 1;
 
+    SCLogDebug("ds %d, f %d", ds, f);
+
     /* find the right mpm instance */
     DetectAddress *ag = DetectAddressLookupInHead(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[p->proto],&p->src);
     if (ag != NULL) {
@@ -327,45 +331,68 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
         ag = DetectAddressLookupInHead(ag->dst_gh,&p->dst);
         if (ag != NULL) {
             if (ag->port == NULL) {
+                SCLogDebug("we don't have ports");
                 sgh = ag->sh;
-
-                //printf("SigMatchSignatures: mc %p, mcu %p\n", det_ctx->mc, det_ctx->mcu);
-                //printf("sigs %" PRIu32 "\n", ag->sh->sig_cnt);
             } else {
-                //printf("SigMatchSignatures: we have ports\n");
+                SCLogDebug("we have ports");
 
                 DetectPort *sport = DetectPortLookupGroup(ag->port,p->sp);
                 if (sport != NULL) {
                     DetectPort *dport = DetectPortLookupGroup(sport->dst_ph,p->dp);
                     if (dport != NULL) {
                         sgh = dport->sh;
+                    } else {
+                        SCLogDebug("no dst port found for the packet");
                     }
+                } else {
+                    SCLogDebug("no src port found for the packet");
                 }
             }
+        } else {
+            SCLogDebug("no dst address found for the packet");
         }
+    } else {
+        SCLogDebug("no src address found for the packet");
     }
 
-    return sgh;
+    SCReturnPtr(sgh, "SigGroupHead");
 }
 
+/** \brief application layer detection
+ *
+ *  \param sgh signature group head for this proto/addrs/ports
+ */
 static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh, Packet *p)
 {
+    SCEnter();
+
     int match = 0, fmatch = 0;
     Signature *s = NULL;
     SigMatch *sm = NULL;
-    uint32_t idx,sig;
-
-    void *alstate = AppLayerGetProtoStateFromPacket(p);
-    if (alstate == NULL)
-        return 0;
-
+    uint32_t idx, sig;
     uint8_t flags = 0;
 
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
     if (sgh == NULL) {
-        return 0;
+        SCLogDebug("no sgh to detect");
+        SCReturnInt(0);
     }
+
+    /* grab the protocol state we will detect on */
+    void *alstate = AppLayerGetProtoStateFromPacket(p);
+    if (alstate == NULL) {
+        SCLogDebug("no application layer state to detect");
+        SCReturnInt(0);
+    }
+
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+        flags |= STREAM_TOSERVER;
+    } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+        flags |= STREAM_TOCLIENT;
+    }
+
+    SCLogDebug("p->flowflags 0x%02X flags 0x%02X", p->flowflags, flags);
 
     /* inspect the sigs against the packet */
     for (idx = 0; idx < sgh->sig_cnt; idx++) {
@@ -409,39 +436,50 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                 continue;
         }
 
-        /* reset pkt ptr and offset */
-        det_ctx->pkt_ptr = NULL;
-        det_ctx->pkt_off = 0;
+        /* if we don't have sigmatches at this point we're a match */
+        if (s->match == NULL) {
+            fmatch = 1;
+            if (!(s->flags & SIG_FLAG_NOALERT)) {
+                PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
 
-        sm = s->match;
-        while (sm) {
-            if (sigmatch_table[sm->type].AppLayerMatch == NULL)
-                continue;
+                /* set verdict on packet */
+                p->action = s->action;
+            }
+        } else {
+            /* reset pkt ptr and offset */
+            det_ctx->pkt_ptr = NULL;
+            det_ctx->pkt_off = 0;
 
-            match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
-            if (match) {
-                /* okay, try the next match */
-                sm = sm->next;
+            sm = s->match;
+            while (sm) {
+                if (sigmatch_table[sm->type].AppLayerMatch == NULL)
+                    continue;
 
-                /* only if the last matched as well, we have a hit */
-                if (sm == NULL) {
-                    fmatch = 1;
-                    //printf("DE : sig %" PRIu32 " matched\n", s->id);
-                    if (!(s->flags & SIG_FLAG_NOALERT)) {
-                        PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+                match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
+                if (match) {
+                    /* okay, try the next match */
+                    sm = sm->next;
 
-                        /* set verdict on packet */
-                        p->action = s->action;
+                    /* only if the last matched as well, we have a hit */
+                    if (sm == NULL) {
+                        fmatch = 1;
+                        //printf("DE : sig %" PRIu32 " matched\n", s->id);
+                        if (!(s->flags & SIG_FLAG_NOALERT)) {
+                            PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+
+                            /* set verdict on packet */
+                            p->action = s->action;
+                        }
                     }
+                } else {
+                    /* done with this sig */
+                    sm = NULL;
                 }
-            } else {
-                /* done with this sig */
-                sm = NULL;
             }
         }
     }
 
-    return fmatch;
+    SCReturnInt(fmatch);
 }
 
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
@@ -825,6 +863,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     DetectAddress *gr = NULL;
     uint32_t cnt = 0, cnt_iponly = 0;
     uint32_t cnt_payload = 0;
+    uint32_t cnt_applayer = 0;
 
     //DetectAddressPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -849,21 +888,26 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
 
         de_ctx->sig_array[tmp_s->num] = tmp_s;
-        //printf(" + Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
+        SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
 
         /* see if the sig is ip only */
         if (SignatureIsIPOnly(de_ctx, tmp_s) == 1) {
             tmp_s->flags |= SIG_FLAG_IPONLY;
             cnt_iponly++;
-            //printf("(IP only)\n");
-            /*see if any sig is inspecting the packet payload*/
+
+            SCLogDebug("Signature %"PRIu32" is considered \"IP only\"", tmp_s->id);
+
+        /* see if any sig is inspecting the packet payload */
         } else if (SignatureIsInspectingPayload(de_ctx, tmp_s) == 1) {
             tmp_s->flags |= SIG_FLAG_PAYLOAD;
             cnt_payload++;
-            //printf("\n");
-            //if (tmp_s->proto.flags & DETECT_PROTO_ANY) {
-            //printf("Signature %" PRIu32 " applies to all protocols.\n",tmp_s->id);
-            //}
+
+            SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", tmp_s->id);
+        }
+
+        if (tmp_s->flags & SIG_FLAG_APPLAYER) {
+            SCLogDebug("Signature %"PRIu32" is considered \"Applayer inspecting\"", tmp_s->id);
+            cnt_applayer++;
         }
 
 #ifdef DEBUG
@@ -920,8 +964,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only rules and %" PRIu32 " are inspecting packet payload",
-            de_ctx->sig_cnt, cnt_iponly, cnt_payload);
+        SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only rules, %" PRIu32 " are inspecting packet payload, %"PRIu32" inspect application layer",
+            de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer);
         SCLogInfo("building signature grouping structure, stage 1: "
                "adding signatures to signature source addresses... done");
     }
@@ -2748,7 +2792,7 @@ void SigTableSetup(void) {
     DetectTtlRegister();
     DetectFastPatternRegister();
 
-    AppLayerTlsDetectVersionRegister();
+    DetectTlsVersionRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

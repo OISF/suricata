@@ -24,7 +24,7 @@
 #include "app-layer.h"
 
 #include "app-layer-tls.h"
-#include "app-layer-tls-detect-version.h"
+#include "detect-tls-version.h"
 
 
 /**
@@ -35,38 +35,38 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int AppLayerTlsDetectVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
-int AppLayerTlsDetectVersionSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
-void AppLayerTlsDetectVersionRegisterTests(void);
-void AppLayerTlsDetectVersionFree(void *);
+int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+void DetectTlsVersionRegisterTests(void);
+void DetectTlsVersionFree(void *);
 
 /**
  * \brief Registration function for keyword: tls.version
  */
-void AppLayerTlsDetectVersionRegister (void) {
+void DetectTlsVersionRegister (void) {
     sigmatch_table[DETECT_AL_TLS_VERSION].name = "tls.version";
     sigmatch_table[DETECT_AL_TLS_VERSION].Match = NULL;
-    sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerMatch = AppLayerTlsDetectVersionMatch;
-    sigmatch_table[DETECT_AL_TLS_VERSION].Setup = AppLayerTlsDetectVersionSetup;
-    sigmatch_table[DETECT_AL_TLS_VERSION].Free  = AppLayerTlsDetectVersionFree;
-    sigmatch_table[DETECT_AL_TLS_VERSION].RegisterTests = AppLayerTlsDetectVersionRegisterTests;
+    sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerMatch = DetectTlsVersionMatch;
+    sigmatch_table[DETECT_AL_TLS_VERSION].Setup = DetectTlsVersionSetup;
+    sigmatch_table[DETECT_AL_TLS_VERSION].Free  = DetectTlsVersionFree;
+    sigmatch_table[DETECT_AL_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
 
     const char *eb;
     int eo;
     int opts = 0;
 
-	SCLogDebug("registering tls.version rule option\n");
+	SCLogDebug("registering tls.version rule option");
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if (parse_regex == NULL) {
-        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s\n",
+        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
                     PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s\n", eb);
+        SCLogDebug("pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -81,29 +81,38 @@ error:
  * \param t pointer to thread vars
  * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into AppLayerTlsDetectVersionData
+ * \param m pointer to the sigmatch that we will cast into DetectTlsVersionData
  *
  * \retval 0 no match
  * \retval 1 match
  */
-int AppLayerTlsDetectVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
-    AppLayerTlsDetectVersionData *tls_data = (AppLayerTlsDetectVersionData *)m->ctx;
+    SCEnter();
+
+    DetectTlsVersionData *tls_data = (DetectTlsVersionData *)m->ctx;
     TlsState *tls_state = (TlsState *)state;
-    if (tls_state == NULL)
-        return 0;
+    if (tls_state == NULL) {
+        SCLogDebug("no tls state, no match");
+        SCReturnInt(0);
+    }
 
     int ret = 0;
     mutex_lock(&f->m);
+    SCLogDebug("looking for tls_data->ver 0x%02X (flags 0x%02X)", tls_data->ver, flags);
+
     if (flags & STREAM_TOCLIENT) {
-        if (tls_data->ver == tls_state->client_version)
+        SCLogDebug("server (toclient) version is 0x%02X", tls_state->server_version);
+        if (tls_data->ver == tls_state->server_version)
             ret = 1;
     } else if (flags & STREAM_TOSERVER) {
-        if (tls_data->ver == tls_state->server_version)
+        SCLogDebug("client (toserver) version is 0x%02X", tls_state->client_version);
+        if (tls_data->ver == tls_state->client_version)
             ret = 1;
     }
     mutex_unlock(&f->m);
-    return ret;
+
+    SCReturnInt(ret);
 }
 
 /**
@@ -111,13 +120,13 @@ int AppLayerTlsDetectVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
  *
  * \param idstr Pointer to the user provided id option
  *
- * \retval id_d pointer to AppLayerTlsDetectVersionData on success
+ * \retval id_d pointer to DetectTlsVersionData on success
  * \retval NULL on failure
  */
-AppLayerTlsDetectVersionData *AppLayerTlsDetectVersionParse (char *str)
+DetectTlsVersionData *DetectTlsVersionParse (char *str)
 {
     uint8_t temp;
-    AppLayerTlsDetectVersionData *tls = NULL;
+    DetectTlsVersionData *tls = NULL;
 	#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
@@ -136,14 +145,14 @@ AppLayerTlsDetectVersionData *AppLayerTlsDetectVersionParse (char *str)
         char *tmp_str;
         res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
         if (res < 0) {
-            SCLogDebug("AppLayerTlsDetectVersionParse: pcre_get_substring failed\n");
+            SCLogDebug("DetectTlsVersionParse: pcre_get_substring failed");
             goto error;
         }
 
         /* We have a correct id option */
-        tls = malloc(sizeof(AppLayerTlsDetectVersionData));
+        tls = malloc(sizeof(DetectTlsVersionData));
         if (tls == NULL) {
-            SCLogDebug("AppLayerTlsDetectVersionParse malloc failed\n");
+            SCLogDebug("DetectTlsVersionParse malloc failed");
             goto error;
         }
 
@@ -170,14 +179,14 @@ AppLayerTlsDetectVersionData *AppLayerTlsDetectVersionParse (char *str)
 
         free(orig);
 
-        SCLogDebug("will look for tls %"PRIu8"\n", tls->ver);
+        SCLogDebug("will look for tls %"PRIu8"", tls->ver);
     }
 
     return tls;
 
 error:
     if (tls != NULL)
-        AppLayerTlsDetectVersionFree(tls);
+        DetectTlsVersionFree(tls);
     return NULL;
 
 }
@@ -194,12 +203,12 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int AppLayerTlsDetectVersionSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *str)
+int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *str)
 {
-    AppLayerTlsDetectVersionData *tls = NULL;
+    DetectTlsVersionData *tls = NULL;
     SigMatch *sm = NULL;
 
-    tls = AppLayerTlsDetectVersionParse(str);
+    tls = DetectTlsVersionParse(str);
     if (tls == NULL) goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
@@ -216,33 +225,33 @@ int AppLayerTlsDetectVersionSetup (DetectEngineCtx *de_ctx, Signature *s, SigMat
     return 0;
 
 error:
-    if (tls != NULL) AppLayerTlsDetectVersionFree(tls);
+    if (tls != NULL) DetectTlsVersionFree(tls);
     if (sm != NULL) free(sm);
     return -1;
 
 }
 
 /**
- * \brief this function will free memory associated with AppLayerTlsDetectVersionData
+ * \brief this function will free memory associated with DetectTlsVersionData
  *
- * \param id_d pointer to AppLayerTlsDetectVersionData
+ * \param id_d pointer to DetectTlsVersionData
  */
-void AppLayerTlsDetectVersionFree(void *ptr) {
-    AppLayerTlsDetectVersionData *id_d = (AppLayerTlsDetectVersionData *)ptr;
+void DetectTlsVersionFree(void *ptr) {
+    DetectTlsVersionData *id_d = (DetectTlsVersionData *)ptr;
     free(id_d);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
 
 /**
- * \test AppLayerTlsDetectVersionTestParse01 is a test to make sure that we parse the "id"
+ * \test DetectTlsVersionTestParse01 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option
  */
-int AppLayerTlsDetectVersionTestParse01 (void) {
-    AppLayerTlsDetectVersionData *tls = NULL;
-    tls = AppLayerTlsDetectVersionParse("1.0");
+int DetectTlsVersionTestParse01 (void) {
+    DetectTlsVersionData *tls = NULL;
+    tls = DetectTlsVersionParse("1.0");
     if (tls != NULL && tls->ver == TLS_VERSION_10) {
-        AppLayerTlsDetectVersionFree(tls);
+        DetectTlsVersionFree(tls);
         return 1;
     }
 
@@ -250,15 +259,15 @@ int AppLayerTlsDetectVersionTestParse01 (void) {
 }
 
 /**
- * \test AppLayerTlsDetectVersionTestParse02 is a test to make sure that we parse the "id"
+ * \test DetectTlsVersionTestParse02 is a test to make sure that we parse the "id"
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-int AppLayerTlsDetectVersionTestParse02 (void) {
-    AppLayerTlsDetectVersionData *tls = NULL;
-    tls = AppLayerTlsDetectVersionParse("2.5");
+int DetectTlsVersionTestParse02 (void) {
+    DetectTlsVersionData *tls = NULL;
+    tls = DetectTlsVersionParse("2.5");
     if (tls == NULL) {
-        AppLayerTlsDetectVersionFree(tls);
+        DetectTlsVersionFree(tls);
         return 1;
     }
 
@@ -268,8 +277,8 @@ int AppLayerTlsDetectVersionTestParse02 (void) {
 #include "stream-tcp-reassemble.h"
 
 /** \test Send a get request in three chunks + more data. */
-static int AppLayerTlsDetectVersionTestDetect01(void) {
-    int result = 1;
+static int DetectTlsVersionTestDetect01(void) {
+    int result = 0;
     Flow f;
     uint8_t tlsbuf1[] = { 0x16 };
     uint32_t tlslen1 = sizeof(tlsbuf1);
@@ -299,6 +308,8 @@ static int AppLayerTlsDetectVersionTestDetect01(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
     p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_TLS;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -362,6 +373,9 @@ static int AppLayerTlsDetectVersionTestDetect01(void) {
         goto end;
     }
 
+    SCLogDebug("tls_state is at %p, tls_state->server_version 0x%02X tls_state->client_version 0x%02X",
+        tls_state, tls_state->server_version, tls_state->client_version);
+
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -380,7 +394,7 @@ end:
     return result;
 }
 
-static int AppLayerTlsDetectVersionTestDetect02(void) {
+static int DetectTlsVersionTestDetect02(void) {
     int result = 1;
     Flow f;
     uint8_t tlsbuf1[] = { 0x16 };
@@ -411,6 +425,7 @@ static int AppLayerTlsDetectVersionTestDetect02(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
     p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -478,6 +493,7 @@ static int AppLayerTlsDetectVersionTestDetect02(void) {
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if (PacketAlertCheck(&p, 1)) {
+        printf("signature 1 didn't match while it should have: ");
         goto end;
     }
 
@@ -495,13 +511,14 @@ end:
 #endif /* UNITTESTS */
 
 /**
- * \brief this function registers unit tests for AppLayerTlsDetectVersion
+ * \brief this function registers unit tests for DetectTlsVersion
  */
-void AppLayerTlsDetectVersionRegisterTests(void) {
+void DetectTlsVersionRegisterTests(void) {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("AppLayerTlsDetectVersionTestParse01", AppLayerTlsDetectVersionTestParse01, 1);
-    UtRegisterTest("AppLayerTlsDetectVersionTestParse02", AppLayerTlsDetectVersionTestParse02, 1);
-    UtRegisterTest("AppLayerTlsDetectVersionTestDetect01", AppLayerTlsDetectVersionTestDetect01, 1);
-    UtRegisterTest("AppLayerTlsDetectVersionTestDetect02", AppLayerTlsDetectVersionTestDetect02, 1);
+    UtRegisterTest("DetectTlsVersionTestParse01", DetectTlsVersionTestParse01, 1);
+    UtRegisterTest("DetectTlsVersionTestParse02", DetectTlsVersionTestParse02, 1);
+    UtRegisterTest("DetectTlsVersionTestDetect01", DetectTlsVersionTestDetect01, 1);
+    UtRegisterTest("DetectTlsVersionTestDetect02", DetectTlsVersionTestDetect02, 1);
 #endif /* UNITTESTS */
 }
+

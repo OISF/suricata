@@ -123,6 +123,21 @@ error:
     return -1;
 }
 
+/** \brief see if a DetectProto contains a certain proto
+ *  \param dp detect proto to inspect
+ *  \param proto protocol (such as IPPROTO_TCP) to look for
+ *  \retval 0 protocol not in the set
+ *  \retval 1 protocol is in the set */
+int DetectProtoContainsProto(DetectProto *dp, int proto) {
+    if (dp->flags & DETECT_PROTO_ANY)
+        return 1;
+
+    if (dp->proto[proto / 8] & (1<<(proto % 8)))
+        return 1;
+
+    return 0;
+}
+
 /* TESTS */
 
 #ifdef UNITTESTS
@@ -180,11 +195,11 @@ static int ProtoTestParse01 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "6");
-    if (r == 0) {
+    if (r != 0) {
         return 1;
     }
 
-    SCLogDebug("ProtoTestParse01: Error in parsing the \"6\" string");
+    SCLogDebug("DetectProtoParse should have rejected the \"6\" string");
     return 0;
 }
 /**

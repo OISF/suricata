@@ -1,6 +1,6 @@
 /** Copyright (c) 2009 Open Information Security Foundation.
  *
- * \Author Victor Julien Copyright (c) 2008
+ * \author Victor Julien Copyright (c) 2008
  * Ports part of the detection engine.
  *
  * TODO VJ
@@ -897,6 +897,7 @@ static int DetectPortParseInsert(DetectPort **head, DetectPort *new) {
 static int DetectPortParseInsertString(DetectPort **head, char *s) {
     DetectPort *ad = NULL, *ad_any = NULL;
     int r = 0;
+    char port_any = FALSE;
 
     SCLogDebug("head %p, *head %p, s %s", head, *head, s);
 
@@ -905,6 +906,10 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
     if (ad == NULL) {
         SCLogError(SC_INVALID_ARGUMENT,"PortParse error \"%s\"",s);
         goto error;
+    }
+
+    if (ad->flags & PORT_FLAG_ANY) {
+        port_any = TRUE;
     }
 
     /** handle the not case, we apply the negation then insert the part(s) */
@@ -931,7 +936,9 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
         goto error;
 
     /** if any, insert 0.0.0.0/0 and ::/0 as well */
-    if (r == 1 && ad->flags & PORT_FLAG_ANY) {
+    if (r == 1 && port_any == TRUE) {
+        SCLogDebug("inserting 0:65535 as port is \"any\"");
+
         ad_any = PortParse("0:65535");
         if (ad_any == NULL)
             goto error;

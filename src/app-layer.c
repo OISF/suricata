@@ -1,30 +1,47 @@
 #include "eidps-common.h"
 #include "app-layer.h"
 #include "stream-tcp-private.h"
+#include "util-debug.h"
 
-/** \brief Get the active app layer state from the packet */
+/** \brief Get the active app layer state from the packet
+ *  \param p packet pointer
+ *  \retval alstate void pointer to the state
+ *  \retval NULL in case we have no state */
 void *AppLayerGetProtoStateFromPacket(Packet *p) {
-    if (p == NULL || p->flow == NULL)
-        return NULL;
+    SCEnter();
+
+    if (p == NULL || p->flow == NULL) {
+        SCReturnPtr(NULL, "void");
+    }
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-    if (ssn == NULL || ssn->aldata == NULL)
-        return NULL;
+    if (ssn == NULL || ssn->aldata == NULL) {
+        SCReturnPtr(NULL, "void");
+    }
 
-    void *alstate = ssn->aldata[ssn->alproto];
-    return alstate;
+    SCLogDebug("ssn->alproto %u", ssn->alproto);
+
+    void *alstate = ssn->aldata[AlpGetStateIdx(ssn->alproto)];
+    SCReturnPtr(alstate, "void");
 }
 
-/** \brief Get the active app layer state from the flow */
+/** \brief Get the active app layer state from the flow
+ *  \param f flow pointer
+ *  \retval alstate void pointer to the state
+ *  \retval NULL in case we have no state */
 void *AppLayerGetProtoStateFromFlow(Flow *f) {
+    SCEnter();
+
     if (f == NULL)
-        return NULL;
+        SCReturnPtr(NULL, "void");
 
     TcpSession *ssn = (TcpSession *)f->protoctx;
     if (ssn == NULL || ssn->aldata == NULL)
-        return NULL;
+        SCReturnPtr(NULL, "void");
 
-    void *alstate = ssn->aldata[ssn->alproto];
-    return alstate;
+    SCLogDebug("ssn->alproto %u", ssn->alproto);
+
+    void *alstate = ssn->aldata[AlpGetStateIdx(ssn->alproto)];
+    SCReturnPtr(alstate, "void");
 }
 

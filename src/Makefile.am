@@ -132,7 +132,7 @@ app-layer-http.c app-layer-http.h \
 app-layer-tls.c app-layer-tls.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-dcerpc.c app-layer-dcerpc.h \
-app-layer-tls-detect-version.c app-layer-tls-detect-version.h \
+detect-tls-version.c detect-tls-version.h \
 app-layer-protos.h \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \

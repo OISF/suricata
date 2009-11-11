@@ -317,6 +317,9 @@ int SigParseProto(Signature *s, const char *protostr) {
         if (s->alproto != ALPROTO_UNKNOWN) {
             /* indicate that the signature is app-layer */
             s->flags |= SIG_FLAG_APPLAYER;
+
+            /* app layer is always TCP for now */
+            s->proto.proto[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
             return 0;
         }
 
@@ -437,9 +440,8 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result) {
 
     /* For "ip" we parse the ports as well, even though they will be just "any".
      *  We do this for later sgh building for the tcp and udp protocols. */
-    if (strcasecmp(arr[CONFIG_PROTO],"tcp") == 0 ||
-        strcasecmp(arr[CONFIG_PROTO],"udp") == 0 ||
-        strcasecmp(arr[CONFIG_PROTO],"ip") == 0) {
+    if (DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
+        DetectProtoContainsProto(&s->proto, IPPROTO_UDP)) {
         if (SigParsePort(s, arr[CONFIG_SP], 0) < 0)
             goto error;
         if (SigParsePort(s, arr[CONFIG_DP], 1) < 0)
