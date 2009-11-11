@@ -49,18 +49,20 @@ enum
     TCP_CLOSED,
 };
 
-#define STREAMTCP_FLAG_MIDSTREAM                0x0001    /**< Flag for mid stream session*/
-#define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x0002    /**< Flag for mid stream established session*/
+#define STREAMTCP_FLAG_MIDSTREAM                0x0001  /**< Flag for mid stream session*/
+#define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x0002  /**< Flag for mid stream established session*/
 #define STREAMTCP_FLAG_MIDSTREAM_SYNACK         0x0004  /**<Flag for mid session when syn/ack is received*/
-#define STREAMTCP_FLAG_TIMESTAMP                0x0008    /**< Flag for TCP Timestamp option*/
-#define STREAMTCP_FLAG_SERVER_WSCALE            0x0010    /**< Server supports wscale (even though it can be 0) */
-#define STREAMTCP_FLAG_ZERO_TIMESTAMP           0x0020    /**< Flag to indicate the zero value of timestamp*/
-#define STREAMTCP_FLAG_NOCLIENT_REASSEMBLY      0x0040    /**< Flag to avoid stream reassembly / application layer
+#define STREAMTCP_FLAG_TIMESTAMP                0x0008  /**< Flag for TCP Timestamp option*/
+#define STREAMTCP_FLAG_SERVER_WSCALE            0x0010  /**< Server supports wscale (even though it can be 0) */
+#define STREAMTCP_FLAG_ZERO_TIMESTAMP           0x0020  /**< Flag to indicate the zero value of timestamp*/
+#define STREAMTCP_FLAG_NOCLIENT_REASSEMBLY      0x0040  /**< Flag to avoid stream reassembly / application layer
                                                              inspection for the client stream.*/
-#define STREAMTCP_FLAG_NOSERVER_REASSEMBLY      0x0080    /**< Flag to avoid stream reassembly / application layer
+#define STREAMTCP_FLAG_NOSERVER_REASSEMBLY      0x0080  /**< Flag to avoid stream reassembly / application layer
                                                              inspection for the server stream.*/
-#define STREAMTCP_FLAG_ASYNC                    0x0100    /**< Flag to indicate that the session is handling
+#define STREAMTCP_FLAG_ASYNC                    0x0100  /**< Flag to indicate that the session is handling
                                                              asynchronous stream.*/
+#define STREAMTCP_FLAG_4WHS                     0x0200  /**< Flag to indicate we're dealing with 4WHS:
+                                                             SYN, SYN, SYN/ACK, ACK (http://www.breakingpointsystems.com/community/blog/tcp-portals-the-three-way-handshake-is-a-lie) */
 
 #define PAWS_24DAYS         2073600         /**< 24 days in seconds */
 

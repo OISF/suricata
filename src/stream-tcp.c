@@ -1,5 +1,13 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
-/*  2009 Gurvinder Singh <gurvindersinghdahiya@gmail.com>*/
+/* Copyright (c) 2009 OISF */
+
+/** \file
+ *
+ *  \author Victor Julien <victor@inliniac.net>
+ *  \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ *
+ *  \todo - 4WHS: what if after the 2nd SYN we turn out to be normal 3WHS anyway?
+ */
 
 #include "eidps-common.h"
 #include "decode.h"
@@ -281,6 +289,7 @@ static inline void StreamTcpPacketSetState(Packet *p, TcpSession *ssn, uint8_t s
  *  \param  p   Packet whose flag has to be changed
  */
 static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p) {
+    SCLogDebug("ssn %p: switching pkt direction", ssn);
 
     if (PKT_IS_TOSERVER(p)) {
         p->flowflags &= ~FLOW_PKT_TOSERVER;
@@ -504,11 +513,127 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
     if (ssn == NULL)
         return -1;
 
+    SCLogDebug("ssn %p: pkt received", ssn);
+
     switch (p->tcph->th_flags) {
         case TH_SYN:
             SCLogDebug("ssn %p: SYN packet on state SYN_SENT... resent", ssn);
+            if (ssn->flags & STREAMTCP_FLAG_4WHS)
+                SCLogDebug("ssn %p: SYN packet on state SYN_SENT... resent of 4WHS SYN", ssn);
+
+            if (PKT_IS_TOCLIENT(p)) {
+                /** a SYN only packet in the opposite direction could be:
+                 *  http://www.breakingpointsystems.com/community/blog/tcp-portals-the-three-way-handshake-is-a-lie
+                 *
+                 * \todo improve resetting the session */
+
+                /* indicate that we're dealing with 4WHS here */
+                ssn->flags |= STREAMTCP_FLAG_4WHS;
+                SCLogDebug("ssn %p: STREAMTCP_FLAG_4WHS flag set", ssn);
+
+                /* set the sequence numbers and window for server
+                 * We leave the ssn->client.isn in place as we will
+                 * check the SYN/ACK pkt with that.
+                 */
+                ssn->server.isn = TCP_GET_SEQ(p);
+                ssn->server.ra_base_seq = ssn->server.isn;
+                ssn->server.next_seq = ssn->server.isn + 1;
+
+                /* Set the stream timestamp value, if packet has timestamp option enabled. */
+                if (p->tcpvars.ts != NULL) {
+                    ssn->server.last_ts = TCP_GET_TSVAL(p);
+                    SCLogDebug("ssn %p: p->tcpvars.ts %p, %02x", ssn, p->tcpvars.ts, ssn->server.last_ts);
+
+                    if (ssn->server.last_ts == 0)
+                        ssn->server.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                    ssn->server.last_pkt_ts = p->ts.tv_sec;
+                    ssn->server.flags |= STREAMTCP_FLAG_TIMESTAMP;
+                }
+
+                ssn->server.window = TCP_GET_WINDOW(p);
+                if (p->tcpvars.ws != NULL) {
+                    ssn->flags |= STREAMTCP_FLAG_SERVER_WSCALE;
+                    ssn->server.wscale = TCP_GET_WSCALE(p);
+                }
+
+                SCLogDebug("ssn %p: 4WHS ssn->server.isn %" PRIu32 ", ssn->server.next_seq %" PRIu32 ", ssn->server.last_ack %"PRIu32"",
+                        ssn, ssn->server.isn, ssn->server.next_seq, ssn->server.last_ack);
+                SCLogDebug("ssn %p: 4WHS ssn->client.isn %" PRIu32 ", ssn->client.next_seq %" PRIu32 ", ssn->client.last_ack %"PRIu32"",
+                        ssn, ssn->client.isn, ssn->client.next_seq, ssn->client.last_ack);
+            }
+
             break;
         case TH_SYN|TH_ACK:
+            if (ssn->flags & STREAMTCP_FLAG_4WHS) {
+                SCLogDebug("ssn %p: SYN/ACK received on 4WHS session", ssn);
+
+                /* Check if the SYN/ACK packet ack's the earlier
+                 * received SYN packet. */
+                if (!(SEQ_EQ(TCP_GET_ACK(p), ssn->server.isn + 1))) {
+                    SCLogDebug("ssn %p: 4WHS ACK mismatch, packet ACK %" PRIu32 " != %" PRIu32 " from stream",
+                            ssn, TCP_GET_ACK(p), ssn->server.isn + 1);
+                    return -1;
+                }
+
+                /* Check if the SYN/ACK packet SEQ's the *FIRST* received SYN packet. */
+                if (!(SEQ_EQ(TCP_GET_SEQ(p), ssn->client.isn))) {
+                    SCLogDebug("ssn %p: 4WHS SEQ mismatch, packet SEQ %" PRIu32 " != %" PRIu32 " from *first* SYN pkt",
+                            ssn, TCP_GET_SEQ(p), ssn->client.isn);
+                    return -1;
+                }
+
+
+                /* update state */
+                StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
+                SCLogDebug("ssn %p: =~ 4WHS ssn state is now TCP_SYN_RECV", ssn);
+
+                /* sequence number & window */
+                ssn->client.isn = TCP_GET_SEQ(p);
+                ssn->client.ra_base_seq = ssn->client.isn;
+                ssn->client.next_seq = ssn->client.isn + 1;
+
+                ssn->server.window = TCP_GET_WINDOW(p);
+                SCLogDebug("ssn %p: 4WHS window %" PRIu32 "", ssn, ssn->client.window);
+
+                /* Set the timestamp values used to validate the timestamp of received
+                   packets. */
+                if ((p->tcpvars.ts != NULL) && (ssn->server.flags & STREAMTCP_FLAG_TIMESTAMP)) {
+                    ssn->client.last_ts = TCP_GET_TSVAL(p);
+                    SCLogDebug("ssn %p: 4WHS ssn->client.last_ts %" PRIu32" ssn->server.last_ts %" PRIu32"", ssn, ssn->client.last_ts, ssn->server.last_ts);
+                    ssn->server.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
+                    ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
+                    ssn->client.last_pkt_ts = p->ts.tv_sec;
+                    if (ssn->client.last_ts == 0)
+                        ssn->client.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                } else {
+                    ssn->server.last_ts = 0;
+                    ssn->client.last_ts = 0;
+                    ssn->server.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
+                    ssn->server.flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                }
+
+                ssn->server.last_ack = TCP_GET_ACK(p);
+                ssn->client.last_ack = ssn->client.isn + 1;
+
+                /** check for the presense of the ws ptr to determine if we
+                 *  support wscale at all */
+                if (ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE && p->tcpvars.ws != NULL) {
+                    ssn->server.wscale = TCP_GET_WSCALE(p);
+                } else {
+                    ssn->server.wscale = 0;
+                }
+
+                ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
+                ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+                SCLogDebug("ssn %p: 4WHS ssn->client.next_win %" PRIu32 "", ssn, ssn->client.next_win);
+                SCLogDebug("ssn %p: 4WHS ssn->server.next_win %" PRIu32 "", ssn, ssn->server.next_win);
+                SCLogDebug("ssn %p: 4WHS ssn->client.isn %" PRIu32 ", ssn->client.next_seq %" PRIu32 ", ssn->client.last_ack %" PRIu32 " (ssn->server.last_ack %" PRIu32 ")",
+                        ssn, ssn->client.isn, ssn->client.next_seq, ssn->client.last_ack, ssn->server.last_ack);
+
+                /* done here */
+                break;
+            }
+
             if (PKT_IS_TOSERVER(p)) {
                 SCLogDebug("ssn %p: SYN/ACK received in the wrong direction", ssn);
                 return -1;
@@ -665,19 +790,6 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
             break;
         case TH_ACK:
         case TH_ACK|TH_PUSH:
-
-            /* Check if the ACK received is in right direction. But when we have
-             * picked up a mid stream session after missing the initial SYN pkt,
-             * in this case the ACK packet can arrive from either client (normal
-             * case) or from server itself (asynchronous streams). Therefore
-             *  the check has been avoided in this case */
-            if (PKT_IS_TOCLIENT(p) &&
-                    !(ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK))
-            {
-                SCLogDebug("ssn %p: ACK received in the wrong direction\n",ssn);
-                return -1;
-            }
-
             /* If the timestamp option is enabled for both the streams, then validate the received packet
                timestamp value against the stream->last_ts. If the timestamp is valid then process the packet normally
                otherwise the drop the packet (RFC 1323)*/
@@ -686,7 +798,56 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
                     return -1;
             }
 
+            if (ssn->flags & STREAMTCP_FLAG_4WHS) {
+                SCLogDebug("ssn %p: ACK received on 4WHS session",ssn);
+
+                if ((SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))) {
+                    SCLogDebug("4WHS normal pkt");
+
+                    ssn->client.last_ack = TCP_GET_ACK(p);
+                    ssn->server.next_seq += p->payload_len;
+                    ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
+
+                    ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
+
+                    /*If no stream reassembly/application layer protocol inspection, then simple return*/
+                    if (!(ssn->flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY))
+                        StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn, &ssn->server, p);
+                } else {
+                    SCLogDebug("ssn %p: 4WHS wrong seq nr on packet", ssn);
+                    return -1;
+                }
+
+                SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", ACK %" PRIu32 "",
+                        ssn, p->payload_len, TCP_GET_SEQ(p), TCP_GET_ACK(p));
+
+                StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
+                SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
+
+                SCLogDebug("ssn %p: ssn->client.next_win %" PRIu32 ", ssn->client.last_ack %"PRIu32"",
+                    ssn, ssn->client.next_win, ssn->client.last_ack);
+                break;
+            }
+
+            /* Check if the ACK received is in right direction. But when we have
+             * picked up a mid stream session after missing the initial SYN pkt,
+             * in this case the ACK packet can arrive from either client (normal
+             * case) or from server itself (asynchronous streams). Therefore
+             *  the check has been avoided in this case */
+            if (PKT_IS_TOCLIENT(p)) {
+                /* special case, handle 4WHS, so SYN/ACK in the opposite direction */
+                if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK) {
+                    SCLogDebug("ssn %p: ACK received on midstream SYN/ACK pickup session",ssn);
+                    /* fall through */
+                } else {
+                    SCLogDebug("ssn %p: ACK received in the wrong direction",ssn);
+                    return -1;
+                }
+            }
+
             if ((SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq))) {
+                SCLogDebug("normal pkt");
+
                 /* process the packet normal, No Async streams :) */
 
                 ssn->server.last_ack = TCP_GET_ACK(p);
@@ -902,9 +1063,9 @@ static int HandleEstablishedPacketToServer(TcpSession *ssn, Packet *p,
         if (!(ssn->flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY))
             StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn, &ssn->client, p);
     } else {
-        SCLogDebug("ssn %p: server => SEQ out of window, packet SEQ"
+        SCLogDebug("ssn %p: toserver => SEQ out of window, packet SEQ "
                 "%" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
-                "ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
+                "ssn->client.last_ack %" PRIu32 ", ssn->client.next_win "
                 "%" PRIu32 "(%"PRIu32") (ssn->client.ra_base_seq %"PRIu32")",
                 ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p)
                 +p->payload_len, ssn->client.last_ack, ssn->client.next_win,
