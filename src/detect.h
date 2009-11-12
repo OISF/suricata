@@ -114,7 +114,7 @@ typedef struct DetectPort_ {
 } DetectPort;
 
 /* Signature flags */
-#define SIG_FLAG_RECURSIVE 0x0001   /**< recurive capturing enabled */
+#define SIG_FLAG_RECURSIVE 0x0001   /**< recursive capturing enabled */
 #define SIG_FLAG_SRC_ANY   0x0002   /**< source is any */
 #define SIG_FLAG_DST_ANY   0x0004   /**< destination is any */
 #define SIG_FLAG_SP_ANY    0x0008   /**< source port is any */
@@ -130,6 +130,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_FLOW      0x0800   /**< signature has a flow setting */
 #define SIG_FLAG_MPM_NEGCONTENT 0x1000  /**< sig has negative mpm portion(!content) */
 #define SIG_FLAG_APPLAYER  0x2000   /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_BIDIREC   0x4000   /**< signature has bidirectional operator */
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
@@ -483,6 +484,7 @@ void TmModuleDetectRegister (void);
 
 int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup();
+void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 int PacketAlertAppend(Packet *, uint32_t, uint32_t, uint8_t, uint8_t, char *);
 
