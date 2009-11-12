@@ -10,6 +10,7 @@
 
 #include "stream-tcp-private.h"
 #include "stream.h"
+#include "stream-tcp-reassemble.h"
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
@@ -588,6 +589,22 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_
     int r = AppLayerDoParse(app_layer_state, parser_state, input, input_len, parser_idx, proto);
     if (r < 0)
         goto error;
+
+    /* set the packets to no inspection and reassembly for the TLS sessions */
+    if (parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) {
+
+        if (need_lock == TRUE) mutex_lock(&f->m);
+        FlowSetNoPayloadInspectionFlag(f);
+        if (need_lock == TRUE) mutex_unlock(&f->m);
+
+        /* Set the no reassembly flag for both the stream in this TcpSession */
+        if (parser_state->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
+            StreamTcpSetSessionNoReassemblyFlag(ssn,
+                                               flags & STREAM_TOCLIENT ? 1 : 0);
+            StreamTcpSetSessionNoReassemblyFlag(ssn,
+                                               flags & STREAM_TOSERVER ? 1 : 0);
+        }
+    }
 
     SCReturnInt(0);
 error:

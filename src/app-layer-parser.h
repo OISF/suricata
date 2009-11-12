@@ -44,9 +44,15 @@ typedef struct AppLayerParserResult_ {
     uint32_t cnt;
 } AppLayerParserResult;
 
-#define APP_LAYER_PARSER_USE    0x01
-#define APP_LAYER_PARSER_EOF    0x02
-#define APP_LAYER_PARSER_DONE   0x04 /* parser is done, ignore more msgs */
+#define APP_LAYER_PARSER_USE            0x01
+#define APP_LAYER_PARSER_EOF            0x02
+#define APP_LAYER_PARSER_DONE           0x04  /**< parser is done, ignore more
+                                                   msgs */
+#define APP_LAYER_PARSER_NO_INSPECTION  0x08 /**< Flag to indicate no more
+                                                  packets payload inspection */
+#define APP_LAYER_PARSER_NO_REASSEMBLY  0x10 /**< Flag to indicate no more
+                                                  packets reassembly for this
+                                                  session */
 
 typedef struct AppLayerParserState_ {
     uint8_t flags;
