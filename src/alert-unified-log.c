@@ -30,13 +30,14 @@ TmEcode AlertUnifiedLog (ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode AlertUnifiedLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertUnifiedLogThreadDeinit(ThreadVars *, void *);
 int AlertUnifiedLogOpenFileCtx(LogFileCtx *, char *);
+void AlertUnifiedLogRegisterTests(void);
 
 void TmModuleAlertUnifiedLogRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDLOG].name = "AlertUnifiedLog";
     tmm_modules[TMM_ALERTUNIFIEDLOG].ThreadInit = AlertUnifiedLogThreadInit;
     tmm_modules[TMM_ALERTUNIFIEDLOG].Func = AlertUnifiedLog;
     tmm_modules[TMM_ALERTUNIFIEDLOG].ThreadDeinit = AlertUnifiedLogThreadDeinit;
-    tmm_modules[TMM_ALERTUNIFIEDLOG].RegisterTests = NULL;
+    tmm_modules[TMM_ALERTUNIFIEDLOG].RegisterTests = AlertUnifiedLogRegisterTests;
 }
 
 typedef struct AlertUnifiedLogThread_ {
@@ -106,8 +107,13 @@ int AlertUnifiedLogWriteFileHeader(ThreadVars *t, AlertUnifiedLogThread *aun) {
 }
 
 int AlertUnifiedLogCloseFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
-    if (aun->file_ctx->fp != NULL)
+    if (aun->file_ctx->fp != NULL) {
         fclose(aun->file_ctx->fp);
+        if (aun->file_ctx->filename != NULL) {
+            free(aun->file_ctx->filename);
+            aun->file_ctx->filename = NULL;
+        }
+    }
     return 0;
 }
 
@@ -293,7 +299,7 @@ LogFileCtx *AlertUnifiedLogInitCtx(char *config_file)
  * */
 int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
 {
-    char filename[PATH_MAX]; /* XXX some sane default? */
+    char *filename = malloc(PATH_MAX); /* XXX some sane default? */
 
     if(config_file == NULL)
     {
@@ -314,7 +320,8 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
         char *log_dir;
         if (ConfGet("default-log-dir", &log_dir) != 1)
             log_dir = DEFAULT_LOG_DIR;
-        snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, log_dir, "unified.log", (uint32_t)ts.tv_sec);
+
+        snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, "unified.log", (uint32_t)ts.tv_sec);
 
         /* XXX filename & location */
         file_ctx->fp = fopen(filename, "wb");
@@ -322,14 +329,66 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
             printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
             return -1;
         }
-
-        if(file_ctx->config_file == NULL)
-            file_ctx->config_file = strdup("configfile.aul");
-            /** Remember the config file (or NULL if not indicated) */
-
+        file_ctx->filename = filename;
     }
 
     return 0;
 }
 
+#ifdef UNITTESTS
+/**
+ *  \test Test the Rotate process
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int AlertUnifiedLogTestRotate01(void)
+{
+    int ret = 0;
+    int r = 0;
+    ThreadVars tv;
+    LogFileCtx *lf;
+    void *data = NULL;
+
+    lf = AlertUnifiedLogInitCtx(NULL);
+    char *filename = strdup(lf->filename);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    if (lf == NULL)
+        return 0;
+
+    ret = AlertUnifiedLogThreadInit(&tv, lf, &data);
+    if (ret == TM_ECODE_FAILED) {
+        LogFileFreeCtx(lf);
+        return 0;
+    }
+
+    sleep(1);
+    ret = AlertUnifiedLogRotateFile(&tv, data);
+    if (ret == -1)
+        goto error;
+
+    if (strcmp(filename, lf->filename) == 0)
+        goto error;
+
+    r = 1;
+
+error:
+    AlertUnifiedLogThreadDeinit(&tv, data);
+    if (lf != NULL) LogFileFreeCtx(lf);
+    if (filename != NULL) free(filename);
+    return r;
+}
+#endif /* UNITTESTS */
+
+/**
+ * \brief this function registers unit tests for Unified2
+ */
+void AlertUnifiedLogRegisterTests (void) {
+#ifdef UNITTESTS
+    UtRegisterTest("UnifiedAlertTestRotate01 -- Rotate File",
+                   AlertUnifiedLogTestRotate01, 1);
+#endif /* UNITTESTS */
+}
 

@@ -129,8 +129,13 @@ void TmModuleUnified2AlertRegister (void) {
  */
 
 int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
-    if (aun->file_ctx->fp != NULL)
+    if (aun->file_ctx->fp != NULL) {
         fclose(aun->file_ctx->fp);
+        if (aun->file_ctx->filename != NULL) {
+            free(aun->file_ctx->filename);
+            aun->file_ctx->filename = NULL;
+        }
+    }
 
     return 0;
 }
@@ -561,10 +566,9 @@ LogFileCtx *Unified2AlertInitCtx(char *config_file)
  * */
 int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
 {
-    char filename[PATH_MAX]; /* XXX some sane default? */
+    char *filename = malloc(PATH_MAX); /* XXX some sane default? */
 
-    if(config_file == NULL)
-    {
+    if (config_file == NULL) {
         /** Separate config files not implemented at the moment,
         * but it must be able to load from separate config file.
         * Load the default configuration.
@@ -575,14 +579,15 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
          * This is used both during init and runtime, so it must be thread
          * safe. */
         struct timeval ts;
-        memset (&ts, 0, sizeof(struct timeval));
+        memset(&ts, 0, sizeof(struct timeval));
         gettimeofday(&ts, NULL);
 
         /* create the filename to use */
         char *log_dir;
         if (ConfGet("default-log-dir", &log_dir) != 1)
             log_dir = DEFAULT_LOG_DIR;
-        snprintf(filename, sizeof(filename), "%s/%s.%" PRIu32, log_dir, "unified2.alert", (uint32_t)ts.tv_sec);
+
+        snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, "unified2.alert", (uint32_t)ts.tv_sec);
 
         /* XXX filename & location */
         file_ctx->fp = fopen(filename, "wb");
@@ -590,11 +595,7 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
             printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
             return -1;
         }
-
-        if(file_ctx->config_file == NULL)
-            file_ctx->config_file = strdup("configfile.au2a");
-            /** Remember the config file (or NULL if not indicated) */
-
+        file_ctx->filename = filename;
     }
 
     return 0;
@@ -929,12 +930,56 @@ static int Unified2Test05 (void)   {
 
     return 1;
 }
+
+/**
+ *  \test Test the Rotate process
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int Unified2TestRotate01(void)
+{
+    int ret = 0;
+    int r = 0;
+    ThreadVars tv;
+    LogFileCtx *lf;
+    void *data = NULL;
+
+    lf = Unified2AlertInitCtx(NULL);
+    char *filename = strdup(lf->filename);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    if (lf == NULL)
+        return 0;
+
+    ret = Unified2AlertThreadInit(&tv, lf, &data);
+    if (ret == TM_ECODE_FAILED) {
+        LogFileFreeCtx(lf);
+        return 0;
+    }
+
+    sleep(1);
+    ret = Unified2AlertRotateFile(&tv, data);
+    if (ret == -1)
+        goto error;
+
+    if (strcmp(filename, lf->filename) == 0)
+        goto error;
+
+    r = 1;
+
+error:
+    Unified2AlertThreadDeinit(&tv, data);
+    if (lf != NULL) LogFileFreeCtx(lf);
+    if (filename != NULL) free(filename);
+    return r;
+}
 #endif
 
 /**
  * \brief this function registers unit tests for Unified2
  */
-
 void Unified2RegisterTests (void) {
 #ifdef UNITTESTS
     UtRegisterTest("Unified2Test01 -- Ipv4 test", Unified2Test01, 1);
@@ -942,5 +987,6 @@ void Unified2RegisterTests (void) {
     UtRegisterTest("Unified2Test03 -- GRE test", Unified2Test03, 1);
     UtRegisterTest("Unified2Test04 -- PPP test", Unified2Test04, 1);
     UtRegisterTest("Unified2Test05 -- Inline test", Unified2Test05, 1);
+    UtRegisterTest("Unified2TestRotate01 -- Rotate File", Unified2TestRotate01, 1);
 #endif /* UNITTESTS */
 }

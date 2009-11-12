@@ -247,9 +247,6 @@ int AlertFastlogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
             printf("ERROR: failed to open %s: %s\n", log_path, strerror(errno));
             return -1;
         }
-        if(file_ctx->config_file == NULL)
-            file_ctx->config_file = strdup("config.af");
-            /** Remember the config file (or NULL if not indicated) */
     }
 
     return 0;
