@@ -23,6 +23,8 @@
 #include "util-debug.h"
 #include "flow-private.h"
 
+#include "util-byte.h"
+
 #define TLS_CHANGE_CIPHER_SPEC  0x14   /*TLS change cipher spec content type*/
 #define TLS_ALERT_PROTOCOL      0x15   /*TLS alert protocol content type */
 #define TLS_HANDSHAKE_PROTOCOL  0x16   /*TLS hansdshake protocol content type*/
@@ -128,6 +130,8 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
                                 AppLayerParserResult *output)
 {
+    SCEnter();
+
     SCLogDebug("tls_state %p, pstate %p, input %p,input_len %" PRIu32 "",
             tls_state, pstate, input, input_len);
     //PrintRawDataFp(stdout, input,input_len);
@@ -135,26 +139,28 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
     uint16_t max_fields = 3;
     int16_t u = 0;
     uint32_t offset = 0;
-    uint32_t record_length = 0;
 
     if (pstate == NULL)
-        return -1;
+        SCReturnInt(-1);
 
     for (u = pstate->parse_field; u < max_fields; u++) {
         SCLogDebug("u %" PRIu32 "", u);
 
-        switch(u) {
+        switch(u % 3) {
             case 0: /* TLS CONTENT TYPE */
             {
+                uint8_t *data = input + offset;
+                uint32_t data_len = input_len - offset;
+
                 int r = AlpParseFieldBySize(output, pstate,
                                             TLS_FIELD_CLIENT_CONTENT_TYPE,
-                                            /* single byte field */1, input,
-                                            input_len, &offset);
+                                            /* single byte field */1, data,
+                                            data_len, &offset);
                 SCLogDebug("r = %" PRId32 "", r);
 
                 if (r == 0) {
                     pstate->parse_field = 0;
-                    return 0;
+                    SCReturnInt(0);
                 }
                 break;
             }
@@ -169,39 +175,49 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
                                             &offset);
                 if (r == 0) {
                     pstate->parse_field = 1;
-                    return 0;
+                    SCReturnInt(0);
                 }
                 break;
             }
             case 2: /* TLS Record Message Length */
             {
-
                 uint8_t *data = input + offset;
                 uint32_t data_len = input_len - offset;
-
 
                 int r = AlpParseFieldBySize(output, pstate, TLS_FIELD_LENGTH,
                                             /* 2 byte field */2, data, data_len,
                                             &offset);
+                SCLogDebug("AlpParseFieldBySize returned r %d, offset %"PRIu32"", r, offset);
                 if (r == 0) {
                     pstate->parse_field = 2;
-                    return 0;
+                    SCReturnInt(0);
                 }
 
-                struct u16conv_ {
-                    uint16_t u;
-                } *u16conv;
-
-                u16conv = (struct u16conv_ *) output->tail->data_ptr;
-                record_length += offset + ntohs(u16conv->u);
-
-                /* Check if parsed the whole segment or there are some more
-                   TLS record options in the packet still left to be parsed */
-                if (input_len > record_length) {
-                    u = -1;
-                    input += offset + ntohs(u16conv->u);
-                    offset = 0;
+                /* Parsing of the record is done. Since we may have more than
+                 * one record, we check here if we still have data left *after*
+                 * this record. In that case setup the parser to parse that
+                 * record as well. */
+                uint16_t record_len;
+                int ret = ByteExtractUint16(&record_len, BYTE_BIG_ENDIAN,
+                        output->tail->data_len, output->tail->data_ptr);
+                if (ret != 2) {
+                    SCReturnInt(-1);
                 }
+
+                /* calulate the point up to where the current record
+                 * is in the data */
+                uint32_t record_offset = (offset + record_len);
+
+                SCLogDebug("record offset %"PRIu32" (offset %"PRIu32", record_len %"PRIu16")", record_offset, offset, record_len);
+
+                /* if our input buffer is bigger than the data up to and
+                 * including the current record, we instruct the parser to
+                 * expect another record of 3 fields */
+                if (input_len <= record_offset)
+                    break;
+
+                max_fields += 3;
+                offset += record_len;
                 break;
             }
         }
@@ -209,7 +225,7 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
     }
 
     pstate->parse_field = 0;
-    return 1;
+    SCReturnInt(1);
 }
 
 /**
@@ -225,29 +241,37 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
                                 AppLayerParserResult *output)
 {
+    SCEnter();
+
+    SCLogDebug("tls_state %p, pstate %p, input %p,input_len %" PRIu32 "",
+            tls_state, pstate, input, input_len);
+    //PrintRawDataFp(stdout, input,input_len);
+
     uint16_t max_fields = 3;
     int16_t u = 0;
     uint32_t offset = 0;
-    uint32_t record_length = 0;
 
     if (pstate == NULL)
-        return -1;
+        SCReturnInt(-1);
 
     for (u = pstate->parse_field; u < max_fields; u++) {
         SCLogDebug("u %" PRIu32 "", u);
 
-        switch(u) {
+        switch(u % 3) {
             case 0: /* TLS CONTENT TYPE */
             {
+                uint8_t *data = input + offset;
+                uint32_t data_len = input_len - offset;
+
                 int r = AlpParseFieldBySize(output, pstate,
                                             TLS_FIELD_SERVER_CONTENT_TYPE,
-                                            /* single byte field */1, input,
-                                            input_len, &offset);
+                                            /* single byte field */1, data,
+                                            data_len, &offset);
                 SCLogDebug("r = %" PRId32 "", r);
 
                 if (r == 0) {
                     pstate->parse_field = 0;
-                    return 0;
+                    SCReturnInt(0);
                 }
                 break;
             }
@@ -261,16 +285,14 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
                                            *field */2, data, data_len, &offset);
                 if (r == 0) {
                     pstate->parse_field = 1;
-                    return 0;
+                    SCReturnInt(0);
                 }
                 break;
             }
             case 2: /* TLS Record Message Length */
             {
-
                 uint8_t *data = input + offset;
                 uint32_t data_len = input_len - offset;
-
 
                 int r = AlpParseFieldBySize(output, pstate, TLS_FIELD_LENGTH,
                                             /* 2 byte field */2, data, data_len,
@@ -278,23 +300,34 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
 
                 if (r == 0) {
                     pstate->parse_field = 2;
-                    return 0;
+                    SCReturnInt(0);
                 }
 
-                struct u16conv_ {
-                    uint16_t u;
-                } *u16conv;
-
-                u16conv = (struct u16conv_ *) output->tail->data_ptr;
-                record_length += offset + ntohs(u16conv->u);
-
-                /* Check if parsed the whole segment or there are some more
-                   TLS record options in the packet still left to be parsed */
-                if (input_len > record_length) {
-                    u = -1;
-                    input += offset + ntohs(u16conv->u);
-                    offset = 0;
+                /* Parsing of the record is done. Since we may have more than
+                 * one record, we check here if we still have data left *after*
+                 * this record. In that case setup the parser to parse that
+                 * record as well. */
+                uint16_t record_len;
+                int ret = ByteExtractUint16(&record_len, BYTE_BIG_ENDIAN,
+                        output->tail->data_len, output->tail->data_ptr);
+                if (ret != 2) {
+                    SCReturnInt(-1);
                 }
+
+                /* calulate the point up to where the current record
+                 * is in the data */
+                uint32_t record_offset = (offset + record_len);
+
+                SCLogDebug("record offset %"PRIu32" (offset %"PRIu32", record_len %"PRIu16")", record_offset, offset, record_len);
+
+                /* if our input buffer is bigger than the data up to and
+                 * including the current record, we instruct the parser to
+                 * expect another record of 3 fields */
+                if (input_len <= record_offset)
+                    break;
+
+                max_fields += 3;
+                offset += record_len;
                 break;
             }
         }
@@ -302,7 +335,7 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
     }
 
     pstate->parse_field = 0;
-    return 1;
+    SCReturnInt(1);
 }
 
 /**
@@ -910,6 +943,150 @@ end:
     return result;
 }
 
+/** \test multimsg test */
+static int TLSParserMultimsgTest01(void) {
+    int result = 1;
+    Flow f;
+    /* 3 msgs */
+    uint8_t tlsbuf1[] = {
+        0x16, 0x03, 0x01, 0x00, 0x86, 0x10, 0x00, 0x00,
+        0x82, 0x00, 0x80, 0xd3, 0x6f, 0x1f, 0x63, 0x82,
+        0x8d, 0x75, 0x77, 0x8c, 0x91, 0xbc, 0xa1, 0x3d,
+        0xbb, 0xe1, 0xb5, 0xd3, 0x31, 0x92, 0x59, 0x2b,
+        0x2c, 0x43, 0x96, 0xa3, 0xaa, 0x23, 0x92, 0xd0,
+        0x91, 0x2a, 0x5e, 0x10, 0x5b, 0xc8, 0xc1, 0xe2,
+        0xd3, 0x5c, 0x8b, 0x8c, 0x91, 0x9e, 0xc2, 0xf2,
+        0x9c, 0x3c, 0x4f, 0x37, 0x1e, 0x20, 0x5e, 0x33,
+        0xd5, 0xf0, 0xd6, 0xaf, 0x89, 0xf5, 0xcc, 0xb2,
+        0xcf, 0xc1, 0x60, 0x3a, 0x46, 0xd5, 0x4e, 0x2a,
+        0xb6, 0x6a, 0xb9, 0xfc, 0x32, 0x8b, 0xe0, 0x6e,
+        0xa0, 0xed, 0x25, 0xa0, 0xa4, 0x82, 0x81, 0x73,
+        0x90, 0xbf, 0xb5, 0xde, 0xeb, 0x51, 0x8d, 0xde,
+        0x5b, 0x6f, 0x94, 0xee, 0xba, 0xe5, 0x69, 0xfa,
+        0x1a, 0x80, 0x30, 0x54, 0xeb, 0x12, 0x01, 0xb9,
+        0xfe, 0xbf, 0x82, 0x95, 0x01, 0x7b, 0xb0, 0x97,
+        0x14, 0xc2, 0x06, 0x3c, 0x69, 0xfb, 0x1c, 0x66,
+        0x47, 0x17, 0xd9, 0x14, 0x03, 0x01, 0x00, 0x01,
+        0x01, 0x16, 0x03, 0x01, 0x00, 0x30, 0xf6, 0xbc,
+        0x0d, 0x6f, 0xe8, 0xbb, 0xaa, 0xbf, 0x14, 0xeb,
+        0x7b, 0xcc, 0x6c, 0x28, 0xb0, 0xfc, 0xa6, 0x01,
+        0x2a, 0x97, 0x96, 0x17, 0x5e, 0xe8, 0xb4, 0x4e,
+        0x78, 0xc9, 0x04, 0x65, 0x53, 0xb6, 0x93, 0x3d,
+        0xeb, 0x44, 0xee, 0x86, 0xf9, 0x80, 0x49, 0x45,
+        0x21, 0x34, 0xd1, 0xee, 0xc8, 0x9c
+    };
+    uint32_t tlslen1 = sizeof(tlsbuf1);
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1,
+                          FALSE);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (tls_state == NULL) {
+        printf("no tls state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (tls_state->client_content_type != 0x16) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16,
+                tls_state->client_content_type);
+        result = 0;
+        goto end;
+    }
+
+    if (tls_state->client_version != 0x0301) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
+                tls_state->client_version);
+        result = 0;
+        goto end;
+    }
+end:
+    return result;
+}
+
+/** \test multimsg test server */
+static int TLSParserMultimsgTest02(void) {
+    int result = 1;
+    Flow f;
+    /* 3 msgs */
+    uint8_t tlsbuf1[] = {
+        0x16, 0x03, 0x01, 0x00, 0x86, 0x10, 0x00, 0x00,
+        0x82, 0x00, 0x80, 0xd3, 0x6f, 0x1f, 0x63, 0x82,
+        0x8d, 0x75, 0x77, 0x8c, 0x91, 0xbc, 0xa1, 0x3d,
+        0xbb, 0xe1, 0xb5, 0xd3, 0x31, 0x92, 0x59, 0x2b,
+        0x2c, 0x43, 0x96, 0xa3, 0xaa, 0x23, 0x92, 0xd0,
+        0x91, 0x2a, 0x5e, 0x10, 0x5b, 0xc8, 0xc1, 0xe2,
+        0xd3, 0x5c, 0x8b, 0x8c, 0x91, 0x9e, 0xc2, 0xf2,
+        0x9c, 0x3c, 0x4f, 0x37, 0x1e, 0x20, 0x5e, 0x33,
+        0xd5, 0xf0, 0xd6, 0xaf, 0x89, 0xf5, 0xcc, 0xb2,
+        0xcf, 0xc1, 0x60, 0x3a, 0x46, 0xd5, 0x4e, 0x2a,
+        0xb6, 0x6a, 0xb9, 0xfc, 0x32, 0x8b, 0xe0, 0x6e,
+        0xa0, 0xed, 0x25, 0xa0, 0xa4, 0x82, 0x81, 0x73,
+        0x90, 0xbf, 0xb5, 0xde, 0xeb, 0x51, 0x8d, 0xde,
+        0x5b, 0x6f, 0x94, 0xee, 0xba, 0xe5, 0x69, 0xfa,
+        0x1a, 0x80, 0x30, 0x54, 0xeb, 0x12, 0x01, 0xb9,
+        0xfe, 0xbf, 0x82, 0x95, 0x01, 0x7b, 0xb0, 0x97,
+        0x14, 0xc2, 0x06, 0x3c, 0x69, 0xfb, 0x1c, 0x66,
+        0x47, 0x17, 0xd9, 0x14, 0x03, 0x01, 0x00, 0x01,
+        0x01, 0x16, 0x03, 0x01, 0x00, 0x30, 0xf6, 0xbc,
+        0x0d, 0x6f, 0xe8, 0xbb, 0xaa, 0xbf, 0x14, 0xeb,
+        0x7b, 0xcc, 0x6c, 0x28, 0xb0, 0xfc, 0xa6, 0x01,
+        0x2a, 0x97, 0x96, 0x17, 0x5e, 0xe8, 0xb4, 0x4e,
+        0x78, 0xc9, 0x04, 0x65, 0x53, 0xb6, 0x93, 0x3d,
+        0xeb, 0x44, 0xee, 0x86, 0xf9, 0x80, 0x49, 0x45,
+        0x21, 0x34, 0xd1, 0xee, 0xc8, 0x9c
+    };
+    uint32_t tlslen1 = sizeof(tlsbuf1);
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf1, tlslen1,
+                          FALSE);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (tls_state == NULL) {
+        printf("no tls state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (tls_state->server_content_type != 0x16) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16,
+                tls_state->server_content_type);
+        result = 0;
+        goto end;
+    }
+
+    if (tls_state->server_version != 0x0301) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
+                tls_state->server_version);
+        result = 0;
+        goto end;
+    }
+end:
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void TLSParserRegisterTests(void) {
@@ -920,5 +1097,8 @@ void TLSParserRegisterTests(void) {
     UtRegisterTest("TLSParserTest04", TLSParserTest04, 1);
     UtRegisterTest("TLSParserTest05", TLSParserTest05, 1);
     UtRegisterTest("TLSParserTest06", TLSParserTest06, 1);
+
+    UtRegisterTest("TLSParserMultimsgTest01", TLSParserMultimsgTest01, 1);
+    UtRegisterTest("TLSParserMultimsgTest02", TLSParserMultimsgTest02, 1);
 #endif /* UNITTESTS */
 }

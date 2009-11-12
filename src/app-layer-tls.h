@@ -31,6 +31,7 @@ typedef struct TlsState_ {
 
     uint8_t flags;                  /**< Flags to indicate the current TLS
                                          sessoin state */
+    uint8_t records;                /**< no of records */
 } TlsState;
 
 void RegisterTLSParsers(void);
