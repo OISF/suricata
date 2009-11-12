@@ -4,6 +4,7 @@
 
 #include "eidps-common.h"
 #include "detect.h"
+#include "flow.h"
 #include "detect-content.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -726,6 +727,74 @@ end:
     return result;
 }
 
+/**
+ * \test Checks to make sure that other sigs work that should when fast_pattern is inspecting on the same payload
+ *
+ */
+int DetectFastPatternTest14(void)
+{
+    uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
+        "right now, all the way to hangover.  right.  strings5_imp now here "
+        "comes our dark knight strings_string5.  Yes here is our dark knight";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int alertcnt = 0;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    FlowInitConfig(FLOW_QUIET);
+
+    de_ctx->mpm_matcher = MPM_B3G;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"fast_pattern test\"; content:\"strings_string5\"; content:\"knight\"; fast_pattern; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                                     "(msg:\"test different content\"; content:\"Dummy is our name\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1)){
+        alertcnt++;
+    }else{
+        SCLogInfo("could not match on sig 1 with when fast_pattern is inspecting payload");
+        goto end;
+    }
+    if (PacketAlertCheck(&p, 2)){
+        result = 1;
+    }else{
+        SCLogInfo("match on sig 1 fast_pattern no match sig 2 inspecting same payload");
+    }
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif
 
 void DetectFastPatternRegisterTests(void)
@@ -746,6 +815,7 @@ void DetectFastPatternRegisterTests(void)
     UtRegisterTest("DetectFastPatternTest11", DetectFastPatternTest11, 1);
     UtRegisterTest("DetectFastPatternTest12", DetectFastPatternTest12, 1);
     UtRegisterTest("DetectFastPatternTest13", DetectFastPatternTest13, 1);
+    UtRegisterTest("DetectFastPatternTest14", DetectFastPatternTest14, 1);
 
 #endif
 
