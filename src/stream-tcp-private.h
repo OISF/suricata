@@ -87,4 +87,6 @@ typedef struct TcpSession_ {
     TcpStream client;
     void **aldata; /**< application level storage ptrs */
 } TcpSession;
+
 #endif /* __STREAM_TCP_PRIVATE_H__ */
+

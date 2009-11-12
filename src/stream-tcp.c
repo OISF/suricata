@@ -367,7 +367,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p, StreamTcpThread *
             StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
             SCLogDebug("ssn %p: =~ midstream picked ssn state is now TCP_SYN_RECV", ssn);
             ssn->flags |= STREAMTCP_FLAG_MIDSTREAM;
-            /*Fla used to change the direct in the later stage in the session*/
+            /* Flag used to change the direct in the later stage in the session */
             ssn->flags |= STREAMTCP_FLAG_MIDSTREAM_SYNACK;
 
             /* sequence number & window */
@@ -513,7 +513,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
     if (ssn == NULL)
         return -1;
 
-    SCLogDebug("ssn %p: pkt received", ssn);
+    SCLogDebug("ssn %p: pkt received: %s", ssn, PKT_IS_TOCLIENT(p) ? "toclient":"toserver");
 
     switch (p->tcph->th_flags) {
         case TH_SYN:
@@ -564,7 +564,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
 
             break;
         case TH_SYN|TH_ACK:
-            if (ssn->flags & STREAMTCP_FLAG_4WHS) {
+            if (ssn->flags & STREAMTCP_FLAG_4WHS && PKT_IS_TOSERVER(p)) {
                 SCLogDebug("ssn %p: SYN/ACK received on 4WHS session", ssn);
 
                 /* Check if the SYN/ACK packet ack's the earlier
@@ -694,6 +694,12 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p, StreamTcpThrea
             SCLogDebug("ssn %p: ssn->server.isn %" PRIu32 ", ssn->server.next_seq %" PRIu32 ", ssn->server.last_ack %" PRIu32 " (ssn->client.last_ack %" PRIu32 ")",
                     ssn, ssn->server.isn, ssn->server.next_seq, ssn->server.last_ack, ssn->client.last_ack);
 
+            /* unset the 4WHS flag as we received this SYN/ACK as part of a
+             * (so far) valid 3WHS */
+            if (ssn->flags & STREAMTCP_FLAG_4WHS)
+                SCLogDebug("ssn %p: STREAMTCP_FLAG_4WHS unset, normal SYN/ACK so considering 3WHS", ssn);
+
+            ssn->flags &=~ STREAMTCP_FLAG_4WHS;
             break;
         case TH_ACK:
         case TH_ACK|TH_PUSH :
@@ -798,7 +804,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p, StreamTcpThrea
                     return -1;
             }
 
-            if (ssn->flags & STREAMTCP_FLAG_4WHS) {
+            if (ssn->flags & STREAMTCP_FLAG_4WHS && PKT_IS_TOCLIENT(p)) {
                 SCLogDebug("ssn %p: ACK received on 4WHS session",ssn);
 
                 if ((SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))) {
@@ -1878,8 +1884,8 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
         if (StreamTcpPacketStateNone(tv, p, stt, ssn) == -1)
             return -1;
     } else {
-        /*check if the packet is in right direction, when we missed the
-              SYN packet and picked up midstream session.*/
+        /* check if the packet is in right direction, when we missed the
+           SYN packet and picked up midstream session. */
         if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)
             StreamTcpPacketSwitchDir(ssn, p);
 
@@ -2294,17 +2300,17 @@ static int StreamTcpTest01 (void) {
 
     TcpSession *ssn = StreamTcpNewSession(&p);
     if (ssn == NULL) {
-        printf("Session can not be allocated \n");
+        printf("Session can not be allocated: ");
         goto end;
     }
     f.protoctx = ssn;
 
     if (ssn->aldata != NULL) {
-        printf("AppLayer field not set to NULL \n");
+        printf("AppLayer field not set to NULL: ");
         goto end;
     }
     if (ssn->state != 0) {
-        printf("TCP state field not set to 0 \n");
+        printf("TCP state field not set to 0: ");
         goto end;
     }
 
@@ -3295,6 +3301,216 @@ end:
     return ret;
 }
 
+/**
+ *  \test   Test the setting up a TCP session using the 4WHS:
+ *          SYN, SYN, SYN/ACK, ACK
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcp4WHSTest01 (void) {
+    int ret = 0;
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    p.flow = &f;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = 0;
+    tcph.th_flags = TH_SYN;
+    p.tcph = &tcph;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = 0;
+    p.tcph->th_flags = TH_SYN;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if ((!(((TcpSession *)(p.flow->protoctx))->flags & STREAMTCP_FLAG_4WHS))) {
+        printf("STREAMTCP_FLAG_4WHS flag not set: ");
+        goto end;
+    }
+
+    p.tcph->th_seq = htonl(10);
+    p.tcph->th_ack = htonl(21); /* the SYN/ACK uses the SEQ from the first SYN pkt */
+    p.tcph->th_flags = TH_SYN|TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(21);
+    p.tcph->th_ack = htonl(10);
+    p.tcph->th_flags = TH_ACK;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED) {
+        printf("state is not ESTABLISHED: ");
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpSessionPktFree(&p);
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
+/**
+ *  \test   set up a TCP session using the 4WHS:
+ *          SYN, SYN, SYN/ACK, ACK, but the SYN/ACK does
+ *          not have the right SEQ
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcp4WHSTest02 (void) {
+    int ret = 0;
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    p.flow = &f;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = 0;
+    tcph.th_flags = TH_SYN;
+    p.tcph = &tcph;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = 0;
+    p.tcph->th_flags = TH_SYN;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if ((!(((TcpSession *)(p.flow->protoctx))->flags & STREAMTCP_FLAG_4WHS))) {
+        printf("STREAMTCP_FLAG_4WHS flag not set: ");
+        goto end;
+    }
+
+    p.tcph->th_seq = htonl(30);
+    p.tcph->th_ack = htonl(21); /* the SYN/ACK uses the SEQ from the first SYN pkt */
+    p.tcph->th_flags = TH_SYN|TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) != -1) {
+        printf("SYN/ACK pkt not rejected but it should have: ");
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpSessionPktFree(&p);
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
+/**
+ *  \test   set up a TCP session using the 4WHS:
+ *          SYN, SYN, SYN/ACK, ACK: however the SYN/ACK and ACK
+ *          are part of a normal 3WHS
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcp4WHSTest03 (void) {
+    int ret = 0;
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    p.flow = &f;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = 0;
+    tcph.th_flags = TH_SYN;
+    p.tcph = &tcph;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = 0;
+    p.tcph->th_flags = TH_SYN;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if ((!(((TcpSession *)(p.flow->protoctx))->flags & STREAMTCP_FLAG_4WHS))) {
+        printf("STREAMTCP_FLAG_4WHS flag not set: ");
+        goto end;
+    }
+
+    p.tcph->th_seq = htonl(30);
+    p.tcph->th_ack = htonl(11);
+    p.tcph->th_flags = TH_SYN|TH_ACK;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(11);
+    p.tcph->th_ack = htonl(31);
+    p.tcph->th_flags = TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED) {
+        printf("state is not ESTABLISHED: ");
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpSessionPktFree(&p);
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 void StreamTcpRegisterTests (void) {
@@ -3312,6 +3528,10 @@ void StreamTcpRegisterTests (void) {
     UtRegisterTest("StreamTcpTest11 -- SYN missed Async stream", StreamTcpTest11, 1);
     UtRegisterTest("StreamTcpTest12 -- SYN/ACK missed Async stream", StreamTcpTest12, 1);
     UtRegisterTest("StreamTcpTest13 -- opposite stream packets for Async stream", StreamTcpTest13, 1);
+
+    UtRegisterTest("StreamTcp4WHSTest01 -- 4WHS setup", StreamTcp4WHSTest01, 1);
+    UtRegisterTest("StreamTcp4WHSTest02 -- 4WHS invalid setup", StreamTcp4WHSTest02, 1);
+    UtRegisterTest("StreamTcp4WHSTest03 -- 4WHS turning out as normal 3WHS", StreamTcp4WHSTest03, 1);
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
 #endif /* UNITTESTS */
