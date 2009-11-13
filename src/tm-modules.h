@@ -54,13 +54,15 @@ TmModule tmm_modules[TMM_SIZE];
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     FILE *fp;
-    pthread_mutex_t fp_mutex;
     /** It will be locked if the log/alert
      * record cannot be written to the file in one call */
+    pthread_mutex_t fp_mutex;
 
-    char *config_file;
     /** To know where did we read this config */
+    char *config_file;
 
+    /** The name of the file */
+    char *filename;
 } LogFileCtx;
 
 LogFileCtx *LogFileNewCtx();
