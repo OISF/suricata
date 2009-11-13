@@ -249,7 +249,14 @@ uint32_t PatternStrength(uint8_t *pat, uint16_t patlen, uint16_t len) {
 /** \brief Setup the content portion of the sig group head */
 static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     uint32_t sig;
-    int fast_pattern = 0;
+    uint32_t *fast_pattern = NULL;
+
+    fast_pattern = (uint32_t *)malloc(sgh->sig_cnt * sizeof(uint32_t));
+    if (fast_pattern == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        return -1;
+    }
+    memset(fast_pattern, 0, sgh->sig_cnt * sizeof(uint32_t));
 
     HashTable *ht = HashTableInit(4096, ContentHashFunc, ContentHashCompareFunc, ContentHashFree);
     if (ht == NULL)
@@ -274,7 +281,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                     continue;
 
                 if (co->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    fast_pattern = 1;
+                    fast_pattern[sig] = 1;
 
                     ContentHash *ch = ContentHashAlloc(co);
                     if (ch == NULL)
@@ -298,13 +305,13 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             }
         }
 
-        if (fast_pattern == 1) {
+        if (fast_pattern[sig] == 1) {
             if (cnt == 1) {
                 ContentHash *ch = ContentHashAlloc(s->match->ctx);
                 ch->nosearch = 1;
                 ch->use = 1;
             }
-            break;
+            continue;
         }
 
         for (sm = s->match; sm != NULL; sm = sm->next) {
@@ -366,7 +373,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 if (co == NULL)
                     continue;
 
-                if (fast_pattern == 1) {
+                if (fast_pattern[sig] == 1) {
                     if (!(co->flags & DETECT_CONTENT_FAST_PATTERN))
                         continue;
                 } else if (co->content_len < sgh->mpm_content_maxlen) {
@@ -451,9 +458,14 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             }
         }
     }
+
+    if (fast_pattern != NULL)
+        free(fast_pattern);
     HashTableFree(ht);
     return 0;
 error:
+    if (fast_pattern != NULL)
+        free(fast_pattern);
     if (ht != NULL)
         HashTableFree(ht);
     return -1;
