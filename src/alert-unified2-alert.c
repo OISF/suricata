@@ -19,6 +19,7 @@
 #include "decode-ipv4.h"
 
 #include "util-debug.h"
+#include "util-time.h"
 
 /*prototypes*/
 TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -574,13 +575,10 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
         * Load the default configuration.
         */
 
-        /** get the time so we can have a filename with seconds since epoch
-         * in it. XXX review if we can take this info from somewhere else.
-         * This is used both during init and runtime, so it must be thread
-         * safe. */
+        /** get the time so we can have a filename with seconds since epoch */
         struct timeval ts;
-        memset(&ts, 0, sizeof(struct timeval));
-        gettimeofday(&ts, NULL);
+        memset(&ts, 0x00, sizeof(struct timeval));
+        TimeGet(&ts);
 
         /* create the filename to use */
         char *log_dir;
@@ -959,13 +957,16 @@ static int Unified2TestRotate01(void)
         return 0;
     }
 
-    sleep(1);
+    TimeSetIncrementTime(1);
+
     ret = Unified2AlertRotateFile(&tv, data);
     if (ret == -1)
         goto error;
 
-    if (strcmp(filename, lf->filename) == 0)
+    if (strcmp(filename, lf->filename) == 0) {
+        printf("filename \"%s\" == \"%s\": ", filename, lf->filename);
         goto error;
+    }
 
     r = 1;
 

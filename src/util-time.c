@@ -39,6 +39,16 @@ void TimeSet(struct timeval *tv)
     mutex_unlock(&current_time_mutex);
 }
 
+/** \brief set the time to "gettimeofday" meant for testing */
+void TimeSetToCurrentTime(void) {
+    struct timeval tv;
+    memset(&tv, 0x00, sizeof(tv));
+
+    gettimeofday(&tv, NULL);
+
+    TimeSet(&tv);
+}
+
 void TimeGet(struct timeval *tv)
 {
     if (tv == NULL)
@@ -56,3 +66,16 @@ void TimeGet(struct timeval *tv)
     SCLogDebug("time we got is %" PRIuMAX " sec, %" PRIuMAX " usec",
                (uintmax_t)tv->tv_sec, (uintmax_t)tv->tv_usec);
 }
+
+/** \brief increment the time in the engine
+ *  \param tv_sec seconds to increment the time with */
+void TimeSetIncrementTime(uint32_t tv_sec) {
+    struct timeval tv;
+    memset(&tv, 0x00, sizeof(tv));
+    TimeGet(&tv);
+
+    tv.tv_sec += tv_sec;
+
+    TimeSet(&tv);
+}
+

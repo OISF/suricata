@@ -3,6 +3,10 @@
 
 void TimeSet(struct timeval *);
 void TimeGet(struct timeval *);
+
+void TimeSetToCurrentTime(void);
+void TimeSetIncrementTime(uint32_t);
+
 void TimeModeSetLive(void);
 void TimeModeSetOffline (void);
 

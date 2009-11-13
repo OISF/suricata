@@ -8,6 +8,7 @@
 #include "eidps-common.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-time.h"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -166,6 +167,11 @@ uint32_t UtRunTests(char *regex_arg) {
                 printf("Test %-60.60s : ", ut->name);
                 matchcnt++;
                 fflush(stdout); /* flush so in case of a segv we see the testname */
+
+                /* reset the time */
+                TimeModeSetOffline();
+                TimeSetToCurrentTime();
+
                 ret = ut->TestFn();
                 printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
                 if (ret != ut->evalue) {

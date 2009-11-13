@@ -23,6 +23,7 @@
 #include "tm-modules.h"
 
 #include "util-unittest.h"
+#include "util-time.h"
 
 #define DEFAULT_LOG_FILENAME "unified.alert"
 
@@ -290,13 +291,10 @@ int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
         * Load the default configuration.
         */
 
-        /* get the time so we can have a filename with seconds since epoch
-         * in it. XXX review if we can take this info from somewhere else.
-         * This is used both during init and runtime, so it must be thread
-         * safe. */
+        /* get the time so we can have a filename with seconds since epoch */
         struct timeval ts;
         memset (&ts, 0, sizeof(struct timeval));
-        gettimeofday(&ts, NULL);
+        TimeGet(&ts);
 
         /* create the filename to use */
         char *log_dir;
@@ -346,7 +344,8 @@ static int AlertUnifiedAlertTestRotate01(void)
         return 0;
     }
 
-    sleep(1);
+    TimeSetIncrementTime(1);
+
     ret = AlertUnifiedAlertRotateFile(&tv, data);
     if (ret == -1)
         goto error;
