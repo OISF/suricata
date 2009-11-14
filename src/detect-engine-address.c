@@ -485,9 +485,15 @@ static int DetectAddressParseString(DetectAddress *dd, char *str) {
             mask++;
             uint32_t ip4addr = 0;
             uint32_t netmask = 0;
+            int i;
 
             if ((strchr (mask,'.')) == NULL) {
                 /* 1.2.3.4/24 format */
+
+                for(i=0; i < strlen(mask); i++){
+                    if(!isdigit(mask[i]))
+                        goto error;
+                }
 
                 int cidr = atoi(mask);
                 if(cidr < 0 || cidr > 32){
@@ -3644,6 +3650,18 @@ int AddressTestParseInvalidMask02 (void) {
     }
     return result;
 }
+
+int AddressTestParseInvalidMask03 (void) {
+    int result = 1;
+    DetectAddress *dd = NULL;
+    dd = DetectAddressParseSingle("192.168.2.0/blue");
+    if (dd != NULL) {
+        DetectAddressFree(dd);
+        result = 0;
+    }
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectAddressTests(void) {
@@ -3770,6 +3788,7 @@ void DetectAddressTests(void) {
 
     UtRegisterTest("AddressTestParseInvalidMask01",AddressTestParseInvalidMask01, 1);
     UtRegisterTest("AddressTestParseInvalidMask02",AddressTestParseInvalidMask02, 1);
+    UtRegisterTest("AddressTestParseInvalidMask03",AddressTestParseInvalidMask03, 1);
 #endif /* UNITTESTS */
 }
 
