@@ -27,10 +27,10 @@
 
 #include "util-byte.h"
 
-#define TLS_CHANGE_CIPHER_SPEC  0x14   /*TLS change cipher spec content type*/
-#define TLS_ALERT_PROTOCOL      0x15   /*TLS alert protocol content type */
-#define TLS_HANDSHAKE_PROTOCOL  0x16   /*TLS hansdshake protocol content type*/
-#define TLS_APPLICATION_PROTOCOL  0x17 /*TLS application protocol content type*/
+#define TLS_CHANGE_CIPHER_SPEC      0x14   /**< TLS change cipher spec content type */
+#define TLS_ALERT_PROTOCOL          0x15   /**< TLS alert protocol content type */
+#define TLS_HANDSHAKE_PROTOCOL      0x16   /**< TLS hansdshake protocol content type */
+#define TLS_APPLICATION_PROTOCOL    0x17   /**< TLS application protocol content type */
 
 /**
  * \brief Function to store the parsed TLS content type received from the client
@@ -715,9 +715,9 @@ static int TLSParserTest04(void) {
         goto end;
     }
 
-    if (tls_state->client_version != 0x0301) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
-                tls_state->client_version);
+    if (tls_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }
@@ -799,9 +799,9 @@ static int TLSParserTest05(void) {
         goto end;
     }
 
-    if (tls_state->client_version != 0x0301) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
-                tls_state->client_version);
+    if (tls_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }
@@ -894,9 +894,9 @@ static int TLSParserTest06(void) {
         goto end;
     }
 
-    if (tls_state->client_version != 0x0301) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
-                tls_state->client_version);
+    if (tls_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }

@@ -1,5 +1,5 @@
-#ifndef __APP_LAYER_SSL_H__
-#define __APP_LAYER_SSL_H__
+#ifndef __APP_LAYER_TLS_H__
+#define __APP_LAYER_TLS_H__
 
 #define TLS_FLAG_SERVER_CHANGE_CIPHER_SPEC   0x01    /**< Flag to indicate that
                                                      server will now on sends
@@ -31,7 +31,6 @@ typedef struct TlsState_ {
 
     uint8_t flags;                  /**< Flags to indicate the current TLS
                                          sessoin state */
-    uint8_t records;                /**< no of records */
 } TlsState;
 
 enum {
@@ -45,5 +44,5 @@ enum {
 void RegisterTLSParsers(void);
 void TLSParserRegisterTests(void);
 
-#endif /* __APP_LAYER_SSL_H__ */
+#endif /* __APP_LAYER_TLS_H__ */
 
