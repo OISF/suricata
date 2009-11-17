@@ -1049,8 +1049,6 @@ int DetectContentChunksGetTotalLength(SigMatch *sm)
 void DetectContentPrintAll(SigMatch *sm)
 {
     if (SCLogDebugEnabled()) {
-        int i = 0;
-
         if (sm == NULL)
             return;
 
@@ -1058,11 +1056,12 @@ void DetectContentPrintAll(SigMatch *sm)
         SigMatch *first_sm = sm;
 
        /* Print all of them */
-        for (; first_sm != NULL; first_sm = first_sm->next)
+        for (; first_sm != NULL; first_sm = first_sm->next) {
             if (first_sm->type == DETECT_CONTENT) {
                 SCLogDebug("Printing SigMatch DETECT_CONTENT %d", ++i);
                 DetectContentPrint(first_sm->ctx);
             }
+        }
     }
 }
 
