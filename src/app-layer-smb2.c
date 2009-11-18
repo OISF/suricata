@@ -478,8 +478,8 @@ int SMB2ParserTest01(void) {
         goto end;
     }
 
-    if (smb2_state->nbss.length != 133) {
-        printf("expected nbss length 0x%02x , got 0x%02x : ", 133, smb2_state->nbss.length);
+    if (smb2_state->nbss.length != 102) {
+        printf("expected nbss length 0x%02x , got 0x%02x : ", 102, smb2_state->nbss.length);
         result = 0;
         goto end;
     }

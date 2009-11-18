@@ -36,6 +36,7 @@ enum {
 	DCERPC_FIELD_MAX,
 };
 
+#if 0
 static int DCERPCParseBIND(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
@@ -68,7 +69,7 @@ static int DCERPCParseBIND(void *dcerpc_state, AppLayerParserState *pstate, uint
 
 	}
     }
-    return 0;
+    return (p - input);
 }
 
 static int DCERPCParseBINDACK(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
@@ -76,6 +77,7 @@ static int DCERPCParseBINDACK(void *dcerpc_state, AppLayerParserState *pstate, u
     uint8_t *p = input;
     return 0;
 }
+#endif
 
 static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;

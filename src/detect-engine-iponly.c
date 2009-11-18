@@ -495,7 +495,7 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, 
 static int IPOnlyTestSig01(void) {
     int result = 0;
     DetectEngineCtx de_ctx;
-
+    memset (&de_ctx, 0, sizeof(DetectEngineCtx));
     de_ctx.flags |= DE_QUIET;
 
     Signature *s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-01 sig is IPOnly \"; classtype:misc-activity; sid:400001; rev:1;)");
@@ -520,6 +520,7 @@ end:
 static int IPOnlyTestSig02 (void) {
     int result = 0;
     DetectEngineCtx de_ctx;
+    memset (&de_ctx, 0, sizeof(DetectEngineCtx));
 
     de_ctx.flags |= DE_QUIET;
 
