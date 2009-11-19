@@ -8000,6 +8000,77 @@ static int SigTestContent05Wm (void) {
     return SigTestContent05Real(MPM_WUMANBER);
 }
 
+static int SigTestContent06Real (int mpm_type) {
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = mpm_type;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig1\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig2\"; content:\"01234567890123456789012345678901\"; content:\"abcdefg\"; sid:2;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1)){
+        //printf("sig 1 matched :");
+    }else{
+        printf("sig 1 didn't match: ");
+        goto end;
+    }
+
+    if (PacketAlertCheck(&p, 2)){
+        result = 1;
+    }else{
+        printf("sig 2 didn't match: ");
+        goto end;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+static int SigTestContent06B2g (void) {
+    return SigTestContent06Real(MPM_B2G);
+}
+static int SigTestContent06B3g (void) {
+    return SigTestContent06Real(MPM_B3G);
+}
+static int SigTestContent06Wm (void) {
+    return SigTestContent06Real(MPM_WUMANBER);
+}
+
 static int SigTestWithinReal01 (int mpm_type) {
     DecodeThreadVars dtv;
     ThreadVars th_v;
@@ -8199,6 +8270,7 @@ static int SigTestWithinReal01B3g (void) {
 static int SigTestWithinReal01Wm (void) {
     return SigTestWithinReal01(MPM_WUMANBER);
 }
+
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
@@ -8386,6 +8458,10 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTestContent05B2g -- distance/within", SigTestContent05B2g, 1);
     UtRegisterTest("SigTestContent05B3g -- distance/within", SigTestContent05B3g, 1);
     UtRegisterTest("SigTestContent05Wm -- distance/within", SigTestContent05Wm, 1);
+
+    UtRegisterTest("SigTestContent06B2g -- distance/within ip only", SigTestContent06B2g, 1);
+    UtRegisterTest("SigTestContent06B3g -- distance/within ip only", SigTestContent06B3g, 1);
+    UtRegisterTest("SigTestContent06Wm -- distance/within ip only", SigTestContent06Wm, 1);
 
     UtRegisterTest("SigTestWithinReal01B2g", SigTestWithinReal01B2g, 1);
     UtRegisterTest("SigTestWithinReal01B3g", SigTestWithinReal01B3g, 1);
