@@ -867,7 +867,6 @@ error:
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-
 static int FlagsTestParse12 (void) {
     Packet p;
     ThreadVars tv;
@@ -892,7 +891,6 @@ static int FlagsTestParse12 (void) {
         goto error;
 
     sm = SigMatchAlloc();
-
     if (sm == NULL)
         goto error;
 
