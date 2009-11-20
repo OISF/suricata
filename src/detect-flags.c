@@ -16,9 +16,9 @@
 
 /**
  *  Regex (by Brian Rectanus)
- *  flags: [!+*](SAPRFU120)[,SAPRFU120]
+ *  flags: [!+*](SAPRFU120)[,SAPRFU12]
  */
-#define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120]+)(?:\\s*,\\s*([SAPRFU120]+))?\\s*$"
+#define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120]+)(?:\\s*,\\s*([SAPRFU12]+))?\\s*$"
 
 /**
  * Flags args[0] *(3) +(2) !(1)
@@ -93,6 +93,12 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
         return ret;
 
     flags = p->tcph->th_flags;
+
+    if(!de->flags && flags)    {
+            if(de->modifier == 1)
+                return 1;
+           return ret;
+    }
 
     flags &= (de->flags & de->ignored_flags);
 
@@ -237,9 +243,7 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
             case '0':
                 de->flags = 0;
                 found++;
-                return de;
             default:
-                found = 0;
                 break;
         }
         ptr++;
@@ -297,7 +301,6 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                 case '0':
                     break;
                 default:
-                    ignore = 0;
                     break;
             }
             ptr++;
@@ -310,6 +313,7 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     for (i = 0; i < (ret - 1); i++){
         if (args[i] != NULL) free(args[i]);
     }
+
     return de;
 
 error:
@@ -856,6 +860,59 @@ error:
     if (sm) free(sm);
     return 0;
 }
+
+/**
+ * \test FlagsTestParse12 check if no flags are set. Must fails.
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int FlagsTestParse12 (void) {
+    Packet p;
+    ThreadVars tv;
+    int ret = 0;
+    DetectFlagsData *de = NULL;
+    SigMatch *sm = NULL;
+    IPV4Hdr ipv4h;
+    TCPHdr tcph;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&ipv4h, 0, sizeof(IPV4Hdr));
+    memset(&tcph, 0, sizeof(TCPHdr));
+
+    p.ip4h = &ipv4h;
+    p.tcph = &tcph;
+    p.tcph->th_flags = TH_SYN;
+
+    de = DetectFlagsParse("0");
+
+    if (de == NULL || de->flags != 0)
+        goto error;
+
+    sm = SigMatchAlloc();
+
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_FLAGS;
+    sm->ctx = (void *)de;
+
+    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+
+    if(ret) {
+        if (de) free(de);
+        if (sm) free(sm);
+        return 1;
+    }
+
+error:
+    if (de) free(de);
+    if (sm) free(sm);
+    return 0;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -874,5 +931,6 @@ void FlagsRegisterTests(void) {
     UtRegisterTest("FlagsTestParse09", FlagsTestParse09, 1);
     UtRegisterTest("FlagsTestParse10", FlagsTestParse10, 1);
     UtRegisterTest("FlagsTestParse11", FlagsTestParse11, 0);
+    UtRegisterTest("FlagsTestParse12", FlagsTestParse12, 0);
 #endif /* UNITTESTS */
 }
