@@ -17,9 +17,19 @@
 #include "util-var-name.h"
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "conf.h"
 
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*)(?<!\\\\)/([^\"]*)"
+
+#define DEFAULT_MATCH_LIMIT 10000000
+#define DEFAULT_MATCH_LIMIT_RECURSION 10000000
+
+#define MATCH_LIMIT_DEFAULT 1500
+
+static int pcre_match_limit = 0;
+static int pcre_match_limit_recursion = 0;
+
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 static pcre *parse_capture_regex;
@@ -42,6 +52,23 @@ void DetectPcreRegister (void) {
     const char *eb;
     int eo;
     int opts = 0;
+    intmax_t val = 0;
+
+    if (!ConfGetInt("pcre.match-limit", &val)) {
+        pcre_match_limit = DEFAULT_MATCH_LIMIT;
+    }
+    else    {
+        pcre_match_limit = val;
+    }
+
+    val = 0;
+
+    if (!ConfGetInt("pcre.match-limit-recursion", &val)) {
+        pcre_match_limit_recursion = DEFAULT_MATCH_LIMIT_RECURSION;
+    }
+    else    {
+        pcre_match_limit_recursion = val;
+    }
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
@@ -262,6 +289,9 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                 case 'U': /* snort's option */
                     pd->flags |= DETECT_PCRE_URI;
                     break;
+                case 'O':
+                    pd->flags |= DETECT_PCRE_MATCH_LIMIT;
+                    break;
                 default:
                     printf("DetectPcreParse: unknown regex modifier '%c'\n", *op);
                     goto error;
@@ -273,17 +303,45 @@ DetectPcreData *DetectPcreParse (char *regexstr)
     //printf("DetectPcreParse: \"%s\"\n", re);
 
     pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
-    if(pd->re == NULL)
-    {
+    if(pd->re == NULL)  {
         printf("DetectPcreParse: pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", regexstr, eo, eb);
         goto error;
     }
 
     pd->sd = pcre_study(pd->re, 0, &eb);
-    if(eb != NULL)
-    {
+    if(eb != NULL)  {
         printf("DetectPcreParse: pcre study failed : %s\n", eb);
         goto error;
+    }
+
+    if(pd->sd == NULL)
+        pd->sd = (pcre_extra *) calloc(1,sizeof(pcre_extra));
+
+    if(pd->sd)  {
+
+        if(pd->flags & DETECT_PCRE_MATCH_LIMIT) {
+
+            if(pcre_match_limit >= -1)    {
+                pd->sd->match_limit = pcre_match_limit;
+                pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT;
+            }
+
+            if(pcre_match_limit_recursion >= -1)    {
+                pd->sd->match_limit_recursion = pcre_match_limit_recursion;
+                pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+            }
+
+        }
+        else    {
+
+            pd->sd->match_limit = MATCH_LIMIT_DEFAULT;
+            pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT;
+
+            pd->sd->match_limit_recursion = MATCH_LIMIT_DEFAULT;
+            pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+
+        }
+
     }
 
     if (re != NULL) free(re);
@@ -405,7 +463,7 @@ void DetectPcreFree(void *ptr) {
 /**
  * \test DetectPcreParseTest01 make sure we don't allow invalid opts 7.
  */
-int DetectPcreParseTest01 (void) {
+static int DetectPcreParseTest01 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/7";
@@ -422,7 +480,7 @@ int DetectPcreParseTest01 (void) {
 /**
  * \test DetectPcreParseTest02 make sure we don't allow invalid opts Ui$.
  */
-int DetectPcreParseTest02 (void) {
+static int DetectPcreParseTest02 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/Ui$";
@@ -439,7 +497,7 @@ int DetectPcreParseTest02 (void) {
 /**
  * \test DetectPcreParseTest03 make sure we don't allow invalid opts UZi.
  */
-int DetectPcreParseTest03 (void) {
+static int DetectPcreParseTest03 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/UZi";
@@ -456,7 +514,7 @@ int DetectPcreParseTest03 (void) {
 /**
  * \test DetectPcreParseTest04 make sure we allow escaped "
  */
-int DetectPcreParseTest04 (void) {
+static int DetectPcreParseTest04 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b\\\"lah/i";
@@ -474,7 +532,7 @@ int DetectPcreParseTest04 (void) {
 /**
  * \test DetectPcreParseTest05 make sure we parse pcre with no opts
  */
-int DetectPcreParseTest05 (void) {
+static int DetectPcreParseTest05 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b(l|a)h/";
@@ -492,7 +550,7 @@ int DetectPcreParseTest05 (void) {
 /**
  * \test DetectPcreParseTest06 make sure we parse pcre with smi opts
  */
-int DetectPcreParseTest06 (void) {
+static int DetectPcreParseTest06 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b(l|a)h/smi";
@@ -510,7 +568,7 @@ int DetectPcreParseTest06 (void) {
 /**
  * \test DetectPcreParseTest07 make sure we parse pcre with /Ui opts
  */
-int DetectPcreParseTest07 (void) {
+static int DetectPcreParseTest07 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/Ui";
@@ -525,14 +583,32 @@ int DetectPcreParseTest07 (void) {
     return result;
 }
 
+/**
+ * \test DetectPcreParseTest08 make sure we parse pcre with O opts
+ */
+static int DetectPcreParseTest08 (void) {
+    int result = 1;
+    DetectPcreData *pd = NULL;
+    char *teststring = "/b(l|a)h/O";
+
+    pd = DetectPcreParse(teststring);
+    if (pd == NULL) {
+        printf("expected %p: got NULL", pd);
+        result = 0;
+    }
+
+    DetectPcreFree(pd);
+    return result;
+}
+
 static int DetectPcreTestSig01Real(int mpm_type) {
     uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n\r\n"
-                    "GET /two/ HTTP/1.1\r\n"
-                    "Host: two.example.org\r\n"
-                    "\r\n\r\n";
+        "GET /one/ HTTP/1.1\r\n"
+        "Host: one.example.org\r\n"
+        "\r\n\r\n"
+        "GET /two/ HTTP/1.1\r\n"
+        "Host: two.example.org\r\n"
+        "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
@@ -577,6 +653,61 @@ end:
     return result;
 }
 
+static int DetectPcreTestSig02Real(int mpm_type) {
+    uint8_t *buf = (uint8_t *)
+        "GET /one/ HTTP/1.1\r\n"
+        "Host: one.example.org\r\n"
+        "\r\n\r\n"
+        "GET /two/ HTTP/1.1\r\n"
+        "Host: two.example.org\r\n"
+        "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    pcre_match_limit = 100;
+    pcre_match_limit_recursion = 100;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = mpm_type;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"/two/O\"; sid:2;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 2))
+        result = 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
 static int DetectPcreTestSig01B2g (void) {
     return DetectPcreTestSig01Real(MPM_B2G);
 }
@@ -587,6 +718,15 @@ static int DetectPcreTestSig01Wm (void) {
     return DetectPcreTestSig01Real(MPM_WUMANBER);
 }
 
+static int DetectPcreTestSig02B2g (void) {
+    return DetectPcreTestSig02Real(MPM_B2G);
+}
+static int DetectPcreTestSig02B3g (void) {
+    return DetectPcreTestSig02Real(MPM_B3G);
+}
+static int DetectPcreTestSig02Wm (void) {
+    return DetectPcreTestSig02Real(MPM_WUMANBER);
+}
 #endif /* UNITTESTS */
 
 /**
@@ -601,9 +741,13 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreParseTest05", DetectPcreParseTest05, 1);
     UtRegisterTest("DetectPcreParseTest06", DetectPcreParseTest06, 1);
     UtRegisterTest("DetectPcreParseTest07", DetectPcreParseTest07, 1);
+    UtRegisterTest("DetectPcreParseTest08", DetectPcreParseTest08, 1);
     UtRegisterTest("DetectPcreTestSig01B2g -- pcre test", DetectPcreTestSig01B2g, 1);
     UtRegisterTest("DetectPcreTestSig01B3g -- pcre test", DetectPcreTestSig01B3g, 1);
     UtRegisterTest("DetectPcreTestSig01Wm -- pcre test", DetectPcreTestSig01Wm, 1);
+    UtRegisterTest("DetectPcreTestSig02B2g -- pcre test", DetectPcreTestSig02B2g, 1);
+    UtRegisterTest("DetectPcreTestSig02B3g -- pcre test", DetectPcreTestSig02B3g, 1);
+    UtRegisterTest("DetectPcreTestSig02Wm -- pcre test", DetectPcreTestSig02Wm, 1);
 #endif /* UNITTESTS */
 }
 
