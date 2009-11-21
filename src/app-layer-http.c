@@ -407,7 +407,7 @@ static void HTTPStateFree(void *s) {
 #endif
 }
 
-void RegisterHTTPParsers(void) {
+/* void RegisterHTTPParsers(void) {
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOSERVER, HTTPParseRequest);
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOCLIENT, HTTPParseResponse);
 
@@ -418,7 +418,7 @@ void RegisterHTTPParsers(void) {
     AppLayerRegisterParser("http.response.code", ALPROTO_HTTP, HTTP_FIELD_RESPONSE_CODE, HTTPParseResponseCode, "http.response_line");
 
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTTPStateAlloc, HTTPStateFree);
-}
+}*/
 
 void HTTPAtExitPrintStats(void) {
 #ifdef DEBUG

@@ -137,7 +137,8 @@ app-layer-protos.h \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \
 util-fix_checksum.c util-fix_checksum.h \
-defrag.c defrag.h
+defrag.c defrag.h \
+app-layer-htp.c app-layer-htp.h
 
 # set the include path found by configure
 INCLUDES= $(all_includes)

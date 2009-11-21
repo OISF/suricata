@@ -62,6 +62,7 @@
 #include "app-layer-tls.h"
 #include "app-layer-smb.h"
 #include "app-layer-dcerpc.h"
+#include "app-layer-htp.h"
 
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
@@ -398,7 +399,8 @@ int main(int argc, char **argv)
     /** \todo we need an api for these */
     AppLayerDetectProtoThreadInit();
     RegisterAppLayerParsers();
-    RegisterHTTPParsers();
+    //RegisterHTTPParsers();
+    RegisterHTPParsers();
     RegisterTLSParsers();
     RegisterSMBParsers();
     RegisterDCERPCParsers();
@@ -448,7 +450,8 @@ int main(int argc, char **argv)
         FlowBitRegisterTests();
         SCPerfRegisterTests();
         DecodePPPRegisterTests();
-        HTTPParserRegisterTests();
+        //HTTPParserRegisterTests();
+        HTPParserRegisterTests();
         TLSParserRegisterTests();
         SMBParserRegisterTests();
         DCERPCParserRegisterTests();

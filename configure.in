@@ -23,7 +23,7 @@ AC_INIT(configure.in)
             exit 1
             ])
 
-    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
+    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -lhtp"
 
 # Checks for programs.
     AC_PROG_AWK
@@ -425,6 +425,24 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
             ])
     if test "$enable_debug" = "yes"; then
     CFLAGS="${CFLAGS} -DDEBUG"
+    fi
+
+#libhtp
+    AC_ARG_WITH(libhtp_includes,
+            [  --with-libhtp-includes=DIR  libhtp include directory],
+            [with_libhtp_includes="$withval"],[with_libhtp_includes=no])
+    AC_ARG_WITH(libhtp_libraries,
+            [  --with-libhtp-libraries=DIR    libhtp library directory],
+            [with_libhtp_libraries="$withval"],[with_libhtp_libraries="no"])
+
+    if test "$with_libhtp_includes" != "no"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_libhtp_includes}"
+    fi
+
+    AC_CHECK_HEADER(htp/htp.h,,LIBHTP="no")
+
+    if test "$with_libhtp_libraries" != "no"; then
+    LDFLAGS="${LDFLAGS}  -L${with_libhtp_libraries}"
     fi
 
 AC_SUBST(CFLAGS)
