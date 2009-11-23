@@ -13,6 +13,7 @@
 #include "flow-var.h"
 #include "flow.h"
 #include "detect.h"
+#include "util-debug.h"
 
 /* puts a new value into a flowvar */
 void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size) {
@@ -109,6 +110,9 @@ void FlowVarFree(FlowVar *fv) {
 void FlowVarPrint(GenericVar *gv) {
     uint16_t i;
 
+    if (!SCLogDebugEnabled())
+        return;
+
     if (gv == NULL)
         return;
 
@@ -116,19 +120,19 @@ void FlowVarPrint(GenericVar *gv) {
         FlowVar *fv = (FlowVar *)gv;
 
         if (fv->datatype == FLOWVAR_TYPE_STR) {
-            printf("Name idx \"%" PRIu32 "\", Value \"", fv->idx);
+            SCLogDebug("Name idx \"%" PRIu32 "\", Value \"", fv->idx);
             for (i = 0; i < fv->data.fv_str.value_len; i++) {
                 if (isprint(fv->data.fv_str.value[i]))
-                    printf("%c", fv->data.fv_str.value[i]);
+                    SCLogDebug("%c", fv->data.fv_str.value[i]);
                 else
-                    printf("\\%02X", fv->data.fv_str.value[i]);
+                    SCLogDebug("\\%02X", fv->data.fv_str.value[i]);
             }
-            printf("\", Len \"%" PRIu32 "\"\n", fv->data.fv_str.value_len);
+            SCLogDebug("\", Len \"%" PRIu32 "\"\n", fv->data.fv_str.value_len);
         } else if (fv->datatype == FLOWVAR_TYPE_INT) {
-            printf("Name idx \"%" PRIu32 "\", Value \"%" PRIu32 "\"", fv->idx,
+            SCLogDebug("Name idx \"%" PRIu32 "\", Value \"%" PRIu32 "\"", fv->idx,
                     fv->data.fv_int.value);
         } else {
-            printf("Unknown data type at flowvars\n");
+            SCLogDebug("Unknown data type at flowvars\n");
         }
     }
     FlowVarPrint(gv->next);
