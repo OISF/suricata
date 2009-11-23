@@ -124,10 +124,11 @@ void FlowVarPrint(GenericVar *gv) {
                     printf("\\%02X", fv->data.fv_str.value[i]);
             }
             printf("\", Len \"%" PRIu32 "\"\n", fv->data.fv_str.value_len);
-        }
-        if (fv->datatype == FLOWVAR_TYPE_INT) {
+        } else if (fv->datatype == FLOWVAR_TYPE_INT) {
             printf("Name idx \"%" PRIu32 "\", Value \"%" PRIu32 "\"", fv->idx,
                     fv->data.fv_int.value);
+        } else {
+            printf("Unknown data type at flowvars\n");
         }
     }
     FlowVarPrint(gv->next);

@@ -1,5 +1,11 @@
-/* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
-/* Copyright (c) 2009 Pablo Rincon <pablo.rincon.crespo@gmail.com> */
+/** Copyright(c) 2009 Open Information Security Foundation.
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
+ *
+ * Flow level variable support for complex detection rules
+ * Supported types atm are String and Integers
+ */
 
 #ifndef __FLOW_VAR_H__
 #define __FLOW_VAR_H__

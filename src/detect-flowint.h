@@ -15,8 +15,9 @@ enum {
     FLOWINT_MODIFIER_NE,
     FLOWINT_MODIFIER_GE,
     FLOWINT_MODIFIER_GT,
-    /** Checking if a var isset (keyword isset)*/
-    FLOWINT_MODIFIER_IS,
+    /** Checking if a var is set (keyword isset/notset)*/
+    FLOWINT_MODIFIER_ISSET,
+    FLOWINT_MODIFIER_NOTSET,
 
     FLOWINT_MODIFIER_UNKNOWN
 };
@@ -37,17 +38,22 @@ typedef struct TargetVar_ {
 
 /** Context data for flowint vars */
 typedef struct DetectFlowintData_ {
-    char *name;                 /* This is the main var we are going to use
-                                 * against the target */
+    /* This is the main var we are going to use
+    * against the target */
+    char *name;
+    /* Internal id of the var */
     uint16_t idx;
 
-    uint8_t modifier;           /* The modifier/operation/condition we are
-                                 * going to execute */
-
+    /* The modifier/operation/condition we are
+    * going to execute */
+    uint8_t modifier;
     uint8_t targettype;
+
     union {
-        uint32_t value;         /* the target value */
-        TargetVar tvar;         /* or the target var */
+        /* the target value */
+        uint32_t value;
+        /* or the target var */
+        TargetVar tvar;
     } target;
 } DetectFlowintData;
 
