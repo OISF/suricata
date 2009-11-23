@@ -188,7 +188,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
                     if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
                         PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
                     } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
-                        FlowVarAdd(p->flow, pe->capidx, (uint8_t *)str_ptr, ret);
+                        FlowVarAddStr(p->flow, pe->capidx, (uint8_t *)str_ptr, ret);
                     }
                 }
             }

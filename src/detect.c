@@ -52,6 +52,7 @@
 #include "detect-id.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
+#include "detect-flowint.h"
 #include "detect-pktvar.h"
 #include "detect-noalert.h"
 #include "detect-flowbits.h"
@@ -2781,6 +2782,7 @@ void SigTableSetup(void) {
     DetectIdRegister();
     DetectDsizeRegister();
     DetectFlowvarRegister();
+    DetectFlowintRegister();
     DetectPktvarRegister();
     DetectNoalertRegister();
     DetectFlowbitsRegister();

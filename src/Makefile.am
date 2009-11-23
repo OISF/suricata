@@ -47,6 +47,7 @@ detect-content.c detect-content.h \
 detect-uricontent.c detect-uricontent.h \
 detect-flowbits.c detect-flowbits.h \
 detect-flowvar.c detect-flowvar.h \
+detect-flowint.c detect-flowint.h \
 detect-pktvar.c detect-pktvar.h \
 detect-pcre.c detect-pcre.h \
 detect-depth.c detect-depth.h \

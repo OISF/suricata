@@ -104,3 +104,27 @@ error:
     return 0;
 }
 
+/** We need to use this at flowints/flowvars
+ *  Need to support options "isset" and "!isset"
+ *  return 0 if not set, the idx if it's set */
+uint8_t VariableNameIsSet(DetectEngineCtx *de_ctx, char *name, uint8_t type) {
+    VariableName *fn = malloc(sizeof(VariableName));
+    uint8_t result = 0;
+    if (fn == NULL)
+        goto end;
+
+    memset(fn, 0, sizeof(VariableName));
+
+    fn->type = type;
+    fn->name = strdup(name);
+    if (fn->name == NULL)
+        goto end;
+
+    VariableName *lookup_fn = (VariableName *)HashListTableLookup(de_ctx->variable_names, (void *)fn, 0);
+    if (lookup_fn != NULL)
+        result = lookup_fn->idx;
+
+end:
+    VariableNameFree(fn);
+    return result;
+}

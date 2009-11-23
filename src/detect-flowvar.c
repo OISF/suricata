@@ -67,7 +67,9 @@ int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 
     FlowVar *fv = FlowVarGet(p->flow, fd->idx);
     if (fv != NULL) {
-        uint8_t *ptr = BinSearch(fv->value, fv->value_len, fd->content, fd->content_len);
+        uint8_t *ptr = BinSearch(fv->data.fv_str.value,
+                                 fv->data.fv_str.value_len,
+                                 fd->content, fd->content_len);
         if (ptr != NULL)
             ret = 1;
     }
