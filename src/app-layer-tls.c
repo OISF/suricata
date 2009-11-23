@@ -173,6 +173,9 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
                 if (r == 0) {
                     pstate->parse_field = 0;
                     SCReturnInt(0);
+                } else if (r == -1) {
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCReturnInt(-1);
                 }
                 break;
             }
@@ -188,6 +191,9 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
                 if (r == 0) {
                     pstate->parse_field = 1;
                     SCReturnInt(0);
+                } else if (r == -1) {
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCReturnInt(-1);
                 }
                 break;
             }
@@ -203,6 +209,9 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
                 if (r == 0) {
                     pstate->parse_field = 2;
                     SCReturnInt(0);
+                } else if (r == -1) {
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCReturnInt(-1);
                 }
 
                 /* Parsing of the record is done. Since we may have more than
@@ -284,6 +293,9 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
                 if (r == 0) {
                     pstate->parse_field = 0;
                     SCReturnInt(0);
+                } else if (r == -1) {
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCReturnInt(-1);
                 }
                 break;
             }
@@ -298,6 +310,9 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
                 if (r == 0) {
                     pstate->parse_field = 1;
                     SCReturnInt(0);
+                } else if (r == -1) {
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCReturnInt(-1);
                 }
                 break;
             }
@@ -313,6 +328,9 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
                 if (r == 0) {
                     pstate->parse_field = 2;
                     SCReturnInt(0);
+                } else if (r == -1) {
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCReturnInt(-1);
                 }
 
                 /* Parsing of the record is done. Since we may have more than

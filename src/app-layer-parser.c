@@ -78,11 +78,15 @@ static void AlpAppendResultElmt(AppLayerParserResult *r, AppLayerParserResultElm
 
 /**
  *  \param alloc Is ptr alloc'd (1) or a ptr to static mem (0).
+ *  \retval -1 error
+ *  \retval 0 ok
  */
-static void AlpStoreField(AppLayerParserResult *output, uint16_t idx, uint8_t *ptr, uint32_t len, uint8_t alloc) {
+static int AlpStoreField(AppLayerParserResult *output, uint16_t idx, uint8_t *ptr, uint32_t len, uint8_t alloc) {
+    SCEnter();
+
     AppLayerParserResultElmt *e = AlpGetResultElmt();
     if (e == NULL)
-        return;
+        SCReturnInt(-1);
 
     if (alloc == 1)
         e->flags |= ALP_RESULT_ELMT_ALLOC;
@@ -92,8 +96,7 @@ static void AlpStoreField(AppLayerParserResult *output, uint16_t idx, uint8_t *p
     e->data_len = len;
     AlpAppendResultElmt(output, e);
 
-    //printf("FIELD registered %" PRIu32 ":\n", idx);
-    //PrintRawDataFp(stdout, e->data_ptr,e->data_len);
+    SCReturnInt(0);
 }
 
 /** \brief Parse a field up to we reach the size limit
@@ -103,48 +106,61 @@ static void AlpStoreField(AppLayerParserResult *output, uint16_t idx, uint8_t *p
  * \retval -1 error
  */
 int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstate, uint16_t field_idx, uint32_t size, uint8_t *input, uint32_t input_len, uint32_t *offset) {
+    SCEnter();
+
     if ((pstate->store_len + input_len) < size) {
         if (pstate->store_len == 0) {
             pstate->store = malloc(input_len);
-            if (pstate->store == NULL)
-                return -1;
+            if (pstate->store == NULL) {
+                SCReturnInt(-1);
+            }
 
             memcpy(pstate->store, input, input_len);
             pstate->store_len = input_len;
         } else {
             pstate->store = realloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL)
-                return -1;
+            if (pstate->store == NULL) {
+                SCReturnInt(-1);
+            }
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
         }
     } else {
         if (pstate->store_len == 0) {
-            AlpStoreField(output, field_idx, input, size, 0);
+            int r = AlpStoreField(output, field_idx, input, size, /* static mem */0);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
             (*offset) += size;
-            return 1;
+
+            SCReturnInt(1);
         } else {
             uint32_t diff = size - pstate->store_len;
 
             pstate->store = realloc(pstate->store, (diff + pstate->store_len));
-            if (pstate->store == NULL)
-                return -1;
+            if (pstate->store == NULL) {
+                SCReturnInt(-1);
+            }
 
             memcpy(pstate->store+pstate->store_len, input, diff);
             pstate->store_len += diff;
 
-            AlpStoreField(output, field_idx, pstate->store, pstate->store_len, 1);
+            int r = AlpStoreField(output, field_idx, pstate->store, pstate->store_len, /* alloc mem */1);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
 
             (*offset) += diff;
 
             pstate->store = NULL;
             pstate->store_len = 0;
-            return 1;
+
+            SCReturnInt(1);
         }
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 /** \brief Parse a field up to the EOF
@@ -154,41 +170,59 @@ int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstat
  * \retval -1 error
  */
 int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate, uint16_t field_idx, uint8_t *input, uint32_t input_len) {
+    SCEnter();
+
     if (pstate->store_len == 0) {
         if (pstate->flags & APP_LAYER_PARSER_EOF) {
-            //printf("ParseFieldByEOF: store_len 0 and EOF\n");
-            AlpStoreField(output, field_idx, input, input_len, 0);
-            return 1;
+            SCLogDebug("store_len 0 and EOF");
+
+            int r = AlpStoreField(output, field_idx, input, input_len, 0);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
+
+            SCReturnInt(1);
         } else {
-            //printf("ParseFieldByEOF: store_len 0 but no EOF\n");
+            SCLogDebug("store_len 0 but no EOF");
+
             /* delimiter field not found, so store the result for the next run */
             pstate->store = malloc(input_len);
-            if (pstate->store == NULL)
-                return -1;
+            if (pstate->store == NULL) {
+                SCReturnInt(-1);
+            }
 
             memcpy(pstate->store, input, input_len);
             pstate->store_len = input_len;
         }
     } else {
         if (pstate->flags & APP_LAYER_PARSER_EOF) {
-            //printf("ParseFieldByEOF: store_len %" PRIu32 " and EOF\n", pstate->store_len);
+            SCLogDebug("store_len %" PRIu32 " and EOF", pstate->store_len);
+
             pstate->store = realloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL)
-                return -1;
+            if (pstate->store == NULL) {
+                SCReturnInt(-1);
+            }
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
 
-            AlpStoreField(output, field_idx, pstate->store, pstate->store_len, 1);
+            int r = AlpStoreField(output, field_idx, pstate->store, pstate->store_len, 1);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
+
             pstate->store = NULL;
             pstate->store_len = 0;
-            return 1;
+
+            SCReturnInt(1);
         } else {
-            //printf("ParseFieldByEOF: store_len %" PRIu32 " but no EOF\n", pstate->store_len);
+            SCLogDebug("store_len %" PRIu32 " but no EOF", pstate->store_len);
+
             /* delimiter field not found, so store the result for the next run */
             pstate->store = realloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL)
-                return -1;
+            if (pstate->store == NULL) {
+                SCReturnInt(-1);
+            }
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
@@ -196,7 +230,7 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
 
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 /** \brief Parse a field up to a delimeter.
@@ -206,7 +240,8 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
  * \retval -1 error
  */
 int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *pstate, uint16_t field_idx, const uint8_t *delim, uint8_t delim_len, uint8_t *input, uint32_t input_len, uint32_t *offset) {
-//    printf("ParseFieldByDelimiter: pstate->store_len %" PRIu32 ", delim_len %" PRIu32 "\n", pstate->store_len, delim_len);
+    SCEnter();
+    SCLogDebug("pstate->store_len %" PRIu32 ", delim_len %" PRIu32 "", pstate->store_len, delim_len);
 
     if (pstate->store_len == 0) {
         uint8_t *ptr = BinSearch(input, input_len, delim, delim_len);
@@ -214,21 +249,25 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
             uint32_t len = ptr - input;
             //printf("ParseFieldByDelimiter: len %" PRIu32 "\n", len);
 
-            AlpStoreField(output, field_idx, input, len, 0);
+            int r = AlpStoreField(output, field_idx, input, len, 0);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
             (*offset) += (len + delim_len);
-            return 1;
+            SCReturnInt(1);
         } else {
             if (pstate->flags & APP_LAYER_PARSER_EOF) {
                 //printf("ParseFieldByDelimiter: delim not found and EOF\n");
-                return 0;
+                SCReturnInt(0);
             }
 
             //printf("ParseFieldByDelimiter: delim not found, continue\n");
 
             /* delimiter field not found, so store the result for the next run */
             pstate->store = malloc(input_len);
-            if (pstate->store == NULL)
-                return -1;
+            if (pstate->store == NULL) {
+                SCReturnInt(-1);
+            }
 
             memcpy(pstate->store, input, input_len);
             pstate->store_len = input_len;
@@ -240,18 +279,22 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
             //printf("ParseFieldByDelimiter: len %" PRIu32 " + %" PRIu32 " = %" PRIu32 "\n", len, pstate->store_len, len + pstate->store_len);
 
             pstate->store = realloc(pstate->store, (len + pstate->store_len));
-            if (pstate->store == NULL)
-                return -1;
+            if (pstate->store == NULL) {
+                SCReturnInt(-1);
+            }
 
             memcpy(pstate->store+pstate->store_len, input, len);
             pstate->store_len += len;
 
-            AlpStoreField(output, field_idx, pstate->store, pstate->store_len, 1);
+            int r = AlpStoreField(output, field_idx, pstate->store, pstate->store_len, 1);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
             pstate->store = NULL;
             pstate->store_len = 0;
 
             (*offset) += (len + delim_len);
-            return 1;
+            SCReturnInt(1);
         } else {
             if (pstate->flags & APP_LAYER_PARSER_EOF) {
                 /* if the input len is smaller than the delim len we search the
@@ -259,8 +302,9 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                 if (delim_len > input_len) {
                     /* delimiter field not found, so store the result for the next run */
                     pstate->store = realloc(pstate->store, (input_len + pstate->store_len));
-                    if (pstate->store == NULL)
-                        return -1;
+                    if (pstate->store == NULL) {
+                        SCReturnInt(-1);
+                    }
 
                     memcpy(pstate->store+pstate->store_len, input, input_len);
                     pstate->store_len += input_len;
@@ -272,14 +316,18 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                             //printf("ParseFieldByDelimiter: now we found the delim\n");
 
                             uint32_t len = ptr - pstate->store;
-                            AlpStoreField(output, field_idx, pstate->store, len, 1);
+                            int r = AlpStoreField(output, field_idx, pstate->store, len, 1);
+                            if (r == -1) {
+                                SCReturnInt(-1);
+                            }
+
                             pstate->store = NULL;
                             pstate->store_len = 0;
 
                             (*offset) += (input_len);
 
                             //printf("ParseFieldByDelimiter: offset %" PRIu32 "\n", (*offset));
-                            return 1;
+                            SCReturnInt(1);
                         }
                         goto free_and_return;
                     }
@@ -290,13 +338,14 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                 free(pstate->store);
                 pstate->store = NULL;
                 pstate->store_len = 0;
-                return 0;
+                SCReturnInt(0);
             }
 
             /* delimiter field not found, so store the result for the next run */
             pstate->store = realloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL)
-                return -1;
+            if (pstate->store == NULL) {
+                SCReturnInt(-1);
+            }
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
@@ -311,21 +360,24 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                     //printf("ParseFieldByDelimiter: now we found the delim\n");
 
                     uint32_t len = ptr - pstate->store;
-                    AlpStoreField(output, field_idx, pstate->store, len, 1);
+                    int r = AlpStoreField(output, field_idx, pstate->store, len, 1);
+                    if (r == -1) {
+                        SCReturnInt(-1);
+                    }
                     pstate->store = NULL;
                     pstate->store_len = 0;
 
                     (*offset) += (input_len);
 
                     //printf("ParseFieldByDelimiter: offset %" PRIu32 "\n", (*offset));
-                    return 1;
+                    SCReturnInt(1);
                 }
             }
         }
 
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 static uint16_t app_layer_sid = 0;

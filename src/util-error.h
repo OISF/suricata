@@ -39,6 +39,7 @@ typedef enum {
     SC_NEGATED_VALUE_IN_PORT_RANGE,
     SC_PORT_PARSE_INSERT_STRING_ERR,
     SC_UNREACHABLE_CODE_REACHED,
+    SC_ALPARSER_ERR,
 } SCError;
 
 const char *SCErrorToString(SCError);
