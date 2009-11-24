@@ -10,19 +10,7 @@
 
 #include <htp/htp.h>
 
-typedef enum {
-    HTTP_METHOD_UNKNOWN = 0,
-    HTTP_METHOD_GET,
-    HTTP_METHOD_POST,
-    /** \todo more.. */
-} HtpRequestMethod;
-
-typedef uint16_t HtpResponseCode;
-
 typedef struct HtpState_ {
-    HtpRequestMethod method;
-
-    HtpResponseCode response_code;
 
     htp_connp_t *connp; /**< Connection parser structure for each connection */
 
