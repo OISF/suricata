@@ -1,6 +1,7 @@
 #include "eidps-common.h"
 #include "util-byte.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 /** \todo: Remove the fprintf errors in favor of logging */
 
@@ -112,7 +113,7 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
     char strbuf[24];
 
     if (len > 23) {
-        fprintf(stderr, "ByteExtractString: len too large (23 max)\n");
+        SCLogError(SC_ERR_ARG_LEN_LONG, "len too large (23 max)");
         return -1;
     }
 
@@ -127,10 +128,15 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
     *res = strtoull(ptr, &endptr, base);
 
     if (errno == ERANGE) {
-        fprintf(stderr, "ByteExtractString: Numeric value out of range\n");
+        SCLogError(SC_NUMERIC_VALUE_ERANGE, "Numeric value out of range");
         return -1;
     } else if (endptr == str) {
-        fprintf(stderr, "ByteExtractString: Invalid numeric value\n");
+        SCLogError(SC_INVALID_NUMERIC_VALUE, "Invalid numeric value");
+        return -1;
+    /* If there is no numeric value in the given string then strtoull(), makes
+       endptr equals to ptr and return 0 as result */
+    } else if (endptr == ptr && *res == 0) {
+        SCLogDebug("No numeric value");
         return -1;
     }
     /* This will interfere with some rules that do not know the length
@@ -164,7 +170,8 @@ inline int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const 
     *res = (uint32_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        fprintf(stderr, "ByteExtractStringUint32: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (uint64_t)(*res), i64);
+        SCLogError(SC_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                   "(%" PRIx64 " != %" PRIx64 ")", (uint64_t)(*res), i64);
         return -1;
     }
 
@@ -184,7 +191,8 @@ inline int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const 
     *res = (uint16_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        fprintf(stderr, "ByteExtractStringUint16: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (uint64_t)(*res), i64);
+        SCLogError(SC_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                   "(%" PRIx64 " != %" PRIx64 ")", (uint64_t)(*res), i64);
         return -1;
     }
 
@@ -204,7 +212,8 @@ inline int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const ch
     *res = (uint8_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        fprintf(stderr, "ByteExtractStringUint8: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (uint64_t)(*res), i64);
+        SCLogError(SC_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                   "(%" PRIx64 " != %" PRIx64 ")", (uint64_t)(*res), i64);
         return -1;
     }
 
@@ -226,7 +235,7 @@ int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *st
     char strbuf[24];
 
     if (len > 23) {
-        fprintf(stderr, "ByteExtractStringSigned: len too large (23 max)\n");
+        SCLogError(SC_ERR_ARG_LEN_LONG, "len too large (23 max)");
         return -1;
     }
 
@@ -241,10 +250,10 @@ int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *st
     *res = strtoll(ptr, &endptr, base);
 
     if (errno == ERANGE) {
-        fprintf(stderr, "ByteExtractStringSigned: Numeric value out of range\n");
+        SCLogError(SC_NUMERIC_VALUE_ERANGE, "Numeric value out of range");
         return -1;
     } else if (endptr == str) {
-        fprintf(stderr, "ByteExtractStringSigned: Invalid numeric value\n");
+        SCLogError(SC_INVALID_NUMERIC_VALUE, "Invalid numeric value");
         return -1;
     }
     /* This will interfere with some rules that do not know the length
@@ -280,7 +289,8 @@ inline int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const ch
     *res = (int32_t)i64;
 
     if ((int64_t)(*res) != i64) {
-        fprintf(stderr, "ByteExtractStringUint32: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (int64_t)(*res), i64);
+        SCLogError(SC_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                   "(%" PRIx64 " != %" PRIx64 ")\n", (int64_t)(*res), i64);
         return -1;
     }
 
@@ -300,7 +310,8 @@ inline int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const ch
     *res = (int16_t)i64;
 
     if ((int64_t)(*res) != i64) {
-        fprintf(stderr, "ByteExtractStringInt16: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (int64_t)(*res), i64);
+        SCLogError(SC_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                   "(%" PRIx64 " != %" PRIx64 ")\n", (int64_t)(*res), i64);
         return -1;
     }
 
@@ -320,7 +331,8 @@ inline int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char
     *res = (int8_t)i64;
 
     if ((int64_t)(*res) != i64) {
-        fprintf(stderr, "ByteExtractStringInt8: Numeric value out of range (%" PRIx64 " != %" PRIx64 ")\n", (int64_t)(*res), i64);
+        SCLogError(SC_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                   "(%" PRIx64 " != %" PRIx64 ")\n", (int64_t)(*res), i64);
         return -1;
     }
 

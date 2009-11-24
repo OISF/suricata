@@ -51,14 +51,15 @@ void DetectBytetestRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("DetectBytetestRegister: pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_PCRE_COMPILE_FAILED, "pcre compile of \"%s\" failed at "
+                   "offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("DetectBytetestRegister: pcre study failed: %s\n", eb);
+        SCLogError(SC_PCRE_STUDY_FAILED, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -107,9 +108,8 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
      * \todo Should this validate it is in the *payload*?
      */
     if ((ptr < p->pkt) || (len < 0) || (data->nbytes > len)) {
-        printf("DetectBytetestMatch: Data not within packet "
-               "pkt=%p, ptr=%p, len=%d, nbytes=%d\n",
-               p->pkt, ptr, len, data->nbytes);
+        SCLogDebug("Data not within packet pkt=%p, ptr=%p, len=%d, nbytes=%d",
+                    p->pkt, ptr, len, data->nbytes);
         return 0;
     }
 
@@ -119,20 +119,27 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (data->flags & DETECT_BYTETEST_STRING) {
         extbytes = ByteExtractStringUint64(&val, data->base,
                                            data->nbytes, (const char *)ptr);
-        if(extbytes <= 0) {
-            printf("DetectBytetestMatch: Error extracting %d "
-                   "bytes of string data: %d\n", data->nbytes, extbytes);
-            return -1;
+        if (extbytes <= 0) {
+            /* strtoull() return 0 if there is no numeric value in data string */
+            if (val == 0) {
+                SCLogDebug("No Numeric value");
+                return 0;
+            } else {
+                SCLogError(SC_INVALID_NUM_BYTES, "Error extracting %d "
+                        "bytes of string data: %d", data->nbytes, extbytes);
+                return -1;
+            }
         }
 
         SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%c 0x%" PRIx64 "",
                data->base, val, (neg ? "!" : ""), data->op, data->value);
     }
     else {
-        int endianness = (data->flags & DETECT_BYTETEST_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
+        int endianness = (data->flags & DETECT_BYTETEST_LITTLE) ?
+                          BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
         if (extbytes != data->nbytes) {
-            printf("DetectBytetestMatch: Error extracting %d bytes "
+            SCLogError(SC_INVALID_NUM_BYTES, "Error extracting %d bytes "
                    "of numeric data: %d\n", data->nbytes, extbytes);
             return -1;
         }
@@ -203,16 +210,16 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     ret = pcre_exec(parse_regex, parse_regex_study, optstr,
                     strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 6 || ret > 10) {
-        printf("DetectBytetestParse: parse error, ret %" PRId32
-               ", string %s\n", ret, optstr);
+        SCLogError(SC_PCRE_PARSE_FAILED, "parse error, ret %" PRId32
+               ", string %s", ret, optstr);
         goto error;
     }
     for (i = 0; i < (ret - 1); i++) {
         res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS,
                                  i + 1, &str_ptr);
         if (res < 0) {
-            printf("DetectBytetestParse: pcre_get_substring failed "
-                   "for arg %d\n", i + 1);
+            SCLogError(SC_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed "
+                   "for arg %d", i + 1);
             goto error;
         }
         args[i] = (char *)str_ptr;
@@ -221,7 +228,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     /* Initialize the data */
     data = malloc(sizeof(DetectBytetestData));
     if (data == NULL) {
-        printf("DetectBytetestParse: malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
     data->base = DETECT_BYTETEST_BASE_UNSET;
@@ -235,7 +242,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
 
     /* Number of bytes */
     if (ByteExtractStringUint32(&nbytes, 10, 0, args[0]) <= 0) {
-        printf("DetectBytetestParse: Malformed number of bytes: %s\n", str_ptr);
+        SCLogDebug("Malformed number of bytes: %s", str_ptr);
         goto error;
     }
 
@@ -244,7 +251,9 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     if (*args[1] == '!') {
         data->flags |= DETECT_BYTETEST_NEGOP;
     }
-    if ((strcmp("=", args[2]) == 0) || ((data->flags & DETECT_BYTETEST_NEGOP) && strcmp("", args[2]) == 0)) {
+    if ((strcmp("=", args[2]) == 0) || ((data->flags & DETECT_BYTETEST_NEGOP)
+                && strcmp("", args[2]) == 0))
+    {
         data->op |= DETECT_BYTETEST_OP_EQ;
     } else if (strcmp("<", args[2]) == 0) {
         data->op |= DETECT_BYTETEST_OP_LT;
@@ -261,13 +270,13 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
 
     /* Value */
     if (ByteExtractStringUint64(&data->value, 0, 0, args[3]) <= 0) {
-        printf("DetectBytetestParse: Malformed value: %s\n", str_ptr);
+        SCLogDebug("Malformed value: %s", str_ptr);
         goto error;
     }
 
     /* Offset */
     if (ByteExtractStringInt32(&data->offset, 0, 0, args[4]) <= 0) {
-        printf("DetectBytetestParse: Malformed offset: %s\n", str_ptr);
+        SCLogDebug(" Malformed offset: %s", str_ptr);
         goto error;
     }
 
@@ -292,7 +301,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
         } else if (strcasecmp("little", args[i]) == 0) {
             data->flags |= DETECT_BYTETEST_LITTLE;
         } else {
-            printf("DetectBytetestParse: Unknown option: \"%s\"\n", args[i]);
+            SCLogDebug("Unknown option: \"%s\"", args[i]);
             goto error;
         }
     }
@@ -306,19 +315,18 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
          * "01777777777777777777777" = 0xffffffffffffffff
          */
         if (nbytes > 23) {
-            printf("DetectBytetestParse: Cannot test more than "
-                   "23 bytes with \"string\": %s\n", optstr);
+            SCLogDebug("Cannot test more than 23 bytes with \"string\": %s",
+                        optstr);
             goto error;
         }
     } else {
         if (nbytes > 8) {
-            printf("DetectBytetestParse: Cannot test more than "
-                   "8 bytes without \"string\": %s\n", optstr);
+            SCLogDebug("Cannot test more than 8 bytes without \"string\": %s",
+                        optstr);
             goto error;
         }
         if (data->base != DETECT_BYTETEST_BASE_UNSET) {
-            printf("DetectBytetestParse: Cannot use a base "
-                   "without \"string\": %s\n", optstr);
+            SCLogDebug("Cannot use a base without \"string\": %s", optstr);
             goto error;
         }
     }
