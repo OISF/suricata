@@ -96,7 +96,7 @@ vars:
 
     HTTP_PORTS: "80:81,88"
 
-    SHELLCODE_PORTS: 80
+    SHELLCODE_PORTS: "!80"
 
     ORACLE_PORTS: 1521
 
