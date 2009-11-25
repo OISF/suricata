@@ -724,6 +724,73 @@ static int DetectPcreTestSig02B3g (void) {
 static int DetectPcreTestSig02Wm (void) {
     return DetectPcreTestSig02Real(MPM_WUMANBER);
 }
+
+/**
+ * \test DetectPcreTestSig03Real negation test ! outside of "" this sig should not match
+ */
+static int DetectPcreTestSig03Real(int mpm_type) {
+    uint8_t *buf = (uint8_t *)
+        "GET /one/ HTTP/1.1\r\n"
+        "Host: one.example.org\r\n"
+        "\r\n\r\n"
+        "GET /two/ HTTP/1.1\r\n"
+        "Host: two.example.org\r\n"
+        "\r\n\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = mpm_type;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"GET\"; pcre:\"!/two/\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1)){
+        printf("sid 1 matched even though it shouldn't have:");
+        result = 0;
+    }
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+
+static int DetectPcreTestSig03B2g (void) {
+    return DetectPcreTestSig03Real(MPM_B2G);
+}
+static int DetectPcreTestSig03B3g (void) {
+    return DetectPcreTestSig03Real(MPM_B3G);
+}
+static int DetectPcreTestSig03Wm (void) {
+    return DetectPcreTestSig03Real(MPM_WUMANBER);
+}
 #endif /* UNITTESTS */
 
 /**
@@ -745,6 +812,9 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreTestSig02B2g -- pcre test", DetectPcreTestSig02B2g, 1);
     UtRegisterTest("DetectPcreTestSig02B3g -- pcre test", DetectPcreTestSig02B3g, 1);
     UtRegisterTest("DetectPcreTestSig02Wm -- pcre test", DetectPcreTestSig02Wm, 1);
+    UtRegisterTest("DetectPcreTestSig03B2g -- negated pcre test", DetectPcreTestSig03B2g, 1);
+    UtRegisterTest("DetectPcreTestSig03B3g -- negated pcre test", DetectPcreTestSig03B3g, 1);
+    UtRegisterTest("DetectPcreTestSig03Wm -- negated pcre test", DetectPcreTestSig03Wm, 1);
 #endif /* UNITTESTS */
 }
 
