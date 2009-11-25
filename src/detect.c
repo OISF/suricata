@@ -8286,6 +8286,64 @@ static int SigTestWithinReal01Wm (void) {
     return SigTestWithinReal01(MPM_WUMANBER);
 }
 
+static int SigTestDepthOffset01Real (int mpm_type) {
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint16_t buflen = strlen((char *)buf);
+    Packet p;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = buf;
+    p.payload_len = buflen;
+    p.proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = mpm_type;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"depth offset\"; content:\"456\"; offset:4; depth:3; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    //PatternMatchPrepare(mpm_ctx,mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    if (PacketAlertCheck(&p, 1))
+        result = 1;
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    //PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    return result;
+}
+static int SigTestDepthOffset01B2g (void) {
+    return SigTestDepthOffset01Real(MPM_B2G);
+}
+static int SigTestDepthOffset01B3g (void) {
+    return SigTestDepthOffset01Real(MPM_B3G);
+}
+static int SigTestDepthOffset01Wm (void) {
+    return SigTestDepthOffset01Real(MPM_WUMANBER);
+}
+
+
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
@@ -8481,6 +8539,11 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTestWithinReal01B2g", SigTestWithinReal01B2g, 1);
     UtRegisterTest("SigTestWithinReal01B3g", SigTestWithinReal01B3g, 1);
     UtRegisterTest("SigTestWithinReal01Wm", SigTestWithinReal01Wm, 1);
+
+    UtRegisterTest("SigTestDepthOffset01B2g", SigTestDepthOffset01B2g, 1);
+    UtRegisterTest("SigTestDepthOffset01B3g", SigTestDepthOffset01B3g, 1);
+    UtRegisterTest("SigTestDepthOffset01Wm", SigTestDepthOffset01Wm, 1);
+
 #endif /* UNITTESTS */
 }
 
