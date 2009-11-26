@@ -1048,6 +1048,9 @@ int DetectContentChunksGetTotalLength(SigMatch *sm)
  */
 void DetectContentPrintAll(SigMatch *sm)
 {
+#ifdef DEBUG
+    int i = 0;
+
     if (SCLogDebugEnabled()) {
         if (sm == NULL)
             return;
@@ -1063,6 +1066,7 @@ void DetectContentPrintAll(SigMatch *sm)
             }
         }
     }
+#endif /* DEBUG */
 }
 
 /**
