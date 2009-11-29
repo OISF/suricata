@@ -10,9 +10,8 @@
 
 #include "eidps-common.h"
 #include "decode.h"
-#include "threads.h"
-#include "tm-modules.h"
 #include "threadvars.h"
+#include "tm-modules.h"
 #include "tm-threads.h"
 
 #include "util-time.h"
@@ -105,25 +104,34 @@ void FlowUpdateQueue(Flow *f)
  */
 static int FlowPrune (FlowQueue *q, struct timeval *ts)
 {
-    if (mutex_trylock(&q->mutex_q) != 0) {
+    int mr = sc_mutex_trylock(&q->mutex_q);
+    if (mr != 0) {
+        SCLogDebug("Trylock failed!\n");
+        if (mr == EBUSY)
+            SCLogDebug("Was locked!\n");
+        if (mr == EINVAL)
+            SCLogDebug("Bad mutex value!\n");
         return 0;
     }
 
     Flow *f = q->top;
     if (f == NULL) {
-        mutex_unlock(&q->mutex_q);
+        sc_mutex_unlock(&q->mutex_q);
+        SCLogDebug("top was null!\n");
         return 0;
     }
-    if (mutex_trylock(&f->m) != 0) {
-        mutex_unlock(&q->mutex_q);
+    if (sc_mutex_trylock(&f->m) != 0) {
+        SCLogDebug("cant lock 1!\n");
+        sc_mutex_unlock(&q->mutex_q);
         return 0;
     }
 
     /* unlock list */
-    mutex_unlock(&q->mutex_q);
+    sc_mutex_unlock(&q->mutex_q);
 
-    if (mutex_trylock(&f->fb->m) != 0) {
-        mutex_unlock(&f->m);
+    if (sc_mutex_trylock(&f->fb->m) != 0) {
+        sc_mutex_unlock(&f->m);
+        SCLogDebug("cant lock 2!\n");
         return 0;
     }
 
@@ -176,8 +184,9 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
 
     /* do the timeout check */
     if ((f->lastts.tv_sec + timeout) >= ts->tv_sec) {
-        mutex_unlock(&f->fb->m);
-        mutex_unlock(&f->m);
+        sc_mutex_unlock(&f->fb->m);
+        sc_mutex_unlock(&f->m);
+        SCLogDebug("timeout check failed!\n");
         return 0;
     }
 
@@ -185,8 +194,9 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
      *  we are currently processing in one of the threads */
     if (f->use_cnt > 0) {
         SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", f->use_cnt, f, f->proto);
-        mutex_unlock(&f->fb->m);
-        mutex_unlock(&f->m);
+        sc_mutex_unlock(&f->fb->m);
+        sc_mutex_unlock(&f->m);
+        SCLogDebug("it is in one of the threads!\n");
         return 0;
     }
 
@@ -201,7 +211,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     f->hnext = NULL;
     f->hprev = NULL;
 
-    mutex_unlock(&f->fb->m);
+    sc_mutex_unlock(&f->fb->m);
     f->fb = NULL;
 
     FlowClearMemory (f, f->protomap);
@@ -209,7 +219,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     /* move to spare list */
     FlowRequeue(f, q, &flow_spare_q);
 
-    mutex_unlock(&f->m);
+    sc_mutex_unlock(&f->m);
     return 1;
 }
 
@@ -237,9 +247,11 @@ static uint32_t FlowPruneFlows(FlowQueue *q, struct timeval *ts)
 static int FlowUpdateSpareFlows(void) {
     uint32_t toalloc = 0, tofree = 0, len;
 
-    mutex_lock(&flow_spare_q.mutex_q);
+    sc_mutex_lock(&flow_spare_q.mutex_q);
+
     len = flow_spare_q.len;
-    mutex_unlock(&flow_spare_q.mutex_q);
+
+    sc_mutex_unlock(&flow_spare_q.mutex_q);
 
     if (len < flow_config.prealloc) {
         toalloc = flow_config.prealloc - len;
@@ -250,9 +262,9 @@ static int FlowUpdateSpareFlows(void) {
             if (f == NULL)
                 return 0;
 
-            mutex_lock(&flow_spare_q.mutex_q);
+            sc_mutex_lock(&flow_spare_q.mutex_q);
             FlowEnqueue(&flow_spare_q,f);
-            mutex_unlock(&flow_spare_q.mutex_q);
+            sc_mutex_unlock(&flow_spare_q.mutex_q);
         }
     } else if (len > flow_config.prealloc) {
         tofree = len - flow_config.prealloc;
@@ -276,9 +288,9 @@ static int FlowUpdateSpareFlows(void) {
   * \param direction direction to set the flag in
   */
 void FlowSetIPOnlyFlag(Flow *f, char direction) {
-    mutex_lock(&f->m);
+    sc_mutex_lock(&f->m);
     direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) : (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
-    mutex_unlock(&f->m);
+    sc_mutex_unlock(&f->m);
 }
 
 /** \brief decrease the use cnt of a flow
@@ -289,10 +301,10 @@ void FlowDecrUsecnt(ThreadVars *tv, Packet *p) {
     if (p == NULL || p->flow == NULL)
         return;
 
-    mutex_lock(&p->flow->m);
+    sc_mutex_lock(&p->flow->m);
     if (p->flow->use_cnt > 0)
         p->flow->use_cnt--;
-    mutex_unlock(&p->flow->m);
+    sc_mutex_unlock(&p->flow->m);
 }
 
 /** \brief Entry point for packet flow handling
@@ -350,7 +362,7 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
     /* set the flow in the packet */
     p->flow = f;
 
-    mutex_unlock(&f->m);
+    sc_mutex_unlock(&f->m);
 }
 
 /** \brief initialize the configuration
@@ -361,11 +373,16 @@ void FlowInitConfig (char quiet)
         SCLogInfo("initializing flow engine...");
 
     memset(&flow_config,  0, sizeof(flow_config));
-    memset(&flow_spare_q, 0, sizeof(flow_spare_q));
-    memset(&flow_new_q,   0, sizeof(flow_new_q));
-    memset(&flow_est_q,   0, sizeof(flow_est_q));
     flow_memuse = 0;
-    pthread_mutex_init(&flow_memuse_mutex, NULL);
+
+    int ifq = 0;
+    FlowQueueInit(&flow_spare_q);
+    for (ifq = 0; ifq < FLOW_PROTO_MAX; ifq++) {
+        FlowQueueInit(&flow_new_q[ifq]);
+        FlowQueueInit(&flow_est_q[ifq]);
+        FlowQueueInit(&flow_close_q[ifq]);
+    }
+    sc_mutex_init(&flow_memuse_mutex, NULL);
 
     /* set defaults */
     flow_config.hash_rand   = rand(); /* XXX seed rand */
@@ -384,7 +401,11 @@ void FlowInitConfig (char quiet)
         printf("calloc failed %s\n", strerror(errno));
         exit(1);
     }
+    uint32_t i = 0;
+
     memset(flow_hash, 0, flow_config.hash_size * sizeof(FlowBucket));
+    for (i = 0; i < flow_config.hash_size; i++)
+        sc_mutex_init(&flow_hash[i].m, NULL);
     flow_config.memuse += (flow_config.hash_size * sizeof(FlowBucket));
 
     if (quiet == FALSE)
@@ -392,7 +413,6 @@ void FlowInitConfig (char quiet)
             flow_config.memuse, flow_config.hash_size, (uintmax_t)sizeof(FlowBucket));
 
     /* pre allocate flows */
-    uint32_t i = 0;
     for (i = 0; i < flow_config.prealloc; i++) {
         Flow *f = FlowAlloc();
         if (f == NULL) {
@@ -491,7 +511,7 @@ void FlowShutdown(void) {
     free(flow_hash);
     flow_memuse -= flow_config.hash_size * sizeof(FlowBucket);
 
-    pthread_mutex_destroy(&flow_memuse_mutex);
+    sc_mutex_destroy(&flow_memuse_mutex);
 }
 
 /** \brief Thread that manages the various queue's and removes timed out flows.
@@ -751,9 +771,9 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout, uint
  * \param f Flow to set the flag in
  */
 void FlowLockSetNoPacketInspectionFlag(Flow *f) {
-    mutex_lock(&f->m);
+    sc_mutex_lock(&f->m);
     f->flags |= FLOW_NOPACKET_INSPECTION;
-    mutex_unlock(&f->m);
+    sc_mutex_unlock(&f->m);
 }
 
 /** \brief Set the No Packet Inspection Flag without locking the flow.
@@ -769,9 +789,9 @@ void FlowSetNoPacketInspectionFlag(Flow *f) {
  * \param f Flow to set the flag in
  */
 void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
-    mutex_lock(&f->m);
+    sc_mutex_lock(&f->m);
     f->flags |= FLOW_NOPAYLOAD_INSPECTION;
-    mutex_unlock(&f->m);
+    sc_mutex_unlock(&f->m);
 }
 
 /** \brief Set the No payload inspection Flag without locking the flow.
@@ -784,6 +804,7 @@ void FlowSetNoPayloadInspectionFlag(Flow *f) {
 
 #ifdef UNITTESTS
 #include "stream-tcp-private.h"
+#include "threads.h"
 
 /**
  *  \test   Test the setting of the per protocol timeouts.
@@ -876,20 +897,25 @@ static int FlowTest02 (void) {
 
 static int FlowTestPrune(Flow *f, struct timeval *ts) {
 
-    FlowQueue q;
+    FlowQueue *q = FlowQueueNew();
 
-    memset(&q, 0, sizeof(FlowQueue));
+    int r = sc_mutex_init(&q->mutex_q, NULL);
 
-    q.top = NULL;
+    if (r != 0) {
+        SCLogDebug("Error initializing mutex!");
+        return 0;
+    }
 
-    FlowEnqueue(&q, f);
-    if (q.len != 1) {
+    q->top = NULL;
+
+    FlowEnqueue(q, f);
+    if (q->len != 1) {
         printf("Failed in enqueue the flow in flowqueue\n");
         return 0;
     }
 
-    FlowPrune(&q, ts);
-    if (q.len != 0) {
+    FlowPrune(q, ts);
+    if (q->len != 0) {
         printf("Failed in prunning the flow\n");
         return 0;
     }
@@ -919,11 +945,14 @@ static int FlowTest03 (void) {
     memset(&f, 0, sizeof(Flow));
     memset(&ts, 0, sizeof(ts));
     memset(&fb, 0, sizeof(FlowBucket));
+    sc_mutex_init(&f.m, NULL);
 
     TimeGet(&ts);
     f.lastts.tv_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
+    sc_mutex_init(&fb.m, NULL);
     f.fb = &fb;
+
     f.proto = IPPROTO_TCP;
 
     if (FlowTestPrune(&f, &ts) != 1)
@@ -955,6 +984,9 @@ static int FlowTest04 (void) {
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
     memset(&client, 0, sizeof(TcpSegment));
+
+    sc_mutex_init(&f.m, NULL);
+    sc_mutex_init(&fb.m, NULL);
 
     TimeGet(&ts);
     seg.payload = payload;
@@ -996,6 +1028,9 @@ static int FlowTest05 (void) {
     memset(&ts, 0, sizeof(ts));
     memset(&fb, 0, sizeof(FlowBucket));
 
+    sc_mutex_init(&f.m, NULL);
+    sc_mutex_init(&fb.m, NULL);
+
     TimeGet(&ts);
     ssn.state = TCP_SYN_SENT;
     f.lastts.tv_sec = ts.tv_sec - 300;
@@ -1033,6 +1068,9 @@ static int FlowTest06 (void) {
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
     memset(&client, 0, sizeof(TcpSegment));
+
+    sc_mutex_init(&fb.m, NULL);
+    sc_mutex_init(&f.m, NULL);
 
     TimeGet(&ts);
     seg.payload = payload;

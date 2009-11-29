@@ -73,7 +73,7 @@ TmEcode AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    mutex_lock(&aft->file_ctx->fp_mutex);
+    sc_mutex_lock(&aft->file_ctx->fp_mutex);
 
     fprintf(aft->file_ctx->fp, "+================\n");
     fprintf(aft->file_ctx->fp, "TIME:              %s\n", timebuf);
@@ -137,7 +137,7 @@ TmEcode AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     PrintRawDataFp(aft->file_ctx->fp, p->pkt, p->pktlen);
 
     fflush(aft->file_ctx->fp);
-    mutex_unlock(&aft->file_ctx->fp_mutex);
+    sc_mutex_unlock(&aft->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
 }
@@ -155,7 +155,7 @@ TmEcode AlertDebuglogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    mutex_lock(&aft->file_ctx->fp_mutex);
+    sc_mutex_lock(&aft->file_ctx->fp_mutex);
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
         char srcip[46], dstip[46];
@@ -167,7 +167,7 @@ TmEcode AlertDebuglogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
             timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
     }
     fflush(aft->file_ctx->fp);
-    mutex_unlock(&aft->file_ctx->fp_mutex);
+    sc_mutex_unlock(&aft->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
 }

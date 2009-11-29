@@ -1,36 +1,58 @@
-/* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
+/**
+ * Copyright (c) 2009 Open Information Security Foundation
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
+ */
 
 #include "eidps-common.h"
-#include "decode.h"
+#include "util-unittest.h"
+#include "debug.h"
+#include "util-debug.h"
+#include "util-unittest.h"
+#include "threads.h"
 
-#ifdef DBG_THREADS
+#ifdef UNITTESTS /* UNIT TESTS */
 
-int mutex_lock_dbg (pthread_mutex_t *m) {
-    int ret;
+/**
+ * \brief Test Mutex macros
+ */
+int ThreadMacrosTest01Mutex(void) {
+    sc_mutex_t mut;
+    int r = 0;
+    r |= sc_mutex_init(&mut, NULL);
+    r |= sc_mutex_lock(&mut);
+    r |= (sc_mutex_trylock(&mut) == EBUSY)? 0 : 1;
+    r |= sc_mutex_unlock(&mut);
+    r |= sc_mutex_destroy(&mut);
 
-    printf("%16s: (%"PRIuMAX") locking mutex %p\n", __FUNCTION__, (uintmax_t)pthread_self(), m);
-    ret = pthread_mutex_lock(m);
-    printf("%16s: (%"PRIuMAX") locked mutex %p ret %" PRId32 "\n", __FUNCTION__, (uintmax_t)pthread_self(), m, ret);
-    return(ret);
+    return (r == 0)? 1 : 0;
 }
 
-int mutex_trylock_dbg (pthread_mutex_t *m) {
-    int ret;
+/**
+ * \brief Test Spin Macros
+ */
+int ThreadMacrosTest02Spinlocks(void) {
+    sc_spin_t mut;
+    int r = 0;
+    r |= sc_spin_init(&mut, 0);
+    r |= sc_spin_lock(&mut);
+    r |= (sc_spin_trylock(&mut) == EBUSY)? 0 : 1;
+    r |= sc_spin_unlock(&mut);
+    r |= sc_spin_destroy(&mut);
 
-    printf("%16s: (%"PRIuMAX") trylocking mutex %p\n", __FUNCTION__, (uintmax_t)pthread_self(), m);
-    ret = pthread_mutex_trylock(m);
-    printf("%16s: (%"PRIuMAX") trylocked mutex %p ret %" PRId32 "\n", __FUNCTION__, (uintmax_t)pthread_self(), m, ret);
-    return(ret);
+    return (r == 0)? 1 : 0;
 }
 
-int mutex_unlock_dbg (pthread_mutex_t *m) {
-    int ret;
+#endif /* UNIT TESTS */
 
-    printf("%16s: (%"PRIuMAX") unlocking mutex %p\n", __FUNCTION__, (uintmax_t)pthread_self(), m);
-    ret = pthread_mutex_unlock(m);
-    printf("%16s: (%"PRIuMAX") unlocked mutex %p ret %" PRId32 "\n", __FUNCTION__, (uintmax_t)pthread_self(), m, ret);
-    return(ret);
+/**
+ * \brief this function registers unit tests for DetectId
+ */
+void ThreadMacrosRegisterTests(void)
+{
+#ifdef UNITTESTS /* UNIT TESTS */
+    UtRegisterTest("ThreadMacrosTest01Mutex", ThreadMacrosTest01Mutex, 1);
+    UtRegisterTest("ThreadMacrossTest02Spinlocks", ThreadMacrosTest02Spinlocks, 1);
+#endif /* UNIT TESTS */
 }
-
-#endif /* DBG_THREADS */
-

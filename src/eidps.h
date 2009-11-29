@@ -28,8 +28,8 @@ uint32_t pending;
 #ifdef DBG_PERF
 uint32_t dbg_maxpending;
 #endif /* DBG_PERF */
-pthread_mutex_t mutex_pending;
-pthread_cond_t cond_pending;
+sc_mutex_t mutex_pending;
+sc_cond_t cond_pending;
 
 /* preallocated packet structures here
  * XXX move to the packetpool queue handler code
@@ -39,6 +39,8 @@ PacketQueue packet_q;
  * XXX move to the TmQueue structure later
  */
 PacketQueue trans_q[256];
+/* memset to zeros, and mutex init! */
+void GlobalInits();
 
 /* uppercase to lowercase conversion lookup table */
 uint8_t g_u8_lowercasetable[256];

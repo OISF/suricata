@@ -34,8 +34,24 @@ Packet *PacketDequeue (PacketQueue *q) {
         return NULL;
     }
 
+    /* If we are going to get the last packet, set len to 0
+     * before doing anything else (to make the threads to follow
+     * the sc_cond_wait as soon as possible) */
+    q->len--;
+
     /* pull the bottom packet from the queue */
     Packet *p = q->bot;
+
+#ifdef OS_DARWIN
+    /* Weird issue in OS_DARWIN
+     * Sometimes it looks that two thread arrive here at the same time
+     * so the bot ptr is NULL
+     */
+    if (p == NULL) {
+        printf("No packet to dequeue!\n");
+        return NULL;
+    }
+#endif
 
     /* more packets in queue */
     if (q->bot->prev != NULL) {
@@ -46,7 +62,6 @@ Packet *PacketDequeue (PacketQueue *q) {
         q->top = NULL;
         q->bot = NULL;
     }
-    q->len--;
 
     p->next = NULL;
     p->prev = NULL;

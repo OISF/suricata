@@ -12,7 +12,7 @@ enum {
 
 extern ThreadVars *tv_root[TVT_MAX];
 
-extern pthread_mutex_t tv_root_lock;
+extern sc_mutex_t tv_root_lock;
 
 void Tm1SlotSetFunc(ThreadVars *, TmModule *, void *);
 

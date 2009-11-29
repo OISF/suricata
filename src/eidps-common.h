@@ -27,7 +27,7 @@
 #include <string.h>
 
 #include <pcre.h>
-#include <pthread.h>
+#include "threads.h"
 
 #if HAVE_CONFIG_H
 #include <config.h>

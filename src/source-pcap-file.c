@@ -74,11 +74,11 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)user;
     //ThreadVars *tv = ptv->tv;
 
-    mutex_lock(&mutex_pending);
+    sc_mutex_lock(&mutex_pending);
     if (pending > MAX_PENDING) {
-        pthread_cond_wait(&cond_pending, &mutex_pending);
+        sc_cond_wait(&cond_pending, &mutex_pending);
     }
-    mutex_unlock(&mutex_pending);
+    sc_mutex_unlock(&mutex_pending);
 
     Packet *p = ptv->in_p;
 

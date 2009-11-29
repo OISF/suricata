@@ -4,6 +4,7 @@
 #define __FLOW_QUEUE_H__
 
 #include "flow.h"
+#include "eidps-common.h"
 
 /* Define a queue for storing flows */
 typedef struct FlowQueue_
@@ -11,14 +12,17 @@ typedef struct FlowQueue_
     Flow *top;
     Flow *bot;
     uint32_t len;
-    pthread_mutex_t mutex_q;
-    pthread_cond_t cond_q;
+    sc_mutex_t mutex_q;
+    sc_cond_t cond_q;
 #ifdef DBG_PERF
     uint32_t dbg_maxlen;
 #endif /* DBG_PERF */
 } FlowQueue;
 
 /* prototypes */
+FlowQueue *FlowQueueNew();
+FlowQueue *FlowQueueInit(FlowQueue *);
+
 void FlowEnqueue (FlowQueue *, Flow *);
 Flow *FlowDequeue (FlowQueue *);
 void FlowRequeue(Flow *, FlowQueue *, FlowQueue *);

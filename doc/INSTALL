@@ -86,6 +86,26 @@ For CentOS5 Users
     ./eidps
 
 
+For Mac OS X Users
+==================
+    # The following instructions has been tested with Snow Leopard, Mac OS X 10.6.1.
+    # First of all you need an essential developmnet environment like gcc/make. You can also download and install a set basic set of development tools Xcode from http://developer.apple.com/technology/xcode.html . You need macports to fetch the depends
+    # By default macports place the libraries at /opt/local/lib and /opt/local/include. The configuration should take care of this.
+
+    port install autoconf automake gcc44 make libnet11 libpcap pcre libyaml libtool
+
+    cd your_local_git_branch
+    export AC_PROG_LIBTOOL=$( which libtool )
+    bash autojunk.sh
+    sudo mkdir /var/log/eidps/
+    ./configure --enable-unittests
+    cd src/
+    make
+    ./eidps
+
+    #If autojunk, or ./configure fail, re export AC_PROG_LIBTOOL and try one more time.
+
+
 *****************
 
 

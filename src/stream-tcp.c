@@ -68,11 +68,11 @@ static int ValidTimestamp(TcpSession * , Packet *);
 #define STREAMTCP_EMERG_CLOSED_TIMEOUT  20
 
 static Pool *ssn_pool = NULL;
-static pthread_mutex_t ssn_pool_mutex;
+static sc_mutex_t ssn_pool_mutex;
 
 #ifdef DEBUG
 static uint64_t ssn_pool_cnt;
-static pthread_mutex_t ssn_pool_cnt_mutex;
+static sc_mutex_t ssn_pool_cnt_mutex;
 #endif
 
 void TmModuleStreamTcpRegister (void) {
@@ -116,14 +116,14 @@ void StreamTcpSessionClear(void *ssnptr) {
     AppLayerParserCleanupState(ssn);
 
     memset(ssn, 0, sizeof(TcpSession));
-    mutex_lock(&ssn_pool_mutex);
+    sc_mutex_lock(&ssn_pool_mutex);
     PoolReturn(ssn_pool, ssn);
-    mutex_unlock(&ssn_pool_mutex);
+    sc_mutex_unlock(&ssn_pool_mutex);
 
 #ifdef DEBUG
-    mutex_lock(&ssn_pool_cnt_mutex);
+    sc_mutex_lock(&ssn_pool_cnt_mutex);
     ssn_pool_cnt--;
-    mutex_unlock(&ssn_pool_cnt_mutex);
+    sc_mutex_unlock(&ssn_pool_cnt_mutex);
 #endif
 }
 
@@ -143,16 +143,16 @@ static void StreamTcpSessionPktFree (Packet *p) {
     AppLayerParserCleanupState(ssn);
 
     memset(ssn, 0, sizeof(TcpSession));
-    mutex_lock(&ssn_pool_mutex);
+    sc_mutex_lock(&ssn_pool_mutex);
     PoolReturn(ssn_pool, p->flow->protoctx);
-    mutex_unlock(&ssn_pool_mutex);
+    sc_mutex_unlock(&ssn_pool_mutex);
 
     p->flow->protoctx = NULL;
 
 #ifdef DEBUG
-    mutex_lock(&ssn_pool_cnt_mutex);
+    sc_mutex_lock(&ssn_pool_cnt_mutex);
     ssn_pool_cnt--;
-    mutex_unlock(&ssn_pool_cnt_mutex);
+    sc_mutex_unlock(&ssn_pool_cnt_mutex);
 #endif
 }
 
@@ -210,7 +210,7 @@ void StreamTcpInitConfig(char quiet) {
         exit(1);
     }
 
-    pthread_mutex_init(&ssn_pool_mutex, NULL);
+    sc_mutex_init(&ssn_pool_mutex, NULL);
 
     StreamTcpReassembleInit(quiet);
 
@@ -235,7 +235,7 @@ void StreamTcpFreeConfig(char quiet) {
 #ifdef DEBUG
     SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 #endif
-    pthread_mutex_destroy(&ssn_pool_mutex);
+    sc_mutex_destroy(&ssn_pool_mutex);
 }
 
 /** \brief The function is used to to fetch a TCP session from the
@@ -249,9 +249,9 @@ TcpSession *StreamTcpNewSession (Packet *p) {
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
     if (ssn == NULL) {
-        mutex_lock(&ssn_pool_mutex);
+        sc_mutex_lock(&ssn_pool_mutex);
         p->flow->protoctx = PoolGet(ssn_pool);
-        mutex_unlock(&ssn_pool_mutex);
+        sc_mutex_unlock(&ssn_pool_mutex);
 
         ssn = (TcpSession *)p->flow->protoctx;
         if (ssn == NULL)
@@ -261,9 +261,9 @@ TcpSession *StreamTcpNewSession (Packet *p) {
         ssn->aldata = NULL;
 
 #ifdef DEBUG
-        mutex_lock(&ssn_pool_cnt_mutex);
+        sc_mutex_lock(&ssn_pool_cnt_mutex);
         ssn_pool_cnt++;
-        mutex_unlock(&ssn_pool_cnt_mutex);
+        sc_mutex_unlock(&ssn_pool_cnt_mutex);
 #endif
     }
 
@@ -1955,9 +1955,9 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     if (p->flow == NULL)
         return TM_ECODE_OK;
 
-    mutex_lock(&p->flow->m);
+    sc_mutex_lock(&p->flow->m);
     ret = StreamTcpPacket(tv, p, stt);
-    mutex_unlock(&p->flow->m);
+    sc_mutex_unlock(&p->flow->m);
 
     //if (ret)
       //  return TM_ECODE_FAILED;

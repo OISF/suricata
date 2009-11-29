@@ -681,9 +681,9 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
             if (parser_state_store == NULL)
                 goto error;
 
-            if (need_lock == TRUE) mutex_lock(&f->m);
+            if (need_lock == TRUE) sc_mutex_lock(&f->m);
             ssn->aldata[app_layer_sid] = (void *)parser_state_store;
-            if (need_lock == TRUE) mutex_unlock(&f->m);
+            if (need_lock == TRUE) sc_mutex_unlock(&f->m);
         }
     } else {
         SCLogDebug("No App Layer Data");
@@ -725,18 +725,18 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
     /* See if we already have a 'app layer' state */
     void *app_layer_state = NULL;
-    if (need_lock == TRUE) mutex_lock(&f->m);
+    if (need_lock == TRUE) sc_mutex_lock(&f->m);
     app_layer_state = ssn->aldata[p->storage_id];
-    if (need_lock == TRUE) mutex_unlock(&f->m);
+    if (need_lock == TRUE) sc_mutex_unlock(&f->m);
 
     if (app_layer_state == NULL) {
         app_layer_state = p->StateAlloc();
         if (app_layer_state == NULL)
             goto error;
 
-        if (need_lock == TRUE) mutex_lock(&f->m);
+        if (need_lock == TRUE) sc_mutex_lock(&f->m);
         ssn->aldata[p->storage_id] = app_layer_state;
-        if (need_lock == TRUE) mutex_unlock(&f->m);
+        if (need_lock == TRUE) sc_mutex_unlock(&f->m);
     }
 
     /* invoke the recursive parser */
@@ -748,9 +748,9 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     /* set the packets to no inspection and reassembly for the TLS sessions */
     if (parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) {
 
-        if (need_lock == TRUE) mutex_lock(&f->m);
+        if (need_lock == TRUE) sc_mutex_lock(&f->m);
         FlowSetNoPayloadInspectionFlag(f);
-        if (need_lock == TRUE) mutex_unlock(&f->m);
+        if (need_lock == TRUE) sc_mutex_unlock(&f->m);
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
         if (parser_state->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {

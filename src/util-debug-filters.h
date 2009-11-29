@@ -2,11 +2,20 @@
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#include <pthread.h>
-
 #ifndef __DEBUG_FILTERS_H__
 #define __DEBUG_FILTERS_H__
 
+#include <pthread.h>
+#include "threads.h"
+
+/**
+ * \brief extra defines needed for FreeBSD
+ */
+#ifdef OS_FREEBSD
+#ifndef SYS_gettid
+#define SYS_gettid 1105
+#endif
+#endif /* OS_FREEBSD */
 
 /**
  * \brief Enum that holds the different kinds of filters available

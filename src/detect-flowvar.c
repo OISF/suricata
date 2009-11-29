@@ -63,7 +63,7 @@ int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     DetectFlowvarData *fd = (DetectFlowvarData *)m->ctx;
 
     /* we need a lock */
-    mutex_lock(&p->flow->m);
+    sc_mutex_lock(&p->flow->m);
 
     FlowVar *fv = FlowVarGet(p->flow, fd->idx);
     if (fv != NULL) {
@@ -71,7 +71,7 @@ int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
         if (ptr != NULL)
             ret = 1;
     }
-    mutex_unlock(&p->flow->m);
+    sc_mutex_unlock(&p->flow->m);
 
     return ret;
 }

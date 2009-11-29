@@ -5,7 +5,7 @@
 
 #ifdef NFQ
 
-#include <pthread.h>
+#include "threads.h"
 #include <linux/netfilter.h>		/* for NF_ACCEPT */
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
@@ -30,7 +30,7 @@ typedef struct NFQThreadVars_
     struct nfnl_handle *nh;
     /* 2 threads deal with the queue handle, so add a mutex */
     struct nfq_q_handle *qh;
-    pthread_mutex_t mutex_qh;
+    sc_mutex_t mutex_qh;
     /* this one should be not changing after init */
     uint16_t queue_num;
     int fd;

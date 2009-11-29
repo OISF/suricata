@@ -7,7 +7,7 @@ AC_INIT(configure.in)
 
     AC_LANG_C
     AC_PROG_CC_C99
-    AM_PROG_LIBTOOL
+    AC_PROG_LIBTOOL
 
     AC_DEFUN([FAIL_MESSAGE],[
             echo
@@ -63,6 +63,35 @@ AC_INIT(configure.in)
             [  --enable-gccprotect  Detect and use gcc hardening options],
             [ enable_gccprotect=yes
             ])
+
+#check for os
+    AC_MSG_CHECKING([host os])
+
+    # If no host os was detected, try with uname
+	if test -z "$host" ; then
+	    host="`uname`"
+    fi
+    echo -n "installation for $host OS... \c"
+
+    case "$host" in
+	    *-*-*freebsd*)
+		    CFLAGS="${CFLAGS} -DOS_FREEBSD"
+                    CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
+                    LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
+                    ;;
+	   *darwin*|*Darwin*)
+                    CFLAGS="${CFLAGS} -DOS_DARWIN"
+                    CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
+                    LDFLAGS="${LDFLAGS} -L/opt/local/lib"
+		    ;;
+           *-*-linux*)
+                    #for now do nothing
+                    ;;
+	   *)
+		AC_MSG_WARN([unsupported OS this may or may not work])
+		;;
+    esac
+    AC_MSG_RESULT(ok)
 
     if test "$enable_gccprotect" = "yes"; then
         #buffer overflow protection
@@ -294,7 +323,7 @@ AC_INIT(configure.in)
 
     LIBNET_INC_DIR=""
     AC_MSG_CHECKING("for libnet.h version 1.1.x")
-    libnet_dir="/usr/include /usr/local/include"
+    libnet_dir="/usr/include /usr/local/include /usr/local/include/libnet11 /opt/local/include"
     for i in $libnet_dir; do
     if test -r "$i/libnet.h"; then
     LIBNET_INC_DIR="$i"

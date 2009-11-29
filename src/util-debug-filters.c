@@ -1,18 +1,19 @@
 /** Copyright (c) 2009 Open Information Security Foundation.
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
-
+#include "eidps-common.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 
+#include "threads.h"
+#include "util-debug.h"
 #include "util-debug-filters.h"
 #include "util-error.h"
 #include "util-enum.h"
-#include "threads.h"
+#include <pthread.h>
 
 /* both of these are defined in util-debug.c */
 extern int sc_log_module_initialized;
@@ -32,7 +33,7 @@ static SCLogFGFilterFile *sc_log_fg_filters[SC_LOG_FILTER_MAX] = { NULL, NULL };
 /**
  * \brief Mutex for accessing the fine-grained fiters sc_log_fg_filters
  */
-static pthread_mutex_t sc_log_fg_filters_m[SC_LOG_FILTER_MAX] = { PTHREAD_MUTEX_INITIALIZER,
+static sc_mutex_t sc_log_fg_filters_m[SC_LOG_FILTER_MAX] = { PTHREAD_MUTEX_INITIALIZER,
                                                                   PTHREAD_MUTEX_INITIALIZER };
 
 /**
@@ -43,7 +44,7 @@ static SCLogFDFilter *sc_log_fd_filters = NULL;
 /**
  * \brief Mutex for accessing the function-dependent filters sc_log_fd_filters
  */
-static pthread_mutex_t sc_log_fd_filters_m = PTHREAD_MUTEX_INITIALIZER;
+static sc_mutex_t sc_log_fd_filters_m = PTHREAD_MUTEX_INITIALIZER;
 
 /**
  * \brief Holds the thread_list required by function-dependent filters
@@ -53,7 +54,7 @@ static SCLogFDFilterThreadList *sc_log_fd_filters_tl = NULL;
 /**
  * \brief Mutex for accessing the FD thread_list sc_log_fd_filters_tl
  */
-static pthread_mutex_t sc_log_fd_filters_tl_m = PTHREAD_MUTEX_INITIALIZER;
+static sc_mutex_t sc_log_fd_filters_tl_m = PTHREAD_MUTEX_INITIALIZER;
 
 
 /**
@@ -245,7 +246,10 @@ static inline int SCLogAddFGFilter(const char *file, const char *function,
         return -1;
     }
 
-    mutex_lock(&sc_log_fg_filters_m[listtype]);
+    sc_mutex_t *m = &sc_log_fg_filters_m[listtype];
+
+    sc_mutex_lock(m);
+
     fgf_file = sc_log_fg_filters[listtype];
 
     prev_fgf_file = fgf_file;
@@ -311,7 +315,7 @@ static inline int SCLogAddFGFilter(const char *file, const char *function,
     }
 
  done:
-    mutex_unlock(&sc_log_fg_filters_m[listtype]);
+    sc_mutex_unlock(&sc_log_fg_filters_m[listtype]);
     sc_log_fg_filters_present = 1;
 
     return 0;
@@ -347,12 +351,12 @@ static int SCLogMatchFGFilter(const char *file, const char *function, int line,
         return -1;
     }
 
-    mutex_lock(&sc_log_fg_filters_m[listtype]);
+    sc_mutex_lock(&sc_log_fg_filters_m[listtype]);
 
     fgf_file = sc_log_fg_filters[listtype];
 
     if (fgf_file == NULL) {
-        mutex_unlock(&sc_log_fg_filters_m[listtype]);
+        sc_mutex_unlock(&sc_log_fg_filters_m[listtype]);
         return 1;
     }
 
@@ -396,7 +400,7 @@ static int SCLogMatchFGFilter(const char *file, const char *function, int line,
         }
 
         if (match == 1) {
-            mutex_unlock(&sc_log_fg_filters_m[listtype]);
+            sc_mutex_unlock(&sc_log_fg_filters_m[listtype]);
             if (listtype == SC_LOG_FILTER_WL)
                 return 1;
             else
@@ -406,7 +410,7 @@ static int SCLogMatchFGFilter(const char *file, const char *function, int line,
         fgf_file = fgf_file->next;
     }
 
-    mutex_unlock(&sc_log_fg_filters_m[listtype]);
+    sc_mutex_unlock(&sc_log_fg_filters_m[listtype]);
 
     if (listtype == SC_LOG_FILTER_WL)
         return 0;
@@ -503,7 +507,7 @@ void SCLogReleaseFGFilters(void)
     int i = 0;
 
     for (i = 0; i < SC_LOG_FILTER_MAX; i++) {
-        mutex_lock(&sc_log_fg_filters_m[i]);
+        sc_mutex_lock(&sc_log_fg_filters_m[i]);
 
         fgf_file = sc_log_fg_filters[i];
         while (fgf_file != NULL) {
@@ -532,7 +536,7 @@ void SCLogReleaseFGFilters(void)
             free(temp);
         }
 
-        mutex_unlock(&sc_log_fg_filters_m[i]);
+        sc_mutex_unlock(&sc_log_fg_filters_m[i]);
         sc_log_fg_filters[i] = NULL;
     }
 
@@ -564,7 +568,7 @@ int SCLogPrintFGFilters()
 #endif
 
     for (i = 0; i < SC_LOG_FILTER_MAX; i++) {
-        mutex_lock(&sc_log_fg_filters_m[i]);
+        sc_mutex_lock(&sc_log_fg_filters_m[i]);
 
         fgf_file = sc_log_fg_filters[i];
         while (fgf_file != NULL) {
@@ -590,7 +594,7 @@ int SCLogPrintFGFilters()
 
             fgf_file = fgf_file->next;
         }
-        mutex_unlock(&sc_log_fg_filters_m[i]);
+        sc_mutex_unlock(&sc_log_fg_filters_m[i]);
     }
 
     return count;
@@ -632,7 +636,7 @@ int SCLogMatchFDFilter(const char *function)
 {
     SCLogFDFilterThreadList *thread_list = NULL;
 
-    pthread_t self = syscall(SYS_gettid);
+    pid_t self = syscall(SYS_gettid);
 
 #ifndef DEBUG
     return 1;
@@ -644,10 +648,10 @@ int SCLogMatchFDFilter(const char *function)
         return 0;
     }
 
-    mutex_lock(&sc_log_fd_filters_tl_m);
+    sc_mutex_lock(&sc_log_fd_filters_tl_m);
 
     if (sc_log_fd_filters_tl == NULL) {
-        mutex_unlock(&sc_log_fd_filters_tl_m);
+        sc_mutex_unlock(&sc_log_fd_filters_tl_m);
         if (sc_log_fd_filters != NULL)
             return 0;
         return 1;
@@ -657,17 +661,17 @@ int SCLogMatchFDFilter(const char *function)
     while (thread_list != NULL) {
         if (self == thread_list->t) {
             if (thread_list->entered > 0) {
-                mutex_unlock(&sc_log_fd_filters_tl_m);
+                sc_mutex_unlock(&sc_log_fd_filters_tl_m);
                 return 1;
             }
-            mutex_unlock(&sc_log_fd_filters_tl_m);
+            sc_mutex_unlock(&sc_log_fd_filters_tl_m);
             return 0;
         }
 
         thread_list = thread_list->next;
     }
 
-    mutex_unlock(&sc_log_fd_filters_tl_m);
+    sc_mutex_unlock(&sc_log_fd_filters_tl_m);
 
     return 0;
 }
@@ -689,7 +693,7 @@ int SCLogCheckFDFilterEntry(const char *function)
     SCLogFDFilterThreadList *thread_list_prev = NULL;
     SCLogFDFilterThreadList *thread_list_temp = NULL;
 
-    pthread_t self = syscall(SYS_gettid);
+    pid_t self = syscall(SYS_gettid);
 
     if (sc_log_module_initialized != 1) {
         printf("Logging module not initialized.  Call SCLogInitLogModule() "
@@ -697,7 +701,7 @@ int SCLogCheckFDFilterEntry(const char *function)
         return 0;
     }
 
-    mutex_lock(&sc_log_fd_filters_m);
+    sc_mutex_lock(&sc_log_fd_filters_m);
 
     curr = sc_log_fd_filters;
 
@@ -709,13 +713,13 @@ int SCLogCheckFDFilterEntry(const char *function)
     }
 
     if (curr == NULL) {
-        mutex_unlock(&sc_log_fd_filters_m);
+        sc_mutex_unlock(&sc_log_fd_filters_m);
         return 1;
     }
 
-    mutex_unlock(&sc_log_fd_filters_m);
+    sc_mutex_unlock(&sc_log_fd_filters_m);
 
-    mutex_lock(&sc_log_fd_filters_tl_m);
+    sc_mutex_lock(&sc_log_fd_filters_tl_m);
 
     thread_list = sc_log_fd_filters_tl;
     thread_list_temp = thread_list;
@@ -730,7 +734,7 @@ int SCLogCheckFDFilterEntry(const char *function)
 
     if (thread_list != NULL) {
         thread_list->entered++;
-        mutex_unlock(&sc_log_fd_filters_tl_m);
+        sc_mutex_unlock(&sc_log_fd_filters_tl_m);
         return 1;
     }
 
@@ -748,7 +752,7 @@ int SCLogCheckFDFilterEntry(const char *function)
     else
         thread_list_prev->next = thread_list_temp;
 
-    mutex_unlock(&sc_log_fd_filters_tl_m);
+    sc_mutex_unlock(&sc_log_fd_filters_tl_m);
 
     return 1;
 }
@@ -767,7 +771,7 @@ void SCLogCheckFDFilterExit(const char *function)
 
     SCLogFDFilterThreadList *thread_list = NULL;
 
-    pthread_t self = syscall(SYS_gettid);
+    pid_t self = syscall(SYS_gettid);
 
     if (sc_log_module_initialized != 1) {
         printf("Logging module not initialized.  Call SCLogInitLogModule() "
@@ -775,7 +779,7 @@ void SCLogCheckFDFilterExit(const char *function)
         return;
     }
 
-    mutex_lock(&sc_log_fd_filters_m);
+    sc_mutex_lock(&sc_log_fd_filters_m);
 
     curr = sc_log_fd_filters;
 
@@ -787,13 +791,13 @@ void SCLogCheckFDFilterExit(const char *function)
     }
 
     if (curr == NULL) {
-        mutex_unlock(&sc_log_fd_filters_m);
+        sc_mutex_unlock(&sc_log_fd_filters_m);
         return;
     }
 
-    mutex_unlock(&sc_log_fd_filters_m);
+    sc_mutex_unlock(&sc_log_fd_filters_m);
 
-    mutex_lock(&sc_log_fd_filters_tl_m);
+    sc_mutex_lock(&sc_log_fd_filters_tl_m);
 
     thread_list = sc_log_fd_filters_tl;
     while (thread_list != NULL) {
@@ -803,7 +807,7 @@ void SCLogCheckFDFilterExit(const char *function)
         thread_list = thread_list->next;
     }
 
-    mutex_unlock(&sc_log_fd_filters_tl_m);
+    sc_mutex_unlock(&sc_log_fd_filters_tl_m);
 
     thread_list->entered--;
 
@@ -835,14 +839,16 @@ int SCLogAddFDFilter(const char *function)
         return -1;
     }
 
-    mutex_lock(&sc_log_fd_filters_m);
+    sc_mutex_lock(&sc_log_fd_filters_m);
 
     curr = sc_log_fd_filters;
     while (curr != NULL) {
         prev = curr;
 
         if (strcmp(function, curr->func) == 0) {
-            mutex_unlock(&sc_log_fd_filters_m);
+
+            sc_mutex_unlock(&sc_log_fd_filters_m);
+
             return 0;
         }
 
@@ -867,7 +873,7 @@ int SCLogAddFDFilter(const char *function)
             prev->next = temp;
     }
 
-    mutex_unlock(&sc_log_fd_filters_m);
+    sc_mutex_unlock(&sc_log_fd_filters_m);
     sc_log_fd_filters_present = 1;
 
     return 0;
@@ -881,7 +887,7 @@ void SCLogReleaseFDFilters(void)
     SCLogFDFilter *fdf = NULL;
     SCLogFDFilter *temp = NULL;
 
-    mutex_lock(&sc_log_fd_filters_m);
+    sc_mutex_lock(&sc_log_fd_filters_m);
 
     fdf = sc_log_fd_filters;
     while (fdf != NULL) {
@@ -892,7 +898,7 @@ void SCLogReleaseFDFilters(void)
 
     sc_log_fd_filters = NULL;
 
-    mutex_unlock(&sc_log_fd_filters_m);
+    sc_mutex_unlock( &sc_log_fd_filters_m );
 
     return;
 }
@@ -921,10 +927,10 @@ int SCLogRemoveFDFilter(const char *function)
         return -1;
     }
 
-    mutex_lock(&sc_log_fd_filters_m);
+    sc_mutex_lock(&sc_log_fd_filters_m);
 
     if (sc_log_fd_filters == NULL) {
-        mutex_unlock(&sc_log_fd_filters_m);
+        sc_mutex_unlock(&sc_log_fd_filters_m);
         return 0;
     }
 
@@ -939,7 +945,9 @@ int SCLogRemoveFDFilter(const char *function)
     }
 
     if (curr == NULL) {
-        mutex_unlock(&sc_log_fd_filters_m);
+
+        sc_mutex_unlock(&sc_log_fd_filters_m);
+
         return 0;
     }
 
@@ -950,7 +958,7 @@ int SCLogRemoveFDFilter(const char *function)
 
     SCLogReleaseFDFilter(curr);
 
-    mutex_unlock(&sc_log_fd_filters_m);
+    sc_mutex_unlock(&sc_log_fd_filters_m);
 
     if (sc_log_fd_filters == NULL)
         sc_log_fd_filters_present = 0;
@@ -967,6 +975,7 @@ int SCLogPrintFDFilters(void)
 {
     SCLogFDFilter *fdf = NULL;
     int count = 0;
+    int r = 0;
 
     if (sc_log_module_initialized != 1) {
         printf("Logging module not initialized.  Call SCLogInitLogModule() "
@@ -978,7 +987,7 @@ int SCLogPrintFDFilters(void)
     printf("FD filters:\n");
 #endif
 
-    mutex_lock(&sc_log_fd_filters_m);
+    r = sc_mutex_lock(&sc_log_fd_filters_m);
 
     fdf = sc_log_fd_filters;
     while (fdf != NULL) {
@@ -989,7 +998,7 @@ int SCLogPrintFDFilters(void)
         count++;
     }
 
-    mutex_unlock(&sc_log_fd_filters_m);
+    r = sc_mutex_unlock(&sc_log_fd_filters_m);
 
     return count;
 }

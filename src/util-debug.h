@@ -3,7 +3,7 @@
  */
 
 #include <stdio.h>
-#include <pthread.h>
+#include "threads.h"
 #include <stdint.h>
 #include <syslog.h>
 

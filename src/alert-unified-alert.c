@@ -150,15 +150,15 @@ TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     }
 
     /** check and enforce the filesize limit, thread safe */
-    mutex_lock(&aun->file_ctx->fp_mutex);
+    sc_mutex_lock(&aun->file_ctx->fp_mutex);
     if ((aun->size_current + sizeof(hdr)) > aun->size_limit) {
         if (AlertUnifiedAlertRotateFile(tv,aun) < 0)
         {
-            mutex_unlock(&aun->file_ctx->fp_mutex);
+            sc_mutex_unlock(&aun->file_ctx->fp_mutex);
             return TM_ECODE_FAILED;
         }
     }
-    mutex_unlock(&aun->file_ctx->fp_mutex);
+    sc_mutex_unlock(&aun->file_ctx->fp_mutex);
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */

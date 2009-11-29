@@ -37,7 +37,7 @@
 //#define DEBUG
 
 #ifdef DEBUG
-static pthread_mutex_t segment_pool_memuse_mutex;
+static sc_mutex_t segment_pool_memuse_mutex;
 static uint64_t segment_pool_memuse = 0;
 static uint64_t segment_pool_memcnt = 0;
 #endif
@@ -70,10 +70,10 @@ void *TcpSegmentPoolAlloc(void *payload_len) {
     }
 
 #ifdef DEBUG
-    mutex_lock(&segment_pool_memuse_mutex);
+    sc_mutex_lock(&segment_pool_memuse_mutex);
     segment_pool_memuse += seg->payload_len;
     segment_pool_memcnt ++;
-    mutex_unlock(&segment_pool_memuse_mutex);
+    sc_mutex_unlock(&segment_pool_memuse_mutex);
 #endif
     return seg;
 }
@@ -97,9 +97,9 @@ void TcpSegmentPoolFree(void *ptr) {
 static uint16_t segment_pool_pktsizes[segment_pool_num] = {4, 16, 112, 248, 512, 768, 1448, 0xffff};
 static uint16_t segment_pool_poolsizes[segment_pool_num] = {2048, 3072, 3072, 3072, 3072, 4096, 8192, 512};
 static Pool *segment_pool[segment_pool_num];
-static pthread_mutex_t segment_pool_mutex[segment_pool_num];
+static sc_mutex_t segment_pool_mutex[segment_pool_num];
 #ifdef DEBUG
-static pthread_mutex_t segment_pool_cnt_mutex;
+static sc_mutex_t segment_pool_cnt_mutex;
 static uint64_t segment_pool_cnt = 0;
 #endif
 /* index to the right pool for all packet sizes. */
@@ -108,12 +108,12 @@ static uint16_t segment_pool_idx[65536]; /* O(1) lookups of the pool */
 int StreamTcpReassembleInit(char quiet) {
     StreamMsgQueuesInit();
 #ifdef DEBUG
-    pthread_mutex_init(&segment_pool_memuse_mutex, NULL);
+    sc_mutex_init(&segment_pool_memuse_mutex, NULL);
 #endif
     uint16_t u16 = 0;
     for (u16 = 0; u16 < segment_pool_num; u16++) {
         segment_pool[u16] = PoolInit(segment_pool_poolsizes[u16], segment_pool_poolsizes[u16] / 8, TcpSegmentPoolAlloc, (void *) & segment_pool_pktsizes[u16], TcpSegmentPoolFree);
-        pthread_mutex_init(&segment_pool_mutex[u16], NULL);
+        sc_mutex_init(&segment_pool_mutex[u16], NULL);
     }
 
     uint16_t idx = 0;
@@ -131,7 +131,7 @@ int StreamTcpReassembleInit(char quiet) {
         idx++;
     }
 #ifdef DEBUG
-    pthread_mutex_init(&segment_pool_cnt_mutex, NULL);
+    sc_mutex_init(&segment_pool_cnt_mutex, NULL);
 #endif
     return 0;
 }
@@ -145,7 +145,7 @@ void StreamTcpReassembleFree(char quiet) {
         }
         PoolFree(segment_pool[u16]);
 
-        pthread_mutex_destroy(&segment_pool_mutex[u16]);
+        sc_mutex_destroy(&segment_pool_mutex[u16]);
     }
 
 #ifdef DEBUG
@@ -164,7 +164,6 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void) {
     }
 
     memset(ra_ctx, 0x00, sizeof(TcpReassemblyThreadCtx));
-
     ra_ctx->stream_q = StreamMsgQueueGetNew();
 
     return ra_ctx;
@@ -1353,21 +1352,21 @@ void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg) {
 TcpSegment* StreamTcpGetSegment(uint16_t len) {
     uint16_t idx = segment_pool_idx[len];
     SCLogDebug("%" PRIu32 " for payload_len %" PRIu32 "", idx, len);
-    mutex_lock(&segment_pool_mutex[idx]);
+    sc_mutex_lock(&segment_pool_mutex[idx]);
     TcpSegment *seg = (TcpSegment *) PoolGet(segment_pool[idx]);
     SCLogDebug("segment_pool[%u]->empty_list_size %u, segment_pool[%u]->alloc_list_size %u, alloc %u",
         idx, segment_pool[idx]->empty_list_size, idx, segment_pool[idx]->alloc_list_size, segment_pool[idx]->allocated);
     //PoolPrintSaturation(segment_pool[idx]);
-    mutex_unlock(&segment_pool_mutex[idx]);
+    sc_mutex_unlock(&segment_pool_mutex[idx]);
 
     SCLogDebug("StreamTcpGetSegment: seg we return is %p", seg);
     if (seg == NULL) {
         SCLogDebug("segment_pool[%u]->empty_list_size %u, alloc %u", idx, segment_pool[idx]->empty_list_size, segment_pool[idx]->allocated);
     } else {
 #ifdef DEBUG
-        mutex_lock(&segment_pool_cnt_mutex);
+        sc_mutex_lock(&segment_pool_cnt_mutex);
         segment_pool_cnt++;
-        mutex_unlock(&segment_pool_cnt_mutex);
+        sc_mutex_unlock(&segment_pool_cnt_mutex);
 #endif
     }
     return seg;
@@ -1384,15 +1383,15 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg) {
     seg->prev = NULL;
 
     uint16_t idx = segment_pool_idx[seg->pool_size];
-    mutex_lock(&segment_pool_mutex[idx]);
+    sc_mutex_lock(&segment_pool_mutex[idx]);
     PoolReturn(segment_pool[idx], (void *) seg);
     SCLogDebug("segment_pool[%"PRIu16"]->empty_list_size %"PRIu32"", idx,segment_pool[idx]->empty_list_size);
-    mutex_unlock(&segment_pool_mutex[idx]);
+    sc_mutex_unlock(&segment_pool_mutex[idx]);
 
 #ifdef DEBUG
-    mutex_lock(&segment_pool_cnt_mutex);
+    sc_mutex_lock(&segment_pool_cnt_mutex);
     segment_pool_cnt--;
-    mutex_unlock(&segment_pool_cnt_mutex);
+    sc_mutex_unlock(&segment_pool_cnt_mutex);
 #endif
 }
 

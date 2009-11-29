@@ -3,6 +3,8 @@
 #include "eidps-common.h"
 
 #include <getopt.h>
+#include <signal.h>
+#include <pthread.h>
 
 #include "eidps.h"
 #include "decode.h"
@@ -126,10 +128,11 @@ SignalHandlerSetup(int sig, void (*handler)())
 Packet *SetupPktWait (void)
 {
     Packet *p = NULL;
+    int r = 0;
     do {
-        mutex_lock(&packet_q.mutex_q);
+        r = sc_mutex_lock(&packet_q.mutex_q);
         p = PacketDequeue(&packet_q);
-        mutex_unlock(&packet_q.mutex_q);
+        sc_mutex_unlock(&packet_q.mutex_q);
 
         if (p == NULL) {
             //TmqDebugList();
@@ -148,10 +151,11 @@ Packet *SetupPktWait (void)
 Packet *SetupPkt (void)
 {
     Packet *p = NULL;
+    int r = 0;
 
-    mutex_lock(&packet_q.mutex_q);
+    r = sc_mutex_lock(&packet_q.mutex_q);
     p = PacketDequeue(&packet_q);
-    mutex_unlock(&packet_q.mutex_q);
+    r = sc_mutex_unlock(&packet_q.mutex_q);
 
     if (p == NULL) {
         TmqDebugList();
@@ -164,7 +168,7 @@ Packet *SetupPkt (void)
 
         memset(p, 0, sizeof(Packet));
 
-        pthread_mutex_init(&p->mutex_rtv_cnt, NULL);
+        r = sc_mutex_init(&p->mutex_rtv_cnt, NULL);
 
         SCLogDebug("allocated a new packet...");
     }
@@ -175,6 +179,33 @@ Packet *SetupPkt (void)
     return p;
 }
 
+void GlobalInits()
+{
+    memset(&trans_q, 0,sizeof(trans_q));
+
+    /* Initialize the trans_q mutex */
+    int blah;
+    int r = 0;
+    for(blah=0;blah<256;blah++) {
+        r |= sc_mutex_init(&trans_q[blah].mutex_q, NULL);
+        r |= sc_cond_init(&trans_q[blah].cond_q, NULL);
+   }
+
+    if (r != 0) {
+        SCLogInfo("Trans_Q Mutex not initialized correctly");
+        exit(EXIT_FAILURE);
+    }
+
+    sc_mutex_init(&mutex_pending, NULL);
+    sc_cond_init(&cond_pending, NULL);
+
+    /* initialize packet queues Here! */
+    memset(&packet_q,0,sizeof(packet_q));
+    sc_mutex_init(&packet_q.mutex_q, NULL);
+    sc_cond_init(&packet_q.cond_q, NULL);
+
+}
+
 /* \todo dtv not used. */
 Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
 {
@@ -182,11 +213,12 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
 
     /* get us a packet */
     Packet *p = SetupPkt();
+    int r = 0;
 #if 0
     do {
-        mutex_lock(&packet_q.mutex_q);
+        r = sc_mutex_lock(&packet_q.mutex_q);
         p = PacketDequeue(&packet_q);
-        mutex_unlock(&packet_q.mutex_q);
+        sc_mutex_unlock(&packet_q.mutex_q);
 
         if (p == NULL) {
             //TmqDebugList();
@@ -197,13 +229,13 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
         }
     } while (p == NULL);
 #endif
-    mutex_lock(&mutex_pending);
+    r = sc_mutex_lock(&mutex_pending);
     pending++;
 #ifdef DBG_PERF
     if (pending > dbg_maxpending)
         dbg_maxpending = pending;
 #endif /* DBG_PERF */
-    mutex_unlock(&mutex_pending);
+    sc_mutex_unlock(&mutex_pending);
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)
@@ -362,6 +394,9 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Initializations for global vars, queues, etc (memsets, mutex init..) */
+    GlobalInits();
+
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
         ConfYamlLoadFile(conf_filename);
@@ -475,6 +510,8 @@ int main(int argc, char **argv)
         SCHInfoRegisterTests();
         SCRuleVarsRegisterTests();
         AppLayerParserRegisterTests();
+        ThreadMacrosRegisterTests();
+
         if (list_unittests) {
             UtListTests(regex_arg);
         }
@@ -495,10 +532,6 @@ int main(int argc, char **argv)
     SignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
     SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
 
-    /* initialize packet queues */
-    memset(&packet_q,0,sizeof(packet_q));
-    memset(&trans_q, 0,sizeof(trans_q));
-
     /* pre allocate packets */
     SCLogInfo("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)sizeof(Packet));
     int i = 0;
@@ -510,7 +543,7 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
         memset(p, 0, sizeof(Packet));
-        pthread_mutex_init(&p->mutex_rtv_cnt, NULL);
+        sc_mutex_init(&p->mutex_rtv_cnt, NULL);
 
         PacketEnqueue(&packet_q,p);
     }
@@ -600,10 +633,10 @@ int main(int argc, char **argv)
                     if (sigflags & EIDPS_SIGTERM || sigflags & EIDPS_KILL)
                         break;
 
-                    mutex_lock(&mutex_pending);
+                    sc_mutex_lock(&mutex_pending);
                     if (pending == 0)
                         done = 1;
-                    mutex_unlock(&mutex_pending);
+                    sc_mutex_unlock(&mutex_pending);
 
                     if (done == 0) {
                         usleep(100);

@@ -15,6 +15,21 @@
 #include "threads.h"
 #include "util-debug.h"
 
+#ifdef OS_FREEBSD
+#include <sched.h>
+#include <sys/param.h>
+#include <sys/resource.h>
+#include <sys/cpuset.h>
+#define cpu_set_t cpuset_t
+#elif OS_DARWIN
+#include <mach/mach.h>
+#include <mach/mach_init.h>
+#include <mach/thread_policy.h>
+#define cpu_set_t thread_affinity_policy_data_t
+#define CPU_SET(cpu_id, new_mask) (*(new_mask)).affinity_tag = (cpu_id + 1)
+#define CPU_ZERO(new_mask) (*(new_mask)).affinity_tag = THREAD_AFFINITY_TAG_NULL
+#endif /* OS_FREEBSD */
+
 /* prototypes */
 static int SetCPUAffinity(int cpu);
 
@@ -22,7 +37,7 @@ static int SetCPUAffinity(int cpu);
 ThreadVars *tv_root[TVT_MAX] = { NULL };
 
 /* lock to protect tv_root */
-pthread_mutex_t tv_root_lock = PTHREAD_MUTEX_INITIALIZER;
+sc_mutex_t tv_root_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* Action On Failure(AOF).  Determines how the engine should behave when a
    thread encounters a failure.  Defaults to restart the failed thread */
@@ -60,34 +75,34 @@ typedef struct TmVarSlot_ {
  */
 inline int TmThreadsCheckFlag(ThreadVars *tv, uint8_t flag) {
     int r;
-    if (spin_lock(&tv->flags_spinlock) != 0) {
+    if (sc_spin_lock(&tv->flags_spinlock) != 0) {
         SCLogError(SC_SPINLOCK_ERROR,"spin lock errno=%d",errno);
         return 0;
     }
 
     r = (tv->flags & flag);
-    spin_unlock(&tv->flags_spinlock);
+   sc_spin_unlock(&tv->flags_spinlock);
     return r;
 }
 
 inline void TmThreadsSetFlag(ThreadVars *tv, uint8_t flag) {
-    if (spin_lock(&tv->flags_spinlock) != 0) {
+    if (sc_spin_lock(&tv->flags_spinlock) != 0) {
         SCLogError(SC_SPINLOCK_ERROR,"spin lock errno=%d",errno);
         return;
     }
 
     tv->flags |= flag;
-    spin_unlock(&tv->flags_spinlock);
+   sc_spin_unlock(&tv->flags_spinlock);
 }
 
 inline void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag) {
-    if (spin_lock(&tv->flags_spinlock) != 0) {
+    if (sc_spin_lock(&tv->flags_spinlock) != 0) {
         SCLogError(SC_SPINLOCK_ERROR,"spin lock errno=%d",errno);
         return;
     }
 
     tv->flags &= ~flag;
-    spin_unlock(&tv->flags_spinlock);
+   sc_spin_unlock(&tv->flags_spinlock);
 }
 
 /* 1 slot functions */
@@ -570,7 +585,14 @@ static int SetCPUAffinity(int cpu) {
     CPU_ZERO(&cs);
     CPU_SET(cpu,&cs);
 
+#ifdef OS_FREEBSD
+    int r = cpuset_setaffinity(CPU_LEVEL_WHICH,CPU_WHICH_TID,tid,sizeof(cpu_set_t),&cs);
+#elif OS_DARWIN
+    int r = thread_policy_set(mach_thread_self(), THREAD_AFFINITY_POLICY, (void*)&cs, THREAD_AFFINITY_POLICY_COUNT);
+#else
     int r = sched_setaffinity(tid,sizeof(cpu_set_t),&cs);
+#endif /* OS_FREEBSD */
+
     if (r != 0) {
         printf("Warning: sched_setaffinity failed (%" PRId32 "): %s\n", r, strerror(errno));
     }
@@ -614,7 +636,8 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     if (tv == NULL) goto error;
     memset(tv, 0, sizeof(ThreadVars));
 
-    pthread_spin_init(&tv->flags_spinlock, PTHREAD_PROCESS_PRIVATE);
+    sc_spin_init(&tv->flags_spinlock, PTHREAD_PROCESS_PRIVATE);
+    sc_mutex_init(&tv->sc_perf_pctx.m, NULL);
 
     tv->name = name;
     /* default state for every newly created thread */
@@ -746,7 +769,7 @@ ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *),
  */
 void TmThreadAppend(ThreadVars *tv, int type)
 {
-    pthread_mutex_lock(&tv_root_lock);
+    sc_mutex_lock(&tv_root_lock);
 
     if (tv_root[type] == NULL) {
         tv_root[type] = tv;
@@ -754,7 +777,7 @@ void TmThreadAppend(ThreadVars *tv, int type)
         tv->prev = NULL;
 
         //printf("TmThreadAppend: thread \'%s\' is the first thread in the list.\n", tv->name);
-        pthread_mutex_unlock(&tv_root_lock);
+        sc_mutex_unlock(&tv_root_lock);
         return;
     }
 
@@ -771,7 +794,7 @@ void TmThreadAppend(ThreadVars *tv, int type)
         t = t->next;
     }
 
-    pthread_mutex_unlock(&tv_root_lock);
+    sc_mutex_unlock(&tv_root_lock);
     //printf("TmThreadAppend: thread \'%s\' is added to the list.\n", tv->name);
 }
 
@@ -796,12 +819,12 @@ void TmThreadKillThreads(void) {
                 //printf("TmThreadKillThreads: (t->inq->reader_cnt + t->inq->writer_cnt) %" PRIu32 "\n", (t->inq->reader_cnt + t->inq->writer_cnt));
 
                 /* make sure our packet pending counter doesn't block */
-                pthread_cond_signal(&cond_pending);
+                sc_cond_signal(&cond_pending);
 
                 /* signal the queue for the number of users */
 
                 for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
-                    pthread_cond_signal(&trans_q[tv->inq->id].cond_q);
+                    sc_cond_signal(&trans_q[tv->inq->id].cond_q);
 
                 /* to be sure, signal more */
                 int cnt = 0;
@@ -814,7 +837,7 @@ void TmThreadKillThreads(void) {
                     cnt++;
 
                     for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
-                        pthread_cond_signal(&trans_q[tv->inq->id].cond_q);
+                        sc_cond_signal(&trans_q[tv->inq->id].cond_q);
 
                     usleep(100);
                 }
@@ -912,22 +935,22 @@ void TmThreadSetAOF(ThreadVars *tv, uint8_t aof)
  */
 void TmThreadInitMC(ThreadVars *tv)
 {
-    if ( (tv->m = malloc(sizeof(pthread_mutex_t))) == NULL) {
+    if ( (tv->m = malloc(sizeof(sc_mutex_t))) == NULL) {
         printf("Error allocating memory\n");
         exit(0);
     }
 
-    if (pthread_mutex_init(tv->m, NULL) != 0) {
+    if (sc_mutex_init(tv->m, NULL) != 0) {
         printf("Error initializing the tv->m mutex\n");
         exit(0);
     }
 
-    if ( (tv->cond = malloc(sizeof(pthread_cond_t))) == NULL) {
+    if ( (tv->cond = malloc(sizeof(sc_cond_t))) == NULL) {
         printf("Error allocating memory\n");
         exit(0);
     }
 
-    if (pthread_cond_init(tv->cond, NULL) != 0) {
+    if (sc_cond_init(tv->cond, NULL) != 0) {
         printf("Error initializing the tv->cond condition variable\n");
         exit(0);
     }
@@ -1131,20 +1154,20 @@ ThreadVars *TmThreadsGetCallingThread(void)
     ThreadVars *tv = NULL;
     int i = 0;
 
-    mutex_lock(&tv_root_lock);
+    sc_mutex_lock(&tv_root_lock);
 
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
         while (tv) {
             if (pthread_equal(self, tv->t)) {
-                mutex_unlock(&tv_root_lock);
+                sc_mutex_unlock(&tv_root_lock);
                 return tv;
             }
             tv = tv->next;
         }
     }
 
-    mutex_unlock(&tv_root_lock);
+    sc_mutex_unlock(&tv_root_lock);
 
     return NULL;
 }

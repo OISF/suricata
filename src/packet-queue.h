@@ -3,7 +3,7 @@
 #ifndef __PACKET_QUEUE_H__
 #define __PACKET_QUEUE_H__
 
-#include <pthread.h>
+#include "threads.h"
 #include "decode.h"
 
 /* XXX: moved to decode.h */
@@ -12,8 +12,8 @@ typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;
     uint16_t len;
-    pthread_mutex_t mutex_q;
-    pthread_cond_t cond_q;
+    sc_mutex_t mutex_q;
+    sc_cond_t cond_q;
 #ifdef DBG_PERF
     uint16_t dbg_maxlen;
 #endif /* DBG_PERF */

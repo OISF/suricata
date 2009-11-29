@@ -6,6 +6,7 @@
 #include "util-mpm.h"
 #include "tm-queues.h"
 #include "counters.h"
+#include "threads.h"
 
 /** Thread flags set and read by threads to control the threads */
 #define THV_USE       0x01 /** thread is in use */
@@ -29,7 +30,7 @@ typedef struct ThreadVars_ {
     char *name;
 
     uint8_t flags;
-    pthread_spinlock_t flags_spinlock;
+    sc_spin_t flags_spinlock;
 
     /** aof(action on failure) determines what should be done with the thread
         when it encounters certain conditions like failures */
@@ -61,8 +62,8 @@ typedef struct ThreadVars_ {
     SCPerfContext sc_perf_pctx;
     SCPerfCounterArray *sc_perf_pca;
 
-    pthread_mutex_t *m;
-    pthread_cond_t *cond;
+    sc_mutex_t *m;
+    sc_cond_t *cond;
 
     struct ThreadVars_ *next;
     struct ThreadVars_ *prev;

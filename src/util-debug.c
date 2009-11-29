@@ -21,7 +21,6 @@
 #include "decode.h"
 #include "detect.h"
 #include "packet-queue.h"
-#include "threads.h"
 #include "threadvars.h"
 
 #include "tm-queuehandlers.h"

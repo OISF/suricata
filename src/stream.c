@@ -7,7 +7,7 @@
 #include "util-pool.h"
 #include "util-debug.h"
 
-static pthread_mutex_t stream_pool_memuse_mutex;
+static sc_mutex_t stream_pool_memuse_mutex;
 static uint64_t stream_pool_memuse = 0;
 static uint64_t stream_pool_memcnt = 0;
 
@@ -20,7 +20,7 @@ static uint16_t toclient_min_init_chunk_len = 0;
 static uint16_t toclient_min_chunk_len = 0;
 
 static Pool *stream_msg_pool = NULL;
-static pthread_mutex_t stream_msg_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
+static sc_mutex_t stream_msg_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *StreamMsgAlloc(void *null) {
     StreamMsg *s = malloc(sizeof(StreamMsg));
@@ -29,10 +29,10 @@ void *StreamMsgAlloc(void *null) {
 
     memset(s, 0, sizeof(StreamMsg));
 
-    mutex_lock(&stream_pool_memuse_mutex);
+    sc_mutex_lock(&stream_pool_memuse_mutex);
     stream_pool_memuse += sizeof(StreamMsg);
     stream_pool_memcnt ++;
-    mutex_unlock(&stream_pool_memuse_mutex);
+    sc_mutex_unlock(&stream_pool_memuse_mutex);
     return s;
 }
 
@@ -92,38 +92,38 @@ static StreamMsg *StreamMsgDequeue (StreamMsgQueue *q) {
 /* Used by stream reassembler to get msgs */
 StreamMsg *StreamMsgGetFromPool(void)
 {
-    mutex_lock(&stream_msg_pool_mutex);
+    sc_mutex_lock(&stream_msg_pool_mutex);
     StreamMsg *s = (StreamMsg *)PoolGet(stream_msg_pool);
-    mutex_unlock(&stream_msg_pool_mutex);
+    sc_mutex_unlock(&stream_msg_pool_mutex);
     return s;
 }
 
 /* Used by l7inspection to return msgs to pool */
 void StreamMsgReturnToPool(StreamMsg *s) {
-    mutex_lock(&stream_msg_pool_mutex);
+    sc_mutex_lock(&stream_msg_pool_mutex);
     PoolReturn(stream_msg_pool, (void *)s);
-    mutex_unlock(&stream_msg_pool_mutex);
+    sc_mutex_unlock(&stream_msg_pool_mutex);
 }
 
 /* Used by l7inspection to get msgs with data */
 StreamMsg *StreamMsgGetFromQueue(StreamMsgQueue *q)
 {
-    mutex_lock(&q->mutex_q);
+    sc_mutex_lock(&q->mutex_q);
     if (q->len == 0) {
         struct timespec cond_time;
         cond_time.tv_sec = time(NULL) + 5;
         cond_time.tv_nsec = 0;
 
         /* if we have no stream msgs in queue, wait... for 5 seconds */
-        pthread_cond_timedwait(&q->cond_q, &q->mutex_q, &cond_time);
+        sc_cond_timedwait(&q->cond_q, &q->mutex_q, &cond_time);
     }
     if (q->len > 0) {
         StreamMsg *s = StreamMsgDequeue(q);
-        mutex_unlock(&q->mutex_q);
+        sc_mutex_unlock(&q->mutex_q);
         return s;
     } else {
         /* return NULL if we have no stream msg. Should only happen on signals. */
-        mutex_unlock(&q->mutex_q);
+        sc_mutex_unlock(&q->mutex_q);
         return NULL;
     }
 }
@@ -131,15 +131,15 @@ StreamMsg *StreamMsgGetFromQueue(StreamMsgQueue *q)
 /* Used by stream reassembler to fill the queue for l7inspect reading */
 void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
 {
-    mutex_lock(&q->mutex_q);
+    sc_mutex_lock(&q->mutex_q);
     StreamMsgEnqueue(q, s);
     SCLogDebug("q->len %" PRIu32 "", q->len);
-    pthread_cond_signal(&q->cond_q);
-    mutex_unlock(&q->mutex_q);
+    sc_cond_signal(&q->cond_q);
+    sc_mutex_unlock(&q->mutex_q);
 }
 
 void StreamMsgQueuesInit(void) {
-    pthread_mutex_init(&stream_pool_memuse_mutex, NULL);
+    sc_mutex_init(&stream_pool_memuse_mutex, NULL);
     //memset(&stream_q, 0, sizeof(stream_q));
 
     stream_msg_pool = PoolInit(5000,250,StreamMsgAlloc,NULL,StreamMsgFree);
@@ -149,7 +149,7 @@ void StreamMsgQueuesInit(void) {
 
 void StreamMsgQueuesDeinit(char quiet) {
     PoolFree(stream_msg_pool);
-    pthread_mutex_destroy(&stream_pool_memuse_mutex);
+    sc_mutex_destroy(&stream_pool_memuse_mutex);
 
     if (quiet == FALSE)
         SCLogDebug("stream_pool_memuse %"PRIu64", stream_pool_memcnt %"PRIu64"", stream_pool_memuse, stream_pool_memcnt);
@@ -164,6 +164,8 @@ StreamMsgQueue *StreamMsgQueueGetNew(void) {
     }
 
     memset(smq, 0x00, sizeof(StreamMsgQueue));
+    sc_mutex_init(&smq->mutex_q, NULL);
+    sc_cond_init(&smq->cond_q, NULL);
     return smq;
 }
 
@@ -182,7 +184,7 @@ StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {
 
 /* XXX hack */
 void StreamMsgSignalQueueHack(void) {
-    //pthread_cond_signal(&stream_q.cond_q);
+    //sc_cond_signal(&stream_q.cond_q);
 }
 
 void StreamMsgQueueSetMinInitChunkLen(uint8_t dir, uint16_t len) {

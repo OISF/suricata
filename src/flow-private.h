@@ -85,7 +85,7 @@ FlowConfig flow_config;
 uint8_t flow_flags;
 
 uint32_t flow_memuse;
-pthread_mutex_t flow_memuse_mutex;
+sc_mutex_t flow_memuse_mutex;
 
 #define FLOWBITS_STATS
 #ifdef FLOWBITS_STATS
@@ -93,7 +93,7 @@ uint32_t flowbits_memuse;
 uint32_t flowbits_memuse_max;
 uint32_t flowbits_added;
 uint32_t flowbits_removed;
-pthread_mutex_t flowbits_mutex;
+sc_mutex_t flowbits_mutex;
 #endif /* FLOWBITS_STATS */
 
 #endif /* __FLOW_PRIVATE_H__ */

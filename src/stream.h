@@ -40,8 +40,8 @@ typedef struct StreamMsgQueue_ {
     StreamMsg *top;
     StreamMsg *bot;
     uint16_t len;
-    pthread_mutex_t mutex_q;
-    pthread_cond_t cond_q;
+    sc_mutex_t mutex_q;
+    sc_cond_t cond_q;
 #ifdef DBG_PERF
     uint16_t dbg_maxlen;
 #endif /* DBG_PERF */

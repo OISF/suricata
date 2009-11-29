@@ -92,7 +92,7 @@ static void SCPerfInitOPCtx(void)
     sc_perf_op_ctx->club_tm = 1;
 
     /* init the lock used by SCPerfClubTMInst */
-    if (pthread_mutex_init(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
+    if (sc_mutex_init(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
         SCLogError(SC_INITIALIZATION_ERROR, "error initializing pctmi mutex");
         exit(EXIT_FAILURE);
     }
@@ -156,9 +156,9 @@ static void *SCPerfMgmtThread(void *arg)
         cond_time.tv_sec = time(NULL) + SC_PERF_MGMTT_TTS;
         cond_time.tv_nsec = 0;
 
-        pthread_mutex_lock(tv_local->m);
-        pthread_cond_timedwait(tv_local->cond, tv_local->m, &cond_time);
-        pthread_mutex_unlock(tv_local->m);
+        sc_mutex_lock(tv_local->m);
+        sc_cond_timedwait(tv_local->cond, tv_local->m, &cond_time);
+        sc_mutex_unlock(tv_local->m);
 
         SCPerfOutputCounters();
 
@@ -200,9 +200,9 @@ static void *SCPerfWakeupThread(void *arg)
         cond_time.tv_sec = time(NULL) + SC_PERF_WUT_TTS;
         cond_time.tv_nsec = 0;
 
-        pthread_mutex_lock(tv_local->m);
-        pthread_cond_timedwait(tv_local->cond, tv_local->m, &cond_time);
-        pthread_mutex_unlock(tv_local->m);
+        sc_mutex_lock(tv_local->m);
+        sc_cond_timedwait(tv_local->cond, tv_local->m, &cond_time);
+        sc_mutex_unlock(tv_local->m);
 
         tv = tv_root[TVT_PPT];
         while (tv != NULL) {
@@ -217,7 +217,7 @@ static void *SCPerfWakeupThread(void *arg)
              * not, it should be okay */
             tv->sc_perf_pctx.perf_flag = 1;
 
-            pthread_cond_signal(&q->cond_q);
+            sc_cond_signal(&q->cond_q);
 
             tv = tv->next;
         }
@@ -701,7 +701,7 @@ static int SCPerfOutputCounterFileIface()
             tv = tv_root[i];
 
             while (tv != NULL) {
-                pthread_mutex_lock(&tv->sc_perf_pctx.m);
+                sc_mutex_lock(&tv->sc_perf_pctx.m);
                 pc = tv->sc_perf_pctx.head;
 
                 while (pc != NULL) {
@@ -728,7 +728,7 @@ static int SCPerfOutputCounterFileIface()
                     pc = pc->next;
                 }
 
-                pthread_mutex_unlock(&tv->sc_perf_pctx.m);
+                sc_mutex_unlock(&tv->sc_perf_pctx.m);
                 tv = tv->next;
             }
             fflush(sc_perf_op_ctx->fp);
@@ -748,7 +748,7 @@ static int SCPerfOutputCounterFileIface()
         for (i = 0; i < pctmi->size; i++) {
             pc_heads[i] = pctmi->head[i]->head;
 
-            pthread_mutex_lock(&pctmi->head[i]->m);
+            sc_mutex_lock(&pctmi->head[i]->m);
 
             while(strcmp(pctmi->tm_name, pc_heads[i]->name->tm_name))
                 pc_heads[i] = pc_heads[i]->next;
@@ -799,7 +799,7 @@ static int SCPerfOutputCounterFileIface()
         }
 
         for (i = 0; i < pctmi->size; i++)
-            pthread_mutex_unlock(&pctmi->head[i]->m);
+            sc_mutex_unlock(&pctmi->head[i]->m);
 
         pctmi = pctmi->next;
 
@@ -1088,7 +1088,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
         return 0;
     }
 
-    pthread_mutex_lock(&sc_perf_op_ctx->pctmi_lock);
+    sc_mutex_lock(&sc_perf_op_ctx->pctmi_lock);
 
     pctmi = sc_perf_op_ctx->pctmi;
     prev = pctmi;
@@ -1120,7 +1120,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
         else
             prev->next = temp;
 
-        pthread_mutex_unlock(&sc_perf_op_ctx->pctmi_lock);
+        sc_mutex_unlock(&sc_perf_op_ctx->pctmi_lock);
         return 1;
     }
 
@@ -1129,7 +1129,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
         if (hpctx[i] != pctx)
             continue;
 
-        pthread_mutex_unlock(&sc_perf_op_ctx->pctmi_lock);
+        sc_mutex_unlock(&sc_perf_op_ctx->pctmi_lock);
         return 1;
     }
 
@@ -1148,7 +1148,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
     }
     pctmi->size++;
 
-    pthread_mutex_unlock(&sc_perf_op_ctx->pctmi_lock);
+    sc_mutex_unlock(&sc_perf_op_ctx->pctmi_lock);
 
     return 1;
 }
@@ -1504,7 +1504,7 @@ int SCPerfUpdateCounterArray(SCPerfCounterArray *pca, SCPerfContext *pctx,
 
     pcae = pca->head;
 
-    pthread_mutex_lock(&pctx->m);
+    sc_mutex_lock(&pctx->m);
     pc = pctx->head;
 
     for (i = 1; i <= pca->size; i++) {
@@ -1523,7 +1523,7 @@ int SCPerfUpdateCounterArray(SCPerfCounterArray *pca, SCPerfContext *pctx,
         }
     }
 
-    pthread_mutex_unlock(&pctx->m);
+    sc_mutex_unlock(&pctx->m);
 
     pctx->perf_flag = 0;
 
