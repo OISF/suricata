@@ -612,6 +612,20 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     free(temp);
 
+    if (str[0] == '!') {
+        if (cd->negated == 1) {
+            SCLogDebug("Invalid negated content. \"!\" located twice at the "
+                       "start of the contet string: %s", contentstr);
+            goto error;
+        } else {
+            temp = str;
+            if ( (str = strdup(temp + 1)) == NULL)
+                goto error;
+            cd->negated = 1;
+            free(temp);
+        }
+    }
+
     len = strlen(str);
     if (len == 0)
         goto error;
@@ -2602,6 +2616,19 @@ int DetectContentParseNegTest12(void) {
     return result;
 }
 
+int DetectContentParseNegTest13(void) {
+    int result = 0;
+    DetectContentData *cd = NULL;
+    char *teststring = "\"!boo\"";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        result = (cd->negated == 1);
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
 static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
@@ -2943,6 +2970,16 @@ static int SigTest73TestNegatedContent(void)
     return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:5; content:!twentythree; depth:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
+static int SigTest74TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:!\"PASS\"; sid:1;)",  (uint8_t *)"USER apple");
+}
+
+static int SigTest75TestNegatedContent(void)
+{
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:\"!PASS\"; sid:1;)",  (uint8_t *)"USER apple");
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -2963,6 +3000,7 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest10", DetectContentParseTest10, 1);
     UtRegisterTest("DetectContentParseTest11", DetectContentParseNegTest11, 1);
     UtRegisterTest("DetectContentParseTest12", DetectContentParseNegTest12, 1);
+    UtRegisterTest("DetectContentParseTest13", DetectContentParseNegTest13, 1);
 
     UtRegisterTest("DetectContentChunkTestB2G01 l=32", DetectContentChunkTestB2G01, 1);
     UtRegisterTest("DetectContentChunkTestB3G01 l=32", DetectContentChunkTestB3G01, 1);
@@ -3018,6 +3056,8 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("SigTest71TestNegatedContent", SigTest71TestNegatedContent, 1);
     UtRegisterTest("SigTest72TestNegatedContent", SigTest72TestNegatedContent, 1);
     UtRegisterTest("SigTest73TestNegatedContent", SigTest73TestNegatedContent, 1);
+    UtRegisterTest("SigTest74TestNegatedContent", SigTest74TestNegatedContent, 1);
+    UtRegisterTest("SigTest75TestNegatedContent", SigTest75TestNegatedContent, 1);
 
 #endif /* UNITTESTS */
 }
