@@ -166,7 +166,7 @@ static int SMBGetByteCount(void *smb_state, AppLayerParserState *pstate,
             SCLogDebug("Bytecount %u", sstate->bytecount.bytecount);
             --input_len;
     }
-    SCReturInt(p - input);
+    SCReturnInt(p - input);
 }
 
 static int SMBParseWordCount(void *smb_state, AppLayerParserState *pstate,
