@@ -45,13 +45,15 @@ static int TLSParseClientContentType(void *tls_state, AppLayerParserState
                                      *pstate, uint8_t *input, uint32_t input_len,
                                      AppLayerParserResult *output)
 {
+    SCEnter();
+
     TlsState *state = (TlsState *)tls_state;
 
     if (input == NULL)
-        return 0;
+        SCReturnInt(-1);
 
     if (input_len != 1) {
-        return 0;
+        SCReturnInt(-1);
     }
 
     /* check if we received the correct content type */
@@ -62,7 +64,7 @@ static int TLSParseClientContentType(void *tls_state, AppLayerParserState
         case TLS_APPLICATION_PROTOCOL:
             break;
         default:
-            return 0;
+            SCReturnInt(0);
     }
 
     state->client_content_type = *input;
@@ -86,7 +88,7 @@ static int TLSParseClientContentType(void *tls_state, AppLayerParserState
     if (state->client_content_type == TLS_CHANGE_CIPHER_SPEC)
         state->flags |= TLS_FLAG_CLIENT_CHANGE_CIPHER_SPEC;
 
-    return 1;
+    SCReturnInt(0);
 }
 
 /**
@@ -102,10 +104,12 @@ static int TLSParseClientContentType(void *tls_state, AppLayerParserState
 static int TLSParseClientVersion(void *tls_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
+    SCEnter();
+
     TlsState *state = (TlsState *)tls_state;
 
     if (input_len != 2)
-        return 0;
+        SCReturnInt(-1);
 
     /** \todo there must be an easier way to get from uint8_t * to a uint16_t */
     struct u16conv_ {
@@ -126,7 +130,7 @@ static int TLSParseClientVersion(void *tls_state, AppLayerParserState *pstate,
     }
 
     SCLogDebug("version %04"PRIx16"", state->client_version);
-    return 1;
+    SCReturnInt(0);
 }
 
 /**
@@ -174,7 +178,8 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
                     pstate->parse_field = 0;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                               "r %d", r);
                     SCReturnInt(-1);
                 }
                 break;
@@ -192,7 +197,8 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
                     pstate->parse_field = 1;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                               "r %d", r);
                     SCReturnInt(-1);
                 }
                 break;
@@ -205,12 +211,14 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
                 int r = AlpParseFieldBySize(output, pstate, TLS_FIELD_LENGTH,
                                             /* 2 byte field */2, data, data_len,
                                             &offset);
-                SCLogDebug("AlpParseFieldBySize returned r %d, offset %"PRIu32"", r, offset);
+                SCLogDebug("AlpParseFieldBySize returned r %d, offset %"PRIu32""
+                           , r, offset);
                 if (r == 0) {
                     pstate->parse_field = 2;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                               "r %d", r);
                     SCReturnInt(-1);
                 }
 
@@ -229,7 +237,8 @@ static int TLSParseClientRecord(void *tls_state, AppLayerParserState *pstate,
                  * is in the data */
                 uint32_t record_offset = (offset + record_len);
 
-                SCLogDebug("record offset %"PRIu32" (offset %"PRIu32", record_len %"PRIu16")", record_offset, offset, record_len);
+                SCLogDebug("record offset %"PRIu32" (offset %"PRIu32", record_len"
+                           " %"PRIu16")", record_offset, offset, record_len);
 
                 /* if our input buffer is bigger than the data up to and
                  * including the current record, we instruct the parser to
@@ -294,7 +303,8 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
                     pstate->parse_field = 0;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                               "r %d", r);
                     SCReturnInt(-1);
                 }
                 break;
@@ -311,7 +321,8 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
                     pstate->parse_field = 1;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                               "r %d", r);
                     SCReturnInt(-1);
                 }
                 break;
@@ -329,7 +340,8 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
                     pstate->parse_field = 2;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, r %d", r);
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                               "r %d", r);
                     SCReturnInt(-1);
                 }
 
@@ -348,7 +360,8 @@ static int TLSParseServerRecord(void *tls_state, AppLayerParserState *pstate,
                  * is in the data */
                 uint32_t record_offset = (offset + record_len);
 
-                SCLogDebug("record offset %"PRIu32" (offset %"PRIu32", record_len %"PRIu16")", record_offset, offset, record_len);
+                SCLogDebug("record offset %"PRIu32" (offset %"PRIu32", record_len"
+                           " %"PRIu16")", record_offset, offset, record_len);
 
                 /* if our input buffer is bigger than the data up to and
                  * including the current record, we instruct the parser to
@@ -382,10 +395,11 @@ static int TLSParseServerVersion(void *tls_state, AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
                                  AppLayerParserResult *output)
 {
+    SCEnter();
     TlsState *state = (TlsState *)tls_state;
 
     if (input_len != 2)
-        return 0;
+        SCReturnInt(-1);
 
     /** \todo there must be an easier way to get from uint8_t * to a uint16_t */
     struct u16conv_ {
@@ -396,7 +410,7 @@ static int TLSParseServerVersion(void *tls_state, AppLayerParserState *pstate,
     state->server_version = ntohs(u16conv->u);
 
     SCLogDebug("version %04"PRIx16"", state->server_version);
-    return 1;
+    SCReturnInt(0);
 }
 
 /**
@@ -412,13 +426,14 @@ static int TLSParseServerContentType(void *tls_state, AppLayerParserState *pstat
                                      uint8_t *input, uint32_t input_len,
                                      AppLayerParserResult *output)
 {
+    SCEnter();
     TlsState *state = (TlsState *)tls_state;
 
     if (input == NULL)
-        return 0;
+        SCReturnInt(-1);
 
     if (input_len != 1) {
-        return 0;
+        SCReturnInt(-1);
     }
 
     /* check if we received the correct content type */
@@ -429,7 +444,7 @@ static int TLSParseServerContentType(void *tls_state, AppLayerParserState *pstat
         case TLS_APPLICATION_PROTOCOL:
             break;
         default:
-            return 0;
+            SCReturnInt(0);
     }
 
     state->server_content_type = *input;
@@ -456,7 +471,7 @@ static int TLSParseServerContentType(void *tls_state, AppLayerParserState *pstat
             pstate->flags |= APP_LAYER_PARSER_NO_REASSEMBLY;
     }
 
-    return 1;
+    SCReturnInt(0);
 }
 
 /** \brief Function to allocates the TLS state memory
@@ -548,7 +563,8 @@ static int TLSParserTest01(void) {
     }
 
     if (tls_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }
@@ -601,7 +617,8 @@ static int TLSParserTest02(void) {
     }
 
     if (tls_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }
@@ -663,7 +680,8 @@ static int TLSParserTest03(void) {
     }
 
     if (tls_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }
@@ -1033,7 +1051,8 @@ static int TLSParserMultimsgTest01(void) {
     }
 
     if (tls_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                TLS_VERSION_10, tls_state->client_version);
         result = 0;
         goto end;
     }

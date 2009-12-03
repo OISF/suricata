@@ -471,6 +471,7 @@ int main(int argc, char **argv)
         SigGroupHeadRegisterTests();
         SCHInfoRegisterTests();
         SCRuleVarsRegisterTests();
+        AppLayerParserRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

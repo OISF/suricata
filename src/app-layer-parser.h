@@ -97,6 +97,8 @@ uint16_t AlpGetStateIdx(uint16_t);
 
 uint16_t AppLayerGetProtoByName(const char *);
 
+void AppLayerParserRegisterTests(void);
+
 #include "stream-tcp-private.h"
 void AppLayerParserCleanupState(TcpSession *);
 

@@ -12,6 +12,7 @@
 
 #include "util-print.h"
 #include "util-pool.h"
+#include "util-debug.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -125,7 +126,9 @@ static int SMBParseAndX(void *smb_state, AppLayerParserState *pstate,
  * Determine if this is an SMB AndX Command
  */
 static int SMBGetWordCount(void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
+{
+    SCEnter();
     if (input_len) {
         SMBState *sstate = (SMBState *) smb_state;
         sstate->wordcount.wordcount = *(input) * 2;
@@ -133,9 +136,10 @@ static int SMBGetWordCount(void *smb_state, AppLayerParserState *pstate,
         sstate->bytecount.bytecountbytes = 0;
         sstate->andx.isandx = isAndX(sstate);
         --input_len;
-        return 1;
+        SCLogDebug("Wordcount (%u):", sstate->wordcount.wordcount);
+        SCReturnInt(1);
     }
-    return 0;
+    SCReturnInt(0);
 }
 
 /*
@@ -144,7 +148,9 @@ static int SMBGetWordCount(void *smb_state, AppLayerParserState *pstate,
  */
 
 static int SMBGetByteCount(void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
+{
+    SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     if (input_len && sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN +
@@ -157,43 +163,55 @@ static int SMBGetByteCount(void *smb_state, AppLayerParserState *pstate,
 		2 + sstate->wordcount.wordcount) {
             sstate->bytecount.bytecount |= *(p++) << 8;
             sstate->bytesprocessed++;
-            printf("Bytecount (%u)\n", sstate->bytecount.bytecount);
+            SCLogDebug("Bytecount %u", sstate->bytecount.bytecount);
             --input_len;
     }
-    return (p - input);
+    SCReturInt(p - input);
 }
 
 static int SMBParseWordCount(void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
+{
+    SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    while (sstate->wordcount.wordcount-- && input_len--) {
+    while (sstate->wordcount.wordcount > 0 && input_len > 0) {
         if (sstate->andx.isandx) {
             SMBParseAndX(smb_state, pstate, input, input_len, output);
         }
-        printf("0x%02x ", *(p++));
+        SCLogDebug("0x%02x", *(p++));
+
+        sstate->wordcount.wordcount--;
+        input_len--;
     }
-    printf("\n");
     sstate->bytesprocessed += (p - input);
-    return (p - input);
+    SCReturnInt(p - input);
 }
 
 static int SMBParseByteCount(void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
+{
+    SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    while (sstate->bytecount.bytecount-- && input_len--) {
-        printf("0x%02x bytecount %u input_len %u\n", *(p++),
+    while (sstate->bytecount.bytecount && input_len) {
+        SCLogDebug("0x%02x bytecount %u input_len %u", *(p++),
 			sstate->bytecount.bytecount, input_len);
+
+        sstate->wordcount.wordcount--;
+        input_len--;
     }
     printf("\n");
     sstate->bytesprocessed += (p - input);
-    return (p - input);
+
+    SCReturnInt(p - input);
 }
 
 #define DEBUG 1
 static int NBSSParseHeader(void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
+{
+    SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
 
@@ -209,7 +227,7 @@ static int NBSSParseHeader(void *smb_state, AppLayerParserState *pstate,
                     sstate->nbss.length |= *(p + 3);
                     input_len -= NBSS_HDR_LEN;
                     sstate->bytesprocessed += NBSS_HDR_LEN;
-                    return NBSS_HDR_LEN;
+                    SCReturnInt(NBSS_HDR_LEN);
                 } else {
                     sstate->nbss.type = *(p++);
                     if (!(--input_len)) break;
@@ -225,16 +243,18 @@ static int NBSSParseHeader(void *smb_state, AppLayerParserState *pstate,
                 --input_len;
                 break;
             default:
-                return -1;
+                SCReturnInt(-1);
                 break;
         }
         sstate->bytesprocessed += (p - input);
     }
-    return (p - input);
+    SCReturnInt(p - input);
 }
 
 static int SMBParseHeader(void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
+{
+    SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     if (input_len) {
@@ -242,8 +262,8 @@ static int SMBParseHeader(void *smb_state, AppLayerParserState *pstate,
             case 4:
                 if (input_len >= SMB_HDR_LEN) {
                     if (memcmp(p, "\xff\x53\x4d\x42", 4) != 0) {
-                        printf("SMB Header did not validate\n");
-                        return 0;
+                        SCLogDebug("SMB Header did not validate");
+                        SCReturnInt(0);
                     }
                     sstate->smb.command = *(p + 4);
                     sstate->smb.status = *(p + 5) << 24;
@@ -273,28 +293,28 @@ static int SMBParseHeader(void *smb_state, AppLayerParserState *pstate,
                     sstate->smb.mid |= *(p + 31);
                     input_len -= SMB_HDR_LEN;
                     sstate->bytesprocessed += SMB_HDR_LEN;
-                    return SMB_HDR_LEN;
+                    SCReturnInt(SMB_HDR_LEN);
                     break;
                 } else {
                     //sstate->smb.protocol[0] = *(p++);
                     if (*(p++) != 0xff)
-                        return 0;
+                        SCReturnInt(0);
                     if (!(--input_len)) break;
                 }
             case 5:
                 //sstate->smb.protocol[1] = *(p++);
                 if (*(p++) != 'S')
-                    return 0;
+                    SCReturnInt(0);
                 if (!(--input_len)) break;
             case 6:
                 //sstate->smb.protocol[2] = *(p++);
                 if (*(p++) != 'M')
-                    return 0;
+                    SCReturnInt(0);
                 if (!(--input_len)) break;
             case 7:
                 //sstate->smb.protocol[3] = *(p++);
                 if (*(p++) != 'B')
-                    return 0;
+                    SCReturnInt(0);
                 if (!(--input_len)) break;
             case 8:
                 sstate->smb.command = *(p++);
@@ -382,29 +402,33 @@ static int SMBParseHeader(void *smb_state, AppLayerParserState *pstate,
                 --input_len;
                 break;
             default: // SHOULD NEVER OCCUR
-                return 0;
+                SCReturnInt(8);
         }
     }
     sstate->bytesprocessed += (p - input);
-    return (p - input);
+    SCReturnInt(p - input);
 }
 
 static int SMBParse(void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
+{
+    SCEnter();
+
     SMBState *sstate = (SMBState *) smb_state;
     uint32_t retval = 0;
     uint32_t parsed = 0;
 
     if (pstate == NULL)
-        return -1;
+        SCReturnInt(-1);
 
     while (sstate->bytesprocessed <  NBSS_HDR_LEN) {
-	retval = NBSSParseHeader(smb_state, pstate, input, input_len, output);
-	parsed += retval;
-	input_len -= retval;
-	printf("\nNBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %u input_len %u\n",
-			sstate->bytesprocessed, NBSS_HDR_LEN, sstate->nbss.type,
-			sstate->nbss.length, parsed, input_len);
+        retval = NBSSParseHeader(smb_state, pstate, input, input_len, output);
+        parsed += retval;
+        input_len -= retval;
+
+        SCLogDebug("NBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %u input_len %u",
+                sstate->bytesprocessed, NBSS_HDR_LEN, sstate->nbss.type,
+                sstate->nbss.length, parsed, input_len);
     }
 
     switch(sstate->nbss.type) {
@@ -459,7 +483,7 @@ static int SMBParse(void *smb_state, AppLayerParserState *pstate,
     }
     pstate->parse_field = 0;
     pstate->flags |= APP_LAYER_PARSER_DONE;
-    return 1;
+    SCReturnInt(1);
 }
 
 int isAndX(SMBState *smb_state) {

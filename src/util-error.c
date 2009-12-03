@@ -43,6 +43,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_NUMERIC_VALUE_ERANGE);
         CASE_CODE (SC_INVALID_NUM_BYTES);
         CASE_CODE (SC_ERR_ARG_LEN_LONG);
+        CASE_CODE (SC_ALPARSER_ERR);
         default:
             return "UNKNOWN_ERROR";
     }

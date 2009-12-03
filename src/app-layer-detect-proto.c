@@ -301,8 +301,11 @@ end:
     return proto;
 }
 
-int AppLayerHandleMsg(StreamMsg *smsg, char need_lock) {
+int AppLayerHandleMsg(StreamMsg *smsg, char need_lock)
+{
+    SCEnter();
     uint16_t alproto = ALPROTO_UNKNOWN;
+    int r = 0;
 
     if (need_lock == TRUE) mutex_lock(&smsg->flow->m);
     TcpSession *ssn = smsg->flow->protoctx;
@@ -313,13 +316,15 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock) {
 
     if (ssn != NULL) {
         if (smsg->flags & STREAM_START) {
-            //printf("L7AppDetectThread: stream initializer (len %" PRIu32 " (%" PRIu32 "))\n", smsg->data.data_len, MSG_DATA_SIZE);
+            SCLogDebug("Stream initializer (len %" PRIu32 " (%" PRIu32 "))",
+                        smsg->data.data_len, MSG_DATA_SIZE);
 
             //printf("=> Init Stream Data -- start\n");
             //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
             //printf("=> Init Stream Data -- end\n");
 
-            alproto = AppLayerDetectGetProto(&alp_proto_ctx, &alp_proto_tctx, smsg->data.data, smsg->data.data_len, smsg->flags);
+            alproto = AppLayerDetectGetProto(&alp_proto_ctx, &alp_proto_tctx,
+                            smsg->data.data, smsg->data.data_len, smsg->flags);
             if (alproto != ALPROTO_UNKNOWN) {
                 /* store the proto and setup the L7 data array */
                 if (need_lock == TRUE) mutex_lock(&smsg->flow->m);
@@ -327,10 +332,12 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock) {
                 ssn->alproto = alproto;
                 if (need_lock == TRUE) mutex_unlock(&smsg->flow->m);
 
-                AppLayerParse(smsg->flow, alproto, smsg->flags, smsg->data.data, smsg->data.data_len, need_lock);
+                r = AppLayerParse(smsg->flow, alproto, smsg->flags,
+                               smsg->data.data, smsg->data.data_len, need_lock);
             }
         } else {
-            //printf("AppLayerDetectThread: stream data (len %" PRIu32 " (%" PRIu32 ")), alproto %"PRIu16"\n", smsg->data.data_len, MSG_DATA_SIZE, alproto);
+            SCLogDebug("stream data (len %" PRIu32 " (%" PRIu32 ")), alproto "
+                      "%"PRIu16"", smsg->data.data_len, MSG_DATA_SIZE, alproto);
 
             //printf("=> Stream Data -- start\n");
             //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
@@ -339,9 +346,10 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock) {
             /* if we don't have a data object here we are not getting it
              * a start msg should have gotten us one */
             if (alproto != ALPROTO_UNKNOWN) {
-                AppLayerParse(smsg->flow, alproto, smsg->flags, smsg->data.data, smsg->data.data_len, need_lock);
+                r = AppLayerParse(smsg->flow, alproto, smsg->flags,
+                            smsg->data.data, smsg->data.data_len, need_lock);
             } else {
-                //printf("AppLayerDetectThread: smsg not start, but no l7 data? Weird\n");
+                SCLogDebug(" smsg not start, but no l7 data? Weird");
             }
         }
     }
@@ -353,7 +361,7 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock) {
     /* return the used message to the queue */
     StreamMsgReturnToPool(smsg);
 
-    return 0;
+    SCReturnInt(r);
 }
 
 void *AppLayerDetectProtoThread(void *td)

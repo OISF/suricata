@@ -1218,7 +1218,10 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx, T
  *  \param ra_ctx Reassembly thread ctx, contains the queue
  *  \retval 0 ok
  */
-int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx) {
+int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
+{
+    SCEnter();
+    int r = 0;
     if (ra_ctx != NULL && ra_ctx->stream_q && ra_ctx->stream_q->len > 0) {
         StreamMsg *smsg = NULL;
         do {
@@ -1227,11 +1230,13 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx) {
                 break;
 
             /** Handle the stream msg. No need to use locking, flow is already locked */
-            AppLayerHandleMsg(smsg, FALSE);
+            r = AppLayerHandleMsg(smsg, FALSE);
+            if (r < 0)
+                break;
         } while (ra_ctx->stream_q->len > 0);
     }
 
-    return 0;
+    SCReturnInt(r);
 }
 
 int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream, Packet *p) {

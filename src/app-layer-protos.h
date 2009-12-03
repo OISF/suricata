@@ -14,7 +14,9 @@ enum {
     ALPROTO_JABBER,
     ALPROTO_SMB,
     ALPROTO_DCERPC,
-
+#ifdef UNITTESTS
+    ALPROTO_TEST,
+#endif /* UNITESTS */
     /* keep last */
     ALPROTO_MAX,
 };

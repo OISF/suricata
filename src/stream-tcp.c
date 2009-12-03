@@ -1877,12 +1877,14 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p, StreamTcpThre
 }
 
 /* flow is and stays locked */
-static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
+static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt)
+{
+    SCEnter();
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
     if (ssn == NULL || ssn->state == TCP_NONE) {
         if (StreamTcpPacketStateNone(tv, p, stt, ssn) == -1)
-            return -1;
+            SCReturnInt(-1);
     } else {
         /* check if the packet is in right direction, when we missed the
            SYN packet and picked up midstream session. */
@@ -1892,39 +1894,39 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
         switch (ssn->state) {
             case TCP_SYN_SENT:
                 if(StreamTcpPacketStateSynSent(tv, p, stt, ssn))
-                    return -1;
+                    SCReturnInt(-1);
                 break;
             case TCP_SYN_RECV:
                 if(StreamTcpPacketStateSynRecv(tv, p, stt, ssn))
-                    return -1;
+                    SCReturnInt(-1);
                 break;
             case TCP_ESTABLISHED:
                 if(StreamTcpPacketStateEstablished(tv, p, stt, ssn))
-                    return -1;
+                    SCReturnInt(-1);
                 break;
             case TCP_FIN_WAIT1:
                 if(StreamTcpPacketStateFinWait1(tv, p, stt, ssn))
-                    return -1;
+                    SCReturnInt(-1);
                 break;
             case TCP_FIN_WAIT2:
                 if(StreamTcpPacketStateFinWait2(tv, p, stt, ssn))
-                    return -1;
+                    SCReturnInt(-1);
                 break;
             case TCP_CLOSING:
                 if(StreamTcpPacketStateClosing(tv, p, stt, ssn))
-                    return -1;
+                    SCReturnInt(-1);
                 break;
             case TCP_CLOSE_WAIT:
                 if(StreamTcpPacketStateCloseWait(tv, p, stt, ssn))
-                    return -1;
+                    SCReturnInt(-1);
                 break;
             case TCP_LAST_ACK:
                 if(StreamTcpPakcetStateLastAck(tv, p, stt, ssn))
-                    return -1;
+                    SCReturnInt(-1);
                 break;
             case TCP_TIME_WAIT:
                 if(StreamTcpPacketStateTimeWait(tv, p, stt, ssn))
-                    return -1;
+                    SCReturnInt(-1);
                 break;
             case TCP_CLOSED:
                 //printf("StreamTcpPacket: packet received on closed state\n");
@@ -1936,8 +1938,10 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt) {
     }
 
     /* Process stream smsgs we may have in queue */
-    StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
-    return 0;
+    if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0)
+        SCReturnInt(-1);
+
+    SCReturnInt(0);
 }
 
 TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)

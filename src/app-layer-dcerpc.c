@@ -12,6 +12,7 @@
 
 #include "util-print.h"
 #include "util-pool.h"
+#include "util-debug.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -80,6 +81,8 @@ static int DCERPCParseBINDACK(void *dcerpc_state, AppLayerParserState *pstate, u
 #endif
 
 static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+    SCEnter();
+
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
     //hexdump(p, input_len);
@@ -87,8 +90,8 @@ static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, ui
         switch (sstate->bytesprocessed) {
             case 0:
                 if (input_len >= DCERPC_HDR_LEN) {
-                    //if (*p != 5) return 1;
-                    //if (!(*(p + 1 ) == 0 || (*(p + 1) == 1))) return 2;
+                    //if (*p != 5) SCReturnInt(1);
+                    //if (!(*(p + 1 ) == 0 || (*(p + 1) == 1))) SCReturnInt(2);
                     sstate->dcerpc.rpc_vers = *p;
                     sstate->dcerpc.rpc_vers_minor = *(p + 1);
                     sstate->dcerpc.type = *(p + 2);
@@ -106,17 +109,17 @@ static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, ui
                     sstate->dcerpc.call_id |= *(p + 14) << 8;
                     sstate->dcerpc.call_id |= *(p + 15);
 		    sstate->bytesprocessed = 16;
-                    return 1;
+                    SCReturnInt(1);
                     break;
                 } else {
 		    sstate->dcerpc.rpc_vers = *(p++);
-                   // if (sstate->dcerpc.rpc_vers != 5) return 2;
+                   // if (sstate->dcerpc.rpc_vers != 5) SCReturnInt(2);
                     if (!(--input_len)) break;
                 }
             case 1:
                 sstate->dcerpc.rpc_vers_minor = *(p++);
                 if ((sstate->dcerpc.rpc_vers_minor != 0) ||
-                 (sstate->dcerpc.rpc_vers_minor != 1)) return 3;
+                 (sstate->dcerpc.rpc_vers_minor != 1)) SCReturnInt(3);
                 if (!(--input_len)) break;
             case 2:
                 sstate->dcerpc.type = *(p++);
@@ -162,36 +165,41 @@ static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, ui
                 --input_len;
                 break;
             default: // SHOULD NEVER OCCUR
-                printf("Odd\n");
-                return 8;
+                SCLogDebug("Odd");
+                SCReturnInt(8);
         }
     }
     sstate->bytesprocessed += (p - input);
-    return 0;
+    SCReturnInt(0);
 }
 
 static int DCERPCParse(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+    SCEnter();
    // DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint16_t max_fields = 3;
     uint16_t u = 0;
     uint32_t offset = 0;
 
     if (pstate == NULL)
-        return -1;
+        SCReturnInt(-1);
 
     for (u = pstate->parse_field; u < max_fields; u++) {
         printf("DCERPCParse: u %" PRIu32 "\n", u);
         switch(u) {
             case 0:
-                {
-                    int r = AlpParseFieldBySize(output, pstate, DCERPC_PARSE_DCERPC_HEADER, DCERPC_HDR_LEN, input, input_len, &offset);
+            {
+                int r = AlpParseFieldBySize(output, pstate, DCERPC_PARSE_DCERPC_HEADER, DCERPC_HDR_LEN, input, input_len, &offset);
 
-                    if (r == 0) {
-                        pstate->parse_field = 0;
-                        return 0;
-                    }
-                    break;
+                if (r == 0) {
+                    pstate->parse_field = 0;
+                    SCReturnInt(0);
+                } else if (r == -1) {
+                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                            "r %d", r);
+                    SCReturnInt(-1);
                 }
+                break;
+            }
         }
     }
 
@@ -200,7 +208,7 @@ static int DCERPCParse(void *dcerpc_state, AppLayerParserState *pstate, uint8_t 
     pstate->parse_field = 0;
     pstate->flags |= APP_LAYER_PARSER_DONE;
 
-    return 1;
+    SCReturnInt(1);
 }
 
 
