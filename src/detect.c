@@ -60,6 +60,8 @@
 #include "detect-engine-sigorder.h"
 #include "detect-ttl.h"
 #include "detect-fast-pattern.h"
+#include "detect-itype.h"
+#include "detect-icode.h"
 
 #include "util-rule-vars.h"
 
@@ -2791,6 +2793,8 @@ void SigTableSetup(void) {
     DetectStreamSizeRegister();
     DetectTtlRegister();
     DetectFastPatternRegister();
+    DetectITypeRegister();
+    DetectICodeRegister();
 
     DetectTlsVersionRegister();
 

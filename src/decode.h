@@ -134,8 +134,8 @@ typedef uint16_t Port;
 #define PKT_IS_IPV6(p)      (((p)->ip6h != NULL))
 #define PKT_IS_TCP(p)       (((p)->tcph != NULL))
 #define PKT_IS_UDP(p)       (((p)->udph != NULL))
-#define PKT_IS_ICMPV4       (((p)->icmpv4 != NULL))
-#define PKT_IS_ICMPV6       (((p)->icmpv6 != NULL))
+#define PKT_IS_ICMPV4(p)    (((p)->icmpv4h != NULL))
+#define PKT_IS_ICMPV6(p)    (((p)->icmpv6h != NULL))
 #define PKT_IS_TOSERVER(p)  (((p)->flowflags & FLOW_PKT_TOSERVER))
 #define PKT_IS_TOCLIENT(p)  (((p)->flowflags & FLOW_PKT_TOCLIENT))
 
