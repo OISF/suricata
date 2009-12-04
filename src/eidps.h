@@ -28,8 +28,8 @@ uint32_t pending;
 #ifdef DBG_PERF
 uint32_t dbg_maxpending;
 #endif /* DBG_PERF */
-sc_mutex_t mutex_pending;
-sc_cond_t cond_pending;
+SCMutex mutex_pending;
+SCCondT cond_pending;
 
 /* preallocated packet structures here
  * XXX move to the packetpool queue handler code

@@ -217,15 +217,15 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
 
     memcpy(write_buffer,&hdr,sizeof(Unified2AlertFileHeader));
 
-    sc_mutex_lock(&aun->file_ctx->fp_mutex);
+    SCMutexLock(&aun->file_ctx->fp_mutex);
     if ((aun->size_current + (sizeof(hdr) + sizeof(phdr))) > aun->size_limit) {
         if (Unified2AlertRotateFile(t,aun) < 0)
         {
-            sc_mutex_unlock(&aun->file_ctx->fp_mutex);
+            SCMutexUnlock(&aun->file_ctx->fp_mutex);
             return -1;
         }
     }
-    sc_mutex_unlock(&aun->file_ctx->fp_mutex);
+    SCMutexUnlock(&aun->file_ctx->fp_mutex);
 
     phdr.sensor_id = 0;
     phdr.linktype = htonl(p->datalink);
@@ -292,15 +292,15 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     }
 
     /* check and enforce the filesize limit */
-    sc_mutex_lock(&aun->file_ctx->fp_mutex);
+    SCMutexLock(&aun->file_ctx->fp_mutex);
     if ((aun->size_current +(sizeof(hdr) +  sizeof(phdr))) > aun->size_limit) {
         if (Unified2AlertRotateFile(t,aun) < 0)
         {
-            sc_mutex_unlock(&aun->file_ctx->fp_mutex);
+            SCMutexUnlock(&aun->file_ctx->fp_mutex);
             return -1;
         }
     }
-    sc_mutex_unlock(&aun->file_ctx->fp_mutex);
+    SCMutexUnlock(&aun->file_ctx->fp_mutex);
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */
@@ -403,15 +403,15 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     }
 
     /* check and enforce the filesize limit */
-    sc_mutex_lock(&aun->file_ctx->fp_mutex);
+    SCMutexLock(&aun->file_ctx->fp_mutex);
     if ((aun->size_current +(sizeof(hdr) +  sizeof(phdr))) > aun->size_limit) {
         if (Unified2AlertRotateFile(tv,aun) < 0)
         {
-            sc_mutex_unlock(&aun->file_ctx->fp_mutex);
+            SCMutexUnlock(&aun->file_ctx->fp_mutex);
             return -1;
         }
     }
-    sc_mutex_unlock(&aun->file_ctx->fp_mutex);
+    SCMutexUnlock(&aun->file_ctx->fp_mutex);
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */

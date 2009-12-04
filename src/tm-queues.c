@@ -50,9 +50,9 @@ void TmqDebugList(void) {
     uint16_t i = 0;
     for (i = 0; i < tmq_id; i++) {
         /* get a lock accessing the len */
-        sc_mutex_lock(&trans_q[tmqs[i].id].mutex_q);
+        SCMutexLock(&trans_q[tmqs[i].id].mutex_q);
         printf("TmqDebugList: id %" PRIu32 ", name \'%s\', len %" PRIu32 "\n", tmqs[i].id, tmqs[i].name, trans_q[tmqs[i].id].len);
-        sc_mutex_unlock(&trans_q[tmqs[i].id].mutex_q);
+        SCMutexUnlock(&trans_q[tmqs[i].id].mutex_q);
     }
 }
 
@@ -71,7 +71,7 @@ void TmValidateQueueState(void)
     char err = FALSE;
 
     for (i = 0; i < tmq_id; i++) {
-        sc_mutex_lock(&trans_q[tmqs[i].id].mutex_q);
+        SCMutexLock(&trans_q[tmqs[i].id].mutex_q);
         if (tmqs[i].reader_cnt == 0) {
             printf("Error: Queue \"%s\" doesn't have a reader\n", tmqs[i].name);
             err = TRUE;
@@ -79,7 +79,7 @@ void TmValidateQueueState(void)
             printf("Error: Queue \"%s\" doesn't have a writer\n", tmqs[i].name);
             err = TRUE;
         }
-        sc_mutex_unlock(&trans_q[tmqs[i].id].mutex_q);
+        SCMutexUnlock(&trans_q[tmqs[i].id].mutex_q);
 
         if (err == TRUE)
             goto error;

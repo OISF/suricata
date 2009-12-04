@@ -201,7 +201,7 @@ typedef struct Packet_
     uint8_t rtv_cnt;
     /* tunnel packet ref count */
     uint8_t tpr_cnt;
-    sc_mutex_t mutex_rtv_cnt;
+    SCMutex mutex_rtv_cnt;
     /* tunnel stuff */
     uint8_t tunnel_proto;
     /* tunnel XXX convert to bitfield*/
@@ -297,8 +297,8 @@ typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;
     uint16_t len;
-    sc_mutex_t mutex_q;
-    sc_cond_t cond_q;
+    SCMutex mutex_q;
+    SCCondT cond_q;
 #ifdef DBG_PERF
     uint16_t dbg_maxlen;
 #endif /* DBG_PERF */
@@ -382,22 +382,22 @@ typedef struct DecodeThreadVars_
 
 #define TUNNEL_INCR_PKT_RTV(p) \
 { \
-    sc_mutex_lock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+    SCMutexLock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
     ((p)->root ? (p)->root->rtv_cnt++ : (p)->rtv_cnt++); \
-    sc_mutex_unlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+    SCMutexUnlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
 }
 
 #define TUNNEL_INCR_PKT_TPR(p) \
 { \
-    sc_mutex_lock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+    SCMutexLock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
     ((p)->root ? (p)->root->tpr_cnt++ : (p)->tpr_cnt++); \
-    sc_mutex_unlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+    SCMutexUnlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
 }
 #define TUNNEL_DECR_PKT_TPR(p) \
 { \
-    sc_mutex_lock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+    SCMutexLock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
     ((p)->root ? (p)->root->tpr_cnt-- : (p)->tpr_cnt--); \
-    sc_mutex_unlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+    SCMutexUnlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
 }
 #define TUNNEL_DECR_PKT_TPR_NOLOCK(p) \
 { \

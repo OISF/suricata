@@ -48,12 +48,12 @@ static void FlowBitAdd(Flow *f, uint16_t idx) {
 
         //printf("FlowBitAdd: adding flowbit with idx %" PRIu32 "\n", idx);
 #ifdef FLOWBITS_STATS
-        sc_mutex_lock(&flowbits_mutex);
+        SCMutexLock(&flowbits_mutex);
         flowbits_added++;
         flowbits_memuse += sizeof(FlowBit);
         if (flowbits_memuse > flowbits_memuse_max)
             flowbits_memuse_max = flowbits_memuse;
-        sc_mutex_unlock(&flowbits_mutex);
+        SCMutexUnlock(&flowbits_mutex);
 #endif /* FLOWBITS_STATS */
     }
 }
@@ -67,7 +67,7 @@ static void FlowBitRemove(Flow *f, uint16_t idx) {
 
     //printf("FlowBitRemove: remove flowbit with idx %" PRIu32 "\n", idx);
 #ifdef FLOWBITS_STATS
-    sc_mutex_lock(&flowbits_mutex);
+    SCMutexLock(&flowbits_mutex);
     flowbits_removed++;
     if (flowbits_memuse >= sizeof(FlowBit))
         flowbits_memuse -= sizeof(FlowBit);
@@ -75,34 +75,34 @@ static void FlowBitRemove(Flow *f, uint16_t idx) {
         printf("ERROR: flowbits memory usage going below 0!\n");
         flowbits_memuse = 0;
     }
-    sc_mutex_unlock(&flowbits_mutex);
+    SCMutexUnlock(&flowbits_mutex);
 #endif /* FLOWBITS_STATS */
 }
 
 void FlowBitSet(Flow *f, uint16_t idx) {
-    sc_mutex_lock(&f->m);
+    SCMutexLock(&f->m);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         FlowBitAdd(f, idx);
     }
 
-    sc_mutex_unlock(&f->m);
+    SCMutexUnlock(&f->m);
 }
 
 void FlowBitUnset(Flow *f, uint16_t idx) {
-    sc_mutex_lock(&f->m);
+    SCMutexLock(&f->m);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
         FlowBitRemove(f, idx);
     }
 
-    sc_mutex_unlock(&f->m);
+    SCMutexUnlock(&f->m);
 }
 
 void FlowBitToggle(Flow *f, uint16_t idx) {
-    sc_mutex_lock(&f->m);
+    SCMutexLock(&f->m);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
@@ -111,32 +111,32 @@ void FlowBitToggle(Flow *f, uint16_t idx) {
         FlowBitAdd(f, idx);
     }
 
-    sc_mutex_unlock(&f->m);
+    SCMutexUnlock(&f->m);
 }
 
 int FlowBitIsset(Flow *f, uint16_t idx) {
     int r = 0;
-    sc_mutex_lock(&f->m);
+    SCMutexLock(&f->m);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
         r = 1;
     }
 
-    sc_mutex_unlock(&f->m);
+    SCMutexUnlock(&f->m);
     return r;
 }
 
 int FlowBitIsnotset(Flow *f, uint16_t idx) {
     int r = 0;
-    sc_mutex_lock(&f->m);
+    SCMutexLock(&f->m);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         r = 1;
     }
 
-    sc_mutex_unlock(&f->m);
+    SCMutexUnlock(&f->m);
     return r;
 }
 
@@ -147,7 +147,7 @@ void FlowBitFree(FlowBit *fb) {
     free(fb);
 
 #ifdef FLOWBITS_STATS
-    sc_mutex_lock(&flowbits_mutex);
+    SCMutexLock(&flowbits_mutex);
     flowbits_removed++;
     if (flowbits_memuse >= sizeof(FlowBit))
         flowbits_memuse -= sizeof(FlowBit);
@@ -155,7 +155,7 @@ void FlowBitFree(FlowBit *fb) {
         printf("ERROR: flowbits memory usage going below 0!\n");
         flowbits_memuse = 0;
     }
-    sc_mutex_unlock(&flowbits_mutex);
+    SCMutexUnlock(&flowbits_mutex);
 #endif /* FLOWBITS_STATS */
 }
 

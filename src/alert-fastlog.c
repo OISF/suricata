@@ -91,7 +91,7 @@ TmEcode AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    sc_mutex_lock(&aft->file_ctx->fp_mutex);
+    SCMutexLock(&aft->file_ctx->fp_mutex);
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
@@ -104,7 +104,7 @@ TmEcode AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
             timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
     }
     fflush(aft->file_ctx->fp);
-    sc_mutex_unlock(&aft->file_ctx->fp_mutex);
+    SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
 }
@@ -122,7 +122,7 @@ TmEcode AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    sc_mutex_lock(&aft->file_ctx->fp_mutex);
+    SCMutexLock(&aft->file_ctx->fp_mutex);
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
@@ -136,7 +136,7 @@ TmEcode AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         fflush(aft->file_ctx->fp);
     }
 
-    sc_mutex_unlock(&aft->file_ctx->fp_mutex);
+    SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
 }

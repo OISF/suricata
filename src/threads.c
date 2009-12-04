@@ -18,13 +18,13 @@
  * \brief Test Mutex macros
  */
 int ThreadMacrosTest01Mutex(void) {
-    sc_mutex_t mut;
+    SCMutex mut;
     int r = 0;
-    r |= sc_mutex_init(&mut, NULL);
-    r |= sc_mutex_lock(&mut);
-    r |= (sc_mutex_trylock(&mut) == EBUSY)? 0 : 1;
-    r |= sc_mutex_unlock(&mut);
-    r |= sc_mutex_destroy(&mut);
+    r |= SCMutexInit(&mut, NULL);
+    r |= SCMutexLock(&mut);
+    r |= (SCMutexTrylock(&mut) == EBUSY)? 0 : 1;
+    r |= SCMutexUnlock(&mut);
+    r |= SCMutexDestroy(&mut);
 
     return (r == 0)? 1 : 0;
 }
@@ -33,13 +33,13 @@ int ThreadMacrosTest01Mutex(void) {
  * \brief Test Spin Macros
  */
 int ThreadMacrosTest02Spinlocks(void) {
-    sc_spin_t mut;
+    SCSpinlock mut;
     int r = 0;
-    r |= sc_spin_init(&mut, 0);
-    r |= sc_spin_lock(&mut);
-    r |= (sc_spin_trylock(&mut) == EBUSY)? 0 : 1;
-    r |= sc_spin_unlock(&mut);
-    r |= sc_spin_destroy(&mut);
+    r |= SCSpinInit(&mut, 0);
+    r |= SCSpinLock(&mut);
+    r |= (SCSpinTrylock(&mut) == EBUSY)? 0 : 1;
+    r |= SCSpinUnlock(&mut);
+    r |= SCSpinDestroy(&mut);
 
     return (r == 0)? 1 : 0;
 }

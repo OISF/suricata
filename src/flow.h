@@ -77,7 +77,7 @@ typedef struct Flow_
     /** how many pkts and stream msgs are using the flow *right now* */
     uint16_t use_cnt;
 
-    sc_mutex_t m;
+    SCMutex m;
 
     /* list flow ptrs
      * NOTE!!! These are NOT protected by the

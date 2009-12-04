@@ -68,7 +68,7 @@ static NFQGlobalVars nfq_g;
 static NFQThreadVars nfq_t[NFQ_MAX_QUEUE];
 static uint16_t receive_queue_num = 0;
 static uint16_t verdict_queue_num = 0;
-static sc_mutex_t nfq_init_lock;
+static SCMutex nfq_init_lock;
 
 TmEcode ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode ReceiveNFQThreadInit(ThreadVars *, void *, void **);
@@ -86,7 +86,7 @@ void TmModuleReceiveNFQRegister (void) {
     /* XXX create a general NFQ setup function */
     memset(&nfq_g, 0, sizeof(nfq_g));
     memset(&nfq_t, 0, sizeof(nfq_t));
-    sc_mutex_init(&nfq_init_lock, NULL);
+    SCMutexInit(&nfq_init_lock, NULL);
 
     tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
     tmm_modules[TMM_RECEIVENFQ].ThreadInit = ReceiveNFQThreadInit;
@@ -264,7 +264,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
 }
 
 TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
-    sc_mutex_lock(&nfq_init_lock);
+    SCMutexLock(&nfq_init_lock);
     printf("ReceiveNFQThreadInit: starting... will bind to queuenum %" PRIu32 "\n", receive_queue_num);
 
     sigset_t sigs;
@@ -281,18 +281,18 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (r < 0) {
         printf("NFQInitThread failed\n");
         //return -1;
-        sc_mutex_unlock(&nfq_init_lock);
+        SCMutexUnlock(&nfq_init_lock);
         exit(EXIT_FAILURE);
     }
 
     *data = (void *)ntv;
     receive_queue_num++;
-    sc_mutex_unlock(&nfq_init_lock);
+    SCMutexUnlock(&nfq_init_lock);
     return TM_ECODE_OK;
 }
 
 TmEcode VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
-    sc_mutex_lock(&nfq_init_lock);
+    SCMutexLock(&nfq_init_lock);
     printf("VerdictNFQThreadInit: starting... will bind to queuenum %" PRIu32 "\n", verdict_queue_num);
 
     /* no initialization, ReceiveNFQ takes care of that */
@@ -301,7 +301,7 @@ TmEcode VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     *data = (void *)ntv;
     verdict_queue_num++;
 
-    sc_mutex_unlock(&nfq_init_lock);
+    SCMutexUnlock(&nfq_init_lock);
     return TM_ECODE_OK;
 }
 
@@ -338,9 +338,9 @@ void NFQRecvPkt(NFQThreadVars *t) {
 
         //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
-        sc_mutex_lock(&t->mutex_qh);
+        SCMutexLock(&t->mutex_qh);
         ret = nfq_handle_packet(t->h, buf, rv);
-        sc_mutex_unlock(&t->mutex_qh);
+        SCMutexUnlock(&t->mutex_qh);
 
         if (ret != 0)
             printf("NFQRecvPkt: nfq_handle_packet error %" PRId32 "\n", ret);
@@ -357,11 +357,11 @@ TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
     /* check if we have too many packets in the system
      * so we will wait for some to free up */
-    sc_mutex_lock(&mutex_pending);
+    SCMutexLock(&mutex_pending);
     if (pending > MAX_PENDING) {
-        sc_cond_wait(&cond_pending, &mutex_pending);
+        SCondWait(&cond_pending, &mutex_pending);
     }
-    sc_mutex_unlock(&mutex_pending);
+    SCMutexUnlock(&mutex_pending);
     return TM_ECODE_OK;
 }
 
@@ -405,9 +405,9 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     if (verdict == NF_DROP) t->dropped++;
 #endif /* COUNTERS */
 
-    sc_mutex_lock(&t->mutex_qh);
+    SCMutexLock(&t->mutex_qh);
     ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
-    sc_mutex_unlock(&t->mutex_qh);
+    SCMutexUnlock(&t->mutex_qh);
 
     if (ret < 0)
         printf("NFQSetVerdict: nfq_set_verdict of %p failed %" PRId32 "\n", p, ret);
@@ -422,15 +422,15 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
         char verdict = 1;
         //printf("VerdictNFQ: tunnel pkt: %p %s\n", p, p->root ? "upper layer" : "root");
 
-        sc_mutex_t *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
-        sc_mutex_lock(m);
+        SCMutex *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
+        SCMutexLock(m);
         /* if there are more tunnel packets than ready to verdict packets,
          * we won't verdict this one */
         if (TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p)) {
             //printf("VerdictNFQ: not ready to verdict yet: TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %" PRId32 " > %" PRId32 "\n", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
             verdict = 0;
         }
-        sc_mutex_unlock(m);
+        SCMutexUnlock(m);
 
         /* don't verdict if we are not ready */
         if (verdict == 1) {

@@ -307,12 +307,12 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock)
     uint16_t alproto = ALPROTO_UNKNOWN;
     int r = 0;
 
-    if (need_lock == TRUE) sc_mutex_lock(&smsg->flow->m);
+    if (need_lock == TRUE) SCMutexLock(&smsg->flow->m);
     TcpSession *ssn = smsg->flow->protoctx;
     if (ssn != NULL) {
         alproto = ssn->alproto;
     }
-    if (need_lock == TRUE) sc_mutex_unlock(&smsg->flow->m);
+    if (need_lock == TRUE) SCMutexUnlock(&smsg->flow->m);
 
     if (ssn != NULL) {
         if (smsg->flags & STREAM_START) {
@@ -327,10 +327,10 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock)
                             smsg->data.data, smsg->data.data_len, smsg->flags);
             if (alproto != ALPROTO_UNKNOWN) {
                 /* store the proto and setup the L7 data array */
-                if (need_lock == TRUE) sc_mutex_lock(&smsg->flow->m);
+                if (need_lock == TRUE) SCMutexLock(&smsg->flow->m);
                 StreamL7DataPtrInit(ssn,StreamL7GetStorageSize());
                 ssn->alproto = alproto;
-                if (need_lock == TRUE) sc_mutex_unlock(&smsg->flow->m);
+                if (need_lock == TRUE) SCMutexUnlock(&smsg->flow->m);
 
                 r = AppLayerParse(smsg->flow, alproto, smsg->flags,
                                smsg->data.data, smsg->data.data_len, need_lock);
@@ -354,9 +354,9 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock)
         }
     }
 
-    if (need_lock == TRUE) sc_mutex_lock(&smsg->flow->m);
+    if (need_lock == TRUE) SCMutexLock(&smsg->flow->m);
     smsg->flow->use_cnt--;
-    if (need_lock == TRUE) sc_mutex_unlock(&smsg->flow->m);
+    if (need_lock == TRUE) SCMutexUnlock(&smsg->flow->m);
 
     /* return the used message to the queue */
     StreamMsgReturnToPool(smsg);

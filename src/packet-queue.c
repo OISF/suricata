@@ -36,7 +36,7 @@ Packet *PacketDequeue (PacketQueue *q) {
 
     /* If we are going to get the last packet, set len to 0
      * before doing anything else (to make the threads to follow
-     * the sc_cond_wait as soon as possible) */
+     * the SCondWait as soon as possible) */
     q->len--;
 
     /* pull the bottom packet from the queue */

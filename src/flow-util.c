@@ -15,20 +15,20 @@ Flow *FlowAlloc(void)
 {
     Flow *f;
 
-    sc_mutex_lock(&flow_memuse_mutex);
+    SCMutexLock(&flow_memuse_mutex);
     if (flow_memuse + sizeof(Flow) > flow_config.memcap) {
-        sc_mutex_unlock(&flow_memuse_mutex);
+        SCMutexUnlock(&flow_memuse_mutex);
         return NULL;
     }
     f = malloc(sizeof(Flow));
     if (f == NULL) {
-        sc_mutex_unlock(&flow_memuse_mutex);
+        SCMutexUnlock(&flow_memuse_mutex);
         return NULL;
     }
     flow_memuse += sizeof(Flow);
-    sc_mutex_unlock(&flow_memuse_mutex);
+    SCMutexUnlock(&flow_memuse_mutex);
 
-    sc_mutex_init(&f->m, NULL);
+    SCMutexInit(&f->m, NULL);
     f->lnext = NULL;
     f->lprev = NULL;
     f->hnext = NULL;
@@ -42,9 +42,9 @@ Flow *FlowAlloc(void)
 /** free the memory of a flow */
 void FlowFree(Flow *f)
 {
-    sc_mutex_lock(&flow_memuse_mutex);
+    SCMutexLock(&flow_memuse_mutex);
     flow_memuse -= sizeof(Flow);
-    sc_mutex_unlock(&flow_memuse_mutex);
+    SCMutexUnlock(&flow_memuse_mutex);
 
     free(f);
 }

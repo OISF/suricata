@@ -30,7 +30,7 @@ typedef struct NFQThreadVars_
     struct nfnl_handle *nh;
     /* 2 threads deal with the queue handle, so add a mutex */
     struct nfq_q_handle *qh;
-    sc_mutex_t mutex_qh;
+    SCMutex mutex_qh;
     /* this one should be not changing after init */
     uint16_t queue_num;
     int fd;

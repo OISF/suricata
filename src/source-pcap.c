@@ -86,11 +86,11 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     PcapThreadVars *ptv = (PcapThreadVars *)user;
     ThreadVars *tv = ptv->tv;
 
-    sc_mutex_lock(&mutex_pending);
+    SCMutexLock(&mutex_pending);
     if (pending > MAX_PENDING) {
-        sc_cond_wait(&cond_pending, &mutex_pending);
+        SCondWait(&cond_pending, &mutex_pending);
     }
-    sc_mutex_unlock(&mutex_pending);
+    SCMutexUnlock(&mutex_pending);
 
     Packet *p = tv->tmqh_in(tv);
     p->ts.tv_sec = h->ts.tv_sec;

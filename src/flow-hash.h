@@ -9,7 +9,7 @@
  * to the list, the entire bucket is locked. */
 typedef struct FlowBucket_ {
     Flow *f;
-    sc_mutex_t m;
+    SCMutex m;
 } FlowBucket; 
 
 /* prototypes */

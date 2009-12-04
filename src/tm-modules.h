@@ -56,7 +56,7 @@ typedef struct LogFileCtx_ {
     FILE *fp;
     /** It will be locked if the log/alert
      * record cannot be written to the file in one call */
-    sc_mutex_t fp_mutex;
+    SCMutex fp_mutex;
 
     /** To know where did we read this config */
     char *config_file;

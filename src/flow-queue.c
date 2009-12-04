@@ -23,8 +23,8 @@ FlowQueue *FlowQueueNew() {
 FlowQueue *FlowQueueInit (FlowQueue *q) {
     if (q != NULL) {
         memset(q, 0, sizeof(FlowQueue));
-        sc_mutex_init(&q->mutex_q, NULL);
-        sc_cond_init(&q->cond_q, NULL);
+        SCMutexInit(&q->mutex_q, NULL);
+        SCCondInit(&q->cond_q, NULL);
     }
     return q;
 }
@@ -48,11 +48,11 @@ void FlowEnqueue (FlowQueue *q, Flow *f) {
 }
 
 Flow *FlowDequeue (FlowQueue *q) {
-    sc_mutex_lock(&q->mutex_q);
+    SCMutexLock(&q->mutex_q);
 
     Flow *f = q->bot;
     if (f == NULL) {
-        sc_mutex_unlock(&q->mutex_q);
+        SCMutexUnlock(&q->mutex_q);
         return NULL;
     }
 
@@ -71,7 +71,7 @@ Flow *FlowDequeue (FlowQueue *q) {
     f->lnext = NULL;
     f->lprev = NULL;
 
-    sc_mutex_unlock(&q->mutex_q);
+    SCMutexUnlock(&q->mutex_q);
     return f;
 }
 
@@ -79,7 +79,7 @@ void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq)
 {
     if (srcq != NULL)
     {
-        sc_mutex_lock(&srcq->mutex_q);
+        SCMutexLock(&srcq->mutex_q);
 
         /* remove from old queue */
         if (srcq->top == f)
@@ -97,11 +97,11 @@ void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq)
         f->lprev = NULL;
 
         /* don't unlock if src and dst are the same */
-        if (srcq != dstq) sc_mutex_unlock(&srcq->mutex_q);
+        if (srcq != dstq) SCMutexUnlock(&srcq->mutex_q);
     }
 
     /* now put it in dst */
-    if (srcq != dstq) sc_mutex_lock(&dstq->mutex_q);
+    if (srcq != dstq) SCMutexLock(&dstq->mutex_q);
 
     /* add to new queue (append) */
     f->lprev = dstq->bot;
@@ -118,6 +118,6 @@ void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq)
         dstq->dbg_maxlen = dstq->len;
 #endif /* DBG_PERF */
 
-    sc_mutex_unlock(&dstq->mutex_q);
+    SCMutexUnlock(&dstq->mutex_q);
 }
 

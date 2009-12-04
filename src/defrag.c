@@ -75,13 +75,13 @@ typedef struct _DefragContext {
     uint64_t ip6_frags; /**< Number of IPv6 fragments seen. */
 
     HashListTable *frag_table; /**< Hash (list) table of fragment trackers. */
-    sc_mutex_t frag_table_lock;
+    SCMutex frag_table_lock;
 
     Pool *tracker_pool; /**< Pool of trackers. */
-    sc_mutex_t tracker_pool_lock;
+    SCMutex tracker_pool_lock;
 
     Pool *frag_pool; /**< Pool of fragments. */
-    sc_mutex_t frag_pool_lock;
+    SCMutex frag_pool_lock;
 
     time_t timeout; /**< Default timeout. */
 
@@ -133,7 +133,7 @@ typedef struct _DefragTracker {
 
     uint8_t seen_last; /**< Has this tracker seen the last fragment? */
 
-    sc_mutex_t lock; /**< Mutex for locking list operations on
+    SCMutex lock; /**< Mutex for locking list operations on
                            * this tracker. */
 
     TAILQ_HEAD(frag_tailq, _frag) frags; /**< Head of list of fragments. */
@@ -285,7 +285,7 @@ DefragTrackerFreeFrags(DefragTracker *tracker)
     Frag *frag;
 
     /* Lock the frag pool as we'll be return items to it. */
-    sc_mutex_lock(&tracker->dc->frag_pool_lock);
+    SCMutexLock(&tracker->dc->frag_pool_lock);
 
     while ((frag = TAILQ_FIRST(&tracker->frags)) != NULL) {
         TAILQ_REMOVE(&tracker->frags, frag, next);
@@ -295,7 +295,7 @@ DefragTrackerFreeFrags(DefragTracker *tracker)
         PoolReturn(frag->dc->frag_pool, frag);
     }
 
-    sc_mutex_unlock(&tracker->dc->frag_pool_lock);
+    SCMutexUnlock(&tracker->dc->frag_pool_lock);
 }
 
 /**
@@ -305,7 +305,7 @@ static void
 DefragTrackerReset(DefragTracker *tracker)
 {
     DefragContext *saved_dc = tracker->dc;
-    sc_mutex_t saved_lock = tracker->lock;
+    SCMutex saved_lock = tracker->lock;
 
     DefragTrackerFreeFrags(tracker);
     memset(tracker, 0, sizeof(*tracker));
@@ -332,7 +332,7 @@ DefragTrackerNew(void *arg)
     tracker = calloc(1, sizeof(*tracker));
     if (tracker == NULL)
         return NULL;
-    if (sc_mutex_init(&tracker->lock, NULL) != 0)
+    if (SCMutexInit(&tracker->lock, NULL) != 0)
         return NULL;
     tracker->dc = dc;
     TAILQ_INIT(&tracker->frags);
@@ -349,7 +349,7 @@ DefragTrackerFree(void *arg)
 {
     DefragTracker *tracker = arg;
 
-    sc_mutex_destroy(&tracker->lock);
+    SCMutexDestroy(&tracker->lock);
     DefragTrackerFreeFrags(tracker);
     free(tracker);
 }
@@ -377,7 +377,7 @@ DefragContextNew(void)
             "Defrag: Failed to initialize hash table.");
         exit(EXIT_FAILURE);
     }
-    if (sc_mutex_init(&dc->frag_table_lock, NULL) != 0) {
+    if (SCMutexInit(&dc->frag_table_lock, NULL) != 0) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize hash table mutex.");
         exit(EXIT_FAILURE);
@@ -395,7 +395,7 @@ DefragContextNew(void)
             "Defrag: Failed to initialize tracker pool.");
         exit(EXIT_FAILURE);
     }
-    if (sc_mutex_init(&dc->tracker_pool_lock, NULL) != 0) {
+    if (SCMutexInit(&dc->tracker_pool_lock, NULL) != 0) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize tracker pool mutex.");
         exit(EXIT_FAILURE);
@@ -411,7 +411,7 @@ DefragContextNew(void)
             "Defrag: Failed to initialize fragment pool.");
         exit(EXIT_FAILURE);
     }
-    if (sc_mutex_init(&dc->frag_pool_lock, NULL) != 0) {
+    if (SCMutexInit(&dc->frag_pool_lock, NULL) != 0) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize frag pool mutex.");
         exit(EXIT_FAILURE);
@@ -479,7 +479,7 @@ Defrag4InsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
                      * instead of after. */
 
     /* Lock this tracker as we'll be doing list operations on it. */
-    sc_mutex_lock(&tracker->lock);
+    SCMutexLock(&tracker->lock);
 
     /* Update timeout. */
     tracker->timeout = p->ts;
@@ -618,16 +618,16 @@ insert:
     }
 
     /* Allocate frag and insert. */
-    sc_mutex_lock(&dc->frag_pool_lock);
+    SCMutexLock(&dc->frag_pool_lock);
     new = PoolGet(dc->frag_pool);
-    sc_mutex_unlock(&dc->frag_pool_lock);
+    SCMutexUnlock(&dc->frag_pool_lock);
     if (new == NULL)
         goto done;
     new->pkt = malloc(len);
     if (new->pkt == NULL) {
-        sc_mutex_lock(&dc->frag_pool_lock);
+        SCMutexLock(&dc->frag_pool_lock);
         PoolReturn(dc->frag_pool, new);
-        sc_mutex_unlock(&dc->frag_pool_lock);
+        SCMutexUnlock(&dc->frag_pool_lock);
         goto done;
     }
     BUG_ON(ltrim > len);
@@ -651,13 +651,13 @@ insert:
     if (remove) {
         TAILQ_REMOVE(&tracker->frags, prev, next);
         DefragFragReset(prev);
-        sc_mutex_lock(&dc->frag_pool_lock);
+        SCMutexLock(&dc->frag_pool_lock);
         PoolReturn(dc->frag_pool, prev);
-        sc_mutex_unlock(&dc->frag_pool_lock);
+        SCMutexUnlock(&dc->frag_pool_lock);
     }
 
 done:
-    sc_mutex_unlock(&tracker->lock);
+    SCMutexUnlock(&tracker->lock);
 }
 
 /**
@@ -676,7 +676,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     int len = 0;
 
     /* Lock the tracker. */
-    sc_mutex_lock(&tracker->lock);
+    SCMutexLock(&tracker->lock);
 
     /* Should not be here unless we have seen the last fragment. */
     if (!tracker->seen_last)
@@ -719,13 +719,13 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
-        sc_mutex_lock(&dc->frag_table_lock);
+        SCMutexLock(&dc->frag_table_lock);
         HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
-        sc_mutex_unlock(&dc->frag_table_lock);
+        SCMutexUnlock(&dc->frag_table_lock);
         DefragTrackerReset(tracker);
-        sc_mutex_lock(&dc->tracker_pool_lock);
+        SCMutexLock(&dc->tracker_pool_lock);
         PoolReturn(dc->tracker_pool, tracker);
-        sc_mutex_unlock(&dc->tracker_pool_lock);
+        SCMutexUnlock(&dc->tracker_pool_lock);
         goto done;
     }
 
@@ -786,12 +786,12 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     /* Remove the frag tracker. */
     HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
     DefragTrackerReset(tracker);
-    sc_mutex_lock(&dc->tracker_pool_lock);
+    SCMutexLock(&dc->tracker_pool_lock);
     PoolReturn(dc->tracker_pool, tracker);
-    sc_mutex_unlock(&dc->tracker_pool_lock);
+    SCMutexUnlock(&dc->tracker_pool_lock);
 
 done:
-    sc_mutex_unlock(&tracker->lock);
+    SCMutexUnlock(&tracker->lock);
     return rp;
 }
 
@@ -864,18 +864,18 @@ Defrag4(ThreadVars *tv, DefragContext *dc, Packet *p)
     lookup.id = IPV4_GET_IPID(p);
     lookup.src_addr = p->src;
     lookup.dst_addr = p->dst;
-    sc_mutex_lock(&dc->frag_table_lock);
+    SCMutexLock(&dc->frag_table_lock);
     tracker = HashListTableLookup(dc->frag_table, &lookup, sizeof(lookup));
-    sc_mutex_unlock(&dc->frag_table_lock);
+    SCMutexUnlock(&dc->frag_table_lock);
     if (tracker == NULL) {
-        sc_mutex_lock(&dc->tracker_pool_lock);
+        SCMutexLock(&dc->tracker_pool_lock);
         tracker = PoolGet(dc->tracker_pool);
         if (tracker == NULL) {
             /* Timeout trackers and try again. */
             DefragTimeoutTracker(dc, p);
             tracker = PoolGet(dc->tracker_pool);
         }
-        sc_mutex_unlock(&dc->tracker_pool_lock);
+        SCMutexUnlock(&dc->tracker_pool_lock);
         if (tracker == NULL) {
             /* Report memory error - actually a pool allocation error. */
             SCLogError(SC_ERR_MEM_ALLOC, "Defrag: Failed to allocate tracker.");
@@ -890,15 +890,15 @@ Defrag4(ThreadVars *tv, DefragContext *dc, Packet *p)
         /* XXX Do policy lookup. */
         tracker->policy = dc->default_policy;
 
-        sc_mutex_lock(&dc->frag_table_lock);
+        SCMutexLock(&dc->frag_table_lock);
         if (HashListTableAdd(dc->frag_table, tracker, sizeof(*tracker)) != 0) {
             /* Failed to add new tracker. */
-            sc_mutex_unlock(&dc->frag_table_lock);
+            SCMutexUnlock(&dc->frag_table_lock);
             SCLogError(SC_ERR_MEM_ALLOC,
                 "Defrag: Failed to add new tracker to hash table.");
             return NULL;
         }
-        sc_mutex_unlock(&dc->frag_table_lock);
+        SCMutexUnlock(&dc->frag_table_lock);
     }
 
     if (!more_frags) {

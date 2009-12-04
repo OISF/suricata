@@ -376,7 +376,7 @@ static int HTTPParseResponse(void *http_state, AppLayerParserState *pstate, uint
 }
 
 #ifdef DEBUG
-static sc_mutex_t http_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex http_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t http_state_memuse = 0;
 static uint64_t http_state_memcnt = 0;
 #endif
@@ -389,10 +389,10 @@ static void *HTTPStateAlloc(void) {
     memset(s, 0, sizeof(HttpState));
 
 #ifdef DEBUG
-    sc_mutex_lock(&http_state_mem_lock);
+    SCMutexLock(&http_state_mem_lock);
     http_state_memcnt++;
     http_state_memuse+=sizeof(HttpState);
-    sc_mutex_unlock(&http_state_mem_lock);
+    SCMutexUnlock(&http_state_mem_lock);
 #endif
     return s;
 }
@@ -400,10 +400,10 @@ static void *HTTPStateAlloc(void) {
 static void HTTPStateFree(void *s) {
     free(s);
 #ifdef DEBUG
-    sc_mutex_lock(&http_state_mem_lock);
+    SCMutexLock(&http_state_mem_lock);
     http_state_memcnt--;
     http_state_memuse-=sizeof(HttpState);
-    sc_mutex_unlock(&http_state_mem_lock);
+    SCMutexUnlock(&http_state_mem_lock);
 #endif
 }
 
@@ -422,9 +422,9 @@ void RegisterHTTPParsers(void) {
 
 void HTTPAtExitPrintStats(void) {
 #ifdef DEBUG
-    sc_mutex_lock(&http_state_mem_lock);
+    SCMutexLock(&http_state_mem_lock);
     SCLogDebug("http_state_memcnt %"PRIu64", http_state_memuse %"PRIu64"", http_state_memcnt, http_state_memuse);
-    sc_mutex_unlock(&http_state_mem_lock);
+    SCMutexUnlock(&http_state_mem_lock);
 #endif
 }
 

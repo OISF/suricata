@@ -77,7 +77,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
     uint32_t key = FlowGetKey(p);
     /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[key];
-    sc_mutex_lock(&fb->m);
+    SCMutexLock(&fb->m);
 
     SCLogDebug("FlowGetFlowFromHash: fb %p fb->f %p", fb, fb->f);
 
@@ -90,7 +90,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
             f = fb->f = FlowAlloc();
             if (f == NULL) {
-                sc_mutex_unlock(&fb->m);
+                SCMutexUnlock(&fb->m);
                 return NULL;
             }
         }
@@ -99,25 +99,25 @@ Flow *FlowGetFlowFromHash (Packet *p)
         f->hprev = NULL;
 
         /* got one, now lock, initialize and return */
-        sc_mutex_lock(&f->m);
+        SCMutexLock(&f->m);
         FlowInit(f,p);
         FlowRequeue(f, NULL, &flow_new_q[f->protomap]);
         f->flags |= FLOW_NEW_LIST;
         f->fb = fb;
 
-        sc_mutex_unlock(&fb->m);
+        SCMutexUnlock(&fb->m);
         return f;
     }
 
     /* ok, we have a flow in the bucket. Let's find out if it is our flow */
     f = fb->f;
     /* lock the 'root' flow */
-    sc_mutex_lock(&f->m);
+    SCMutexLock(&f->m);
 
     /* see if this is the flow we are looking for */
     if (CMP_FLOW(f, p) == 0) {
         Flow *pf = NULL; /* previous flow */
-        sc_mutex_unlock(&f->m);
+        SCMutexUnlock(&f->m);
 
         while (f) {
             pf = f; /* pf is not locked at this point */
@@ -131,7 +131,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
                     f = fb->f = FlowAlloc();
                     if (f == NULL) {
-                        sc_mutex_unlock(&fb->m);
+                        SCMutexUnlock(&fb->m);
                         return NULL;
                     }
                 }
@@ -140,18 +140,18 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 f->hprev = pf;
 
                 /* lock, initialize and return */
-                sc_mutex_lock(&f->m);
+                SCMutexLock(&f->m);
                 FlowInit(f,p);
                 FlowRequeue(f, NULL, &flow_new_q[f->protomap]);
 
                 f->flags |= FLOW_NEW_LIST;
                 f->fb = fb;
 
-                sc_mutex_unlock(&fb->m);
+                SCMutexUnlock(&fb->m);
                 return f;
             }
 
-            sc_mutex_lock(&f->m);
+            SCMutexLock(&f->m);
 
             if (CMP_FLOW(f, p) != 0) {
                 /* we found our flow, lets put it on top of the
@@ -165,18 +165,18 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 fb->f = f;
 
                 /* found our flow */
-                sc_mutex_unlock(&fb->m);
+                SCMutexUnlock(&fb->m);
                 return f;
             }
 
             /* not found, try the next... */
-            sc_mutex_unlock(&f->m);
+            SCMutexUnlock(&f->m);
         }
     }
 
     /* The 'root' flow was our flow, return it.
      * It's already locked. */
-    sc_mutex_unlock(&fb->m);
+    SCMutexUnlock(&fb->m);
     return f;
 }
 

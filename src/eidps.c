@@ -130,9 +130,9 @@ Packet *SetupPktWait (void)
     Packet *p = NULL;
     int r = 0;
     do {
-        r = sc_mutex_lock(&packet_q.mutex_q);
+        r = SCMutexLock(&packet_q.mutex_q);
         p = PacketDequeue(&packet_q);
-        sc_mutex_unlock(&packet_q.mutex_q);
+        SCMutexUnlock(&packet_q.mutex_q);
 
         if (p == NULL) {
             //TmqDebugList();
@@ -153,9 +153,9 @@ Packet *SetupPkt (void)
     Packet *p = NULL;
     int r = 0;
 
-    r = sc_mutex_lock(&packet_q.mutex_q);
+    r = SCMutexLock(&packet_q.mutex_q);
     p = PacketDequeue(&packet_q);
-    r = sc_mutex_unlock(&packet_q.mutex_q);
+    r = SCMutexUnlock(&packet_q.mutex_q);
 
     if (p == NULL) {
         TmqDebugList();
@@ -168,7 +168,7 @@ Packet *SetupPkt (void)
 
         memset(p, 0, sizeof(Packet));
 
-        r = sc_mutex_init(&p->mutex_rtv_cnt, NULL);
+        r = SCMutexInit(&p->mutex_rtv_cnt, NULL);
 
         SCLogDebug("allocated a new packet...");
     }
@@ -187,8 +187,8 @@ void GlobalInits()
     int blah;
     int r = 0;
     for(blah=0;blah<256;blah++) {
-        r |= sc_mutex_init(&trans_q[blah].mutex_q, NULL);
-        r |= sc_cond_init(&trans_q[blah].cond_q, NULL);
+        r |= SCMutexInit(&trans_q[blah].mutex_q, NULL);
+        r |= SCCondInit(&trans_q[blah].cond_q, NULL);
    }
 
     if (r != 0) {
@@ -196,13 +196,13 @@ void GlobalInits()
         exit(EXIT_FAILURE);
     }
 
-    sc_mutex_init(&mutex_pending, NULL);
-    sc_cond_init(&cond_pending, NULL);
+    SCMutexInit(&mutex_pending, NULL);
+    SCCondInit(&cond_pending, NULL);
 
     /* initialize packet queues Here! */
     memset(&packet_q,0,sizeof(packet_q));
-    sc_mutex_init(&packet_q.mutex_q, NULL);
-    sc_cond_init(&packet_q.cond_q, NULL);
+    SCMutexInit(&packet_q.mutex_q, NULL);
+    SCCondInit(&packet_q.cond_q, NULL);
 
 }
 
@@ -216,9 +216,9 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
     int r = 0;
 #if 0
     do {
-        r = sc_mutex_lock(&packet_q.mutex_q);
+        r = SCMutexLock(&packet_q.mutex_q);
         p = PacketDequeue(&packet_q);
-        sc_mutex_unlock(&packet_q.mutex_q);
+        SCMutexUnlock(&packet_q.mutex_q);
 
         if (p == NULL) {
             //TmqDebugList();
@@ -229,13 +229,13 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
         }
     } while (p == NULL);
 #endif
-    r = sc_mutex_lock(&mutex_pending);
+    r = SCMutexLock(&mutex_pending);
     pending++;
 #ifdef DBG_PERF
     if (pending > dbg_maxpending)
         dbg_maxpending = pending;
 #endif /* DBG_PERF */
-    sc_mutex_unlock(&mutex_pending);
+    SCMutexUnlock(&mutex_pending);
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)
@@ -543,7 +543,7 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
         memset(p, 0, sizeof(Packet));
-        sc_mutex_init(&p->mutex_rtv_cnt, NULL);
+        SCMutexInit(&p->mutex_rtv_cnt, NULL);
 
         PacketEnqueue(&packet_q,p);
     }
@@ -633,10 +633,10 @@ int main(int argc, char **argv)
                     if (sigflags & EIDPS_SIGTERM || sigflags & EIDPS_KILL)
                         break;
 
-                    sc_mutex_lock(&mutex_pending);
+                    SCMutexLock(&mutex_pending);
                     if (pending == 0)
                         done = 1;
-                    sc_mutex_unlock(&mutex_pending);
+                    SCMutexUnlock(&mutex_pending);
 
                     if (done == 0) {
                         usleep(100);

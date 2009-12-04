@@ -55,8 +55,8 @@ LogFileCtx *LogFileNewCtx()
     }
     memset(lf_ctx, 0, sizeof(LogFileCtx));
     /** Ensure that it is unlocked */
-    sc_mutex_init(&lf_ctx->fp_mutex,NULL);
-    sc_mutex_unlock(&lf_ctx->fp_mutex);
+    SCMutexInit(&lf_ctx->fp_mutex,NULL);
+    SCMutexUnlock(&lf_ctx->fp_mutex);
 
     return lf_ctx;
 }
@@ -73,9 +73,9 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     {
         if (lf_ctx->fp != NULL)
         {
-            sc_mutex_lock(&lf_ctx->fp_mutex);
+            SCMutexLock(&lf_ctx->fp_mutex);
             fclose(lf_ctx->fp);
-            sc_mutex_unlock(&lf_ctx->fp_mutex);
+            SCMutexUnlock(&lf_ctx->fp_mutex);
         }
         if (lf_ctx->config_file != NULL);
             free(lf_ctx->config_file);

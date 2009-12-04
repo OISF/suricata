@@ -93,7 +93,7 @@ TmEcode LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
     inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
-    sc_mutex_lock(&aft->file_ctx->fp_mutex);
+    SCMutexLock(&aft->file_ctx->fp_mutex);
     for (i = 0; i < p->http_uri.cnt; i++) {
         /* time */
         fprintf(aft->file_ctx->fp, "%s ", timebuf);
@@ -111,7 +111,7 @@ TmEcode LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
     }
     fflush(aft->file_ctx->fp);
-    sc_mutex_unlock(&aft->file_ctx->fp_mutex);
+    SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
     aft->uri_cnt += p->http_uri.cnt;
     return TM_ECODE_OK;
@@ -136,7 +136,7 @@ TmEcode LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
     inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-    sc_mutex_lock(&aft->file_ctx->fp_mutex);
+    SCMutexLock(&aft->file_ctx->fp_mutex);
     for (i = 0; i < p->http_uri.cnt; i++) {
         /* time */
         fprintf(aft->file_ctx->fp, "%s ", timebuf);
@@ -154,7 +154,7 @@ TmEcode LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
     }
     fflush(aft->file_ctx->fp);
-    sc_mutex_unlock(&aft->file_ctx->fp_mutex);
+    SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
     aft->uri_cnt += p->http_uri.cnt;
     return TM_ECODE_OK;

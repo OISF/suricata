@@ -49,10 +49,10 @@ Packet *TmqhInputFlow(ThreadVars *tv)
 {
     PacketQueue *q = &trans_q[tv->inq->id];
 
-    sc_mutex_lock(&q->mutex_q);
+    SCMutexLock(&q->mutex_q);
     if (q->len == 0) {
         /* if we have no packets in queue, wait... */
-        sc_cond_wait(&q->cond_q, &q->mutex_q);
+        SCondWait(&q->cond_q, &q->mutex_q);
     }
 
     if (tv->sc_perf_pctx.perf_flag == 1)
@@ -60,11 +60,11 @@ Packet *TmqhInputFlow(ThreadVars *tv)
 
     if (q->len > 0) {
         Packet *p = PacketDequeue(q);
-        sc_mutex_unlock(&q->mutex_q);
+        SCMutexUnlock(&q->mutex_q);
         return p;
     } else {
         /* return NULL if we have no pkt. Should only happen on signals. */
-        sc_mutex_unlock(&q->mutex_q);
+        SCMutexUnlock(&q->mutex_q);
         return NULL;
     }
 }
@@ -177,10 +177,10 @@ void TmqhOutputFlow(ThreadVars *tv, Packet *p)
     }
 
     PacketQueue *q = &trans_q[qid];
-    sc_mutex_lock(&q->mutex_q);
+    SCMutexLock(&q->mutex_q);
     PacketEnqueue(q, p);
-    sc_cond_signal(&q->cond_q);
-    sc_mutex_unlock(&q->mutex_q);
+    SCCondSignal(&q->cond_q);
+    SCMutexUnlock(&q->mutex_q);
 }
 
 #ifdef UNITTESTS

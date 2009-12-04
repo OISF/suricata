@@ -6,7 +6,7 @@
 #include "util-debug.h"
 
 static struct timeval current_time = { 0, 0 };
-static sc_mutex_t current_time_mutex = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex current_time_mutex = PTHREAD_MUTEX_INITIALIZER;
 static char live = TRUE;
 
 void TimeModeSetLive(void)
@@ -29,14 +29,14 @@ void TimeSet(struct timeval *tv)
     if (tv == NULL)
         return;
 
-    sc_mutex_lock(&current_time_mutex);
+    SCMutexLock(&current_time_mutex);
     current_time.tv_sec = tv->tv_sec;
     current_time.tv_usec = tv->tv_usec;
 
     SCLogDebug("time set to %" PRIuMAX " sec, %" PRIuMAX " usec",
                (uintmax_t)current_time.tv_sec, (uintmax_t)current_time.tv_usec);
 
-    sc_mutex_unlock(&current_time_mutex);
+    SCMutexUnlock(&current_time_mutex);
 }
 
 /** \brief set the time to "gettimeofday" meant for testing */
@@ -57,10 +57,10 @@ void TimeGet(struct timeval *tv)
     if (live == TRUE) {
         gettimeofday(tv, NULL);
     } else {
-        sc_mutex_lock(&current_time_mutex);
+        SCMutexLock(&current_time_mutex);
         tv->tv_sec = current_time.tv_sec;
         tv->tv_usec = current_time.tv_usec;
-        sc_mutex_unlock(&current_time_mutex);
+        SCMutexUnlock(&current_time_mutex);
     }
 
     SCLogDebug("time we got is %" PRIuMAX " sec, %" PRIuMAX " usec",

@@ -33,7 +33,7 @@ static SCLogFGFilterFile *sc_log_fg_filters[SC_LOG_FILTER_MAX] = { NULL, NULL };
 /**
  * \brief Mutex for accessing the fine-grained fiters sc_log_fg_filters
  */
-static sc_mutex_t sc_log_fg_filters_m[SC_LOG_FILTER_MAX] = { PTHREAD_MUTEX_INITIALIZER,
+static SCMutex sc_log_fg_filters_m[SC_LOG_FILTER_MAX] = { PTHREAD_MUTEX_INITIALIZER,
                                                                   PTHREAD_MUTEX_INITIALIZER };
 
 /**
@@ -44,7 +44,7 @@ static SCLogFDFilter *sc_log_fd_filters = NULL;
 /**
  * \brief Mutex for accessing the function-dependent filters sc_log_fd_filters
  */
-static sc_mutex_t sc_log_fd_filters_m = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex sc_log_fd_filters_m = PTHREAD_MUTEX_INITIALIZER;
 
 /**
  * \brief Holds the thread_list required by function-dependent filters
@@ -54,7 +54,7 @@ static SCLogFDFilterThreadList *sc_log_fd_filters_tl = NULL;
 /**
  * \brief Mutex for accessing the FD thread_list sc_log_fd_filters_tl
  */
-static sc_mutex_t sc_log_fd_filters_tl_m = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex sc_log_fd_filters_tl_m = PTHREAD_MUTEX_INITIALIZER;
 
 
 /**
@@ -246,9 +246,9 @@ static inline int SCLogAddFGFilter(const char *file, const char *function,
         return -1;
     }
 
-    sc_mutex_t *m = &sc_log_fg_filters_m[listtype];
+    SCMutex *m = &sc_log_fg_filters_m[listtype];
 
-    sc_mutex_lock(m);
+    SCMutexLock(m);
 
     fgf_file = sc_log_fg_filters[listtype];
 
@@ -315,7 +315,7 @@ static inline int SCLogAddFGFilter(const char *file, const char *function,
     }
 
  done:
-    sc_mutex_unlock(&sc_log_fg_filters_m[listtype]);
+    SCMutexUnlock(&sc_log_fg_filters_m[listtype]);
     sc_log_fg_filters_present = 1;
 
     return 0;
@@ -351,12 +351,12 @@ static int SCLogMatchFGFilter(const char *file, const char *function, int line,
         return -1;
     }
 
-    sc_mutex_lock(&sc_log_fg_filters_m[listtype]);
+    SCMutexLock(&sc_log_fg_filters_m[listtype]);
 
     fgf_file = sc_log_fg_filters[listtype];
 
     if (fgf_file == NULL) {
-        sc_mutex_unlock(&sc_log_fg_filters_m[listtype]);
+        SCMutexUnlock(&sc_log_fg_filters_m[listtype]);
         return 1;
     }
 
@@ -400,7 +400,7 @@ static int SCLogMatchFGFilter(const char *file, const char *function, int line,
         }
 
         if (match == 1) {
-            sc_mutex_unlock(&sc_log_fg_filters_m[listtype]);
+            SCMutexUnlock(&sc_log_fg_filters_m[listtype]);
             if (listtype == SC_LOG_FILTER_WL)
                 return 1;
             else
@@ -410,7 +410,7 @@ static int SCLogMatchFGFilter(const char *file, const char *function, int line,
         fgf_file = fgf_file->next;
     }
 
-    sc_mutex_unlock(&sc_log_fg_filters_m[listtype]);
+    SCMutexUnlock(&sc_log_fg_filters_m[listtype]);
 
     if (listtype == SC_LOG_FILTER_WL)
         return 0;
@@ -507,7 +507,7 @@ void SCLogReleaseFGFilters(void)
     int i = 0;
 
     for (i = 0; i < SC_LOG_FILTER_MAX; i++) {
-        sc_mutex_lock(&sc_log_fg_filters_m[i]);
+        SCMutexLock(&sc_log_fg_filters_m[i]);
 
         fgf_file = sc_log_fg_filters[i];
         while (fgf_file != NULL) {
@@ -536,7 +536,7 @@ void SCLogReleaseFGFilters(void)
             free(temp);
         }
 
-        sc_mutex_unlock(&sc_log_fg_filters_m[i]);
+        SCMutexUnlock(&sc_log_fg_filters_m[i]);
         sc_log_fg_filters[i] = NULL;
     }
 
@@ -568,7 +568,7 @@ int SCLogPrintFGFilters()
 #endif
 
     for (i = 0; i < SC_LOG_FILTER_MAX; i++) {
-        sc_mutex_lock(&sc_log_fg_filters_m[i]);
+        SCMutexLock(&sc_log_fg_filters_m[i]);
 
         fgf_file = sc_log_fg_filters[i];
         while (fgf_file != NULL) {
@@ -594,7 +594,7 @@ int SCLogPrintFGFilters()
 
             fgf_file = fgf_file->next;
         }
-        sc_mutex_unlock(&sc_log_fg_filters_m[i]);
+        SCMutexUnlock(&sc_log_fg_filters_m[i]);
     }
 
     return count;
@@ -648,10 +648,10 @@ int SCLogMatchFDFilter(const char *function)
         return 0;
     }
 
-    sc_mutex_lock(&sc_log_fd_filters_tl_m);
+    SCMutexLock(&sc_log_fd_filters_tl_m);
 
     if (sc_log_fd_filters_tl == NULL) {
-        sc_mutex_unlock(&sc_log_fd_filters_tl_m);
+        SCMutexUnlock(&sc_log_fd_filters_tl_m);
         if (sc_log_fd_filters != NULL)
             return 0;
         return 1;
@@ -661,17 +661,17 @@ int SCLogMatchFDFilter(const char *function)
     while (thread_list != NULL) {
         if (self == thread_list->t) {
             if (thread_list->entered > 0) {
-                sc_mutex_unlock(&sc_log_fd_filters_tl_m);
+                SCMutexUnlock(&sc_log_fd_filters_tl_m);
                 return 1;
             }
-            sc_mutex_unlock(&sc_log_fd_filters_tl_m);
+            SCMutexUnlock(&sc_log_fd_filters_tl_m);
             return 0;
         }
 
         thread_list = thread_list->next;
     }
 
-    sc_mutex_unlock(&sc_log_fd_filters_tl_m);
+    SCMutexUnlock(&sc_log_fd_filters_tl_m);
 
     return 0;
 }
@@ -701,7 +701,7 @@ int SCLogCheckFDFilterEntry(const char *function)
         return 0;
     }
 
-    sc_mutex_lock(&sc_log_fd_filters_m);
+    SCMutexLock(&sc_log_fd_filters_m);
 
     curr = sc_log_fd_filters;
 
@@ -713,13 +713,13 @@ int SCLogCheckFDFilterEntry(const char *function)
     }
 
     if (curr == NULL) {
-        sc_mutex_unlock(&sc_log_fd_filters_m);
+        SCMutexUnlock(&sc_log_fd_filters_m);
         return 1;
     }
 
-    sc_mutex_unlock(&sc_log_fd_filters_m);
+    SCMutexUnlock(&sc_log_fd_filters_m);
 
-    sc_mutex_lock(&sc_log_fd_filters_tl_m);
+    SCMutexLock(&sc_log_fd_filters_tl_m);
 
     thread_list = sc_log_fd_filters_tl;
     thread_list_temp = thread_list;
@@ -734,7 +734,7 @@ int SCLogCheckFDFilterEntry(const char *function)
 
     if (thread_list != NULL) {
         thread_list->entered++;
-        sc_mutex_unlock(&sc_log_fd_filters_tl_m);
+        SCMutexUnlock(&sc_log_fd_filters_tl_m);
         return 1;
     }
 
@@ -752,7 +752,7 @@ int SCLogCheckFDFilterEntry(const char *function)
     else
         thread_list_prev->next = thread_list_temp;
 
-    sc_mutex_unlock(&sc_log_fd_filters_tl_m);
+    SCMutexUnlock(&sc_log_fd_filters_tl_m);
 
     return 1;
 }
@@ -779,7 +779,7 @@ void SCLogCheckFDFilterExit(const char *function)
         return;
     }
 
-    sc_mutex_lock(&sc_log_fd_filters_m);
+    SCMutexLock(&sc_log_fd_filters_m);
 
     curr = sc_log_fd_filters;
 
@@ -791,13 +791,13 @@ void SCLogCheckFDFilterExit(const char *function)
     }
 
     if (curr == NULL) {
-        sc_mutex_unlock(&sc_log_fd_filters_m);
+        SCMutexUnlock(&sc_log_fd_filters_m);
         return;
     }
 
-    sc_mutex_unlock(&sc_log_fd_filters_m);
+    SCMutexUnlock(&sc_log_fd_filters_m);
 
-    sc_mutex_lock(&sc_log_fd_filters_tl_m);
+    SCMutexLock(&sc_log_fd_filters_tl_m);
 
     thread_list = sc_log_fd_filters_tl;
     while (thread_list != NULL) {
@@ -807,7 +807,7 @@ void SCLogCheckFDFilterExit(const char *function)
         thread_list = thread_list->next;
     }
 
-    sc_mutex_unlock(&sc_log_fd_filters_tl_m);
+    SCMutexUnlock(&sc_log_fd_filters_tl_m);
 
     thread_list->entered--;
 
@@ -839,7 +839,7 @@ int SCLogAddFDFilter(const char *function)
         return -1;
     }
 
-    sc_mutex_lock(&sc_log_fd_filters_m);
+    SCMutexLock(&sc_log_fd_filters_m);
 
     curr = sc_log_fd_filters;
     while (curr != NULL) {
@@ -847,7 +847,7 @@ int SCLogAddFDFilter(const char *function)
 
         if (strcmp(function, curr->func) == 0) {
 
-            sc_mutex_unlock(&sc_log_fd_filters_m);
+            SCMutexUnlock(&sc_log_fd_filters_m);
 
             return 0;
         }
@@ -873,7 +873,7 @@ int SCLogAddFDFilter(const char *function)
             prev->next = temp;
     }
 
-    sc_mutex_unlock(&sc_log_fd_filters_m);
+    SCMutexUnlock(&sc_log_fd_filters_m);
     sc_log_fd_filters_present = 1;
 
     return 0;
@@ -887,7 +887,7 @@ void SCLogReleaseFDFilters(void)
     SCLogFDFilter *fdf = NULL;
     SCLogFDFilter *temp = NULL;
 
-    sc_mutex_lock(&sc_log_fd_filters_m);
+    SCMutexLock(&sc_log_fd_filters_m);
 
     fdf = sc_log_fd_filters;
     while (fdf != NULL) {
@@ -898,7 +898,7 @@ void SCLogReleaseFDFilters(void)
 
     sc_log_fd_filters = NULL;
 
-    sc_mutex_unlock( &sc_log_fd_filters_m );
+    SCMutexUnlock( &sc_log_fd_filters_m );
 
     return;
 }
@@ -927,10 +927,10 @@ int SCLogRemoveFDFilter(const char *function)
         return -1;
     }
 
-    sc_mutex_lock(&sc_log_fd_filters_m);
+    SCMutexLock(&sc_log_fd_filters_m);
 
     if (sc_log_fd_filters == NULL) {
-        sc_mutex_unlock(&sc_log_fd_filters_m);
+        SCMutexUnlock(&sc_log_fd_filters_m);
         return 0;
     }
 
@@ -946,7 +946,7 @@ int SCLogRemoveFDFilter(const char *function)
 
     if (curr == NULL) {
 
-        sc_mutex_unlock(&sc_log_fd_filters_m);
+        SCMutexUnlock(&sc_log_fd_filters_m);
 
         return 0;
     }
@@ -958,7 +958,7 @@ int SCLogRemoveFDFilter(const char *function)
 
     SCLogReleaseFDFilter(curr);
 
-    sc_mutex_unlock(&sc_log_fd_filters_m);
+    SCMutexUnlock(&sc_log_fd_filters_m);
 
     if (sc_log_fd_filters == NULL)
         sc_log_fd_filters_present = 0;
@@ -987,7 +987,7 @@ int SCLogPrintFDFilters(void)
     printf("FD filters:\n");
 #endif
 
-    r = sc_mutex_lock(&sc_log_fd_filters_m);
+    r = SCMutexLock(&sc_log_fd_filters_m);
 
     fdf = sc_log_fd_filters;
     while (fdf != NULL) {
@@ -998,7 +998,7 @@ int SCLogPrintFDFilters(void)
         count++;
     }
 
-    r = sc_mutex_unlock(&sc_log_fd_filters_m);
+    r = SCMutexUnlock(&sc_log_fd_filters_m);
 
     return count;
 }

@@ -26,14 +26,14 @@ Packet *TmqhInputPacketpool(ThreadVars *t)
     /* XXX */
     Packet *p = SetupPkt();
 
-    sc_mutex_lock(&mutex_pending);
+    SCMutexLock(&mutex_pending);
     pending++;
     //printf("PcapFileCallback: pending %" PRIu32 "\n", pending);
 #ifdef DBG_PERF
     if (pending > dbg_maxpending)
         dbg_maxpending = pending;
 #endif /* DBG_PERF */
-    sc_mutex_unlock(&mutex_pending);
+    SCMutexUnlock(&mutex_pending);
 
 /*
  * Disabled because it can enter a 'wait' state, while
@@ -41,11 +41,11 @@ Packet *TmqhInputPacketpool(ThreadVars *t)
  * to free packets, the exact condition we are waiting
  * for. VJ 09-01-16
  *
-    sc_mutex_lock(&mutex_pending);
+    SCMutexLock(&mutex_pending);
     if (pending > MAX_PENDING) {
-        sc_cond_wait(&cond_pending, &mutex_pending);
+        SCondWait(&cond_pending, &mutex_pending);
     }
-    sc_mutex_unlock(&mutex_pending);
+    SCMutexUnlock(&mutex_pending);
 */
     return p;
 }
@@ -62,8 +62,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         //printf("TmqhOutputPacketpool: tunnel packet: %p %s\n", p,p->root ? "upper layer":"root");
 
         /* get a lock */
-        sc_mutex_t *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
-        sc_mutex_lock(m);
+        SCMutex *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
+        SCMutexLock(m);
 
         if (IS_TUNNEL_ROOT_PKT(p)) {
             //printf("TmqhOutputPacketpool: IS_TUNNEL_ROOT_PKT\n");
@@ -80,7 +80,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                  * by the tunnel packets, and we will enqueue it
                  * when we handle them */
                 p->tunnel_verdicted = 1;
-                sc_mutex_unlock(m);
+                SCMutexUnlock(m);
                 return;
             }
         } else {
@@ -103,7 +103,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                  /* fall through */
             }
         }
-        sc_mutex_unlock(m);
+        SCMutexUnlock(m);
         //printf("TmqhOutputPacketpool: tunnel stuff done, move on\n");
     }
 
@@ -112,18 +112,18 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     if (proot && p->root != NULL) {
         CLEAR_PACKET(p->root);
 
-        sc_mutex_lock(&q->mutex_q);
+        SCMutexLock(&q->mutex_q);
         PacketEnqueue(q, p->root);
-        sc_mutex_unlock(&q->mutex_q);
+        SCMutexUnlock(&q->mutex_q);
     }
 
     CLEAR_PACKET(p);
 
-    sc_mutex_lock(&q->mutex_q);
+    SCMutexLock(&q->mutex_q);
     PacketEnqueue(q, p);
-    sc_mutex_unlock(&q->mutex_q);
+    SCMutexUnlock(&q->mutex_q);
 
-    sc_mutex_lock(&mutex_pending);
+    SCMutexLock(&mutex_pending);
     //printf("TmqhOutputPacketpool: pending %" PRIu32 "\n", pending);
     if (pending > 0) {
         pending--;
@@ -138,8 +138,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         printf("TmqhOutputPacketpool: warning, trying to subtract from 0 pending counter.\n");
     }
     if (pending <= MAX_PENDING)
-        sc_cond_signal(&cond_pending);
-    sc_mutex_unlock(&mutex_pending);
+        SCCondSignal(&cond_pending);
+    SCMutexUnlock(&mutex_pending);
 }
 
 /**
@@ -157,12 +157,12 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
     if (pq == NULL)
         return;
 
-    sc_mutex_lock(&pq->mutex_q);
+    SCMutexLock(&pq->mutex_q);
 
     while ( (p = PacketDequeue(pq)) != NULL)
         TmqhOutputPacketpool(NULL, p);
 
-    sc_mutex_unlock(&pq->mutex_q);
+    SCMutexUnlock(&pq->mutex_q);
 
     return;
 }

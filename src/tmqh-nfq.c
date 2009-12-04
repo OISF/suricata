@@ -22,10 +22,10 @@ void TmqhOutputVerdictNfq(ThreadVars *t, Packet *p)
 #if 0
     PacketQueue *q = &trans_q[p->verdict_q_id];
 
-    sc_mutex_lock(&q->mutex_q);
+    SCMutexLock(&q->mutex_q);
     PacketEnqueue(q, p);
-    sc_cond_signal(&q->cond_q);
-    sc_mutex_unlock(&q->mutex_q);
+    SCCondSignal(&q->cond_q);
+    SCMutexUnlock(&q->mutex_q);
 #endif
 }
 

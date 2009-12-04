@@ -6,7 +6,7 @@
 #include "util-bloomfilter-counting.h"
 
 typedef struct HostTable_ {
-    sc_mutex_t m;
+    SCMutex m;
 
     /* storage & lookup */
     HashTable *hash;
@@ -16,7 +16,7 @@ typedef struct HostTable_ {
 } HostTable;
 
 typedef struct Host_ {
-    sc_mutex_t m;
+    SCMutex m;
 
     Address addr;
     uint8_t os;

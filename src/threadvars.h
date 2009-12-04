@@ -30,7 +30,7 @@ typedef struct ThreadVars_ {
     char *name;
 
     uint8_t flags;
-    sc_spin_t flags_spinlock;
+    SCSpinlock flags_spinlock;
 
     /** aof(action on failure) determines what should be done with the thread
         when it encounters certain conditions like failures */
@@ -62,8 +62,8 @@ typedef struct ThreadVars_ {
     SCPerfContext sc_perf_pctx;
     SCPerfCounterArray *sc_perf_pca;
 
-    sc_mutex_t *m;
-    sc_cond_t *cond;
+    SCMutex *m;
+    SCCondT *cond;
 
     struct ThreadVars_ *next;
     struct ThreadVars_ *prev;
