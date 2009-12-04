@@ -687,7 +687,11 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         }
     } else {
         SCLogDebug("No App Layer Data");
-        goto error;
+        /* Nothing is there to clean up, so just return from here after setting
+         * up the no reassembly flags */
+        StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOCLIENT ? 1 : 0);
+        StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOSERVER ? 1 : 0);
+        SCReturnInt(-1);
     }
 
     AppLayerParserState *parser_state = NULL;
@@ -793,7 +797,7 @@ error:
                 "protocol, using network protocol %"PRIu8", source IP "
                 "address %s, destination IP address %s, src port %"PRIu16" and "
                 "dst port %"PRIu16"", al_proto_table[ssn->alproto].name,
-                f->proto, src, dst, ntohs(f->sp), ntohs(f->dp));
+                f->proto, src, dst, f->sp, f->dp);
     }
 
     SCReturnInt(-1);

@@ -93,6 +93,7 @@ static int HTPHandleRequestData(void *htp_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
                                 AppLayerParserResult *output)
 {
+    SCEnter();
     HtpState *hstate = (HtpState *)htp_state;
     struct timeval tv;
 
@@ -101,10 +102,15 @@ static int HTPHandleRequestData(void *htp_state, AppLayerParserState *pstate,
     if (htp_connp_req_data(hstate->connp, tv.tv_usec, input, input_len) ==
                             HTP_ERROR)
     {
-        return -1;
+        /* As work in HTP library is in progress, so it doesn't filled the
+           last_error field always and it can be null at the moment. So we can't
+           print the error casue always. If the infomraion is logged then, it
+           will be printed on console by library itself */
+        SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request");
+        SCReturnInt(-1);
     }
 
-    return 1;
+    SCReturnInt(1);
 }
 
 /**
@@ -123,6 +129,7 @@ static int HTPHandleResponseData(void *htp_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
                                 AppLayerParserResult *output)
 {
+    SCEnter();
     HtpState *hstate = (HtpState *)htp_state;
     struct timeval tv;
 
@@ -131,10 +138,15 @@ static int HTPHandleResponseData(void *htp_state, AppLayerParserState *pstate,
     if (htp_connp_res_data(hstate->connp, tv.tv_usec, input, input_len) ==
                             HTP_ERROR)
     {
-        return -1;
+        /* As work in HTP library is in progress, so it doesn't filled the
+           last_error field always and it can be null at the moment. So we can't
+           print the error casue always. If the infomraion is logged then, it
+           will be printed on console by library itself */
+        SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server response");
+        SCReturnInt(-1);
     }
 
-    return 1;
+    SCReturnInt(1);
 }
 
 /**
