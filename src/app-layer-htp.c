@@ -30,7 +30,7 @@
 #include "app-layer-htp.h"
 
 #ifdef DEBUG
-static pthread_mutex_t htp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
+static sc_mutex_t htp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t htp_state_memuse = 0;
 static uint64_t htp_state_memcnt = 0;
 #endif
@@ -50,10 +50,10 @@ static void *HTPStateAlloc(void)
     ((HtpState *)(s))->connp = htp_connp_create(cfg);
 
 #ifdef DEBUG
-    mutex_lock(&htp_state_mem_lock);
+    sc_mutex_lock(&htp_state_mem_lock);
     htp_state_memcnt++;
     htp_state_memuse+=sizeof(HtpState);
-    mutex_unlock(&htp_state_mem_lock);
+    sc_mutex_unlock(&htp_state_mem_lock);
 #endif
     return s;
 }
@@ -70,10 +70,10 @@ static void HTPStateFree(void *s)
 
     free(s);
 #ifdef DEBUG
-    mutex_lock(&htp_state_mem_lock);
+    sc_mutex_lock(&htp_state_mem_lock);
     htp_state_memcnt--;
     htp_state_memuse-=sizeof(HtpState);
-    mutex_unlock(&htp_state_mem_lock);
+    sc_mutex_unlock(&htp_state_mem_lock);
 #endif
 }
 
