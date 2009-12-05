@@ -21,6 +21,7 @@
 #include "flow-bit.h"
 #include "util-var-name.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 #define PARSE_REGEX         "([a-z]+)(?:,(.*))?"
 static pcre *parse_regex;
@@ -212,7 +213,9 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         cd->idx = 0;
     }
     cd->cmd = fb_cmd;
-    printf("DetectFlowbitSetup: idx %" PRIu32 ", cmd %s, name %s\n", cd->idx, fb_cmd_str, fb_name ? fb_name : "(null)");
+
+    SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
+        cd->idx, fb_cmd_str, fb_name ? fb_name : "(null)");
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */

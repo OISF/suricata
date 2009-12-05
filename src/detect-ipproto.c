@@ -24,6 +24,8 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 
+#include "util-debug.h"
+
 /**
  * \brief Regex for parsing our options
  */
@@ -202,11 +204,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s,
             break;
     }
 #if DEBUG
-    printf("op='%c' bits=\"", data->op);
-    for (i = 0; i < (256/8); i++) {
-        printf("%02x", s->proto.proto[i]);
+    if (SCLogDebugEnabled()) {
+        printf("op='%c' bits=\"", data->op);
+        for (i = 0; i < (256/8); i++) {
+            printf("%02x", s->proto.proto[i]);
+        }
+        printf("\"\n");
     }
-    printf("\"\n");
 #endif
 
     ret = 0;
