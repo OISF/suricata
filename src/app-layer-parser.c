@@ -758,10 +758,12 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
         if (parser_state->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
+            if (need_lock == TRUE) mutex_lock(&f->m);
             StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                flags & STREAM_TOCLIENT ? 1 : 0);
             StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                flags & STREAM_TOSERVER ? 1 : 0);
+            if (need_lock == TRUE) mutex_unlock(&f->m);
         }
     }
 
@@ -778,26 +780,36 @@ error:
         AppLayerParserCleanupState(ssn);
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
+        if (need_lock == TRUE) mutex_lock(&f->m);
         StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOCLIENT ? 1 : 0);
         StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOSERVER ? 1 : 0);
+        if (need_lock == TRUE) mutex_unlock(&f->m);
 
         if (f->src.family == AF_INET) {
-            inet_ntop(AF_INET, &f->src.addr_data32[0], src,
+            inet_ntop(AF_INET, (const void*)&f->src.addr_data32[0], src,
                       sizeof (src));
-            inet_ntop(AF_INET, &f->dst.addr_data32[0], dst,
+            inet_ntop(AF_INET, (const void*)&f->dst.addr_data32[0], dst,
                       sizeof (dst));
-        } else {
-            inet_ntop(AF_INET6, &f->src.addr_data32[0], src6,
-                      sizeof (src6));
-            inet_ntop(AF_INET6, &f->dst.addr_data32[0], dst6,
-                      sizeof (dst6));
-        }
 
-        SCLogError(SC_ALPARSER_ERR, "Error occured in parsing \"%s\" app layer "
+            SCLogError(SC_ALPARSER_ERR, "Error occured in parsing \"%s\" app layer "
                 "protocol, using network protocol %"PRIu8", source IP "
                 "address %s, destination IP address %s, src port %"PRIu16" and "
                 "dst port %"PRIu16"", al_proto_table[ssn->alproto].name,
                 f->proto, src, dst, f->sp, f->dp);
+
+        } else {
+            inet_ntop(AF_INET6, (const void*)&f->src.addr_data32, src6,
+                      sizeof (src6));
+            inet_ntop(AF_INET6, (const void*)&f->dst.addr_data32, dst6,
+                      sizeof (dst6));
+
+            SCLogError(SC_ALPARSER_ERR, "Error occured in parsing \"%s\" app layer "
+                "protocol, using network protocol %"PRIu8", source IPv6 "
+                "address %s, destination IPv6 address %s, src port %"PRIu16" and "
+                "dst port %"PRIu16"", al_proto_table[ssn->alproto].name,
+                f->proto, src6, dst6, f->sp, f->dp);
+        }
+
     }
 
     SCReturnInt(-1);
