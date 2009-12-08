@@ -758,12 +758,12 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
         if (parser_state->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
-            if (need_lock == TRUE) mutex_lock(&f->m);
+            if (need_lock == TRUE) SCMutexLock(&f->m);
             StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                flags & STREAM_TOCLIENT ? 1 : 0);
             StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                flags & STREAM_TOSERVER ? 1 : 0);
-            if (need_lock == TRUE) mutex_unlock(&f->m);
+            if (need_lock == TRUE) SCMutexUnlock(&f->m);
         }
     }
 
@@ -780,10 +780,10 @@ error:
         AppLayerParserCleanupState(ssn);
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
-        if (need_lock == TRUE) mutex_lock(&f->m);
+        if (need_lock == TRUE) SCMutexLock(&f->m);
         StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOCLIENT ? 1 : 0);
         StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOSERVER ? 1 : 0);
-        if (need_lock == TRUE) mutex_unlock(&f->m);
+        if (need_lock == TRUE) SCMutexUnlock(&f->m);
 
         if (f->src.family == AF_INET) {
             inet_ntop(AF_INET, (const void*)&f->src.addr_data32[0], src,
