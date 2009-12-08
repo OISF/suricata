@@ -440,10 +440,6 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t addrs_dir
     /* Check if it is bidirectional */
     if (strcmp(arr[CONFIG_DIREC], "<>") == 0)
         s->flags |= SIG_FLAG_BIDIREC;
-        /* else check if the direction is valid (the regexp
-         * take care of this too but checking anyway */
-    else if(strcmp(arr[CONFIG_DIREC], "->") != 0)
-            goto error;
 
     /* Parse Address & Ports */
     if (SigParseAddress(s, arr[CONFIG_SRC], SIG_DIREC_SRC ^ addrs_direction) < 0)
@@ -639,8 +635,32 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     sig->num = de_ctx->signum;
     de_ctx->signum++;
 
-    if (sig->flags & SIG_FLAG_BIDIREC)
-    {
+    /* set mpm_content_len */
+
+    /* determine the length of the longest pattern in the sig */
+    if (sig->flags & SIG_FLAG_MPM) {
+        sig->mpm_content_maxlen = 0;
+        sig->mpm_uricontent_maxlen = 0;
+
+        SigMatch *sm;
+        for (sm = sig->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_CONTENT) {
+                DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+                if (sig->mpm_content_maxlen == 0)
+                    sig->mpm_content_maxlen = cd->content_len;
+                if (sig->mpm_content_maxlen < cd->content_len)
+                    sig->mpm_content_maxlen = cd->content_len;
+            } else if (sm->type == DETECT_URICONTENT) {
+                DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                if (sig->mpm_uricontent_maxlen == 0)
+                    sig->mpm_uricontent_maxlen = ud->uricontent_len;
+                if (sig->mpm_uricontent_maxlen < ud->uricontent_len)
+                    sig->mpm_uricontent_maxlen = ud->uricontent_len;
+            }
+        }
+    }
+    if (sig->flags & SIG_FLAG_BIDIREC) {
         /* Allocate a copy of this signature with the addresses siwtched
            This copy will be installed at sig->next */
         sig->next = SigAlloc();
@@ -653,8 +673,39 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         /* assign an unique id in this de_ctx */
         sig->next->num = de_ctx->signum;
         de_ctx->signum++;
+
+        /* set mpm_content_len */
+
+        /* determine the length of the longest pattern in the sig */
+        if (sig->next->flags & SIG_FLAG_MPM) {
+            sig->next->mpm_content_maxlen = 0;
+            sig->next->mpm_uricontent_maxlen = 0;
+
+            SigMatch *sm;
+            for (sm = sig->next->match; sm != NULL; sm = sm->next) {
+                if (sm->type == DETECT_CONTENT) {
+                    DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+                    if (sig->next->mpm_content_maxlen == 0)
+                        sig->next->mpm_content_maxlen = cd->content_len;
+                    if (sig->next->mpm_content_maxlen < cd->content_len)
+                        sig->next->mpm_content_maxlen = cd->content_len;
+                } else if (sm->type == DETECT_URICONTENT) {
+                    DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                    if (sig->next->mpm_uricontent_maxlen == 0)
+                        sig->next->mpm_uricontent_maxlen = ud->uricontent_len;
+                    if (sig->next->mpm_uricontent_maxlen < ud->uricontent_len)
+                        sig->next->mpm_uricontent_maxlen = ud->uricontent_len;
+                }
+            }
+        }
     }
 
+    /**
+     * In SigInitReal, the signature returned will point from the ptr next
+     * to the cloned signatures with the switched addresses if it has
+     * the bidirectional operator set
+     */
     return sig;
 
 error:
@@ -664,7 +715,7 @@ error:
         SigFree(sig);
     }
     /* if something failed, restore the old signum count
-       since we didn't install it */
+     * since we didn't install it */
     de_ctx->signum = oldsignum;
     return NULL;
 }
@@ -691,18 +742,21 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr) {
             sig->next->next = de_ctx->sig_list;
         else
             goto error;
-    }
-    else {
+    } else {
         /* if this sig is the first one, sig_list should be null */
         sig->next = de_ctx->sig_list;
     }
 
     de_ctx->sig_list = sig;
+
+    /**
+     * In DetectEngineAppendSig(), the signatures are prepended and we always return the first one
+     * so if the signature is bidirectional, the returned sig will point through "next" ptr
+     * to the cloned signatures with the switched addresses
+     */
     return sig;
 
 error:
-    /* this could happen only if sig is set as Bidirectional
-       and the pointer sig->next is NULL */
     if ( sig != NULL ) SigFree(sig);
     return NULL;
 }
