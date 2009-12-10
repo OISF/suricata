@@ -30,6 +30,7 @@ host.c host.h \
 detect.c detect.h \
 detect-engine-sigorder.c detect-engine-sigorder.h \
 detect-engine.c detect-engine.h \
+detect-rpc.c detect-rpc.h \
 detect-isdataat.c detect-isdataat.h \
 detect-window.c detect-window.h \
 detect-engine-address.c detect-engine-address.h \

@@ -50,6 +50,7 @@
 #include "detect-window.h"
 #include "detect-isdataat.h"
 #include "detect-id.h"
+#include "detect-rpc.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -2778,6 +2779,7 @@ void SigTableSetup(void) {
     DetectOffsetRegister();
     DetectFlowRegister();
     DetectWindowRegister();
+    DetectRpcRegister();
     DetectIsdataatRegister();
     DetectIdRegister();
     DetectDsizeRegister();
