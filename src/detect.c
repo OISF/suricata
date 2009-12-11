@@ -50,6 +50,7 @@
 #include "detect-rev.h"
 #include "detect-flow.h"
 #include "detect-window.h"
+#include "detect-ftpbounce.h"
 #include "detect-isdataat.h"
 #include "detect-id.h"
 #include "detect-rpc.h"
@@ -531,7 +532,6 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
             while (sm) {
                 if (sigmatch_table[sm->type].AppLayerMatch == NULL) {
                     /* if no match function we assume this sm is a match */
-                    SCLogDebug("no app layer match function, sigmatch is (pkt)Match only");
                     match = 1;
                     SCLogDebug("no app layer match function, sigmatch is (pkt)Match only");
                 } else {
@@ -563,7 +563,7 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                                     p->action = s->action;
                                 }
                             } else {
-				PacketAlertHandle(de_ctx,s,p);
+                                PacketAlertHandle(de_ctx,s,p);
 
                                 /* set verdict on packet */
                                 p->action = s->action;
@@ -665,8 +665,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
 
         /* don't inspect app layer only sigs here */
-        if (!(s->flags & SIG_FLAG_PACKET))
+        if (!(s->flags & SIG_FLAG_PACKET)) {
+            SCLogDebug("sig id %"PRIu32" is app layer inspecting only", s->id);
             continue;
+        }
 
         /* filter out sigs that want pattern matches, but
          * have no matches */
@@ -813,6 +815,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         sm = NULL;
                     }
                 }
+                SCLogDebug("match functions done, sm %p", sm);
             }
         }
     }
@@ -820,6 +823,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
 
+    SCLogDebug("Running Application Layer match functions, sm %p", sm);
     match = SigMatchSignaturesAppLayer(th_v, de_ctx, det_ctx, det_ctx->sgh, p);
     if (match > 0) {
         fmatch = 1;
@@ -2887,6 +2891,7 @@ void SigTableSetup(void) {
     DetectFlowRegister();
     DetectWindowRegister();
     DetectRpcRegister();
+    DetectFtpbounceRegister();
     DetectIsdataatRegister();
     DetectIdRegister();
     DetectDsizeRegister();

@@ -34,6 +34,7 @@ detect-engine.c detect-engine.h \
 detect-rpc.c detect-rpc.h \
 detect-isdataat.c detect-isdataat.h \
 detect-window.c detect-window.h \
+detect-ftpbounce.c detect-ftpbounce.h \
 detect-engine-address.c detect-engine-address.h \
 detect-engine-threshold.c detect-engine-threshold.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
@@ -146,6 +147,7 @@ app-layer-htp.c app-layer-htp.h \
 app-layer-tls.c app-layer-tls.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-dcerpc.c app-layer-dcerpc.h \
+app-layer-ftp.c app-layer-ftp.h \
 defrag.c defrag.h
 
 # set the include path found by configure

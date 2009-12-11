@@ -1,0 +1,512 @@
+/**
+ * Copyright (c) 2009 Open Information Security Foundation
+ *
+ * \file
+ * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
+ *
+ * App Layer Parser for FTP
+ */
+
+#include "suricata-common.h"
+#include "debug.h"
+#include "decode.h"
+#include "threads.h"
+
+#include "util-print.h"
+#include "util-pool.h"
+
+#include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
+#include "stream.h"
+
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
+#include "app-layer-ftp.h"
+
+#include "util-binsearch.h"
+#include "util-unittest.h"
+#include "util-debug.h"
+
+/**
+ * \brief This function is called to determine and set which command is being
+ * transfered to the ftp server
+ * \param ftp_state the ftp state structure for the parser
+ * \param input input line of the command
+ * \param len of the command
+ *
+ * \retval 1 when the command is parsed, 0 otherwise
+ */
+static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
+                                  uint32_t input_len) {
+    SCEnter();
+    FtpState *fstate = (FtpState *)ftp_state;
+
+    char inputlower[5];
+
+    if (input_len >= 4) {
+        memcpy(inputlower,input,5);
+        int i = 0;
+        for (; i < 4; i++)
+            inputlower[i] = tolower(inputlower[i]);
+
+        if (memcmp(inputlower, "port", 4) == 0) {
+            fstate->command = FTP_COMMAND_PORT;
+        }
+        /* else {
+         *     Add the ftp commands you need here
+         * }
+         */
+    }
+    return 1;
+}
+
+/**
+ * \brief This function is called to retrieve the request line and parse it
+ * \param ftp_state the ftp state structure for the parser
+ * \param input input line of the command
+ * \param input_len length of the request
+ * \param output the resulting output
+ *
+ * \retval 1 when the command is parsed, 0 otherwise
+ */
+static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserState
+                                     *pstate, uint8_t *input,uint32_t input_len,
+                                     AppLayerParserResult *output) {
+    SCEnter();
+    //PrintRawDataFp(stdout, input,input_len);
+
+    FtpState *fstate = (FtpState *)ftp_state;
+    uint16_t max_fields = 2;
+    uint16_t u = 0;
+    uint32_t offset = 0;
+
+    if (pstate == NULL)
+        return -1;
+
+    for (u = pstate->parse_field; u < max_fields; u++) {
+        //printf("FTPParseRequestCommandLine: u %" PRIu32 "\n", u);
+
+        switch(u) {
+            case 0: /* REQUEST COMMAND */
+            {
+                const uint8_t delim[] = { 0x20, };
+                int r = AlpParseFieldByDelimiter(output, pstate,
+                                FTP_FIELD_REQUEST_COMMAND, delim, sizeof(delim),
+                                input, input_len, &offset);
+                //printf("FTPParseRequestCommandLine: r = %" PRId32 "\n", r);
+
+                if (r == 0) {
+                    pstate->parse_field = 0;
+                    return 0;
+                }
+                //printf("Command: [%s]..ofs: %u.. ", input, offset );
+                fstate->arg_offset = offset;
+                FTPParseRequestCommand(ftp_state, input, input_len);
+                break;
+            }
+            case 1: /* REQUEST COMMAND ARG */
+            {
+                switch (fstate->command) {
+                    case FTP_COMMAND_PORT:
+                        /* We don't need to parse args, we are going to check
+                        * the ftpbounce condition directly from detect-ftpbounce
+                        */
+                        if (fstate->port_line != NULL)
+                            free(fstate->port_line);
+                        fstate->port_line = malloc(input_len);
+                        if (fstate->port_line == NULL) {
+                            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating"
+                                                         "memory");
+                            exit(EXIT_FAILURE);
+                        }
+                        fstate->port_line = memcpy(fstate->port_line, input,
+                                                   input_len);
+                        fstate->port_line_len = input_len;
+                        //printf("\n\nport line and args are set\n\n");
+                    break;
+                    default:
+                    break;
+                } /* end switch command specified args */
+
+                break;
+            }
+        }
+    }
+
+    pstate->parse_field = 0;
+    return 1;
+}
+
+/**
+ * \brief This function is called to retrieve a ftp request
+ * \param ftp_state the ftp state structure for the parser
+ * \param input input line of the command
+ * \param input_len length of the request
+ * \param output the resulting output
+ *
+ * \retval 1 when the command is parsed, 0 otherwise
+ */
+static int FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate, uint8_t
+                           *input, uint32_t input_len, AppLayerParserResult
+                           *output) {
+    SCEnter();
+    //printf("FTPParseRequest: ftp_state %p, state %p, input %p, input_len %" PRIu32 "\n", ftp_state, pstate, input, input_len);
+    /* PrintRawDataFp(stdout, input,input_len); */
+
+    uint32_t offset = 0;
+
+    if (pstate == NULL)
+        return -1;
+
+    //printf("FTPParseRequest: pstate->parse_field %" PRIu32 "\n", pstate->parse_field);
+
+    //PrintRawDataFp(stdout, pstate->store, pstate->store_len);
+
+    const uint8_t delim[] = { 0x0D, 0x0A };
+    int r = AlpParseFieldByDelimiter(output, pstate, FTP_FIELD_REQUEST_LINE,
+                                     delim, sizeof(delim), input, input_len,
+                                     &offset);
+    if (r == 0) {
+        pstate->parse_field = 0;
+        return 0;
+    }
+    if (pstate->store_len)
+        PrintRawDataFp(stdout, pstate->store, pstate->store_len);
+
+    pstate->parse_field = 0;
+    return 1;
+}
+
+/**
+ * \brief This function is called to retrieve a ftp response
+ * \param ftp_state the ftp state structure for the parser
+ * \param input input line of the command
+ * \param input_len length of the request
+ * \param output the resulting output
+ *
+ * \retval 1 when the command is parsed, 0 otherwise
+ */
+static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
+                            uint8_t *input, uint32_t input_len,
+                            AppLayerParserResult *output) {
+    SCEnter();
+    //printf("FTPParseResponse: ftp_state %p, state %p, input %p, input_len %" PRIu32 "\n", ftp_state, pstate, input, input_len);
+    //PrintRawDataFp(stdout, input,input_len);
+
+    uint32_t offset = 0;
+    FtpState *fstate = (FtpState *)ftp_state;
+
+    if (pstate == NULL)
+        return -1;
+
+    //printf("FTPParseRequest: pstate->parse_field %" PRIu32 "\n", pstate->parse_field);
+
+    const uint8_t delim[] = { 0x0D, 0x0A };
+    int r = AlpParseFieldByDelimiter(output, pstate, FTP_FIELD_RESPONSE_LINE,
+                                     delim, sizeof(delim), input, input_len,
+                                     &offset);
+    if (r == 0) {
+        pstate->parse_field = 0;
+        return 0;
+    }
+    char rcode[5];
+    memcpy(rcode, input, 4);
+    rcode[4] = '\0';
+    fstate->response_code = atoi(rcode);
+    SCLogDebug("Response: %u\n", fstate->response_code);
+
+    pstate->parse_field = 0;
+    return 1;
+}
+
+#ifdef DEBUG
+static SCMutex ftp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
+static uint64_t ftp_state_memuse = 0;
+static uint64_t ftp_state_memcnt = 0;
+#endif
+
+static void *FTPStateAlloc(void) {
+    void *s = malloc(sizeof(FtpState));
+    if (s == NULL)
+        return NULL;
+
+    memset(s, 0, sizeof(FtpState));
+
+#ifdef DEBUG
+    SCMutexLock(&ftp_state_mem_lock);
+    ftp_state_memcnt++;
+    ftp_state_memuse+=sizeof(FtpState);
+    SCMutexUnlock(&ftp_state_mem_lock);
+#endif
+    return s;
+}
+
+static void FTPStateFree(void *s) {
+    free(s);
+#ifdef DEBUG
+    SCMutexLock(&ftp_state_mem_lock);
+    ftp_state_memcnt--;
+    ftp_state_memuse-=sizeof(FtpState);
+    SCMutexUnlock(&ftp_state_mem_lock);
+#endif
+}
+
+
+void RegisterFTPParsers(void) {
+    AppLayerRegisterProto("ftp.request", ALPROTO_FTP, STREAM_TOSERVER,
+                          FTPParseRequest);
+    AppLayerRegisterProto("ftp.response", ALPROTO_FTP, STREAM_TOCLIENT,
+                          FTPParseResponse);
+    AppLayerRegisterParser("ftp.request_command_line", ALPROTO_FTP,
+                           FTP_FIELD_REQUEST_LINE, FTPParseRequestCommandLine,
+                           "ftp");
+    AppLayerRegisterStateFuncs(ALPROTO_FTP, FTPStateAlloc, FTPStateFree);
+}
+
+void FTPAtExitPrintStats(void) {
+#ifdef DEBUG
+    SCMutexLock(&ftp_state_mem_lock);
+    SCLogDebug("ftp_state_memcnt %"PRIu64", ftp_state_memuse %"PRIu64"",
+               ftp_state_memcnt, ftp_state_memuse);
+    SCMutexUnlock(&ftp_state_mem_lock);
+#endif
+}
+
+/* UNITTESTS */
+#ifdef UNITTESTS
+
+/** \test Send a get request in one chunk. */
+int FTPParserTest01(void) {
+    int result = 1;
+    Flow f;
+    uint8_t ftpbuf[] = "PORT 192,168,1,1,0,80\r\n";
+    uint32_t ftplen = sizeof(ftpbuf) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+
+    int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf, ftplen, FALSE);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
+    if (ftp_state == NULL) {
+        printf("no ftp state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ftp_state->command != FTP_COMMAND_PORT) {
+        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_PORT, ftp_state->command);
+        result = 0;
+        goto end;
+    }
+
+end:
+    return result;
+}
+
+/** \test Send a splitted get request. */
+int FTPParserTest03(void) {
+    int result = 1;
+    Flow f;
+    uint8_t ftpbuf1[] = "POR";
+    uint32_t ftplen1 = sizeof(ftpbuf1) - 1; /* minus the \0 */
+    uint8_t ftpbuf2[] = "T 192,168,1";
+    uint32_t ftplen2 = sizeof(ftpbuf2) - 1; /* minus the \0 */
+    uint8_t ftpbuf3[] = "1,1,10,20\r\n";
+    uint32_t ftplen3 = sizeof(ftpbuf3) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+
+    int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1, FALSE);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2, FALSE);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf3, ftplen3, FALSE);
+    if (r != 0) {
+        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
+    if (ftp_state == NULL) {
+        printf("no ftp state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ftp_state->command != FTP_COMMAND_PORT) {
+        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_PORT, ftp_state->command);
+        result = 0;
+        goto end;
+    }
+
+end:
+    return result;
+}
+
+/** \test See how it deals with an incomplete request. */
+int FTPParserTest06(void) {
+    int result = 1;
+    Flow f;
+    uint8_t ftpbuf1[] = "PORT";
+    uint32_t ftplen1 = sizeof(ftpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+
+    f.protoctx = (void *)&ssn;
+
+    int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, ftpbuf1, ftplen1, FALSE);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
+    if (ftp_state == NULL) {
+        printf("no ftp state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ftp_state->command != FTP_COMMAND_UNKNOWN) {
+        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_UNKNOWN, ftp_state->command);
+        result = 0;
+        goto end;
+    }
+
+end:
+    return result;
+}
+
+/** \test See how it deals with an incomplete request in multiple chunks. */
+int FTPParserTest07(void) {
+    int result = 1;
+    Flow f;
+    uint8_t ftpbuf1[] = "PO";
+    uint32_t ftplen1 = sizeof(ftpbuf1) - 1; /* minus the \0 */
+    uint8_t ftpbuf2[] = "RT\r\n";
+    uint32_t ftplen2 = sizeof(ftpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+
+    f.protoctx = (void *)&ssn;
+
+    int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1, FALSE);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf2, ftplen2, FALSE);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
+    if (ftp_state == NULL) {
+        printf("no ftp state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ftp_state->command != FTP_COMMAND_UNKNOWN) {
+        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_UNKNOWN, ftp_state->command);
+        result = 0;
+        goto end;
+    }
+
+end:
+    return result;
+}
+
+/** \test Test case where chunks are smaller than the delim length and the
+  *       last chunk is supposed to match the delim. */
+int FTPParserTest10(void) {
+    int result = 1;
+    Flow f;
+    uint8_t ftpbuf1[] = "PORT 1,2,3,4,5,6\r\n";
+    uint32_t ftplen1 = sizeof(ftpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    int r = 0;
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+
+    uint32_t u;
+    for (u = 0; u < ftplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (ftplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        r = AppLayerParse(&f, ALPROTO_FTP, flags, &ftpbuf1[u], 1, FALSE);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected 0: ", u, r);
+            result = 0;
+            goto end;
+        }
+    }
+
+    FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
+    if (ftp_state == NULL) {
+        printf("no ftp state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ftp_state->command != FTP_COMMAND_PORT) {
+        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_PORT, ftp_state->command);
+        result = 0;
+        goto end;
+    }
+
+end:
+    return result;
+}
+#endif /* UNITTESTS */
+
+void FTPParserRegisterTests(void) {
+#ifdef UNITTESTS
+    UtRegisterTest("FTPParserTest01", FTPParserTest01, 1);
+    UtRegisterTest("FTPParserTest03", FTPParserTest03, 1);
+    UtRegisterTest("FTPParserTest06", FTPParserTest06, 1);
+    UtRegisterTest("FTPParserTest07", FTPParserTest07, 1);
+    UtRegisterTest("FTPParserTest10", FTPParserTest10, 1);
+#endif /* UNITTESTS */
+}
+

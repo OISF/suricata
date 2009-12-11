@@ -66,6 +66,7 @@
 #include "app-layer-smb.h"
 #include "app-layer-dcerpc.h"
 #include "app-layer-htp.h"
+#include "app-layer-ftp.h"
 
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
@@ -467,6 +468,7 @@ int main(int argc, char **argv)
     RegisterTLSParsers();
     RegisterSMBParsers();
     RegisterDCERPCParsers();
+    RegisterFTPParsers();
     AppLayerParsersInitPostProcess();
 
     TmModuleReceiveNFQRegister();
@@ -519,6 +521,7 @@ int main(int argc, char **argv)
         TLSParserRegisterTests();
         SMBParserRegisterTests();
         DCERPCParserRegisterTests();
+        FTPParserRegisterTests();
         DecodePPPOERegisterTests();
         DecodeICMPV4RegisterTests();
         DecodeICMPV6RegisterTests();
