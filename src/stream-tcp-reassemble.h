@@ -13,7 +13,7 @@
 /** Supported OS list and default OS policy is BSD */
 enum
 {
-    OS_POLICY_NONE = 0,
+    OS_POLICY_NONE = 1,
     OS_POLICY_BSD,
     OS_POLICY_OLD_LINUX,
     OS_POLICY_LINUX,
@@ -39,15 +39,14 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *, TcpSession *, Tcp
 int StreamTcpReassembleInit(char);
 void StreamTcpReassembleFree(char);
 void StreamTcpReassembleRegisterTests(void);
-
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void);
 int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *);
 
-void StreamTcpCreateTestPacket(u_int8_t *, u_int8_t, u_int8_t, uint8_t);
+void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 
 void StreamL7DataPtrInit(TcpSession *ssn, uint8_t cnt);
-
 void StreamTcpSetSessionNoReassemblyFlag (TcpSession *, char );
+void StreamTcpSetOSPolicy(TcpStream *, Packet *);
 
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 

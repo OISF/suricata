@@ -16,6 +16,7 @@
 #include "flow.h"
 #include "threads.h"
 #include "conf.h"
+#include "conf-yaml-loader.h"
 
 #include "threadvars.h"
 #include "tm-modules.h"
@@ -32,6 +33,7 @@
 #include "stream-tcp.h"
 
 #include "app-layer-parser.h"
+#include "util-host-os-info.h"
 
 //#define DEBUG
 
@@ -55,6 +57,7 @@ void StreamTcpInitConfig(char);
 extern void StreamTcpSegmentReturntoPool(TcpSegment *);
 int StreamTcpGetFlowState(void *);
 static int ValidTimestamp(TcpSession * , Packet *);
+void StreamTcpSetOSPolicy(TcpStream*, Packet*);
 
 #ifndef UNITTESTS
 #define STREAMTCP_DEFAULT_SESSIONS      262144
@@ -348,6 +351,42 @@ static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
         p->flowflags &= ~FLOW_PKT_TOCLIENT;
         p->flowflags |= FLOW_PKT_TOSERVER;
     }
+}
+
+/**
+ *  \brief  Function to set the OS policy for the given stream based on the
+ *          destination of the received packet.
+ *
+ *  \param  stream  TcpStream of which os_policy needs to set
+ *  \param  p       Packet which is used to set the os policy
+ */
+void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
+{
+    int ret = 0;
+
+    if (PKT_IS_IPV4(p)) {
+        /* Get the OS policy based on destination IP address, as destination
+           OS will decide how to react on the anomalies of newly received
+           packets */
+        ret = SCHInfoGetIPv4HostOSFlavour((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
+        if (ret > 0)
+            stream->os_policy = ret;
+        else
+            stream->os_policy = OS_POLICY_DEFAULT;
+
+    } else if (PKT_IS_IPV6(p)) {
+        /* Get the OS policy based on destination IP address, as destination
+           OS will decide how to react on the anomalies of newly received
+           packets */
+        ret = SCHInfoGetIPv6HostOSFlavour((uint8_t *)GET_IPV6_DST_ADDR(p));
+        if (ret > 0)
+            stream->os_policy = ret;
+        else
+            stream->os_policy = OS_POLICY_DEFAULT;
+    }
+
+    SCLogDebug("Policy is %"PRIu8"", stream->os_policy);
+
 }
 
 /**
@@ -2402,10 +2441,19 @@ static int ValidReset(TcpSession *ssn, Packet *p)
             return -1;
     }
 
-    if (PKT_IS_TOSERVER(p))
+    /* Set up the os_policy to be used in validating the RST packets based on
+       target system */
+    if (PKT_IS_TOSERVER(p)) {
+        if (ssn->server.os_policy == 0)
+            StreamTcpSetOSPolicy(&ssn->server, p);
+
         os_policy = ssn->server.os_policy;
-    else
+    } else {
+        if (ssn->client.os_policy == 0)
+            StreamTcpSetOSPolicy(&ssn->server, p);
+
         os_policy = ssn->client.os_policy;
+    }
 
     switch (os_policy) {
         case OS_POLICY_HPUX11:
@@ -2568,6 +2616,10 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p)
         sender_stream = &ssn->server;
         receiver_stream = &ssn->client;
     }
+    /* Set up the os_policy to be used in validating the timestamps based on
+       the target system */
+    if (receiver_stream->os_policy == 0)
+        StreamTcpSetOSPolicy(receiver_stream, p);
 
     if (p->tcpvars.ts != NULL) {
         uint32_t ts = TCP_GET_TSVAL(p);
@@ -2684,7 +2736,8 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p)
     return ret;
 }
 
-/** \brief Set the No reassembly flag for the given direction in given TCP session.
+/** \brief  Set the No reassembly flag for the given direction in given TCP
+ *          session.
  *
  * \param ssn TCP Session to set the flag in
  * \param direction direction to set the flag in
@@ -2882,7 +2935,7 @@ static int StreamTcpTest03 (void) {
     if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
         goto end;
 
-    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 20 ||
+    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 20 &&
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 11)
         goto end;
 
@@ -2943,7 +2996,7 @@ static int StreamTcpTest04 (void) {
     if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
         goto end;
 
-    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 10 ||
+    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 10 &&
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 20)
         goto end;
 
@@ -3042,7 +3095,7 @@ static int StreamTcpTest05 (void) {
     if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
         goto end;
 
-    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 16 ||
+    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 16 &&
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 23)
         goto end;
 
@@ -3173,7 +3226,9 @@ static int StreamTcpTest07 (void) {
 
     if (StreamTcpPacket(&tv, &p, &stt) == -1) {
         if (((TcpSession *) (p.flow->protoctx))->client.next_seq != 11) {
-            printf("the timestamp values are client %"PRIu32" server %" PRIu32 " seq %" PRIu32 "\n", TCP_GET_TSVAL(&p), TCP_GET_TSECR(&p), ((TcpSession *) (p.flow->protoctx))->client.next_seq);
+            printf("the timestamp values are client %"PRIu32" server %" PRIu32""
+                    " seq %" PRIu32 "\n", TCP_GET_TSVAL(&p), TCP_GET_TSECR(&p),
+                    ((TcpSession *) (p.flow->protoctx))->client.next_seq);
             goto end;
         }
 
@@ -3259,7 +3314,9 @@ static int StreamTcpTest08 (void) {
         goto end;
 
     if (((TcpSession *) (p.flow->protoctx))->client.next_seq != 12) {
-        printf("the timestamp values are client %"PRIu32" server %" PRIu32 " seq %" PRIu32 "\n", TCP_GET_TSVAL(&p), TCP_GET_TSECR(&p), ((TcpSession *) (p.flow->protoctx))->client.next_seq);
+        printf("the timestamp values are client %"PRIu32" server %" PRIu32 " "
+                "seq %" PRIu32 "\n", TCP_GET_TSVAL(&p), TCP_GET_TSECR(&p),
+                ((TcpSession *) (p.flow->protoctx))->client.next_seq);
         goto end;
     }
 
@@ -3272,8 +3329,8 @@ end:
 }
 
 /**
- *  \test   Test the working of No stream reassembly flag. The stream will not reassemble the
- *          segment if the flag is set.
+ *  \test   Test the working of No stream reassembly flag. The stream will not
+ *          reassemble the segment if the flag is set.
  *
  *  \retval On success it returns 1 and on failure 0.
  */
@@ -3423,9 +3480,10 @@ static int StreamTcpTest10 (void) {
         goto end;
     }
 
-    if (((TcpSession *)(p.flow->protoctx))->client.last_ack != 6 ||
+    if (((TcpSession *)(p.flow->protoctx))->client.last_ack != 6 &&
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 11) {
-        printf("failed in seq %"PRIu32" match\n",((TcpSession *)(p.flow->protoctx))->client.last_ack);
+        printf("failed in seq %"PRIu32" match\n",
+                ((TcpSession *)(p.flow->protoctx))->client.last_ack);
         goto end;
     }
 
@@ -3517,9 +3575,10 @@ static int StreamTcpTest11 (void) {
         goto end;
     }
 
-    if (((TcpSession *)(p.flow->protoctx))->server.last_ack != 2 ||
+    if (((TcpSession *)(p.flow->protoctx))->server.last_ack != 2 &&
             ((TcpSession *)(p.flow->protoctx))->client.next_seq != 1) {
-        printf("failed in seq %"PRIu32" match\n",((TcpSession *)(p.flow->protoctx))->server.last_ack);
+        printf("failed in seq %"PRIu32" match\n",
+                ((TcpSession *)(p.flow->protoctx))->server.last_ack);
         goto end;
     }
 
@@ -3603,9 +3662,10 @@ static int StreamTcpTest12 (void) {
         goto end;
     }
 
-    if (((TcpSession *)(p.flow->protoctx))->client.last_ack != 6 ||
+    if (((TcpSession *)(p.flow->protoctx))->client.last_ack != 6 &&
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 11) {
-        printf("failed in seq %"PRIu32" match\n",((TcpSession *)(p.flow->protoctx))->client.last_ack);
+        printf("failed in seq %"PRIu32" match\n",
+                ((TcpSession *)(p.flow->protoctx))->client.last_ack);
         goto end;
     }
 
@@ -3702,17 +3762,273 @@ static int StreamTcpTest13 (void) {
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
         goto end;
 
-    if (((TcpSession *)(p.flow->protoctx))->client.last_ack != 9 ||
+    if (((TcpSession *)(p.flow->protoctx))->client.last_ack != 9 &&
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 14) {
-        printf("failed in seq %"PRIu32" match\n",((TcpSession *)(p.flow->protoctx))->client.last_ack);
+        printf("failed in seq %"PRIu32" match\n",
+                ((TcpSession *)(p.flow->protoctx))->client.last_ack);
         goto end;
     }
 
+    StreamTcpSessionPktFree(&p);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
+/* Dummy conf string to setup the OS policy for unit testing */
+static const char *dummy_conf_string =
+    "default-log-dir: /var/log/eidps\n"
+    "\n"
+    "logging:\n"
+    "\n"
+    "  default-log-level: debug\n"
+    "\n"
+    "  default-format: \"<%t> - <%l>\"\n"
+    "\n"
+    "  default-startup-message: Your IDS has started.\n"
+    "\n"
+    "  default-output-filter:\n"
+    "\n"
+    "host-os-policy:\n"
+    "\n"
+    " windows: 192.168.0.1\n"
+    "\n"
+    " linux: 192.168.0.2\n"
+    "\n";
+/* Dummy conf string to setup the OS policy for unit testing */
+static const char *dummy_conf_string1 =
+    "default-log-dir: /var/log/eidps\n"
+    "\n"
+    "logging:\n"
+    "\n"
+    "  default-log-level: debug\n"
+    "\n"
+    "  default-format: \"<%t> - <%l>\"\n"
+    "\n"
+    "  default-startup-message: Your IDS has started.\n"
+    "\n"
+    "  default-output-filter:\n"
+    "\n"
+    "host-os-policy:\n"
+    "\n"
+    " windows: 192.168.0.0/24," "192.168.1.1\n"
+    "\n"
+    " linux: 192.168.1.0/24," "192.168.0.1\n"
+    "\n";
+
+/**
+ *  \brief  Function to parse the dummy conf string and get the value of IP
+ *          address for the corresponding OS policy type.
+ *
+ *  \param  conf_val_name   Name of the OS policy type
+ *  \retval returns IP address as string on success and NULL on failure
+ */
+char *StreamTcpParseOSPolicy (char *conf_var_name)
+{
+    SCEnter();
+    char conf_var_type_name[15] = "host-os-policy";
+    char *conf_var_full_name = NULL;
+    char *conf_var_value = NULL;
+
+    if (conf_var_name == NULL)
+        goto end;
+
+    /* the + 2 is for the '.' and the string termination character '\0' */
+    conf_var_full_name = (char *)malloc(strlen(conf_var_type_name) +
+                                        strlen(conf_var_name) + 2);
+    if (conf_var_full_name == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        goto end;
+    }
+
+    if (snprintf(conf_var_full_name,
+                 strlen(conf_var_type_name) + strlen(conf_var_name) + 2, "%s.%s",
+                 conf_var_type_name, conf_var_name) < 0) {
+        SCLogError(SC_LOG_ERROR, "Error in making the conf full name");
+        goto end;
+    }
+
+    if (ConfGet(conf_var_full_name, &conf_var_value) != 1) {
+        SCLogError(SC_LOG_ERROR, "Error in getting conf value for conf name %s",
+                    conf_var_full_name);
+        goto end;
+    }
+
+    SCLogDebug("Value obtained from the yaml conf file, for the var "
+               "\"%s\" is \"%s\"", conf_var_name, conf_var_value);
+
+ end:
+    if (conf_var_full_name != NULL)
+        free(conf_var_full_name);
+    SCReturnCharPtr(conf_var_value);
+
+
+}
+/**
+ *  \test   Test the setting up a OS policy. Te OS policy values are defined in
+ *          the config string "dummy_conf_string"
+ *
+ *  \retval On success it returns 1 and on failure 0
+ */
+
+static int StreamTcpTest14 (void) {
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    u_int8_t payload[4];
+    struct in_addr addr;
+    IPV4Hdr ipv4h;
+    char os_policy_name[10] = "windows";
+    char *ip_addr;
+
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    memset(&addr, 0, sizeof(addr));
+    memset(&ipv4h, 0, sizeof(ipv4h));
+    p.flow = &f;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* Load the config string in to parser */
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    /* Get the IP address as string and add it to Host info tree for lookups */
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+    strcpy(os_policy_name, "linux\0");
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    addr.s_addr = inet_addr("192.168.0.1");
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_ACK|TH_PUSH;
+    p.tcph = &tcph;
+    p.dst.family = AF_INET;
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+    p.ip4h = &ipv4h;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, sizeof(payload)); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x42, 3, sizeof(payload)); /*BBB*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(15);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x43, 3, sizeof(payload)); /*CCC*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(14);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x43, 3, sizeof(payload)); /*CCC*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    addr.s_addr = inet_addr("192.168.0.2");
+    p.tcph->th_seq = htonl(25);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+
+    StreamTcpCreateTestPacket(payload, 0x44, 3, sizeof(payload)); /*DDD*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(24);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x44, 3, sizeof(payload)); /*DDD*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if (stream_config.midstream != TRUE) {
+        ret = 1;
+        goto end;
+    }
+    if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
+        goto end;
+
+    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 13 &&
+            ((TcpSession *)(p.flow->protoctx))->server.next_seq != 23) {
+        printf("failed in next_seq match client.next_seq %"PRIu32""
+                " server.next_seq %"PRIu32"\n",
+                ((TcpSession *)(p.flow->protoctx))->client.next_seq,
+                ((TcpSession *)(p.flow->protoctx))->server.next_seq);
+        goto end;
+    }
+
+    if (((TcpSession *)(p.flow->protoctx))->client.os_policy !=
+            OS_POLICY_WINDOWS && ((TcpSession *)
+            (p.flow->protoctx))->server.os_policy != OS_POLICY_LINUX)
+    {
+        printf("failed in setting up OS policy, client.os_policy: %"PRIu8""
+                " should be %"PRIu8" and server.os_policy: %"PRIu8""
+                " should be %"PRIu8"\n", ((TcpSession *)
+                (p.flow->protoctx))->client.os_policy, OS_POLICY_WINDOWS,
+                ((TcpSession *)(p.flow->protoctx))->server.os_policy,
+                OS_POLICY_LINUX);
+        goto end;
+    }
     StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
     StreamTcpFreeConfig(TRUE);
+    ConfDeInit();
+    ConfRestoreContextBackup();
     return ret;
 }
 
@@ -3926,27 +4242,784 @@ end:
     return ret;
 }
 
+/**
+ *  \test   Test the setting up a OS policy. Te OS policy values are defined in
+ *          the config string "dummy_conf_string1"
+ *
+ *  \retval On success it returns 1 and on failure 0
+ */
+
+static int StreamTcpTest15 (void) {
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    u_int8_t payload[4];
+    struct in_addr addr;
+    IPV4Hdr ipv4h;
+    char os_policy_name[10] = "windows";
+    char *ip_addr;
+
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    memset(&addr, 0, sizeof(addr));
+    memset(&ipv4h, 0, sizeof(ipv4h));
+    p.flow = &f;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* Load the config string in to parser */
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+
+    /* Get the IP address as string and add it to Host info tree for lookups */
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+    strcpy(os_policy_name, "linux\0");
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    addr.s_addr = inet_addr("192.168.0.20");
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_ACK|TH_PUSH;
+    p.tcph = &tcph;
+    p.dst.family = AF_INET;
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+    p.ip4h = &ipv4h;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, sizeof(payload)); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x42, 3, sizeof(payload)); /*BBB*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(15);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x43, 3, sizeof(payload)); /*CCC*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(14);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x43, 3, sizeof(payload)); /*CCC*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    addr.s_addr = inet_addr("192.168.1.20");
+    p.tcph->th_seq = htonl(25);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+
+    StreamTcpCreateTestPacket(payload, 0x44, 3, sizeof(payload)); /*DDD*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(24);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x44, 3, sizeof(payload)); /*DDD*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if (stream_config.midstream != TRUE) {
+        ret = 1;
+        goto end;
+    }
+    if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
+        goto end;
+
+    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 13 &&
+            ((TcpSession *)(p.flow->protoctx))->server.next_seq != 23) {
+        printf("failed in next_seq match client.next_seq %"PRIu32""
+                " server.next_seq %"PRIu32"\n",
+                ((TcpSession *)(p.flow->protoctx))->client.next_seq,
+                ((TcpSession *)(p.flow->protoctx))->server.next_seq);
+        goto end;
+    }
+
+    if (((TcpSession *)(p.flow->protoctx))->client.os_policy !=
+            OS_POLICY_WINDOWS && ((TcpSession *)
+            (p.flow->protoctx))->server.os_policy != OS_POLICY_LINUX)
+    {
+        printf("failed in setting up OS policy, client.os_policy: %"PRIu8""
+                " should be %"PRIu8" and server.os_policy: %"PRIu8""
+                " should be %"PRIu8"\n", ((TcpSession *)
+                (p.flow->protoctx))->client.os_policy, OS_POLICY_WINDOWS,
+                ((TcpSession *)(p.flow->protoctx))->server.os_policy,
+                OS_POLICY_LINUX);
+        goto end;
+    }
+    StreamTcpSessionPktFree(&p);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return ret;
+}
+
+/**
+ *  \test   Test the setting up a OS policy. Te OS policy values are defined in
+ *          the config string "dummy_conf_string1"
+ *
+ *  \retval On success it returns 1 and on failure 0
+ */
+
+static int StreamTcpTest16 (void) {
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    u_int8_t payload[4];
+    struct in_addr addr;
+    IPV4Hdr ipv4h;
+    char os_policy_name[10] = "windows";
+    char *ip_addr;
+
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    memset(&addr, 0, sizeof(addr));
+    memset(&ipv4h, 0, sizeof(ipv4h));
+    p.flow = &f;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* Load the config string in to parser */
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+
+    /* Get the IP address as string and add it to Host info tree for lookups */
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+    strcpy(os_policy_name, "linux\0");
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    addr.s_addr = inet_addr("192.168.0.1");
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_ACK|TH_PUSH;
+    p.tcph = &tcph;
+    p.dst.family = AF_INET;
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+    p.ip4h = &ipv4h;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, sizeof(payload)); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x42, 3, sizeof(payload)); /*BBB*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(15);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x43, 3, sizeof(payload)); /*CCC*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(14);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x43, 3, sizeof(payload)); /*CCC*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    addr.s_addr = inet_addr("192.168.1.1");
+    p.tcph->th_seq = htonl(25);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+
+    StreamTcpCreateTestPacket(payload, 0x44, 3, sizeof(payload)); /*DDD*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(24);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x44, 3, sizeof(payload)); /*DDD*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if (stream_config.midstream != TRUE) {
+        ret = 1;
+        goto end;
+    }
+    if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
+        goto end;
+
+    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 13 &&
+            ((TcpSession *)(p.flow->protoctx))->server.next_seq != 23) {
+        printf("failed in next_seq match client.next_seq %"PRIu32""
+                " server.next_seq %"PRIu32"\n",
+                ((TcpSession *)(p.flow->protoctx))->client.next_seq,
+                ((TcpSession *)(p.flow->protoctx))->server.next_seq);
+        goto end;
+    }
+
+    if (((TcpSession *)(p.flow->protoctx))->client.os_policy !=
+            OS_POLICY_LINUX && ((TcpSession *)
+            (p.flow->protoctx))->server.os_policy != OS_POLICY_WINDOWS)
+    {
+        printf("failed in setting up OS policy, client.os_policy: %"PRIu8""
+                " should be %"PRIu8" and server.os_policy: %"PRIu8""
+                " should be %"PRIu8"\n", ((TcpSession *)
+                (p.flow->protoctx))->client.os_policy, OS_POLICY_LINUX,
+                ((TcpSession *)(p.flow->protoctx))->server.os_policy,
+                OS_POLICY_WINDOWS);
+        goto end;
+    }
+    StreamTcpSessionPktFree(&p);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return ret;
+}
+
+/**
+ *  \test   Test the setting up a OS policy. Te OS policy values are defined in
+ *          the config string "dummy_conf_string1". To check the setting of
+ *          Default os policy
+ *
+ *  \retval On success it returns 1 and on failure 0
+ */
+
+static int StreamTcpTest17 (void) {
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    u_int8_t payload[4];
+    struct in_addr addr;
+    IPV4Hdr ipv4h;
+    char os_policy_name[10] = "windows";
+    char *ip_addr;
+
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    memset(&addr, 0, sizeof(addr));
+    memset(&ipv4h, 0, sizeof(ipv4h));
+    p.flow = &f;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* Load the config string in to parser */
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+
+    /* Get the IP address as string and add it to Host info tree for lookups */
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+    strcpy(os_policy_name, "linux\0");
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    addr.s_addr = inet_addr("192.168.0.1");
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_ACK|TH_PUSH;
+    p.tcph = &tcph;
+    p.dst.family = AF_INET;
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+    p.ip4h = &ipv4h;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, sizeof(payload)); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x42, 3, sizeof(payload)); /*BBB*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(15);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x43, 3, sizeof(payload)); /*CCC*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(14);
+    p.tcph->th_ack = htonl(23);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x43, 3, sizeof(payload)); /*CCC*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    addr.s_addr = inet_addr("10.1.1.1");
+    p.tcph->th_seq = htonl(25);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+
+    StreamTcpCreateTestPacket(payload, 0x44, 3, sizeof(payload)); /*DDD*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(24);
+    p.tcph->th_ack = htonl(13);
+    p.tcph->th_flags = TH_ACK|TH_PUSH;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x44, 3, sizeof(payload)); /*DDD*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    if (stream_config.midstream != TRUE) {
+        ret = 1;
+        goto end;
+    }
+    if (((TcpSession *)(p.flow->protoctx))->state != TCP_ESTABLISHED)
+        goto end;
+
+    if (((TcpSession *)(p.flow->protoctx))->client.next_seq != 13 &&
+            ((TcpSession *)(p.flow->protoctx))->server.next_seq != 23) {
+        printf("failed in next_seq match client.next_seq %"PRIu32""
+                " server.next_seq %"PRIu32"\n",
+                ((TcpSession *)(p.flow->protoctx))->client.next_seq,
+                ((TcpSession *)(p.flow->protoctx))->server.next_seq);
+        goto end;
+    }
+
+    if (((TcpSession *)(p.flow->protoctx))->client.os_policy !=
+            OS_POLICY_LINUX && ((TcpSession *)
+            (p.flow->protoctx))->server.os_policy != OS_POLICY_DEFAULT)
+    {
+        printf("failed in setting up OS policy, client.os_policy: %"PRIu8""
+                " should be %"PRIu8" and server.os_policy: %"PRIu8""
+                " should be %"PRIu8"\n", ((TcpSession *)
+                (p.flow->protoctx))->client.os_policy, OS_POLICY_LINUX,
+                ((TcpSession *)(p.flow->protoctx))->server.os_policy,
+                OS_POLICY_DEFAULT);
+        goto end;
+    }
+    StreamTcpSessionPktFree(&p);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return ret;
+}
+
+/** \test   Test the various OS policies based on different IP addresses from
+            confuguration defined in 'dummy_conf_string1' */
+static int StreamTcpTest18 (void) {
+
+    struct in_addr addr;
+    char os_policy_name[10] = "windows";
+    char *ip_addr;
+    TcpStream stream;
+    Packet p;
+    IPV4Hdr ipv4h;
+    int ret = 0;
+
+    memset(&addr, 0, sizeof(addr));
+    memset(&stream, 0, sizeof(stream));
+    memset(&p, 0, sizeof(p));
+    memset(&ipv4h, 0, sizeof(ipv4h));
+
+    StreamTcpInitConfig(TRUE);
+    SCHInfoCleanResources();
+
+    /* Load the config string in to parser */
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+
+    /* Get the IP address as string and add it to Host info tree for lookups */
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+
+    p.dst.family = AF_INET;
+    p.ip4h = &ipv4h;
+    addr.s_addr = inet_addr("192.168.1.1");
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+    StreamTcpSetOSPolicy(&stream, &p);
+
+    if (stream.os_policy != OS_POLICY_WINDOWS)
+        goto end;
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return ret;
+}
+/** \test   Test the various OS policies based on different IP addresses from
+            confuguration defined in 'dummy_conf_string1' */
+static int StreamTcpTest19 (void) {
+
+    struct in_addr addr;
+    char os_policy_name[10] = "windows";
+    char *ip_addr;
+    TcpStream stream;
+    Packet p;
+    IPV4Hdr ipv4h;
+    int ret = 0;
+
+    memset(&addr, 0, sizeof(addr));
+    memset(&stream, 0, sizeof(stream));
+    memset(&p, 0, sizeof(p));
+    memset(&ipv4h, 0, sizeof(ipv4h));
+
+    StreamTcpInitConfig(TRUE);
+    SCHInfoCleanResources();
+
+    /* Load the config string in to parser */
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+
+    /* Get the IP address as string and add it to Host info tree for lookups */
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+
+    p.dst.family = AF_INET;
+    p.ip4h = &ipv4h;
+    addr.s_addr = inet_addr("192.168.0.30");
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+    StreamTcpSetOSPolicy(&stream, &p);
+
+    if (stream.os_policy != OS_POLICY_WINDOWS) {
+        printf("expected os_policy: %"PRIu8" but received %"PRIu8": ",
+                OS_POLICY_WINDOWS, stream.os_policy);
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return ret;
+}
+/** \test   Test the various OS policies based on different IP addresses from
+            confuguration defined in 'dummy_conf_string1' */
+static int StreamTcpTest20 (void) {
+
+    struct in_addr addr;
+    char os_policy_name[10] = "linux";
+    char *ip_addr;
+    TcpStream stream;
+    Packet p;
+    IPV4Hdr ipv4h;
+    int ret = 0;
+
+    memset(&addr, 0, sizeof(addr));
+    memset(&stream, 0, sizeof(stream));
+    memset(&p, 0, sizeof(p));
+    memset(&ipv4h, 0, sizeof(ipv4h));
+
+    StreamTcpInitConfig(TRUE);
+    SCHInfoCleanResources();
+
+    /* Load the config string in to parser */
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+
+    /* Get the IP address as string and add it to Host info tree for lookups */
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+
+    p.dst.family = AF_INET;
+    p.ip4h = &ipv4h;
+    addr.s_addr = inet_addr("192.168.0.1");
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+    StreamTcpSetOSPolicy(&stream, &p);
+
+    if (stream.os_policy != OS_POLICY_LINUX) {
+        printf("expected os_policy: %"PRIu8" but received %"PRIu8"\n",
+                OS_POLICY_LINUX, stream.os_policy);
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return ret;
+}
+/** \test   Test the various OS policies based on different IP addresses from
+            confuguration defined in 'dummy_conf_string1' */
+static int StreamTcpTest21 (void) {
+
+    struct in_addr addr;
+    char os_policy_name[10] = "linux";
+    char *ip_addr;
+    TcpStream stream;
+    Packet p;
+    IPV4Hdr ipv4h;
+    int ret = 0;
+
+    memset(&addr, 0, sizeof(addr));
+    memset(&stream, 0, sizeof(stream));
+    memset(&p, 0, sizeof(p));
+    memset(&ipv4h, 0, sizeof(ipv4h));
+
+    StreamTcpInitConfig(TRUE);
+    SCHInfoCleanResources();
+
+    /* Load the config string in to parser */
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+
+    /* Get the IP address as string and add it to Host info tree for lookups */
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+
+    p.dst.family = AF_INET;
+    p.ip4h = &ipv4h;
+    addr.s_addr = inet_addr("192.168.1.30");
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+    StreamTcpSetOSPolicy(&stream, &p);
+
+    if (stream.os_policy != OS_POLICY_LINUX) {
+        printf("expected os_policy: %"PRIu8" but received %"PRIu8"\n",
+                OS_POLICY_LINUX, stream.os_policy);
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return ret;
+}
+/** \test   Test the various OS policies based on different IP addresses from
+            confuguration defined in 'dummy_conf_string1' */
+static int StreamTcpTest22 (void) {
+
+    struct in_addr addr;
+    char os_policy_name[10] = "windows";
+    char *ip_addr;
+    TcpStream stream;
+    Packet p;
+    IPV4Hdr ipv4h;
+    int ret = 0;
+
+    memset(&addr, 0, sizeof(addr));
+    memset(&stream, 0, sizeof(stream));
+    memset(&p, 0, sizeof(p));
+    memset(&ipv4h, 0, sizeof(ipv4h));
+
+    StreamTcpInitConfig(TRUE);
+    SCHInfoCleanResources();
+
+    /* Load the config string in to parser */
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+
+    /* Get the IP address as string and add it to Host info tree for lookups */
+    ip_addr = StreamTcpParseOSPolicy(os_policy_name);
+    SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
+
+    p.dst.family = AF_INET;
+    p.ip4h = &ipv4h;
+    addr.s_addr = inet_addr("123.231.2.1");
+    p.dst.address.address_un_data32[0] = addr.s_addr;
+    StreamTcpSetOSPolicy(&stream, &p);
+
+    if (stream.os_policy != OS_POLICY_DEFAULT) {
+        printf("expected os_policy: %"PRIu8" but received %"PRIu8"\n",
+                OS_POLICY_DEFAULT, stream.os_policy);
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return ret;
+}
 #endif /* UNITTESTS */
 
 void StreamTcpRegisterTests (void) {
 #ifdef UNITTESTS
-    UtRegisterTest("StreamTcpTest01 -- TCP session allocation", StreamTcpTest01, 1);
-    UtRegisterTest("StreamTcpTest02 -- TCP session deallocation", StreamTcpTest02, 1);
-    UtRegisterTest("StreamTcpTest03 -- SYN missed MidStream session", StreamTcpTest03, 1);
-    UtRegisterTest("StreamTcpTest04 -- SYN/ACK missed MidStream session", StreamTcpTest04, 1);
-    UtRegisterTest("StreamTcpTest05 -- 3WHS missed MidStream session", StreamTcpTest05, 1);
-    UtRegisterTest("StreamTcpTest06 -- FIN, RST message MidStream session", StreamTcpTest06, 1);
-    UtRegisterTest("StreamTcpTest07 -- PAWS invalid timestamp", StreamTcpTest07, 1);
-    UtRegisterTest("StreamTcpTest08 -- PAWS valid timestamp", StreamTcpTest08, 1);
-    UtRegisterTest("StreamTcpTest09 -- No Client Reassembly", StreamTcpTest09, 1);
-    UtRegisterTest("StreamTcpTest10 -- No missed packet Async stream", StreamTcpTest10, 1);
-    UtRegisterTest("StreamTcpTest11 -- SYN missed Async stream", StreamTcpTest11, 1);
-    UtRegisterTest("StreamTcpTest12 -- SYN/ACK missed Async stream", StreamTcpTest12, 1);
-    UtRegisterTest("StreamTcpTest13 -- opposite stream packets for Async stream", StreamTcpTest13, 1);
-
-    UtRegisterTest("StreamTcp4WHSTest01 -- 4WHS setup", StreamTcp4WHSTest01, 1);
-    UtRegisterTest("StreamTcp4WHSTest02 -- 4WHS invalid setup", StreamTcp4WHSTest02, 1);
-    UtRegisterTest("StreamTcp4WHSTest03 -- 4WHS turning out as normal 3WHS", StreamTcp4WHSTest03, 1);
+    UtRegisterTest("StreamTcpTest01 -- TCP session allocation",
+                    StreamTcpTest01, 1);
+    UtRegisterTest("StreamTcpTest02 -- TCP session deallocation",
+                    StreamTcpTest02, 1);
+    UtRegisterTest("StreamTcpTest03 -- SYN missed MidStream session",
+                    StreamTcpTest03, 1);
+    UtRegisterTest("StreamTcpTest04 -- SYN/ACK missed MidStream session",
+                    StreamTcpTest04, 1);
+    UtRegisterTest("StreamTcpTest05 -- 3WHS missed MidStream session",
+                    StreamTcpTest05, 1);
+    UtRegisterTest("StreamTcpTest06 -- FIN, RST message MidStream session",
+                    StreamTcpTest06, 1);
+    UtRegisterTest("StreamTcpTest07 -- PAWS invalid timestamp",
+                    StreamTcpTest07, 1);
+    UtRegisterTest("StreamTcpTest08 -- PAWS valid timestamp",
+                    StreamTcpTest08, 1);
+    UtRegisterTest("StreamTcpTest09 -- No Client Reassembly",
+                    StreamTcpTest09, 1);
+    UtRegisterTest("StreamTcpTest10 -- No missed packet Async stream",
+                    StreamTcpTest10, 1);
+    UtRegisterTest("StreamTcpTest11 -- SYN missed Async stream",
+                    StreamTcpTest11, 1);
+    UtRegisterTest("StreamTcpTest12 -- SYN/ACK missed Async stream",
+                    StreamTcpTest12, 1);
+    UtRegisterTest("StreamTcpTest13 -- opposite stream packets for Async "
+                   "stream", StreamTcpTest13, 1);
+    UtRegisterTest("StreamTcp4WHSTest01", StreamTcp4WHSTest01, 1);
+    UtRegisterTest("StreamTcp4WHSTest02", StreamTcp4WHSTest02, 1);
+    UtRegisterTest("StreamTcp4WHSTest03", StreamTcp4WHSTest03, 1);
+    UtRegisterTest("StreamTcpTest14 -- setup OS policy", StreamTcpTest14, 1);
+    UtRegisterTest("StreamTcpTest15 -- setup OS policy", StreamTcpTest15, 1);
+    UtRegisterTest("StreamTcpTest16 -- setup OS policy", StreamTcpTest16, 1);
+    UtRegisterTest("StreamTcpTest17 -- setup OS policy", StreamTcpTest17, 1);
+    UtRegisterTest("StreamTcpTest18 -- setup OS policy", StreamTcpTest18, 1);
+    UtRegisterTest("StreamTcpTest19 -- setup OS policy", StreamTcpTest19, 1);
+    UtRegisterTest("StreamTcpTest20 -- setup OS policy", StreamTcpTest20, 1);
+    UtRegisterTest("StreamTcpTest21 -- setup OS policy", StreamTcpTest21, 1);
+    UtRegisterTest("StreamTcpTest22 -- setup OS policy", StreamTcpTest22, 1);
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
 #endif /* UNITTESTS */

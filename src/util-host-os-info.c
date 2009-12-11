@@ -179,11 +179,13 @@ static void SCHInfoMaskIPNetblock(uint8_t *stream, int netmask, int bitlen)
 int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
 {
     char *ip_str = NULL;
+    char *ip_str_rem = NULL;
     struct in_addr *ipv4_addr = NULL;
     struct in6_addr *ipv6_addr = NULL;
     char *netmask_str = NULL;
     int netmask_value = 0;
     int *user_data = NULL;
+    char recursive = FALSE;
 
     if (host_os == NULL || host_os_ip_range == NULL) {
         SCLogError(SC_INVALID_ARGUMENT, "Invalid arguments");
@@ -212,6 +214,13 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
     if ( (ip_str = strdup(host_os_ip_range)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
+    }
+
+    /* check if we have more addresses in the host_os_ip_range */
+    if ((ip_str_rem = index(ip_str, ',')) != NULL) {
+        ip_str_rem[0] = '\0';
+        ip_str_rem++;
+        recursive = TRUE;
     }
 
     /* check if we have received a netblock */
@@ -264,6 +273,11 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
             SCRadixAddKeyIPV6Netblock((uint8_t *)ipv6_addr, sc_hinfo_tree,
                                       (void *)user_data, netmask_value);
         }
+    }
+
+    if (recursive == TRUE) {
+        recursive = FALSE;
+        SCHInfoAddHostOSInfo(host_os, ip_str_rem, is_ipv4);
     }
 
     return *user_data;

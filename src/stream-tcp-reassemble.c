@@ -24,6 +24,7 @@
 #include "util-pool.h"
 #include "util-unittest.h"
 #include "util-print.h"
+#include "util-host-os-info.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
@@ -44,11 +45,11 @@ static uint64_t segment_pool_memcnt = 0;
 
 /* prototypes */
 static int HandleSegmentStartsBeforeListSegment(TcpStream *, TcpSegment *,
-                                                TcpSegment *, uint8_t);
+                                                TcpSegment *);
 static int HandleSegmentStartsAtSameListSegment(TcpStream *, TcpSegment *,
-                                                TcpSegment *, uint8_t);
+                                                TcpSegment *);
 static int HandleSegmentStartsAfterListSegment(TcpStream *, TcpSegment *,
-                                               TcpSegment *, uint8_t);
+                                               TcpSegment *);
 void StreamTcpSegmentDataReplace(TcpSegment *, TcpSegment *, uint32_t, uint16_t);
 void StreamTcpSegmentDataCopy(TcpSegment *, TcpSegment *);
 TcpSegment* StreamTcpGetSegment(uint16_t);
@@ -294,16 +295,16 @@ void PrintList(TcpSegment *seg)
  *
  *  \param  stream  The given TCP stream to which this new segment belongs
  *  \param  seg     Newly arrived segment
+ *  \param  p       received packet
  */
 
-static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg)
+static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p)
 {
     SCEnter();
 
     TcpSegment *list_seg = stream->seg_list;
     TcpSegment *next_list_seg = NULL;
 
-    uint8_t os_policy = stream->os_policy;
     int ret_value = 0;
     char return_seg = FALSE;
 
@@ -327,6 +328,10 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg)
 
         goto end;
     }
+
+    /* If the OS policy is not set then set the OS policy for this stream */
+    if (stream->os_policy == 0)
+        StreamTcpSetOSPolicy(stream, p);
 
     for (; list_seg != NULL; list_seg = next_list_seg) {
         next_list_seg = list_seg->next;
@@ -357,8 +362,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg)
                 goto end;
             /* seg overlap with next seg(s) */
             } else {
-                ret_value = HandleSegmentStartsBeforeListSegment(stream,
-                                                    list_seg, seg, os_policy);
+                ret_value = HandleSegmentStartsBeforeListSegment(stream, list_seg, seg);
                 if (ret_value == 1) {
                     ret_value = 0;
                     return_seg = TRUE;
@@ -373,8 +377,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg)
             }
         /* seg starts at same sequence number as list_seg */
         } else if (SEQ_EQ(seg->seq, list_seg->seq)) {
-            ret_value = HandleSegmentStartsAtSameListSegment(stream, list_seg,
-                                                             seg, os_policy);
+            ret_value = HandleSegmentStartsAtSameListSegment(stream, list_seg, seg);
             if (ret_value == 1) {
                 ret_value = 0;
                 return_seg = TRUE;
@@ -404,8 +407,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg)
                     goto end;
                 }
             } else {
-                ret_value = HandleSegmentStartsAfterListSegment(stream,
-                                                      list_seg, seg, os_policy);
+                ret_value = HandleSegmentStartsAfterListSegment(stream, list_seg, seg);
                 if (ret_value == 1) {
                     ret_value = 0;
                     return_seg = TRUE;
@@ -441,13 +443,11 @@ end:
  *  \param  list_seg    Original Segment in the stream
  *  \param  seg         Newly arrived segment
  *  \param  prev_seg    Previous segment in the stream segment list
- *  \param  os_policy   OS_POLICY of the given stream.
  */
 
 static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                                                 TcpSegment *list_seg,
-                                                TcpSegment *seg,
-                                                uint8_t os_policy)
+                                                TcpSegment *seg)
 {
     SCEnter();
 
@@ -458,6 +458,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
     char end_after = FALSE;
     char end_same = FALSE;
     char return_after = FALSE;
+    uint8_t os_policy = stream->os_policy;
 #ifdef DEBUG
     SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "", seg->seq,
                 seg->payload_len);
@@ -754,13 +755,11 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
  *  \param  list_seg    Original Segment in the stream
  *  \param  seg         Newly arrived segment
  *  \param  prev_seg    Previous segment in the stream segment list
- *  \param  os_policy   OS_POLICY of the given stream.
  */
 
 static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
                                                 TcpSegment *list_seg,
-                                                TcpSegment *seg,
-                                                uint8_t os_policy)
+                                                TcpSegment *seg)
 {
     uint16_t overlap = 0;
     uint16_t packet_length;
@@ -768,6 +767,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
     char end_after = FALSE;
     char end_same = FALSE;
     char handle_beyond = FALSE;
+    uint8_t os_policy = stream->os_policy;
 
     if (SEQ_LT((seg->seq + seg->payload_len), (list_seg->seq +
                                                list_seg->payload_len)))
@@ -933,13 +933,11 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
  *  \param  list_seg    Original Segment in the stream
  *  \param  seg         Newly arrived segment
  *  \param  prev_seg    Previous segment in the stream segment list
- *  \param  os_policy   OS_POLICY of the given stream.
  */
 
 static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
                                                TcpSegment *list_seg,
-                                               TcpSegment *seg,
-                                               uint8_t os_policy)
+                                               TcpSegment *seg)
 {
     uint16_t overlap = 0;
     uint16_t packet_length;
@@ -947,6 +945,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
     char end_after = FALSE;
     char end_same = FALSE;
     char handle_beyond = FALSE;
+    uint8_t os_policy = stream->os_policy;
 
     if (SEQ_LT((seg->seq + seg->payload_len), (list_seg->seq +
                 list_seg->payload_len)))
@@ -1114,7 +1113,7 @@ int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
     seg->next = NULL;
     seg->prev = NULL;
 
-    if (ReassembleInsertSegment(stream, seg) != 0) {
+    if (ReassembleInsertSegment(stream, seg, p) != 0) {
         SCLogError(SC_ERR_REASSEMBLY_FAILED, "ReassembleInsertSegment failed");
         return -1;
     }

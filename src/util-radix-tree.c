@@ -1331,6 +1331,9 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(SCRadixPrefix *prefix,
 static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
                                    SCRadixTree *tree, int exact_match)
 {
+    if (tree == NULL)
+        return NULL;
+
     SCRadixNode *node = tree->head;
     SCRadixPrefix *prefix = NULL;
     int mask = 0;
