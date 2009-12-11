@@ -84,7 +84,6 @@ static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserSt
         return -1;
 
     for (u = pstate->parse_field; u < max_fields; u++) {
-        //printf("FTPParseRequestCommandLine: u %" PRIu32 "\n", u);
 
         switch(u) {
             case 0: /* REQUEST COMMAND */
@@ -93,13 +92,11 @@ static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserSt
                 int r = AlpParseFieldByDelimiter(output, pstate,
                                 FTP_FIELD_REQUEST_COMMAND, delim, sizeof(delim),
                                 input, input_len, &offset);
-                //printf("FTPParseRequestCommandLine: r = %" PRId32 "\n", r);
 
                 if (r == 0) {
                     pstate->parse_field = 0;
                     return 0;
                 }
-                //printf("Command: [%s]..ofs: %u.. ", input, offset );
                 fstate->arg_offset = offset;
                 FTPParseRequestCommand(ftp_state, input, input_len);
                 break;
@@ -122,7 +119,6 @@ static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserSt
                         fstate->port_line = memcpy(fstate->port_line, input,
                                                    input_len);
                         fstate->port_line_len = input_len;
-                        //printf("\n\nport line and args are set\n\n");
                     break;
                     default:
                     break;
@@ -150,7 +146,6 @@ static int FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate
                            *input, uint32_t input_len, AppLayerParserResult
                            *output) {
     SCEnter();
-    //printf("FTPParseRequest: ftp_state %p, state %p, input %p, input_len %" PRIu32 "\n", ftp_state, pstate, input, input_len);
     /* PrintRawDataFp(stdout, input,input_len); */
 
     uint32_t offset = 0;
@@ -158,7 +153,6 @@ static int FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate
     if (pstate == NULL)
         return -1;
 
-    //printf("FTPParseRequest: pstate->parse_field %" PRIu32 "\n", pstate->parse_field);
 
     //PrintRawDataFp(stdout, pstate->store, pstate->store_len);
 
@@ -190,7 +184,6 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                             uint8_t *input, uint32_t input_len,
                             AppLayerParserResult *output) {
     SCEnter();
-    //printf("FTPParseResponse: ftp_state %p, state %p, input %p, input_len %" PRIu32 "\n", ftp_state, pstate, input, input_len);
     //PrintRawDataFp(stdout, input,input_len);
 
     uint32_t offset = 0;
@@ -199,7 +192,6 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
     if (pstate == NULL)
         return -1;
 
-    //printf("FTPParseRequest: pstate->parse_field %" PRIu32 "\n", pstate->parse_field);
 
     const uint8_t delim[] = { 0x0D, 0x0A };
     int r = AlpParseFieldByDelimiter(output, pstate, FTP_FIELD_RESPONSE_LINE,
@@ -290,20 +282,20 @@ int FTPParserTest01(void) {
 
     int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf, ftplen, FALSE);
     if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
     FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
     if (ftp_state == NULL) {
-        printf("no ftp state: ");
+        SCLogDebug("no ftp state: ");
         result = 0;
         goto end;
     }
 
     if (ftp_state->command != FTP_COMMAND_PORT) {
-        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_PORT, ftp_state->command);
+        SCLogDebug("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_PORT, ftp_state->command);
         result = 0;
         goto end;
     }
@@ -331,34 +323,34 @@ int FTPParserTest03(void) {
 
     int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1, FALSE);
     if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
     r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2, FALSE);
     if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
     r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf3, ftplen3, FALSE);
     if (r != 0) {
-        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCLogDebug("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
     FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
     if (ftp_state == NULL) {
-        printf("no ftp state: ");
+        SCLogDebug("no ftp state: ");
         result = 0;
         goto end;
     }
 
     if (ftp_state->command != FTP_COMMAND_PORT) {
-        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_PORT, ftp_state->command);
+        SCLogDebug("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_PORT, ftp_state->command);
         result = 0;
         goto end;
     }
@@ -383,20 +375,20 @@ int FTPParserTest06(void) {
 
     int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, ftpbuf1, ftplen1, FALSE);
     if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
     FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
     if (ftp_state == NULL) {
-        printf("no ftp state: ");
+        SCLogDebug("no ftp state: ");
         result = 0;
         goto end;
     }
 
     if (ftp_state->command != FTP_COMMAND_UNKNOWN) {
-        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_UNKNOWN, ftp_state->command);
+        SCLogDebug("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_UNKNOWN, ftp_state->command);
         result = 0;
         goto end;
     }
@@ -423,27 +415,27 @@ int FTPParserTest07(void) {
 
     int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1, FALSE);
     if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
     r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf2, ftplen2, FALSE);
     if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
     FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
     if (ftp_state == NULL) {
-        printf("no ftp state: ");
+        SCLogDebug("no ftp state: ");
         result = 0;
         goto end;
     }
 
     if (ftp_state->command != FTP_COMMAND_UNKNOWN) {
-        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_UNKNOWN, ftp_state->command);
+        SCLogDebug("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_UNKNOWN, ftp_state->command);
         result = 0;
         goto end;
     }
@@ -476,7 +468,7 @@ int FTPParserTest10(void) {
 
         r = AppLayerParse(&f, ALPROTO_FTP, flags, &ftpbuf1[u], 1, FALSE);
         if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected 0: ", u, r);
+            SCLogDebug("toserver chunk %" PRIu32 " returned %" PRId32 ", expected 0: ", u, r);
             result = 0;
             goto end;
         }
@@ -484,13 +476,13 @@ int FTPParserTest10(void) {
 
     FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
     if (ftp_state == NULL) {
-        printf("no ftp state: ");
+        SCLogDebug("no ftp state: ");
         result = 0;
         goto end;
     }
 
     if (ftp_state->command != FTP_COMMAND_PORT) {
-        printf("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_PORT, ftp_state->command);
+        SCLogDebug("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_PORT, ftp_state->command);
         result = 0;
         goto end;
     }
