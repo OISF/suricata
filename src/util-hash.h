@@ -14,7 +14,9 @@ typedef struct HashTableBucket_ {
 typedef struct HashTable_ {
     HashTableBucket **array;
     uint32_t array_size;
+#ifdef UNITTESTS
     uint32_t count;
+#endif
     uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t);
     char (*Compare)(void *, uint16_t, void *, uint16_t);
     void (*Free)(void *);

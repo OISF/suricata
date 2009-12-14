@@ -183,9 +183,9 @@ int DetectClasstypeTest01()
         goto end;
     }
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Classtype test\"; "
@@ -215,9 +215,9 @@ int DetectClasstypeTest02()
         goto end;
     }
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Classtype test\"; Classtype:unknown; sid:1;)");
@@ -268,9 +268,9 @@ int DetectClasstypeTest03()
         goto end;
     }
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Classtype test\"; Classtype:bad-unknown; priority:1; sid:1;)");

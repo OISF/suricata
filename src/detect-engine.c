@@ -80,8 +80,10 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     VariableNameFreeHash(de_ctx);
     if (de_ctx->sig_array)
         free(de_ctx->sig_array);
-    free(de_ctx);
 
+    if (de_ctx->class_conf_ht != NULL)
+        free(de_ctx->class_conf_ht);
+    free(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();

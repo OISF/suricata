@@ -26,9 +26,9 @@ void SCClassConfDeAllocClasstype(SCClassConfClasstype *);
 void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *);
 void SCClassConfRegisterTests(void);
 
-void SCClassConfGenerateValidDummyClassConfigFile01(const char *);
-void SCClassConfGenerateInValidDummyClassConfigFile02(const char *);
-void SCClassConfGenerateInValidDummyClassConfigFile03(const char *);
-void SCClassConfDeleteDummyClassificationConfigFile(const char *);
+void SCClassConfGenerateValidDummyClassConfigFD01(void);
+void SCClassConfGenerateInValidDummyClassConfigFD02(void);
+void SCClassConfGenerateInValidDummyClassConfigFD03(void);
+void SCClassConfDeleteDummyClassificationConfigFD(void);
 
 #endif /* __UTIL_CLASSIFICATION_CONFIG_H__ */

@@ -293,9 +293,9 @@ int AlertFastLogTest01()
 
     de_ctx->flags |= DE_QUIET;
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Fastlog test\"; content:GET; "
@@ -346,9 +346,9 @@ int AlertFastLogTest02()
 
     de_ctx->flags |= DE_QUIET;
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Fastlog test\"; content:GET; "

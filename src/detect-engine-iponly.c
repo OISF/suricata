@@ -500,9 +500,9 @@ static int IPOnlyTestSig01(void) {
 
     memset(&de_ctx, 0, sizeof(DetectEngineCtx));
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(&de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx.flags |= DE_QUIET;
 
@@ -532,9 +532,9 @@ static int IPOnlyTestSig02 (void) {
 
     memset(&de_ctx, 0, sizeof(DetectEngineCtx));
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(&de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx.flags |= DE_QUIET;
 

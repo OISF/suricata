@@ -19,7 +19,7 @@
 #define DETECT_CLASSCONFIG_REGEX "^\\s*config\\s*classification\\s*:\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*,\\s*(.+)\\s*,\\s*(\\d+)\\s*$"
 
 /* Default path for the classification.config file */
-#define SC_CLASS_CONF_DEF_CONF_FILEPATH "/root/classification.config1"
+#define SC_CLASS_CONF_DEF_CONF_FILEPATH "~/classification.config"
 
 /* Holds a pointer to the default path for the classification.config file */
 static const char *default_file_path = SC_CLASS_CONF_DEF_CONF_FILEPATH;
@@ -81,10 +81,16 @@ static inline int SCClassConfInitContext(DetectEngineCtx *de_ctx)
         return -1;
     }
 
-    filename = SCClassConfGetConfFilename();
-    if ( (fd = fopen(filename, "r")) == NULL) {
-        SCLogError(SC_ERR_FOPEN_ERROR, "Error opening file: \"%s\"", filename);
-        goto error;
+    /* if it is not NULL, use the file descriptor.  The hack so that we can
+     * avoid using a dummy classification file for testing purposes and
+     * instead use an input stream against a buffer containing the
+     * classification strings */
+    if (fd == NULL) {
+        filename = SCClassConfGetConfFilename();
+        if ( (fd = fopen(filename, "r")) == NULL) {
+            SCLogError(SC_ERR_FOPEN_ERROR, "Error opening file: \"%s\"", filename);
+            goto error;
+        }
     }
 
     regex = pcre_compile(DETECT_CLASSCONFIG_REGEX, opts, &eb, &eo, NULL);
@@ -107,8 +113,10 @@ static inline int SCClassConfInitContext(DetectEngineCtx *de_ctx)
         HashTableFree(de_ctx->class_conf_ht);
         de_ctx->class_conf_ht = NULL;
     }
-    if (fd != NULL)
+    if (fd != NULL) {
         fclose(fd);
+        fd = NULL;
+    }
     return -1;
 }
 
@@ -119,7 +127,7 @@ static void SCClassConfDeInitContext(void)
 {
     fclose(fd);
     default_file_path = SC_CLASS_CONF_DEF_CONF_FILEPATH;
-
+    fd = NULL;
     return;
 }
 
@@ -269,8 +277,10 @@ static inline void SCClassConfParseFile(DetectEngineCtx *de_ctx)
         SCClassConfAddClasstype(line, de_ctx);
     }
 
+#ifdef UNITTESTS
     SCLogInfo("Added \"%d\" classification types from the classification file",
               de_ctx->class_conf_ht->count);
+#endif
 
     return;
 }
@@ -451,79 +461,75 @@ void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx)
  *
  * \file_path Pointer to the file_path for the dummy classification file.
  */
-void SCClassConfGenerateValidDummyClassConfigFile01(const char *file_path)
+void SCClassConfGenerateValidDummyClassConfigFD01(void)
 {
-    FILE *fd = NULL;
+    const char *buffer =
+        "config classification: not-suspicious,Not Suspicious Traffic,3\n"
+        "config classification: unknown,Unknown Traffic,3\n"
+        "config classification: bad-unknown,Potentially Bad Traffic, 2\n"
+        "config classification: attempted-recon,Attempted Information "
+        "Leak,2\n"
+        "config classification: successful-recon-limited,Information "
+        "Leak,2\n"
+        "config classification: successful-recon-largescale,Large Scale "
+        "Information Leak,2\n"
+        "config classification: attempted-dos,Attempted Denial of "
+        "Service,2\n"
+        "config classification: successful-dos,Denial of Service,2\n"
+        "config classification: attempted-user,Attempted User Privilege "
+        "Gain,1\n"
+        "config classification: unsuccessful-user,Unsuccessful User "
+        "Privilege Gain,1\n"
+        "config classification: successful-user,Successful User Privilege "
+        "Gain,1\n"
+        "config classification: attempted-admin,Attempted Administrator "
+        "Privilege Gain,1\n"
+        "config classification: successful-admin,Successful Administrator "
+        "Privilege Gain,1\n"
+        "config classification: rpc-portmap-decode,Decode of an RPC "
+        "Query,2\n"
+        "config classification: shellcode-detect,Executable code was "
+        "detected,1\n"
+        "config classification: string-detect,A suspicious string was "
+        "detected,3\n"
+        "config classification: suspicious-filename-detect,A suspicious "
+        "filename was detected,2\n"
+        "config classification: suspicious-login,An attempted login using "
+        "a suspicious username was detected,2\n"
+        "config classification: system-call-detect,A system call was "
+        "detected,2\n"
+        "config classification: tcp-connection,A TCP connection was "
+        "detected,4\n"
+        "config classification: trojan-activity,A Network Trojan was "
+        "detected, 1\n"
+        "config classification: unusual-client-port-connection,A client "
+        "was using an unusual port,2\n"
+        "config classification: network-scan,Detection of a Network "
+        "Scan,3\n"
+        "config classification: denial-of-service,Detection of a Denial "
+        "of Service Attack,2\n"
+        "config classification: non-standard-protocol,Detection of a "
+        "non-standard protocol or event,2\n"
+        "config classification: protocol-command-decode,Generic Protocol "
+        "Command Decode,3\n"
+        "config classification: web-application-activity,access to a "
+        "potentially vulnerable web application,2\n"
+        "config classification: web-application-attack,Web Application "
+        "Attack,1\n"
+        "config classification: misc-activity,Misc activity,3\n"
+        "config classification: misc-attack,Misc Attack,2\n"
+        "config classification: icmp-event,Generic ICMP event,3\n"
+        "config classification: kickass-porn,SCORE! Get the lotion!,1\n"
+        "config classification: policy-violation,Potential Corporate "
+        "Privacy Violation,1\n"
+        "config classification: default-login-attempt,Attempt to login by "
+        "a default username and password,2\n";
 
-    default_file_path = file_path;
+    fd = fmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with fmemopen() called by Classifiation Config test code");
 
-    if ( (fd = fopen(default_file_path, "w+")) == NULL) {
-        SCLogError(SC_ERR_FOPEN_ERROR, "Error opening file: \"%s\"", file_path);
-        return;
-    }
-
-    fputs("config classification: not-suspicious,Not Suspicious Traffic,3\n", fd);
-    fputs("config classification: unknown,Unknown Traffic,3\n", fd);
-    fputs("config classification: bad-unknown,Potentially Bad Traffic, 2\n", fd);
-    fputs("config classification: attempted-recon,Attempted Information "
-          "Leak,2\n", fd);
-    fputs("config classification: successful-recon-limited,Information "
-          "Leak,2\n", fd);
-    fputs("config classification: successful-recon-largescale,Large Scale "
-          "Information Leak,2\n", fd);
-    fputs("config classification: attempted-dos,Attempted Denial of "
-          "Service,2\n", fd);
-    fputs("config classification: successful-dos,Denial of Service,2\n", fd);
-    fputs("config classification: attempted-user,Attempted User Privilege "
-          "Gain,1\n", fd);
-    fputs("config classification: unsuccessful-user,Unsuccessful User "
-          "Privilege Gain,1\n", fd);
-    fputs("config classification: successful-user,Successful User Privilege "
-          "Gain,1\n", fd);
-    fputs("config classification: attempted-admin,Attempted Administrator "
-          "Privilege Gain,1\n", fd);
-    fputs("config classification: successful-admin,Successful Administrator "
-          "Privilege Gain,1\n", fd);
-    fputs("config classification: rpc-portmap-decode,Decode of an RPC "
-          "Query,2\n", fd);
-    fputs("config classification: shellcode-detect,Executable code was "
-          "detected,1\n", fd);
-    fputs("config classification: string-detect,A suspicious string was "
-          "detected,3\n", fd);
-    fputs("config classification: suspicious-filename-detect,A suspicious "
-          "filename was detected,2\n", fd);
-    fputs("config classification: suspicious-login,An attempted login using "
-          "a suspicious username was detected,2\n", fd);
-    fputs("config classification: system-call-detect,A system call was "
-          "detected,2\n", fd);
-    fputs("config classification: tcp-connection,A TCP connection was "
-          "detected,4\n", fd);
-    fputs("config classification: trojan-activity,A Network Trojan was "
-          "detected, 1\n", fd);
-    fputs("config classification: unusual-client-port-connection,A client "
-          "was using an unusual port,2\n", fd);
-    fputs("config classification: network-scan,Detection of a Network "
-          "Scan,3\n", fd);
-    fputs("config classification: denial-of-service,Detection of a Denial "
-          "of Service Attack,2\n", fd);
-    fputs("config classification: non-standard-protocol,Detection of a "
-          "non-standard protocol or event,2\n", fd);
-    fputs("config classification: protocol-command-decode,Generic Protocol "
-          "Command Decode,3\n", fd);
-    fputs("config classification: web-application-activity,access to a "
-          "potentially vulnerable web application,2\n", fd);
-    fputs("config classification: web-application-attack,Web Application "
-          "Attack,1\n", fd);
-    fputs("config classification: misc-activity,Misc activity,3\n", fd);
-    fputs("config classification: misc-attack,Misc Attack,2\n", fd);
-    fputs("config classification: icmp-event,Generic ICMP event,3\n", fd);
-    fputs("config classification: kickass-porn,SCORE! Get the lotion!,1\n", fd);
-    fputs("config classification: policy-violation,Potential Corporate "
-          "Privacy Violation,1\n", fd);
-    fputs("config classification: default-login-attempt,Attempt to login by "
-          "a default username and password,2\n", fd);
-
-    fclose(fd);
+    return;
 }
 
 /**
@@ -532,26 +538,22 @@ void SCClassConfGenerateValidDummyClassConfigFile01(const char *file_path)
  *
  * \file_path Pointer to the file_path for the dummy classification file.
  */
-void SCClassConfGenerateInValidDummyClassConfigFile02(const char *file_path)
+void SCClassConfGenerateInValidDummyClassConfigFD02(void)
 {
-    FILE *fd = NULL;
+    const char *buffer =
+        "config classification: not-suspicious,Not Suspicious Traffic,3\n"
+        "onfig classification: unknown,Unknown Traffic,3\n"
+        "config classification: _badunknown,Potentially Bad Traffic, 2\n"
+        "config classification: bamboola1,Unknown Traffic,3\n"
+        "config classification: misc-activity,Misc activity,-1\n"
+        "config classification: policy-violation,Potential Corporate "
+        "config classification: bamboola,Unknown Traffic,3\n";
 
-    default_file_path = file_path;
+    fd = fmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with fmemopen() called by Classifiation Config test code");
 
-    if ( (fd = fopen(default_file_path, "w+")) == NULL) {
-        SCLogError(SC_ERR_FOPEN_ERROR, "Error opening file: \"%s\"", file_path);
-        return;
-    }
-
-    fputs("config classification: not-suspicious,Not Suspicious Traffic,3\n", fd);
-    fputs("onfig classification: unknown,Unknown Traffic,3\n", fd);
-    fputs("config classification: _badunknown,Potentially Bad Traffic, 2\n", fd);
-    fputs("config classification: bamboola1,Unknown Traffic,3\n", fd);
-    fputs("config classification: misc-activity,Misc activity,-1\n", fd);
-    fputs("config classification: policy-violation,Potential Corporate ", fd);
-    fputs("config classification: bamboola,Unknown Traffic,3\n", fd);
-
-    fclose(fd);
+    return;
 }
 
 /**
@@ -560,23 +562,19 @@ void SCClassConfGenerateInValidDummyClassConfigFile02(const char *file_path)
  *
  * \file_path Pointer to the file_path for the dummy classification file.
  */
-void SCClassConfGenerateInValidDummyClassConfigFile03(const char *file_path)
+void SCClassConfGenerateInValidDummyClassConfigFD03(void)
 {
-    FILE *fd = NULL;
+    const char *buffer =
+        "conig classification: not-suspicious,Not Suspicious Traffic,3\n"
+        "onfig classification: unknown,Unknown Traffic,3\n"
+        "config classification: _badunknown,Potentially Bad Traffic, 2\n"
+        "config classification: misc-activity,Misc activity,-1\n";
 
-    default_file_path = file_path;
+    fd = fmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with fmemopen() called by Classifiation Config test code");
 
-    if ( (fd = fopen(default_file_path, "w+")) == NULL) {
-        SCLogError(SC_ERR_FOPEN_ERROR, "Error opening file: \"%s\"", file_path);
-        return;
-    }
-
-    fputs("conig classification: not-suspicious,Not Suspicious Traffic,3\n", fd);
-    fputs("onfig classification: unknown,Unknown Traffic,3\n", fd);
-    fputs("config classification: _badunknown,Potentially Bad Traffic, 2\n", fd);
-    fputs("config classification: misc-activity,Misc activity,-1\n", fd);
-
-    fclose(fd);
+    return;
 }
 
 /**
@@ -584,9 +582,12 @@ void SCClassConfGenerateInValidDummyClassConfigFile03(const char *file_path)
  *
  * \file_path Pointer to the file_path that has to be deleted.
  */
-void SCClassConfDeleteDummyClassificationConfigFile(const char *file_path)
+void SCClassConfDeleteDummyClassificationConfigFD(void)
 {
-    remove(file_path);
+    if (fd != NULL) {
+        fclose(fd);
+        fd = NULL;
+    }
 
     return;
 }
@@ -603,9 +604,9 @@ int SCClassConfTest01(void)
     if (de_ctx == NULL)
         return result;
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     if (de_ctx->class_conf_ht == NULL)
         return result;
@@ -613,7 +614,6 @@ int SCClassConfTest01(void)
     result = (de_ctx->class_conf_ht->count == 34);
 
     DetectEngineCtxFree(de_ctx);
-    free(de_ctx->class_conf_ht);
 
     return result;
 }
@@ -630,9 +630,9 @@ int SCClassConfTest02(void)
     if (de_ctx == NULL)
         return result;
 
-    SCClassConfGenerateInValidDummyClassConfigFile03("/var/log/eidps/classification.config");
+    SCClassConfGenerateInValidDummyClassConfigFD03();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     if (de_ctx->class_conf_ht == NULL)
         return result;
@@ -640,7 +640,6 @@ int SCClassConfTest02(void)
     result = (de_ctx->class_conf_ht->count == 0);
 
     DetectEngineCtxFree(de_ctx);
-    free(de_ctx->class_conf_ht);
 
     return result;
 }
@@ -657,9 +656,9 @@ int SCClassConfTest03(void)
     if (de_ctx == NULL)
         return result;
 
-    SCClassConfGenerateInValidDummyClassConfigFile02("/var/log/eidps/classification.config");
+    SCClassConfGenerateInValidDummyClassConfigFD02();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     if (de_ctx->class_conf_ht == NULL)
         return result;
@@ -667,7 +666,6 @@ int SCClassConfTest03(void)
     result = (de_ctx->class_conf_ht->count == 3);
 
     DetectEngineCtxFree(de_ctx);
-    free(de_ctx->class_conf_ht);
 
     return result;
 }
@@ -685,9 +683,9 @@ int SCClassConfTest04(void)
     if (de_ctx == NULL)
         return 0;
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     if (de_ctx->class_conf_ht == NULL)
         return 0;
@@ -718,9 +716,7 @@ int SCClassConfTest04(void)
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
-
     DetectEngineCtxFree(de_ctx);
-    free(de_ctx->class_conf_ht);
 
     return result;
 }
@@ -739,9 +735,9 @@ int SCClassConfTest05(void)
     if (de_ctx == NULL)
         return 0;
 
-    SCClassConfGenerateInValidDummyClassConfigFile03("/var/log/eidps/classification.config");
+    SCClassConfGenerateInValidDummyClassConfigFD03();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     if (de_ctx->class_conf_ht == NULL)
         return 0;
@@ -774,7 +770,6 @@ int SCClassConfTest05(void)
 
 
     DetectEngineCtxFree(de_ctx);
-    free(de_ctx->class_conf_ht);
 
     return result;
 }
@@ -792,9 +787,9 @@ int SCClassConfTest06(void)
     if (de_ctx == NULL)
         return 0;
 
-    SCClassConfGenerateInValidDummyClassConfigFile02("/var/log/eidps/classification.config");
+    SCClassConfGenerateInValidDummyClassConfigFD02();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     if (de_ctx->class_conf_ht == NULL)
         return 0;
@@ -826,7 +821,6 @@ int SCClassConfTest06(void)
     SCClassConfDeAllocClasstype(ct);
 
     DetectEngineCtxFree(de_ctx);
-    free(de_ctx->class_conf_ht);
 
     return result;
 }

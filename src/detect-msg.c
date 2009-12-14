@@ -119,9 +119,9 @@ static int DetectMsgParseTest01(void)
     if (de_ctx == NULL)
         goto end;
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"flow stateless to_server\"; flow:stateless,to_server; content:\"flowstatelesscheck\"; classtype:bad-unknown; sid: 40000002; rev: 1;)");
     if(sig == NULL)

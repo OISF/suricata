@@ -4041,9 +4041,9 @@ static int SigTest15Real (int mpm_type) {
 
     de_ctx->mpm_matcher = mpm_type;
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->flags |= DE_QUIET;
 
@@ -4111,9 +4111,9 @@ static int SigTest16Real (int mpm_type) {
 
     de_ctx->mpm_matcher = mpm_type;
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->flags |= DE_QUIET;
 
@@ -4255,9 +4255,9 @@ static int SigTest18Real (int mpm_type) {
 
     de_ctx->mpm_matcher = mpm_type;
 
-    SCClassConfGenerateValidDummyClassConfigFile01("/var/log/eidps/classification.config");
+    SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFile("/var/log/eidps/classification.config");
+    SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->flags |= DE_QUIET;
 

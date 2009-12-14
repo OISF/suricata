@@ -108,7 +108,9 @@ int HashTableAdd(HashTable *ht, void *data, uint16_t datalen) {
         ht->array[hash] = hb;
     }
 
+#ifdef UNITTESTS
     ht->count++;
+#endif
 
     return 0;
 
