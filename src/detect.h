@@ -222,6 +222,7 @@ typedef struct DetectEngineLookupDsize_ {
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     uint8_t flags;
+    uint8_t failure_fatal;
 
     Signature *sig_list;
     uint32_t sig_cnt;

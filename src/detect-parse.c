@@ -601,6 +601,10 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
 
 error:
     SigFree(sig);
+    if (de_ctx->failure_fatal == 1) {
+        fprintf(stderr, "ERROR: Signature init failed.\n");
+        exit(EXIT_FAILURE);
+    }
     return NULL;
 
 }

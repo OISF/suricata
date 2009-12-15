@@ -309,6 +309,8 @@ int main(int argc, char **argv)
         {"pfring-clusterid",  required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
+        {"init-errors-fatal", 0, 0, 0},
+        {"fatal-unittests", 0, 0, 0},
         {NULL, 0, NULL, 0}
     };
 
@@ -334,10 +336,27 @@ int main(int argc, char **argv)
                     exit(EXIT_FAILURE);
                 }
             }
+            else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
+                if (ConfSet("engine.init_failure_fatal", "1", 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set engine init_failure_fatal.\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
             else if(strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
 #ifdef UNITTESTS
                 /* Set mode to unit tests. */
                 mode = MODE_UNITTEST;
+#else
+                fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
+                exit(EXIT_FAILURE);
+#endif /* UNITTESTS */
+            }
+            else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
+#ifdef UNITTESTS
+                if (ConfSet("unittests.failure_fatal", "1", 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set unittests failure_fatal.\n");
+                    exit(EXIT_FAILURE);
+                }
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 exit(EXIT_FAILURE);

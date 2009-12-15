@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
+#include "conf.h"
 
 #include "detect-parse.h"
 #include "detect-engine-sigorder.h"
@@ -21,6 +22,7 @@
 
 //#include "util-mpm.h"
 #include "util-hash.h"
+#include "util-debug.h"
 
 #include "util-var-name.h"
 #include "tm-modules.h"
@@ -34,6 +36,10 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     }
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
+
+    if (ConfGetBool("engine.init_failure_fatal", &(de_ctx->failure_fatal)) != 1) {
+        SCLogDebug("ConfGetBool could not load the value.");
+    }
 
     de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
 

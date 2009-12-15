@@ -9,6 +9,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-time.h"
+#include "conf.h"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -157,6 +158,12 @@ uint32_t UtRunTests(char *regex_arg) {
     uint32_t good = 0, bad = 0, matchcnt = 0;
     int ret = 0, rcomp = 0;
     int ov[MAX_SUBSTRINGS];
+    int failure_fatal;
+
+    if (ConfGetBool("unittests.failure_fatal", &failure_fatal) != 1) {
+        SCLogDebug("ConfGetBool could not load the value.");
+        failure_fatal = 0;
+    }
 
     rcomp = UtRegex(regex_arg);
 
@@ -175,6 +182,10 @@ uint32_t UtRunTests(char *regex_arg) {
                 ret = ut->TestFn();
                 printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
                 if (ret != ut->evalue) {
+                    if (failure_fatal == 1) {
+                        fprintf(stderr, "ERROR: unittest failed.\n");
+                        exit(EXIT_FAILURE);
+                    }
                     bad++;
                 } else {
                     good++;
