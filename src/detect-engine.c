@@ -37,7 +37,7 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
 
-    if (ConfGetBool("engine.init_failure_fatal", &(de_ctx->failure_fatal)) != 1) {
+    if (ConfGetBool("engine.init_failure_fatal", (int *)&(de_ctx->failure_fatal)) != 1) {
         SCLogDebug("ConfGetBool could not load the value.");
     }
 
