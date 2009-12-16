@@ -73,11 +73,13 @@ typedef struct bytecount_ {
 }bytecount_t, *pbytyecount_t;
 
 typedef struct andxcount_ {
-	uint8_t isandx;
-	uint8_t andxcommand;
-	uint16_t andxoffset;
-	uint16_t andxbytesprocessed;
-	uint64_t writeandxoffset;
+    uint8_t isandx;
+    uint8_t paddingparsed;
+    uint8_t andxcommand;
+    uint16_t andxoffset;
+    uint16_t andxbytesprocessed;
+    uint32_t datalength;
+    uint64_t dataoffset;
 }andx_t, *pandx_t;
 
 typedef struct SMBState_ {
