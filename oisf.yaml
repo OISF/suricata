@@ -63,6 +63,9 @@ pfring:
   # clusterid.
   clusterid: 99
 
+  #Set the default rule path here to search for the files.
+  #if not set, it will look at the current working dir
+default-rule-path: /etc/eidps/
 rule-files:
   - netbios.rules
   - x11.rules

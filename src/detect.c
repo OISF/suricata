@@ -77,6 +77,7 @@
 
 #include "conf.h"
 #include "conf-yaml-loader.h"
+#include <yaml.h>
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -171,21 +172,41 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->pkts_uri_scanned)*100));
 }
 
+/** \brief Create the path if default-rule-path was specified
+ *  \param sig_file The name of the file
+ *  \retval str Pointer to the string path + sig_file
+ *  \retval 0 ok
+ */
+char *DetectLoadCompleteSigPath(char *sig_file)
+{
+    char *defaultpath = NULL;
+    char *path = NULL;
+    /* Path not specified */
+    if (index(sig_file, '/') == NULL) {
+        if (ConfGet("default-rule-path", &defaultpath) == 1) {
+            SCLogDebug("Default path: %s", defaultpath);
+            path = malloc(sizeof(char) * (strlen(defaultpath) +
+                          strlen(sig_file) + 2));
+            strcpy(path, defaultpath);
+            if (path[strlen(path) - 1] != '/')
+                strcat(path, "/");
+            strcat(path, sig_file);
+       } else {
+            path = strdup(sig_file);
+        }
+    } else {
+        path = strdup(sig_file);
+    }
+    return path;
+}
+
 /** \brief Load a file with signatures
  *  \retval -1 error
  *  \retval 0 ok
  */
 int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
-    Signature *prevsig = NULL;
     Signature *sig = NULL;
     int good = 0, bad = 0;
-
-    /* set the prevsig to the last sig of the existing list, if any */
-    if (de_ctx->sig_list != NULL) {
-        for (prevsig = de_ctx->sig_list;
-             prevsig->next != NULL;
-             prevsig = prevsig->next);
-    }
 
     FILE *fp = fopen(sig_file, "r");
     if (fp == NULL) {
@@ -200,16 +221,9 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
         if (line[0] == '\n' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
             continue;
 
-        sig = SigInit(de_ctx, line);
+        sig = DetectEngineAppendSig(de_ctx, line);
         if (sig != NULL) {
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
-
-            if (de_ctx->sig_list == NULL) {
-                de_ctx->sig_list = sig;
-            } else {
-                prevsig->next = sig;
-            }
-            prevsig = sig;
             good++;
         } else {
             bad++;
@@ -217,13 +231,22 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
     }
     fclose(fp);
 
-    SCLogInfo("%" PRId32 " successfully loaded from file. %" PRId32 " sigs failed to load", good, bad);
-    return 0;
+    SCLogInfo("%" PRId32 " successfully loaded from file %s. %" PRId32 " sigs failed to load", good, sig_file, bad);
+    if (good == 0)
+        return 0;
+    else
+        return good;
 }
 
 int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 {
     Signature *prevsig = NULL, *sig;
+    ConfNode *rule_files;
+    ConfNode *file = NULL;
+    int r = 0;
+    int cnt = 0;
+    int cntf = 0;
+    char *sfile = NULL;
 
     /* The next 3 rules handle HTTP header capture. */
 
@@ -254,10 +277,41 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
         return -1;
     prevsig->next = sig;
 
-    if(sig_file != NULL){
-        int r = DetectLoadSigFile(de_ctx, sig_file);
-        if (r < 0)
-            return -1;
+    /* ok, now let's load signature files from the general config */
+    rule_files = ConfGetNode("rule-files");
+    if (rule_files != NULL) {
+        TAILQ_FOREACH(file, &rule_files->head, next) {
+            sfile = DetectLoadCompleteSigPath(file->val);
+            SCLogInfo("Loading rule file: %s", sfile);
+            r = DetectLoadSigFile(de_ctx, sfile);
+            if (r > 0) {
+                cnt += r;
+                cntf++;
+            } else {
+                SCLogInfo("Problems loading rule file: %s", sfile);
+            }
+            free(sfile);
+        }
+    }
+
+    /* If a Signature file is specified from commandline, parse it too */
+    if (sig_file != NULL) {
+        SCLogInfo("Loading rule file: %s", sig_file);
+        r = DetectLoadSigFile(de_ctx, sig_file);
+        if (r > 0) {
+            cnt += r;
+            cntf++;
+        } else {
+            SCLogInfo("Problems loading rule file: %s", sig_file);
+        }
+    }
+
+    /* now we should have signatures to work with */
+    if (cnt <= 0) {
+        SCLogInfo("No rule file loaded!");
+        return -1;
+    } else {
+        SCLogInfo("%d rules loaded from %d files.", cnt, cntf);
     }
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
