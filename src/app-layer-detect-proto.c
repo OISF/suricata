@@ -206,6 +206,10 @@ void AppLayerDetectProtoThreadInit(void) {
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff 53 4d 42|", 4, 4, STREAM_TOCLIENT);
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff 53 4d 42|", 4, 4, STREAM_TOSERVER);
 
+    /** SMB2 */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe 53 4d 42|", 4, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe 53 4d 42|", 4, 4, STREAM_TOSERVER);
+
     /** DCERPC */
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOCLIENT);
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
@@ -679,6 +683,129 @@ int AlpDetectTest07(void) {
     AlpProtoDestroy(&ctx);
     return r;
 }
+
+int AlpDetectTest08(void) {
+    uint8_t l7data[] = "\x00\x00\x00\x85"  // NBSS
+        "\xff\x53\x4d\x42\x72\x00\x00\x00" // SMB
+        "\x00\x18\x53\xc8\x00\x00\x00\x00"
+        "\x00\x00\x00\x00\x00\x00\x00\x00"
+        "\x00\x00\xff\xfe\x00\x00\x00\x00"
+        "\x00" // WordCount
+        "\x62\x00" // ByteCount
+        "\x02\x50\x43\x20\x4e\x45\x54\x57\x4f\x52\x4b\x20\x50\x52\x4f\x47\x52\x41\x4d\x20"
+        "\x31\x2e\x30\x00\x02\x4c\x41\x4e\x4d\x41\x4e\x31\x2e\x30\x00\x02\x57\x69\x6e\x64\x6f\x77\x73"
+        "\x20\x66\x6f\x72\x20\x57\x6f\x72\x6b\x67\x72\x6f\x75\x70\x73\x20\x33\x2e\x31\x61\x00\x02\x4c"
+        "\x4d\x31\x2e\x32\x58\x30\x30\x32\x00\x02\x4c\x41\x4e\x4d\x41\x4e\x32\x2e\x31\x00\x02\x4e\x54"
+        "\x20\x4c\x4d\x20\x30\x2e\x31\x32\x00";
+    char *buf = strdup("SMB");
+    int r = 1;
+    AlpProtoDetectCtx ctx;
+    AlpProtoDetectThreadCtx tctx;
+
+    AlpProtoInit(&ctx);
+
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, buf, 4, 0, STREAM_TOCLIENT);
+    free(buf);
+
+    if (ctx.toclient.id != 1) {
+        r = 0;
+    }
+
+    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_SMB) {
+        r = 0;
+    }
+
+    AlpProtoFinalizeGlobal(&ctx);
+    AlpProtoFinalizeThread(&ctx, &tctx);
+
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
+    if (proto != ALPROTO_SMB) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_SMB);
+        r = 0;
+    }
+
+    AlpProtoDestroy(&ctx);
+    return r;
+}
+
+int AlpDetectTest09(void) {
+    uint8_t l7data[] =
+        "\x00\x00\x00\x66" // NBSS
+        "\xfe\x53\x4d\x42\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00" // SMB2
+        "\x3f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        "\x24\x00\x01\x00x00\x00\x00\x00\x00\x00\x0\x00\x00\x00\x00\x00\x00\x00\x00"
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02";
+    char *buf = strdup("SMB2");
+    int r = 1;
+    AlpProtoDetectCtx ctx;
+    AlpProtoDetectThreadCtx tctx;
+
+    AlpProtoInit(&ctx);
+
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, buf, 4, 0, STREAM_TOCLIENT);
+    free(buf);
+
+    if (ctx.toclient.id != 1) {
+        r = 0;
+    }
+
+    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_SMB2) {
+        r = 0;
+    }
+
+    AlpProtoFinalizeGlobal(&ctx);
+    AlpProtoFinalizeThread(&ctx, &tctx);
+
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
+    if (proto != ALPROTO_SMB) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_SMB2);
+        r = 0;
+    }
+
+    AlpProtoDestroy(&ctx);
+    return r;
+}
+
+int AlpDetectTest10(void) {
+    uint8_t l7data[] = "\x05\x00\x0b\x03\x10\x00\x00\x00\x48\x00\x00\x00"
+        "\x00\x00\x00\x00\xd0\x16\xd0\x16\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00"
+        "\x01\x00\xb8\x4a\x9f\x4d\x1c\x7d\xcf\x11\x86\x1e\x00\x20\xaf\x6e\x7c\x57"
+        "\x00\x00\x00\x00\x04\x5d\x88\x8a\xeb\x1c\xc9\x11\x9f\xe8\x08\x00\x2b\x10"
+        "\x48\x60\x02\x00\x00\x00";
+    char *buf = strdup("DCERPC");
+    int r = 1;
+    AlpProtoDetectCtx ctx;
+    AlpProtoDetectThreadCtx tctx;
+
+    AlpProtoInit(&ctx);
+
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_DCERPC, buf, 4, 0, STREAM_TOCLIENT);
+    free(buf);
+
+    if (ctx.toclient.id != 1) {
+        r = 0;
+    }
+
+    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_DCERPC) {
+        r = 0;
+    }
+
+    AlpProtoFinalizeGlobal(&ctx);
+    AlpProtoFinalizeThread(&ctx, &tctx);
+
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
+    if (proto != ALPROTO_DCERPC) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_DCERPC);
+        r = 0;
+    }
+
+    AlpProtoDestroy(&ctx);
+    return r;
+}
+
+
 #endif /* UNITTESTS */
 
 void AlpDetectRegisterTests(void) {
@@ -690,5 +817,8 @@ void AlpDetectRegisterTests(void) {
     UtRegisterTest("AlpDetectTest05", AlpDetectTest05, 1);
     UtRegisterTest("AlpDetectTest06", AlpDetectTest06, 1);
     UtRegisterTest("AlpDetectTest07", AlpDetectTest07, 1);
+    UtRegisterTest("AlpDetectTest08", AlpDetectTest08, 1);
+    UtRegisterTest("AlpDetectTest09", AlpDetectTest09, 1);
+    UtRegisterTest("AlpDetectTest10", AlpDetectTest10, 1);
 #endif /* UNITTESTS */
 }
