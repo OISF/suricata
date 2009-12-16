@@ -203,8 +203,12 @@ void AppLayerDetectProtoThreadInit(void) {
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
 
     /** SMB */
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff 53 4d 42|", 4, 4, STREAM_TOCLIENT);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff 53 4d 42|", 4, 4, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
+
+    /** SMB2 */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
     /** SMB2 */
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe 53 4d 42|", 4, 4, STREAM_TOCLIENT);
@@ -256,7 +260,7 @@ end:
     if (mpm_table[dir->mpm_ctx.mpm_type].Cleanup != NULL) {
         mpm_table[dir->mpm_ctx.mpm_type].Cleanup(&tdir->mpm_ctx);
     }
-#if 0
+#if 1
     printf("AppLayerDetectGetProto: returning %" PRIu16 " (%s): ", proto, flags & STREAM_TOCLIENT ? "TOCLIENT" : "TOSERVER");
     switch (proto) {
         case ALPROTO_HTTP:
@@ -290,6 +294,15 @@ end:
             break;
         case ALPROTO_MSN:
             printf("MSN\n");
+            break;
+        case ALPROTO_SMB:
+            printf("SMB\n");
+            break;
+        case ALPROTO_SMB2:
+            printf("SMB2\n");
+            break;
+        case ALPROTO_DCERPC:
+            printf("DCERPC\n");
             break;
         case ALPROTO_UNKNOWN:
         default:
@@ -697,14 +710,14 @@ int AlpDetectTest08(void) {
         "\x20\x66\x6f\x72\x20\x57\x6f\x72\x6b\x67\x72\x6f\x75\x70\x73\x20\x33\x2e\x31\x61\x00\x02\x4c"
         "\x4d\x31\x2e\x32\x58\x30\x30\x32\x00\x02\x4c\x41\x4e\x4d\x41\x4e\x32\x2e\x31\x00\x02\x4e\x54"
         "\x20\x4c\x4d\x20\x30\x2e\x31\x32\x00";
-    char *buf = strdup("SMB");
+    char *buf = strdup("|ff|SMB");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, buf, 8, 4, STREAM_TOCLIENT);
     free(buf);
 
     if (ctx.toclient.id != 1) {
@@ -737,14 +750,15 @@ int AlpDetectTest09(void) {
         "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
         "\x24\x00\x01\x00x00\x00\x00\x00\x00\x00\x0\x00\x00\x00\x00\x00\x00\x00\x00"
         "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02";
-    char *buf = strdup("SMB2");
+
+    char *buf = strdup("|fe|SMB");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, buf, 8, 4, STREAM_TOCLIENT);
     free(buf);
 
     if (ctx.toclient.id != 1) {
@@ -759,7 +773,7 @@ int AlpDetectTest09(void) {
     AlpProtoFinalizeThread(&ctx, &tctx);
 
     uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
-    if (proto != ALPROTO_SMB) {
+    if (proto != ALPROTO_SMB2) {
         printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_SMB2);
         r = 0;
     }
@@ -774,7 +788,7 @@ int AlpDetectTest10(void) {
         "\x01\x00\xb8\x4a\x9f\x4d\x1c\x7d\xcf\x11\x86\x1e\x00\x20\xaf\x6e\x7c\x57"
         "\x00\x00\x00\x00\x04\x5d\x88\x8a\xeb\x1c\xc9\x11\x9f\xe8\x08\x00\x2b\x10"
         "\x48\x60\x02\x00\x00\x00";
-    char *buf = strdup("DCERPC");
+    char *buf = strdup("|05 00|");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
