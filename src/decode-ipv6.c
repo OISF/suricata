@@ -5,6 +5,7 @@
 #include "decode-ipv6.h"
 #include "decode-icmpv6.h"
 #include "decode-events.h"
+#include "defrag.h"
 #include "util-debug.h"
 
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
@@ -405,6 +406,16 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             DecodeIPV6ExtHdrs(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
             break;
     }
+
+#if 0
+    /* Pass to defragger if a fragment. */
+    if (IPV6_EXTHDR_ISSET_FH(p)) {
+        Packet *rp = Defrag6(tv, NULL, p);
+        if (rp != NULL) {
+            /* Reinject. */
+        }
+    }
+#endif
 
 #ifdef DEBUG
     if (IPV6_EXTHDR_ISSET_FH(p)) {
