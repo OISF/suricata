@@ -68,7 +68,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                            Flow *f, uint8_t flags, void *state, Signature *s,
                            SigMatch *m)
 {
-    DetectContentData *co = (DetectContentData *)m->ctx;
+    DetectHttpCookieData *co = (DetectHttpCookieData *)m->ctx;
     HtpState *htp_state = (HtpState *)state;
     if (htp_state == NULL) {
         SCLogDebug("No HTTP layer state has been received, so no match!!");
@@ -87,8 +87,8 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
 
-    if (BinSearch(bstr_ptr(h->value), bstr_size(h->value), co->content,
-            co->content_len) != NULL)
+    if (BinSearch(bstr_ptr(h->value), bstr_size(h->value), co->data,
+            co->data_len) != NULL)
     {
         SCLogDebug("Match has been found in received request and given http_"
                 "cookie rule\n");
@@ -168,8 +168,6 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
         goto error;
     }
     memcpy(hd->data, ((DetectContentData *)m->ctx)->content, hd->data_len);
-
-    hd->flags |= DETECT_CONTENT_HTTP_COOKIE;
 
     sm = SigMatchAlloc();
     if (sm == NULL)
@@ -275,13 +273,10 @@ int DetectHttpCookieTest03(void)
     sm = de_ctx->sig_list->match;
     while (sm != NULL) {
         if (sm->type == DETECT_AL_HTTP_COOKIE) {
-            if (((DetectHttpCookieData *)sm->ctx)->flags &
-                DETECT_CONTENT_HTTP_COOKIE) {
                 result = 1;
-            } else {
-                result = 0;
-                break;
-            }
+        } else {
+            result = 0;
+            break;
         }
         sm = sm->next;
     }
