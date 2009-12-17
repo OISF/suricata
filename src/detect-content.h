@@ -15,10 +15,6 @@
 /** Set if the pattern is split into multiple chunks */
 #define DETECT_CONTENT_IS_CHUNK          0x0100
 
-#define DETECT_CONTENT_HTTP_COOKIE       0x0200 /**< Flags to indicate that HTTP
-                                                     _COOKIE keyword is defined
-                                                     on this content */
-
 /** Used for modifier propagations, to know if they are
  * yet updated or not */
 #define CHUNK_UPDATED_DEPTH         0x01
