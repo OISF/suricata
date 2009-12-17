@@ -5,6 +5,7 @@
 #include "eidps-common.h"
 #include "decode.h"
 #include "detect.h"
+#include "detect-content.h"
 #include "threads.h"
 #include "flow.h"
 #include "flow-var.h"

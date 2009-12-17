@@ -85,6 +85,7 @@ detect-csum.c detect-csum.h \
 detect-ttl.c detect-ttl.h \
 detect-itype.c detect-itype.h \
 detect-icode.c detect-icode.h \
+detect-http-cookie.c detect-http-cookie.h \
 util-print.c util-print.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \

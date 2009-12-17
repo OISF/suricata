@@ -267,7 +267,7 @@ void DetectIPV4CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
-    if (cd == NULL)
+    if (cd != NULL)
         free(cd);
 
     return;
@@ -461,7 +461,7 @@ void DetectTCPV6CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
-    if (cd == NULL)
+    if (cd != NULL)
         free(cd);
 
     return;
@@ -558,7 +558,7 @@ void DetectUDPV4CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
-    if (cd == NULL)
+    if (cd != NULL)
         free(cd);
 
     return;
@@ -655,7 +655,7 @@ void DetectUDPV6CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
-    if (cd == NULL)
+    if (cd != NULL)
         free(cd);
 
     return;
@@ -751,7 +751,7 @@ void DetectICMPV4CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
-    if (cd == NULL)
+    if (cd != NULL)
         free(cd);
 
     return;
@@ -847,7 +847,7 @@ void DetectICMPV6CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
-    if (cd == NULL)
+    if (cd != NULL)
         free(cd);
 
     return;

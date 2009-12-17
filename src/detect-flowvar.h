@@ -1,8 +1,6 @@
 #ifndef __DETECT_FLOWVAR_H__
 #define __DETECT_FLOWVAR_H__
 
-#define DETECT_CONTENT_NOCASE        0x01
-
 typedef struct DetectFlowvarData_ {
     char *name;
     uint16_t idx;

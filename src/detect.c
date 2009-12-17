@@ -15,6 +15,7 @@
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
+#include "detect-http-cookie.h"
 
 #include "detect-decode-event.h"
 
@@ -2860,6 +2861,7 @@ void SigTableSetup(void) {
     DetectFastPatternRegister();
     DetectITypeRegister();
     DetectICodeRegister();
+    DetectHttpCookieRegister();
 
     DetectTlsVersionRegister();
 

@@ -470,6 +470,7 @@ enum {
     DETECT_GID,
 
     DETECT_AL_TLS_VERSION,
+    DETECT_AL_HTTP_COOKIE,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

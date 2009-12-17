@@ -25,6 +25,6 @@ SigMatch *SigMatchGetLastSM(Signature *, uint8_t);
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);
-
+void SigMatchReplace (Signature *, SigMatch *, SigMatch *);
 #endif /* __DETECT_PARSE_H__ */
 

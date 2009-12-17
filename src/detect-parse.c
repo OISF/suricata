@@ -67,6 +67,8 @@ SigMatch *SigMatchAlloc(void) {
         return NULL;
 
     memset(sm, 0, sizeof(SigMatch));
+    sm->prev = NULL;
+    sm->next = NULL;
     return sm;
 }
 
@@ -118,6 +120,41 @@ void SigMatchAppend(Signature *s, SigMatch *m, SigMatch *new) {
         m->next = new;
         new->prev = m;
     }
+}
+
+/**
+ * \brief Replaces the old sigmatch with the new sigmatch in the current
+ *        signature.
+ *
+ * \param s     pointer to the current signature
+ * \param m     pointer to the old sigmatch
+ * \param new   pointer to the new sigmatch, which will replace m
+ */
+void SigMatchReplace(Signature *s, SigMatch *m, SigMatch *new) {
+
+
+    if (s->match == NULL) {
+        s->match = new;
+        return;
+    }
+
+    if (m == NULL) {
+        s->match = new;
+    } else if (m->prev == NULL) {
+        if (m->next != NULL) {
+            m->next->prev = new;
+            new->next = m->next;
+        }
+        s->match = new;
+    } else {
+        m->prev->next = new;
+        new->prev = m->prev;
+        if (m->next != NULL) {
+            m->next->prev = new;
+            new->next = m->next;
+        }
+    }
+
 }
 
 /**

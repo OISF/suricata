@@ -1,20 +1,23 @@
 #ifndef __DETECT_CONTENT_H__
 #define __DETECT_CONTENT_H__
 
-#define DETECT_CONTENT_NOCASE            0x01
-#define DETECT_CONTENT_DISTANCE          0x02
-#define DETECT_CONTENT_WITHIN            0x04
+#define DETECT_CONTENT_NOCASE            0x0001
+#define DETECT_CONTENT_DISTANCE          0x0002
+#define DETECT_CONTENT_WITHIN            0x0004
 
-#define DETECT_CONTENT_FAST_PATTERN      0x08
-#define DETECT_CONTENT_DISTANCE_NEXT     0x08
-#define DETECT_CONTENT_WITHIN_NEXT       0x10
-#define DETECT_CONTENT_ISDATAAT_RELATIVE 0x20
+#define DETECT_CONTENT_FAST_PATTERN      0x0008
+#define DETECT_CONTENT_DISTANCE_NEXT     0x0010
+#define DETECT_CONTENT_WITHIN_NEXT       0x0020
+#define DETECT_CONTENT_ISDATAAT_RELATIVE 0x0040
 
-#define DETECT_CONTENT_RAWBYTES          0x40
+#define DETECT_CONTENT_RAWBYTES          0x0080
 
 /** Set if the pattern is split into multiple chunks */
-#define DETECT_CONTENT_IS_CHUNK          0x80
+#define DETECT_CONTENT_IS_CHUNK          0x0100
 
+#define DETECT_CONTENT_HTTP_COOKIE       0x0200 /**< Flags to indicate that HTTP
+                                                     _COOKIE keyword is defined
+                                                     on this content */
 
 /** Used for modifier propagations, to know if they are
  * yet updated or not */
@@ -36,7 +39,7 @@ typedef struct DetectContentData_ {
     uint32_t isdataat;
     int32_t distance;
     int32_t within;
-    uint8_t flags;
+    uint16_t flags;
 
     /** The group this chunk belongs to, relative to the signature
      * It start from 1, and the last SigMatch of the list should be
