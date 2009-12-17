@@ -19,6 +19,9 @@
 #include "source-nfq-prototypes.h"
 #include "action-globals.h"
 
+#include "util-debug.h"
+#include "util-error.h"
+
 #ifndef NFQ
 /** Handle the case where no NFQ support is compiled in.
  *
@@ -179,10 +182,10 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
 
     nfq_t->queue_num = queue_num;
 
-    printf("NFQInitThread: opening library handle\n");
+    SCLogDebug("opening library handle");
     nfq_t->h = nfq_open();
     if (!nfq_t->h) {
-        printf("error during nfq_open()\n");
+        SCLogError(SC_NFQ_OPEN, "nfq_open() failed");
         return TM_ECODE_FAILED;
     }
 
@@ -190,46 +193,44 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
     {
         /* VJ: on my Ubuntu Hardy system this fails the first time it's
          * run. Ignoring the error seems to have no bad effects. */
-        printf("NFQInitThread: unbinding existing nf_queue handler for AF_INET (if any)\n");
+        SCLogDebug("unbinding existing nf_queue handler for AF_INET (if any)");
         if (nfq_unbind_pf(nfq_t->h, AF_INET) < 0) {
-            printf("error during nfq_unbind_pf()\n");
-            //return -1;
+            SCLogWarning(SC_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET failed");
         }
         if (nfq_unbind_pf(nfq_t->h, AF_INET6) < 0) {
-            printf("error during nfq_unbind_pf()\n");
-            //return -1;
+            SCLogWarning(SC_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET6 failed");
         }
         nfq_g.unbind = 1;
 
-        printf("NFQInitThread: binding nfnetlink_queue as nf_queue handler for AF_INET\n");
+        SCLogDebug("binding nfnetlink_queue as nf_queue handler for AF_INET and AF_INET6");
 
         if (nfq_bind_pf(nfq_t->h, AF_INET) < 0) {
-            printf("error during nfq_bind_pf()\n");
+            SCLogError(SC_NFQ_BIND, "nfq_bind_pf() for AF_INET failed");
             return TM_ECODE_FAILED;
         }
         if (nfq_bind_pf(nfq_t->h, AF_INET6) < 0) {
-            printf("error during nfq_bind_pf()\n");
+            SCLogError(SC_NFQ_BIND, "nfq_bind_pf() for AF_INET6 failed");
             return TM_ECODE_FAILED;
         }
     }
 
-    printf("NFQInitThread: binding this socket to queue '%" PRIu32 "'\n", nfq_t->queue_num);
+    SCLogInfo("binding this thread to queue '%" PRIu32 "'", nfq_t->queue_num);
 
     /* pass the thread memory as a void ptr so the
      * callback function has access to it. */
     nfq_t->qh = nfq_create_queue(nfq_t->h, nfq_t->queue_num, &NFQCallBack, (void *)nfq_t);
     if (nfq_t->qh == NULL)
     {
-        printf("error during nfq_create_queue()\n");
+        SCLogError(SC_NFQ_CREATE_QUEUE, "nfq_create_queue failed");
         return TM_ECODE_FAILED;
     }
 
-    printf("NFQInitThread: setting copy_packet mode\n");
+    SCLogDebug("setting copy_packet mode");
 
     /* 05DC = 1500 */
     //if (nfq_set_mode(nfq_t->qh, NFQNL_COPY_PACKET, 0x05DC) < 0) {
     if (nfq_set_mode(nfq_t->qh, NFQNL_COPY_PACKET, 0xFFFF) < 0) {
-        printf("can't set packet_copy mode\n");
+        SCLogError(SC_NFQ_SET_MODE, "can't set packet_copy mode");
         return TM_ECODE_FAILED;
     }
 
@@ -237,15 +238,15 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
 #define HAVE_NFQ_MAXLEN
 #ifdef HAVE_NFQ_MAXLEN
     if (queue_maxlen > 0) {
-        printf("NFQInitThread: setting queue length to %" PRId32 "\n", queue_maxlen);
+        SCLogInfo("setting queue length to %" PRId32 "", queue_maxlen);
 
         /* non-fatal if it fails */
         if (nfq_set_queue_maxlen(nfq_t->qh, queue_maxlen) < 0) {
-            printf("NFQInitThread: can't set queue maxlen: your kernel probably "
-                    "doesn't support setting the queue length\n");
+            SCLogWarning(SC_NFQ_MAXLEN, "can't set queue maxlen: your kernel probably "
+                    "doesn't support setting the queue length");
         }
     }
-#endif
+#endif /* HAVE_NFQ_MAXLEN */
 
     nfq_t->nh = nfq_nfnlh(nfq_t->h);
     nfq_t->fd = nfnl_fd(nfq_t->nh);
@@ -256,16 +257,17 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
     tv.tv_usec = 0;
 
     if(setsockopt(nfq_t->fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == -1) {
-        printf("NFQInitThread: can't set socket timeout: %s\n", strerror(errno));
+        SCLogWarning(SC_NFQ_SETSOCKOPT, "can't set socket timeout: %s", strerror(errno));
     }
 
-    //printf("NFQInitThread: nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %" PRId32 "\n", nfq_t->h, nfq_t->nh, nfq_t->qh, nfq_t->fd);
+    SCLogDebug("nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %" PRId32 "",
+            nfq_t->h, nfq_t->nh, nfq_t->qh, nfq_t->fd);
     return TM_ECODE_OK;
 }
 
 TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCMutexLock(&nfq_init_lock);
-    printf("ReceiveNFQThreadInit: starting... will bind to queuenum %" PRIu32 "\n", receive_queue_num);
+    SCLogDebug("starting... will bind to queuenum %" PRIu32 "", receive_queue_num);
 
     sigset_t sigs;
     sigfillset(&sigs);
@@ -279,8 +281,8 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     int r = NFQInitThread(ntv,receive_queue_num,MAX_PENDING);
     if (r < 0) {
-        printf("NFQInitThread failed\n");
-        //return -1;
+        SCLogError(SC_NFQ_THREAD_INIT, "nfq thread failed to initialize");
+
         SCMutexUnlock(&nfq_init_lock);
         exit(EXIT_FAILURE);
     }
@@ -293,7 +295,7 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
 TmEcode VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCMutexLock(&nfq_init_lock);
-    printf("VerdictNFQThreadInit: starting... will bind to queuenum %" PRIu32 "\n", verdict_queue_num);
+    SCLogDebug("starting... will bind to queuenum %" PRIu32 "", verdict_queue_num);
 
     /* no initialization, ReceiveNFQ takes care of that */
     NFQThreadVars *ntv = &nfq_t[verdict_queue_num];
@@ -308,7 +310,7 @@ TmEcode VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
-    printf("VerdictNFQThreadDeinit: starting... will close queuenum %" PRIu32 "\n", ntv->queue_num);
+    SCLogDebug("starting... will close queuenum %" PRIu32 "", ntv->queue_num);
     nfq_destroy_queue(ntv->qh);
 
     return TM_ECODE_OK;
@@ -329,7 +331,7 @@ void NFQRecvPkt(NFQThreadVars *t) {
 #endif /* COUNTERS */
         }
     } else if(rv == 0) {
-        printf("NFQRecvPkt: rv = 0\n");
+        SCLogWarning(SC_NFQ_RECV, "recv got returncode 0");
     } else {
 #ifdef DBG_PERF
         if (rv > t->dbg_maxreadsize)
@@ -342,8 +344,9 @@ void NFQRecvPkt(NFQThreadVars *t) {
         ret = nfq_handle_packet(t->h, buf, rv);
         SCMutexUnlock(&t->mutex_qh);
 
-        if (ret != 0)
-            printf("NFQRecvPkt: nfq_handle_packet error %" PRId32 "\n", ret);
+        if (ret != 0) {
+            SCLogWarning(SC_NFQ_HANDLE_PKT, "nfq_handle_packet error %" PRId32 "", ret);
+        }
     }
 }
 
@@ -409,8 +412,9 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
     SCMutexUnlock(&t->mutex_qh);
 
-    if (ret < 0)
-        printf("NFQSetVerdict: nfq_set_verdict of %p failed %" PRId32 "\n", p, ret);
+    if (ret < 0) {
+        SCLogWarning(SC_NFQ_SET_VERDICT, "nfq_set_verdict of %p failed %" PRId32 "", p, ret);
+    }
 }
 
 TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
@@ -457,29 +461,20 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
-#ifdef DEBUG
-    printf("DecodeNFQ\n");
-#endif
-
     SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
     SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, p->pktlen);
     SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
     SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
-#ifdef DEBUG
-        printf("DecodeNFQ ip4\n");
-#endif
+        SCLogDebug("IPv4 packet");
+
         DecodeIPV4(tv, dtv, p, p->pkt, p->pktlen, pq);
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
-#ifdef DEBUG
-        printf("DecodeNFQ ip6\n");
-#endif
+        SCLogDebug("IPv6 packet");
         DecodeIPV6(tv, dtv, p, p->pkt, p->pktlen, pq);
     } else {
-#ifdef DEBUG
-        printf("DecodeNFQ %02x\n", *p->pkt);
-#endif
+        SCLogDebug("packet unsupported by NFQ, first byte: %02x", *p->pkt);
     }
 
     return TM_ECODE_OK;
@@ -490,7 +485,7 @@ TmEcode DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
     DecodeThreadVars *dtv = NULL;
 
     if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
-        printf("Error Allocating memory\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         return TM_ECODE_FAILED;
     }
     memset(dtv, 0, sizeof(DecodeThreadVars));
