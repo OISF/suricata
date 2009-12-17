@@ -260,7 +260,7 @@ end:
     if (mpm_table[dir->mpm_ctx.mpm_type].Cleanup != NULL) {
         mpm_table[dir->mpm_ctx.mpm_type].Cleanup(&tdir->mpm_ctx);
     }
-#if 1
+#if 0
     printf("AppLayerDetectGetProto: returning %" PRIu16 " (%s): ", proto, flags & STREAM_TOCLIENT ? "TOCLIENT" : "TOSERVER");
     switch (proto) {
         case ALPROTO_HTTP:
