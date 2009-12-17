@@ -585,8 +585,7 @@ int main(int argc, char **argv)
     LogFileCtx *au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
 
     if (SigLoadSignatures(de_ctx, sig_file) < 0) {
-        printf("ERROR: loading signatures failed.\n");
-        exit(EXIT_FAILURE);
+        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.\n");
     }
 
     struct timeval start_time;

@@ -208,9 +208,15 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
     Signature *sig = NULL;
     int good = 0, bad = 0;
 
+    if (sig_file == NULL) {
+        SCLogError(SC_INVALID_ARGUMENT, "ERROR opening rule file null.");
+        return -1;
+    }
+
     FILE *fp = fopen(sig_file, "r");
     if (fp == NULL) {
-        printf("ERROR, could not open sigs file\n");
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "ERROR opening rule file %s."
+                   " Check the path and perms.", sig_file);
         return -1;
     }
     char line[8192] = "";
@@ -243,6 +249,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     Signature *prevsig = NULL, *sig;
     ConfNode *rule_files;
     ConfNode *file = NULL;
+    int ret = 0;
     int r = 0;
     int cnt = 0;
     int cntf = 0;
@@ -284,11 +291,11 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
             sfile = DetectLoadCompleteSigPath(file->val);
             SCLogInfo("Loading rule file: %s", sfile);
             r = DetectLoadSigFile(de_ctx, sfile);
+            cntf++;
             if (r > 0) {
                 cnt += r;
-                cntf++;
-            } else {
-                SCLogInfo("Problems loading rule file: %s", sfile);
+            } else if (r == 0){
+                SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sfile);
             }
             free(sfile);
         }
@@ -298,18 +305,18 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     if (sig_file != NULL) {
         SCLogInfo("Loading rule file: %s", sig_file);
         r = DetectLoadSigFile(de_ctx, sig_file);
+        cntf++;
         if (r > 0) {
             cnt += r;
-            cntf++;
-        } else {
-            SCLogInfo("Problems loading rule file: %s", sig_file);
+        } else if (r == 0) {
+            SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sig_file);
         }
     }
 
     /* now we should have signatures to work with */
     if (cnt <= 0) {
-        SCLogInfo("No rule file loaded!");
-        return -1;
+        SCLogError(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", cntf);
+        ret = -1;
     } else {
         SCLogInfo("%d rules loaded from %d files.", cnt, cntf);
     }
