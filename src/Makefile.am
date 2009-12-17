@@ -113,6 +113,7 @@ util-radix-tree.c util-radix-tree.h \
 util-host-os-info.c util-host-os-info.h \
 util-rule-vars.c util-rule-vars.h \
 util-fix_checksum.c util-fix_checksum.h \
+util-daemon.c util-daemon.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

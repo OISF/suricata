@@ -83,6 +83,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "detect-engine-siggroup.h"
+#include "util-daemon.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -275,6 +276,7 @@ void usage(const char *progname)
     printf("\t-q <qid>                     : run in inline nfqueue mode\n");
     printf("\t-s <path>                    : path to signature file (optional)\n");
     printf("\t-l <dir>                     : default log directory\n");
+    printf("\t-D                           : run as daemon\n");
 #ifdef UNITTESTS
     printf("\t-u                           : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
@@ -298,6 +300,7 @@ int main(int argc, char **argv)
     char *regex_arg = NULL;
     int dump_config = 0;
     int list_unittests = 0;
+    int daemon = 0;
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
@@ -319,7 +322,7 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:hi:l:q:r:us:U:";
+    char short_opts[] = "c:Dhi:l:q:r:us:U:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -368,6 +371,9 @@ int main(int argc, char **argv)
         case 'c':
             conf_filename = optarg;
             break;
+        case 'D':
+            daemon = 1;
+            break;
         case 'h':
             usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -413,6 +419,10 @@ int main(int argc, char **argv)
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
+    }
+
+    if (!CheckValidDaemonModes(daemon, mode)) {
+        exit(EXIT_FAILURE);
     }
 
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
@@ -547,6 +557,8 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 #endif /* UNITTESTS */
+
+    if (daemon) Daemonize();
 
     /* registering signals we use */
     SignalHandlerSetup(SIGINT, SignalHandlerSigint);

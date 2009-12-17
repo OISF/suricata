@@ -59,6 +59,7 @@ typedef enum {
     SC_NFQ_HANDLE_PKT,
     SC_NFQ_SET_VERDICT,
     SC_NFQ_THREAD_INIT,
+    SC_ERR_DAEMON,
 } SCError;
 
 const char *SCErrorToString(SCError);
