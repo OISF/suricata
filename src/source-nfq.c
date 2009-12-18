@@ -371,14 +371,16 @@ TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 #ifdef COUNTERS
-    printf(" - (%s) Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "\n", tv->name, ntv->pkts, ntv->bytes, ntv->errs);
+    SCLogInfo("(%s) Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "",
+            tv->name, ntv->pkts, ntv->bytes, ntv->errs);
 #endif
 }
 
 void VerdictNFQThreadExitStats(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 #ifdef COUNTERS
-    printf(" - (%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "\n", tv->name, ntv->accepted, ntv->dropped);
+    SCLogInfo("(%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "",
+            tv->name, ntv->accepted, ntv->dropped);
 #endif
 }
 
