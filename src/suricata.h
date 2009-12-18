@@ -31,6 +31,16 @@ uint32_t dbg_maxpending;
 SCMutex mutex_pending;
 SCCondT cond_pending;
 
+/* Run mode */
+enum {
+    MODE_UNKNOWN = 0,
+    MODE_PCAP_DEV,
+    MODE_PCAP_FILE,
+    MODE_PFRING,
+    MODE_NFQ,
+    MODE_UNITTEST
+};
+
 /* preallocated packet structures here
  * XXX move to the packetpool queue handler code
  */

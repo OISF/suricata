@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "eidps.h"
 #include "eidps-common.h"
 #include "util-daemon.h"
 #include "util-debug.h"
@@ -96,13 +97,13 @@ static void SetupLogging () {
 int CheckValidDaemonModes (int daemon, int mode) {
     if (daemon) {
         switch (mode) {
-            case 1:
+            case MODE_PCAP_DEV:
                 SCLogDebug("ERROR: pcap live mode cannot run as daemon");
                 return 0;
-            case 2:
+            case MODE_PCAP_FILE:
                 SCLogDebug("ERROR: pcap offline mode cannot run as daemon");
                 return 0;
-            case 5:
+            case MODE_UNITTEST:
                 SCLogDebug("ERROR: unittests cannot run as daemon");
                 return 0;
             default:

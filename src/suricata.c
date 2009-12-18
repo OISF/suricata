@@ -98,16 +98,6 @@ volatile sig_atomic_t sigterm_count = 0;
 #define EIDPS_STOP    0x08
 #define EIDPS_KILL    0x10
 
-/* Run mode. */
-enum {
-    MODE_UNKNOWN = 0,
-    MODE_PCAP_DEV,
-    MODE_PCAP_FILE,
-    MODE_PFRING,
-    MODE_NFQ,
-    MODE_UNITTEST
-};
-
 static uint8_t sigflags = 0;
 
 static void SignalHandlerSigint(/*@unused@*/ int sig) { sigint_count = 1; sigflags |= EIDPS_SIGINT; }
