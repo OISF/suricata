@@ -104,6 +104,7 @@ util-mpm-b2g.c util-mpm-b2g.h \
 util-mpm-b3g.c util-mpm-b3g.h \
 util-cidr.c util-cidr.h \
 util-unittest.c util-unittest.h \
+util-unittest-helper.c util-unittest-helper.h \
 util-hash.c util-hash.h \
 util-hashlist.c util-hashlist.h \
 util-bloomfilter.c util-bloomfilter.h \

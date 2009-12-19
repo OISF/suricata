@@ -6,7 +6,7 @@
 
 typedef struct DetectWindowData_ {
     uint8_t negated;	/** negated? 1=True : 0=False */
-    uint32_t size;     /** window size to match */
+    uint16_t size;     /** window size to match */
 } DetectWindowData;
 
 /* prototypes */

@@ -541,10 +541,10 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     if (basics != NULL) {
         int i = 0;
         while (basics[i] != NULL) {
-            free(basics[i]);
+            //free(basics[i]);
             i++;
         }
-        free(basics);
+        //free(basics);
     }
 
     SCReturnInt(ret);
@@ -825,14 +825,16 @@ error:
 Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr) {
     Signature *sig = SigInitReal(de_ctx, sigstr);
     if (sig == NULL)
-        goto error;
+        return NULL;
 
     if (sig->flags & SIG_FLAG_BIDIREC) {
-        if (sig->next != NULL)
+        if (sig->next != NULL) {
             sig->next->next = de_ctx->sig_list;
-        else
+        } else {
             goto error;
-    } else {
+        }
+    }
+    else {
         /* if this sig is the first one, sig_list should be null */
         sig->next = de_ctx->sig_list;
     }

@@ -75,6 +75,7 @@
 #include "util-host-os-info.h"
 #include "util-cidr.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-time.h"
 #include "util-rule-vars.h"
 #include "util-classification-config.h"
@@ -548,6 +549,7 @@ int main(int argc, char **argv)
             UtRunSelftest(regex_arg); /* inits and cleans up again */
         }
         UtInitialize();
+        UTHRegisterTests();
         TmModuleRegisterTests();
         SigTableRegisterTests();
         HashTableRegisterTests();

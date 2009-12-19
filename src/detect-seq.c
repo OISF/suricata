@@ -20,6 +20,7 @@
 
 #include "util-byte.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 static int DetectSeqSetup(DetectEngineCtx *, Signature *s, SigMatch *m,
                           char *sidstr);
@@ -124,70 +125,16 @@ static void DetectSeqFree(void *ptr)
 
 
 #ifdef UNITTESTS
+
 /**
- * \internal
- * \brief This test tests sameip success and failure.
+ * \test DetectSeqSigTest01 tests parses
  */
-static int DetectSeqSigTest01Real(int mpm_type)
+static int DetectSeqSigTest01(void)
 {
-    uint8_t *buf = (uint8_t *)"";
-    uint16_t buflen = strlen((char *)buf);
-    Packet p[3];
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
     int result = 0;
-    uint8_t tcp_hdr0[] = {
-        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
-        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
-        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
-        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
-        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x02
-    };
-    uint8_t tcp_hdr1[] = {
-        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
-        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
-        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
-        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
-        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x02
-    };
-
-    memset(&th_v, 0, sizeof(th_v));
-
-    /* TCP w/seq=42 */
-    memset(&p[0], 0, sizeof(p[0]));
-    p[0].src.family = AF_INET;
-    p[0].dst.family = AF_INET;
-    p[0].payload = buf;
-    p[0].payload_len = buflen;
-    p[0].proto = IPPROTO_TCP;
-    p[0].tcph = (TCPHdr *)tcp_hdr0;
-    p[0].tcph->th_seq = htonl(42);
-
-    /* TCP w/seq=100 */
-    memset(&p[1], 0, sizeof(p[1]));
-    p[1].src.family = AF_INET;
-    p[1].dst.family = AF_INET;
-    p[1].payload = buf;
-    p[1].payload_len = buflen;
-    p[1].proto = IPPROTO_TCP;
-    p[1].tcph = (TCPHdr *)tcp_hdr1;
-    p[1].tcph->th_seq = htonl(100);
-
-    /* ICMP */
-    memset(&p[2], 0, sizeof(p[2]));
-    p[2].src.family = AF_INET;
-    p[2].dst.family = AF_INET;
-    p[2].payload = buf;
-    p[2].payload_len = buflen;
-    p[2].proto = IPPROTO_ICMP;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
+    if (de_ctx == NULL)
         goto end;
-    }
-
-    de_ctx->mpm_matcher = mpm_type;
-    de_ctx->flags |= DE_QUIET;
 
     /* These three are crammed in here as there is no Parse */
     if (SigInit(de_ctx,
@@ -195,107 +142,73 @@ static int DetectSeqSigTest01Real(int mpm_type)
                 "(msg:\"Testing seq\";seq:foo;sid:1;)") != NULL)
     {
         printf("invalid seq accepted: ");
-        goto cleanup_engine;
+        goto cleanup;
     }
     if (SigInit(de_ctx,
                 "alert tcp any any -> any any "
                 "(msg:\"Testing seq\";seq:9999999999;sid:1;)") != NULL)
     {
         printf("overflowing seq accepted: ");
-        goto cleanup_engine;
+        goto cleanup;
     }
     if (SigInit(de_ctx,
                 "alert tcp any any -> any any "
                 "(msg:\"Testing seq\";seq:-100;sid:1;)") != NULL)
     {
         printf("negative seq accepted: ");
-        goto cleanup_engine;
-    }
-
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing seq\";seq:41;sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto cleanup_engine;
-    }
-
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(msg:\"Testing seq\";seq:42;sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
-        goto cleanup_engine;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[0]);
-    if (PacketAlertCheck(&p[0], 1) != 0) {
-        printf("sid 1 alerted, but should not have: ");
         goto cleanup;
     }
-    if (PacketAlertCheck(&p[0], 2) == 0) {
-        printf("sid 2 did not alert, but should have: ");
-        goto cleanup;
-    }
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[1]);
-    if (PacketAlertCheck(&p[1], 1) != 0) {
-        printf("sid 1 alerted, but should not have: ");
-        goto cleanup;
-    }
-    if (PacketAlertCheck(&p[1], 2) != 0) {
-        printf("sid 2 alerted, but should not have: ");
-        goto cleanup;
-    }
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[1]);
-    if (PacketAlertCheck(&p[2], 1) != 0) {
-        printf("sid 1 alerted, but should not have: ");
-        goto cleanup;
-    }
-    if (PacketAlertCheck(&p[2], 2) != 0) {
-        printf("sid 2 alerted, but should not have: ");
-        goto cleanup;
-    }
-
     result = 1;
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-cleanup_engine:
-    DetectEngineCtxFree(de_ctx);
-
+    if (de_ctx) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
 end:
     return result;
 }
 
 /**
- * \test DetectSeqSigTest01B2g tests sameip under B2g MPM
+ * \test DetectSeqSigTest02 tests seq keyword
  */
-static int DetectSeqSigTest01B2g(void)
+static int DetectSeqSigTest02(void)
 {
-    return DetectSeqSigTest01Real(MPM_B2G);
-}
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+    p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    p[1] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    p[2] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_ICMP);
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
 
-/**
- * \test DetectSeqSigTest01B2g tests sameip under B3g MPM
- */
-static int DetectSeqSigTest01B3g(void)
-{
-    return DetectSeqSigTest01Real(MPM_B3G);
-}
+    /* TCP w/seq=42 */
+    p[0]->tcph->th_seq = htonl(42);
 
-/**
- * \test DetectSeqSigTest01B2g tests sameip under WuManber MPM
- */
-static int DetectSeqSigTest01Wm(void)
-{
-    return DetectSeqSigTest01Real(MPM_WUMANBER);
+    /* TCP w/seq=100 */
+    p[1]->tcph->th_seq = htonl(100);
+
+    char *sigs[2];
+    sigs[0]= "alert tcp any any -> any any (msg:\"Testing seq\"; seq:41; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"Testing seq\"; seq:42; sid:2;)";
+
+    uint32_t sid[2] = {1, 2};
+
+    uint32_t results[3][2] = {
+                              /* packet 0 match sid 1 but should not match sid 2 */
+                              {0, 1},
+                              /* packet 1 should not match */
+                              {0, 0},
+                              /* packet 2 should not match */
+                              {0, 0} };
+
+    result = UTHGenericTest(p, 3, sigs, sid, (uint32_t *) results, 2);
+    UTHFreePackets(p, 3);
+end:
+    return result;
 }
 
 #endif /* UNITTESTS */
@@ -307,9 +220,8 @@ static int DetectSeqSigTest01Wm(void)
 static void DetectSeqRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectSeqSigTest01B2g", DetectSeqSigTest01B2g, 1);
-    UtRegisterTest("DetectSeqSigTest01B3g", DetectSeqSigTest01B3g, 1);
-    UtRegisterTest("DetectSeqSigTest01Wm", DetectSeqSigTest01Wm, 1);
+    UtRegisterTest("DetectSeqSigTest01", DetectSeqSigTest01, 1);
+    UtRegisterTest("DetectSeqSigTest02", DetectSeqSigTest02, 1);
 #endif /* UNITTESTS */
 }
 

@@ -533,7 +533,6 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
     }
 
     /* If it has matched, check if it's set a "isdataat" option and process it */
-    /* If it has matched, check if it's set a "isdataat" option and process it */
     if (match == 1 && (co->flags & DETECT_CONTENT_ISDATAAT_RELATIVE) &&
         co->negated == 0) {
         /* if the rest of the payload (from the last match) is less than

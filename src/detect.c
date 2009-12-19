@@ -2610,7 +2610,6 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
 void DbgPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     if (sgh == NULL) {
         printf("\n");
-        return;
     }
 
     uint32_t sig;
