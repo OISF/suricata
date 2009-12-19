@@ -126,11 +126,15 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     if (htp_connp_req_data(hstate->connp, 0, input, input_len) ==
             STREAM_STATE_ERROR)
     {
-        /* As work in HTP library is in progress, so it doesn't filled the
-           last_error field always and it can be null at the moment. So we can't
-           print the error casue always. If the infomraion is logged then, it
-           will be printed on console by library itself */
-        SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request");
+        if (hstate->connp->last_error != NULL) {
+            SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request: "
+                "[%"PRId32"] [%s] [%"PRId32"] %s", hstate->connp->last_error->level,
+                hstate->connp->last_error->file, hstate->connp->last_error->line,
+                hstate->connp->last_error->msg);
+        } else {
+             SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request");
+        }
+
         SCReturnInt(-1);
     }
 
@@ -169,11 +173,15 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     if (htp_connp_res_data(hstate->connp, 0, input, input_len) ==
             STREAM_STATE_ERROR)
     {
-        /* As work in HTP library is in progress, so it doesn't filled the
-           last_error field always and it can be null at the moment. So we can't
-           print the error casue always. If the infomraion is logged then, it
-           will be printed on console by library itself */
-        SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server response");
+         if (hstate->connp->last_error != NULL) {
+            SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server request: "
+                "[%"PRId32"] [%s] [%"PRId32"] %s", hstate->connp->last_error->level,
+                hstate->connp->last_error->file, hstate->connp->last_error->line,
+                hstate->connp->last_error->msg);
+         } else {
+             SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server request");
+         }
+
         SCReturnInt(-1);
     }
 
