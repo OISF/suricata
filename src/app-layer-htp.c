@@ -12,7 +12,6 @@
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"
-#include <htp/htp.h>
 
 #include "util-print.h"
 #include "util-pool.h"
@@ -23,11 +22,13 @@
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "app-layer-htp.h"
 
 #include "util-binsearch.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "app-layer-htp.h"
+#include "util-time.h"
 
 #ifdef DEBUG
 static SCMutex htp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -66,7 +67,7 @@ static void HTPStateFree(void *s)
     /* free the connection parser memory used by HTP library */
     if (s != NULL)
         if (((HtpState *)(s))->connp != NULL)
-            htp_connp_destroy(((HtpState *)(s))->connp);
+            htp_connp_destroy_all(((HtpState *)(s))->connp);
 
     free(s);
 #ifdef DEBUG
@@ -75,6 +76,21 @@ static void HTPStateFree(void *s)
     htp_state_memuse-=sizeof(HtpState);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
+}
+
+/**
+ *  \brief  Function to convert the IP addresses in to the string
+ *
+ *  \param  f               pointer to the flow which contains the IP addresses
+ *  \param  remote_addr     pointer the string which will contain the remote address
+ *  \param  local_addr     pointer the string which will contain the local address
+ */
+void HTPGetIPAddr(Flow *f, int family, char *remote_addr, char *local_addr)
+{
+    inet_ntop(family, (const void *)&f->src.addr_data32[0], remote_addr,
+            sizeof (remote_addr));
+    inet_ntop(family, (const void *)&f->dst.addr_data32[0], local_addr,
+            sizeof (local_addr));
 }
 
 /**
@@ -89,18 +105,22 @@ static void HTPStateFree(void *s)
  *
  *  \retval On success returns 1 or on failure returns -1
  */
-static int HTPHandleRequestData(void *htp_state, AppLayerParserState *pstate,
+static int HTPHandleRequestData(Flow *f, void *htp_state,
+                                AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
-                                AppLayerParserResult *output)
+                                AppLayerParserResult *output, char need_lock)
 {
     SCEnter();
     HtpState *hstate = (HtpState *)htp_state;
-    struct timeval tv;
 
-    gettimeofday(&tv, NULL);
+    /* Open the HTTP connection on receiving the first request */
+    if (! (hstate->flags & HTP_FLAG_STATE_OPEN)) {
+        htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, 0);
+        hstate->flags |= HTP_FLAG_STATE_OPEN;
+    }
 
-    if (htp_connp_req_data(hstate->connp, tv.tv_usec, input, input_len) ==
-                            HTP_ERROR)
+    if (htp_connp_req_data(hstate->connp, 0, input, input_len) ==
+            STREAM_STATE_ERROR)
     {
         /* As work in HTP library is in progress, so it doesn't filled the
            last_error field always and it can be null at the moment. So we can't
@@ -108,6 +128,14 @@ static int HTPHandleRequestData(void *htp_state, AppLayerParserState *pstate,
            will be printed on console by library itself */
         SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request");
         SCReturnInt(-1);
+    }
+
+    /* if we the TCP connection is closed, then close the HTTP connection */
+    if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
+            ! (hstate->flags & HTP_FLAG_STATE_CLOSED))
+    {
+        htp_connp_close(hstate->connp, 0);
+        hstate->flags |= HTP_FLAG_STATE_CLOSED;
     }
 
     SCReturnInt(1);
@@ -125,18 +153,16 @@ static int HTPHandleRequestData(void *htp_state, AppLayerParserState *pstate,
  *
  *  \retval On success returns 1 or on failure returns -1
  */
-static int HTPHandleResponseData(void *htp_state, AppLayerParserState *pstate,
+static int HTPHandleResponseData(Flow *f, void *htp_state,
+                                AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
-                                AppLayerParserResult *output)
+                                AppLayerParserResult *output, char need_lock)
 {
     SCEnter();
     HtpState *hstate = (HtpState *)htp_state;
-    struct timeval tv;
 
-    gettimeofday(&tv, NULL);
-
-    if (htp_connp_res_data(hstate->connp, tv.tv_usec, input, input_len) ==
-                            HTP_ERROR)
+    if (htp_connp_res_data(hstate->connp, 0, input, input_len) ==
+            STREAM_STATE_ERROR)
     {
         /* As work in HTP library is in progress, so it doesn't filled the
            last_error field always and it can be null at the moment. So we can't
@@ -146,7 +172,34 @@ static int HTPHandleResponseData(void *htp_state, AppLayerParserState *pstate,
         SCReturnInt(-1);
     }
 
+    /* if we the TCP connection is closed, then close the HTTP connection */
+    if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
+            ! (hstate->flags & HTP_FLAG_STATE_CLOSED))
+    {
+        htp_connp_close(hstate->connp, 0);
+        hstate->flags |= HTP_FLAG_STATE_CLOSED;
+    }
+
     SCReturnInt(1);
+}
+
+/**
+ * \brief Print the stats of the HTTP requests
+ */
+void HTPAtExitPrintStats(void)
+{
+#ifdef DEBUG
+    SCMutexLock(&htp_state_mem_lock);
+    SCLogDebug("http_state_memcnt %"PRIu64", http_state_memuse %"PRIu64"",
+                htp_state_memcnt, htp_state_memuse);
+    SCMutexUnlock(&htp_state_mem_lock);
+#endif
+}
+
+/** \brief Clears the HTTP server configuration memory used by HTP library */
+void HTPFreeConfig(void)
+{
+    htp_config_destroy(cfg);
 }
 
 /**
@@ -172,7 +225,7 @@ void RegisterHTPParsers(void)
 int HTPParserTest01(void) {
     int result = 1;
     Flow f;
-    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
                          " Data is c0oL!";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -215,10 +268,10 @@ int HTPParserTest01(void) {
 
     if (htp_state->connp == NULL || strcmp(bstr_tocstr(h->value), "Victor/1.0")
             || tx->request_method_number != M_POST ||
-            tx->request_protocol_number != HTTP_1_1)
+            tx->request_protocol_number != HTTP_1_0)
     {
         printf("expected header value: Victor/1.0 and got %s: and expected"
-                " method: POST and got %s, expected protocol number HTTP/1.1"
+                " method: POST and got %s, expected protocol number HTTP/1.0"
                 "  and got: %s \n", bstr_tocstr(h->value),
                 bstr_tocstr(tx->request_method),
                 bstr_tocstr(tx->request_protocol));
@@ -386,14 +439,14 @@ end:
 int HTPParserTest05(void) {
     int result = 1;
     Flow f;
-    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\nUser-Agent: Victor/1.0\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint8_t httpbuf2[] = "Post D";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     uint8_t httpbuf3[] = "ata is c0oL!";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
 
-    uint8_t httpbuf4[] = "HTTP/1.1 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
+    uint8_t httpbuf4[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
     uint8_t httpbuf5[] = "post R";
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
@@ -468,20 +521,20 @@ int HTPParserTest05(void) {
     key = table_iterator_next(tx->request_headers, (void **) & h);
 
     if (http_state->connp == NULL || tx->request_method_number != M_POST ||
-            h == NULL || tx->request_protocol_number != HTTP_1_1)
+            h == NULL || tx->request_protocol_number != HTTP_1_0)
     {
         printf("expected method M_POST and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_tocstr(tx->request_method),
+                "HTTP/1.0 and got %s \n", bstr_tocstr(tx->request_method),
                 bstr_tocstr(tx->request_protocol));
         result = 0;
         goto end;
     }
 
     if (tx->response_status_number != 200 ||
-            h == NULL || tx->request_protocol_number != HTTP_1_1)
+            h == NULL || tx->request_protocol_number != HTTP_1_0)
     {
         printf("expected response 200 OK and got %"PRId32" %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", tx->response_status_number,
+                "HTTP/1.0 and got %s \n", tx->response_status_number,
                 bstr_tocstr(tx->response_message),
                 bstr_tocstr(tx->response_protocol));
         result = 0;
@@ -491,6 +544,114 @@ end:
     return result;
 }
 
+/** \test Test proper chunked encoded response body
+ */
+int HTPParserTest06(void) {
+    int result = 1;
+    Flow f;
+    uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
+                         "name=try HTTP/1.1\r\nAccept: */*\r\nUser-Agent: "
+                         "LD-agent\r\nHost: 209.205.196.16\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "HTTP/1.1 200 OK\r\nDate: Sat, 03 Oct 2009 10:16:02 "
+                         "GMT\r\n"
+                         "Server: Apache/1.3.37 (Unix) mod_ssl/2.8.28 "
+                         "OpenSSL/0.9.7a PHP/4.4.7 mod_perl/1.29 "
+                         "FrontPage/5.0.2.2510\r\n"
+                         "X-Powered-By: PHP/4.4.7\r\nTransfer-Encoding: "
+                         "chunked\r\n"
+                         "Content-Type: text/html\r\n\r\n"
+                         "1408\r\n"
+                         "W2dyb3VwMV0NCnBob25lMT1wMDB3ODgyMTMxMzAyMTINCmxvZ2lu"
+                         "MT0NCnBhc3N3b3JkMT0NCnBob25lMj1wMDB3ODgyMTMxMzAyMTIN"
+                         "CmxvZ2luMj0NCnBhc3N3b3JkMj0NCnBob25lMz0NCmxvZ2luMz0N"
+                         "CnBhc3N3b3JkMz0NCnBob25lND0NCmxvZ2luND0NCnBhc3N3b3Jk"
+                         "ND0NCnBob25lNT0NCmxvZ2luNT0NCnBhc3N3b3JkNT0NCnBob25l"
+                         "Nj0NCmxvZ2luNj0NCnBhc3N3b3JkNj0NCmNhbGxfdGltZTE9MzIN"
+                         "CmNhbGxfdGltZTI9MjMyDQpkYXlfbGltaXQ9NQ0KbW9udGhfbGlt"
+                         "aXQ9MTUNCltncm91cDJdDQpwaG9uZTE9DQpsb2dpbjE9DQpwYXNz"
+                         "d29yZDE9DQpwaG9uZTI9DQpsb2dpbjI9DQpwYXNzd29yZDI9DQpw"
+                         "aG9uZTM9DQpsb2dpbjM9DQpwYXNzd29yZDM9DQpwaG9uZTQ9DQps"
+                         "b2dpbjQ9DQpwYXNzd29yZDQ9DQpwaG9uZTU9DQpsb2dpbjU9DQpw"
+                         "YXNzd29yZDU9DQpwaG9uZTY9DQpsb2dpbjY9DQpwYXNzd29yZDY9"
+                         "DQpjYWxsX3RpbWUxPQ0KY2FsbF90aW1lMj0NCmRheV9saW1pdD0N"
+                         "Cm1vbnRoX2xpbWl0PQ0KW2dyb3VwM10NCnBob25lMT0NCmxvZ2lu"
+                         "MT0NCnBhc3N3b3JkMT0NCnBob25lMj0NCmxvZ2luMj0NCnBhc3N3"
+                         "b3JkMj0NCnBob25lMz0NCmxvZ2luMz0NCnBhc3N3b3JkMz0NCnBo"
+                         "b25lND0NCmxvZ2luND0NCnBhc3N3b3JkND0NCnBob25lNT0NCmxv"
+                         "Z2luNT0NCnBhc3N3b3JkNT0NCnBob25lNj0NCmxvZ2luNj0NCnBh"
+                         "c3N3b3JkNj0NCmNhbGxfdGltZTE9DQpjYWxsX3RpbWUyPQ0KZGF5"
+                         "X2xpbWl0PQ0KbW9udGhfbGltaXQ9DQpbZ3JvdXA0XQ0KcGhvbmUx"
+                         "PQ0KbG9naW4xPQ0KcGFzc3dvcmQxPQ0KcGhvbmUyPQ0KbG9naW4y"
+                         "PQ0KcGFzc3dvcmQyPQ0KcGhvbmUzPQ0KbG9naW4zPQ0KcGFzc3dv"
+                         "cmQzPQ0KcGhvbmU0PQ0KbG9naW40PQ0KcGFzc3dvcmQ0PQ0KcGhv"
+                         "bmU1PQ0KbG9naW41PQ0KcGFzc3dvcmQ1PQ0KcGhvbmU2PQ0KbG9n"
+                         "aW42PQ0KcGFzc3dvcmQ2PQ0KY2FsbF90aW1lMT0NCmNhbGxfdGlt"
+                         "ZTI9DQpkYXlfbGltaXQ9DQptb250aF9saW1pdD0NCltmaWxlc10N"
+                         "Cmxpbms9aHR0cDovLzIwOS4yMDUuMTk2LjE2L2xkL2dldGJvdC5w"
+                         "aHA=0\r\n\r\n";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+
+    f.protoctx = (void *)&ssn;
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
+                          httpbuf1, httplen1, FALSE);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf2,
+                      httplen2, FALSE);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+
+    bstr *key = NULL;
+    htp_header_t *h = NULL;
+    table_iterator_reset(tx->request_headers);
+    key = table_iterator_next(tx->request_headers, (void **) & h);
+
+    if (http_state->connp == NULL || tx->request_method_number != M_GET ||
+            h == NULL || tx->request_protocol_number != HTTP_1_1)
+    {
+        printf("expected method M_GET and got %s: , expected protocol "
+                "HTTP/1.1 and got %s \n", bstr_tocstr(tx->request_method),
+                bstr_tocstr(tx->request_protocol));
+        result = 0;
+        goto end;
+    }
+
+    if (tx->response_status_number != 200 ||
+            h == NULL || tx->request_protocol_number != HTTP_1_1)
+    {
+        printf("expected response 200 OK and got %"PRId32" %s: , expected proto"
+                "col HTTP/1.1 and got %s \n", tx->response_status_number,
+                bstr_tocstr(tx->response_message),
+                bstr_tocstr(tx->response_protocol));
+        result = 0;
+        goto end;
+    }
+end:
+    return result;
+}
 //#endif /* UNITTESTS */
 /**
  *  \brief  Register the Unit tests for the HTTP protocol
@@ -502,6 +663,7 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserTest03", HTPParserTest03, 1);
     UtRegisterTest("HTPParserTest04", HTPParserTest04, 1);
     UtRegisterTest("HTPParserTest05", HTPParserTest05, 1);
+    UtRegisterTest("HTPParserTest06", HTPParserTest06, 1);
 #endif /* UNITTESTS */
 }
 

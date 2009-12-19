@@ -4,6 +4,7 @@
 #include "decode.h"
 #include "decode-sll.h"
 #include "decode-events.h"
+#include "util-debug.h"
 
 void DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -18,9 +19,7 @@ void DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     if (sllh == NULL)
         return;
 
-#ifdef DEBUG
-    printf("DecodeSll: p %p pkt %p sll_protocol %04x\n", p, pkt, ntohs(sllh->sll_protocol));
-#endif
+    SCLogDebug("p %p pkt %p sll_protocol %04x", p, pkt, ntohs(sllh->sll_protocol));
 
     if (ntohs(sllh->sll_protocol) == ETHERNET_TYPE_IP) {
         //printf("DecodeSll ip4\n");

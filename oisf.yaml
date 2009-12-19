@@ -36,7 +36,7 @@ logging:
   # Enable logging to the console.  Be a little more verbose than
   # default, log info and more critical.
   - interface: console
-    log-level: info
+    log-level: error
 
   # Log to a file as well.  No log level specified so level will be
   # set to the default-log-level.

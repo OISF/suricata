@@ -691,7 +691,8 @@ int main(int argc, char **argv)
     FlowShutdown();
     FlowPrintQueueInfo();
     StreamTcpFreeConfig(STREAM_VERBOSE);
-    HTTPAtExitPrintStats();
+    HTPFreeConfig();
+    HTPAtExitPrintStats();
 
     /** \todo review whats needed here */
     SigGroupCleanup(de_ctx);

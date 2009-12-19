@@ -75,24 +75,41 @@ typedef struct AppLayerParserTableElement_ {
     uint16_t proto;
     uint16_t parser_local_id; /** local id of the parser in the parser itself. */
     uint8_t flags;
-    int (*AppLayerParser)(void *protocol_state, AppLayerParserState *parser_state, uint8_t *input, uint32_t input_len, AppLayerParserResult *output);
-    uint16_t max_outputs; /* rationele is that if we know the max outputs of all parsers, we
-                              can statically define our output array to be a certain size */
+    int (*AppLayerParser)(Flow *f, void *protocol_state, AppLayerParserState
+                          *parser_state, uint8_t *input, uint32_t input_len,
+                          AppLayerParserResult *output, char need_lock);
+    uint16_t max_outputs; /* rationele is that if we know the max outputs of all
+                             parsers, we can statically define our output array
+                             to be a certain size */
 } AppLayerParserTableElement;
 
 /* prototypes */
 void AppLayerParsersInitPostProcess(void);
 void RegisterAppLayerParsers(void);
 
-int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags, int (*AppLayerParser)(void *protocol_state, AppLayerParserState *parser_state, uint8_t *input, uint32_t input_len, AppLayerParserResult *output));
-int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id, int (*AppLayerParser)(void *protocol_state, AppLayerParserState *parser_state, uint8_t *input, uint32_t input_len, AppLayerParserResult *output), char *dependency);
-void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void), void (*StateFree)(void *));
+int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
+                          int (*AppLayerParser)(Flow *f, void *protocol_state,
+                          AppLayerParserState *parser_state, uint8_t *input,
+                          uint32_t input_len, AppLayerParserResult *output,
+                          char need_lock));
+int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
+                           int (*AppLayerParser)(Flow *f, void *protocol_state,
+                           AppLayerParserState *parser_state, uint8_t *input,
+                           uint32_t input_len, AppLayerParserResult *output,
+                           char need_lock), char *dependency);
+void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
+                                void (*StateFree)(void *));
 
-int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input, uint32_t input_len, char);
+int AppLayerParse(Flow *, uint8_t proto, uint8_t flags, uint8_t *input,
+                  uint32_t input_len, char);
 
-int AlpParseFieldBySize(AppLayerParserResult *, AppLayerParserState *, uint16_t, uint32_t, uint8_t *, uint32_t, uint32_t *);
-int AlpParseFieldByEOF(AppLayerParserResult *, AppLayerParserState *, uint16_t, uint8_t *, uint32_t);
-int AlpParseFieldByDelimiter(AppLayerParserResult *, AppLayerParserState *, uint16_t, const uint8_t *, uint8_t, uint8_t *, uint32_t, uint32_t *);
+int AlpParseFieldBySize(AppLayerParserResult *, AppLayerParserState *, uint16_t,
+                        uint32_t, uint8_t *, uint32_t, uint32_t *);
+int AlpParseFieldByEOF(AppLayerParserResult *, AppLayerParserState *, uint16_t,
+                       uint8_t *, uint32_t);
+int AlpParseFieldByDelimiter(AppLayerParserResult *, AppLayerParserState *,
+                             uint16_t, const uint8_t *, uint8_t, uint8_t *,
+                             uint32_t, uint32_t *);
 uint16_t AlpGetStateIdx(uint16_t);
 
 uint16_t AppLayerGetProtoByName(const char *);

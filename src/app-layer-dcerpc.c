@@ -38,7 +38,7 @@ enum {
 };
 
 #if 0
-static int DCERPCParseBIND(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+static int DCERPCParseBIND(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock) {
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
     if (input_len) {
@@ -73,14 +73,16 @@ static int DCERPCParseBIND(void *dcerpc_state, AppLayerParserState *pstate, uint
     return (p - input);
 }
 
-static int DCERPCParseBINDACK(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+static int DCERPCParseBINDACK(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock) {
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
     return 0;
 }
 #endif
 
-static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+static int DCERPCParseHeader(Flow *f, void *dcerpc_state, AppLayerParserState
+                            *pstate, uint8_t *input, uint32_t input_len,
+                            AppLayerParserResult *output, char need_lock) {
     SCEnter();
 
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
@@ -173,7 +175,7 @@ static int DCERPCParseHeader(void *dcerpc_state, AppLayerParserState *pstate, ui
     SCReturnInt(0);
 }
 
-static int DCERPCParse(void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock) {
     SCEnter();
    // DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint16_t max_fields = 3;
