@@ -114,9 +114,13 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     HtpState *hstate = (HtpState *)htp_state;
 
     /* Open the HTTP connection on receiving the first request */
-    if (! (hstate->flags & HTP_FLAG_STATE_OPEN)) {
+    if (!(hstate->flags & HTP_FLAG_STATE_OPEN)) {
+        SCLogDebug("opening htp handle");
+
         htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, 0);
         hstate->flags |= HTP_FLAG_STATE_OPEN;
+    } else {
+        SCLogDebug("using existing htp handle");
     }
 
     if (htp_connp_req_data(hstate->connp, 0, input, input_len) ==
@@ -136,6 +140,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     {
         htp_connp_close(hstate->connp, 0);
         hstate->flags |= HTP_FLAG_STATE_CLOSED;
+        SCLogDebug("stream eof encountered, closing htp handle");
     }
 
     SCReturnInt(1);

@@ -830,7 +830,7 @@ void TmThreadKillThreads(void) {
                 int cnt = 0;
                 while (1) {
                     if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                        SCLogDebug("signalled the thread %" PRId32 " times\n", cnt);
+                        SCLogDebug("signalled the thread %" PRId32 " times", cnt);
                         break;
                     }
 
@@ -842,14 +842,14 @@ void TmThreadKillThreads(void) {
                     usleep(100);
                 }
 
-                SCLogDebug("signalled tv->inq->id %" PRIu32 "\n", tv->inq->id);
+                SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
             }
 
             if (tv->cond != NULL ) {
                 int cnt = 0;
                 while (1) {
                     if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                        SCLogDebug("signalled the thread %" PRId32 " times\n", cnt);
+                        SCLogDebug("signalled the thread %" PRId32 " times", cnt);
                         break;
                     }
 
@@ -863,7 +863,7 @@ void TmThreadKillThreads(void) {
 
             /* join it */
             pthread_join(tv->t, NULL);
-            SCLogDebug("thread %s stopped\n", tv->name);
+            SCLogDebug("thread %s stopped", tv->name);
 
             tv = tv->next;
         }

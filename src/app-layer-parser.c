@@ -719,6 +719,8 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
     AppLayerParserState *parser_state = NULL;
     if (flags & STREAM_TOSERVER) {
+        SCLogDebug("to_server msg");
+
         parser_state = &parser_state_store->to_server;
         if (!(parser_state->flags & APP_LAYER_PARSER_USE)) {
             parser_idx = p->to_server;
@@ -730,6 +732,8 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
             parser_idx = parser_state->cur_parser;
         }
     } else {
+        SCLogDebug("to_client msg");
+
         parser_state = &parser_state_store->to_client;
         if (!(parser_state->flags & APP_LAYER_PARSER_USE)) {
             parser_idx = p->to_client;
@@ -774,30 +778,23 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
     /* set the packets to no inspection and reassembly for the TLS sessions */
     if (parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) {
-
         if (need_lock == TRUE) SCMutexLock(&f->m);
+
         FlowSetNoPayloadInspectionFlag(f);
-        if (need_lock == TRUE) SCMutexUnlock(&f->m);
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
         if (parser_state->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
-            if (need_lock == TRUE) SCMutexLock(&f->m);
             StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                flags & STREAM_TOCLIENT ? 1 : 0);
             StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                flags & STREAM_TOSERVER ? 1 : 0);
-            if (need_lock == TRUE) SCMutexUnlock(&f->m);
         }
+        if (need_lock == TRUE) SCMutexUnlock(&f->m);
     }
 
     SCReturnInt(0);
 error:
     if (ssn != NULL) {
-        char src[16];
-        char dst[16];
-        char dst6[46];
-        char src6[46];
-
         /* Clear the app layer protocol state memory and the given function also
          * cleans the parser state memory */
         AppLayerParserCleanupState(ssn);
@@ -808,6 +805,8 @@ error:
         StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOSERVER ? 1 : 0);
 
         if (f->src.family == AF_INET) {
+            char src[16];
+            char dst[16];
             inet_ntop(AF_INET, (const void*)&f->src.addr_data32[0], src,
                       sizeof (src));
             inet_ntop(AF_INET, (const void*)&f->dst.addr_data32[0], dst,
@@ -820,6 +819,9 @@ error:
                 f->proto, src, dst, f->sp, f->dp);
 
         } else {
+            char dst6[46];
+            char src6[46];
+
             inet_ntop(AF_INET6, (const void*)&f->src.addr_data32, src6,
                       sizeof (src6));
             inet_ntop(AF_INET6, (const void*)&f->dst.addr_data32, dst6,

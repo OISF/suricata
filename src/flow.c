@@ -106,22 +106,22 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
 {
     int mr = SCMutexTrylock(&q->mutex_q);
     if (mr != 0) {
-        SCLogDebug("Trylock failed!\n");
+        SCLogDebug("trylock failed");
         if (mr == EBUSY)
-            SCLogDebug("Was locked!\n");
+            SCLogDebug("was locked");
         if (mr == EINVAL)
-            SCLogDebug("Bad mutex value!\n");
+            SCLogDebug("bad mutex value");
         return 0;
     }
 
     Flow *f = q->top;
     if (f == NULL) {
         SCMutexUnlock(&q->mutex_q);
-        SCLogDebug("top was null!\n");
+        SCLogDebug("top is null");
         return 0;
     }
     if (SCMutexTrylock(&f->m) != 0) {
-        SCLogDebug("cant lock 1!\n");
+        SCLogDebug("cant lock 1");
         SCMutexUnlock(&q->mutex_q);
         return 0;
     }
@@ -131,7 +131,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
 
     if (SCMutexTrylock(&f->fb->m) != 0) {
         SCMutexUnlock(&f->m);
-        SCLogDebug("cant lock 2!\n");
+        SCLogDebug("cant lock 2");
         return 0;
     }
 
@@ -186,7 +186,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     if ((f->lastts.tv_sec + timeout) >= ts->tv_sec) {
         SCMutexUnlock(&f->fb->m);
         SCMutexUnlock(&f->m);
-        SCLogDebug("timeout check failed!\n");
+        SCLogDebug("timeout check failed");
         return 0;
     }
 
@@ -196,7 +196,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", f->use_cnt, f, f->proto);
         SCMutexUnlock(&f->fb->m);
         SCMutexUnlock(&f->m);
-        SCLogDebug("it is in one of the threads!\n");
+        SCLogDebug("it is in one of the threads");
         return 0;
     }
 
