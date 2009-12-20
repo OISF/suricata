@@ -12,6 +12,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `htp' library (-lhtp). */
+#undef HAVE_LIBHTP
+
 /* Define to 1 if you have the `net' library (-lnet). */
 #undef HAVE_LIBNET
 
