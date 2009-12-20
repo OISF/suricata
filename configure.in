@@ -419,7 +419,7 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no")
     if test "$LIBPCAP" = "no"; then
     echo
-    echo "   ERROR!  lipcap library not found, go get it"
+    echo "   ERROR!  libpcap library not found, go get it"
     echo "   from http://www.tcpdump.org."
     echo
     exit 1
@@ -468,9 +468,22 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     CPPFLAGS="${CPPFLAGS} -I${with_libhtp_includes}"
     fi
 
-    AC_CHECK_HEADER(htp/htp.h,,LIBHTP="no")
+    if test "$with_libhtp_libraries" != "no"; then
+    LDFLAGS="${LDFLAGS} -L${with_libhtp_libraries}"
+    fi
 
-    LDFLAGS="${LDFLAGS}  -lhtp"
+    AC_CHECK_HEADER(htp/htp.h,,[AC_ERROR(htp/htp.h not found ...)])
+
+    LIBHTP=""
+    AC_CHECK_LIB(htp, htp_conn_create,, LIBHTP="no")
+    if test "$LIBHTP" = "no"; then
+    echo
+    echo "   ERROR! libhtp library not found"
+    echo
+    exit 1
+    fi
+
+    #LDFLAGS="${LDFLAGS}  -lhtp"
 
 
 AC_SUBST(CFLAGS)
