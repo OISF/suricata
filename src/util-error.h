@@ -87,6 +87,7 @@ typedef enum {
     SC_ERR_STAT_ERROR,
     SC_ERR_LOGDIR_CONFIG,
     SC_ERR_LOGDIR_CMDLINE,
+    SC_RADIX_TREE_GENERIC_ERROR,
 } SCError;
 
 const char *SCErrorToString(SCError);
