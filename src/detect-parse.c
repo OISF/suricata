@@ -23,6 +23,7 @@
 
 #include "util-classification-config.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "string.h"
 #include "detect-parse.h"
@@ -1222,24 +1223,14 @@ int SigTestBidirec03 (void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> 192.168.1.1 any (msg:\"SigTestBidirec03 sid 1\"; sid:1;)");
-    if (sig == NULL)
-        goto end;
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any <> 192.168.1.1 any (msg:\"SigTestBidirec03 sid 2 bidirectional\"; sid:2;)");
-    if (sig == NULL)
-        goto end;
-    if ( !(sig->flags & SIG_FLAG_BIDIREC))
-        goto end;
-    if (sig->next == NULL)
-        goto end;
-    if (sig->next->next == NULL)
-        goto end;
-    if (sig->next->next->next != NULL)
-        goto end;
-    if (de_ctx->signum != 3)
-        goto end;
+    char *sigs[3];
+    sigs[0] = "alert tcp any any -> 192.168.1.1 any (msg:\"SigTestBidirec03 sid 1\"; sid:1;)";
+    sigs[1] = "alert tcp any any <> 192.168.1.1 any (msg:\"SigTestBidirec03 sid 2 bidirectional\"; sid:2;)";
+    sigs[2] = "alert tcp any any -> 192.168.1.1 any (msg:\"SigTestBidirec03 sid 3\"; sid:3;)";
+    UTHAppendSigs(de_ctx, sigs, 3);
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> 192.168.1.1 any (msg:\"SigTestBidirec03 sid 3\"; sid:3;)");
+    /* Checking that bidirectional rules are set correctly */
+    sig = de_ctx->sig_list;
     if (sig == NULL)
         goto end;
     if (sig->next == NULL)
@@ -1310,38 +1301,20 @@ int SigTestBidirec03 (void) {
         0x6b,0x65,0x65,0x70,0x2d,0x61,0x6c,0x69,
         0x76,0x65,0x0d,0x0a,0x0d,0x0a }; /* end rawpkt1_ether */
 
-    Packet p;
-    DecodeThreadVars dtv;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&p, 0, sizeof(p));
-
     FlowInitConfig(FLOW_QUIET);
-    DecodeEthernet(&th_v, &dtv, &p, rawpkt1_ether, sizeof(rawpkt1_ether), NULL);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-
-    /* all the sids should match with a packet going to 192.168.1.1 port 80 */
-    if (PacketAlertCheck(&p, 1) == 1 && PacketAlertCheck(&p, 2) == 1 &&
-        PacketAlertCheck(&p, 3) == 1) {
-        result = 1;
-    }
+    Packet *p = UTHBuildPacketFromEth(rawpkt1_ether, sizeof(rawpkt1_ether));
     FlowShutdown();
-    //PatternMatchDestroy(mpm_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (p == NULL) {
+        SCLogDebug("Error building packet");
+        goto end;
+    }
+    UTHMatchPackets(de_ctx, &p, 1);
+
+    uint32_t sids[3] = {1, 2, 3};
+    uint32_t results[3] = {1, 1, 1};
+    result = UTHCheckPacketMatchResults(p, sids, results, 1);
 
 end:
-    if (de_ctx != NULL) {
-        SigCleanSignatures(de_ctx);
-        SigGroupCleanup(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
     return result;
 }
 

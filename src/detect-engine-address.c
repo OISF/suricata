@@ -256,9 +256,10 @@ void DetectAddressCleanupList(DetectAddress *head)
         return;
 
     for (cur = head; cur != NULL; ) {
-         next = cur->next;
-         DetectAddressFree(cur);
-         cur = next;
+        next = cur->next;
+        cur->next = NULL;
+        DetectAddressFree(cur);
+        cur = next;
     }
 
     return;
@@ -1274,12 +1275,18 @@ DetectAddressHead *DetectAddressHeadInit(void)
 void DetectAddressHeadCleanup(DetectAddressHead *gh)
 {
     if (gh != NULL) {
-        DetectAddressCleanupList(gh->any_head);
-        gh->any_head = NULL;
-        DetectAddressCleanupList(gh->ipv4_head);
-        gh->ipv4_head = NULL;
-        DetectAddressCleanupList(gh->ipv6_head);
-        gh->ipv6_head = NULL;
+        if (gh->any_head != NULL) {
+            DetectAddressCleanupList(gh->any_head);
+            gh->any_head = NULL;
+        }
+        if (gh->ipv4_head != NULL) {
+            DetectAddressCleanupList(gh->ipv4_head);
+            gh->ipv4_head = NULL;
+        }
+        if (gh->ipv6_head != NULL) {
+            DetectAddressCleanupList(gh->ipv6_head);
+            gh->ipv6_head = NULL;
+        }
     }
 
     return;

@@ -92,6 +92,7 @@
 #include "util-classification-config.h"
 #include "util-print.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-hashlist.h"
 
@@ -3128,38 +3129,11 @@ static int SigTest01Real (int mpm_type) {
                     "Host: two.example.org\r\n"
                     "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     int result = 0;
 
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-    de_ctx->mpm_matcher = mpm_type;
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) == 0) {
+    char sig[] = "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)";
+    if (UTHPacketMatchSigMpm(p, sig, mpm_type) == 0) {
         result = 0;
         goto end;
     }
@@ -3167,18 +3141,14 @@ static int SigTest01Real (int mpm_type) {
     //printf("URI0 \"%s\", len %" PRIu32 "\n", p.http_uri.raw[0], p.http_uri.raw_size[0]);
     //printf("URI1 \"%s\", len %" PRIu32 "\n", p.http_uri.raw[1], p.http_uri.raw_size[1]);
 
-    if (p.http_uri.raw_size[0] == 5 &&
-        memcmp(p.http_uri.raw[0], "/one/", 5) == 0 &&
-        p.http_uri.raw_size[1] == 5 &&
-        memcmp(p.http_uri.raw[1], "/two/", 5) == 0)
+    if (p->http_uri.raw_size[0] == 5 &&
+        memcmp(p->http_uri.raw[0], "/one/", 5) == 0 &&
+        p->http_uri.raw_size[1] == 5 &&
+        memcmp(p->http_uri.raw[1], "/two/", 5) == 0)
     {
         result = 1;
     }
 
-    SigGroupCleanup(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
@@ -3202,50 +3172,11 @@ static int SigTest02Real (int mpm_type) {
                     "Host: two.example.org\r\n"
                     "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->mpm_matcher = mpm_type;
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx,mpm_type);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1))
-        result = 1;
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
-end:
-    return result;
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    char sig[] = "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)";
+    return UTHPacketMatchSigMpm(p, sig, mpm_type);
 }
+
 static int SigTest02B2g (void) {
     return SigTest02Real(MPM_B2G);
 }

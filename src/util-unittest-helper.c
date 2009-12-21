@@ -57,7 +57,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     p->dst.addr_data32[0] = in.s_addr;
     p->dp = dport;
 
-    switch(ipproto) {
+    switch (ipproto) {
         case IPPROTO_UDP:
             p->ip4h = malloc(sizeof(IPV4Hdr));
             if (p->ip4h == NULL) {
@@ -113,6 +113,75 @@ Packet *UTHBuildPacket(uint8_t *payload, uint16_t payload_len,
     return UTHBuildPacketReal(payload, payload_len, ipproto,
                               "192.168.1.5", "192.168.1.1",
                               41424, 80);
+}
+
+/**
+ * \brief UTHBuildPacketArrayFromEth is a wrapper that build a packets from an array of
+ *        packets in ethernet rawbytes. Hint: It also share the flows.
+ *
+ * \param raw_eth pointer to the array of ethernet packets in rawbytes
+ * \param pktsize pointer to the array of sizes corresponding to each buffer pointed
+ *                from pktsize.
+ * \param numpkts number of packets in the array
+ *
+ * \retval Packet pointer to the array of built in packets; NULL if something fail
+ */
+Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkts) {
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    if (raw_eth == NULL || pktsize == NULL || numpkts <= 0) {
+        SCLogError(SC_INVALID_ARGUMENT, "The arrays cant be null, and the number"
+                                        " of packets should be grater thatn zero");
+        return NULL;
+    }
+    Packet **p = NULL;
+    p = malloc(sizeof(Packet *) * numpkts);
+    if (p == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for the packet array");
+        return NULL;
+    }
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    int i = 0;
+    for (; i < numpkts; i++) {
+        p[i] = malloc(sizeof(Packet));
+        if (p[i] == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for a packet of the array");
+            return NULL;
+        }
+        memset(p[i], 0, sizeof(Packet));
+        DecodeEthernet(&th_v, &dtv, p[i], raw_eth[i], pktsize[i], NULL);
+    }
+    return p;
+}
+
+/**
+ * \brief UTHBuildPacketFromEth is a wrapper that build a packet for the rawbytes
+ *
+ * \param raw_eth pointer to the rawbytes containing an ethernet packet
+ *                    (and any other headers inside)
+ * \param pktsize pointer to the length of the payload
+ *
+ * \retval Packet pointer to the built in packet; NULL if something fail
+ */
+Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize) {
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    Packet *p = malloc(sizeof(Packet));
+    if (p == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for the packet");
+        return NULL;
+    }
+    memset(p, 0, sizeof(Packet));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeEthernet(&th_v, &dtv, p, raw_eth, pktsize, NULL);
+    FlowShutdown();
+    return p;
 }
 
 /**
@@ -175,7 +244,7 @@ void UTHFreePacket(Packet *p) {
     if (p == NULL)
         return;
 
-    switch(p->proto) {
+    switch (p->proto) {
         case IPPROTO_UDP:
             if (p->udph != NULL)
                 free(p->udph);
@@ -249,7 +318,7 @@ end:
 }
 
 /**
- * \brief UTHCheckPacketMatches: function to check if a packet some sids
+ * \brief UTHCheckPacketMatches: function to check if a packet match some sids
  *
  *
  * \param p pointer to the Packet
@@ -406,6 +475,7 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets) {
      * and others may not. That check will be outside
      */
 end:
+    SigGroupCleanup(de_ctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -414,8 +484,63 @@ end:
 }
 
 /**
+ * \test Test if a packet match a signature given as string and a mpm_type
+ * Hint: Useful for unittests with only one packet and one signature
+ *
+ * \param sig pointer to the string signature to test
+ * \param sid sid number of the signature
+ *
+ * \retval return 1 if match
+ * \retval return 0 if not
+ */
+int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type) {
+    int result = 1;
+
+    DecodeThreadVars dtv;
+
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        result=0;
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->mpm_matcher = mpm_type;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig);
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    //PatternMatchPrepare(mpm_ctx, mpm_type);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, de_ctx->sig_list->id) != 1) {
+        result = 0;
+        goto end;
+    }
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
  * \test Test if a packet match a signature given as string
- * Useful for unittests with only one packet and one signature
+ * Hint: Useful for unittests with only one packet and one signature
  *
  * \param sig pointer to the string signature to test
  * \param sid sid number of the signature
@@ -449,7 +574,6 @@ int UTHPacketMatchSig(Packet *p, char *sig) {
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -466,17 +590,6 @@ end:
 
     return result;
 }
-
-/*
-static int UTHBuildStream(Signature *s, uint8_t *payload, uint16_t payload_len, Proto tcp/udp) {
-}
-static int UTHInitFlow(Signature *s, uint8_t *payload, uint16_t payload_len, Proto tcp/udp) {
-}
-static int UTHInitConfigApi(Signature *s, uint8_t *payload, uint16_t payload_len, Proto tcp/udp) {
-}
-static int UTHInitDeCtx(Signature *s, uint8_t *payload, uint16_t payload_len, Proto tcp/udp) {
-}
-*/
 
 
 #ifdef UNITTESTS

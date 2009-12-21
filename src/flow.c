@@ -563,7 +563,10 @@ void FlowShutdown(void) {
         }
     }
 
-    free(flow_hash);
+    if (flow_hash != NULL) {
+        free(flow_hash);
+        flow_hash = NULL;
+    }
     flow_memuse -= flow_config.hash_size * sizeof(FlowBucket);
 
     SCMutexDestroy(&flow_memuse_mutex);

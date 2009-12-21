@@ -147,6 +147,7 @@ void SigGroupHeadFree(SigGroupHead *sgh)
 
     if (sgh->init != NULL) {
         SigGroupHeadInitDataFree(sgh->init);
+        sgh->init = NULL;
     }
 
     free(sgh);
