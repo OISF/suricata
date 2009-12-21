@@ -1,6 +1,6 @@
 /* NOALERT part of the detection engine. */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect.h"
 
 int DetectNoalertSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);

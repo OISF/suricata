@@ -1,4 +1,4 @@
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-debug.h"

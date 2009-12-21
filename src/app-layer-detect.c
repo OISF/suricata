@@ -1,4 +1,4 @@
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "app-layer-detect.h"
 
 /** \brief alloc a app layer detection ctx

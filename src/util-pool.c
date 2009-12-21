@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 by Victor Julien <victor@inliniac.net> */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "util-pool.h"
 #include "util-unittest.h"
 #include "util-debug.h"

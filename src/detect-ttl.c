@@ -5,7 +5,7 @@
  * ttl rule keyword support for the detection engine.
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "stream-tcp.h"
 #include "util-unittest.h"
 #include "detect.h"

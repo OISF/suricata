@@ -11,8 +11,8 @@
  * \todo segment insert fasttrack: most pkts are in order
 */
 
-#include "eidps-common.h"
-#include "eidps.h"
+#include "suricata-common.h"
+#include "suricata.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"

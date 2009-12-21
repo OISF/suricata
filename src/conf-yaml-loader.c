@@ -9,7 +9,7 @@
  */
 
 #include <yaml.h>
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "conf.h"
 #include "util-debug.h"
 #include "util-unittest.h"

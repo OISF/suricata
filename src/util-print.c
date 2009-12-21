@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 by Victor Julien <victor@inliniac.net> */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 
 void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
     int i;

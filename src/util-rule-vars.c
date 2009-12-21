@@ -2,7 +2,7 @@
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
@@ -88,7 +88,7 @@ char *SCRuleVarsGetConfVar(const char *conf_var_name,
 /**********************************Unittests***********************************/
 
 static const char *dummy_conf_string =
-    "default-log-dir: /var/log/eidps\n"
+    "default-log-dir: /var/log/suricata\n"
     "\n"
     "logging:\n"
     "\n"
@@ -106,7 +106,7 @@ static const char *dummy_conf_string =
     "    log-level: info\n"
     "\n"
     "  - interface: file\n"
-    "    filename: /var/log/eidps.log\n"
+    "    filename: /var/log/suricata.log\n"
     "\n"
     "  - interface: syslog\n"
     "    facility: local5\n"

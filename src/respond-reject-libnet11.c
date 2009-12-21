@@ -15,7 +15,7 @@
  */
 
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 
 #include <libnet.h>
 

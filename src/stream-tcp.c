@@ -9,7 +9,7 @@
  *  \todo - 4WHS: what if after the 2nd SYN we turn out to be normal 3WHS anyway?
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "debug.h"
 #include "detect.h"

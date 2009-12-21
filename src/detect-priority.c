@@ -1,6 +1,6 @@
 /* PRIORITY part of the detection engine. */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect.h"
 
 int DetectPrioritySetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);

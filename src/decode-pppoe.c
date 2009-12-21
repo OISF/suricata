@@ -5,7 +5,7 @@
  * \brief PPPOE Decoder
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 
 #include "packet-queue.h"
 

@@ -1,5 +1,5 @@
-#include "eidps-common.h"
-#include "eidps.h"
+#include "suricata-common.h"
+#include "suricata.h"
 
 /** \todo replace this by a better algo */
 

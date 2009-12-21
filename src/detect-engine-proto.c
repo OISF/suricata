@@ -4,7 +4,7 @@
  *
  * TODO move this out of the detection plugin structure */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 
 #include "decode.h"
 #include "detect.h"

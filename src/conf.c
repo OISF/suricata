@@ -14,7 +14,7 @@
  * \todo Consider using HashListTable to allow easy dumping of all data.
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "conf.h"
 #include "util-hash.h"
 #include "util-unittest.h"

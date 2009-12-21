@@ -1,6 +1,6 @@
 /* Multi pattern matcher */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 
 #include "decode.h"
 #include "detect.h"

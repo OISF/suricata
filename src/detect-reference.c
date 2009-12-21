@@ -1,6 +1,6 @@
 /* REFERENCE part of the detection engine. */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect.h"
 
 int DetectReferenceSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);

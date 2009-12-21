@@ -7,7 +7,7 @@
  * "id" keyword, IPv4 Identifier keyword, part of the detection engine.
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
 #include "detect.h"

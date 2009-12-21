@@ -1,4 +1,4 @@
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "app-layer.h"
 #include "stream-tcp-private.h"
 #include "util-debug.h"

@@ -15,8 +15,8 @@
  *  - make sure runtime counters can be disabled (at compile time)
  */
 
-#include "eidps-common.h"
-#include "eidps.h"
+#include "suricata-common.h"
+#include "suricata.h"
 #include "util-mpm.h"
 #include "util-mpm-wumanber.h"
 

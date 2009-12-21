@@ -4,8 +4,8 @@
  * Common includes, etc.
  */
 
-#ifndef __EIDPS_COMMON_H__
-#define __EIDPS_COMMON_H__
+#ifndef __SURICATA_COMMON_H__
+#define __SURICATA_COMMON_H__
 
 #define TRUE   1
 #define FALSE  0
@@ -51,5 +51,5 @@
 #define SigIntId uint16_t
 //#define SigIntId uint32_t
 
-#endif /* __EIDPS_COMMON_H__ */
+#endif /* __SURICATA_COMMON_H__ */
 

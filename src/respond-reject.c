@@ -11,7 +11,7 @@
  *   just return 0 always, error handling is a TODO in the threading model (VJ)
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"

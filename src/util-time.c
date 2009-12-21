@@ -1,6 +1,6 @@
 /* Time keeping for offline (non-live) packet handling (pcap files) */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect.h"
 #include "threads.h"
 #include "util-debug.h"

@@ -2,7 +2,7 @@
  *
  * Copyright (C) 2008 by Victor Julien <victor@inliniac.net> */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "detect-content.h"

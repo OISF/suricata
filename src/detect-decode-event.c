@@ -3,8 +3,8 @@
  *  \author Breno Silva <breno.silva@gmail.com>
  */
 
-#include "eidps-common.h"
-#include "eidps.h"
+#include "suricata-common.h"
+#include "suricata.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"

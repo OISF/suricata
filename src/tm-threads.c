@@ -3,8 +3,8 @@
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#include "eidps-common.h"
-#include "eidps.h"
+#include "suricata-common.h"
+#include "suricata.h"
 #include "stream.h"
 #include "threadvars.h"
 #include "tm-queues.h"

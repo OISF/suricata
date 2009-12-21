@@ -1,6 +1,6 @@
 /* Copyright (c) 2009 Victor Julien <victor@inliniac.net> */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "decode-ethernet.h"
 #include "decode-events.h"

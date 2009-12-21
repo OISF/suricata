@@ -5,7 +5,7 @@
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "util-unittest.h"
 #include "debug.h"
 #include "util-debug.h"

@@ -8,7 +8,7 @@
  *   multiple times, we can operate on all of them.
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "pkt-var.h"
 

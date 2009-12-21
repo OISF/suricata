@@ -8,7 +8,7 @@
  *
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "threadvars.h"
 #include "tm-modules.h"

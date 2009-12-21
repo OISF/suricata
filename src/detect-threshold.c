@@ -1,6 +1,6 @@
 /* THRESHOLD part of the detection engine. */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect.h"
 
 int DetectThresholdSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);

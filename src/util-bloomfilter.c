@@ -2,7 +2,7 @@
 
 /* Bitwise bloom filter implementation. */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "util-bloomfilter.h"
 #include "util-unittest.h"
 

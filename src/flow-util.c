@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "threads.h"
 
 #include "flow.h"

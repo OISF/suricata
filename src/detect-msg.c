@@ -1,6 +1,6 @@
 /* MSG part of the detection engine. */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect.h"
 #include "util-debug.h"
 #include "util-unittest.h"

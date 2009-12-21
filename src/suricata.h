@@ -6,14 +6,14 @@
  *
  */
 
-#ifndef __EIDPS_H__
-#define __EIDPS_H__
+#ifndef __SURICATA_H__
+#define __SURICATA_H__
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "packet-queue.h"
 
 /* the name of our binary */
-#define PROG_NAME "eidps"
+#define PROG_NAME "suricata"
 
 /* max packets processed simultaniously */
 #define MAX_PENDING 50
@@ -53,5 +53,5 @@ uint8_t g_u8_lowercasetable[256];
 void EngineStop(void);
 void EngineKill(void);
 
-#endif /* __EIDPS_H__ */
+#endif /* __SURICATA_H__ */
 

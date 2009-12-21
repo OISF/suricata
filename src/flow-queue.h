@@ -3,8 +3,8 @@
 #ifndef __FLOW_QUEUE_H__
 #define __FLOW_QUEUE_H__
 
+#include "suricata-common.h"
 #include "flow.h"
-#include "eidps-common.h"
 
 /* Define a queue for storing flows */
 typedef struct FlowQueue_

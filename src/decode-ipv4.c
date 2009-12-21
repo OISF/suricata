@@ -4,7 +4,7 @@
  * \author Brian Rectanus <brectanu@gmail.com>
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "packet-queue.h"
 #include "decode.h"
 #include "decode-ipv4.h"

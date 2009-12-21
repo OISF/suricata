@@ -10,7 +10,7 @@
 typedef struct FlowBucket_ {
     Flow *f;
     SCMutex m;
-} FlowBucket; 
+} FlowBucket;
 
 /* prototypes */
 

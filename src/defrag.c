@@ -20,7 +20,7 @@
 
 #include "queue.h"
 
-#include "eidps.h"
+#include "suricata.h"
 #include "threads.h"
 #include "conf.h"
 #include "decode-ipv6.h"

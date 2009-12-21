@@ -5,7 +5,7 @@
  * The 'Free' pointer can be used to have the API free your
  * hashed data. If it's NULL it's the callers responsebility */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "util-hashlist.h"
 #include "util-unittest.h"
 #include "util-debug.h"

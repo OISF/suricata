@@ -1,12 +1,12 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 
 #include <getopt.h>
 #include <signal.h>
 #include <pthread.h>
 
-#include "eidps.h"
+#include "suricata.h"
 #include "decode.h"
 #include "detect.h"
 #include "packet-queue.h"

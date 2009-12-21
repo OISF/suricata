@@ -1,6 +1,6 @@
 /* Copyright (c) 2009 Victor Julien */
 /** \todo support for the newly find TLS handshake GAP vulnerbility */
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"

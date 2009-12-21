@@ -12,7 +12,7 @@
  *
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"

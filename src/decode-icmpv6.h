@@ -1,10 +1,11 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
+#ifndef __DECODE_ICMPV6_H__
+#define __DECODE_ICMPV6_H__
+
 #include "decode-tcp.h"
 #include "decode-udp.h"
 #include "decode-ipv6.h"
-#ifndef __DECODE_ICMPV6_H__
-#define __DECODE_ICMPV6_H__
 
 #define ICMPV6_HEADER_LEN       8
 #define ICMPV6_HEADER_PKT_OFFSET 8

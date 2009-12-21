@@ -3,12 +3,12 @@
 /* TODO
  * - move away from a linked list implementation
  * - use different datatypes, such as string, int, etc.
- * - have more than one instance of the same var, and be able to match on a 
+ * - have more than one instance of the same var, and be able to match on a
  *   specific one, or one all at a time. So if a certain capture matches
  *   multiple times, we can operate on all of them.
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "threads.h"
 #include "flow-var.h"
 #include "flow.h"

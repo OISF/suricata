@@ -1,7 +1,7 @@
 /** Copyright (c) 2009 Open Information Security Foundation.
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

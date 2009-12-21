@@ -1,5 +1,5 @@
 
-#include "eidps.h"
+#include "suricata.h"
 #include "packet-queue.h"
 #include "decode.h"
 #include "threads.h"

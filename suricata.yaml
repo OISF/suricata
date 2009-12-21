@@ -1,7 +1,7 @@
 # The default logging directory.  Any log or output file will be
 # placed here if its not specified with a full path name.  This can be
 # overridden with the -l command line parameter.
-default-log-dir: /var/log/eidps
+default-log-dir: /var/log/suricata
 
 defrag:
   max-frags: 65535
@@ -41,7 +41,7 @@ logging:
   # Log to a file as well.  No log level specified so level will be
   # set to the default-log-level.
   - interface: file
-    filename: /var/log/eidps.log
+    filename: /var/log/suricata.log
 
   # Log to syslog with facility local5.  Again, no level specified so
   # will level will be set to default-log-level.  We also override the
@@ -65,7 +65,7 @@ pfring:
 
   #Set the default rule path here to search for the files.
   #if not set, it will look at the current working dir
-default-rule-path: /etc/eidps/
+default-rule-path: /etc/suricata/
 rule-files:
   - netbios.rules
   - x11.rules

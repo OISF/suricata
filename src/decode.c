@@ -2,7 +2,7 @@
 
 /* Decode the raw packet */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "util-debug.h"
 

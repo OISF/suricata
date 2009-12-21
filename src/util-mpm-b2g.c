@@ -14,8 +14,8 @@
 
 //#define PRINTMATCH
 
-#include "eidps-common.h"
-#include "eidps.h"
+#include "suricata-common.h"
+#include "suricata.h"
 #include "detect.h"
 #include "util-bloomfilter.h"
 #include "util-mpm-b2g.h"

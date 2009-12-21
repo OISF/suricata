@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "decode-udp.h"
 #include "decode-events.h"

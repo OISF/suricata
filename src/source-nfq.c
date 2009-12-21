@@ -7,8 +7,8 @@
  *
  */
 
-#include "eidps-common.h"
-#include "eidps.h"
+#include "suricata-common.h"
+#include "suricata.h"
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"

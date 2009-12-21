@@ -1,16 +1,13 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "threads.h"
 #include "decode.h"
 #include "debug.h"
 #include "flow.h"
-
-#include "eidps-common.h"
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "flow-private.h"
-
 #include "util-debug.h"
 
 /* calculate the hash key for this packet

@@ -1,6 +1,6 @@
 /* Packetpool queue handlers */
 
-#include "eidps.h"
+#include "suricata.h"
 #include "packet-queue.h"
 #include "decode.h"
 #include "detect.h"

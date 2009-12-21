@@ -5,7 +5,7 @@
  *  \author Breno Silva <breno.silva@gmail.com>
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "threads.h"

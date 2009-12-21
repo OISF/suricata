@@ -5,7 +5,7 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"

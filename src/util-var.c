@@ -1,4 +1,4 @@
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect.h"
 
 #include "util-var.h"

@@ -1,5 +1,5 @@
-bin_PROGRAMS = eidps
-eidps_SOURCES = eidps.c eidps.h \
+bin_PROGRAMS = suricata
+suricata_SOURCES = suricata.c suricata.h \
 runmodes.c runmodes.h \
 packet-queue.c packet-queue.h \
 threads.c threads.h \
@@ -86,6 +86,7 @@ detect-ttl.c detect-ttl.h \
 detect-itype.c detect-itype.h \
 detect-icode.c detect-icode.h \
 detect-http-cookie.c detect-http-cookie.h \
+detect-tls-version.c detect-tls-version.h \
 util-print.c util-print.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \
@@ -110,6 +111,7 @@ util-enum.c util-enum.h \
 util-radix-tree.c util-radix-tree.h \
 util-host-os-info.c util-host-os-info.h \
 util-rule-vars.c util-rule-vars.h \
+util-fix_checksum.c util-fix_checksum.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
@@ -120,35 +122,33 @@ tmqh-packetpool.c tmqh-packetpool.h \
 tmqh-flow.c tmqh-flow.h \
 alert-fastlog.c alert-fastlog.h \
 alert-debuglog.c alert-debuglog.h \
-log-httplog.c log-httplog.h \
 alert-unified-log.c alert-unified-log.h \
 alert-unified-alert.c alert-unified-alert.h \
 alert-unified2-alert.c alert-unified2-alert.h \
+log-httplog.c log-httplog.h \
 stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \
 stream-tcp-reassemble.c stream-tcp-reassemble.h \
 respond-reject.c respond-reject.h \
 respond-reject-libnet11.h respond-reject-libnet11.c \
+conf.c conf.h \
+conf-yaml-loader.c conf-yaml-loader.h \
 counters.c counter.h \
 app-layer.c app-layer.h \
 app-layer-detect-proto.c app-layer-detect-proto.h \
 app-layer-parser.c app-layer-parser.h \
+app-layer-protos.h \
+app-layer-htp.c app-layer-htp.h \
 app-layer-tls.c app-layer-tls.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-dcerpc.c app-layer-dcerpc.h \
-detect-tls-version.c detect-tls-version.h \
-app-layer-protos.h \
-conf.c conf.h \
-conf-yaml-loader.c conf-yaml-loader.h \
-util-fix_checksum.c util-fix_checksum.h \
-defrag.c defrag.h \
-app-layer-htp.c app-layer-htp.h
+defrag.c defrag.h
 
 # set the include path found by configure
 INCLUDES= $(all_includes)
 
 # the library search path.
-eidps_LDFLAGS = $(all_libraries) 
-#eidps_LDADD = -lnetfilter_queue -lpthread -lpcre 
-#eidps_CFLAGS = -Wall -fno-strict-aliasing 
+suricata_LDFLAGS = $(all_libraries) 
+#suricata_LDADD = -lnetfilter_queue -lpthread -lpcre 
+#suricata_CFLAGS = -Wall -fno-strict-aliasing 
 

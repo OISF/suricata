@@ -7,7 +7,7 @@
 #include <string.h>
 #include <pcre.h>
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect.h"
 #include "detect-flowbits.h"
 #include "detect-engine-sigorder.h"

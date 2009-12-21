@@ -6,7 +6,7 @@
  * RPC keyword support
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
 

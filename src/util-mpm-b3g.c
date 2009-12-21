@@ -12,8 +12,8 @@
  *
  */
 
-#include "eidps-common.h"
-#include "eidps.h"
+#include "suricata-common.h"
+#include "suricata.h"
 #include "util-bloomfilter.h"
 #include "util-mpm-b3g.h"
 #include "util-unittest.h"

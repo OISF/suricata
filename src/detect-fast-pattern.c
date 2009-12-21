@@ -2,7 +2,7 @@
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect.h"
 #include "flow.h"
 #include "detect-content.h"

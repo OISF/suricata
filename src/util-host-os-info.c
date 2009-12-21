@@ -2,7 +2,7 @@
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "util-host-os-info.h"
 #include "util-error.h"
 #include "util-debug.h"

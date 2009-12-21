@@ -1,4 +1,4 @@
-#include "eidps-common.h"
+#include "suricata-common.h"
 
 static uint32_t cidrs[33];
 

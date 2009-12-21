@@ -1,4 +1,4 @@
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "util-mpm.h"
 #include "util-debug.h"
 

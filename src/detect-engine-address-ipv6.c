@@ -5,7 +5,7 @@
  * XXX unit test the join code
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 
 #include "decode.h"
 #include "detect.h"

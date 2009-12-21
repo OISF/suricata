@@ -8,7 +8,7 @@
  *   - maybe by accessing it just and hoping threading doesn't hurt
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"

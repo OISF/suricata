@@ -6,7 +6,7 @@
  *  Pre-cooked threading runmodes.
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "detect-engine.h"
 #include "tm-threads.h"
 #include "util-time.h"

@@ -4,7 +4,7 @@
  * counters.
  */
 
-#include "eidps-common.h"
+#include "suricata-common.h"
 #include "util-bloomfilter-counting.h"
 #include "util-unittest.h"
 

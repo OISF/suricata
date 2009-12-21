@@ -26,7 +26,7 @@ typedef struct ConfNode_ {
 /**
  * The default log directory.
  */
-#define DEFAULT_LOG_DIR "/var/log/eidps"
+#define DEFAULT_LOG_DIR "/var/log/suricata"
 
 void ConfInit(void);
 int ConfGet(char *name, char **vptr);
