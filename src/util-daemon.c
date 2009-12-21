@@ -97,14 +97,11 @@ static void SetupLogging () {
 int CheckValidDaemonModes (int daemon, int mode) {
     if (daemon) {
         switch (mode) {
-            case MODE_PCAP_DEV:
-                SCLogDebug("ERROR: pcap live mode cannot run as daemon");
-                return 0;
             case MODE_PCAP_FILE:
-                SCLogDebug("ERROR: pcap offline mode cannot run as daemon");
+                SCLogError(SC_INVALID_RUNMODE, "ERROR: pcap offline mode cannot run as daemon");
                 return 0;
             case MODE_UNITTEST:
-                SCLogDebug("ERROR: unittests cannot run as daemon");
+                SCLogError(SC_INVALID_RUNMODE, "ERROR: unittests cannot run as daemon");
                 return 0;
             default:
                 SCLogDebug("Allowed mode");
