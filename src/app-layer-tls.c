@@ -43,7 +43,7 @@
  */
 static int TLSParseClientContentType(Flow *f, void *tls_state, AppLayerParserState
                                      *pstate, uint8_t *input, uint32_t input_len,
-                                     AppLayerParserResult *output, char need_lock)
+                                     AppLayerParserResult *output)
 {
     SCEnter();
 
@@ -102,7 +102,7 @@ static int TLSParseClientContentType(Flow *f, void *tls_state, AppLayerParserSta
  *  \param  output      Pointer to the list of parsed elements
  */
 static int TLSParseClientVersion(Flow *f, void *tls_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock)
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
     SCEnter();
 
@@ -144,7 +144,7 @@ static int TLSParseClientVersion(Flow *f, void *tls_state, AppLayerParserState *
  */
 static int TLSParseClientRecord(Flow *f, void *tls_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
-                                AppLayerParserResult *output, char need_lock)
+                                AppLayerParserResult *output)
 {
     SCEnter();
 
@@ -269,7 +269,7 @@ static int TLSParseClientRecord(Flow *f, void *tls_state, AppLayerParserState *p
  */
 static int TLSParseServerRecord(Flow *f, void *tls_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
-                                AppLayerParserResult *output, char need_lock)
+                                AppLayerParserResult *output)
 {
     SCEnter();
 
@@ -393,7 +393,7 @@ static int TLSParseServerRecord(Flow *f, void *tls_state, AppLayerParserState *p
  */
 static int TLSParseServerVersion(Flow *f, void *tls_state, AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
-                                 AppLayerParserResult *output, char need_lock)
+                                 AppLayerParserResult *output)
 {
     SCEnter();
     TlsState *state = (TlsState *)tls_state;
@@ -424,7 +424,7 @@ static int TLSParseServerVersion(Flow *f, void *tls_state, AppLayerParserState *
  */
 static int TLSParseServerContentType(Flow *f, void *tls_state, AppLayerParserState *pstate,
                                      uint8_t *input, uint32_t input_len,
-                                     AppLayerParserResult *output, char need_lock)
+                                     AppLayerParserResult *output)
 {
     SCEnter();
     TlsState *state = (TlsState *)tls_state;

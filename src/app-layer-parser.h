@@ -77,7 +77,7 @@ typedef struct AppLayerParserTableElement_ {
     uint8_t flags;
     int (*AppLayerParser)(Flow *f, void *protocol_state, AppLayerParserState
                           *parser_state, uint8_t *input, uint32_t input_len,
-                          AppLayerParserResult *output, char need_lock);
+                          AppLayerParserResult *output);
     uint16_t max_outputs; /* rationele is that if we know the max outputs of all
                              parsers, we can statically define our output array
                              to be a certain size */
@@ -90,13 +90,12 @@ void RegisterAppLayerParsers(void);
 int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
                           int (*AppLayerParser)(Flow *f, void *protocol_state,
                           AppLayerParserState *parser_state, uint8_t *input,
-                          uint32_t input_len, AppLayerParserResult *output,
-                          char need_lock));
+                          uint32_t input_len, AppLayerParserResult *output));
 int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
                            int (*AppLayerParser)(Flow *f, void *protocol_state,
                            AppLayerParserState *parser_state, uint8_t *input,
-                           uint32_t input_len, AppLayerParserResult *output,
-                           char need_lock), char *dependency);
+                           uint32_t input_len, AppLayerParserResult *output),
+                           char *dependency);
 void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
                                 void (*StateFree)(void *));
 

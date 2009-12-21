@@ -100,8 +100,8 @@ void hexdump(const void *buf, size_t len) {
  *  \brief SMB Write AndX Request Parsing
  */
 /* For WriteAndX we need to get writeandxdataoffset */
-static int SMBParseAndX(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock) {
+static int SMBParseWriteAndX(Flow *f, void *smb_state, AppLayerParserState *pstate,
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     switch (sstate->andx.andxbytesprocessed) {
@@ -239,7 +239,7 @@ static int SMBParseAndX(Flow *f, void *smb_state, AppLayerParserState *pstate,
 /**
  * \brief SMB Read AndX Response Parsing
  */
-static int SMBParseReadAndX(void *smb_state, AppLayerParserState *pstate,
+static int SMBParseReadAndX(Flow *f, void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
@@ -380,7 +380,7 @@ static int DataParser(void *smb_state, AppLayerParserState *pstate,
  * Determine if this is an SMB AndX Command
  */
 static int SMBGetWordCount(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock)
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
     SCEnter();
     if (input_len) {
@@ -402,7 +402,7 @@ static int SMBGetWordCount(Flow *f, void *smb_state, AppLayerParserState *pstate
  */
 
 static int SMBGetByteCount(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock)
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
@@ -428,7 +428,7 @@ static int SMBGetByteCount(Flow *f, void *smb_state, AppLayerParserState *pstate
  * until sstate->wordcount.wordcount bytes are parsed.
  */
 static int SMBParseWordCount(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock)
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
@@ -436,13 +436,13 @@ static int SMBParseWordCount(Flow *f, void *smb_state, AppLayerParserState *psta
     uint32_t retval = 0;
     uint32_t parsed = 0;
     if ((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) && sstate->smb.command == SMB_COM_READ_ANDX) {
-        retval = SMBParseReadAndX(sstate, pstate, input + parsed, input_len, output);
+        retval = SMBParseReadAndX(f, sstate, pstate, input + parsed, input_len, output);
         parsed += retval;
         input_len -= retval;
         sstate->wordcount.wordcount -= retval;
         return retval;
     } else  if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) == 0) && sstate->smb.command == SMB_COM_WRITE_ANDX) {
-        retval = SMBParseWriteAndX(sstate, pstate, input + parsed, input_len, output);
+        retval = SMBParseWriteAndX(f, sstate, pstate, input + parsed, input_len, output);
         parsed += retval;
         input_len -= retval;
         sstate->wordcount.wordcount -= retval;
@@ -464,7 +464,7 @@ static int SMBParseWordCount(Flow *f, void *smb_state, AppLayerParserState *psta
  */
 
 static int SMBParseByteCount(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock)
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
@@ -500,7 +500,7 @@ static int SMBParseByteCount(Flow *f, void *smb_state, AppLayerParserState *psta
 
 #define DEBUG 1
 static int NBSSParseHeader(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock)
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
@@ -543,7 +543,7 @@ static int NBSSParseHeader(Flow *f, void *smb_state, AppLayerParserState *pstate
 }
 
 static int SMBParseHeader(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock)
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
@@ -701,7 +701,7 @@ static int SMBParseHeader(Flow *f, void *smb_state, AppLayerParserState *pstate,
 }
 
 static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output, char need_lock)
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
     SCEnter();
 
@@ -714,7 +714,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 
     while (sstate->bytesprocessed <  NBSS_HDR_LEN) {
         retval = NBSSParseHeader(f, smb_state, pstate, input, input_len,
-                                 output, need_lock);
+                                 output);
         parsed += retval;
         input_len -= retval;
 
@@ -728,7 +728,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 		while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN &&
 				sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN)) {
 			retval = SMBParseHeader(f, smb_state, pstate, input +
-                                                parsed, input_len, output, need_lock);
+                                                parsed, input_len, output);
 			parsed += retval;
 			input_len -= retval;
 			printf("SMB Header (%u/%u) Command 0x%02x parsed %u input_len %u\n",
@@ -740,7 +740,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 			if (input_len && (sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN)) {
 				retval = SMBGetWordCount(f, smb_state, pstate,
                                                          input + parsed, input_len,
-                                                         output, need_lock);
+                                                         output);
 				parsed += retval;
 				input_len -= retval;
 				printf("Wordcount (%u) parsed %u input_len %u\n",
@@ -752,7 +752,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 					+ sstate->wordcount.wordcount)) {
 				retval = SMBParseWordCount(f, smb_state, pstate,
                                                            input + parsed, input_len,
-                                                           output, need_lock);
+                                                           output);
 				parsed += retval;
 				input_len -= retval;
 			}
@@ -762,7 +762,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 					SMB_HDR_LEN + 3 + sstate->wordcount.wordcount)) {
 				retval = SMBGetByteCount(f, smb_state, pstate,
                                                          input + parsed, input_len,
-                                                         output, need_lock);
+                                                         output);
 				parsed += retval;
 				input_len -= retval;
 			}
@@ -773,7 +773,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 					+ sstate->wordcount.wordcount + sstate->bytecount.bytecount)) {
 				retval = SMBParseByteCount(f, smb_state, pstate,
                                                          input + parsed, input_len,
-                                                         output, need_lock);
+                                                         output);
 				parsed += retval;
 				input_len -= retval;
 			}

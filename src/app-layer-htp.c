@@ -108,7 +108,7 @@ void HTPGetIPAddr(Flow *f, int family, char *remote_addr, char *local_addr)
 static int HTPHandleRequestData(Flow *f, void *htp_state,
                                 AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
-                                AppLayerParserResult *output, char need_lock)
+                                AppLayerParserResult *output)
 {
     SCEnter();
     HtpState *hstate = (HtpState *)htp_state;
@@ -165,7 +165,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 static int HTPHandleResponseData(Flow *f, void *htp_state,
                                 AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
-                                AppLayerParserResult *output, char need_lock)
+                                AppLayerParserResult *output)
 {
     SCEnter();
     HtpState *hstate = (HtpState *)htp_state;

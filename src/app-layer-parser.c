@@ -477,8 +477,8 @@ uint16_t AppLayerGetProtoByName(const char *name)
 int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
                            int (*AppLayerParser)(Flow *f, void *protocol_state,
                             AppLayerParserState *parser_state, uint8_t *input,
-                            uint32_t input_len, AppLayerParserResult *output,
-                            char need_lock), char *dependency)
+                            uint32_t input_len, AppLayerParserResult *output),
+                            char *dependency)
 {
 
     al_max_parsers++;
@@ -513,8 +513,7 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
 int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
                          int (*AppLayerParser)(Flow *f, void *protocol_state,
                          AppLayerParserState *parser_state, uint8_t *input,
-                         uint32_t input_len, AppLayerParserResult *output,
-                         char need_lock))
+                         uint32_t input_len, AppLayerParserResult *output))
 {
 
     al_max_parsers++;
@@ -610,8 +609,7 @@ static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *
 
     /* invoke the parser */
     int r = al_parser_table[parser_idx].AppLayerParser(f, app_layer_state,
-                                       parser_state, input, input_len, &result,
-                                       need_lock);
+                                       parser_state, input, input_len, &result);
     if (r < 0) {
         if (r == -1) {
             AppLayerParserResultCleanup(&result);
@@ -981,7 +979,7 @@ typedef struct TestState_ {
  */
 static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
                                      uint8_t *input, uint32_t input_len,
-                                     AppLayerParserResult *output, char need_lock)
+                                     AppLayerParserResult *output)
 {
     return -1;
 }
