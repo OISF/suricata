@@ -13,8 +13,12 @@
  */
 #ifdef OS_FREEBSD
 #ifndef SYS_gettid
-#define SYS_gettid 1105
-#endif
+#if __i386__
+#define SYS_gettid 224
+#elif __amd64__
+#define SYS_gettid 186
+#endif /* cpu arch */
+#endif /* SYS_gettid */
 #endif /* OS_FREEBSD */
 
 /**
