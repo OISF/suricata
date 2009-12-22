@@ -273,29 +273,29 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case ICMP6_ECHO_REQUEST:
             SCLogDebug("ICMP6_ECHO_REQUEST id: %u seq: %u",
-                       ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
+                       p->icmpv6h->icmpv6b.icmpv6i.id, p->icmpv6h->icmpv6b.icmpv6i.seq);
 
             if (ICMPV6_GET_CODE(p) != 0) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 p->icmpv6vars.type = ICMPV6_GET_TYPE(p);
                 p->icmpv6vars.code= ICMPV6_GET_CODE(p);
-                p->icmpv6vars.id = ICMPV6_GET_ID(p);
-                p->icmpv6vars.seq = ICMPV6_GET_SEQ(p);
+                p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
+                p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
             }
 
             break;
         case ICMP6_ECHO_REPLY:
             SCLogDebug("ICMP6_ECHO_REPLY id: %u seq: %u",
-                       ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
+                       p->icmpv6h->icmpv6b.icmpv6i.id, p->icmpv6h->icmpv6b.icmpv6i.seq);
 
             if (p->icmpv6h->code != 0) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 p->icmpv6vars.type = ICMPV6_GET_TYPE(p);
                 p->icmpv6vars.code= ICMPV6_GET_CODE(p);
-                p->icmpv6vars.id = ICMPV6_GET_ID(p);
-                p->icmpv6vars.seq = ICMPV6_GET_SEQ(p);
+                p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
+                p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
             }
 
             break;

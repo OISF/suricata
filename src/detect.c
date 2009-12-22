@@ -66,6 +66,7 @@
 #include "detect-fast-pattern.h"
 #include "detect-itype.h"
 #include "detect-icode.h"
+#include "detect-icmp-id.h"
 
 #include "util-rule-vars.h"
 
@@ -2906,6 +2907,7 @@ void SigTableSetup(void) {
     DetectITypeRegister();
     DetectICodeRegister();
     DetectHttpCookieRegister();
+    DetectIcmpIdRegister();
 
     DetectTlsVersionRegister();
 

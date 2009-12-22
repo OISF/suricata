@@ -89,6 +89,7 @@ detect-itype.c detect-itype.h \
 detect-icode.c detect-icode.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-tls-version.c detect-tls-version.h \
+detect-icmp-id.c detect-icmp-id.h \
 util-print.c util-print.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \

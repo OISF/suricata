@@ -192,9 +192,11 @@ typedef struct ICMPV4Vars_
 
 /** If message is informational */
 /** macro for icmpv4 "id" access */
-#define ICMPV4_GET_ID(p)        (p)->icmpv4h->icmpv4b.icmpv4i.id
+/* #define ICMPV4_GET_ID(p)        (p)->icmpv4h->icmpv4b.icmpv4i.id */
+#define ICMPV4_GET_ID(p)        (p)->icmpv4vars.id
 /** macro for icmpv4 "seq" access */
-#define ICMPV4_GET_SEQ(p)       (p)->icmpv4h->icmpv4b.icmpv4i.seq
+/* #define ICMPV4_GET_SEQ(p)       (p)->icmpv4h->icmpv4b.icmpv4i.seq */
+#define ICMPV4_GET_SEQ(p)       (p)->icmpv4vars.seq
 
 /** If message is Error */
 /** macro for icmpv4 "unused" access */
