@@ -11,8 +11,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "eidps.h"
-#include "eidps-common.h"
+#include "suricata.h"
+#include "suricata-common.h"
 #include "util-daemon.h"
 #include "util-debug.h"
 
