@@ -49,6 +49,9 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_INVALID_NUM_BYTES);
         CASE_CODE (SC_ERR_ARG_LEN_LONG);
         CASE_CODE (SC_ALPARSER_ERR);
+        CASE_CODE (SC_ERR_POOL_EMPTY);
+        CASE_CODE (SC_ERR_REASSEMBLY_FAILED);
+        CASE_CODE (SC_ERR_POOL_INIT_FAILED);
         default:
             return "UNKNOWN_ERROR";
     }

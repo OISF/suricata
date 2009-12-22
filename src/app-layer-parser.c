@@ -95,7 +95,7 @@ static int AlpStoreField(AppLayerParserResult *output, uint16_t idx,
 
     AppLayerParserResultElmt *e = AlpGetResultElmt();
     if (e == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, " App layer pool returned NULL");
+        SCLogError(SC_ERR_POOL_EMPTY, "App layer \"al_result_pool\" is empty");
         SCReturnInt(-1);
     }
 

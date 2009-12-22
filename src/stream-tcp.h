@@ -8,8 +8,8 @@
 #define STREAM_VERBOSE    FALSE
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
-    uint32_t max_sessions;
-    uint32_t prealloc_sessions;
+    int max_sessions;
+    int prealloc_sessions;
     int midstream;
     int async_oneside;
 } TcpStreamCnf;
