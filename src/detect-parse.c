@@ -1303,7 +1303,6 @@ int SigTestBidirec03 (void) {
 
     FlowInitConfig(FLOW_QUIET);
     Packet *p = UTHBuildPacketFromEth(rawpkt1_ether, sizeof(rawpkt1_ether));
-    FlowShutdown();
     if (p == NULL) {
         SCLogDebug("Error building packet");
         goto end;
@@ -1314,7 +1313,9 @@ int SigTestBidirec03 (void) {
     uint32_t results[3] = {1, 1, 1};
     result = UTHCheckPacketMatchResults(p, sids, results, 1);
 
+    FlowShutdown();
 end:
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
 
