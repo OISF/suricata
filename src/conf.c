@@ -125,8 +125,11 @@ ConfNodeNew(void)
     ConfNode *new;
 
     new = calloc(1, sizeof(*new));
-    if (new == NULL)
-        return NULL;
+    if (new == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Error allocating memory for new configuration node");
+        exit(EXIT_FAILURE);
+    }
     TAILQ_INIT(&new->head);
 
     return new;
@@ -391,6 +394,19 @@ ConfDeInit(void)
     conf_hash = NULL;
 
     SCLogDebug("configuration module de-initialized");
+}
+
+void
+ConfNodeDump(ConfNode *node)
+{
+    ConfNode *child;
+    int idx = 0;
+
+    TAILQ_FOREACH(child, &node->head, next) {
+        printf("%s = %s\n", child->name, child->val);
+        if (child->val == NULL)
+            ConfNodeDump(child);
+    }
 }
 
 /**
