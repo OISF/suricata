@@ -42,6 +42,8 @@ ConfNode *ConfGetNode(char *key);
 void ConfCreateContextBackup(void);
 void ConfRestoreContextBackup(void);
 void ConfDeInit(void);
+ConfNode *ConfNodeLookupChild(ConfNode *node, const char *key);
+const char *ConfNodeLookupChildValue(ConfNode *node, const char *key);
 void ConfRegisterTests();
 
 #endif /* ! __CONF_H__ */

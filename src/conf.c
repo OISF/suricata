@@ -400,7 +400,6 @@ void
 ConfNodeDump(ConfNode *node)
 {
     ConfNode *child;
-    int idx = 0;
 
     TAILQ_FOREACH(child, &node->head, next) {
         printf("%s = %s\n", child->name, child->val);
@@ -435,6 +434,54 @@ ConfDump(void)
             }
         }
     }
+}
+
+/**
+ * \brief Lookup a child configuration node by name.
+ *
+ * Given a ConfNode this function will lookup an immediate child
+ * ConfNode by name and return the child ConfNode.
+ *
+ * \param node The parent configuration node.
+ * \param name The name of the child node to lookup.
+ *
+ * \retval A pointer the child ConfNode if found otherwise NULL.
+ */
+ConfNode *
+ConfNodeLookupChild(ConfNode *node, const char *name)
+{
+    ConfNode *child;
+
+    TAILQ_FOREACH(child, &node->head, next) {
+        if (strcmp(child->name, name) == 0)
+            return child;
+    }
+
+    return NULL;
+}
+
+/**
+ * \brief Lookup the value of a child configuration node by name.
+ *
+ * Given a parent ConfNode this function will return the value of a
+ * child configuration node by name returning a reference to that
+ * value.
+ *
+ * \param node The parent configuration node.
+ * \param name The name of the child node to lookup.
+ *
+ * \retval A pointer the child ConfNodes value if found otherwise NULL.
+ */
+const char *
+ConfNodeLookupChildValue(ConfNode *node, const char *name)
+{
+    ConfNode *child;
+
+    child = ConfNodeLookupChild(node, name);
+    if (child != NULL)
+        return child->val;
+
+    return NULL;
 }
 
 #ifdef UNITTESTS
@@ -644,6 +691,99 @@ ConfTestGetBool(void)
     return 1;
 }
 
+static int
+ConfNodeLookupChildTest(void)
+{
+    char *test_vals[] = { "one", "two", "three" };
+    int i;
+
+    ConfNode *parent = ConfNodeNew();
+    ConfNode *child;
+
+    for (i = 0; i < sizeof(test_vals)/sizeof(test_vals[0]); i++) {
+        child = ConfNodeNew();
+        child->name = strdup(test_vals[i]);
+        child->val = strdup(test_vals[i]);
+        TAILQ_INSERT_TAIL(&parent->head, child, next);
+    }
+
+    child = ConfNodeLookupChild(parent, "one");
+    if (child == NULL)
+        return 0;
+    if (strcmp(child->name, "one") != 0)
+        return 0;
+    if (strcmp(child->val, "one") != 0)
+        return 0;
+
+    child = ConfNodeLookupChild(parent, "two");
+    if (child == NULL)
+        return 0;
+    if (strcmp(child->name, "two") != 0)
+        return 0;
+    if (strcmp(child->val, "two") != 0)
+        return 0;
+
+    child = ConfNodeLookupChild(parent, "three");
+    if (child == NULL)
+        return 0;
+    if (strcmp(child->name, "three") != 0)
+        return 0;
+    if (strcmp(child->val, "three") != 0)
+        return 0;
+
+    child = ConfNodeLookupChild(parent, "four");
+    if (child != NULL)
+        return 0;
+
+    ConfNodeFree(parent);
+
+    return 1;
+}
+
+static int
+ConfNodeLookupChildValueTest(void)
+{
+    char *test_vals[] = { "one", "two", "three" };
+    int i;
+
+    ConfNode *parent = ConfNodeNew();
+    ConfNode *child;
+    char *value;
+
+    for (i = 0; i < sizeof(test_vals)/sizeof(test_vals[0]); i++) {
+        child = ConfNodeNew();
+        child->name = strdup(test_vals[i]);
+        child->val = strdup(test_vals[i]);
+        TAILQ_INSERT_TAIL(&parent->head, child, next);
+    }
+
+    value = ConfNodeLookupChildValue(parent, "one");
+    if (value == NULL)
+        return 0;
+    if (strcmp(value, "one") != 0)
+        return 0;
+
+    value = ConfNodeLookupChildValue(parent, "two");
+    if (value == NULL)
+        return 0;
+    if (strcmp(value, "two") != 0)
+        return 0;
+
+    value = ConfNodeLookupChildValue(parent, "three");
+    if (value == NULL)
+        return 0;
+    if (strcmp(value, "three") != 0)
+        return 0;
+
+    value = ConfNodeLookupChildValue(parent, "four");
+    if (value != NULL)
+        return 0;
+
+    ConfNodeFree(parent);
+
+    return 1;
+}
+
 void
 ConfRegisterTests(void)
 {
@@ -654,6 +794,8 @@ ConfRegisterTests(void)
     UtRegisterTest("ConfTestOverrideValue2", ConfTestOverrideValue2, 1);
     UtRegisterTest("ConfTestGetInt", ConfTestGetInt, 1);
     UtRegisterTest("ConfTestGetBool", ConfTestGetBool, 1);
+    UtRegisterTest("ConfNodeLookupChildTest", ConfNodeLookupChildTest, 1);
+    UtRegisterTest("ConfNodeLookupChildValueTest", ConfNodeLookupChildValueTest, 1);
 }
 
 #endif /* UNITTESTS */
