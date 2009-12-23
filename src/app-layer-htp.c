@@ -111,6 +111,9 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
                                 AppLayerParserResult *output)
 {
     SCEnter();
+    int r = -1;
+    int ret = 1;
+
     HtpState *hstate = (HtpState *)htp_state;
 
     /* Open the HTTP connection on receiving the first request */
@@ -123,8 +126,8 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         SCLogDebug("using existing htp handle");
     }
 
-    if (htp_connp_req_data(hstate->connp, 0, input, input_len) ==
-            STREAM_STATE_ERROR)
+    r = htp_connp_req_data(hstate->connp, 0, input, input_len);
+    if(r == STREAM_STATE_ERROR)
     {
         if (hstate->connp->last_error != NULL) {
             SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request: "
@@ -134,20 +137,27 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         } else {
              SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request");
         }
+        hstate->flags |= HTP_FLAG_STATE_ERROR;
+        hstate->flags &= ~HTP_FLAG_STATE_DATA;
+        ret = -1;
 
-        SCReturnInt(-1);
+    } else if (r == STREAM_STATE_DATA) {
+        hstate->flags |= HTP_FLAG_STATE_DATA;
+    } else {
+        hstate->flags &= ~HTP_FLAG_STATE_DATA;
     }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
-            ! (hstate->flags & HTP_FLAG_STATE_CLOSED))
+            ! (hstate->flags & HTP_FLAG_STATE_CLOSED) &&
+            ! (hstate->flags & HTP_FLAG_STATE_DATA))
     {
         htp_connp_close(hstate->connp, 0);
         hstate->flags |= HTP_FLAG_STATE_CLOSED;
         SCLogDebug("stream eof encountered, closing htp handle");
     }
 
-    SCReturnInt(1);
+    SCReturnInt(ret);
 }
 
 /**
@@ -168,10 +178,13 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
                                 AppLayerParserResult *output)
 {
     SCEnter();
+    int r = -1;
+    int ret = 1;
+
     HtpState *hstate = (HtpState *)htp_state;
 
-    if (htp_connp_res_data(hstate->connp, 0, input, input_len) ==
-            STREAM_STATE_ERROR)
+    r = htp_connp_res_data(hstate->connp, 0, input, input_len);
+    if (r == STREAM_STATE_ERROR)
     {
          if (hstate->connp->last_error != NULL) {
             SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server request: "
@@ -181,19 +194,25 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
          } else {
              SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server request");
          }
+         hstate->flags = HTP_FLAG_STATE_ERROR;
+         ret = -1;
 
-        SCReturnInt(-1);
+    } else if (r == STREAM_STATE_DATA) {
+        hstate->flags |= HTP_FLAG_STATE_DATA;
+    } else {
+        hstate->flags &= ~HTP_FLAG_STATE_DATA;
     }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
-            ! (hstate->flags & HTP_FLAG_STATE_CLOSED))
+            ! (hstate->flags & HTP_FLAG_STATE_CLOSED) &&
+            ! (hstate->flags & HTP_FLAG_STATE_DATA))
     {
         htp_connp_close(hstate->connp, 0);
         hstate->flags |= HTP_FLAG_STATE_CLOSED;
     }
 
-    SCReturnInt(1);
+    SCReturnInt(ret);
 }
 
 /**

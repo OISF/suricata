@@ -1548,6 +1548,12 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             }
 
             if (PKT_IS_TOSERVER(p)) {
+                if (TCP_GET_SEQ(p) != ssn->client.next_seq) {
+                    SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
+                               " != %" PRIu32 " from stream", ssn,
+                                TCP_GET_SEQ(p), ssn->client.next_seq);
+                    return -1;
+                }
                 SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to server: SEQ "
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                            TCP_GET_SEQ(p), TCP_GET_ACK(p));
@@ -1563,10 +1569,23 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 if (! (ssn->flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY))
                     StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                      &ssn->client, p);
+
+                if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
+                    ssn->client.next_seq += p->payload_len;
+                    SCLogDebug("ssn %p: ssn->client.next_seq %" PRIu32 "",
+                            ssn, ssn->client.next_seq);
+                }
+
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->client.next_seq,
                            ssn->server.last_ack);
             } else { /* implied to client */
+                if (TCP_GET_SEQ(p) != ssn->server.next_seq) {
+                    SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
+                               " != %" PRIu32 " from stream", ssn,
+                                TCP_GET_SEQ(p), ssn->server.next_seq);
+                    return -1;
+                }
                 SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                            TCP_GET_SEQ(p), TCP_GET_ACK(p));
@@ -1581,6 +1600,13 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 if (!(ssn->flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY))
                     StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                      &ssn->server, p);
+
+                if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
+                    ssn->server.next_seq += p->payload_len;
+                    SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "",
+                            ssn, ssn->server.next_seq);
+                }
+
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->server.next_seq,
                            ssn->client.last_ack);
@@ -1621,6 +1647,13 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 if (! (ssn->flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY))
                     StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                      &ssn->client, p);
+
+                if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
+                    ssn->client.next_seq += p->payload_len;
+                    SCLogDebug("ssn %p: ssn->client.next_seq %" PRIu32 "",
+                            ssn, ssn->client.next_seq);
+                }
+
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->client.next_seq,
                            ssn->server.last_ack);
@@ -1650,6 +1683,13 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 if (!(ssn->flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY))
                     StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                         &ssn->server, p);
+
+                if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
+                    ssn->server.next_seq += p->payload_len;
+                    SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "",
+                            ssn, ssn->server.next_seq);
+                }
+
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->server.next_seq,
                            ssn->client.last_ack);
@@ -1722,6 +1762,13 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 if (! (ssn->flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY))
                     StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                         &ssn->client, p);
+
+                if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
+                    ssn->client.next_seq += p->payload_len;
+                    SCLogDebug("ssn %p: ssn->client.next_seq %" PRIu32 "",
+                            ssn, ssn->client.next_seq);
+                }
+
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->client.next_seq,
                             ssn->server.last_ack);
@@ -1747,6 +1794,13 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 if (!(ssn->flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY))
                     StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->server, p);
+
+                if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
+                    ssn->server.next_seq += p->payload_len;
+                    SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "",
+                            ssn, ssn->server.next_seq);
+                }
+
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->server.next_seq,
                            ssn->client.last_ack);

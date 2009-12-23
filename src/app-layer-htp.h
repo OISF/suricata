@@ -10,10 +10,15 @@
 
 #include <htp/htp.h>
 
-#define HTP_FLAG_STATE_OPEN     0x01    /**< Flag to indicate that HTTP connection
-                                             is open */
-#define HTP_FLAG_STATE_CLOSED   0x02    /**< Flag to indicate that HTTP connection
-                                             is closed */
+#define HTP_FLAG_STATE_OPEN         0x01    /**< Flag to indicate that HTTP
+                                                 connection is open */
+#define HTP_FLAG_STATE_CLOSED       0x02    /**< Flag to indicate that HTTP
+                                                 connection is closed */
+#define HTP_FLAG_STATE_DATA         0x04    /**< Flag to indicate that HTTP
+                                                 connection needs more data */
+#define HTP_FLAG_STATE_ERROR        0x08    /**< Flag to indicate that an error
+                                                 has been occured on HTTP
+                                                 connection */
 
 typedef struct HtpState_ {
 
