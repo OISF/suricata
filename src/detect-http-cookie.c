@@ -71,7 +71,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DetectHttpCookieData *co = (DetectHttpCookieData *)m->ctx;
     HtpState *htp_state = (HtpState *)state;
     if (htp_state == NULL) {
-        SCLogDebug("No HTTP layer state has been received, so no match!!");
+        SCLogDebug("no HTTP layer state has been received, so no match");
         return 0;
     }
 
@@ -86,16 +86,15 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     htp_header_t *h = NULL;
     h = (htp_header_t *)table_getc(tx->request_headers, "Cookie");
     if (h == NULL) {
-        SCLogDebug("No HTTP Cookie hearder in the received request");
+        SCLogDebug("no HTTP Cookie hearder in the received request");
         ret = 0;
     }
-
 
     if (BinSearch(bstr_ptr(h->value), bstr_size(h->value), co->data,
             co->data_len) != NULL)
     {
-        SCLogDebug("Match has been found in received request and given http_"
-                "cookie rule\n");
+        SCLogDebug("match has been found in received request and given http_"
+                "cookie rule");
         ret = 1;
     }
     SCMutexUnlock(&f->m);
@@ -139,7 +138,7 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
             SCLogWarning(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                          "the rule, without a content context.  Please use a "
                          "content keyword before using http_cookie");
-        return -1;
+            return -1;
         }
     }
 
@@ -385,9 +384,9 @@ static int DetectHttpCookieSigTest01(void) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
+    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
                           "cookie\"; content:\"go\"; http_cookie; sid:2;)");
-    if (s == NULL) {
+    if (s->next == NULL) {
         goto end;
     }
 
@@ -414,8 +413,11 @@ static int DetectHttpCookieSigTest01(void) {
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have: ");
         goto end;
-    } else if (PacketAlertCheck(&p, 2)) {
+    }
+    if (PacketAlertCheck(&p, 2)) {
+        printf("sid 2 matched but shouldn't: ");
         goto end;
     }
 

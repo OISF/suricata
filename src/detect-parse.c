@@ -634,6 +634,23 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         }
     }
 
+    /* set the packet and app layer flags, but only if the
+     * app layer flag wasn't already set in which case we
+     * only consider the app layer */
+    if (!(sig->flags & SIG_FLAG_APPLAYER)) {
+        if (sig->match != NULL) {
+            SigMatch *sm = sig->match;
+            for ( ; sm != NULL; sm = sm->next) {
+                if (sigmatch_table[sm->type].AppLayerMatch != NULL)
+                    sig->flags |= SIG_FLAG_APPLAYER;
+                if (sigmatch_table[sm->type].Match != NULL)
+                    sig->flags |= SIG_FLAG_PACKET;
+            }
+        } else {
+            sig->flags |= SIG_FLAG_PACKET;
+        }
+    }
+
     return sig;
 
 error:

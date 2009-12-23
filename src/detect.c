@@ -357,6 +357,8 @@ int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev, uint8_
 {
     /* XXX overflow check? */
 
+    SCLogDebug("sid %"PRIu32"", sid);
+
     if (gid > 1)
         p->alerts.alerts[p->alerts.cnt].gid = gid;
     else
@@ -425,6 +427,7 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
+#include "flow-bit.h"
 /** \brief application layer detection
  *
  *  \param sgh signature group head for this proto/addrs/ports
@@ -466,14 +469,17 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
         sig = sgh->match_array[idx];
         s = de_ctx->sig_array[sig];
 
+        SCLogDebug("s->id %"PRIu32"", s->id);
+
         /* only inspect app layer sigs here */
         if (!(s->flags & SIG_FLAG_APPLAYER))
             continue;
 
         /* filter out the sigs that inspects the payload, if packet
            no payload inspection flag is set*/
-        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD))
+        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD)) {
             continue;
+        }
 
         /* check the source & dst port in the sig */
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
@@ -503,7 +509,8 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                 continue;
         }
 
-        /* if we don't have sigmatches at this point we're a match */
+        /* if we don't have sigmatches at this point we're a match
+         * XXX VJ can we ever get here? Applayer inspection w/o sigmatches */
         if (s->match == NULL) {
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
@@ -522,10 +529,13 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
             while (sm) {
                 if (sigmatch_table[sm->type].AppLayerMatch == NULL) {
                     /* if no match function we assume this sm is a match */
+                    SCLogDebug("no app layer match function, sigmatch is (pkt)Match only");
                     match = 1;
                 } else {
                     match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
+                    SCLogDebug("sigmatch AppLayerMatch function returned match %"PRIu32"", match);
                 }
+
                 if (match) {
                     /* okay, try the next match */
                     sm = sm->next;
@@ -533,12 +543,28 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                     /* only if the last matched as well, we have a hit */
                     if (sm == NULL) {
                         fmatch = 1;
-                        //printf("DE : sig %" PRIu32 " matched\n", s->id);
-                        if (!(s->flags & SIG_FLAG_NOALERT)) {
 
-                            PacketAlertHandle(de_ctx,s,p);
-                            /* set verdict on packet */
-                            p->action = s->action;
+                        SCLogDebug("DE : sig %" PRIu32 " matched", s->id);
+
+                        if (!(s->flags & SIG_FLAG_NOALERT)) {
+                            /* if the sig also has a packet portion see if that has matched already */
+                            if (s->flags & SIG_FLAG_PACKET) {
+                                SCLogDebug("checking sid %"PRIu32"", s->id);
+
+                                if (FlowBitIsset(p->flow, s->id) ) {
+                                    SCLogDebug("flowbit sid %"PRIu32", isset", s->id);
+
+                                    PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+
+                                    /* set verdict on packet */
+                                    p->action = s->action;
+                                }
+                            } else {
+                                PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+
+                                /* set verdict on packet */
+                                p->action = s->action;
+                            }
                         }
                     }
                 } else {
@@ -635,8 +661,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             continue;
         }
 
-        /* don't inspect app layer sigs here */
-        if (s->flags & SIG_FLAG_APPLAYER)
+        /* don't inspect app layer only sigs here */
+        if (!(s->flags & SIG_FLAG_PACKET))
             continue;
 
         /* filter out sigs that want pattern matches, but
@@ -751,8 +777,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                 SCLogDebug("running match functions, sm %p", sm);
                 while (sm) {
+                    /* if this sm has no Match function we assume it's a match */
                     if (sigmatch_table[sm->type].Match == NULL) {
-                        /* if no match function we assume this sm is a match */
                         match = 1;
                     } else {
                         match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
@@ -765,10 +791,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (sm == NULL) {
                             fmatch = 1;
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
+                                SCLogDebug("sig matched, applayer flag set ? %s", s->flags & SIG_FLAG_APPLAYER ? "yes":"no");
 
-                                PacketAlertHandle(de_ctx,s,p);
-                                /* set verdict on packet */
-                                p->action = s->action;
+                                /* set flowbit for this match */
+                                if (s->flags & SIG_FLAG_APPLAYER) {
+                                    SCLogDebug("setting flowbit for sig %"PRIu32"", s->id);
+                                    FlowBitSet(p->flow, s->id);
+                                } else {
+                                    PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
+
+                                    /* set verdict on packet */
+                                    p->action = s->action;
+                                }
                             }
                         }
                     } else {
