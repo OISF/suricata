@@ -145,7 +145,7 @@ ConfNodeFree(ConfNode *node)
 {
     ConfNode *tmp;
 
-    while (tmp = TAILQ_FIRST(&node->head)) {
+    while ((tmp = TAILQ_FIRST(&node->head))) {
         TAILQ_REMOVE(&node->head, tmp, next);
         ConfNodeFree(tmp);
     }
@@ -399,7 +399,7 @@ ConfDeInit(void)
 }
 
 static char *
-ConfPrintNameArray(const char **name_arr, int level)
+ConfPrintNameArray(char **name_arr, int level)
 {
     static char name[128*128];
     int i;
@@ -773,7 +773,7 @@ ConfNodeLookupChildValueTest(void)
 
     ConfNode *parent = ConfNodeNew();
     ConfNode *child;
-    char *value;
+    const char *value;
 
     for (i = 0; i < sizeof(test_vals)/sizeof(test_vals[0]); i++) {
         child = ConfNodeNew();
