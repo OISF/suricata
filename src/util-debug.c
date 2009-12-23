@@ -1013,14 +1013,14 @@ void SCLogLoadConfig(void)
     /* Process each output. */
     ConfNode *output;
     TAILQ_FOREACH(output, &outputs->head, next) {
-        ConfNode *param;
+        //ConfNode *param;
         char *interface = NULL;
         char *log_level = NULL;
         char *facility = NULL;
-        char *filename = NULL;
+        //char *filename = NULL;
         char *format = NULL;
 
-        interface = ConfNodeLookupChildValue(output, "interface");
+        interface = (char *)ConfNodeLookupChildValue(output, "interface");
         if (interface == NULL) {
             /* No interface in this item, ignore. */
             continue;
@@ -1032,10 +1032,10 @@ void SCLogLoadConfig(void)
         }
 
         /* Any output may have a log-level set. */
-        log_level = ConfNodeLookupChildValue(output, "log-level");
+        log_level = (char *)ConfNodeLookupChildValue(output, "log-level");
 
         /* Any output may have a format set. */
-        format = ConfNodeLookupChildValue(output, "format");
+        format = (char *)ConfNodeLookupChildValue(output, "format");
 
         if (strcmp(interface, "console") == 0) {
             /* No other lookups required for console logging. */
@@ -1043,7 +1043,7 @@ void SCLogLoadConfig(void)
                 log_level);
         }
         else if (strcmp(interface, "syslog") == 0) {
-            facility = ConfNodeLookupChildValue(output, "facility");
+            facility = (char *)ConfNodeLookupChildValue(output, "facility");
             printf("Setting up syslog logging: log_level=%s, facility=%s.\n",
                 log_level, facility);
         }

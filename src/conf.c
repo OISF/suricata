@@ -757,25 +757,25 @@ ConfNodeLookupChildValueTest(void)
         TAILQ_INSERT_TAIL(&parent->head, child, next);
     }
 
-    value = ConfNodeLookupChildValue(parent, "one");
+    value = (char *)ConfNodeLookupChildValue(parent, "one");
     if (value == NULL)
         return 0;
     if (strcmp(value, "one") != 0)
         return 0;
 
-    value = ConfNodeLookupChildValue(parent, "two");
+    value = (char *)ConfNodeLookupChildValue(parent, "two");
     if (value == NULL)
         return 0;
     if (strcmp(value, "two") != 0)
         return 0;
 
-    value = ConfNodeLookupChildValue(parent, "three");
+    value = (char *)ConfNodeLookupChildValue(parent, "three");
     if (value == NULL)
         return 0;
     if (strcmp(value, "three") != 0)
         return 0;
 
-    value = ConfNodeLookupChildValue(parent, "four");
+    value = (char *)ConfNodeLookupChildValue(parent, "four");
     if (value != NULL)
         return 0;
 
