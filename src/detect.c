@@ -521,11 +521,11 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
             sm = s->match;
             while (sm) {
                 if (sigmatch_table[sm->type].AppLayerMatch == NULL) {
-                    sm = sm->next;
-                    continue;
+                    /* if no match function we assume this sm is a match */
+                    match = 1;
+                } else {
+                    match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
                 }
-
-                match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
                 if (match) {
                     /* okay, try the next match */
                     sm = sm->next;
@@ -712,11 +712,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     sm = s->match;
                     while (sm) {
                         if (sigmatch_table[sm->type].Match == NULL) {
-                            sm = sm->next;
-                            continue;
+                            /* if no match function we assume this sm is a match */
+                            match = 1;
+                        } else {
+                            match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                         }
-
-                        match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                         if (match) {
                             /* okay, try the next match */
                             sm = sm->next;
@@ -752,11 +752,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 SCLogDebug("running match functions, sm %p", sm);
                 while (sm) {
                     if (sigmatch_table[sm->type].Match == NULL) {
-                        sm = sm->next;
-                        continue;
+                        /* if no match function we assume this sm is a match */
+                        match = 1;
+                    } else {
+                        match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                     }
-
-                    match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                     if (match) {
                         /* okay, try the next match */
                         sm = sm->next;
