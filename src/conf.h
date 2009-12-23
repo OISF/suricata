@@ -34,7 +34,7 @@ int ConfGetInt(char *name, intmax_t *val);
 int ConfGetBool(char *name, int *val);
 int ConfSet(char *name, char *val, int allow_override);
 void ConfDump(void);
-void ConfNodeDump(ConfNode *node);
+void ConfNodeDump(ConfNode *node, const char *prefix);
 ConfNode *ConfNodeNew(void);
 void ConfNodeFree(ConfNode *);
 int ConfSetNode(ConfNode *node);

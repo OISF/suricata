@@ -145,8 +145,10 @@ ConfNodeFree(ConfNode *node)
 {
     ConfNode *tmp;
 
-    TAILQ_FOREACH(tmp, &node->head, next)
+    while (tmp = TAILQ_FIRST(&node->head)) {
+        TAILQ_REMOVE(&node->head, tmp, next);
         ConfNodeFree(tmp);
+    }
 
     if (node->name != NULL)
         free(node->name);
@@ -396,16 +398,43 @@ ConfDeInit(void)
     SCLogDebug("configuration module de-initialized");
 }
 
+static char *
+ConfPrintNameArray(const char **name_arr, int level)
+{
+    static char name[128*128];
+    int i;
+
+    name[0] = '\0';
+    for (i = 0; i <= level; i++) {
+        strcat(name, name_arr[i]);
+        if (i < level)
+            strcat(name, ".");
+    }
+
+    return name;
+}
+
+/**
+ * \brief Dump a configuration node and all its children.
+ */
 void
-ConfNodeDump(ConfNode *node)
+ConfNodeDump(ConfNode *node, const char *prefix)
 {
     ConfNode *child;
 
+    static char *name[128];
+    static int level = -1;
+
+    level++;
     TAILQ_FOREACH(child, &node->head, next) {
-        printf("%s = %s\n", child->name, child->val);
-        if (child->val == NULL)
-            ConfNodeDump(child);
+        name[level] = strdup(child->name);
+        if (child->val != NULL)
+            printf("%s.%s = %s\n", prefix,
+                ConfPrintNameArray(name, level), child->val);
+        ConfNodeDump(child, prefix);
+        free(name[level]);
     }
+    level--;
 }
 
 /**
@@ -423,13 +452,9 @@ ConfDump(void)
             b = (HashTableBucket *)conf_hash->array[i];
             while (b != NULL) {
                 cn = (ConfNode *)b->data;
-                printf("%s=%s\n", cn->name, cn->val);
-                if (!TAILQ_EMPTY(&cn->head)) {
-                    ConfNode *n0;
-                    TAILQ_FOREACH(n0, &cn->head, next) {
-                        printf(".%s\n", n0->val);
-                    }
-                }
+                if (cn->val != NULL)
+                    printf("%s = %s\n", cn->name, cn->val);
+                ConfNodeDump(cn, cn->name);
                 b = b->next;
             }
         }
