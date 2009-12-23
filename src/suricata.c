@@ -428,6 +428,10 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
+    /* Since our config is now loaded we can finish configurating the
+     * logging module. */
+    SCLogLoadConfig();
+
     if (mode == MODE_UNKNOWN) {
         usage(argv[0]);
         exit(EXIT_FAILURE);

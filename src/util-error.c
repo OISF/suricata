@@ -52,6 +52,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_POOL_EMPTY);
         CASE_CODE (SC_ERR_REASSEMBLY_FAILED);
         CASE_CODE (SC_ERR_POOL_INIT_FAILED);
+        CASE_CODE (SC_UNIMPLEMENTED);
         default:
             return "UNKNOWN_ERROR";
     }

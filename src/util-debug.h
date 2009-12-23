@@ -511,4 +511,6 @@ int SCLogDebugEnabled(void);
 
 void SCLogRegisterTests(void);
 
+void SCLogLoadConfig(void);
+
 #endif /* __UTIL_DEBUG_H__ */

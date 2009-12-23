@@ -1000,6 +1000,60 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
     return;
 }
 
+void SCLogLoadConfig(void)
+{
+    ConfNode *outputs;
+
+    outputs = ConfGetNode("logging.output");
+    if (outputs == NULL) {
+        SCLogDebug("No logging.output configuration section found.");
+        return;
+    }
+
+    /* Process each output. */
+    ConfNode *output;
+    TAILQ_FOREACH(output, &outputs->head, next) {
+        ConfNode *param;
+        char *interface = NULL;
+        char *log_level = NULL;
+        char *facility = NULL;
+        char *filename = NULL;
+        char *format = NULL;
+
+        interface = ConfNodeLookupChildValue(output, "interface");
+        if (interface == NULL) {
+            /* No interface in this item, ignore. */
+            continue;
+        }
+        if (SCMapEnumNameToValue(interface, sc_log_op_iface_map) < 0) {
+            SCLogError(SC_INVALID_ARGUMENT,
+                "Invalid logging interface: %s", interface);
+            exit(EXIT_FAILURE);
+        }
+
+        /* Any output may have a log-level set. */
+        log_level = ConfNodeLookupChildValue(output, "log-level");
+
+        /* Any output may have a format set. */
+        format = ConfNodeLookupChildValue(output, "format");
+
+        if (strcmp(interface, "console") == 0) {
+            /* No other lookups required for console logging. */
+            printf("Setting up console logging: log_level=%s.\n",
+                log_level);
+        }
+        else if (strcmp(interface, "syslog") == 0) {
+            facility = ConfNodeLookupChildValue(output, "facility");
+            printf("Setting up syslog logging: log_level=%s, facility=%s.\n",
+                log_level, facility);
+        }
+        else {
+            SCLogWarning(SC_UNIMPLEMENTED,
+                "Ignoring unknown logging interface: %s", interface);
+        }
+    }
+}
+
 /**
  * \brief Initializes the logging module if the environment variables are set.
  *        Used at the start of the engine, for cases, where there is an error
