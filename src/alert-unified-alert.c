@@ -111,6 +111,7 @@ int AlertUnifiedAlertCloseFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
             aun->file_ctx->filename = NULL;
         }
     }
+    aun->size_current = 0;
 
     return 0;
 }

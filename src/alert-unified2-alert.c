@@ -140,6 +140,7 @@ int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
             aun->file_ctx->filename = NULL;
         }
     }
+    aun->size_current = 0;
 
     return 0;
 }
