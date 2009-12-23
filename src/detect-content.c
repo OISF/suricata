@@ -284,8 +284,8 @@ int TestWithinDistanceOffsetDepth(ThreadVars *t,
                             return -1;
                         } else {
                             return TestWithinDistanceOffsetDepth(t, det_ctx, nm,
-                                                                 nsm, nsm->next,
-                                                                 pktoff);
+                                    nsm, DetectContentFindNextApplicableSM(nsm),
+                                    pktoff);
                         }
                     }
                 } else {
@@ -748,8 +748,12 @@ void DetectContentPrint(DetectContentData *cd)
     char *tmpstr=malloc(sizeof(char) * cd->content_len + 1);
 
     if (tmpstr != NULL) {
-        for (i = 0; i < cd->content_len; i++)
-            tmpstr[i] = cd->content[i];
+        for (i = 0; i < cd->content_len; i++) {
+            if (isprint(cd->content[i]))
+                tmpstr[i] = cd->content[i];
+            else
+                tmpstr[i] = '.';
+        }
         tmpstr[i] = '\0';
         SCLogDebug("Content: \"%s\"", tmpstr);
         free(tmpstr);
@@ -1458,7 +1462,7 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
             if (aux->chunk_id == 0)
                 first = sm;
             DetectContentPropagateModifiers(first);
-            //DetectContentPrint(aux);
+            DetectContentPrint(aux);
         }
 
         /** Free the original pattern */
@@ -1492,7 +1496,7 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         if (cd->negated == 1)
             s->flags |= SIG_FLAG_MPM_NEGCONTENT;
 
-        //DetectContentPrint(cd);
+        DetectContentPrint(cd);
     }
 
     return 0;
