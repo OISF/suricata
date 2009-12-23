@@ -562,7 +562,7 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                                     p->action = s->action;
                                 }
                             } else {
-                                PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+				PacketAlertHandle(de_ctx,s,p);
 
                                 /* set verdict on packet */
                                 p->action = s->action;
