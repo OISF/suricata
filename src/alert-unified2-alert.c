@@ -135,10 +135,6 @@ void TmModuleUnified2AlertRegister (void) {
 int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
     if (aun->file_ctx->fp != NULL) {
         fclose(aun->file_ctx->fp);
-        if (aun->file_ctx->filename != NULL) {
-            free(aun->file_ctx->filename);
-            aun->file_ctx->filename = NULL;
-        }
     }
     aun->size_current = 0;
 
@@ -571,7 +567,11 @@ LogFileCtx *Unified2AlertInitCtx(char *config_file)
  * */
 int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
 {
-    char *filename = malloc(PATH_MAX); /* XXX some sane default? */
+    char *filename = NULL;
+    if (file_ctx->filename != NULL)
+        filename = file_ctx->filename;
+    else
+        filename = file_ctx->filename = malloc(PATH_MAX); /* XXX some sane default? */
 
     if (config_file == NULL) {
         /** Separate config files not implemented at the moment,
@@ -597,7 +597,6 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
             printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
             return -1;
         }
-        file_ctx->filename = filename;
     }
 
     return 0;
