@@ -284,7 +284,7 @@ int TestWithinDistanceOffsetDepth(ThreadVars *t,
                             return -1;
                         } else {
                             return TestWithinDistanceOffsetDepth(t, det_ctx, nm,
-                                    nsm, DetectContentFindNextApplicableSM(nsm),
+                                    nsm, DetectContentFindNextApplicableSM(nsm->next),
                                     pktoff);
                         }
                     }
