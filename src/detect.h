@@ -12,6 +12,8 @@
 #include "util-hash.h"
 #include "util-hashlist.h"
 
+#include "detect-threshold.h"
+
 #define COUNTER_DETECT_ALERTS 1
 
 /* forward declarations for the structures from detect-engine-sigorder.h */
@@ -219,6 +221,15 @@ typedef struct DetectEngineLookupDsize_ {
  */
 #define DSIZE_STATES 2
 
+/** \brief threshold ctx */
+typedef struct ThresholdCtx_    {
+    HashListTable *threshold_hash_table_dst;    /**< Ipv4 dst hash table */
+    HashListTable *threshold_hash_table_src;    /**< Ipv4 src hash table */
+    HashListTable *threshold_hash_table_dst_ipv6;   /**< Ipv6 dst hash table */
+    HashListTable *threshold_hash_table_src_ipv6;   /**< Ipv6 src hash table */
+    pthread_mutex_t threshold_table_lock;   /**< Mutex for hash table */
+}ThresholdCtx;
+
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     uint8_t flags;
@@ -270,6 +281,7 @@ typedef struct DetectEngineCtx_ {
     uint32_t mpm_memory_size;
 
     DetectEngineIPOnlyCtx io_ctx;
+    ThresholdCtx ths_ctx;
 
     uint16_t mpm_matcher; /**< mpm matcher this ctx uses */
 } DetectEngineCtx;

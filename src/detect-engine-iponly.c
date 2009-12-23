@@ -23,6 +23,10 @@
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
 
+#include "detect-engine-threshold.h"
+
+#include "detect-threshold.h"
+
 #include "util-debug.h"
 #include "util-unittest.h"
 
@@ -375,8 +379,8 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
-            PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
 
+            PacketAlertHandle(de_ctx,s,p);
             /* set verdict on packet */
             p->action = s->action;
         }

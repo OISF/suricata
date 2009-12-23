@@ -16,6 +16,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "detect-http-cookie.h"
+#include "detect-engine-threshold.h"
 
 #include "detect-decode-event.h"
 
@@ -506,7 +507,8 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
         if (s->match == NULL) {
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+
+                PacketAlertHandle(de_ctx,s,p);
 
                 /* set verdict on packet */
                 p->action = s->action;
@@ -531,8 +533,8 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                         fmatch = 1;
                         //printf("DE : sig %" PRIu32 " matched\n", s->id);
                         if (!(s->flags & SIG_FLAG_NOALERT)) {
-                            PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
 
+                            PacketAlertHandle(de_ctx,s,p);
                             /* set verdict on packet */
                             p->action = s->action;
                         }
@@ -687,8 +689,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
 
+                PacketAlertHandle(de_ctx,s,p);
                 /* set verdict on packet */
                 p->action = s->action;
             }
@@ -720,8 +722,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                                     /* only add once */
                                     if (rmatch == 0) {
-                                        PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
 
+                                        PacketAlertHandle(de_ctx,s,p);
                                         /* set verdict on packet */
                                         p->action = s->action;
                                     }
@@ -757,8 +759,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (sm == NULL) {
                             fmatch = 1;
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                                PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
 
+                                PacketAlertHandle(de_ctx,s,p);
                                 /* set verdict on packet */
                                 p->action = s->action;
                             }

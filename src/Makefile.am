@@ -34,6 +34,7 @@ detect-rpc.c detect-rpc.h \
 detect-isdataat.c detect-isdataat.h \
 detect-window.c detect-window.h \
 detect-engine-address.c detect-engine-address.h \
+detect-engine-threshold.c detect-engine-threshold.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
 detect-engine-address-ipv6.c detect-engine-address-ipv6.h \
 detect-engine-proto.c detect-engine-proto.h \

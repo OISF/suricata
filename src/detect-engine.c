@@ -19,6 +19,7 @@
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-engine-threshold.h"
 
 //#include "util-mpm.h"
 #include "util-hash.h"
@@ -50,7 +51,7 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     SigGroupHeadDPortHashInit(de_ctx);
     DetectPortSpHashInit(de_ctx);
     DetectPortDpHashInit(de_ctx);
-
+    ThresholdHashInit(de_ctx);
     VariableNameInitHash(de_ctx);
     return de_ctx;
 error:
@@ -73,7 +74,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     DetectPortSpHashFree(de_ctx);
     DetectPortDpHashFree(de_ctx);
-
+    ThresholdContextDestroy(de_ctx);
     SigCleanSignatures(de_ctx);
 
     VariableNameFreeHash(de_ctx);
