@@ -83,11 +83,18 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCMutexLock(&f->m);
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
 
+    if (tx == NULL) {
+        SCLogDebug("No HTTP transaction has received on the connection");
+        ret = 0;
+        goto end;
+    }
+
     htp_header_t *h = NULL;
     h = (htp_header_t *)table_getc(tx->request_headers, "Cookie");
     if (h == NULL) {
         SCLogDebug("no HTTP Cookie hearder in the received request");
         ret = 0;
+        goto end;
     }
 
     if (BinSearch(bstr_ptr(h->value), bstr_size(h->value), co->data,
@@ -97,8 +104,9 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                 "cookie rule");
         ret = 1;
     }
-    SCMutexUnlock(&f->m);
 
+end:
+    SCMutexUnlock(&f->m);
     return ret;
 }
 
@@ -429,6 +437,83 @@ end:
 
     return result;
 }
+
+/** \test Check the signature working to alert when http_cookie is not present */
+static int DetectHttpCookieSigTest02(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_HTTP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
+                                   "\"HTTP cookie\"; content:\"me\"; "
+                                   "http_cookie; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1,
+                          FALSE);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    if ((PacketAlertCheck(&p, 1))) {
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -443,6 +528,7 @@ void DetectHttpCookieRegisterTests (void)
     UtRegisterTest("DetectHttpCookieTest04", DetectHttpCookieTest04, 1);
     UtRegisterTest("DetectHttpCookieTest05", DetectHttpCookieTest05, 1);
     UtRegisterTest("DetectHttpCookieSigTest01", DetectHttpCookieSigTest01, 1);
+    UtRegisterTest("DetectHttpCookieSigTest02", DetectHttpCookieSigTest02, 1);
 #endif /* UNITTESTS */
 
 }
