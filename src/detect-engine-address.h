@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2009 Open Information Security Foundation.
+ *
+ * \author Victor Julien
+ */
+
+
 #ifndef __DETECT_ADDRESS_H__
 #define __DETECT_ADDRESS_H__
 
@@ -24,12 +31,8 @@ int DetectAddressJoin(DetectEngineCtx *, DetectAddress *, DetectAddress *);
 DetectAddress *DetectAddressLookupInHead(DetectAddressHead *, Address *);
 DetectAddress *DetectAddressLookupInList(DetectAddress *, DetectAddress *);
 
-/** \brief address only copy of ag */
 DetectAddress *DetectAddressCopy(DetectAddress *);
-/** \brief debugging: print a detect address */
 void DetectAddressPrint(DetectAddress *);
-/** \brief compare the address part of two DetectAddress objects */
 int DetectAddressCmp(DetectAddress *, DetectAddress *);
 
 #endif /* __DETECT_ADDRESS_H__ */
-

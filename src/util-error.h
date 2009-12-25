@@ -65,6 +65,7 @@ typedef enum {
     SC_NFQ_THREAD_INIT,
     SC_ERR_DAEMON,
     SC_UNIMPLEMENTED,
+    SC_ERR_ADDRESS_ENGINE_GENERIC_ERROR,
 } SCError;
 
 const char *SCErrorToString(SCError);
