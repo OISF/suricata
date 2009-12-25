@@ -32,10 +32,10 @@ typedef struct FlowVarTypeInt_ {
 /** Generic Flowvar Structure */
 typedef struct FlowVar_ {
     uint8_t type; /* type, DETECT_FLOWVAR in this case */
-    uint16_t idx; /* name idx */
     GenericVar *next; /* right now just implement this as a list,
                        * in the long run we have think of something
                        * faster. */
+    uint16_t idx; /* name idx */
     uint8_t datatype;
     union {
         FlowVarTypeStr fv_str;

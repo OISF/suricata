@@ -174,11 +174,11 @@ typedef struct HttpUri_ {
 
 typedef struct PktVar_ {
     char *name;
-    uint8_t *value;
-    uint16_t value_len;
     struct PktVar_ *next; /* right now just implement this as a list,
                            * in the long run we have thing of something
                            * faster. */
+    uint8_t *value;
+    uint16_t value_len;
 } PktVar;
 
 typedef struct Packet_

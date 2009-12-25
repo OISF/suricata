@@ -77,6 +77,8 @@
 
 #include "pkt-var.h"
 
+#include "flow-alert-sid.h"
+
 #include "conf.h"
 #include "conf-yaml-loader.h"
 #include <yaml.h>
@@ -427,7 +429,6 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
-#include "flow-bit.h"
 /** \brief application layer detection
  *
  *  \param sgh signature group head for this proto/addrs/ports
@@ -531,6 +532,7 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                     /* if no match function we assume this sm is a match */
                     SCLogDebug("no app layer match function, sigmatch is (pkt)Match only");
                     match = 1;
+                    SCLogDebug("no app layer match function, sigmatch is (pkt)Match only");
                 } else {
                     match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
                     SCLogDebug("sigmatch AppLayerMatch function returned match %"PRIu32"", match);
@@ -551,10 +553,10 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                             if (s->flags & SIG_FLAG_PACKET) {
                                 SCLogDebug("checking sid %"PRIu32"", s->id);
 
-                                if (FlowBitIsset(p->flow, s->id) ) {
-                                    SCLogDebug("flowbit sid %"PRIu32", isset", s->id);
+                                if (FlowAlertSidIsset(p->flow, s->id) ) {
+                                    SCLogDebug("flowalertsid sid %"PRIu32", isset", s->id);
 
-                                    PacketAlertAppend(p, 1, s->id, s->rev, s->prio, s->msg);
+                                    PacketAlertHandle(de_ctx,s,p);
 
                                     /* set verdict on packet */
                                     p->action = s->action;
@@ -795,10 +797,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                                 /* set flowbit for this match */
                                 if (s->flags & SIG_FLAG_APPLAYER) {
-                                    SCLogDebug("setting flowbit for sig %"PRIu32"", s->id);
-                                    FlowBitSet(p->flow, s->id);
+                                    SCLogDebug("setting flowalertsid for sig %"PRIu32"", s->id);
+                                    FlowAlertSidSet(p->flow, s->id);
                                 } else {
-                                    PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg);
+                                    PacketAlertHandle(de_ctx,s,p);
 
                                     /* set verdict on packet */
                                     p->action = s->action;

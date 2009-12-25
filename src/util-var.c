@@ -5,13 +5,16 @@
 
 #include "flow-var.h"
 #include "flow-bit.h"
+#include "flow-alert-sid.h"
 #include "pkt-var.h"
+
+#include "util-debug.h"
 
 void GenericVarFree(GenericVar *gv) {
     if (gv == NULL)
         return;
 
-    //printf("GenericVarFree: gv %p, gv->type %" PRIu32 "\n", gv, gv->type);
+    SCLogDebug("gv %p, gv->type %" PRIu32 "", gv, gv->type);
     GenericVar *next_gv = gv->next;
 
     switch (gv->type) {
@@ -20,6 +23,13 @@ void GenericVarFree(GenericVar *gv) {
             FlowBit *fb = (FlowBit *)gv;
             //printf("GenericVarFree: fb %p, removing\n", fb);
             FlowBitFree(fb);
+            break;
+        }
+        case DETECT_FLOWALERTSID:
+        {
+            FlowAlertSid *fb = (FlowAlertSid *)gv;
+            SCLogDebug("fb %p, removing", fb);
+            FlowAlertSidFree(fb);
             break;
         }
         case DETECT_FLOWVAR:

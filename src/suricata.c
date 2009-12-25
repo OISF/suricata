@@ -56,6 +56,7 @@
 #include "flow.h"
 #include "flow-var.h"
 #include "flow-bit.h"
+#include "flow-alert-sid.h"
 #include "pkt-var.h"
 
 #include "app-layer-detect-proto.h"
@@ -508,6 +509,7 @@ int main(int argc, char **argv)
         ByteRegisterTests();
         MpmRegisterTests();
         FlowBitRegisterTests();
+        FlowAlertSidRegisterTests();
         SCPerfRegisterTests();
         DecodePPPRegisterTests();
         //HTTPParserRegisterTests();

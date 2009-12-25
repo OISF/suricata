@@ -25,6 +25,7 @@ flow-hash.c flow-hash.h \
 flow-util.c flow-util.h \
 flow-var.c flow-var.h \
 flow-bit.c flow-bit.h \
+flow-alert-sid.c flow-alert-sid.h \
 pkt-var.c pkt-var.h \
 host.c host.h \
 detect.c detect.h \
