@@ -422,6 +422,8 @@ int main(int argc, char **argv)
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
         ConfYamlLoadFile(conf_filename);
+    } else {
+        SCLogError(SC_ERR_OPENING_FILE, "Configuration file has not been provided");
     }
 
     if (dump_config) {
@@ -593,7 +595,11 @@ int main(int argc, char **argv)
     LogFileCtx *au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
 
     if (SigLoadSignatures(de_ctx, sig_file) < 0) {
-        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.\n");
+        if (sig_file == NULL) {
+            SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
+        } else {
+            SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+        }
     }
 
     struct timeval start_time;

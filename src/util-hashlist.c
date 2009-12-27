@@ -220,6 +220,12 @@ char HashListTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16
 }
 
 void *HashListTableLookup(HashListTable *ht, void *data, uint16_t datalen) {
+
+    if (ht == NULL) {
+        SCLogDebug("Hash List table is NULL");
+        return NULL;
+    }
+
     uint32_t hash = ht->Hash(ht, data, datalen);
 
     if (ht->array[hash] == NULL) {
