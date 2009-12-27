@@ -24,6 +24,8 @@
 
 #include "util-unittest.h"
 #include "util-time.h"
+#include "util-error.h"
+#include "util-debug.h"
 
 #define DEFAULT_LOG_FILENAME "unified.alert"
 
@@ -94,7 +96,8 @@ int AlertUnifiedAlertWriteFileHeader(ThreadVars *t, AlertUnifiedAlertThread *aun
 
     ret = fwrite(&hdr, sizeof(hdr), 1, aun->file_ctx->fp);
     if (ret != 1) {
-        printf("Error: fwrite failed: ret = %" PRId32 ", %s\n", ret, strerror(errno));
+        SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: ret = %" PRId32 ", %s",
+                   ret, strerror(errno));
         return -1;
     }
     fflush(aun->file_ctx->fp);
@@ -114,15 +117,18 @@ int AlertUnifiedAlertCloseFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
 
 int AlertUnifiedAlertRotateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
     if (AlertUnifiedAlertCloseFile(t,aun) < 0) {
-        printf("Error: AlertUnifiedAlertCloseFile failed\n");
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
+                   "Error: AlertUnifiedAlertCloseFile failed");
         return -1;
     }
     if (AlertUnifiedAlertOpenFileCtx(aun->file_ctx,aun->file_ctx->config_file) < 0) {
-        printf("Error: AlertUnifiedLogOpenFileCtx, open new log file failed\n");
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
+                   "Error: AlertUnifiedLogOpenFileCtx, open new log file failed");
         return -1;
     }
     if (AlertUnifiedAlertWriteFileHeader(t, aun) < 0) {
-        printf("Error: AlertUnifiedLogAppendFile, write unified header failed\n");
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR, "Error: "
+                   "AlertUnifiedLogAppendFile, write unified header failed");
         return -1;
     }
 
@@ -181,7 +187,7 @@ TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     /* write and flush so it's written immediately */
     ret = fwrite(&hdr, sizeof(hdr), 1, aun->file_ctx->fp);
     if (ret != 1) {
-        printf("Error: fwrite failed: %s\n", strerror(errno));
+        SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
         return TM_ECODE_FAILED;
     }
     /* force writing to disk so barnyard will not read half
@@ -202,7 +208,8 @@ TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        printf("Error getting context for the file\n");
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR, "Error getting context for "
+                   "UnifiedAlert.  \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -212,7 +219,8 @@ TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
     /** Write Unified header */
     int ret = AlertUnifiedAlertWriteFileHeader(t, aun);
     if (ret != 0) {
-        printf("Error: AlertUnifiedLogWriteFileHeader failed.\n");
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
+                   "Error: AlertUnifiedLogWriteFileHeader failed");
         return TM_ECODE_FAILED;
     }
 
@@ -255,7 +263,8 @@ LogFileCtx *AlertUnifiedAlertInitCtx(char *config_file)
     LogFileCtx *file_ctx = LogFileNewCtx();
 
     if (file_ctx == NULL) {
-        printf("AlertUnifiedAlertInitCtx: Couldn't create new file_ctx\n");
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
+                   "AlertUnifiedAlertInitCtx: Couldn't create new file_ctx");
         return NULL;
     }
 
@@ -307,7 +316,8 @@ int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
         /* XXX filename & location */
         file_ctx->fp = fopen(filename, "wb");
         if (file_ctx->fp == NULL) {
-            printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
+            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
+                       strerror(errno));
             return -1;
         }
     }

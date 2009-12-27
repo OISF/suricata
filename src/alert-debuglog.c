@@ -193,7 +193,8 @@ TmEcode AlertDebuglogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        printf("Error getting context for the file\n");
+        SCLogError(SC_ERR_DEBUG_LOG_GENERIC_ERROR, "Error getting context for "
+                   "DebugLog.  \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -238,7 +239,8 @@ LogFileCtx *AlertDebuglogInitCtx(char *config_file)
 
     if(file_ctx == NULL)
     {
-        printf("AlertDebuglogInitCtx: Couldn't create new file_ctx\n");
+        SCLogError(SC_ERR_DEBUG_LOG_GENERIC_ERROR, "AlertDebuglogInitCtx: Couldn't "
+                   "create new file_ctx");
         return NULL;
     }
 
@@ -277,7 +279,8 @@ int AlertDebuglogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
         snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
         file_ctx->fp = fopen(log_path, "w");
         if (file_ctx->fp == NULL) {
-            printf("ERROR: failed to open %s: %s\n", log_path, strerror(errno));
+            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
+                       strerror(errno));
             return -1;
         }
     }

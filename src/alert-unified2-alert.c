@@ -18,6 +18,7 @@
 #include "alert-unified2-alert.h"
 #include "decode-ipv4.h"
 
+#include "util-error.h"
 #include "util-debug.h"
 #include "util-time.h"
 #ifndef IPPROTO_SCTP
@@ -152,11 +153,13 @@ int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
 
 int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
     if (Unified2AlertCloseFile(t,aun) < 0) {
-        printf("Error: Unified2AlertCloseFile failed\n");
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR,
+                   "Error: Unified2AlertCloseFile failed");
         return -1;
     }
     if (Unified2AlertOpenFileCtx(aun->file_ctx,aun->file_ctx->config_file) < 0) {
-        printf("Error: Unified2AlertOpenFileCtx, open new log file failed\n");
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR,
+                   "Error: Unified2AlertOpenFileCtx, open new log file failed");
         return -1;
     }
     return 0;
@@ -236,7 +239,7 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
 
     ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
     if (ret != 1) {
-        printf("Error: fwrite failed: %s\n", strerror(errno));
+        SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
         return -1;
     }
 
@@ -346,7 +349,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 
     ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
     if (ret != 1) {
-        printf("Error: fwrite failed: %s\n", strerror(errno));
+        SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
         return -1;
     }
 
@@ -457,7 +460,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
     ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
     if (ret != 1) {
-        printf("Error: fwrite failed: %s\n", strerror(errno));
+        SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
         return -1;
     }
 
@@ -488,7 +491,8 @@ TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aun, 0, sizeof(Unified2AlertThread));
     if(initdata == NULL)
     {
-        printf("Error getting context for the file\n");
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR, "Error getting context for "
+                   "Unified2Alert.  \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -542,7 +546,8 @@ LogFileCtx *Unified2AlertInitCtx(char *config_file)
 
     if(file_ctx == NULL)
     {
-        printf("Unified2AlertInitCtx: Couldn't create new file_ctx\n");
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR, "Unified2AlertInitCtx: "
+                   "Couldn't create new file_ctx");
         return NULL;
     }
 
@@ -594,7 +599,8 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
         /* XXX filename & location */
         file_ctx->fp = fopen(filename, "wb");
         if (file_ctx->fp == NULL) {
-            printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
+            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
+                       strerror(errno));
             return -1;
         }
     }
@@ -969,7 +975,8 @@ static int Unified2TestRotate01(void)
         goto error;
 
     if (strcmp(filename, lf->filename) == 0) {
-        printf("filename \"%s\" == \"%s\": ", filename, lf->filename);
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR,
+                   "filename \"%s\" == \"%s\": ", filename, lf->filename);
         goto error;
     }
 

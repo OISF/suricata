@@ -24,6 +24,8 @@
 
 #include "util-unittest.h"
 #include "util-time.h"
+#include "util-debug.h"
+#include "util-error.h"
 
 #define DEFAULT_LOG_FILENAME "unified.log"
 
@@ -218,7 +220,8 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
     if(initdata == NULL)
     {
-        printf("Error getting context for the file\n");
+        SCLogError(SC_ERR_UNIFIED_LOG_GENERIC_ERROR, "Error getting context for "
+                   "UnifiedLog.  \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -325,7 +328,8 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
         /* XXX filename & location */
         file_ctx->fp = fopen(filename, "wb");
         if (file_ctx->fp == NULL) {
-            printf("Error: fopen %s failed: %s\n", filename, strerror(errno)); /* XXX errno threadsafety? */
+            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
+                       strerror(errno));
             return -1;
         }
     }
