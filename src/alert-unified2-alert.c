@@ -947,6 +947,8 @@ static int Unified2TestRotate01(void)
     void *data = NULL;
 
     lf = Unified2AlertInitCtx(NULL);
+    if (lf == NULL)
+        return 0;
     char *filename = strdup(lf->filename);
 
     memset(&tv, 0, sizeof(ThreadVars));
