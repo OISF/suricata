@@ -99,7 +99,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         goto end;
     }
 
-    if (BinSearch(bstr_ptr(h->value), bstr_size(h->value), co->data,
+    if (BinSearch((const uint8_t *)bstr_ptr(h->value), bstr_size(h->value), co->data,
             co->data_len) != NULL)
     {
         SCLogDebug("match has been found in received request and given http_"
