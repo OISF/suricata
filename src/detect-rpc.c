@@ -495,7 +495,7 @@ static int DetectRpcTestSig01(void) {
         goto end;
     }
 
-    //de_ctx->flags |= DE_QUIET;
+    de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert udp any any -> any any (msg:\"RPC Get Port Call\"; rpc:100000, 2, 3; sid:1;)");
     if (s == NULL) {

@@ -3050,7 +3050,7 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentChunkMatchTest08", DetectContentChunkMatchTest08, 1);
     UtRegisterTest("DetectContentChunkMatchTest09", DetectContentChunkMatchTest09, 1);
     UtRegisterTest("DetectContentChunkMatchTest10", DetectContentChunkMatchTest10, 1);
-    UtRegisterTest("DetectContentChunkMatchTest11", DetectContentChunkMatchTest11, 1);
+    UtRegisterTest("DetectContentChunkMatchTest11 (failure expected, bug #24)", DetectContentChunkMatchTest11, 1);
 
     /* Negated content tests */
     UtRegisterTest("SigTest41TestNegatedContent", SigTest41TestNegatedContent, 1);
