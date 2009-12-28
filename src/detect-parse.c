@@ -651,6 +651,10 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         }
     }
 
+    SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
+        sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
+        sig->flags & SIG_FLAG_PACKET ? "set" : "not set");
+
     return sig;
 
 error:
@@ -758,6 +762,27 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             }
         }
     }
+
+    /* set the packet and app layer flags, but only if the
+     * app layer flag wasn't already set in which case we
+     * only consider the app layer */
+    if (!(sig->flags & SIG_FLAG_APPLAYER)) {
+        if (sig->match != NULL) {
+            SigMatch *sm = sig->match;
+            for ( ; sm != NULL; sm = sm->next) {
+                if (sigmatch_table[sm->type].AppLayerMatch != NULL)
+                    sig->flags |= SIG_FLAG_APPLAYER;
+                if (sigmatch_table[sm->type].Match != NULL)
+                    sig->flags |= SIG_FLAG_PACKET;
+            }
+        } else {
+            sig->flags |= SIG_FLAG_PACKET;
+        }
+    }
+
+    SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
+        sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
+        sig->flags & SIG_FLAG_PACKET ? "set" : "not set");
 
     /**
      * In SigInitReal, the signature returned will point from the ptr next

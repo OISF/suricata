@@ -43,6 +43,8 @@
  */
 void PacketAlertHandle(DetectEngineCtx *de_ctx, Signature *sig, Packet *p)
 {
+    SCEnter();
+
     DetectThresholdData *tsh = NULL;
 
     tsh = SigGetThresholdType(sig,p);
@@ -53,8 +55,9 @@ void PacketAlertHandle(DetectEngineCtx *de_ctx, Signature *sig, Packet *p)
         PacketAlertThreshold(de_ctx,tsh,p,sig);
     }
 
-    return;
+    SCReturn;
 }
+
 /**
  * \brief Check if a certain signature has threshold option
  *
