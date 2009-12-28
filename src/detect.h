@@ -225,12 +225,12 @@ typedef struct DetectEngineLookupDsize_ {
 
 /** \brief threshold ctx */
 typedef struct ThresholdCtx_    {
-    HashListTable *threshold_hash_table_dst;    /**< Ipv4 dst hash table */
-    HashListTable *threshold_hash_table_src;    /**< Ipv4 src hash table */
+    HashListTable *threshold_hash_table_dst;        /**< Ipv4 dst hash table */
+    HashListTable *threshold_hash_table_src;        /**< Ipv4 src hash table */
     HashListTable *threshold_hash_table_dst_ipv6;   /**< Ipv6 dst hash table */
     HashListTable *threshold_hash_table_src_ipv6;   /**< Ipv6 src hash table */
-    pthread_mutex_t threshold_table_lock;   /**< Mutex for hash table */
-}ThresholdCtx;
+    SCMutex threshold_table_lock;                   /**< Mutex for hash table */
+} ThresholdCtx;
 
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {

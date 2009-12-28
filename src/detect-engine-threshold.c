@@ -148,14 +148,22 @@ void ThresholdTimeoutRemove(DetectEngineCtx *de_ctx)
     next = HashListTableGetListHead(de_ctx->ths_ctx.threshold_hash_table_src);
 
     while (next != NULL) {
-
         tsh = HashListTableGetListData(next);
 
         if (tsh && ((tv.tv_sec - tsh->tv_sec1) > tsh->seconds))   {
-            HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_src, tsh, sizeof(DetectThresholdData));
-            HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_dst, tsh, sizeof(DetectThresholdData));
-            HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_src_ipv6, tsh, sizeof(DetectThresholdData));
-            HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_dst_ipv6, tsh, sizeof(DetectThresholdData));
+            if (tsh->ipv == 4) {
+                if (tsh->type == TRACK_SRC) {
+                    HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_src, tsh, sizeof(DetectThresholdData));
+                } else if (tsh->type == TRACK_DST) {
+                    HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_dst, tsh, sizeof(DetectThresholdData));
+                }
+            } else if (tsh->ipv == 6) {
+                if (tsh->type == TRACK_SRC) {
+                    HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_src_ipv6, tsh, sizeof(DetectThresholdData));
+                } else if (tsh->type == TRACK_DST) {
+                    HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_dst_ipv6, tsh, sizeof(DetectThresholdData));
+                }
+            }
         }
 
         next = HashListTableGetListNext(next);
@@ -191,8 +199,8 @@ void ThresholdHashAdd(DetectEngineCtx *de_ctx, DetectThresholdData *tsh_ptr, Pac
     }
 
     if(ret == -1)   {
-        SCLogError(SC_ERR_MEM_ALLOC,
-                "Threshold: Failed to Add element into the hash table.");
+        SCLogError(SC_ERR_THRESHOLD_HASH_ADD,
+                "failed to add element into the hash table");
     }
 
     return;
