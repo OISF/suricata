@@ -2454,6 +2454,19 @@ int PortTestMatchReal19()
     return PortTestMatchRealWrp(sig, 1);
 }
 
+static int PortTestMatchDoubleNegation(void)
+{
+    int result = 0;
+    DetectPort *head = NULL, *nhead = NULL;
+
+    if (DetectPortParseDo(&head, &nhead, "![!80]", 0) == -1)
+        return result;
+
+    result = (head != NULL);
+    result = (nhead == NULL);
+
+    return result;
+}
 
 #endif /* UNITTESTS */
 
@@ -2499,6 +2512,9 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestMatchReal18", PortTestMatchReal18, 1);
     UtRegisterTest("PortTestMatchReal19 (expected to fail, see bug #8)",
                    PortTestMatchReal19, 1);
+    UtRegisterTest("PortTestMatchDoubleNegation", PortTestMatchDoubleNegation, 1);
+
+
 #endif /* UNITTESTS */
 }
 
