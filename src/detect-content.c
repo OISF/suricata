@@ -2567,6 +2567,30 @@ int DetectContentChunkMatchTest09()
     return DetectContentChunkMatchTestWrp(sig, 1);
 }
 
+/**
+ * \test Check if we match two consecutive simple contents
+ */
+int DetectContentChunkMatchTest10()
+{
+    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+                " content:\"Hi, this is a big test to check \"; "
+                " content:\"con\"; "
+                " sid:1;)";
+    return DetectContentChunkMatchTestWrp(sig, 1);
+}
+
+/**
+ * \test Check if we match two contents of length 1
+ */
+int DetectContentChunkMatchTest11()
+{
+    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+                " content:\"H\"; "
+                " content:\"i\"; "
+                " sid:1;)";
+    return DetectContentChunkMatchTestWrp(sig, 1);
+}
+
 int DetectContentParseTest09(void) {
     int result = 0;
     DetectContentData *cd = NULL;
@@ -3025,6 +3049,8 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentChunkMatchTest07", DetectContentChunkMatchTest07, 1);
     UtRegisterTest("DetectContentChunkMatchTest08", DetectContentChunkMatchTest08, 1);
     UtRegisterTest("DetectContentChunkMatchTest09", DetectContentChunkMatchTest09, 1);
+    UtRegisterTest("DetectContentChunkMatchTest10", DetectContentChunkMatchTest10, 1);
+    UtRegisterTest("DetectContentChunkMatchTest11", DetectContentChunkMatchTest11, 1);
 
     /* Negated content tests */
     UtRegisterTest("SigTest41TestNegatedContent", SigTest41TestNegatedContent, 1);
