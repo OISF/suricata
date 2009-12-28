@@ -1014,13 +1014,13 @@ void SCLogLoadConfig(void)
     ConfNode *output;
     TAILQ_FOREACH(output, &outputs->head, next) {
         //ConfNode *param;
-        char *interface = NULL;
-        char *log_level = NULL;
-        char *facility = NULL;
-        //char *filename = NULL;
-        char *format = NULL;
+        const char *interface = NULL;
+        const char *log_level = NULL;
+        const char *facility = NULL;
+        //const char *filename = NULL;
+        const char *format = NULL;
 
-        interface = (char *)ConfNodeLookupChildValue(output, "interface");
+        interface = ConfNodeLookupChildValue(output, "interface");
         if (interface == NULL) {
             /* No interface in this item, ignore. */
             continue;
@@ -1032,18 +1032,18 @@ void SCLogLoadConfig(void)
         }
 
         /* Any output may have a log-level set. */
-        log_level = (char *)ConfNodeLookupChildValue(output, "log-level");
+        log_level = ConfNodeLookupChildValue(output, "log-level");
 
         /* Any output may have a format set. */
-        format = (char *)ConfNodeLookupChildValue(output, "format");
+        format = ConfNodeLookupChildValue(output, "format");
 
         if (strcmp(interface, "console") == 0) {
             /* No other lookups required for console logging. */
             /* \todo Setup console logging... */
         }
         else if (strcmp(interface, "syslog") == 0) {
-            facility = (char *)ConfNodeLookupChildValue(output, "facility");
             /* \todo Setup syslog logging. */
+            facility = ConfNodeLookupChildValue(output, "facility");
         }
         else {
             SCLogWarning(SC_UNIMPLEMENTED,
