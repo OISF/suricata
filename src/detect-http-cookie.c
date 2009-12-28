@@ -75,12 +75,13 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         return 0;
     }
 
-    if (htp_state->connp->conn == NULL) {
+    int ret = 0;
+    SCMutexLock(&f->m);
+    if (htp_state->connp == NULL && htp_state->connp->conn == NULL) {
         SCLogDebug("HTTP connection structure is NULL");
         return 0;
     }
-    int ret = 0;
-    SCMutexLock(&f->m);
+
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
 
     if (tx == NULL) {
