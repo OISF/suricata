@@ -77,7 +77,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     int ret = 0;
     SCMutexLock(&f->m);
-    if (htp_state->connp == NULL && htp_state->connp->conn == NULL) {
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTTP connection structure is NULL");
         ret = 0;
         goto end;
