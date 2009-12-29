@@ -10,6 +10,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "flow.h"
+#include <queue.h>
 
 void RegisterDCERPCParsers(void);
 void DCERPCParserTests(void);
@@ -88,9 +89,20 @@ typedef struct dcerpc_hdr_ {
 
 #define DCERPC_HDR_LEN 16
 
+struct entry {
+	uint16_t ctxid;
+	uint8_t uuid[16];
+    TAILQ_ENTRY(entry) entries;         /* Tail queue. */
+} *n1, *n2, *np;
+
 typedef struct DCERPCState_ {
     dcerpc_t dcerpc;
     uint16_t bytesprocessed;
+    uint8_t numctxitems;
+    uint8_t ctxbytesprocessed;
+    TAILQ_HEAD(tailhead, entry) head;
+    struct entry *item;
+    uint16_t secondaryaddrlen;
 }DCERPCState;
 
 
