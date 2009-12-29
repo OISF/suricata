@@ -432,8 +432,8 @@ void DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, 
 Packet *SetupPkt (void);
 Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, uint8_t);
 
-void DecodeSetNoPayloadInspectionFlag(Packet *);
-void DecodeSetNoPacketInspectionFlag(Packet *);
+inline void DecodeSetNoPayloadInspectionFlag(Packet *);
+inline void DecodeSetNoPacketInspectionFlag(Packet *);
 
 #define DECODER_SET_EVENT(p, e)   ((p)->events[(e/8)] |= (1<<(e%8)))
 #define DECODER_ISSET_EVENT(p, e) ((p)->events[(e/8)] & (1<<(e%8)))

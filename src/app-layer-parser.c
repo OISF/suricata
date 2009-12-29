@@ -540,7 +540,7 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
     }
 
     SCLogDebug("registered %p at proto %" PRIu32 " flags %02X, al_proto_table "
-                "idx %" PRIu32 ", storage_id %" PRIu32 " %s \n", AppLayerParser, proto,
+                "idx %" PRIu32 ", storage_id %" PRIu32 " %s", AppLayerParser, proto,
                 flags, al_max_parsers, al_proto_table[proto].storage_id, name);
     return 0;
 }
@@ -698,11 +698,11 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         parser_state_store = (AppLayerParserStateStore *)
                                                     ssn->aldata[app_layer_sid];
         if (parser_state_store == NULL) {
+            if (need_lock == TRUE) SCMutexLock(&f->m);
             parser_state_store = AppLayerParserStateStoreAlloc();
             if (parser_state_store == NULL)
                 goto error;
 
-            if (need_lock == TRUE) SCMutexLock(&f->m);
             ssn->aldata[app_layer_sid] = (void *)parser_state_store;
             if (need_lock == TRUE) SCMutexUnlock(&f->m);
         }
@@ -717,7 +717,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
     AppLayerParserState *parser_state = NULL;
     if (flags & STREAM_TOSERVER) {
-        SCLogDebug("to_server msg");
+        SCLogDebug("to_server msg (flow %p)", f);
 
         parser_state = &parser_state_store->to_server;
         if (!(parser_state->flags & APP_LAYER_PARSER_USE)) {
@@ -730,7 +730,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
             parser_idx = parser_state->cur_parser;
         }
     } else {
-        SCLogDebug("to_client msg");
+        SCLogDebug("to_client msg (flow %p)", f);
 
         parser_state = &parser_state_store->to_client;
         if (!(parser_state->flags & APP_LAYER_PARSER_USE)) {
@@ -756,17 +756,22 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     void *app_layer_state = NULL;
     if (need_lock == TRUE) SCMutexLock(&f->m);
     app_layer_state = ssn->aldata[p->storage_id];
-    if (need_lock == TRUE) SCMutexUnlock(&f->m);
 
     if (app_layer_state == NULL) {
+        /* lock the allocation of state as we may
+         * alloc more than one otherwise */
         app_layer_state = p->StateAlloc();
-        if (app_layer_state == NULL)
+        if (app_layer_state == NULL) {
+            if (need_lock == TRUE) SCMutexUnlock(&f->m);
             goto error;
+        }
 
-        if (need_lock == TRUE) SCMutexLock(&f->m);
         ssn->aldata[p->storage_id] = app_layer_state;
-        if (need_lock == TRUE) SCMutexUnlock(&f->m);
+        SCLogDebug("alloced new app layer state %p (p->storage_id %u, name %s)", app_layer_state, p->storage_id, al_proto_table[ssn->alproto].name);
+    } else {
+        SCLogDebug("using existing app layer state %p (p->storage_id %u, name %s))", app_layer_state, p->storage_id, al_proto_table[ssn->alproto].name);
     }
+    if (need_lock == TRUE) SCMutexUnlock(&f->m);
 
     /* invoke the recursive parser */
     int r = AppLayerDoParse(f, app_layer_state, parser_state, input, input_len,
@@ -795,10 +800,11 @@ error:
     if (ssn != NULL) {
         /* Clear the app layer protocol state memory and the given function also
          * cleans the parser state memory */
-        AppLayerParserCleanupState(ssn);
+        if (need_lock == TRUE) SCMutexLock(&f->m);
+        if (f->use_cnt == 0)
+            AppLayerParserCleanupState(ssn);
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
-        if (need_lock == TRUE) SCMutexLock(&f->m);
         StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOCLIENT ? 1 : 0);
         StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOSERVER ? 1 : 0);
 
@@ -961,7 +967,7 @@ void AppLayerParsersInitPostProcess(void)
                 continue;
 
            SCLogDebug("al_proto_table[%" PRIu32 "].map[%" PRIu32 "]->parser_id:"
-                      " %" PRIu32 "\n", u16, x, al_proto_table[u16].map[x]->parser_id);
+                      " %" PRIu32 "", u16, x, al_proto_table[u16].map[x]->parser_id);
         }
     }
 }

@@ -356,7 +356,8 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock)
             }
         } else {
             SCLogDebug("stream data (len %" PRIu32 " (%" PRIu32 ")), alproto "
-                      "%"PRIu16"", smsg->data.data_len, MSG_DATA_SIZE, alproto);
+                      "%"PRIu16" (flow %p)", smsg->data.data_len, MSG_DATA_SIZE,
+                      alproto, smsg->flow);
 
             //printf("=> Stream Data -- start\n");
             //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);

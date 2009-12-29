@@ -8,6 +8,7 @@
 #include "app-layer-parser.h"
 #include "stream.h"
 
+uint16_t AppLayerGetProtoFromPacket(Packet *);
 void *AppLayerGetProtoStateFromPacket(Packet *);
 void *AppLayerGetProtoStateFromFlow(Flow *);
 

@@ -5,8 +5,8 @@
  * Created on November 14, 2009, 12:48 AM
  */
 
-#ifndef _APP_LAYER_HTP_H
-#define	_APP_LAYER_HTP_H
+#ifndef __APP_LAYER_HTP_H__
+#define __APP_LAYER_HTP_H__
 
 #include <htp/htp.h>
 
@@ -33,5 +33,6 @@ void RegisterHTPParsers(void);
 void HTPParserRegisterTests(void);
 void HTPAtExitPrintStats(void);
 void HTPFreeConfig(void);
-#endif	/* _APP_LAYER_HTP_H */
+
+#endif	/* __APP_LAYER_HTP_H__ */
 

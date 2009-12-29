@@ -444,6 +444,8 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
     SigMatch *sm = NULL;
     uint32_t idx, sig;
     uint8_t flags = 0;
+    uint16_t alproto = ALPROTO_UNKNOWN;
+    void *alstate = NULL;
 
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
@@ -453,7 +455,20 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
     }
 
     /* grab the protocol state we will detect on */
-    void *alstate = AppLayerGetProtoStateFromPacket(p);
+    if (p->flow == NULL) {
+        SCReturnInt(0);
+    }
+
+    SCMutexLock(&p->flow->m);
+    p->flow->use_cnt++;
+    alstate = AppLayerGetProtoStateFromPacket(p);
+    alproto = AppLayerGetProtoFromPacket(p);
+    SCMutexUnlock(&p->flow->m);
+
+    if (alproto == ALPROTO_UNKNOWN) {
+        SCLogDebug("application layer state proto still unknown");
+        SCReturnInt(0);
+    }
     if (alstate == NULL) {
         SCLogDebug("no application layer state to detect");
         SCReturnInt(0);
@@ -534,6 +549,12 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                     /* if no match function we assume this sm is a match */
                     match = 1;
                     SCLogDebug("no app layer match function, sigmatch is (pkt)Match only");
+                } else if (sigmatch_table[sm->type].alproto != alproto) {
+                    match = 0;
+                    SCLogDebug("app layer match function %s is for proto "
+                            "%"PRIu16", got proto %"PRIu16"",
+                            sigmatch_table[sm->type].name,
+                            sigmatch_table[sm->type].alproto, alproto);
                 } else {
                     match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
                     SCLogDebug("sigmatch AppLayerMatch function returned match %"PRIu32"", match);
@@ -578,6 +599,9 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
         }
     }
 
+    SCMutexLock(&p->flow->m);
+    p->flow->use_cnt--;
+    SCMutexUnlock(&p->flow->m);
     SCReturnInt(fmatch);
 }
 

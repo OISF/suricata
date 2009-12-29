@@ -21,6 +21,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-binsearch.h"
+#include "util-print.h"
 
 #include "app-layer.h"
 
@@ -42,6 +43,7 @@ void DetectHttpCookieRegister (void) {
     sigmatch_table[DETECT_AL_HTTP_COOKIE].name = "http_cookie";
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].AppLayerMatch = DetectHttpCookieMatch;
+    sigmatch_table[DETECT_AL_HTTP_COOKIE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Setup = DetectHttpCookieSetup;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Free  = NULL;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].RegisterTests = DetectHttpCookieRegisterTests;
@@ -68,36 +70,49 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                            Flow *f, uint8_t flags, void *state, Signature *s,
                            SigMatch *m)
 {
+    SCEnter();
+
+    int ret = 0;
+
+    SCMutexLock(&f->m);
+    SCLogDebug("got lock %p", &f->m);
+
     DetectHttpCookieData *co = (DetectHttpCookieData *)m->ctx;
+
     HtpState *htp_state = (HtpState *)state;
     if (htp_state == NULL) {
         SCLogDebug("no HTTP layer state has been received, so no match");
-        return 0;
+        goto end;
     }
 
-    int ret = 0;
-    SCMutexLock(&f->m);
+    if (!(htp_state->flags & HTP_FLAG_STATE_OPEN)) {
+        SCLogDebug("HTP state not yet properly setup, so no match");
+        goto end;
+    }
+
+    SCLogDebug("htp_state %p, flow %p", htp_state, f);
+    SCLogDebug("htp_state->connp %p", htp_state->connp);
+    SCLogDebug("htp_state->connp->conn %p", htp_state->connp->conn);
+
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTTP connection structure is NULL");
-        ret = 0;
         goto end;
     }
 
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
-
     if (tx == NULL) {
         SCLogDebug("No HTTP transaction has received on the connection");
-        ret = 0;
         goto end;
     }
 
     htp_header_t *h = NULL;
     h = (htp_header_t *)table_getc(tx->request_headers, "Cookie");
     if (h == NULL) {
-        SCLogDebug("no HTTP Cookie hearder in the received request");
-        ret = 0;
+        SCLogDebug("no HTTP Cookie header in the received request");
         goto end;
     }
+
+    SCLogDebug("we have a cookie header");
 
     if (BinSearch((const uint8_t *)bstr_ptr(h->value), bstr_size(h->value), co->data,
             co->data_len) != NULL)
@@ -109,7 +124,8 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
 end:
     SCMutexUnlock(&f->m);
-    return ret;
+    SCLogDebug("released lock %p", &f->m);
+    SCReturnInt(ret);
 }
 
 /**

@@ -110,13 +110,19 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
 /** \brief Function to return the stream back to the pool. It returns the
  *         segments in the stream to the segment pool.
  *
+ *  This function is called when the flow is destroyed, so it should free
+ *  *everything* related to the tcp session. So including the app layer
+ *  data. We are guaranteed to only get here when the flow's use_cnt is 0.
+ *
  *  \param ssn Void ptr to the ssn.
  */
 void StreamTcpSessionClear(void *ssnptr)
 {
+    SCEnter();
+
     TcpSession *ssn = (TcpSession *)ssnptr;
     if (ssn == NULL)
-        return;
+        SCReturn;
 
     StreamTcpReturnStreamSegments(&ssn->client);
     StreamTcpReturnStreamSegments(&ssn->server);
@@ -133,36 +139,45 @@ void StreamTcpSessionClear(void *ssnptr)
     ssn_pool_cnt--;
     SCMutexUnlock(&ssn_pool_cnt_mutex);
 #endif
+
+    SCReturn;
 }
 
 /** \brief Function to return the stream back to the pool. It returns the
  *         segments in the stream to the segment pool.
  *
+ *  We don't clear out the app layer storage here as that is under protection
+ *  of the "use_cnt" reference counter in the flow. This function is called
+ *  when the use_cnt is always at least 1 (this pkt has incremented the flow
+ *  use_cnt itself), so we don't bother.
+ *
  *  \param p Packet used to identify the stream.
  */
 static void StreamTcpSessionPktFree (Packet *p)
 {
+    SCEnter();
+
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     if (ssn == NULL)
-        return;
+        SCReturn;
 
     StreamTcpReturnStreamSegments(&ssn->client);
     StreamTcpReturnStreamSegments(&ssn->server);
-
-    AppLayerParserCleanupState(ssn);
-
+/*
     memset(ssn, 0, sizeof(TcpSession));
     SCMutexLock(&ssn_pool_mutex);
     PoolReturn(ssn_pool, p->flow->protoctx);
     SCMutexUnlock(&ssn_pool_mutex);
 
     p->flow->protoctx = NULL;
-
+*/
 #ifdef DEBUG
     SCMutexLock(&ssn_pool_cnt_mutex);
     ssn_pool_cnt--;
     SCMutexUnlock(&ssn_pool_cnt_mutex);
 #endif
+
+    SCReturn;
 }
 
 /** \brief Stream alloc function for the Pool
@@ -2230,6 +2245,9 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt)
     if (ssn == NULL || ssn->state == TCP_NONE) {
         if (StreamTcpPacketStateNone(tv, p, stt, ssn) == -1)
             SCReturnInt(-1);
+
+        if (ssn != NULL)
+            SCLogDebug("ssn->alproto %"PRIu16"", ssn->alproto);
     } else {
         /* check if the packet is in right direction, when we missed the
            SYN packet and picked up midstream session. */
@@ -2713,7 +2731,7 @@ static int StreamTcpTest01 (void) {
         goto end;
     }
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -2800,9 +2818,7 @@ static int StreamTcpTest02 (void) {
     if (StreamTcpPacket(&tv, &p, &stt) == -1)
         goto end;
 
-    StreamTcpSessionPktFree(&p);
-    if (p.flow->protoctx != NULL)
-        goto end;
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -2870,7 +2886,7 @@ static int StreamTcpTest03 (void) {
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 11)
         goto end;
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -2931,7 +2947,7 @@ static int StreamTcpTest04 (void) {
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 20)
         goto end;
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -3030,7 +3046,7 @@ static int StreamTcpTest05 (void) {
             ((TcpSession *)(p.flow->protoctx))->server.next_seq != 23)
         goto end;
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -3161,7 +3177,7 @@ static int StreamTcpTest07 (void) {
             goto end;
         }
 
-        StreamTcpSessionPktFree(&p);
+        StreamTcpSessionClear(p.flow->protoctx);
         ret = 1;
     }
 end:
@@ -3247,7 +3263,7 @@ static int StreamTcpTest08 (void) {
         goto end;
     }
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -3322,7 +3338,7 @@ static int StreamTcpTest09 (void) {
     if (((TcpSession *) (p.flow->protoctx))->client.seg_list->next == NULL)
         ret = 1;
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 end:
     StreamTcpFreeConfig(TRUE);
     return ret;
@@ -3413,7 +3429,7 @@ static int StreamTcpTest10 (void) {
         goto end;
     }
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -3507,7 +3523,7 @@ static int StreamTcpTest11 (void) {
         goto end;
     }
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -3593,7 +3609,7 @@ static int StreamTcpTest12 (void) {
         goto end;
     }
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -3692,7 +3708,7 @@ static int StreamTcpTest13 (void) {
         goto end;
     }
 
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
 
     ret = 1;
 end:
@@ -3768,7 +3784,7 @@ static int StreamTcp4WHSTest01 (void) {
 
     ret = 1;
 end:
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
     StreamTcpFreeConfig(TRUE);
     return ret;
 }
@@ -3831,7 +3847,7 @@ static int StreamTcp4WHSTest02 (void) {
 
     ret = 1;
 end:
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
     StreamTcpFreeConfig(TRUE);
     return ret;
 }
@@ -3905,7 +3921,7 @@ static int StreamTcp4WHSTest03 (void) {
 
     ret = 1;
 end:
-    StreamTcpSessionPktFree(&p);
+    StreamTcpSessionClear(p.flow->protoctx);
     StreamTcpFreeConfig(TRUE);
     return ret;
 }

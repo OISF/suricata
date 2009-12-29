@@ -358,6 +358,8 @@ typedef struct SigTableElmt_ {
     int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
     /** AppLayer match function */
     int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);
+    uint16_t alproto; /**< app layer proto from app-layer-protos.h this match
+                           applies to */
 
     int (*Setup)(DetectEngineCtx *, Signature *, SigMatch *, char *);
     void (*Free)(void *);

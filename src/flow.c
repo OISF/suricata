@@ -293,6 +293,18 @@ void FlowSetIPOnlyFlag(Flow *f, char direction) {
     SCMutexUnlock(&f->m);
 }
 
+/** \brief increase the use cnt of a flow
+ *  \param tv thread vars (\todo unused?)
+ *  \param p packet with flow to decrease use cnt for
+ */
+void FlowIncrUsecnt(ThreadVars *tv, Packet *p) {
+    if (p == NULL || p->flow == NULL)
+        return;
+
+    SCMutexLock(&p->flow->m);
+    p->flow->use_cnt++;
+    SCMutexUnlock(&p->flow->m);
+}
 /** \brief decrease the use cnt of a flow
  *  \param tv thread vars (\todo unused?)
  *  \param p packet with flow to decrease use cnt for
@@ -680,6 +692,8 @@ void FlowInitFlowProto(void) {
  */
 
 static int FlowClearMemory(Flow* f, uint8_t proto_map) {
+    SCEnter();
+
     /* call the protocol specific free function if we have one */
     if (flow_proto[proto_map].Freefunc != NULL) {
         flow_proto[proto_map].Freefunc(f->protoctx);
@@ -687,7 +701,7 @@ static int FlowClearMemory(Flow* f, uint8_t proto_map) {
     f->protoctx = NULL;
 
     CLEAR_FLOW(f);
-    return 1;
+    SCReturnInt(1);
 }
 
 /**

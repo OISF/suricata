@@ -41,14 +41,22 @@ static uint64_t htp_state_memcnt = 0;
  */
 static void *HTPStateAlloc(void)
 {
-    void *s = malloc(sizeof(HtpState));
-    if (s == NULL)
-        return NULL;
+    SCEnter();
 
-    memset(s, 0, sizeof(HtpState));
+    HtpState *s = malloc(sizeof(HtpState));
+    if (s == NULL) {
+        goto error;
+    }
+
+    memset(s, 0x00, sizeof(HtpState));
 
     /* create the connection parser structure to be used by HTP library */
-    ((HtpState *)(s))->connp = htp_connp_create(cfg);
+    s->connp = htp_connp_create(cfg);
+    if (s->connp == NULL) {
+        goto error;
+    }
+
+    SCLogDebug("s->connp %p", s->connp);
 
 #ifdef DEBUG
     SCMutexLock(&htp_state_mem_lock);
@@ -56,26 +64,42 @@ static void *HTPStateAlloc(void)
     htp_state_memuse+=sizeof(HtpState);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
-    return s;
+
+    SCReturnPtr((void *)s, "void");
+
+error:
+    if (s != NULL)
+        free(s);
+
+    SCReturnPtr(NULL, "void");
 }
 
 /** \brief Function to frees the HTTP state memory and also frees the HTTP
  *         connection parser memory which was used by the HTP library
  */
-static void HTPStateFree(void *s)
+static void HTPStateFree(void *state)
 {
+    SCEnter();
+
+    HtpState *s = (HtpState *)state;
+
     /* free the connection parser memory used by HTP library */
-    if (s != NULL)
-        if (((HtpState *)(s))->connp != NULL)
-            htp_connp_destroy_all(((HtpState *)(s))->connp);
+    if (s != NULL) {
+        if (s->connp != NULL) {
+            htp_connp_destroy_all(s->connp);
+        }
+    }
 
     free(s);
+
 #ifdef DEBUG
     SCMutexLock(&htp_state_mem_lock);
     htp_state_memcnt--;
     htp_state_memuse-=sizeof(HtpState);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
+
+    SCReturn;
 }
 
 /**
@@ -118,12 +142,12 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     /* Open the HTTP connection on receiving the first request */
     if (!(hstate->flags & HTP_FLAG_STATE_OPEN)) {
-        SCLogDebug("opening htp handle");
+        SCLogDebug("opening htp handle at %p", hstate->connp);
 
         htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, 0);
         hstate->flags |= HTP_FLAG_STATE_OPEN;
     } else {
-        SCLogDebug("using existing htp handle");
+        SCLogDebug("using existing htp handle at %p", hstate->connp);
     }
 
     r = htp_connp_req_data(hstate->connp, 0, input, input_len);
@@ -157,6 +181,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         SCLogDebug("stream eof encountered, closing htp handle");
     }
 
+    SCLogDebug("hstate->connp %p", hstate->connp);
     SCReturnInt(ret);
 }
 
@@ -212,6 +237,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
         hstate->flags |= HTP_FLAG_STATE_CLOSED;
     }
 
+    SCLogDebug("hstate->connp %p", hstate->connp);
     SCReturnInt(ret);
 }
 

@@ -63,9 +63,9 @@ int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
         m = SigMatchGetLastSM(s, DETECT_CONTENT);
         if (m == NULL) {
             SCLogWarning(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
-                         "the rule, without a content context.  Please use a "
-                         "content keyword before using fast pattern");
-        return -1;
+                    "the rule, without a content context. Please use a "
+                    "content keyword before using fast pattern");
+            return -1;
         }
     }
 

@@ -9,6 +9,7 @@
 #include "flow-var.h"
 
 #include "util-var.h"
+#include "util-debug.h"
 
 /* Allocate a flow */
 Flow *FlowAlloc(void)
@@ -73,6 +74,9 @@ int FlowGetProtoMapping(uint8_t proto) {
  * we see from it. */
 void FlowInit(Flow *f, Packet *p)
 {
+    SCEnter();
+    SCLogDebug("flow %p", f);
+
     CLEAR_FLOW(f);
 
     f->proto = p->proto;
@@ -103,5 +107,7 @@ void FlowInit(Flow *f, Packet *p)
     COPY_TIMESTAMP(&p->ts, &f->startts);
 
     f->protomap = FlowGetProtoMapping(f->proto);
+
+    SCReturn;
 }
 

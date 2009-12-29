@@ -3,6 +3,27 @@
 #include "stream-tcp-private.h"
 #include "util-debug.h"
 
+/** \brief Get the active app layer proto from the packet
+ *  \param p packet pointer
+ *  \retval alstate void pointer to the state
+ *  \retval proto (ALPROTO_UNKNOWN if no proto yet) */
+uint16_t AppLayerGetProtoFromPacket(Packet *p) {
+    SCEnter();
+
+    if (p == NULL || p->flow == NULL) {
+        SCReturnUInt(ALPROTO_UNKNOWN);
+    }
+
+    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
+    if (ssn == NULL) {
+        SCReturnUInt(ALPROTO_UNKNOWN);
+    }
+
+    SCLogDebug("ssn->alproto %"PRIu16"", ssn->alproto);
+
+    SCReturnUInt(ssn->alproto);
+}
+
 /** \brief Get the active app layer state from the packet
  *  \param p packet pointer
  *  \retval alstate void pointer to the state
@@ -19,9 +40,11 @@ void *AppLayerGetProtoStateFromPacket(Packet *p) {
         SCReturnPtr(NULL, "void");
     }
 
-    SCLogDebug("ssn->alproto %u", ssn->alproto);
+    SCLogDebug("ssn->alproto %"PRIu16"", ssn->alproto);
 
     void *alstate = ssn->aldata[AlpGetStateIdx(ssn->alproto)];
+
+    SCLogDebug("p->flow %p", p->flow);
     SCReturnPtr(alstate, "void");
 }
 
@@ -39,7 +62,7 @@ void *AppLayerGetProtoStateFromFlow(Flow *f) {
     if (ssn == NULL || ssn->aldata == NULL)
         SCReturnPtr(NULL, "void");
 
-    SCLogDebug("ssn->alproto %u", ssn->alproto);
+    SCLogDebug("ssn->alproto %"PRIu16"", ssn->alproto);
 
     void *alstate = ssn->aldata[AlpGetStateIdx(ssn->alproto)];
     SCReturnPtr(alstate, "void");
