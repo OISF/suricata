@@ -367,6 +367,12 @@ static inline int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, 
             if (mpm_ctx->pattern_cnt == 1) mpm_ctx->search_minlen = patlen;
             else if (mpm_ctx->search_minlen > patlen) mpm_ctx->search_minlen = patlen;
         }
+    } else {
+        /* if we're reusing a pattern, check we need to check that it is a
+         * scan pattern if that is what we're adding. If so we set the pattern
+         * to be a scan pattern. */
+        if (scan)
+            p->flags |= B3G_SCAN;
     }
 
     /* we need a match */

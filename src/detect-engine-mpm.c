@@ -329,6 +329,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                     goto error;
 
                 if (cnt == 1) {
+                    SCLogDebug("sig has just one pattern, so we know we will use it in the scan phase and no searching will be necessary.");
                     ch->nosearch = 1;
                     ch->use = 1;
                 }
@@ -368,6 +369,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
         ContentHash *scan_ch = NULL;
         SigMatch *sm = s->match;
         for ( ; sm != NULL; sm = sm->next) {
+
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
                 if (co == NULL)
@@ -389,18 +391,27 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                     continue;
                 }
 
+                SCLogDebug("lookup_ch->use %u, cnt %u", lookup_ch->use, lookup_ch->cnt);
+
                 if (scan_ch == NULL) {
+                    SCLogDebug("scan_ch == NULL, so selecting lookup_ch->ptr->id %"PRIu32"", lookup_ch->ptr->id);
                     scan_ch = lookup_ch;
                 } else {
                     if (lookup_ch->use == 0) {
                         uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len,sgh->mpm_content_maxlen);
                         uint32_t ss = PatternStrength(scan_ch->ptr->content,scan_ch->ptr->content_len,sgh->mpm_content_maxlen);
-                        if (ls > ss)
+                        if (ls > ss) {
+                            SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32"", lookup_ch->ptr->id, scan_ch->ptr->id);
                             scan_ch = lookup_ch;
+                        }
                         else if (ls == ss) {
                             /* if 2 patterns are of equal strength, we pick the longest */
-                            if (lookup_ch->ptr->content_len > scan_ch->ptr->content_len)
+                            if (lookup_ch->ptr->content_len > scan_ch->ptr->content_len) {
+                                SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32" as the first is longer", lookup_ch->ptr->id, scan_ch->ptr->id);
                                 scan_ch = lookup_ch;
+                            }
+                        } else {
+                            SCLogDebug("sticking with scan_ch");
                         }
                     } else {
                         if (scan_ch->use == 0)
@@ -408,12 +419,16 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                         else {
                             uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len,sgh->mpm_content_maxlen);
                             uint32_t ss = PatternStrength(scan_ch->ptr->content,scan_ch->ptr->content_len,sgh->mpm_content_maxlen);
-                            if (ls > ss)
+                            if (ls > ss) {
+                                SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32"", lookup_ch->ptr->id, scan_ch->ptr->id);
                                 scan_ch = lookup_ch;
+                            }
                             /* if 2 patterns are of equal strength, we pick the longest */
                             else if (ls == ss) {
-                                if (lookup_ch->ptr->content_len > scan_ch->ptr->content_len)
+                                if (lookup_ch->ptr->content_len > scan_ch->ptr->content_len) {
+                                    SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32" as the first is longer", lookup_ch->ptr->id, scan_ch->ptr->id);
                                     scan_ch = lookup_ch;
+                                }
                             }
                         }
                     }
@@ -435,6 +450,10 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             } else {
                 mpm_table[sgh->mpm_ctx->mpm_type].AddScanPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
             }
+
+            SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the scan phase (s->num %"PRIu32")", s->id, co->id, s->num);
+        } else {
+            SCLogDebug("%"PRIu32" no scan pattern selected", s->id);
         }
         /* add the rest of the patterns to the search ctx */
         for (sm = s->match ; sm != NULL; sm = sm->next) {
@@ -444,8 +463,10 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                     continue;
 
                 /* skip the one we already added */
-                if (scan_ch != NULL && co == scan_ch->ptr)
+                if (scan_ch != NULL && co == scan_ch->ptr) {
+                    SCLogDebug("%"PRIu32" co->id %"PRIu32" not added to search, already in scan", s->id, co->id);
                     continue;
+                }
 
                 uint16_t offset = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->offset;
                 uint16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->depth;
@@ -455,6 +476,8 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 } else {
                     mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num);
                 }
+
+                SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the search phase", s->id, co->id);
             }
         }
     }

@@ -8029,8 +8029,8 @@ static int SigTestContent06Real (int mpm_type) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig2\"; content:\"01234567890123456789012345678901\"; content:\"abcdefg\"; sid:2;)");
-    if (de_ctx->sig_list == NULL) {
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig2\"; content:\"01234567890123456789012345678901\"; content:\"abcdefg\"; sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }

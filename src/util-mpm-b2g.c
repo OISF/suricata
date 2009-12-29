@@ -84,11 +84,15 @@ static inline void B2gEndMatchAppend(MpmCtx *mpm_ctx, B2gPattern *p,
     uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid,
     uint8_t nosearch)
 {
+    SCLogDebug("pid %"PRIu32", sid %"PRIu32"", pid, sid);
+
     MpmEndMatch *em = MpmAllocEndMatch(mpm_ctx);
     if (em == NULL) {
         printf("ERROR: B2gAllocEndMatch failed\n");
         return;
     }
+
+    SCLogDebug("em alloced at %p", em);
 
     em->id = pid;
     em->sig_id = sid;
@@ -100,6 +104,7 @@ static inline void B2gEndMatchAppend(MpmCtx *mpm_ctx, B2gPattern *p,
 
     if (p->em == NULL) {
         p->em = em;
+        SCLogDebug("m %p m->sig_id %"PRIu32"", em, em->sig_id);
         return;
     }
 
@@ -108,6 +113,13 @@ static inline void B2gEndMatchAppend(MpmCtx *mpm_ctx, B2gPattern *p,
         m = m->next;
     }
     m->next = em;
+
+    m = p->em;
+    SCLogDebug("m %p m->sig_id %"PRIu32"", m, m->sig_id);
+    while (m->next) {
+        m = m->next;
+        SCLogDebug("m %p m->sig_id %"PRIu32"", m, m->sig_id);
+    }
 }
 
 #ifdef PRINTMATCH
@@ -371,6 +383,17 @@ static inline int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, 
             if (mpm_ctx->pattern_cnt == 1) mpm_ctx->search_minlen = patlen;
             else if (mpm_ctx->search_minlen > patlen) mpm_ctx->search_minlen = patlen;
         }
+    } else {
+        /* if we're reusing a pattern, check we need to check that it is a
+         * scan pattern if that is what we're adding. If so we set the pattern
+         * to be a scan pattern. */
+
+        //printf("reusing B2gAddPattern: ci \""); prt(p->ci,p->len);
+        //printf("\" cs \""); prt(p->cs,p->len);
+        //printf("\"\n");
+
+        if (scan)
+            p->flags |= B2G_SCAN;
     }
 
     /* we need a match */
@@ -1173,7 +1196,7 @@ uint32_t B2gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
 
                                     MpmEndMatch *em;
                                     for (em = p->em; em; em = em->next) {
-                                        //printf("em %p id %" PRIu32 "\n", em, em->id);
+                                        SCLogDebug("em %p id %" PRIu32 "", em, em->id);
                                         if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id], j, p->len))
                                             matches++;
                                     }
@@ -1192,7 +1215,7 @@ uint32_t B2gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
 
                                     MpmEndMatch *em;
                                     for (em = p->em; em; em = em->next) {
-                                        //printf("em %p id %" PRIu32 "\n", em, em->id);
+                                        SCLogDebug("em %p pid %" PRIu32 ", sid %"PRIu32"", em, em->id, em->sig_id);
                                         if (MpmMatchAppend(mpm_thread_ctx, pmq, em, &mpm_thread_ctx->match[em->id], j, p->len))
                                             matches++;
                                     }
@@ -1202,7 +1225,7 @@ uint32_t B2gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
                             }
                         }
 skip_loop:
-                        //SCLogDebug("skipped");
+                        SCLogDebug("skipped");
                         //SCLogDebug("output at pos %" PRIu32 ": ", j); prt(buf + (j), ctx->scan_m); printf("\n");
                         ;
                     }
@@ -1220,10 +1243,10 @@ skip_loop:
         COUNT(tctx->scan_stat_total_shift += (ctx->scan_m - B2G_Q + 1));
         pos = pos + ctx->scan_m - B2G_Q + 1;
 
-        //SCLogDebug("pos %"PRIu32"", pos);
+        SCLogDebug("pos %"PRIu32"", pos);
     }
 
-    //SCLogDebug("matches %"PRIu32"", matches);
+    SCLogDebug("matches %"PRIu32"", matches);
     return matches;
 }
 
