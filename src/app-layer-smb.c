@@ -366,7 +366,8 @@ static int DataParser(void *smb_state, AppLayerParserState *pstate,
 
     if (sstate->andx.paddingparsed) {
         while (sstate->andx.datalength-- && sstate->bytecount.bytecount-- && input_len--) {
-            printf("0x%02x ", *(p++));
+            SCLogDebug("0x%02x ", *p);
+            p++;
         }
     }
     sstate->bytesprocessed += (p - input);
@@ -449,9 +450,9 @@ static int SMBParseWordCount(Flow *f, void *smb_state, AppLayerParserState *psta
         return retval;
     } else { /* Generic WordCount Handler */
         while (sstate->wordcount.wordcount-- && input_len--) {
-            printf("0x%02x ", *(p++));
+            SCLogDebug("0x%02x ", *p);
+            p++;
         }
-        printf("\n");
         sstate->bytesprocessed += (p - input);
         return (p - input);
         SCReturnInt(p - input);
@@ -486,13 +487,13 @@ static int SMBParseByteCount(Flow *f, void *smb_state, AppLayerParserState *psta
     }
 
     while (sstate->bytecount.bytecount && input_len) {
-        SCLogDebug("0x%02x bytecount %u input_len %u", *(p++),
+        SCLogDebug("0x%02x bytecount %u input_len %u", *p,
                 sstate->bytecount.bytecount, input_len);
+        p++;
 
         sstate->wordcount.wordcount--;
         input_len--;
     }
-    printf("\n");
     sstate->bytesprocessed += (p - input);
 
     SCReturnInt(p - input);
@@ -731,7 +732,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                                                 parsed, input_len, output);
 			parsed += retval;
 			input_len -= retval;
-			printf("SMB Header (%u/%u) Command 0x%02x parsed %u input_len %u\n",
+			SCLogDebug("SMB Header (%u/%u) Command 0x%02x parsed %u input_len %u",
 					sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN,
 					sstate->smb.command, parsed, input_len);
 		}
@@ -743,7 +744,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                                                          output);
 				parsed += retval;
 				input_len -= retval;
-				printf("Wordcount (%u) parsed %u input_len %u\n",
+				SCLogDebug("wordcount (%u) parsed %u input_len %u",
 						sstate->wordcount.wordcount, parsed, input_len);
 			}
 

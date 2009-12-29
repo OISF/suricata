@@ -41,80 +41,85 @@ static int DCERPCParseCTXItem(Flow *f, void *dcerpc_state, AppLayerParserState *
     SCEnter();
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
-    uint8_t i = 0;
+
     if (input_len) {
+        if (sstate->item == NULL) {
+            sstate->item = (struct entry *) malloc(sizeof(struct entry));
+            if (sstate->item == NULL) {
+                SCReturnInt(-1);
+            }
+        }
+
         switch(sstate->ctxbytesprocessed) {
             case 0:
-		/*sstate->item = (struct entry *) malloc(sizeof(struct entry));
-		if (sstate->item == NULL) {
-			return -1;
-		}
-		*/
-		sstate->item->ctxid = *(p++);
+                sstate->item->ctxid = *(p++);
                 if (!(--input_len)) break;
             case 1:
-		sstate->item->ctxid |= *(p++) << 8;
+                sstate->item->ctxid |= *(p++) << 8;
                 if (!(--input_len)) break;
             case 2:
                 /* num transact items */
                 p++;
                 if (!(--input_len)) break;
             case 3:
-		/* reserved */
+                /* reserved */
                 p++;
                 if (!(--input_len)) break;
             case 4:
-		sstate->item->uuid[3] = *(p++);
+                sstate->item->uuid[3] = *(p++);
                 if (!(--input_len)) break;
             case 5:
-		sstate->item->uuid[2] = *(p++);
+                sstate->item->uuid[2] = *(p++);
                 if (!(--input_len)) break;
             case 6:
-		sstate->item->uuid[1] = *(p++);
+                sstate->item->uuid[1] = *(p++);
                 if (!(--input_len)) break;
             case 7:
-		sstate->item->uuid[0] = *(p++);
+                sstate->item->uuid[0] = *(p++);
                 if (!(--input_len)) break;
             case 8:
-		sstate->item->uuid[5] = *(p++);
+                sstate->item->uuid[5] = *(p++);
                 if (!(--input_len)) break;
             case 9:
-		sstate->item->uuid[4] = *(p++);
+                sstate->item->uuid[4] = *(p++);
                 if (!(--input_len)) break;
             case 10:
-		sstate->item->uuid[7] = *(p++);
+                sstate->item->uuid[7] = *(p++);
                 if (!(--input_len)) break;
             case 11:
-		sstate->item->uuid[6] = *(p++);
+                sstate->item->uuid[6] = *(p++);
                 if (!(--input_len)) break;
             case 12:
-		sstate->item->uuid[8] = *(p++);
+                sstate->item->uuid[8] = *(p++);
                 if (!(--input_len)) break;
             case 13:
-		sstate->item->uuid[9] = *(p++);
+                sstate->item->uuid[9] = *(p++);
                 if (!(--input_len)) break;
             case 14:
-		sstate->item->uuid[10] = *(p++);
+                sstate->item->uuid[10] = *(p++);
                 if (!(--input_len)) break;
             case 15:
-		sstate->item->uuid[11] = *(p++);
+                sstate->item->uuid[11] = *(p++);
                 if (!(--input_len)) break;
             case 16:
-		sstate->item->uuid[12] = *(p++);
+                sstate->item->uuid[12] = *(p++);
                 if (!(--input_len)) break;
             case 17:
-		sstate->item->uuid[13] = *(p++);
+                sstate->item->uuid[13] = *(p++);
                 if (!(--input_len)) break;
             case 18:
-		sstate->item->uuid[14] = *(p++);
+                sstate->item->uuid[14] = *(p++);
                 if (!(--input_len)) break;
             case 19:
-		sstate->item->uuid[15] = *(p++);
-		for (i = 0; i < 16; i++) {
-			printf("%02x", sstate->item->uuid[i]);
-		}
-		printf("\n");
-            //	TAILQ_INSERT_TAIL(&sstate->head, sstate->item, entries);
+                sstate->item->uuid[15] = *(p++);
+#if 0
+                int i = 0;
+                for (i = 0; i < 16; i++) {
+                    printf("%02x", sstate->item->uuid[i]);
+                }
+                printf("\n");
+#endif
+                //	TAILQ_INSERT_TAIL(&sstate->head, sstate->item, entries);
                 if (!(--input_len)) break;
             case 20:
                 p++;
@@ -186,7 +191,7 @@ static int DCERPCParseCTXItem(Flow *f, void *dcerpc_state, AppLayerParserState *
                 p++;
                 if (!(--input_len)) break;
             case 43:
-		sstate->numctxitems--;
+                sstate->numctxitems--;
                 p++;
                 --input_len;
                 break;
@@ -483,8 +488,8 @@ void RegisterDCERPCParsers(void) {
 
 int DCERPCParserTest01(void) {
     int result = 1;
-    uint8_t i = 0;
-    struct entry *item;
+//    uint8_t i = 0;
+//    struct entry *item;
 
     Flow f;
     uint8_t dcerpcbuf[] = {
@@ -640,7 +645,7 @@ int DCERPCParserTest01(void) {
         goto end;
     }
 
-    printf("dcerpcbuf size %u\n", dcerpclen);
+//    printf("dcerpcbuf size %u\n", dcerpclen);
     DCERPCState *dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
@@ -666,16 +671,16 @@ int DCERPCParserTest01(void) {
        result = 0;
        goto end;
     }
-
+#if 0
     printf("UUID:\n");
     TAILQ_FOREACH(item, &dcerpc_state->head, entries) {
-	printf("CTX Item %d\n", item->ctxid);
-	for (i = 0; i < 16; i++) {
-		printf("%02x", item->uuid[i]);
-	}
-	printf("\n");
+        printf("CTX Item %d\n", item->ctxid);
+        for (i = 0; i < 16; i++) {
+            printf("%02x", item->uuid[i]);
+        }
+        printf("\n");
     }
-
+#endif
 end:
     return result;
 }
