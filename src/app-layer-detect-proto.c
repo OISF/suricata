@@ -353,6 +353,8 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock)
 
                 r = AppLayerParse(smsg->flow, alproto, smsg->flags,
                                smsg->data.data, smsg->data.data_len, need_lock);
+            } else {
+                SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
             }
         } else {
             SCLogDebug("stream data (len %" PRIu32 " (%" PRIu32 ")), alproto "

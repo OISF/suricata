@@ -76,7 +76,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
     FlowBucket *fb = &flow_hash[key];
     SCMutexLock(&fb->m);
 
-    SCLogDebug("FlowGetFlowFromHash: fb %p fb->f %p", fb, fb->f);
+    SCLogDebug("fb %p fb->f %p", fb, fb->f);
 
     /* see if the bucket already has a flow */
     if (fb->f == NULL) {

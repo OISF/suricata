@@ -1468,7 +1468,7 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
                                      Packet *p)
 {
     SCEnter();
-    SCLogDebug("ssn %p, stream %p, p %p, p->payload_len %"PRIu16"\n",
+    SCLogDebug("ssn %p, stream %p, p %p, p->payload_len %"PRIu16"",
                 ssn, stream, p, p->payload_len);
 
     /* handle ack received */

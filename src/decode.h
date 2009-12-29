@@ -352,6 +352,7 @@ typedef struct DecodeThreadVars_
     (p)->dp = 0; \
     (p)->flow = NULL; \
     (p)->flowflags = 0; \
+    (p)->flags = 0; \
     (p)->alerts.cnt = 0; \
     PktHttpUriFree((p)); \
     if ((p)->pktvar != NULL) { \

@@ -366,10 +366,14 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
         p->flowflags |= FLOW_PKT_TOSERVER_IPONLY_SET;
 
     /*set the detection bypass flags*/
-    if (f->flags & FLOW_NOPACKET_INSPECTION)
+    if (f->flags & FLOW_NOPACKET_INSPECTION) {
+        SCLogDebug("setting FLOW_NOPACKET_INSPECTION flag on flow %p", f);
         DecodeSetNoPacketInspectionFlag(p);
-    if (f->flags & FLOW_NOPAYLOAD_INSPECTION)
+    }
+    if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
+        SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
+    }
 
     /* set the flow in the packet */
     p->flow = f;
@@ -785,9 +789,14 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout, uint
  * \param f Flow to set the flag in
  */
 void FlowLockSetNoPacketInspectionFlag(Flow *f) {
+    SCEnter();
+
+    SCLogDebug("flow %p", f);
     SCMutexLock(&f->m);
     f->flags |= FLOW_NOPACKET_INSPECTION;
     SCMutexUnlock(&f->m);
+
+    SCReturn;
 }
 
 /** \brief Set the No Packet Inspection Flag without locking the flow.
@@ -795,7 +804,12 @@ void FlowLockSetNoPacketInspectionFlag(Flow *f) {
  * \param f Flow to set the flag in
  */
 void FlowSetNoPacketInspectionFlag(Flow *f) {
+    SCEnter();
+
+    SCLogDebug("flow %p", f);
     f->flags |= FLOW_NOPACKET_INSPECTION;
+
+    SCReturn;
 }
 
 /** \brief Set the No payload inspection Flag after locking the flow.
@@ -803,9 +817,14 @@ void FlowSetNoPacketInspectionFlag(Flow *f) {
  * \param f Flow to set the flag in
  */
 void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
+    SCEnter();
+
+    SCLogDebug("flow %p", f);
     SCMutexLock(&f->m);
     f->flags |= FLOW_NOPAYLOAD_INSPECTION;
     SCMutexUnlock(&f->m);
+
+    SCReturn;
 }
 
 /** \brief Set the No payload inspection Flag without locking the flow.
@@ -813,7 +832,12 @@ void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
  * \param f Flow to set the flag in
  */
 void FlowSetNoPayloadInspectionFlag(Flow *f) {
+    SCEnter();
+
+    SCLogDebug("flow %p", f);
     f->flags |= FLOW_NOPAYLOAD_INSPECTION;
+
+    SCReturn;
 }
 
 #ifdef UNITTESTS
