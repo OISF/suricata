@@ -177,8 +177,7 @@ DumpFrags(DefragTracker *tracker)
 
     printf("Dumping frags for packet: ID=%d\n", tracker->id);
     TAILQ_FOREACH(frag, &tracker->frags, next) {
-        printf("-> Frag: frag_offset=%d, frag_len=%d, data_len=%d\n",
-            frag->offset, frag->len, frag->data_len);
+        printf("-> Frag: frag_offset=%d, frag_len=%d, data_len=%d, ltrim=%d, skip=%d\n", frag->offset, frag->len, frag->data_len, frag->ltrim, frag->skip);
         PrintRawDataFp(stdout, frag->pkt, frag->len);
     }
 }
@@ -726,9 +725,36 @@ Defrag6InsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
                     if ((next != NULL) && (frag_end > next->offset)) {
                         next->ltrim = frag_end - next->offset;
                     }
-                    else if ((frag_offset < prev->offset) &&
+                    if ((frag_offset < prev->offset) &&
                         (frag_end >= prev->offset + prev->data_len)) {
-                            prev->skip = 1;
+                        prev->skip = 1;
+                    }
+                    goto insert;
+                }
+                break;
+            case POLICY_LINUX:
+                if (frag_offset < prev->offset + prev->data_len) {
+                    if (frag_offset > prev->offset) {
+                        ltrim = prev->offset + prev->data_len - frag_offset;
+                    }
+                    if ((next != NULL) && (frag_end > next->offset)) {
+                        next->ltrim = frag_end - next->offset;
+                    }
+                    if ((frag_offset < prev->offset) &&
+                        (frag_end >= prev->offset + prev->data_len)) {
+                        prev->skip = 1;
+                    }
+                    goto insert;
+                }
+                break;
+            case POLICY_WINDOWS:
+                if (frag_offset < prev->offset + prev->data_len) {
+                    if (frag_offset >= prev->offset) {
+                        ltrim = prev->offset + prev->data_len - frag_offset;
+                    }
+                    if ((frag_offset < prev->offset) &&
+                        (frag_end > prev->offset + prev->data_len)) {
+                        prev->skip = 1;
                     }
                     goto insert;
                 }
@@ -1688,12 +1714,86 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     dc->default_policy = policy;
 
     /* Send all but the last. */
-    for (i = 0; i < 16; i++) {
-        Packet *tp = Defrag6(NULL, dc, packets[i]);
-        if (tp != NULL) {
-            free(tp);
-            goto end;
-        }
+    Packet *tp;
+    tp = Defrag6(NULL, dc, packets[0]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[1]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[2]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[3]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[4]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[5]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[6]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[7]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[8]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[9]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[10]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[11]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[12]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[13]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[14]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
+    }
+    tp = Defrag6(NULL, dc, packets[15]);
+    if (tp != NULL) {
+        free(tp);
+        goto end;
     }
 
     /* And now the last one. */
@@ -1818,6 +1918,41 @@ DefragSturgesNovakLinuxTest(void)
 }
 
 static int
+IPV6DefragSturgesNovakLinuxTest(void)
+{
+    /* Expected data. */
+    u_char expected[] = {
+        "AAAAAAAA"
+        "AAAAAAAA"
+        "AAAAAAAA"
+        "JJJJJJJJ"
+        "JJJJJJJJ"
+        "BBBBBBBB"
+        "KKKKKKKK"
+        "KKKKKKKK"
+        "KKKKKKKK"
+        "LLLLLLLL"
+        "LLLLLLLL"
+        "LLLLLLLL"
+        "MMMMMMMM"
+        "MMMMMMMM"
+        "MMMMMMMM"
+        "FFFFFFFF"
+        "FFFFFFFF"
+        "FFFFFFFF"
+        "GGGGGGGG"
+        "GGGGGGGG"
+        "PPPPPPPP"
+        "HHHHHHHH"
+        "QQQQQQQQ"
+        "QQQQQQQQ"
+    };
+
+    return IPV6DefragDoSturgesNovakTest(POLICY_LINUX, expected,
+        sizeof(expected));
+}
+
+static int
 DefragSturgesNovakWindowsTest(void)
 {
     /* Expected data. */
@@ -1849,6 +1984,41 @@ DefragSturgesNovakWindowsTest(void)
     };
 
     return DefragDoSturgesNovakTest(POLICY_WINDOWS, expected, sizeof(expected));
+}
+
+static int
+IPV6DefragSturgesNovakWindowsTest(void)
+{
+    /* Expected data. */
+    u_char expected[] = {
+        "AAAAAAAA"
+        "AAAAAAAA"
+        "AAAAAAAA"
+        "JJJJJJJJ"
+        "BBBBBBBB"
+        "BBBBBBBB"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "LLLLLLLL"
+        "LLLLLLLL"
+        "LLLLLLLL"
+        "MMMMMMMM"
+        "EEEEEEEE"
+        "EEEEEEEE"
+        "FFFFFFFF"
+        "FFFFFFFF"
+        "FFFFFFFF"
+        "GGGGGGGG"
+        "GGGGGGGG"
+        "HHHHHHHH"
+        "HHHHHHHH"
+        "IIIIIIII"
+        "QQQQQQQQ"
+    };
+
+    return IPV6DefragDoSturgesNovakTest(POLICY_WINDOWS, expected,
+        sizeof(expected));
 }
 
 static int
@@ -2055,6 +2225,10 @@ DefragRegisterTests(void)
         IPV6DefragInOrderSimpleTest, 1);
     UtRegisterTest("IPV6DefragSturgesNovakBsdTest",
         IPV6DefragSturgesNovakBsdTest, 1);
+    UtRegisterTest("IPV6DefragSturgesNovakLinuxTest",
+        IPV6DefragSturgesNovakLinuxTest, 1);
+    UtRegisterTest("IPV6DefragSturgesNovakWindowsTest",
+        IPV6DefragSturgesNovakWindowsTest, 1);
 #endif /* UNITTESTS */
 }
 
