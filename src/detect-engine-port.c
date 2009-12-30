@@ -991,7 +991,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
     char *rule_var_port = NULL;
     char *temp_rule_var_port = NULL;
 
-    SCLogDebug("head %p, *head %p", head, *head);
+    SCLogDebug("head %p, *head %p, negate %d", head, *head, negate);
 
     for (i = 0, x = 0; i < size && x < sizeof(address); i++) {
         address[x] = s[i];
@@ -1004,6 +1004,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
             SCLogError(SC_NEGATED_VALUE_IN_PORT_RANGE,"Can't have a negated value in a range.");
             return -1;
         } else if (!o_set && s[i] == '!') {
+            SCLogDebug("negation encountered");
             n_set = 1;
             x--;
         } else if (s[i] == '[') {
@@ -1044,7 +1045,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                              "[%s]", rule_var_port);
                 }
                 DetectPortParseDo(head, nhead, temp_rule_var_port,
-                                  negate? negate: n_set);
+                                  (negate + n_set) % 2);//negate? negate: n_set);
                 d_set = 0;
                 n_set = 0;
                 if (temp_rule_var_port != rule_var_port)
@@ -1075,7 +1076,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 if (rule_var_port == NULL)
                     goto error;
                 temp_rule_var_port = rule_var_port;
-                if (negate == 1 || n_set == 1) {
+                if ((negate + n_set) % 2) {
                     temp_rule_var_port = malloc(strlen(rule_var_port) + 3);
                     if (temp_rule_var_port == NULL) {
                         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -1085,12 +1086,12 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                             "[%s]", rule_var_port);
                 }
                 DetectPortParseDo(head, nhead, temp_rule_var_port,
-                                  negate? negate: n_set);
+                                  (negate + n_set) % 2);
                 d_set = 0;
                 if (temp_rule_var_port != rule_var_port)
                     free(temp_rule_var_port);
             } else {
-                if (negate == 0 && n_set == 0) {
+                if (!((negate + n_set) % 2)) {
                     DetectPortParseInsertString(head,address);
                 } else {
                     DetectPortParseInsertString(nhead,address);
