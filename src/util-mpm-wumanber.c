@@ -441,8 +441,12 @@ static inline int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, u
         /* if we're reusing a pattern, check we need to check that it is a
          * scan pattern if that is what we're adding. If so we set the pattern
          * to be a scan pattern. */
-        if (scan)
+        if (scan) {
             p->flags = WUMANBER_SCAN;
+            if (mpm_ctx->scan_maxlen < patlen) mpm_ctx->scan_maxlen = patlen;
+            if (mpm_ctx->scan_minlen == 0) mpm_ctx->scan_minlen = patlen;
+            else if (mpm_ctx->scan_minlen > patlen) mpm_ctx->scan_minlen = patlen;
+        }
     }
 
     /* we need a match */

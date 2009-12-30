@@ -392,8 +392,13 @@ static inline int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, 
         //printf("\" cs \""); prt(p->cs,p->len);
         //printf("\"\n");
 
-        if (scan)
+        if (scan) {
             p->flags |= B2G_SCAN;
+
+            if (mpm_ctx->scan_maxlen < patlen) mpm_ctx->scan_maxlen = patlen;
+            if (mpm_ctx->scan_minlen == 0) mpm_ctx->scan_minlen = patlen;
+            else if (mpm_ctx->scan_minlen > patlen) mpm_ctx->scan_minlen = patlen;
+        }
     }
 
     /* we need a match */
