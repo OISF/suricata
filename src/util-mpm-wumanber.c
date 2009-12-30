@@ -21,6 +21,7 @@
 #include "util-mpm-wumanber.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
 
 #define INIT_HASH_SIZE 65535
 
@@ -428,12 +429,12 @@ static inline int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, u
 
         if (scan) { /* SCAN */
             if (mpm_ctx->scan_maxlen < patlen) mpm_ctx->scan_maxlen = patlen;
-            if (mpm_ctx->pattern_cnt == 1) mpm_ctx->scan_minlen = patlen;
+            if (mpm_ctx->scan_minlen == 0) mpm_ctx->scan_minlen = patlen;
             else if (mpm_ctx->scan_minlen > patlen) mpm_ctx->scan_minlen = patlen;
             p->flags |= WUMANBER_SCAN;
         } else { /* SEARCH */
             if (mpm_ctx->search_maxlen < patlen) mpm_ctx->search_maxlen = patlen;
-            if (mpm_ctx->pattern_cnt == 1) mpm_ctx->search_minlen = patlen;
+            if (mpm_ctx->search_minlen == 0) mpm_ctx->search_minlen = patlen;
             else if (mpm_ctx->search_minlen > patlen) mpm_ctx->search_minlen = patlen;
         }
     } else {
@@ -985,6 +986,7 @@ int WmPreparePatterns(MpmCtx *mpm_ctx) {
         ctx->Search = WmSearch2Hash16;
     }
 
+    SCLogDebug("mpm_ctx->search_minlen %"PRIu16"", mpm_ctx->search_minlen);
     if (mpm_ctx->search_minlen == 1) {
         ctx->Search = WmSearch1;
     }
