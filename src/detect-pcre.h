@@ -4,7 +4,6 @@
 #define DETECT_PCRE_DISTANCE      0x0001
 #define DETECT_PCRE_WITHIN        0x0002
 #define DETECT_PCRE_RELATIVE      0x0004
-#define DETECT_PCRE_MATCH_LIMIT   0x0006
 
 #define DETECT_PCRE_DISTANCE_NEXT 0x0008
 #define DETECT_PCRE_WITHIN_NEXT   0x0010
@@ -14,6 +13,7 @@
 
 #define DETECT_PCRE_CAPTURE_PKT   0x0080
 #define DETECT_PCRE_CAPTURE_FLOW  0x0100
+#define DETECT_PCRE_MATCH_LIMIT   0x0200
 
 typedef struct DetectPcreData_ {
     /* pcre options */

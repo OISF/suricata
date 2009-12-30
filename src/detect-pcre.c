@@ -387,9 +387,6 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
     //printf("DetectPcreParseCapture: type \'%s\'\n", type_str_ptr ? type_str_ptr : "NULL");
     //printf("DetectPcreParseCapture: capture \'%s\'\n", capture_str_ptr ? capture_str_ptr : "NULL");
 
-    pd->depth = 0;
-    pd->flags = 0;
-
     if (capture_str_ptr != NULL) {
         pd->capname = strdup((char *)capture_str_ptr);
     }
