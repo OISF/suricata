@@ -944,7 +944,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 address[x - 1] = '\0';
                 x = 0;
 
-                if (DetectAddressParse2(gh, ghn, address, negate? negate: n_set) < 0)
+                if (DetectAddressParse2(gh, ghn, address, (negate + n_set) % 2) < 0)
                     goto error;
                 n_set = 0;
             }
@@ -960,7 +960,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 if (rule_var_address == NULL)
                     goto error;
                 temp_rule_var_address = rule_var_address;
-                if (negate == 1 || n_set == 1) {
+                if ((negate + n_set) % 2) {
                     temp_rule_var_address = malloc(strlen(rule_var_address) + 3);
                     if (temp_rule_var_address == NULL) {
                         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -970,7 +970,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                              "[%s]", rule_var_address);
                 }
                 DetectAddressParse2(gh, ghn, temp_rule_var_address,
-                                    negate? negate: n_set);
+                                    (negate + n_set) % 2);
                 d_set = 0;
                 n_set = 0;
                 if (temp_rule_var_address != rule_var_address)
@@ -978,7 +978,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
             } else {
                 address[x - 1] = '\0';
 
-                if (negate == 0 && n_set == 0) {
+                if (!((negate + n_set) % 2)) {
                     if (DetectAddressSetup(gh, address) < 0)
                         goto error;
                 } else {
@@ -1000,7 +1000,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 if (rule_var_address == NULL)
                     goto error;
                 temp_rule_var_address = rule_var_address;
-                if (negate == 1 || n_set == 1) {
+                if ((negate + n_set) % 2) {
                     temp_rule_var_address = malloc(strlen(rule_var_address) + 3);
                     if (temp_rule_var_address == NULL) {
                         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -1010,12 +1010,12 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                             "[%s]", rule_var_address);
                 }
                 DetectAddressParse2(gh, ghn, temp_rule_var_address,
-                                    negate? negate: n_set);
+                                    (negate + n_set) % 2);
                 d_set = 0;
                 if (temp_rule_var_address != rule_var_address)
                     free(temp_rule_var_address);
             } else {
-                if (negate == 0 && n_set == 0) {
+                if (!((negate + n_set) % 2)) {
                     if (DetectAddressSetup(gh, address) < 0)
                         goto error;
                 } else {
