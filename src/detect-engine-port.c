@@ -2513,7 +2513,7 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestMatchReal18", PortTestMatchReal18, 1);
     UtRegisterTest("PortTestMatchReal19",
                    PortTestMatchReal19, 1);
-    UtRegisterTest("PortTestMatchDoubleNegation (failure expected, bug #25)", PortTestMatchDoubleNegation, 1);
+    UtRegisterTest("PortTestMatchDoubleNegation", PortTestMatchDoubleNegation, 1);
 
 
 #endif /* UNITTESTS */
