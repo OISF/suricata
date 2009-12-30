@@ -62,6 +62,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_FWRITE);
         CASE_CODE (SC_ERR_FOPEN);
         CASE_CODE (SC_ERR_THRESHOLD_HASH_ADD);
+        CASE_CODE (SC_ERR_UNDEFINED_VAR);
         default:
             return "UNKNOWN_ERROR";
     }

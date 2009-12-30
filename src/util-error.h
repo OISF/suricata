@@ -74,6 +74,7 @@ typedef enum {
     SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR,
     SC_ERR_FWRITE,
     SC_ERR_THRESHOLD_HASH_ADD,
+    SC_ERR_UNDEFINED_VAR,
 } SCError;
 
 const char *SCErrorToString(SCError);

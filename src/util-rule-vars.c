@@ -72,8 +72,11 @@ char *SCRuleVarsGetConfVar(const char *conf_var_name,
         goto end;
     }
 
-    if (ConfGet(conf_var_full_name, &conf_var_full_name_value) != 1)
+    if (ConfGet(conf_var_full_name, &conf_var_full_name_value) != 1) {
+        SCLogError(SC_ERR_UNDEFINED_VAR, "Variable \"%s\" is not defined in "
+                                         "configuration file", conf_var_name);
         goto end;
+    }
 
     SCLogDebug("Value obtained from the yaml conf file, for the var "
                "\"%s\" is \"%s\"", conf_var_name, conf_var_full_name_value);

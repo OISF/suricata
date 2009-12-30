@@ -267,41 +267,32 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 
     /* http_uri -- for uricontent */
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP GET URI cap\"; flow:to_server,established; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
-    if (sig == NULL) {
-        SCLogError(SC_ERR_NO_RULES, "Is HTTP_PORTS variable defined in "
-                                    "configuration file");
+    if (sig == NULL)
         return -1;
-    }
 
     prevsig = sig;
     de_ctx->sig_list = sig;
 
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server,established; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
-    if (sig == NULL) {
-        SCLogError(SC_ERR_NO_RULES, "Is HTTP_PORTS variable defined in "
-                                    "configuration file");
+    if (sig == NULL)
         return -1;
-    }
+
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_host -- for the log-httplog module */
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server,established; content:\"|0d 0a|Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
-    if (sig == NULL) {
-        SCLogError(SC_ERR_NO_RULES, "Is HTTP_PORTS variable defined in "
-                                    "configuration file");
+    if (sig == NULL)
         return -1;
-    }
+
     prevsig->next = sig;
     prevsig = sig;
 
     /* http_ua -- for the log-httplog module */
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server,established; content:\"|0d 0a|User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
-    if (sig == NULL) {
-        SCLogError(SC_ERR_NO_RULES, "Is HTTP_PORTS variable defined in "
-                                    "configuration file");
+    if (sig == NULL)
         return -1;
-    }
+
     prevsig->next = sig;
 
     /* ok, now let's load signature files from the general config */
