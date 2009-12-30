@@ -80,20 +80,22 @@ int DetectProtoParse(DetectProto *dp, char *str)
     if (strcasecmp(str, "tcp") == 0) {
         proto = IPPROTO_TCP;
         dp->proto[proto / 8] |= 1 << (proto % 8);
-        SCLogDebug("DetectProtoParse: TCP protocol detected");
+        SCLogDebug("TCP protocol detected");
     } else if (strcasecmp(str, "udp") == 0) {
         proto = IPPROTO_UDP;
         dp->proto[proto / 8] |= 1 << (proto % 8);
-        SCLogDebug("DetectProtoParse: UDP protocol detected");
+        SCLogDebug("UDP protocol detected");
     } else if (strcasecmp(str, "icmp") == 0) {
         proto = IPPROTO_ICMP;
         dp->proto[proto / 8] |= 1 << (proto % 8);
-        SCLogDebug("DetectProtoParse: ICMP protocol detected");
+        proto = IPPROTO_ICMPV6;
+        dp->proto[proto / 8] |= 1 << (proto % 8);
+        SCLogDebug("ICMP protocol detected, sig applies both to ICMPv4 and ICMPv6");
     } else if (strcasecmp(str,"ip") == 0) {
         /* Proto "ip" is treated as an "any" */
         dp->flags |= DETECT_PROTO_ANY;
         memset(dp->proto, 0xff, sizeof(dp->proto));
-        SCLogDebug("DetectProtoParse: IP protocol detected");
+        SCLogDebug("IP protocol detected");
     } else {
         goto error;
 
