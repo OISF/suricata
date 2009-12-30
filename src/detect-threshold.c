@@ -13,8 +13,10 @@
 #include "stream-tcp.h"
 
 #include "detect-threshold.h"
+
 #include "util-unittest.h"
 #include "util-byte.h"
+#include "util-debug.h"
 
 #define PARSE_REGEX "^\\s*type\\s+(limit|both|threshold)\\s*,\\s*track\\s+(by_src|by_dst)\\s*,\\s*count\\s+(\\d+)\\s*,\\s*seconds\\s+(\\d+)\\s*"
 
@@ -398,8 +400,9 @@ static int DetectThresholdTestSig3(void) {
     int alerts = 0;
     IPV4Hdr ip4h;
     struct timeval ts;
-    DetectThresholdData *tsh = NULL;
-    DetectThresholdData *lookup_tsh = NULL;
+    DetectThresholdData *td = NULL;
+    DetectThresholdEntry *lookup_tsh = NULL;
+    DetectThresholdEntry *ste = NULL;
 
     memset (&ts, 0, sizeof(struct timeval));
     TimeGet(&ts);
@@ -430,13 +433,41 @@ static int DetectThresholdTestSig3(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    tsh = SigGetThresholdType(s,&p);
+    td = SigGetThresholdType(s,&p);
+
+    /* setup the Entry we use to search our hash with */
+    ste = malloc(sizeof(DetectThresholdEntry));
+    if (ste == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
+        goto end;
+    }
+    memset(ste, 0x00, sizeof(ste));
+
+    if (PKT_IS_IPV4(&p))
+        ste->ipv = 4;
+    else if (PKT_IS_IPV6(&p))
+        ste->ipv = 6;
+
+    ste->sid = s->id;
+    ste->gid = s->gid;
+
+    if (td->track == TRACK_DST) {
+        COPY_ADDRESS(&p.dst, &ste->addr);
+    } else if (td->track == TRACK_SRC) {
+        COPY_ADDRESS(&p.src, &ste->addr);
+    }
+
+    ste->track = td->track;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    lookup_tsh = (DetectThresholdData *)HashListTableLookup(de_ctx->ths_ctx.threshold_hash_table_dst, tsh, sizeof(DetectThresholdData));
+    lookup_tsh = (DetectThresholdEntry *)HashListTableLookup(de_ctx->ths_ctx.threshold_hash_table_dst, ste, sizeof(DetectThresholdEntry));
+    if (lookup_tsh == NULL) {
+        printf("lookup_tsh is NULL: ");
+        goto cleanup;
+    }
 
     TimeSetIncrementTime(200);
 
@@ -449,8 +480,10 @@ static int DetectThresholdTestSig3(void) {
 
     if (alerts == 3)
         result = 1;
-    else
+    else {
+        printf("alerts %u != 3: ", alerts);
         goto cleanup;
+    }
 
 cleanup:
     SigGroupCleanup(de_ctx);
