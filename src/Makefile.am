@@ -92,6 +92,9 @@ detect-icode.c detect-icode.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-tls-version.c detect-tls-version.h \
 detect-icmp-id.c detect-icmp-id.h \
+detect-dce-iface.c detect-dce-iface.h \
+detect-dce-opnum.c detect-dce-opnum.h \
+detect-dce-stub-data.c detect-dce-stub-data.h \
 util-print.c util-print.h \
 util-mpm.c util-mpm.h \
 util-binsearch.c util-binsearch.h \

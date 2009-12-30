@@ -497,6 +497,9 @@ enum {
 
     DETECT_AL_TLS_VERSION,
     DETECT_AL_HTTP_COOKIE,
+    DETECT_DCE_IFACE,
+    DETECT_DCE_OPNUM,
+    DETECT_DCE_STUB_DATA,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

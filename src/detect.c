@@ -69,6 +69,9 @@
 #include "detect-itype.h"
 #include "detect-icode.h"
 #include "detect-icmp-id.h"
+#include "detect-dce-iface.h"
+#include "detect-dce-opnum.h"
+#include "detect-dce-stub-data.h"
 
 #include "util-rule-vars.h"
 
@@ -2995,6 +2998,9 @@ void SigTableSetup(void) {
     DetectICodeRegister();
     DetectHttpCookieRegister();
     DetectIcmpIdRegister();
+    DetectDceIfaceRegister();
+    DetectDceOpnumRegister();
+    DetectDceStubDataRegister();
 
     DetectTlsVersionRegister();
 
