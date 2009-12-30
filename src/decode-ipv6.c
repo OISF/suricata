@@ -419,25 +419,25 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 
 #ifdef DEBUG
     if (IPV6_EXTHDR_ISSET_FH(p)) {
-        printf("IPV6 FRAG - HDRLEN: %" PRIuMAX " NH: %" PRIu32 " OFFSET: %" PRIu32 " ID: %" PRIu32 "\n",
+        SCLogDebug("IPV6 FRAG - HDRLEN: %" PRIuMAX " NH: %" PRIu32 " OFFSET: %" PRIu32 " ID: %" PRIu32 "",
             (uintmax_t)IPV6_EXTHDR_GET_FH_HDRLEN(p), IPV6_EXTHDR_GET_FH_NH(p),
             IPV6_EXTHDR_GET_FH_OFFSET(p), IPV6_EXTHDR_GET_FH_ID(p));
     }
     if (IPV6_EXTHDR_ISSET_RH(p)) {
-        printf("IPV6 ROUTE - HDRLEN: %" PRIu32 " NH: %" PRIu32 " TYPE: %" PRIu32 "\n",
+        SCLogDebug("IPV6 ROUTE - HDRLEN: %" PRIu32 " NH: %" PRIu32 " TYPE: %" PRIu32 "",
             IPV6_EXTHDR_GET_RH_HDRLEN(p), IPV6_EXTHDR_GET_RH_NH(p),
             IPV6_EXTHDR_GET_RH_TYPE(p));
     }
     if (IPV6_EXTHDR_ISSET_HH(p)) {
-        printf("IPV6 HOPOPT - HDRLEN: %" PRIu32 " NH: %" PRIu32 "\n",
+        SCLogDebug("IPV6 HOPOPT - HDRLEN: %" PRIu32 " NH: %" PRIu32 "",
             IPV6_EXTHDR_GET_HH_HDRLEN(p), IPV6_EXTHDR_GET_HH_NH(p));
     }
     if (IPV6_EXTHDR_ISSET_DH1(p)) {
-        printf("IPV6 DSTOPT1 - HDRLEN: %" PRIu32 " NH: %" PRIu32 "\n",
+        SCLogDebug("IPV6 DSTOPT1 - HDRLEN: %" PRIu32 " NH: %" PRIu32 "",
             IPV6_EXTHDR_GET_DH1_HDRLEN(p), IPV6_EXTHDR_GET_DH1_NH(p));
     }
     if (IPV6_EXTHDR_ISSET_DH2(p)) {
-        printf("IPV6 DSTOPT2 - HDRLEN: %" PRIu32 " NH: %" PRIu32 "\n",
+        SCLogDebug("IPV6 DSTOPT2 - HDRLEN: %" PRIu32 " NH: %" PRIu32 "",
             IPV6_EXTHDR_GET_DH2_HDRLEN(p), IPV6_EXTHDR_GET_DH2_NH(p));
     }
 #endif

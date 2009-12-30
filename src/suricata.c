@@ -277,6 +277,10 @@ void usage(const char *progname)
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
     printf("\n");
+    printf("\nTo run the engine with default configuration on "
+            "interface eth0 with signature file \"signatures.rules\", run the "
+            "command as:\n\n%s -c suricata.yaml -s signatures.rules -i eth0 \n\n",
+            progname);
 }
 
 int main(int argc, char **argv)
@@ -423,8 +427,10 @@ int main(int argc, char **argv)
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
         ConfYamlLoadFile(conf_filename);
-    } else {
+    } else if (mode != MODE_UNITTEST){
         SCLogError(SC_ERR_OPENING_FILE, "Configuration file has not been provided");
+        usage(argv[0]);
+        exit(EXIT_FAILURE);
     }
 
     if (dump_config) {
