@@ -94,17 +94,17 @@ volatile sig_atomic_t sigint_count = 0;
 volatile sig_atomic_t sighup_count = 0;
 volatile sig_atomic_t sigterm_count = 0;
 
-#define EIDPS_SIGINT  0x01
-#define EIDPS_SIGHUP  0x02
-#define EIDPS_SIGTERM 0x04
-#define EIDPS_STOP    0x08
-#define EIDPS_KILL    0x10
+#define SURICATA_SIGINT  0x01
+#define SURICATA_SIGHUP  0x02
+#define SURICATA_SIGTERM 0x04
+#define SURICATA_STOP    0x08
+#define SURICATA_KILL    0x10
 
 static uint8_t sigflags = 0;
 
-static void SignalHandlerSigint(/*@unused@*/ int sig) { sigint_count = 1; sigflags |= EIDPS_SIGINT; }
-static void SignalHandlerSigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= EIDPS_SIGTERM; }
-static void SignalHandlerSighup(/*@unused@*/ int sig) { sighup_count = 1; sigflags |= EIDPS_SIGHUP; }
+static void SignalHandlerSigint(/*@unused@*/ int sig) { sigint_count = 1; sigflags |= SURICATA_SIGINT; }
+static void SignalHandlerSigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= SURICATA_SIGTERM; }
+static void SignalHandlerSighup(/*@unused@*/ int sig) { sighup_count = 1; sigflags |= SURICATA_SIGHUP; }
 
 static void
 SignalHandlerSetup(int sig, void (*handler)())
@@ -252,11 +252,11 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
    function. Purpose: pcap file mode needs to be able to tell the
    engine the file eof is reached. */
 void EngineStop(void) {
-    sigflags |= EIDPS_STOP;
+    sigflags |= SURICATA_STOP;
 }
 
 void EngineKill(void) {
-    sigflags |= EIDPS_KILL;
+    sigflags |= SURICATA_KILL;
 }
 
 void usage(const char *progname)
@@ -665,7 +665,7 @@ int main(int argc, char **argv)
         if (sigflags) {
             SCLogInfo("signal received");
 
-            if (sigflags & EIDPS_STOP)  {
+            if (sigflags & SURICATA_STOP)  {
                 SCLogInfo("SIGINT or EngineStop received");
 
                 /* Stop the engine so it quits after processing the pcap file
@@ -673,7 +673,7 @@ int main(int argc, char **argv)
                  * threads. */
                 char done = 0;
                 do {
-                    if (sigflags & EIDPS_SIGTERM || sigflags & EIDPS_KILL)
+                    if (sigflags & SURICATA_SIGTERM || sigflags & SURICATA_KILL)
                         break;
 
                     SCMutexLock(&mutex_pending);
@@ -688,10 +688,10 @@ int main(int argc, char **argv)
 
                 SCLogInfo("all packets processed by threads, stopping engine");
             }
-            if (sigflags & EIDPS_SIGHUP) {
+            if (sigflags & SURICATA_SIGHUP) {
                 SCLogInfo("SIGHUP received");
             }
-            if (sigflags & EIDPS_SIGTERM) {
+            if (sigflags & SURICATA_SIGTERM) {
                 SCLogInfo("SIGTERM received");
             }
 
