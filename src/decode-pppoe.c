@@ -14,6 +14,8 @@
 #include "decode-pppoe.h"
 #include "decode-events.h"
 
+#include "flow.h"
+
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -230,24 +232,30 @@ static int DecodePPPOEtest02 (void)   {
     Packet p;
     ThreadVars tv;
     DecodeThreadVars dtv;
+    int ret = 0;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
+    FlowInitConfig(FLOW_QUIET);
+
     DecodePPPOESession(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
     if(DECODER_ISSET_EVENT(&p,PPPOE_PKT_TOO_SMALL))  {
-        return 1;
+        goto end;
     }
 
     // and we insist that the invalid ICMP encapsulated (type 0xab, code 0xcd) is flagged
 
     if(! DECODER_ISSET_EVENT(&p,ICMPV4_UNKNOWN_TYPE))  {
-        return 1;
+        goto end;
     }
 
-    return 0;
+    ret = 1;
+end:
+    FlowShutdown();
+    return ret;
 }
 
 
@@ -276,7 +284,7 @@ static int DecodePPPOEtest03 (void)   {
 
     DecodePPPOEDiscovery(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
 
-    return 0; // TODO
+    return 1; // TODO
 }
 
 /** DecodePPPOEtest04
@@ -349,8 +357,8 @@ static int DecodePPPOEtest05 (void)   {
 void DecodePPPOERegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("DecodePPPOEtest01", DecodePPPOEtest01, 1);
-    UtRegisterTest("DecodePPPOEtest02", DecodePPPOEtest02, 0);
-    UtRegisterTest("DecodePPPOEtest03", DecodePPPOEtest03, 0);
+    UtRegisterTest("DecodePPPOEtest02", DecodePPPOEtest02, 1);
+    UtRegisterTest("DecodePPPOEtest03", DecodePPPOEtest03, 1);
     UtRegisterTest("DecodePPPOEtest04", DecodePPPOEtest04, 1);
     UtRegisterTest("DecodePPPOEtest05", DecodePPPOEtest05, 1);
 #endif /* UNITTESTS */

@@ -212,6 +212,8 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     p->icmpv6h = (ICMPV6Hdr *)pkt;
     p->proto = IPPROTO_ICMPV6;
+    p->type = p->icmpv6h->type;
+    p->code = p->icmpv6h->code;
 
     SCLogDebug("ICMPV6 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv6h->type,
                p->icmpv6h->code);
@@ -311,6 +313,9 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     if (DECODER_ISSET_EVENT(p, ICMPV6_UNKNOWN_TYPE))
         SCLogDebug("Unknown Type, ICMPV6_UNKNOWN_TYPE");
+
+    /* Flow is an integral part of us */
+    FlowHandlePacket(tv, p);
 
     return;
 }

@@ -50,7 +50,14 @@ typedef struct FlowKey_
 typedef struct Flow_
 {
     Address src, dst;
-    Port sp, dp;
+    union {
+        Port sp;        /**< tcp/udp source port */
+        uint8_t type;   /**< icmp type */
+    };
+    union {
+        Port dp;        /**< tcp/udp destination port */
+        uint8_t code;   /**< icmp code */
+    };
     uint8_t proto;
     uint8_t recursion_level;
 

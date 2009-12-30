@@ -188,8 +188,14 @@ typedef struct Packet_
      * the Packet as a hash key */
     Address src;
     Address dst;
-    Port sp;
-    Port dp;
+    union {
+        Port sp;
+        uint8_t type;
+    };
+    union {
+        Port dp;
+        uint8_t code;
+    };
     uint8_t proto;
     /* make sure we can't be attacked on when the tunneled packet
      * has the exact same tuple as the lower levels */

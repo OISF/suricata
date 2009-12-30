@@ -7,6 +7,8 @@
 #include "decode-ipv4.h"
 #include "decode-icmpv4.h"
 
+#include "flow.h"
+
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -169,11 +171,13 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     SCLogDebug("ICMPV4 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv4h->type, p->icmpv4h->code);
 
     p->proto = IPPROTO_ICMP;
+    p->type = p->icmpv4h->type;
+    p->code = p->icmpv4h->code;
 
     ICMPV4ExtHdr* icmp4eh = (ICMPV4ExtHdr*) p->icmpv4h;
 
     switch (p->icmpv4h->type)
-        {
+    {
         case ICMP_ECHOREPLY:
             p->icmpv4vars.id=icmp4eh->id;
             p->icmpv4vars.seq=icmp4eh->seq;
@@ -291,7 +295,10 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
         default:
             DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_TYPE);
 
-        }
+    }
+
+    /* Flow is an integral part of us */
+    FlowHandlePacket(tv, p);
 
     return;
 }
@@ -314,20 +321,36 @@ static int DecodeICMPV4test01(void) {
     Packet p;
     ThreadVars tv;
     DecodeThreadVars dtv;
+    int ret = 0;
+    IPV4Hdr ip4h;
 
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.src.addr_data32[0] = 0x01020304;
+    p.dst.addr_data32[0] = 0x04030201;
+
+    ip4h.ip_src.s_addr = p.src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
+    p.ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
     if (NULL!=p.icmpv4h) {
         if (p.icmpv4h->type==8 && p.icmpv4h->code==0) {
-            return 1;
+            ret = 1;
         }
     }
 
-    return 0;
+    FlowShutdown();
+    return ret;
 }
 
 /** DecodeICMPV4test02
@@ -346,21 +369,35 @@ static int DecodeICMPV4test02(void) {
     Packet p;
     ThreadVars tv;
     DecodeThreadVars dtv;
+    int ret = 0;
+    IPV4Hdr ip4h;
 
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.src.addr_data32[0] = 0x01020304;
+    p.dst.addr_data32[0] = 0x04030201;
+
+    ip4h.ip_src.s_addr = p.src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
+    p.ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
     if (NULL!=p.icmpv4h) {
         if (p.icmpv4h->type==0 && p.icmpv4h->code==0) {
-            return 1;
+            ret = 1;
         }
     }
 
-
-    return 0;
+    FlowShutdown();
+    return ret;
 }
 
 /** DecodeICMPV4test03
@@ -377,25 +414,39 @@ static int DecodeICMPV4test03(void) {
     Packet p;
     ThreadVars tv;
     DecodeThreadVars dtv;
+    int ret = 0;
+    IPV4Hdr ip4h;
 
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
+    FlowInitConfig(FLOW_QUIET);
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.src.addr_data32[0] = 0x01020304;
+    p.dst.addr_data32[0] = 0x04030201;
+
+    ip4h.ip_src.s_addr = p.src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
+    p.ip4h = &ip4h;
+
     DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if (NULL==p.icmpv4h) {
-        return 0;
+    if (NULL == p.icmpv4h) {
+        goto end;
     }
 
     // check it's type 11 code 0
     if (p.icmpv4h->type!=11 || p.icmpv4h->code!=0) {
-        return 0;
+        goto end;
     }
 
     // check it's source port 4747 to port 43650
     if (p.icmpv4vars.emb_sport != 4747 || p.icmpv4vars.emb_dport != 43650) {
-        return 0;
+        goto end;
     }
 
     // check the src,dst IPs contained inside
@@ -405,11 +456,13 @@ static int DecodeICMPV4test03(void) {
     inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_dst), d, sizeof(d));
 
     // ICMPv4 embedding IPV4 192.168.1.13->209.85.227.147 pass
-    if (strcmp(s,"192.168.1.13")!=0 || strcmp(d,"209.85.227.147")!=0 ) {
-        return 0;
+    if (strcmp(s, "192.168.1.13") == 0 && strcmp(d, "209.85.227.147") == 0) {
+        ret = 1;
     }
 
-    return 1;
+end:
+    FlowShutdown();
+    return ret;
 }
 
 /** DecodeICMPV4test04
@@ -428,25 +481,39 @@ static int DecodeICMPV4test04(void) {
     Packet p;
     ThreadVars tv;
     DecodeThreadVars dtv;
+    int ret = 0;
+    IPV4Hdr ip4h;
 
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
+    FlowInitConfig(FLOW_QUIET);
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.src.addr_data32[0] = 0x01020304;
+    p.dst.addr_data32[0] = 0x04030201;
+
+    ip4h.ip_src.s_addr = p.src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
+    p.ip4h = &ip4h;
+
     DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if (NULL==p.icmpv4h) {
-        return 0;
+    if (NULL == p.icmpv4h) {
+        goto end;
     }
 
     // check the type,code pair is correct - type 3, code 10
-    if (p.icmpv4h->type!=3 || p.icmpv4h->code!=10) {
-        return 0;
+    if (p.icmpv4h->type != 3 || p.icmpv4h->code != 10) {
+        goto end;
     }
 
     // check it's src port 2737 to dst port 12800
     if (p.icmpv4vars.emb_sport != 2737 || p.icmpv4vars.emb_dport != 12800) {
-        return 0;
+        goto end;
     }
 
     // check the src,dst IPs contained inside
@@ -456,11 +523,13 @@ static int DecodeICMPV4test04(void) {
     inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_dst), d, sizeof(d));
 
     // ICMPv4 embedding IPV4 192.168.1.13->88.96.22.41
-    if (strcmp(s,"192.168.1.13")!=0 || strcmp(d,"88.96.22.41")!=0 ) {
-        return 0;
+    if (strcmp(s, "192.168.1.13") == 0 && strcmp(d, "88.96.22.41") == 0) {
+        ret = 1;
     }
 
-    return 1;
+end:
+    FlowShutdown();
+    return ret;
 }
 
 static int ICMPV4CalculateValidChecksumtest05(void) {
@@ -512,18 +581,33 @@ static int ICMPV4InvalidType07(void) {
     Packet p;
     ThreadVars tv;
     DecodeThreadVars dtv;
+    int ret = 0;
+    IPV4Hdr ip4h;
 
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
+    FlowInitConfig(FLOW_QUIET);
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.src.addr_data32[0] = 0x01020304;
+    p.dst.addr_data32[0] = 0x04030201;
+
+    ip4h.ip_src.s_addr = p.src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
+    p.ip4h = &ip4h;
+
     DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
     if(DECODER_ISSET_EVENT(&p,ICMPV4_UNKNOWN_TYPE)) {
-        return 1;
+        ret = 1;
     }
 
-    return 0;
+    FlowShutdown();
+    return ret;
 }
 
 /** DecodeICMPV4test08
@@ -537,20 +621,35 @@ static int DecodeICMPV4test08(void) {
     Packet p;
     ThreadVars tv;
     DecodeThreadVars dtv;
+    int ret = 0;
+    IPV4Hdr ip4h;
 
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.src.addr_data32[0] = 0x01020304;
+    p.dst.addr_data32[0] = 0x04030201;
+
+    ip4h.ip_src.s_addr = p.src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
+    p.ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
     if (NULL!=p.icmpv4h) {
         if (p.icmpv4h->type==8 && p.icmpv4h->code==0) {
-            return 1;
+            ret = 1;
         }
     }
 
-    return 0;
+    FlowShutdown();
+    return ret;
 }
 #endif /* UNITTESTS */
 
@@ -559,15 +658,15 @@ static int DecodeICMPV4test08(void) {
  */
 void DecodeICMPV4RegisterTests(void) {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeICMPV4ttest01", DecodeICMPV4test01, 1);
-    UtRegisterTest("DecodeICMPV4ttest02", DecodeICMPV4test02, 1);
-    UtRegisterTest("DecodeICMPV4ttest03", DecodeICMPV4test03, 1);
-    UtRegisterTest("DecodeICMPV4ttest04", DecodeICMPV4test04, 1);
+    UtRegisterTest("DecodeICMPV4test01", DecodeICMPV4test01, 1);
+    UtRegisterTest("DecodeICMPV4test02", DecodeICMPV4test02, 1);
+    UtRegisterTest("DecodeICMPV4test03", DecodeICMPV4test03, 1);
+    UtRegisterTest("DecodeICMPV4test04", DecodeICMPV4test04, 1);
     UtRegisterTest("ICMPV4CalculateValidChecksumtest05",
                    ICMPV4CalculateValidChecksumtest05, 1);
     UtRegisterTest("ICMPV4CalculateInvalidChecksumtest06",
                    ICMPV4CalculateInvalidChecksumtest06, 0);
     UtRegisterTest("DecodeICMPV4InvalidType", ICMPV4InvalidType07, 1);
-    UtRegisterTest("DecodeICMPV4ttest08", DecodeICMPV4test08, 1);
+    UtRegisterTest("DecodeICMPV4test08", DecodeICMPV4test08, 1);
 #endif /* UNITTESTS */
 }

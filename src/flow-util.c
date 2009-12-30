@@ -99,6 +99,12 @@ void FlowInit(Flow *f, Packet *p)
     } else if (p->udph != NULL) { /* XXX MACRO */
         SET_UDP_SRC_PORT(p,&f->sp);
         SET_UDP_DST_PORT(p,&f->dp);
+    } else if (p->icmpv4h != NULL) {
+        f->type = p->type;
+        f->code = p->code;
+    } else if (p->icmpv6h != NULL) {
+        f->type = p->type;
+        f->code = p->code;
     } /* XXX handle default */
     else {
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);

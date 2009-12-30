@@ -319,6 +319,42 @@ void FlowDecrUsecnt(ThreadVars *tv, Packet *p) {
     SCMutexUnlock(&p->flow->m);
 }
 
+#define TOSERVER 0
+#define TOCLIENT 1
+
+/**
+ *  \brief determine the direction of the packet compared to the flow
+ *  \retval 0 to_server
+ *  \retval 1 to_client
+ */
+static inline int FlowGetPacketDirection(Flow *f, Packet *p) {
+    if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
+        if (!(CMP_PORT(p->sp,p->dp))) {
+            /* update flags and counters */
+            if (CMP_PORT(f->sp,p->sp)) {
+                return TOSERVER;
+            } else {
+                return TOCLIENT;
+            }
+        } else {
+            if (CMP_ADDR(&f->src,&p->src)) {
+                return TOSERVER;
+            } else {
+                return TOCLIENT;
+            }
+        }
+    } else if (p->proto == IPPROTO_ICMP || p->proto == IPPROTO_ICMPV6) {
+        if (CMP_ADDR(&f->src,&p->src)) {
+            return TOSERVER;
+        } else {
+            return TOCLIENT;
+        }
+    }
+
+    /* default to toserver */
+    return TOSERVER;
+}
+
 /** \brief Entry point for packet flow handling
  *
  * This is called for every packet.
@@ -341,7 +377,7 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
     COPY_TIMESTAMP(&p->ts, &f->lastts);
 
     /* update flags and counters */
-    if (CMP_PORT(f->sp,p->sp)) {
+    if (FlowGetPacketDirection(f,p) == TOSERVER) {
         f->flags |= FLOW_TO_DST_SEEN;
         f->todstpktcnt++;
         p->flowflags |= FLOW_PKT_TOSERVER;

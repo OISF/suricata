@@ -8,6 +8,8 @@
 /* only clear the parts that won't be overwritten
  * in FlowInit anyway */
 #define CLEAR_FLOW(f) { \
+    (f)->sp = 0; \
+    (f)->dp = 0; \
     (f)->flags = 0; \
     (f)->todstpktcnt = 0; \
     (f)->tosrcpktcnt = 0; \

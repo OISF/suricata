@@ -415,17 +415,17 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
                     if (dport != NULL) {
                         sgh = dport->sh;
                     } else {
-                        SCLogDebug("no dst port found for the packet");
+                        SCLogDebug("no dst port group found for the packet");
                     }
                 } else {
-                    SCLogDebug("no src port found for the packet");
+                    SCLogDebug("no src port group found for the packet");
                 }
             }
         } else {
-            SCLogDebug("no dst address found for the packet");
+            SCLogDebug("no dst address group found for the packet");
         }
     } else {
-        SCLogDebug("no src address found for the packet");
+        SCLogDebug("no src address group found for the packet");
     }
 
     SCReturnPtr(sgh, "SigGroupHead");
@@ -616,14 +616,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     det_ctx->pkts++;
 
+    SCLogDebug("p->flowflags 0x%02x", p->flowflags);
+
     /* match the ip only signatures */
     if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
         (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
-         IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
-         /* save in the flow that we scanned this direction... locking is
-          * done in the FlowSetIPOnlyFlag function. */
-         if (p->flow != NULL)
-             FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
+        SCLogDebug("testing against \"ip-only\"");
+
+        IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
+        /* save in the flow that we scanned this direction... locking is
+         * done in the FlowSetIPOnlyFlag function. */
+        if (p->flow != NULL)
+            FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
     }
 
     /* we assume we don't have an uri when we start inspection */
@@ -945,6 +949,12 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
 
             if (!(s->flags & SIG_FLAG_DP_ANY))
                 return 0;
+/*
+        } else if ((s->proto.proto[IPPROTO_ICMP / 8] & (1 << (IPPROTO_ICMP % 8))) ||
+                   (s->proto.proto[IPPROTO_ICMPV6 / 8] & (1 << (IPPROTO_ICMPV6 % 8)))) {
+            SCLogDebug("ICMP sigs are not IP-Only until we support ICMP in flow.");
+            return 0;
+*/
         }
     }
 
