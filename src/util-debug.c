@@ -262,7 +262,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
     const char *s = NULL;
 
     struct timeval tval;
-    struct tm *tms;
+    struct tm *tms = NULL;
 
     /* no of characters_written(cw) by sprintf */
     int cw = 0;
@@ -297,11 +297,11 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                 temp_fmt[0] = '\0';
 
                 gettimeofday(&tval, NULL);
-                tms = (struct tm *)localtime(&tval.tv_sec);
+                tms = localtime(&tval.tv_sec);
 
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN,
                               "%s%d/%d/%04d -- %02d:%02d:%02d",
-                              substr, tms->tm_mday, tms->tm_mon,
+                              substr, tms->tm_mday, tms->tm_mon + 1,
                               tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
                               tms->tm_sec);
                 if (cw < 0)
