@@ -38,13 +38,13 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
      * SigMatch (it can be the same as this one) */
     SigMatch *pm = DetectContentFindPrevApplicableSM(m);
     if (pm == NULL) {
-        printf("DetectDepthSetup: Unknown previous keyword!\n");
+        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content option");
         return -1;
     }
 
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd == NULL) {
-        printf("DetectDepthSetup: Unknown previous keyword!\n");
+        SCLogError(SC_INVALID_ARGUMENT, "invalid argument");
         return -1;
     }
 
