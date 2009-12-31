@@ -13,7 +13,8 @@
 #include "packet-queue.h"
 
 /* the name of our binary */
-#define PROG_NAME "suricata"
+#define PROG_NAME "Suricata"
+#define PROG_VER "0.8"
 
 /* max packets processed simultaniously */
 #define MAX_PENDING 50

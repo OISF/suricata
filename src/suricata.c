@@ -261,6 +261,7 @@ void EngineKill(void) {
 
 void usage(const char *progname)
 {
+    printf("%s %s\n", PROG_NAME, PROG_VER);
     printf("USAGE: %s\n\n", progname);
     printf("\t-c <path>                    : path to configuration file\n");
     printf("\t-i <dev>                     : run in pcap live mode\n");
@@ -318,7 +319,7 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:Dhi:l:q:r:us:U:";
+    char short_opts[] = "c:Dhi:l:q:r:us:U:V";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -411,11 +412,16 @@ int main(int argc, char **argv)
             regex_arg = NULL;
 #endif
             break;
+        case 'V':
+            printf("\nThis is %s version %s\n\n", PROG_NAME, PROG_VER);
+            exit(EXIT_SUCCESS);
         default:
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
     }
+
+    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
 
     if (!CheckValidDaemonModes(daemon, mode)) {
         exit(EXIT_FAILURE);
