@@ -411,7 +411,8 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
 int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev,
                       uint8_t prio, char *msg, char *class_msg)
 {
-    /* XXX overflow check? */
+    if (p->alerts.cnt == PACKET_ALERT_MAX)
+        return 0;
 
     SCLogDebug("sid %"PRIu32"", sid);
 
