@@ -585,6 +585,8 @@ DetectContentData *DetectContentParse (char *contentstr)
     char *str = NULL;
     char *temp = NULL;
     uint16_t len;
+    uint16_t pos = 0;
+    uint16_t slen = 0;
 
     if ((temp = strdup(contentstr)) == NULL)
         goto error;
@@ -601,19 +603,25 @@ DetectContentData *DetectContentParse (char *contentstr)
     }
     memset(cd, 0, sizeof(DetectContentData));
 
-    if (temp[0] == '!') {
+    /* skip the first spaces */
+    slen = strlen(temp);
+    while (pos < slen && isspace(temp[pos])) {
+        pos++;
+    };
+
+    if (temp[pos] == '!') {
         free(temp);
-        if ( (temp = strdup(contentstr + 1)) == NULL)
+        if ((temp = strdup(contentstr + pos + 1)) == NULL)
             goto error;
         cd->negated = 1;
     }
 
-    if (temp[0] == '\"' && temp[strlen(temp)-1] == '\"') {
-        if ( (str = strdup(temp + 1)) == NULL)
+    if (temp[pos] == '\"' && temp[strlen(temp)-1] == '\"') {
+        if ((str = strdup(temp + pos + 1)) == NULL)
             goto error;
-        str[strlen(temp) - 2] = '\0';
+        str[strlen(temp) - pos - 2] = '\0';
     } else {
-        if ( (str = strdup(temp)) == NULL)
+        if ((str = strdup(temp + pos)) == NULL)
             goto error;
     }
 
@@ -2665,6 +2673,45 @@ int DetectContentParseNegTest13(void) {
     return result;
 }
 
+int DetectContentParseNegTest14(void) {
+    int result = 0;
+    DetectContentData *cd = NULL;
+    char *teststring = "  \"!boo\"";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        result = (cd->negated == 1);
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
+int DetectContentParseNegTest15(void) {
+    int result = 0;
+    DetectContentData *cd = NULL;
+    char *teststring = "  !boo";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        result = (cd->negated == 1);
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
+int DetectContentParseNegTest16(void) {
+    int result = 0;
+    DetectContentData *cd = NULL;
+    char *teststring = "  boo";
+
+    cd = DetectContentParse(teststring);
+    if (cd != NULL) {
+        result = (cd->content_len == 3 && memcmp(cd->content,"boo",3) == 0);
+        DetectContentFree(cd);
+    }
+    return result;
+}
+
 static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
@@ -3037,6 +3084,9 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest11", DetectContentParseNegTest11, 1);
     UtRegisterTest("DetectContentParseTest12", DetectContentParseNegTest12, 1);
     UtRegisterTest("DetectContentParseTest13", DetectContentParseNegTest13, 1);
+    UtRegisterTest("DetectContentParseTest14", DetectContentParseNegTest14, 1);
+    UtRegisterTest("DetectContentParseTest15", DetectContentParseNegTest15, 1);
+    UtRegisterTest("DetectContentParseTest16", DetectContentParseNegTest16, 1);
 
     UtRegisterTest("DetectContentChunkTestB2G01 l=32", DetectContentChunkTestB2G01, 1);
     UtRegisterTest("DetectContentChunkTestB3G01 l=32", DetectContentChunkTestB3G01, 1);

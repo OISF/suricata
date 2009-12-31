@@ -79,6 +79,7 @@ typedef enum {
     SC_ERR_FLAGS_MODIFIER,
     SC_ERR_DISTANCE_MISSING_CONTENT,
     SC_ERR_WITHIN_MISSING_CONTENT,
+    SC_ERR_NO_URICONTENT_NEGATION,
 } SCError;
 
 const char *SCErrorToString(SCError);

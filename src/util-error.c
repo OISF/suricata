@@ -68,6 +68,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_FLAGS_MODIFIER);
         CASE_CODE (SC_ERR_DISTANCE_MISSING_CONTENT);
         CASE_CODE (SC_ERR_WITHIN_MISSING_CONTENT);
+        CASE_CODE (SC_ERR_NO_URICONTENT_NEGATION);
         default:
             return "UNKNOWN_ERROR";
     }

@@ -209,19 +209,20 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
 {
     DetectUricontentData *cd = NULL;
     SigMatch *sm = NULL;
-    char *str = contentstr;
+    char *temp = NULL;
+    char *str = NULL;
     char dubbed = 0;
     uint16_t len = 0;
+    uint16_t pos = 0;
+    uint16_t slen = 0;
 
-    if (contentstr[0] == '\"' && contentstr[strlen(contentstr)-1] == '\"') {
-        str = strdup(contentstr+1);
-        str[strlen(contentstr)-2] = '\0';
-        dubbed = 1;
-    }
+    if ((temp = strdup(contentstr)) == NULL)
+        goto error;
 
-    len = strlen(str);
-    if (len == 0)
+    if (strlen(temp) == 0) {
+        if (temp) free(temp);
         return -1;
+    }
 
     cd = malloc(sizeof(DetectUricontentData));
     if (cd == NULL) {
@@ -230,7 +231,30 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     }
     memset(cd,0,sizeof(DetectUricontentData));
 
-    //printf("DetectUricontentSetup: \"%s\", len %" PRIu32 "\n", str, len);
+    /* skip the first spaces */
+    slen = strlen(temp);
+    while (pos < slen && isspace(temp[pos])) {
+        pos++;
+    };
+
+    if (temp[pos] == '!') {
+        SCLogError(SC_ERR_NO_URICONTENT_NEGATION, "uricontent negation is not supported at this time. See bug #31.");
+        goto error;
+    }
+
+    if (temp[pos] == '\"' && temp[strlen(temp)-1] == '\"') {
+        if ((str = strdup(temp + pos + 1)) == NULL)
+            goto error;
+        str[strlen(temp) - pos - 2] = '\0';
+    } else {
+        if ((str = strdup(temp + pos)) == NULL)
+            goto error;
+    }
+
+    free(temp);
+    len = strlen(str);
+
+    printf("DetectUricontentSetup: \"%s\", len %" PRIu32 "\n", str, len);
     char converted = 0;
 
     {
