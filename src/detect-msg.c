@@ -64,7 +64,7 @@ int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ms
                         str[i] != '\\' &&
                         str[i] != '\"')
                 {
-                    printf("DetectMsgSetup: %c does not need to be escaped but is\n" ,str[i]);
+                    SCLogDebug("character \"%c\" does not need to be escaped but is" ,str[i]);
                 }
                 escape = 0;
                 converted = 1;
