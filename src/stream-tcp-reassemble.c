@@ -451,7 +451,9 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
 #ifdef DEBUG
     SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "", seg->seq,
                 seg->payload_len);
-    PrintList(stream->seg_list);
+    if (SCLogDebugEnabled()) {
+        PrintList(stream->seg_list);
+    }
 #endif
 
     if (SEQ_GT((seg->seq + seg->payload_len), list_seg->seq) &&
@@ -1068,7 +1070,9 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
         }
         if (end_before == TRUE || end_same == TRUE || handle_beyond == FALSE) {
 #ifdef DEBUG
-            PrintList(stream->seg_list);
+            if (SCLogDebugEnabled()) {
+                PrintList(stream->seg_list);
+            }
 #endif
             return 1;
         }
@@ -1309,7 +1313,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                     payload_len = seg->payload_len - payload_offset;
                 }
 
-                BUG_ON(payload_offset > seg->payload_len);
+                if (SCLogDebugEnabled()) {
+                    BUG_ON(payload_offset > seg->payload_len);
+                }
             } else {
                 payload_offset = 0;
 
@@ -1325,7 +1331,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
-            BUG_ON(copy_size > sizeof(smsg->data.data));
+            if (SCLogDebugEnabled()) {
+                BUG_ON(copy_size > sizeof(smsg->data.data));
+            }
 
             memcpy(smsg->data.data + smsg_offset, seg->payload + payload_offset,
                     copy_size);
@@ -1348,7 +1356,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
 
                 payload_offset += copy_size;
                 payload_len -= copy_size;
-                BUG_ON(payload_offset > seg->payload_len);
+                if (SCLogDebugEnabled()) {
+                    BUG_ON(payload_offset > seg->payload_len);
+                }
 
                 /* we need a while loop here as the packets theoretically can be
                  * 64k */
@@ -1372,7 +1382,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                     if (copy_size > (seg->payload_len - payload_offset)) {
                         copy_size = (seg->payload_len - payload_offset);
                     }
-                    BUG_ON(copy_size > sizeof(smsg->data.data));
+                    if (SCLogDebugEnabled()) {
+                        BUG_ON(copy_size > sizeof(smsg->data.data));
+                    }
 
                     SCLogDebug("copy payload_offset %" PRIu32 ", smsg_offset "
                                 "%" PRIu32 ", copy_size %" PRIu32 "",
@@ -1398,7 +1410,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                         payload_offset += copy_size;
                         payload_len -= copy_size;
 
-                        BUG_ON(payload_offset > seg->payload_len);
+                        if (SCLogDebugEnabled()) {
+                            BUG_ON(payload_offset > seg->payload_len);
+                        }
                     } else {
                         payload_offset = 0;
                         segment_done = TRUE;
@@ -1413,7 +1427,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
         TcpSegment *next_seg = seg->next;
         next_seq = seg->seq + seg->payload_len;
         SCLogDebug("removing seg %p, seg->next %p", seg, seg->next);
-        BUG_ON(seg->prev != NULL); /**< BUG if we aren't the top of the list */
+        if (SCLogDebugEnabled()) {
+            BUG_ON(seg->prev != NULL); /**< BUG if we aren't the top of the list */
+        }
 
         stream->seg_list = seg->next;
         if (stream->seg_list != NULL)
@@ -1537,11 +1553,20 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
         dst_pos = dst_seg->seq - start_point;
     }
 
-    BUG_ON(((len + dst_pos) - 1) > dst_seg->payload_len);
+    if (SCLogDebugEnabled()) {
+        BUG_ON(((len + dst_pos) - 1) > dst_seg->payload_len);
+    } else {
+        if (((len + dst_pos) - 1) > dst_seg->payload_len)
+            return;
+    }
 
     for (seq = start_point; SEQ_LT(seq, (start_point + len)); seq++) {
-        if (dst_pos > dst_seg->payload_len)
-            abort();
+        if (SCLogDebugEnabled()) {
+            BUG_ON((dst_pos > dst_seg->payload_len));
+        } else {
+            if (dst_pos > dst_seg->payload_len)
+                return;
+        }
 
         dst_seg->payload[dst_pos] = src_seg->payload[s_cnt];
 
