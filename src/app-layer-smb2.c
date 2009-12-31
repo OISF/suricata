@@ -22,6 +22,7 @@
 
 #include "util-binsearch.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 #include "app-layer-smb2.h"
 
@@ -34,7 +35,7 @@ enum {
     SMB_FIELD_MAX,
 };
 
-#define DEBUG 1
+//#define DEBUG 1
 static int NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMB2State *sstate = (SMB2State *) smb2_state;
@@ -43,7 +44,7 @@ static int NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
     if (input_len && sstate->bytesprocessed < NBSS_HDR_LEN - 1) {
         switch (sstate->bytesprocessed) {
             case 0:
-		/* Initialize */
+                /* Initialize */
                 if (input_len >= NBSS_HDR_LEN) {
                     sstate->nbss.type = *p;
                     sstate->nbss.length = (*(p + 1) & 0x01) << 16;
@@ -84,7 +85,7 @@ static int SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
             case 4:
                 if (input_len >= SMB2_HDR_LEN) {
                     if (memcmp(p, "\xfe\x53\x4d\x42", 4) != 0) {
-                        printf("SMB2 Header did not validate\n");
+                        //printf("SMB2 Header did not validate\n");
                         return 0;
                     }
                     sstate->smb2.StructureSize = *(p + 4);
@@ -305,53 +306,53 @@ static int SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                 sstate->smb2.SessionId |= (uint64_t) *(p++) << 56;
                 if (!(--input_len)) break;
             case 52:
-		sstate->smb2.Signature[0] = *(p++);
+                sstate->smb2.Signature[0] = *(p++);
                 if (!(--input_len)) break;
             case 53:
-		sstate->smb2.Signature[1] = *(p++);
+                sstate->smb2.Signature[1] = *(p++);
                 if (!(--input_len)) break;
             case 54:
-		sstate->smb2.Signature[2] = *(p++);
+                sstate->smb2.Signature[2] = *(p++);
                 if (!(--input_len)) break;
             case 55:
-		sstate->smb2.Signature[3] = *(p++);
+                sstate->smb2.Signature[3] = *(p++);
                 if (!(--input_len)) break;
             case 56:
-		sstate->smb2.Signature[4] = *(p++);
+                sstate->smb2.Signature[4] = *(p++);
                 if (!(--input_len)) break;
             case 57:
-		sstate->smb2.Signature[5] = *(p++);
+                sstate->smb2.Signature[5] = *(p++);
                 if (!(--input_len)) break;
             case 58:
-		sstate->smb2.Signature[6] = *(p++);
+                sstate->smb2.Signature[6] = *(p++);
                 if (!(--input_len)) break;
             case 59:
-		sstate->smb2.Signature[7] = *(p++);
+                sstate->smb2.Signature[7] = *(p++);
                 if (!(--input_len)) break;
             case 60:
-		sstate->smb2.Signature[8] = *(p++);
+                sstate->smb2.Signature[8] = *(p++);
                 if (!(--input_len)) break;
             case 61:
-		sstate->smb2.Signature[9] = *(p++);
+                sstate->smb2.Signature[9] = *(p++);
                 if (!(--input_len)) break;
             case 62:
-		sstate->smb2.Signature[10] = *(p++);
+                sstate->smb2.Signature[10] = *(p++);
                 if (!(--input_len)) break;
             case 63:
-		sstate->smb2.Signature[11] = *(p++);
+                sstate->smb2.Signature[11] = *(p++);
                 if (!(--input_len)) break;
             case 64:
-		sstate->smb2.Signature[12] = *(p++);
+                sstate->smb2.Signature[12] = *(p++);
                 if (!(--input_len)) break;
             case 65:
-		sstate->smb2.Signature[13] = *(p++);
+                sstate->smb2.Signature[13] = *(p++);
                 if (!(--input_len)) break;
             case 66:
-		sstate->smb2.Signature[14] = *(p++);
+                sstate->smb2.Signature[14] = *(p++);
                 if (!(--input_len)) break;
             case 67:
-		sstate->smb2.Signature[15] = *(p++);
-		--input_len;
+                sstate->smb2.Signature[15] = *(p++);
+                --input_len;
                 break;
             default: // SHOULD NEVER OCCUR
                 return 0;
@@ -361,7 +362,7 @@ static int SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
     return (p - input);
 }
 
-static int SMB2Parse(void *smb2_state, AppLayerParserState *pstate,
+static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint32_t retval = 0;
@@ -370,29 +371,31 @@ static int SMB2Parse(void *smb2_state, AppLayerParserState *pstate,
     if (pstate == NULL)
         return -1;
 
-    while (sstate->bytesprocessed <  NBSS_HDR_LEN) {
-	retval = NBSSParseHeader(smb2_state, pstate, input, input_len, output);
-	parsed += retval;
-	input_len -= retval;
-	printf("\nNBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %u input_len %u\n",
-			sstate->bytesprocessed, NBSS_HDR_LEN, sstate->nbss.type,
-			sstate->nbss.length, parsed, input_len);
+    while (sstate->bytesprocessed <  NBSS_HDR_LEN && input_len) {
+        retval = NBSSParseHeader(smb2_state, pstate, input, input_len, output);
+        parsed += retval;
+        input_len -= retval;
+
+        SCLogDebug("NBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %u input_len %u",
+                sstate->bytesprocessed, NBSS_HDR_LEN, sstate->nbss.type,
+                sstate->nbss.length, parsed, input_len);
     }
 
     switch(sstate->nbss.type) {
-    case NBSS_SESSION_MESSAGE:
-		while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN &&
-				sstate->bytesprocessed < NBSS_HDR_LEN + SMB2_HDR_LEN)) {
-			retval = SMB2ParseHeader(smb2_state, pstate, input + parsed, input_len, output);
-			parsed += retval;
-			input_len -= retval;
-			printf("SMB2 Header (%u/%u) Command 0x%04x parsed %u input_len %u\n",
-					sstate->bytesprocessed, NBSS_HDR_LEN + SMB2_HDR_LEN,
-					sstate->smb2.Command, parsed, input_len);
-		}
-		break;
-    default:
-	break;
+        case NBSS_SESSION_MESSAGE:
+            while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN &&
+                        sstate->bytesprocessed < NBSS_HDR_LEN + SMB2_HDR_LEN)) {
+                retval = SMB2ParseHeader(smb2_state, pstate, input + parsed, input_len, output);
+                parsed += retval;
+                input_len -= retval;
+
+                SCLogDebug("SMB2 Header (%u/%u) Command 0x%04x parsed %u input_len %u",
+                        sstate->bytesprocessed, NBSS_HDR_LEN + SMB2_HDR_LEN,
+                        sstate->smb2.Command, parsed, input_len);
+            }
+            break;
+        default:
+            break;
     }
     pstate->parse_field = 0;
     pstate->flags |= APP_LAYER_PARSER_DONE;

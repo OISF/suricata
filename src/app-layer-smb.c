@@ -499,7 +499,7 @@ static int SMBParseByteCount(Flow *f, void *smb_state, AppLayerParserState *psta
     SCReturnInt(p - input);
 }
 
-#define DEBUG 1
+//#define DEBUG 1
 static int NBSSParseHeader(Flow *f, void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
@@ -510,8 +510,8 @@ static int NBSSParseHeader(Flow *f, void *smb_state, AppLayerParserState *pstate
     if (input_len && sstate->bytesprocessed < NBSS_HDR_LEN - 1) {
         switch (sstate->bytesprocessed) {
             case 0:
-		/* Initialize */
-		sstate->andx.andxcommand = SMB_NO_SECONDARY_ANDX_COMMAND;
+                /* Initialize */
+                sstate->andx.andxcommand = SMB_NO_SECONDARY_ANDX_COMMAND;
                 if (input_len >= NBSS_HDR_LEN) {
                     sstate->nbss.type = *p;
                     sstate->nbss.length = (*(p + 1) & 0x01) << 16;
@@ -725,63 +725,63 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
     }
 
     switch(sstate->nbss.type) {
-    case NBSS_SESSION_MESSAGE:
-		while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN &&
-				sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN)) {
-			retval = SMBParseHeader(f, smb_state, pstate, input +
-                                                parsed, input_len, output);
-			parsed += retval;
-			input_len -= retval;
-			SCLogDebug("SMB Header (%u/%u) Command 0x%02x parsed %u input_len %u",
-					sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN,
-					sstate->smb.command, parsed, input_len);
-		}
+        case NBSS_SESSION_MESSAGE:
+            while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN &&
+                        sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN)) {
+                retval = SMBParseHeader(f, smb_state, pstate, input +
+                        parsed, input_len, output);
+                parsed += retval;
+                input_len -= retval;
+                SCLogDebug("SMB Header (%u/%u) Command 0x%02x parsed %u input_len %u",
+                        sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN,
+                        sstate->smb.command, parsed, input_len);
+            }
 
-		do {
-			if (input_len && (sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN)) {
-				retval = SMBGetWordCount(f, smb_state, pstate,
-                                                         input + parsed, input_len,
-                                                         output);
-				parsed += retval;
-				input_len -= retval;
-				SCLogDebug("wordcount (%u) parsed %u input_len %u",
-						sstate->wordcount.wordcount, parsed, input_len);
-			}
+            do {
+                if (input_len && (sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN)) {
+                    retval = SMBGetWordCount(f, smb_state, pstate,
+                            input + parsed, input_len,
+                            output);
+                    parsed += retval;
+                    input_len -= retval;
+                    SCLogDebug("wordcount (%u) parsed %u input_len %u",
+                            sstate->wordcount.wordcount, parsed, input_len);
+                }
 
-			while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN + SMB_HDR_LEN + 1 &&
-					sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 1
-					+ sstate->wordcount.wordcount)) {
-				retval = SMBParseWordCount(f, smb_state, pstate,
-                                                           input + parsed, input_len,
-                                                           output);
-				parsed += retval;
-				input_len -= retval;
-			}
+                while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN + SMB_HDR_LEN + 1 &&
+                            sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 1
+                            + sstate->wordcount.wordcount)) {
+                    retval = SMBParseWordCount(f, smb_state, pstate,
+                            input + parsed, input_len,
+                            output);
+                    parsed += retval;
+                    input_len -= retval;
+                }
 
-			while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN + SMB_HDR_LEN +
-					1 + sstate->wordcount.wordcount && sstate->bytesprocessed < NBSS_HDR_LEN +
-					SMB_HDR_LEN + 3 + sstate->wordcount.wordcount)) {
-				retval = SMBGetByteCount(f, smb_state, pstate,
-                                                         input + parsed, input_len,
-                                                         output);
-				parsed += retval;
-				input_len -= retval;
-			}
+                while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN + SMB_HDR_LEN +
+                            1 + sstate->wordcount.wordcount && sstate->bytesprocessed < NBSS_HDR_LEN +
+                            SMB_HDR_LEN + 3 + sstate->wordcount.wordcount)) {
+                    retval = SMBGetByteCount(f, smb_state, pstate,
+                            input + parsed, input_len,
+                            output);
+                    parsed += retval;
+                    input_len -= retval;
+                }
 
-			while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN +
-					SMB_HDR_LEN + 3 + sstate->wordcount.wordcount &&
-					sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 3
-					+ sstate->wordcount.wordcount + sstate->bytecount.bytecount)) {
-				retval = SMBParseByteCount(f, smb_state, pstate,
-                                                         input + parsed, input_len,
-                                                         output);
-				parsed += retval;
-				input_len -= retval;
-			}
-		} while (sstate->andx.andxcommand != SMB_NO_SECONDARY_ANDX_COMMAND);
-		break;
-    default:
-	break;
+                while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN +
+                            SMB_HDR_LEN + 3 + sstate->wordcount.wordcount &&
+                            sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 3
+                            + sstate->wordcount.wordcount + sstate->bytecount.bytecount)) {
+                    retval = SMBParseByteCount(f, smb_state, pstate,
+                            input + parsed, input_len,
+                            output);
+                    parsed += retval;
+                    input_len -= retval;
+                }
+            } while (sstate->andx.andxcommand != SMB_NO_SECONDARY_ANDX_COMMAND && input_len);
+            break;
+        default:
+            break;
     }
     pstate->parse_field = 0;
     pstate->flags |= APP_LAYER_PARSER_DONE;

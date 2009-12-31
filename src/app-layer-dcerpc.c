@@ -250,7 +250,7 @@ static int DCERPCParseBIND(Flow *f, void *dcerpc_state, AppLayerParserState *pst
                 if (!(--input_len)) break;
             case 24:
                 sstate->numctxitems = *(p++);
-                printf("numctxitems %d\n",sstate->numctxitems);
+                //printf("numctxitems %d\n",sstate->numctxitems);
                 //TAILQ_INIT(sstate.head);
                 if (!(--input_len)) break;
             case 25:
@@ -277,26 +277,26 @@ static int DCERPCParseBINDACK(Flow *f, void *dcerpc_state, AppLayerParserState *
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
     switch(sstate->bytesprocessed) {
-    case 16:
-	sstate->secondaryaddrlen = *(p++) << 8;
-        if (!(--input_len)) break;
-    case 17:
-	sstate->secondaryaddrlen |= *(p++);
-        --input_len;
-        break;
+        case 16:
+            sstate->secondaryaddrlen = *(p++) << 8;
+            if (!(--input_len)) break;
+        case 17:
+            sstate->secondaryaddrlen |= *(p++);
+            --input_len;
+            break;
     }
 
     if (sstate->bytesprocessed > 17) { /* WRONG FOR NOW */
 
-    while (sstate->secondaryaddrlen && input_len) {
-	p++;
-	sstate->secondaryaddrlen--;
-	--input_len;
-    }
-    if (sstate->secondaryaddrlen == 0) {
+        while (sstate->secondaryaddrlen && input_len) {
+            p++;
+            sstate->secondaryaddrlen--;
+            --input_len;
+        }
+        if (sstate->secondaryaddrlen == 0) {
 
-    }
-    /* for padding we need to do bytesprocessed % 4 */
+        }
+        /* for padding we need to do bytesprocessed % 4 */
     }
     sstate->bytesprocessed += (p - input);
     SCReturnInt(p - input);
@@ -405,32 +405,38 @@ static int DCERPCParseHeader(Flow *f, void *dcerpc_state, AppLayerParserState
 
 static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
+
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint32_t retval = 0;
     uint32_t parsed = 0;
+
     if (pstate == NULL)
         SCReturnInt(-1);
-    while (sstate->bytesprocessed <  DCERPC_HDR_LEN) {
+
+    while (sstate->bytesprocessed <  DCERPC_HDR_LEN && input_len) {
         retval = DCERPCParseHeader(f, dcerpc_state, pstate, input, input_len,
                 output);
         parsed += retval;
         input_len -= retval;
     }
+
     switch (sstate->dcerpc.type) {
         case BIND:
         case ALTER_CONTEXT:
             while (sstate->bytesprocessed <  DCERPC_HDR_LEN + 12 &&
-			sstate->bytesprocessed < sstate->dcerpc.frag_length) {
+                    sstate->bytesprocessed < sstate->dcerpc.frag_length &&
+                    input_len) {
                 retval = DCERPCParseBIND(f, dcerpc_state, pstate, input + parsed, input_len,
                         output);
                 parsed += retval;
                 input_len -= retval;
             }
-            while (sstate->numctxitems && sstate->bytesprocessed < sstate->dcerpc.frag_length) {
+            while (sstate->numctxitems && sstate->bytesprocessed < sstate->dcerpc.frag_length &&
+                    input_len) {
                 retval = DCERPCParseCTXItem(f, dcerpc_state, pstate, input + parsed, input_len,
                         output);
                 if (sstate->ctxbytesprocessed == 44) {
-			sstate->ctxbytesprocessed = 0;
+                    sstate->ctxbytesprocessed = 0;
                 }
                 parsed += retval;
                 input_len -= retval;
@@ -438,19 +444,19 @@ static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
             break;
         case BIND_ACK:
         case ALTER_CONTEXT_RESP:
-            while (sstate->bytesprocessed <  DCERPC_HDR_LEN + 12) {
+            while (sstate->bytesprocessed <  DCERPC_HDR_LEN + 12 && input_len) {
                 retval = DCERPCParseBINDACK(f, dcerpc_state, pstate, input + parsed, input_len,
                         output);
                 parsed += retval;
                 input_len -= retval;
             }
-            while (sstate->numctxitems) {
+            while (sstate->numctxitems && input_len) {
                 retval = DCERPCParseCTXItem(f, dcerpc_state, pstate, input, input_len,
                         output);
                 parsed += retval;
                 input_len -= retval;
             }
-		break;
+            break;
     }
     pstate->parse_field = 0;
     pstate->flags |= APP_LAYER_PARSER_DONE;
