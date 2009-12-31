@@ -226,12 +226,29 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
         return -1;
     }
     char line[8192] = "";
-    while(fgets(line, (int)sizeof(line), fp) != NULL) {
-        /** \todo multi line support */
+    int offset = 0;
+    while(fgets(line + offset, (int)sizeof(line) - offset, fp) != NULL) {
+        int len = strlen(line);
 
         /* ignore comments and empty lines */
         if (line[0] == '\n' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
             continue;
+
+        /* Check for multiline rules. */
+        while (isspace(line[--len]));
+        if (line[len] == '\\') {
+            offset = len;
+            if (offset < sizeof(line) - 1) {
+                /* We have room for more. */
+                continue;
+            }
+            /* No more room in line buffer, continue, rule will fail
+             * to parse. */
+        }
+
+
+        /* Reset offset. */
+        offset = 0;
 
         sig = DetectEngineAppendSig(de_ctx, line);
         if (sig != NULL) {
