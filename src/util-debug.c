@@ -1039,13 +1039,11 @@ void SCLogLoadConfig(void)
 
         if (strcmp(interface, "console") == 0) {
             /* No other lookups required for console logging. */
-            printf("Setting up console logging: log_level=%s.\n",
-                log_level);
+            /* \todo Setup console logging... */
         }
         else if (strcmp(interface, "syslog") == 0) {
             facility = (char *)ConfNodeLookupChildValue(output, "facility");
-            printf("Setting up syslog logging: log_level=%s, facility=%s.\n",
-                log_level, facility);
+            /* \todo Setup syslog logging. */
         }
         else {
             SCLogWarning(SC_UNIMPLEMENTED,
