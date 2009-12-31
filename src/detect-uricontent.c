@@ -254,7 +254,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     free(temp);
     len = strlen(str);
 
-    printf("DetectUricontentSetup: \"%s\", len %" PRIu32 "\n", str, len);
+    //printf("DetectUricontentSetup: \"%s\", len %" PRIu32 "\n", str, len);
     char converted = 0;
 
     {
