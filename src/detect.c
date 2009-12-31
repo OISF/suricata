@@ -44,6 +44,7 @@
 #include "detect-priority.h"
 #include "detect-classtype.h"
 #include "detect-reference.h"
+#include "detect-tag.h"
 #include "detect-threshold.h"
 #include "detect-metadata.h"
 #include "detect-msg.h"
@@ -2949,6 +2950,7 @@ void SigTableSetup(void) {
     DetectRevRegister();
     DetectClasstypeRegister();
     DetectReferenceRegister();
+    DetectTagRegister();
     DetectThresholdRegister();
     DetectMetadataRegister();
     DetectMsgRegister();
@@ -3000,7 +3002,7 @@ void SigTableSetup(void) {
     for (i = 0; i < DETECT_TBLSIZE; i++) {
         if (sigmatch_table[i].RegisterTests == NULL) {
             SCLogDebug("detection plugin %s has no unittest "
-                   "registration function.\n", sigmatch_table[i].name);
+                   "registration function.", sigmatch_table[i].name);
         }
     }
 }

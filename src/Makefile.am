@@ -71,6 +71,7 @@ detect-priority.c detect-priority.h \
 detect-rev.c detect-rev.h \
 detect-classtype.c detect-classtype.h \
 detect-reference.c detect-reference.h \
+detect-tag.c detect-tag.h \
 detect-threshold.c detect-threshold.h \
 detect-metadata.c detect-metadata.h \
 detect-msg.c detect-msg.h \
