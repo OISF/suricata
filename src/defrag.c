@@ -710,7 +710,7 @@ Defrag6InsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
     tracker->timeout = p->ts;
     tracker->timeout.tv_sec += dc->timeout;
 
-    Frag *prev, *next;;
+    Frag *prev = NULL, *next;;
     if (!TAILQ_EMPTY(&tracker->frags)) {
         TAILQ_FOREACH(prev, &tracker->frags, next) {
             ltrim = 0;
@@ -779,6 +779,13 @@ Defrag6InsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
                     goto insert;
                 if (frag_offset < prev->offset + prev->data_len) {
                     ltrim = prev->offset + prev->data_len - frag_offset;
+                    goto insert;
+                }
+                break;
+            case POLICY_LAST:
+                if (frag_offset <= prev->offset) {
+                    if (frag_end > prev->offset)
+                        prev->ltrim = frag_end - prev->offset;
                     goto insert;
                 }
                 break;
@@ -988,7 +995,6 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
         if (frag == TAILQ_FIRST(&tracker->frags)) {
             if (frag->offset != 0) {
-                printf("Defrag6Reassemble: no offset 0\n");
                 goto done;
             }
             len = frag->data_len;
@@ -997,8 +1003,6 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
             if (frag->offset > len) {
                 /* This fragment starts after the end of the previous
                  * fragment.  We have a hole. */
-                printf("Defrag6Reassemble: hole: offset=%d, len=%d\n",
-                    frag->offset, len);
                 goto done;
             }
             else {
@@ -1037,6 +1041,8 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     TAILQ_FOREACH(frag, &tracker->frags, next) {
         if (frag->skip)
             continue;
+        if (frag->data_len - frag->ltrim <= 0)
+            continue;
         if (frag->offset == 0) {
             /* This is the first packet, we use this packets link and
              * IPv6 headers. We also copy in its data, but remove the
@@ -1057,7 +1063,8 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         }
         else {
             memcpy(rp->pkt + fragmentable_offset + frag->offset + frag->ltrim,
-                frag->pkt + frag->data_offset, frag->data_len - frag->ltrim);
+                frag->pkt + frag->data_offset + frag->ltrim,
+                frag->data_len - frag->ltrim);
             payload_len += frag->data_len - frag->ltrim;
         }
     }
@@ -2217,6 +2224,41 @@ DefragSturgesNovakLastTest(void)
 }
 
 static int
+IPV6DefragSturgesNovakLastTest(void)
+{
+    /* Expected data. */
+    u_char expected[] = {
+        "AAAAAAAA"
+        "JJJJJJJJ"
+        "JJJJJJJJ"
+        "JJJJJJJJ"
+        "JJJJJJJJ"
+        "BBBBBBBB"
+        "KKKKKKKK"
+        "KKKKKKKK"
+        "KKKKKKKK"
+        "LLLLLLLL"
+        "LLLLLLLL"
+        "LLLLLLLL"
+        "MMMMMMMM"
+        "MMMMMMMM"
+        "MMMMMMMM"
+        "FFFFFFFF"
+        "NNNNNNNN"
+        "FFFFFFFF"
+        "GGGGGGGG"
+        "OOOOOOOO"
+        "PPPPPPPP"
+        "HHHHHHHH"
+        "QQQQQQQQ"
+        "QQQQQQQQ"
+    };
+
+    return IPV6DefragDoSturgesNovakTest(POLICY_LAST, expected,
+        sizeof(expected));
+}
+
+static int
 DefragTimeoutTest(void)
 {
     int i;
@@ -2311,8 +2353,6 @@ DefragRegisterTests(void)
         DefragSturgesNovakFirstTest, 1);
     UtRegisterTest("DefragSturgesNovakLastTest",
         DefragSturgesNovakLastTest, 1);
-    UtRegisterTest("DefragTimeoutTest",
-        DefragTimeoutTest, 1);
 
     UtRegisterTest("IPV6DefragInOrderSimpleTest",
         IPV6DefragInOrderSimpleTest, 1);
@@ -2326,6 +2366,11 @@ DefragRegisterTests(void)
         IPV6DefragSturgesNovakSolarisTest, 1);
     UtRegisterTest("IPV6DefragSturgesNovakFirstTest",
         IPV6DefragSturgesNovakFirstTest, 1);
+    UtRegisterTest("IPV6DefragSturgesNovakLastTest",
+        IPV6DefragSturgesNovakLastTest, 1);
+
+    UtRegisterTest("DefragTimeoutTest",
+        DefragTimeoutTest, 1);
 #endif /* UNITTESTS */
 }
 
