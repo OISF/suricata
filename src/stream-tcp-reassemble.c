@@ -495,9 +495,10 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
         end_after = TRUE;
         overlap_point = list_seg->seq;
         SCLogDebug("starts before list seg, ends after list end: seg->seq "
-                   "%" PRIu32 ", list_seg->seq %" PRIu32 ", "
-                   "list_seg->payload_len %" PRIu32 " overlap is %" PRIu32 "",
-                   seg->seq, list_seg->seq, list_seg->payload_len, overlap);
+                   "%" PRIu32 ", seg->payload_len %"PRIu32" list_seg->seq "
+                   "%" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is"
+                   " %" PRIu32 "", seg->seq, list_seg->seq,
+                   list_seg->payload_len, overlap, seg->payload_len);
     }
 
     if (overlap > 0) {
@@ -654,8 +655,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                                                 copy_len);
 
                     /* copy the part after list_seg */
-                    copy_len = packet_length - ((list_seg->seq +
-                                             list_seg->payload_len) - seg->seq);
+                    copy_len = packet_length - list_seg->payload_len;
                     StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq +
                                               list_seg->payload_len), copy_len);
 
@@ -1537,10 +1537,10 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
         dst_pos = dst_seg->seq - start_point;
     }
 
-    BUG_ON(len + dst_pos > dst_seg->payload_len);
+    BUG_ON(((len + dst_pos) - 1) > dst_seg->payload_len);
 
     for (seq = start_point; SEQ_LT(seq, (start_point + len)); seq++) {
-        if (dst_pos >= dst_seg->payload_len)
+        if (dst_pos > dst_seg->payload_len)
             abort();
 
         dst_seg->payload[dst_pos] = src_seg->payload[s_cnt];
