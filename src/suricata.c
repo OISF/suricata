@@ -273,9 +273,9 @@ void usage(const char *progname)
     printf("\t-u                           : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
     printf("\t--list-unittests             : list unit tests\n");
-    printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
+    printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "

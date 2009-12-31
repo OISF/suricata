@@ -663,13 +663,12 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     return sig;
 
 error:
-    SigFree(sig);
+    if ( sig != NULL ) SigFree(sig);
     if (de_ctx->failure_fatal == 1) {
-        fprintf(stderr, "ERROR: Signature init failed.\n");
+        SCLogError(SC_ERR_INVALID_SIGNATURE,"Signature init failed %s ",sigstr);
         exit(EXIT_FAILURE);
     }
     return NULL;
-
 }
 
 /**
@@ -846,6 +845,10 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr) {
 
 error:
     if ( sig != NULL ) SigFree(sig);
+    if (de_ctx->failure_fatal == 1) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,"Signature init failed %s ",sigstr);
+        exit(EXIT_FAILURE);
+    }
     return NULL;
 }
 
