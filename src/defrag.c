@@ -771,6 +771,17 @@ Defrag6InsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
                     goto insert;
                 }
                 break;
+            case POLICY_FIRST:
+                if ((frag_offset >= prev->offset) &&
+                    (frag_end <= prev->offset + prev->data_len))
+                    goto done;
+                if (frag_offset < prev->offset)
+                    goto insert;
+                if (frag_offset < prev->offset + prev->data_len) {
+                    ltrim = prev->offset + prev->data_len - frag_offset;
+                    goto insert;
+                }
+                break;
             default:
                 break;
             }
@@ -2137,6 +2148,41 @@ DefragSturgesNovakFirstTest(void)
 }
 
 static int
+IPV6DefragSturgesNovakFirstTest(void)
+{
+    /* Expected data. */
+    u_char expected[] = {
+        "AAAAAAAA"
+        "AAAAAAAA"
+        "AAAAAAAA"
+        "JJJJJJJJ"
+        "BBBBBBBB"
+        "BBBBBBBB"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "LLLLLLLL"
+        "DDDDDDDD"
+        "LLLLLLLL"
+        "MMMMMMMM"
+        "EEEEEEEE"
+        "EEEEEEEE"
+        "FFFFFFFF"
+        "FFFFFFFF"
+        "FFFFFFFF"
+        "GGGGGGGG"
+        "GGGGGGGG"
+        "HHHHHHHH"
+        "HHHHHHHH"
+        "IIIIIIII"
+        "QQQQQQQQ"
+    };
+
+    return IPV6DefragDoSturgesNovakTest(POLICY_FIRST, expected,
+        sizeof(expected));
+}
+
+static int
 DefragSturgesNovakLastTest(void)
 {
     /* Expected data. */
@@ -2278,6 +2324,8 @@ DefragRegisterTests(void)
         IPV6DefragSturgesNovakWindowsTest, 1);
     UtRegisterTest("IPV6DefragSturgesNovakSolarisTest",
         IPV6DefragSturgesNovakSolarisTest, 1);
+    UtRegisterTest("IPV6DefragSturgesNovakFirstTest",
+        IPV6DefragSturgesNovakFirstTest, 1);
 #endif /* UNITTESTS */
 }
 
