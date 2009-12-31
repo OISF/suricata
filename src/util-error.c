@@ -71,6 +71,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_DEPTH_MISSING_CONTENT);
         CASE_CODE (SC_ERR_OFFSET_MISSING_CONTENT);
         CASE_CODE (SC_ERR_NO_URICONTENT_NEGATION);
+        CASE_CODE (SC_ERR_FOPEN_ERROR);
         default:
             return "UNKNOWN_ERROR";
     }

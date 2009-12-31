@@ -88,7 +88,7 @@ static inline int SCClassConfInitContext(DetectEngineCtx *de_ctx)
     if (fd == NULL) {
         filename = SCClassConfGetConfFilename();
         if ( (fd = fopen(filename, "r")) == NULL) {
-            SCLogError(SC_ERR_FOPEN_ERROR, "Error opening file: \"%s\"", filename);
+            SCLogError(SC_ERR_FOPEN_ERROR, "Error opening file: \"%s\": %s", filename, strerror(errno));
             goto error;
         }
     }
@@ -117,7 +117,10 @@ static inline int SCClassConfInitContext(DetectEngineCtx *de_ctx)
         fclose(fd);
         fd = NULL;
     }
-    return -1;
+
+    printf("\nPlease check the \"classification-file\" option in your suricata.yaml file.\n");
+    exit(EXIT_FAILURE);
+//    return -1;
 }
 
 /**
