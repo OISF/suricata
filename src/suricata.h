@@ -14,7 +14,7 @@
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
-#define PROG_VER "0.8"
+#define PROG_VER "0.8.0"
 
 /* max packets processed simultaniously */
 #define MAX_PENDING 50
