@@ -138,6 +138,8 @@ rule-files:
  - emerging-user_agents.rules
  - emerging-current_events.rules
 
+classification-file: /etc/suricata/classification.config
+
 # Holds variables that would be used by the engine.
 vars:
 
