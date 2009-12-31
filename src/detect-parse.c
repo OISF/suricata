@@ -888,7 +888,7 @@ end:
 int SigParseTest02 (void) {
     int result = 0;
     Signature *sig = NULL;
-
+    DetectPort *port = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
@@ -899,12 +899,11 @@ int SigParseTest02 (void) {
     SCClassConfLoadClassficationConfigFile(de_ctx);
     SCClassConfDeleteDummyClassificationConfigFD();
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)");
     if (sig == NULL) {
         goto end;
     }
 
-    DetectPort *port = NULL;
     int r = DetectPortParse(&port, "0:20");
     if (r < 0)
         goto end;
@@ -916,7 +915,7 @@ int SigParseTest02 (void) {
     }
 
 end:
-    DetectPortCleanupList(port);
+    if (port != NULL) DetectPortCleanupList(port);
     if (sig != NULL) SigFree(sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
@@ -1834,7 +1833,7 @@ static int SigParseTestAppLayerTLS03(void) {
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS03 \"; tls.version:2.5; classtype:misc-activity; sid:410006; rev:1;)");
+    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS03 \"; tls.version:2.5; sid:410006; rev:1;)");
     if (s != NULL) {
         SigFree(s);
         goto end;

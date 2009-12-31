@@ -308,7 +308,7 @@ int AlertFastLogTest01()
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (p.alerts.cnt == 1)
-        result = (strcmp(p.alerts.alerts[0].class_msg, "Unknown Traffic") == 0);
+        result = (strcmp(p.alerts.alerts[0].class_msg, "Unknown are we") == 0);
     else
         result = 0;
 
@@ -352,8 +352,9 @@ int AlertFastLogTest02()
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Fastlog test\"; content:GET; "
-                               "Classtype:attempted-admin; sid:1;)");
+                               "Classtype:unknown; sid:1;)");
     result = (de_ctx->sig_list != NULL);
+    if (result == 0) printf("sig parse failed: ");
 
     SigGroupBuild(de_ctx);
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -362,8 +363,10 @@ int AlertFastLogTest02()
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (p.alerts.cnt == 1) {
         result = (strcmp(p.alerts.alerts[0].class_msg, "Unknown Traffic") != 0);
+        if (result == 0) printf("p.alerts.alerts[0].class_msg %s: ", p.alerts.alerts[0].class_msg);
         result = (strcmp(p.alerts.alerts[0].class_msg,
-                         "Attempted Administrator Privilege Gain") == 0);
+                         "Unknown are we") == 0);
+        if (result == 0) printf("p.alerts.alerts[0].class_msg %s: ", p.alerts.alerts[0].class_msg);
     } else {
         result = 0;
     }

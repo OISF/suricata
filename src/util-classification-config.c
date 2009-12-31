@@ -464,66 +464,9 @@ void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx)
 void SCClassConfGenerateValidDummyClassConfigFD01(void)
 {
     const char *buffer =
-        "config classification: not-suspicious,Not Suspicious Traffic,3\n"
-        "config classification: unknown,Unknown Traffic,3\n"
-        "config classification: bad-unknown,Potentially Bad Traffic, 2\n"
-        "config classification: attempted-recon,Attempted Information "
-        "Leak,2\n"
-        "config classification: successful-recon-limited,Information "
-        "Leak,2\n"
-        "config classification: successful-recon-largescale,Large Scale "
-        "Information Leak,2\n"
-        "config classification: attempted-dos,Attempted Denial of "
-        "Service,2\n"
-        "config classification: successful-dos,Denial of Service,2\n"
-        "config classification: attempted-user,Attempted User Privilege "
-        "Gain,1\n"
-        "config classification: unsuccessful-user,Unsuccessful User "
-        "Privilege Gain,1\n"
-        "config classification: successful-user,Successful User Privilege "
-        "Gain,1\n"
-        "config classification: attempted-admin,Attempted Administrator "
-        "Privilege Gain,1\n"
-        "config classification: successful-admin,Successful Administrator "
-        "Privilege Gain,1\n"
-        "config classification: rpc-portmap-decode,Decode of an RPC "
-        "Query,2\n"
-        "config classification: shellcode-detect,Executable code was "
-        "detected,1\n"
-        "config classification: string-detect,A suspicious string was "
-        "detected,3\n"
-        "config classification: suspicious-filename-detect,A suspicious "
-        "filename was detected,2\n"
-        "config classification: suspicious-login,An attempted login using "
-        "a suspicious username was detected,2\n"
-        "config classification: system-call-detect,A system call was "
-        "detected,2\n"
-        "config classification: tcp-connection,A TCP connection was "
-        "detected,4\n"
-        "config classification: trojan-activity,A Network Trojan was "
-        "detected, 1\n"
-        "config classification: unusual-client-port-connection,A client "
-        "was using an unusual port,2\n"
-        "config classification: network-scan,Detection of a Network "
-        "Scan,3\n"
-        "config classification: denial-of-service,Detection of a Denial "
-        "of Service Attack,2\n"
-        "config classification: non-standard-protocol,Detection of a "
-        "non-standard protocol or event,2\n"
-        "config classification: protocol-command-decode,Generic Protocol "
-        "Command Decode,3\n"
-        "config classification: web-application-activity,access to a "
-        "potentially vulnerable web application,2\n"
-        "config classification: web-application-attack,Web Application "
-        "Attack,1\n"
-        "config classification: misc-activity,Misc activity,3\n"
-        "config classification: misc-attack,Misc Attack,2\n"
-        "config classification: icmp-event,Generic ICMP event,3\n"
-        "config classification: kickass-porn,SCORE! Get the lotion!,1\n"
-        "config classification: policy-violation,Potential Corporate "
-        "Privacy Violation,1\n"
-        "config classification: default-login-attempt,Attempt to login by "
-        "a default username and password,2\n";
+        "config classification: nothing-wrong,Nothing Wrong With Us,3\n"
+        "config classification: unknown,Unknown are we,3\n"
+        "config classification: bad-unknown,We think it's bad, 2\n";
 
     fd = fmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -611,7 +554,8 @@ int SCClassConfTest01(void)
     if (de_ctx->class_conf_ht == NULL)
         return result;
 
-    result = (de_ctx->class_conf_ht->count == 34);
+    result = (de_ctx->class_conf_ht->count == 3);
+    if (result == 0) printf("de_ctx->class_conf_ht->count %u: ", de_ctx->class_conf_ht->count);
 
     DetectEngineCtxFree(de_ctx);
 
@@ -690,7 +634,7 @@ int SCClassConfTest04(void)
     if (de_ctx->class_conf_ht == NULL)
         return 0;
 
-    result = (de_ctx->class_conf_ht->count == 34);
+    result = (de_ctx->class_conf_ht->count == 3);
 
     ct = SCClassConfAllocClasstype("unknown", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);

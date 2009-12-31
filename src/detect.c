@@ -4041,13 +4041,9 @@ static int SigTest15Real (int mpm_type) {
 
     de_ctx->mpm_matcher = mpm_type;
 
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
-
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -4111,13 +4107,9 @@ static int SigTest16Real (int mpm_type) {
 
     de_ctx->mpm_matcher = mpm_type;
 
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
-
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; classtype:misc-activity; sid:2008284; rev:2;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -4255,13 +4247,9 @@ static int SigTest18Real (int mpm_type) {
 
     de_ctx->mpm_matcher = mpm_type;
 
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
-
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; classtype:non-standard-protocol; sid:2003055; rev:4;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;

@@ -220,7 +220,12 @@ int DetectClasstypeTest02()
     SCClassConfDeleteDummyClassificationConfigFD();
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:unknown; sid:1;)");
+                  "(msg:\"Classtype test\"; Classtype:bad-unknown; sid:1;)");
+    if (sig == NULL) {
+        printf("first sig failed to parse: ");
+        result = 0;
+        goto end;
+    }
     de_ctx->sig_list = last = sig;
     result = (sig != NULL);
 
@@ -230,13 +235,22 @@ int DetectClasstypeTest02()
     result &= (sig == NULL);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:atteMPted-dos; sid:1;)");
+                  "(msg:\"Classtype test\"; Classtype:Bad-UnkNown; sid:1;)");
+    if (sig == NULL) {
+        printf("second sig failed to parse: ");
+        result = 0;
+        goto end;
+    }
     last->next = sig;
     last = sig;
     result &= (sig != NULL);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:attempted-dos; sid:1;)");
+                  "(msg:\"Classtype test\"; Classtype:nothing-wrong; sid:1;)");
+    if (sig == NULL) {
+        result = 0;
+        goto end;
+    }
     last->next = sig;
     last = sig;
     result &= (sig != NULL);
@@ -274,59 +288,37 @@ int DetectClasstypeTest03()
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Classtype test\"; Classtype:bad-unknown; priority:1; sid:1;)");
+    if (sig == NULL) {
+        result = 0;
+        goto end;
+    }
     de_ctx->sig_list = last = sig;
     result = (sig != NULL);
     result &= (sig->prio == 1);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:atteMPted-dos; "
+                  "(msg:\"Classtype test\"; Classtype:unKnoWn; "
                   "priority:3; sid:1;)");
+    if (sig == NULL) {
+        result = 0;
+        goto end;
+    }
     last->next = sig;
     last = sig;
     result &= (sig != NULL);
     result &= (sig->prio == 3);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
-                  "Classtype:attempted-dos; priority:1; sid:1;)");
+                  "Classtype:nothing-wrong; priority:1; sid:1;)");
+    if (sig == NULL) {
+        result = 0;
+        goto end;
+    }
     last->next = sig;
     last = sig;
     result &= (sig != NULL);
     result &= (sig->prio == 1);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
-                  "priority:1; Classtype:unknown; sid:1;)");
-    last->next = sig;
-    last = sig;
-    result &= (sig != NULL);
-    result &= (sig->prio == 1);
-
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
-                  "priority:2; Classtype:unknown; sid:1;)");
-    last->next = sig;
-    last = sig;
-    result &= (sig != NULL);
-    result &= (sig->prio == 2);
-
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
-                  "sid:1;)");
-    last->next = sig;
-    last = sig;
-    result &= (sig != NULL);
-    result &= (sig->prio == 3);
-
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
-                  "Classtype:unknown; sid:1;)");
-    last->next = sig;
-    last = sig;
-    result &= (sig != NULL);
-    result &= (sig->prio == 3);
-
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
-                  "Classtype:bad-unknown; sid:1;)");
-    last->next = sig;
-    last = sig;
-    result &= (sig != NULL);
-    result &= (sig->prio == 2);
 
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);

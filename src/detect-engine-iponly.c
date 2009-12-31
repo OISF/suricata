@@ -500,13 +500,9 @@ static int IPOnlyTestSig01(void) {
 
     memset(&de_ctx, 0, sizeof(DetectEngineCtx));
 
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(&de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
-
     de_ctx.flags |= DE_QUIET;
 
-    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-01 sig is IPOnly \"; classtype:misc-activity; sid:400001; rev:1;)");
+    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-01 sig is IPOnly \"; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -532,13 +528,9 @@ static int IPOnlyTestSig02 (void) {
 
     memset(&de_ctx, 0, sizeof(DetectEngineCtx));
 
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(&de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
-
     de_ctx.flags |= DE_QUIET;
 
-    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any 80 (msg:\"SigTest40-02 sig is not IPOnly \"; classtype:misc-activity; sid:400001; rev:1;)");
+    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any 80 (msg:\"SigTest40-02 sig is not IPOnly \"; sid:400001; rev:1;)");
     if (s == NULL) {
         goto end;
     }
