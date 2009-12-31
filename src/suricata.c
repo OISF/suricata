@@ -609,6 +609,8 @@ int main(int argc, char **argv)
         } else {
             SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
         }
+        if (de_ctx->failure_fatal)
+            exit(EXIT_FAILURE);
     }
 
     struct timeval start_time;

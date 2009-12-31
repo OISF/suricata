@@ -14,11 +14,13 @@
 #include "detect-flags.h"
 #include "util-unittest.h"
 
+#include "util-debug.h"
+
 /**
  *  Regex (by Brian Rectanus)
  *  flags: [!+*](SAPRFU120)[,SAPRFU12]
  */
-#define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120]+)(?:\\s*,\\s*([SAPRFU12]+))?\\s*$"
+#define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120\\+\\*!]+)(?:\\s*,\\s*([SAPRFU12]+))?\\s*$"
 
 /**
  * Flags args[0] *(3) +(2) !(1)
@@ -85,6 +87,8 @@ error:
  */
 static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
+    SCEnter();
+
     int ret = 0;
     uint8_t flags = 0;
     DetectFlagsData *de = (DetectFlagsData *)m->ctx;
@@ -94,33 +98,42 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
 
     flags = p->tcph->th_flags;
 
-    if(!de->flags && flags)    {
-            if(de->modifier == 1)
-                return 1;
-           return ret;
+    if (!de->flags && flags) {
+        if(de->modifier == MODIFIER_NOT) {
+            SCReturnInt(1);
+        }
+
+        SCReturnInt(ret);
     }
 
     flags &= (de->flags & de->ignored_flags);
 
     switch(de->modifier)    {
         case MODIFIER_ANY:
-            if((flags & de->flags) > 0)
-                return 1;
-            return ret;
+            if((flags & de->flags) > 0) {
+                SCReturnInt(1);
+            }
+            SCReturnInt(ret);
+
         case MODIFIER_PLUS:
-            if(((flags & de->flags) == de->flags) && (((p->tcph->th_flags - flags) + de->ignored_flags) != 0xff))
-                return 1;
-            return ret;
+            if(((flags & de->flags) == de->flags) && (((p->tcph->th_flags - flags) + de->ignored_flags) != 0xff)) {
+                SCReturnInt(1);
+            }
+            SCReturnInt(ret);
+
         case MODIFIER_NOT:
-            if((flags & de->flags) != de->flags)
-                return 1;
-            return ret;
+            if((flags & de->flags) != de->flags) {
+                SCReturnInt(1);
+            }
+            SCReturnInt(ret);
+
         default:
-            if((flags & de->flags) == de->flags)
-                return 1;
+            if((flags & de->flags) == de->flags) {
+                SCReturnInt(1);
+            }
     }
 
-    return ret;
+    SCReturnInt(ret);
 }
 
 /**
@@ -134,6 +147,8 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
  */
 static DetectFlagsData *DetectFlagsParse (char *rawstr)
 {
+    SCEnter();
+
     DetectFlagsData *de = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, found = 0, ignore = 0, res = 0;
@@ -144,24 +159,26 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     int i;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-
     if (ret < 1) {
+        SCLogDebug("pcre match failed");
         goto error;
     }
 
     for (i = 0; i < (ret - 1); i++) {
 
         res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,i + 1, &str_ptr);
-
         if (res < 0) {
+            SCLogDebug("pcre_get_substring failed");
             goto error;
         }
 
         args[i] = (char *)str_ptr;
     }
 
-    if(args[1] == NULL)
+    if(args[1] == NULL) {
+        SCLogDebug("args[1] == NULL");
         goto error;
+    }
 
     de = malloc(sizeof(DetectFlagsData));
     if (de == NULL) {
@@ -181,6 +198,49 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
 
         while (*ptr != '\0') {
             switch (*ptr) {
+                case 'S':
+                case 's':
+                    de->flags |= TH_SYN;
+                    found++;
+                    break;
+                case 'A':
+                case 'a':
+                    de->flags |= TH_ACK;
+                    found++;
+                    break;
+                case 'F':
+                case 'f':
+                    de->flags |= TH_FIN;
+                    found++;
+                    break;
+                case 'R':
+                case 'r':
+                    de->flags |= TH_RST;
+                    found++;
+                    break;
+                case 'P':
+                case 'p':
+                    de->flags |= TH_PUSH;
+                    found++;
+                    break;
+                case 'U':
+                case 'u':
+                    de->flags |= TH_URG;
+                    found++;
+                    break;
+                case '1':
+                    de->flags |= TH_RES1;
+                    found++;
+                    break;
+                case '2':
+                    de->flags |= TH_RES2;
+                    found++;
+                    break;
+                case '0':
+                    de->flags = 0;
+                    found++;
+                    break;
+
                 case '!':
                     de->modifier = MODIFIER_NOT;
                     break;
@@ -243,6 +303,29 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
             case '0':
                 de->flags = 0;
                 found++;
+                break;
+
+            case '!':
+                if (de->modifier != 0) {
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only one modifier at a time");
+                    goto error;
+                }
+                de->modifier = MODIFIER_NOT;
+                break;
+            case '+':
+                if (de->modifier != 0) {
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only one modifier at a time");
+                    goto error;
+                }
+                de->modifier = MODIFIER_PLUS;
+                break;
+            case '*':
+                if (de->modifier != 0) {
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only one modifier at a time");
+                    goto error;
+                }
+                de->modifier = MODIFIER_ANY;
+                break;
             default:
                 break;
         }
@@ -306,22 +389,24 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
             ptr++;
         }
 
-        if(ignore == 0)
+        if(ignore == 0) {
+            SCLogDebug("ignore == 0");
             goto error;
+        }
     }
 
     for (i = 0; i < (ret - 1); i++){
         if (args[i] != NULL) free(args[i]);
     }
 
-    return de;
+    SCReturnPtr(de, "DetectFlagsData");
 
 error:
     for (i = 0; i < (ret - 1); i++){
         if (args[i] != NULL) free(args[i]);
     }
     if (de) free(de);
-    return NULL;
+    SCReturnPtr(NULL, "DetectFlagsData");
 }
 
 /**
@@ -887,8 +972,10 @@ static int FlagsTestParse12 (void) {
 
     de = DetectFlagsParse("0");
 
-    if (de == NULL || de->flags != 0)
+    if (de == NULL || de->flags != 0) {
+        printf("de setup: ");
         goto error;
+    }
 
     sm = SigMatchAlloc();
     if (sm == NULL)
@@ -911,6 +998,23 @@ error:
     return 0;
 }
 
+/**
+ * \test test for a  valid flags value
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int FlagsTestParse13 (void) {
+    DetectFlagsData *de = NULL;
+    de = DetectFlagsParse("+S*");
+    if (de != NULL) {
+        DetectFlagsFree(de);
+        return 0;
+    }
+
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -930,5 +1034,6 @@ void FlagsRegisterTests(void) {
     UtRegisterTest("FlagsTestParse10", FlagsTestParse10, 1);
     UtRegisterTest("FlagsTestParse11", FlagsTestParse11, 0);
     UtRegisterTest("FlagsTestParse12", FlagsTestParse12, 0);
+    UtRegisterTest("FlagsTestParse13", FlagsTestParse13, 1);
 #endif /* UNITTESTS */
 }

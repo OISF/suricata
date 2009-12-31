@@ -251,7 +251,7 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
     /* Call option parsing */
     st = SigTableGet((char *)arr[0]);
     if (st == NULL) {
-        printf("Unknown rule keyword '%s'.\n", (char *)arr[0]);
+        SCLogError(SC_RULE_KEYWORD_UNKNOWN, "unknown rule keyword '%s'.", (char *)arr[0]);
         goto error;
     }
 
@@ -269,8 +269,10 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
     }
 
     /* setup may or may not add a new SigMatch to the list */
-    if (st->Setup(de_ctx, s, m, optvalue) < 0)
+    if (st->Setup(de_ctx, s, m, optvalue) < 0) {
+        SCLogDebug("\"%s\" failed to setup", st->name);
         goto error;
+    }
 
     /* thats why we check for that here
      * (it may install more than one SigMatch!) */
@@ -512,12 +514,14 @@ error:
 }
 
 int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_direction) {
+    SCEnter();
+
     char **basics;
 
     int ret = SigParseBasics(s, sigstr, &basics, addrs_direction);
     if (ret < 0) {
         //printf("SigParseBasics failed\n");
-        return -1;
+        SCReturnInt(-1);
     }
 
 #ifdef DEBUG
@@ -532,6 +536,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     /* we can have no options, so make sure we have them */
     if (basics[CONFIG_OPTS] != NULL) {
         ret = SigParseOptions(de_ctx, s, NULL, strdup(basics[CONFIG_OPTS]));
+        SCLogDebug("ret from SigParseOptions %d", ret);
     }
 
     /* cleanup */
@@ -544,7 +549,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
         free(basics);
     }
 
-    return ret;
+    SCReturnInt(ret);
 }
 
 Signature *SigAlloc (void) {

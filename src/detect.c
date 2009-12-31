@@ -254,6 +254,8 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
 
 int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 {
+    SCEnter();
+
     Signature *prevsig = NULL, *sig;
     ConfNode *rule_files;
     ConfNode *file = NULL;
@@ -268,14 +270,14 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     /* http_uri -- for uricontent */
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP GET URI cap\"; flow:to_server,established; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
     if (sig == NULL)
-        return -1;
+        ret = -1;
 
     prevsig = sig;
     de_ctx->sig_list = sig;
 
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server,established; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
     if (sig == NULL)
-        return -1;
+        ret = -1;
 
     prevsig->next = sig;
     prevsig = sig;
@@ -283,7 +285,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     /* http_host -- for the log-httplog module */
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server,established; content:\"|0d 0a|Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
     if (sig == NULL)
-        return -1;
+        ret = -1;
 
     prevsig->next = sig;
     prevsig = sig;
@@ -291,7 +293,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     /* http_ua -- for the log-httplog module */
     sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server,established; content:\"|0d 0a|User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
     if (sig == NULL)
-        return -1;
+        ret = -1;
 
     prevsig->next = sig;
 
@@ -301,12 +303,14 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
         TAILQ_FOREACH(file, &rule_files->head, next) {
             sfile = DetectLoadCompleteSigPath(file->val);
             SCLogInfo("Loading rule file: %s", sfile);
+
             r = DetectLoadSigFile(de_ctx, sfile);
             cntf++;
             if (r > 0) {
                 cnt += r;
             } else if (r == 0){
                 SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sfile);
+                ret = -1;
             }
             free(sfile);
         }
@@ -332,13 +336,17 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
         SCLogInfo("%d rules loaded from %d files.", cnt, cntf);
     }
 
+    if (ret < 0 && de_ctx->failure_fatal) {
+        SCReturnInt(ret);
+    }
+
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
 
     /* Setup the signature group lookup structure and pattern matchers */
     SigGroupBuild(de_ctx);
-    return 0;
+    SCReturnInt(0);
 }
 
 /**

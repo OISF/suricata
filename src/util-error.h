@@ -75,6 +75,8 @@ typedef enum {
     SC_ERR_FWRITE,
     SC_ERR_THRESHOLD_HASH_ADD,
     SC_ERR_UNDEFINED_VAR,
+    SC_RULE_KEYWORD_UNKNOWN,
+    SC_ERR_FLAGS_MODIFIER,
 } SCError;
 
 const char *SCErrorToString(SCError);
