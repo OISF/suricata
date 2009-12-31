@@ -310,7 +310,13 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
                 cnt += r;
             } else if (r == 0){
                 SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sfile);
-                ret = -1;
+                if (de_ctx->failure_fatal == 1) {
+                    exit(EXIT_FAILURE);
+                }
+            } else if (r < 0){
+                if (de_ctx->failure_fatal == 1) {
+                    exit(EXIT_FAILURE);
+                }
             }
             free(sfile);
         }
@@ -325,12 +331,22 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
             cnt += r;
         } else if (r == 0) {
             SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sig_file);
+            if (de_ctx->failure_fatal == 1) {
+                exit(EXIT_FAILURE);
+            }
+        } else if (r < 0){
+           if (de_ctx->failure_fatal == 1) {
+                exit(EXIT_FAILURE);
+           }
         }
     }
 
     /* now we should have signatures to work with */
     if (cnt <= 0) {
         SCLogError(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", cntf);
+        if (de_ctx->failure_fatal == 1) {
+            exit(EXIT_FAILURE);
+        }
         ret = -1;
     } else {
         SCLogInfo("%d rules loaded from %d files.", cnt, cntf);
