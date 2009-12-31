@@ -436,8 +436,10 @@ void FlowInitConfig (char quiet)
     }
     SCMutexInit(&flow_memuse_mutex, NULL);
 
+    unsigned int seed = TimeRandPreseed();
     /* set defaults */
-    flow_config.hash_rand   = rand(); /* XXX seed rand */
+    flow_config.hash_rand   = (int)( FLOW_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0)) ; /* XXX seed rand */
+
     flow_config.hash_size   = FLOW_DEFAULT_HASHSIZE;
     flow_config.memcap      = FLOW_DEFAULT_MEMCAP;
     flow_config.prealloc    = FLOW_DEFAULT_PREALLOC;

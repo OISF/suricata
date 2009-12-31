@@ -26,6 +26,7 @@
 #include "decode-ipv6.h"
 #include "util-hashlist.h"
 #include "util-pool.h"
+#include "util-time.h"
 #include "util-print.h"
 #include "util-debug.h"
 #include "util-fix_checksum.h"
@@ -1265,7 +1266,10 @@ void
 DefragInit(void)
 {
     /* Initialize random value for hashing and hash table size. */
-    defrag_hash_rand = rand();
+    unsigned int seed = TimeRandPreseed();
+    /* set defaults */
+    defrag_hash_rand = (int)( DEFAULT_DEFRAG_HASH_SIZE * (rand_r(&seed) / RAND_MAX + 1.0)) ; /* XXX seed rand */
+
     defrag_hash_size = DEFAULT_DEFRAG_HASH_SIZE;
 
     /* Allocate the DefragContext. */
