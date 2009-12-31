@@ -28,6 +28,7 @@ typedef struct DetectPcreData_ {
     int32_t distance;
 
     uint16_t flags;
+    uint8_t negate;
 
     char *capname;
     uint16_t capidx;

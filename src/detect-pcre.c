@@ -113,6 +113,8 @@ error:
 
 int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
+    SCEnter();
+
 #define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
@@ -120,7 +122,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
     uint16_t len = 0;
 
     if (p->payload_len == 0)
-        return 0;
+        SCReturnInt(0);
 
     DetectPcreData *pe = (DetectPcreData *)m->ctx;
     if (s->flags & SIG_FLAG_RECURSIVE) {
@@ -130,7 +132,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
         ptr = det_ctx->pkt_ptr;
         len = p->payload_len - det_ctx->pkt_off;
         if (ptr == NULL || len == 0)
-            return 0;
+            SCReturnInt(0);
     } else {
         ptr = p->payload;
         len = p->payload_len;
@@ -139,73 +141,88 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
     //printf("DetectPcre: ptr %p, len %" PRIu32 "\n", ptr, len);
 
     ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret >= 0) {
-        if (ret > 1 && pe->capidx != 0) {
-            const char *str_ptr;
-            ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-            if (ret) {
-                if (strcmp(pe->capname,"http_uri") == 0) {
-                    p->http_uri.raw[det_ctx->pkt_cnt] = (uint8_t *)str_ptr;
-                    p->http_uri.raw_size[det_ctx->pkt_cnt] = ret;
-                    p->http_uri.cnt = det_ctx->pkt_cnt + 1;
+    SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
 
-                    /* count how many uri's we handle for stats */
-                    det_ctx->uris++;
+    if (ret == PCRE_ERROR_NOMATCH) {
+        if (pe->negate == 1) {
+            /* regex didn't match with negate option means we consider it a match */
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+    } else if (ret >= 0) {
+        if (pe->negate == 1) {
+            /* regex matched but we're negated, so not considering it a match */
+            ret = 0;
+        } else {
+            /* regex matched and we're not negated, considering it a match */
+            if (ret > 1 && pe->capidx != 0) {
+                const char *str_ptr;
+                ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+                if (ret) {
+                    if (strcmp(pe->capname,"http_uri") == 0) {
+                        p->http_uri.raw[det_ctx->pkt_cnt] = (uint8_t *)str_ptr;
+                        p->http_uri.raw_size[det_ctx->pkt_cnt] = ret;
+                        p->http_uri.cnt = det_ctx->pkt_cnt + 1;
 
-                    //printf("DetectPcre: URI det_ctx->sgh %p, det_ctx->mcu %p\n", det_ctx->sgh, det_ctx->mcu);
-                    //PrintRawUriFp(stdout,p->http_uri.raw[det_ctx->pkt_cnt],p->http_uri.raw_size[det_ctx->pkt_cnt]);
-                    //printf(" (pkt_cnt %" PRIu32 ", mcu %p)\n", det_ctx->pkt_cnt, det_ctx->mcu);
+                        /* count how many uri's we handle for stats */
+                        det_ctx->uris++;
 
-                    /* don't bother scanning if we don't have a pattern matcher ctx
-                     * which means we don't have uricontent sigs */
-                    if (det_ctx->sgh->mpm_uri_ctx != NULL) {
-                        if (det_ctx->sgh->mpm_uricontent_maxlen <= p->http_uri.raw_size[det_ctx->pkt_cnt]) {
-                            if (det_ctx->sgh->mpm_uricontent_maxlen == 1)      det_ctx->pkts_uri_scanned1++;
-                            else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_scanned2++;
-                            else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_scanned3++;
-                            else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_scanned4++;
-                            else                                           det_ctx->pkts_uri_scanned++;
+                        //printf("DetectPcre: URI det_ctx->sgh %p, det_ctx->mcu %p\n", det_ctx->sgh, det_ctx->mcu);
+                        //PrintRawUriFp(stdout,p->http_uri.raw[det_ctx->pkt_cnt],p->http_uri.raw_size[det_ctx->pkt_cnt]);
+                        //printf(" (pkt_cnt %" PRIu32 ", mcu %p)\n", det_ctx->pkt_cnt, det_ctx->mcu);
 
-                            det_ctx->pmq.mode = PMQ_MODE_SCAN;
-                            ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
-                            if (ret > 0) {
-                                if (det_ctx->sgh->mpm_uricontent_maxlen == 1)      det_ctx->pkts_uri_searched1++;
-                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_searched2++;
-                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_searched3++;
-                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
-                                else                                           det_ctx->pkts_uri_searched++;
+                        /* don't bother scanning if we don't have a pattern matcher ctx
+                         * which means we don't have uricontent sigs */
+                        if (det_ctx->sgh->mpm_uri_ctx != NULL) {
+                            if (det_ctx->sgh->mpm_uricontent_maxlen <= p->http_uri.raw_size[det_ctx->pkt_cnt]) {
+                                if (det_ctx->sgh->mpm_uricontent_maxlen == 1)      det_ctx->pkts_uri_scanned1++;
+                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_scanned2++;
+                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_scanned3++;
+                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_scanned4++;
+                                else                                           det_ctx->pkts_uri_scanned++;
 
-                                det_ctx->pmq.mode = PMQ_MODE_SEARCH;
-                                ret += mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
+                                det_ctx->pmq.mode = PMQ_MODE_SCAN;
+                                ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
+                                if (ret > 0) {
+                                    if (det_ctx->sgh->mpm_uricontent_maxlen == 1)      det_ctx->pkts_uri_searched1++;
+                                    else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_searched2++;
+                                    else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_searched3++;
+                                    else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
+                                    else                                           det_ctx->pkts_uri_searched++;
 
-                                /* indicate to uricontent that we have a uri,
-                                 * we scanned it _AND_ we found pattern matches. */
-                                det_ctx->de_have_httpuri = 1;
+                                    det_ctx->pmq.mode = PMQ_MODE_SEARCH;
+                                    ret += mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
+
+                                    /* indicate to uricontent that we have a uri,
+                                     * we scanned it _AND_ we found pattern matches. */
+                                    det_ctx->de_have_httpuri = 1;
+                                }
                             }
                         }
-                    }
-                } else {
-                    if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
-                        PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
-                    } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
-                        FlowVarAddStr(p->flow, pe->capidx, (uint8_t *)str_ptr, ret);
+                    } else {
+                        if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
+                            PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
+                        } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
+                            FlowVarAddStr(p->flow, pe->capidx, (uint8_t *)str_ptr, ret);
+                        }
                     }
                 }
             }
+            /* update ptrs for pcre RELATIVE */
+            det_ctx->pkt_ptr =  ptr+ov[1];
+            det_ctx->pkt_off = (ptr+ov[1]) - p->payload;
+            //printf("DetectPcre: post match: t->pkt_ptr %p t->pkt_off %" PRIu32 "\n", t->pkt_ptr, t->pkt_off);
+
+            ret = 1;
         }
 
-        /* update ptrs for pcre RELATIVE */
-        det_ctx->pkt_ptr =  ptr+ov[1];
-        det_ctx->pkt_off = (ptr+ov[1]) - p->payload;
-        //printf("DetectPcre: post match: t->pkt_ptr %p t->pkt_off %" PRIu32 "\n", t->pkt_ptr, t->pkt_off);
-
-        ret = 1;
     } else {
+        SCLogDebug("pcre had matching error");
         ret = 0;
     }
 
-    //printf("DetectPcreMatch: ret %" PRId32 "\n", ret);
-    return ret;
+    SCReturnInt(ret);
 }
 
 DetectPcreData *DetectPcreParse (char *regexstr)
@@ -220,7 +237,20 @@ DetectPcreData *DetectPcreParse (char *regexstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
+    uint16_t slen = strlen(regexstr);
+    uint16_t pos = 0;
+    uint8_t negate = 0;
+
+    while (pos < slen && isspace(regexstr[pos])) {
+        pos++;
+    }
+
+    if (regexstr[pos] == '!') {
+        negate = 1;
+        pos++;
+    }
+
+    ret = pcre_exec(parse_regex, parse_regex_study, regexstr+pos, slen-pos, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 0) {
         goto error;
     }
@@ -251,6 +281,9 @@ DetectPcreData *DetectPcreParse (char *regexstr)
         goto error;
     }
     memset(pd, 0, sizeof(DetectPcreData));
+
+    if (negate)
+        pd->negate = 1;
 
     if (op != NULL) {
         while (*op) {
@@ -759,7 +792,7 @@ static int DetectPcreTestSig03Real(int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"GET\"; pcre:\"!/two/\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"GET\"; pcre:!\"/two/\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
