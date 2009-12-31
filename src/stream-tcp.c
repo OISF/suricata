@@ -76,7 +76,7 @@ static Pool *ssn_pool = NULL;
 static SCMutex ssn_pool_mutex;
 
 #ifdef DEBUG
-static uint64_t ssn_pool_cnt;
+static uint64_t ssn_pool_cnt = 0;
 static SCMutex ssn_pool_cnt_mutex;
 #endif
 
