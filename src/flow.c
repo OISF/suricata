@@ -14,6 +14,7 @@
 #include "tm-modules.h"
 #include "tm-threads.h"
 
+#include "util-random.h"
 #include "util-time.h"
 
 #include "flow.h"
@@ -436,9 +437,9 @@ void FlowInitConfig (char quiet)
     }
     SCMutexInit(&flow_memuse_mutex, NULL);
 
-    unsigned int seed = TimeRandPreseed();
+    unsigned int seed = RandomTimePreseed();
     /* set defaults */
-    flow_config.hash_rand   = (int)( FLOW_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0)) ; /* XXX seed rand */
+    flow_config.hash_rand   = (int)( FLOW_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
 
     flow_config.hash_size   = FLOW_DEFAULT_HASHSIZE;
     flow_config.memcap      = FLOW_DEFAULT_MEMCAP;

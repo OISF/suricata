@@ -10,7 +10,5 @@ void TimeSetIncrementTime(uint32_t);
 void TimeModeSetLive(void);
 void TimeModeSetOffline (void);
 
-unsigned int TimeRandPreseed(void);
-
 #endif /* __UTIL_TIME_H__ */
 

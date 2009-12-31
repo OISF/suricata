@@ -30,6 +30,7 @@
 #include "util-print.h"
 #include "util-debug.h"
 #include "util-fix_checksum.h"
+#include "util-random.h"
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
@@ -1266,9 +1267,9 @@ void
 DefragInit(void)
 {
     /* Initialize random value for hashing and hash table size. */
-    unsigned int seed = TimeRandPreseed();
+    unsigned int seed = RandomTimePreseed();
     /* set defaults */
-    defrag_hash_rand = (int)( DEFAULT_DEFRAG_HASH_SIZE * (rand_r(&seed) / RAND_MAX + 1.0)) ; /* XXX seed rand */
+    defrag_hash_rand = (int)( DEFAULT_DEFRAG_HASH_SIZE * (rand_r(&seed) / RAND_MAX + 1.0));
 
     defrag_hash_size = DEFAULT_DEFRAG_HASH_SIZE;
 
