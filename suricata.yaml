@@ -67,8 +67,76 @@ pfring:
   #if not set, it will look at the current working dir
 default-rule-path: /etc/suricata/
 rule-files:
-  - netbios.rules
-  - x11.rules
+ - attack-responses.rules
+ - backdoor.rules
+ - bad-traffic.rules
+ - chat.rules
+ - ddos.rules
+ - deleted.rules
+ - dns.rules
+ - dos.rules
+ - experimental.rules
+ - exploit.rules
+ - finger.rules
+ - ftp.rules
+ - icmp-info.rules
+ - icmp.rules
+ - imap.rules
+ - info.rules
+ - local.rules
+ - misc.rules
+ - multimedia.rules
+ - mysql.rules
+ - netbios.rules
+ - nntp.rules
+ - oracle.rules
+ - other-ids.rules
+ - p2p.rules
+ - policy.rules
+ - pop2.rules
+ - pop3.rules
+ - porn.rules
+ - rpc.rules
+ - rservices.rules
+ - scada.rules
+ - scan.rules
+ - shellcode.rules
+ - smtp.rules
+ - snmp.rules
+ - specific-threats.rules
+ - spyware-put.rules
+ - sql.rules
+ - telnet.rules
+ - tftp.rules
+ - virus.rules
+ - voip.rules
+ - web-activex.rules
+ - web-attacks.rules
+ - web-cgi.rules
+ - web-client.rules
+ - web-coldfusion.rules
+ - web-frontpage.rules
+ - web-iis.rules
+ - web-misc.rules
+ - web-php.rules
+ - x11.rules
+ - emerging-attack_response.rules
+ - emerging-dos.rules
+ - emerging-exploit.rules
+ - emerging-game.rules
+ - emerging-inappropriate.rules
+ - emerging-malware.rules
+ - emerging-p2p.rules
+ - emerging-policy.rules
+ - emerging-scan.rules
+ - emerging-virus.rules
+ - emerging-voip.rules
+ - emerging-web.rules
+ - emerging-web_client.rules
+ - emerging-web_server.rules
+ - emerging-web_specific_apps.rules
+ - emerging-user_agents.rules
+ - emerging-current_events.rules
 
 # Holds variables that would be used by the engine.
 vars:
@@ -77,19 +145,19 @@ vars:
   # These would be retrieved during the Signature address parsing stage.
   address-groups:
 
-    HOME_NET: "[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:13c5:5AFE::/64,2001:888:13c5:CAFE::/64]"
+    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
 
-    EXTERNAL_NET: "[!192.168.0.0/16,2000::/3]"
+    EXTERNAL_NET: any
 
-    HTTP_SERVERS: "!192.168.0.0/16"
+    HTTP_SERVERS: "$HOME_NET"
 
-    SMTP_SERVERS: "!192.168.0.0/16"
+    SMTP_SERVERS: "$HOME_NET"
 
-    SQL_SERVERS: "!192.168.0.0/16"
+    SQL_SERVERS: "$HOME_NET"
 
-    DNS_SERVERS: any
+    DNS_SERVERS: "$HOME_NET"
 
-    TELNET_SERVERS: any
+    TELNET_SERVERS: "$HOME_NET"
 
     AIM_SERVERS: any
 
@@ -97,7 +165,7 @@ vars:
   # These would be retrieved during the Signature port parsing stage.
   port-groups:
 
-    HTTP_PORTS: "80:81,88"
+    HTTP_PORTS: "80"
 
     SHELLCODE_PORTS: "!80"
 
