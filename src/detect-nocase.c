@@ -24,7 +24,7 @@ void DetectNocaseRegister (void) {
 
 int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
 {
-    //printf("DetectNocaseSetup: s->match:%p,m:%p\n", s->match, m);
+    int ret = 0;
 
     if (nullstr != NULL) {
         printf("DetectNocaseSetup: nocase has no value\n");
@@ -32,30 +32,22 @@ int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     }
 
     SigMatch *pm = m;
-    if (pm != NULL) {
-#if 0
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-            printf("DetectNocaseSetup: set depth %" PRIu32 " for previous pcre\n", pe->depth);
-        } else 
-#endif
+    for (; pm != NULL; pm = pm->prev) {
         if (pm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
             //printf("DetectNocaseSetup: set nocase for previous content\n");
             cd->flags |= DETECT_CONTENT_NOCASE;
+            goto end;
         } else if (pm->type == DETECT_URICONTENT) {
             DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
             //printf("DetectNocaseSetup: set nocase for previous content\n");
             cd->flags |= DETECT_URICONTENT_NOCASE;
-        } else {
-            printf("DetectNocaseSetup: Unknown previous keyword! (type %" PRIu32 ")\n", pm->type);
-            return -1;
+            goto end;
         }
-    } else {
-        printf("DetectNocaseSetup: No previous match! (pm == NULL)\n");
-        return -1;
     }
 
-    return 0;
+    ret = -1;
+end:
+    return ret;
 }
 

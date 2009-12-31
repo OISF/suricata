@@ -7,6 +7,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
+#include "util-debug.h"
 
 int DetectDistanceSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *distancestr);
 
@@ -36,57 +37,38 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
 
     SigMatch *pm = m;
     if (pm == NULL) {
-        printf("DetectDistanceSetup: No previous match!\n");
+        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
         goto error;
     }
 
-    if (pm->type == DETECT_PCRE) {
-        DetectPcreData *pe = (DetectPcreData *)pm->ctx;
+    /** Search for the first previous DetectContent
+     * SigMatch (it can be the same as this one) */
+    pm = DetectContentFindPrevApplicableSM(m);
+    if (pm == NULL || DetectContentHasPrevSMPattern(pm) == NULL) {
+        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
+        return -1;
+    }
 
-        pe->distance = strtol(str, NULL, 10);
-        pe->flags |= DETECT_PCRE_DISTANCE;
-        //printf("DetectDistanceSetup: set distance %" PRId32 " for previous pcre\n", pe->distance);
-
-    } else if (pm->type == DETECT_CONTENT) {
-        /** Search for the first previous DetectContent
-          * SigMatch (it can be the same as this one) */
-        pm = DetectContentFindPrevApplicableSM(m);
-        if (pm == NULL || DetectContentHasPrevSMPattern(pm) == NULL) {
-            printf("DetectDistanceSetup: Unknown previous keyword!\n");
-            return -1;
-        }
-
-        DetectContentData *cd = (DetectContentData *)pm->ctx;
-        if (cd == NULL) {
-            printf("DetectDistanceSetup: Unknown previous keyword!\n");
-            return -1;
-        }
-
-        cd->distance = strtol(str, NULL, 10);
-        cd->flags |= DETECT_CONTENT_DISTANCE;
-
-        /** Propagate the modifiers through the first chunk
-          * (SigMatch) if we're dealing with chunks */
-        if (cd->flags & DETECT_CONTENT_IS_CHUNK)
-            DetectContentPropagateDistance(pm);
-
-        //DetectContentPrint(cd);
-        //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
-    } else if (pm->type == DETECT_URICONTENT) {
-        DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
-
-        cd->distance = strtol(str, NULL, 10);
-        cd->flags |= DETECT_URICONTENT_DISTANCE;
-
-        //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
-    } else {
+    DetectContentData *cd = (DetectContentData *)pm->ctx;
+    if (cd == NULL) {
         printf("DetectDistanceSetup: Unknown previous keyword!\n");
-        goto error;
+        return -1;
     }
 
-    pm = m->prev;
+    cd->distance = strtol(str, NULL, 10);
+    cd->flags |= DETECT_CONTENT_DISTANCE;
+
+    /** Propagate the modifiers through the first chunk
+     * (SigMatch) if we're dealing with chunks */
+    if (cd->flags & DETECT_CONTENT_IS_CHUNK)
+        DetectContentPropagateDistance(pm);
+
+    //DetectContentPrint(cd);
+    //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
+
+    pm = DetectContentFindPrevApplicableSM(m->prev);
     if (pm == NULL) {
-        printf("DetectDistanceSetup: No previous-previous match!\n");
+        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
         goto error;
     }
 
