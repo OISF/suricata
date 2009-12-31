@@ -121,7 +121,7 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
-    memset(dod, 0, sizeof(DetectDceOpnumRange));
+    memset(dod, 0, sizeof(DetectDceOpnumData));
 
     if ( (dup_str = strdup(pcre_sub_str)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");

@@ -173,7 +173,7 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     struct entry *item = NULL;
     DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m->ctx;
     DCERPCState *dcerpc_state = (DCERPCState *)state;
-    if (dce_rpc_state == NULL) {
+    if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
         return 0;
     }
