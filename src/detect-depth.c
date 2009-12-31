@@ -6,6 +6,7 @@
 #include "flow-var.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
+#include "util-debug.h"
 
 int DetectDepthSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *depthstr);
 
@@ -33,44 +34,33 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
         dubbed = 1;
     }
 
-    SigMatch *pm = m;
-    if (pm != NULL) {
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-            pe->depth = (uint32_t)atoi(str);
-            //printf("DetectDepthSetup: set depth %" PRIu32 " for previous pcre\n", pe->depth);
-
-        } else if (pm->type == DETECT_CONTENT) {
-            /** Search for the first previous DetectContent
-              * SigMatch (it can be the same as this one) */
-            pm = DetectContentFindPrevApplicableSM(m);
-            if (pm == NULL) {
-                printf("DetectDepthSetup: Unknown previous keyword!\n");
-                return -1;
-            }
-
-            DetectContentData *cd = (DetectContentData *)pm->ctx;
-            if (cd == NULL) {
-                printf("DetectDepthSetup: Unknown previous keyword!\n");
-                return -1;
-            }
-
-            cd->depth = (uint32_t)atoi(str);
-
-            /** Propagate the modifiers through the first chunk
-              * (SigMatch) if we're dealing with chunks */
-            if (cd->flags & DETECT_CONTENT_IS_CHUNK)
-                DetectContentPropagateDepth(pm);
-
-            //DetectContentPrint(cd);
-            //printf("DetectDepthSetup: set depth %" PRIu32 " for previous content\n", cd->depth);
-
-        } else {
-            printf("DetectDepthSetup: Unknown previous keyword!\n");
-        }
-    } else {
-        printf("DetectDepthSetup: No previous match!\n");
+    /** Search for the first previous DetectContent
+     * SigMatch (it can be the same as this one) */
+    SigMatch *pm = DetectContentFindPrevApplicableSM(m);
+    if (pm == NULL) {
+        printf("DetectDepthSetup: Unknown previous keyword!\n");
+        return -1;
     }
+
+    DetectContentData *cd = (DetectContentData *)pm->ctx;
+    if (cd == NULL) {
+        printf("DetectDepthSetup: Unknown previous keyword!\n");
+        return -1;
+    }
+
+    cd->depth = (uint32_t)atoi(str);
+    if (cd->content_len + cd->offset > cd->depth) {
+        SCLogDebug("depth increased to %"PRIu32" to match pattern len and offset", cd->content_len + cd->offset);
+        cd->depth = cd->content_len + cd->offset;
+    }
+
+    /** Propagate the modifiers through the first chunk
+     * (SigMatch) if we're dealing with chunks */
+    if (cd->flags & DETECT_CONTENT_IS_CHUNK)
+        DetectContentPropagateDepth(pm);
+
+    //DetectContentPrint(cd);
+    //printf("DetectDepthSetup: set depth %" PRIu32 " for previous content\n", cd->depth);
 
     if (dubbed) free(str);
     return 0;

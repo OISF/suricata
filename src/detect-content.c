@@ -105,6 +105,8 @@ static void DetectContentPrintMatches(DetectEngineThreadCtx *det_ctx, DetectCont
 
 static inline int
 TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
+    SCEnter();
+
     if (m->offset >= pktoff) {
         if (co->offset == 0 || (m->offset >= co->offset)) {
             if (co->depth == 0 || ((m->offset + co->content_len) <= co->depth)) {
@@ -116,9 +118,9 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
                  * offset match, which indicates that we have a FAILURE if the
                  * content is negated, and SUCCESS if the content is not negated */
                 if (co->negated == 1)
-                    return 0;
+                    SCReturnInt(0);
                 else
-                    return 1;
+                    SCReturnInt(1);
             } else {
                 /* We have success so far with offset, but a failure with
                  * depth.  We can return a match at the bottom of this function
@@ -127,28 +129,33 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
                  * a no match here.  If the content is not negated, we have a no
                  * match, which we return at the end of this function. */
                 if (co->offset && co->negated == 1)
-                    return 0;
+                    SCReturnInt(0);
             }
         } else {
             /* If offset fails, and if the content is negated, we check if depth
              * succeeds.  If it succeeds, we have a no match for negated content.
              * Else we have a success for negated content.  If the content is
              * not negated, we go down till the end and return a no match. */
-            if (co->negated == 1 &&
-                (co->depth && (m->offset+co->content_len) <= co->depth)) {
-                return 0;
+            if (co->negated == 1) {
+                if (co->offset != 0) {
+                    SCReturnInt(1);
+                } else if (co->depth && (m->offset+co->content_len) <= co->depth) {
+                    SCLogDebug("depth %" PRIu32 ", offset %" PRIu32 ", m->offset %" PRIu32 ", "
+                            "return 0", co->depth, co->offset, m->offset);
+                    SCReturnInt(0);
+                }
             }
         }
     }
     SCLogDebug("depth %" PRIu32 ", offset %" PRIu32 ", m->offset %" PRIu32 ", "
-               "return 0", co->depth, co->offset, m->offset);
+               "return 0 (or 1 if negated)", co->depth, co->offset, m->offset);
 
     /* If we reach this point, we have a match for negated content and no match
      * otherwise */
     if (co->negated == 1)
-        return 1;
+        SCReturnInt(1);
     else
-        return 0;
+        SCReturnInt(0);
 }
 
 /**
@@ -771,6 +778,7 @@ void DetectContentPrint(DetectContentData *cd)
     SCLogDebug("Distance: %u ", cd->distance);
     SCLogDebug("Isdataat: %u ", cd->isdataat);
     SCLogDebug("flags: %u ", cd->flags);
+    SCLogDebug("negated %u ", cd->negated);
 
     /** If it's a chunk, print the data related */
     if (cd->flags & DETECT_CONTENT_IS_CHUNK) {
@@ -2048,7 +2056,7 @@ int DetectContentChunkModifiersTest01 (void) {
         goto end;
 
     /** Check modifiers for the first chunk */
-    if (cd->offset != 10 || cd->depth != 39 || cd->isdataat != 21 ||
+    if (cd->offset != 10 || cd->depth != 42 || cd->isdataat != 21 ||
         cd->within != 0 || cd->distance != 0) {
         SCLogDebug("First Chunk has bad modifiers");
         goto end;
@@ -2083,7 +2091,7 @@ int DetectContentChunkModifiersTest01 (void) {
         goto end;
 
     /** Check modifiers for the second chunk */
-    if (cd->offset != 42 || cd->depth != 50 || cd->isdataat != 10 ||
+    if (cd->offset != 42 || cd->depth != 53 || cd->isdataat != 10 ||
         cd->within != 11 || cd->distance != 0) {
         SCLogDebug("Second Chunk has bad modifiers");
         goto end;
@@ -2168,7 +2176,7 @@ int DetectContentChunkModifiersTest02 (void) {
         goto end;
 
     /** Check modifiers for the first chunk */
-    if (cd->offset != 10 || cd->depth != 39 || cd->isdataat != 21 ||
+    if (cd->offset != 10 || cd->depth != 42 || cd->isdataat != 21 ||
         cd->within != 39 || cd->distance != 1) {
         SCLogDebug("First Chunk has bad modifiers");
         goto end;
@@ -2203,7 +2211,7 @@ int DetectContentChunkModifiersTest02 (void) {
         goto end;
 
     /** Check modifiers for the second chunk */
-    if (cd->offset != 42 || cd->depth != 50 || cd->isdataat != 10 ||
+    if (cd->offset != 42 || cd->depth != 53 || cd->isdataat != 10 ||
         cd->within != 11 || cd->distance != 0) {
         SCLogDebug("Second Chunk has bad modifiers");
         goto end;
@@ -2767,7 +2775,7 @@ static int SigTest41TestNegatedContent(void)
  *       the negated content within the specified depth
  */
 static int SigTest42TestNegatedContent(void)
-{
+{                                                                                                                                                        // 01   5    10   15   20  24
     return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!twentythree; depth:22; offset:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
@@ -2789,7 +2797,7 @@ static int SigTest43TestNegatedContent(void)
  */
 static int SigTest44TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!twentythree; offset:40; depth:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!twentythree; offset:40; depth:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 /**
