@@ -122,7 +122,7 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
             }
         }
         else if (event.type == YAML_SEQUENCE_START_EVENT) {
-            state = CONF_SEQ;
+            ConfYamlParse2(parser, node, 1);
         }
         else if (event.type == YAML_SEQUENCE_END_EVENT) {
             return;
