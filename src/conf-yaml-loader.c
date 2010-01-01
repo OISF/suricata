@@ -302,6 +302,9 @@ rule-files:\n\
 default-log-dir: /tmp\n\
 ";
 
+    ConfCreateContextBackup();
+    ConfInit();
+
     ConfNode *node;
     ConfYamlLoadString(input, strlen(input));
     node = ConfGetNode("rule-files");
@@ -326,6 +329,9 @@ default-log-dir: /tmp\n\
         i++;
     }
 
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
     return 1;
 }
 
@@ -341,6 +347,9 @@ logging:\n\
       facility: local4\n\
       log-level: info\n\
 ";
+
+    ConfCreateContextBackup();
+    ConfInit();
 
     ConfYamlLoadString(input, strlen(input));
 
@@ -392,6 +401,9 @@ logging:\n\
         return 0;
     if (strcmp(output_param->val, "info") != 0)
         return 0;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
 
     return 1;
 }
