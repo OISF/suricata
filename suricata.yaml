@@ -65,7 +65,7 @@ pfring:
 
   #Set the default rule path here to search for the files.
   #if not set, it will look at the current working dir
-default-rule-path: /etc/suricata/
+default-rule-path: /etc/suricata/rules/
 rule-files:
  - attack-responses.rules
  - backdoor.rules
