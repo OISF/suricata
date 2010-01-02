@@ -2791,7 +2791,7 @@ static int StreamTcpTest02 (void) {
     p.tcph->th_flags = TH_PUSH | TH_ACK;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -2807,7 +2807,7 @@ static int StreamTcpTest02 (void) {
     p.tcph->th_flags = TH_PUSH | TH_ACK;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -2992,7 +2992,7 @@ static int StreamTcpTest05 (void) {
     tcph.th_flags = TH_ACK|TH_PUSH;
     p.tcph = &tcph;
 
-    StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3004,7 +3004,7 @@ static int StreamTcpTest05 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOCLIENT;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3016,7 +3016,7 @@ static int StreamTcpTest05 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x43, 3); /*CCC*/
+    StreamTcpCreateTestPacket(payload, 0x43, 3, 4); /*CCC*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3028,7 +3028,7 @@ static int StreamTcpTest05 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOCLIENT;
 
-    StreamTcpCreateTestPacket(payload, 0x44, 3); /*DDD*/
+    StreamTcpCreateTestPacket(payload, 0x44, 3, 4); /*DDD*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3390,7 +3390,7 @@ static int StreamTcpTest10 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3402,7 +3402,7 @@ static int StreamTcpTest10 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3483,7 +3483,7 @@ static int StreamTcpTest11 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3495,7 +3495,7 @@ static int StreamTcpTest11 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3569,7 +3569,7 @@ static int StreamTcpTest12 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3581,7 +3581,7 @@ static int StreamTcpTest12 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3656,7 +3656,7 @@ static int StreamTcpTest13 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3668,7 +3668,7 @@ static int StreamTcpTest13 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 
@@ -3695,7 +3695,7 @@ static int StreamTcpTest13 (void) {
     p.tcph->th_flags = TH_ACK|TH_PUSH;
     p.flowflags = FLOW_PKT_TOCLIENT;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     p.payload = payload;
     p.payload_len = 3;
 

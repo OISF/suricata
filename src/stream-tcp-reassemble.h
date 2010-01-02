@@ -43,7 +43,7 @@ void StreamTcpReassembleRegisterTests(void);
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void);
 int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *);
 
-void StreamTcpCreateTestPacket(u_int8_t *, u_int8_t, u_int8_t);
+void StreamTcpCreateTestPacket(u_int8_t *, u_int8_t, u_int8_t, uint8_t);
 
 void StreamL7DataPtrInit(TcpSession *ssn, uint8_t cnt);
 

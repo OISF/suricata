@@ -53,7 +53,7 @@ void StreamTcpSegmentDataReplace(TcpSegment *, TcpSegment *, uint32_t, uint16_t)
 void StreamTcpSegmentDataCopy(TcpSegment *, TcpSegment *);
 TcpSegment* StreamTcpGetSegment(uint16_t);
 void StreamTcpSegmentReturntoPool(TcpSegment *);
-void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t);
+void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 
 /** \brief alloc a tcp segment pool entry */
 void *TcpSegmentPoolAlloc(void *payload_len) {
@@ -298,7 +298,10 @@ void PrintList(TcpSegment *seg)
 
 static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg)
 {
+    SCEnter();
+
     TcpSegment *list_seg = stream->seg_list;
+    TcpSegment *next_list_seg = NULL;
 
     uint8_t os_policy = stream->os_policy;
     int ret_value = 0;
@@ -322,13 +325,17 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg)
         seg->prev = stream->seg_list_tail;
         stream->seg_list_tail = seg;
 
-        return 0;
+        goto end;
     }
 
-    for (; list_seg != NULL; list_seg = list_seg->next) {
+    for (; list_seg != NULL; list_seg = next_list_seg) {
+        next_list_seg = list_seg->next;
+
         SCLogDebug("seg %p, list_seg %p, list_prev %p list_seg->next %p, "
                    "segment length %" PRIu32 "", seg, list_seg, list_seg->prev,
                    list_seg->next, seg->payload_len);
+        SCLogDebug("seg->seq %"PRIu32", list_seg->seq %"PRIu32"",
+                   seg->seq, list_seg->seq);
 
         /* segment starts before list */
         if (SEQ_LT(seg->seq, list_seg->seq)) {
@@ -348,7 +355,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg)
                 }
                 list_seg->prev = seg;
                 goto end;
-            /*seg overlap with nest seg(s)*/
+            /* seg overlap with next seg(s) */
             } else {
                 ret_value = HandleSegmentStartsBeforeListSegment(stream,
                                                     list_seg, seg, os_policy);
@@ -422,7 +429,7 @@ end:
 #ifdef DEBUG
     PrintList(stream->seg_list);
 #endif
-    return 0;
+    SCReturnInt(0);
 }
 
 /**
@@ -442,18 +449,18 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                                                 TcpSegment *seg,
                                                 uint8_t os_policy)
 {
+    SCEnter();
+
     uint16_t overlap = 0;
     uint16_t packet_length = 0;
     uint32_t overlap_point = 0;
     char end_before = FALSE;
     char end_after = FALSE;
     char end_same = FALSE;
+    char return_after = FALSE;
 #ifdef DEBUG
     SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "", seg->seq,
                 seg->payload_len);
-    if (SCLogDebugEnabled()) {
-        PrintList(stream->seg_list);
-    }
 #endif
 
     if (SEQ_GT((seg->seq + seg->payload_len), list_seg->seq) &&
@@ -499,25 +506,33 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
         SCLogDebug("starts before list seg, ends after list end: seg->seq "
                    "%" PRIu32 ", seg->payload_len %"PRIu32" list_seg->seq "
                    "%" PRIu32 ", list_seg->payload_len %" PRIu32 " overlap is"
-                   " %" PRIu32 "", seg->seq, list_seg->seq,
-                   list_seg->payload_len, overlap, seg->payload_len);
+                   " %" PRIu32 "", seg->seq, seg->payload_len,
+                   list_seg->seq, list_seg->payload_len, overlap);
     }
 
     if (overlap > 0) {
         /* Handling case when the packet starts before the first packet in the
          * list */
         if (list_seg->prev == NULL) {
-            packet_length = seg->payload_len + (list_seg->payload_len - overlap);
-            SCLogDebug("entered here pkt len %" PRIu32 ", seg %" PRIu32 ", list"
-                       " %" PRIu32 "", packet_length, seg->payload_len,
-                       list_seg->payload_len);
+            if (end_after == TRUE && list_seg->next != NULL &&
+                    SEQ_LT(list_seg->next->seq, (seg->seq + seg->payload_len)))
+            {
+                packet_length = (list_seg->seq - seg->seq) + list_seg->payload_len;
+            } else {
+                packet_length = seg->payload_len + (list_seg->payload_len - overlap);
+                return_after = TRUE;
+            }
+
+            SCLogDebug("entered here packet_length %" PRIu32 ", seg->payload_len"
+                       " %" PRIu32 ", list->payload_len %" PRIu32 "",
+                       packet_length, seg->payload_len, list_seg->payload_len);
 
             TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
             if (new_seg == NULL) {
                 uint16_t idx = segment_pool_idx[packet_length];
                 SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] is"
                                " empty", idx);
-                return -1;
+                SCReturnInt(-1);
             }
             new_seg->payload_len = packet_length;
             new_seg->seq = seg->seq;
@@ -527,20 +542,22 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
             StreamTcpSegmentDataCopy(new_seg, list_seg);
 
             /* first the data before the list_seg->seq */
-            StreamTcpSegmentDataReplace(new_seg, seg, seg->seq,
-                                         (uint16_t) (list_seg->seq - seg->seq));
-
+            uint16_t replace = (uint16_t) (list_seg->seq - seg->seq);
+            SCLogDebug("copying %"PRIu16" bytes to new_seg", replace);
+            StreamTcpSegmentDataReplace(new_seg, seg, seg->seq, replace);
+//#if 0
             /* if any, data after list_seg->seq + list_seg->payload_len */
             if (SEQ_GT((seg->seq + seg->payload_len), (list_seg->seq +
-                    list_seg->payload_len)))
+                    list_seg->payload_len)) && return_after == TRUE)
             {
-                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq +
-                                             list_seg->payload_len), (uint16_t)
-                                             (((seg->seq + seg->payload_len) -
+                replace = (uint16_t)(((seg->seq + seg->payload_len) -
                                              (list_seg->seq +
-                                              list_seg->payload_len))));
+                                              list_seg->payload_len)));
+                SCLogDebug("replacing %"PRIu16"", replace);
+                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq +
+                                             list_seg->payload_len), replace);
             }
-
+//#endif
             /*update the stream last_seg in case of removal of list_seg*/
             if (stream->seg_list_tail == list_seg)
                 stream->seg_list_tail = new_seg;
@@ -559,19 +576,18 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                         stream->seg_list);
         } else if (end_before == TRUE || end_same == TRUE) {
             /* Handling overlapping with more than one segment and filling gap */
-            if (SEQ_LEQ(seg->seq, (list_seg->prev->seq +
+            if (SEQ_GT(list_seg->seq, (list_seg->prev->seq +
                                    list_seg->prev->payload_len)))
             {
                 packet_length = list_seg->payload_len + (list_seg->seq -
-                                                         (list_seg->prev->seq +
-                                                  list_seg->prev->payload_len));
+                        (list_seg->prev->seq + list_seg->prev->payload_len));
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
                     uint16_t idx = segment_pool_idx[packet_length];
                     SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] is"
                                " empty", idx);
-                    return -1;
+                    SCReturnInt(-1);
                 }
 
                 new_seg->payload_len = packet_length;
@@ -583,7 +599,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                 } else {
                     new_seg->seq = seg->seq;
                 }
-
+                SCLogDebug("new_seg->seq %"PRIu32"",new_seg->seq);
                 new_seg->next = list_seg->next;
                 new_seg->prev = list_seg->prev;
 
@@ -634,7 +650,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                         uint16_t idx = segment_pool_idx[packet_length];
                         SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] "
                                    "is empty", idx);
-                        return -1;
+                        SCReturnInt(-1);
                     }
                     new_seg->payload_len = packet_length;
                     if (SEQ_GT((list_seg->prev->seq +
@@ -645,6 +661,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                     } else {
                         new_seg->seq = seg->seq;
                     }
+                    SCLogDebug("new_seg->seq %"PRIu32"", new_seg->seq);
                     new_seg->next = list_seg->next;
                     new_seg->prev = list_seg->prev;
 
@@ -657,7 +674,8 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                                                 copy_len);
 
                     /* copy the part after list_seg */
-                    copy_len = packet_length - list_seg->payload_len;
+                    copy_len = (seg->seq + seg->payload_len) -
+                                    (list_seg->seq + list_seg->payload_len);
                     StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq +
                                               list_seg->payload_len), copy_len);
 
@@ -673,6 +691,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
 
                     StreamTcpSegmentReturntoPool(list_seg);
                     list_seg = new_seg;
+                    return_after = TRUE;
                 }
             }
         }
@@ -718,13 +737,12 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
         }
         /* To return from for loop as seg is finished with current list_seg
            no need to check further (improve performance)*/
-        if (end_before == TRUE || end_same == TRUE) {
-            return 1;
+        if (end_before == TRUE || end_same == TRUE || return_after == TRUE) {
+            SCReturnInt(1);
         }
     }
 
-    //PrintList(stream->seg_list);
-    return 0;
+    SCReturnInt(0);
 }
 
 /**
@@ -1068,14 +1086,8 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
                             overlap);
                 break;
         }
-        if (end_before == TRUE || end_same == TRUE || handle_beyond == FALSE) {
-#ifdef DEBUG
-            if (SCLogDebugEnabled()) {
-                PrintList(stream->seg_list);
-            }
-#endif
+        if (end_before == TRUE || end_same == TRUE || handle_beyond == FALSE)
             return 1;
-        }
     }
     return 0;
 }
@@ -1560,6 +1572,8 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
             return;
     }
 
+    SCLogDebug("Replacing data from dst_pos %"PRIu16"", dst_pos);
+
     for (seq = start_point; SEQ_LT(seq, (start_point + len)); seq++) {
         if (SCLogDebugEnabled()) {
             BUG_ON((dst_pos > dst_seg->payload_len));
@@ -1573,6 +1587,8 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
         dst_pos++;
         s_cnt++;
     }
+    SCLogDebug("Replaced data of size %"PRIu16" up to dst_pos %"PRIu16"",
+                s_cnt, dst_pos);
 }
 
 /**
@@ -1597,6 +1613,7 @@ void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg)
     else
         dst_pos = dst_seg->seq - src_seg->seq;
 
+    SCLogDebug("Copying data from dst_pos %"PRIu16"", dst_pos);
     for (i = src_seg->seq; SEQ_LT(i, (src_seg->seq + src_seg->payload_len)); i++)
     {
         dst_seg->payload[dst_pos] = src_seg->payload[src_pos];
@@ -1604,6 +1621,8 @@ void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg)
         dst_pos++;
         src_pos++;
     }
+    SCLogDebug("Copyied data of size %"PRIu16" up to dst_pos %"PRIu16"",
+                src_pos, dst_pos);
 }
 
 /**
@@ -1615,7 +1634,8 @@ void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg)
 TcpSegment* StreamTcpGetSegment(uint16_t len)
 {
     uint16_t idx = segment_pool_idx[len];
-    SCLogDebug("%" PRIu32 " for payload_len %" PRIu32 "", idx, len);
+    SCLogDebug("segment_pool_idx %" PRIu32 " for payload_len %" PRIu32 "",
+                idx, len);
 
     SCMutexLock(&segment_pool_mutex[idx]);
     TcpSegment *seg = (TcpSegment *) PoolGet(segment_pool[idx]);
@@ -1704,126 +1724,126 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
     tcph.th_flags = TH_PUSH | TH_ACK;
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
-    StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     p.tcph->th_seq = htonl(12);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x42, 2); /*BB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 2, 4); /*BB*/
     p.tcph->th_seq = htonl(16);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x43, 3); /*CCC*/
+    StreamTcpCreateTestPacket(payload, 0x43, 3, 4); /*CCC*/
     p.tcph->th_seq = htonl(18);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x44, 1); /*D*/
+    StreamTcpCreateTestPacket(payload, 0x44, 1, 4); /*D*/
     p.tcph->th_seq = htonl(22);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x45, 2); /*EE*/
+    StreamTcpCreateTestPacket(payload, 0x45, 2, 4); /*EE*/
     p.tcph->th_seq = htonl(25);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x46, 3); /*FFF*/
+    StreamTcpCreateTestPacket(payload, 0x46, 3, 4); /*FFF*/
     p.tcph->th_seq = htonl(27);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x47, 2); /*GG*/
+    StreamTcpCreateTestPacket(payload, 0x47, 2, 4); /*GG*/
     p.tcph->th_seq = htonl(30);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x48, 2); /*HH*/
+    StreamTcpCreateTestPacket(payload, 0x48, 2, 4); /*HH*/
     p.tcph->th_seq = htonl(32);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x49, 1); /*I*/
+    StreamTcpCreateTestPacket(payload, 0x49, 1, 4); /*I*/
     p.tcph->th_seq = htonl(34);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4a, 4); /*JJJJ*/
+    StreamTcpCreateTestPacket(payload, 0x4a, 4, 4); /*JJJJ*/
     p.tcph->th_seq = htonl(13);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 4;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4b, 3); /*KKK*/
+    StreamTcpCreateTestPacket(payload, 0x4b, 3, 4); /*KKK*/
     p.tcph->th_seq = htonl(18);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4c, 3); /*LLL*/
+    StreamTcpCreateTestPacket(payload, 0x4c, 3, 4); /*LLL*/
     p.tcph->th_seq = htonl(21);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4d, 3); /*MMM*/
+    StreamTcpCreateTestPacket(payload, 0x4d, 3, 4); /*MMM*/
     p.tcph->th_seq = htonl(24);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4e, 1); /*N*/
+    StreamTcpCreateTestPacket(payload, 0x4e, 1, 4); /*N*/
     p.tcph->th_seq = htonl(28);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4f, 1); /*O*/
+    StreamTcpCreateTestPacket(payload, 0x4f, 1, 4); /*O*/
     p.tcph->th_seq = htonl(31);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x50, 1); /*P*/
+    StreamTcpCreateTestPacket(payload, 0x50, 1, 4); /*P*/
     p.tcph->th_seq = htonl(32);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x51, 2); /*QQ*/
+    StreamTcpCreateTestPacket(payload, 0x51, 2, 4); /*QQ*/
     p.tcph->th_seq = htonl(34);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x30, 1); /*0*/
+    StreamTcpCreateTestPacket(payload, 0x30, 1, 4); /*0*/
     p.tcph->th_seq = htonl(11);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
@@ -1840,14 +1860,17 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
  *  \param  payload     The variable used to store the payload contents of the
  *                      current packet.
  *  \param  value       The value which current payload will have for this packet
- *  \param  payload_len The length of the payload for current packet.
+ *  \param  payload_len The length of the filed payload for current packet.
+ *  \param  len         Length of the payload array
  */
 
-void StreamTcpCreateTestPacket(uint8_t *payload, uint8_t value, uint8_t payload_len) {
+void StreamTcpCreateTestPacket(uint8_t *payload, uint8_t value,
+                               uint8_t payload_len, uint8_t len)
+{
     uint8_t i;
     for (i = 0; i < payload_len; i++)
         payload[i] = value;
-    for (; i < 4; i++)
+    for (; i < len; i++)
         payload = NULL;
 }
 
@@ -1992,49 +2015,49 @@ static int StreamTcpTestStartsBeforeListSegment(TcpStream *stream) {
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x42, 1); /*B*/
+    StreamTcpCreateTestPacket(payload, 0x42, 1, 4); /*B*/
     p.tcph->th_seq = htonl(16);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x44, 1); /*D*/
+    StreamTcpCreateTestPacket(payload, 0x44, 1, 4); /*D*/
     p.tcph->th_seq = htonl(22);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x45, 2); /*EE*/
+    StreamTcpCreateTestPacket(payload, 0x45, 2, 4); /*EE*/
     p.tcph->th_seq = htonl(25);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x41, 2); /*AA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     p.tcph->th_seq = htonl(15);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4a, 4); /*JJJJ*/
+    StreamTcpCreateTestPacket(payload, 0x4a, 4, 4); /*JJJJ*/
     p.tcph->th_seq = htonl(14);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 4;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4c, 3); /*LLL*/
+    StreamTcpCreateTestPacket(payload, 0x4c, 3, 4); /*LLL*/
     p.tcph->th_seq = htonl(21);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4d, 3); /*MMM*/
+    StreamTcpCreateTestPacket(payload, 0x4d, 3, 4); /*MMM*/
     p.tcph->th_seq = htonl(24);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
@@ -2080,49 +2103,49 @@ static int StreamTcpTestStartsAtSameListSegment(TcpStream *stream) {
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x43, 3); /*CCC*/
+    StreamTcpCreateTestPacket(payload, 0x43, 3, 4); /*CCC*/
     p.tcph->th_seq = htonl(18);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x48, 2); /*HH*/
+    StreamTcpCreateTestPacket(payload, 0x48, 2, 4); /*HH*/
     p.tcph->th_seq = htonl(32);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x49, 1); /*I*/
+    StreamTcpCreateTestPacket(payload, 0x49, 1, 4); /*I*/
     p.tcph->th_seq = htonl(34);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4b, 3); /*KKK*/
+    StreamTcpCreateTestPacket(payload, 0x4b, 3, 4); /*KKK*/
     p.tcph->th_seq = htonl(18);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4c, 4); /*LLLL*/
+    StreamTcpCreateTestPacket(payload, 0x4c, 4, 4); /*LLLL*/
     p.tcph->th_seq = htonl(18);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 4;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x50, 1); /*P*/
+    StreamTcpCreateTestPacket(payload, 0x50, 1, 4); /*P*/
     p.tcph->th_seq = htonl(32);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x51, 2); /*QQ*/
+    StreamTcpCreateTestPacket(payload, 0x51, 2, 4); /*QQ*/
     p.tcph->th_seq = htonl(34);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
@@ -2169,42 +2192,42 @@ static int StreamTcpTestStartsAfterListSegment(TcpStream *stream) {
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpCreateTestPacket(payload, 0x41, 2); /*AA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     p.tcph->th_seq = htonl(12);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x46, 3); /*FFF*/
+    StreamTcpCreateTestPacket(payload, 0x46, 3, 4); /*FFF*/
     p.tcph->th_seq = htonl(27);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x47, 2); /*GG*/
+    StreamTcpCreateTestPacket(payload, 0x47, 2, 4); /*GG*/
     p.tcph->th_seq = htonl(30);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4a, 2); /*JJ*/
+    StreamTcpCreateTestPacket(payload, 0x4a, 2, 4); /*JJ*/
     p.tcph->th_seq = htonl(13);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4f, 1); /*O*/
+    StreamTcpCreateTestPacket(payload, 0x4f, 1, 4); /*O*/
     p.tcph->th_seq = htonl(31);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
-    StreamTcpCreateTestPacket(payload, 0x4e, 1); /*N*/
+    StreamTcpCreateTestPacket(payload, 0x4e, 1, 4); /*N*/
     p.tcph->th_seq = htonl(28);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
@@ -2906,21 +2929,21 @@ static int StreamTcpReassembleTest25 (void) {
     ack = 20;
     StreamTcpInitConfig(TRUE);
 
-    StreamTcpCreateTestPacket(payload, 0x42, 2); /*BB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 2, 4); /*BB*/
     seq = 10;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
-    StreamTcpCreateTestPacket(payload, 0x43, 2); /*CC*/
+    StreamTcpCreateTestPacket(payload, 0x43, 2, 4); /*CC*/
     seq = 12;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
     stream.next_seq = 14;
-    StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     seq = 7;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
@@ -2963,21 +2986,21 @@ static int StreamTcpReassembleTest26 (void) {
 
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
 
-    StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     seq = 10;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
-    StreamTcpCreateTestPacket(payload, 0x43, 2); /*CC*/
+    StreamTcpCreateTestPacket(payload, 0x43, 2, 4); /*CC*/
     seq = 15;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
-    StreamTcpCreateTestPacket(payload, 0x42, 2); /*BB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 2, 4); /*BB*/
     seq = 13;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
@@ -3020,21 +3043,21 @@ static int StreamTcpReassembleTest27 (void) {
 
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
 
-    StreamTcpCreateTestPacket(payload, 0x41, 3); /*AAA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     seq = 10;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
-    StreamTcpCreateTestPacket(payload, 0x42, 2); /*BB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 2, 4); /*BB*/
     seq = 13;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
-    StreamTcpCreateTestPacket(payload, 0x43, 2); /*CC*/
+    StreamTcpCreateTestPacket(payload, 0x43, 2, 4); /*CC*/
     seq = 15;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
@@ -3085,7 +3108,7 @@ static int StreamTcpReassembleTest28 (void) {
     stream.ra_base_seq = 6;
     stream.isn = 6;
 
-    StreamTcpCreateTestPacket(payload, 0x41, 2); /*AA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     seq = 10;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
@@ -3094,7 +3117,7 @@ static int StreamTcpReassembleTest28 (void) {
     }
 
     flowflags = FLOW_PKT_TOCLIENT;
-    StreamTcpCreateTestPacket(payload, 0x00, 0);
+    StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 12;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1){
@@ -3103,7 +3126,7 @@ static int StreamTcpReassembleTest28 (void) {
     }
 
     flowflags = FLOW_PKT_TOSERVER;
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     seq = 12;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
@@ -3112,7 +3135,7 @@ static int StreamTcpReassembleTest28 (void) {
     }
 
     flowflags = FLOW_PKT_TOCLIENT;
-    StreamTcpCreateTestPacket(payload, 0x00, 0);
+    StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 15;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_TIME_WAIT) == -1) {
@@ -3163,7 +3186,7 @@ static int StreamTcpReassembleTest29 (void) {
     stream.isn = 9;
     StreamTcpInitConfig(TRUE);
 
-    StreamTcpCreateTestPacket(payload, 0x41, 2); /*AA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     seq = 10;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
@@ -3172,7 +3195,7 @@ static int StreamTcpReassembleTest29 (void) {
     }
 
     flowflags = FLOW_PKT_TOCLIENT;
-    StreamTcpCreateTestPacket(payload, 0x00, 0);
+    StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 15;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1){
@@ -3181,7 +3204,7 @@ static int StreamTcpReassembleTest29 (void) {
     }
 
     flowflags = FLOW_PKT_TOSERVER;
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     seq = 15;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
@@ -3190,7 +3213,7 @@ static int StreamTcpReassembleTest29 (void) {
     }
 
     flowflags = FLOW_PKT_TOCLIENT;
-    StreamTcpCreateTestPacket(payload, 0x00, 0);
+    StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 18;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_TIME_WAIT) == -1) {
@@ -3242,7 +3265,7 @@ static int StreamTcpReassembleTest30 (void) {
     stream.isn = 9;
 
     StreamTcpInitConfig(TRUE);
-    StreamTcpCreateTestPacket(payload, 0x41, 2); /*AA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     seq = 10;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
@@ -3251,7 +3274,7 @@ static int StreamTcpReassembleTest30 (void) {
     }
 
     flowflags = FLOW_PKT_TOCLIENT;
-    StreamTcpCreateTestPacket(payload, 0x00, 0);
+    StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 12;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1){
@@ -3260,7 +3283,7 @@ static int StreamTcpReassembleTest30 (void) {
     }
 
     flowflags = FLOW_PKT_TOSERVER;
-    StreamTcpCreateTestPacket(payload, 0x42, 3); /*BBB*/
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     seq = 12;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
@@ -3269,7 +3292,7 @@ static int StreamTcpReassembleTest30 (void) {
     }
 
     flowflags = FLOW_PKT_TOCLIENT;
-    StreamTcpCreateTestPacket(payload, 0x00, 0);
+    StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 18;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1) {
@@ -3281,14 +3304,14 @@ static int StreamTcpReassembleTest30 (void) {
     seq = 18;
     ack = 20;
     flowflags = FLOW_PKT_TOSERVER;
-    StreamTcpCreateTestPacket(payload, 0x00, 1);
+    StreamTcpCreateTestPacket(payload, 0x00, 1, 4);
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
 
     flowflags = FLOW_PKT_TOCLIENT;
-    StreamTcpCreateTestPacket(payload, 0x00, 0);
+    StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 18;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flag, flowflags, TCP_TIME_WAIT) == -1) {
@@ -3336,7 +3359,7 @@ static int StreamTcpReassembleTest31 (void) {
     stream.isn = 9;
     StreamTcpInitConfig(TRUE);
 
-    StreamTcpCreateTestPacket(payload, 0x41, 2); /*AA*/
+    StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     seq = 10;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
@@ -3345,7 +3368,7 @@ static int StreamTcpReassembleTest31 (void) {
     }
 
     flowflags = FLOW_PKT_TOSERVER;
-    StreamTcpCreateTestPacket(payload, 0x42, 1); /*B*/
+    StreamTcpCreateTestPacket(payload, 0x42, 1, 4); /*B*/
     seq = 15;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
@@ -3354,7 +3377,7 @@ static int StreamTcpReassembleTest31 (void) {
     }
 
     flowflags = FLOW_PKT_TOSERVER;
-    StreamTcpCreateTestPacket(payload, 0x42, 1); /*B*/
+    StreamTcpCreateTestPacket(payload, 0x42, 1, 4); /*B*/
     seq = 12;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
@@ -3363,7 +3386,7 @@ static int StreamTcpReassembleTest31 (void) {
     }
 
     flowflags = FLOW_PKT_TOSERVER;
-    StreamTcpCreateTestPacket(payload, 0x42, 1); /*B*/
+    StreamTcpCreateTestPacket(payload, 0x42, 1, 4); /*B*/
     seq = 16;
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
@@ -3386,6 +3409,221 @@ end:
     StreamTcpFreeConfig(TRUE);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     return ret;
+}
+
+static int StreamTcpReassembleTest32(void) {
+    TcpSession ssn;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpStream stream;
+    uint8_t ret = 0;
+    uint8_t check_contents[35] = {0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+                                 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+                                 0x41, 0x41, 0x41, 0x41, 0x42, 0x42, 0x42, 0x42,
+                                 0x42, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43,
+                                 0x43, 0x43, 0x43};
+    memset(&stream, 0, sizeof (TcpStream));
+    stream.os_policy = OS_POLICY_BSD;
+    uint8_t payload[20] = "";
+
+    StreamTcpInitConfig(TRUE);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.protoctx = &ssn;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    tcph.th_win = 5480;
+    tcph.th_flags = TH_PUSH | TH_ACK;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    p.tcph->th_seq = htonl(10);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 10;
+    StreamTcpCreateTestPacket(payload, 0x41, 10, 20); /*AA*/
+    p.payload = payload;
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 10;
+    StreamTcpCreateTestPacket(payload, 0x42, 10, 20); /*BB*/
+    p.payload = payload;
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(40);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 10;
+    StreamTcpCreateTestPacket(payload, 0x43, 10, 20); /*CC*/
+    p.payload = payload;
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        goto end;
+
+    p.tcph->th_seq = htonl(5);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 20;
+    StreamTcpCreateTestPacket(payload, 0x41, 20, 20); /*AA*/
+    p.payload = payload;
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        goto end;
+
+    if (StreamTcpCheckStreamContents(check_contents, 35, &stream) != 0) {
+        ret = 1;
+    } else {
+        printf("failed in stream matching: ");
+    }
+
+
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
+static int StreamTcpReassembleTest33(void) {
+    TcpSession ssn;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpStream stream;
+    memset(&stream, 0, sizeof (TcpStream));
+    stream.os_policy = OS_POLICY_BSD;
+    uint8_t packet[1460] = "";
+
+    StreamTcpInitConfig(TRUE);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.protoctx = &ssn;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    tcph.th_win = 5480;
+    tcph.th_flags = TH_PUSH | TH_ACK;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    p.payload = packet;
+
+    p.tcph->th_seq = htonl(10);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 10;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(20);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 10;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(40);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 10;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(5);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 30;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    StreamTcpFreeConfig(TRUE);
+    return 1;
+}
+
+static int StreamTcpReassembleTest34(void) {
+    TcpSession ssn;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpStream stream;
+    memset(&stream, 0, sizeof (TcpStream));
+    stream.os_policy = OS_POLICY_BSD;
+    uint8_t packet[1460] = "";
+
+    StreamTcpInitConfig(TRUE);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.protoctx = &ssn;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    tcph.th_win = 5480;
+    tcph.th_flags = TH_PUSH | TH_ACK;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    p.payload = packet;
+
+    p.tcph->th_seq = htonl(857961230);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 304;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(857961534);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 1460;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(857963582);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 1460;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(857960946);
+    p.tcph->th_ack = htonl(31);
+    p.payload_len = 1460;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    StreamTcpFreeConfig(TRUE);
+    return 1;
 }
 
 #endif /* UNITTESTS */
@@ -3427,5 +3665,8 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest29 -- Gap at Middle IDS missed packet Reassembly Test", StreamTcpReassembleTest29, 1);
     UtRegisterTest("StreamTcpReassembleTest30 -- Gap at End IDS missed packet Reassembly Test", StreamTcpReassembleTest30, 1);
     UtRegisterTest("StreamTcpReassembleTest31 -- Fast Track Reassembly Test", StreamTcpReassembleTest31, 1);
+    UtRegisterTest("StreamTcpReassembleTest32 -- Bug test", StreamTcpReassembleTest32, 1);
+    UtRegisterTest("StreamTcpReassembleTest33 -- Bug test", StreamTcpReassembleTest33, 1);
+    UtRegisterTest("StreamTcpReassembleTest34 -- Bug test", StreamTcpReassembleTest34, 1);
 #endif /* UNITTESTS */
 }
