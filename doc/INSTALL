@@ -30,7 +30,7 @@ libpcap
 libnetfilter-queue and libfnetlink (optional for use with 
   ./configure --enable-nfq)
 libpthread  (should be part of most glibc's)
-libpfring   (optional for use with ./configure --enable-pfring)
+libpfring >= 4.0   (optional for use with ./configure --enable-pfring)
 libz
 htp
 
