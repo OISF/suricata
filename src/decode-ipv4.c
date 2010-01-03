@@ -31,8 +31,9 @@ inline uint16_t IPV4CalculateChecksum(uint16_t *pkt, uint16_t hlen)
     hlen -= 20;
     pkt += 10;
 
-    if (hlen == 0)
+    if (hlen == 0) {
         ;
+    }
     if (hlen == 4)
         csum += pkt[0] + pkt[1];
     else if (hlen == 8)

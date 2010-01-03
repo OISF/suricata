@@ -184,7 +184,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         timeout, (intmax_t)f->lastts.tv_sec + timeout, (intmax_t)ts->tv_sec);
 
     /* do the timeout check */
-    if ((f->lastts.tv_sec + timeout) >= ts->tv_sec) {
+    if ((int32_t)(f->lastts.tv_sec + timeout) >= ts->tv_sec) {
         SCMutexUnlock(&f->fb->m);
         SCMutexUnlock(&f->m);
         SCLogDebug("timeout check failed");

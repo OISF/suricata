@@ -107,7 +107,7 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     /* Validate that the to-be-extracted is within the packet
      * \todo Should this validate it is in the *payload*?
      */
-    if ((ptr < p->pkt) || (len < 0) || (data->nbytes > len)) {
+    if (ptr < p->pkt || data->nbytes > len) {
         SCLogDebug("Data not within packet pkt=%p, ptr=%p, len=%d, nbytes=%d",
                     p->pkt, ptr, len, data->nbytes);
         return 0;

@@ -323,14 +323,14 @@ ConfGetBool(char *name, int *val)
 {
     char *strval;
     char *trues[] = {"1", "yes", "true", "on"};
-    int i;
+    size_t u;
 
     *val = 0;
     if (ConfGet(name, &strval) != 1)
         return 0;
 
-    for (i = 0; i < sizeof(trues) / sizeof(trues[0]); i++) {
-        if (strcasecmp(strval, trues[i]) == 0) {
+    for (u = 0; u < sizeof(trues) / sizeof(trues[0]); u++) {
+        if (strcasecmp(strval, trues[u]) == 0) {
             *val = 1;
             break;
         }
@@ -452,11 +452,11 @@ ConfDump(void)
 {
     HashTableBucket *b;
     ConfNode *cn;
-    int i;
+    uint32_t u;
 
-    for (i = 0; i < conf_hash->array_size; i++) {
-        if (conf_hash->array[i] != NULL) {
-            b = (HashTableBucket *)conf_hash->array[i];
+    for (u = 0; u < conf_hash->array_size; u++) {
+        if (conf_hash->array[u] != NULL) {
+            b = (HashTableBucket *)conf_hash->array[u];
             while (b != NULL) {
                 cn = (ConfNode *)b->data;
                 if (cn->val != NULL)
@@ -700,10 +700,10 @@ ConfTestGetBool(void)
         "no", "NO",
     };
     int val;
-    int i;
+    size_t u;
 
-    for (i = 0; i < sizeof(trues) / sizeof(trues[0]); i++) {
-        if (ConfSet(name, trues[i], 1) != 1)
+    for (u = 0; u < sizeof(trues) / sizeof(trues[0]); u++) {
+        if (ConfSet(name, trues[u], 1) != 1)
             return 0;
         if (ConfGetBool(name, &val) != 1)
             return 0;
@@ -711,8 +711,8 @@ ConfTestGetBool(void)
             return 0;
     }
 
-    for (i = 0; i < sizeof(falses) / sizeof(falses[0]); i++) {
-        if (ConfSet(name, falses[i], 1) != 1)
+    for (u = 0; u < sizeof(falses) / sizeof(falses[0]); u++) {
+        if (ConfSet(name, falses[u], 1) != 1)
             return 0;
         if (ConfGetBool(name, &val) != 1)
             return 0;
@@ -727,15 +727,15 @@ static int
 ConfNodeLookupChildTest(void)
 {
     char *test_vals[] = { "one", "two", "three" };
-    int i;
+    size_t u;
 
     ConfNode *parent = ConfNodeNew();
     ConfNode *child;
 
-    for (i = 0; i < sizeof(test_vals)/sizeof(test_vals[0]); i++) {
+    for (u = 0; u < sizeof(test_vals)/sizeof(test_vals[0]); u++) {
         child = ConfNodeNew();
-        child->name = strdup(test_vals[i]);
-        child->val = strdup(test_vals[i]);
+        child->name = strdup(test_vals[u]);
+        child->val = strdup(test_vals[u]);
         TAILQ_INSERT_TAIL(&parent->head, child, next);
     }
 
@@ -776,16 +776,16 @@ static int
 ConfNodeLookupChildValueTest(void)
 {
     char *test_vals[] = { "one", "two", "three" };
-    int i;
+    size_t u;
 
     ConfNode *parent = ConfNodeNew();
     ConfNode *child;
     const char *value;
 
-    for (i = 0; i < sizeof(test_vals)/sizeof(test_vals[0]); i++) {
+    for (u = 0; u < sizeof(test_vals)/sizeof(test_vals[0]); u++) {
         child = ConfNodeNew();
-        child->name = strdup(test_vals[i]);
-        child->val = strdup(test_vals[i]);
+        child->name = strdup(test_vals[u]);
+        child->val = strdup(test_vals[u]);
         TAILQ_INSERT_TAIL(&parent->head, child, next);
     }
 

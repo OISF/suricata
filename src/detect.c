@@ -231,9 +231,9 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
         return -1;
     }
     char line[8192] = "";
-    int offset = 0;
+    size_t offset = 0;
     while(fgets(line + offset, (int)sizeof(line) - offset, fp) != NULL) {
-        int len = strlen(line);
+        size_t len = strlen(line);
 
         /* ignore comments and empty lines */
         if (line[0] == '\n' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
@@ -2642,7 +2642,7 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
 int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
     DetectAddressHead *global_dst_gh = NULL;
     DetectAddress *global_src_gr = NULL, *global_dst_gr = NULL;
-    int i;
+    uint32_t u;
 
     printf("* Building signature grouping structure, stage 5: print...\n");
 
@@ -2688,8 +2688,8 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                                 printf(" (sigs %" PRIu32 ", maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh->mpm_content_maxlen);
 #ifdef PRINTSIGS
                                 printf(" - ");
-                                for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
+                                for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2719,8 +2719,8 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                                 printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
-                                for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
+                                for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2762,8 +2762,8 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                                 printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
-                                for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
+                                for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2793,8 +2793,8 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                                 printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
-                                for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
+                                for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2836,8 +2836,8 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                                 printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
-                                for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
+                                for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2867,8 +2867,8 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                                 printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
-                                for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
+                                for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif
@@ -2898,8 +2898,8 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                                 printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
                                 printf(" - ");
-                                for (i = 0; i < dp->sh->sig_cnt; i++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[i]];
+                                for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
                                     printf("%" PRIu32 " ", s->id);
                                 }
 #endif

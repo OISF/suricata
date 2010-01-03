@@ -543,7 +543,7 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
 
         SCLogDebug("isdataat: payload_len: %u, used %u, rest %u, isdataat? %u", p->payload_len, (m->offset + co->content_len),p->payload_len - (m->offset + co->content_len), co->isdataat);
 
-        if ( ((p->payload_len - (m->offset + co->content_len)) < co->isdataat) )
+        if ((uint32_t)(p->payload_len - (m->offset + co->content_len)) < co->isdataat)
             match = 0;
 
         if (match) {

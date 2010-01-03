@@ -41,7 +41,7 @@ inline int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *
     int ret;
 
     /* Uint64 is limited to 8 bytes */
-    if ((len < 0) || (len > 8)) {
+    if (len > 8) {
         /** \todo Need standard return values */
         return -1;
     }
@@ -62,7 +62,7 @@ inline int ByteExtractUint32(uint32_t *res, int e, uint16_t len, const uint8_t *
     int ret;
 
     /* Uint32 is limited to 4 bytes */
-    if ((len < 0) || (len > 4)) {
+    if (len > 4) {
         /** \todo Need standard return values */
         return -1;
     }
@@ -83,7 +83,7 @@ inline int ByteExtractUint16(uint16_t *res, int e, uint16_t len, const uint8_t *
     int ret;
 
     /* Uint16 is limited to 2 bytes */
-    if ((len < 0) || (len > 2)) {
+    if (len > 2) {
         /** \todo Need standard return values */
         return -1;
     }

@@ -29,6 +29,7 @@
  * \brief The various log levels
  */
 typedef enum {
+    SC_LOG_NOTSET = -1,
     SC_LOG_NONE = 0,
     SC_LOG_EMERGENCY,
     SC_LOG_ALERT,

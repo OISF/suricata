@@ -34,6 +34,7 @@
 
 /* holds the string-enum mapping for the enums held in the table SCLogLevel */
 SCEnumCharMap sc_log_level_map[ ] = {
+    { "Not set",        SC_LOG_NOTSET},
     { "None",           SC_LOG_NONE },
     { "Emergency",      SC_LOG_EMERGENCY },
     { "Alert",          SC_LOG_ALERT },
@@ -215,7 +216,7 @@ void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
 
     op_iface_ctx = sc_log_config->op_ifaces;
     while (op_iface_ctx != NULL) {
-        if (log_level != -1 && log_level > op_iface_ctx->log_level) {
+        if (log_level != SC_LOG_NOTSET && log_level > op_iface_ctx->log_level) {
             op_iface_ctx = op_iface_ctx->next;
             continue;
         }
@@ -537,7 +538,7 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
  * \retval iface_ctx Pointer to the console output interface context created
  */
 static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
-                                                       int log_level)
+                                                       SCLogLevel log_level)
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
@@ -572,7 +573,7 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
  */
 static inline SCLogOPIfaceCtx *SCLogInitSyslogOPIface(int facility,
                                                       const char *log_format,
-                                                      int log_level)
+                                                      SCLogLevel log_level)
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
@@ -642,7 +643,7 @@ static inline void SCLogFreeLogOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx)
  */
 static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 {
-    SCLogLevel log_level = -1;
+    SCLogLevel log_level = SC_LOG_NOTSET;
     const char *s = NULL;
 
     if (sc_lid != NULL)
@@ -654,7 +655,7 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     }
 
     /* deal with the global_log_level to be used */
-    if (log_level >= 0 && log_level < SC_LOG_LEVEL_MAX)
+    if (log_level > SC_LOG_NOTSET && log_level < SC_LOG_LEVEL_MAX)
         sc_lc->log_level = log_level;
     else {
         sc_lc->log_level = SC_LOG_DEF_LOG_LEVEL;
@@ -758,14 +759,14 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
         switch (op_iface) {
             case SC_LOG_OP_IFACE_CONSOLE:
-                op_ifaces_ctx = SCLogInitConsoleOPIface(NULL, -1);
+                op_ifaces_ctx = SCLogInitConsoleOPIface(NULL, SC_LOG_LEVEL_MAX);
                 break;
             case SC_LOG_OP_IFACE_FILE:
                 s = getenv(SC_LOG_ENV_LOG_FILE);
                 if (s == NULL)
                     s = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
 
-                op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
+                op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, SC_LOG_LEVEL_MAX);
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
                 s = getenv(SC_LOG_ENV_LOG_FACILITY);
@@ -949,7 +950,7 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
                "is invalid.  Defaulting to not specifing an override\n",
                iface_name);
 #endif
-        log_level = -1;
+        log_level = SC_LOG_NOTSET;
     }
 
     switch (iface) {
@@ -1068,7 +1069,7 @@ void SCLogInitLogModuleIfEnvSet(void)
     SCLogOPIfaceCtx *op_ifaces_ctx = NULL;
     int op_iface = 0;
     char *format = NULL;
-    SCLogLevel log_level = -1;
+    SCLogLevel log_level = SC_LOG_NOTSET;
 
     /* sc_log_config is a global variable */
     if ( (sc_log_config = malloc(sizeof(SCLogConfig))) == NULL) {

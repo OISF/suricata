@@ -41,7 +41,7 @@ typedef struct PcapFileThreadVars_
     Packet *in_p;
 } PcapFileThreadVars;
 
-static PcapFileGlobalVars pcap_g = { NULL, NULL, };
+static PcapFileGlobalVars pcap_g = { NULL, NULL, 0, };
 
 TmEcode ReceivePcapFile(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode ReceivePcapFileThreadInit(ThreadVars *, void *, void **);

@@ -560,7 +560,7 @@ static void B2gPrepareScanHash(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (sizeof(BloomFilter *) * ctx->scan_hash_size);
 
-    int h;
+    uint32_t h;
     for (h = 0; h < ctx->scan_hash_size; h++) {
         B2gHashItem *hi = ctx->scan_hash[h];
         if (hi == NULL)
@@ -666,7 +666,7 @@ static void B2gPrepareSearchHash(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (sizeof(BloomFilter *) * ctx->search_hash_size);
 
-    int h;
+    uint32_t h;
     for (h = 0; h < ctx->search_hash_size; h++) {
         B2gHashItem *hi = ctx->search_hash[h];
         if (hi == NULL)
@@ -706,7 +706,7 @@ int B2gBuildScanMatchArray(MpmCtx *mpm_ctx) {
     memset(ctx->scan_B2G,0, B2G_HASHSIZE * sizeof(B2G_TYPE));
 
     uint32_t j;
-    int a;
+    uint32_t a;
 
     /* fill the match array */
     for (j = 0; j <= (ctx->scan_m - B2G_Q); j++) {
@@ -741,7 +741,7 @@ int B2gBuildSearchMatchArray(MpmCtx *mpm_ctx) {
     memset(ctx->search_B2G,0, B2G_HASHSIZE * sizeof(B2G_TYPE));
 
     uint32_t j;
-    int a;
+    uint32_t a;
 
     /* fill the match array */
     for (j = 0; j <= (ctx->search_m - B2G_Q); j++) {
@@ -983,7 +983,7 @@ void B2gDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->scan_bloom) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->scan_hash_size; h++) {
             if (ctx->scan_bloom[h] == NULL)
                 continue;
@@ -1001,7 +1001,7 @@ void B2gDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->scan_hash) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->scan_hash_size; h++) {
             if (ctx->scan_hash[h] == NULL)
                 continue;
@@ -1015,7 +1015,7 @@ void B2gDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->search_bloom) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->search_hash_size; h++) {
             if (ctx->search_bloom[h] == NULL)
                 continue;
@@ -1033,7 +1033,7 @@ void B2gDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->search_hash) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->search_hash_size; h++) {
             if (ctx->search_hash[h] == NULL)
                 continue;
@@ -1147,7 +1147,7 @@ uint32_t B2gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
     if (buflen < ctx->scan_m)
         return 0;
 
-    while (pos <= (buflen - B2G_Q + 1)) {
+    while (pos <= (uint32_t)(buflen - B2G_Q + 1)) {
         uint16_t h = B2G_HASH16(u8_tolower(buf[pos - 1]),u8_tolower(buf[pos]));
         d = ctx->scan_B2G[h];
 
@@ -1159,7 +1159,7 @@ uint32_t B2gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
             do {
                 j = j - 1;
 
-                if (d >= (1 << (ctx->scan_m - 1))) {
+                if (d >= (uint32_t)(1 << (ctx->scan_m - 1))) {
                     if (j > first) pos = j;
                     else {
                         /* get our patterns from the hash */
@@ -1542,7 +1542,7 @@ uint32_t B2gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
     if (buflen < ctx->search_m)
         SCReturnUInt(0);
 
-    while (pos <= (buflen - B2G_Q + 1)) {
+    while (pos <= (uint32_t)(buflen - B2G_Q + 1)) {
         uint16_t h = B2G_HASH16(u8_tolower(buf[pos - 1]),u8_tolower(buf[pos]));
         d = ctx->search_B2G[h];
 
@@ -1553,7 +1553,7 @@ uint32_t B2gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
             do {
                 j = j - 1;
-                if (d >= (1 << (ctx->search_m - 1))) {
+                if (d >= (uint32_t)(1 << (ctx->search_m - 1))) {
                     if (j > first) pos = j;
                     else {
                         /* get our patterns from the hash */

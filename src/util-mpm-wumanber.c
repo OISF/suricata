@@ -598,7 +598,7 @@ static void WmScanPrepareHash(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (sizeof(BloomFilter *) * ctx->scan_hash_size);
 
-    int h;
+    uint32_t h;
     for (h = 0; h < ctx->scan_hash_size; h++) {
         WmHashItem *hi = ctx->scan_hash[h];
         if (hi == NULL)
@@ -2234,7 +2234,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->scan_bloom) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->scan_hash_size; h++) {
             if (ctx->scan_bloom[h] == NULL)
                 continue;
@@ -2252,7 +2252,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->scan_hash) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->scan_hash_size; h++) {
             if (ctx->scan_hash[h] == NULL)
                 continue;
@@ -2290,7 +2290,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
     }
 #endif
     if (ctx->search_hash) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->search_hash_size; h++) {
             if (ctx->search_hash[h] == NULL)
                 continue;

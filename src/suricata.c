@@ -295,7 +295,9 @@ int main(int argc, char **argv)
     char *sig_file = NULL;
     int nfq_id = 0;
     char *conf_filename = NULL;
+#ifdef UNITTESTS
     char *regex_arg = NULL;
+#endif
     int dump_config = 0;
     int list_unittests = 0;
     int daemon = 0;

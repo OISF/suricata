@@ -11,6 +11,9 @@ typedef struct DetectDceOpnumRange_ {
     struct DetectDceOpnumRange_ *next;
 } DetectDceOpnumRange;
 
+#define DCE_OPNUM_RANGE_MAX             65535
+#define DCE_OPNUM_RANGE_UNINITIALIZED   100000
+
 typedef struct DetectDceOpnumData_ {
     DetectDceOpnumRange *range;
 } DetectDceOpnumData;

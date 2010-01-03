@@ -24,9 +24,9 @@
 #define CHUNK_UPDATED_WITHIN        0x10
 
 typedef struct DetectContentData_ {
-    uint8_t *content;
-    uint8_t content_len;
-    uint32_t id;
+    uint8_t *content;   /**< ptr to chunk of memory containing the pattern */
+    uint8_t content_len;/**< length of the pattern (and size of the memory) */
+    uint32_t id;        /**< unique pattern id */
 
     uint8_t negated;
 

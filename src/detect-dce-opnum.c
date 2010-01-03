@@ -72,7 +72,7 @@ static inline DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
         exit(EXIT_FAILURE);
     }
     memset(dor, 0, sizeof(DetectDceOpnumRange));
-    dor->range1 = dor->range2 = -1;
+    dor->range1 = dor->range2 = DCE_OPNUM_RANGE_UNINITIALIZED;
 
     return dor;
 }
@@ -138,20 +138,20 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
 
         dor = DetectDceOpnumAllocDetectDceOpnumRange();
 
-        if ( (hyphen_token = index(dup_str_temp, '-')) != NULL) {
+        if ((hyphen_token = index(dup_str_temp, '-')) != NULL) {
             hyphen_token[0] = '\0';
             hyphen_token++;
             dor->range1 = atoi(dup_str_temp);
-            if (dor->range1 > 65535)
+            if (dor->range1 > DCE_OPNUM_RANGE_MAX)
                 goto error;
             dor->range2 = atoi(hyphen_token);
-            if (dor->range2 > 65535)
+            if (dor->range2 > DCE_OPNUM_RANGE_MAX)
                 goto error;
             if (dor->range1 > dor->range2)
                 goto error;
         }
         dor->range1 = atoi(dup_str_temp);
-        if (dor->range1 > 65535)
+        if (dor->range1 > DCE_OPNUM_RANGE_MAX)
             goto error;
 
         if (prev_dor == NULL) {
@@ -171,16 +171,16 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         hyphen_token[0] = '\0';
         hyphen_token++;
         dor->range1 = atoi(dup_str);
-        if (dor->range1 > 65535)
+        if (dor->range1 > DCE_OPNUM_RANGE_MAX)
             goto error;
         dor->range2 = atoi(hyphen_token);
-        if (dor->range2 > 65535)
+        if (dor->range2 > DCE_OPNUM_RANGE_MAX)
             goto error;
         if (dor->range1 > dor->range2)
             goto error;
     }
     dor->range1 = atoi(dup_str);
-    if (dor->range1 > 65535)
+    if (dor->range1 > DCE_OPNUM_RANGE_MAX)
         goto error;
 
     if (prev_dor == NULL) {
@@ -319,7 +319,7 @@ static int DetectDceOpnumTestParse02(void)
         if (dod == NULL)
             goto end;
         dor = dod->range;
-        result &= (dor->range1 == 12 && dor->range2 == -1);
+        result &= (dor->range1 == 12 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next == NULL);
     }
 
@@ -379,7 +379,7 @@ static int DetectDceOpnumTestParse04(void)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 24 && dor->range2 == -1);
+        result &= (dor->range1 == 24 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next != NULL);
         if (result == 0)
             goto end;
@@ -397,13 +397,13 @@ static int DetectDceOpnumTestParse04(void)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 62 && dor->range2 == -1);
+        result &= (dor->range1 == 62 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next != NULL);
         if (result == 0)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 25 && dor->range2 == -1);
+        result &= (dor->range1 == 25 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next != NULL);
         if (result == 0)
             goto end;
@@ -437,43 +437,43 @@ static int DetectDceOpnumTestParse05(void)
         if (dod == NULL)
             goto end;
         dor = dod->range;
-        result &= (dor->range1 == 1 && dor->range2 == -1);
+        result &= (dor->range1 == 1 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next != NULL);
         if (result == 0)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 2 && dor->range2 == -1);
+        result &= (dor->range1 == 2 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next != NULL);
         if (result == 0)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 3 && dor->range2 == -1);
+        result &= (dor->range1 == 3 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next != NULL);
         if (result == 0)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 4 && dor->range2 == -1);
+        result &= (dor->range1 == 4 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next != NULL);
         if (result == 0)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 5 && dor->range2 == -1);
+        result &= (dor->range1 == 5 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next != NULL);
         if (result == 0)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 6 && dor->range2 == -1);
+        result &= (dor->range1 == 6 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next != NULL);
         if (result == 0)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 7 && dor->range2 == -1);
+        result &= (dor->range1 == 7 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         if (result == 0)
             goto end;
     }
@@ -571,7 +571,7 @@ static int DetectDceOpnumTestParse07(void)
             goto end;
 
         dor = dor->next;
-        result &= (dor->range1 == 9 && dor->range2 == -1);
+        result &= (dor->range1 == 9 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         if (result == 0)
             goto end;
     }

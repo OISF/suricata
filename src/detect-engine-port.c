@@ -982,7 +982,8 @@ error:
  */
 static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                              int negate) {
-    int i, x;
+    size_t u = 0;
+    size_t x = 0;
     int o_set = 0, n_set = 0, d_set = 0;
     int range = 0;
     int depth = 0;
@@ -993,27 +994,27 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
 
     SCLogDebug("head %p, *head %p, negate %d", head, *head, negate);
 
-    for (i = 0, x = 0; i < size && x < sizeof(address); i++) {
-        address[x] = s[i];
+    for (u = 0, x = 0; u < size && x < sizeof(address); u++) {
+        address[x] = s[u];
         x++;
 
-        if (s[i] == ':')
+        if (s[u] == ':')
             range = 1;
 
-        if (range == 1 && s[i] == '!') {
+        if (range == 1 && s[u] == '!') {
             SCLogError(SC_NEGATED_VALUE_IN_PORT_RANGE,"Can't have a negated value in a range.");
             return -1;
-        } else if (!o_set && s[i] == '!') {
+        } else if (!o_set && s[u] == '!') {
             SCLogDebug("negation encountered");
             n_set = 1;
             x--;
-        } else if (s[i] == '[') {
+        } else if (s[u] == '[') {
             if (!o_set) {
                 o_set = 1;
                 x = 0;
             }
             depth++;
-        } else if (s[i] == ']') {
+        } else if (s[u] == ']') {
             if (depth == 1) {
                 address[x - 1] = '\0';
                 SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
@@ -1024,7 +1025,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
             }
             depth--;
             range = 0;
-        } else if (depth == 0 && s[i] == ',') {
+        } else if (depth == 0 && s[u] == ',') {
             if (o_set == 1) {
                 o_set = 0;
             } else if (d_set == 1) {
@@ -1063,9 +1064,9 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
             }
             x = 0;
             range = 0;
-        } else if (depth == 0 && s[i] == '$') {
+        } else if (depth == 0 && s[u] == '$') {
             d_set = 1;
-        } else if (depth == 0 && i == size-1) {
+        } else if (depth == 0 && u == size-1) {
             range = 0;
             address[x] = '\0';
             SCLogDebug("%s", address);

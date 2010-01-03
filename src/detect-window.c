@@ -145,16 +145,16 @@ DetectWindowData *DetectWindowParse (char *windowstr)
             goto error;
         }
         args[0] = (char *)str_ptr;
-        /// Detect if it's negated
+        // Detect if it's negated
         if(args[0][0]=='!')
             wd->negated=1;
         else
             wd->negated=0;
 
-        #ifdef WINDOW_DEBUG
+#ifdef WINDOW_DEBUG
         if(wd->negated)
             printf("detect-window: Negation: %s\n", windowstr);
-        #endif
+#endif
 
         if (ret > 2) {
             res = pcre_get_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
@@ -164,16 +164,15 @@ DetectWindowData *DetectWindowParse (char *windowstr)
             }
             wd->size = atoi((char *)str_ptr);
 
-            /// Get the window size if it's a valid value (in packets, we should alert if this doesn't happend from decode)
-
-            if(wd->size<MIN_WINDOW_VALUE || wd->size>MAX_WINDOW_VALUE)   //If greater than 1GB window
+            // Get the window size if it's a valid value (in packets, we should alert if this doesn't happend from decode)
+            if(wd->size > MAX_WINDOW_VALUE)
             {
                 goto error;
             }
 
-            #ifdef WINDOW_DEBUG
+#ifdef WINDOW_DEBUG
             printf("detect-window: window size-> %u\n", wd->size);
-            #endif
+#endif
         }
     }
 

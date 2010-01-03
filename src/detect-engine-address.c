@@ -639,13 +639,13 @@ static int DetectAddressParseString(DetectAddress *dd, char *str)
             mask++;
             uint32_t ip4addr = 0;
             uint32_t netmask = 0;
-            int i = 0;
+            size_t u = 0;
 
             if ((strchr (mask, '.')) == NULL) {
                 /* 1.2.3.4/24 format */
 
-                for(i = 0; i < strlen(mask); i++) {
-                    if(!isdigit(mask[i]))
+                for (u = 0; u < strlen(mask); u++) {
+                    if(!isdigit(mask[u]))
                         goto error;
                 }
 
@@ -916,7 +916,8 @@ error:
 int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                         int negate)
 {
-    int i, x;
+    size_t x = 0;
+    size_t u = 0;
     int o_set = 0, n_set = 0, d_set = 0;
     int depth = 0;
     size_t size = strlen(s);
@@ -926,20 +927,20 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
 
     SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
 
-    for (i = 0, x = 0; i < size && x < sizeof(address); i++) {
-        address[x] = s[i];
+    for (u = 0, x = 0; u < size && x < sizeof(address); u++) {
+        address[x] = s[u];
         x++;
 
-        if (!o_set && s[i] == '!') {
+        if (!o_set && s[u] == '!') {
             n_set = 1;
             x--;
-        } else if (s[i] == '[') {
+        } else if (s[u] == '[') {
             if (!o_set) {
                 o_set = 1;
                 x = 0;
             }
             depth++;
-        } else if (s[i] == ']') {
+        } else if (s[u] == ']') {
             if (depth == 1) {
                 address[x - 1] = '\0';
                 x = 0;
@@ -949,7 +950,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 n_set = 0;
             }
             depth--;
-        } else if (depth == 0 && s[i] == ',') {
+        } else if (depth == 0 && s[u] == ',') {
             if (o_set == 1) {
                 o_set = 0;
             } else if (d_set == 1) {
@@ -988,9 +989,9 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 n_set = 0;
             }
             x = 0;
-        } else if (depth == 0 && s[i] == '$') {
+        } else if (depth == 0 && s[u] == '$') {
             d_set = 1;
-        } else if (depth == 0 && i == size - 1) {
+        } else if (depth == 0 && u == size - 1) {
             address[x] = '\0';
             x = 0;
 

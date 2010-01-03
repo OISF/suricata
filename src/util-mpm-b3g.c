@@ -536,7 +536,7 @@ static void B3gPrepareScanHash(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (sizeof(BloomFilter *) * ctx->scan_hash_size);
 
-    int h;
+    uint32_t h;
     for (h = 0; h < ctx->scan_hash_size; h++) {
         B3gHashItem *hi = ctx->scan_hash[h];
         if (hi == NULL)
@@ -670,7 +670,7 @@ static void B3gPrepareSearchHash(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (sizeof(BloomFilter *) * ctx->search_hash_size);
 
-    int h;
+    uint32_t h;
     for (h = 0; h < ctx->search_hash_size; h++) {
         B3gHashItem *hi = ctx->search_hash[h];
         if (hi == NULL)
@@ -711,7 +711,7 @@ int B3gBuildScanMatchArray(MpmCtx *mpm_ctx) {
     memset(ctx->scan_B3G,0, B3G_HASHSIZE * sizeof(B3G_TYPE));
 
     uint32_t j;
-    int a;
+    uint32_t a;
 
     /* fill the match array */
     for (j = 0; j <= (ctx->scan_m - B3G_Q); j++) {
@@ -745,7 +745,7 @@ int B3gBuildSearchMatchArray(MpmCtx *mpm_ctx) {
     memset(ctx->search_B3G,0, B3G_HASHSIZE * sizeof(B3G_TYPE));
 
     uint32_t j;
-    int a;
+    uint32_t a;
 
     /* fill the match array */
     for (j = 0; j <= (ctx->search_m - B3G_Q); j++) {
@@ -986,7 +986,7 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->scan_bloom) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->scan_hash_size; h++) {
             if (ctx->scan_bloom[h] == NULL)
                 continue;
@@ -1004,7 +1004,7 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->scan_hash) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->scan_hash_size; h++) {
             if (ctx->scan_hash[h] == NULL)
                 continue;
@@ -1017,7 +1017,7 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
         mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->scan_hash_size);
     }
     if (ctx->scan_hash2) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->scan_hash_size; h++) {
             if (ctx->scan_hash2[h] == NULL)
                 continue;
@@ -1031,7 +1031,7 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->search_bloom) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->search_hash_size; h++) {
             if (ctx->search_bloom[h] == NULL)
                 continue;
@@ -1049,7 +1049,7 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
     }
 
     if (ctx->search_hash) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->search_hash_size; h++) {
             if (ctx->search_hash[h] == NULL)
                 continue;
@@ -1062,7 +1062,7 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
         mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->search_hash_size);
     }
     if (ctx->search_hash2) {
-        int h;
+        uint32_t h;
         for (h = 0; h < ctx->search_hash_size; h++) {
             if (ctx->search_hash2[h] == NULL)
                 continue;
@@ -1171,7 +1171,7 @@ uint32_t B3gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
     if (buflen < ctx->scan_m)
         return 0;
 
-    while (pos <= (buflen - B3G_Q + 1)) {
+    while (pos <= (uint32_t)(buflen - B3G_Q + 1)) {
         uint16_t h = B3G_HASH(u8_tolower(buf[pos - 1]), u8_tolower(buf[pos]),u8_tolower(buf[pos + 1]));
         d = ctx->scan_B3G[h];
 
@@ -1182,7 +1182,7 @@ uint32_t B3gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
 
             do {
                 j = j - 1;
-                if (d >= (1 << (ctx->scan_m - 1))) {
+                if (d >= (uint32_t)(1 << (ctx->scan_m - 1))) {
                     if (j > first) pos = j;
                     else {
                         /* get our patterns from the hash */
@@ -1584,7 +1584,7 @@ uint32_t B3gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
     if (buflen < ctx->search_m)
         return 0;
 
-    while (pos <= (buflen - B3G_Q + 1)) {
+    while (pos <= (uint32_t)(buflen - B3G_Q + 1)) {
         uint16_t h = B3G_HASH(u8_tolower(buf[pos - 1]), u8_tolower(buf[pos]),u8_tolower(buf[pos + 1]));
         d = ctx->search_B3G[h];
 
@@ -1595,7 +1595,7 @@ uint32_t B3gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
             do {
                 j = j - 1;
-                if (d >= (1 << (ctx->search_m - 1))) {
+                if (d >= (uint32_t)(1 << (ctx->search_m - 1))) {
                     if (j > first) pos = j;
                     else {
                         /* get our patterns from the hash */

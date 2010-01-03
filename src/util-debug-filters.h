@@ -66,6 +66,7 @@ typedef struct SCLogFGFilterFile_ {
 typedef struct SCLogFDFilterThreadList_ {
     int entered;
     pthread_t t;
+//    pid_t t;
 
     struct SCLogFDFilterThreadList_ *next;
 } SCLogFDFilterThreadList;

@@ -42,9 +42,9 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
  *  \param pmq Pattern matcher to be reset.
  */
 void PmqReset(PatternMatcherQueue *pmq) {
-    int i;
-    for (i = 0; i < pmq->sig_id_array_cnt; i++) {
-        pmq->sig_bitarray[(pmq->sig_id_array[i] / 8)] &= ~(1<<(pmq->sig_id_array[i] % 8));
+    uint32_t u;
+    for (u = 0; u < pmq->sig_id_array_cnt; u++) {
+        pmq->sig_bitarray[(pmq->sig_id_array[u] / 8)] &= ~(1<<(pmq->sig_id_array[u] % 8));
     }
     pmq->sig_id_array_cnt = 0;
 }
@@ -255,7 +255,7 @@ MpmEndMatch *MpmAllocEndMatch (MpmCtx *ctx)
  * \retval -1 if the type is not registered return -1
  */
 int32_t MpmMatcherGetMaxPatternLength(uint16_t matcher) {
-    if (matcher < MPM_TABLE_SIZE && matcher >= 0)
+    if (matcher < MPM_TABLE_SIZE)
         return mpm_table[matcher].max_pattern_length;
     else
         return -1;

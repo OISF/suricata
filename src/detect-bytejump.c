@@ -103,7 +103,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     /* Verify the to-be-extracted data is within the packet */
-    if ((ptr < p->pkt) || (len < 0) || (data->nbytes > len)) {
+    if (ptr < p->pkt || data->nbytes > len) {
         printf("DetectBytejumpMatch: Data not within packet "
                "pkt=%p, ptr=%p, len=%d, nbytes=%d\n",
                p->pkt, ptr, len, data->nbytes);

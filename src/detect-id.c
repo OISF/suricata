@@ -161,7 +161,7 @@ DetectIdData *DetectIdParse (char *idstr)
         /* ok, fill the id data */
         temp = atoi((char *)tmp_str);
 
-        if (temp > DETECT_IPID_MAX || temp < DETECT_IPID_MIN) {
+        if (temp > DETECT_IPID_MAX) {
             SCLogDebug("detect-id: \"id\" option  must be in "
                         "the range %u - %u\n",
                         DETECT_IPID_MIN, DETECT_IPID_MAX);
