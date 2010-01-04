@@ -184,8 +184,7 @@ TmEcode LogHttplogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC_ERROR, "Error getting context for "
-                   "HTTPLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */

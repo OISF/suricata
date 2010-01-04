@@ -194,8 +194,7 @@ TmEcode AlertDebuglogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogError(SC_ERR_DEBUG_LOG_GENERIC_ERROR, "Error getting context for "
-                   "DebugLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for DebugLog.  \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -240,8 +239,7 @@ LogFileCtx *AlertDebuglogInitCtx(char *config_file)
 
     if(file_ctx == NULL)
     {
-        SCLogError(SC_ERR_DEBUG_LOG_GENERIC_ERROR, "AlertDebuglogInitCtx: Couldn't "
-                   "create new file_ctx");
+        SCLogDebug("AlertDebuglogInitCtx: Couldn't create new file_ctx");
         return NULL;
     }
 

@@ -167,8 +167,7 @@ TmEcode AlertFastlogThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aft, 0, sizeof(AlertFastlogThread));
     if(initdata == NULL)
     {
-        SCLogError(SC_ERR_FAST_LOG_GENERIC_ERROR, "Error getting context for "
-                   "AlertFastLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for AlertFastLog.  \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -211,8 +210,7 @@ LogFileCtx *AlertFastlogInitCtx(char *config_file)
 
     if(file_ctx == NULL)
     {
-        SCLogError(SC_ERR_FAST_LOG_GENERIC_ERROR, "AlertFastlogInitCtx: Couldn't "
-                   "create new file_ctx");
+        SCLogDebug("AlertFastlogInitCtx: Couldn't create new file_ctx");
         return NULL;
     }
 

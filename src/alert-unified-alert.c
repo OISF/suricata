@@ -208,8 +208,7 @@ TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR, "Error getting context for "
-                   "UnifiedAlert.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for UnifiedAlert.  \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */

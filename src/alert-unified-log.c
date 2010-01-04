@@ -220,8 +220,7 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
     if(initdata == NULL)
     {
-        SCLogError(SC_ERR_UNIFIED_LOG_GENERIC_ERROR, "Error getting context for "
-                   "UnifiedLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for UnifiedLog.  \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
