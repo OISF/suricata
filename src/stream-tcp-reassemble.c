@@ -840,8 +840,13 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
                  * new seg */
                 SCLogDebug("filling gap: list_seg->next->seq %"PRIu32"",
                             list_seg->next?list_seg->next->seq:0);
+                if (handle_beyond == TRUE) {
+                    packet_length = list_seg->next->seq -
+                                        (list_seg->seq + list_seg->payload_len);
+                } else {
+                    packet_length = seg->payload_len - list_seg->payload_len;
+                }
 
-                packet_length = seg->payload_len - list_seg->payload_len;
                 SCLogDebug("packet_length %"PRIu16"", packet_length);
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
