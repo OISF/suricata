@@ -170,7 +170,7 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                         uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
     int ret = 1;
-    struct entry *item = NULL;
+    struct uuid_entry *item = NULL;
     DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m->ctx;
     DCERPCState *dcerpc_state = (DCERPCState *)state;
     if (dcerpc_state == NULL) {
@@ -181,7 +181,7 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     SCMutexLock(&f->m);
     int i = 0;
 
-    TAILQ_FOREACH(item, &dcerpc_state->head, entries) {
+    TAILQ_FOREACH(item, &dcerpc_state->uuid_list, next) {
         for (i = 0; i < 16; i++) {
             if (dce_data->uuid[i] != item->uuid[i]) {
                 ret = 0;

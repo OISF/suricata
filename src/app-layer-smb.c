@@ -38,6 +38,7 @@ enum {
     SMB_FIELD_MAX,
 };
 
+#if 0
 void hexdump(const void *buf, size_t len) {
     /* dumps len bytes of *buf to stdout. Looks like:
      * [0000] 75 6E 6B 6E 6F 77 6E 20
@@ -95,6 +96,7 @@ void hexdump(const void *buf, size_t len) {
         printf("[%4.4s]   %-50.50s  %s\n", addrstr, hexstr, charstr);
     }
 }
+#endif
 
 /**
  *  \brief SMB Write AndX Request Parsing
@@ -345,10 +347,10 @@ static int PaddingParser(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    while (sstate->bytesprocessed++ < sstate->andx.dataoffset && sstate->bytecount.bytecount-- && input_len--) {
+    while (sstate->bytesprocessed + (p - input) < sstate->andx.dataoffset && sstate->bytecount.bytecount-- && input_len--) {
         p++;
     }
-    if (sstate->bytesprocessed ==  sstate->andx.dataoffset) {
+    if (sstate->bytesprocessed + (p - input) ==  sstate->andx.dataoffset) {
         sstate->andx.paddingparsed = 1;
     }
     sstate->bytesprocessed += (p - input);
@@ -390,7 +392,6 @@ static int SMBGetWordCount(Flow *f, void *smb_state, AppLayerParserState *pstate
         sstate->bytesprocessed++;
         sstate->bytecount.bytecountbytes = 0;
         sstate->andx.isandx = isAndX(sstate);
-        --input_len;
         SCLogDebug("Wordcount (%u):", sstate->wordcount.wordcount);
         SCReturnInt(1);
     }
@@ -454,7 +455,6 @@ static int SMBParseWordCount(Flow *f, void *smb_state, AppLayerParserState *psta
             p++;
         }
         sstate->bytesprocessed += (p - input);
-        return (p - input);
         SCReturnInt(p - input);
     }
 }
