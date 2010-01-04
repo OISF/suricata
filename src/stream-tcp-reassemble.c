@@ -580,8 +580,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
             if (SEQ_GT(list_seg->seq, (list_seg->prev->seq +
                                    list_seg->prev->payload_len)))
             {
-                packet_length = list_seg->payload_len + (list_seg->seq -
-                        (list_seg->prev->seq + list_seg->prev->payload_len));
+                packet_length = list_seg->payload_len + (list_seg->seq - seg->seq);
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
@@ -600,18 +599,16 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                 } else {
                     new_seg->seq = seg->seq;
                 }
-                SCLogDebug("new_seg->seq %"PRIu32"",new_seg->seq);
+                SCLogDebug("new_seg->seq %"PRIu32" and new->payload_len "
+                           "%" PRIu16"", new_seg->seq, new_seg->payload_len);
                 new_seg->next = list_seg->next;
                 new_seg->prev = list_seg->prev;
 
                 StreamTcpSegmentDataCopy(new_seg, list_seg);
 
-                uint16_t copy_len = (uint16_t) (list_seg->seq -
-                                                 (list_seg->prev->seq +
-                                                  list_seg->prev->payload_len));
+                uint16_t copy_len = (uint16_t) (list_seg->seq - seg->seq);
                 SCLogDebug("copy_len %" PRIu32 " (%" PRIu32 " - %" PRIu32 ")",
-                            copy_len, list_seg->seq, (list_seg->prev->seq +
-                            list_seg->prev->payload_len));
+                            copy_len, list_seg->seq, seg->seq);
                 StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->prev->seq +
                                     list_seg->prev->payload_len), copy_len);
 
@@ -662,7 +659,8 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                     } else {
                         new_seg->seq = seg->seq;
                     }
-                    SCLogDebug("new_seg->seq %"PRIu32"", new_seg->seq);
+                    SCLogDebug("new_seg->seq %"PRIu32" and new->payload_len "
+                           "%" PRIu16"", new_seg->seq, new_seg->payload_len);
                     new_seg->next = list_seg->next;
                     new_seg->prev = list_seg->prev;
 

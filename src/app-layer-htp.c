@@ -212,12 +212,12 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     if (r == STREAM_STATE_ERROR)
     {
          if (hstate->connp->last_error != NULL) {
-            SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server request: "
+            SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server response: "
                 "[%"PRId32"] [%s] [%"PRId32"] %s", hstate->connp->last_error->level,
                 hstate->connp->last_error->file, hstate->connp->last_error->line,
                 hstate->connp->last_error->msg);
          } else {
-             SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server request");
+             SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server response");
          }
          hstate->flags = HTP_FLAG_STATE_ERROR;
          ret = -1;
