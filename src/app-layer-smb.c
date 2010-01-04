@@ -347,10 +347,10 @@ static int PaddingParser(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    while (sstate->bytesprocessed + (p - input) < sstate->andx.dataoffset && sstate->bytecount.bytecount-- && input_len--) {
+    while ((uint32_t)(sstate->bytesprocessed + (p - input)) < sstate->andx.dataoffset && sstate->bytecount.bytecount-- && input_len--) {
         p++;
     }
-    if (sstate->bytesprocessed + (p - input) ==  sstate->andx.dataoffset) {
+    if ((uint32_t)(sstate->bytesprocessed + (p - input)) ==  sstate->andx.dataoffset) {
         sstate->andx.paddingparsed = 1;
     }
     sstate->bytesprocessed += (p - input);
