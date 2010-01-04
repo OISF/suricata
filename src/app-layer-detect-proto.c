@@ -47,8 +47,10 @@ typedef struct AlpProtoDetectDirectionThread_ {
 typedef struct AlpProtoDetectDirection_ {
     MpmCtx mpm_ctx;
     uint32_t id;
-    /** a mapping between condition id's and protocol */
-    uint16_t map[ALP_DETECT_MAX];
+    uint16_t map[ALP_DETECT_MAX];   /**< a mapping between condition id's and
+                                         protocol */
+    uint16_t max_depth;             /**< max depth of all patterns, so we can
+                                         limit the search */
 } AlpProtoDetectDirection;
 
 typedef struct AlpProtoDetectThreadCtx_ {
@@ -113,6 +115,9 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
                                 cd->offset, cd->depth, dir->id, dir->id, 0);
     dir->map[dir->id] = al_proto;
     dir->id++;
+
+    if (depth > dir->max_depth)
+        dir->max_depth = depth;
 
     /* no longer need the cd */
     DetectContentFree(cd);
@@ -244,8 +249,13 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     if (dir->id == 0)
         return ALPROTO_UNKNOWN;
 
+    /* see if we can limit the data we scan */
+    uint16_t scanlen = buflen;
+    if (scanlen > dir->max_depth)
+        scanlen = dir->max_depth;
+
     uint16_t proto;
-    uint32_t cnt = mpm_table[dir->mpm_ctx.mpm_type].Scan(&dir->mpm_ctx, &tdir->mpm_ctx, &tdir->pmq, buf, buflen);
+    uint32_t cnt = mpm_table[dir->mpm_ctx.mpm_type].Scan(&dir->mpm_ctx, &tdir->mpm_ctx, &tdir->pmq, buf, scanlen);
     //printf("AppLayerDetectGetProto: scan cnt %" PRIu32 "\n", cnt);
     if (cnt == 0) {
         proto = ALPROTO_UNKNOWN;
