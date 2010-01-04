@@ -687,7 +687,7 @@ static int SCPerfOutputCounterFileIface()
     fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
             "---------------------\n");
     fprintf(sc_perf_op_ctx->fp, "%" PRId32 "/%" PRId32 "/%04d -- %02d:%02d:%02d\n",
-            tms->tm_mday, tms->tm_mon, tms->tm_year + 1900, tms->tm_hour,
+            tms->tm_mday, tms->tm_mon + 1, tms->tm_year + 1900, tms->tm_hour,
             tms->tm_min, tms->tm_sec);
     fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
             "---------------------\n");
