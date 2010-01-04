@@ -84,6 +84,7 @@ typedef enum {
     SC_ERR_NO_URICONTENT_NEGATION,
     SC_ERR_FOPEN_ERROR,
     SC_ERR_HASH_TABLE_INIT_FAILED,
+    SC_ERR_STAT_ERROR,
 } SCError;
 
 const char *SCErrorToString(SCError);

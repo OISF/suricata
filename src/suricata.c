@@ -300,6 +300,9 @@ int main(int argc, char **argv)
     int list_unittests = 0;
     int daemon = 0;
 
+    char *log_dir;
+    struct stat buf;
+
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
 
@@ -443,6 +446,17 @@ int main(int argc, char **argv)
     if (dump_config) {
         ConfDump();
         exit(EXIT_SUCCESS);
+    }
+
+    /* Check for the existance of the default logging directory which we pick
+     * from suricata.yaml.  If not found, shut the engine down */
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
+    if (stat(log_dir, &buf) != 0) {
+        SCLogError(SC_ERR_STAT_ERROR, "The logging directory \"%s\" picked from "
+                   "suricata.yaml(default-log-dir), doesn't exist.  Shutting "
+                   "down the engine", log_dir);
+        exit(EXIT_FAILURE);
     }
 
     /* Since our config is now loaded we can finish configurating the
