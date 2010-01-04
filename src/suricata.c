@@ -388,6 +388,12 @@ int main(int argc, char **argv)
                 fprintf(stderr, "ERROR: Failed to set log directory.\n");
                 exit(EXIT_FAILURE);
             }
+            if (stat(optarg, &buf) != 0) {
+                SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\" "
+                        "upplied at the commandline (-l %s) doesn't "
+                        "exist. Shutting down the engine.", optarg, optarg);
+                exit(EXIT_FAILURE);
+            }
             break;
         case 'q':
             mode = MODE_NFQ;
@@ -453,9 +459,9 @@ int main(int argc, char **argv)
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
     if (stat(log_dir, &buf) != 0) {
-        SCLogError(SC_ERR_STAT_ERROR, "The logging directory \"%s\" picked from "
-                   "suricata.yaml(default-log-dir), doesn't exist.  Shutting "
-                   "down the engine", log_dir);
+        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
+                    "supplied by %s (default-log-dir) doesn't exist. "
+                    "Shutting down the engine", log_dir, conf_filename);
         exit(EXIT_FAILURE);
     }
 

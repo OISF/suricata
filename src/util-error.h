@@ -85,6 +85,8 @@ typedef enum {
     SC_ERR_FOPEN_ERROR,
     SC_ERR_HASH_TABLE_INIT_FAILED,
     SC_ERR_STAT_ERROR,
+    SC_ERR_LOGDIR_CONFIG,
+    SC_ERR_LOGDIR_CMDLINE,
 } SCError;
 
 const char *SCErrorToString(SCError);
