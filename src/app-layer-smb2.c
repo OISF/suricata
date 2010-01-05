@@ -35,9 +35,9 @@ enum {
     SMB_FIELD_MAX,
 };
 
-//#define DEBUG 1
-static int NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
+static uint32_t NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+	SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint8_t *p = input;
 
@@ -50,9 +50,8 @@ static int NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
                     sstate->nbss.length = (*(p + 1) & 0x01) << 16;
                     sstate->nbss.length |= *(p + 2) << 8;
                     sstate->nbss.length |= *(p + 3);
-                    input_len -= NBSS_HDR_LEN;
                     sstate->bytesprocessed += NBSS_HDR_LEN;
-                    return NBSS_HDR_LEN;
+                    SCReturnUInt(4U);
                 } else {
                     sstate->nbss.type = *(p++);
                     if (!(--input_len)) break;
@@ -67,17 +66,15 @@ static int NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
                 sstate->nbss.length |= *(p++);
                 --input_len;
                 break;
-            default:
-                return -1;
-                break;
         }
         sstate->bytesprocessed += (p - input);
     }
-    return (p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
-static int SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
+static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+	SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint8_t *p = input;
     if (input_len) {
@@ -148,9 +145,8 @@ static int SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                     sstate->smb2.Signature[13] = *(p + 61);
                     sstate->smb2.Signature[14] = *(p + 62);
                     sstate->smb2.Signature[15] = *(p + 63);
-                    input_len -= SMB2_HDR_LEN;
                     sstate->bytesprocessed += SMB2_HDR_LEN;
-                    return SMB2_HDR_LEN;
+                    SCReturnUInt(64U);
                     break;
                 } else {
                     //sstate->smb2.protocol[0] = *(p++);
@@ -354,16 +350,15 @@ static int SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                 sstate->smb2.Signature[15] = *(p++);
                 --input_len;
                 break;
-            default: // SHOULD NEVER OCCUR
-                return 0;
         }
     }
     sstate->bytesprocessed += (p - input);
-    return (p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
 static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+	SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint32_t retval = 0;
     uint32_t parsed = 0;
@@ -399,7 +394,7 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
     }
     pstate->parse_field = 0;
     pstate->flags |= APP_LAYER_PARSER_DONE;
-    return 1;
+    SCReturnInt(1);
 }
 
 
@@ -422,19 +417,6 @@ static void SMB2StateFree(void *s) {
 void RegisterSMB2Parsers(void) {
     AppLayerRegisterProto("smb", ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);
     AppLayerRegisterProto("smb", ALPROTO_SMB2, STREAM_TOCLIENT, SMB2Parse);
-    /*AppLayerRegisterParser("nbss.hdr", ALPROTO_SMB, SMB_PARSE_NBSS_HEADER,
-            NBSSParseHeader, "smb");
-    AppLayerRegisterParser("smb.hdr", ALPROTO_SMB, SMB_PARSE_SMB_HEADER,
-            SMBParseHeader, "smb");
-    AppLayerRegisterParser("smb.getwordcount", ALPROTO_SMB, SMB_PARSE_GET_WORDCOUNT,
-            SMBGetWordCount, "smb");
-    AppLayerRegisterParser("smb.wordcount", ALPROTO_SMB, SMB_PARSE_WORDCOUNT,
-            SMBParseWordCount, "smb");
-    AppLayerRegisterParser("smb.getbytecount", ALPROTO_SMB, SMB_PARSE_GET_BYTECOUNT,
-            SMBGetByteCount, "smb");
-    AppLayerRegisterParser("smb.bytecount", ALPROTO_SMB, SMB_PARSE_BYTECOUNT,
-            SMBParseByteCount, "smb");
-            */
     AppLayerRegisterStateFuncs(ALPROTO_SMB2, SMB2StateAlloc, SMB2StateFree);
 }
 

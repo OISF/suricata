@@ -46,7 +46,7 @@ void printUUID(char *type, struct uuid_entry  *uuid) {
     printf(" Major Version 0x%04x Minor Version 0x%04x\n", uuid->version, uuid->versionminor);
 }
 
-static int DCERPCParseSecondaryAddr(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
+static uint32_t DCERPCParseSecondaryAddr(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
 {
     SCEnter();
@@ -57,11 +57,12 @@ static int DCERPCParseSecondaryAddr(Flow *f, void *dcerpc_state, AppLayerParserS
         p++;
     }
     sstate->bytesprocessed += (p - input);
-    SCReturnInt(p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
-static int PaddingParser(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
+static uint32_t PaddingParser(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+	SCEnter();
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
     while (sstate->padleft-- && input_len--) {
@@ -69,10 +70,10 @@ static int PaddingParser(Flow *f, void *dcerpc_state, AppLayerParserState *pstat
         p++;
     }
     sstate->bytesprocessed += (p - input);
-    return (p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
-static int DCERPCGetCTXItems(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
+static uint32_t DCERPCGetCTXItems(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
@@ -80,16 +81,17 @@ static int DCERPCGetCTXItems(Flow *f, void *dcerpc_state, AppLayerParserState *p
     if (input_len) {
         switch(sstate->ctxbytesprocessed) {
             case 0:
-                /*if (input_len >= 4) {
+                if (input_len >= 4) {
                   sstate->numctxitems = *p;
                   sstate->numctxitemsleft = sstate->numctxitems;
-                  sstate->ctxbytesprocessed += (4);
-                  SCReturnInt(4);
-                  } else { */
+                  sstate->ctxbytesprocessed += 4;
+                  sstate->bytesprocessed += 4;
+                  SCReturnUInt(4U);
+                  } else {
                 sstate->numctxitems = *(p++);
                 sstate->numctxitemsleft = sstate->numctxitems;
                 if (!(--input_len)) break;
-                //}
+                }
             case 1:
                 p++;
                 if (!(--input_len)) break;
@@ -104,11 +106,11 @@ static int DCERPCGetCTXItems(Flow *f, void *dcerpc_state, AppLayerParserState *p
     }
     sstate->ctxbytesprocessed += (p - input);
     sstate->bytesprocessed += (p - input);
-    SCReturnInt(p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
 
-static int DCERPCParseBINDCTXItem(Flow *f, void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+static uint32_t DCERPCParseBINDCTXItem(Flow *f, void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
@@ -141,7 +143,7 @@ static int DCERPCParseBINDCTXItem(Flow *f, void *dcerpc_state, AppLayerParserSta
                     sstate->versionminor |= *(p + 23) << 8;
                     sstate->uuid_entry = (struct uuid_entry *) calloc(1, sizeof(struct uuid_entry));
                     if (sstate->uuid_entry == NULL) {
-                        SCReturnInt(-1);
+                        SCReturnUInt(0);
                     } else {
                         memcpy(sstate->uuid_entry->uuid, sstate->uuid,
                                 sizeof(sstate->uuid));
@@ -149,12 +151,12 @@ static int DCERPCParseBINDCTXItem(Flow *f, void *dcerpc_state, AppLayerParserSta
                         sstate->uuid_entry->version = sstate->version;
                         sstate->uuid_entry->versionminor = sstate->versionminor;
                         TAILQ_INSERT_HEAD(&sstate->uuid_list, sstate->uuid_entry, next);
-                        printUUID("BIND", sstate->uuid_entry);
+                        //printUUID("BIND", sstate->uuid_entry);
                     }
                     sstate->numctxitemsleft--;
                     sstate->bytesprocessed += (44);
                     sstate->ctxbytesprocessed += (44);
-                    SCReturnInt(44);
+                    SCReturnUInt(44U);
                 } else {
                     sstate->ctxid = *(p++);
                     if (!(--input_len)) break;
@@ -290,7 +292,7 @@ static int DCERPCParseBINDCTXItem(Flow *f, void *dcerpc_state, AppLayerParserSta
             case 43:
                 sstate->numctxitemsleft--;
                 if (sstate->uuid_entry == NULL) {
-			SCReturnInt(-1);
+			SCReturnUInt(0);
                 } else {
 			memcpy(sstate->uuid_entry->uuid, sstate->uuid,
                            sizeof(sstate->uuid));
@@ -306,10 +308,10 @@ static int DCERPCParseBINDCTXItem(Flow *f, void *dcerpc_state, AppLayerParserSta
     }
     sstate->ctxbytesprocessed += (p - input);
     sstate->bytesprocessed += (p - input);
-    SCReturnInt(p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
-static int DCERPCParseBINDACKCTXItem(Flow *f, void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+static uint32_t DCERPCParseBINDACKCTXItem(Flow *f, void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
@@ -323,14 +325,14 @@ static int DCERPCParseBINDACKCTXItem(Flow *f, void *dcerpc_state, AppLayerParser
                     TAILQ_FOREACH(uuid_entry, &sstate->uuid_list, next) {
                         if(uuid_entry->ctxid ==  sstate->numctxitems - sstate->numctxitemsleft) {
                             uuid_entry->result = sstate->result;
-                            printUUID("BIND_ACK", uuid_entry);
+                            //printUUID("BIND_ACK", uuid_entry);
                             break;
                         }
                     }
                     sstate->numctxitemsleft--;
                     sstate->bytesprocessed += (24);
                     sstate->ctxbytesprocessed += (24);
-                    SCReturnInt(24);
+                    SCReturnUInt(24U);
                 } else {
                     sstate->result = *(p++);
                     if (!(--input_len)) break;
@@ -407,7 +409,7 @@ static int DCERPCParseBINDACKCTXItem(Flow *f, void *dcerpc_state, AppLayerParser
                 TAILQ_FOREACH(uuid_entry, &sstate->uuid_list, next) {
                     if(uuid_entry->ctxid ==  sstate->numctxitems - sstate->numctxitemsleft) {
                         uuid_entry->result = sstate->result;
-                        printUUID("BIND_ACK", uuid_entry);
+                        //printUUID("BIND_ACK", uuid_entry);
                         break;
                     }
                 }
@@ -420,10 +422,10 @@ static int DCERPCParseBINDACKCTXItem(Flow *f, void *dcerpc_state, AppLayerParser
     }
     sstate->ctxbytesprocessed += (p - input);
     sstate->bytesprocessed += (p - input);
-    SCReturnInt(p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
-static int DCERPCParseBIND(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
+static uint32_t DCERPCParseBIND(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
@@ -437,7 +439,7 @@ static int DCERPCParseBIND(Flow *f, void *dcerpc_state, AppLayerParserState *pst
                     sstate->numctxitems = *(p+8);
                     sstate->numctxitemsleft = sstate->numctxitems;
                     sstate->bytesprocessed += 12;
-                    SCReturnInt(12);
+                    SCReturnUInt(12U);
                 } else {
                     /* max_xmit_frag */
                     p++;
@@ -492,10 +494,10 @@ static int DCERPCParseBIND(Flow *f, void *dcerpc_state, AppLayerParserState *pst
         }
     }
     sstate->bytesprocessed += (p - input);
-    SCReturnInt(p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
-static int DCERPCParseBINDACK(Flow *f, void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+static uint32_t DCERPCParseBINDACK(Flow *f, void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
     DCERPCState *sstate = (DCERPCState *)dcerpc_state;
     uint8_t *p = input;
@@ -508,7 +510,7 @@ static int DCERPCParseBINDACK(Flow *f, void *dcerpc_state, AppLayerParserState *
                 sstate->secondaryaddrlen |= *(p+9) << 8;
                 sstate->secondaryaddrlenleft = sstate->secondaryaddrlen;
                 sstate->bytesprocessed += 10;
-                SCReturnInt(10);
+                SCReturnUInt(10U);
             } else {
                 /* max_xmit_frag */
                 p++;
@@ -553,10 +555,10 @@ static int DCERPCParseBINDACK(Flow *f, void *dcerpc_state, AppLayerParserState *
             break;
     }
     sstate->bytesprocessed += (p - input);
-    SCReturnInt(p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
-static int DCERPCParseHeader(Flow *f, void *dcerpc_state, AppLayerParserState
+static uint32_t DCERPCParseHeader(Flow *f, void *dcerpc_state, AppLayerParserState
                             *pstate, uint8_t *input, uint32_t input_len,
                             AppLayerParserResult *output) {
     SCEnter();
@@ -592,7 +594,7 @@ static int DCERPCParseHeader(Flow *f, void *dcerpc_state, AppLayerParserState
                     sstate->dcerpc.call_id |= *(p + 14) << 8;
                     sstate->dcerpc.call_id |= *(p + 15);
                     sstate->bytesprocessed = DCERPC_HDR_LEN;
-                    SCReturnInt(DCERPC_HDR_LEN);
+                    SCReturnUInt(16U);
                     break;
                 } else {
                     sstate->dcerpc.rpc_vers = *(p++);
@@ -647,13 +649,10 @@ static int DCERPCParseHeader(Flow *f, void *dcerpc_state, AppLayerParserState
                 sstate->dcerpc.call_id |= *(p++);
                 --input_len;
                 break;
-            default: // SHOULD NEVER OCCUR
-                SCLogDebug("Odd");
-                SCReturnInt(8);
         }
     }
     sstate->bytesprocessed += (p - input);
-    SCReturnInt(p - input);
+    SCReturnUInt((uint32_t)(p - input));
 }
 
 static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate, uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
@@ -672,6 +671,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
         parsed += retval;
         input_len -= retval;
     }
+    SCLogDebug("Done with DCERPCParseHeader bytesprocessed %u\n", sstate->bytesprocessed);
 
     switch (sstate->dcerpc.type) {
         case BIND:
@@ -684,6 +684,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
                 parsed += retval;
                 input_len -= retval;
             }
+            SCLogDebug("Done with DCERPCParseBIND bytesprocessed %u\n", sstate->bytesprocessed);
 
             while (sstate->numctxitemsleft && sstate->bytesprocessed < sstate->dcerpc.frag_length &&
                     input_len) {
@@ -695,6 +696,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
                 parsed += retval;
                 input_len -= retval;
             }
+            SCLogDebug("Done with DCERPCParseBINDCTXItem bytesprocessed %u\n", sstate->bytesprocessed);
 
             if (sstate->bytesprocessed == sstate->dcerpc.frag_length) {
                 sstate->bytesprocessed = 0;
@@ -711,6 +713,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
                 parsed += retval;
                 input_len -= retval;
             }
+            SCLogDebug("Done with DCERPCParseBINDACK bytesprocessed %u\n", sstate->bytesprocessed);
 
             while (sstate->bytesprocessed < DCERPC_HDR_LEN + 10 + sstate->secondaryaddrlen && input_len--) {
                 retval = DCERPCParseSecondaryAddr(f, dcerpc_state, pstate, input + parsed, input_len,
@@ -718,11 +721,13 @@ static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
                 parsed += retval;
                 input_len -= retval;
             }
+            SCLogDebug("Done with DCERPCParseSecondaryAddr bytesprocessed %u\n", sstate->bytesprocessed);
 
             if(sstate->bytesprocessed == DCERPC_HDR_LEN + 10 + sstate->secondaryaddrlen) {
                 sstate->pad = sstate->bytesprocessed % 4;
                 sstate->padleft = sstate->pad;
             }
+            SCLogDebug("pad %u\n", sstate->pad);
 
             while (sstate->bytesprocessed < DCERPC_HDR_LEN + 10 + sstate->secondaryaddrlen + sstate->pad && input_len--) {
                 retval = PaddingParser(f, dcerpc_state, pstate, input + parsed, input_len,
@@ -730,6 +735,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
                 parsed += retval;
                 input_len -= retval;
             }
+            SCLogDebug("Done with PaddingParser bytesprocessed %u\n", sstate->bytesprocessed);
 
             while(sstate->bytesprocessed >=  DCERPC_HDR_LEN + 10 + sstate->pad + sstate->secondaryaddrlen &&
                     sstate->bytesprocessed <  DCERPC_HDR_LEN + 14 + sstate->pad + sstate->secondaryaddrlen) {
@@ -738,6 +744,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
                 parsed += retval;
                 input_len -= retval;
             }
+            SCLogDebug("Done with DCERPCGetCTXItems bytesprocessed %u\n", sstate->bytesprocessed);
 
             if (sstate->bytesprocessed == DCERPC_HDR_LEN + 14 + sstate->pad + sstate->secondaryaddrlen) {
                 sstate->ctxbytesprocessed = 0;
@@ -752,6 +759,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state, AppLayerParserState *pstate,
                 parsed += retval;
                 input_len -= retval;
             }
+            SCLogDebug("Done with DCERPCParseBINDACKCTXItem bytesprocessed %u\n", sstate->bytesprocessed);
 
             if (sstate->bytesprocessed == sstate->dcerpc.frag_length) {
                 sstate->bytesprocessed = 0;
@@ -793,7 +801,6 @@ static void DCERPCStateFree(void *s) {
 void RegisterDCERPCParsers(void) {
     AppLayerRegisterProto("dcerpc", ALPROTO_DCERPC, STREAM_TOSERVER, DCERPCParse);
     AppLayerRegisterProto("dcerpc", ALPROTO_DCERPC, STREAM_TOCLIENT, DCERPCParse);
-    AppLayerRegisterParser("dcerpc.hdr", ALPROTO_DCERPC, DCERPC_PARSE_DCERPC_HEADER, DCERPCParseHeader, "dcerpc");
     AppLayerRegisterStateFuncs(ALPROTO_DCERPC, DCERPCStateAlloc, DCERPCStateFree);
 }
 
