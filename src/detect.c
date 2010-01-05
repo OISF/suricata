@@ -212,11 +212,14 @@ char *DetectLoadCompleteSigPath(char *sig_file)
     return path;
 }
 
-/** \brief Load a file with signatures
- *  \retval -1 error
- *  \retval 0 ok
+/**
+ *  \brief Load a file with signatures
+ *  \param de_ctx Pointer to the detection engine context
+ *  \param sig_file Filename to load signatures from
+ *  \param sigs_tot Will store number of signatures processed in the file
+ *  \retval Number of rules loaded successfully, -1 on error
  */
-int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
+int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
     Signature *sig = NULL;
     int good = 0, bad = 0;
 
@@ -227,8 +230,8 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
 
     FILE *fp = fopen(sig_file, "r");
     if (fp == NULL) {
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "ERROR opening rule file %s."
-                   " Check the path and perms.", sig_file);
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "ERROR opening rule file %s:"
+                   " %s.", sig_file, strerror(errno));
         return -1;
     }
     char line[8192] = "";
@@ -257,24 +260,26 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file) {
         offset = 0;
 
         sig = DetectEngineAppendSig(de_ctx, line);
+        (*sigs_tot)++;
         if (sig != NULL) {
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
         } else {
+            SCLogDebug("Error parsing signature \"%s\" from file %s", line, sig_file);
             bad++;
         }
     }
     fclose(fp);
 
-    SCLogInfo("%" PRId32 " successfully loaded from file %s.", good, sig_file);
-    if (bad)
-        SCLogInfo("%" PRId32 " sigs failed to load from file %s.", bad, sig_file);
-    if (good == 0)
-        return 0;
-    else
-        return good;
+    return good;
 }
 
+/**
+ *  \brief Load signatures
+ *  \param de_ctx Pointer to the detection engine context
+ *  \param sig_file Filename holding signatures
+ *  \retval -1 on error
+ */
 int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 {
     SCEnter();
@@ -286,6 +291,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     int r = 0;
     int cnt = 0;
     int cntf = 0;
+    int sigtotal = 0;
     char *sfile = NULL;
 
     /* The next 3 rules handle HTTP header capture. */
@@ -327,7 +333,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
             sfile = DetectLoadCompleteSigPath(file->val);
             SCLogInfo("Loading rule file: %s", sfile);
 
-            r = DetectLoadSigFile(de_ctx, sfile);
+            r = DetectLoadSigFile(de_ctx, sfile, &sigtotal);
             cntf++;
             if (r > 0) {
                 cnt += r;
@@ -348,7 +354,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     /* If a Signature file is specified from commandline, parse it too */
     if (sig_file != NULL) {
         SCLogInfo("Loading rule file: %s", sig_file);
-        r = DetectLoadSigFile(de_ctx, sig_file);
+        r = DetectLoadSigFile(de_ctx, sig_file, &sigtotal);
         cntf++;
         if (r > 0) {
             cnt += r;
@@ -372,7 +378,8 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
         }
         ret = -1;
     } else {
-        SCLogInfo("%d rules loaded from %d files.", cnt, cntf);
+        /* we report the total of files and rules successfully loaded and failed */
+        SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " rules succesfully loaded, %" PRId32 " rules failed", cntf, cnt, sigtotal-cnt);
     }
 
     if (ret < 0 && de_ctx->failure_fatal) {
