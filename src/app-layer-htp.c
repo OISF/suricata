@@ -278,7 +278,7 @@ void RegisterHTPParsers(void)
 }
 
 /**
- * \brief Returns the main HTTP transaction
+ * \brief Returns the main (first) HTTP transaction
  *
  * \param htp_state HTP library state
  * \returns Main HTP transation

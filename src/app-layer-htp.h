@@ -33,6 +33,7 @@ void RegisterHTPParsers(void);
 void HTPParserRegisterTests(void);
 void HTPAtExitPrintStats(void);
 void HTPFreeConfig(void);
+htp_tx_t *HTPTransactionMain(const HtpState *);
 
 #endif	/* __APP_LAYER_HTP_H__ */
 
