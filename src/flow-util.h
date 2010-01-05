@@ -24,7 +24,7 @@
 
 Flow *FlowAlloc(void);
 void FlowFree(Flow *);
-int FlowGetProtoMapping(uint8_t);
+uint8_t FlowGetProtoMapping(uint8_t);
 void FlowInit(Flow *, Packet *);
 
 #endif /* __FLOW_UTIL_H__ */

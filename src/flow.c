@@ -67,9 +67,9 @@ void FlowUpdateQueue(Flow *f)
             uint8_t state = flow_proto[f->protomap].GetProtoState(f->protoctx);
             if (state == FLOW_STATE_CLOSED) {
                 f->flags |= FLOW_CLOSED_LIST; /* transition */
-                f->flags &= ~FLOW_EST_LIST;
+                f->flags &=~ FLOW_EST_LIST;
 
-                //printf("FlowUpdateQueue %p was put into closing queue ts %"PRIuMAX"\n", f, (uintmax_t)f->lastts.tv_sec);
+                SCLogDebug("flow %p was put into closing queue ts %"PRIuMAX"", f, (uintmax_t)f->lastts.tv_sec);
                 FlowRequeue(f, &flow_est_q[f->protomap], &flow_close_q[f->protomap]);
             } else {
                 /* Pull and put back -- this way the flows on
@@ -659,7 +659,7 @@ void *FlowManagerThread(void *td)
         sleeping += 10;
     }
 
-    SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were timed out", new_cnt, established_cnt);
+    SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were timed out, %"PRIu32"", new_cnt, established_cnt, closing_cnt);
     pthread_exit((void *) 0);
 }
 

@@ -173,12 +173,12 @@ static void StreamTcpSessionPktFree (Packet *p)
     SCMutexUnlock(&ssn_pool_mutex);
 
     p->flow->protoctx = NULL;
-*/
 #ifdef DEBUG
     SCMutexLock(&ssn_pool_cnt_mutex);
     ssn_pool_cnt--;
     SCMutexUnlock(&ssn_pool_cnt_mutex);
 #endif
+*/
 
     SCReturn;
 }
@@ -2561,25 +2561,30 @@ static int ValidReset(TcpSession *ssn, Packet *p)
 /**
  *  \brief  Function to return the FLOW state depending upon the TCP session state.
  *
- *  \param   s    TCP session of which the state has to be returned
- *  \retval       The FLOW_STATE_ depends upon the TCP sesison state, default is
- *                FLOW_STATE_CLOSED
+ *  \param   s      TCP session of which the state has to be returned
+ *  \retval  state  The FLOW_STATE_ depends upon the TCP sesison state, default is
+ *                  FLOW_STATE_CLOSED
  */
 
 int StreamTcpGetFlowState(void *s)
 {
+    SCEnter();
+
     TcpSession *ssn = (TcpSession *)s;
-    if (ssn == NULL)
-        return FLOW_STATE_CLOSED;
+    if (ssn == NULL) {
+        SCReturnInt(FLOW_STATE_CLOSED);
+    }
 
     switch(ssn->state) {
         case TCP_NONE:
         case TCP_SYN_SENT:
         case TCP_SYN_RECV:
         case TCP_LISTEN:
-            return FLOW_STATE_NEW;
+            SCReturnInt(FLOW_STATE_NEW);
+
         case TCP_ESTABLISHED:
-            return FLOW_STATE_ESTABLISHED;
+            SCReturnInt(FLOW_STATE_ESTABLISHED);
+
         case TCP_FIN_WAIT1:
         case TCP_FIN_WAIT2:
         case TCP_CLOSING:
@@ -2587,9 +2592,10 @@ int StreamTcpGetFlowState(void *s)
         case TCP_TIME_WAIT:
         case TCP_CLOSE_WAIT:
         case TCP_CLOSED:
-            return FLOW_STATE_CLOSED;
+            SCReturnInt(FLOW_STATE_CLOSED);
     }
-    return FLOW_STATE_CLOSED;
+
+    SCReturnInt(FLOW_STATE_CLOSED);
 }
 
 /**

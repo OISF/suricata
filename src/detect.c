@@ -489,6 +489,8 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
 /** \brief application layer detection
  *
  *  \param sgh signature group head for this proto/addrs/ports
+ *  \warning Make sure to exit this function using "goto end" if the flow
+ *           use_cnt has already been incremented.
  */
 static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh, Packet *p)
 {
@@ -522,11 +524,11 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
 
     if (alproto == ALPROTO_UNKNOWN) {
         SCLogDebug("application layer state proto still unknown");
-        SCReturnInt(0);
+        goto end;
     }
     if (alstate == NULL) {
         SCLogDebug("no application layer state to detect");
-        SCReturnInt(0);
+        goto end;
     }
 
     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -653,6 +655,7 @@ static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx,
         }
     }
 
+end:
     SCMutexLock(&p->flow->m);
     p->flow->use_cnt--;
     SCMutexUnlock(&p->flow->m);

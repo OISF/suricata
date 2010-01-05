@@ -56,7 +56,7 @@ void FlowFree(Flow *f)
  *  \param   proto  protocol which is needed to be mapped
  */
 
-int FlowGetProtoMapping(uint8_t proto) {
+uint8_t FlowGetProtoMapping(uint8_t proto) {
 
     switch (proto) {
         case IPPROTO_TCP:
