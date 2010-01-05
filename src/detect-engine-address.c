@@ -3974,6 +3974,7 @@ int AddressTestParseInvalidMask03(void)
 void DetectAddressTests(void)
 {
 #ifdef UNITTESTS
+    DetectAddressIPv4Tests();
     DetectAddressIPv6Tests();
 
     UtRegisterTest("AddressTestParse01", AddressTestParse01, 1);

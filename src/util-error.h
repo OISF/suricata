@@ -1,5 +1,8 @@
 /** Copyright (c) 2009 Open Information Security Foundation.
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
+ *
+ * \todo Needs refining of the error codes.  Renaming with a prefix of SC_ERR,
+ *       removal of duplicates and entries have to be made in util-error.c
  */
 
 #ifndef __ERROR_H__
