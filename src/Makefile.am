@@ -90,6 +90,7 @@ detect-ttl.c detect-ttl.h \
 detect-itype.c detect-itype.h \
 detect-icode.c detect-icode.h \
 detect-http-cookie.c detect-http-cookie.h \
+detect-http-method.c detect-http-method.h \
 detect-tls-version.c detect-tls-version.h \
 detect-icmp-id.c detect-icmp-id.h \
 detect-dce-iface.c detect-dce-iface.h \

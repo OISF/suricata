@@ -132,8 +132,6 @@ void SigMatchAppend(Signature *s, SigMatch *m, SigMatch *new) {
  * \param new   pointer to the new sigmatch, which will replace m
  */
 void SigMatchReplace(Signature *s, SigMatch *m, SigMatch *new) {
-
-
     if (s->match == NULL) {
         s->match = new;
         return;
@@ -155,7 +153,6 @@ void SigMatchReplace(Signature *s, SigMatch *m, SigMatch *new) {
             new->next = m->next;
         }
     }
-
 }
 
 /**

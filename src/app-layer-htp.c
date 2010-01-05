@@ -277,6 +277,19 @@ void RegisterHTPParsers(void)
     cfg = htp_config_create();
 }
 
+/**
+ * \brief Returns the main HTTP transaction
+ *
+ * \param htp_state HTP library state
+ * \returns Main HTP transation
+ *
+ */
+htp_tx_t *HTPTransactionMain(const HtpState *htp_state)
+{
+    SCEnter();
+    SCReturnPtr(list_get(htp_state->connp->conn->transactions, 0), "htp_tx_t");
+}
+
 //#ifdef UNITTESTS
 /** \test Test case where chunks are sent in smaller chunks and check the
  *        response of the parser from HTP library. */

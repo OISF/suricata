@@ -18,13 +18,13 @@ enum {
 
 /* prototypes */
 int SigParse(DetectEngineCtx *,Signature *, char *, uint8_t);
-Signature *SigAlloc (void);
+Signature *SigAlloc(void);
 void SigFree(Signature *s);
 Signature *SigInit(DetectEngineCtx *,char *sigstr);
 SigMatch *SigMatchGetLastSM(Signature *, uint8_t);
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);
-void SigMatchReplace (Signature *, SigMatch *, SigMatch *);
+void SigMatchReplace(Signature *, SigMatch *, SigMatch *);
 #endif /* __DETECT_PARSE_H__ */
 
