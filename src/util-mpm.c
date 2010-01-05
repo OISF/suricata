@@ -91,6 +91,7 @@ MpmMatchCleanup(MpmThreadCtx *thread_ctx) {
     MpmMatch *m = thread_ctx->qlist;
 
     while (m != NULL) {
+        BUG_ON(m == m->qnext);
         nxt = m->qnext;
 
         /* clear the bucket */
@@ -111,7 +112,6 @@ MpmMatchCleanup(MpmThreadCtx *thread_ctx) {
 
         m = nxt;
     }
-
 }
 
 /** \brief allocate a match
@@ -194,6 +194,8 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
         m->qnext = thread_ctx->qlist;
         thread_ctx->qlist = m;
     }
+
+    BUG_ON(m == m->qnext);
 
     if (pmq != NULL) {
         /* make sure we only append a sig with a matching pattern once,
