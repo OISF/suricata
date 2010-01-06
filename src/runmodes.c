@@ -616,7 +616,7 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface) {
     return 0;
 }
 
-int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCtx *ad_logfile_ctx, LogFileCtx *lh_logfile_ctx, LogFileCtx *aul_logfile_ctx, LogFileCtx *aua_logfile_ctx, LogFileCtx *au2a_logfile_ctx) {
+int RunModeIpsNFQ(DetectEngineCtx *de_ctx) {
     TimeModeSetLive();
 
     /* create the threads */
@@ -739,85 +739,10 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_alert = TmThreadCreatePacketHandler("AlertFastlog&Httplog","alert-queue1","simple","alert-queue2","simple","varslot");
-    if (tv_alert == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-    tm_module = TmModuleGetByName("AlertFastlog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv_alert, tm_module, af_logfile_ctx);
-
-    tm_module = TmModuleGetByName("LogHttplog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv_alert, tm_module, lh_logfile_ctx);
-
-    if (TmThreadSpawn(tv_alert) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ThreadVars *tv_unified = TmThreadCreatePacketHandler("AlertUnifiedLog","alert-queue2","simple","alert-queue3","simple","varslot");
-    if (tv_unified == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    tm_module = TmModuleGetByName("AlertUnifiedLog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv_unified, tm_module, aul_logfile_ctx);
-
-    tm_module = TmModuleGetByName("AlertUnifiedAlert");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv_unified, tm_module, aua_logfile_ctx);
-
-    if (TmThreadSpawn(tv_unified) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-   ThreadVars *tv_unified2 = TmThreadCreatePacketHandler("Unified2Alert","alert-queue3","simple","alert-queue4","simple","1slot");
-    if (tv_unified2 == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-    tm_module = TmModuleGetByName("Unified2Alert");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed\n");
-        exit(EXIT_FAILURE);
-    }
-    Tm1SlotSetFunc(tv_unified2,tm_module,au2a_logfile_ctx);
-
-    if (TmThreadSpawn(tv_unified2) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue4","simple","packetpool","packetpool","1slot");
-    if (tv_debugalert == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-    tm_module = TmModuleGetByName("AlertDebuglog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed\n");
-        exit(EXIT_FAILURE);
-    }
-    Tm1SlotSetFunc(tv_debugalert,tm_module, ad_logfile_ctx);
-
-    if (TmThreadSpawn(tv_debugalert) != TM_ECODE_OK) {
+    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
+        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
+    SetupOutputs(tv_outputs);
+    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
@@ -825,7 +750,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, LogFileCtx *af_logfile_ctx, LogFileCt
     return 0;
 }
 
-int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_ctx, LogFileCtx *ad_logfile_ctx, LogFileCtx *lh_logfile_ctx, LogFileCtx *aul_logfile_ctx, LogFileCtx *aua_logfile_ctx, LogFileCtx *au2a_logfile_ctx) {
+int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file) {
     printf("RunModeFilePcap: file %s\n", file);
     TimeModeSetOffline();
 
@@ -917,96 +842,21 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_alert = TmThreadCreatePacketHandler("AlertFastlog&Httplog","alert-queue1","simple","alert-queue2","simple","varslot");
-    if (tv_alert == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-    tm_module = TmModuleGetByName("AlertFastlog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv_alert,tm_module,af_logfile_ctx);
-
-    tm_module = TmModuleGetByName("LogHttplog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv_alert,tm_module, lh_logfile_ctx);
-
-    if (TmThreadSpawn(tv_alert) != TM_ECODE_OK) {
+    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
+        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
+    SetupOutputs(tv_outputs);
+    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_unified = TmThreadCreatePacketHandler("AlertUnifiedLog","alert-queue2","simple","alert-queue3","simple","varslot");
-    if (tv_unified == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    tm_module = TmModuleGetByName("AlertUnifiedLog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv_unified,tm_module,aul_logfile_ctx);
-
-    tm_module = TmModuleGetByName("AlertUnifiedAlert");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv_unified,tm_module,aua_logfile_ctx);
-
-    if (TmThreadSpawn(tv_unified) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ThreadVars *tv_unified2 = TmThreadCreatePacketHandler("Unified2Alert","alert-queue3","simple","alert-queue4","simple","1slot");
-    if (tv_unified2 == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    tm_module = TmModuleGetByName("Unified2Alert");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for Unified2Alert failed\n");
-        exit(EXIT_FAILURE);
-    }
-    Tm1SlotSetFunc(tv_unified2,tm_module,au2a_logfile_ctx);
-
-    if (TmThreadSpawn(tv_unified2) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ThreadVars *tv_debugalert = TmThreadCreatePacketHandler("AlertDebuglog","alert-queue4","simple","packetpool","packetpool","1slot");
-    if (tv_debugalert == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-    tm_module = TmModuleGetByName("AlertDebuglog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed\n");
-        exit(EXIT_FAILURE);
-    }
-    Tm1SlotSetFunc(tv_debugalert,tm_module, ad_logfile_ctx);
-
-    if (TmThreadSpawn(tv_debugalert) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
-    }
     return 0;
 }
 
 /**
  * \brief Single thread version of the Pcap file processing.
  */
-int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile_ctx, LogFileCtx *ad_logfile_ctx, LogFileCtx *lh_logfile_ctx, LogFileCtx *aul_logfile_ctx, LogFileCtx *aua_logfile_ctx, LogFileCtx *au2a_logfile_ctx) {
+int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file) {
     printf("RunModeFilePcap2: file %s\n", file);
     TimeModeSetOffline();
 
@@ -1045,46 +895,7 @@ int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file, LogFileCtx *af_logfile
     }
     TmVarSlotSetFuncAppend(tv,tm_module,(void *)de_ctx);
 
-    tm_module = TmModuleGetByName("AlertFastlog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertFastlog failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv,tm_module,af_logfile_ctx);
-
-    tm_module = TmModuleGetByName("LogHttplog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv,tm_module, lh_logfile_ctx);
-
-    tm_module = TmModuleGetByName("AlertUnifiedLog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertUnifiedLog failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv,tm_module,aul_logfile_ctx);
-
-    tm_module = TmModuleGetByName("AlertUnifiedAlert");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for AlertUnifiedAlert failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv,tm_module,aua_logfile_ctx);
-
-    tm_module = TmModuleGetByName("Unified2Alert");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for Unified2Alert failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv,tm_module,au2a_logfile_ctx);
-    tm_module = TmModuleGetByName("AlertDebuglog");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmVarSlotSetFuncAppend(tv,tm_module, ad_logfile_ctx);
+    SetupOutputs(tv);
 
     if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");

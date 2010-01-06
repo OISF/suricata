@@ -5,10 +5,10 @@ int RunModeIdsPcap(DetectEngineCtx *, char *);
 int RunModeIdsPcap2(DetectEngineCtx *, char *);
 int RunModeIdsPcap3(DetectEngineCtx *, char *);
 
-int RunModeIpsNFQ(DetectEngineCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *);
+int RunModeIpsNFQ(DetectEngineCtx *);
 
-int RunModeFilePcap(DetectEngineCtx *, char *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *);
-int RunModeFilePcap2(DetectEngineCtx *, char *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *, LogFileCtx *);
+int RunModeFilePcap(DetectEngineCtx *, char *);
+int RunModeFilePcap2(DetectEngineCtx *, char *);
 
 int RunModeIdsPfring(DetectEngineCtx *, char *);
 int RunModeIdsPfring2(DetectEngineCtx *, char *);

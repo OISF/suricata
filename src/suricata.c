@@ -624,14 +624,6 @@ int main(int argc, char **argv)
 
     SCClassConfLoadClassficationConfigFile(de_ctx);
 
-    /* Logging/alerting contexts.  Eventually this won't be needed. */
-    LogFileCtx *af_logfile_ctx = NULL;    /* AlertFastlog */
-    LogFileCtx *ad_logfile_ctx = NULL;    /* AlertDebuglog */
-    LogFileCtx *lh_logfile_ctx = NULL;    /* LogHttplog */
-    LogFileCtx *aul_logfile_ctx = NULL;   /* AlertUnifiedLog */
-    LogFileCtx *aua_logfile_ctx = NULL;   /* AlertUnifiedAlert */
-    LogFileCtx *au2a_logfile_ctx = NULL;  /* Unified2Alert */
-
     if (SigLoadSignatures(de_ctx, sig_file) < 0) {
         if (sig_file == NULL) {
             SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
@@ -652,14 +644,8 @@ int main(int argc, char **argv)
         //RunModeIdsPcap(de_ctx, pcap_dev);
     }
     else if (mode == MODE_PCAP_FILE) {
-        af_logfile_ctx = AlertFastlogInitCtx(NULL);
-        ad_logfile_ctx = AlertDebuglogInitCtx(NULL);
-        lh_logfile_ctx = LogHttplogInitCtx(NULL);
-        aul_logfile_ctx = AlertUnifiedLogInitCtx(NULL);
-        aua_logfile_ctx = AlertUnifiedAlertInitCtx(NULL);
-        au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
-        RunModeFilePcap(de_ctx, pcap_file, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
-        //RunModeFilePcap2(de_ctx, pcap_file, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
+        RunModeFilePcap(de_ctx, pcap_file);
+        //RunModeFilePcap2(de_ctx, pcap_file);
     }
     else if (mode == MODE_PFRING) {
         //RunModeIdsPfring3(de_ctx, pfring_dev);
@@ -667,13 +653,7 @@ int main(int argc, char **argv)
         RunModeIdsPfring(de_ctx, pfring_dev);
     }
     else if (mode == MODE_NFQ) {
-        af_logfile_ctx = AlertFastlogInitCtx(NULL);
-        ad_logfile_ctx = AlertDebuglogInitCtx(NULL);
-        lh_logfile_ctx = LogHttplogInitCtx(NULL);
-        aul_logfile_ctx = AlertUnifiedLogInitCtx(NULL);
-        aua_logfile_ctx = AlertUnifiedAlertInitCtx(NULL);
-        au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
-        RunModeIpsNFQ(de_ctx, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
+        RunModeIpsNFQ(de_ctx);
     }
     else {
         printf("ERROR: Unknown runtime mode.\n");
@@ -766,15 +746,6 @@ int main(int argc, char **argv)
     DetectEngineCtxFree(de_ctx);
 
     RunModeShutDown();
-
-    /* Remove when all run modes use the configuration file for output
-     * configuration. LogFileFreeCtx accepts NULL. */
-    LogFileFreeCtx(af_logfile_ctx);
-    LogFileFreeCtx(lh_logfile_ctx);
-    LogFileFreeCtx(ad_logfile_ctx);
-    LogFileFreeCtx(aul_logfile_ctx);
-    LogFileFreeCtx(aua_logfile_ctx);
-    LogFileFreeCtx(au2a_logfile_ctx);
 
     exit(EXIT_SUCCESS);
 }
