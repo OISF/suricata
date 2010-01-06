@@ -181,7 +181,7 @@ extern int sc_log_module_cleaned;
                                   { } else {                             \
                                       snprintf(_sc_log_temp,             \
                                                (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                (_sc_log_msg - _sc_log_temp)), \
+                                                (_sc_log_temp - _sc_log_msg)), \
                                                __VA_ARGS__);             \
                                       SCLogOutputBuffer(x, _sc_log_msg); \
                                   }                                      \
@@ -202,7 +202,7 @@ extern int sc_log_module_cleaned;
                                                 _sc_log_err_temp +       \
                                                 snprintf(_sc_log_err_temp, \
                                                (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                (_sc_log_err_msg - _sc_log_err_temp)), \
+                                                (_sc_log_err_temp - _sc_log_err_msg)), \
                                                "[ERRCODE: %s(%d)] - ",   \
                                                SCErrorToString(err),     \
                                                err);                     \
@@ -215,7 +215,7 @@ extern int sc_log_module_cleaned;
                                       }                                  \
                                       snprintf(_sc_log_err_temp,         \
                                                (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                (_sc_log_err_msg - _sc_log_err_temp)), \
+                                                (_sc_log_err_temp - _sc_log_err_msg)), \
                                                __VA_ARGS__);             \
                                       SCLogOutputBuffer(x, _sc_log_err_msg); \
                                   }                                      \
