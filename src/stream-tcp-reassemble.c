@@ -580,7 +580,17 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
             if (SEQ_GT(list_seg->seq, (list_seg->prev->seq +
                                    list_seg->prev->payload_len)))
             {
-                packet_length = list_seg->payload_len + (list_seg->seq - seg->seq);
+                SCLogDebug("list_seg->prev %p list_seg->prev->seq %"PRIu32" "
+                           "list_seg->prev->payload_len %"PRIu16"",
+                            list_seg->prev, list_seg->prev->seq,
+                            list_seg->prev->payload_len);
+                if (SEQ_LT(list_seg->prev->seq, seg->seq)) {
+                    packet_length = list_seg->payload_len + (list_seg->seq -
+                                                                    seg->seq);
+                } else {
+                    packet_length = list_seg->payload_len + (list_seg->seq -
+                           (list_seg->prev->seq + list_seg->prev->payload_len));
+                }
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
@@ -937,6 +947,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
                                                TcpSegment *list_seg,
                                                TcpSegment *seg)
 {
+    SCEnter();
     uint16_t overlap = 0;
     uint16_t packet_length;
     char end_before = FALSE;
@@ -984,7 +995,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
         overlap = (list_seg->seq + list_seg->payload_len) - seg->seq;
         end_after = TRUE;
 
-        SCLogDebug("starts beyond list seq, before list end, ends at list end: "
+        SCLogDebug("starts beyond list seq, ends after list seq end: "
             "seg->seq %" PRIu32 ", seg->payload_len %"PRIu16" (%"PRIu32") "
             "list_seg->seq %" PRIu32 ", list_seg->payload_len %" PRIu32 " "
             "(%"PRIu32") overlap is %" PRIu32 "", seg->seq, seg->payload_len,
@@ -1033,7 +1044,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
                     uint16_t idx = segment_pool_idx[packet_length];
                     SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] is"
                                " empty", idx);
-                    return -1;
+                    SCReturnInt(-1);
                 }
                 new_seg->payload_len = packet_length;
                 new_seg->seq = list_seg->seq + list_seg->payload_len;
@@ -1044,8 +1055,9 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
                 list_seg->next = new_seg;
 
                 SCLogDebug("new_seg %p, new_seg->next %p, new_seg->prev %p, "
-                           "list_seg->next %p", new_seg, new_seg->next,
-                           new_seg->prev, list_seg->next);
+                           "list_seg->next %p new_seg->seq %"PRIu32"", new_seg,
+                            new_seg->next, new_seg->prev, list_seg->next,
+                            new_seg->seq);
 
                 StreamTcpSegmentDataReplace(new_seg, seg, new_seg->seq,
                                             new_seg->payload_len);
@@ -1089,9 +1101,9 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
                 break;
         }
         if (end_before == TRUE || end_same == TRUE || handle_beyond == FALSE)
-            return 1;
+            SCReturnInt(1);
     }
-    return 0;
+    SCReturnInt(0);
 }
 
 int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
@@ -1232,8 +1244,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
          * because we've reassembled up to the ra_base_seq point already,
          * so we won't do anything with segments before it anyway. */
         SCLogDebug("checking for pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
-                   " len %"PRIu16", combined %"PRIu32"", stream->ra_base_seq,
-                   seg, seg->seq, seg->payload_len, seg->seq+seg->payload_len);
+                   " len %"PRIu16", combined %"PRIu32" and stream->last_ack "
+                   "%"PRIu32"", stream->ra_base_seq, seg, seg->seq,
+                    seg->payload_len, seg->seq+seg->payload_len, stream->last_ack);
 
         /** \todo we should probably not even insert them into the seglist */
         if (SEQ_LEQ((seg->seq + seg->payload_len), (stream->ra_base_seq+1))) {
@@ -1339,7 +1352,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                     payload_len = seg->payload_len;
                 }
             }
-
+            SCLogDebug("payload_offset is %"PRIu16", payload_len is %"PRIu16""
+                       " and stream->last_ack is %"PRIu32"", payload_offset,
+                        payload_len, stream->last_ack);
             /* copy the data into the smsg */
             uint16_t copy_size = sizeof (smsg->data.data) - smsg_offset;
             if (copy_size > payload_len) {
@@ -1348,7 +1363,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
             if (SCLogDebugEnabled()) {
                 BUG_ON(copy_size > sizeof(smsg->data.data));
             }
-
+            SCLogDebug("copy_size is %"PRIu16"", copy_size);
             memcpy(smsg->data.data + smsg_offset, seg->payload + payload_offset,
                     copy_size);
             smsg_offset += copy_size;
@@ -1370,6 +1385,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
 
                 payload_offset += copy_size;
                 payload_len -= copy_size;
+                SCLogDebug("payload_offset is %"PRIu16", seg->payload_len is "
+                           "%"PRIu16" and stream->last_ack is %"PRIu32"",
+                            payload_offset, seg->payload_len, stream->last_ack);
                 if (SCLogDebugEnabled()) {
                     BUG_ON(payload_offset > seg->payload_len);
                 }
