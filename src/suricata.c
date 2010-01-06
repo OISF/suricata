@@ -33,6 +33,9 @@
 
 #include "tmqh-flow.h"
 
+#include "conf.h"
+#include "conf-yaml-loader.h"
+
 #include "alert-fastlog.h"
 #include "alert-unified-log.h"
 #include "alert-unified-alert.h"
@@ -75,9 +78,6 @@
 #include "util-time.h"
 #include "util-rule-vars.h"
 #include "util-classification-config.h"
-
-#include "conf.h"
-#include "conf-yaml-loader.h"
 
 #include "defrag.h"
 
@@ -624,15 +624,13 @@ int main(int argc, char **argv)
 
     SCClassConfLoadClassficationConfigFile(de_ctx);
 
-    /** Create file contexts for output modules */
-    /* ascii */
-    LogFileCtx *af_logfile_ctx = AlertFastlogInitCtx(NULL);
-    LogFileCtx *ad_logfile_ctx = AlertDebuglogInitCtx(NULL);
-    LogFileCtx *lh_logfile_ctx = LogHttplogInitCtx(NULL);
-    /* unified */
-    LogFileCtx *aul_logfile_ctx = AlertUnifiedLogInitCtx(NULL);
-    LogFileCtx *aua_logfile_ctx = AlertUnifiedAlertInitCtx(NULL);
-    LogFileCtx *au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
+    /* Logging/alerting contexts.  Eventually this won't be needed. */
+    LogFileCtx *af_logfile_ctx = NULL;    /* AlertFastlog */
+    LogFileCtx *ad_logfile_ctx = NULL;    /* AlertDebuglog */
+    LogFileCtx *lh_logfile_ctx = NULL;    /* LogHttplog */
+    LogFileCtx *aul_logfile_ctx = NULL;   /* AlertUnifiedLog */
+    LogFileCtx *aua_logfile_ctx = NULL;   /* AlertUnifiedAlert */
+    LogFileCtx *au2a_logfile_ctx = NULL;  /* Unified2Alert */
 
     if (SigLoadSignatures(de_ctx, sig_file) < 0) {
         if (sig_file == NULL) {
@@ -649,20 +647,38 @@ int main(int argc, char **argv)
     gettimeofday(&start_time, NULL);
 
     if (mode == MODE_PCAP_DEV) {
-        //RunModeIdsPcap3(de_ctx, pcap_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
-        RunModeIdsPcap2(de_ctx, pcap_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
-        //RunModeIdsPcap(de_ctx, pcap_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
+        RunModeIdsPcap3(de_ctx, pcap_dev);
+        //RunModeIdsPcap2(de_ctx, pcap_dev);
+        //RunModeIdsPcap(de_ctx, pcap_dev);
     }
     else if (mode == MODE_PCAP_FILE) {
+        af_logfile_ctx = AlertFastlogInitCtx(NULL);
+        ad_logfile_ctx = AlertDebuglogInitCtx(NULL);
+        lh_logfile_ctx = LogHttplogInitCtx(NULL);
+        aul_logfile_ctx = AlertUnifiedLogInitCtx(NULL);
+        aua_logfile_ctx = AlertUnifiedAlertInitCtx(NULL);
+        au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
         RunModeFilePcap(de_ctx, pcap_file, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
         //RunModeFilePcap2(de_ctx, pcap_file, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
     }
     else if (mode == MODE_PFRING) {
+        af_logfile_ctx = AlertFastlogInitCtx(NULL);
+        ad_logfile_ctx = AlertDebuglogInitCtx(NULL);
+        lh_logfile_ctx = LogHttplogInitCtx(NULL);
+        aul_logfile_ctx = AlertUnifiedLogInitCtx(NULL);
+        aua_logfile_ctx = AlertUnifiedAlertInitCtx(NULL);
+        au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
         //RunModeIdsPfring3(de_ctx, pfring_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
         RunModeIdsPfring2(de_ctx, pfring_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
         //RunModeIdsPfring(de_ctx, pfring_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
     }
     else if (mode == MODE_NFQ) {
+        af_logfile_ctx = AlertFastlogInitCtx(NULL);
+        ad_logfile_ctx = AlertDebuglogInitCtx(NULL);
+        lh_logfile_ctx = LogHttplogInitCtx(NULL);
+        aul_logfile_ctx = AlertUnifiedLogInitCtx(NULL);
+        aua_logfile_ctx = AlertUnifiedAlertInitCtx(NULL);
+        au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
         RunModeIpsNFQ(de_ctx, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
     }
     else {
@@ -755,7 +771,10 @@ int main(int argc, char **argv)
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    /** Destroy file contexts for output modules */
+    RunModeShutDown();
+
+    /* Remove when all run modes use the configuration file for output
+     * configuration. LogFileFreeCtx accepts NULL. */
     LogFileFreeCtx(af_logfile_ctx);
     LogFileFreeCtx(lh_logfile_ctx);
     LogFileFreeCtx(ad_logfile_ctx);

@@ -16,6 +16,7 @@ typedef struct ConfNode_ {
     char *name;
     char *val;
 
+    int is_seq;
     int allow_override;
 
     TAILQ_HEAD(, ConfNode_) head;

@@ -28,7 +28,7 @@ TmEcode LogHttplogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode LogHttplogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogHttplogThreadDeinit(ThreadVars *, void *);
 void LogHttplogExitPrintStats(ThreadVars *, void *);
-int LogHttplogOpenFileCtx(LogFileCtx* , char *);
+int LogHttplogOpenFileCtx(LogFileCtx* , const char *);
 
 void TmModuleLogHttplogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].name = "LogHttplog";
@@ -217,11 +217,11 @@ void LogHttplogExitPrintStats(ThreadVars *tv, void *data) {
     SCLogInfo("(%s) HTTP requests %" PRIu32 "", tv->name, aft->uri_cnt);
 }
 
-/** \brief Create a new file_ctx from config_file (if specified)
- *  \param config_file for loading separate configs
+/** \brief Create a new http log LogFileCtx.
+ *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *LogHttplogInitCtx(char *config_file)
+LogFileCtx *LogHttplogInitCtx(ConfNode *conf)
 {
     int ret=0;
     LogFileCtx* file_ctx=LogFileNewCtx();
@@ -233,16 +233,15 @@ LogFileCtx *LogHttplogInitCtx(char *config_file)
         return NULL;
     }
 
+    const char *filename = ConfNodeLookupChildValue(conf, "filename");
+    if (filename == NULL)
+        filename = DEFAULT_LOG_FILENAME;
+
     /** fill the new LogFileCtx with the specific LogHttplog configuration */
-    ret=LogHttplogOpenFileCtx(file_ctx, config_file);
+    ret=LogHttplogOpenFileCtx(file_ctx, filename);
 
     if(ret < 0)
         return NULL;
-
-    /** In LogHttplogOpenFileCtx the second parameter should be the configuration file to use
-    * but it's not implemented yet, so passing NULL to load the default
-    * configuration
-    */
 
     return file_ctx;
 }
@@ -252,30 +251,19 @@ LogFileCtx *LogHttplogInitCtx(char *config_file)
  *  \param config_file for loading separate configs
  *  \return -1 if failure, 0 if succesful
  * */
-int LogHttplogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+int LogHttplogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
 {
-    if(config_file == NULL)
-    {
-        /** Separate config files not implemented at the moment,
-        * but it must be able to load from separate config file.
-        * Load the default configuration.
-        */
+    char log_path[PATH_MAX], *log_dir;
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
+    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
 
-        char log_path[PATH_MAX], *log_dir;
-        if (ConfGet("default-log-dir", &log_dir) != 1)
-            log_dir = DEFAULT_LOG_DIR;
-        snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
+    file_ctx->fp = fopen(log_path, "w");
 
-        file_ctx->fp = fopen(log_path, "w");
-
-        if (file_ctx->fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
-                       strerror(errno));
-            return -1;
-        }
-        if(file_ctx->config_file == NULL)
-            file_ctx->config_file = strdup("configfile.lh");
-            /** Remember the config file (or NULL if not indicated) */
+    if (file_ctx->fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
+            strerror(errno));
+        return -1;
     }
 
     return 0;

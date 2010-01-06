@@ -3,6 +3,32 @@
 # overridden with the -l command line parameter.
 default-log-dir: /var/log/suricata
 
+outputs:
+
+  - fast:
+      enabled: yes
+      filename: fast.log
+
+  - unified-log:
+      enabled: yes
+      filename: unified.log
+
+  - unified-alert:
+      enabled: yes
+      filename: unified.alert
+
+  - unified2-alert:
+      enabled: yes
+      filename: unified2.alert
+
+  - http-log:
+      enabled: yes
+      filename: http.log
+
+  - alert-debug:
+      enabled: yes
+      filename: alert-debug.log
+
 defrag:
   max-frags: 65535
   prealloc: yes

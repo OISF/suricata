@@ -32,7 +32,7 @@
 TmEcode AlertUnifiedAlert (ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode AlertUnifiedAlertThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertUnifiedAlertThreadDeinit(ThreadVars *, void *);
-int AlertUnifiedAlertOpenFileCtx(LogFileCtx *, char *);
+int AlertUnifiedAlertOpenFileCtx(LogFileCtx *, const char *);
 void AlertUnifiedAlertRegisterTests (void);
 
 void TmModuleAlertUnifiedAlertRegister (void) {
@@ -121,7 +121,7 @@ int AlertUnifiedAlertRotateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
                    "Error: AlertUnifiedAlertCloseFile failed");
         return -1;
     }
-    if (AlertUnifiedAlertOpenFileCtx(aun->file_ctx,aun->file_ctx->config_file) < 0) {
+    if (AlertUnifiedAlertOpenFileCtx(aun->file_ctx,aun->file_ctx->prefix) < 0) {
         SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
                    "Error: AlertUnifiedLogOpenFileCtx, open new log file failed");
         return -1;
@@ -252,11 +252,11 @@ error:
 }
 
 
-/** \brief Create a new file_ctx from config_file (if specified)
- *  \param config_file for loading separate configs
+/** \brief Create a new LogFileCtx for unified alert logging.
+ *  \param conf The ConfNode for this output.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *AlertUnifiedAlertInitCtx(char *config_file)
+LogFileCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
 {
     int ret = 0;
     LogFileCtx *file_ctx = LogFileNewCtx();
@@ -267,16 +267,17 @@ LogFileCtx *AlertUnifiedAlertInitCtx(char *config_file)
         return NULL;
     }
 
-    /** fill the new LogFileCtx with the specific AlertUnifiedAlert configuration */
-    ret = AlertUnifiedAlertOpenFileCtx(file_ctx, config_file);
+    const char *filename;
+    if (conf != NULL)
+        filename = ConfNodeLookupChildValue(conf, "filename");
+    if (filename == NULL)
+        filename = DEFAULT_LOG_FILENAME;
+    file_ctx->prefix = strdup(filename);
+
+    ret = AlertUnifiedAlertOpenFileCtx(file_ctx, filename);
 
     if (ret < 0)
         return NULL;
-
-    /** In AlertUnifiedAlertOpenFileCtx the second parameter should be
-    * the configuration file to use but it's not implemented yet, so
-    * passing NULL to load the default configuration
-    */
 
     return file_ctx;
 }
@@ -286,7 +287,7 @@ LogFileCtx *AlertUnifiedAlertInitCtx(char *config_file)
  *  \param config_file for loading separate configs
  *  \return -1 if failure, 0 if succesful
  * */
-int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 {
     char *filename = NULL;
     if (file_ctx->filename != NULL)
@@ -294,31 +295,24 @@ int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
     else
         filename = file_ctx->filename = malloc(PATH_MAX); /* XXX some sane default? */
 
-    if (config_file == NULL) {
-        /** Separate config files not implemented at the moment,
-        * but it must be able to load from separate config file.
-        * Load the default configuration.
-        */
+    /* get the time so we can have a filename with seconds since epoch */
+    struct timeval ts;
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
 
-        /* get the time so we can have a filename with seconds since epoch */
-        struct timeval ts;
-        memset (&ts, 0, sizeof(struct timeval));
-        TimeGet(&ts);
+    /* create the filename to use */
+    char *log_dir;
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
 
-        /* create the filename to use */
-        char *log_dir;
-        if (ConfGet("default-log-dir", &log_dir) != 1)
-            log_dir = DEFAULT_LOG_DIR;
+    snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
 
-        snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, "unified.alert", (uint32_t)ts.tv_sec);
-
-        /* XXX filename & location */
-        file_ctx->fp = fopen(filename, "wb");
-        if (file_ctx->fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
-                       strerror(errno));
-            return -1;
-        }
+    /* XXX filename & location */
+    file_ctx->fp = fopen(filename, "wb");
+    if (file_ctx->fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
+            strerror(errno));
+        return -1;
     }
 
     return 0;

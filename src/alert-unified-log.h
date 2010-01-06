@@ -4,7 +4,7 @@
 #define __ALERT_UNIFIED_LOG_H__
 
 void TmModuleAlertUnifiedLogRegister (void);
-LogFileCtx *AlertUnifiedLogInitCtx(char *);
+LogFileCtx *AlertUnifiedLogInitCtx(ConfNode *);
 
 #endif /* __ALERT_UNIFIED_LOG_H__ */
 

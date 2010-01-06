@@ -428,7 +428,7 @@ ConfNodeDump(ConfNode *node, const char *prefix)
     level++;
     TAILQ_FOREACH(child, &node->head, next) {
         name[level] = strdup(child->name);
-        if (child->val != NULL) {
+        //       if (child->val != NULL) {
             if (prefix == NULL) {
                 printf("%s = %s\n", ConfPrintNameArray(name, level),
                     child->val);
@@ -437,7 +437,7 @@ ConfNodeDump(ConfNode *node, const char *prefix)
                 printf("%s.%s = %s\n", prefix,
                     ConfPrintNameArray(name, level), child->val);
             }
-        }
+            //}
         ConfNodeDump(child, prefix);
         free(name[level]);
     }

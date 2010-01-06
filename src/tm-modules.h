@@ -58,11 +58,12 @@ typedef struct LogFileCtx_ {
      * record cannot be written to the file in one call */
     SCMutex fp_mutex;
 
-    /** To know where did we read this config */
-    char *config_file;
-
     /** The name of the file */
     char *filename;
+
+    /**< Used by some alert loggers like the unified ones that append
+     * the date onto the end of files. */
+    char *prefix;
 } LogFileCtx;
 
 LogFileCtx *LogFileNewCtx();

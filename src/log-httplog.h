@@ -6,7 +6,7 @@
 void TmModuleLogHttplogRegister (void);
 void TmModuleLogHttplogIPv4Register (void);
 void TmModuleLogHttplogIPv6Register (void);
-LogFileCtx *LogHttplogInitCtx(char *);
+LogFileCtx *LogHttplogInitCtx(ConfNode *);
 
 #endif /* __LOG_HTTPLOG_H__ */
 

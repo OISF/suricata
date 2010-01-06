@@ -34,7 +34,7 @@ TmEcode AlertDebuglogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode AlertDebuglogThreadInit(ThreadVars *, void*, void **);
 TmEcode AlertDebuglogThreadDeinit(ThreadVars *, void *);
 void AlertDebuglogExitPrintStats(ThreadVars *, void *);
-int AlertDebuglogOpenFileCtx(LogFileCtx* , char *);
+int AlertDebuglogOpenFileCtx(LogFileCtx* , const char *);
 
 void TmModuleAlertDebuglogRegister (void) {
     tmm_modules[TMM_ALERTDEBUGLOG].name = "AlertDebuglog";
@@ -228,11 +228,11 @@ void AlertDebuglogExitPrintStats(ThreadVars *tv, void *data) {
 }
 
 
-/** \brief Create a new file_ctx from config_file (if specified)
- *  \param config_file for loading separate configs
+/** \brief Create a new LogFileCtx for alert debug logging.
+ *  \param ConfNode containing configuration for this logger.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *AlertDebuglogInitCtx(char *config_file)
+LogFileCtx *AlertDebuglogInitCtx(ConfNode *conf)
 {
     int ret=0;
     LogFileCtx* file_ctx=LogFileNewCtx();
@@ -243,45 +243,37 @@ LogFileCtx *AlertDebuglogInitCtx(char *config_file)
         return NULL;
     }
 
+    const char *filename = ConfNodeLookupChildValue(conf, "filename");
+    if (filename == NULL)
+        filename = DEFAULT_LOG_FILENAME;
+
     /** fill the new LogFileCtx with the specific AlertDebuglog configuration */
-    ret=AlertDebuglogOpenFileCtx(file_ctx, config_file);
+    ret=AlertDebuglogOpenFileCtx(file_ctx, filename);
 
     if(ret < 0)
         return NULL;
-
-    /** In AlertDebuglogOpenFileCtx the second parameter should be the configuration file to use
-    * but it's not implemented yet, so passing NULL to load the default
-    * configuration
-    */
 
     return file_ctx;
 }
 
 /** \brief Read the config set the file pointer, open the file
  *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
- *  \param config_file for loading separate configs
+ *  \param filename name of log file
  *  \return -1 if failure, 0 if succesful
  * */
-int AlertDebuglogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+int AlertDebuglogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
 {
     int ret=0;
-    if(config_file == NULL)
-    {
-        /** Separate config files not implemented at the moment,
-        * but it must be able to load from separate config file.
-        * Load the default configuration.
-        */
 
-        char log_path[PATH_MAX], *log_dir;
-        if (ConfGet("default-log-dir", &log_dir) != 1)
-            log_dir = DEFAULT_LOG_DIR;
-        snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
-        file_ctx->fp = fopen(log_path, "w");
-        if (file_ctx->fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
-                       strerror(errno));
-            return -1;
-        }
+    char log_path[PATH_MAX], *log_dir;
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
+    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
+    file_ctx->fp = fopen(log_path, "w");
+    if (file_ctx->fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
+            strerror(errno));
+        return -1;
     }
 
     return ret;

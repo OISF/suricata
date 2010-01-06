@@ -12,6 +12,8 @@
  *
  */
 
+#include <string.h>
+
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
@@ -32,7 +34,7 @@
 TmEcode AlertUnifiedLog (ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode AlertUnifiedLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertUnifiedLogThreadDeinit(ThreadVars *, void *);
-int AlertUnifiedLogOpenFileCtx(LogFileCtx *, char *);
+int AlertUnifiedLogOpenFileCtx(LogFileCtx *, const char *);
 void AlertUnifiedLogRegisterTests(void);
 
 void TmModuleAlertUnifiedLogRegister (void) {
@@ -122,7 +124,8 @@ int AlertUnifiedLogRotateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
         printf("Error: AlertUnifiedLogCloseFile failed\n");
         return -1;
     }
-    if (AlertUnifiedLogOpenFileCtx(aun->file_ctx,aun->file_ctx->config_file) < 0) {
+
+    if (AlertUnifiedLogOpenFileCtx(aun->file_ctx,aun->file_ctx->prefix) < 0) {
         printf("Error: AlertUnifiedLogOpenFileCtx, open new log file failed\n");
         return -1;
     }
@@ -263,11 +266,11 @@ error:
 }
 
 
-/** \brief Create a new file_ctx from config_file (if specified)
- *  \param config_file for loading separate configs
+/** \brief Create a new LogFileCtx for unified alert logging.
+ *  \param ConfNode pointer to the configuration node for this logger.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *AlertUnifiedLogInitCtx(char *config_file)
+LogFileCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
 {
     int ret=0;
     LogFileCtx* file_ctx=LogFileNewCtx();
@@ -278,26 +281,29 @@ LogFileCtx *AlertUnifiedLogInitCtx(char *config_file)
         return NULL;
     }
 
-    /** fill the new LogFileCtx with the specific AlertUnifiedLog configuration */
-    ret=AlertUnifiedLogOpenFileCtx(file_ctx, config_file);
+    const char *filename;
+    if (conf != NULL) { /* \todo Maybe test should setup a ConfNode */
+        filename = ConfNodeLookupChildValue(conf, "filename");
+    }
+    if (filename == NULL)
+        filename = DEFAULT_LOG_FILENAME;
+
+    file_ctx->prefix = strdup(filename);
+
+    ret=AlertUnifiedLogOpenFileCtx(file_ctx, filename);
 
     if(ret < 0)
         return NULL;
-
-    /** In AlertUnifiedLogOpenFileCtx the second parameter should be the configuration file to use
-    * but it's not implemented yet, so passing NULL to load the default
-    * configuration
-    */
 
     return file_ctx;
 }
 
 /** \brief Read the config set the file pointer, open the file
  *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
- *  \param config_file for loading separate configs
+ *  \param prefix Prefix for log filenames.
  *  \return -1 if failure, 0 if succesful
  * */
-int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 {
     char *filename = NULL;
     if (file_ctx->filename != NULL)
@@ -305,32 +311,24 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
     else
         filename = file_ctx->filename = malloc(PATH_MAX); /* XXX some sane default? */
 
-    if(config_file == NULL)
-    {
-        /** Separate config files not implemented at the moment,
-        * but it must be able to load from separate config file.
-        * Load the default configuration.
-        */
+    /* get the time so we can have a filename with seconds since epoch */
+    struct timeval ts;
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
 
-        /* get the time so we can have a filename with seconds since epoch */
-        struct timeval ts;
-        memset (&ts, 0, sizeof(struct timeval));
-        TimeGet(&ts);
+    /* create the filename to use */
+    char *log_dir;
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
 
-        /* create the filename to use */
-        char *log_dir;
-        if (ConfGet("default-log-dir", &log_dir) != 1)
-            log_dir = DEFAULT_LOG_DIR;
+    snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
 
-        snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, "unified.log", (uint32_t)ts.tv_sec);
-
-        /* XXX filename & location */
-        file_ctx->fp = fopen(filename, "wb");
-        if (file_ctx->fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
-                       strerror(errno));
-            return -1;
-        }
+    /* XXX filename & location */
+    file_ctx->fp = fopen(filename, "wb");
+    if (file_ctx->fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
+            strerror(errno));
+        return -1;
     }
 
     return 0;

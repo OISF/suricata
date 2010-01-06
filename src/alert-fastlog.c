@@ -38,7 +38,7 @@ TmEcode AlertFastlogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode AlertFastlogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertFastlogThreadDeinit(ThreadVars *, void *);
 void AlertFastlogExitPrintStats(ThreadVars *, void *);
-int AlertFastlogOpenFileCtx(LogFileCtx *, char *);
+int AlertFastlogOpenFileCtx(LogFileCtx *, const char *);
 void AlertFastLogRegisterTests(void);
 
 void TmModuleAlertFastlogRegister (void) {
@@ -199,61 +199,50 @@ void AlertFastlogExitPrintStats(ThreadVars *tv, void *data) {
     SCLogInfo("(%s) Alerts %" PRIu32 "", tv->name, aft->alerts);
 }
 
-/** \brief Create a new file_ctx from config_file (if specified)
- *  \param config_file for loading separate configs
- *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
- * */
-LogFileCtx *AlertFastlogInitCtx(char *config_file)
+/**
+ * \brief Create a new LogFileCtx for "fast" output style.
+ * \param conf The configuration node for this output.
+ * \return A LogFileCtx pointer on success, NULL on failure.
+ */
+LogFileCtx *AlertFastlogInitCtx(ConfNode *conf)
 {
-    int ret=0;
-    LogFileCtx* file_ctx=LogFileNewCtx();
-
-    if(file_ctx == NULL)
-    {
-        SCLogDebug("AlertFastlogInitCtx: Couldn't create new file_ctx");
+    LogFileCtx *logfile_ctx = LogFileNewCtx();
+    if (logfile_ctx == NULL) {
+        SCLogDebug("AlertFastLogInitCtx2: Could not create new LogFileCtx");
         return NULL;
     }
 
-    /** fill the new LogFileCtx with the specific AlertFastlog configuration */
-    ret=AlertFastlogOpenFileCtx(file_ctx, config_file);
-
-    if(ret < 0)
+    const char *filename = ConfNodeLookupChildValue(conf, "filename");
+    if (filename == NULL)
+        filename = DEFAULT_LOG_FILENAME;
+    if (AlertFastlogOpenFileCtx(logfile_ctx, filename) < 0) {
+        LogFileFreeCtx(logfile_ctx);
         return NULL;
+    }
 
-    /** In AlertFastlogOpenFileCtx the second parameter should be the configuration file to use
-    * but it's not implemented yet, so passing NULL to load the default
-    * configuration
-    */
+    SCLogInfo("Fast log output registered, filename: %s", filename);
 
-    return file_ctx;
+    return logfile_ctx;
 }
 
 /** \brief Read the config set the file pointer, open the file
  *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
- *  \param config_file for loading separate configs
+ *  \param filename name of log file
  *  \return -1 if failure, 0 if succesful
  * */
-int AlertFastlogOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+int AlertFastlogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
 {
-    if(config_file == NULL)
-    {
-        /** Separate config files not implemented at the moment,
-        * but it must be able to load from separate config file.
-        * Load the default configuration.
-        */
+    char log_path[PATH_MAX], *log_dir;
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
+    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
 
-        char log_path[PATH_MAX], *log_dir;
-        if (ConfGet("default-log-dir", &log_dir) != 1)
-            log_dir = DEFAULT_LOG_DIR;
-        snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
+    file_ctx->fp = fopen(log_path, "w");
 
-        file_ctx->fp = fopen(log_path, "w");
-
-        if (file_ctx->fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
-                       strerror(errno));
-            return -1;
-        }
+    if (file_ctx->fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
+            strerror(errno));
+        return -1;
     }
 
     return 0;

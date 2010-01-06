@@ -110,13 +110,16 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
             }
             else {
                 if (state == CONF_KEY) {
+                    if (parent->is_seq) {
+                        parent->val = strdup(value);
+                    }
                     node = ConfNodeNew();
-                    node->name = strdup((char *)event.data.scalar.value);
+                    node->name = strdup(value);
                     TAILQ_INSERT_TAIL(&parent->head, node, next);
                     state = CONF_VAL;
                 }
                 else {
-                    node->val = strdup((char *)event.data.scalar.value);
+                    node->val = strdup(value);
                     state = CONF_KEY;
                 }
             }
@@ -130,6 +133,7 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
         else if (event.type == YAML_MAPPING_START_EVENT) {
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
+                seq_node->is_seq = 1;
                 seq_node->name = calloc(1, DEFAULT_NAME_LEN);
                 snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
                 TAILQ_INSERT_TAIL(&node->head, seq_node, next);
@@ -138,7 +142,7 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
             else {
                 ConfYamlParse2(parser, node, inseq);
             }
-            state ^= CONF_VAL;
+            state = CONF_KEY;
         }
         else if (event.type == YAML_MAPPING_END_EVENT) {
             done = 1;

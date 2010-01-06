@@ -25,6 +25,8 @@
 #define IPPROTO_SCTP 132
 #endif
 
+#define DEFAULT_LOG_FILENAME "unified2.alert"
+
 /*prototypes*/
 TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode Unified2AlertThreadInit(ThreadVars *, void *, void **);
@@ -33,7 +35,7 @@ int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
 int Unified2IPv6TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
 int Unified2PacketTypeAlert(ThreadVars *, Packet *, void *);
 void Unified2RegisterTests();
-int Unified2AlertOpenFileCtx(LogFileCtx *, char *);
+int Unified2AlertOpenFileCtx(LogFileCtx *, const char *);
 
 /**
  * Unified2 thread vars
@@ -157,7 +159,7 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
                    "Error: Unified2AlertCloseFile failed");
         return -1;
     }
-    if (Unified2AlertOpenFileCtx(aun->file_ctx,aun->file_ctx->config_file) < 0) {
+    if (Unified2AlertOpenFileCtx(aun->file_ctx,aun->file_ctx->prefix) < 0) {
         SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR,
                    "Error: Unified2AlertOpenFileCtx, open new log file failed");
         return -1;
@@ -534,11 +536,11 @@ error:
     return TM_ECODE_FAILED;
 }
 
-/** \brief Create a new file_ctx from config_file (if specified)
- *  \param config_file for loading separate configs
+/** \brief Create a new LogFileCtx from the provided ConfNode.
+ *  \param conf The configuration node for this output.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *Unified2AlertInitCtx(char *config_file)
+LogFileCtx *Unified2AlertInitCtx(ConfNode *conf)
 {
     int ret=0;
     LogFileCtx* file_ctx=LogFileNewCtx();
@@ -550,26 +552,28 @@ LogFileCtx *Unified2AlertInitCtx(char *config_file)
         return NULL;
     }
 
-    /** fill the new LogFileCtx with the specific Unified2Alert configuration */
-    ret=Unified2AlertOpenFileCtx(file_ctx, config_file);
+    const char *filename;
+    if (conf != NULL) { /* To faciliate unit tests. */
+        filename = ConfNodeLookupChildValue(conf, "filename");
+    }
+    if (filename == NULL)
+        filename = DEFAULT_LOG_FILENAME;
+    file_ctx->prefix = strdup(filename);
+
+    ret=Unified2AlertOpenFileCtx(file_ctx, filename);
 
     if(ret < 0)
         return NULL;
-
-    /** In Unified2AlertOpenFileCtx the second parameter should be the configuration file to use
-    * but it's not implemented yet, so passing NULL to load the default
-    * configuration
-    */
 
     return file_ctx;
 }
 
 /** \brief Read the config set the file pointer, open the file
  *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
- *  \param config_file for loading separate configs
+ *  \param prefix Prefix of the log file.
  *  \return -1 if failure, 0 if succesful
  * */
-int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
+int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 {
     char *filename = NULL;
     if (file_ctx->filename != NULL)
@@ -577,31 +581,24 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, char *config_file)
     else
         filename = file_ctx->filename = malloc(PATH_MAX); /* XXX some sane default? */
 
-    if (config_file == NULL) {
-        /** Separate config files not implemented at the moment,
-        * but it must be able to load from separate config file.
-        * Load the default configuration.
-        */
+    /** get the time so we can have a filename with seconds since epoch */
+    struct timeval ts;
+    memset(&ts, 0x00, sizeof(struct timeval));
+    TimeGet(&ts);
 
-        /** get the time so we can have a filename with seconds since epoch */
-        struct timeval ts;
-        memset(&ts, 0x00, sizeof(struct timeval));
-        TimeGet(&ts);
+    /* create the filename to use */
+    char *log_dir;
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
 
-        /* create the filename to use */
-        char *log_dir;
-        if (ConfGet("default-log-dir", &log_dir) != 1)
-            log_dir = DEFAULT_LOG_DIR;
+    snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
 
-        snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, "unified2.alert", (uint32_t)ts.tv_sec);
-
-        /* XXX filename & location */
-        file_ctx->fp = fopen(filename, "wb");
-        if (file_ctx->fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
-                       strerror(errno));
-            return -1;
-        }
+    /* XXX filename & location */
+    file_ctx->fp = fopen(filename, "wb");
+    if (file_ctx->fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
+            strerror(errno));
+        return -1;
     }
 
     return 0;
