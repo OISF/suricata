@@ -647,8 +647,8 @@ int main(int argc, char **argv)
     gettimeofday(&start_time, NULL);
 
     if (mode == MODE_PCAP_DEV) {
-        RunModeIdsPcap3(de_ctx, pcap_dev);
-        //RunModeIdsPcap2(de_ctx, pcap_dev);
+        //RunModeIdsPcap3(de_ctx, pcap_dev);
+        RunModeIdsPcap2(de_ctx, pcap_dev);
         //RunModeIdsPcap(de_ctx, pcap_dev);
     }
     else if (mode == MODE_PCAP_FILE) {
@@ -662,15 +662,9 @@ int main(int argc, char **argv)
         //RunModeFilePcap2(de_ctx, pcap_file, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
     }
     else if (mode == MODE_PFRING) {
-        af_logfile_ctx = AlertFastlogInitCtx(NULL);
-        ad_logfile_ctx = AlertDebuglogInitCtx(NULL);
-        lh_logfile_ctx = LogHttplogInitCtx(NULL);
-        aul_logfile_ctx = AlertUnifiedLogInitCtx(NULL);
-        aua_logfile_ctx = AlertUnifiedAlertInitCtx(NULL);
-        au2a_logfile_ctx = Unified2AlertInitCtx(NULL);
-        //RunModeIdsPfring3(de_ctx, pfring_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
-        RunModeIdsPfring2(de_ctx, pfring_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
-        //RunModeIdsPfring(de_ctx, pfring_dev, af_logfile_ctx, ad_logfile_ctx, lh_logfile_ctx, aul_logfile_ctx, aua_logfile_ctx, au2a_logfile_ctx);
+        //RunModeIdsPfring3(de_ctx, pfring_dev);
+        RunModeIdsPfring2(de_ctx, pfring_dev);
+        RunModeIdsPfring(de_ctx, pfring_dev);
     }
     else if (mode == MODE_NFQ) {
         af_logfile_ctx = AlertFastlogInitCtx(NULL);
