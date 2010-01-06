@@ -265,7 +265,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
     struct timeval tval;
     struct tm *tms = NULL;
 
-    /* no of characters_written(cw) by sprintf */
+    /* no of characters_written(cw) by snprintf */
     int cw = 0;
 
     if (temp_fmt == NULL) {
@@ -293,6 +293,12 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         return SC_LOG_FG_FILTER_MATCH_FAILED;
 
 	while ( (temp_fmt = index(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
+        if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
+            printf("Warning: Log message exceeded message length limit of %d\n",
+                   SC_LOG_MAX_LOG_MSG_LEN);
+            *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
+            return SC_OK;
+        }
         switch(temp_fmt[1]) {
             case SC_LOG_FMT_TIME:
                 temp_fmt[0] = '\0';
@@ -300,7 +306,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                 gettimeofday(&tval, NULL);
                 tms = localtime(&tval.tv_sec);
 
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN,
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
                               "%s%d/%d/%04d -- %02d:%02d:%02d",
                               substr, tms->tm_mday, tms->tm_mon + 1,
                               tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
@@ -315,8 +321,8 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_PID:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%u", substr,
-                              getpid());
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                              "%s%u", substr, getpid());
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -327,8 +333,8 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_TID:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%lu", substr,
-                              syscall(SYS_gettid));
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                              "%s%lu", substr, syscall(SYS_gettid));
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -340,8 +346,8 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
             case SC_LOG_FMT_TM:
                 temp_fmt[0] = '\0';
                 ThreadVars *tv = TmThreadsGetCallingThread();
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
-                              ((tv != NULL)? tv->name: "UNKNOWN TM"));
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                              "%s%s", substr, ((tv != NULL)? tv->name: "UNKNOWN TM"));
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -354,11 +360,11 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                 temp_fmt[0] = '\0';
                 s = SCMapEnumValueToName(log_level, sc_log_level_map);
                 if (s != NULL)
-                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
-                                  s);
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                                  "%s%s", substr, s);
                 else
-                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
-                                  "INVALID");
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                                  "%s%s", substr, "INVALID");
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -369,8 +375,8 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_FILE_NAME:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
-                              file);
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                              "%s%s", substr, file);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -381,8 +387,8 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_LINE:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%d", substr,
-                              line);
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                              "%s%d", substr, line);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -393,8 +399,8 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_FUNCTION:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s%s", substr,
-                              function);
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                              "%s%s", substr, function);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -406,7 +412,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         }
         temp_fmt++;
 	}
-    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN, "%s", substr);
+    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg), "%s", substr);
     if (cw < 0)
         goto error;
 
@@ -1402,6 +1408,16 @@ int SCLogTestInit04()
     return result;
 }
 
+int SCLogTestInit05()
+{
+    int result = 1;
+
+    SCLogInfo("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+
+    return result;
+}
+
+
 #endif /* UNITTESTS */
 
 void SCLogRegisterTests()
@@ -1413,6 +1429,7 @@ void SCLogRegisterTests()
     UtRegisterTest("SCLogTestInit02", SCLogTestInit02, 1);
     UtRegisterTest("SCLogTestInit03", SCLogTestInit03, 1);
     UtRegisterTest("SCLogTestInit04", SCLogTestInit04, 1);
+    UtRegisterTest("SCLogTestInit05", SCLogTestInit05, 1);
 
 #endif /* UNITTESTS */
 

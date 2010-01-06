@@ -206,6 +206,13 @@ extern int sc_log_module_cleaned;
                                                "[ERRCODE: %s(%d)] - ",   \
                                                SCErrorToString(err),     \
                                                err);                     \
+                                      if ((_sc_log_err_temp - _sc_log_err_msg) > \
+                                          SC_LOG_MAX_LOG_MSG_LEN) {      \
+                                          printf("Warning: Log message exceeded message length limit of %d\n",\
+                                                 SC_LOG_MAX_LOG_MSG_LEN); \
+                                          _sc_log_err_temp = _sc_log_err_msg + \
+                                              SC_LOG_MAX_LOG_MSG_LEN;    \
+                                      }                                  \
                                       snprintf(_sc_log_err_temp,         \
                                                (SC_LOG_MAX_LOG_MSG_LEN - \
                                                 (_sc_log_err_msg - _sc_log_err_temp)), \
