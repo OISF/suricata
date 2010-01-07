@@ -1436,6 +1436,14 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
         goto end;
     free(reassembled);
 
+    /* Make sure the tracker was released back to the pool. */
+    if (dc->tracker_pool->outstanding != 0)
+        return 0;
+
+    /* Make sure all frags were returned back to the pool. */
+    if (dc->frag_pool->outstanding != 0)
+        return 0;
+
     ret = 1;
 end:
     if (dc != NULL)
@@ -1618,6 +1626,14 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     if (memcmp(reassembled->pkt + 40, expected, expected_len) != 0)
         goto end;
     free(reassembled);
+
+    /* Make sure the tracker was released back to the pool. */
+    if (dc->tracker_pool->outstanding != 0)
+        return 0;
+
+    /* Make sure all frags were returned to the pool. */
+    if (dc->frag_pool->outstanding != 0)
+        return 0;
 
     ret = 1;
 end:
