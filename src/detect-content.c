@@ -161,7 +161,7 @@ TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
 /**
  * \brief test the within, distance, offset and depth of a match
  *
- *         This function is called recursively (if nescessary) to be able
+ *         This function is called recursively (if necessary) to be able
  *         to determine whether or not a chain of content matches connected
  *         with 'within' and 'distance' options fully matches. The reason it
  *         was done like this is to make sure we can handle partial matches

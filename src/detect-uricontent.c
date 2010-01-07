@@ -59,7 +59,7 @@ TestOffsetDepth(MpmMatch *m, DetectUricontentData *co) {
     return 0;
 }
 
-/* This function is called recursively (if nescessary) to be able
+/* This function is called recursively (if necessary) to be able
  * to determite whether or not a chain of content matches connected
  * with 'within' and 'distance' options fully matches. The reason it
  * was done like this is to make sure we can handle partial matches
