@@ -255,6 +255,11 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
              * to parse. */
         }
 
+        /* Check if we have a trailing newline, and remove it */
+        len = strlen(line);
+        if (line[len - 1] == '\n') {
+            line[len - 1] = '\0';
+        }
 
         /* Reset offset. */
         offset = 0;
@@ -265,7 +270,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
         } else {
-            SCLogDebug("Error parsing signature \"%s\" from file %s", line, sig_file);
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing signature \"%s\" from file %s", line, sig_file);
             bad++;
         }
     }
