@@ -281,7 +281,7 @@ LogFileCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    const char *filename;
+    const char *filename = NULL;
     if (conf != NULL) { /* \todo Maybe test should setup a ConfNode */
         filename = ConfNodeLookupChildValue(conf, "filename");
     }

@@ -552,7 +552,7 @@ LogFileCtx *Unified2AlertInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    const char *filename;
+    const char *filename = NULL;
     if (conf != NULL) { /* To faciliate unit tests. */
         filename = ConfNodeLookupChildValue(conf, "filename");
     }

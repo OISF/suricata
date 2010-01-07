@@ -267,7 +267,7 @@ LogFileCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    const char *filename;
+    const char *filename = NULL;
     if (conf != NULL)
         filename = ConfNodeLookupChildValue(conf, "filename");
     if (filename == NULL)
