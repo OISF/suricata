@@ -42,7 +42,7 @@ typedef struct StreamTcpThread_ {
 
     uint16_t counter_tcp_sessions;
 
-    TcpReassemblyThreadCtx *ra_ctx;
+    TcpReassemblyThreadCtx *ra_ctx;         /**< tcp reassembly thread data */
 } StreamTcpThread;
 
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *);

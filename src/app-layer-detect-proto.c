@@ -39,11 +39,6 @@
 #define INSPECT_BYTES  32
 #define ALP_DETECT_MAX 256
 
-typedef struct AlpProtoDetectDirectionThread_ {
-    MpmThreadCtx mpm_ctx;
-    PatternMatcherQueue pmq;
-} AlpProtoDetectDirectionThread;
-
 typedef struct AlpProtoDetectDirection_ {
     MpmCtx mpm_ctx;
     uint32_t id;
@@ -53,18 +48,13 @@ typedef struct AlpProtoDetectDirection_ {
                                          limit the search */
 } AlpProtoDetectDirection;
 
-typedef struct AlpProtoDetectThreadCtx_ {
-    AlpProtoDetectDirectionThread toserver;
-    AlpProtoDetectDirectionThread toclient;
-} AlpProtoDetectThreadCtx;
-
 typedef struct AlpProtoDetectCtx_ {
     AlpProtoDetectDirection toserver;
     AlpProtoDetectDirection toclient;
 } AlpProtoDetectCtx;
 
 static AlpProtoDetectCtx alp_proto_ctx;
-static AlpProtoDetectThreadCtx alp_proto_tctx;
+//static AlpProtoDetectThreadCtx alp_proto_tctx;
 
 
 void AlpProtoInit(AlpProtoDetectCtx *ctx) {
@@ -137,6 +127,12 @@ void AlpProtoFinalizeThread(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tct
         mpm_table[ctx->toserver.mpm_ctx.mpm_type].InitThreadCtx(&ctx->toserver.mpm_ctx, &tctx->toserver.mpm_ctx, maxid);
         PmqSetup(&tctx->toserver.pmq, maxid);
     }
+}
+
+/** \brief to be called by ReassemblyThreadInit
+ *  \todo this is a hack, we need a proper place to store the global ctx */
+void AlpProtoFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {
+    return AlpProtoFinalizeThread(&alp_proto_ctx, tctx);
 }
 
 void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
@@ -226,7 +222,7 @@ void AppLayerDetectProtoThreadInit(void) {
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
 
     AlpProtoFinalizeGlobal(&alp_proto_ctx);
-    AlpProtoFinalizeThread(&alp_proto_ctx, &alp_proto_tctx);
+    //AlpProtoFinalizeThread(&alp_proto_ctx, &alp_proto_tctx);
 }
 
 uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tctx, uint8_t *buf, uint16_t buflen, uint8_t flags) {
@@ -330,7 +326,7 @@ end:
     return proto;
 }
 
-int AppLayerHandleMsg(StreamMsg *smsg, char need_lock)
+int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg, char need_lock)
 {
     SCEnter();
     uint16_t alproto = ALPROTO_UNKNOWN;
@@ -352,7 +348,7 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock)
             //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
             //printf("=> Init Stream Data -- end\n");
 
-            alproto = AppLayerDetectGetProto(&alp_proto_ctx, &alp_proto_tctx,
+            alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
                             smsg->data.data, smsg->data.data_len, smsg->flags);
             if (alproto != ALPROTO_UNKNOWN) {
                 /* store the proto and setup the L7 data array */
@@ -395,7 +391,7 @@ int AppLayerHandleMsg(StreamMsg *smsg, char need_lock)
 
     SCReturnInt(r);
 }
-
+#if 0
 void *AppLayerDetectProtoThread(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
@@ -448,7 +444,7 @@ void AppLayerDetectProtoThreadSpawn()
 #endif
     return;
 }
-
+#endif
 #ifdef UNITTESTS
 
 int AlpDetectTest01(void) {

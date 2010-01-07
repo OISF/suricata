@@ -9,6 +9,7 @@
 #define __STREAM_TCP_REASSEMBLE_H__
 
 #include "stream.h"
+#include "app-layer-detect-proto.h"
 
 /** Supported OS list and default OS policy is BSD */
 enum
@@ -31,6 +32,7 @@ enum
 
 typedef struct TcpReassemblyThreadCtx_ {
     StreamMsgQueue *stream_q;
+    AlpProtoDetectThreadCtx dp_ctx;   /**< proto detection thread data */
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD

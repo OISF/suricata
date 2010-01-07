@@ -32,7 +32,6 @@
 
 #include "stream.h"
 
-#include "app-layer-detect-proto.h"
 
 #include "util-debug.h"
 //#define DEBUG
@@ -185,6 +184,7 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
     memset(ra_ctx, 0x00, sizeof(TcpReassemblyThreadCtx));
     ra_ctx->stream_q = StreamMsgQueueGetNew();
 
+    AlpProtoFinalize2Thread(&ra_ctx->dp_ctx);
     return ra_ctx;
 }
 
@@ -1502,7 +1502,7 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
 
             /** Handle the stream msg. No need to use locking, flow is already
              *  locked */
-            r = AppLayerHandleMsg(smsg, FALSE);
+            r = AppLayerHandleMsg(&ra_ctx->dp_ctx, smsg, FALSE);
             if (r < 0)
                 break;
         } while (ra_ctx->stream_q->len > 0);
