@@ -410,7 +410,7 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 #if 0
     /* Pass to defragger if a fragment. */
     if (IPV6_EXTHDR_ISSET_FH(p)) {
-        Packet *rp = Defrag6(tv, NULL, p);
+        Packet *rp = Defrag(tv, NULL, p);
         if (rp != NULL) {
             /* Reinject. */
         }

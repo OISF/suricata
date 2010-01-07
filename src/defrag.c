@@ -36,8 +36,6 @@
 #include "util-unittest.h"
 #endif
 
-#define MAX(a, b) (a > b ? a : b)
-
 #define DEFAULT_DEFRAG_HASH_SIZE 0xffff
 
 /**
@@ -723,13 +721,6 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     }
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
-        SCMutexLock(&dc->frag_table_lock);
-        HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
-        SCMutexUnlock(&dc->frag_table_lock);
-        DefragTrackerReset(tracker);
-        SCMutexLock(&dc->tracker_pool_lock);
-        PoolReturn(dc->tracker_pool, tracker);
-        SCMutexUnlock(&dc->tracker_pool_lock);
         goto done;
     }
 
@@ -773,14 +764,16 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
     rp->pktlen = pktlen + payload_len;
 
+done:
     /* Remove the frag tracker. */
+    SCMutexLock(&dc->frag_table_lock);
     HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
+    SCMutexUnlock(&dc->frag_table_lock);
     DefragTrackerReset(tracker);
     SCMutexLock(&dc->tracker_pool_lock);
     PoolReturn(dc->tracker_pool, tracker);
     SCMutexUnlock(&dc->tracker_pool_lock);
 
-done:
     SCMutexUnlock(&tracker->lock);
     return rp;
 }
@@ -843,13 +836,6 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     }
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
-        SCMutexLock(&dc->frag_table_lock);
-        HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
-        SCMutexUnlock(&dc->frag_table_lock);
-        DefragTrackerReset(tracker);
-        SCMutexLock(&dc->tracker_pool_lock);
-        PoolReturn(dc->tracker_pool, tracker);
-        SCMutexUnlock(&dc->tracker_pool_lock);
         goto done;
     }
 
@@ -890,19 +876,19 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     rp->ip6h->s_ip6_plen = htons(payload_len);
     rp->pktlen = pktlen + payload_len;
 
+done:
     /* Remove the frag tracker. */
+    SCMutexLock(&dc->frag_table_lock);
     HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
+    SCMutexUnlock(&dc->frag_table_lock);
     DefragTrackerReset(tracker);
     SCMutexLock(&dc->tracker_pool_lock);
     PoolReturn(dc->tracker_pool, tracker);
     SCMutexUnlock(&dc->tracker_pool_lock);
 
-done:
     SCMutexUnlock(&tracker->lock);
     return rp;
 }
-
-
 
 /**
  * \brief Timeout a tracker.
@@ -985,7 +971,7 @@ DefragGetTracker(DefragContext *dc, DefragTracker *lookup_key, Packet *p)
 }
 
 /**
- * \brief Entry point for IPv4 fragments.
+ * \brief Entry point for IPv4 and IPv6 fragments.
  *
  * \param tv ThreadVars for the calling decoder.
  * \param dc A DefragContext to use, may be NULL for the default.
@@ -996,76 +982,41 @@ DefragGetTracker(DefragContext *dc, DefragTracker *lookup_key, Packet *p)
  *     NULL is returned.
  */
 Packet *
-Defrag4(ThreadVars *tv, DefragContext *dc, Packet *p)
+Defrag(ThreadVars *tv, DefragContext *dc, Packet *p)
 {
     uint16_t frag_offset;
-    int more_frags;
+    uint8_t more_frags;
     DefragTracker *tracker, lookup;
+    uint32_t id;
+    int af;
 
     /* If no DefragContext was passed in, use the global one.  Passing
      * one in is primarily useful for unit tests. */
     if (dc == NULL)
         dc = defrag_context;
 
-    more_frags = IPV4_GET_MF(p);
-    frag_offset = IPV4_GET_IPOFFSET(p);
+    if (PKT_IS_IPV4(p)) {
+        af = AF_INET;
+        more_frags = IPV4_GET_MF(p);
+        frag_offset = IPV4_GET_IPOFFSET(p);
+        id = IPV4_GET_IPID(p);
+    }
+    else if (PKT_IS_IPV6(p)) {
+        af = AF_INET6;
+        frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
+        more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
+        id = IPV6_EXTHDR_GET_FH_ID(p);
+    }
+    else {
+        return NULL;
+    }
 
     if (frag_offset == 0 && more_frags == 0) {
         return NULL;
     }
 
     /* Create a lookup key. */
-    lookup.family = AF_INET;
-    lookup.id = IPV4_GET_IPID(p);
-    lookup.src_addr = p->src;
-    lookup.dst_addr = p->dst;
-
-    tracker = DefragGetTracker(dc, &lookup, p);
-    if (tracker == NULL)
-        return NULL;
-
-    if (!more_frags) {
-        tracker->seen_last = 1;
-    }
-    DefragInsertFrag(dc, tracker, p);
-    if (tracker->seen_last) {
-        Packet *rp = Defrag4Reassemble(tv, dc, tracker, p);
-        return rp;
-    }
-
-    return NULL;
-}
-
-/**
- * \brief Entry point for IPv4 fragments.
- *
- * \param tv ThreadVars for the calling decoder.
- * \param dc A DefragContext to use, may be NULL for the default.
- * \param p The packet fragment.
- *
- * \retval A new Packet resembling the re-assembled packet if the most
- *     recent fragment allowed the packet to be re-assembled, otherwise
- *     NULL is returned.
- */
-Packet *
-Defrag6(ThreadVars *tv, DefragContext *dc, Packet *p)
-{
-    uint16_t frag_offset;
-    uint8_t more_frags;
-    uint32_t id;
-    DefragTracker *tracker, lookup;
-
-    /* If no DefragContext was passed in, use the global one.  Passing
-     * one in is primarily useful for unit tests. */
-    if (dc == NULL)
-        dc = defrag_context;
-
-    frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
-    more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
-    id = IPV6_EXTHDR_GET_FH_ID(p);
-
-    /* Create a lookup key. */
-    lookup.family = AF_INET6;
+    lookup.family = af;
     lookup.id = id;
     lookup.src_addr = p->src;
     lookup.dst_addr = p->dst;
@@ -1079,10 +1030,13 @@ Defrag6(ThreadVars *tv, DefragContext *dc, Packet *p)
     }
     DefragInsertFrag(dc, tracker, p);
     if (tracker->seen_last) {
-        Packet *rp = Defrag6Reassemble(tv, dc, tracker, p);
+        Packet *rp = NULL;
+        if (af == AF_INET)
+            rp = Defrag4Reassemble(tv, dc, tracker, p);
+        else if (af == AF_INET6)
+            rp = Defrag6Reassemble(tv, dc, tracker, p);
         return rp;
     }
-
 
     return NULL;
 }
@@ -1266,12 +1220,12 @@ DefragInOrderSimpleTest(void)
     if (p3 == NULL)
         goto end;
 
-    if (Defrag4(NULL, dc, p1) != NULL)
+    if (Defrag(NULL, dc, p1) != NULL)
         goto end;
-    if (Defrag4(NULL, dc, p2) != NULL)
+    if (Defrag(NULL, dc, p2) != NULL)
         goto end;
 
-    reassembled = Defrag4(NULL, dc, p3);
+    reassembled = Defrag(NULL, dc, p3);
     if (reassembled == NULL)
         goto end;
 
@@ -1341,11 +1295,11 @@ IPV6DefragInOrderSimpleTest(void)
     if (p3 == NULL)
         goto end;
 
-    if (Defrag6(NULL, dc, p1) != NULL)
+    if (Defrag(NULL, dc, p1) != NULL)
         goto end;
-    if (Defrag6(NULL, dc, p2) != NULL)
+    if (Defrag(NULL, dc, p2) != NULL)
         goto end;
-    reassembled = Defrag6(NULL, dc, p3);
+    reassembled = Defrag(NULL, dc, p3);
     if (reassembled == NULL)
         goto end;
 
@@ -1467,7 +1421,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
 
     /* Send all but the last. */
     for (i = 0; i < 16; i++) {
-        Packet *tp = Defrag4(NULL, dc, packets[i]);
+        Packet *tp = Defrag(NULL, dc, packets[i]);
         if (tp != NULL) {
             free(tp);
             goto end;
@@ -1475,7 +1429,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     }
 
     /* And now the last one. */
-    Packet *reassembled = Defrag4(NULL, dc, packets[16]);
+    Packet *reassembled = Defrag(NULL, dc, packets[16]);
     if (reassembled == NULL)
         goto end;
     if (memcmp(reassembled->pkt + 20, expected, expected_len) != 0)
@@ -1576,89 +1530,89 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
 
     /* Send all but the last. */
     Packet *tp;
-    tp = Defrag6(NULL, dc, packets[0]);
+    tp = Defrag(NULL, dc, packets[0]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[1]);
+    tp = Defrag(NULL, dc, packets[1]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[2]);
+    tp = Defrag(NULL, dc, packets[2]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[3]);
+    tp = Defrag(NULL, dc, packets[3]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[4]);
+    tp = Defrag(NULL, dc, packets[4]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[5]);
+    tp = Defrag(NULL, dc, packets[5]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[6]);
+    tp = Defrag(NULL, dc, packets[6]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[7]);
+    tp = Defrag(NULL, dc, packets[7]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[8]);
+    tp = Defrag(NULL, dc, packets[8]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[9]);
+    tp = Defrag(NULL, dc, packets[9]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[10]);
+    tp = Defrag(NULL, dc, packets[10]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[11]);
+    tp = Defrag(NULL, dc, packets[11]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[12]);
+    tp = Defrag(NULL, dc, packets[12]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[13]);
+    tp = Defrag(NULL, dc, packets[13]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[14]);
+    tp = Defrag(NULL, dc, packets[14]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag6(NULL, dc, packets[15]);
+    tp = Defrag(NULL, dc, packets[15]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
 
     /* And now the last one. */
-    Packet *reassembled = Defrag6(NULL, dc, packets[16]);
+    Packet *reassembled = Defrag(NULL, dc, packets[16]);
     if (reassembled == NULL)
         goto end;
     if (memcmp(reassembled->pkt + 40, expected, expected_len) != 0)
@@ -2111,7 +2065,7 @@ DefragTimeoutTest(void)
         if (p == NULL)
             goto end;
 
-        Packet *tp = Defrag4(NULL, dc, p);
+        Packet *tp = Defrag(NULL, dc, p);
 
         free(p);
 
@@ -2128,7 +2082,7 @@ DefragTimeoutTest(void)
         goto end;
 
     p->ts.tv_sec += dc->timeout;
-    Packet *tp = Defrag4(NULL, dc, p);
+    Packet *tp = Defrag(NULL, dc, p);
 
     free(p);
 
