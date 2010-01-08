@@ -804,10 +804,6 @@ error:
             SigFree(sig->next);
         SigFree(sig);
     }
-    if (de_ctx->failure_fatal == 1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,"Signature init failed \"%s\"",sigstr);
-        exit(EXIT_FAILURE);
-    }
     /* if something failed, restore the old signum count
      * since we didn't install it */
     de_ctx->signum = oldsignum;
@@ -852,10 +848,6 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr) {
 
 error:
     if ( sig != NULL ) SigFree(sig);
-    if (de_ctx->failure_fatal == 1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,"Signature init failed %s ",sigstr);
-        exit(EXIT_FAILURE);
-    }
     return NULL;
 }
 
