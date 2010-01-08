@@ -249,6 +249,11 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
     /* set tunnel flags */
     SET_TUNNEL_PKT(p);
     TUNNEL_INCR_PKT_TPR(p);
+
+    /* disable payload (not packet) inspection on the parent, as the payload
+     * is the packet we will now run through the system separately. We do
+     * check it against the ip/port/other header checks though */
+    DecodeSetNoPayloadInspectionFlag(parent);
     return p;
 }
 
