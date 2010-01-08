@@ -236,7 +236,9 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
     }
     char line[8192] = "";
     size_t offset = 0;
+    int lineno = 0, multiline = 0;
     while(fgets(line + offset, (int)sizeof(line) - offset, fp) != NULL) {
+        lineno++;
         size_t len = strlen(line);
 
         /* ignore comments and empty lines */
@@ -246,6 +248,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         /* Check for multiline rules. */
         while (isspace(line[--len]));
         if (line[len] == '\\') {
+            multiline++;
             offset = len;
             if (offset < sizeof(line) - 1) {
                 /* We have room for more. */
@@ -270,9 +273,10 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing signature \"%s\" from file %s", line, sig_file);
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing signature \"%s\" from file %s at line %"PRId32"", line, sig_file, lineno - multiline);
             bad++;
         }
+        multiline = 0;
     }
     fclose(fp);
 
