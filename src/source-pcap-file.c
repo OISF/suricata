@@ -22,6 +22,7 @@
 #include "tm-modules.h"
 #include "source-pcap-file.h"
 #include "util-time.h"
+#include "util-debug.h"
 
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
@@ -84,6 +85,7 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 
     p->ts.tv_sec = h->ts.tv_sec;
     p->ts.tv_usec = h->ts.tv_usec;
+    SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
     TimeSet(&p->ts);
     p->datalink = pcap_g.datalink;
 

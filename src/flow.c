@@ -659,7 +659,7 @@ void *FlowManagerThread(void *td)
         sleeping += 10;
     }
 
-    SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were timed out, %"PRIu32"", new_cnt, established_cnt, closing_cnt);
+    SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were timed out, %"PRIu32" flows in closed state", new_cnt, established_cnt, closing_cnt);
     pthread_exit((void *) 0);
 }
 

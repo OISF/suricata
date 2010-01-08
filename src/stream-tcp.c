@@ -2673,6 +2673,7 @@ int StreamTcpGetFlowState(void *s)
 
 static int ValidTimestamp (TcpSession *ssn, Packet *p)
 {
+    SCEnter();
 
     TcpStream *sender_stream;
     TcpStream *receiver_stream;
@@ -2686,6 +2687,7 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p)
         sender_stream = &ssn->server;
         receiver_stream = &ssn->client;
     }
+
     /* Set up the os_policy to be used in validating the timestamps based on
        the target system */
     if (receiver_stream->os_policy == 0)
@@ -2739,12 +2741,14 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p)
                 default:
                     /* other OS simply drop the pakcet with 0 timestamp, when
                      * 3whs has valid timestamp*/
-                    return 0;
+                    SCReturnInt(0);
             }
         }
 
         if (check_ts) {
             int32_t result = 0;
+
+            SCLogDebug("ts %"PRIu32", last_ts %"PRIu32"", ts, sender_stream->last_ts);
 
             if (receiver_stream->os_policy == OS_POLICY_LINUX) {
                 /* Linux accepts TS which are off by one.*/
@@ -2752,6 +2756,8 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p)
             } else {
                 result = (int32_t) (ts - sender_stream->last_ts);
             }
+
+            SCLogDebug("result %"PRIi32", p->ts.tv_sec %"PRIuMAX"", result, (uintmax_t)p->ts.tv_sec);
 
             if (sender_stream->last_pkt_ts == 0 &&
                     (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
@@ -2793,6 +2799,8 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p)
                     sender_stream->last_ts = ts;
                     sender_stream->last_pkt_ts = p->ts.tv_sec;
                     ret = 1;
+
+                    SCLogDebug("timestamp considered valid anyway");
                 }
             }
         }
@@ -2803,7 +2811,7 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p)
             ssn->flags &= ~STREAMTCP_FLAG_TIMESTAMP;
     }
 
-    return ret;
+    SCReturnInt(ret);
 }
 
 /** \brief  Set the No reassembly flag for the given direction in given TCP

@@ -243,6 +243,9 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
     memcpy(&p->pkt, pkt, len);
     p->recursion_level = parent->recursion_level + 1;
 
+    p->ts.tv_sec = parent->ts.tv_sec;
+    p->ts.tv_usec = parent->ts.tv_usec;
+
     /* set tunnel flags */
     SET_TUNNEL_PKT(p);
     TUNNEL_INCR_PKT_TPR(p);

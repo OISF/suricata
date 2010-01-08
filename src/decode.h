@@ -367,6 +367,8 @@ typedef struct DecodeThreadVars_
     } \
     (p)->pktvar = NULL; \
     (p)->recursion_level = 0; \
+    (p)->ts.tv_sec = 0; \
+    (p)->ts.tv_usec = 0; \
 }
 
 /* reset these to -1(indicates that the packet is fresh from the queue) */
