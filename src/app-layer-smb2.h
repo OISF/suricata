@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Open Information Security Foundation
+ * Copyright (c) 2009,2010 Open Information Security Foundation
  * app-layer-smb2.h
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
@@ -15,27 +15,27 @@
 #include <stdint.h>
 
 typedef struct smb2_hdr {
-	uint32_t Protocol; // Contains 0xFE,'SMB'
-	uint16_t StructureSize;
-	uint16_t CreditCharge;
-	uint32_t Status;
-	uint16_t Command;
-	uint16_t CreditRequestResponse;
-	uint32_t Flags;
-	uint32_t NextCommand;
-	uint64_t MessageId;
-	uint32_t ProcessId;
-	uint32_t TreeId;
-	uint64_t SessionId;
-	uint8_t Signature[16];
+    uint32_t Protocol; // Contains 0xFE,'SMB'
+    uint16_t StructureSize;
+    uint16_t CreditCharge;
+    uint32_t Status;
+    uint16_t Command;
+    uint16_t CreditRequestResponse;
+    uint32_t Flags;
+    uint32_t NextCommand;
+    uint64_t MessageId;
+    uint32_t ProcessId;
+    uint32_t TreeId;
+    uint64_t SessionId;
+    uint8_t Signature[16];
 }smb2_hdr_t, *psmb2_hdr_t;
 
 #define SMB2_HDR_LEN 64
 
 typedef struct SMB2State_ {
-	nbss_hdr_t nbss;
-	smb2_hdr_t smb2;
-	uint16_t bytesprocessed;
+    nbss_hdr_t nbss;
+    smb2_hdr_t smb2;
+    uint16_t bytesprocessed;
 }SMB2State;
 
 /* http://msdn.microsoft.com/en-us/library/cc246528(PROT.13).aspx */

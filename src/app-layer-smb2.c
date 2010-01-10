@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Open Information Security Foundation
+ * Copyright (c) 2009,2010 Open Information Security Foundation
  * app-layer-smb.c
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
@@ -37,7 +37,7 @@ enum {
 
 static uint32_t NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
-	SCEnter();
+    SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint8_t *p = input;
 
@@ -74,7 +74,7 @@ static uint32_t NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
 
 static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
-	SCEnter();
+    SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint8_t *p = input;
     if (input_len) {
@@ -358,7 +358,7 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
 
 static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
-	SCEnter();
+    SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint32_t retval = 0;
     uint32_t parsed = 0;
@@ -427,13 +427,13 @@ int SMB2ParserTest01(void) {
     int result = 1;
     Flow f;
     uint8_t smb2buf[] =
-   "\x00\x00\x00\x66" // NBSS
-    "\xfe\x53\x4d\x42\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00" // SMB2
-    "\x3f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-    "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-    "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-    "\x24\x00\x01\x00x00\x00\x00\x00\x00\x00\x0\x00\x00\x00\x00\x00\x00\x00\x00"
-    "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02";
+        "\x00\x00\x00\x66" // NBSS
+        "\xfe\x53\x4d\x42\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00" // SMB2
+        "\x3f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        "\x24\x00\x01\x00x00\x00\x00\x00\x00\x00\x0\x00\x00\x00\x00\x00\x00\x00\x00"
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02";
 
     uint32_t smb2len = sizeof(smb2buf) - 1;
     TcpSession ssn;

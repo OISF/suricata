@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Open Information Security Foundation
+ * Copyright (c) 2009,2010 Open Information Security Foundation
  * app-layer-dcerpc.h
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
@@ -11,6 +11,7 @@
 #include "app-layer-parser.h"
 #include "flow.h"
 #include "queue.h"
+#include <byteswap.h>
 
 void RegisterDCERPCParsers(void);
 void DCERPCParserTests(void);
@@ -77,24 +78,24 @@ typedef struct {
 #define RESERVED_80 0x80
 
 typedef struct dcerpc_hdr_ {
-    uint8_t rpc_vers;     /* 00:01 RPC version should be 5 */
-    uint8_t rpc_vers_minor;      /* 01:01 minor version */
-    uint8_t type;               /* 02:01 packet type */
-    uint8_t pfc_flags;           /* 03:01 flags (see PFC_... ) */
-    uint8_t packed_drep[4];   /* 04:04 NDR data representation format label */
-    uint16_t frag_length;         /* 08:02 total length of fragment */
-    uint16_t auth_length;         /* 10:02 length of auth_value */
-    uint32_t call_id;             /* 12:04 call identifier */
+    uint8_t rpc_vers;     	/* 00:01 RPC version should be 5 */
+    uint8_t rpc_vers_minor; /* 01:01 minor version */
+    uint8_t type;           /* 02:01 packet type */
+    uint8_t pfc_flags;      /* 03:01 flags (see PFC_... ) */
+    uint8_t packed_drep[4]; /* 04:04 NDR data representation format label */
+    uint16_t frag_length;   /* 08:02 total length of fragment */
+    uint16_t auth_length;   /* 10:02 length of auth_value */
+    uint32_t call_id;      /* 12:04 call identifier */
 }dcerpc_t;
 
 #define DCERPC_HDR_LEN 16
 
 struct uuid_entry {
-	uint16_t ctxid;
-	uint16_t result;
-	uint8_t uuid[16];
-	uint16_t version;
-	uint16_t versionminor;
+    uint16_t ctxid;
+    uint16_t result;
+    uint8_t uuid[16];
+    uint16_t version;
+    uint16_t versionminor;
     TAILQ_ENTRY(uuid_entry) next;
 };
 
@@ -104,17 +105,18 @@ typedef struct DCERPCState_ {
     uint8_t numctxitems;
     uint8_t numctxitemsleft;
     uint8_t ctxbytesprocessed;
-	uint16_t ctxid;
-	uint16_t result;
-	uint8_t uuid[16];
-	uint16_t version;
-	uint16_t versionminor;
-	uint8_t pad;
-	uint8_t padleft;
+    uint16_t ctxid;
+    uint16_t result;
+    uint8_t uuid[16];
+    uint16_t version;
+    uint16_t versionminor;
+    uint8_t pad;
+    uint8_t padleft;
     struct uuid_entry *uuid_entry;
     TAILQ_HEAD(, uuid_entry) uuid_list;
     uint16_t secondaryaddrlen;
     uint16_t secondaryaddrlenleft;
+    uint16_t opnum;
 }DCERPCState;
 
 
@@ -123,16 +125,16 @@ typedef struct DCERPCState_ {
 #define PFC_PENDING_CANCEL       0x04/* Cancel was pending at sender */
 #define PFC_RESERVED_1           0x08
 #define PFC_CONC_MPX             0x10/* supports concurrent multiplexing
-                                        * of a single connection. */
+                                      * of a single connection. */
 #define PFC_DID_NOT_EXECUTE      0x20/* only meaningful on `fault' packet;
-                                        * if true, guaranteed call did not
-                                        * execute. */
+                                      * if true, guaranteed call did not
+                                      * execute. */
 #define PFC_MAYBE                0x40/* `maybe' call semantics requested */
 #define PFC_OBJECT_UUID          0x80/* if true, a non-nil object UUID
-                                        * was specified in the handle, and
-                                        * is present in the optional object
-                                        * field. If false, the object field
-                                        * is omitted. */
+                                      * was specified in the handle, and
+                                      * is present in the optional object
+                                      * field. If false, the object field
+                                      * is omitted. */
 #define REASON_NOT_SPECIFIED            0
 #define TEMPORARY_CONGESTION            1
 #define LOCAL_LIMIT_EXCEEDED            2
@@ -142,20 +144,20 @@ typedef struct DCERPCState_ {
 #define USER_DATA_NOT_READABLE          6 /* not used */
 #define NO_PSAP_AVAILABLE               7 /* not used */
 /*
-typedef uint16_t p_context_id_t;
-typedef   struct   {
-             uuid_t   if_uuid;
-             uint32_t if_version;
-} p_syntax_id_t;
+   typedef uint16_t p_context_id_t;
+   typedef   struct   {
+   uuid_t   if_uuid;
+   uint32_t if_version;
+   } p_syntax_id_t;
 
-typedef   struct {
-	p_context_id_t   p_cont_id;
-    uint8_t n_transfer_syn;     // number of items
-    uint8_t reserved;           // alignment pad, m.b.z.
-    p_syntax_id_t    abstract_syntax;    // transfer syntax list
-    p_syntax_id_t [size_is(n_transfer_syn)] transfer_syntaxes[];
-} p_cont_elem_t;
-*/
+   typedef   struct {
+   p_context_id_t   p_cont_id;
+   uint8_t n_transfer_syn;     // number of items
+   uint8_t reserved;           // alignment pad, m.b.z.
+   p_syntax_id_t    abstract_syntax;    // transfer syntax list
+   p_syntax_id_t [size_is(n_transfer_syn)] transfer_syntaxes[];
+   } p_cont_elem_t;
+   */
 
 
 #endif /* APPLAYERDCERPC_H_ */

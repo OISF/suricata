@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Open Information Security Foundation
+ * Copyright (c) 2009, 2010 Open Information Security Foundation
  * app-layer-smb.c
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
@@ -39,6 +39,7 @@ enum {
 };
 
 #if 0
+/* \brief hexdump function from libdnet, used for debugging only */
 void hexdump(const void *buf, size_t len) {
     /* dumps len bytes of *buf to stdout. Looks like:
      * [0000] 75 6E 6B 6E 6F 77 6E 20
@@ -49,10 +50,10 @@ void hexdump(const void *buf, size_t len) {
     const unsigned char *p = buf;
     unsigned char c;
     size_t n;
-    char bytestr[4] = { 0 };
-    char addrstr[10] = { 0 };
-    char hexstr[16 * 3 + 5] = { 0 };
-    char charstr[16 * 1 + 5] = { 0 };
+    char bytestr[4] = {0};
+    char addrstr[10] = {0};
+    char hexstr[16 * 3 + 5] = {0};
+    char charstr[16 * 1 + 5] = {0};
     for (n = 1; n <= len; n++) {
         if (n % 16 == 1) {
             /* store address for this line */
@@ -102,9 +103,10 @@ void hexdump(const void *buf, size_t len) {
  *  \brief SMB Write AndX Request Parsing
  */
 /* For WriteAndX we need to get writeandxdataoffset */
-static uint32_t SMBParseWriteAndX(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
-	SCEnter();
+static uint32_t SMBParseWriteAndX(Flow *f, void *smb_state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserResult *output) {
+    SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     switch (sstate->andx.andxbytesprocessed) {
@@ -112,122 +114,149 @@ static uint32_t SMBParseWriteAndX(Flow *f, void *smb_state, AppLayerParserState 
             sstate->andx.paddingparsed = 0;
             if (input_len >= 28) {
                 sstate->andx.andxcommand = *p;
-                sstate->andx.andxoffset = *(p+2) << 8;
-                sstate->andx.andxoffset |= *(p+3);
-                sstate->andx.datalength = *(p+18) << 16;
-                sstate->andx.datalength |= *(p+19) << 24;
-                sstate->andx.datalength |= *(p+20) << 8;
-                sstate->andx.datalength |= *(p+21);
-                sstate->andx.dataoffset = *(p+22) << 8;
-                sstate->andx.dataoffset|= *(p+23);
-                sstate->andx.dataoffset|= (uint64_t) *(p+24) << 56;
-                sstate->andx.dataoffset|= (uint64_t) *(p+25) << 48;
-                sstate->andx.dataoffset|= (uint64_t) *(p+26) << 40;
-                sstate->andx.dataoffset|= (uint64_t) *(p+27) << 32;
+                sstate->andx.andxoffset = *(p + 2);
+                sstate->andx.andxoffset |= *(p + 3) << 8;
+                sstate->andx.datalength = *(p + 18);
+                sstate->andx.datalength |= *(p + 19) << 8;
+                sstate->andx.datalength |= *(p + 20) << 16;
+                sstate->andx.datalength |= *(p + 21) << 24;
+                sstate->andx.dataoffset = *(p + 22);
+                sstate->andx.dataoffset |= *(p + 23) << 8;
+                sstate->andx.dataoffset |= (uint64_t) * (p + 24) << 56;
+                sstate->andx.dataoffset |= (uint64_t) * (p + 25) << 48;
+                sstate->andx.dataoffset |= (uint64_t) * (p + 26) << 40;
+                sstate->andx.dataoffset |= (uint64_t) * (p + 27) << 32;
                 sstate->bytesprocessed += 28;
                 SCReturnUInt(28U);
             } else {
                 sstate->andx.andxcommand = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             }
         case 1:
             p++; // Reserved
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 2:
             sstate->andx.andxoffset = *(p++) << 8;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 3:
             sstate->andx.andxoffset |= *(p++);
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 4:
             // SMB_COM_WRITE_ANDX Fid 1
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 5:
             // SMB_COM_WRITE_ANDX Fid 2
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 6:
             // SMB_COM_WRITE_ANDX Offset 1
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 7:
             // SMB_COM_WRITE_ANDX Offset 2
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 8:
             // SMB_COM_WRITE_ANDX Offset 3
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 9:
             // SMB_COM_WRITE_ANDX Offset 4
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 10:
             // SMB_COM_WRITE_ANDX Reserved 1
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 11:
             // SMB_COM_WRITE_ANDX Reserved 2
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 12:
             // SMB_COM_WRITE_ANDX Reserved 3
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 13:
             // SMB_COM_WRITE_ANDX Reserved 4
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 14:
             // SMB_COM_WRITE_ANDX WriteMode 1
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 15:
             // SMB_COM_WRITE_ANDX WriteMode 2
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 16:
             // SMB_COM_WRITE_ANDX BytesRemaining 1
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 17:
             // SMB_COM_WRITE_ANDX BytesRemaining 2
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 18:
             // DataLengthHigh 1
             sstate->andx.datalength = *(p++) << 16;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 19:
             // DataLengthHigh 2
             sstate->andx.datalength |= *(p++) << 24;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 20:
             // DataLength 1
             sstate->andx.datalength |= *(p++) << 8;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 21:
             // DataLength 2
             sstate->andx.datalength |= *(p++);
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 22:
             sstate->andx.dataoffset = *(p++) << 8;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 23:
             sstate->andx.dataoffset |= *(p++);
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 24:
-            sstate->andx.dataoffset|= (uint64_t) *(p++) << 56;
-            if (!(--input_len)) break;
+            sstate->andx.dataoffset |= (uint64_t) * (p++) << 56;
+            if (!(--input_len))
+                break;
         case 25:
-            sstate->andx.dataoffset|= (uint64_t) *(p++) << 48;
-            if (!(--input_len)) break;
+            sstate->andx.dataoffset |= (uint64_t) * (p++) << 48;
+            if (!(--input_len))
+                break;
         case 26:
-            sstate->andx.dataoffset|= (uint64_t) *(p++) << 40;
-            if (!(--input_len)) break;
+            sstate->andx.dataoffset |= (uint64_t) * (p++) << 40;
+            if (!(--input_len))
+                break;
         case 27:
-            sstate->andx.dataoffset|= (uint64_t) *(p++) << 32;
+            sstate->andx.dataoffset |= (uint64_t) * (p++) << 32;
             --input_len;
             break;
     }
@@ -238,9 +267,10 @@ static uint32_t SMBParseWriteAndX(Flow *f, void *smb_state, AppLayerParserState 
 /**
  * \brief SMB Read AndX Response Parsing
  */
-static uint32_t SMBParseReadAndX(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
-	SCEnter();
+static uint32_t SMBParseReadAndX(Flow *f, void *smb_state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserResult *output) {
+    SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     switch (sstate->andx.andxbytesprocessed) {
@@ -248,81 +278,99 @@ static uint32_t SMBParseReadAndX(Flow *f, void *smb_state, AppLayerParserState *
             sstate->andx.paddingparsed = 0;
             if (input_len >= 24) {
                 sstate->andx.andxcommand = *p;
-                sstate->andx.andxoffset = *(p+2) << 8;
-                sstate->andx.andxoffset |= *(p+3);
-                sstate->andx.datalength = *(p+10) << 8;
-                sstate->andx.datalength |= *(p+11);
-                sstate->andx.dataoffset = *(p+12) << 8;
-                sstate->andx.dataoffset |= *(p+13);
-                sstate->andx.datalength |= (uint64_t) *(p+14) << 56;
-                sstate->andx.datalength |= (uint64_t) *(p+15) << 48;
-                sstate->andx.datalength |= (uint64_t) *(p+16) << 40;
-                sstate->andx.datalength |= (uint64_t) *(p+17) << 32;
+                sstate->andx.andxoffset = *(p + 2);
+                sstate->andx.andxoffset |= *(p + 3) << 8;
+                sstate->andx.datalength = *(p + 10);
+                sstate->andx.datalength |= *(p + 11) << 8;
+                sstate->andx.dataoffset = *(p + 12);
+                sstate->andx.dataoffset |= *(p + 13) << 8;
+                sstate->andx.datalength |= (uint64_t) * (p + 14) << 32;
+                sstate->andx.datalength |= (uint64_t) * (p + 15) << 40;
+                sstate->andx.datalength |= (uint64_t) * (p + 16) << 48;
+                sstate->andx.datalength |= (uint64_t) * (p + 17) << 56;
                 sstate->bytesprocessed += 24;
                 SCReturnUInt(24U);
             } else {
                 sstate->andx.andxcommand = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             }
         case 1:
             p++; // Reserved
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 2:
-            sstate->andx.andxoffset |= *(p++) << 8;
-            if (!(--input_len)) break;
-        case 3:
             sstate->andx.andxoffset |= *(p++);
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
+        case 3:
+            sstate->andx.andxoffset |= *(p++) << 8;
+            if (!(--input_len))
+                break;
         case 4:
             // SMB_COM_READ_ANDX Remaining Reserved must be 0xff
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 5:
             // SMB_COM_READ_ANDX Remaining Reserved must be 0xff
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 6:
             // SMB_COM_READ_ANDX DataCompactionMode 1
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 7:
             // SMB_COM_READ_ANDX DataCompactionMode 1
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 8:
             // SMB_COM_READ_ANDX Reserved
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 9:
             // SMB_COM_READ_ANDX Reserved
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 10:
-            sstate->andx.datalength = *(p++) << 8;
-            if (!(--input_len)) break;
+            sstate->andx.datalength = *(p++);
+            if (!(--input_len))
+                break;
         case 11:
-            sstate->andx.datalength |= *(p++);
-            if (!(--input_len)) break;
+            sstate->andx.datalength |= *(p++) << 8;
+            if (!(--input_len))
+                break;
         case 12:
-            sstate->andx.dataoffset = *(p++) << 8;
-            if (!(--input_len)) break;
+            sstate->andx.dataoffset = *(p++);
+            if (!(--input_len))
+                break;
         case 13:
-            sstate->andx.dataoffset|= *(p++);
-            if (!(--input_len)) break;
+            sstate->andx.dataoffset |= *(p++) << 8;
+            if (!(--input_len))
+                break;
         case 14:
-            sstate->andx.datalength |= *(p++) << 24;
-            if (!(--input_len)) break;
-        case 15:
             sstate->andx.datalength |= *(p++) << 16;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
+        case 15:
+            sstate->andx.datalength |= *(p++) << 24;
+            if (!(--input_len))
+                break;
         case 16:
             // SMB_COM_READ_ANDX Reserved
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 17:
             // SMB_COM_READ_ANDX Reserved
             p++;
-            if (!(--input_len)) break;
+            if (!(--input_len))
+                break;
         case 18:
             // SMB_COM_READ_ANDX Reserved
             p++;
@@ -333,18 +381,185 @@ static uint32_t SMBParseReadAndX(Flow *f, void *smb_state, AppLayerParserState *
     SCReturnUInt((uint32_t)(p - input));
 }
 
+static uint32_t SMBParseTransact(Flow *f, void *smb_state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserResult *output) {
+    SCEnter();
+    SMBState *sstate = (SMBState *) smb_state;
+    uint8_t *p = input;
+    switch (sstate->andx.andxbytesprocessed) {
+        case 0:
+            sstate->andx.paddingparsed = 0;
+            if (input_len >= 27) {
+                sstate->andx.datalength = *(p + 22);
+                sstate->andx.datalength |= *(p + 23) << 8;
+                sstate->andx.dataoffset = *(p + 24);
+                sstate->andx.dataoffset |= *(p + 25) << 8;
+                sstate->andx.datalength |= (uint64_t) * (p + 14) << 56;
+                sstate->andx.datalength |= (uint64_t) * (p + 15) << 48;
+                sstate->andx.datalength |= (uint64_t) * (p + 16) << 40;
+                sstate->andx.datalength |= (uint64_t) * (p + 17) << 32;
+                sstate->bytesprocessed += 24;
+                SCReturnUInt(24U);
+            } else {
+                /* total parameter count 1 */
+                p++;
+                if (!(--input_len))
+                    break;
+            }
+        case 1:
+            /* total parameter count 2 */
+            p++;
+            if (!(--input_len))
+                break;
+        case 2:
+            /* total data count 1 */
+            p++;
+            if (!(--input_len))
+                break;
+        case 3:
+            /* total data count 2 */
+            p++;
+            if (!(--input_len))
+                break;
+        case 4:
+            /* max parameter count 1 */
+            p++;
+            if (!(--input_len))
+                break;
+        case 5:
+            /* max parameter count 2 */
+            p++;
+            if (!(--input_len))
+                break;
+        case 6:
+            /* max data count 1 */
+            p++;
+            if (!(--input_len))
+                break;
+        case 7:
+            /* max data count 2 */
+            p++;
+            if (!(--input_len))
+                break;
+        case 8:
+            /* max setup count */
+            p++;
+            if (!(--input_len))
+                break;
+        case 9:
+            /* Reserved */
+            p++;
+            if (!(--input_len))
+                break;
+        case 10:
+            /* Flags */
+            p++;
+            if (!(--input_len))
+                break;
+        case 11:
+            /* Flags */
+            p++;
+            if (!(--input_len))
+                break;
+        case 12:
+            /* Timeout */
+            p++;
+            if (!(--input_len))
+                break;
+        case 13:
+            /* Timeout */
+            p++;
+            if (!(--input_len))
+                break;
+        case 14:
+            /* Timeout */
+            p++;
+            if (!(--input_len))
+                break;
+        case 15:
+            /* Timeout */
+            p++;
+            if (!(--input_len))
+                break;
+        case 16:
+            /* Reserved */
+            p++;
+            if (!(--input_len))
+                break;
+        case 17:
+            /* Reserved */
+            p++;
+            if (!(--input_len))
+                break;
+        case 18:
+            /* Parameter Count */
+            p++;
+            if (!(--input_len))
+                break;
+        case 19:
+            /* Parameter Count */
+            p++;
+            if (!(--input_len))
+                break;
+        case 20:
+            /* Parameter Offset */
+            p++;
+            if (!(--input_len))
+                break;
+        case 21:
+            /* Parameter Offset */
+            p++;
+            if (!(--input_len))
+                break;
+        case 22:
+            /* Data Count */
+            sstate->andx.datalength = *(p++);
+            if (!(--input_len))
+                break;
+        case 23:
+            /* Data Count */
+            sstate->andx.datalength |= *(p++) << 8;
+            if (!(--input_len))
+                break;
+        case 24:
+            /* Data Offset */
+            sstate->andx.dataoffset = *(p++);
+            if (!(--input_len))
+                break;
+        case 25:
+            /* Data Offset */
+            sstate->andx.dataoffset |= *(p++) << 8;
+            if (!(--input_len))
+        case 26:
+                /* Setup Count */
+                p++;
+                if (!(--input_len))
+        case 27:
+                    /* Reserved */
+                    p++;
+                    --input_len;
+                    break;
+    }
+    sstate->bytesprocessed += (p - input);
+    SCReturnUInt((uint32_t)(p - input));
+}
+
 /**
  * Handle variable length padding for WriteAndX and ReadAndX
  */
 static uint32_t PaddingParser(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
-	SCEnter();
+    SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    while ((uint32_t)(sstate->bytesprocessed + (p - input)) < sstate->andx.dataoffset && sstate->bytecount.bytecount-- && input_len--) {
+    while ((uint32_t)(sstate->bytesprocessed + (p - input))
+            < sstate->andx.dataoffset && sstate->bytecount.bytecount--
+            && input_len--) {
         p++;
     }
-    if ((uint32_t)(sstate->bytesprocessed + (p - input)) ==  sstate->andx.dataoffset) {
+    if ((uint32_t)(sstate->bytesprocessed + (p - input))
+            == sstate->andx.dataoffset) {
         sstate->andx.paddingparsed = 1;
     }
     sstate->bytesprocessed += (p - input);
@@ -357,12 +572,13 @@ static uint32_t PaddingParser(void *smb_state, AppLayerParserState *pstate,
  */
 static uint32_t DataParser(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
-	SCEnter();
+    SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
 
     if (sstate->andx.paddingparsed) {
-        while (sstate->andx.datalength-- && sstate->bytecount.bytecount-- && input_len--) {
+        while (sstate->andx.datalength-- && sstate->bytecount.bytecount--
+                && input_len--) {
             SCLogDebug("0x%02x ", *p);
             p++;
         }
@@ -371,15 +587,14 @@ static uint32_t DataParser(void *smb_state, AppLayerParserState *pstate,
     SCReturnUInt((uint32_t)(p - input));
 }
 
-
 /**
  * \brief Obtain SMB WordCount which is 2 times the value.
  * Reset bytecount.bytecountbytes to 0.
  * Determine if this is an SMB AndX Command
  */
-static uint32_t SMBGetWordCount(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
-{
+static uint32_t SMBGetWordCount(Flow *f, void *smb_state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserResult *output) {
     SCEnter();
     if (input_len) {
         SMBState *sstate = (SMBState *) smb_state;
@@ -398,24 +613,24 @@ static uint32_t SMBGetWordCount(Flow *f, void *smb_state, AppLayerParserState *p
  * is after the first bytecount byte.
  */
 
-static uint32_t SMBGetByteCount(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
-{
+static uint32_t SMBGetByteCount(Flow *f, void *smb_state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserResult *output) {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    if (input_len && sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN +
-		1 + sstate->wordcount.wordcount) {
-            sstate->bytecount.bytecount = *(p++);
-            sstate->bytesprocessed++;
-            --input_len;
+    if (input_len && sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN + 1
+            + sstate->wordcount.wordcount) {
+        sstate->bytecount.bytecount = *(p++);
+        sstate->bytesprocessed++;
+        --input_len;
     }
-    if (input_len && sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN +
-		2 + sstate->wordcount.wordcount) {
-            sstate->bytecount.bytecount |= *(p++) << 8;
-            sstate->bytesprocessed++;
-            SCLogDebug("Bytecount %u", sstate->bytecount.bytecount);
-            --input_len;
+    if (input_len && sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN + 2
+            + sstate->wordcount.wordcount) {
+        sstate->bytecount.bytecount |= *(p++) << 8;
+        sstate->bytesprocessed++;
+        SCLogDebug("Bytecount %u", sstate->bytecount.bytecount);
+        --input_len;
     }
     SCReturnUInt((uint32_t)(p - input));
 }
@@ -424,22 +639,34 @@ static uint32_t SMBGetByteCount(Flow *f, void *smb_state, AppLayerParserState *p
  * \brief SMBParseWordCount parses the SMB Wordcount portion of the SMB Transaction.
  * until sstate->wordcount.wordcount bytes are parsed.
  */
-static uint32_t SMBParseWordCount(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
-{
+static uint32_t SMBParseWordCount(Flow *f, void *smb_state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserResult *output) {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     uint32_t retval = 0;
     uint32_t parsed = 0;
-    if ((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) && sstate->smb.command == SMB_COM_READ_ANDX) {
-        retval = SMBParseReadAndX(f, sstate, pstate, input + parsed, input_len, output);
+    if ((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) && sstate->smb.command
+            == SMB_COM_READ_ANDX) {
+        retval = SMBParseReadAndX(f, sstate, pstate, input + parsed, input_len,
+                output);
         parsed += retval;
         input_len -= retval;
         sstate->wordcount.wordcount -= retval;
         SCReturnUInt(retval);
-    } else  if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) == 0) && sstate->smb.command == SMB_COM_WRITE_ANDX) {
-        retval = SMBParseWriteAndX(f, sstate, pstate, input + parsed, input_len, output);
+    } else if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) == 0)
+            && sstate->smb.command == SMB_COM_WRITE_ANDX) {
+        retval = SMBParseWriteAndX(f, sstate, pstate, input + parsed,
+                input_len, output);
+        parsed += retval;
+        input_len -= retval;
+        sstate->wordcount.wordcount -= retval;
+        SCReturnUInt(retval);
+    } else if ((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR)
+            && sstate->smb.command == SMB_COM_TRANSACTION) {
+        retval = SMBParseTransact(f, sstate, pstate, input + parsed, input_len,
+                output);
         parsed += retval;
         input_len -= retval;
         sstate->wordcount.wordcount -= retval;
@@ -459,23 +686,28 @@ static uint32_t SMBParseWordCount(Flow *f, void *smb_state, AppLayerParserState 
  * until sstate->bytecount.bytecount bytes are parsed.
  */
 
-static uint32_t SMBParseByteCount(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
-{
+static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserResult *output) {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     uint32_t retval = 0;
     uint32_t parsed = 0;
-    if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) && sstate->smb.command == SMB_COM_READ_ANDX) ||
-            (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) == 0) && sstate->smb.command == SMB_COM_WRITE_ANDX)) {
+    if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) && sstate->smb.command
+                == SMB_COM_READ_ANDX) || (((sstate->smb.flags
+                            & SMB_FLAGS_SERVER_TO_REDIR) == 0) && sstate->smb.command
+                    == SMB_COM_WRITE_ANDX) ||
+            (sstate->smb.command == SMB_COM_TRANSACTION)) {
         if (sstate->andx.paddingparsed == 0) {
-            retval = PaddingParser(sstate, pstate, input + parsed, input_len, output);
+            retval = PaddingParser(sstate, pstate, input + parsed, input_len,
+                    output);
             parsed += retval;
             input_len -= retval;
         }
         if (sstate->andx.datalength) {
-            retval = DataParser(sstate, pstate, input + parsed, input_len, output);
+            retval = DataParser(sstate, pstate, input + parsed, input_len,
+                    output);
             parsed += retval;
             input_len -= retval;
         }
@@ -493,9 +725,9 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state, AppLayerParserState 
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static uint32_t NBSSParseHeader(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
-{
+static uint32_t NBSSParseHeader(Flow *f, void *smb_state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserResult *output) {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
@@ -514,14 +746,17 @@ static uint32_t NBSSParseHeader(Flow *f, void *smb_state, AppLayerParserState *p
                     SCReturnUInt(4U);
                 } else {
                     sstate->nbss.type = *(p++);
-                    if (!(--input_len)) break;
+                    if (!(--input_len))
+                        break;
                 }
             case 1:
                 sstate->nbss.length = (*(p++) & 0x01) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 2:
                 sstate->nbss.length |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 3:
                 sstate->nbss.length |= *(p++);
                 --input_len;
@@ -532,9 +767,12 @@ static uint32_t NBSSParseHeader(Flow *f, void *smb_state, AppLayerParserState *p
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static uint32_t SMBParseHeader(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
-{
+/**
+ * \brief SMBParseHeader parses and validates the 32 byte SMB Header
+ */
+static uint32_t SMBParseHeader(Flow *f, void *smb_state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserResult *output) {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
@@ -556,14 +794,14 @@ static uint32_t SMBParseHeader(Flow *f, void *smb_state, AppLayerParserState *ps
                     sstate->smb.flags2 |= *(p + 11);
                     sstate->smb.pidhigh = *(p + 12) << 8;
                     sstate->smb.pidhigh |= *(p + 13);
-                    sstate->smb.securitysignature = (uint64_t) *(p + 14) << 56;
-                    sstate->smb.securitysignature |= (uint64_t) *(p + 15) << 48;
-                    sstate->smb.securitysignature |= (uint64_t) *(p + 16) << 40;
-                    sstate->smb.securitysignature |= (uint64_t) *(p + 17) << 32;
-                    sstate->smb.securitysignature |= (uint64_t) *(p + 18) << 24;
-                    sstate->smb.securitysignature |= (uint64_t) *(p + 19) << 16;
-                    sstate->smb.securitysignature |= (uint64_t) *(p + 20) << 8;
-                    sstate->smb.securitysignature |= (uint64_t) *(p + 21);
+                    sstate->smb.securitysignature = (uint64_t) * (p + 14) << 56;
+                    sstate->smb.securitysignature |= (uint64_t) * (p + 15) << 48;
+                    sstate->smb.securitysignature |= (uint64_t) * (p + 16) << 40;
+                    sstate->smb.securitysignature |= (uint64_t) * (p + 17) << 32;
+                    sstate->smb.securitysignature |= (uint64_t) * (p + 18) << 24;
+                    sstate->smb.securitysignature |= (uint64_t) * (p + 19) << 16;
+                    sstate->smb.securitysignature |= (uint64_t) * (p + 20) << 8;
+                    sstate->smb.securitysignature |= (uint64_t) * (p + 21);
                     sstate->smb.tid = *(p + 24) << 8;
                     sstate->smb.tid |= *(p + 25);
                     sstate->smb.pid = *(p + 26) << 8;
@@ -579,104 +817,135 @@ static uint32_t SMBParseHeader(Flow *f, void *smb_state, AppLayerParserState *ps
                     //sstate->smb.protocol[0] = *(p++);
                     if (*(p++) != 0xff)
                         SCReturnInt(0);
-                    if (!(--input_len)) break;
+                    if (!(--input_len))
+                        break;
                 }
             case 5:
                 //sstate->smb.protocol[1] = *(p++);
                 if (*(p++) != 'S')
                     SCReturnInt(0);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 6:
                 //sstate->smb.protocol[2] = *(p++);
                 if (*(p++) != 'M')
                     SCReturnInt(0);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 7:
                 //sstate->smb.protocol[3] = *(p++);
                 if (*(p++) != 'B')
                     SCReturnInt(0);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 8:
                 sstate->smb.command = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 9:
                 sstate->smb.status = *(p++) << 24;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 10:
                 sstate->smb.status |= *(p++) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 11:
                 sstate->smb.status |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 12:
                 sstate->smb.status |= *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 13:
                 sstate->smb.flags = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 14:
                 sstate->smb.flags2 = *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 15:
                 sstate->smb.flags2 |= *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 16:
                 sstate->smb.pidhigh = *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 17:
                 sstate->smb.pidhigh |= *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 18:
-                sstate->smb.securitysignature = (uint64_t) *(p++) << 56;
-                if (!(--input_len)) break;
+                sstate->smb.securitysignature = (uint64_t) * (p++) << 56;
+                if (!(--input_len))
+                    break;
             case 19:
-                sstate->smb.securitysignature |= (uint64_t) *(p++) << 48;
-                if (!(--input_len)) break;
+                sstate->smb.securitysignature |= (uint64_t) * (p++) << 48;
+                if (!(--input_len))
+                    break;
             case 20:
-                sstate->smb.securitysignature |= (uint64_t) *(p++) << 40;
-                if (!(--input_len)) break;
+                sstate->smb.securitysignature |= (uint64_t) * (p++) << 40;
+                if (!(--input_len))
+                    break;
             case 21:
-                sstate->smb.securitysignature |= (uint64_t) *(p++) << 32;
-                if (!(--input_len)) break;
+                sstate->smb.securitysignature |= (uint64_t) * (p++) << 32;
+                if (!(--input_len))
+                    break;
             case 22:
-                sstate->smb.securitysignature |= (uint64_t) *(p++) << 24;
-                if (!(--input_len)) break;
+                sstate->smb.securitysignature |= (uint64_t) * (p++) << 24;
+                if (!(--input_len))
+                    break;
             case 23:
-                sstate->smb.securitysignature |=(uint64_t) *(p++) << 16;
-                if (!(--input_len)) break;
+                sstate->smb.securitysignature |= (uint64_t) * (p++) << 16;
+                if (!(--input_len))
+                    break;
             case 24:
-                sstate->smb.securitysignature |= (uint64_t) *(p++) << 8;
-                if (!(--input_len)) break;
+                sstate->smb.securitysignature |= (uint64_t) * (p++) << 8;
+                if (!(--input_len))
+                    break;
             case 25:
-                sstate->smb.securitysignature |= (uint64_t) *(p++);
-                if (!(--input_len)) break;
+                sstate->smb.securitysignature |= (uint64_t) * (p++);
+                if (!(--input_len))
+                    break;
             case 26:
                 p++; // UNUSED
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 27:
                 p++; // UNUSED
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 28:
                 sstate->smb.tid = *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 29:
                 sstate->smb.tid |= *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 30:
                 sstate->smb.pid = *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 31:
                 sstate->smb.pid |= *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 32:
                 sstate->smb.uid = *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 33:
                 sstate->smb.uid |= *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 34:
                 sstate->smb.mid = *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 35:
                 sstate->smb.mid |= *(p++);
                 --input_len;
@@ -688,8 +957,7 @@ static uint32_t SMBParseHeader(Flow *f, void *smb_state, AppLayerParserState *ps
 }
 
 static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output)
-{
+        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
 
     SMBState *sstate = (SMBState *) smb_state;
@@ -699,72 +967,75 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
     if (pstate == NULL)
         SCReturnInt(-1);
 
-    while (sstate->bytesprocessed <  NBSS_HDR_LEN) {
-        retval = NBSSParseHeader(f, smb_state, pstate, input, input_len,
-                                 output);
+    while (sstate->bytesprocessed < NBSS_HDR_LEN) {
+        retval
+            = NBSSParseHeader(f, smb_state, pstate, input, input_len,
+                    output);
         parsed += retval;
         input_len -= retval;
 
-        SCLogDebug("NBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %ld input_len %u",
+        SCLogDebug(
+                "NBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %ld input_len %u",
                 sstate->bytesprocessed, NBSS_HDR_LEN, sstate->nbss.type,
                 sstate->nbss.length, parsed, input_len);
     }
 
-    switch(sstate->nbss.type) {
+    switch (sstate->nbss.type) {
         case NBSS_SESSION_MESSAGE:
-            while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN &&
-                        sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN)) {
-                retval = SMBParseHeader(f, smb_state, pstate, input +
-                        parsed, input_len, output);
+            while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN
+                        && sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN)) {
+                retval = SMBParseHeader(f, smb_state, pstate, input + parsed,
+                        input_len, output);
                 parsed += retval;
                 input_len -= retval;
-                SCLogDebug("SMB Header (%u/%u) Command 0x%02x parsed %ld input_len %u",
+                SCLogDebug(
+                        "SMB Header (%u/%u) Command 0x%02x parsed %ld input_len %u",
                         sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN,
                         sstate->smb.command, parsed, input_len);
             }
 
             do {
-                if (input_len && (sstate->bytesprocessed == NBSS_HDR_LEN + SMB_HDR_LEN)) {
-                    retval = SMBGetWordCount(f, smb_state, pstate,
-                            input + parsed, input_len,
-                            output);
+                if (input_len && (sstate->bytesprocessed == NBSS_HDR_LEN
+                            + SMB_HDR_LEN)) {
+                    retval = SMBGetWordCount(f, smb_state, pstate, input + parsed,
+                            input_len, output);
                     parsed += retval;
                     input_len -= retval;
                     SCLogDebug("wordcount (%u) parsed %ld input_len %u",
                             sstate->wordcount.wordcount, parsed, input_len);
                 }
 
-                while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN + SMB_HDR_LEN + 1 &&
-                            sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 1
-                            + sstate->wordcount.wordcount)) {
+                while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN
+                            + SMB_HDR_LEN + 1 && sstate->bytesprocessed < NBSS_HDR_LEN
+                            + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount)) {
                     retval = SMBParseWordCount(f, smb_state, pstate,
-                            input + parsed, input_len,
-                            output);
+                            input + parsed, input_len, output);
                     parsed += retval;
                     input_len -= retval;
                 }
 
-                while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN + SMB_HDR_LEN +
-                            1 + sstate->wordcount.wordcount && sstate->bytesprocessed < NBSS_HDR_LEN +
-                            SMB_HDR_LEN + 3 + sstate->wordcount.wordcount)) {
-                    retval = SMBGetByteCount(f, smb_state, pstate,
-                            input + parsed, input_len,
-                            output);
+                while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN
+                            + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount
+                            && sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 3
+                            + sstate->wordcount.wordcount)) {
+                    retval = SMBGetByteCount(f, smb_state, pstate, input + parsed,
+                            input_len, output);
                     parsed += retval;
                     input_len -= retval;
                 }
 
-                while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN +
-                            SMB_HDR_LEN + 3 + sstate->wordcount.wordcount &&
-                            sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 3
-                            + sstate->wordcount.wordcount + sstate->bytecount.bytecount)) {
+                while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN
+                            + SMB_HDR_LEN + 3 + sstate->wordcount.wordcount
+                            && sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN + 3
+                            + sstate->wordcount.wordcount
+                            + sstate->bytecount.bytecount)) {
                     retval = SMBParseByteCount(f, smb_state, pstate,
-                            input + parsed, input_len,
-                            output);
+                            input + parsed, input_len, output);
                     parsed += retval;
                     input_len -= retval;
                 }
-            } while (sstate->andx.andxcommand != SMB_NO_SECONDARY_ANDX_COMMAND && input_len);
+            } while (sstate->andx.andxcommand != SMB_NO_SECONDARY_ANDX_COMMAND
+                    && input_len);
             break;
         default:
             break;
@@ -775,13 +1046,13 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 }
 
 /**
-* \brief determines if the SMB command is an ANDX command
-* \retval 1 if smb command is an AndX command
-* \retval 0 if smb command is not an AndX command
-*/
+ * \brief determines if the SMB command is an ANDX command
+ * \retval 1 if smb command is an AndX command
+ * \retval 0 if smb command is not an AndX command
+ */
 
 int isAndX(SMBState *smb_state) {
-	SCEnter();
+    SCEnter();
     switch (smb_state->smb.command) {
         case SMB_NO_SECONDARY_ANDX_COMMAND:
         case SMB_COM_LOCKING_ANDX:
@@ -792,7 +1063,7 @@ int isAndX(SMBState *smb_state) {
         case SMB_COM_LOGOFF_ANDX:
         case SMB_COM_TREE_CONNECT_ANDX:
         case SMB_COM_NT_CREATE_ANDX:
-        smb_state->andx.andxbytesprocessed = 0;
+            smb_state->andx.andxbytesprocessed = 0;
             SCReturnInt(1);
         default:
             SCReturnInt(0);
@@ -830,7 +1101,7 @@ void RegisterSMBParsers(void) {
 int SMBParserTest01(void) {
     int result = 1;
     Flow f;
-    uint8_t smbbuf[] = "\x00\x00\x00\x85"  // NBSS
+    uint8_t smbbuf[] = "\x00\x00\x00\x85" // NBSS
         "\xff\x53\x4d\x42\x72\x00\x00\x00" // SMB
         "\x00\x18\x53\xc8\x00\x00\x00\x00"
         "\x00\x00\x00\x00\x00\x00\x00\x00"
@@ -882,7 +1153,6 @@ int SMBParserTest01(void) {
         result = 0;
         goto end;
     }
-
 
 end:
     return result;
