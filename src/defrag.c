@@ -721,7 +721,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     }
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
-        goto done;
+        goto remove_tracker;
     }
 
     int payload_len = 0;
@@ -764,7 +764,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
     rp->pktlen = pktlen + payload_len;
 
-done:
+remove_tracker:
     /* Remove the frag tracker. */
     SCMutexLock(&dc->frag_table_lock);
     HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
@@ -774,6 +774,7 @@ done:
     PoolReturn(dc->tracker_pool, tracker);
     SCMutexUnlock(&dc->tracker_pool_lock);
 
+done:
     SCMutexUnlock(&tracker->lock);
     return rp;
 }
@@ -836,7 +837,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     }
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
-        goto done;
+        goto remove_tracker;
     }
 
     int payload_len = 0;
@@ -876,7 +877,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     rp->ip6h->s_ip6_plen = htons(payload_len);
     rp->pktlen = pktlen + payload_len;
 
-done:
+remove_tracker:
     /* Remove the frag tracker. */
     SCMutexLock(&dc->frag_table_lock);
     HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
@@ -886,6 +887,7 @@ done:
     PoolReturn(dc->tracker_pool, tracker);
     SCMutexUnlock(&dc->tracker_pool_lock);
 
+done:
     SCMutexUnlock(&tracker->lock);
     return rp;
 }
@@ -1266,6 +1268,80 @@ end:
 }
 
 /**
+ * Simple fragmented packet in reverse order.
+ */
+static int
+DefragReverseSimpleTest(void)
+{
+    DefragContext *dc = NULL;
+    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
+    Packet *reassembled = NULL;
+    int id = 12;
+    int i;
+    int ret = 0;
+
+    DefragInit();
+
+    dc = DefragContextNew();
+    if (dc == NULL)
+        goto end;
+
+    p1 = BuildTestPacket(id, 0, 1, 'A', 8);
+    if (p1 == NULL)
+        goto end;
+    p2 = BuildTestPacket(id, 1, 1, 'B', 8);
+    if (p2 == NULL)
+        goto end;
+    p3 = BuildTestPacket(id, 2, 0, 'C', 3);
+    if (p3 == NULL)
+        goto end;
+
+    if (Defrag(NULL, dc, p3) != NULL)
+        goto end;
+    if (Defrag(NULL, dc, p2) != NULL)
+        goto end;
+
+    reassembled = Defrag(NULL, dc, p1);
+    if (reassembled == NULL)
+        goto end;
+
+    /* 20 bytes in we should find 8 bytes of A. */
+    for (i = 20; i < 20 + 8; i++) {
+        if (reassembled->pkt[i] != 'A')
+            goto end;
+    }
+
+    /* 28 bytes in we should find 8 bytes of B. */
+    for (i = 28; i < 28 + 8; i++) {
+        if (reassembled->pkt[i] != 'B')
+            goto end;
+    }
+
+    /* And 36 bytes in we should find 3 bytes of C. */
+    for (i = 36; i < 36 + 3; i++) {
+        if (reassembled->pkt[i] != 'C')
+            goto end;
+    }
+
+    ret = 1;
+end:
+
+    if (dc != NULL)
+        DefragContextDestroy(dc);
+    if (p1 != NULL)
+        free(p1);
+    if (p2 != NULL)
+        free(p2);
+    if (p3 != NULL)
+        free(p3);
+    if (reassembled != NULL)
+        free(reassembled);
+
+    DefragDestroy();
+    return ret;
+}
+
+/**
  * Test the simplest possible re-assembly scenario.  All packet in
  * order and no overlaps.
  */
@@ -1300,6 +1376,75 @@ IPV6DefragInOrderSimpleTest(void)
     if (Defrag(NULL, dc, p2) != NULL)
         goto end;
     reassembled = Defrag(NULL, dc, p3);
+    if (reassembled == NULL)
+        goto end;
+
+    /* 40 bytes in we should find 8 bytes of A. */
+    for (i = 40; i < 40 + 8; i++) {
+        if (reassembled->pkt[i] != 'A')
+            goto end;
+    }
+
+    /* 28 bytes in we should find 8 bytes of B. */
+    for (i = 48; i < 48 + 8; i++) {
+        if (reassembled->pkt[i] != 'B')
+            goto end;
+    }
+
+    /* And 36 bytes in we should find 3 bytes of C. */
+    for (i = 56; i < 56 + 3; i++) {
+        if (reassembled->pkt[i] != 'C')
+            goto end;
+    }
+
+    ret = 1;
+end:
+    if (dc != NULL)
+        DefragContextDestroy(dc);
+    if (p1 != NULL)
+        free(p1);
+    if (p2 != NULL)
+        free(p2);
+    if (p3 != NULL)
+        free(p3);
+    if (reassembled != NULL)
+        free(reassembled);
+
+    DefragDestroy();
+    return ret;
+}
+
+static int
+IPV6DefragReverseSimpleTest(void)
+{
+    DefragContext *dc = NULL;
+    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
+    Packet *reassembled = NULL;
+    int id = 12;
+    int i;
+    int ret = 0;
+
+    DefragInit();
+
+    dc = DefragContextNew();
+    if (dc == NULL)
+        goto end;
+
+    p1 = IPV6BuildTestPacket(id, 0, 1, 'A', 8);
+    if (p1 == NULL)
+        goto end;
+    p2 = IPV6BuildTestPacket(id, 1, 1, 'B', 8);
+    if (p2 == NULL)
+        goto end;
+    p3 = IPV6BuildTestPacket(id, 2, 0, 'C', 3);
+    if (p3 == NULL)
+        goto end;
+
+    if (Defrag(NULL, dc, p3) != NULL)
+        goto end;
+    if (Defrag(NULL, dc, p2) != NULL)
+        goto end;
+    reassembled = Defrag(NULL, dc, p1);
     if (reassembled == NULL)
         goto end;
 
@@ -2142,6 +2287,8 @@ DefragRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("DefragInOrderSimpleTest",
         DefragInOrderSimpleTest, 1);
+    UtRegisterTest("DefragReverseSimpleTest",
+        DefragReverseSimpleTest, 1);
     UtRegisterTest("DefragSturgesNovakBsdTest",
         DefragSturgesNovakBsdTest, 1);
     UtRegisterTest("DefragSturgesNovakLinuxTest",
@@ -2157,6 +2304,8 @@ DefragRegisterTests(void)
 
     UtRegisterTest("IPV6DefragInOrderSimpleTest",
         IPV6DefragInOrderSimpleTest, 1);
+    UtRegisterTest("IPV6DefragReverseSimpleTest",
+        IPV6DefragReverseSimpleTest, 1);
     UtRegisterTest("IPV6DefragSturgesNovakBsdTest",
         IPV6DefragSturgesNovakBsdTest, 1);
     UtRegisterTest("IPV6DefragSturgesNovakLinuxTest",
