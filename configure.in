@@ -23,7 +23,23 @@ AC_INIT(configure.in)
             exit 1
             ])
 
+    dnl get gcc version
+    AC_MSG_CHECKING([gcc version])
+            gccver=$($CC -dumpversion)
+            gccvermajor=$(echo $gccver | cut -d . -f1)
+            gccverminor=$(echo $gccver | cut -d . -f2)
+            gccvernum=$(expr $gccvermajor "*" 100 + $gccverminor)
+    AC_MSG_RESULT($gccver)
+
+    if test "$gccvernum" -ge "400"; then
+            dnl gcc 4.0 or later
+            CFLAGS="$CFLAGS -Wextra"
+    else
+            CFLAGS="$CFLAGS -W"
+    fi
+
     CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
+    CFLAGS="$CFLAGS -Wno-unused-parameter"
 
 # Checks for programs.
     AC_PROG_AWK
