@@ -65,6 +65,10 @@ TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #else /* implied we do have NFQ support */
 
+#define NFQ_BURST_FACTOR 4
+#define NFQ_DFT_QUEUE_LEN NFQ_BURST_FACTOR * MAX_PENDING
+#define NFQ_NF_BUFSIZE 1500 * NFQ_DFT_QUEUE_LEN
+
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
 
@@ -258,6 +262,9 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
     }
 #endif /* HAVE_NFQ_MAXLEN */
 
+    /* set netlink buffer size to a decent value */
+    nfnl_rcvbufsiz(nfq_nfnlh(nfq_t->h), NFQ_NF_BUFSIZE);
+
     nfq_t->nh = nfq_nfnlh(nfq_t->h);
     nfq_t->fd = nfnl_fd(nfq_t->nh);
 
@@ -289,7 +296,7 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
      * as we will need it in our callback function */
     ntv->tv = tv;
 
-    int r = NFQInitThread(ntv,receive_queue_num,MAX_PENDING);
+    int r = NFQInitThread(ntv,receive_queue_num, NFQ_DFT_QUEUE_LEN);
     if (r < 0) {
         SCLogError(SC_NFQ_THREAD_INIT, "nfq thread failed to initialize");
 
