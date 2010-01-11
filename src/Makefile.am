@@ -147,7 +147,7 @@ respond-reject.c respond-reject.h \
 respond-reject-libnet11.h respond-reject-libnet11.c \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \
-counters.c counter.h \
+counters.c counters.h \
 app-layer.c app-layer.h \
 app-layer-detect-proto.c app-layer-detect-proto.h \
 app-layer-parser.c app-layer-parser.h \
