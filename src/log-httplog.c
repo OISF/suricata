@@ -20,6 +20,9 @@
 
 #include "util-debug.h"
 
+#include "output.h"
+#include "log-httplog.h"
+
 #define DEFAULT_LOG_FILENAME "http.log"
 
 TmEcode LogHttplog (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -37,6 +40,8 @@ void TmModuleLogHttplogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].ThreadExitPrintStats = LogHttplogExitPrintStats;
     tmm_modules[TMM_LOGHTTPLOG].ThreadDeinit = LogHttplogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG].RegisterTests = NULL;
+
+    OutputRegisterModule("LogHttplog", "http-log", LogHttplogInitCtx);
 }
 
 void TmModuleLogHttplogIPv4Register (void) {

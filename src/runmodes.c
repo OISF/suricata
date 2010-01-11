@@ -22,6 +22,8 @@
 
 #include "log-httplog.h"
 
+#include "output.h"
+
 /**
  * Define a linked list to use as a registry of LogFileCtx shutdown hooks.
  */
@@ -69,32 +71,6 @@ void RunModeShutDown(void)
     RunLogFileCtxShutDownHooks();
 }
 
-struct AlertOutput {
-    char *shortname;
-    char *longname;
-    LogFileCtx *(*InitFunc)(ConfNode *);
-} alert_descriptor[] = {
-    {"fast", "AlertFastlog", AlertFastlogInitCtx},
-    {"http-log", "LogHttplog", LogHttplogInitCtx},
-    {"unified-log", "AlertUnifiedLog", AlertUnifiedLogInitCtx},
-    {"unified-alert", "AlertUnifiedAlert", AlertUnifiedAlertInitCtx},
-    {"unified2-alert", "Unified2Alert", Unified2AlertInitCtx},
-    {"alert-debug", "AlertDebuglog", AlertDebuglogInitCtx},
-};
-
-struct AlertOutput *
-GetAlertOutputByName(char *name)
-{
-    int i;
-
-    for (i = 0; i < sizeof(alert_descriptor)/sizeof(alert_descriptor[0]); i++) {
-        if (strcmp(alert_descriptor[i].shortname, name) == 0)
-            return &alert_descriptor[i];
-    }
-
-    return NULL;
-}
-
 static void SetupOutputs(ThreadVars *tv_outputs)
 {
     ConfNode *outputs = ConfGetNode("outputs");
@@ -105,16 +81,18 @@ static void SetupOutputs(ThreadVars *tv_outputs)
 
     ConfNode *output, *output_config;
     TmModule *tm_module;
-    struct AlertOutput *output_info;
     const char *enabled;
+
     TAILQ_FOREACH(output, &outputs->head, next) {
-        output_info = GetAlertOutputByName(output->val);
-        if (output_info == NULL) {
-            printf("Unknown output type: %s\n", output->val);
+
+        OutputModule *module = OutputGetModuleByConfName(output->val);
+        if (module == NULL) {
+            SCLogWarning(SC_INVALID_ARGUMENT,
+                "No output module named %s, ignoring", output->val);
             continue;
         }
 
-        output_config = ConfNodeLookupChild(output, output_info->shortname);
+        output_config = ConfNodeLookupChild(output, module->conf_name);
         if (output_config == NULL) {
             /* Shouldn't happen. */
             SCLogError(SC_INVALID_ARGUMENT,
@@ -124,19 +102,16 @@ static void SetupOutputs(ThreadVars *tv_outputs)
 
         enabled = ConfNodeLookupChildValue(output_config, "enabled");
         if (enabled != NULL && strcasecmp(enabled, "yes") == 0) {
-            LogFileCtx *logfile_ctx = output_info->InitFunc(output_config);
+            LogFileCtx *logfile_ctx = module->InitFunc(output_config);
             if (logfile_ctx == NULL) {
                 /* In most cases the init function will have logged the
-                 * error. */
+                 * error. Maybe we should exit on init errors? */
                 continue;
             }
-            if (logfile_ctx == NULL) {
-                printf("* fast_ctx is NULL\n");
-            }
-            tm_module = TmModuleGetByName(output_info->longname);
+            tm_module = TmModuleGetByName(module->name);
             if (tm_module == NULL) {
                 SCLogError(SC_INVALID_ARGUMENT,
-                    "TmModuleGetByName for AlertFastlog failed");
+                    "TmModuleGetByName for %s failed", module->name);
                 exit(EXIT_FAILURE);
             }
             TmVarSlotSetFuncAppend(tv_outputs, tm_module, logfile_ctx);

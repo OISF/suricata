@@ -30,6 +30,9 @@
 #include "detect-engine-mpm.h"
 #include "util-classification-config.h"
 
+#include "output.h"
+#include "alert-fastlog.h"
+
 #define DEFAULT_LOG_FILENAME "fast.log"
 
 TmEcode AlertFastlog (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -48,6 +51,8 @@ void TmModuleAlertFastlogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].ThreadExitPrintStats = AlertFastlogExitPrintStats;
     tmm_modules[TMM_ALERTFASTLOG].ThreadDeinit = AlertFastlogThreadDeinit;
     tmm_modules[TMM_ALERTFASTLOG].RegisterTests = AlertFastLogRegisterTests;
+
+    OutputRegisterModule("AlertFastlog", "fast", AlertFastlogInitCtx);
 }
 
 void TmModuleAlertFastlogIPv4Register (void) {

@@ -26,6 +26,9 @@
 
 #include "util-debug.h"
 
+#include "output.h"
+#include "alert-debuglog.h"
+
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
 TmEcode AlertDebuglog (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -43,6 +46,8 @@ void TmModuleAlertDebuglogRegister (void) {
     tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebuglogExitPrintStats;
     tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebuglogThreadDeinit;
     tmm_modules[TMM_ALERTDEBUGLOG].RegisterTests = NULL;
+
+    OutputRegisterModule("AlertDebuglog", "alert-debug", AlertDebuglogInitCtx);
 }
 
 typedef struct AlertDebuglogThread_ {

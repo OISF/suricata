@@ -88,6 +88,8 @@
 #include "detect-engine-siggroup.h"
 #include "util-daemon.h"
 
+#include "output.h"
+
 /*
  * we put this here, because we only use it here in main.
  */
@@ -754,6 +756,7 @@ int main(int argc, char **argv)
     DetectEngineCtxFree(de_ctx);
 
     RunModeShutDown();
+    OutputDeregisterAll();
 
     exit(EXIT_SUCCESS);
 }

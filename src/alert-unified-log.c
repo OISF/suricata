@@ -29,6 +29,9 @@
 #include "util-debug.h"
 #include "util-error.h"
 
+#include "output.h"
+#include "alert-unified-log.h"
+
 #define DEFAULT_LOG_FILENAME "unified.log"
 
 TmEcode AlertUnifiedLog (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -43,6 +46,9 @@ void TmModuleAlertUnifiedLogRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDLOG].Func = AlertUnifiedLog;
     tmm_modules[TMM_ALERTUNIFIEDLOG].ThreadDeinit = AlertUnifiedLogThreadDeinit;
     tmm_modules[TMM_ALERTUNIFIEDLOG].RegisterTests = AlertUnifiedLogRegisterTests;
+
+    OutputRegisterModule("AlertUnifiedLog", "unified-log",
+        AlertUnifiedLogInitCtx);
 }
 
 typedef struct AlertUnifiedLogThread_ {
