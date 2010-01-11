@@ -285,7 +285,7 @@ extern int sc_log_module_cleaned;
 /* Avoid the overhead of using the debugging subsystem, in production mode */
 #ifndef DEBUG
 
-#define SCLogDebug(...)
+#define SCLogDebug(...)                 do { } while (0)
 
 #define SCEnter(...)
 

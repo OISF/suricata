@@ -149,11 +149,6 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
             if (-1 == ByteExtractStringUint16(&wd->size, 10, 0, str_ptr)) {
                 goto error;
             }
-
-            /* If greater than 1GB window */
-            if (wd->size < MIN_WINDOW_VALUE || wd->size > MAX_WINDOW_VALUE) {
-                goto error;
-            }
         }
     }
 
