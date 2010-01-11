@@ -390,25 +390,25 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
 
     //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
 
-    if (p->action == ACTION_ALERT) {
-       verdict = NF_ACCEPT;
-    } else if (p->action == ACTION_PASS) {
-       verdict = NF_ACCEPT;
-    } else if (p->action == ACTION_DROP) {
-       verdict = NF_DROP;
-    } else if (p->action == ACTION_REJECT ||
-               p->action == ACTION_REJECT_DST ||
-               p->action == ACTION_REJECT_BOTH){
-       verdict = NF_DROP;
-    } else {
-       /* a verdict we don't know about, drop to be sure */
-       verdict = NF_DROP;
-    }
-
+    switch (p->action) {
+        case ACTION_ALERT:
+        case ACTION_PASS:
+            verdict = NF_ACCEPT;
 #ifdef COUNTERS
-    if (verdict == NF_ACCEPT) t->accepted++;
-    if (verdict == NF_DROP) t->dropped++;
+            t->accepted++;
 #endif /* COUNTERS */
+            break;
+        case ACTION_REJECT:
+        case ACTION_REJECT_DST:
+        case ACTION_REJECT_BOTH:
+        case ACTION_DROP:
+        default:
+            /* a verdict we don't know about, drop to be sure */
+            verdict = NF_DROP;
+#ifdef COUNTERS
+            t->dropped++;
+#endif /* COUNTERS */
+    }
 
     SCMutexLock(&t->mutex_qh);
     ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
