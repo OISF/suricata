@@ -35,49 +35,51 @@
 
 #define DEFAULT_LOG_FILENAME "fast.log"
 
-TmEcode AlertFastlog (ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertFastlogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertFastlogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertFastlogThreadInit(ThreadVars *, void *, void **);
-TmEcode AlertFastlogThreadDeinit(ThreadVars *, void *);
-void AlertFastlogExitPrintStats(ThreadVars *, void *);
-int AlertFastlogOpenFileCtx(LogFileCtx *, const char *);
+#define MODULE_NAME "AlertFastLog"
+
+TmEcode AlertFastLog (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertFastLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertFastLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertFastLogThreadInit(ThreadVars *, void *, void **);
+TmEcode AlertFastLogThreadDeinit(ThreadVars *, void *);
+void AlertFastLogExitPrintStats(ThreadVars *, void *);
+int AlertFastLogOpenFileCtx(LogFileCtx *, const char *);
 void AlertFastLogRegisterTests(void);
 
-void TmModuleAlertFastlogRegister (void) {
-    tmm_modules[TMM_ALERTFASTLOG].name = "AlertFastlog";
-    tmm_modules[TMM_ALERTFASTLOG].ThreadInit = AlertFastlogThreadInit;
-    tmm_modules[TMM_ALERTFASTLOG].Func = AlertFastlog;
-    tmm_modules[TMM_ALERTFASTLOG].ThreadExitPrintStats = AlertFastlogExitPrintStats;
-    tmm_modules[TMM_ALERTFASTLOG].ThreadDeinit = AlertFastlogThreadDeinit;
+void TmModuleAlertFastLogRegister (void) {
+    tmm_modules[TMM_ALERTFASTLOG].name = MODULE_NAME;
+    tmm_modules[TMM_ALERTFASTLOG].ThreadInit = AlertFastLogThreadInit;
+    tmm_modules[TMM_ALERTFASTLOG].Func = AlertFastLog;
+    tmm_modules[TMM_ALERTFASTLOG].ThreadExitPrintStats = AlertFastLogExitPrintStats;
+    tmm_modules[TMM_ALERTFASTLOG].ThreadDeinit = AlertFastLogThreadDeinit;
     tmm_modules[TMM_ALERTFASTLOG].RegisterTests = AlertFastLogRegisterTests;
 
-    OutputRegisterModule("AlertFastlog", "fast", AlertFastlogInitCtx);
+    OutputRegisterModule(MODULE_NAME, "fast", AlertFastLogInitCtx);
 }
 
-void TmModuleAlertFastlogIPv4Register (void) {
-    tmm_modules[TMM_ALERTFASTLOG4].name = "AlertFastlogIPv4";
-    tmm_modules[TMM_ALERTFASTLOG4].ThreadInit = AlertFastlogThreadInit;
-    tmm_modules[TMM_ALERTFASTLOG4].Func = AlertFastlogIPv4;
-    tmm_modules[TMM_ALERTFASTLOG4].ThreadExitPrintStats = AlertFastlogExitPrintStats;
-    tmm_modules[TMM_ALERTFASTLOG4].ThreadDeinit = AlertFastlogThreadDeinit;
+void TmModuleAlertFastLogIPv4Register (void) {
+    tmm_modules[TMM_ALERTFASTLOG4].name = "AlertFastLogIPv4";
+    tmm_modules[TMM_ALERTFASTLOG4].ThreadInit = AlertFastLogThreadInit;
+    tmm_modules[TMM_ALERTFASTLOG4].Func = AlertFastLogIPv4;
+    tmm_modules[TMM_ALERTFASTLOG4].ThreadExitPrintStats = AlertFastLogExitPrintStats;
+    tmm_modules[TMM_ALERTFASTLOG4].ThreadDeinit = AlertFastLogThreadDeinit;
     tmm_modules[TMM_ALERTFASTLOG4].RegisterTests = NULL;
 }
 
-void TmModuleAlertFastlogIPv6Register (void) {
-    tmm_modules[TMM_ALERTFASTLOG6].name = "AlertFastlogIPv6";
-    tmm_modules[TMM_ALERTFASTLOG6].ThreadInit = AlertFastlogThreadInit;
-    tmm_modules[TMM_ALERTFASTLOG6].Func = AlertFastlogIPv6;
-    tmm_modules[TMM_ALERTFASTLOG6].ThreadExitPrintStats = AlertFastlogExitPrintStats;
-    tmm_modules[TMM_ALERTFASTLOG6].ThreadDeinit = AlertFastlogThreadDeinit;
+void TmModuleAlertFastLogIPv6Register (void) {
+    tmm_modules[TMM_ALERTFASTLOG6].name = "AlertFastLogIPv6";
+    tmm_modules[TMM_ALERTFASTLOG6].ThreadInit = AlertFastLogThreadInit;
+    tmm_modules[TMM_ALERTFASTLOG6].Func = AlertFastLogIPv6;
+    tmm_modules[TMM_ALERTFASTLOG6].ThreadExitPrintStats = AlertFastLogExitPrintStats;
+    tmm_modules[TMM_ALERTFASTLOG6].ThreadDeinit = AlertFastLogThreadDeinit;
     tmm_modules[TMM_ALERTFASTLOG6].RegisterTests = NULL;
 }
 
-typedef struct AlertFastlogThread_ {
+typedef struct AlertFastLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
     uint32_t alerts;
-} AlertFastlogThread;
+} AlertFastLogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
@@ -90,9 +92,9 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (uint32_t) ts->tv_usec);
 }
 
-TmEcode AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    AlertFastlogThread *aft = (AlertFastlogThread *)data;
+    AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
     char timebuf[64];
 
@@ -121,9 +123,9 @@ TmEcode AlertFastlogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    AlertFastlogThread *aft = (AlertFastlogThread *)data;
+    AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
     char timebuf[64];
 
@@ -152,24 +154,24 @@ TmEcode AlertFastlogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertFastlog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertFastLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     if (PKT_IS_IPV4(p)) {
-        return AlertFastlogIPv4(tv, p, data, pq);
+        return AlertFastLogIPv4(tv, p, data, pq);
     } else if (PKT_IS_IPV6(p)) {
-        return AlertFastlogIPv6(tv, p, data, pq);
+        return AlertFastLogIPv6(tv, p, data, pq);
     }
 
     return TM_ECODE_OK;
 }
 
-TmEcode AlertFastlogThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode AlertFastLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    AlertFastlogThread *aft = malloc(sizeof(AlertFastlogThread));
+    AlertFastLogThread *aft = malloc(sizeof(AlertFastLogThread));
     if (aft == NULL) {
         return TM_ECODE_FAILED;
     }
-    memset(aft, 0, sizeof(AlertFastlogThread));
+    memset(aft, 0, sizeof(AlertFastLogThread));
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for AlertFastLog.  \"initdata\" argument NULL");
@@ -181,22 +183,22 @@ TmEcode AlertFastlogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertFastlogThreadDeinit(ThreadVars *t, void *data)
+TmEcode AlertFastLogThreadDeinit(ThreadVars *t, void *data)
 {
-    AlertFastlogThread *aft = (AlertFastlogThread *)data;
+    AlertFastLogThread *aft = (AlertFastLogThread *)data;
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
 
     /* clear memory */
-    memset(aft, 0, sizeof(AlertFastlogThread));
+    memset(aft, 0, sizeof(AlertFastLogThread));
 
     free(aft);
     return TM_ECODE_OK;
 }
 
-void AlertFastlogExitPrintStats(ThreadVars *tv, void *data) {
-    AlertFastlogThread *aft = (AlertFastlogThread *)data;
+void AlertFastLogExitPrintStats(ThreadVars *tv, void *data) {
+    AlertFastLogThread *aft = (AlertFastLogThread *)data;
     if (aft == NULL) {
         return;
     }
@@ -209,7 +211,7 @@ void AlertFastlogExitPrintStats(ThreadVars *tv, void *data) {
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-LogFileCtx *AlertFastlogInitCtx(ConfNode *conf)
+LogFileCtx *AlertFastLogInitCtx(ConfNode *conf)
 {
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
@@ -220,7 +222,7 @@ LogFileCtx *AlertFastlogInitCtx(ConfNode *conf)
     const char *filename = ConfNodeLookupChildValue(conf, "filename");
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
-    if (AlertFastlogOpenFileCtx(logfile_ctx, filename) < 0) {
+    if (AlertFastLogOpenFileCtx(logfile_ctx, filename) < 0) {
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
@@ -235,7 +237,7 @@ LogFileCtx *AlertFastlogInitCtx(ConfNode *conf)
  *  \param filename name of log file
  *  \return -1 if failure, 0 if succesful
  * */
-int AlertFastlogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
+int AlertFastLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
 {
     char log_path[PATH_MAX], *log_dir;
     if (ConfGet("default-log-dir", &log_dir) != 1)
@@ -289,7 +291,7 @@ int AlertFastLogTest01()
     SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Fastlog test\"; content:GET; "
+                               "(msg:\"FastLog test\"; content:GET; "
                                "Classtype:unknown; sid:1;)");
     result = (de_ctx->sig_list != NULL);
 
@@ -342,7 +344,7 @@ int AlertFastLogTest02()
     SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Fastlog test\"; content:GET; "
+                               "(msg:\"FastLog test\"; content:GET; "
                                "Classtype:unknown; sid:1;)");
     result = (de_ctx->sig_list != NULL);
     if (result == 0) printf("sig parse failed: ");

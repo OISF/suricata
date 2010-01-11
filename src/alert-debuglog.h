@@ -3,10 +3,10 @@
 #ifndef __ALERT_DEBUGLOG_H__
 #define __ALERT_DEBUGLOG_H__
 
-void TmModuleAlertDebuglogRegister (void);
-void TmModuleAlertDebuglogIPv4Register (void);
-void TmModuleAlertDebuglogIPv6Register (void);
-LogFileCtx *AlertDebuglogInitCtx(ConfNode *);
+void TmModuleAlertDebugLogRegister (void);
+void TmModuleAlertDebugLogIPv4Register (void);
+void TmModuleAlertDebugLogIPv6Register (void);
+LogFileCtx *AlertDebugLogInitCtx(ConfNode *);
 
 #endif /* __ALERT_DEBUGLOG_H__ */
 

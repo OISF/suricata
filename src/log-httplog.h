@@ -3,10 +3,10 @@
 #ifndef __LOG_HTTPLOG_H__
 #define __LOG_HTTPLOG_H__
 
-void TmModuleLogHttplogRegister (void);
-void TmModuleLogHttplogIPv4Register (void);
-void TmModuleLogHttplogIPv6Register (void);
-LogFileCtx *LogHttplogInitCtx(ConfNode *);
+void TmModuleLogHttpLogRegister (void);
+void TmModuleLogHttpLogIPv4Register (void);
+void TmModuleLogHttpLogIPv6Register (void);
+LogFileCtx *LogHttpLogInitCtx(ConfNode *);
 
 #endif /* __LOG_HTTPLOG_H__ */
 

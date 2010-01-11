@@ -124,15 +124,16 @@ typedef struct AlertUnified2Packet_ {
     uint8_t packet_data[4];         /**< packet data */
 } Unified2Packet;
 
+#define MODULE_NAME "Unified2Alert"
+
 void TmModuleUnified2AlertRegister (void) {
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].name = "Unified2Alert";
+    tmm_modules[TMM_ALERTUNIFIED2ALERT].name = MODULE_NAME;
     tmm_modules[TMM_ALERTUNIFIED2ALERT].ThreadInit = Unified2AlertThreadInit;
     tmm_modules[TMM_ALERTUNIFIED2ALERT].Func = Unified2Alert;
     tmm_modules[TMM_ALERTUNIFIED2ALERT].ThreadDeinit = Unified2AlertThreadDeinit;
     tmm_modules[TMM_ALERTUNIFIED2ALERT].RegisterTests = Unified2RegisterTests;
 
-    OutputRegisterModule("Unified2Alert", "unified2-alert",
-        Unified2AlertInitCtx);
+    OutputRegisterModule(MODULE_NAME, "unified2-alert", Unified2AlertInitCtx);
 }
 
 /**

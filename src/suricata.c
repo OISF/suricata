@@ -526,18 +526,18 @@ int main(int argc, char **argv)
     TmModuleReceivePcapFileRegister();
     TmModuleDecodePcapFileRegister();
     TmModuleDetectRegister();
-    TmModuleAlertFastlogRegister();
-    TmModuleAlertDebuglogRegister();
+    TmModuleAlertFastLogRegister();
+    TmModuleAlertDebugLogRegister();
     TmModuleRespondRejectRegister();
-    TmModuleAlertFastlogIPv4Register();
-    TmModuleAlertFastlogIPv6Register();
+    TmModuleAlertFastLogIPv4Register();
+    TmModuleAlertFastLogIPv6Register();
     TmModuleAlertUnifiedLogRegister();
     TmModuleAlertUnifiedAlertRegister();
     TmModuleUnified2AlertRegister();
     TmModuleStreamTcpRegister();
-    TmModuleLogHttplogRegister();
-    TmModuleLogHttplogIPv4Register();
-    TmModuleLogHttplogIPv6Register();
+    TmModuleLogHttpLogRegister();
+    TmModuleLogHttpLogIPv4Register();
+    TmModuleLogHttpLogIPv6Register();
     TmModuleDebugList();
 
 #ifdef UNITTESTS

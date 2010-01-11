@@ -31,30 +31,32 @@
 
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
-TmEcode AlertDebuglog (ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertDebuglogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertDebuglogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertDebuglogThreadInit(ThreadVars *, void*, void **);
-TmEcode AlertDebuglogThreadDeinit(ThreadVars *, void *);
-void AlertDebuglogExitPrintStats(ThreadVars *, void *);
-int AlertDebuglogOpenFileCtx(LogFileCtx* , const char *);
+#define MODULE_NAME "AlertDebugLog"
 
-void TmModuleAlertDebuglogRegister (void) {
-    tmm_modules[TMM_ALERTDEBUGLOG].name = "AlertDebuglog";
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadInit = AlertDebuglogThreadInit;
-    tmm_modules[TMM_ALERTDEBUGLOG].Func = AlertDebuglog;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebuglogExitPrintStats;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebuglogThreadDeinit;
+TmEcode AlertDebugLog (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertDebugLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertDebugLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertDebugLogThreadInit(ThreadVars *, void*, void **);
+TmEcode AlertDebugLogThreadDeinit(ThreadVars *, void *);
+void AlertDebugLogExitPrintStats(ThreadVars *, void *);
+int AlertDebugLogOpenFileCtx(LogFileCtx* , const char *);
+
+void TmModuleAlertDebugLogRegister (void) {
+    tmm_modules[TMM_ALERTDEBUGLOG].name = MODULE_NAME;
+    tmm_modules[TMM_ALERTDEBUGLOG].ThreadInit = AlertDebugLogThreadInit;
+    tmm_modules[TMM_ALERTDEBUGLOG].Func = AlertDebugLog;
+    tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebugLogExitPrintStats;
+    tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebugLogThreadDeinit;
     tmm_modules[TMM_ALERTDEBUGLOG].RegisterTests = NULL;
 
-    OutputRegisterModule("AlertDebuglog", "alert-debug", AlertDebuglogInitCtx);
+    OutputRegisterModule(MODULE_NAME, "alert-debug", AlertDebugLogInitCtx);
 }
 
-typedef struct AlertDebuglogThread_ {
+typedef struct AlertDebugLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t alerts;
-} AlertDebuglogThread;
+} AlertDebugLogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
@@ -67,9 +69,9 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (uint32_t) ts->tv_usec);
 }
 
-TmEcode AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    AlertDebuglogThread *aft = (AlertDebuglogThread *)data;
+    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
     char timebuf[64];
 
@@ -148,9 +150,9 @@ TmEcode AlertDebuglogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebuglogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    AlertDebuglogThread *aft = (AlertDebuglogThread *)data;
+    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
     char timebuf[64];
 
@@ -178,24 +180,24 @@ TmEcode AlertDebuglogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebuglog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     if (PKT_IS_IPV4(p)) {
-        return AlertDebuglogIPv4(tv, p, data, pq);
+        return AlertDebugLogIPv4(tv, p, data, pq);
     } else if (PKT_IS_IPV6(p)) {
-        return AlertDebuglogIPv6(tv, p, data, pq);
+        return AlertDebugLogIPv6(tv, p, data, pq);
     }
 
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebuglogThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    AlertDebuglogThread *aft = malloc(sizeof(AlertDebuglogThread));
+    AlertDebugLogThread *aft = malloc(sizeof(AlertDebugLogThread));
     if (aft == NULL) {
         return TM_ECODE_FAILED;
     }
-    memset(aft, 0, sizeof(AlertDebuglogThread));
+    memset(aft, 0, sizeof(AlertDebugLogThread));
 
     if(initdata == NULL)
     {
@@ -209,22 +211,22 @@ TmEcode AlertDebuglogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebuglogThreadDeinit(ThreadVars *t, void *data)
+TmEcode AlertDebugLogThreadDeinit(ThreadVars *t, void *data)
 {
-    AlertDebuglogThread *aft = (AlertDebuglogThread *)data;
+    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
 
     /* clear memory */
-    memset(aft, 0, sizeof(AlertDebuglogThread));
+    memset(aft, 0, sizeof(AlertDebugLogThread));
 
     free(aft);
     return TM_ECODE_OK;
 }
 
-void AlertDebuglogExitPrintStats(ThreadVars *tv, void *data) {
-    AlertDebuglogThread *aft = (AlertDebuglogThread *)data;
+void AlertDebugLogExitPrintStats(ThreadVars *tv, void *data) {
+    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     if (aft == NULL) {
         return;
     }
@@ -237,14 +239,14 @@ void AlertDebuglogExitPrintStats(ThreadVars *tv, void *data) {
  *  \param ConfNode containing configuration for this logger.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *AlertDebuglogInitCtx(ConfNode *conf)
+LogFileCtx *AlertDebugLogInitCtx(ConfNode *conf)
 {
     int ret=0;
     LogFileCtx* file_ctx=LogFileNewCtx();
 
     if(file_ctx == NULL)
     {
-        SCLogDebug("AlertDebuglogInitCtx: Couldn't create new file_ctx");
+        SCLogDebug("AlertDebugLogInitCtx: Couldn't create new file_ctx");
         return NULL;
     }
 
@@ -252,8 +254,8 @@ LogFileCtx *AlertDebuglogInitCtx(ConfNode *conf)
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
 
-    /** fill the new LogFileCtx with the specific AlertDebuglog configuration */
-    ret=AlertDebuglogOpenFileCtx(file_ctx, filename);
+    /** fill the new LogFileCtx with the specific AlertDebugLog configuration */
+    ret=AlertDebugLogOpenFileCtx(file_ctx, filename);
 
     if(ret < 0)
         return NULL;
@@ -266,7 +268,7 @@ LogFileCtx *AlertDebuglogInitCtx(ConfNode *conf)
  *  \param filename name of log file
  *  \return -1 if failure, 0 if succesful
  * */
-int AlertDebuglogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
+int AlertDebugLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
 {
     int ret=0;
 

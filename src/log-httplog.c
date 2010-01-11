@@ -25,48 +25,50 @@
 
 #define DEFAULT_LOG_FILENAME "http.log"
 
-TmEcode LogHttplog (ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode LogHttplogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode LogHttplogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode LogHttplogThreadInit(ThreadVars *, void *, void **);
-TmEcode LogHttplogThreadDeinit(ThreadVars *, void *);
-void LogHttplogExitPrintStats(ThreadVars *, void *);
-int LogHttplogOpenFileCtx(LogFileCtx* , const char *);
+#define MODULE_NAME "LogHttpLog"
 
-void TmModuleLogHttplogRegister (void) {
-    tmm_modules[TMM_LOGHTTPLOG].name = "LogHttplog";
-    tmm_modules[TMM_LOGHTTPLOG].ThreadInit = LogHttplogThreadInit;
-    tmm_modules[TMM_LOGHTTPLOG].Func = LogHttplog;
-    tmm_modules[TMM_LOGHTTPLOG].ThreadExitPrintStats = LogHttplogExitPrintStats;
-    tmm_modules[TMM_LOGHTTPLOG].ThreadDeinit = LogHttplogThreadDeinit;
+TmEcode LogHttpLog (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode LogHttpLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode LogHttpLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode LogHttpLogThreadInit(ThreadVars *, void *, void **);
+TmEcode LogHttpLogThreadDeinit(ThreadVars *, void *);
+void LogHttpLogExitPrintStats(ThreadVars *, void *);
+int LogHttpLogOpenFileCtx(LogFileCtx* , const char *);
+
+void TmModuleLogHttpLogRegister (void) {
+    tmm_modules[TMM_LOGHTTPLOG].name = MODULE_NAME;
+    tmm_modules[TMM_LOGHTTPLOG].ThreadInit = LogHttpLogThreadInit;
+    tmm_modules[TMM_LOGHTTPLOG].Func = LogHttpLog;
+    tmm_modules[TMM_LOGHTTPLOG].ThreadExitPrintStats = LogHttpLogExitPrintStats;
+    tmm_modules[TMM_LOGHTTPLOG].ThreadDeinit = LogHttpLogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG].RegisterTests = NULL;
 
-    OutputRegisterModule("LogHttplog", "http-log", LogHttplogInitCtx);
+    OutputRegisterModule(MODULE_NAME, "http-log", LogHttpLogInitCtx);
 }
 
-void TmModuleLogHttplogIPv4Register (void) {
-    tmm_modules[TMM_LOGHTTPLOG4].name = "LogHttplogIPv4";
-    tmm_modules[TMM_LOGHTTPLOG4].ThreadInit = LogHttplogThreadInit;
-    tmm_modules[TMM_LOGHTTPLOG4].Func = LogHttplogIPv4;
-    tmm_modules[TMM_LOGHTTPLOG4].ThreadExitPrintStats = LogHttplogExitPrintStats;
-    tmm_modules[TMM_LOGHTTPLOG4].ThreadDeinit = LogHttplogThreadDeinit;
+void TmModuleLogHttpLogIPv4Register (void) {
+    tmm_modules[TMM_LOGHTTPLOG4].name = "LogHttpLogIPv4";
+    tmm_modules[TMM_LOGHTTPLOG4].ThreadInit = LogHttpLogThreadInit;
+    tmm_modules[TMM_LOGHTTPLOG4].Func = LogHttpLogIPv4;
+    tmm_modules[TMM_LOGHTTPLOG4].ThreadExitPrintStats = LogHttpLogExitPrintStats;
+    tmm_modules[TMM_LOGHTTPLOG4].ThreadDeinit = LogHttpLogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG4].RegisterTests = NULL;
 }
 
-void TmModuleLogHttplogIPv6Register (void) {
-    tmm_modules[TMM_LOGHTTPLOG6].name = "LogHttplogIPv6";
-    tmm_modules[TMM_LOGHTTPLOG6].ThreadInit = LogHttplogThreadInit;
-    tmm_modules[TMM_LOGHTTPLOG6].Func = LogHttplogIPv6;
-    tmm_modules[TMM_LOGHTTPLOG6].ThreadExitPrintStats = LogHttplogExitPrintStats;
-    tmm_modules[TMM_LOGHTTPLOG6].ThreadDeinit = LogHttplogThreadDeinit;
+void TmModuleLogHttpLogIPv6Register (void) {
+    tmm_modules[TMM_LOGHTTPLOG6].name = "LogHttpLogIPv6";
+    tmm_modules[TMM_LOGHTTPLOG6].ThreadInit = LogHttpLogThreadInit;
+    tmm_modules[TMM_LOGHTTPLOG6].Func = LogHttpLogIPv6;
+    tmm_modules[TMM_LOGHTTPLOG6].ThreadExitPrintStats = LogHttpLogExitPrintStats;
+    tmm_modules[TMM_LOGHTTPLOG6].ThreadDeinit = LogHttpLogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG6].RegisterTests = NULL;
 }
 
-typedef struct LogHttplogThread_ {
+typedef struct LogHttpLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t uri_cnt;
-} LogHttplogThread;
+} LogHttpLogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
@@ -79,9 +81,9 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (uint32_t) ts->tv_usec);
 }
 
-TmEcode LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    LogHttplogThread *aft = (LogHttplogThread *)data;
+    LogHttpLogThread *aft = (LogHttpLogThread *)data;
     int i;
     char timebuf[64];
 
@@ -122,9 +124,9 @@ TmEcode LogHttplogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return TM_ECODE_OK;
 }
 
-TmEcode LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    LogHttplogThread *aft = (LogHttplogThread *)data;
+    LogHttpLogThread *aft = (LogHttpLogThread *)data;
     int i;
     char timebuf[64];
 
@@ -165,27 +167,27 @@ TmEcode LogHttplogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return TM_ECODE_OK;
 }
 
-TmEcode LogHttplog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     if (!(PKT_IS_TCP(p)))
         return TM_ECODE_OK;
 
     if (PKT_IS_IPV4(p)) {
-        return LogHttplogIPv4(tv, p, data, pq);
+        return LogHttpLogIPv4(tv, p, data, pq);
     } else if (PKT_IS_IPV6(p)) {
-        return LogHttplogIPv6(tv, p, data, pq);
+        return LogHttpLogIPv6(tv, p, data, pq);
     }
 
     return TM_ECODE_OK;
 }
 
-TmEcode LogHttplogThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    LogHttplogThread *aft = malloc(sizeof(LogHttplogThread));
+    LogHttpLogThread *aft = malloc(sizeof(LogHttpLogThread));
     if (aft == NULL) {
         return TM_ECODE_FAILED;
     }
-    memset(aft, 0, sizeof(LogHttplogThread));
+    memset(aft, 0, sizeof(LogHttpLogThread));
 
     if(initdata == NULL)
     {
@@ -199,22 +201,22 @@ TmEcode LogHttplogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode LogHttplogThreadDeinit(ThreadVars *t, void *data)
+TmEcode LogHttpLogThreadDeinit(ThreadVars *t, void *data)
 {
-    LogHttplogThread *aft = (LogHttplogThread *)data;
+    LogHttpLogThread *aft = (LogHttpLogThread *)data;
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
 
     /* clear memory */
-    memset(aft, 0, sizeof(LogHttplogThread));
+    memset(aft, 0, sizeof(LogHttpLogThread));
 
     free(aft);
     return TM_ECODE_OK;
 }
 
-void LogHttplogExitPrintStats(ThreadVars *tv, void *data) {
-    LogHttplogThread *aft = (LogHttplogThread *)data;
+void LogHttpLogExitPrintStats(ThreadVars *tv, void *data) {
+    LogHttpLogThread *aft = (LogHttpLogThread *)data;
     if (aft == NULL) {
         return;
     }
@@ -226,14 +228,14 @@ void LogHttplogExitPrintStats(ThreadVars *tv, void *data) {
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *LogHttplogInitCtx(ConfNode *conf)
+LogFileCtx *LogHttpLogInitCtx(ConfNode *conf)
 {
     int ret=0;
     LogFileCtx* file_ctx=LogFileNewCtx();
 
     if(file_ctx == NULL)
     {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC_ERROR, "LogHttplogInitCtx: Couldn't "
+        SCLogError(SC_ERR_HTTP_LOG_GENERIC_ERROR, "LogHttpLogInitCtx: Couldn't "
                    "create new file_ctx");
         return NULL;
     }
@@ -242,8 +244,8 @@ LogFileCtx *LogHttplogInitCtx(ConfNode *conf)
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
 
-    /** fill the new LogFileCtx with the specific LogHttplog configuration */
-    ret=LogHttplogOpenFileCtx(file_ctx, filename);
+    /** fill the new LogFileCtx with the specific LogHttpLog configuration */
+    ret=LogHttpLogOpenFileCtx(file_ctx, filename);
 
     if(ret < 0)
         return NULL;
@@ -256,7 +258,7 @@ LogFileCtx *LogHttplogInitCtx(ConfNode *conf)
  *  \param config_file for loading separate configs
  *  \return -1 if failure, 0 if succesful
  * */
-int LogHttplogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
+int LogHttpLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
 {
     char log_path[PATH_MAX], *log_dir;
     if (ConfGet("default-log-dir", &log_dir) != 1)

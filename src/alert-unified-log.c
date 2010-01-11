@@ -34,6 +34,8 @@
 
 #define DEFAULT_LOG_FILENAME "unified.log"
 
+#define MODULE_NAME "AlertUnifiedLog"
+
 TmEcode AlertUnifiedLog (ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode AlertUnifiedLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertUnifiedLogThreadDeinit(ThreadVars *, void *);
@@ -41,14 +43,13 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *, const char *);
 void AlertUnifiedLogRegisterTests(void);
 
 void TmModuleAlertUnifiedLogRegister (void) {
-    tmm_modules[TMM_ALERTUNIFIEDLOG].name = "AlertUnifiedLog";
+    tmm_modules[TMM_ALERTUNIFIEDLOG].name = MODULE_NAME;
     tmm_modules[TMM_ALERTUNIFIEDLOG].ThreadInit = AlertUnifiedLogThreadInit;
     tmm_modules[TMM_ALERTUNIFIEDLOG].Func = AlertUnifiedLog;
     tmm_modules[TMM_ALERTUNIFIEDLOG].ThreadDeinit = AlertUnifiedLogThreadDeinit;
     tmm_modules[TMM_ALERTUNIFIEDLOG].RegisterTests = AlertUnifiedLogRegisterTests;
 
-    OutputRegisterModule("AlertUnifiedLog", "unified-log",
-        AlertUnifiedLogInitCtx);
+    OutputRegisterModule(MODULE_NAME, "unified-log", AlertUnifiedLogInitCtx);
 }
 
 typedef struct AlertUnifiedLogThread_ {
