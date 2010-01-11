@@ -139,14 +139,24 @@ void NFQSetupPkt (Packet *p, void *data)
         /* nfq_get_payload returns a pointer to a part of memory
          * that is not preserved over the lifetime of our packet.
          * So we need to copy it. */
-        memcpy(p->pkt, pktdata, ret);
-        p->pktlen = (size_t)ret;
+        if (ret > 65536) {
+            /* Will not be able to copy data ! Set length to 0
+             * to trigger an error in packet decoding.
+             * This is unlikely to happen */
+            SCLogWarning(SC_INVALID_ARGUMENTS, "NFQ sent too big packet");
+            p->pktlen = 0;
+        } else {
+            memcpy(p->pkt, pktdata, ret);
+            p->pktlen = (size_t)ret;
+        }
+    } else if (ret ==  -1) {
+        /* unable to get pointer to data, ensure packet length is zero.
+         * This will trigger an error in packet decoding */
+        p->pktlen = 0;
     }
-/* XXX what if ret <= 0 ? */
-/* XXX what if ret > 65536 ? */
 
     ret = nfq_get_timestamp(tb, &p->ts);
-    if (ret < 0) {
+    if (ret != 0) {
         memset (&p->ts, 0, sizeof(struct timeval));
         gettimeofday(&p->ts, NULL);
     }
