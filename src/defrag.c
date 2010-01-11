@@ -482,6 +482,7 @@ DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
 {
     int ltrim = 0;
 
+    uint8_t more_frags;
     uint16_t frag_offset;
 
     /* IPv4 header length - IPv4 only. */
@@ -505,6 +506,7 @@ DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
     uint16_t frag_hdr_offset = 0;
 
     if (tracker->family == AF_INET) {
+        more_frags = IPV4_GET_MF(p);
         frag_offset = IPV4_GET_IPOFFSET(p) << 3;
         hlen = IPV4_GET_HLEN(p);
         data_offset = (uint8_t *)p->ip4h + hlen - p->pkt;
@@ -513,6 +515,7 @@ DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
         ip_hdr_offset = (uint8_t *)p->ip4h - p->pkt;
     }
     else if (tracker->family == AF_INET6) {
+        more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
         frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
         data_offset = (uint8_t *)p->ip6eh.ip6fh + sizeof(IPV6FragHdr) - p->pkt;
         data_len = IPV6_GET_PLEN(p) - (
@@ -629,8 +632,9 @@ insert:
     SCMutexLock(&dc->frag_pool_lock);
     Frag *new = PoolGet(dc->frag_pool);
     SCMutexUnlock(&dc->frag_pool_lock);
-    if (new == NULL)
+    if (new == NULL) {
         goto done;
+    }
     new->pkt = malloc(p->pktlen);
     if (new->pkt == NULL) {
         SCMutexLock(&dc->frag_pool_lock);
@@ -657,6 +661,10 @@ insert:
     }
     else {
         TAILQ_INSERT_BEFORE(frag, new, next);
+    }
+
+    if (!more_frags) {
+        tracker->seen_last = 1;
     }
 
 done:
@@ -1027,9 +1035,6 @@ Defrag(ThreadVars *tv, DefragContext *dc, Packet *p)
     if (tracker == NULL)
         return NULL;
 
-    if (!more_frags) {
-        tracker->seen_last = 1;
-    }
     DefragInsertFrag(dc, tracker, p);
     if (tracker->seen_last) {
         Packet *rp = NULL;
@@ -2279,6 +2284,53 @@ end:
     return ret;
 }
 
+/**
+ * QA found that if you send a packet where more frags is 0, offset is
+ * > 0 and there is no data in the packet that the re-assembler will
+ * fail.  The fix was simple, but this unit test is just to make sure
+ * its not introduced.
+ */
+static int
+DefragIPv4NoData(void)
+{
+    DefragContext *dc = NULL;
+    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
+    Packet *reassembled = NULL;
+    int id = 12;
+    int ret;
+
+    DefragInit();
+
+    dc = DefragContextNew();
+    if (dc == NULL)
+        goto end;
+
+    /* This packet has an offset > 0, more frags set to 0 and no data. */
+    p1 = BuildTestPacket(id, 1, 0, 'A', 0);
+    if (p1 == NULL)
+        goto end;
+
+    /* We do not expect a packet returned. */
+    if (Defrag(NULL, dc, p1) != NULL)
+        goto end;
+
+    ret = 1;
+end:
+    if (dc != NULL)
+        DefragContextDestroy(dc);
+    if (p1 != NULL)
+        free(p1);
+    if (p2 != NULL)
+        free(p2);
+    if (p3 != NULL)
+        free(p3);
+    if (reassembled != NULL)
+        free(reassembled);
+
+    DefragDestroy();
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 void
@@ -2301,6 +2353,8 @@ DefragRegisterTests(void)
         DefragSturgesNovakFirstTest, 1);
     UtRegisterTest("DefragSturgesNovakLastTest",
         DefragSturgesNovakLastTest, 1);
+
+    UtRegisterTest("DefragIPv4NoData", DefragIPv4NoData, 1);
 
     UtRegisterTest("IPV6DefragInOrderSimpleTest",
         IPV6DefragInOrderSimpleTest, 1);
