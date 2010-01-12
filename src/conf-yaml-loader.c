@@ -14,6 +14,9 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 
+#define YAML_VERSION_MAJOR 1
+#define YAML_VERSION_MINOR 1
+
 /* Define to print the current YAML state. */
 #undef PRINT_STATES
 #ifdef PRINT_STATES
@@ -82,8 +85,10 @@ GetKeyName(char **key, int level)
  *
  * \param parser A pointer to an active yaml_parser_t.
  * \param parent The parent configuration node.
+ *
+ * \retval 0 on success, -1 on failure.
  */
-static void
+static int
 ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
 {
     ConfNode *node = parent;
@@ -96,7 +101,7 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
         if (!yaml_parser_parse(parser, &event)) {
             fprintf(stderr, "Failed to parse configuration file: %s\n",
                 parser->problem);
-            exit(EXIT_FAILURE);
+            return -1;
         }
 
         if (event.type == YAML_SCALAR_EVENT) {
@@ -125,10 +130,11 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
             }
         }
         else if (event.type == YAML_SEQUENCE_START_EVENT) {
-            ConfYamlParse2(parser, node, 1);
+            if (ConfYamlParse2(parser, node, 1) != 0)
+                goto fail;
         }
         else if (event.type == YAML_SEQUENCE_END_EVENT) {
-            return;
+            return 0;
         }
         else if (event.type == YAML_MAPPING_START_EVENT) {
             if (inseq) {
@@ -152,7 +158,14 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
         }
 
         yaml_event_delete(&event);
+        continue;
+
+    fail:
+        yaml_event_delete(&event);
+        return -1;
     }
+
+    return 0;
 }
 
 /**
@@ -162,7 +175,7 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
  *
  * \param parser A YAML parser setup for processing.
  */
-static void
+static int
 ConfYamlParse(yaml_parser_t *parser)
 {
     yaml_event_t event;
@@ -182,7 +195,7 @@ ConfYamlParse(yaml_parser_t *parser)
         if (!yaml_parser_parse(parser, &event)) {
             fprintf(stderr, "Failed to parse configuration file: %s\n",
                 parser->problem);
-            exit(EXIT_FAILURE);
+            return -1;
         }
         switch (event.type) {
         case YAML_STREAM_START_EVENT:
@@ -190,9 +203,26 @@ ConfYamlParse(yaml_parser_t *parser)
         case YAML_STREAM_END_EVENT:
             done = 1;
             break;
-        case YAML_DOCUMENT_START_EVENT:
-            /* Ignored. */
+        case YAML_DOCUMENT_START_EVENT: {
+            /* Verify YAML version - its more likely to be a valid
+             * Suricata configuration file if the version is
+             * correct. */
+            yaml_version_directive_t *ver =
+                event.data.document_start.version_directive;
+            if (ver == NULL) {
+                fprintf(stderr, "ERROR: Invalid configuration file.\n\n");
+                fprintf(stderr, "The configuration file must begin with the following two lines:\n\n");
+                fprintf(stderr, "%%YAML 1.1\n---\n\n");
+                goto fail;
+            }
+            int major = event.data.document_start.version_directive->major;
+            int minor = event.data.document_start.version_directive->minor;
+            if (!(major == YAML_VERSION_MAJOR && minor == YAML_VERSION_MINOR)) {
+                fprintf(stderr, "ERROR: Invalid YAML version.  Must be 1.1\n");
+                goto fail;
+            }
             break;
+        }
         case YAML_DOCUMENT_END_EVENT:
             /* Ignored. */
             break;
@@ -212,7 +242,7 @@ ConfYamlParse(yaml_parser_t *parser)
             if (level == MAX_LEVELS) {
                 fprintf(stderr,
                     "Reached maximum configuration nesting level.\n");
-                exit(EXIT_FAILURE);
+                goto fail;
             }
 
             /* Since we are entering a new mapping, state goes back to key. */
@@ -226,7 +256,8 @@ ConfYamlParse(yaml_parser_t *parser)
             }
             level--;
             break;
-        case YAML_SCALAR_EVENT:
+        case YAML_SCALAR_EVENT: {
+            char *value = (char *)event.data.scalar.value;
             if (level < 0) {
                 /* Don't process values until we've hit a mapping. */
                 continue;
@@ -234,67 +265,90 @@ ConfYamlParse(yaml_parser_t *parser)
             if (state == CONF_KEY) {
                 if (key[level] != NULL)
                     free(key[level]);
-                key[level] = strdup((char *)event.data.scalar.value);
+                key[level] = strdup(value);
 
                 /* Move state to expecting a value. */
                 state = CONF_VAL;
             }
             else if (state == CONF_VAL) {
-                ConfSet(GetKeyName(key, level), (char *)event.data.scalar.value,
-                    1);
+                ConfSet(GetKeyName(key, level), value, 1);
                 state = CONF_KEY;
             }
             break;
+        }
         case YAML_ALIAS_EVENT:
             break;
         case YAML_NO_EVENT:
             break;
         }
         yaml_event_delete(&event);
+        continue;
+
+    fail:
+        yaml_event_delete(&event);
+        return -1;
     }
+
+    return 0;
 }
 
 /**
  * \brief Load configuration from a YAML file.
+ *
+ * This function will load a configuration file.  On failure -1 will
+ * be returned and it is suggested that the program then exit.  Any
+ * errors while loading the configuration file will have already been
+ * logged.
+ *
+ * \param filename Filename of configuration file to load.
+ *
+ * \retval 0 on success, -1 on failure.
  */
-void
+int
 ConfYamlLoadFile(const char *filename)
 {
     FILE *infile;
     yaml_parser_t parser;
+    int ret;
 
     if (yaml_parser_initialize(&parser) != 1) {
         fprintf(stderr, "Failed to initialize yaml parser.\n");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     infile = fopen(filename, "r");
     if (infile == NULL) {
         fprintf(stderr, "Failed to open file: %s: %s\n", filename,
             strerror(errno));
-        exit(EXIT_FAILURE);
+        yaml_parser_delete(&parser);
+        return -1;
     }
     yaml_parser_set_input_file(&parser, infile);
-    ConfYamlParse(&parser);
+    ret = ConfYamlParse(&parser);
     yaml_parser_delete(&parser);
     fclose(infile);
+
+    return ret;
 }
 
 /**
  * \brief Load configuration from a YAML string.
  */
-void
+int
 ConfYamlLoadString(const char *string, size_t len)
 {
     yaml_parser_t parser;
+    int ret;
 
     if (yaml_parser_initialize(&parser) != 1) {
         fprintf(stderr, "Failed to initialize yaml parser.\n");
-        exit(EXIT_FAILURE);
+        return -1;
     }
     yaml_parser_set_input_string(&parser, (const unsigned char *)string, len);
-    ConfYamlParse(&parser);
+    ret = ConfYamlParse(&parser);
     yaml_parser_delete(&parser);
+
+    return ret;
 }
 
 #ifdef UNITTESTS
@@ -303,6 +357,8 @@ static int
 ConfYamlRuleFileTest(void)
 {
     char input[] = "\
+%YAML 1.1\n\
+---\n\
 rule-files:\n\
   - netbios.rules\n\
   - x11.rules\n\
@@ -347,6 +403,8 @@ static int
 ConfYamlLoggingOutputTest(void)
 {
     char input[] = "\
+%YAML 1.1\n\
+---\n\
 logging:\n\
   output:\n\
     - interface: console\n\
@@ -417,8 +475,7 @@ logging:\n\
 }
 
 /**
- * This test is mainly to make sure we don't segfaul when passed some
- * other file.
+ * Try to load something that is not a valid YAML file.
  */
 static int
 ConfYamlNonYamlFileTest(void)
@@ -426,7 +483,35 @@ ConfYamlNonYamlFileTest(void)
     ConfCreateContextBackup();
     ConfInit();
 
-    ConfYamlLoadFile("/etc/passwd");
+    if (ConfYamlLoadFile("/etc/passwd") != -1)
+        return 0;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
+
+static int
+ConfYamlBadYamlVersionTest(void)
+{
+    char input[] = "\
+%YAML 9.9\n\
+---\n\
+logging:\n\
+  output:\n\
+    - interface: console\n\
+      log-level: error\n\
+    - interface: syslog\n\
+      facility: local4\n\
+      log-level: info\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    if (ConfYamlLoadString(input, strlen(input)) != -1)
+        return 0;
 
     ConfDeInit();
     ConfRestoreContextBackup();
@@ -443,5 +528,6 @@ ConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlRuleFileTest", ConfYamlRuleFileTest, 1);
     UtRegisterTest("ConfYamlLoggingOutputTest", ConfYamlLoggingOutputTest, 1);
     UtRegisterTest("ConfYamlNonYamlFileTest", ConfYamlNonYamlFileTest, 1);
+    UtRegisterTest("ConfYamlBadYamlVersionTest", ConfYamlBadYamlVersionTest, 1);
 #endif /* UNITTESTS */
 }
