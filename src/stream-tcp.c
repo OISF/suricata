@@ -3857,6 +3857,9 @@ end:
 
 /* Dummy conf string to setup the OS policy for unit testing */
 static const char *dummy_conf_string =
+    "%YAML 1.1\n"
+    "---\n"
+    "\n"
     "default-log-dir: /var/log/eidps\n"
     "\n"
     "logging:\n"
@@ -3877,6 +3880,9 @@ static const char *dummy_conf_string =
     "\n";
 /* Dummy conf string to setup the OS policy for unit testing */
 static const char *dummy_conf_string1 =
+    "%YAML 1.1\n"
+    "---\n"
+    "\n"
     "default-log-dir: /var/log/eidps\n"
     "\n"
     "logging:\n"

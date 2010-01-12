@@ -3055,6 +3055,9 @@ void SigTableRegisterTests(void) {
 #include "flow-util.h"
 
 static const char *dummy_conf_string =
+    "%YAML 1.1\n"
+    "---\n"
+    "\n"
     "default-log-dir: /var/log/suricata\n"
     "\n"
     "logging:\n"
