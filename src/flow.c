@@ -493,13 +493,13 @@ void FlowInitConfig (char quiet)
 void FlowPrintQueueInfo (void)
 {
     int i;
-    SCLogInfo("flow queue info:");
-    SCLogInfo("spare flow queue %" PRIu32 "", flow_spare_q.len);
+    SCLogDebug("flow queue info:");
+    SCLogDebug("spare flow queue %" PRIu32 "", flow_spare_q.len);
 #ifdef DBG_PERF
-    SCLogInfo("flow_spare_q.dbg_maxlen %" PRIu32 "", flow_spare_q.dbg_maxlen);
+    SCLogDebug("flow_spare_q.dbg_maxlen %" PRIu32 "", flow_spare_q.dbg_maxlen);
 #endif
     for (i = 0; i < FLOW_PROTO_MAX; i++) {
-        SCLogInfo("proto [%"PRId32"] new flow queue %" PRIu32 " "
+        SCLogDebug("proto [%"PRId32"] new flow queue %" PRIu32 " "
 #ifdef DBG_PERF
                   " - flow_new_q.dbg_maxlen %" PRIu32 ""
 #endif
@@ -509,7 +509,7 @@ void FlowPrintQueueInfo (void)
 #endif
                   );
 
-        SCLogInfo("proto [%"PRId32"] establised flow queue %" PRIu32 " "
+        SCLogDebug("proto [%"PRId32"] establised flow queue %" PRIu32 " "
 #ifdef DBG_PERF
                   " - flow_est_q.dbg_maxlen %" PRIu32 ""
 #endif
@@ -519,7 +519,7 @@ void FlowPrintQueueInfo (void)
 #endif
                   );
 
-        SCLogInfo("proto [%"PRId32"] closing flow queue %" PRIu32 " "
+        SCLogDebug("proto [%"PRId32"] closing flow queue %" PRIu32 " "
 #ifdef DBG_PERF
                   " - flow_closing_q.dbg_maxlen %" PRIu32 ""
 #endif
