@@ -227,6 +227,10 @@ ConfYamlParse(yaml_parser_t *parser)
             level--;
             break;
         case YAML_SCALAR_EVENT:
+            if (level < 0) {
+                /* Don't process values until we've hit a mapping. */
+                continue;
+            }
             if (state == CONF_KEY) {
                 if (key[level] != NULL)
                     free(key[level]);
@@ -412,6 +416,24 @@ logging:\n\
     return 1;
 }
 
+/**
+ * This test is mainly to make sure we don't segfaul when passed some
+ * other file.
+ */
+static int
+ConfYamlNonYamlFileTest(void)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+
+    ConfYamlLoadFile("/etc/passwd");
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 void
@@ -420,5 +442,6 @@ ConfYamlRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("ConfYamlRuleFileTest", ConfYamlRuleFileTest, 1);
     UtRegisterTest("ConfYamlLoggingOutputTest", ConfYamlLoggingOutputTest, 1);
+    UtRegisterTest("ConfYamlNonYamlFileTest", ConfYamlNonYamlFileTest, 1);
 #endif /* UNITTESTS */
 }
