@@ -74,6 +74,16 @@ typedef struct Address_
     (a)->addr_data32[2] = 0; \
     (a)->addr_data32[3] = 0; \
 }
+
+/* clear the address structure by setting all fields to 0 */
+#define CLEAR_ADDR(a) { \
+    (a)->family = 0; \
+    (a)->addr_data32[0] = 0; \
+    (a)->addr_data32[1] = 0; \
+    (a)->addr_data32[2] = 0; \
+    (a)->addr_data32[3] = 0; \
+}
+
 /* Set the IPv6 addressesinto the Addrs of the Packet.
  * Make sure p->ip6h is initialized and validated. */
 #define SET_IPV6_SRC_ADDR(p,a) { \
@@ -339,6 +349,8 @@ typedef struct DecodeThreadVars_
  * memset or bzero
  */
 #define CLEAR_PACKET(p) { \
+    CLEAR_ADDR(&p->src); \
+    CLEAR_ADDR(&p->dst); \
     if ((p)->tcph != NULL) { \
         CLEAR_TCP_PACKET((p)); \
     } \
