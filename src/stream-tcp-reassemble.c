@@ -1334,7 +1334,13 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                 payload_offset = stream->ra_base_seq - seg->seq;
 
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
-                    payload_len = (stream->last_ack - seg->seq) - payload_offset;
+
+                    if (SEQ_LT(stream->last_ack, stream->ra_base_seq)) {
+                        payload_len = (stream->last_ack - seg->seq);
+                    } else {
+                        payload_len = (stream->last_ack - seg->seq) -
+                                                                payload_offset;
+                    }
                 } else {
                     payload_len = seg->payload_len - payload_offset;
                 }
@@ -3702,6 +3708,63 @@ static int StreamTcpReassembleTest35(void) {
     return 1;
 }
 
+/** \test Test the bug 57 condition */
+static int StreamTcpReassembleTest36(void) {
+    TcpSession ssn;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpStream stream;
+    memset(&stream, 0, sizeof (TcpStream));
+    stream.os_policy = OS_POLICY_BSD;
+    uint8_t packet[1460] = "";
+
+    StreamTcpInitConfig(TRUE);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 10);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 10);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 10);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 10);
+
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.protoctx = &ssn;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    tcph.th_win = 5480;
+    tcph.th_flags = TH_PUSH | TH_ACK;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    p.payload = packet;
+
+    p.tcph->th_seq = htonl(1549588966);
+    p.tcph->th_ack = htonl(4162241372UL);
+    p.payload_len = 204;
+    stream.last_ack = 1549589007;
+    stream.ra_base_seq = 1549589101;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(1549589007);
+    p.tcph->th_ack = htonl(4162241372UL);
+    p.payload_len = 23;
+    stream.last_ack = 1549589007;
+    stream.ra_base_seq = 1549589101;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    StreamTcpFreeConfig(TRUE);
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
@@ -3745,5 +3808,6 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest33 -- Bug test", StreamTcpReassembleTest33, 1);
     UtRegisterTest("StreamTcpReassembleTest34 -- Bug test", StreamTcpReassembleTest34, 1);
     UtRegisterTest("StreamTcpReassembleTest35 -- Bug56 test", StreamTcpReassembleTest35, 1);
+    UtRegisterTest("StreamTcpReassembleTest36 -- Bug57 test", StreamTcpReassembleTest36, 1);
 #endif /* UNITTESTS */
 }
