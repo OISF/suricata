@@ -72,7 +72,7 @@ static int DecodeRawTest01 (void)   {
 
     DecodeRaw(&tv, &dtv, &p, raw_ip, p.pktlen, NULL);
     if (p.ip6h == NULL) {
-        printf("expected a valid ipv6 header but it was NULL");
+        printf("expected a valid ipv6 header but it was NULL: ");
         return 1;
     }
 
@@ -109,7 +109,7 @@ static int DecodeRawTest02 (void)   {
 
     DecodeRaw(&tv, &dtv, &p, raw_ip, p.pktlen, NULL);
     if (p.ip4h == NULL) {
-        printf("expected a valid ipv4 header but it was NULL");
+        printf("expected a valid ipv4 header but it was NULL: ");
         return 1;
     }
 
@@ -149,7 +149,7 @@ static int DecodeRawTest03 (void)   {
     if (DECODER_ISSET_EVENT(&p,IPRAW_INVALID_IPV)) {
         return 0;
     } else {
-        printf("expected IPRAW_INVALID_IPV to be set but it wasn't");
+        printf("expected IPRAW_INVALID_IPV to be set but it wasn't: ");
     }
     return 1;
 }
