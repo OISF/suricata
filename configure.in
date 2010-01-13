@@ -158,6 +158,17 @@ AC_INIT(configure.in)
         CFLAGS="${CFLAGS} ${SECCFLAGS}"
         LDFLAGS="${LDFLAGS} ${SECLDFLAGS}"
     fi
+
+#enable profile generation
+    AC_ARG_ENABLE(gccprofile,
+            [  --enable-gccprofile Enable gcc profile info i.e -pg flag is set],
+            [ enable_gccprofile=yes
+            ])
+
+    if test "$enable_gccprofile" = "yes"; then
+    CFLAGS="${CFLAGS} -pg"
+    fi
+
 #libpcre
     AC_ARG_WITH(libpcre_includes,
             [  --with-libpcre-includes=DIR  libpcre include directory],
@@ -186,6 +197,20 @@ AC_INIT(configure.in)
     echo
     exit 1
     fi
+
+   AC_TRY_COMPILE([ #include <pcre.h> ],
+   [ int eo; eo |= PCRE_EXTRA_MATCH_LIMIT_RECURSION; ],
+   [ pcre_match_limit_recursion_available=yes ], [:]
+   )
+   if test "$pcre_match_limit_recursion_available" != "yes"; then
+    CFLAGS="${CFLAGS} -DMISSING_PCRE_MATCH_RLIMIT"
+    echo
+    echo "   Warning! pcre extra opt PCRE_EXTRA_MATCH_LIMIT_RECURSION not found"
+    echo "   This could lead to potential DoS please upgrade to pcre >= 6.5"
+    echo "   Continuing for now...."
+    echo "   from www.pcre.org."
+    echo
+   fi
 
 #libyaml
     AC_ARG_WITH(libyaml_includes,
