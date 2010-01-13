@@ -28,13 +28,13 @@ typedef struct smb2_hdr {
     uint32_t TreeId;
     uint64_t SessionId;
     uint8_t Signature[16];
-}smb2_hdr_t, *psmb2_hdr_t;
+}SMB2Hdr;
 
 #define SMB2_HDR_LEN 64
 
 typedef struct SMB2State_ {
-    nbss_hdr_t nbss;
-    smb2_hdr_t smb2;
+    NBSSHdr nbss;
+    SMB2Hdr smb2;
     uint16_t bytesprocessed;
 }SMB2State;
 

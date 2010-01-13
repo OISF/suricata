@@ -1215,7 +1215,8 @@ void RegisterDCERPCParsers(void) {
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-
+/* set this to 1 to see problem */
+#define KNOWNFAILURE 0
 int DCERPCParserTest01(void) {
     int result = 1;
     Flow f;
@@ -1437,7 +1438,7 @@ int DCERPCParserTest01(void) {
         0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-#if 0
+#if KNOWNFAILURE
     uint8_t dcerpcrequest[] = {
         0x05, 0x00, 0x00, 0x00, 0x10,
         0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00,
@@ -1634,6 +1635,19 @@ int DCERPCParserTest01(void) {
     TAILQ_FOREACH(uuid_entry, &dcerpc_state->uuid_list, next) {
         printUUID("BIND_ACK", uuid_entry);
     }
+#if KNOWNFAILURE
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpcrequest, requestlen, FALSE);
+    if (r != 0) {
+           printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+           result = 0;
+           goto end;
+    }
+    if (dcerpc_state->dcerpc.type != REQUEST) {
+       printf("expected dcerpc type 0x%02x , got 0x%02x : ", REQUEST, dcerpc_state->dcerpc.type);
+       result = 0;
+       goto end;
+   }
+#endif
 end:
     return result;
 }

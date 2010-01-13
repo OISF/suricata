@@ -86,7 +86,7 @@ typedef struct dcerpc_hdr_ {
     uint16_t frag_length;   /* 08:02 total length of fragment */
     uint16_t auth_length;   /* 10:02 length of auth_value */
     uint32_t call_id;      /* 12:04 call identifier */
-}dcerpc_t;
+}DCERPCHdr;
 
 #define DCERPC_HDR_LEN 16
 
@@ -100,7 +100,7 @@ struct uuid_entry {
 };
 
 typedef struct DCERPCState_ {
-    dcerpc_t dcerpc;
+    DCERPCHdr dcerpc;
     uint16_t bytesprocessed;
     uint8_t numctxitems;
     uint8_t numctxitemsleft;

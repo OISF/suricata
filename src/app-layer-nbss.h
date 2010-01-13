@@ -40,7 +40,7 @@ typedef struct nbss_hdr_ {
 	uint8_t type;
 	uint8_t flags;
 	uint32_t length;
-}nbss_hdr_t, *pnbss_hdr_t;
+}NBSSHdr;
 #define NBSS_HDR_LEN 4
 
 #endif /* APPLAYERNBSS_H_ */
