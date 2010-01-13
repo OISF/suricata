@@ -569,6 +569,7 @@ int main(int argc, char **argv)
         SMBParserRegisterTests();
         DCERPCParserRegisterTests();
         FTPParserRegisterTests();
+        DecodeRawRegisterTests();
         DecodePPPOERegisterTests();
         DecodeICMPV4RegisterTests();
         DecodeICMPV6RegisterTests();

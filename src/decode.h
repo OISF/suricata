@@ -31,6 +31,7 @@
 #include "decode-icmpv6.h"
 #include "decode-tcp.h"
 #include "decode-udp.h"
+#include "decode-raw.h"
 
 /* Address */
 typedef struct Address_
@@ -139,6 +140,10 @@ typedef uint16_t Port;
       (a1)->addr_data32[0] == (a2)->addr_data32[0]))
 #define CMP_PORT(p1,p2) \
     ((p1 == p2))
+
+/*Given a packet pkt offset to the start of the ip header in a packet
+ *We determine the ip version. */
+#define IP_GET_RAW_VER(pkt) (((pkt[0] & 0xf0) >> 4))
 
 #define PKT_IS_IPV4(p)      (((p)->ip4h != NULL))
 #define PKT_IS_IPV6(p)      (((p)->ip6h != NULL))
@@ -334,6 +339,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_ipv6;
     uint16_t counter_eth;
     uint16_t counter_sll;
+    uint16_t counter_raw;
     uint16_t counter_tcp;
     uint16_t counter_udp;
     uint16_t counter_icmpv4;
@@ -443,6 +449,7 @@ void DecodePPP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, 
 void DecodePPPOESession(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodePPPOEDiscovery(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+void DecodeRaw(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeIPV4(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeIPV6(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeICMPV4(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
@@ -488,7 +495,7 @@ inline void DecodeSetNoPacketInspectionFlag(Packet *);
 #define LINKTYPE_ETHERNET   DLT_EN10MB
 #define LINKTYPE_LINUX_SLL  113
 #define LINKTYPE_PPP        9
-
+#define LINKTYPE_RAW        DLT_RAW
 #define PPP_OVER_GRE        11
 
 /*Packet Flags*/

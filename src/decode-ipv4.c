@@ -501,6 +501,12 @@ static int DecodeIPV4Packet(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t le
         return -1;
     }
 
+    if (IP_GET_RAW_VER(pkt) != 4) {
+        SCLogDebug("wrong ip version %" PRIu8 "",IP_GET_RAW_VER(pkt));
+        DECODER_SET_EVENT(p,IPV4_WRONG_IP_VER);
+        return -1;
+    }
+
     p->ip4h = (IPV4Hdr *)pkt;
 
     if (IPV4_GET_HLEN(p) < IPV4_HEADER_LEN) {

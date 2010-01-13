@@ -18,6 +18,7 @@ enum {
     IPV4_OPT_EOL_REQUIRED,
     IPV4_OPT_DUPLICATE,
     IPV4_OPT_UNKNOWN,
+    IPV4_WRONG_IP_VER,
 
     /* ICMP EVENTS */
     ICMPV4_PKT_TOO_SMALL,
@@ -45,6 +46,7 @@ enum {
     IPV6_EXTHDR_DUPL_EH,
 
     IPV6_EXTHDR_INVALID_OPTLEN, /* the optlen in an hop or dst hdr is invalid. */
+    IPV6_WRONG_IP_VER,
 
     /* TCP EVENTS */
     TCP_PKT_TOO_SMALL,
@@ -95,6 +97,8 @@ enum {
     GRE_VERSION1_MALFORMED_SRE_HDR,
     GRE_VERSION1_HDR_TOO_BIG,
 
+    /* RAW EVENTS */
+    IPRAW_INVALID_IPV,
 };
 
 #endif /* __DECODE_EVENTS_H__ */

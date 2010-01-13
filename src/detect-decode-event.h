@@ -33,6 +33,7 @@ struct DetectDecodeEvents_ {
     { "ipv4.opt_eol_required", IPV4_OPT_EOL_REQUIRED, },
     { "ipv4.opt_duplicate", IPV4_OPT_DUPLICATE, },
     { "ipv4.opt_unknown", IPV4_OPT_UNKNOWN, },
+    { "ipv4.wrong_ip_version", IPV4_WRONG_IP_VER, },
     { "ipv6.pkt_too_small", IPV6_PKT_TOO_SMALL, },
     { "ipv6.trunc_pkt", IPV6_TRUNC_PKT, },
     { "ipv6.trunc_exthdr", IPV6_TRUNC_EXTHDR, },
@@ -43,6 +44,7 @@ struct DetectDecodeEvents_ {
     { "ipv6.exthdr_dupl_ah", IPV6_EXTHDR_DUPL_AH, },
     { "ipv6.exthdr_dupl_eh", IPV6_EXTHDR_DUPL_EH, },
     { "ipv6.exthdr_invalid_optlen", IPV6_EXTHDR_INVALID_OPTLEN, },
+    { "ipv4.wrong_ip_version", IPV4_WRONG_IP_VER, },
     { "icmpv6.unknown_type", ICMPV6_UNKNOWN_TYPE,},
     { "icmpv6.unknown_code", ICMPV6_UNKNOWN_CODE,},
     { "icmpv6.pkt_too_small", ICMPV6_PKT_TOO_SMALL,},
@@ -78,6 +80,7 @@ struct DetectDecodeEvents_ {
     { "gre.version1_wrong_protocol", GRE_VERSION1_WRONG_PROTOCOL, },
     { "gre.version1_malformed_sre_hdr", GRE_VERSION1_MALFORMED_SRE_HDR, },
     { "gre.version1_hdr_too_big", GRE_VERSION1_HDR_TOO_BIG, },
+    { "ipraw.wrong_ip_version",IPRAW_INVALID_IPV, },
     { NULL, 0 },
 };
 #endif /* DETECT_EVENTS */

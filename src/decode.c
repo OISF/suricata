@@ -64,6 +64,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                                                 SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_eth = SCPerfTVRegisterCounter("decoder.ethernet", tv,
                                                SC_PERF_TYPE_UINT64, "NULL");
+    dtv->counter_raw = SCPerfTVRegisterCounter("decoder.raw", tv,
+                                               SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_sll = SCPerfTVRegisterCounter("decoder.sll", tv,
                                                SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_tcp = SCPerfTVRegisterCounter("decoder.tcp", tv,

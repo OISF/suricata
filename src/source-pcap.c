@@ -311,6 +311,9 @@ TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         case LINKTYPE_PPP:
             DecodePPP(tv, dtv, p, p->pkt, p->pktlen, pq);
             break;
+        case LINKTYPE_RAW:
+            DecodeRaw(tv, dtv, p, p->pkt, p->pktlen, pq);
+            break;
         default:
             printf("Error: datalink type %" PRId32 " not yet supported in module DecodePcap.\n", p->datalink);
             break;

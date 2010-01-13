@@ -15,6 +15,7 @@ decode-ppp.c decode-ppp.h \
 decode-pppoe.c decode-pppoe.h \
 decode-ipv4.c decode-ipv4.h \
 decode-ipv6.c decode-ipv6.h \
+decode-raw.c decode-raw.h \
 decode-icmpv4.c decode-icmpv4.h \
 decode-icmpv6.c decode-icmpv6.h \
 decode-tcp.c decode-tcp.h \
