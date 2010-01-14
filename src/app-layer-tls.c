@@ -1,4 +1,10 @@
 /* Copyright (c) 2009 Victor Julien */
+/* Copyright (c) 2009 Open Information Security Foundation
+ * \file   app-layer-tls.c
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ */
 /** \todo support for the newly find TLS handshake GAP vulnerbility */
 #include "suricata-common.h"
 #include "debug.h"

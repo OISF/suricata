@@ -853,7 +853,7 @@ void RegisterAppLayerParsers(void)
 
     /** setup result pool
      * \todo Per thread pool */
-    al_result_pool = PoolInit(250,10,AlpResultElmtPoolAlloc,NULL,AlpResultElmtPoolFree);
+    al_result_pool = PoolInit(1000,250,AlpResultElmtPoolAlloc,NULL,AlpResultElmtPoolFree);
 }
 
 void AppLayerParserCleanupState(TcpSession *ssn)
