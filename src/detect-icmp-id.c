@@ -127,7 +127,7 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
 
     ret = pcre_exec(parse_regex, parse_regex_study, icmpidstr, strlen(icmpidstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        SCLogDebug("DetectIcmpIdParse: parse error, ret %" PRId32 ", string %s\n", ret, icmpidstr);
+        SCLogError(SC_PCRE_MATCH_FAILED, "DetectIcmpIdParse: parse error");
         goto error;
     }
 
@@ -136,7 +136,7 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
     for (i = 1; i < ret; i++) {
         res = pcre_get_substring((char *)icmpidstr, ov, MAX_SUBSTRINGS, i, &str_ptr);
         if (res < 0) {
-            SCLogDebug("DetectIcmpIdParse: pcre_get_substring failed");
+            SCLogError(SC_PCRE_GET_SUBSTRING_FAILED, "DetectIcmpIdParse: pcre_get_substring failed");
             goto error;
         }
         substr[i-1] = (char *)str_ptr;
@@ -144,19 +144,19 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
 
     iid = malloc(sizeof(DetectIcmpIdData));
     if (iid == NULL) {
-        SCLogDebug("DetectIcmpIdParse: malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
     iid->id = 0;
 
     if (strlen(substr[0]) != 0) {
         if (substr[2] == NULL) {
-            SCLogDebug("DetectIcmpIdParse: Missing close quote in input");
+            SCLogError(SC_INVALID_ARGUMENT, "DetectIcmpIdParse: Missing close quote in input");
             goto error;
         }
     } else {
         if (substr[2] != NULL) {
-            SCLogDebug("DetectIcmpIdParse: Missing open quote in input");
+            SCLogError(SC_INVALID_ARGUMENT, "DetectIcmpIdParse: Missing open quote in input");
             goto error;
         }
     }
