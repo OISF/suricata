@@ -94,6 +94,7 @@ detect-http-cookie.c detect-http-cookie.h \
 detect-http-method.c detect-http-method.h \
 detect-tls-version.c detect-tls-version.h \
 detect-icmp-id.c detect-icmp-id.h \
+detect-icmp-seq.c detect-icmp-seq.h \
 detect-dce-iface.c detect-dce-iface.h \
 detect-dce-opnum.c detect-dce-opnum.h \
 detect-dce-stub-data.c detect-dce-stub-data.h \

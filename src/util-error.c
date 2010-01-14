@@ -74,6 +74,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_FOPEN_ERROR);
         CASE_CODE (SC_ERR_LOGDIR_CONFIG);
         CASE_CODE (SC_ERR_LOGDIR_CMDLINE);
+        CASE_CODE (SC_ERR_MISSING_QUOTE);
         default:
             return "UNKNOWN_ERROR";
     }

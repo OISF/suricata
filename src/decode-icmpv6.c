@@ -695,7 +695,7 @@ static int ICMPV6EchoReqTest01(void)
     SCLogDebug("ID: %u seq: %u", ICMPV6_GET_ID(&p), ICMPV6_GET_SEQ(&p));
 
     if (ICMPV6_GET_TYPE(&p) != 128 || ICMPV6_GET_CODE(&p) != 0 ||
-        ICMPV6_GET_ID(&p) != 61477 || ICMPV6_GET_SEQ(&p) != 9077) {
+        ICMPV6_GET_ID(&p) != 61477 || ICMPV6_GET_SEQ(&p) != 29987) {
         SCLogDebug("ICMPv6 Echo request decode failed");
         retval = 0;
         goto end;
@@ -745,7 +745,7 @@ static int ICMPV6EchoRepTest01(void)
                ICMPV6_GET_CODE(&p),ICMPV6_GET_ID(&p), ICMPV6_GET_SEQ(&p));
 
     if (ICMPV6_GET_TYPE(&p) != 129 || ICMPV6_GET_CODE(&p) != 0 ||
-        ICMPV6_GET_ID(&p) != 61477 || ICMPV6_GET_SEQ(&p) != 9077) {
+        ICMPV6_GET_ID(&p) != 61477 || ICMPV6_GET_SEQ(&p) != 29987) {
         SCLogDebug("ICMPv6 Echo reply decode failed");
         retval = 0;
         goto end;
