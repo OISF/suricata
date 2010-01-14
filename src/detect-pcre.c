@@ -358,21 +358,21 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                 pd->sd->match_limit = pcre_match_limit;
                 pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT;
             }
-#ifndef MISSING_PCRE_MATCH_RLIMIT
+#ifndef NO_PCRE_MATCH_RLIMIT
             if(pcre_match_limit_recursion >= -1)    {
                 pd->sd->match_limit_recursion = pcre_match_limit_recursion;
                 pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
             }
-#endif /* MISSING_PCRE_MATCH_RLIMIT */
+#endif /* NO_PCRE_MATCH_RLIMIT */
         }
         else    {
 
             pd->sd->match_limit = MATCH_LIMIT_DEFAULT;
             pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT;
-#ifndef MISSING_PCRE_MATCH_RLIMIT
+#ifndef NO_PCRE_MATCH_RLIMIT
             pd->sd->match_limit_recursion = MATCH_LIMIT_DEFAULT;
             pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
-#endif /* MISSING_PCRE_MATCH_RLIMIT */
+#endif /* NO_PCRE_MATCH_RLIMIT */
         }
 
     }

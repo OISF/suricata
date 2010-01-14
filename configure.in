@@ -199,11 +199,11 @@ AC_INIT(configure.in)
     fi
 
    AC_TRY_COMPILE([ #include <pcre.h> ],
-   [ int eo; eo |= PCRE_EXTRA_MATCH_LIMIT_RECURSION; ],
+   [ int eo = 0; eo |= PCRE_EXTRA_MATCH_LIMIT_RECURSION; ],
    [ pcre_match_limit_recursion_available=yes ], [:]
    )
    if test "$pcre_match_limit_recursion_available" != "yes"; then
-    CFLAGS="${CFLAGS} -DMISSING_PCRE_MATCH_RLIMIT"
+    CFLAGS="${CFLAGS} -DNO_PCRE_MATCH_RLIMIT"
     echo
     echo "   Warning! pcre extra opt PCRE_EXTRA_MATCH_LIMIT_RECURSION not found"
     echo "   This could lead to potential DoS please upgrade to pcre >= 6.5"
