@@ -11,6 +11,24 @@
 #define BYTE_BIG_ENDIAN      0
 #define BYTE_LITTLE_ENDIAN   1
 
+/** Wrappers for OS dependent byte swapping functions */
+#ifdef OS_FREEBSD
+#include <sys/endian.h>
+#define SCByteSwap16(x) bswap16(x)
+#define SCByteSwap32(x) bswap32(x)
+#define SCByteSwap64(x) bswap64(x)
+#elif OS_DARWIN
+#include <libkern/OSByteOrder.h>
+#define SCByteSwap16(x) OSSwapInt16(x)
+#define SCByteSwap32(x) OSSwapInt32(x)
+#define SCByteSwap64(x) OSSwapInt64(x)
+#else
+#include <byteswap.h>
+#define SCByteSwap16(x) bswap_16(x)
+#define SCByteSwap32(x) bswap_32(x)
+#define SCByteSwap64(x) bswap_64(x)
+#endif /* OS_FREEBSD */
+
 /**
  * Extract bytes from a byte string and convert to a unint64_t.
  *

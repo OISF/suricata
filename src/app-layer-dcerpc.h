@@ -11,7 +11,7 @@
 #include "app-layer-parser.h"
 #include "flow.h"
 #include "queue.h"
-#include <byteswap.h>
+#include "util-byte.h"
 
 void RegisterDCERPCParsers(void);
 void DCERPCParserTests(void);
