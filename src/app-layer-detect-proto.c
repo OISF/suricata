@@ -70,9 +70,16 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
     ctx->toclient.id = 0;
 }
 
-void AlpProtoDestroy(AlpProtoDetectCtx *ctx) {
+void AlpProtoTestDestroy(AlpProtoDetectCtx *ctx) {
     mpm_table[ctx->toserver.mpm_ctx.mpm_type].DestroyCtx(&ctx->toserver.mpm_ctx);
     mpm_table[ctx->toclient.mpm_ctx.mpm_type].DestroyCtx(&ctx->toclient.mpm_ctx);
+}
+
+void AlpProtoDestroy() {
+    SCEnter();
+    mpm_table[alp_proto_ctx.toserver.mpm_ctx.mpm_type].DestroyCtx(&alp_proto_ctx.toserver.mpm_ctx);
+    mpm_table[alp_proto_ctx.toclient.mpm_ctx.mpm_type].DestroyCtx(&alp_proto_ctx.toclient.mpm_ctx);
+    SCReturn;
 }
 
 /** \brief Add a proto detection string to the detection ctx.
@@ -129,6 +136,20 @@ void AlpProtoFinalizeThread(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tct
     }
 }
 
+void AlpProtoDeFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {
+    if (alp_proto_ctx.toclient.id > 0) {
+        mpm_table[alp_proto_ctx.toclient.mpm_ctx.mpm_type].DestroyThreadCtx
+                    (&alp_proto_ctx.toclient.mpm_ctx, &tctx->toclient.mpm_ctx);
+        /* XXX GS any idea why it is invalid free ?*/
+        //PmqFree(&tctx->toclient.pmq);
+    }
+    if (alp_proto_ctx.toserver.id > 0) {
+        mpm_table[alp_proto_ctx.toserver.mpm_ctx.mpm_type].DestroyThreadCtx
+                    (&alp_proto_ctx.toserver.mpm_ctx, &tctx->toserver.mpm_ctx);
+        //PmqFree(&tctx->toserver.pmq);
+    }
+
+}
 /** \brief to be called by ReassemblyThreadInit
  *  \todo this is a hack, we need a proper place to store the global ctx */
 void AlpProtoFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {
@@ -468,7 +489,7 @@ int AlpDetectTest01(void) {
     }
     free(buf);
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 
@@ -502,7 +523,7 @@ int AlpDetectTest02(void) {
         r = 0;
     }
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 
@@ -547,7 +568,7 @@ int AlpDetectTest03(void) {
         r = 0;
     }
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 
@@ -580,7 +601,7 @@ int AlpDetectTest04(void) {
         r = 0;
     }
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 
@@ -626,7 +647,7 @@ int AlpDetectTest05(void) {
         r = 0;
     }
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 
@@ -671,7 +692,7 @@ int AlpDetectTest06(void) {
         r = 0;
     }
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 
@@ -704,7 +725,7 @@ int AlpDetectTest07(void) {
         r = 0;
     }
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 
@@ -748,7 +769,7 @@ int AlpDetectTest08(void) {
         r = 0;
     }
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 
@@ -789,7 +810,7 @@ int AlpDetectTest09(void) {
         r = 0;
     }
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 
@@ -826,7 +847,7 @@ int AlpDetectTest10(void) {
         r = 0;
     }
 
-    AlpProtoDestroy(&ctx);
+    AlpProtoTestDestroy(&ctx);
     return r;
 }
 

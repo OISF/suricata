@@ -126,8 +126,12 @@ static inline int SCClassConfInitContext(DetectEngineCtx *de_ctx)
 /**
  * \brief Releases resources used by the Classification Config API.
  */
-static void SCClassConfDeInitContext(void)
+static void SCClassConfDeInitContext(DetectEngineCtx *de_ctx)
 {
+    if (de_ctx->class_conf_ht != NULL) {
+        HashTableFree(de_ctx->class_conf_ht);
+        de_ctx->class_conf_ht = NULL;
+    }
     fclose(fd);
     default_file_path = SC_CLASS_CONF_DEF_CONF_FILEPATH;
     fd = NULL;
@@ -447,7 +451,7 @@ void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx)
     }
 
     SCClassConfParseFile(de_ctx);
-    SCClassConfDeInitContext();
+    SCClassConfDeInitContext(de_ctx);
 
     return;
 }

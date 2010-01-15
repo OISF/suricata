@@ -22,6 +22,8 @@ void AppLayerDetectProtoThreadSpawn(void);
 void AlpDetectRegisterTests(void);
 
 void AlpProtoFinalize2Thread(AlpProtoDetectThreadCtx *);
+void AlpProtoDeFinalize2Thread (AlpProtoDetectThreadCtx *);
+void AlpProtoDestroy(void);
 
 #endif /* __APP_LAYER_DETECT_PROTO_H__ */
 

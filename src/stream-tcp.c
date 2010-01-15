@@ -2434,9 +2434,10 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
 TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
+    SCEnter();
     StreamTcpThread *stt = malloc(sizeof(StreamTcpThread));
     if (stt == NULL) {
-        return TM_ECODE_FAILED;
+        SCReturnInt(TM_ECODE_FAILED);
     }
     memset(stt, 0, sizeof(StreamTcpThread));
 
@@ -2451,15 +2452,16 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx();
     if (stt->ra_ctx == NULL)
-        return TM_ECODE_FAILED;
+        SCReturnInt(TM_ECODE_FAILED);
 
     SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p",
                 stt, stt->ra_ctx);
-    return TM_ECODE_OK;
+    SCReturnInt(TM_ECODE_OK);
 }
 
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data)
 {
+    SCEnter();
     StreamTcpThread *stt = (StreamTcpThread *)data;
     if (stt == NULL) {
         return TM_ECODE_OK;
@@ -2468,13 +2470,13 @@ TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data)
     /* XXX */
 
     /* free reassembly ctx */
-
+    StreamTcpReassembleFreeThreadCtx(stt->ra_ctx);
 
     /* clear memory */
     memset(stt, 0, sizeof(StreamTcpThread));
 
     free(stt);
-    return TM_ECODE_OK;
+    SCReturnInt(TM_ECODE_OK);
 }
 
 void StreamTcpExitPrintStats(ThreadVars *tv, void *data)

@@ -325,6 +325,7 @@ static int SCPerfParseTBCounterInterval(SCPerfCounter *pc, char *interval)
                               (pc->type_q->minutes * 60) + pc->type_q->seconds);
     TimeGet(&pc->type_q->ts);
 
+    free(regex);
     return 0;
 
  error:

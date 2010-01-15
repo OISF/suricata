@@ -176,6 +176,7 @@ void StreamTcpReassembleFree(char quiet)
 
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
 {
+    SCEnter();
     TcpReassemblyThreadCtx *ra_ctx = malloc(sizeof(TcpReassemblyThreadCtx));
     if (ra_ctx == NULL) {
         return NULL;
@@ -185,17 +186,19 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
     ra_ctx->stream_q = StreamMsgQueueGetNew();
 
     AlpProtoFinalize2Thread(&ra_ctx->dp_ctx);
-    return ra_ctx;
+    SCReturnPtr(ra_ctx, "TcpReassemblyThreadCtx");
 }
 
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
 {
+    SCEnter();
     if (ra_ctx->stream_q != NULL)
         StreamMsgQueueFree(ra_ctx->stream_q);
 
     ra_ctx->stream_q = NULL;
-
+    AlpProtoDeFinalize2Thread(&ra_ctx->dp_ctx);
     free(ra_ctx);
+    SCReturn;
 }
 
 void PrintList2(TcpSegment *seg)

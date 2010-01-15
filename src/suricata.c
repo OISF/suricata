@@ -757,6 +757,7 @@ int main(int argc, char **argv)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
+    AlpProtoDestroy();
 
     RunModeShutDown();
     OutputDeregisterAll();

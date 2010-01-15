@@ -250,11 +250,6 @@ TmEcode AlertUnifiedAlertThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 
 error:
-    /* clear memory */
-    if (aun != NULL) {
-        memset(aun, 0, sizeof(AlertUnifiedAlertThread));
-        free(aun);
-    }
     return TM_ECODE_FAILED;
 }
 
@@ -296,6 +291,7 @@ LogFileCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
  * */
 int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 {
+    int ret = 0;
     char *filename = NULL;
     if (file_ctx->filename != NULL)
         filename = file_ctx->filename;
@@ -319,10 +315,11 @@ int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
             strerror(errno));
-        return -1;
+        ret = -1;
     }
-
-    return 0;
+    if (filename != NULL)
+        free(filename);
+    return ret;
 }
 
 #ifdef UNITTESTS
