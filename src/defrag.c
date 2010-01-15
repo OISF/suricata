@@ -14,6 +14,7 @@
  * \todo pool for frag packet storage
  * \todo policy bsd-right
  * \todo profile hash function
+ * \todo log anomalies
  */
 
 #include <sys/time.h>
@@ -529,6 +530,11 @@ DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
         /* Abort - should not happen. */
         SCLogError(SC_INVALID_ARGUMENT, "Invalid address family, aborting.");
         exit(EXIT_FAILURE);
+    }
+
+    if (frag_offset + data_len > IPV4_MAXPACKET_LEN) {
+        /* \todo Log this - packet is too large to be re-assembled. */
+        return;
     }
 
     /* Lock this tracker as we'll be doing list operations on it. */
