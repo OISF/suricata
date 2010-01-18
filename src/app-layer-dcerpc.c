@@ -1794,7 +1794,7 @@ int DCERPCParserTest02(void) {
     uint32_t requestlen = sizeof(dcerpcrequest);
 
     TcpSession ssn;
-    struct uuid_entry *uuid_entry;
+    //struct uuid_entry *uuid_entry;
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1982,7 +1982,7 @@ int DCERPCParserTest03(void) {
     uint32_t requestlen = sizeof(dcerpcrequest);
 
     TcpSession ssn;
-    struct uuid_entry *uuid_entry;
+    //struct uuid_entry *uuid_entry;
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
