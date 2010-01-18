@@ -82,7 +82,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
         free(de_ctx->sig_array);
 
     if (de_ctx->class_conf_ht != NULL)
-        free(de_ctx->class_conf_ht);
+        HashTableFree(de_ctx->class_conf_ht);
     free(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();

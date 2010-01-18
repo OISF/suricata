@@ -263,12 +263,7 @@ TmEcode AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 
 error:
-    /* clear memory */
-    if (aun != NULL) {
-        memset(aun, 0, sizeof(AlertUnifiedLogThread));
-        free(aun);
-    }
-    printf("AlertUnifiedLogThreadDeinit done (error)\n");
+
     return TM_ECODE_FAILED;
 }
 
@@ -338,8 +333,7 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
             strerror(errno));
         ret = -1;
     }
-    if (filename != NULL)
-        free(filename);
+
     return ret;
 }
 
@@ -388,7 +382,6 @@ static int AlertUnifiedLogTestRotate01(void)
 error:
     AlertUnifiedLogThreadDeinit(&tv, data);
     if (lf != NULL) LogFileFreeCtx(lf);
-    if (filename != NULL) free(filename);
     return r;
 }
 #endif /* UNITTESTS */

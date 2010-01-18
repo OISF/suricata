@@ -604,8 +604,7 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
             strerror(errno));
         ret = -1;
     }
-    if (filename != NULL)
-        free(filename);
+
     return ret;
 }
 

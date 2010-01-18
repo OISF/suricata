@@ -317,8 +317,7 @@ int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
             strerror(errno));
         ret = -1;
     }
-    if (filename != NULL)
-        free(filename);
+
     return ret;
 }
 
@@ -367,7 +366,6 @@ static int AlertUnifiedAlertTestRotate01(void)
 error:
     AlertUnifiedAlertThreadDeinit(&tv, data);
     if (lf != NULL) LogFileFreeCtx(lf);
-    if (filename != NULL) free(filename);
     return r;
 }
 #endif /* UNITTESTS */

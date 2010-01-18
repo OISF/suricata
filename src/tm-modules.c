@@ -79,6 +79,8 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         }
         if (lf_ctx->prefix != NULL)
             free(lf_ctx->prefix);
+        if(lf_ctx->filename != NULL)
+            free(lf_ctx->filename);
         free(lf_ctx);
         ret=1;
     }
