@@ -457,7 +457,8 @@ static uint32_t DCERPCParseBINDACKCTXItem(Flow *f, void *dcerpc_state,
                     sstate->result = *p;
                     sstate->result |= *(p + 1) << 8;
                     TAILQ_FOREACH(uuid_entry, &sstate->uuid_list, next) {
-                        if(uuid_entry->ctxid == sstate->numctxitems - sstate->numctxitemsleft) {
+                        if (uuid_entry->ctxid == sstate->numctxitems
+                                - sstate->numctxitemsleft) {
                             uuid_entry->result = sstate->result;
                             //printUUID("BIND_ACK", uuid_entry);
                             break;
@@ -564,7 +565,8 @@ static uint32_t DCERPCParseBINDACKCTXItem(Flow *f, void *dcerpc_state,
                     break;
             case 23:
                 TAILQ_FOREACH(uuid_entry, &sstate->uuid_list, next) {
-                    if(uuid_entry->ctxid == sstate->numctxitems - sstate->numctxitemsleft) {
+                    if (uuid_entry->ctxid == sstate->numctxitems
+                            - sstate->numctxitemsleft) {
                         uuid_entry->result = sstate->result;
                         //printUUID("BIND_ACK", uuid_entry);
                         break;
@@ -983,8 +985,14 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
                     && input_len) {
                 retval = DCERPCParseBIND(f, dcerpc_state, pstate, input + parsed,
                         input_len, output);
-                parsed += retval;
-                input_len -= retval;
+                if (retval) {
+                    parsed += retval;
+                    input_len -= retval;
+                } else if (input_len) {
+                    SCLogDebug("Error Parsing DCERPC BIND");
+                    parsed -= input_len;
+                    input_len = 0;
+                }
             }
             SCLogDebug(
                     "Done with DCERPCParseBIND bytesprocessed %u/%u -- Should be 12\n",
@@ -994,14 +1002,21 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
                     < sstate->dcerpc.frag_length && input_len) {
                 retval = DCERPCParseBINDCTXItem(f, dcerpc_state, pstate, input
                         + parsed, input_len, output);
-                if (sstate->ctxbytesprocessed == 44) {
-                    sstate->ctxbytesprocessed = 0;
+                if (retval) {
+                    if (sstate->ctxbytesprocessed == 44) {
+                        sstate->ctxbytesprocessed = 0;
+                    }
+                    parsed += retval;
+                    input_len -= retval;
+                    SCLogDebug("BIND processed %u/%u\n", sstate->bytesprocessed,
+                            sstate->dcerpc.frag_length);
+                } else if (input_len) {
+                    SCLogDebug("Error Parsing CTX Item");
+                    parsed -= input_len;
+                    input_len = 0;
+                    sstate->numctxitemsleft = 0;
                 }
-                parsed += retval;
-                input_len -= retval;
             }
-            SCLogDebug("BIND processed %u/%u\n", sstate->bytesprocessed,
-                    sstate->dcerpc.frag_length);
             if (sstate->bytesprocessed == sstate->dcerpc.frag_length) {
                 sstate->bytesprocessed = 0;
                 sstate->ctxbytesprocessed = 0;
@@ -1014,24 +1029,36 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
                     && input_len) {
                 retval = DCERPCParseBINDACK(f, dcerpc_state, pstate,
                         input + parsed, input_len, output);
-                parsed += retval;
-                input_len -= retval;
+                if (retval) {
+                    parsed += retval;
+                    input_len -= retval;
+                    SCLogDebug("DCERPCParseBINDACK processed %u/%u left %u\n",
+                            sstate->bytesprocessed, sstate->dcerpc.frag_length, input_len);
+                } else if (input_len) {
+                    SCLogDebug("Error parsing BIND_ACK");
+                    parsed -= input_len;
+                    input_len = 0;
+                }
             }
-            SCLogDebug("DCERPCParseBINDACK processed %u/%u left %u\n",
-                    sstate->bytesprocessed, sstate->dcerpc.frag_length, input_len);
 
             while (sstate->bytesprocessed < DCERPC_HDR_LEN + 10
                     + sstate->secondaryaddrlen && input_len
                     && sstate->bytesprocessed < sstate->dcerpc.frag_length) {
                 retval = DCERPCParseSecondaryAddr(f, dcerpc_state, pstate, input
                         + parsed, input_len, output);
-                parsed += retval;
-                input_len -= retval;
+                if (retval) {
+                    parsed += retval;
+                    input_len -= retval;
+                    SCLogDebug(
+                            "DCERPCParseSecondaryAddr %u/%u left %u secondaryaddr len(%u)\n",
+                            sstate->bytesprocessed, sstate->dcerpc.frag_length, input_len,
+                            sstate->secondaryaddrlen);
+                } else if (input_len) {
+                    SCLogDebug("Error parsing Secondary Address");
+                    parsed -= input_len;
+                    input_len = 0;
+                }
             }
-            SCLogDebug(
-                    "DCERPCParseSecondaryAddr %u/%u left %u secondaryaddr len(%u)\n",
-                    sstate->bytesprocessed, sstate->dcerpc.frag_length, input_len,
-                    sstate->secondaryaddrlen);
 
             if (sstate->bytesprocessed == DCERPC_HDR_LEN + 10
                     + sstate->secondaryaddrlen) {
@@ -1044,12 +1071,18 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
                     && sstate->bytesprocessed < sstate->dcerpc.frag_length) {
                 retval = PaddingParser(f, dcerpc_state, pstate, input + parsed,
                         input_len, output);
-                parsed += retval;
-                input_len -= retval;
+                if (retval) {
+                    parsed += retval;
+                    input_len -= retval;
+                    SCLogDebug("PaddingParser %u/%u left %u pad(%u)\n",
+                            sstate->bytesprocessed, sstate->dcerpc.frag_length, input_len,
+                            sstate->pad);
+                } else if (input_len) {
+                    SCLogDebug("Error parsing DCERPC Padding");
+                    parsed -= input_len;
+                    input_len = 0;
+                }
             }
-            SCLogDebug("PaddingParser %u/%u left %u pad(%u)\n",
-                    sstate->bytesprocessed, sstate->dcerpc.frag_length, input_len,
-                    sstate->pad);
 
             while (sstate->bytesprocessed >= DCERPC_HDR_LEN + 10 + sstate->pad
                     + sstate->secondaryaddrlen && sstate->bytesprocessed
@@ -1057,11 +1090,17 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
                     && sstate->bytesprocessed < sstate->dcerpc.frag_length) {
                 retval = DCERPCGetCTXItems(f, dcerpc_state, pstate, input + parsed,
                         input_len, output);
-                parsed += retval;
-                input_len -= retval;
+                if (retval) {
+                    parsed += retval;
+                    input_len -= retval;
+                    SCLogDebug("DCERPCGetCTXItems %u/%u (%u)\n", sstate->bytesprocessed,
+                            sstate->dcerpc.frag_length, sstate->numctxitems);
+                } else if (input_len) {
+                    SCLogDebug("Error parsing CTX Items");
+                    parsed -= input_len;
+                    input_len = 0;
+                }
             }
-            SCLogDebug("DCERPCGetCTXItems %u/%u (%u)\n", sstate->bytesprocessed,
-                    sstate->dcerpc.frag_length, sstate->numctxitems);
 
             if (sstate->bytesprocessed == DCERPC_HDR_LEN + 14 + sstate->pad
                     + sstate->secondaryaddrlen) {
@@ -1072,11 +1111,19 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
                     < sstate->dcerpc.frag_length) {
                 retval = DCERPCParseBINDACKCTXItem(f, dcerpc_state, pstate, input
                         + parsed, input_len, output);
-                if (sstate->ctxbytesprocessed == 24) {
-                    sstate->ctxbytesprocessed = 0;
+                if (retval) {
+                    if (sstate->ctxbytesprocessed == 24) {
+                        sstate->ctxbytesprocessed = 0;
+                    }
+                    parsed += retval;
+                    input_len -= retval;
+                } else if (input_len) {
+                    SCLogDebug("Error parsing CTX Items");
+                    parsed -= input_len;
+                    input_len = 0;
+                    sstate->numctxitemsleft = 0;
+
                 }
-                parsed += retval;
-                input_len -= retval;
             }
             SCLogDebug("BINDACK processed %u/%u\n", sstate->bytesprocessed,
                     sstate->dcerpc.frag_length);
@@ -1092,16 +1139,29 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
                     && input_len) {
                 retval = DCERPCParseREQUEST(f, dcerpc_state, pstate,
                         input + parsed, input_len, output);
-                parsed += retval;
-                input_len -= retval;
+                if (retval) {
+                    parsed += retval;
+                    input_len -= retval;
+                } else if (input_len) {
+                    SCLogDebug("Error parsing DCERPC Request");
+                    parsed -= input_len;
+                    input_len = 0;
+                }
             }
             while (sstate->bytesprocessed >= DCERPC_HDR_LEN + 8
                     && sstate->bytesprocessed < sstate->dcerpc.frag_length
                     && input_len) {
                 retval = StubDataParser(f, dcerpc_state, pstate, input + parsed,
                         input_len, output);
-                parsed += retval;
-                input_len -= retval;
+                if (retval) {
+                    parsed += retval;
+                    input_len -= retval;
+                } else if (input_len) {
+                    SCLogDebug("Error parsing DCERPC Stub Data");
+                    parsed -= input_len;
+                    input_len = 0;
+
+                }
             }
             SCLogDebug("REQUEST processed %u/%u\n", sstate->bytesprocessed,
                     sstate->dcerpc.frag_length);
