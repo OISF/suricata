@@ -88,6 +88,7 @@
 #include "util-error.h"
 #include "detect-engine-siggroup.h"
 #include "util-daemon.h"
+#include "reputation.h"
 
 #include "output.h"
 
@@ -505,6 +506,7 @@ int main(int argc, char **argv)
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     SCPerfInitCounterApi();
+    SCReputationInitCtx();
 
     /** \todo we need an api for these */
     AppLayerDetectProtoThreadInit();
@@ -549,6 +551,7 @@ int main(int argc, char **argv)
         }
         UtInitialize();
         UTHRegisterTests();
+        SCReputationRegisterTests();
         TmModuleRegisterTests();
         SigTableRegisterTests();
         HashTableRegisterTests();

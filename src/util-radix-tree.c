@@ -86,7 +86,7 @@ struct in6_addr *SCRadixValidateIPV6Address(const char *addr_str)
  * \param stream  Pointer the ip address that has to be chopped.
  * \param netmask The netmask value to which the ip address has to be chopped.
  */
-static void SCRadixChopIPAddressAgainstNetmask(uint8_t *stream, uint8_t netmask,
+void SCRadixChopIPAddressAgainstNetmask(uint8_t *stream, uint8_t netmask,
                                                uint16_t key_bitlen)
 {
     int mask = 0;
