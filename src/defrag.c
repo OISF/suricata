@@ -2297,11 +2297,10 @@ end:
  * its not introduced.
  */
 static int
-DefragIPv4NoData(void)
+DefragIPv4NoDataTest(void)
 {
     DefragContext *dc = NULL;
-    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
-    Packet *reassembled = NULL;
+    Packet *p = NULL;
     int id = 12;
     int ret;
 
@@ -2312,26 +2311,64 @@ DefragIPv4NoData(void)
         goto end;
 
     /* This packet has an offset > 0, more frags set to 0 and no data. */
-    p1 = BuildTestPacket(id, 1, 0, 'A', 0);
-    if (p1 == NULL)
+    p = BuildTestPacket(id, 1, 0, 'A', 0);
+    if (p == NULL)
         goto end;
 
     /* We do not expect a packet returned. */
-    if (Defrag(NULL, dc, p1) != NULL)
+    if (Defrag(NULL, dc, p) != NULL)
         goto end;
+
+    /* The fragment should have been ignored so no fragments should
+     * have been allocated from the pool. */
+    if (dc->frag_pool->outstanding != 0)
+        return 0;
 
     ret = 1;
 end:
     if (dc != NULL)
         DefragContextDestroy(dc);
-    if (p1 != NULL)
-        free(p1);
-    if (p2 != NULL)
-        free(p2);
-    if (p3 != NULL)
-        free(p3);
-    if (reassembled != NULL)
-        free(reassembled);
+    if (p != NULL)
+        free(p);
+
+    DefragDestroy();
+    return ret;
+}
+
+static int
+DefragIPv4TooLargeTest(void)
+{
+    DefragContext *dc = NULL;
+    Packet *p = NULL;
+    int ret;
+
+    DefragInit();
+
+    dc = DefragContextNew();
+    if (dc == NULL)
+        goto end;
+
+    /* Create a fragment that would extend past the max allowable size
+     * for an IPv4 packet. */
+    p = BuildTestPacket(1, 8190, 0, 'A', 8192);
+    if (p == NULL)
+        goto end;
+
+    /* We do not expect a packet returned. */
+    if (Defrag(NULL, dc, p) != NULL)
+        goto end;
+
+    /* The fragment should have been ignored so no fragments should have
+     * been allocated from the pool. */
+    if (dc->frag_pool->outstanding != 0)
+        return 0;
+
+    ret = 1;
+end:
+    if (dc != NULL)
+        DefragContextDestroy(dc);
+    if (p != NULL)
+        free(p);
 
     DefragDestroy();
     return ret;
@@ -2360,7 +2397,8 @@ DefragRegisterTests(void)
     UtRegisterTest("DefragSturgesNovakLastTest",
         DefragSturgesNovakLastTest, 1);
 
-    UtRegisterTest("DefragIPv4NoData", DefragIPv4NoData, 1);
+    UtRegisterTest("DefragIPv4NoDataTest", DefragIPv4NoDataTest, 1);
+    UtRegisterTest("DefragIPv4TooLargeTest", DefragIPv4TooLargeTest, 1);
 
     UtRegisterTest("IPV6DefragInOrderSimpleTest",
         IPV6DefragInOrderSimpleTest, 1);
