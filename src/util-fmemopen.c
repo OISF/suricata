@@ -22,6 +22,12 @@
 
 #ifdef USE_FMEM_WRAPPER
 
+typedef struct SCFmem_ {
+    size_t pos;
+    size_t size;
+    char *buffer;
+} SCFmem;
+
 /**
  * \brief Seek the mem file from offset and whence
  * \param handler pointer to the memfile
@@ -31,7 +37,7 @@
  */
 static fpos_t SeekFn(void *handler, fpos_t offset, int whence) {
     size_t pos = 0;
-    fmem_t *mem = handler;
+    SCFmem *mem = handler;
 
     switch (whence) {
         case SEEK_SET:
@@ -61,7 +67,7 @@ static fpos_t SeekFn(void *handler, fpos_t offset, int whence) {
  */
 static int ReadFn(void *handler, char *buf, int size) {
     size_t count = 0;
-    fmem_t *mem = handler;
+    SCFmem *mem = handler;
     size_t available = mem->size - mem->pos;
 
     if (size < 0) return - 1;
@@ -84,7 +90,7 @@ static int ReadFn(void *handler, char *buf, int size) {
  */
 static int WriteFn(void *handler, const char *buf, int size) {
     size_t count = 0;
-    fmem_t *mem = handler;
+    SCFmem *mem = handler;
     size_t available = mem->size - mem->pos;
 
     if (size < 0) return - 1;
@@ -116,9 +122,9 @@ static int CloseFn(void *handler) {
  * \retval pointer to the file; NULL if something is wrong
  */
 FILE *SCFmemopen(void *buf, size_t size, const char *mode) {
-    fmem_t *mem = (fmem_t *) malloc(sizeof(fmem_t));
+    SCFmem *mem = (fmem_t *) malloc(sizeof(fmem_t));
 
-    memset(mem, 0, sizeof(fmem_t));
+    memset(mem, 0, sizeof(SCFmem));
     mem->size = size, mem->buffer = buf;
 
     return funopen(mem, ReadFn, WriteFn, SeekFn, CloseFn);

@@ -14,13 +14,6 @@
 #endif
 
 #ifdef USE_FMEM_WRAPPER
-struct fmem {
-    size_t pos;
-    size_t size;
-    char *buffer;
-};
-typedef struct fmem fmem_t;
-
 FILE *SCFmemopen(void *, size_t, const char *);
 #else
 /* Else use the normal fmemopen */
