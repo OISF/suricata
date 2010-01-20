@@ -738,10 +738,10 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         goto remove_tracker;
     }
 
-    int payload_len = 0;
     int fragmentable_offset = 0;
-    int pktlen = 0;
+    int fragmentable_len = 0;
     int hlen = 0;
+    int ip_hdr_offset = 0;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
         if (frag->skip)
             continue;
@@ -753,30 +753,33 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
             memcpy(rp->pkt, frag->pkt, frag->len);
             rp->ip4h = (IPV4Hdr *)(rp->pkt + frag->ip_hdr_offset);
             hlen = frag->hlen;
+            ip_hdr_offset = frag->ip_hdr_offset;
 
             /* This is the start of the fragmentable portion of the
              * first packet.  All fragment offsets are relative to
              * this. */
             fragmentable_offset = frag->ip_hdr_offset + frag->hlen;
-
-            pktlen = frag->ip_hdr_offset + sizeof(IPV4Hdr);
+            fragmentable_len = frag->data_len;
         }
         else {
+            BUG_ON(fragmentable_offset + frag->offset + frag->data_len >
+                (int)sizeof(rp->pkt));
             memcpy(rp->pkt + fragmentable_offset + frag->offset + frag->ltrim,
                 frag->pkt + frag->data_offset + frag->ltrim,
                 frag->data_len - frag->ltrim);
-            payload_len += frag->data_len - frag->ltrim;
+            if (frag->offset + frag->data_len > fragmentable_len)
+                fragmentable_len = frag->offset + frag->data_len;
         }
     }
     BUG_ON(rp->ip4h == NULL);
 
     int old = rp->ip4h->ip_len + rp->ip4h->ip_off;
-    rp->ip4h->ip_len = htons(payload_len + hlen);
+    rp->ip4h->ip_len = htons(fragmentable_len + hlen);
     rp->ip4h->ip_off = 0;
     rp->ip4h->ip_csum = FixChecksum(rp->ip4h->ip_csum,
         old, rp->ip4h->ip_len + rp->ip4h->ip_off);
-
-    rp->pktlen = pktlen + payload_len;
+    rp->pktlen = ip_hdr_offset + hlen + fragmentable_len;
+    IPV4_CACHE_INIT(rp);
 
 remove_tracker:
     /* Remove the frag tracker. */
@@ -854,9 +857,9 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         goto remove_tracker;
     }
 
-    int payload_len = 0;
     int fragmentable_offset = 0;
-    int pktlen = 0;
+    int fragmentable_len = 0;
+    int ip_hdr_offset = 0;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
         if (frag->skip)
             continue;
@@ -871,25 +874,25 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
                 frag->pkt + frag->frag_hdr_offset + sizeof(IPV6FragHdr),
                 frag->data_len);
             rp->ip6h = (IPV6Hdr *)(rp->pkt + frag->ip_hdr_offset);
-            payload_len = ntohs(rp->ip6h->s_ip6_plen) - sizeof(IPV6FragHdr);
+            ip_hdr_offset = frag->ip_hdr_offset;
 
             /* This is the start of the fragmentable portion of the
              * first packet.  All fragment offsets are relative to
              * this. */
             fragmentable_offset = frag->frag_hdr_offset;
-
-            pktlen = frag->ip_hdr_offset + sizeof(IPV6Hdr);
+            fragmentable_len = frag->data_len;
         }
         else {
             memcpy(rp->pkt + fragmentable_offset + frag->offset + frag->ltrim,
                 frag->pkt + frag->data_offset + frag->ltrim,
                 frag->data_len - frag->ltrim);
-            payload_len += frag->data_len - frag->ltrim;
+            if (frag->offset + frag->data_len > fragmentable_len)
+                fragmentable_len = frag->offset + frag->data_len;
         }
     }
     BUG_ON(rp->ip6h == NULL);
-    rp->ip6h->s_ip6_plen = htons(payload_len);
-    rp->pktlen = pktlen + payload_len;
+    rp->ip6h->s_ip6_plen = htons(fragmentable_len);
+    rp->pktlen = ip_hdr_offset + sizeof(IPV6Hdr) + fragmentable_len;
 
 remove_tracker:
     /* Remove the frag tracker. */
@@ -1242,6 +1245,11 @@ DefragInOrderSimpleTest(void)
     if (reassembled == NULL)
         goto end;
 
+    if (IPV4_GET_HLEN(reassembled) != 20)
+        goto end;
+    if (IPV4_GET_IPLEN(reassembled) != 39)
+        goto end;
+
     /* 20 bytes in we should find 8 bytes of A. */
     for (i = 20; i < 20 + 8; i++) {
         if (reassembled->pkt[i] != 'A')
@@ -1316,6 +1324,11 @@ DefragReverseSimpleTest(void)
     if (reassembled == NULL)
         goto end;
 
+    if (IPV4_GET_HLEN(reassembled) != 20)
+        goto end;
+    if (IPV4_GET_IPLEN(reassembled) != 39)
+        goto end;
+
     /* 20 bytes in we should find 8 bytes of A. */
     for (i = 20; i < 20 + 8; i++) {
         if (reassembled->pkt[i] != 'A')
@@ -1388,6 +1401,9 @@ IPV6DefragInOrderSimpleTest(void)
         goto end;
     reassembled = Defrag(NULL, dc, p3);
     if (reassembled == NULL)
+        goto end;
+
+    if (IPV6_GET_PLEN(reassembled) != 19)
         goto end;
 
     /* 40 bytes in we should find 8 bytes of A. */
@@ -1588,6 +1604,12 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     Packet *reassembled = Defrag(NULL, dc, packets[16]);
     if (reassembled == NULL)
         goto end;
+
+    if (IPV4_GET_HLEN(reassembled) != 20)
+        goto end;
+    if (IPV4_GET_IPLEN(reassembled) != 20 + 192)
+        goto end;
+
     if (memcmp(reassembled->pkt + 20, expected, expected_len) != 0)
         goto end;
     free(reassembled);
@@ -1781,6 +1803,10 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
         goto end;
     if (memcmp(reassembled->pkt + 40, expected, expected_len) != 0)
         goto end;
+
+    if (IPV6_GET_PLEN(reassembled) != 192)
+        goto end;
+
     free(reassembled);
 
     /* Make sure the tracker was released back to the pool. */

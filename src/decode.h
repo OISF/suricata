@@ -241,9 +241,9 @@ typedef struct Packet_
     /** data linktype in host order */
     int datalink;
 
-    /* storage */
-    uint8_t pkt[65536];
-    uint16_t pktlen;
+    /* storage: maximum ip packet size + link header */
+    uint8_t pkt[65536 + 28];
+    uint32_t pktlen;
 
     /* flow */
     struct Flow_ *flow;
