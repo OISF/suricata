@@ -71,6 +71,7 @@ detect-sid.c detect-sid.h \
 detect-priority.c detect-priority.h \
 detect-rev.c detect-rev.h \
 detect-classtype.c detect-classtype.h \
+util-fmemopen.c util-fmemopen.h \
 detect-reference.c detect-reference.h \
 detect-tag.c detect-tag.h \
 detect-threshold.c detect-threshold.h \

@@ -12,6 +12,7 @@
 #include "util-unittest.h"
 #include "util-error.h"
 #include "util-debug.h"
+#include "util-fmemopen.h"
 
 /* Regex to parse the classtype argument from a Signature.  The first substring
  * holds the classtype name, the second substring holds the classtype the
@@ -472,9 +473,9 @@ void SCClassConfGenerateValidDummyClassConfigFD01(void)
         "config classification: unknown,Unknown are we,3\n"
         "config classification: bad-unknown,We think it's bad, 2\n";
 
-    fd = fmemopen((void *)buffer, strlen(buffer), "r");
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
-        SCLogDebug("Error with fmemopen() called by Classifiation Config test code");
+        SCLogDebug("Error with SCFmemopen() called by Classifiation Config test code");
 
     return;
 }
@@ -496,9 +497,9 @@ void SCClassConfGenerateInValidDummyClassConfigFD02(void)
         "config classification: policy-violation,Potential Corporate "
         "config classification: bamboola,Unknown Traffic,3\n";
 
-    fd = fmemopen((void *)buffer, strlen(buffer), "r");
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
-        SCLogDebug("Error with fmemopen() called by Classifiation Config test code");
+        SCLogDebug("Error with SCFmemopen() called by Classifiation Config test code");
 
     return;
 }
@@ -517,9 +518,9 @@ void SCClassConfGenerateInValidDummyClassConfigFD03(void)
         "config classification: _badunknown,Potentially Bad Traffic, 2\n"
         "config classification: misc-activity,Misc activity,-1\n";
 
-    fd = fmemopen((void *)buffer, strlen(buffer), "r");
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
-        SCLogDebug("Error with fmemopen() called by Classifiation Config test code");
+        SCLogDebug("Error with SCFmemopen() called by Classifiation Config test code");
 
     return;
 }
