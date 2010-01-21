@@ -224,6 +224,9 @@ char *DetectLoadCompleteSigPath(char *sig_file)
 int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
     Signature *sig = NULL;
     int good = 0, bad = 0;
+    char line[8192] = "";
+    size_t offset = 0;
+    int lineno = 0, multiline = 0;
 
     if (sig_file == NULL) {
         SCLogError(SC_INVALID_ARGUMENT, "ERROR opening rule file null.");
@@ -236,9 +239,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
                    " %s.", sig_file, strerror(errno));
         return -1;
     }
-    char line[8192] = "";
-    size_t offset = 0;
-    int lineno = 0, multiline = 0;
+
     while(fgets(line + offset, (int)sizeof(line) - offset, fp) != NULL) {
         lineno++;
         size_t len = strlen(line);
@@ -262,7 +263,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
 
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
-        if (line[len - 1] == '\n') {
+        if (len > 0 && line[len - 1] == '\n') {
             line[len - 1] = '\0';
         }
 
@@ -274,8 +275,9 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         if (sig != NULL) {
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
-        } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing signature \"%s\" from file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+	} else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing signature \"%s\" from "
+                 "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
             if (de_ctx->failure_fatal == 1) {
                 exit(EXIT_FAILURE);
             }
@@ -345,7 +347,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     if (rule_files != NULL) {
         TAILQ_FOREACH(file, &rule_files->head, next) {
             sfile = DetectLoadCompleteSigPath(file->val);
-            SCLogInfo("Loading rule file: %s", sfile);
+            SCLogDebug("Loading rule file: %s", sfile);
 
             r = DetectLoadSigFile(de_ctx, sfile, &sigtotal);
             cntf++;
