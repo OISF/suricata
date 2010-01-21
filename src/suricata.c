@@ -662,8 +662,9 @@ int main(int argc, char **argv)
     }
     else if (mode == MODE_PFRING) {
         //RunModeIdsPfring3(de_ctx, pfring_dev);
-        RunModeIdsPfring2(de_ctx, pfring_dev);
-        RunModeIdsPfring(de_ctx, pfring_dev);
+        //RunModeIdsPfring2(de_ctx, pfring_dev);
+        //RunModeIdsPfring(de_ctx, pfring_dev);
+        RunModeIdsPfring4(de_ctx, pfring_dev);
     }
     else if (mode == MODE_NFQ) {
         RunModeIpsNFQ(de_ctx);

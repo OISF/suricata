@@ -13,6 +13,7 @@ int RunModeFilePcap2(DetectEngineCtx *, char *);
 int RunModeIdsPfring(DetectEngineCtx *, char *);
 int RunModeIdsPfring2(DetectEngineCtx *, char *);
 int RunModeIdsPfring3(DetectEngineCtx *, char *);
+int RunModeIdsPfring4(DetectEngineCtx *, char *);
 
 void RunModeShutDown(void);
 
