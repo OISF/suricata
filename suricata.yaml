@@ -6,6 +6,7 @@
 # overridden with the -l command line parameter.
 default-log-dir: /var/log/suricata
 
+# Configure the type of alert (and other) logging you would like.
 outputs:
 
   - fast:
@@ -112,43 +113,31 @@ stream:
 logging:
 
   # The default log level, can be overridden in an output section.
-  default-log-level: debug
+  # Note that debug level logging will only be emitted if Suricata was
+  # compiled with the --enable-debug configure option.
+  default-log-level: info
 
   # The default output format.  Optional parameter, should default to
   # something reasonable if not provided.  Can be overriden in an
-  # output section.
-  default-format: "<%t> - <%l>"
-
-  # Default startup message.  Optional parameter, should default to
-  # something reasonable if not provided.  Can be overridden in an
-  # output section.
-  default-startup-message: Your IDS has started.
+  # output section.  You can leave this out to get the default.
+  #default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
 
   # A regex to filter output.  Can be overridden in an output section.
   # Defaults to empty (no filter).
   default-output-filter:
 
-  # Configure the outputs.  If no outputs are specified the engine
-  # will log to the console with an error log level.
-  output:
-
-  # Enable logging to the console.  Be a little more verbose than
-  # default, log info and more critical.
-  - interface: console
-    log-level: error
-
-  # Log to a file as well.  No log level specified so level will be
-  # set to the default-log-level.
-  - interface: file
-    filename: /var/log/suricata.log
-
-  # Log to syslog with facility local5.  Again, no level specified so
-  # will level will be set to default-log-level.  We also override the
-  # format as we don't want to log a timestamp, syslog will do that
-  # for us.
-  - interface: syslog
-    facility: local5
-    format: "%l"
+  # Define your logging outputs.  If none are define, or they are all
+  # disabled you will get the default - console output.
+  outputs:
+  - console:
+      enabled: yes
+  - file:
+      enabled: no
+      filename: /var/log/suricata.log
+  - syslog:
+      enabled: no
+      facility: local5
+      format: "[%i] <%d> -- "
 
 # PF_RING configuration. for use with native PF_RING support
 # for more info see http://www.ntop.org/PF_RING.html

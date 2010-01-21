@@ -256,9 +256,9 @@ void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
 SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                      unsigned line, const char *function)
 {
-	char *temp_fmt = strdup(sc_log_config->log_format);
+    char *temp_fmt = strdup(sc_log_config->log_format);
     char *temp_fmt_h = temp_fmt;
-	char *substr = temp_fmt;
+    char *substr = temp_fmt;
     char *temp = *msg;
     const char *s = NULL;
 
@@ -1010,53 +1010,103 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
 void SCLogLoadConfig(void)
 {
     ConfNode *outputs;
+    SCLogInitData *sc_lid;
 
-    outputs = ConfGetNode("logging.output");
+    outputs = ConfGetNode("logging.outputs");
     if (outputs == NULL) {
         SCLogDebug("No logging.output configuration section found.");
         return;
     }
 
-    /* Process each output. */
-    ConfNode *output;
-    TAILQ_FOREACH(output, &outputs->head, next) {
-        //ConfNode *param;
-        const char *interface = NULL;
-        const char *log_level = NULL;
-        const char *facility = NULL;
-        //const char *filename = NULL;
-        const char *format = NULL;
+    sc_lid = SCLogAllocLogInitData();
 
-        interface = ConfNodeLookupChildValue(output, "interface");
-        if (interface == NULL) {
-            /* No interface in this item, ignore. */
-            continue;
-        }
-        if (SCMapEnumNameToValue(interface, sc_log_op_iface_map) < 0) {
-            SCLogError(SC_INVALID_ARGUMENT,
-                "Invalid logging interface: %s", interface);
+    /* Get default log level and format. */
+    char *default_log_level_s = NULL;
+    if (ConfGet("logging.default-log-level", &default_log_level_s) == 1) {
+        sc_lid->global_log_level =
+            SCMapEnumNameToValue(default_log_level_s, sc_log_level_map);
+        if (sc_lid->global_log_level == -1) {
+            SCLogError(SC_INVALID_ARGUMENT, "Invalid default log level: %s",
+                default_log_level_s);
             exit(EXIT_FAILURE);
         }
+    }
+    else {
+        SCLogWarning(SC_ERR_MISSING_CONFIG_PARAM,
+            "No default log level set, will use info.");
+        sc_lid->global_log_level = SC_LOG_INFO;
+    }
+    if (ConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
+        sc_lid->global_log_format = SC_LOG_DEF_LOG_FORMAT;
 
-        /* Any output may have a log-level set. */
-        log_level = ConfNodeLookupChildValue(output, "log-level");
+    ConfNode *seq_node, *output;
+    TAILQ_FOREACH(seq_node, &outputs->head, next) {
+        SCLogLevel level = sc_lid->global_log_level;
+        SCLogOPIfaceCtx *op_iface_ctx = NULL;
+        const char *format;
+        const char *level_s;
 
-        /* Any output may have a format set. */
+        output = ConfNodeLookupChild(seq_node, seq_node->val);
+        if (output == NULL)
+            continue;
+
+        /* By default an output is enabled. */
+        const char *enabled = ConfNodeLookupChildValue(output, "enabled");
+        if (enabled != NULL && strcmp(enabled, "no") == 0)
+            continue;
+
         format = ConfNodeLookupChildValue(output, "format");
-
-        if (strcmp(interface, "console") == 0) {
-            /* No other lookups required for console logging. */
-            /* \todo Setup console logging... */
+        level_s = ConfNodeLookupChildValue(output, "level");
+        if (level_s != NULL) {
+            level = SCMapEnumNameToValue(level_s, sc_log_level_map);
+            if (level == -1) {
+                SCLogError(SC_INVALID_ARGUMENT, "Invalid log level: %s",
+                    level_s);
+                exit(EXIT_FAILURE);
+            }
         }
-        else if (strcmp(interface, "syslog") == 0) {
-            /* \todo Setup syslog logging. */
-            facility = ConfNodeLookupChildValue(output, "facility");
+
+        if (strcmp(output->name, "console") == 0) {
+            op_iface_ctx = SCLogInitConsoleOPIface(format, level);
+        }
+        else if (strcmp(output->name, "file") == 0) {
+            const char *filename = ConfNodeLookupChildValue(output, "filename");
+            if (filename == NULL) {
+                SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
+                    "Logging to file requires a filename");
+                exit(EXIT_FAILURE);
+            }
+            op_iface_ctx = SCLogInitFileOPIface(filename, format, level);
+        }
+        else if (strcmp(output->name, "syslog") == 0) {
+            int facility = SC_LOG_DEF_SYSLOG_FACILITY;
+            const char *facility_s = ConfNodeLookupChildValue(output,
+                "facility");
+            if (facility_s != NULL) {
+                facility = SCMapEnumNameToValue(facility_s,
+                    sc_syslog_facility_map);
+                if (facility == -1) {
+                    SCLogError(SC_INVALID_ARGUMENT,
+                        "Invalid syslog facility: %s", facility_s);
+                    exit(EXIT_FAILURE);
+                }
+            }
+            printf("Initialization syslog logging with format \"%s\".\n",
+                format);
+            op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level);
         }
         else {
-            SCLogWarning(SC_UNIMPLEMENTED,
-                "Ignoring unknown logging interface: %s", interface);
+            SCLogWarning(SC_INVALID_ARGUMENT, "Invalid logging method: %s, "
+                "ignoring", output->name);
+        }
+        if (op_iface_ctx != NULL) {
+            SCLogAppendOPIfaceCtx(op_iface_ctx, sc_lid);
         }
     }
+
+    SCLogInitLogModule(sc_lid);
+    //exit(1);
+    /* \todo Can we free sc_lid now? */
 }
 
 /**
