@@ -509,199 +509,40 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
-/** \brief application layer detection
- *
- *  \param sgh signature group head for this proto/addrs/ports
- *  \warning Make sure to exit this function using "goto end" if the flow
- *           use_cnt has already been incremented.
- */
-static int SigMatchSignaturesAppLayer(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh, Packet *p)
-{
-    SCEnter();
-
-    int match = 0, fmatch = 0;
-    Signature *s = NULL;
-    SigMatch *sm = NULL;
-    uint32_t idx, sig;
-    uint8_t flags = 0;
-    uint16_t alproto = ALPROTO_UNKNOWN;
-    void *alstate = NULL;
-
-    /* if we didn't get a sig group head, we
-     * have nothing to do.... */
-    if (sgh == NULL) {
-        SCLogDebug("no sgh to detect");
-        SCReturnInt(0);
-    }
-
-    /* grab the protocol state we will detect on */
-    if (p->flow == NULL) {
-        SCReturnInt(0);
-    }
-
-    SCMutexLock(&p->flow->m);
-    p->flow->use_cnt++;
-    alstate = AppLayerGetProtoStateFromPacket(p);
-    alproto = AppLayerGetProtoFromPacket(p);
-    SCMutexUnlock(&p->flow->m);
-
-    if (alproto == ALPROTO_UNKNOWN) {
-        SCLogDebug("application layer state proto still unknown");
-        goto end;
-    }
-    if (alstate == NULL) {
-        SCLogDebug("no application layer state to detect");
-        goto end;
-    }
-
-    if (p->flowflags & FLOW_PKT_TOSERVER) {
-        flags |= STREAM_TOSERVER;
-    } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
-        flags |= STREAM_TOCLIENT;
-    }
-
-    SCLogDebug("p->flowflags 0x%02X flags 0x%02X", p->flowflags, flags);
-
-    /* inspect the sigs against the packet */
-    for (idx = 0; idx < sgh->sig_cnt; idx++) {
-        sig = sgh->match_array[idx];
-        s = de_ctx->sig_array[sig];
-
-        SCLogDebug("s->id %"PRIu32"", s->id);
-
-        /* only inspect app layer sigs here */
-        if (!(s->flags & SIG_FLAG_APPLAYER))
-            continue;
-
-        /* filter out the sigs that inspects the payload, if packet
-           no payload inspection flag is set*/
-        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD)) {
-            continue;
-        }
-
-        /* check the source & dst port in the sig */
-        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
-            if (!(s->flags & SIG_FLAG_DP_ANY)) {
-                DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
-                if (dport == NULL)
-                    continue;
-
-            }
-            if (!(s->flags & SIG_FLAG_SP_ANY)) {
-                DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
-                if (sport == NULL)
-                    continue;
-            }
-        }
-
-        /* check the source address */
-        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
-            if (saddr == NULL)
-                continue;
-        }
-        /* check the destination address */
-        if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
-            if (daddr == NULL)
-                continue;
-        }
-
-        /* if we don't have sigmatches at this point we're a match
-         * XXX VJ can we ever get here? Applayer inspection w/o sigmatches */
-        if (s->match == NULL) {
-            fmatch = 1;
-            if (!(s->flags & SIG_FLAG_NOALERT)) {
-                PacketAlertHandle(de_ctx,s,p);
-
-                /* set verdict on packet */
-                p->action = s->action;
-            }
-        } else {
-            /* reset pkt ptr and offset */
-            det_ctx->pkt_ptr = NULL;
-            det_ctx->pkt_off = 0;
-
-            sm = s->match;
-            while (sm) {
-                if (sigmatch_table[sm->type].AppLayerMatch == NULL) {
-                    /* if no match function we assume this sm is a match */
-                    match = 1;
-                    SCLogDebug("no app layer match function, sigmatch is (pkt)Match only");
-                } else if (sigmatch_table[sm->type].alproto != alproto) {
-                    match = 0;
-                    SCLogDebug("app layer match function %s is for proto "
-                            "%"PRIu16", got proto %"PRIu16"",
-                            sigmatch_table[sm->type].name,
-                            sigmatch_table[sm->type].alproto, alproto);
-                } else {
-                    match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
-                    SCLogDebug("sigmatch AppLayerMatch function returned match %"PRIu32"", match);
-                }
-
-                if (match) {
-                    /* okay, try the next match */
-                    sm = sm->next;
-
-                    /* only if the last matched as well, we have a hit */
-                    if (sm == NULL) {
-                        fmatch = 1;
-
-                        SCLogDebug("DE : sig %" PRIu32 " matched", s->id);
-
-                        if (!(s->flags & SIG_FLAG_NOALERT)) {
-                            /* if the sig also has a packet portion see if that has matched already */
-                            if (s->flags & SIG_FLAG_PACKET) {
-                                SCLogDebug("checking sid %"PRIu32"", s->id);
-
-                                if (FlowAlertSidIsset(p->flow, s->id) ) {
-                                    SCLogDebug("flowalertsid sid %"PRIu32", isset", s->id);
-
-                                    PacketAlertHandle(de_ctx,s,p);
-
-                                    /* set verdict on packet */
-                                    p->action = s->action;
-                                }
-                            } else {
-                                PacketAlertHandle(de_ctx,s,p);
-
-                                /* set verdict on packet */
-                                p->action = s->action;
-                            }
-                        }
-                    }
-                } else {
-                    /* done with this sig */
-                    sm = NULL;
-                }
-            }
-        }
-    }
-
-end:
-    SCMutexLock(&p->flow->m);
-    p->flow->use_cnt--;
-    SCMutexUnlock(&p->flow->m);
-    SCReturnInt(fmatch);
-}
-
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     int match = 0, fmatch = 0;
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint32_t idx,sig;
+    uint16_t alproto = ALPROTO_UNKNOWN;
+    void *alstate = NULL;
+    uint8_t flags = 0;
 
     SCEnter();
 
     det_ctx->pkts++;
 
-    SCLogDebug("p->flowflags 0x%02x", p->flowflags);
+    /* grab the protocol state we will detect on */
+    if (p->flow != NULL) {
+        SCMutexLock(&p->flow->m);
+        p->flow->use_cnt++;
+        alstate = AppLayerGetProtoStateFromPacket(p);
+        alproto = AppLayerGetProtoFromPacket(p);
+        SCMutexUnlock(&p->flow->m);
+
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flags |= STREAM_TOSERVER;
+        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+            flags |= STREAM_TOCLIENT;
+        }
+        SCLogDebug("p->flowflags 0x%02x", p->flowflags);
+    }
 
     /* match the ip only signatures */
     if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
         (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
-        SCLogDebug("testing against \"ip-only\"");
+        SCLogDebug("testing against \"ip-only\" signatures");
 
         IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
         /* save in the flow that we scanned this direction... locking is
@@ -718,7 +559,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
      * have nothing to do.... */
     if (det_ctx->sgh == NULL) {
         SCLogDebug("no sgh for this packet, nothing to match against");
-        SCReturnInt(0);
+        goto end;
     }
 
     if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL && !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
@@ -769,12 +610,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
            no payload inspection flag is set*/
         if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD)) {
             SCLogDebug("no payload inspection enabled and sig has payload portion.");
-            continue;
-        }
-
-        /* don't inspect app layer only sigs here */
-        if (!(s->flags & SIG_FLAG_PACKET)) {
-            SCLogDebug("sig id %"PRIu32" is app layer inspecting only", s->id);
             continue;
         }
 
@@ -849,12 +684,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 do {
                     sm = s->match;
                     while (sm) {
-                        if (sigmatch_table[sm->type].Match == NULL) {
-                            /* if no match function we assume this sm is a match */
-                            match = 1;
-                        } else {
+                        match = 0;
+
+                        /* app layer match has preference */
+                        if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
+                                alproto == sigmatch_table[sm->type].alproto &&
+                                alstate != NULL) {
+                            match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
+                        } else if (sigmatch_table[sm->type].Match != NULL) {
                             match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                         }
+
                         if (match) {
                             /* okay, try the next match */
                             sm = sm->next;
@@ -888,12 +728,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                 SCLogDebug("running match functions, sm %p", sm);
                 while (sm) {
-                    /* if this sm has no Match function we assume it's a match */
-                    if (sigmatch_table[sm->type].Match == NULL) {
-                        match = 1;
-                    } else {
+                    match = 0;
+
+                    /* app layer match has preference */
+                    if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
+                        alproto == sigmatch_table[sm->type].alproto &&
+                        alstate != NULL) {
+                        match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
+                    } else if (sigmatch_table[sm->type].Match != NULL) {
                         match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                     }
+
                     if (match) {
                         /* okay, try the next match */
                         sm = sm->next;
@@ -902,18 +747,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (sm == NULL) {
                             fmatch = 1;
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                                SCLogDebug("sig matched, applayer flag set ? %s", s->flags & SIG_FLAG_APPLAYER ? "yes":"no");
 
                                 /* set flowbit for this match */
-                                if (s->flags & SIG_FLAG_APPLAYER) {
-                                    SCLogDebug("setting flowalertsid for sig %"PRIu32"", s->id);
-                                    FlowAlertSidSet(p->flow, s->id);
-                                } else {
-                                    PacketAlertHandle(de_ctx,s,p);
+                                PacketAlertHandle(de_ctx,s,p);
 
-                                    /* set verdict on packet */
-                                    p->action = s->action;
-                                }
+                                /* set verdict on packet */
+                                p->action = s->action;
                             }
                         }
                     } else {
@@ -929,10 +768,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
 
-    SCLogDebug("Running Application Layer match functions, sm %p", sm);
-    match = SigMatchSignaturesAppLayer(th_v, de_ctx, det_ctx, det_ctx->sgh, p);
-    if (match > 0) {
-        fmatch = 1;
+end:
+    if (p->flow != NULL) {
+        SCMutexLock(&p->flow->m);
+        p->flow->use_cnt--;
+        SCMutexUnlock(&p->flow->m);
     }
 
     SCReturnInt(fmatch);

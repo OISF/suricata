@@ -340,8 +340,6 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     cd->id = de_ctx->uricontent_max_id;
     de_ctx->uricontent_max_id++;
 
-    s->flags |= SIG_FLAG_MPM;
-
     if (dubbed) free(str);
     return 0;
 

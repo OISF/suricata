@@ -1465,8 +1465,6 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
             aux->id = de_ctx->content_max_id;
             de_ctx->content_max_id++;
 
-            s->flags |= SIG_FLAG_MPM;
-
             /** We need to setup the modifiers for the chunks respect
               * the last chunk installed inmediatelly before
               * so do the propagation from the first one
@@ -1506,10 +1504,6 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
         cd->id = de_ctx->content_max_id;
         de_ctx->content_max_id++;
-
-        s->flags |= SIG_FLAG_MPM;
-        if (cd->negated == 1)
-            s->flags |= SIG_FLAG_MPM_NEGCONTENT;
 
         DetectContentPrint(cd);
     }

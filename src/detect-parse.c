@@ -617,6 +617,28 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     sig->num = de_ctx->signum;
     de_ctx->signum++;
 
+    /* see if need to set the SIG_FLAG_MPM flag */
+    SigMatch *sm;
+    for (sm = sig->match; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_CONTENT) {
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if (cd == NULL)
+                continue;
+
+            sig->flags |= SIG_FLAG_MPM;
+
+            if (cd->negated == 1) {
+                sig->flags |= SIG_FLAG_MPM_NEGCONTENT;
+            }
+        } else if (sm->type == DETECT_URICONTENT) {
+            DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+            if (ud == NULL)
+                continue;
+
+            sig->flags |= SIG_FLAG_MPM;
+        }
+    }
+
     /* set mpm_content_len */
 
     /* determine the length of the longest pattern in the sig */
@@ -624,7 +646,6 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->mpm_content_maxlen = 0;
         sig->mpm_uricontent_maxlen = 0;
 
-        SigMatch *sm;
         for (sm = sig->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -705,6 +726,28 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     sig->num = de_ctx->signum;
     de_ctx->signum++;
 
+    /* see if need to set the SIG_FLAG_MPM flag */
+    SigMatch *sm;
+    for (sm = sig->match; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_CONTENT) {
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if (cd == NULL)
+                continue;
+
+            sig->flags |= SIG_FLAG_MPM;
+
+            if (cd->negated == 1) {
+                sig->flags |= SIG_FLAG_MPM_NEGCONTENT;
+            }
+        } else if (sm->type == DETECT_URICONTENT) {
+            DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+            if (ud == NULL)
+                continue;
+
+            sig->flags |= SIG_FLAG_MPM;
+        }
+    }
+
     /* set mpm_content_len */
 
     /* determine the length of the longest pattern in the sig */
@@ -712,7 +755,6 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->mpm_content_maxlen = 0;
         sig->mpm_uricontent_maxlen = 0;
 
-        SigMatch *sm;
         for (sm = sig->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
