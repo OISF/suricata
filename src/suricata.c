@@ -87,6 +87,8 @@
 
 #include "runmodes.h"
 
+#include "util-cuda.h"
+
 #include "util-debug.h"
 #include "util-error.h"
 #include "detect-engine-siggroup.h"
@@ -383,6 +385,9 @@ int main(int argc, char **argv)
 
     /* Initialize the configuration module. */
     ConfInit();
+
+    /* Init the CUDA environment */
+    SCCudaInitCudaEnvironment();
 
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
@@ -713,6 +718,7 @@ int main(int argc, char **argv)
         ThreadMacrosRegisterTests();
         UtilSpmSearchRegistertests();
         SCClassConfRegisterTests();
+        SCCudaRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

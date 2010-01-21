@@ -143,6 +143,7 @@ util-random.c util-random.h \
 util-classification-config.c util-classification-config.h \
 util-strlcatu.c \
 util-strlcpyu.c \
+util-cuda.c util-cuda.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

@@ -33,6 +33,7 @@ enum {
 
     MPM_WUMANBER,
     MPM_B2G,
+    MPM_B2G_CUDA,
     MPM_B3G,
 
     /* table size */
