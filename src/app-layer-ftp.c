@@ -23,7 +23,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ftp.h"
 
-#include "util-binsearch.h"
+#include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 

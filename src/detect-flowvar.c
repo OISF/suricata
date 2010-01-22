@@ -10,7 +10,7 @@
 #include "flow.h"
 #include "flow-var.h"
 #include "detect-flowvar.h"
-#include "util-binsearch.h"
+#include "util-spm.h"
 #include "util-var-name.h"
 #include "util-debug.h"
 
@@ -68,7 +68,7 @@ int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 
     FlowVar *fv = FlowVarGet(p->flow, fd->idx);
     if (fv != NULL) {
-        uint8_t *ptr = BinSearch(fv->data.fv_str.value,
+        uint8_t *ptr = SpmSearch(fv->data.fv_str.value,
                                  fv->data.fv_str.value_len,
                                  fd->content, fd->content_len);
         if (ptr != NULL)

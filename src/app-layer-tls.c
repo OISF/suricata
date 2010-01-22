@@ -26,7 +26,7 @@
 
 #include "app-layer-tls.h"
 
-#include "util-binsearch.h"
+#include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "flow-private.h"

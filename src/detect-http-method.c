@@ -21,7 +21,7 @@
 
 #include "util-debug.h"
 #include "util-unittest.h"
-#include "util-binsearch.h"
+#include "util-spm.h"
 
 #include "app-layer.h"
 
@@ -99,7 +99,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         const uint8_t *meth_str = (const uint8_t *)bstr_ptr(tx->request_method);
 
         if (   (meth_str != NULL)
-            && BinSearch(meth_str, bstr_size(tx->request_method),
+            && SpmSearch((uint8_t*)meth_str, bstr_size(tx->request_method),
                          data->content, data->content_len) != NULL)
         {
             SCLogDebug("Matched raw HTTP method values.");

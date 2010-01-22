@@ -101,7 +101,10 @@ detect-dce-opnum.c detect-dce-opnum.h \
 detect-dce-stub-data.c detect-dce-stub-data.h \
 util-print.c util-print.h \
 util-mpm.c util-mpm.h \
-util-binsearch.c util-binsearch.h \
+util-spm.c util-spm.h util-clock.h \
+util-spm-bs.c util-spm-bs.h \
+util-spm-bs2bm.c util-spm-bs2bm.h \
+util-spm-bm.c util-spm-bm.h \
 util-mpm-wumanber.c util-mpm-wumanber.h \
 util-mpm-b2g.c util-mpm-b2g.h \
 util-mpm-b3g.c util-mpm-b3g.h \

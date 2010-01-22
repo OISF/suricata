@@ -13,7 +13,7 @@
 #include "threads.h"
 #include "threadvars.h"
 
-#include "util-binsearch.h"
+#include "util-spm.h"
 #include "util-hash.h"
 #include "util-hashlist.h"
 #include "util-bloomfilter.h"
@@ -500,7 +500,6 @@ int main(int argc, char **argv)
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    BinSearchInit();
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -591,6 +590,7 @@ int main(int argc, char **argv)
         SCRuleVarsRegisterTests();
         AppLayerParserRegisterTests();
         ThreadMacrosRegisterTests();
+        UtilSpmSearchRegistertests();
         SCClassConfRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);

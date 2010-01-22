@@ -12,7 +12,7 @@
 #include "flow.h"
 #include "flow-var.h"
 #include "detect-flowint.h"
-#include "util-binsearch.h"
+#include "util-spm.h"
 #include "util-var-name.h"
 #include "util-debug.h"
 #include "util-unittest.h"

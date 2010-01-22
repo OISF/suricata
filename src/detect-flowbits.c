@@ -12,7 +12,7 @@
 #include "flow.h"
 #include "flow-bit.h"
 #include "detect-flowbits.h"
-#include "util-binsearch.h"
+#include "util-spm.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"

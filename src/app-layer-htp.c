@@ -24,7 +24,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
-#include "util-binsearch.h"
+#include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "app-layer-htp.h"

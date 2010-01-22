@@ -8,7 +8,7 @@
 #include "threads.h"
 #include "pkt-var.h"
 #include "detect-pktvar.h"
-#include "util-binsearch.h"
+#include "util-spm.h"
 #include "util-debug.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
@@ -64,7 +64,7 @@ int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
 
     PktVar *pv = PktVarGet(p, pd->name);
     if (pv != NULL) {
-        uint8_t *ptr = BinSearch(pv->value, pv->value_len, pd->content, pd->content_len);
+        uint8_t *ptr = SpmSearch(pv->value, pv->value_len, pd->content, pd->content_len);
         if (ptr != NULL)
             ret = 1;
     }

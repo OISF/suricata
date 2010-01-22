@@ -21,7 +21,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
-#include "util-binsearch.h"
+#include "util-spm.h"
 #include "util-unittest.h"
 
 #include "app-layer-smb.h"

@@ -20,7 +20,7 @@
 
 #include "util-debug.h"
 #include "util-unittest.h"
-#include "util-binsearch.h"
+#include "util-spm.h"
 #include "util-print.h"
 
 #include "app-layer.h"
@@ -114,7 +114,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     SCLogDebug("we have a cookie header");
 
-    if (BinSearch((const uint8_t *)bstr_ptr(h->value), bstr_size(h->value), co->data,
+    if (SpmSearch((uint8_t *)bstr_ptr(h->value), bstr_size(h->value), co->data,
             co->data_len) != NULL)
     {
         SCLogDebug("match has been found in received request and given http_"

@@ -16,7 +16,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
-#include "util-binsearch.h"
+#include "util-spm.h"
 
 #include "util-debug.h"
 
@@ -302,7 +302,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                 pstate->store_len, delim_len);
 
     if (pstate->store_len == 0) {
-        uint8_t *ptr = BinSearch(input, input_len, delim, delim_len);
+        uint8_t *ptr = SpmSearch(input, input_len, (uint8_t*)delim, delim_len);
         if (ptr != NULL) {
             uint32_t len = ptr - input;
             SCLogDebug(" len %" PRIu32 "", len);
@@ -333,7 +333,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
             pstate->store_len = input_len;
         }
     } else {
-        uint8_t *ptr = BinSearch(input, input_len, delim, delim_len);
+        uint8_t *ptr = SpmSearch(input, input_len, (uint8_t*)delim, delim_len);
         if (ptr != NULL) {
             uint32_t len = ptr - input;
             SCLogDebug("len %" PRIu32 " + %" PRIu32 " = %" PRIu32 "", len,
@@ -378,7 +378,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                     SCLogDebug("input_len < delim_len, checking pstate->store");
 
                     if (pstate->store_len >= delim_len) {
-                        ptr = BinSearch(pstate->store, pstate->store_len, delim,
+                        ptr = SpmSearch(pstate->store, pstate->store_len, (uint8_t*)delim,
                                         delim_len);
                         if (ptr != NULL) {
                             SCLogDebug("now we found the delim");
@@ -427,7 +427,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
             if (delim_len > input_len && delim_len <= pstate->store_len) {
                 SCLogDebug("input_len < delim_len, checking pstate->store");
 
-                ptr = BinSearch(pstate->store, pstate->store_len, delim, delim_len);
+                ptr = SpmSearch(pstate->store, pstate->store_len, (uint8_t*)delim, delim_len);
                 if (ptr != NULL) {
                     SCLogDebug("now we found the delim");
 
