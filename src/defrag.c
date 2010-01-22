@@ -516,6 +516,13 @@ DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
         data_len = IPV4_GET_IPLEN(p) - hlen;
         frag_end = frag_offset + data_len;
         ip_hdr_offset = (uint8_t *)p->ip4h - p->pkt;
+
+        /* Ignore fragment if the end of packet extends past the
+         * maximum size of a packet. */
+        if (IPV4_HEADER_LEN + frag_offset + data_len > IPV4_MAXPACKET_LEN) {
+            /** \todo Perhaps log something? */
+            return;
+        }
     }
     else if (tracker->family == AF_INET6) {
         more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
@@ -527,16 +534,18 @@ DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
         frag_end = frag_offset + data_len;
         ip_hdr_offset = (uint8_t *)p->ip6h - p->pkt;
         frag_hdr_offset = (uint8_t *)p->ip6eh.ip6fh - p->pkt;
+
+        /* Ignore fragment if the end of packet extends past the
+         * maximum size of a packet. */
+        if (frag_offset + data_len > IPV6_MAXPACKET) {
+            /** \todo Perhaps log something? */
+            return;
+        }
     }
     else {
         /* Abort - should not happen. */
         SCLogError(SC_INVALID_ARGUMENT, "Invalid address family, aborting.");
         exit(EXIT_FAILURE);
-    }
-
-    if (frag_offset + data_len > IPV4_MAXPACKET_LEN) {
-        /* \todo Log this - packet is too large to be re-assembled. */
-        return;
     }
 
     /* Lock this tracker as we'll be doing list operations on it. */
@@ -764,8 +773,11 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
             fragmentable_len = frag->data_len;
         }
         else {
-            BUG_ON(fragmentable_offset + frag->offset + frag->data_len >
-                (int)sizeof(rp->pkt));
+            int pkt_end = fragmentable_offset + frag->offset + frag->data_len;
+            if (pkt_end > (int)sizeof(rp->pkt)) {
+                SCLogWarning(SC_ERR_REASSEMBLY_FAILED, "Failed re-assemble fragmented packet, exceeds size of packet buffer.");
+                goto remove_tracker;
+            }
             memcpy(rp->pkt + fragmentable_offset + frag->offset + frag->ltrim,
                 frag->pkt + frag->data_offset + frag->ltrim,
                 frag->data_len - frag->ltrim);
@@ -2378,7 +2390,7 @@ DefragIPv4TooLargeTest(void)
 
     /* Create a fragment that would extend past the max allowable size
      * for an IPv4 packet. */
-    p = BuildTestPacket(1, 8190, 0, 'A', 8192);
+    p = BuildTestPacket(1, 8183, 0, 'A', 71);
     if (p == NULL)
         goto end;
 

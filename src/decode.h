@@ -242,7 +242,7 @@ typedef struct Packet_
     int datalink;
 
     /* storage: maximum ip packet size + link header */
-    uint8_t pkt[65536 + 28];
+    uint8_t pkt[IPV6_HEADER_LEN + 65536 + 28];
     uint32_t pktlen;
 
     /* flow */
