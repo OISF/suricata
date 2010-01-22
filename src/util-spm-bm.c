@@ -83,7 +83,7 @@ inline void PreBmGs(const uint8_t *x, int32_t m, int32_t *bmGs) {
     j = 0;
 
     for (i = m - 1; i >= -1; --i)
-        if (suff[i] == i + 1)
+        if (i == -1 || suff[i] == i + 1)
             for (; j < m - 1 - i; ++j)
                 if (bmGs[j] == m)
                     bmGs[j] = m - 1 - i;
@@ -154,7 +154,7 @@ inline void PreBmGsNocase(const uint8_t *x, int32_t m, int32_t *bmGs) {
     }
     j = 0;
     for (i = m - 1; i >= 0; --i) {
-        if (suff[i] == i + 1) {
+        if (i == -1 || suff[i] == i + 1) {
             for (; j < m - 1 - i; ++j) {
                 if (bmGs[j] == m) {
                     bmGs[j] = m - 1 - i;
