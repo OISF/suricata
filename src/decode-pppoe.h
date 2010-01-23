@@ -16,8 +16,8 @@
 
 typedef struct PPPOESessionHdr_
 {
-    unsigned pppoe_version : 4;
-    unsigned pppoe_type : 4;
+    uint8_t pppoe_version : 4;
+    uint8_t pppoe_type : 4;
     uint8_t pppoe_code;
     uint16_t session_id;
     uint16_t pppoe_length;
@@ -26,14 +26,14 @@ typedef struct PPPOESessionHdr_
 
 typedef struct PPPOEDiscoveryTag_
 {
-    uint16_t  pppoe_tag_type;
-    uint16_t  pppoe_tag_length;
+    uint16_t pppoe_tag_type;
+    uint16_t pppoe_tag_length;
 } PPPOEDiscoveryTag;
 
 typedef struct PPPOEDiscoveryHdr_
 {
-    unsigned pppoe_version : 4;
-    unsigned pppoe_type : 4;
+    uint8_t pppoe_version : 4;
+    uint8_t pppoe_type : 4;
     uint8_t pppoe_code;
     uint16_t discovery_id;
     uint16_t pppoe_length;

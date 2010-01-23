@@ -36,7 +36,7 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
         return;
 
     /* parse the PPPOE code */
-    switch (ntohs(p->pppoedh->pppoe_code))
+    switch (p->pppoedh->pppoe_code)
     {
         case  PPPOE_CODE_PADI:
             break;
@@ -48,33 +48,37 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
             break;
         case PPPOE_CODE_PADT:
             break;
-
         default:
-            SCLogDebug("unknown PPPOE code: %" PRIx32 "",ntohs(p->pppoedh->pppoe_code));
+            SCLogDebug("unknown PPPOE code: 0x%0"PRIX8"", p->pppoedh->pppoe_code);
             DECODER_SET_EVENT(p,PPPOE_WRONG_CODE);
+            return;
     }
 
     /* parse any tags we have in the packet */
 
-    uint16_t tag_type, tag_length;
+    uint16_t tag_type = 0, tag_length = 0;
     PPPOEDiscoveryTag* pppoedt = (PPPOEDiscoveryTag*) (p->pppoedh +  PPPOE_DISCOVERY_HEADER_MIN_LEN);
 
     uint16_t pppoe_length = ntohs(p->pppoedh->pppoe_length);
     uint16_t packet_length = len - PPPOE_DISCOVERY_HEADER_MIN_LEN ;
 
-    if (pppoe_length>packet_length) {
+    SCLogDebug("pppoe_length %"PRIu16", packet_length %"PRIu16"",
+        pppoe_length, packet_length);
+
+    if (pppoe_length > packet_length) {
         SCLogDebug("malformed PPPOE tags");
         DECODER_SET_EVENT(p,PPPOE_MALFORMED_TAGS);
+        return;
     }
 
-    while (pppoe_length>=4 && packet_length>=4)
+    while (pppoe_length >=4 && packet_length >=4)
     {
         tag_type = ntohs(pppoedt->pppoe_tag_type);
         tag_length = ntohs(pppoedt->pppoe_tag_length);
 
         SCLogDebug ("PPPoE Tag type %x, length %u", tag_type, tag_length);
 
-        if (pppoe_length >= 4+tag_length) {
+        if (pppoe_length >= (4 + tag_length)) {
             pppoe_length -= (4 + tag_length);
         } else {
             pppoe_length = 0; // don't want an underflow
@@ -89,6 +93,7 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
         pppoedt = pppoedt + (4 + tag_length);
     }
 
+    return;
 }
 
 /**
@@ -283,8 +288,10 @@ static int DecodePPPOEtest03 (void)   {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodePPPOEDiscovery(&tv, &dtv, &p, raw_pppoe, sizeof(raw_pppoe), NULL);
+    if (p.pppoedh == NULL)
+        return 0;
 
-    return 1; // TODO
+    return 1;
 }
 
 /** DecodePPPOEtest04
