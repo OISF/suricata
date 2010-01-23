@@ -99,6 +99,7 @@ detect-icmp-seq.c detect-icmp-seq.h \
 detect-dce-iface.c detect-dce-iface.h \
 detect-dce-opnum.c detect-dce-opnum.h \
 detect-dce-stub-data.c detect-dce-stub-data.h \
+detect-urilen.c detect-urilen.h \
 util-print.c util-print.h \
 util-mpm.c util-mpm.h \
 util-spm.c util-spm.h util-clock.h \
