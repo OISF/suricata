@@ -1,3 +1,7 @@
+noinst_HEADERS = action-globals.h app-layer-http.h \
+	app-layer-nbss.h debug.h decode-events.h \
+	flow-private.h queue.h source-nfq-prototypes.h \
+	suricata-common.h threadvars.h
 bin_PROGRAMS = suricata
 suricata_SOURCES = suricata.c suricata.h \
 runmodes.c runmodes.h \
