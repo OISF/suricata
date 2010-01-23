@@ -162,6 +162,10 @@ void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
 
     mpm_table[ctx->toclient.mpm_ctx.mpm_type].Prepare(&ctx->toclient.mpm_ctx);
     mpm_table[ctx->toserver.mpm_ctx.mpm_type].Prepare(&ctx->toserver.mpm_ctx);
+
+    /* tell the stream reassembler we only want chunks of size max_depth */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, ctx->toclient.max_depth);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, ctx->toserver.max_depth);
 }
 
 void AppLayerDetectProtoThreadInit(void) {
@@ -243,7 +247,6 @@ void AppLayerDetectProtoThreadInit(void) {
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
 
     AlpProtoFinalizeGlobal(&alp_proto_ctx);
-    //AlpProtoFinalizeThread(&alp_proto_ctx, &alp_proto_tctx);
 }
 
 uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tctx, uint8_t *buf, uint16_t buflen, uint8_t flags) {
@@ -382,6 +385,18 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg, char nee
                                smsg->data.data, smsg->data.data_len, need_lock);
             } else {
                 SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
+
+                if (need_lock == TRUE) SCMutexLock(&smsg->flow->m);
+                TcpSession *ssn = smsg->flow->protoctx;
+                if (ssn != NULL) {
+                    if (smsg->flags & STREAM_TOCLIENT) {
+                        StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
+                    } else if (smsg->flags & STREAM_TOSERVER) {
+                        StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
+                    }
+                }
+                if (need_lock == TRUE) SCMutexUnlock(&smsg->flow->m);
+
             }
         } else {
             SCLogDebug("stream data (len %" PRIu32 " (%" PRIu32 ")), alproto "
