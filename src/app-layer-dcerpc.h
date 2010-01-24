@@ -117,6 +117,7 @@ typedef struct DCERPCState_ {
     uint16_t secondaryaddrlen;
     uint16_t secondaryaddrlenleft;
     uint16_t opnum;
+    uint8_t *stub_data;
 }DCERPCState;
 
 
