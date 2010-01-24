@@ -137,8 +137,6 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 {
     DetectFlowbitsData *cd = NULL;
     SigMatch *sm = NULL;
-    char *str = rawstr;
-    char dubbed = 0;
     char *fb_cmd_str = NULL, *fb_name = NULL;
     uint8_t fb_cmd = 0;
 #define MAX_SUBSTRINGS 30
@@ -163,7 +161,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
         if (res < 0) {
             printf("DetectPcreSetup: pcre_get_substring failed\n");
-            return -1;
+            goto error;
         }
         fb_name = (char *)str_ptr;
     }
@@ -182,13 +180,13 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         fb_cmd = DETECT_FLOWBITS_CMD_TOGGLE;
     } else {
         printf("ERROR: flowbits action \"%s\" is not supported.\n", fb_cmd_str);
-        return -1;
+        goto error;
     }
 
     switch(fb_cmd)  {
         case DETECT_FLOWBITS_CMD_NOALERT:
             if(fb_name != NULL)
-            goto error;
+                goto error;
             s->flags |= SIG_FLAG_NOALERT;
             return 0;
         case DETECT_FLOWBITS_CMD_ISNOTSET:
@@ -197,7 +195,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         case DETECT_FLOWBITS_CMD_UNSET:
         case DETECT_FLOWBITS_CMD_TOGGLE:
             if(fb_name == NULL)
-            goto error;
+                goto error;
             break;
     }
 
@@ -217,6 +215,11 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
         cd->idx, fb_cmd_str, fb_name ? fb_name : "(null)");
 
+    pcre_free_substring(fb_name);
+    fb_name = NULL;
+    pcre_free_substring(fb_cmd_str);
+    fb_cmd_str = NULL;
+
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
@@ -228,13 +231,17 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
     SigMatchAppend(s,m,sm);
 
-    free(str);
     return 0;
 
 error:
-    free(str);
-    free(cd);
-    free(sm);
+    if (fb_name != NULL)
+        pcre_free_substring(fb_name);
+    if (fb_cmd_str != NULL)
+        pcre_free_substring(fb_cmd_str);
+    if (cd != NULL)
+        free(cd);
+    if (sm != NULL)
+        free(sm);
     return -1;
 }
 
