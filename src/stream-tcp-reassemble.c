@@ -88,8 +88,6 @@ void TcpSegmentPoolFree(void *ptr) {
         return;
 
     TcpSegment *seg = (TcpSegment *) ptr;
-    free(seg->payload);
-    free(seg);
 
 #ifdef DEBUG
     SCMutexLock(&segment_pool_memuse_mutex);
@@ -98,6 +96,9 @@ void TcpSegmentPoolFree(void *ptr) {
     SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
     SCMutexUnlock(&segment_pool_memuse_mutex);
 #endif
+
+    free(seg->payload);
+    free(seg);
     return;
 }
 
