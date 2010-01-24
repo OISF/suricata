@@ -64,7 +64,6 @@
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
-#include "app-layer-http.h"
 #include "app-layer-tls.h"
 #include "app-layer-smb.h"
 #include "app-layer-dcerpc.h"
@@ -508,7 +507,6 @@ int main(int argc, char **argv)
     /** \todo we need an api for these */
     AppLayerDetectProtoThreadInit();
     RegisterAppLayerParsers();
-    //RegisterHTTPParsers();
     RegisterHTPParsers();
     RegisterTLSParsers();
     RegisterSMBParsers();
@@ -562,7 +560,6 @@ int main(int argc, char **argv)
         FlowAlertSidRegisterTests();
         SCPerfRegisterTests();
         DecodePPPRegisterTests();
-        //HTTPParserRegisterTests();
         HTPParserRegisterTests();
         TLSParserRegisterTests();
         SMBParserRegisterTests();

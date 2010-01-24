@@ -1,4 +1,4 @@
-noinst_HEADERS = action-globals.h app-layer-http.h \
+noinst_HEADERS = action-globals.h \
 	app-layer-nbss.h debug.h decode-events.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	suricata-common.h threadvars.h
