@@ -18,7 +18,7 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX "^\\s*type\\s+(limit|both|threshold)\\s*,\\s*track\\s+(by_src|by_dst)\\s*,\\s*count\\s+(\\d+)\\s*,\\s*seconds\\s+(\\d+)\\s*"
+#define PARSE_REGEX "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -82,8 +82,33 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
-    char *args[4] = { NULL, NULL, NULL, NULL };
-    int i;
+    char *args[9] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+    char *copy_str = NULL, *threshold_opt = NULL;
+    int second_found = 0, count_found = 0;
+    int type_found = 0, track_found = 0;
+    int second_pos = 0, count_pos = 0;
+    uint16_t pos = 0;
+    int i = 0;
+
+    copy_str = strdup(rawstr);
+
+    for(pos = 0, threshold_opt = strtok(copy_str,",");  pos < strlen(copy_str) &&  threshold_opt != NULL;  pos++, threshold_opt = strtok(NULL,",")) {
+
+        if(strstr(threshold_opt,"count"))
+            count_found++;
+        if(strstr(threshold_opt,"second"))
+            second_found++;
+        if(strstr(threshold_opt,"type"))
+            type_found++;
+        if(strstr(threshold_opt,"track"))
+            track_found++;
+    }
+
+    if(copy_str)
+        free(copy_str);
+
+    if(count_found != 1 || second_found != 1 || type_found != 1 || track_found != 1)
+        goto error;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
 
@@ -117,13 +142,17 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
             de->track = TRACK_DST;
         if (strncasecmp(args[i],"by_src",strlen("by_src")) == 0)
             de->track = TRACK_SRC;
+        if (strncasecmp(args[i],"count",strlen("seconds")) == 0)
+            count_pos = i+1;
+        if (strncasecmp(args[i],"seconds",strlen("seconds")) == 0)
+            second_pos = i+1;
     }
 
-    if (ByteExtractStringUint32(&de->count, 10, strlen(args[2]), args[2]) <= 0) {
+    if (ByteExtractStringUint32(&de->count, 10, strlen(args[count_pos]), args[count_pos]) <= 0) {
         goto error;
     }
 
-    if (ByteExtractStringUint32(&de->seconds, 10, strlen(args[3]), args[3]) <= 0) {
+    if (ByteExtractStringUint32(&de->seconds, 10, strlen(args[second_pos]), args[second_pos]) <= 0) {
         goto error;
     }
 
@@ -234,6 +263,59 @@ static int ThresholdTestParse02 (void) {
 
     return 0;
 }
+
+/**
+ * \test ThresholdTestParse03 is a test for a valid threshold options in any order
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int ThresholdTestParse03 (void) {
+    DetectThresholdData *de = NULL;
+    de = DetectThresholdParse("track by_dst, type limit, seconds 60, count 10");
+    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
+        DetectThresholdFree(de);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/**
+ * \test ThresholdTestParse04 is a test for an invalid threshold options in any order
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int ThresholdTestParse04 (void) {
+    DetectThresholdData *de = NULL;
+    de = DetectThresholdParse("count 10, track by_dst, seconds 60, type both, count 10");
+    if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
+        DetectThresholdFree(de);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * \test ThresholdTestParse05 is a test for a valid threshold options in any order
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int ThresholdTestParse05 (void) {
+    DetectThresholdData *de = NULL;
+    de = DetectThresholdParse("count 10, track by_dst, seconds 60, type both");
+    if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
+        DetectThresholdFree(de);
+        return 1;
+    }
+
+    return 0;
+}
+
 
 /**
  * \test DetectThresholdTestSig1 is a test for checking the working of limit keyword
@@ -655,6 +737,9 @@ void ThresholdRegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("ThresholdTestParse01", ThresholdTestParse01, 1);
     UtRegisterTest("ThresholdTestParse02", ThresholdTestParse02, 0);
+    UtRegisterTest("ThresholdTestParse03", ThresholdTestParse03, 1);
+    UtRegisterTest("ThresholdTestParse04", ThresholdTestParse04, 0);
+    UtRegisterTest("ThresholdTestParse05", ThresholdTestParse05, 1);
     UtRegisterTest("DetectThresholdTestSig1", DetectThresholdTestSig1, 1);
     UtRegisterTest("DetectThresholdTestSig2", DetectThresholdTestSig2, 1);
     UtRegisterTest("DetectThresholdTestSig3", DetectThresholdTestSig3, 1);
