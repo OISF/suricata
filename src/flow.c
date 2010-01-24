@@ -203,9 +203,9 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
 
     /* remove from the hash */
     if (f->hprev)
-            f->hprev->hnext = f->hnext;
+        f->hprev->hnext = f->hnext;
     if (f->hnext)
-            f->hnext->hprev = f->hprev;
+        f->hnext->hprev = f->hprev;
     if (f->fb->f == f)
         f->fb->f = f->hnext;
 
@@ -249,9 +249,7 @@ static int FlowUpdateSpareFlows(void) {
     uint32_t toalloc = 0, tofree = 0, len;
 
     SCMutexLock(&flow_spare_q.mutex_q);
-
     len = flow_spare_q.len;
-
     SCMutexUnlock(&flow_spare_q.mutex_q);
 
     if (len < flow_config.prealloc) {
@@ -272,6 +270,7 @@ static int FlowUpdateSpareFlows(void) {
 
         uint32_t i;
         for (i = 0; i < tofree; i++) {
+            /* FlowDequeue locks the queue */
             Flow *f = FlowDequeue(&flow_spare_q);
             if (f == NULL)
                 return 1;

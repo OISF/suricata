@@ -20,7 +20,19 @@
 
 #include "util-debug.h"
 
+static uint16_t app_layer_sid = 0;
+static AppLayerProto al_proto_table[ALPROTO_MAX];
+
+#define MAX_PARSERS 100
+static AppLayerParserTableElement al_parser_table[MAX_PARSERS];
+static uint16_t al_max_parsers = 0; /* incremented for every registered parser */
+
 static Pool *al_result_pool = NULL;
+static SCMutex al_result_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
+#ifdef DEBUG
+static uint32_t al_result_pool_elmts = 0;
+#endif /* DEBUG */
+
 
 /** \brief Alloc a AppLayerParserResultElmt func for the pool */
 static void *AlpResultElmtPoolAlloc(void *null)
@@ -32,6 +44,11 @@ static void *AlpResultElmtPoolAlloc(void *null)
     }
 
     memset(e, 0, sizeof(AppLayerParserResultElmt));
+
+#ifdef DEBUG
+    al_result_pool_elmts++;
+    SCLogDebug("al_result_pool_elmts %"PRIu32"", al_result_pool_elmts);
+#endif /* DEBUG */
     return e;
 }
 
@@ -44,11 +61,19 @@ static void AlpResultElmtPoolFree(void *e)
             free(re->data_ptr);
     }
     free(re);
+
+#ifdef DEBUG
+    al_result_pool_elmts--;
+    SCLogDebug("al_result_pool_elmts %"PRIu32"", al_result_pool_elmts);
+#endif /* DEBUG */
 }
 
 static AppLayerParserResultElmt *AlpGetResultElmt(void)
 {
+    SCMutexLock(&al_result_pool_mutex);
     AppLayerParserResultElmt *e = (AppLayerParserResultElmt *)PoolGet(al_result_pool);
+    SCMutexUnlock(&al_result_pool_mutex);
+
     if (e == NULL) {
         return NULL;
     }
@@ -67,7 +92,9 @@ static void AlpReturnResultElmt(AppLayerParserResultElmt *e)
     e->data_len = 0;
     e->next = NULL;
 
+    SCMutexLock(&al_result_pool_mutex);
     PoolReturn(al_result_pool, (void *)e);
+    SCMutexUnlock(&al_result_pool_mutex);
 }
 
 static void AlpAppendResultElmt(AppLayerParserResult *r, AppLayerParserResultElmt *e)
@@ -425,13 +452,6 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
 
     SCReturnInt(0);
 }
-
-static uint16_t app_layer_sid = 0;
-static AppLayerProto al_proto_table[ALPROTO_MAX];
-
-#define MAX_PARSERS 100
-static AppLayerParserTableElement al_parser_table[MAX_PARSERS];
-static uint16_t al_max_parsers = 0; /* incremented for every registered parser */
 
 /** \brief Get the Parsers id for storing the parser state.
  *
