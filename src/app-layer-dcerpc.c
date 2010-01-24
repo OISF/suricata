@@ -48,10 +48,10 @@ void hexdump(const void *buf, size_t len) {
     const unsigned char *p = buf;
     unsigned char c;
     size_t n;
-    char bytestr[4] = {0};
-    char addrstr[10] = {0};
-    char hexstr[16 * 3 + 5] = {0};
-    char charstr[16 * 1 + 5] = {0};
+    char bytestr[4] = { 0 };
+    char addrstr[10] = { 0 };
+    char hexstr[16 * 3 + 5] = { 0 };
+    char charstr[16 * 1 + 5] = { 0 };
     for (n = 1; n <= len; n++) {
         if (n % 16 == 1) {
             /* store address for this line */
@@ -222,24 +222,31 @@ static uint32_t DCERPCParseBINDCTXItem(Flow *f, void *dcerpc_state,
                     sstate->version |= *(p + 21) << 8;
                     sstate->versionminor = *(p + 22);
                     sstate->versionminor |= *(p + 23) << 8;
-                    sstate->uuid_entry = (struct uuid_entry *) calloc(1,
-                            sizeof(struct uuid_entry));
-                    if (sstate->uuid_entry == NULL) {
-                        SCReturnUInt(0);
+                    if (sstate->ctxid == sstate->numctxitems
+                            - sstate->numctxitemsleft) {
+                        sstate->uuid_entry = (struct uuid_entry *) calloc(1,
+                                sizeof(struct uuid_entry));
+                        if (sstate->uuid_entry == NULL) {
+                            SCReturnUInt(0);
+                        } else {
+                            memcpy(sstate->uuid_entry->uuid, sstate->uuid,
+                                    sizeof(sstate->uuid));
+                            sstate->uuid_entry->ctxid = sstate->ctxid;
+                            sstate->uuid_entry->version = sstate->version;
+                            sstate->uuid_entry->versionminor = sstate->versionminor;
+                            TAILQ_INSERT_HEAD(&sstate->uuid_list, sstate->uuid_entry,
+                                    next);
+                            //printUUID("BIND", sstate->uuid_entry);
+                            sstate->numctxitemsleft--;
+                            sstate->bytesprocessed += (44);
+                            sstate->ctxbytesprocessed += (44);
+                            SCReturnUInt(44U);
+                        }
                     } else {
-                        memcpy(sstate->uuid_entry->uuid, sstate->uuid,
-                                sizeof(sstate->uuid));
-                        sstate->uuid_entry->ctxid = sstate->ctxid;
-                        sstate->uuid_entry->version = sstate->version;
-                        sstate->uuid_entry->versionminor = sstate->versionminor;
-                        TAILQ_INSERT_HEAD(&sstate->uuid_list, sstate->uuid_entry,
-                                next);
-                        //printUUID("BIND", sstate->uuid_entry);
+                        SCLogDebug("ctxitem %u, expected %u\n", sstate->ctxid,
+                                sstate->numctxitems - sstate->numctxitemsleft);
+                        SCReturnUInt(0);
                     }
-                    sstate->numctxitemsleft--;
-                    sstate->bytesprocessed += (44);
-                    sstate->ctxbytesprocessed += (44);
-                    SCReturnUInt(44U);
                 } else {
                     sstate->ctxid = *(p++);
                     if (!(--input_len))
@@ -416,19 +423,32 @@ static uint32_t DCERPCParseBINDCTXItem(Flow *f, void *dcerpc_state,
                 if (!(--input_len))
                     break;
             case 43:
-                sstate->numctxitemsleft--;
-                if (sstate->uuid_entry == NULL) {
-                    SCReturnUInt(0);
-                } else {
-                    memcpy(sstate->uuid_entry->uuid, sstate->uuid,
-                            sizeof(sstate->uuid));
-                    sstate->uuid_entry->ctxid = sstate->ctxid;
-                    sstate->uuid_entry->version = sstate->version;
-                    sstate->uuid_entry->versionminor = sstate->versionminor;
-                    TAILQ_INSERT_HEAD(&sstate->uuid_list, sstate->uuid_entry, next);
-                }
                 p++;
                 --input_len;
+                if (sstate->ctxid == sstate->numctxitems - sstate->numctxitemsleft) {
+                    sstate->uuid_entry = (struct uuid_entry *) calloc(1,
+                            sizeof(struct uuid_entry));
+                    if (sstate->uuid_entry == NULL) {
+                        SCReturnUInt(0);
+                    } else {
+                        memcpy(sstate->uuid_entry->uuid, sstate->uuid,
+                                sizeof(sstate->uuid));
+                        sstate->uuid_entry->ctxid = sstate->ctxid;
+                        sstate->uuid_entry->version = sstate->version;
+                        sstate->uuid_entry->versionminor = sstate->versionminor;
+                        TAILQ_INSERT_HEAD(&sstate->uuid_list, sstate->uuid_entry,
+                                next);
+                        //printUUID("BIND", sstate->uuid_entry);
+                        sstate->numctxitemsleft--;
+                        sstate->bytesprocessed += (44);
+                        sstate->ctxbytesprocessed += (44);
+                        SCReturnUInt(44U);
+                    }
+                } else {
+                    SCLogDebug("ctxitem %u, expected %u\n", sstate->ctxid,
+                            sstate->numctxitems - sstate->numctxitemsleft);
+                    SCReturnUInt(0);
+                }
                 break;
         }
     }
@@ -822,6 +842,7 @@ static uint32_t StubDataParser(Flow *f, void *dcerpc_state,
     SCEnter();
     DCERPCState *sstate = (DCERPCState *) dcerpc_state;
     uint8_t *p = input;
+    sstate->stub_data = input;
     while (sstate->padleft-- && input_len--) {
         SCLogDebug("0x%02x ", *p);
         p++;
@@ -1194,6 +1215,7 @@ static void DCERPCStateFree(void *s) {
     struct uuid_entry *item;
 
     while ((item = TAILQ_FIRST(&sstate->uuid_list))) {
+        //printUUID("Free", item);
         TAILQ_REMOVE(&sstate->uuid_list, item, next);
         free(item);
     }
@@ -1640,17 +1662,18 @@ int DCERPCParserTest01(void) {
     }
 #if KNOWNFAILURE
     printf("Sending dcerpcrequest (%u)", requestlen);
+    hexdump(dcerpcrequest, requestlen);
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_EOF, dcerpcrequest, requestlen, FALSE);
     if (r != 0) {
-           printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
-           result = 0;
-           goto end;
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
     }
     if (dcerpc_state->dcerpc.type != REQUEST) {
-       printf("expected dcerpc type 0x%02x , got 0x%02x : ", REQUEST, dcerpc_state->dcerpc.type);
-       result = 0;
-       goto end;
-   }
+        printf("expected dcerpc type 0x%02x , got 0x%02x : ", REQUEST, dcerpc_state->dcerpc.type);
+        result = 0;
+        goto end;
+    }
 #endif
 end:
     return result;
