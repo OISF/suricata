@@ -149,6 +149,7 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
         p[i] = malloc(sizeof(Packet));
         if (p[i] == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for a packet of the array");
+            free(p);
             return NULL;
         }
         memset(p[i], 0, sizeof(Packet));

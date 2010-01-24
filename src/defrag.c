@@ -347,8 +347,10 @@ DefragTrackerNew(void *arg)
     tracker = calloc(1, sizeof(*tracker));
     if (tracker == NULL)
         return NULL;
-    if (SCMutexInit(&tracker->lock, NULL) != 0)
+    if (SCMutexInit(&tracker->lock, NULL) != 0) {
+        free(tracker);
         return NULL;
+    }
     tracker->dc = dc;
     TAILQ_INIT(&tracker->frags);
 
@@ -387,7 +389,7 @@ DefragContextNew(void)
     /* Initialize the hash table. */
     dc->frag_table = HashListTableInit(DEFAULT_DEFRAG_HASH_SIZE, DefragHashFunc,
         DefragHashCompare, DefragHashFree);
-    if (dc == NULL) {
+    if (dc->frag_table == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize hash table.");
         exit(EXIT_FAILURE);

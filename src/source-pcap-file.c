@@ -150,6 +150,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
         default:
             printf("Error: datalink type %" PRId32 " not yet supported in module PcapFile.\n", pcap_g.datalink);
+            free(ptv);
             return TM_ECODE_FAILED;
     }
 

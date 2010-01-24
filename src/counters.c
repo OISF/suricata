@@ -48,6 +48,7 @@ static char *SCPerfGetLogFilename(void)
     if (snprintf(log_filename, PATH_MAX, "%s/%s", log_dir,
                  SC_PERF_DEFAULT_LOG_FILENAME) < 0) {
         SCLogError(SC_SPRINTF_ERROR, "Sprintf Error");
+        free(log_filename);
         return NULL;
     }
 
@@ -1182,11 +1183,6 @@ SCPerfCounterArray *SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
 
     if (e_id > pctx->curr_id) {
         SCLogDebug("end id is greater than the max id for this tv");
-        return NULL;
-    }
-
-    if (pctx == NULL) {
-        SCLogDebug("perfcontext is NULL");
         return NULL;
     }
 
