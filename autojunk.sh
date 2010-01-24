@@ -1,6 +1,6 @@
 #!/bin/sh
 # the list of commands that need to run before we do a compile
-aclocal
+aclocal -I m4
 libtoolize --force --automake --copy
 autoheader
 automake --add-missing --copy
