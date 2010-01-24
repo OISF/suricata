@@ -231,6 +231,7 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for UnifiedLog.  \"initdata\" argument NULL");
+        free(aun);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -240,6 +241,7 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     int ret = AlertUnifiedLogWriteFileHeader(t, aun);
     if (ret != 0) {
         printf("Error: AlertUnifiedLogWriteFileHeader failed.\n");
+        free(aun);
         return TM_ECODE_FAILED;
     }
 

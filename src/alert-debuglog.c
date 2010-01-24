@@ -202,6 +202,7 @@ TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for DebugLog.  \"initdata\" argument NULL");
+        free(aft);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */

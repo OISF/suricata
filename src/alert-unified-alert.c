@@ -216,6 +216,7 @@ TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for UnifiedAlert.  \"initdata\" argument NULL");
+        free(aun);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -227,6 +228,7 @@ TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
     if (ret != 0) {
         SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
                    "Error: AlertUnifiedLogWriteFileHeader failed");
+        free(aun);
         return TM_ECODE_FAILED;
     }
 

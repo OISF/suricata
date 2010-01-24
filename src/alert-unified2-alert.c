@@ -502,6 +502,7 @@ TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for Unified2Alert.  \"initdata\" argument NULL");
+        free(aun);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
