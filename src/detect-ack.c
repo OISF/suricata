@@ -77,7 +77,7 @@ static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s,
                           SigMatch *m, char *optstr)
 {
-    DetectAckData *data = malloc(sizeof(DetectAckData));
+    DetectAckData *data;
     SigMatch *sm = NULL;
 
     //printf("DetectAckSetup: \'%s\'\n", optstr);

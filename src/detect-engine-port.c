@@ -1130,9 +1130,6 @@ int DetectPortIsCompletePortSpace(DetectPort *p) {
     p = p->next;
 
     for ( ; p != NULL; p = p->next) {
-        if (p == NULL)
-            return 0;
-
         if (p->port != next_port)
             return 0;
 

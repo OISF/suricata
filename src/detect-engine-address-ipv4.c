@@ -469,8 +469,6 @@ int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *ag)
     ag = ag->next;
 
     for ( ; ag != NULL; ag = ag->next) {
-        if (ag == NULL)
-            return 0;
 
         if (ag->ip[0] != next_ip)
             return 0;

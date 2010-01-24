@@ -78,7 +78,7 @@ static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s,
                            SigMatch *m, char *optstr)
 {
-    DetectSeqData *data = malloc(sizeof(DetectSeqData));
+    DetectSeqData *data;
     SigMatch *sm = NULL;
 
     //printf("DetectSeqSetup: \'%s\'\n", optstr);

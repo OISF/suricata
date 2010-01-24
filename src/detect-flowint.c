@@ -274,6 +274,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
         varval =(char *) str_ptr;
         if (res < 0 || strcmp(varval,"") == 0) {
             SCLogDebug("DetectFlowintParse: pcre_get_substring failed");
+            free(sfd);
             return NULL;
         }
 
@@ -312,6 +313,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     return sfd;
 error:
     if (sfd != NULL) free(sfd);
+    free(str);
     return NULL;
 }
 

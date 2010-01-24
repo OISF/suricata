@@ -123,8 +123,10 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     }
 
     len = strlen(str);
-    if (len == 0)
+    if (len == 0) {
+        if (dubbed) free(str);
         return -1;
+    }
 
     cd = malloc(sizeof(DetectFlowvarData));
     if (cd == NULL) {
@@ -190,8 +192,11 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     }
 
     cd->content = malloc(len);
-    if (cd->content == NULL)
+    if (cd->content == NULL) {
+        if (dubbed) free(str);
+        free(cd);
         return -1;
+    }
 
     cd->name = strdup(varname);
     cd->idx = VariableNameGetIdx(de_ctx,varname,DETECT_FLOWVAR);

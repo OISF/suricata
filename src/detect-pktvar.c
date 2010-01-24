@@ -117,8 +117,10 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     }
 
     len = strlen(str);
-    if (len == 0)
+    if (len == 0) {
+        if (dubbed) free(str);
         return -1;
+    }
 
     cd = malloc(sizeof(DetectPktvarData));
     if (cd == NULL) {
@@ -184,8 +186,11 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     }
 
     cd->content = malloc(len);
-    if (cd->content == NULL)
+    if (cd->content == NULL) {
+        free(cd);
+        if (dubbed) free(str);
         return -1;
+    }
 
     cd->name = strdup(varname);
     memcpy(cd->content, str, len);

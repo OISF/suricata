@@ -46,12 +46,14 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
     pm = DetectContentFindPrevApplicableSM(m);
     if (pm == NULL || DetectContentHasPrevSMPattern(pm) == NULL) {
         SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
+        if (dubbed) free(str);
         return -1;
     }
 
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd == NULL) {
         printf("DetectDistanceSetup: Unknown previous keyword!\n");
+        if (dubbed) free(str);
         return -1;
     }
 

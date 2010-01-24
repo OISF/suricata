@@ -42,12 +42,14 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     SigMatch *pm = DetectContentFindPrevApplicableSM(m);
     if (pm == NULL) {
         SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding content option");
+        if (dubbed) free(str);
         return -1;
     }
 
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd == NULL) {
         SCLogError(SC_INVALID_ARGUMENT, "invalid argument");
+        if (dubbed) free(str);
         return -1;
     }
 

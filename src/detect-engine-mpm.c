@@ -259,8 +259,10 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
     memset(fast_pattern, 0, sgh->sig_cnt * sizeof(uint32_t));
 
     HashTable *ht = HashTableInit(4096, ContentHashFunc, ContentHashCompareFunc, ContentHashFree);
-    if (ht == NULL)
+    if (ht == NULL) {
+        free(fast_pattern);
         return -1;
+    }
 
     /* add all the contents to a counting hash */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {

@@ -386,7 +386,6 @@ error:
     if (op_ptr != NULL) free(op_ptr);
     if (pd != NULL && pd->re != NULL) pcre_free(pd->re);
     if (pd != NULL && pd->sd != NULL) pcre_free(pd->sd);
-    if (dubbed) free(re);
     if (pd) free(pd);
     return NULL;
 }

@@ -591,7 +591,7 @@ DetectContentData *DetectContentParse (char *contentstr)
         goto error;
 
     if (strlen(temp) == 0) {
-        if (temp) free(temp);
+        free(temp);
         return NULL;
     }
 
@@ -625,6 +625,7 @@ DetectContentData *DetectContentParse (char *contentstr)
     }
 
     free(temp);
+    temp = NULL;
 
     if (str[0] == '!') {
         if (cd->negated == 1) {
@@ -637,6 +638,7 @@ DetectContentData *DetectContentParse (char *contentstr)
                 goto error;
             cd->negated = 1;
             free(temp);
+            temp = NULL;
         }
     }
 
@@ -741,6 +743,7 @@ DetectContentData *DetectContentParse (char *contentstr)
 
 error:
     free(str);
+    free(temp);
     if (cd != NULL) {
         if (cd->content != NULL)
             free(cd->content);

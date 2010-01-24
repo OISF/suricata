@@ -228,12 +228,13 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
     SigMatchAppend(s,m,sm);
 
-    if (dubbed) free(str);
+    free(str);
     return 0;
 
 error:
-    if (dubbed) free(str);
-    if (sm) free(sm);
+    free(str);
+    free(cd);
+    free(sm);
     return -1;
 }
 

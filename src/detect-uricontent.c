@@ -220,7 +220,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
         goto error;
 
     if (strlen(temp) == 0) {
-        if (temp) free(temp);
+        free(temp);
         return -1;
     }
 
@@ -252,6 +252,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     }
 
     free(temp);
+    temp = NULL;
     len = strlen(str);
 
     //printf("DetectUricontentSetup: \"%s\", len %" PRIu32 "\n", str, len);
@@ -315,8 +316,11 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     SCLogDebug("len %" PRIu32 "", len);
 
     cd->uricontent = malloc(len);
-    if (cd->uricontent == NULL)
+    if (cd->uricontent == NULL) {
+        free(cd);
+        free(str);
         return -1;
+    }
 
     memcpy(cd->uricontent, str, len);
     cd->uricontent_len = len;
@@ -340,11 +344,12 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     cd->id = de_ctx->uricontent_max_id;
     de_ctx->uricontent_max_id++;
 
-    if (dubbed) free(str);
+    free(str);
     return 0;
 
 error:
-    if (dubbed) free(str);
+    free(str);
+    free(temp);
     if (cd) free(cd);
     if (sm) free(sm);
     return -1;
