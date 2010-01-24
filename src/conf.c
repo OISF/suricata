@@ -406,9 +406,9 @@ ConfPrintNameArray(char **name_arr, int level)
 
     name[0] = '\0';
     for (i = 0; i <= level; i++) {
-        strcat(name, name_arr[i]);
+        strlcat(name, name_arr[i], sizeof(name));
         if (i < level)
-            strcat(name, ".");
+            strlcat(name, ".", sizeof(name));
     }
 
     return name;

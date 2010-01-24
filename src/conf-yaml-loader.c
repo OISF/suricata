@@ -68,9 +68,9 @@ GetKeyName(char **key, int level)
             return NULL;
         }
         else {
-            strncat(print_key, key[i], strlen(key[i]));
+            strlcat(print_key, key[i], sizeof(print_key));
             if (i < level)
-                strncat(print_key, ".", 1);
+                strlcat(print_key, ".", sizeof(print_key));
         }
     }
 

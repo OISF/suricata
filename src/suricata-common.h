@@ -52,5 +52,8 @@
 #define SigIntId uint16_t
 //#define SigIntId uint32_t
 
+size_t strlcat(char *, const char *src, size_t siz);
+size_t strlcpy(char *dst, const char *src, size_t siz);
+
 #endif /* __SURICATA_COMMON_H__ */
 

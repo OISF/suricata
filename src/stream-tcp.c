@@ -3991,7 +3991,7 @@ static int StreamTcpTest14 (void) {
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
-    strcpy(os_policy_name, "linux\0");
+    strlcpy(os_policy_name, "linux\0", sizeof(os_policy_name));
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
@@ -4367,7 +4367,7 @@ static int StreamTcpTest15 (void) {
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
-    strcpy(os_policy_name, "linux\0");
+    strlcpy(os_policy_name, "linux\0", sizeof(os_policy_name));
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
@@ -4533,7 +4533,7 @@ static int StreamTcpTest16 (void) {
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
-    strcpy(os_policy_name, "linux\0");
+    strlcpy(os_policy_name, "linux\0", sizeof(os_policy_name));
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
@@ -4700,7 +4700,7 @@ static int StreamTcpTest17 (void) {
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
-    strcpy(os_policy_name, "linux\0");
+    strlcpy(os_policy_name, "linux\0", sizeof(os_policy_name));
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 

@@ -200,12 +200,13 @@ char *DetectLoadCompleteSigPath(char *sig_file)
     if (index(sig_file, '/') == NULL) {
         if (ConfGet("default-rule-path", &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
-            path = malloc(sizeof(char) * (strlen(defaultpath) +
-                          strlen(sig_file) + 2));
-            strcpy(path, defaultpath);
+            size_t path_len = sizeof(char) * (strlen(defaultpath) +
+                          strlen(sig_file) + 2);
+            path = malloc(path_len);
+            strlcpy(path, defaultpath, path_len);
             if (path[strlen(path) - 1] != '/')
-                strcat(path, "/");
-            strcat(path, sig_file);
+                strlcat(path, "/", path_len);
+            strlcat(path, sig_file, path_len);
        } else {
             path = strdup(sig_file);
         }

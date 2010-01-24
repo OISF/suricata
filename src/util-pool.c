@@ -162,7 +162,7 @@ void *PoolTestAlloc(void *allocdata) {
 void *PoolTestAllocArg(void *allocdata) {
     size_t len = strlen((char *)allocdata) + 1;
     char *str = malloc(len);
-    strncpy(str,(char *)allocdata,len);
+    strlcpy(str,(char *)allocdata,len);
     return (void *)str;
 }
 

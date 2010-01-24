@@ -97,7 +97,7 @@ int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ms
     if (s->msg == NULL)
         goto error;
 
-    strncpy(s->msg, str, len + 1);
+    strlcpy(s->msg, str, len + 1);
 
     free(str);
     return 0;

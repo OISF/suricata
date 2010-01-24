@@ -83,7 +83,7 @@ static void DetectContentDebugPrint(DetectContentData *co) {
         } else {
             snprintf(tmp,sizeof(tmp),"\\%02x", co->content[u]);
         }
-        strncat(buf,tmp,sizeof(buf));
+        strlcat(buf,tmp,sizeof(buf));
     }
 
     SCLogDebug("content \"%s\"",buf);
