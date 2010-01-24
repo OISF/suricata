@@ -726,13 +726,12 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
     }
 
     while (sstate->bytecount.bytecount && input_len) {
-        printf("0x%02x bytecount %u input_len %u", *p,
+        SCLogDebug("0x%02x bytecount %u input_len %u", *p,
                 sstate->bytecount.bytecount, input_len);
         p++;
         sstate->bytecount.bytecount--;
         input_len--;
     }
-    printf("\n");
     sstate->bytesprocessed += (p - input);
     SCReturnUInt((uint32_t)(p - input));
 }
