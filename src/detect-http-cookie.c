@@ -99,27 +99,25 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
-    if (tx == NULL) {
-        SCLogDebug("No HTTP transaction has received on the connection");
-        goto end;
-    }
+    htp_tx_t *tx = NULL;
+    list_iterator_reset(htp_state->recent_in_tx);
 
-    htp_header_t *h = NULL;
-    h = (htp_header_t *)table_getc(tx->request_headers, "Cookie");
-    if (h == NULL) {
-        SCLogDebug("no HTTP Cookie header in the received request");
-        goto end;
-    }
+    while ((tx = list_iterator_next(htp_state->recent_in_tx)) != NULL) {
+        htp_header_t *h = NULL;
+        h = (htp_header_t *) table_getc(tx->request_headers, "Cookie");
+        if (h == NULL) {
+            SCLogDebug("no HTTP Cookie header in the received request");
+            goto end;
+        }
 
-    SCLogDebug("we have a cookie header");
+        SCLogDebug("we have a cookie header");
 
-    if (SpmSearch((uint8_t *)bstr_ptr(h->value), bstr_size(h->value), co->data,
-            co->data_len) != NULL)
-    {
-        SCLogDebug("match has been found in received request and given http_"
-                "cookie rule");
-        ret = 1;
+        if (SpmSearch((uint8_t *) bstr_ptr(h->value), bstr_size(h->value),
+                co->data, co->data_len) != NULL) {
+            SCLogDebug("match has been found in received request and given http_"
+                    "cookie rule");
+            ret = 1;
+        }
     }
 
 end:

@@ -64,7 +64,11 @@ static void *HTPStateAlloc(void)
     htp_state_memuse+=sizeof(HtpState);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
-
+    /* Create a list_array of size 8 to store the incoming requests, the size of
+       8 has been chosen as half the size of conn->transactions in the
+       HTP lib. As we are storing only requests here not responses!! */
+    s->recent_in_tx = list_array_create(8);
+    htp_connp_set_user_data(s->connp, (void *)s);
     SCReturnPtr((void *)s, "void");
 
 error:
@@ -88,6 +92,8 @@ static void HTPStateFree(void *state)
         if (s->connp != NULL) {
             htp_connp_destroy_all(s->connp);
         }
+        if (s->recent_in_tx != NULL)
+            list_destroy(s->recent_in_tx);
     }
 
     free(s);
@@ -261,6 +267,40 @@ void HTPFreeConfig(void)
 }
 
 /**
+ *  \brief  callback for request to store the recent incoming request
+            in to the recent_in_tx for the given htp state
+ *  \param  connp   pointer to the current connection parser which has the htp
+ *                  state in it as user data
+ */
+static int HTPCallbackRequest(htp_connp_t *connp) {
+    SCEnter();
+    HtpState *hstate = (HtpState *)connp->user_data;
+
+    list_add(hstate->recent_in_tx, connp->in_tx);
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief  callback for response to remove the recent received requests
+            from the recent_in_tx for the given htp state
+ *  \param  connp   pointer to the current connection parser which has the htp
+ *                  state in it as user data
+ */
+static int HTPCallbackResponse(htp_connp_t *connp) {
+    SCEnter();
+    HtpState *hstate = (HtpState *)connp->user_data;
+    htp_tx_t *tx = NULL;
+    uint8_t i = 0;
+
+    for (i=0; i < list_size(hstate->recent_in_tx) - 1; i++) {
+        tx = list_pop(hstate->recent_in_tx);
+        if (tx != NULL)
+            htp_tx_destroy(tx);
+    }
+    SCReturnInt(0);
+}
+
+/**
  *  \brief  Register the HTTP protocol and state handling functions to APP layer
  *          of the engine.
  */
@@ -275,20 +315,16 @@ void RegisterHTPParsers(void)
                           HTPHandleResponseData);
 
     cfg = htp_config_create();
+    /* Register the callback for request to store the recent incoming request
+       in to the recent_in_tx for the given htp state */
+    htp_config_register_request(cfg, HTPCallbackRequest);
+    /* Register the callback for response to remove the recently received request
+       from the recent_in_tx for the given htp state */
+    htp_config_register_response(cfg, HTPCallbackResponse);
+    /* set the normalized request parsing to be used in uricontent matching */
+    htp_config_set_generate_request_uri_normalized(cfg, 1);
 }
 
-/**
- * \brief Returns the main (first) HTTP transaction
- *
- * \param htp_state HTP library state
- * \returns Main HTP transation
- *
- */
-htp_tx_t *HTPTransactionMain(const HtpState *htp_state)
-{
-    SCEnter();
-    SCReturnPtr(list_get(htp_state->connp->conn->transactions, 0), "htp_tx_t");
-}
 
 #ifdef UNITTESTS
 /** \test Test case where chunks are sent in smaller chunks and check the

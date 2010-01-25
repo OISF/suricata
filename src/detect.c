@@ -553,8 +553,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
     }
 
-    /* we assume we don't have an uri when we start inspection */
-    det_ctx->de_have_httpuri = 0;
+    /* we assume we have an uri when we start inspection */
+    det_ctx->de_have_httpuri = TRUE;
+
+    /* we don't scan the uri when we start inspection */
+    det_ctx->de_scanned_uri = FALSE;
 
     det_ctx->sgh = SigMatchSignaturesGetSgh(th_v, de_ctx, det_ctx, p);
     /* if we didn't get a sig group head, we
@@ -618,9 +621,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         /* filter out sigs that want pattern matches, but
          * have no matches */
         if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
-            (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
-            SCLogDebug("mpm sig without matches.");
-            continue;
+                (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+            /* If uri_ctx sigs are not scanned till now, we need to scan them
+               Once */
+            if (det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT) {
+                if (det_ctx->de_scanned_uri == TRUE) {
+                    SCLogDebug("mpm sig without matches.");
+                    continue;
+                }
+            } else {
+                SCLogDebug("mpm sig without matches.");
+                continue;
+            }
         }
 
         //printf("idx %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 ", s->id %" PRIu32 " (MPM? %s)\n", idx, det_ctx->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
@@ -697,7 +709,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                         }
 
-                        if (match) {
+                        if (match > 0) {
                             /* okay, try the next match */
                             sm = sm->next;
 
@@ -741,7 +753,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                     }
 
-                    if (match) {
+                    if (match > 0) {
                         /* okay, try the next match */
                         sm = sm->next;
 
@@ -2900,6 +2912,7 @@ void SigTableRegisterTests(void) {
 
 #ifdef UNITTESTS
 #include "flow-util.h"
+#include "stream-tcp-reassemble.h"
 
 static const char *dummy_conf_string =
     "%YAML 1.1\n"
@@ -3240,15 +3253,24 @@ static int SigTest06Real (int mpm_type) {
     Packet p;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    Flow f;
+    TcpSession ssn;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_HTTP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3272,6 +3294,13 @@ static int SigTest06Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -3384,15 +3413,24 @@ static int SigTest08Real (int mpm_type) {
     Packet p;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    Flow f;
+    TcpSession ssn;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_HTTP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3416,6 +3454,13 @@ static int SigTest08Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -3522,15 +3567,24 @@ static int SigTest10Real (int mpm_type) {
     Packet p;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    Flow f;
+    TcpSession ssn;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_HTTP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3554,6 +3608,13 @@ static int SigTest10Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -3587,15 +3648,24 @@ static int SigTest11Real (int mpm_type) {
     Packet p;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    Flow f;
+    TcpSession ssn;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_HTTP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

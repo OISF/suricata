@@ -72,7 +72,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
     DetectHttpMethodData *data = (DetectHttpMethodData *)m->ctx;
     HtpState *hs = (HtpState *)state;
-    htp_tx_t *tx;
+    htp_tx_t *tx = NULL;
     int ret = 0;
 
     if (hs == NULL) {
@@ -81,34 +81,33 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     SCMutexLock(&f->m);
-    tx = HTPTransactionMain(hs);
-    if (tx == NULL) {
-        SCLogDebug("No HTP transaction.");
-        goto end;
+    list_iterator_reset(hs->recent_in_tx);
+
+    while ((tx = list_iterator_next(hs->recent_in_tx)) != NULL) {
+
+        /* Compare the numeric methods if they are known, otherwise compare
+         * the raw values.
+         */
+        if (data->method != M_UNKNOWN) {
+            if (data->method == tx->request_method_number) {
+               SCLogDebug("Matched numeric HTTP method values.");
+                ret = 1;
+            }
+        } else if (tx->request_method != NULL) {
+            const uint8_t *meth_str = (const uint8_t *)
+                                               bstr_ptr(tx->request_method);
+
+            if ((meth_str != NULL) &&
+                    SpmSearch((uint8_t*) meth_str, bstr_size(tx->request_method),
+                    data->content, data->content_len) != NULL)
+            {
+                SCLogDebug("Matched raw HTTP method values.");
+
+                ret = 1;
+            }
+        }
     }
 
-    /* Compare the numeric methods if they are known, otherwise compare
-     * the raw values.
-     */
-    if (data->method != M_UNKNOWN) {
-        if (data->method == tx->request_method_number) {
-            SCLogDebug("Matched numeric HTTP method values.");
-            ret = 1;
-        }
-    } else if (tx->request_method != NULL) {
-        const uint8_t *meth_str = (const uint8_t *)bstr_ptr(tx->request_method);
-
-        if (   (meth_str != NULL)
-            && SpmSearch((uint8_t*)meth_str, bstr_size(tx->request_method),
-                         data->content, data->content_len) != NULL)
-        {
-            SCLogDebug("Matched raw HTTP method values.");
-
-            ret = 1;
-        }
-    }
-
-end:
     SCMutexUnlock(&f->m);
     SCReturnInt(ret);
 }

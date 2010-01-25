@@ -196,7 +196,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
 
                                     /* indicate to uricontent that we have a uri,
                                      * we scanned it _AND_ we found pattern matches. */
-                                    det_ctx->de_have_httpuri = 1;
+                                    det_ctx->de_have_httpuri = TRUE;
                                 }
                             }
                         }

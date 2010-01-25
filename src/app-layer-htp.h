@@ -24,7 +24,7 @@ typedef struct HtpState_ {
 
     htp_connp_t *connp; /**< Connection parser structure for each connection */
     uint8_t flags;
-
+    list_t *recent_in_tx;  /**< Point to the new received HTTP request */
 } HtpState;
 
 htp_cfg_t *cfg; /**< Config structure for HTP library */
@@ -33,7 +33,6 @@ void RegisterHTPParsers(void);
 void HTPParserRegisterTests(void);
 void HTPAtExitPrintStats(void);
 void HTPFreeConfig(void);
-htp_tx_t *HTPTransactionMain(const HtpState *);
 
 #endif	/* __APP_LAYER_HTP_H__ */
 
