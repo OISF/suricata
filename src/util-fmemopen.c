@@ -122,7 +122,7 @@ static int CloseFn(void *handler) {
  * \retval pointer to the file; NULL if something is wrong
  */
 FILE *SCFmemopen(void *buf, size_t size, const char *mode) {
-    SCFmem *mem = (fmem_t *) malloc(sizeof(fmem_t));
+    SCFmem *mem = (SCFmem *) malloc(sizeof(SCFmem));
 
     memset(mem, 0, sizeof(SCFmem));
     mem->size = size, mem->buffer = buf;
