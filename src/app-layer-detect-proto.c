@@ -350,18 +350,16 @@ end:
     return proto;
 }
 
-int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg, char need_lock)
+int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
 {
     SCEnter();
     uint16_t alproto = ALPROTO_UNKNOWN;
     int r = 0;
 
-    if (need_lock == TRUE) SCMutexLock(&smsg->flow->m);
     TcpSession *ssn = smsg->flow->protoctx;
     if (ssn != NULL) {
         alproto = ssn->alproto;
     }
-    if (need_lock == TRUE) SCMutexUnlock(&smsg->flow->m);
 
     if (ssn != NULL) {
         if (smsg->flags & STREAM_START) {
@@ -376,17 +374,14 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg, char nee
                             smsg->data.data, smsg->data.data_len, smsg->flags);
             if (alproto != ALPROTO_UNKNOWN) {
                 /* store the proto and setup the L7 data array */
-                if (need_lock == TRUE) SCMutexLock(&smsg->flow->m);
                 StreamL7DataPtrInit(ssn,StreamL7GetStorageSize());
                 ssn->alproto = alproto;
-                if (need_lock == TRUE) SCMutexUnlock(&smsg->flow->m);
 
                 r = AppLayerParse(smsg->flow, alproto, smsg->flags,
-                               smsg->data.data, smsg->data.data_len, need_lock);
+                               smsg->data.data, smsg->data.data_len);
             } else {
                 SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
 
-                if (need_lock == TRUE) SCMutexLock(&smsg->flow->m);
                 TcpSession *ssn = smsg->flow->protoctx;
                 if (ssn != NULL) {
                     if (smsg->flags & STREAM_TOCLIENT) {
@@ -395,7 +390,6 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg, char nee
                         StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
                     }
                 }
-                if (need_lock == TRUE) SCMutexUnlock(&smsg->flow->m);
 
             }
         } else {
@@ -411,16 +405,15 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg, char nee
              * a start msg should have gotten us one */
             if (alproto != ALPROTO_UNKNOWN) {
                 r = AppLayerParse(smsg->flow, alproto, smsg->flags,
-                            smsg->data.data, smsg->data.data_len, need_lock);
+                            smsg->data.data, smsg->data.data_len);
             } else {
                 SCLogDebug(" smsg not start, but no l7 data? Weird");
             }
         }
     }
 
-    if (need_lock == TRUE) SCMutexLock(&smsg->flow->m);
+    /* flow is free again */
     smsg->flow->use_cnt--;
-    if (need_lock == TRUE) SCMutexUnlock(&smsg->flow->m);
 
     /* return the used message to the queue */
     StreamMsgReturnToPool(smsg);

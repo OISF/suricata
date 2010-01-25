@@ -618,7 +618,7 @@ static void AppLayerParserResultCleanup(AppLayerParserResult *result)
 
 static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *parser_state,
                            uint8_t *input, uint32_t input_len, uint16_t parser_idx,
-                           uint16_t proto, char need_lock)
+                           uint16_t proto)
 {
     SCEnter();
     int retval = 0;
@@ -663,7 +663,7 @@ static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *
         parser_state->flags |= APP_LAYER_PARSER_EOF;
 
         r = AppLayerDoParse(f, app_layer_state, parser_state, e->data_ptr,
-                            e->data_len, idx, proto, need_lock);
+                            e->data_len, idx, proto);
 
         /* restore */
         parser_state->flags &= ~APP_LAYER_PARSER_EOF;
@@ -692,13 +692,12 @@ static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *
  * \param flags Stream flags
  * \param input Input L7 data
  * \param input_len Length of the input data.
- * \param need_lock bool controlling locking for the flow
  *
  * \retval -1 error
  * \retval 0 ok
  */
 int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
-                  uint32_t input_len, char need_lock)
+                  uint32_t input_len)
 {
     SCEnter();
 
@@ -718,13 +717,11 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         parser_state_store = (AppLayerParserStateStore *)
                                                     ssn->aldata[app_layer_sid];
         if (parser_state_store == NULL) {
-            if (need_lock == TRUE) SCMutexLock(&f->m);
             parser_state_store = AppLayerParserStateStoreAlloc();
             if (parser_state_store == NULL)
                 goto error;
 
             ssn->aldata[app_layer_sid] = (void *)parser_state_store;
-            if (need_lock == TRUE) SCMutexUnlock(&f->m);
         }
     } else {
         SCLogDebug("No App Layer Data");
@@ -774,7 +771,6 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
     /* See if we already have a 'app layer' state */
     void *app_layer_state = NULL;
-    if (need_lock == TRUE) SCMutexLock(&f->m);
     app_layer_state = ssn->aldata[p->storage_id];
 
     if (app_layer_state == NULL) {
@@ -782,7 +778,6 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
          * alloc more than one otherwise */
         app_layer_state = p->StateAlloc();
         if (app_layer_state == NULL) {
-            if (need_lock == TRUE) SCMutexUnlock(&f->m);
             goto error;
         }
 
@@ -791,18 +786,15 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     } else {
         SCLogDebug("using existing app layer state %p (p->storage_id %u, name %s))", app_layer_state, p->storage_id, al_proto_table[ssn->alproto].name);
     }
-    if (need_lock == TRUE) SCMutexUnlock(&f->m);
 
     /* invoke the recursive parser */
     int r = AppLayerDoParse(f, app_layer_state, parser_state, input, input_len,
-                            parser_idx, proto, need_lock);
+                            parser_idx, proto);
     if (r < 0)
         goto error;
 
     /* set the packets to no inspection and reassembly for the TLS sessions */
     if (parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) {
-        if (need_lock == TRUE) SCMutexLock(&f->m);
-
         FlowSetNoPayloadInspectionFlag(f);
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
@@ -812,7 +804,6 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
             StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                flags & STREAM_TOSERVER ? 1 : 0);
         }
-        if (need_lock == TRUE) SCMutexUnlock(&f->m);
     }
 
     SCReturnInt(0);
@@ -820,7 +811,6 @@ error:
     if (ssn != NULL) {
         /* Clear the app layer protocol state memory and the given function also
          * cleans the parser state memory */
-        if (need_lock == TRUE) SCMutexLock(&f->m);
         if (f->use_cnt == 0)
             AppLayerParserCleanupState(ssn);
 
@@ -857,7 +847,6 @@ error:
                 "dst port %"PRIu16"", al_proto_table[ssn->alproto].name,
                 f->proto, src6, dst6, f->sp, f->dp);
         }
-        if (need_lock == TRUE) SCMutexUnlock(&f->m);
     }
 
     SCReturnInt(-1);
@@ -1072,7 +1061,7 @@ static int AppLayerParserTest01 (void)
     f.proto = IPPROTO_TCP;
 
     int r = AppLayerParse(&f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
-                          testlen, FALSE);
+                          testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: \n", r);
         result = 0;

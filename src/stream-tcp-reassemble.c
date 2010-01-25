@@ -1519,8 +1519,8 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
                 break;
 
             /** Handle the stream msg. No need to use locking, flow is already
-             *  locked */
-            r = AppLayerHandleMsg(&ra_ctx->dp_ctx, smsg, FALSE);
+             *  locked at this point. */
+            r = AppLayerHandleMsg(&ra_ctx->dp_ctx, smsg);
             if (r < 0)
                 break;
         } while (ra_ctx->stream_q->len > 0);

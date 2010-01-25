@@ -100,7 +100,7 @@ void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
                                 void (*StateFree)(void *));
 
 int AppLayerParse(Flow *, uint8_t proto, uint8_t flags, uint8_t *input,
-                  uint32_t input_len, char);
+                  uint32_t input_len);
 
 int AlpParseFieldBySize(AppLayerParserResult *, AppLayerParserState *, uint16_t,
                         uint32_t, uint8_t *, uint32_t, uint32_t *);

@@ -1607,7 +1607,7 @@ int DCERPCParserTest01(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
 
-    int r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcbind, bindlen, FALSE);
+    int r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcbind, bindlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1640,7 +1640,7 @@ int DCERPCParserTest01(void) {
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpcbindack, bindacklen, FALSE);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpcbindack, bindacklen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1824,7 +1824,7 @@ int DCERPCParserTest02(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
 
-    int r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen, FALSE);
+    int r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2012,7 +2012,7 @@ int DCERPCParserTest03(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
 
-    int r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen, FALSE);
+    int r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;

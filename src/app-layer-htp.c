@@ -290,7 +290,7 @@ htp_tx_t *HTPTransactionMain(const HtpState *htp_state)
     SCReturnPtr(list_get(htp_state->connp->conn->transactions, 0), "htp_tx_t");
 }
 
-//#ifdef UNITTESTS
+#ifdef UNITTESTS
 /** \test Test case where chunks are sent in smaller chunks and check the
  *        response of the parser from HTP library. */
 int HTPParserTest01(void) {
@@ -314,7 +314,7 @@ int HTPParserTest01(void) {
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1, FALSE);
+        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -369,7 +369,7 @@ int HTPParserTest02(void) {
     f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                          STREAM_EOF, httpbuf1, httplen1, FALSE);
+                          STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -423,7 +423,7 @@ int HTPParserTest03(void) {
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1, FALSE);
+        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -475,7 +475,7 @@ int HTPParserTest04(void) {
     f.protoctx = (void *)&ssn;
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                          STREAM_EOF, httpbuf1, httplen1, FALSE);
+                          STREAM_EOF, httpbuf1, httplen1);
 
     HtpState *htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
@@ -532,7 +532,7 @@ int HTPParserTest05(void) {
     f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
-                          httpbuf1, httplen1, FALSE);
+                          httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -540,21 +540,21 @@ int HTPParserTest05(void) {
     }
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf4,
-                      httplen4, FALSE);
+                      httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf5, httplen5, FALSE);
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2, FALSE);
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -562,7 +562,7 @@ int HTPParserTest05(void) {
     }
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3,
-                      httplen3, FALSE);
+                      httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -570,7 +570,7 @@ int HTPParserTest05(void) {
     }
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_EOF, httpbuf6,
-                      httplen6, FALSE);
+                      httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -671,7 +671,7 @@ int HTPParserTest06(void) {
     f.protoctx = (void *)&ssn;
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
-                          httpbuf1, httplen1, FALSE);
+                          httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -679,7 +679,7 @@ int HTPParserTest06(void) {
     }
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf2,
-                      httplen2, FALSE);
+                      httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -723,7 +723,8 @@ int HTPParserTest06(void) {
 end:
     return result;
 }
-//#endif /* UNITTESTS */
+#endif /* UNITTESTS */
+
 /**
  *  \brief  Register the Unit tests for the HTTP protocol
  */

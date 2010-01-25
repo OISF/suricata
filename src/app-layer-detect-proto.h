@@ -13,7 +13,7 @@ typedef struct AlpProtoDetectThreadCtx_ {
     AlpProtoDetectDirectionThread toclient;
 } AlpProtoDetectThreadCtx;
 
-int AppLayerHandleMsg(AlpProtoDetectThreadCtx *, StreamMsg *smsg, char);
+int AppLayerHandleMsg(AlpProtoDetectThreadCtx *, StreamMsg *smsg);
 void *AppLayerDetectProtoThread(void *td);
 
 void AppLayerDetectProtoThreadInit(void);

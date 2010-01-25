@@ -443,7 +443,7 @@ int SMB2ParserTest01(void) {
     StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
 
-    int r = AppLayerParse(&f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len, FALSE);
+    int r = AppLayerParse(&f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len);
     if (r != 0) {
         printf("smb2 header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
