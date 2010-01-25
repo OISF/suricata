@@ -627,20 +627,22 @@ DetectContentData *DetectContentParse (char *contentstr)
     free(temp);
     temp = NULL;
 
-    if (str[0] == '!') {
-        if (cd->negated == 1) {
-            SCLogDebug("Invalid negated content. \"!\" located twice at the "
-                       "start of the contet string: %s", contentstr);
-            goto error;
-        } else {
-            temp = str;
-            if ( (str = strdup(temp + 1)) == NULL)
-                goto error;
-            cd->negated = 1;
-            free(temp);
-            temp = NULL;
-        }
-    }
+    /*This was submitted as a patch for bug #11.  But this impliments incorrect behavior as !
+     *inside of quotes should be treated as normal match. */
+    //if (str[0] == '!') {
+    //    if (cd->negated == 1) {
+    //        SCLogDebug("Invalid negated content. \"!\" located twice at the "
+    //                   "start of the contet string: %s", contentstr);
+    //        goto error;
+    //    } else {
+    //        temp = str;
+    //        if ( (str = strdup(temp + 1)) == NULL)
+    //            goto error;
+    //        cd->negated = 1;
+    //        free(temp);
+    //        temp = NULL;
+    //    }
+    //}
 
     len = strlen(str);
     if (len == 0)
@@ -2659,7 +2661,7 @@ int DetectContentParseNegTest12(void) {
 int DetectContentParseNegTest13(void) {
     int result = 0;
     DetectContentData *cd = NULL;
-    char *teststring = "\"!boo\"";
+    char *teststring = "!\"boo\"";
 
     cd = DetectContentParse(teststring);
     if (cd != NULL) {
@@ -2676,7 +2678,7 @@ int DetectContentParseNegTest14(void) {
 
     cd = DetectContentParse(teststring);
     if (cd != NULL) {
-        result = (cd->negated == 1);
+        result = (cd->negated == 0);
         DetectContentFree(cd);
     }
     return result;
@@ -3056,7 +3058,7 @@ static int SigTest74TestNegatedContent(void)
 
 static int SigTest75TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:\"!PASS\"; sid:1;)",  (uint8_t *)"USER apple");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:\"!PASS\"; sid:1;)",  (uint8_t *)"USER !PASS");
 }
 
 #endif /* UNITTESTS */
