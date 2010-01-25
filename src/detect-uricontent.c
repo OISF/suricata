@@ -211,7 +211,6 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     SigMatch *sm = NULL;
     char *temp = NULL;
     char *str = NULL;
-    char dubbed = 0;
     uint16_t len = 0;
     uint16_t pos = 0;
     uint16_t slen = 0;

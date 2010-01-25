@@ -232,7 +232,6 @@ DetectPcreData *DetectPcreParse (char *regexstr)
     int opts = 0;
     DetectPcreData *pd = NULL;
     char *re = NULL, *op_ptr = NULL, *op = NULL;
-    char dubbed = 0;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
