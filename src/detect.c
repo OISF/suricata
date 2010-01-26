@@ -602,6 +602,16 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
     }
 
+    /* If we have the uricontent multi pattern matcher signatures in
+       signature list, then scan the received HTTP uri in the packet against
+       them, if it hasn't been done so */
+    if (det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT &&
+            det_ctx->de_scanned_uri == FALSE)
+    {
+        DetectAppLayerUricontentMatch(th_v, det_ctx, p->flow, flags,
+                alstate, NULL, NULL);
+    }
+
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->sgh->sig_cnt; idx++) {
     //for (idx = 0; idx < det_ctx->pmq.sig_id_array_cnt; idx++) {
@@ -622,17 +632,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
          * have no matches */
         if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
                 (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
-            /* If uri_ctx sigs are not scanned till now, we need to scan them
-               Once */
-            if (det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT) {
-                if (det_ctx->de_scanned_uri == TRUE) {
-                    SCLogDebug("mpm sig without matches.");
-                    continue;
-                }
-            } else {
                 SCLogDebug("mpm sig without matches.");
                 continue;
-            }
         }
 
         //printf("idx %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 ", s->id %" PRIu32 " (MPM? %s)\n", idx, det_ctx->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
@@ -3342,15 +3343,24 @@ static int SigTest07Real (int mpm_type) {
     Packet p;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    Flow f;
+    TcpSession ssn;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_HTTP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3374,6 +3384,13 @@ static int SigTest07Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
@@ -3502,15 +3519,24 @@ static int SigTest09Real (int mpm_type) {
     Packet p;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    Flow f;
+    TcpSession ssn;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_HTTP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3535,11 +3561,18 @@ static int SigTest09Real (int mpm_type) {
     //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
-        result = 0;
-    else
         result = 1;
+    else
+        result = 0;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);

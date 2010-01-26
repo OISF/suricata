@@ -494,7 +494,6 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
 
         }
         det_ctx->pmq.searchable = 0;
-        det_ctx->de_scanned_uri = TRUE;
     }
     return ret;
 }
@@ -521,7 +520,6 @@ int DetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ct
     SCEnter();
     int ret = 0;
     int res = 0;
-    DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
     /* if we don't have a uri, don't bother scanning */
     if (det_ctx->de_have_httpuri == FALSE) {
         SCLogDebug("We don't have uri");
@@ -535,14 +533,14 @@ int DetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ct
         if (ssn == NULL) {
             SCLogDebug("no Tcp Session");
             det_ctx->de_have_httpuri = FALSE;
-            goto end;
+            goto unlock;
         }
 
         HtpState *htp_state = ssn->aldata[AlpGetStateIdx(ALPROTO_HTTP)];
         if (htp_state == NULL) {
             SCLogDebug("no HTTP state");
             det_ctx->de_have_httpuri = FALSE;
-            goto end;
+            goto unlock;
         }
 
         htp_tx_t *tx = NULL;
@@ -555,28 +553,27 @@ int DetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ct
             ret = DoDetectAppLayerUricontentMatch(tv, det_ctx, (uint8_t *)
                     bstr_ptr(tx->request_uri_normalized),
                     bstr_len(tx->request_uri_normalized));
-
-            if (ret > 0 && det_ctx->mtcu.match[co->id].len > 0) {
-                SCLogDebug("Match has been found in the received request and "
-                        "given uricontent rule for s->id %"PRIu32"", s->id);
-                res = 1;
-            }
         }
-    } else if (det_ctx->mtcu.match[co->id].len > 0) {
-        SCLogDebug("We have app layer URI match");
+unlock:
+        SCMutexUnlock(&f->m);
+        det_ctx->de_scanned_uri = TRUE;
+        SCReturnInt(ret);
+    }
+
+    DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
+    if (det_ctx->mtcu.match[co->id].len > 0) {
+        SCLogDebug("Match has been found in the received request and "
+                        "signature s->id %"PRIu32"", s->id);
         res = 1;
     } else {
         SCLogDebug("We don't have app layer URI match");
         res = 0;
     }
 
-end:
-    SCMutexUnlock(&f->m);
     SCReturnInt(res);
 }
 
 /*
- * TESTS
  * UNITTTESTS
  */
 
