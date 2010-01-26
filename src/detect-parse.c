@@ -603,6 +603,8 @@ void SigFree(Signature *s) {
  * \retval Pointer to the Signature instance on success; NULL on failure
  */
 Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
+    SCEnter();
+
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
@@ -685,7 +687,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
         sig->flags & SIG_FLAG_PACKET ? "set" : "not set");
 
-    return sig;
+    SCReturnPtr(sig, "Signature");
 
 error:
     if ( sig != NULL ) SigFree(sig);
@@ -693,7 +695,7 @@ error:
         SCLogError(SC_ERR_INVALID_SIGNATURE,"Signature parsing failed: \"%s\"", sigstr);
         exit(EXIT_FAILURE);
     }
-    return NULL;
+    SCReturnPtr(NULL,"Signature");
 }
 
 /**
@@ -998,7 +1000,7 @@ end:
 
 /** \test Port validation */
 int SigParseTest05 (void) {
-    int result = 1;
+    int result = 0;
     Signature *sig = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -1006,8 +1008,11 @@ int SigParseTest05 (void) {
         goto end;
 
     sig = SigInit(de_ctx, "alert tcp 1.2.3.4 1024:65536 -> !1.2.3.4 any (msg:\"SigParseTest05\"; sid:1;)");
-    if (sig != NULL)
+    if (sig == NULL) {
         result = 1;
+    } else {
+        printf("signature didn't fail to parse as we expected: ");
+    }
 
 end:
     if (sig != NULL) SigFree(sig);

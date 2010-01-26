@@ -991,6 +991,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
     char address[1024] = "";
     char *rule_var_port = NULL;
     char *temp_rule_var_port = NULL;
+    int r = 0;
 
     SCLogDebug("head %p, *head %p, negate %d", head, *head, negate);
 
@@ -1020,7 +1021,10 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
                 x = 0;
 
-                DetectPortParseDo(head, nhead, address, negate? negate: n_set);
+                r = DetectPortParseDo(head, nhead, address, negate? negate: n_set);
+                if (r == -1)
+                    goto error;
+
                 n_set = 0;
             }
             depth--;
@@ -1045,8 +1049,11 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                     snprintf(temp_rule_var_port, strlen(rule_var_port) + 3,
                              "[%s]", rule_var_port);
                 }
-                DetectPortParseDo(head, nhead, temp_rule_var_port,
+                r = DetectPortParseDo(head, nhead, temp_rule_var_port,
                                   (negate + n_set) % 2);//negate? negate: n_set);
+                if (r == -1)
+                    goto error;
+
                 d_set = 0;
                 n_set = 0;
                 if (temp_rule_var_port != rule_var_port)
@@ -1056,10 +1063,13 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
 
                 if (negate == 0 && n_set == 0) {
-                    DetectPortParseInsertString(head, address);
+                    r = DetectPortParseInsertString(head, address);
                 } else {
-                    DetectPortParseInsertString(nhead, address);
+                    r = DetectPortParseInsertString(nhead, address);
                 }
+                if (r == -1)
+                    goto error;
+
                 n_set = 0;
             }
             x = 0;
@@ -1086,17 +1096,22 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                     snprintf(temp_rule_var_port, strlen(rule_var_port) + 3,
                             "[%s]", rule_var_port);
                 }
-                DetectPortParseDo(head, nhead, temp_rule_var_port,
+                r = DetectPortParseDo(head, nhead, temp_rule_var_port,
                                   (negate + n_set) % 2);
+                if (r == -1)
+                    goto error;
+
                 d_set = 0;
                 if (temp_rule_var_port != rule_var_port)
                     free(temp_rule_var_port);
             } else {
                 if (!((negate + n_set) % 2)) {
-                    DetectPortParseInsertString(head,address);
+                    r = DetectPortParseInsertString(head,address);
                 } else {
-                    DetectPortParseInsertString(nhead,address);
+                    r = DetectPortParseInsertString(nhead,address);
                 }
+                if (r == -1)
+                    goto error;
             }
             n_set = 0;
         }
