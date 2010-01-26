@@ -444,6 +444,7 @@ int main(int argc, char **argv)
     }
 
     SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
+    UtilCpuPrintSummary();
 
     if (!CheckValidDaemonModes(daemon, mode)) {
         exit(EXIT_FAILURE);

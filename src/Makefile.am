@@ -75,7 +75,6 @@ detect-sid.c detect-sid.h \
 detect-priority.c detect-priority.h \
 detect-rev.c detect-rev.h \
 detect-classtype.c detect-classtype.h \
-util-fmemopen.c util-fmemopen.h \
 detect-reference.c detect-reference.h \
 detect-tag.c detect-tag.h \
 detect-threshold.c detect-threshold.h \
@@ -105,6 +104,8 @@ detect-dce-opnum.c detect-dce-opnum.h \
 detect-dce-stub-data.c detect-dce-stub-data.h \
 detect-urilen.c detect-urilen.h \
 util-print.c util-print.h \
+util-fmemopen.c util-fmemopen.h \
+util-cpu.c util-cpu.h \
 util-mpm.c util-mpm.h \
 util-spm.c util-spm.h util-clock.h \
 util-spm-bs.c util-spm-bs.h \
