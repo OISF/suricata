@@ -36,7 +36,7 @@ enum {
     DCERPC_FIELD_MAX,
 };
 
-#if 0
+#ifdef UNITTESTS
 /* \brief hexdump function from libdnet, used for debugging only */
 void hexdump(const void *buf, size_t len) {
     /* dumps len bytes of *buf to stdout. Looks like:
@@ -780,13 +780,15 @@ static uint32_t DCERPCParseREQUEST(Flow *f, void *dcerpc_state,
         case 16:
             sstate->numctxitems = 0;
             if (input_len >= 8) {
-                if (sstate->dcerpc.packed_drep[0] == 0x10) {
-                    sstate->opnum = *(p + 6);
-                    sstate->opnum |= *(p + 7) << 8;
-                } else {
-                    sstate->opnum = *(p + 6) << 8;
-                    sstate->opnum |= *(p + 7);
-                }
+		if (sstate->dcerpc.type == REQUEST) {
+			if (sstate->dcerpc.packed_drep[0] == 0x10) {
+				sstate->opnum = *(p + 6);
+				sstate->opnum |= *(p + 7) << 8;
+			} else {
+				sstate->opnum = *(p + 6) << 8;
+				sstate->opnum |= *(p + 7);
+			}
+		}
                 sstate->bytesprocessed += 8;
                 SCReturnUInt(8U);
             } else {
@@ -821,14 +823,18 @@ static uint32_t DCERPCParseREQUEST(Flow *f, void *dcerpc_state,
             if (!(--input_len))
                 break;
         case 22:
-            sstate->opnum = *(p++);
+		if (sstate->dcerpc.type == REQUEST) {
+			sstate->opnum = *(p++);
+		}
             if (!(--input_len))
                 break;
         case 23:
-            sstate->opnum |= *(p++) << 8;
-            if (sstate->dcerpc.packed_drep[0] == 0x01) {
-                SCByteSwap16(sstate->opnum);
-            }
+		if (sstate->dcerpc.type == REQUEST) {
+			sstate->opnum |= *(p++) << 8;
+				if (sstate->dcerpc.packed_drep[0] == 0x01) {
+					SCByteSwap16(sstate->opnum);
+				}
+		}
             --input_len;
             break;
     }
@@ -989,6 +995,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
 
     if (pstate == NULL)
         SCReturnInt(-1);
+
     while (sstate->bytesprocessed < DCERPC_HDR_LEN && input_len) {
         retval = DCERPCParseHeader(f, dcerpc_state, pstate, input, input_len,
                 output);
@@ -1083,8 +1090,10 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
 
             if (sstate->bytesprocessed == DCERPC_HDR_LEN + 10
                     + sstate->secondaryaddrlen) {
-                sstate->pad = sstate->bytesprocessed % 4;
-                sstate->padleft = sstate->pad;
+                if (sstate->bytesprocessed % 4) {
+                    sstate->pad = (4 - sstate->bytesprocessed % 4);
+                    sstate->padleft = sstate->pad;
+                }
             }
 
             while (sstate->bytesprocessed < DCERPC_HDR_LEN + 10
@@ -1155,6 +1164,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
             }
             break;
         case REQUEST:
+        case RESPONSE:
             while (sstate->bytesprocessed < DCERPC_HDR_LEN + 8
                     && sstate->bytesprocessed < sstate->dcerpc.frag_length
                     && input_len) {
@@ -1163,12 +1173,14 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
                 if (retval) {
                     parsed += retval;
                     input_len -= retval;
+                    sstate->padleft = sstate->dcerpc.frag_length - sstate->bytesprocessed;
                 } else if (input_len) {
                     SCLogDebug("Error parsing DCERPC Request");
                     parsed -= input_len;
                     input_len = 0;
                 }
             }
+
             while (sstate->bytesprocessed >= DCERPC_HDR_LEN + 8
                     && sstate->bytesprocessed < sstate->dcerpc.frag_length
                     && input_len) {
@@ -1181,21 +1193,21 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
                     SCLogDebug("Error parsing DCERPC Stub Data");
                     parsed -= input_len;
                     input_len = 0;
-
+                    sstate->bytesprocessed = 0;
                 }
             }
-            SCLogDebug("REQUEST processed %u/%u\n", sstate->bytesprocessed,
-                    sstate->dcerpc.frag_length);
+            SCLogDebug("REQUEST processed %u frag length %u opnum %u input_len %u\n", sstate->bytesprocessed,
+                    sstate->dcerpc.frag_length, sstate->opnum, input_len);
             if (sstate->bytesprocessed == sstate->dcerpc.frag_length) {
                 sstate->bytesprocessed = 0;
             }
             break;
         default:
             SCLogDebug("DCERPC Type 0x%02x not implemented yet\n", sstate->dcerpc.type);
+            sstate->bytesprocessed = 0;
             break;
     }
     pstate->parse_field = 0;
-    pstate->flags |= APP_LAYER_PARSER_DONE;
 
     SCReturnInt(1);
 }
@@ -1241,7 +1253,7 @@ void RegisterDCERPCParsers(void) {
  */
 
 /* set this to 1 to see problem */
-#define KNOWNFAILURE 0
+
 int DCERPCParserTest01(void) {
     int result = 1;
     Flow f;
@@ -1463,7 +1475,7 @@ int DCERPCParserTest01(void) {
         0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-#if KNOWNFAILURE
+
     uint8_t dcerpcrequest[] = {
         0x05, 0x00, 0x00, 0x00, 0x10,
         0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00,
@@ -1595,7 +1607,6 @@ int DCERPCParserTest01(void) {
         0x00, 0x24, 0x00, 0x35, 0x00, 0x34, 0x00, 0x70,
         0x00, 0x69, 0x00};
     uint32_t requestlen = sizeof(dcerpcrequest);
-#endif
 
     uint32_t bindlen = sizeof(dcerpcbind);
     uint32_t bindacklen = sizeof(dcerpcbindack);
@@ -1660,10 +1671,9 @@ int DCERPCParserTest01(void) {
     TAILQ_FOREACH(uuid_entry, &dcerpc_state->uuid_list, next) {
         printUUID("BIND_ACK", uuid_entry);
     }
-#if KNOWNFAILURE
-    printf("Sending dcerpcrequest (%u)", requestlen);
-    hexdump(dcerpcrequest, requestlen);
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_EOF, dcerpcrequest, requestlen, FALSE);
+
+    //hexdump(dcerpcrequest, requestlen);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_EOF, dcerpcrequest, requestlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1674,7 +1684,6 @@ int DCERPCParserTest01(void) {
         result = 0;
         goto end;
     }
-#endif
 end:
     return result;
 }

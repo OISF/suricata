@@ -6,7 +6,8 @@
 #define __DETECT_DCE_IFACE_H__
 
 typedef enum DetectDceIfaceOperators_ {
-    DETECT_DCE_IFACE_OP_LT = 1,
+    DETECT_DCE_IFACE_OP_NONE = 0,
+    DETECT_DCE_IFACE_OP_LT,
     DETECT_DCE_IFACE_OP_GT,
     DETECT_DCE_IFACE_OP_EQ,
     DETECT_DCE_IFACE_OP_NE,
