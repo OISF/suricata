@@ -20,6 +20,7 @@
 #include "util-bloomfilter-counting.h"
 #include "util-pool.h"
 #include "util-byte.h"
+#include "util-cpu.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
