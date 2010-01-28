@@ -308,9 +308,6 @@ typedef struct DetectionEngineThreadCtx_ {
     /* http_uri stuff for uricontent */
     char de_have_httpuri;
 
-    /* to indicate http_uri scanned or not */
-    char de_scanned_uri;
-
     /** pointer to the current mpm ctx that is stored
      *  in a rule group head -- can be either a content
      *  or uricontent ctx. */

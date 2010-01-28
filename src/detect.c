@@ -520,6 +520,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     uint16_t alproto = ALPROTO_UNKNOWN;
     void *alstate = NULL;
     uint8_t flags = 0;
+    uint32_t cnt = 0;
 
     SCEnter();
 
@@ -556,9 +557,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* we assume we have an uri when we start inspection */
     det_ctx->de_have_httpuri = TRUE;
 
-    /* we don't scan the uri when we start inspection */
-    det_ctx->de_scanned_uri = FALSE;
-
     det_ctx->sgh = SigMatchSignaturesGetSgh(th_v, de_ctx, det_ctx, p);
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
@@ -572,7 +570,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
             SCLogDebug("not scanning as pkt payload is smaller than the largest content length we need to match");
         } else {
-            uint32_t cnt = 0;
             SCLogDebug("scan: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")", det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
             /* scan, but only if the noscan flag isn't set */
 
@@ -603,13 +600,20 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 
     /* If we have the uricontent multi pattern matcher signatures in
-       signature list, then scan the received HTTP uri in the packet against
-       them, if it hasn't been done so */
-    if (det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT &&
-            det_ctx->de_scanned_uri == FALSE)
+       signature list, then scan the received HTTP uri(s) in the htp state
+       against those patterns */
+    if (det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT && p->flow != NULL && alproto == ALPROTO_HTTP)
     {
-        DetectAppLayerUricontentMatch(th_v, det_ctx, p->flow, flags,
-                alstate, NULL, NULL);
+        SCMutexLock(&p->flow->m);
+        cnt = DetectUricontentInspectMpm(th_v, det_ctx, alstate);
+        SCMutexUnlock(&p->flow->m);
+
+        /* only consider uri sigs if we've seen at least one match */
+        /** \warn when we start supporting negated uri content matches
+          * we need to update this check as well */
+        if (cnt > 0) {
+            det_ctx->de_have_httpuri = TRUE;
+        }
     }
 
     /* inspect the sigs against the packet */
@@ -632,8 +636,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
          * have no matches */
         if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
                 (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
-                SCLogDebug("mpm sig without matches.");
-                continue;
+            SCLogDebug("mpm sig without matches.");
+            continue;
         }
 
         //printf("idx %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 ", s->id %" PRIu32 " (MPM? %s)\n", idx, det_ctx->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");

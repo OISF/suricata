@@ -38,6 +38,7 @@ uint16_t PatternMatchDefaultMatcher(void) {
 uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                            Packet *p)
 {
+    SCEnter();
     uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SCAN;
@@ -45,8 +46,7 @@ uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             (det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload,
              p->payload_len);
 
-    //printf("PacketPatternScan: ret %" PRIu32 "\n", ret);
-    return ret;
+    SCReturnInt(ret);
 }
 
 /** \brief Uri Pattern match, scan part -- searches for only 'scan' patterns,
@@ -56,17 +56,17 @@ uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
  *  \param p packet to scan
  */
 uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-                        uint8_t *content, uint16_t content_len)
+                        uint8_t *uri, uint16_t uri_len)
 {
+    SCEnter();
     uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SCAN;
     ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan
-            (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq,
-             content, content_len);
+        (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq,
+         uri, uri_len);
 
-    SCLogDebug("ret %" PRIu32 "", ret);
-    return ret;
+    SCReturnInt(ret);
 }
 
 /** \brief Pattern match, search part -- searches for all other patterns
@@ -77,15 +77,15 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 uint32_t PacketPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                             Packet *p)
 {
+    SCEnter();
     uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SEARCH;
     ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search
-            (det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload,
-             p->payload_len);
+        (det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload,
+         p->payload_len);
 
-    SCLogDebug("ret %" PRIu32 "", ret);
-    return ret;
+    SCReturnInt(ret);
 }
 
 /** \brief Uri Pattern match, search part -- searches for all other patterns
@@ -94,17 +94,17 @@ uint32_t PacketPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
  *  \param p packet to scan
  */
 uint32_t UriPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-                         uint8_t *content, uint16_t content_len)
+                         uint8_t *uri, uint16_t uri_len)
 {
+    SCEnter();
     uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SEARCH;
     ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search
-            (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, content,
-             content_len);
+        (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, uri,
+         uri_len);
 
-    SCLogDebug("ret %" PRIu32 "", ret);
-    return ret;
+    SCReturnInt(ret);
 }
 
 /** \brief cleans up the mpm instance after a match */

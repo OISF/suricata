@@ -26,8 +26,7 @@ typedef struct DetectUricontentData_ {
 void DetectUricontentRegister (void);
 uint32_t DetectUricontentMaxId(DetectEngineCtx *);
 void PktHttpUriFree(Packet *p);
-int DetectAppLayerUricontentMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                                   uint8_t , void *, Signature *, SigMatch *);
+uint32_t DetectUricontentInspectMpm(ThreadVars *th_v, DetectEngineThreadCtx *det_ctx, void *alstate);
 
 #endif /* __DETECT_URICONTENT_H__ */
 

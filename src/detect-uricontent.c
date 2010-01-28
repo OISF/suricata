@@ -50,7 +50,8 @@ void DetectUricontentRegister (void)
 {
     sigmatch_table[DETECT_URICONTENT].name = "uricontent";
     sigmatch_table[DETECT_URICONTENT].AppLayerMatch = DetectAppLayerUricontentMatch;
-    sigmatch_table[DETECT_URICONTENT].Match = DetectUricontentMatch;
+    //sigmatch_table[DETECT_URICONTENT].Match = DetectUricontentMatch;
+    sigmatch_table[DETECT_URICONTENT].Match = NULL;
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = NULL;
     sigmatch_table[DETECT_URICONTENT].RegisterTests = HttpUriRegisterTests;
@@ -459,11 +460,11 @@ error:
  * \retval 1 if the uri contents match; 0 no match
  */
 int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-                                     uint8_t *content, uint16_t content_len)
+                                     uint8_t *uri, uint16_t uri_len)
 {
     int ret = 0;
     /* run the pattern matcher against the uri */
-    if (det_ctx->sgh->mpm_uricontent_maxlen > content_len) {
+    if (det_ctx->sgh->mpm_uricontent_maxlen > uri_len) {
         SCLogDebug("not scanning as pkt payload is smaller than the "
                 "largest uricontent length we need to match");
     } else {
@@ -479,7 +480,7 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
         else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_scanned4++;
         else det_ctx->pkts_uri_scanned++;
 
-        ret += UriPatternScan(tv, det_ctx, content, content_len);
+        ret += UriPatternScan(tv, det_ctx, uri, uri_len);
 
         SCLogDebug("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "",
                     ret, det_ctx->pmq.searchable);
@@ -490,13 +491,14 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
             else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
             else det_ctx->pkts_uri_searched++;
 
-            ret += UriPatternMatch(tv, det_ctx, content, content_len);
+            ret += UriPatternMatch(tv, det_ctx, uri, uri_len);
 
         }
         det_ctx->pmq.searchable = 0;
     }
     return ret;
 }
+
 
 /**
  * \brief   Checks if the received http request has a uricontent, which matches
@@ -518,46 +520,12 @@ int DetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ct
                                    Signature *s, SigMatch *sm)
 {
     SCEnter();
-    int ret = 0;
     int res = 0;
+
     /* if we don't have a uri, don't bother scanning */
     if (det_ctx->de_have_httpuri == FALSE) {
         SCLogDebug("We don't have uri");
-        SCReturnInt(res);
-    }
-
-    /* Check if we have scanned the URI already or not */
-    if (det_ctx->de_scanned_uri == FALSE) {
-        SCMutexLock(&f->m);
-        TcpSession *ssn = (TcpSession *) f->protoctx;
-        if (ssn == NULL) {
-            SCLogDebug("no Tcp Session");
-            det_ctx->de_have_httpuri = FALSE;
-            goto unlock;
-        }
-
-        HtpState *htp_state = ssn->aldata[AlpGetStateIdx(ALPROTO_HTTP)];
-        if (htp_state == NULL) {
-            SCLogDebug("no HTTP state");
-            det_ctx->de_have_httpuri = FALSE;
-            goto unlock;
-        }
-
-        htp_tx_t *tx = NULL;
-        list_iterator_reset(htp_state->recent_in_tx);
-
-        while ((tx = list_iterator_next(htp_state->recent_in_tx)) != NULL) {
-            if (tx->request_uri_normalized == NULL)
-                continue;
-
-            ret = DoDetectAppLayerUricontentMatch(tv, det_ctx, (uint8_t *)
-                    bstr_ptr(tx->request_uri_normalized),
-                    bstr_len(tx->request_uri_normalized));
-        }
-unlock:
-        SCMutexUnlock(&f->m);
-        det_ctx->de_scanned_uri = TRUE;
-        SCReturnInt(ret);
+        SCReturnInt(0);
     }
 
     DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
@@ -571,6 +539,31 @@ unlock:
     }
 
     SCReturnInt(res);
+}
+
+uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, void *alstate) {
+    uint32_t cnt = 0;
+    SCEnter();
+
+    HtpState *htp_state = (HtpState *)alstate;
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP state");
+        SCReturnUInt(0U);
+    }
+
+    htp_tx_t *tx = NULL;
+    list_iterator_reset(htp_state->recent_in_tx);
+
+    while ((tx = list_iterator_next(htp_state->recent_in_tx)) != NULL) {
+        if (tx->request_uri_normalized == NULL)
+            continue;
+
+        cnt += DoDetectAppLayerUricontentMatch(tv, det_ctx, (uint8_t *)
+                bstr_ptr(tx->request_uri_normalized),
+                bstr_len(tx->request_uri_normalized));
+    }
+
+    SCReturnUInt(cnt);
 }
 
 /*
