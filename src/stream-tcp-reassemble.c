@@ -1264,8 +1264,16 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                    "%"PRIu32"", stream->ra_base_seq, seg, seg->seq,
                     seg->payload_len, seg->seq+seg->payload_len, stream->last_ack);
 
+        /* Remove the segments which are either completely before the
+           ra_base_seq or if they are beyond ra_base_seq, but the segment offset
+           from which we need to copy in to smsg is beyond the stream->last_ack.
+           As we are copying until the stream->last_ack only */
+
         /** \todo we should probably not even insert them into the seglist */
-        if (SEQ_LEQ((seg->seq + seg->payload_len), (stream->ra_base_seq+1))) {
+        if (SEQ_LEQ((seg->seq + seg->payload_len), (stream->ra_base_seq+1)) ||
+                SEQ_LEQ(stream->last_ack, (stream->ra_base_seq +
+                                            (stream->ra_base_seq - seg->seq))))
+        {
             SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
                         " len %"PRIu16"", stream->ra_base_seq, seg, seg->seq,
                         seg->payload_len);
@@ -1358,11 +1366,12 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                                                                 payload_offset;
                     }
                 } else {
-                    payload_len = seg->payload_len - payload_offset;
+                payload_len = seg->payload_len - payload_offset;
                 }
 
                 if (SCLogDebugEnabled()) {
                     BUG_ON(payload_offset > seg->payload_len);
+                    BUG_ON((payload_len + payload_offset) > seg->payload_len);
                 }
             } else {
                 payload_offset = 0;
@@ -3800,6 +3809,72 @@ static int StreamTcpReassembleTest36(void) {
     return 1;
 }
 
+/** \test Test the bug 76 condition */
+static int StreamTcpReassembleTest37(void) {
+    TcpSession ssn;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpStream stream;
+    memset(&stream, 0, sizeof (TcpStream));
+    stream.os_policy = OS_POLICY_BSD;
+    uint8_t packet[1460] = "";
+
+    StreamTcpInitConfig(TRUE);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 10);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 10);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 10);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 10);
+
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.protoctx = &ssn;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    tcph.th_win = 5480;
+    tcph.th_flags = TH_PUSH | TH_ACK;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    p.payload = packet;
+
+    p.tcph->th_seq = htonl(3061088537UL);
+    p.tcph->th_ack = htonl(1729548549UL);
+    p.payload_len = 1391;
+    stream.last_ack = 3061091137UL;
+    stream.ra_base_seq = 3061091309UL;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(3061089928UL);
+    p.tcph->th_ack = htonl(1729548549UL);
+    p.payload_len = 1391;
+    stream.last_ack = 3061091137UL;
+    stream.ra_base_seq = 3061091309UL;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    p.tcph->th_seq = htonl(3061091319UL);
+    p.tcph->th_ack = htonl(1729548549UL);
+    p.payload_len = 1391;
+    stream.last_ack = 3061091137UL;
+    stream.ra_base_seq = 3061091309UL;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+        return 0;
+
+    StreamTcpFreeConfig(TRUE);
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
@@ -3844,5 +3919,6 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest34 -- Bug test", StreamTcpReassembleTest34, 1);
     UtRegisterTest("StreamTcpReassembleTest35 -- Bug56 test", StreamTcpReassembleTest35, 1);
     UtRegisterTest("StreamTcpReassembleTest36 -- Bug57 test", StreamTcpReassembleTest36, 1);
+    UtRegisterTest("StreamTcpReassembleTest37 -- Bug76 test", StreamTcpReassembleTest37, 1);
 #endif /* UNITTESTS */
 }
