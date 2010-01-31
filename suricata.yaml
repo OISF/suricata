@@ -37,6 +37,63 @@ defrag:
   prealloc: yes
   timeout: 60
 
+# Flow settings:
+# By default, the reserved memory (memcap) for flows is 32MB. This is the limit
+# for flow allocation inside the engine. You can change this value to allow
+# more memory usage for flows.
+# The hash_size determine the size of the hash used to identify flows inside
+# the engine, and by default the value is 65536.
+# At the startup, the engine can preallocate a number of flows, to get a better
+# performance. The number of flows preallocated is 10000 by default.
+
+flow:
+  memcap: 33554432
+  hash_size: 65536
+  prealloc: 10000
+
+# Specific timeouts for flows. Here you can specify the timeouts that the
+# active flows will wait to transit from the current state to another, on each
+# protocol. The value of "new" determine the seconds to wait after a hanshake or
+# stream startup before the engine free the data of that flow it doesn't
+# change the state to established (usually if we don't receive more packets
+# of that flow). The value of "established" is the amount of
+# seconds that the engine will wait to free the flow if it spend that amount
+# without receiving new packets or closing the connection. "closed" is the
+# amount of time to wait after a flow is closed (usually zero).
+#
+# There's an emergency mode that will become active under attack circumstances,
+# making the engine to check flow status faster. This configuration variables
+# use the prefix "emergency_" and work similar as the normal ones.
+# Some timeouts doesn't apply to all the protocols, like "closed", for udp and
+# icmp.
+
+flow-timeouts:
+
+  - default:
+      new: 30
+      established: 300
+      closed: 0
+      emergency_new: 10
+      emergency_established: 100
+      emergency_closed: 0
+  - tcp:
+      new: 30
+      established: 300
+      closed: 0
+      emergency_new: 10
+      emergency_established: 100
+      emergency_closed: 0
+  - udp:
+      new: 30
+      established: 300
+      emergency_new: 10
+      emergency_established: 100
+  - icmp:
+      new: 30
+      established: 300
+      emergency_new: 10
+      emergency_established: 100
+
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.
 logging:

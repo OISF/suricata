@@ -9,7 +9,9 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "decode.h"
+#include "conf.h"
 #include "threadvars.h"
 #include "tm-modules.h"
 #include "tm-threads.h"
@@ -24,6 +26,7 @@
 #include "flow-var.h"
 #include "flow-private.h"
 #include "util-unittest.h"
+#include "util-byte.h"
 
 #include "util-debug.h"
 
@@ -249,7 +252,9 @@ static int FlowUpdateSpareFlows(void) {
     uint32_t toalloc = 0, tofree = 0, len;
 
     SCMutexLock(&flow_spare_q.mutex_q);
+
     len = flow_spare_q.len;
+
     SCMutexUnlock(&flow_spare_q.mutex_q);
 
     if (len < flow_config.prealloc) {
@@ -443,11 +448,36 @@ void FlowInitConfig (char quiet)
     flow_config.hash_size   = FLOW_DEFAULT_HASHSIZE;
     flow_config.memcap      = FLOW_DEFAULT_MEMCAP;
     flow_config.prealloc    = FLOW_DEFAULT_PREALLOC;
-    /* init timeouts */
-    flow_config.timeout_new = FLOW_DEFAULT_NEW_TIMEOUT;
-    flow_config.timeout_est = FLOW_DEFAULT_EST_TIMEOUT;
-    flow_config.emerg_timeout_new = FLOW_DEFAULT_EMERG_NEW_TIMEOUT;
-    flow_config.emerg_timeout_est = FLOW_DEFAULT_EMERG_EST_TIMEOUT;
+
+    /* If we have specific config, overwrite the defaults with them,
+     * otherwise, leave the default values */
+
+    /* Check if we have memcap and hash_size defined at config */
+    char *conf_val;
+    uint32_t configval = 0;
+
+    /** set config values for memcap, prealloc and hash_size */
+    if ((ConfGet("flow.memcap", &conf_val)) == 1)
+    {
+        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
+                                    conf_val) > 0)
+            flow_config.memcap = configval;
+    }
+    if ((ConfGet("flow.hash_size", &conf_val)) == 1)
+    {
+        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
+                                    conf_val) > 0)
+            flow_config.hash_size = configval;
+    }
+    if ((ConfGet("flow.prealloc", &conf_val)) == 1)
+    {
+        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
+                                    conf_val) > 0)
+            flow_config.prealloc = configval;
+    }
+    SCLogDebug("Flow config from suricata.yaml: memcap: %"PRIu32", hash_size: "
+               "%"PRIu32", prealloc: %"PRIu32, flow_config.memcap,
+               flow_config.hash_size, flow_config.prealloc);
 
     /* alloc hash memory */
     flow_hash = calloc(flow_config.hash_size, sizeof(FlowBucket));
@@ -463,8 +493,10 @@ void FlowInitConfig (char quiet)
     flow_config.memuse += (flow_config.hash_size * sizeof(FlowBucket));
 
     if (quiet == FALSE)
-        SCLogInfo("allocated %" PRIu32 " bytes of memory for the flow hash... %" PRIu32 " buckets of size %" PRIuMAX "",
-            flow_config.memuse, flow_config.hash_size, (uintmax_t)sizeof(FlowBucket));
+        SCLogInfo("allocated %" PRIu32 " bytes of memory for the flow hash... "
+                  "%" PRIu32 " buckets of size %" PRIuMAX "",
+                  flow_config.memuse, flow_config.hash_size,
+                  (uintmax_t)sizeof(FlowBucket));
 
     /* pre allocate flows */
     for (i = 0; i < flow_config.prealloc; i++) {
@@ -588,9 +620,12 @@ void *FlowManagerThread(void *td)
 {
     ThreadVars *th_v = (ThreadVars *)td;
     struct timeval ts;
+    struct timeval tsdiff;
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0, nowcnt;
     uint32_t sleeping = 0;
     uint8_t emerg = FALSE;
+
+    memset(&tsdiff, 0, sizeof(tsdiff));
 
     SCLogDebug("%s started...", th_v->name);
 
@@ -603,7 +638,8 @@ void *FlowManagerThread(void *td)
         {
             /*uint32_t timeout_new = flow_config.timeout_new;
             uint32_t timeout_est = flow_config.timeout_est;
-            printf("The Timeout values are %" PRIu32" and %" PRIu32"\n", timeout_est, timeout_new);*/
+            printf("The Timeout values are %" PRIu32" and %"
+            PRIu32"\n", timeout_est, timeout_new);*/
             if (flow_flags & FLOW_EMERGENCY) {
                 emerg = TRUE;
                 printf("Flow emergency mode entered...\n");
@@ -657,11 +693,34 @@ void *FlowManagerThread(void *td)
             break;
         }
 
-        usleep(10);
-        sleeping += 10;
+        if (run_mode != MODE_PCAP_FILE) {
+            usleep(10);
+            sleeping += 10;
+        } else {
+            /* If we are reading a pcap, how long the pcap timestamps
+             * says that has passed */
+            TimeGet(&tsdiff);
+            if (tsdiff.tv_sec == ts.tv_sec && tsdiff.tv_usec - ts.tv_usec < 10
+                && tsdiff.tv_usec != ts.tv_usec) {
+                /* if it has passed less than 10 usec, sleep that usecs */
+                sleeping += tsdiff.tv_usec - ts.tv_usec;
+                usleep(tsdiff.tv_usec - ts.tv_usec);
+            } else {
+                /* Else update the sleeping var but don't sleep so long */
+                if (tsdiff.tv_sec == ts.tv_sec && tsdiff.tv_usec != ts.tv_usec)
+                    sleeping += tsdiff.tv_usec - ts.tv_usec;
+                else if (tsdiff.tv_sec == ts.tv_sec + 1)
+                    sleeping += tsdiff.tv_usec + (1000000 - ts.tv_usec);
+                else
+                    sleeping += 100;
+                usleep(1);
+            }
+        }
     }
 
-    SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were timed out, %"PRIu32" flows in closed state", new_cnt, established_cnt, closing_cnt);
+    SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were "
+              "timed out, %"PRIu32" flows in closed state", new_cnt,
+              established_cnt, closing_cnt);
     pthread_exit((void *) 0);
 }
 
@@ -726,6 +785,176 @@ void FlowInitFlowProto(void) {
     flow_proto[FLOW_PROTO_ICMP].emerg_closed_timeout = FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT;
     flow_proto[FLOW_PROTO_ICMP].Freefunc = NULL;
     flow_proto[FLOW_PROTO_ICMP].GetProtoState = NULL;
+
+    /* Let's see if we have custom timeouts defined from config */
+    const char *new = NULL;
+    const char *established = NULL;
+    const char *closed = NULL;
+    const char *emergency_new = NULL;
+    const char *emergency_established = NULL;
+    const char *emergency_closed = NULL;
+
+    ConfNode *flow_timeouts = ConfGetNode("flow-timeouts");
+    if (flow_timeouts != NULL) {
+        ConfNode *proto = NULL;
+        uint32_t configval = 0;
+
+        TAILQ_FOREACH(proto, &flow_timeouts->head, next) {
+            if (strncmp("default", proto->val, 7)) {
+                new = ConfNodeLookupChildValue(proto->head.tqh_first, "new");
+                established = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                       "established");
+                closed = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                  "closed");
+                emergency_new = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                         "emergency_new");
+                emergency_established = ConfNodeLookupChildValue(
+                                                      proto->head.tqh_first,
+                                                      "emergency_established");
+                emergency_closed = ConfNodeLookupChildValue(
+                                                      proto->head.tqh_first,
+                                                      "emergency_closed");
+
+                if (new != NULL && ByteExtractStringUint32(&configval, 10,
+                                                        strlen(new), new) > 0) {
+
+                    flow_proto[FLOW_PROTO_DEFAULT].new_timeout = configval;
+                }
+                if (established != NULL && ByteExtractStringUint32(&configval,
+                                    10, strlen(established), established) > 0) {
+
+                    flow_proto[FLOW_PROTO_DEFAULT].est_timeout = configval;
+                }
+                if (closed != NULL && ByteExtractStringUint32(&configval, 10,
+                                                  strlen(closed), closed) > 0) {
+
+                    flow_proto[FLOW_PROTO_DEFAULT].closed_timeout = configval;
+                }
+                if (emergency_new != NULL && ByteExtractStringUint32(&configval,
+                                10, strlen(emergency_new), emergency_new) > 0) {
+
+                    flow_proto[FLOW_PROTO_DEFAULT].emerg_new_timeout = configval;
+                }
+                if (emergency_established != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                    strlen(emergency_established), emergency_established) > 0) {
+
+                    flow_proto[FLOW_PROTO_DEFAULT].emerg_est_timeout= configval;
+                }
+                if (emergency_closed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                    strlen(emergency_closed), emergency_closed) > 0) {
+
+                    flow_proto[FLOW_PROTO_DEFAULT].emerg_closed_timeout = configval;
+                }
+            } else if (strncmp("tcp", proto->val, 3)) {
+
+                new = ConfNodeLookupChildValue(proto->head.tqh_first, "new");
+
+                established = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                                 "established");
+                closed = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                                      "closed");
+                emergency_new = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                               "emergency_new");
+                emergency_established = ConfNodeLookupChildValue(
+                                proto->head.tqh_first, "emergency_established");
+                emergency_closed = ConfNodeLookupChildValue(
+                                     proto->head.tqh_first, "emergency_closed");
+
+                if (new != NULL && ByteExtractStringUint32(&configval, 10,
+                                                        strlen(new), new) > 0) {
+
+                    flow_proto[FLOW_PROTO_TCP].new_timeout = configval;
+                }
+                if (established != NULL && ByteExtractStringUint32(&configval,
+                                    10, strlen(established), established) > 0) {
+
+                    flow_proto[FLOW_PROTO_TCP].est_timeout = configval;
+                }
+                if (closed != NULL && ByteExtractStringUint32(&configval, 10,
+                                                  strlen(closed), closed) > 0) {
+
+                    flow_proto[FLOW_PROTO_TCP].closed_timeout = configval;
+                }
+                if (emergency_new != NULL && ByteExtractStringUint32(&configval,
+                                10, strlen(emergency_new), emergency_new) > 0) {
+                    flow_proto[FLOW_PROTO_TCP].emerg_new_timeout = configval;
+                }
+                if (emergency_established != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                    strlen(emergency_established), emergency_established) > 0) {
+
+                    flow_proto[FLOW_PROTO_TCP].emerg_est_timeout = configval;
+                }
+                if (emergency_closed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                              strlen(emergency_closed), emergency_closed) > 0) {
+
+                    flow_proto[FLOW_PROTO_TCP].emerg_closed_timeout = configval;
+                }
+            } else if (strncmp("udp", proto->val, 3)) {
+
+                new = ConfNodeLookupChildValue(proto->head.tqh_first, "new");
+                established = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                                 "established");
+                emergency_new = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                               "emergency_new");
+                emergency_established = ConfNodeLookupChildValue(
+                                proto->head.tqh_first, "emergency_established");
+                if (new != NULL && ByteExtractStringUint32(&configval, 10,
+                                                        strlen(new), new) > 0) {
+                    flow_proto[FLOW_PROTO_TCP].new_timeout = configval;
+                }
+                if (established != NULL && ByteExtractStringUint32(&configval,
+                                    10, strlen(established), established) > 0) {
+                    flow_proto[FLOW_PROTO_TCP].est_timeout = configval;
+                }
+                if (emergency_new != NULL && ByteExtractStringUint32(&configval,
+                                10, strlen(emergency_new), emergency_new) > 0) {
+                    flow_proto[FLOW_PROTO_TCP].emerg_new_timeout = configval;
+                }
+                if (emergency_established != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                    strlen(emergency_established), emergency_established) > 0) {
+                    flow_proto[FLOW_PROTO_TCP].emerg_est_timeout = configval;
+                }
+            } else if (strncmp("icmp", proto->val, 4)) {
+                new = ConfNodeLookupChildValue(proto->head.tqh_first, "new");
+                established = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                                 "established");
+                emergency_new = ConfNodeLookupChildValue(proto->head.tqh_first,
+                                                               "emergency_new");
+                emergency_established = ConfNodeLookupChildValue(
+                                proto->head.tqh_first, "emergency_established");
+
+                if (new != NULL && ByteExtractStringUint32(&configval, 10,
+                                                        strlen(new), new) > 0) {
+
+                    flow_proto[FLOW_PROTO_TCP].new_timeout = configval;
+                }
+                if (established != NULL && ByteExtractStringUint32(&configval,
+                                    10, strlen(established), established) > 0) {
+
+                    flow_proto[FLOW_PROTO_TCP].est_timeout = configval;
+                }
+                if (emergency_new != NULL && ByteExtractStringUint32(&configval,
+                                10, strlen(emergency_new), emergency_new) > 0) {
+
+                    flow_proto[FLOW_PROTO_TCP].emerg_new_timeout = configval;
+                }
+                if (emergency_established != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                    strlen(emergency_established), emergency_established) > 0) {
+
+                    flow_proto[FLOW_PROTO_TCP].emerg_est_timeout = configval;
+                }
+            } else {
+                SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "Unknown protocol for flow"
+                           "timeouts. Please, review your config");
+            }
+        }
+    }
 }
 
 /**

@@ -96,6 +96,8 @@ typedef enum {
     SC_ERR_MUTEX,
     SC_REPUTATION_INVALID_OPERATION,
     SC_REPUTATION_INVALID_TYPE
+    SC_ERR_UNKNOWN_PROTOCOL,
+    SC_ERR_UNKNOWN_RUN_MODE
 } SCError;
 
 const char *SCErrorToString(SCError);

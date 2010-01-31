@@ -41,6 +41,8 @@ enum {
     MODE_NFQ,
     MODE_UNITTEST
 };
+/* Run mode selected */
+int run_mode;
 
 /* preallocated packet structures here
  * XXX move to the packetpool queue handler code

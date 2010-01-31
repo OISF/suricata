@@ -300,7 +300,7 @@ void usage(const char *progname)
 int main(int argc, char **argv)
 {
     int opt;
-    int mode = MODE_UNKNOWN;
+    int run_mode = MODE_UNKNOWN;
     char *pcap_file = NULL;
     char *pcap_dev = NULL;
     char *pfring_dev = NULL;
@@ -343,7 +343,7 @@ int main(int argc, char **argv)
         switch (opt) {
         case 0:
             if(strcmp((long_opts[option_index]).name , "pfring-int") == 0){
-                mode = MODE_PFRING;
+                run_mode = MODE_PFRING;
                 if (ConfSet("pfring.interface", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pfring interface.\n");
                     exit(EXIT_FAILURE);
@@ -364,8 +364,8 @@ int main(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
 #ifdef UNITTESTS
-                /* Set mode to unit tests. */
-                mode = MODE_UNITTEST;
+                /* Set run_mode to unit tests. */
+                run_mode = MODE_UNITTEST;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 exit(EXIT_FAILURE);
@@ -394,7 +394,7 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
             break;
         case 'i':
-            mode = MODE_PCAP_DEV;
+            run_mode = MODE_PCAP_DEV;
             pcap_dev = optarg;
             break;
         case 'l':
@@ -410,11 +410,11 @@ int main(int argc, char **argv)
             }
             break;
         case 'q':
-            mode = MODE_NFQ;
+            run_mode = MODE_NFQ;
             nfq_id = atoi(optarg); /* strtol? */
             break;
         case 'r':
-            mode = MODE_PCAP_FILE;
+            run_mode = MODE_PCAP_FILE;
             pcap_file = optarg;
             break;
         case 's':
@@ -422,7 +422,7 @@ int main(int argc, char **argv)
             break;
         case 'u':
 #ifdef UNITTESTS
-            mode = MODE_UNITTEST;
+            run_mode = MODE_UNITTEST;
 #else
             fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
             exit(EXIT_FAILURE);
@@ -448,7 +448,7 @@ int main(int argc, char **argv)
     SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
     UtilCpuPrintSummary();
 
-    if (!CheckValidDaemonModes(daemon, mode)) {
+    if (!CheckValidDaemonModes(daemon, run_mode)) {
         exit(EXIT_FAILURE);
     }
 
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
         ConfYamlLoadFile(conf_filename);
-    } else if (mode != MODE_UNITTEST){
+    } else if (run_mode != MODE_UNITTEST){
         SCLogError(SC_ERR_OPENING_FILE, "Configuration file has not been provided");
         usage(argv[0]);
         exit(EXIT_FAILURE);
@@ -484,7 +484,7 @@ int main(int argc, char **argv)
      * logging module. */
     SCLogLoadConfig();
 
-    if (mode == MODE_UNKNOWN) {
+    if (run_mode == MODE_UNKNOWN) {
         usage(argv[0]);
         exit(EXIT_FAILURE);
     }
@@ -543,7 +543,7 @@ int main(int argc, char **argv)
     TmModuleDebugList();
 
 #ifdef UNITTESTS
-    if (mode == MODE_UNITTEST) {
+    if (run_mode == MODE_UNITTEST) {
         /* test and initialize the unittesting subsystem */
         if(regex_arg == NULL){
             regex_arg = ".*";
@@ -654,26 +654,26 @@ int main(int argc, char **argv)
     gettimeofday(&start_time, NULL);
 
     RunModeInitializeOutputs();
-    if (mode == MODE_PCAP_DEV) {
+    if (run_mode == MODE_PCAP_DEV) {
         //RunModeIdsPcap3(de_ctx, pcap_dev);
         RunModeIdsPcap2(de_ctx, pcap_dev);
         //RunModeIdsPcap(de_ctx, pcap_dev);
     }
-    else if (mode == MODE_PCAP_FILE) {
+    else if (run_mode == MODE_PCAP_FILE) {
         RunModeFilePcap(de_ctx, pcap_file);
         //RunModeFilePcap2(de_ctx, pcap_file);
     }
-    else if (mode == MODE_PFRING) {
+    else if (run_mode == MODE_PFRING) {
         //RunModeIdsPfring3(de_ctx, pfring_dev);
         //RunModeIdsPfring2(de_ctx, pfring_dev);
         //RunModeIdsPfring(de_ctx, pfring_dev);
         RunModeIdsPfring4(de_ctx, pfring_dev);
     }
-    else if (mode == MODE_NFQ) {
+    else if (run_mode == MODE_NFQ) {
         RunModeIpsNFQ(de_ctx);
     }
     else {
-        printf("ERROR: Unknown runtime mode.\n");
+        SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
         exit(EXIT_FAILURE);
     }
 
@@ -694,7 +694,8 @@ int main(int argc, char **argv)
 
     /* Wait till all the threads have been initialized */
     if (TmThreadWaitOnThreadInit() == TM_ECODE_FAILED) {
-        printf("ERROR: Engine initialization failed, aborting...\n");
+        SCLogError(SC_INITIALIZATION_ERROR, "Engine initialization failed, "
+                   "aborting...");
         exit(EXIT_FAILURE);
     }
 
