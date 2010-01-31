@@ -258,11 +258,11 @@ void StreamTcpInitConfig(char quiet)
 
     /* set the default TCP timeout, free function and flow state function
      * values. */
-    FlowSetProtoTimeout(IPPROTO_TCP, STREAMTCP_NEW_TIMEOUT,
-                        STREAMTCP_EST_TIMEOUT, STREAMTCP_CLOSED_TIMEOUT);
-    FlowSetProtoEmergencyTimeout(IPPROTO_TCP, STREAMTCP_EMERG_NEW_TIMEOUT,
-                                 STREAMTCP_EMERG_EST_TIMEOUT,
-                                 STREAMTCP_EMERG_CLOSED_TIMEOUT);
+    //FlowSetProtoTimeout(IPPROTO_TCP, STREAMTCP_NEW_TIMEOUT,
+    //                    STREAMTCP_EST_TIMEOUT, STREAMTCP_CLOSED_TIMEOUT);
+    //FlowSetProtoEmergencyTimeout(IPPROTO_TCP, STREAMTCP_EMERG_NEW_TIMEOUT,
+    //                             STREAMTCP_EMERG_EST_TIMEOUT,
+    //                             STREAMTCP_EMERG_CLOSED_TIMEOUT);
 
     FlowSetProtoFreeFunc(IPPROTO_TCP, StreamTcpSessionClear);
     FlowSetFlowStateFunc(IPPROTO_TCP, StreamTcpGetFlowState);
