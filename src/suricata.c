@@ -653,6 +653,7 @@ int main(int argc, char **argv)
     memset(&start_time, 0, sizeof(start_time));
     gettimeofday(&start_time, NULL);
 
+    RunModeInitializeOutputs();
     if (mode == MODE_PCAP_DEV) {
         //RunModeIdsPcap3(de_ctx, pcap_dev);
         RunModeIdsPcap2(de_ctx, pcap_dev);

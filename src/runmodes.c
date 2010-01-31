@@ -25,53 +25,37 @@
 #include "output.h"
 
 /**
- * Define a linked list to use as a registry of LogFileCtx shutdown hooks.
+ * A list of output modules that will be active for the run mode.
  */
-typedef struct LogFileCtxShutDownHook_ {
+typedef struct RunModeOutput_ {
+    TmModule *tm_module;
     LogFileCtx *logfile_ctx;
-    TAILQ_ENTRY(LogFileCtxShutDownHook_) entries;
-} LogFileCtxShutDownHook;
-TAILQ_HEAD(, LogFileCtxShutDownHook_) LogFileCtxShutDownHooks =
-    TAILQ_HEAD_INITIALIZER(LogFileCtxShutDownHooks);
+
+    TAILQ_ENTRY(RunModeOutput_) entries;
+} RunModeOutput;
+TAILQ_HEAD(, RunModeOutput_) RunModeOutputs =
+    TAILQ_HEAD_INITIALIZER(RunModeOutputs);
 
 /**
- * \brief Register a LogFileCtx for shutdown cleanup.
- *
- * \param logfile_ctx A point to the LogFileCtx to free on shutdown.
+ * Cleanup the run mode.
  */
-void RegisterLogFileCtx(LogFileCtx *logfile_ctx)
-{
-    LogFileCtxShutDownHook *hook = calloc(1, sizeof(LogFileCtxShutDownHook));
-    if (hook == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate memory for LogFileCtx shutdown hook");
-        exit(EXIT_FAILURE);
-    }
-    hook->logfile_ctx = logfile_ctx;
-    TAILQ_INSERT_TAIL(&LogFileCtxShutDownHooks, hook, entries);
-}
-
-/**
- * Run the log file shutdown hooks.  The hooks are also unregistered
- * and the memory is freed.
- */
-static void RunLogFileCtxShutDownHooks(void)
-{
-    LogFileCtxShutDownHook *hook;
-
-    while ((hook = TAILQ_FIRST(&LogFileCtxShutDownHooks))) {
-        TAILQ_REMOVE(&LogFileCtxShutDownHooks, hook, entries);
-        LogFileFreeCtx(hook->logfile_ctx);
-        free(hook);
-    }
-}
-
 void RunModeShutDown(void)
 {
-    RunLogFileCtxShutDownHooks();
+    /* Close any log files. */
+    RunModeOutput *output;
+    while ((output = TAILQ_FIRST(&RunModeOutputs))) {
+        SCLogDebug("Shutting down output %s.", output->tm_module->name);
+        TAILQ_REMOVE(&RunModeOutputs, output, entries);
+        if (output->logfile_ctx != NULL)
+            LogFileFreeCtx(output->logfile_ctx);
+        free(output);
+    }
 }
 
-static void SetupOutputs(ThreadVars *tv_outputs)
+/**
+ * Initialize the output modules.
+ */
+void RunModeInitializeOutputs(void)
 {
     ConfNode *outputs = ConfGetNode("outputs");
     if (outputs == NULL) {
@@ -114,9 +98,30 @@ static void SetupOutputs(ThreadVars *tv_outputs)
                     "TmModuleGetByName for %s failed", module->name);
                 exit(EXIT_FAILURE);
             }
-            TmVarSlotSetFuncAppend(tv_outputs, tm_module, logfile_ctx);
-            RegisterLogFileCtx(logfile_ctx);
+            RunModeOutput *runmode_output = calloc(1, sizeof(RunModeOutput));
+            if (runmode_output == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC,
+                    "Failed to allocate memory for output.");
+                exit(EXIT_FAILURE);
+            }
+            runmode_output->tm_module = tm_module;
+            runmode_output->logfile_ctx = logfile_ctx;
+            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
         }
+    }
+}
+
+/**
+ * Setup the outputs for this run mode.
+ *
+ * \param tv The ThreadVars for the thread the outputs will be
+ * appended to.
+ */
+static void SetupOutputs(ThreadVars *tv)
+{
+    RunModeOutput *output;
+    TAILQ_FOREACH(output, &RunModeOutputs, entries) {
+        TmVarSlotSetFuncAppend(tv, output->tm_module, output->logfile_ctx);
     }
 }
 
@@ -399,6 +404,14 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface) {
         "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
     SetupOutputs(tv_outputs);
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_outputs1 = TmThreadCreatePacketHandler("Outputs1",
+        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
+    SetupOutputs(tv_outputs1);
+    if (TmThreadSpawn(tv_outputs1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }

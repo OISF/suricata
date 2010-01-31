@@ -1,6 +1,8 @@
 #ifndef __RUNMODES_H__
 #define __RUNMODES_H__
 
+void RunModeInitializeOutputs(void);
+
 int RunModeIdsPcap(DetectEngineCtx *, char *);
 int RunModeIdsPcap2(DetectEngineCtx *, char *);
 int RunModeIdsPcap3(DetectEngineCtx *, char *);
