@@ -107,6 +107,9 @@ volatile sig_atomic_t sigterm_count = 0;
 
 static uint8_t sigflags = 0;
 
+/* Run mode selected */
+int run_mode = MODE_UNKNOWN;
+
 static void SignalHandlerSigint(/*@unused@*/ int sig) { sigint_count = 1; sigflags |= SURICATA_SIGINT; }
 static void SignalHandlerSigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= SURICATA_SIGTERM; }
 static void SignalHandlerSighup(/*@unused@*/ int sig) { sighup_count = 1; sigflags |= SURICATA_SIGHUP; }
@@ -300,7 +303,6 @@ void usage(const char *progname)
 int main(int argc, char **argv)
 {
     int opt;
-    int run_mode = MODE_UNKNOWN;
     char *pcap_file = NULL;
     char *pcap_dev = NULL;
     char *pfring_dev = NULL;

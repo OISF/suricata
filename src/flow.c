@@ -46,6 +46,9 @@ static int FlowClearMemory(Flow *,uint8_t );
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
 
+/* Run mode selected at suricata.c */
+extern int run_mode;
+
 /** \brief Update the flows position in the queue's
  *  \param f Flow to requeue.
  *  \todo if we have a flow state func rely on that soly
