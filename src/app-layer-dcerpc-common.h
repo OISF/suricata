@@ -169,7 +169,9 @@ typedef struct DCERPC_ {
    } p_cont_elem_t;
    */
 
-int DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len);
+uint32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len);
+void hexdump(const void *buf, size_t len);
+void printUUID(char *type, struct uuid_entry *uuid);
 
 #endif /* APPLAYERDCERPCCOMMON_H_ */
 

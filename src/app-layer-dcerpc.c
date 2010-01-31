@@ -36,7 +36,6 @@ enum {
     DCERPC_FIELD_MAX,
 };
 
-#if 0
 /* \brief hexdump function from libdnet, used for debugging only */
 void hexdump(const void *buf, size_t len) {
     /* dumps len bytes of *buf to stdout. Looks like:
@@ -95,7 +94,6 @@ void hexdump(const void *buf, size_t len) {
         printf("[%4.4s]   %-50.50s  %s\n", addrstr, hexstr, charstr);
     }
 }
-#endif
 
 /**
  * \brief printUUID function used to print UUID, Major and Minor Version Number
@@ -958,7 +956,7 @@ static uint32_t DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input
     SCReturnUInt((uint32_t)(p - input));
 }
 
-int DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
+uint32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCEnter();
     uint32_t retval = 0;
     uint32_t parsed = 0;
@@ -1179,8 +1177,7 @@ int DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
             dcerpc->bytesprocessed = 0;
             break;
     }
-
-    SCReturnInt(1);
+    SCReturnUInt(parsed);
 }
 
 static int DCERPCParse(Flow *f, void *dcerpc_state,

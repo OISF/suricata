@@ -38,67 +38,6 @@ enum {
     SMB_FIELD_MAX,
 };
 
-#if 1
-/* \brief hexdump function from libdnet, used for debugging only */
-void hexdump(const void *buf, size_t len) {
-    /* dumps len bytes of *buf to stdout. Looks like:
-     * [0000] 75 6E 6B 6E 6F 77 6E 20
-     *                  30 FF 00 00 00 00 39 00 unknown 0.....9.
-     * (in a single line of course)
-     */
-
-    const unsigned char *p = buf;
-    unsigned char c;
-    size_t n;
-    char bytestr[4] = {0};
-    char addrstr[10] = {0};
-    char hexstr[16 * 3 + 5] = {0};
-    char charstr[16 * 1 + 5] = {0};
-    for (n = 1; n <= len; n++) {
-        if (n % 16 == 1) {
-            /* store address for this line */
-#if __WORDSIZE == 64
-            snprintf(addrstr, sizeof(addrstr), "%.4lx",
-                    ((uint64_t)p-(uint64_t)buf) );
-#else
-            snprintf(addrstr, sizeof(addrstr), "%.4x", ((uint32_t) p
-                        - (uint32_t) buf));
-#endif
-        }
-
-        c = *p;
-        if (isalnum(c) == 0) {
-            c = '.';
-        }
-
-        /* store hex str (for left side) */
-        snprintf(bytestr, sizeof(bytestr), "%02X ", *p);
-        strlcat(hexstr, bytestr, sizeof(hexstr) - strlen(hexstr) - 1);
-
-        /* store char str (for right side) */
-        snprintf(bytestr, sizeof(bytestr), "%c", c);
-        strlcat(charstr, bytestr, sizeof(charstr) - strlen(charstr) - 1);
-
-        if (n % 16 == 0) {
-            /* line completed */
-            printf("[%4.4s]   %-50.50s  %s\n", addrstr, hexstr, charstr);
-            hexstr[0] = 0;
-            charstr[0] = 0;
-        } else if (n % 8 == 0) {
-            /* half line: add whitespaces */
-            strlcat(hexstr, "  ", sizeof(hexstr) - strlen(hexstr) - 1);
-            strlcat(charstr, " ", sizeof(charstr) - strlen(charstr) - 1);
-        }
-        p++; /* next byte */
-    }
-
-    if (strlen(hexstr) > 0) {
-        /* print rest of buffer if not empty */
-        printf("[%4.4s]   %-50.50s  %s\n", addrstr, hexstr, charstr);
-    }
-}
-#endif
-
 /**
  *  \brief SMB Write AndX Request Parsing
  */
@@ -390,7 +329,7 @@ static uint32_t SMBParseTransact(Flow *f, void *smb_state,
     switch (sstate->andx.andxbytesprocessed) {
         case 0:
             sstate->andx.paddingparsed = 0;
-            if (input_len >= 27) {
+            if (input_len >= sstate->wordcount.wordcount) {
                 sstate->andx.datalength = *(p + 22);
                 sstate->andx.datalength |= *(p + 23) << 8;
                 sstate->andx.dataoffset = *(p + 24);
@@ -399,8 +338,9 @@ static uint32_t SMBParseTransact(Flow *f, void *smb_state,
                 sstate->andx.datalength |= (uint64_t) *(p + 15) << 48;
                 sstate->andx.datalength |= (uint64_t) *(p + 16) << 40;
                 sstate->andx.datalength |= (uint64_t) *(p + 17) << 32;
-                sstate->bytesprocessed += 24;
-                SCReturnUInt(24U);
+                sstate->bytesprocessed += sstate->wordcount.wordcount;
+                sstate->andx.andxbytesprocessed += sstate->wordcount.wordcount;
+                SCReturnUInt(sstate->wordcount.wordcount);
             } else {
                 /* total parameter count 1 */
                 p++;
@@ -536,12 +476,25 @@ static uint32_t SMBParseTransact(Flow *f, void *smb_state,
                 p++;
                 if (!(--input_len))
         case 27:
-                    /* Reserved */
-                    p++;
-                    --input_len;
-                    break;
+				/* Reserved */
+                p++;
+                if (!(--input_len))
+        case 28:
+                p++;
+                if (!(--input_len))
+        case 29:
+                p++;
+                if (!(--input_len))
+        case 30:
+                p++;
+                if (!(--input_len))
+        case 31:
+                p++;
+                --input_len;
+                break;
     }
     sstate->bytesprocessed += (p - input);
+    sstate->andx.andxbytesprocessed += (p - input);
     SCReturnUInt((uint32_t)(p - input));
 }
 
@@ -553,22 +506,17 @@ static uint32_t PaddingParser(void *smb_state, AppLayerParserState *pstate,
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    printf("Inside Padding Parser");
     /* Check for validity of dataoffset */
     if (sstate->bytesprocessed > sstate->andx.dataoffset) {
-        printf("The offset was not valid.");
         sstate->andx.paddingparsed = 1;
         SCReturnUInt((uint32_t)(p - input));
     }
-    printf("bytesprocessed %u data offset %"PRIu64" input_len %u\n",
-            sstate->bytesprocessed, sstate->andx.dataoffset, input_len);
-    while ((uint32_t) (sstate->bytesprocessed + (p - input))
+    while ((uint32_t) ((sstate->bytesprocessed - NBSS_HDR_LEN) + (p - input))
             < sstate->andx.dataoffset && sstate->bytecount.bytecount--
             && input_len--) {
-        printf("0x%02x", *p);
         p++;
     }
-    if ((uint32_t) (sstate->bytesprocessed + (p - input))
+    if ((uint32_t) ((sstate->bytesprocessed - NBSS_HDR_LEN) + (p - input))
             == sstate->andx.dataoffset) {
         sstate->andx.paddingparsed = 1;
     }
@@ -584,17 +532,14 @@ static uint32_t DataParser(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
-    uint8_t *p = input;
-
+    uint32_t parsed = 0;
     if (sstate->andx.paddingparsed) {
-        while (sstate->andx.datalength-- && sstate->bytecount.bytecount--
-                && input_len--) {
-            SCLogDebug("0x%02x ", *p);
-            p++;
-        }
+	parsed = DCERPCParser(&sstate->dcerpc, input, input_len);
+	sstate->bytesprocessed += parsed;
+	sstate->bytecount.bytecount -= parsed;
+	input_len -= parsed;
     }
-    sstate->bytesprocessed += (p - input);
-    SCReturnUInt((uint32_t)(p - input));
+    SCReturnUInt(parsed);
 }
 
 /**
@@ -663,7 +608,6 @@ static uint32_t SMBParseWordCount(Flow *f, void *smb_state,
                 output);
         parsed += retval;
         input_len -= retval;
-        sstate->wordcount.wordcount -= retval;
         SCReturnUInt(retval);
     } else if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) == 0)
             && sstate->smb.command == SMB_COM_WRITE_ANDX) {
@@ -671,15 +615,12 @@ static uint32_t SMBParseWordCount(Flow *f, void *smb_state,
                 input_len, output);
         parsed += retval;
         input_len -= retval;
-        sstate->wordcount.wordcount -= retval;
         SCReturnUInt(retval);
-    } else if ((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR)
-            && sstate->smb.command == SMB_COM_TRANSACTION) {
-        retval = SMBParseTransact(f, sstate, pstate, input + parsed, input_len,
-                output);
-        parsed += retval;
-        input_len -= retval;
-        sstate->wordcount.wordcount -= retval;
+    } else if (sstate->smb.command == SMB_COM_TRANSACTION) {
+	retval = SMBParseTransact(f, sstate, pstate, input + parsed, input_len,
+			output);
+	parsed += retval;
+	input_len -= retval;
         SCReturnUInt(retval);
     } else { /* Generic WordCount Handler */
         while (sstate->wordcount.wordcount-- && input_len--) {
@@ -727,8 +668,6 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
 
     while (sstate->bytecount.bytecount && input_len) {
         SCLogDebug("0x%02x bytecount %u input_len %u", *p,
-                sstate->bytecount.bytecount, input_len);
-        printf("0x%02x bytecount %u input_len %u", *p,
                 sstate->bytecount.bytecount, input_len);
         p++;
         sstate->bytecount.bytecount--;
@@ -1032,6 +971,10 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         input_len = 0;
                     }
                 }
+                SCLogDebug("SMB Header (%u/%u) Command 0x%02x WordCount %u parsed %ld input_len %u\n",
+				sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1,
+                        sstate->smb.command, sstate->wordcount.wordcount,
+                        parsed, input_len);
 
                 while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN
                             + SMB_HDR_LEN + 1 && sstate->bytesprocessed < NBSS_HDR_LEN
@@ -1272,6 +1215,7 @@ int SMBParserTest02(void) {
         goto end;
     }
 
+    printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
 end:
     return result;
 }
