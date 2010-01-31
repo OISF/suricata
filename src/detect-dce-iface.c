@@ -262,13 +262,13 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     /* if any_frag is not enabled, we need to match only against the first
      * fragment */
     if (!dce_data->any_frag &&
-        !(dcerpc_state->dcerpc.pfc_flags & PFC_FIRST_FRAG)) {
+        !(dcerpc_state->dcerpc.dcerpchdr.pfc_flags & PFC_FIRST_FRAG)) {
         /* any_frag has not been set, and apparently it's not the first fragment */
         ret = 0;
         goto end;
     }
 
-    TAILQ_FOREACH(item, &dcerpc_state->uuid_list, next) {
+    TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.uuid_list, next) {
         ret = 1;
 
         /* if the uuid has been rejected(item->result == 1), we skip to the

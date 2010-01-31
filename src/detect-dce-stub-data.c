@@ -65,7 +65,7 @@ int DetectDceStubDataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
         return 0;
     }
 
-    if (dcerpc_state->stub_data == NULL)
+    if (dcerpc_state->dcerpc.dcerpcrequest.stub_data == NULL)
         return 0;
 
     return 1;

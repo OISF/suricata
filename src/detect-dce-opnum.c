@@ -244,11 +244,11 @@ int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
 
     for ( ; dor != NULL; dor = dor->next) {
         if (dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED) {
-            if (dor->range1 == dcerpc_state->opnum)
+            if (dor->range1 == dcerpc_state->dcerpc.dcerpcrequest.opnum)
                 return 1;
         } else {
-            if (dor->range1 <= dcerpc_state->opnum &&
-                dor->range2 >= dcerpc_state->opnum) {
+            if (dor->range1 <= dcerpc_state->dcerpc.dcerpcrequest.opnum &&
+                dor->range2 >= dcerpc_state->dcerpc.dcerpcrequest.opnum) {
                 return 1;
             }
         }
@@ -1140,8 +1140,8 @@ static int DetectDceOpnumTestParse08(void)
     }
 
     /* do detect */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_bindack,
-                      dcerpc_bindack_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
+                      dcerpc_bindack, dcerpc_bindack_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
@@ -1825,8 +1825,9 @@ static int DetectDceOpnumTestParse10(void)
     ssn.alproto = ALPROTO_DCERPC;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
+    if (de_ctx == NULL) {
         goto end;
+    }
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1835,8 +1836,9 @@ static int DetectDceOpnumTestParse10(void)
                                    "(msg:\"DCERPC\"; "
                                    "dce_opnum:2,15,22; "
                                    "sid:1;)");
-    if (s == NULL)
+    if (s == NULL) {
         goto end;
+    }
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1844,7 +1846,7 @@ static int DetectDceOpnumTestParse10(void)
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
                       dcerpc_bind, dcerpc_bind_len);
     if (r != 0) {
-        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        SCLogDebug("AppLayerParse for dcerpc bind failed.  Returned %" PRId32, r);
         goto end;
     }
 
@@ -1854,16 +1856,16 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_bindack,
-                      dcerpc_bindack_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
+                      dcerpc_bindack, dcerpc_bindack_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
 
     /* request1 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request1,
-                      dcerpc_request1_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      dcerpc_request1, dcerpc_request1_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
@@ -1872,12 +1874,14 @@ static int DetectDceOpnumTestParse10(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(&p, 1)) {
+        printf("PacketAlertCheck 3\n");
         goto end;
+    }
 
     /* response1 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response1,
-                      dcerpc_response1_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
+                      dcerpc_response1, dcerpc_response1_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
@@ -1886,12 +1890,13 @@ static int DetectDceOpnumTestParse10(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(&p, 1)) {
         goto end;
+    }
 
     /* request2 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request2,
-                      dcerpc_request2_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      dcerpc_request2, dcerpc_request2_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
@@ -1900,12 +1905,13 @@ static int DetectDceOpnumTestParse10(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(&p, 1)) {
         goto end;
+    }
 
     /* response2 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response2,
-                      dcerpc_response2_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
+                      dcerpc_response2, dcerpc_response2_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
@@ -1914,12 +1920,13 @@ static int DetectDceOpnumTestParse10(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(&p, 1)) {
         goto end;
+    }
 
     /* request3 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request3,
-                      dcerpc_request3_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      dcerpc_request3, dcerpc_request3_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
@@ -1928,8 +1935,9 @@ static int DetectDceOpnumTestParse10(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(&p, 1)) {
         goto end;
+    }
 
     /* response3 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT | STREAM_EOF,
@@ -1942,8 +1950,9 @@ static int DetectDceOpnumTestParse10(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(&p, 1)) {
         goto end;
+    }
 
     result = 1;
 
@@ -2096,12 +2105,14 @@ static int DetectDceOpnumTestParse11(void)
                       dcerpc_request1, dcerpc_request1_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        printf("AppLayerParse for dcerpcrequest1 failed.  Returned %" PRId32, r);
         goto end;
     }
 
     dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
+        printf("no dcerpc state: ");
         goto end;
     }
 
@@ -2112,10 +2123,11 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
 
     /* response1 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response1,
-                      dcerpc_response1_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
+                      dcerpc_response1, dcerpc_response1_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        printf("AppLayerParse for dcerpcresponse1 failed.  Returned %" PRId32, r);
         goto end;
     }
 
@@ -2126,10 +2138,11 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
 
     /* request2 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request2,
-                      dcerpc_request2_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      dcerpc_request2, dcerpc_request2_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        printf("AppLayerParse for dcerpcrequest2 failed.  Returned %" PRId32, r);
         goto end;
     }
 
@@ -2140,10 +2153,11 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
 
     /* response2 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response2,
-                      dcerpc_response2_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
+                      dcerpc_response2, dcerpc_response2_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        printf("AppLayerParse for dcerpcresponse2 failed.  Returned %" PRId32, r);
         goto end;
     }
 
@@ -2154,10 +2168,11 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
 
     /* request3 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request3,
-                      dcerpc_request3_len);
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      dcerpc_request3, dcerpc_request3_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        printf("AppLayerParse for dcerpc request3 failed.  Returned %" PRId32, r);
         goto end;
     }
 
@@ -2172,6 +2187,7 @@ static int DetectDceOpnumTestParse11(void)
                       dcerpc_response3, dcerpc_response3_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        printf("AppLayerParse for dcerpc response3 failed.  Returned %" PRId32, r);
         goto end;
     }
 
@@ -2379,9 +2395,9 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    if (dcerpc_state->opnum != 40) {
+    if (dcerpc_state->dcerpc.dcerpcrequest.opnum != 40) {
         printf("dcerpc state holding invalid opnum.  Holding %d, while we are "
-               "expecting 40\n", dcerpc_state->opnum);
+               "expecting 40\n", dcerpc_state->dcerpc.dcerpcrequest.opnum);
         goto end;
     }
 
@@ -2405,9 +2421,9 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    if (dcerpc_state->opnum != 40) {
+    if (dcerpc_state->dcerpc.dcerpcrequest.opnum != 40) {
         printf("dcerpc state holding invalid opnum.  Holding %d, while we are "
-               "expecting 40\n", dcerpc_state->opnum);
+               "expecting 40\n", dcerpc_state->dcerpc.dcerpcrequest.opnum);
         goto end;
     }
 
@@ -2431,9 +2447,9 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    if (dcerpc_state->opnum != 30) {
+    if (dcerpc_state->dcerpc.dcerpcrequest.opnum != 30) {
         printf("dcerpc state holding invalid opnum.  Holding %d, while we are "
-               "expecting 30\n", dcerpc_state->opnum);
+               "expecting 30\n", dcerpc_state->dcerpc.dcerpcrequest.opnum);
         goto end;
     }
 
@@ -2457,9 +2473,9 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    if (dcerpc_state->opnum != 30) {
+    if (dcerpc_state->dcerpc.dcerpcrequest.opnum != 30) {
         printf("dcerpc state holding invalid opnum.  Holding %d, while we are "
-               "expecting 30\n", dcerpc_state->opnum);
+               "expecting 30\n", dcerpc_state->dcerpc.dcerpcrequest.opnum);
         goto end;
     }
 
@@ -2617,9 +2633,9 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    if (dcerpc_state->opnum != 40) {
+    if (dcerpc_state->dcerpc.dcerpcrequest.opnum != 40) {
         printf("dcerpc state holding invalid opnum after request1.  Holding %d, while we are "
-               "expecting 40\n", dcerpc_state->opnum);
+               "expecting 40\n", dcerpc_state->dcerpc.dcerpcrequest.opnum);
         goto end;
     }
 
@@ -2643,9 +2659,9 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    if (dcerpc_state->opnum != 40) {
+    if (dcerpc_state->dcerpc.dcerpcrequest.opnum != 40) {
         printf("dcerpc state holding invalid opnum after response1.  Holding %d, while we are "
-               "expecting 40\n", dcerpc_state->opnum);
+               "expecting 40\n", dcerpc_state->dcerpc.dcerpcrequest.opnum);
         goto end;
     }
 
@@ -2670,9 +2686,9 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    if (dcerpc_state->opnum != 30) {
+    if (dcerpc_state->dcerpc.dcerpcrequest.opnum != 30) {
         printf("dcerpc state holding invalid opnum after request2.  Holding %d, while we are "
-               "expecting 30\n", dcerpc_state->opnum);
+               "expecting 30\n", dcerpc_state->dcerpc.dcerpcrequest.opnum);
         goto end;
     }
 
@@ -2696,9 +2712,9 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    if (dcerpc_state->opnum != 30) {
+    if (dcerpc_state->dcerpc.dcerpcrequest.opnum != 30) {
         printf("dcerpc state holding invalid opnum after response2.  Holding %d, while we are "
-               "expecting 30\n", dcerpc_state->opnum);
+               "expecting 30\n", dcerpc_state->dcerpc.dcerpcrequest.opnum);
         goto end;
     }
 
