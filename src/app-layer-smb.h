@@ -13,6 +13,7 @@
 #include "stream.h"
 #include <stdint.h>
 #include "app-layer-nbss.h"
+#include "app-layer-dcerpc-common.h"
 
 typedef struct smb_hdr_ {
     uint8_t protocol[4];
@@ -60,6 +61,7 @@ typedef struct SMBState_ {
     SMBByteCount bytecount;
     SMBAndX andx;
     uint16_t bytesprocessed;
+    DCERPC dcerpc;
 }SMBState;
 
 #define SMB_FLAGS_SERVER_TO_REDIR 0x80

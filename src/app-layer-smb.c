@@ -38,7 +38,7 @@ enum {
     SMB_FIELD_MAX,
 };
 
-#if 0
+#if 1
 /* \brief hexdump function from libdnet, used for debugging only */
 void hexdump(const void *buf, size_t len) {
     /* dumps len bytes of *buf to stdout. Looks like:
@@ -728,6 +728,8 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
     while (sstate->bytecount.bytecount && input_len) {
         SCLogDebug("0x%02x bytecount %u input_len %u", *p,
                 sstate->bytecount.bytecount, input_len);
+        printf("0x%02x bytecount %u input_len %u", *p,
+                sstate->bytecount.bytecount, input_len);
         p++;
         sstate->bytecount.bytecount--;
         input_len--;
@@ -1203,9 +1205,80 @@ end:
     return result;
 }
 
+/**
+ * \test SMBParserTest02 tests the NBSS, SMB, and DCERPC over SMB header decoding
+ */
+int SMBParserTest02(void) {
+    int result = 1;
+    Flow f;
+    uint8_t smbbuf[] = {
+    0x00, 0x00, 0x00, 0x92, 0xff, 0x53, 0x4d, 0x42,
+    0x25, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x64, 0x05,
+    0x00, 0x08, 0x00, 0x00, 0x10, 0x00, 0x00, 0x48,
+    0x00, 0x00, 0x04, 0xe0, 0xff, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x4a, 0x00, 0x48, 0x00, 0x4a, 0x00, 0x02,
+    0x00, 0x26, 0x00, 0x00, 0x40, 0x4f, 0x00, 0x5c,
+    0x50, 0x49, 0x50, 0x45, 0x5c, 0x00, 0x05, 0x00,
+    0x0b, 0x03, 0x10, 0x00, 0x00, 0x00, 0x48, 0x00,
+    0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xd0, 0x16,
+    0xd0, 0x16, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x40, 0xfd,
+    0x2c, 0x34, 0x6c, 0x3c, 0xce, 0x11, 0xa8, 0x93,
+    0x08, 0x00, 0x2b, 0x2e, 0x9c, 0x6d, 0x00, 0x00,
+    0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a, 0xeb, 0x1c,
+    0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00, 0x2b, 0x10,
+    0x48, 0x60, 0x02, 0x00, 0x00, 0x00 };
+
+    uint32_t smblen = sizeof(smbbuf);
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
+    f.protoctx = (void *)&ssn;
+
+    int r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
+    if (r != 0) {
+        printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    SMBState *smb_state = ssn.aldata[AlpGetStateIdx(ALPROTO_SMB)];
+    if (smb_state == NULL) {
+        printf("no smb state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (smb_state->nbss.type != NBSS_SESSION_MESSAGE) {
+        printf("expected nbss type 0x%02x , got 0x%02x : ", NBSS_SESSION_MESSAGE, smb_state->nbss.type);
+        result = 0;
+        goto end;
+    }
+
+    if (smb_state->nbss.length != 146) {
+        printf("expected nbss length 0x%02x , got 0x%02x : ", 146, smb_state->nbss.length);
+        result = 0;
+        goto end;
+    }
+
+    if (smb_state->smb.command != SMB_COM_TRANSACTION) {
+        printf("expected SMB command 0x%02x , got 0x%02x : ", SMB_COM_TRANSACTION, smb_state->smb.command);
+        result = 0;
+        goto end;
+    }
+
+end:
+    return result;
+}
 void SMBParserRegisterTests(void) {
     printf("SMBParserRegisterTests\n");
     UtRegisterTest("SMBParserTest01", SMBParserTest01, 1);
+    UtRegisterTest("SMBParserTest02", SMBParserTest02, 1);
 }
 #endif
 

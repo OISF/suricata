@@ -36,7 +36,7 @@ enum {
     DCERPC_FIELD_MAX,
 };
 
-#ifdef UNITTESTS
+#if 0
 /* \brief hexdump function from libdnet, used for debugging only */
 void hexdump(const void *buf, size_t len) {
     /* dumps len bytes of *buf to stdout. Looks like:
