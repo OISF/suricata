@@ -1184,10 +1184,11 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
 static int StreamTcpReassembleCheckLimit(TcpSession *ssn, TcpStream *stream,
                                          Packet *p)
 {
+    SCEnter();
 
     /* some states mean we reassemble no matter how much data we have */
     if (ssn->state >= TCP_TIME_WAIT)
-        return 1;
+        SCReturnInt(1);
 
     /* check if we have enough data to send to L7 */
     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -1198,13 +1199,13 @@ static int StreamTcpReassembleCheckLimit(TcpSession *ssn, TcpStream *stream,
                            "last_ack %"PRIu32", ra_base_seq %"PRIu32", len "
                            "%"PRIu32"", stream->last_ack, stream->ra_base_seq,
                             StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER));
-                return 0;
+                SCReturnInt(0);
             }
         } else {
             if (StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER) >
                     (stream->last_ack - stream->ra_base_seq)) {
                 SCLogDebug("toserver min chunk len not yet reached");
-                return 0;
+                SCReturnInt(0);
             }
         }
     } else {
@@ -1213,26 +1214,28 @@ static int StreamTcpReassembleCheckLimit(TcpSession *ssn, TcpStream *stream,
                     (stream->last_ack - stream->ra_base_seq)) {
                 SCLogDebug("StreamTcpReassembleCheckLimit: toclient min init "
                            "chunk len not yet reached");
-                return 0;
+                SCReturnInt(0);
             }
         } else {
             if (StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT) >
                     (stream->last_ack - stream->ra_base_seq)) {
                 SCLogDebug("toclient min chunk len not yet reached");
-                return 0;
+                SCReturnInt(0);
             }
         }
     }
 
-    return 1;
+    SCReturnInt(1);
 }
 
 int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                                                TcpSession *ssn, TcpStream *stream,
                                                Packet *p)
 {
+    SCEnter();
+
     if (stream->seg_list == NULL)
-        return 0;
+        SCReturnInt(0);
 
     SCLogDebug("start p %p", p);
 
@@ -1246,7 +1249,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
     /* check if we have enough data to send to L7 */
     if (StreamTcpReassembleCheckLimit(ssn,stream,p) == 0) {
         SCLogDebug("not yet reassembling");
-        return 0;
+        SCReturnInt(0);
     }
 
     /* loop through the segments and fill one or more msgs */
@@ -1422,7 +1425,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                     smsg = StreamMsgGetFromPool();
                     if (smsg == NULL) {
                         SCLogError(SC_ERR_POOL_EMPTY, "stream_msg_pool is empty");
-                        return -1;
+                        SCReturnInt(-1);
                     }
                     smsg_offset = 0;
 
@@ -1499,7 +1502,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
         smsg = NULL;
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 /** \brief Handle the queue'd smsgs containing reassembled app layer data when
@@ -1537,8 +1540,17 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
     SCLogDebug("ssn %p, stream %p, p %p, p->payload_len %"PRIu16"",
                 ssn, stream, p, p->payload_len);
 
+    /* we need to update the opposing stream in
+     * StreamTcpReassembleHandleSegmentUpdateACK */
+    TcpStream *opposing_stream = NULL;
+    if (stream == &ssn->client) {
+        opposing_stream = &ssn->server;
+    } else {
+        opposing_stream = &ssn->client;
+    }
+
     /* handle ack received */
-    if (StreamTcpReassembleHandleSegmentUpdateACK(ra_ctx, ssn, stream, p) != 0)
+    if (StreamTcpReassembleHandleSegmentUpdateACK(ra_ctx, ssn, opposing_stream, p) != 0)
     {
         SCLogError(SC_ERR_REASSEMBLY_FAILED,
                             "StreamTcpReassembleHandleSegmentUpdateACK error");
@@ -2891,8 +2903,12 @@ end:
  *  \retval On success it returns 0 and on failure it return -1.
  */
 
-static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx, TcpStream *stream, uint32_t seq, uint32_t ack, uint8_t *payload, uint16_t len, uint8_t th_flags, uint8_t flowflags, uint8_t state) {
-    TcpSession ssn;
+static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx,
+                                      TcpSession *ssn, uint32_t seq,
+                                      uint32_t ack, uint8_t *payload,
+                                      uint16_t len, uint8_t th_flags,
+                                      uint8_t flowflags, uint8_t state)
+{
     Packet p;
     Flow f;
     TCPHdr tcph;
@@ -2902,7 +2918,6 @@ static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx, TcpStream 
     Address dst;
     struct in_addr in;
 
-    memset(&ssn, 0, sizeof (TcpSession));
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
@@ -2934,9 +2949,16 @@ static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx, TcpStream 
 
     p.payload = payload;
     p.payload_len = len;
-    ssn.state = state;
+    ssn->state = state;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, stream, &p) == -1)
+    TcpStream *s = NULL;
+    if (flowflags & FLOW_PKT_TOSERVER) {
+        s = &ssn->server;
+    } else {
+        s = &ssn->client;
+    }
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx, ssn, s, &p) == -1)
         return -1;
 
     return 0;
@@ -2954,13 +2976,13 @@ static int StreamTcpReassembleTest25 (void) {
     uint8_t payload[4];
     uint32_t seq;
     uint32_t ack;
-    TcpStream stream;
+    TcpSession ssn;
     uint8_t th_flag;
     uint8_t flowflags;
     uint8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
 
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    memset(&stream, 0, sizeof (TcpStream));
+    memset(&ssn, 0, sizeof (TcpSession));
 
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
@@ -2969,26 +2991,26 @@ static int StreamTcpReassembleTest25 (void) {
 
     StreamTcpCreateTestPacket(payload, 0x42, 2, 4); /*BB*/
     seq = 10;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
     StreamTcpCreateTestPacket(payload, 0x43, 2, 4); /*CC*/
     seq = 12;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
-    stream.next_seq = 14;
+    ssn.server.next_seq = 14;
     StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     seq = 7;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
 
-    if (StreamTcpCheckStreamContents(check_contents, sizeof(check_contents), &stream) == 0) {
+    if (StreamTcpCheckStreamContents(check_contents, sizeof(check_contents), &ssn.server) == 0) {
         printf("failed in stream matching: ");
         goto end;
     }
@@ -3012,11 +3034,11 @@ static int StreamTcpReassembleTest26 (void) {
     uint8_t payload[4];
     uint32_t seq;
     uint32_t ack;
-    TcpStream stream;
+    TcpSession ssn;
     uint8_t th_flag;
     uint8_t flowflags;
     uint8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
-    memset(&stream, 0, sizeof (TcpStream));
+    memset(&ssn, 0, sizeof (TcpSession));
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
     ack = 20;
@@ -3026,26 +3048,26 @@ static int StreamTcpReassembleTest26 (void) {
 
     StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     seq = 10;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
     StreamTcpCreateTestPacket(payload, 0x43, 2, 4); /*CC*/
     seq = 15;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
     StreamTcpCreateTestPacket(payload, 0x42, 2, 4); /*BB*/
     seq = 13;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
 
-    if (StreamTcpCheckStreamContents(check_contents, sizeof(check_contents), &stream) == 0) {
+    if (StreamTcpCheckStreamContents(check_contents, sizeof(check_contents), &ssn.server) == 0) {
         printf("failed in stream matching: ");
         goto end;
     }
@@ -3069,11 +3091,11 @@ static int StreamTcpReassembleTest27 (void) {
     uint8_t payload[4];
     uint32_t seq;
     uint32_t ack;
-    TcpStream stream;
+    TcpSession ssn;
     uint8_t th_flag;
     uint8_t flowflags;
     uint8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
-    memset(&stream, 0, sizeof (TcpStream));
+    memset(&ssn, 0, sizeof (TcpSession));
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
     ack = 20;
@@ -3083,26 +3105,26 @@ static int StreamTcpReassembleTest27 (void) {
 
     StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     seq = 10;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
     StreamTcpCreateTestPacket(payload, 0x42, 2, 4); /*BB*/
     seq = 13;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
 
     StreamTcpCreateTestPacket(payload, 0x43, 2, 4); /*CC*/
     seq = 15;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
 
-    if (StreamTcpCheckStreamContents(check_contents, sizeof(check_contents), &stream) == 0) {
+    if (StreamTcpCheckStreamContents(check_contents, sizeof(check_contents), &ssn.server) == 0) {
         printf("failed in stream matching: ");
         goto end;
     }
@@ -3131,8 +3153,8 @@ static int StreamTcpReassembleTest28 (void) {
     uint8_t th_flags;
     uint8_t flowflags;
     uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
-    TcpStream stream;
-    memset(&stream, 0, sizeof (TcpStream));
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof (TcpSession));
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
     StreamMsgQueue *q = ra_ctx->stream_q;
 
@@ -3142,14 +3164,14 @@ static int StreamTcpReassembleTest28 (void) {
     th_flag = TH_ACK|TH_PUSH;
     th_flags = TH_ACK;
 
-    stream.last_ack = 22;
-    stream.ra_base_seq = 6;
-    stream.isn = 6;
+    ssn.server.last_ack = 22;
+    ssn.server.ra_base_seq = 6;
+    ssn.server.isn = 6;
 
     StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     seq = 10;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3158,7 +3180,7 @@ static int StreamTcpReassembleTest28 (void) {
     StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 12;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3167,7 +3189,7 @@ static int StreamTcpReassembleTest28 (void) {
     StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     seq = 12;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3176,7 +3198,7 @@ static int StreamTcpReassembleTest28 (void) {
     StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 15;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_TIME_WAIT) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flags, flowflags, TCP_TIME_WAIT) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3212,22 +3234,22 @@ static int StreamTcpReassembleTest29 (void) {
     uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
     StreamMsgQueue *q = ra_ctx->stream_q;
-    TcpStream stream;
-    memset(&stream, 0, sizeof (TcpStream));
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof (TcpSession));
 
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
     th_flags = TH_ACK;
 
-    stream.last_ack = 22;
-    stream.ra_base_seq = 9;
-    stream.isn = 9;
+    ssn.server.last_ack = 22;
+    ssn.server.ra_base_seq = 9;
+    ssn.server.isn = 9;
     StreamTcpInitConfig(TRUE);
 
     StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     seq = 10;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3236,7 +3258,7 @@ static int StreamTcpReassembleTest29 (void) {
     StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 15;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3245,7 +3267,7 @@ static int StreamTcpReassembleTest29 (void) {
     StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     seq = 15;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3254,7 +3276,7 @@ static int StreamTcpReassembleTest29 (void) {
     StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 18;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_TIME_WAIT) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flags, flowflags, TCP_TIME_WAIT) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3288,8 +3310,8 @@ static int StreamTcpReassembleTest30 (void) {
     uint8_t th_flags;
     uint8_t flowflags;
     uint8_t check_contents[6] = {0x41, 0x41, 0x42, 0x42, 0x42, 0x00};
-    TcpStream stream;
-    memset(&stream, 0, sizeof (TcpStream));
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof (TcpSession));
 
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
     StreamMsgQueue *q = ra_ctx->stream_q;
@@ -3298,15 +3320,15 @@ static int StreamTcpReassembleTest30 (void) {
     th_flag = TH_ACK|TH_PUSH;
     th_flags = TH_ACK;
 
-    stream.last_ack = 22;
-    stream.ra_base_seq = 9;
-    stream.isn = 9;
+    ssn.server.last_ack = 22;
+    ssn.server.ra_base_seq = 9;
+    ssn.server.isn = 9;
 
     StreamTcpInitConfig(TRUE);
     StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     seq = 10;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3315,7 +3337,7 @@ static int StreamTcpReassembleTest30 (void) {
     StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 12;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3324,7 +3346,7 @@ static int StreamTcpReassembleTest30 (void) {
     StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     seq = 12;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3333,7 +3355,7 @@ static int StreamTcpReassembleTest30 (void) {
     StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 18;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3343,7 +3365,7 @@ static int StreamTcpReassembleTest30 (void) {
     ack = 20;
     flowflags = FLOW_PKT_TOSERVER;
     StreamTcpCreateTestPacket(payload, 0x00, 1, 4);
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3352,7 +3374,7 @@ static int StreamTcpReassembleTest30 (void) {
     StreamTcpCreateTestPacket(payload, 0x00, 0, 4);
     seq = 20;
     ack = 18;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 0, th_flag, flowflags, TCP_TIME_WAIT) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flag, flowflags, TCP_TIME_WAIT) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3386,21 +3408,21 @@ static int StreamTcpReassembleTest31 (void) {
     uint8_t flowflags;
     uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    TcpStream stream;
-    memset(&stream, 0, sizeof (TcpStream));
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof (TcpSession));
 
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
     th_flags = TH_ACK;
 
-    stream.ra_base_seq = 9;
-    stream.isn = 9;
+    ssn.server.ra_base_seq = 9;
+    ssn.server.isn = 9;
     StreamTcpInitConfig(TRUE);
 
     StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     seq = 10;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1){
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3409,7 +3431,7 @@ static int StreamTcpReassembleTest31 (void) {
     StreamTcpCreateTestPacket(payload, 0x42, 1, 4); /*B*/
     seq = 15;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3418,7 +3440,7 @@ static int StreamTcpReassembleTest31 (void) {
     StreamTcpCreateTestPacket(payload, 0x42, 1, 4); /*B*/
     seq = 12;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
@@ -3427,17 +3449,17 @@ static int StreamTcpReassembleTest31 (void) {
     StreamTcpCreateTestPacket(payload, 0x42, 1, 4); /*B*/
     seq = 16;
     ack = 20;
-    if (StreamTcpTestMissedPacket (ra_ctx, &stream, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
+    if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 1, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
         goto end;
     }
 
-    if (StreamTcpCheckStreamContents(check_contents, 5, &stream) == 0) {
+    if (StreamTcpCheckStreamContents(check_contents, 5, &ssn.server) == 0) {
         printf("failed in stream matching: ");
         goto end;
     }
 
-    if (stream.seg_list_tail->seq != 16) {
+    if (ssn.server.seg_list_tail->seq != 16) {
         printf("failed in fast track handling: ");
         goto end;
     }
