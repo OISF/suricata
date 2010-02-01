@@ -24,6 +24,7 @@
 #include "detect-ipopts.h"
 #include "detect-flags.h"
 #include "detect-fragbits.h"
+#include "detect-fragoffset.h"
 #include "detect-gid.h"
 #include "detect-ack.h"
 #include "detect-seq.h"
@@ -2877,6 +2878,7 @@ void SigTableSetup(void) {
     DetectIpOptsRegister();
     DetectFlagsRegister();
     DetectFragBitsRegister();
+    DetectFragOffsetRegister();
     DetectGidRegister();
     DetectCsumRegister();
     DetectStreamSizeRegister();
