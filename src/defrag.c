@@ -88,7 +88,6 @@ typedef struct _DefragContext {
     time_t timeout; /**< Default timeout. */
 
     uint8_t default_policy; /**< Default policy. */
-
 } DefragContext;
 
 /**
@@ -137,8 +136,8 @@ typedef struct _DefragTracker {
 
     struct timeval timeout; /**< When this tracker will timeout. */
 
-    uint8_t family; /**< Address family for this tracker, AF_INET or
-                     * AF_INET6. */
+    uint8_t af; /**< Address family for this tracker, AF_INET or
+                 * AF_INET6. */
 
     uint32_t id; /**< IP ID for this tracker.  32 bits for IPv6, 16
                   * for IPv4. */
@@ -197,13 +196,13 @@ DefragHashFunc(HashListTable *ht, void *data, uint16_t datalen)
     DefragTracker *p = (DefragTracker *)data;
     uint32_t key;
 
-    if (p->family == AF_INET) {
-        key = (defrag_hash_rand + p->family +
+    if (p->af == AF_INET) {
+        key = (defrag_hash_rand + p->af +
             p->src_addr.addr_data32[0] + p->dst_addr.addr_data32[0]) %
             defrag_hash_size;
     }
-    else if (p->family == AF_INET6) {
-        key = (defrag_hash_rand + p->family +
+    else if (p->af == AF_INET6) {
+        key = (defrag_hash_rand + p->af +
             p->src_addr.addr_data32[0] + p->src_addr.addr_data32[1] +
             p->src_addr.addr_data32[2] + p->src_addr.addr_data32[3] +
             p->dst_addr.addr_data32[0] + p->dst_addr.addr_data32[1] +
@@ -227,7 +226,7 @@ DefragHashCompare(void *a, uint16_t a_len, void *b, uint16_t b_len)
     DefragTracker *dta = (DefragTracker *)a;
     DefragTracker *dtb = (DefragTracker *)b;
 
-    if (dta->family != dtb->family)
+    if (dta->af != dtb->af)
         return 0;
     else if (dta->id != dtb->id)
         return 0;
@@ -413,7 +412,7 @@ DefragContextNew(void)
         exit(EXIT_FAILURE);
     }
     if (SCMutexInit(&dc->tracker_pool_lock, NULL) != 0) {
-        SCLogError(SC_ERR_MEM_ALLOC,
+        SCLogError(SC_ERR_MUTEX,
             "Defrag: Failed to initialize tracker pool mutex.");
         exit(EXIT_FAILURE);
     }
@@ -429,7 +428,7 @@ DefragContextNew(void)
         exit(EXIT_FAILURE);
     }
     if (SCMutexInit(&dc->frag_pool_lock, NULL) != 0) {
-        SCLogError(SC_ERR_MEM_ALLOC,
+        SCLogError(SC_ERR_MUTEX,
             "Defrag: Failed to initialize frag pool mutex.");
         exit(EXIT_FAILURE);
     }
@@ -475,14 +474,244 @@ DefragContextDestroy(DefragContext *dc)
     free(dc);
 }
 
+
+/**
+ * Attempt to re-assemble a packet.
+ *
+ * \param tracker The defragmentation tracker to reassemble from.
+ */
+static Packet *
+Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
+    Packet *p)
+{
+    Packet *rp = NULL;
+
+    /* Should not be here unless we have seen the last fragment. */
+    if (!tracker->seen_last)
+        return NULL;
+
+    /* Check that we have all the data. Relies on the fact that
+     * fragments are inserted if frag_offset order. */
+    Frag *frag;
+    int len = 0;
+    TAILQ_FOREACH(frag, &tracker->frags, next) {
+        if (frag->skip)
+            continue;
+
+        if (frag == TAILQ_FIRST(&tracker->frags)) {
+            if (frag->offset != 0) {
+                goto done;
+            }
+            len = frag->data_len;
+        }
+        else {
+            if (frag->offset > len) {
+                /* This fragment starts after the end of the previous
+                 * fragment.  We have a hole. */
+                goto done;
+            }
+            else {
+                len += frag->data_len;
+            }
+        }
+    }
+
+    /* Allocate a Packet for the reassembled packet.  On failure we
+     * free all the resources held by this tracker. */
+    if (tv == NULL) {
+        /* Unit test. */
+        rp = SetupPkt();
+    }
+    else {
+        /* Not really a tunnel packet, but more of a pseudo packet.
+         * But for the most part we should get the same result. */
+        rp = TunnelPktSetup(tv, NULL, p, (uint8_t *)p->ip4h, IPV4_GET_IPLEN(p),
+            IPV4_GET_IPPROTO(p));
+    }
+    if (rp == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
+        goto remove_tracker;
+    }
+
+    int fragmentable_offset = 0;
+    int fragmentable_len = 0;
+    int hlen = 0;
+    int ip_hdr_offset = 0;
+    TAILQ_FOREACH(frag, &tracker->frags, next) {
+        if (frag->skip)
+            continue;
+        if (frag->data_len - frag->ltrim <= 0)
+            continue;
+        if (frag->offset == 0) {
+            /* This is the first packet, we use this packets link and
+             * IPv4 header. We also copy in its data. */
+            memcpy(rp->pkt, frag->pkt, frag->len);
+            rp->ip4h = (IPV4Hdr *)(rp->pkt + frag->ip_hdr_offset);
+            hlen = frag->hlen;
+            ip_hdr_offset = frag->ip_hdr_offset;
+
+            /* This is the start of the fragmentable portion of the
+             * first packet.  All fragment offsets are relative to
+             * this. */
+            fragmentable_offset = frag->ip_hdr_offset + frag->hlen;
+            fragmentable_len = frag->data_len;
+        }
+        else {
+            int pkt_end = fragmentable_offset + frag->offset + frag->data_len;
+            if (pkt_end > (int)sizeof(rp->pkt)) {
+                SCLogWarning(SC_ERR_REASSEMBLY_FAILED, "Failed re-assemble fragmented packet, exceeds size of packet buffer.");
+                goto remove_tracker;
+            }
+            memcpy(rp->pkt + fragmentable_offset + frag->offset + frag->ltrim,
+                frag->pkt + frag->data_offset + frag->ltrim,
+                frag->data_len - frag->ltrim);
+            if (frag->offset + frag->data_len > fragmentable_len)
+                fragmentable_len = frag->offset + frag->data_len;
+        }
+    }
+    BUG_ON(rp->ip4h == NULL);
+
+    int old = rp->ip4h->ip_len + rp->ip4h->ip_off;
+    rp->ip4h->ip_len = htons(fragmentable_len + hlen);
+    rp->ip4h->ip_off = 0;
+    rp->ip4h->ip_csum = FixChecksum(rp->ip4h->ip_csum,
+        old, rp->ip4h->ip_len + rp->ip4h->ip_off);
+    rp->pktlen = ip_hdr_offset + hlen + fragmentable_len;
+    IPV4_CACHE_INIT(rp);
+
+remove_tracker:
+    /* Remove the frag tracker. */
+    SCMutexLock(&dc->frag_table_lock);
+    HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
+    SCMutexUnlock(&dc->frag_table_lock);
+    DefragTrackerReset(tracker);
+    SCMutexLock(&dc->tracker_pool_lock);
+    PoolReturn(dc->tracker_pool, tracker);
+    SCMutexUnlock(&dc->tracker_pool_lock);
+
+done:
+    return rp;
+}
+
+/**
+ * Attempt to re-assemble a packet.
+ *
+ * \param tracker The defragmentation tracker to reassemble from.
+ */
+static Packet *
+Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
+    Packet *p)
+{
+    Packet *rp = NULL;
+
+    /* Should not be here unless we have seen the last fragment. */
+    if (!tracker->seen_last)
+        return NULL;
+
+    /* Check that we have all the data. Relies on the fact that
+     * fragments are inserted if frag_offset order. */
+    Frag *frag;
+    int len = 0;
+    TAILQ_FOREACH(frag, &tracker->frags, next) {
+        if (frag->skip)
+            continue;
+
+        if (frag == TAILQ_FIRST(&tracker->frags)) {
+            if (frag->offset != 0) {
+                goto done;
+            }
+            len = frag->data_len;
+        }
+        else {
+            if (frag->offset > len) {
+                /* This fragment starts after the end of the previous
+                 * fragment.  We have a hole. */
+                goto done;
+            }
+            else {
+                len += frag->data_len;
+            }
+        }
+    }
+
+    /* Allocate a Packet for the reassembled packet.  On failure we
+     * free all the resources held by this tracker. */
+    if (tv == NULL) {
+        /* Unit test. */
+        rp = SetupPkt();
+    }
+    else {
+        /* Not really a tunnel packet, but more of a pseudo packet.
+         * But for the most part we should get the same result. */
+        rp = TunnelPktSetup(tv, NULL, p, (uint8_t *)p->ip6h,
+            IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
+    }
+    if (rp == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
+        goto remove_tracker;
+    }
+
+    int fragmentable_offset = 0;
+    int fragmentable_len = 0;
+    int ip_hdr_offset = 0;
+    TAILQ_FOREACH(frag, &tracker->frags, next) {
+        if (frag->skip)
+            continue;
+        if (frag->data_len - frag->ltrim <= 0)
+            continue;
+        if (frag->offset == 0) {
+            /* This is the first packet, we use this packets link and
+             * IPv6 headers. We also copy in its data, but remove the
+             * fragmentation header. */
+            memcpy(rp->pkt, frag->pkt, frag->frag_hdr_offset);
+            memcpy(rp->pkt + frag->frag_hdr_offset,
+                frag->pkt + frag->frag_hdr_offset + sizeof(IPV6FragHdr),
+                frag->data_len);
+            rp->ip6h = (IPV6Hdr *)(rp->pkt + frag->ip_hdr_offset);
+            ip_hdr_offset = frag->ip_hdr_offset;
+
+            /* This is the start of the fragmentable portion of the
+             * first packet.  All fragment offsets are relative to
+             * this. */
+            fragmentable_offset = frag->frag_hdr_offset;
+            fragmentable_len = frag->data_len;
+        }
+        else {
+            memcpy(rp->pkt + fragmentable_offset + frag->offset + frag->ltrim,
+                frag->pkt + frag->data_offset + frag->ltrim,
+                frag->data_len - frag->ltrim);
+            if (frag->offset + frag->data_len > fragmentable_len)
+                fragmentable_len = frag->offset + frag->data_len;
+        }
+    }
+    BUG_ON(rp->ip6h == NULL);
+    rp->ip6h->s_ip6_plen = htons(fragmentable_len);
+    rp->pktlen = ip_hdr_offset + sizeof(IPV6Hdr) + fragmentable_len;
+
+remove_tracker:
+    /* Remove the frag tracker. */
+    SCMutexLock(&dc->frag_table_lock);
+    HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
+    SCMutexUnlock(&dc->frag_table_lock);
+    DefragTrackerReset(tracker);
+    SCMutexLock(&dc->tracker_pool_lock);
+    PoolReturn(dc->tracker_pool, tracker);
+    SCMutexUnlock(&dc->tracker_pool_lock);
+
+done:
+    return rp;
+}
+
 /**
  * Insert a new IPv4/IPv6 fragment into a tracker.
  *
  * \todo Allocate packet buffers from a pool.
  */
-static void
-DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
+static Packet *
+DefragInsertFrag(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
+    Packet *p)
 {
+    Packet *r = NULL;
     int ltrim = 0;
 
     uint8_t more_frags;
@@ -508,7 +737,7 @@ DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
     /* Offset in the packet to the IPv6 frag header. IPv6 only. */
     uint16_t frag_hdr_offset = 0;
 
-    if (tracker->family == AF_INET) {
+    if (tracker->af == AF_INET) {
         more_frags = IPV4_GET_MF(p);
         frag_offset = IPV4_GET_IPOFFSET(p) << 3;
         hlen = IPV4_GET_HLEN(p);
@@ -521,10 +750,10 @@ DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
          * maximum size of a packet. */
         if (IPV4_HEADER_LEN + frag_offset + data_len > IPV4_MAXPACKET_LEN) {
             /** \todo Perhaps log something? */
-            return;
+            return NULL;;
         }
     }
-    else if (tracker->family == AF_INET6) {
+    else if (tracker->af == AF_INET6) {
         more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
         frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
         data_offset = (uint8_t *)p->ip6eh.ip6fh + sizeof(IPV6FragHdr) - p->pkt;
@@ -539,13 +768,13 @@ DefragInsertFrag(DefragContext *dc, DefragTracker *tracker, Packet *p)
          * maximum size of a packet. */
         if (frag_offset + data_len > IPV6_MAXPACKET) {
             /** \todo Perhaps log something? */
-            return;
+            return NULL;
         }
     }
     else {
         /* Abort - should not happen. */
-        SCLogError(SC_INVALID_ARGUMENT, "Invalid address family, aborting.");
-        exit(EXIT_FAILURE);
+        SCLogWarning(SC_INVALID_ARGUMENT, "Invalid address family, aborting.");
+        return NULL;
     }
 
     /* Lock this tracker as we'll be doing list operations on it. */
@@ -684,243 +913,16 @@ insert:
         tracker->seen_last = 1;
     }
 
-done:
-    SCMutexUnlock(&tracker->lock);
-}
-
-/**
- * Attempt to re-assemble a packet.
- *
- * \param tracker The defragmentation tracker to reassemble from.
- */
-static Packet *
-Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
-    Packet *p)
-{
-    Packet *rp = NULL;
-
-    /* Should not be here unless we have seen the last fragment. */
-    if (!tracker->seen_last)
-        return NULL;
-
-    /* Lock the tracker. */
-    SCMutexLock(&tracker->lock);
-
-    /* Check that we have all the data. Relies on the fact that
-     * fragments are inserted if frag_offset order. */
-    Frag *frag;
-    int len = 0;
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
-        if (frag->skip)
-            continue;
-
-        if (frag == TAILQ_FIRST(&tracker->frags)) {
-            if (frag->offset != 0) {
-                goto done;
-            }
-            len = frag->data_len;
-        }
-        else {
-            if (frag->offset > len) {
-                /* This fragment starts after the end of the previous
-                 * fragment.  We have a hole. */
-                goto done;
-            }
-            else {
-                len += frag->data_len;
-            }
-        }
+    if (tracker->seen_last) {
+        if (tracker->af == AF_INET)
+            r = Defrag4Reassemble(tv, dc, tracker, p);
+        else if (tracker->af == AF_INET6)
+            r = Defrag6Reassemble(tv, dc, tracker, p);
     }
-
-    /* Allocate a Packet for the reassembled packet.  On failure we
-     * free all the resources held by this tracker. */
-    if (tv == NULL) {
-        /* Unit test. */
-        rp = SetupPkt();
-    }
-    else {
-        /* Not really a tunnel packet, but more of a pseudo packet.
-         * But for the most part we should get the same result. */
-        rp = TunnelPktSetup(tv, NULL, p, (uint8_t *)p->ip4h, IPV4_GET_IPLEN(p),
-            IPV4_GET_IPPROTO(p));
-    }
-    if (rp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
-        goto remove_tracker;
-    }
-
-    int fragmentable_offset = 0;
-    int fragmentable_len = 0;
-    int hlen = 0;
-    int ip_hdr_offset = 0;
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
-        if (frag->skip)
-            continue;
-        if (frag->data_len - frag->ltrim <= 0)
-            continue;
-        if (frag->offset == 0) {
-            /* This is the first packet, we use this packets link and
-             * IPv4 header. We also copy in its data. */
-            memcpy(rp->pkt, frag->pkt, frag->len);
-            rp->ip4h = (IPV4Hdr *)(rp->pkt + frag->ip_hdr_offset);
-            hlen = frag->hlen;
-            ip_hdr_offset = frag->ip_hdr_offset;
-
-            /* This is the start of the fragmentable portion of the
-             * first packet.  All fragment offsets are relative to
-             * this. */
-            fragmentable_offset = frag->ip_hdr_offset + frag->hlen;
-            fragmentable_len = frag->data_len;
-        }
-        else {
-            int pkt_end = fragmentable_offset + frag->offset + frag->data_len;
-            if (pkt_end > (int)sizeof(rp->pkt)) {
-                SCLogWarning(SC_ERR_REASSEMBLY_FAILED, "Failed re-assemble fragmented packet, exceeds size of packet buffer.");
-                goto remove_tracker;
-            }
-            memcpy(rp->pkt + fragmentable_offset + frag->offset + frag->ltrim,
-                frag->pkt + frag->data_offset + frag->ltrim,
-                frag->data_len - frag->ltrim);
-            if (frag->offset + frag->data_len > fragmentable_len)
-                fragmentable_len = frag->offset + frag->data_len;
-        }
-    }
-    BUG_ON(rp->ip4h == NULL);
-
-    int old = rp->ip4h->ip_len + rp->ip4h->ip_off;
-    rp->ip4h->ip_len = htons(fragmentable_len + hlen);
-    rp->ip4h->ip_off = 0;
-    rp->ip4h->ip_csum = FixChecksum(rp->ip4h->ip_csum,
-        old, rp->ip4h->ip_len + rp->ip4h->ip_off);
-    rp->pktlen = ip_hdr_offset + hlen + fragmentable_len;
-    IPV4_CACHE_INIT(rp);
-
-remove_tracker:
-    /* Remove the frag tracker. */
-    SCMutexLock(&dc->frag_table_lock);
-    HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
-    SCMutexUnlock(&dc->frag_table_lock);
-    DefragTrackerReset(tracker);
-    SCMutexLock(&dc->tracker_pool_lock);
-    PoolReturn(dc->tracker_pool, tracker);
-    SCMutexUnlock(&dc->tracker_pool_lock);
 
 done:
     SCMutexUnlock(&tracker->lock);
-    return rp;
-}
-
-/**
- * Attempt to re-assemble a packet.
- *
- * \param tracker The defragmentation tracker to reassemble from.
- */
-static Packet *
-Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
-    Packet *p)
-{
-    Packet *rp = NULL;
-
-    /* Should not be here unless we have seen the last fragment. */
-    if (!tracker->seen_last)
-        return NULL;
-
-    /* Lock the tracker. */
-    SCMutexLock(&tracker->lock);
-
-    /* Check that we have all the data. Relies on the fact that
-     * fragments are inserted if frag_offset order. */
-    Frag *frag;
-    int len = 0;
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
-        if (frag->skip)
-            continue;
-
-        if (frag == TAILQ_FIRST(&tracker->frags)) {
-            if (frag->offset != 0) {
-                goto done;
-            }
-            len = frag->data_len;
-        }
-        else {
-            if (frag->offset > len) {
-                /* This fragment starts after the end of the previous
-                 * fragment.  We have a hole. */
-                goto done;
-            }
-            else {
-                len += frag->data_len;
-            }
-        }
-    }
-
-    /* Allocate a Packet for the reassembled packet.  On failure we
-     * free all the resources held by this tracker. */
-    if (tv == NULL) {
-        /* Unit test. */
-        rp = SetupPkt();
-    }
-    else {
-        /* Not really a tunnel packet, but more of a pseudo packet.
-         * But for the most part we should get the same result. */
-        rp = TunnelPktSetup(tv, NULL, p, (uint8_t *)p->ip6h,
-            IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
-    }
-    if (rp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
-        goto remove_tracker;
-    }
-
-    int fragmentable_offset = 0;
-    int fragmentable_len = 0;
-    int ip_hdr_offset = 0;
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
-        if (frag->skip)
-            continue;
-        if (frag->data_len - frag->ltrim <= 0)
-            continue;
-        if (frag->offset == 0) {
-            /* This is the first packet, we use this packets link and
-             * IPv6 headers. We also copy in its data, but remove the
-             * fragmentation header. */
-            memcpy(rp->pkt, frag->pkt, frag->frag_hdr_offset);
-            memcpy(rp->pkt + frag->frag_hdr_offset,
-                frag->pkt + frag->frag_hdr_offset + sizeof(IPV6FragHdr),
-                frag->data_len);
-            rp->ip6h = (IPV6Hdr *)(rp->pkt + frag->ip_hdr_offset);
-            ip_hdr_offset = frag->ip_hdr_offset;
-
-            /* This is the start of the fragmentable portion of the
-             * first packet.  All fragment offsets are relative to
-             * this. */
-            fragmentable_offset = frag->frag_hdr_offset;
-            fragmentable_len = frag->data_len;
-        }
-        else {
-            memcpy(rp->pkt + fragmentable_offset + frag->offset + frag->ltrim,
-                frag->pkt + frag->data_offset + frag->ltrim,
-                frag->data_len - frag->ltrim);
-            if (frag->offset + frag->data_len > fragmentable_len)
-                fragmentable_len = frag->offset + frag->data_len;
-        }
-    }
-    BUG_ON(rp->ip6h == NULL);
-    rp->ip6h->s_ip6_plen = htons(fragmentable_len);
-    rp->pktlen = ip_hdr_offset + sizeof(IPV6Hdr) + fragmentable_len;
-
-remove_tracker:
-    /* Remove the frag tracker. */
-    SCMutexLock(&dc->frag_table_lock);
-    HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
-    SCMutexUnlock(&dc->frag_table_lock);
-    DefragTrackerReset(tracker);
-    SCMutexLock(&dc->tracker_pool_lock);
-    PoolReturn(dc->tracker_pool, tracker);
-    SCMutexUnlock(&dc->tracker_pool_lock);
-
-done:
-    SCMutexUnlock(&tracker->lock);
-    return rp;
+    return r;
 }
 
 /**
@@ -965,7 +967,6 @@ DefragGetTracker(DefragContext *dc, DefragTracker *lookup_key, Packet *p)
     SCMutexLock(&dc->frag_table_lock);
     tracker = HashListTableLookup(dc->frag_table, lookup_key,
         sizeof(*lookup_key));
-    SCMutexUnlock(&dc->frag_table_lock);
     if (tracker == NULL) {
         SCMutexLock(&dc->tracker_pool_lock);
         tracker = PoolGet(dc->tracker_pool);
@@ -978,10 +979,10 @@ DefragGetTracker(DefragContext *dc, DefragTracker *lookup_key, Packet *p)
         if (tracker == NULL) {
             /* Report memory error - actually a pool allocation error. */
             SCLogError(SC_ERR_MEM_ALLOC, "Defrag: Failed to allocate tracker.");
-            return NULL;
+            goto done;
         }
         DefragTrackerReset(tracker);
-        tracker->family = lookup_key->family;
+        tracker->af = lookup_key->af;
         tracker->id = lookup_key->id;
         tracker->src_addr = lookup_key->src_addr;
         tracker->dst_addr = lookup_key->dst_addr;
@@ -989,17 +990,19 @@ DefragGetTracker(DefragContext *dc, DefragTracker *lookup_key, Packet *p)
         /* XXX Do policy lookup. */
         tracker->policy = dc->default_policy;
 
-        SCMutexLock(&dc->frag_table_lock);
         if (HashListTableAdd(dc->frag_table, tracker, sizeof(*tracker)) != 0) {
             /* Failed to add new tracker. */
-            SCMutexUnlock(&dc->frag_table_lock);
             SCLogError(SC_ERR_MEM_ALLOC,
                 "Defrag: Failed to add new tracker to hash table.");
-            return NULL;
+            SCMutexLock(&dc->tracker_pool_lock);
+            PoolReturn(dc->tracker_pool, tracker);
+            SCMutexUnlock(&dc->tracker_pool_lock);
+            goto done;
         }
-        SCMutexUnlock(&dc->frag_table_lock);
     }
 
+done:
+    SCMutexUnlock(&dc->frag_table_lock);
     return tracker;
 }
 
@@ -1049,7 +1052,7 @@ Defrag(ThreadVars *tv, DefragContext *dc, Packet *p)
     }
 
     /* Create a lookup key. */
-    lookup.family = af;
+    lookup.af = af;
     lookup.id = id;
     lookup.src_addr = p->src;
     lookup.dst_addr = p->dst;
@@ -1058,17 +1061,7 @@ Defrag(ThreadVars *tv, DefragContext *dc, Packet *p)
     if (tracker == NULL)
         return NULL;
 
-    DefragInsertFrag(dc, tracker, p);
-    if (tracker->seen_last) {
-        Packet *rp = NULL;
-        if (af == AF_INET)
-            rp = Defrag4Reassemble(tv, dc, tracker, p);
-        else if (af == AF_INET6)
-            rp = Defrag6Reassemble(tv, dc, tracker, p);
-        return rp;
-    }
-
-    return NULL;
+    return DefragInsertFrag(tv, dc, tracker, p);
 }
 
 void
@@ -2342,7 +2335,7 @@ DefragIPv4NoDataTest(void)
     DefragContext *dc = NULL;
     Packet *p = NULL;
     int id = 12;
-    int ret;
+    int ret = 0;
 
     DefragInit();
 
@@ -2380,7 +2373,7 @@ DefragIPv4TooLargeTest(void)
 {
     DefragContext *dc = NULL;
     Packet *p = NULL;
-    int ret;
+    int ret = 0;
 
     DefragInit();
 
