@@ -304,6 +304,9 @@ void usage(const char *progname)
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
     printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
+    printf("\t--dump-config                : show the running configuration\n");
+    printf("\t--pfring-int <dev>           : run in pfring mode\n");
+    printf("\t--pfring-clusterid <id>      : pfring cluster id to use for flow pinning\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -320,6 +323,9 @@ int main(int argc, char **argv)
     char *sig_file = NULL;
     char *nfq_id = NULL;
     char *conf_filename = NULL;
+    char *bpf_filter = NULL;
+    uint32_t bpf_len = 0;
+    int tmpindex = 0;
 #ifdef UNITTESTS
     char *regex_arg = NULL;
 #endif
@@ -496,6 +502,30 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
         default:
             usage(argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    /* attempt to parse remaining args as bpf filter */
+    tmpindex = optind;
+    while(argv[tmpindex] != NULL) {
+        bpf_len+=strlen(argv[tmpindex]) + 1;
+        tmpindex++;
+    }
+    bpf_filter= malloc(bpf_len);
+
+    tmpindex = optind;
+    while(argv[tmpindex] != NULL) {
+        strlcat(bpf_filter, argv[tmpindex],bpf_len);
+        if(argv[tmpindex + 1] != NULL) {
+            strlcat(bpf_filter," ", bpf_len);
+        }
+        tmpindex++;
+    }
+
+    if(strlen(bpf_filter) > 0) {
+        if (ConfSet("bpf-filter", bpf_filter, 0) != 1) {
+            fprintf(stderr, "ERROR: Failed to set bpf filter.\n");
             exit(EXIT_FAILURE);
         }
     }

@@ -106,7 +106,8 @@ typedef enum {
     SC_REPUTATION_INVALID_TYPE,
     SC_ERR_UNKNOWN_PROTOCOL,
     SC_ERR_UNKNOWN_RUN_MODE,
-    SC_ERR_MULTIPLE_RUN_MODE
+    SC_ERR_MULTIPLE_RUN_MODE,
+    SC_ERR_BPF,
 } SCError;
 
 const char *SCErrorToString(SCError);

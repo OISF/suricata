@@ -10,7 +10,7 @@
 #include <pcap/pcap.h>
 #else
 #include <pcap.h>
-#endif
+#endif /* LIBPCAP_VERSION_MAJOR */
 
 #include "suricata-common.h"
 #include "suricata.h"
@@ -23,11 +23,14 @@
 #include "source-pcap-file.h"
 #include "util-time.h"
 #include "util-debug.h"
+#include "conf.h"
+
 
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
     void (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
     int datalink;
+    struct bpf_program filter;
 } PcapFileGlobalVars;
 
 typedef struct PcapFileThreadVars_
@@ -114,6 +117,9 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) 
 }
 
 TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
+
+    char *tmpbpfstring;
+
     if (initdata == NULL) {
         printf("ReceivePcapFileThreadInit error: initdata == NULL\n");
         return TM_ECODE_FAILED;
@@ -130,6 +136,22 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (pcap_g.pcap_handle == NULL) {
         printf("error %s\n", errbuf);
         exit(1);
+    }
+
+    if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
+        SCLogInfo("could not get bpf or none specified");
+    } else {
+        SCLogInfo("using bpf-filter %s", tmpbpfstring);
+
+        if(pcap_compile(pcap_g.pcap_handle,&pcap_g.filter,tmpbpfstring,1,0) < 0) {
+            SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(pcap_g.pcap_handle));
+            exit(1);
+        }
+
+        if(pcap_setfilter(pcap_g.pcap_handle,&pcap_g.filter) < 0) {
+            SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(pcap_g.pcap_handle));
+            exit(1);
+        }
     }
 
     pcap_g.datalink = pcap_datalink(pcap_g.pcap_handle);

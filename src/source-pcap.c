@@ -16,6 +16,7 @@
 #include "tm-modules.h"
 #include "tm-threads.h"
 #include "source-pcap.h"
+#include "conf.h"
 #include "util-debug.h"
 
 /**
@@ -25,6 +26,9 @@ typedef struct PcapThreadVars_
 {
     /* thread specific handle */
     pcap_t *pcap_handle;
+
+    /* thread specific bpf */
+    struct bpf_program filter;
 
     /* data link type for the thread */
     int datalink;
@@ -159,6 +163,9 @@ TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
  */
 #if LIBPCAP_VERSION_MAJOR == 1
 TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
+
+    char *tmpbpfstring;
+
     if (initdata == NULL) {
         printf("ReceivePcapThreadInit error: initdata == NULL\n");
         return TM_ECODE_FAILED;
@@ -212,6 +219,23 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         exit(1);
     }
 
+    /* set bpf filter if we have one */
+    if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
+        SCLogInfo("could not get bpf or none specified");
+    } else {
+        SCLogInfo("using bpf-filter %s", tmpbpfstring);
+
+        if(pcap_compile(ptv->pcap_handle,&ptv->filter,tmpbpfstring,1,0) < 0) {
+            SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
+            exit(1);
+        }
+
+        if(pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
+            SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(ptv->pcap_handle));
+            exit(1);
+        }
+    }
+
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
 
     *data = (void *)ptv;
@@ -219,6 +243,9 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 }
 #else /* implied LIBPCAP_VERSION_MAJOR == 0 */
 TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
+
+    char *tmpbpfstring;
+
     if (initdata == NULL) {
         printf("ReceivePcapThreadInit error: initdata == NULL\n");
         return TM_ECODE_FAILED;
@@ -241,6 +268,24 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         printf("error %s\n", errbuf);
         exit(1);
     }
+
+    /* set bpf filter if we have one */
+    if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
+        SCLogInfo("could not get bpf or none specified");
+    } else {
+        SCLogInfo("using bpf-filter %s", tmpbpfstring);
+
+        if(pcap_compile(ptv->pcap_handle,&ptv->filter,tmpbpfstring,1,0) < 0) {
+            SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
+            exit(1);
+        }
+
+        if(pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
+            SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(ptv->pcap_handle));
+            exit(1);
+        }
+    }
+
 
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
 
