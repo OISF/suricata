@@ -703,14 +703,16 @@ void *FlowManagerThread(void *td)
             /* If we are reading a pcap, how long the pcap timestamps
              * says that has passed */
             TimeGet(&tsdiff);
-            if (tsdiff.tv_sec == ts.tv_sec && tsdiff.tv_usec - ts.tv_usec < 10
-                && tsdiff.tv_usec != ts.tv_usec) {
+
+            if (tsdiff.tv_sec == ts.tv_sec &&
+                tsdiff.tv_usec > ts.tv_usec &&
+                tsdiff.tv_usec - ts.tv_usec < 10) {
                 /* if it has passed less than 10 usec, sleep that usecs */
                 sleeping += tsdiff.tv_usec - ts.tv_usec;
                 usleep(tsdiff.tv_usec - ts.tv_usec);
             } else {
                 /* Else update the sleeping var but don't sleep so long */
-                if (tsdiff.tv_sec == ts.tv_sec && tsdiff.tv_usec != ts.tv_usec)
+                if (tsdiff.tv_sec == ts.tv_sec && tsdiff.tv_usec > ts.tv_usec)
                     sleeping += tsdiff.tv_usec - ts.tv_usec;
                 else if (tsdiff.tv_sec == ts.tv_sec + 1)
                     sleeping += tsdiff.tv_usec + (1000000 - ts.tv_usec);
