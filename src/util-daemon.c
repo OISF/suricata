@@ -63,15 +63,6 @@ static void WaitForChild (pid_t pid) {
 static void SetupLogging () {
     int fd0, fd1, fd2;
 
-    SCLogInitData *sc_lid = NULL;
-    SCLogOPIfaceCtx *sc_iface_ctx = NULL;
-
-    sc_lid = SCLogAllocLogInitData();
-    sc_lid->startup_message = "Daemon started";
-    sc_lid->global_log_level = SC_LOG_INFO;
-    sc_iface_ctx = SCLogInitOPIfaceCtx("syslog", "%l", SC_LOG_INFO, "local5");
-    SCLogAppendOPIfaceCtx(sc_iface_ctx, sc_lid);
-
     /* Close stdin, stdout, stderr */
     close(0);
     close(1);
@@ -81,8 +72,6 @@ static void SetupLogging () {
     fd0 = open("/dev/null", O_RDWR);
     fd1 = dup(0);
     fd2 = dup(0);
-
-    SCLogInitLogModule(sc_lid);
 }
 
 /**
