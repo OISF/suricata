@@ -52,7 +52,7 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
 
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd == NULL) {
-        printf("DetectDistanceSetup: Unknown previous keyword!\n");
+        SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous keyword!");
         if (dubbed) free(str);
         return -1;
     }
@@ -84,7 +84,7 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
         DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
         cd->flags |= DETECT_URICONTENT_DISTANCE_NEXT;
     } else {
-        printf("DetectDistanceSetup: Unknown previous-previous keyword!\n");
+        SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!");
         goto error;
     }
 

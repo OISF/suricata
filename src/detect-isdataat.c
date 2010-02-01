@@ -53,13 +53,13 @@ void DetectIsdataatRegister (void) {
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL) {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL) {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -119,6 +119,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, isdataatstr, strlen(isdataatstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, isdataatstr);
         goto error;
     }
 
@@ -126,7 +127,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
         const char *str_ptr;
         res = pcre_get_substring((char *)isdataatstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
         if (res < 0) {
-            printf("DetectIsdataatParse: pcre_get_substring failed\n");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         args[0] = (char *)str_ptr;
@@ -135,7 +136,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
         if (ret > 2) {
             res = pcre_get_substring((char *)isdataatstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
             if (res < 0) {
-                printf("DetectIsdataatParse: pcre_get_substring failed\n");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
             args[1] = (char *)str_ptr;
@@ -143,7 +144,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
         if (ret > 3) {
             res = pcre_get_substring((char *)isdataatstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
             if (res < 0) {
-                printf("DetectIsdataatParse: pcre_get_substring failed\n");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
             args[2] = (char *)str_ptr;
@@ -151,7 +152,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
 
         idad = malloc(sizeof(DetectIsdataatData));
         if (idad == NULL) {
-            printf("DetectIsdataatParse malloc failed\n");
+            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
             goto error;
         }
 
@@ -161,7 +162,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
         if (args[0] != NULL) {
             if (ByteExtractStringUint16(&idad->dataat, 10,
                 strlen(args[0]), args[0]) < 0 ) {
-                printf("detect-isdataat: DetectIsdataatParse: isdataat out of range\n");
+                SCLogError(SC_ERR_INVALID_VALUE, "isdataat out of range");
                 free(idad);
                 idad=NULL;
                 goto error;
@@ -221,7 +222,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
         SCLogDebug("set it in the last parsed content because it is relative to that content match");
 
         if( m == NULL ) {
-            printf("detect-isdataat: No previous content, the flag 'relative' cant be used without content\n");
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "No previous content, the flag "
+                                   "'relative' cant be used without content");
             goto  error;
         } else {
             SigMatch *pm = NULL;
@@ -229,13 +231,13 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
               * SigMatch (it can be the same as this one) */
             pm = DetectContentFindPrevApplicableSM(m);
             if (pm == NULL) {
-                printf("DetectIsdataatSetup: Unknown previous keyword!\n");
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
                 return -1;
             }
 
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
-                printf("DetectIsdataatSetup: Unknown previous keyword!\n");
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
                 return -1;
             }
 

@@ -53,14 +53,14 @@ void DetectWindowRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -114,12 +114,13 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
     ret = pcre_exec(parse_regex, parse_regex_study, windowstr, strlen(windowstr), 0, 0, ov, MAX_SUBSTRINGS);
 
     if (ret < 1 || ret > 3) {
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
         goto error;
     }
 
     wd = malloc(sizeof(DetectWindowData));
     if (wd == NULL) {
-        printf("DetectWindowParse malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
 
@@ -128,7 +129,7 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
         const char *str_ptr;
         res = pcre_get_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
         if (res < 0) {
-            printf("DetectWindowParse: pcre_get_substring failed\n");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         args[0] = (char *)str_ptr;
@@ -141,7 +142,7 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
         if (ret > 2) {
             res = pcre_get_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
             if (res < 0) {
-                printf("DetectWindowParse: pcre_get_substring failed\n");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
 

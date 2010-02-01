@@ -20,6 +20,7 @@
 
 #include "util-byte.h"
 #include "util-unittest.h"
+#include "util-debug.h"
 
 static int DetectAckSetup(DetectEngineCtx *, Signature *s, SigMatch *m,
                           char *sidstr);
@@ -84,7 +85,7 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     data = malloc(sizeof(DetectAckData));
     if (data == NULL) {
-        printf("DetectAckSetup: malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
 

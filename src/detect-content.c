@@ -587,8 +587,10 @@ DetectContentData *DetectContentParse (char *contentstr)
     uint16_t pos = 0;
     uint16_t slen = 0;
 
-    if ((temp = strdup(contentstr)) == NULL)
+    if ((temp = strdup(contentstr)) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
+    }
 
     if (strlen(temp) == 0) {
         free(temp);
@@ -597,7 +599,7 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     cd = malloc(sizeof(DetectContentData));
     if (cd == NULL) {
-        printf("DetectContentParse malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
     memset(cd, 0, sizeof(DetectContentData));

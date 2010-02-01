@@ -52,14 +52,14 @@ void DetectRpcRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        SCLogDebug("pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        SCLogDebug("pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -150,14 +150,14 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, rpcstr, strlen(rpcstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        SCLogDebug("DetectRpcParse: parse error, ret %" PRId32 ", string %s", ret, rpcstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, rpcstr);
         goto error;
     }
     if (ret > 1) {
         const char *str_ptr;
         res = pcre_get_substring((char *)rpcstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
         if (res < 0) {
-            SCLogDebug("DetectRpcParse: pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         args[0] = (char *)str_ptr;
@@ -165,7 +165,7 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
         if (ret > 2) {
             res = pcre_get_substring((char *)rpcstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
             if (res < 0) {
-                SCLogDebug("DetectRpcParse: pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
             args[1] = (char *)str_ptr;
@@ -173,7 +173,7 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
         if (ret > 3) {
             res = pcre_get_substring((char *)rpcstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
             if (res < 0) {
-                SCLogDebug("DetectRpcParse: pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
             args[2] = (char *)str_ptr;
@@ -182,7 +182,7 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
 
     rd = malloc(sizeof(DetectRpcData));
     if (rd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC ,"DetectRpcParse malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC ,"malloc failed");
         goto error;
     }
     rd->flags = 0;
@@ -221,7 +221,7 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
                 break;
                 }
             } else {
-                SCLogDebug("invalid rpc option %s",args[i]);
+                SCLogError(SC_ERR_INVALID_VALUE, "invalid rpc option %s",args[i]);
                 goto error;
             }
     }

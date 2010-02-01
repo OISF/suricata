@@ -16,6 +16,7 @@
 #include "detect-flow.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
 
 /**
  * \brief Regex for parsing our flow options
@@ -48,14 +49,14 @@ void DetectFlowRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -124,14 +125,14 @@ DetectFlowData *DetectFlowParse (char *flowstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, flowstr, strlen(flowstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        //printf("DetectFlowParse: parse error, ret %" PRId32 ", string %s\n", ret, flowstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, flowstr);
         goto error;
     }
     if (ret > 1) {
         const char *str_ptr;
         res = pcre_get_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
         if (res < 0) {
-            printf("DetectFlowParse: pcre_get_substring failed\n");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         args[0] = (char *)str_ptr;
@@ -139,7 +140,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
         if (ret > 2) {
             res = pcre_get_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
             if (res < 0) {
-                printf("DetectFlowParse: pcre_get_substring failed\n");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
             args[1] = (char *)str_ptr;
@@ -147,7 +148,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
         if (ret > 3) {
             res = pcre_get_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
             if (res < 0) {
-                printf("DetectFlowParse: pcre_get_substring failed\n");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
             args[2] = (char *)str_ptr;
@@ -156,7 +157,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
 
     fd = malloc(sizeof(DetectFlowData));
     if (fd == NULL) {
-        printf("DetectFlowParse malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
     fd->flags = 0;
@@ -168,60 +169,60 @@ DetectFlowData *DetectFlowParse (char *flowstr)
             /* inspect our options and set the flags */
             if (strcasecmp(args[i], "established") == 0) {
                 if (fd->flags & FLOW_PKT_ESTABLISHED) {
-                    //printf("DetectFlowParse error FLOW_PKT_ESTABLISHED flag is already set \n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "FLOW_PKT_ESTABLISHED flag is already set");
                     goto error;
                 } else if (fd->flags & FLOW_PKT_STATELESS) {
-                    //printf("DetectFlowParse error cannot set established, FLOW_PKT_STATELESS already set \n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "FLOW_PKT_STATELESS already set");
                     goto error;
                 }
                 fd->flags |= FLOW_PKT_ESTABLISHED;
             } else if (strcasecmp(args[i], "stateless") == 0) {
                 if (fd->flags & FLOW_PKT_STATELESS) {
-                    //printf("DetectFlowParse error FLOW_PKT_STATELESS flag is already set \n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "FLOW_PKT_STATELESS flag is already set");
                     goto error;
                 } else if (fd->flags & FLOW_PKT_ESTABLISHED) {
-                    //printf("DetectFlowParse error cannot set FLOW_PKT_STATELESS, FLOW_PKT_ESTABLISHED already set\n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set FLOW_PKT_STATELESS, FLOW_PKT_ESTABLISHED already set");
                     goto error;
                 }
                 fd->flags |= FLOW_PKT_STATELESS;
             } else if (strcasecmp(args[i], "to_client") == 0 || strcasecmp(args[i], "from_server") == 0) {
                 if (fd->flags & FLOW_PKT_TOCLIENT) {
-                    //printf("DetectFlowParse error cannot set FLOW_PKT_TOCLIENT flag is already set\n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set FLOW_PKT_TOCLIENT flag is already set");
                     goto error;
                 } else if (fd->flags & FLOW_PKT_TOSERVER) {
-                    //printf("DetectFlowParse error cannot set to_client, FLOW_PKT_TOSERVER already set\n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set to_client, FLOW_PKT_TOSERVER already set");
                     goto error;
                 }
                 fd->flags |= FLOW_PKT_TOCLIENT;
             } else if (strcasecmp(args[i], "to_server") == 0 || strcasecmp(args[i], "from_client") == 0){
                 if (fd->flags & FLOW_PKT_TOSERVER) {
-                    //printf("DetectFlowParse error cannot set FLOW_PKT_TOSERVER flag is already set\n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set FLOW_PKT_TOSERVER flag is already set");
                     goto error;
                 } else if (fd->flags & FLOW_PKT_TOCLIENT) {
-                    //printf("DetectFlowParse error cannot set to_server, FLOW_PKT_TO_CLIENT flag already set\n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set to_server, FLOW_PKT_TO_CLIENT flag already set");
                     goto error;
                 }
                 fd->flags |= FLOW_PKT_TOSERVER;
             } else if (strcasecmp(args[i], "stream_only") == 0) {
                 if (fd->flags & FLOW_PKT_STREAMONLY) {
-                    //printf("DetectFlowParse error cannot set stream_only flag is already set \n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set stream_only flag is already set");
                     goto error;
                 } else if (fd->flags & FLOW_PKT_NOSTREAM) {
-                    //printf("DetectFlowParse error cannot set stream_only flag, FLOW_PKT_NOSTREAM already set\n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set stream_only flag, FLOW_PKT_NOSTREAM already set");
                     goto error;
                 }
                 fd->flags |= FLOW_PKT_STREAMONLY;
             } else if (strcasecmp(args[i], "no_stream") == 0) {
                 if (fd->flags & FLOW_PKT_NOSTREAM) {
-                    //printf("DetectFlowParse error cannot set no_stream flag is already set \n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_stream flag is already set");
                     goto error;
                 } else if (fd->flags & FLOW_PKT_STREAMONLY) {
-                    //printf("DetectFlowParse error cannot set no_stream flag, FLOW_PKT_STREAMONLY already set\n");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_stream flag, FLOW_PKT_STREAMONLY already set");
                     goto error;
                 }
                 fd->flags |= FLOW_PKT_NOSTREAM;
             } else {
-                //printf("invalid flow option %s\n",args[i]);
+                SCLogError(SC_ERR_INVALID_VALUE, "invalid flow option \"%s\"", args[i]);
                 goto error;
             }
 

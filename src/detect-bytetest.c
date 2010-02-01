@@ -242,7 +242,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
 
     /* Number of bytes */
     if (ByteExtractStringUint32(&nbytes, 10, 0, args[0]) <= 0) {
-        SCLogDebug("Malformed number of bytes: %s", str_ptr);
+        SCLogError(SC_ERR_INVALID_VALUE, "Malformed number of bytes: %s", str_ptr);
         goto error;
     }
 
@@ -264,19 +264,19 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     } else if (strcmp("^", args[2]) == 0) {
         data->op |= DETECT_BYTETEST_OP_OR;
     } else {
-        // XXX Error
+        SCLogError(SC_ERR_INVALID_OPERATOR, "Invalid operator");
         goto error;
     }
 
     /* Value */
     if (ByteExtractStringUint64(&data->value, 0, 0, args[3]) <= 0) {
-        SCLogDebug("Malformed value: %s", str_ptr);
+        SCLogError(SC_ERR_INVALID_VALUE, "Malformed value: %s", str_ptr);
         goto error;
     }
 
     /* Offset */
     if (ByteExtractStringInt32(&data->offset, 0, 0, args[4]) <= 0) {
-        SCLogDebug(" Malformed offset: %s", str_ptr);
+        SCLogError(SC_ERR_INVALID_VALUE, " Malformed offset: %s", str_ptr);
         goto error;
     }
 
@@ -301,7 +301,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
         } else if (strcasecmp("little", args[i]) == 0) {
             data->flags |= DETECT_BYTETEST_LITTLE;
         } else {
-            SCLogDebug("Unknown option: \"%s\"", args[i]);
+            SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown value: \"%s\"", args[i]);
             goto error;
         }
     }
@@ -315,18 +315,18 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
          * "01777777777777777777777" = 0xffffffffffffffff
          */
         if (nbytes > 23) {
-            SCLogDebug("Cannot test more than 23 bytes with \"string\": %s",
+            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 23 bytes with \"string\": %s",
                         optstr);
             goto error;
         }
     } else {
         if (nbytes > 8) {
-            SCLogDebug("Cannot test more than 8 bytes without \"string\": %s",
+            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 8 bytes without \"string\": %s",
                         optstr);
             goto error;
         }
         if (data->base != DETECT_BYTETEST_BASE_UNSET) {
-            SCLogDebug("Cannot use a base without \"string\": %s", optstr);
+            SCLogError(SC_ERR_INVALID_VALUE, "Cannot use a base without \"string\": %s", optstr);
             goto error;
         }
     }

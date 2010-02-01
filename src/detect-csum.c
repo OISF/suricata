@@ -12,6 +12,7 @@
 #include "detect-csum.h"
 
 #include "util-unittest.h"
+#include "util-debug.h"
 
 /* prototypes for the "ipv4-csum" rule keyword */
 int DetectIPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
@@ -242,8 +243,8 @@ int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_IPV4_CSUM;
 
     if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(0);
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        goto error;
     }
     memset(cd, 0, sizeof(DetectCsumData));
 
@@ -339,8 +340,8 @@ int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_TCPV4_CSUM;
 
     if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(0);
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        goto error;
     }
     memset(cd, 0, sizeof(DetectCsumData));
 
@@ -436,8 +437,8 @@ int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_TCPV6_CSUM;
 
     if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(0);
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        goto error;
     }
     memset(cd, 0, sizeof(DetectCsumData));
 
@@ -533,8 +534,8 @@ int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_UDPV4_CSUM;
 
     if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(0);
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        goto error;
     }
     memset(cd, 0, sizeof(DetectCsumData));
 
@@ -630,8 +631,8 @@ int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_UDPV6_CSUM;
 
     if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(0);
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        goto error;
     }
     memset(cd, 0, sizeof(DetectCsumData));
 
@@ -726,8 +727,8 @@ int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_ICMPV4_CSUM;
 
     if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(0);
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        goto error;
     }
     memset(cd, 0, sizeof(DetectCsumData));
 
@@ -822,8 +823,8 @@ int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_ICMPV6_CSUM;
 
     if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(0);
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        goto error;
     }
     memset(cd, 0, sizeof(DetectCsumData));
 

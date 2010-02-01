@@ -9,6 +9,8 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 
+#include "util-debug.h"
+
 int DetectRawbytesSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 
 void DetectRawbytesRegister (void) {
@@ -27,7 +29,7 @@ int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
     //printf("DetectRawbytesSetup: s->match:%p,m:%p\n", s->match, m);
 
     if (nullstr != NULL) {
-        printf("DetectRawbytesSetup: nocase has no value\n");
+        SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
         return -1;
     }
 
@@ -44,10 +46,10 @@ int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
             //printf("DetectRawbytesSetup: set nocase for previous content\n");
             cd->flags |= DETECT_CONTENT_RAWBYTES;
         } else {
-            printf("DetectRawbytesSetup: Unknown previous keyword!\n");
+            SCLogDebug("Unknown previous keyword!");
         }
     } else {
-        printf("DetectRawbytesSetup: No previous match!\n");
+        SCLogDebug("No previous match!");
     }
 
     return 0;

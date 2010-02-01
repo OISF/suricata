@@ -52,18 +52,18 @@ void DetectIdRegister (void) {
     int eo;
     int opts = 0;
 
-	SCLogDebug("detect-id: Registering id rule option\n");
+	SCLogDebug("registering id rule option");
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if (parse_regex == NULL) {
-        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s\n",
+        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
                     PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -125,8 +125,8 @@ DetectIdData *DetectIdParse (char *idstr)
                     ov, MAX_SUBSTRINGS);
 
     if (ret < 1 || ret > 3) {
-        SCLogDebug("detect-id: invalid id option. The id option value must be"
-                    " in the range %u - %u\n",
+        SCLogError(SC_ERR_PCRE_MATCH, "invalid id option. The id option value must be"
+                    " in the range %u - %u",
                     DETECT_IPID_MIN, DETECT_IPID_MAX);
         goto error;
     }
@@ -139,14 +139,14 @@ DetectIdData *DetectIdParse (char *idstr)
         res = pcre_get_substring((char *)idstr, ov, MAX_SUBSTRINGS, 1,
                                     &str_ptr);
         if (res < 0) {
-            SCLogDebug("DetectIdParse: pcre_get_substring failed\n");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
 
         /* We have a correct id option */
         id_d = malloc(sizeof(DetectIdData));
         if (id_d == NULL) {
-            SCLogDebug("DetectIdParse malloc failed\n");
+            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
             goto error;
         }
 
@@ -163,8 +163,8 @@ DetectIdData *DetectIdParse (char *idstr)
         temp = atoi((char *)tmp_str);
 
         if (temp > DETECT_IPID_MAX) {
-            SCLogDebug("detect-id: \"id\" option  must be in "
-                        "the range %u - %u\n",
+            SCLogError(SC_ERR_INVALID_VALUE, "\"id\" option  must be in "
+                        "the range %u - %u",
                         DETECT_IPID_MIN, DETECT_IPID_MAX);
 
             free(orig);

@@ -249,7 +249,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
     /* Initialize the data */
     data = malloc(sizeof(DetectBytejumpData));
     if (data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,"malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC,"malloc failed %s", strerror(errno));
         goto error;
     }
     data->base = DETECT_BYTEJUMP_BASE_UNSET;
@@ -264,13 +264,13 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
 
     /* Number of bytes */
     if (ByteExtractStringUint32(&nbytes, 10, strlen(args[0]), args[0]) <= 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,"Malformed number of bytes: %s", optstr);
+        SCLogError(SC_ERR_INVALID_VALUE, "Malformed number of bytes: %s", optstr);
         goto error;
     }
 
     /* Offset */
     if (ByteExtractStringInt32(&data->offset, 0, strlen(args[1]), args[1]) <= 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,"Malformed offset: %s", optstr);
+        SCLogError(SC_ERR_INVALID_VALUE, "Malformed offset: %s", optstr);
         goto error;
     }
 
@@ -303,7 +303,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
                                         strlen(args[i]) - 11,
                                         args[i] + 11) <= 0)
             {
-                SCLogError(SC_ERR_INVALID_SIGNATURE,"Malformed multiplier: %s", optstr);
+                SCLogError(SC_ERR_INVALID_VALUE, "Malformed multiplier: %s", optstr);
                 goto error;
             }
         } else if (strncasecmp("post_offset ", args[i], 12) == 0) {
@@ -311,11 +311,11 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
                                        strlen(args[i]) - 12,
                                        args[i] + 12) <= 0)
             {
-                SCLogError(SC_ERR_INVALID_SIGNATURE,"Malformed post_offset: %s", optstr);
+                SCLogError(SC_ERR_INVALID_VALUE, "Malformed post_offset: %s", optstr);
                 goto error;
             }
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,"Unknown option: \"%s\"", args[i]);
+            SCLogError(SC_ERR_INVALID_VALUE, "Unknown option: \"%s\"", args[i]);
             goto error;
         }
     }
@@ -329,18 +329,18 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
          * "01777777777777777777777" = 0xffffffffffffffff
          */
         if (nbytes > 23) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,"Cannot test more than 23 bytes "
+            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 23 bytes "
                    "with \"string\": %s", optstr);
             goto error;
         }
     } else {
         if (nbytes > 8) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,"Cannot test more than 8 bytes "
-                   "without \"string\": %s", optstr);
+            SCLogError(SC_ERR_INVALID_VALUE, "Cannot test more than 8 bytes "
+                   "without \"string\": %s\n", optstr);
             goto error;
         }
         if (data->base != DETECT_BYTEJUMP_BASE_UNSET) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,"Cannot use a base "
+            SCLogError(SC_ERR_INVALID_VALUE, "Cannot use a base "
                    "without \"string\": %s", optstr);
             goto error;
         }

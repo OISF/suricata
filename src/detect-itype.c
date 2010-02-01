@@ -56,7 +56,7 @@ void DetectITypeRegister (void) {
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -125,7 +125,7 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
 
     ret = pcre_exec(parse_regex, parse_regex_study, itypestr, strlen(itypestr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "DetectITypeParse: parse error");
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, itypestr);
         goto error;
     }
 
@@ -134,7 +134,7 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
     for (i = 1; i < ret; i++) {
         res = pcre_get_substring((char *)itypestr, ov, MAX_SUBSTRINGS, i, &str_ptr);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "DetectITypeParse: pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         args[i-1] = (char *)str_ptr;
@@ -153,7 +153,7 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
     if (strlen(args[0]) != 0) {
         /* we have a third part ("<> y"), therefore it's invalid */
         if (args[2] != NULL) {
-            SCLogInfo("itype: invalid value");
+            SCLogError(SC_ERR_INVALID_VALUE, "itype: invalid value");
             goto error;
         }
         /* we have only a comparison ("<", ">") */

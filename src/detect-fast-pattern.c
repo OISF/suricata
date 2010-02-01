@@ -54,7 +54,7 @@ int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     }
 
     if (m == NULL) {
-        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside the "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside the "
                      "rule, without any preceding keywords");
         return -1;
     }
@@ -62,7 +62,7 @@ int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     if (m->type != DETECT_CONTENT) {
         m = SigMatchGetLastSM(s, DETECT_CONTENT);
         if (m == NULL) {
-            SCLogWarning(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                     "the rule, without a content context. Please use a "
                     "content keyword before using fast pattern");
             return -1;

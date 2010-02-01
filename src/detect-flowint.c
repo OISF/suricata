@@ -48,14 +48,14 @@ void DetectFlowintRegister(void)
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if (parse_regex == NULL) {
-        SCLogDebug("pcre compile of \"%s\" failed at offset %" PRId32 ": %s",
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s",
                     PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
 
@@ -214,14 +214,14 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr),
                      0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 4) {
-        SCLogDebug("ERROR: \"%s\" is not a valid setting for flowint(ret = %d).", rawstr, ret);
+        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for flowint(ret = %d).", rawstr, ret);
         return NULL;
     }
 
     /* Get our flowint varname */
     res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
-        SCLogDebug("DetectFlowintParse: pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         return NULL;
     }
     varname =(char *) str_ptr;
@@ -229,7 +229,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 2,
                                &str_ptr);
     if (res < 0) {
-        SCLogDebug("DetectFlowintParse: pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         return NULL;
     }
 
@@ -258,12 +258,14 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     if (strcmp("notset", str_ptr) == 0)
         modifier = FLOWINT_MODIFIER_NOTSET;
 
-    if (modifier == FLOWINT_MODIFIER_UNKNOWN)
+    if (modifier == FLOWINT_MODIFIER_UNKNOWN) {
+        SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown modifier");
         goto error;
+    }
 
     sfd = malloc(sizeof(DetectFlowintData));
     if (sfd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "DetectFlowintSetup malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
 
@@ -273,7 +275,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
                                    &str_ptr);
         varval =(char *) str_ptr;
         if (res < 0 || strcmp(varval,"") == 0) {
-            SCLogDebug("DetectFlowintParse: pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             free(sfd);
             return NULL;
         }
@@ -282,7 +284,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
         *(it should be a value or another var) */
         str = strdup(varval);
         if (str == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "DetectFlowintSetup malloc from strdup failed");
+            SCLogError(SC_ERR_MEM_ALLOC, "malloc from strdup failed");
             goto error;
         }
 

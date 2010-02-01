@@ -9,6 +9,8 @@
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
 
+#include "util-debug.h"
+
 int DetectNocaseSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *depthstr);
 
 void DetectNocaseRegister (void) {
@@ -27,7 +29,7 @@ int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     int ret = 0;
 
     if (nullstr != NULL) {
-        printf("DetectNocaseSetup: nocase has no value\n");
+        SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
         return -1;
     }
 

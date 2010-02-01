@@ -94,7 +94,7 @@ static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     ret = pcre_exec(parse_regex, parse_regex_study, arg, strlen(arg), 0, 0, ov,
                     MAX_SUBSTRINGS);
     if (ret < 2) {
-        SCLogDebug("pcre_exec parse error, ret %" PRId32 ", string %s", ret, arg);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, arg);
         goto error;
     }
 

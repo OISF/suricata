@@ -40,7 +40,7 @@ int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ms
         str[strlen(msgstr)-3] = '\0';
         //printf("DetectMsgSetup: format hack applied: \'%s\'\n", str);
     } else {
-        printf("DetectMsgSetup: format error \'%s\'\n", msgstr);
+        SCLogError(SC_ERR_INVALID_VALUE, "format error \'%s\'", msgstr);
         goto error;
     }
 

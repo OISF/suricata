@@ -73,14 +73,14 @@ void DetectPcreRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
 
@@ -88,14 +88,14 @@ void DetectPcreRegister (void) {
     parse_capture_regex = pcre_compile(PARSE_CAPTURE_REGEX, opts, &eb, &eo, NULL);
     if(parse_capture_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_CAPTURE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_CAPTURE_REGEX, eo, eb);
         goto error;
     }
 
     parse_capture_regex_study = pcre_study(parse_capture_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -251,6 +251,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, regexstr+pos, slen-pos, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 0) {
+        SCLogError(SC_ERR_PCRE_MATCH, "parse error");
         goto error;
     }
 
@@ -258,7 +259,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
         const char *str_ptr;
         res = pcre_get_substring((char *)regexstr+pos, ov, MAX_SUBSTRINGS, 1, &str_ptr);
         if (res < 0) {
-            printf("DetectPcreParse: pcre_get_substring failed\n");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             return NULL;
         }
         re = (char *)str_ptr;
@@ -266,7 +267,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
         if (ret > 2) {
             res = pcre_get_substring((char *)regexstr+pos, ov, MAX_SUBSTRINGS, 2, &str_ptr);
             if (res < 0) {
-                printf("DetectPcreParse: pcre_get_substring failed\n");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 return NULL;
             }
             op_ptr = op = (char *)str_ptr;
@@ -276,7 +277,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
 
     pd = malloc(sizeof(DetectPcreData));
     if (pd == NULL) {
-        printf("DetectPcreParse: malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
     memset(pd, 0, sizeof(DetectPcreData));
@@ -325,7 +326,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                     pd->flags |= DETECT_PCRE_MATCH_LIMIT;
                     break;
                 default:
-                    printf("DetectPcreParse: unknown regex modifier '%c'\n", *op);
+                    SCLogError(SC_ERR_UNKNOWN_REGEX_MOD, "unknown regex modifier '%c'", *op);
                     goto error;
             }
             op++;
@@ -336,13 +337,13 @@ DetectPcreData *DetectPcreParse (char *regexstr)
 
     pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
     if(pd->re == NULL)  {
-        printf("DetectPcreParse: pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", regexstr, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
         goto error;
     }
 
     pd->sd = pcre_study(pd->re, 0, &eb);
     if(eb != NULL)  {
-        printf("DetectPcreParse: pcre study failed : %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed : %s", eb);
         goto error;
     }
 
@@ -406,12 +407,12 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
     if (ret > 1) {
         res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, &type_str_ptr);
         if (res < 0) {
-            printf("DetectPcreParseCapture: pcre_get_substring failed\n");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 2, &capture_str_ptr);
         if (res < 0) {
-            printf("DetectPcreParseCapture: pcre_get_substring failed\n");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
     }

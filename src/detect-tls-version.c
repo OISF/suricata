@@ -61,14 +61,14 @@ void DetectTlsVersionRegister (void) {
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if (parse_regex == NULL) {
-        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
+        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
                     PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -137,7 +137,7 @@ DetectTlsVersionData *DetectTlsVersionParse (char *str)
                     ov, MAX_SUBSTRINGS);
 
     if (ret < 1 || ret > 3) {
-        SCLogDebug("invalid tls.version option");
+        SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.version option");
         goto error;
     }
 
@@ -147,14 +147,14 @@ DetectTlsVersionData *DetectTlsVersionParse (char *str)
         char *tmp_str;
         res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
         if (res < 0) {
-            SCLogDebug("DetectTlsVersionParse: pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
 
         /* We have a correct id option */
         tls = malloc(sizeof(DetectTlsVersionData));
         if (tls == NULL) {
-            SCLogDebug("DetectTlsVersionParse malloc failed");
+            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
             goto error;
         }
 
@@ -174,6 +174,7 @@ DetectTlsVersionData *DetectTlsVersionParse (char *str)
         } else if (strcmp("1.2", tmp_str) == 0) {
             temp = TLS_VERSION_12;
         } else {
+            SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
             goto error;
         }
 

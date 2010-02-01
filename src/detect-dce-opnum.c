@@ -51,14 +51,14 @@ void DetectDceOpnumRegister(void)
     parse_regex = pcre_compile(DETECT_DCE_OPNUM_PCRE_PARSE_ARGS, opts, &eb,
                                &eo, NULL);
     if (parse_regex == NULL) {
-        SCLogDebug("pcre compile of \"%s\" failed at offset %" PRId32 ": %s",
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s",
                    DETECT_DCE_OPNUM_PCRE_PARSE_ARGS, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
 
@@ -119,7 +119,7 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
     ret = pcre_exec(parse_regex, parse_regex_study, arg, strlen(arg), 0, 0, ov,
                     MAX_SUBSTRINGS);
     if (ret < 2) {
-        SCLogDebug("pcre_exec parse error, ret %" PRId32 ", string %s", ret, arg);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, arg);
         goto error;
     }
 
@@ -137,7 +137,7 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
 
     if ( (dup_str = strdup(pcre_sub_str)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        goto error;
     }
 
     /* free the substring */

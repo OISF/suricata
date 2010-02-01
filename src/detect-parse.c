@@ -189,14 +189,14 @@ void SigParsePrepare(void) {
     config_pcre = pcre_compile(regexstr, opts, &eb, &eo, NULL);
     if(config_pcre == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", regexstr, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
         exit(1);
     }
 
     config_pcre_extra = pcre_study(config_pcre, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         exit(1);
     }
 
@@ -206,14 +206,14 @@ void SigParsePrepare(void) {
     option_pcre = pcre_compile(regexstr, opts, &eb, &eo, NULL);
     if(option_pcre == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", regexstr, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
         exit(1);
     }
 
     option_pcre_extra = pcre_study(option_pcre, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         exit(1);
     }
 }
@@ -236,7 +236,7 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
      *  4: keyword w value, more options coming
      */
     if (ret != 2 && ret != 3 && ret != 4) {
-        printf("pcre_exec failed: ret %" PRId32 ", optstr \"%s\"\n", ret, optstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec failed: ret %" PRId32 ", optstr \"%s\"", ret, optstr);
         goto error;
     }
 

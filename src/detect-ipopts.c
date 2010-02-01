@@ -11,6 +11,8 @@
 #include "flow-var.h"
 #include "decode-events.h"
 
+#include "util-debug.h"
+
 /* Need to get the DIpOpts[] array */
 #define DETECT_EVENTS
 
@@ -44,14 +46,14 @@ void DetectIpOptsRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -122,6 +124,7 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
@@ -137,7 +140,7 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
 
     de = malloc(sizeof(DetectIpOptsData));
     if (de == NULL) {
-        printf("DetectIpOptsSetup malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
 

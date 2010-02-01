@@ -43,14 +43,14 @@ void DetectClasstypeRegister(void)
 
     regex = pcre_compile(DETECT_CLASSTYPE_REGEX, opts, &eb, &eo, NULL);
     if (regex == NULL) {
-        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
+        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
                    DETECT_CLASSTYPE_REGEX, eo, eb);
         goto end;
     }
 
     regex_study = pcre_study(regex, 0, &eb);
     if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto end;
     }
 
@@ -76,20 +76,20 @@ static inline const char *DetectClasstypeParseRawString(char *rawstr)
     if (rawstr[0] == '\"' && rawstr[strlen(rawstr) - 1] == '\"') {
         if ( (rawstr = strdup(rawstr + 1)) == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+            goto end;
         }
         rawstr[strlen(rawstr) - 1] = '\0';
     }
 
     ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
     if (ret < 0) {
-        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "Invalid Classtype in Signature");
+        SCLogError(SC_ERR_PCRE_MATCH, "Invalid Classtype in Signature");
         goto end;
     }
 
     ret = pcre_get_substring((char *)rawstr, ov, 30, 1, &ct_name);
     if (ret < 0) {
-        SCLogInfo("pcre_get_substring() failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto end;
     }
 
@@ -138,14 +138,14 @@ int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     SCClassConfClasstype *ct = NULL;
 
     if ( (parsed_ct_name = DetectClasstypeParseRawString(rawstr)) == NULL) {
-        SCLogDebug("Error parsing classtype argument supplied with the "
+        SCLogError(SC_ERR_PCRE_PARSE, "Error parsing classtype argument supplied with the "
                    "classtype keyword");
         goto error;
     }
 
     ct = DetectClasstypeGetClasstypeInfo(parsed_ct_name, de_ctx);
     if (ct == NULL) {
-        SCLogDebug("Unknown Classtype: \"%s\".  Invalidating the Signature",
+        SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown Classtype: \"%s\".  Invalidating the Signature",
                    parsed_ct_name);
         goto error;
     }

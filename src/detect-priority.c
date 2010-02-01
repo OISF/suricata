@@ -37,14 +37,14 @@ void DetectPriorityRegister (void)
 
     regex = pcre_compile(DETECT_PRIORITY_REGEX, opts, &eb, &eo, NULL);
     if (regex == NULL) {
-        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
+        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
                    DETECT_PRIORITY_REGEX, eo, eb);
         goto end;
     }
 
     regex_study = pcre_study(regex, 0, &eb);
     if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto end;
     }
 
@@ -62,14 +62,14 @@ int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
 
     ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
     if (ret < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid Priority in Signature "
+        SCLogError(SC_ERR_PCRE_MATCH, "Invalid Priority in Signature "
                      "- %s", rawstr);
         return -1;
     }
 
     ret = pcre_get_substring((char *)rawstr, ov, 30, 1, &prio_str);
     if (ret < 0) {
-        SCLogInfo("pcre_get_substring() failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         return -1;
     }
 

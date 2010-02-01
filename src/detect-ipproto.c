@@ -57,14 +57,14 @@ void DetectIPProtoRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("DetectIPProtoRegister: pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("DetectIPProtoRegister: pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -96,16 +96,14 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     ret = pcre_exec(parse_regex, parse_regex_study, optstr,
                     strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
-        printf("DetectIPProtoParse: parse error, ret %" PRId32
-               ", string %s\n", ret, optstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, optstr);
         goto error;
     }
     for (i = 0; i < (ret - 1); i++) {
         res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS,
                                  i + 1, &str_ptr);
         if (res < 0) {
-            printf("DetectIPProtoParse: pcre_get_substring failed "
-                   "for arg %d\n", i + 1);
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         args[i] = (char *)str_ptr;
@@ -114,7 +112,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     /* Initialize the data */
     data = malloc(sizeof(DetectIPProtoData));
     if (data == NULL) {
-        printf("DetectIPProtoParse: malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
     data->op = DETECT_IPPROTO_OP_EQ;
@@ -129,14 +127,14 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     if (!isdigit(*(args[1]))) {
         struct protoent *pent = getprotobyname(args[1]);
         if (pent == NULL) {
-            printf("DetectIPProtoParse: Malformed protocol name: %s\n", str_ptr);
+            SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol name: %s", str_ptr);
             goto error;
         }
         data->proto = (uint8_t)pent->p_proto;
     }
     else {
         if (ByteExtractStringUint8(&data->proto, 10, 0, args[1]) <= 0) {
-            printf("DetectIPProtoParse: Malformed protocol number: %s\n", str_ptr);
+            SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol number: %s", str_ptr);
             goto error;
         }
     }

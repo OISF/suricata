@@ -46,14 +46,14 @@ void DetectFlowbitsRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
 
@@ -126,7 +126,7 @@ int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
         case DETECT_FLOWBITS_CMD_TOGGLE:
             return DetectFlowbitMatchToggle(p,fd);
         default:
-            printf("ERROR: DetectFlowbitMatch unknown cmd %" PRIu32 "\n", fd->cmd);
+            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", fd->cmd);
             return 0;
     }
 
@@ -145,14 +145,14 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2 && ret != 3) {
-        printf("ERROR: \"%s\" is not a valid setting for flowbits.\n", rawstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for flowbits.", rawstr);
         return -1;
     }
 
     const char *str_ptr;
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
-        printf("DetectPcreSetup: pcre_get_substring failed\n");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         return -1;
     }
     fb_cmd_str = (char *)str_ptr;
@@ -160,7 +160,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     if (ret == 3) {
         res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
         if (res < 0) {
-            printf("DetectPcreSetup: pcre_get_substring failed\n");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         fb_name = (char *)str_ptr;
@@ -179,7 +179,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     } else if (strcmp(fb_cmd_str,"toggle") == 0) {
         fb_cmd = DETECT_FLOWBITS_CMD_TOGGLE;
     } else {
-        printf("ERROR: flowbits action \"%s\" is not supported.\n", fb_cmd_str);
+        SCLogError(SC_ERR_UNKNOWN_VALUE, "ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
         goto error;
     }
 
@@ -201,7 +201,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
     cd = malloc(sizeof(DetectFlowbitsData));
     if (cd == NULL) {
-        printf("DetectFlowbitsSetup malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "DetectFlowbitsSetup malloc failed");
         goto error;
     }
 

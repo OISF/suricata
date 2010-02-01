@@ -21,6 +21,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-debug.h"
 
 static int DetectSeqSetup(DetectEngineCtx *, Signature *s, SigMatch *m,
                           char *sidstr);
@@ -85,7 +86,7 @@ static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     data = malloc(sizeof(DetectSeqData));
     if (data == NULL) {
-        printf("DetectSeqSetup: malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
 

@@ -56,14 +56,14 @@ void DetectFlagsRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("pcre compile of \"%s\" failed at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
 
@@ -160,7 +160,7 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
-        SCLogDebug("pcre match failed");
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre match failed");
         goto error;
     }
 
@@ -168,7 +168,7 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
 
         res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,i + 1, &str_ptr);
         if (res < 0) {
-            SCLogDebug("pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
 
@@ -182,7 +182,7 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
 
     de = malloc(sizeof(DetectFlagsData));
     if (de == NULL) {
-        printf("DetectFlagsSetup malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
     }
 
