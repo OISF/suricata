@@ -66,9 +66,8 @@ error:
  * \param p pointer to the current packet
  * \param m pointer to the sigmatch that we will cast into DetectFragOffsetData
  *
- * \retval 0 no match
+ * \retval 0 no match or frag is not set
  * \retval 1 match
- * \retval -1 No frag offset is set
  *
  */
 int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m) {
@@ -81,11 +80,11 @@ int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
         if(IPV6_EXTHDR_FH(p)) {
             frag = IPV6_EXTHDR_GET_FH_OFFSET(p);
         } else {
-            return -1;
+            return 0;
         }
     } else {
         SCLogDebug("No IPv4 or IPv6 packet");
-        return -1;
+        return 0;
     }
 
     switch (fragoff->mode)  {
