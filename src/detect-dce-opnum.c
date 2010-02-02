@@ -2226,8 +2226,6 @@ static int DetectDceOpnumTestParse11(void)
     return result;
 }
 
-#endif
-
 /**
  * \test Test a valid dce_opnum(with multiple values) with a bind, bind_ack,
  *       and multiple request/responses with a match test after each frag parsing.
@@ -2760,7 +2758,7 @@ static int DetectDceOpnumTestParse13(void)
     StreamTcpFreeConfig(TRUE);
     return result;
 }
-
+#endif
 void DetectDceOpnumRegisterTests(void)
 {
 
