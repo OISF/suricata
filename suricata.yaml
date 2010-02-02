@@ -94,6 +94,15 @@ flow-timeouts:
       emergency_new: 10
       emergency_established: 100
 
+# Stream engine settings.
+# stream:
+#   memcap: 67108864 # 64mb memcap
+#   max_sessions: 262144 # 256k concurrent sessions
+#   prealloc_sessions: 32768 # 32k sessions prealloc'd
+#   midstream: false # don't allow midstream session pickups
+#   async_oneside: false # don't enable async stream handling
+stream:
+
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.
 logging:

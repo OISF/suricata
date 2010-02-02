@@ -24,6 +24,7 @@
 #include "flow-var.h"
 #include "threads.h"
 #include "detect-ftpbounce.h"
+#include "stream-tcp.h"
 
 int DetectFtpbounceMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                           Signature *, SigMatch *);
@@ -308,12 +309,13 @@ static int DetectFtpbounceTestALMatch02(void) {
     p.payload = NULL;
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
-
-    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx =(void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -387,6 +389,8 @@ end:
     DetectEngineThreadCtxDeinit(&th_v,(void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
     return result;
 }
 
@@ -427,11 +431,13 @@ static int DetectFtpbounceTestALMatch03(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
-    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx =(void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -507,6 +513,8 @@ end:
     DetectEngineThreadCtxDeinit(&th_v,(void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
     return result;
 }
 

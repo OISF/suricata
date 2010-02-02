@@ -29,6 +29,7 @@
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
+#include "stream-tcp.h"
 #include "stream.h"
 
 #include "app-layer-protos.h"
@@ -374,7 +375,7 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                             smsg->data.data, smsg->data.data_len, smsg->flags);
             if (alproto != ALPROTO_UNKNOWN) {
                 /* store the proto and setup the L7 data array */
-                StreamL7DataPtrInit(ssn,StreamL7GetStorageSize());
+                StreamL7DataPtrInit(ssn);
                 ssn->alproto = alproto;
 
                 r = AppLayerParse(smsg->flow, alproto, smsg->flags,

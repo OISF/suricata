@@ -20,6 +20,8 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 
+#include "stream-tcp.h"
+
 int DetectDceStubDataMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
                            void *, Signature *, SigMatch *);
 int DetectDceStubDataSetup(DetectEngineCtx *, Signature *s, SigMatch *m, char *arg);
@@ -601,11 +603,13 @@ static int DetectDceStubDataTestParse02(void)
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
-    StreamL7DataPtrInit(&ssn, StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -682,6 +686,8 @@ static int DetectDceStubDataTestParse02(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
     return result;
 }
 
@@ -1133,11 +1139,13 @@ static int DetectDceStubDataTestParse03(void)
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
-    StreamL7DataPtrInit(&ssn, StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1184,6 +1192,8 @@ static int DetectDceStubDataTestParse03(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
     return result;
 }
 
@@ -1321,11 +1331,13 @@ static int DetectDceStubDataTestParse04(void)
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
-    StreamL7DataPtrInit(&ssn, StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1457,6 +1469,8 @@ static int DetectDceStubDataTestParse04(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
     return result;
 }
 
@@ -1567,11 +1581,13 @@ static int DetectDceStubDataTestParse05(void)
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
-    StreamL7DataPtrInit(&ssn, StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1689,6 +1705,8 @@ static int DetectDceStubDataTestParse05(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
     return result;
 }
 

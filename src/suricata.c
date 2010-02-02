@@ -112,6 +112,13 @@ static uint8_t sigflags = 0;
 /* Run mode selected */
 int run_mode = MODE_UNKNOWN;
 
+int RunmodeIsUnittests(void) {
+    if (run_mode == MODE_UNITTEST)
+        return 1;
+
+    return 0;
+}
+
 static void SignalHandlerSigint(/*@unused@*/ int sig) { sigint_count = 1; sigflags |= SURICATA_SIGINT; }
 static void SignalHandlerSigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= SURICATA_SIGTERM; }
 static void SignalHandlerSighup(/*@unused@*/ int sig) { sighup_count = 1; sigflags |= SURICATA_SIGHUP; }

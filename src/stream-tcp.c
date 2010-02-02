@@ -10,6 +10,8 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
+
 #include "decode.h"
 #include "debug.h"
 #include "detect.h"
@@ -41,6 +43,8 @@ typedef struct StreamTcpThread_ {
     uint64_t pkts;
 
     uint16_t counter_tcp_sessions;
+    /** sessions not picked up because memcap was reached */
+    uint16_t counter_tcp_ssn_memcap;
 
     TcpReassemblyThreadCtx *ra_ctx;         /**< tcp reassembly thread data */
 } StreamTcpThread;
@@ -59,13 +63,9 @@ int StreamTcpGetFlowState(void *);
 static int ValidTimestamp(TcpSession * , Packet *);
 void StreamTcpSetOSPolicy(TcpStream*, Packet*);
 
-#ifndef UNITTESTS
 #define STREAMTCP_DEFAULT_SESSIONS      262144
-#else
-#define STREAMTCP_DEFAULT_SESSIONS      32768
-#endif
-
 #define STREAMTCP_DEFAULT_PREALLOC      32768
+#define STREAMTCP_DEFAULT_MEMCAP        64 * 1024 * 1024 /* 64mb */
 
 #define STREAMTCP_NEW_TIMEOUT           60
 #define STREAMTCP_EST_TIMEOUT           3600
@@ -77,11 +77,13 @@ void StreamTcpSetOSPolicy(TcpStream*, Packet*);
 
 static Pool *ssn_pool = NULL;
 static SCMutex ssn_pool_mutex;
-
 #ifdef DEBUG
-static uint64_t ssn_pool_cnt = 0;
-static SCMutex ssn_pool_cnt_mutex;
+static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
 #endif
+
+static SCSpinlock stream_memuse_spinlock;
+static uint32_t stream_memuse;
+static uint32_t stream_memuse_max;
 
 void TmModuleStreamTcpRegister (void)
 {
@@ -91,6 +93,38 @@ void TmModuleStreamTcpRegister (void)
     tmm_modules[TMM_STREAMTCP].ThreadExitPrintStats = StreamTcpExitPrintStats;
     tmm_modules[TMM_STREAMTCP].ThreadDeinit = StreamTcpThreadDeinit;
     tmm_modules[TMM_STREAMTCP].RegisterTests = StreamTcpRegisterTests;
+}
+
+void StreamTcpIncrMemuse(uint32_t size) {
+    SCSpinLock(&stream_memuse_spinlock);
+    stream_memuse += size;
+    if (stream_memuse > stream_memuse_max)
+        stream_memuse_max = stream_memuse;
+    SCSpinUnlock(&stream_memuse_spinlock);
+}
+
+void StreamTcpDecrMemuse(uint32_t size) {
+    SCSpinLock(&stream_memuse_spinlock);
+    if (size <= stream_memuse)
+        stream_memuse -= size;
+    else
+        stream_memuse = 0;
+    SCSpinUnlock(&stream_memuse_spinlock);
+}
+
+/** \retval 1 if in bounds
+ *  \retval 0 if not in bounds
+ */
+int StreamTcpCheckMemcap(uint32_t size) {
+    SCEnter();
+
+    int ret = 0;
+    SCSpinLock(&stream_memuse_spinlock);
+    if (size + stream_memuse <= stream_config.memcap)
+        ret = 1;
+    SCSpinUnlock(&stream_memuse_spinlock);
+
+    SCReturnInt(ret);
 }
 
 void StreamTcpReturnStreamSegments (TcpStream *stream)
@@ -135,13 +169,10 @@ void StreamTcpSessionClear(void *ssnptr)
     memset(ssn, 0, sizeof(TcpSession));
     SCMutexLock(&ssn_pool_mutex);
     PoolReturn(ssn_pool, ssn);
-    SCMutexUnlock(&ssn_pool_mutex);
-
 #ifdef DEBUG
-    SCMutexLock(&ssn_pool_cnt_mutex);
     ssn_pool_cnt--;
-    SCMutexUnlock(&ssn_pool_cnt_mutex);
 #endif
+    SCMutexUnlock(&ssn_pool_mutex);
 
     SCReturn;
 }
@@ -166,19 +197,6 @@ static void StreamTcpSessionPktFree (Packet *p)
 
     StreamTcpReturnStreamSegments(&ssn->client);
     StreamTcpReturnStreamSegments(&ssn->server);
-/*
-    memset(ssn, 0, sizeof(TcpSession));
-    SCMutexLock(&ssn_pool_mutex);
-    PoolReturn(ssn_pool, p->flow->protoctx);
-    SCMutexUnlock(&ssn_pool_mutex);
-
-    p->flow->protoctx = NULL;
-#ifdef DEBUG
-    SCMutexLock(&ssn_pool_cnt_mutex);
-    ssn_pool_cnt--;
-    SCMutexUnlock(&ssn_pool_cnt_mutex);
-#endif
-*/
 
     SCReturn;
 }
@@ -189,11 +207,17 @@ static void StreamTcpSessionPktFree (Packet *p)
  */
 void *StreamTcpSessionPoolAlloc(void *null)
 {
+    if (StreamTcpCheckMemcap((uint32_t)sizeof(TcpSession)) == 0)
+        return NULL;
+
     void *ptr = malloc(sizeof(TcpSession));
     if (ptr == NULL)
         return NULL;
 
     memset(ptr, 0, sizeof(TcpSession));
+
+    StreamTcpIncrMemuse((uint32_t)sizeof(TcpSession));
+
     return ptr;
 }
 
@@ -209,7 +233,11 @@ void StreamTcpSessionPoolFree(void *s)
     StreamTcpReturnStreamSegments(&ssn->client);
     StreamTcpReturnStreamSegments(&ssn->server);
 
+    StreamL7DataPtrFree(ssn);
     free(ssn);
+
+    StreamTcpDecrMemuse((uint32_t)sizeof(TcpSession));
+
 }
 
 /** \brief          To initialize the stream global configuration data
@@ -220,29 +248,62 @@ void StreamTcpSessionPoolFree(void *s)
 
 void StreamTcpInitConfig(char quiet)
 {
-
     SCLogDebug("Initializing Stream");
 
     memset(&stream_config,  0, sizeof(stream_config));
 
     /** set config defaults */
-    if ((ConfGetBool("stream.max_sessions", &stream_config.max_sessions)) == 0)
+    if ((ConfGetInt("stream.max_sessions", (intmax_t *)&stream_config.max_sessions)) == 0)
     {
-        stream_config.max_sessions = STREAMTCP_DEFAULT_SESSIONS;
+        if (RunmodeIsUnittests())
+            stream_config.max_sessions = 1024;
+        else
+            stream_config.max_sessions = STREAMTCP_DEFAULT_SESSIONS;
     }
-    if ((ConfGetBool("stream.prealloc_sessions",
-                                        &stream_config.prealloc_sessions)) == 0)
+    if (!quiet) {
+        SCLogInfo("stream \"max_sessions\": %"PRIu32"", stream_config.max_sessions);
+    }
+
+    if ((ConfGetInt("stream.prealloc_sessions",
+                    (intmax_t *)&stream_config.prealloc_sessions)) == 0)
     {
-        stream_config.prealloc_sessions = STREAMTCP_DEFAULT_PREALLOC;
+        if (RunmodeIsUnittests())
+            stream_config.prealloc_sessions = 128;
+        else
+            stream_config.prealloc_sessions = STREAMTCP_DEFAULT_PREALLOC;
+    }
+    if (!quiet) {
+        SCLogInfo("stream \"prealloc_sessions\": %"PRIu32"", stream_config.prealloc_sessions);
+    }
+
+    if ((ConfGetInt("stream.memcap", (intmax_t *)&stream_config.memcap)) == 0)
+    {
+        stream_config.memcap = STREAMTCP_DEFAULT_MEMCAP;
+    }
+    if (!quiet) {
+        SCLogInfo("stream \"memcap\": %"PRIu32"", stream_config.memcap);
     }
 
     if ((ConfGetBool("stream.midstream", &stream_config.midstream)) == 0) {
         stream_config.midstream = FALSE;/*In the final patch it will be FALSE*/
     }
+    if (!quiet) {
+        SCLogInfo("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
+    }
+
     if ((ConfGetBool("stream.async_oneside", &stream_config.async_oneside)) == 0)
     {
         stream_config.async_oneside = FALSE; /*In the final patch it will be FALSE*/
     }
+    if (!quiet) {
+        SCLogInfo("stream \"async_oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
+    }
+
+    /* init the memcap and it's lock */
+    stream_memuse = 0;
+    stream_memuse_max = 0;
+    SCSpinInit(&stream_memuse_spinlock, PTHREAD_PROCESS_PRIVATE);
+
     ssn_pool = PoolInit(stream_config.max_sessions,
                         stream_config.prealloc_sessions,
                         StreamTcpSessionPoolAlloc, NULL,
@@ -279,9 +340,9 @@ void StreamTcpFreeConfig(char quiet)
         SCLogError(SC_ERR_POOL_EMPTY, "ssn_pool is NULL");
         exit(EXIT_FAILURE);
     }
+    SCLogInfo("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 
-    SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
-
+    SCLogInfo("Max memuse of stream engine %"PRIu32" (in use %"PRIu32")", stream_memuse_max, stream_memuse);
     SCMutexDestroy(&ssn_pool_mutex);
 }
 
@@ -299,22 +360,20 @@ TcpSession *StreamTcpNewSession (Packet *p)
     if (ssn == NULL) {
         SCMutexLock(&ssn_pool_mutex);
         p->flow->protoctx = PoolGet(ssn_pool);
+#ifdef DEBUG
+        if (p->flow->protoctx != NULL)
+            ssn_pool_cnt++;
+#endif
         SCMutexUnlock(&ssn_pool_mutex);
 
         ssn = (TcpSession *)p->flow->protoctx;
         if (ssn == NULL) {
-            SCLogError(SC_ERR_POOL_EMPTY, "ssn_pool is empty");
+            SCLogDebug("ssn_pool is empty");
             return NULL;
         }
 
         ssn->state = TCP_NONE;
         ssn->aldata = NULL;
-
-#ifdef DEBUG
-        SCMutexLock(&ssn_pool_cnt_mutex);
-        ssn_pool_cnt++;
-        SCMutexUnlock(&ssn_pool_cnt_mutex);
-#endif
     }
 
     return ssn;
@@ -406,8 +465,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         {
             if (ssn == NULL) {
                 ssn = StreamTcpNewSession(p);
-                if (ssn == NULL)
+                if (ssn == NULL) {
+                    SCPerfCounterIncr(stt->counter_tcp_ssn_memcap, tv->sc_perf_pca);
                     return -1;
+                }
 
                 SCPerfCounterIncr(stt->counter_tcp_sessions, tv->sc_perf_pca);
             }
@@ -454,8 +515,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             if (ssn == NULL) {
                 ssn = StreamTcpNewSession(p);
-                if (ssn == NULL)
+                if (ssn == NULL) {
+                    SCPerfCounterIncr(stt->counter_tcp_ssn_memcap, tv->sc_perf_pca);
                     return -1;
+                }
                 SCPerfCounterIncr(stt->counter_tcp_sessions, tv->sc_perf_pca);
             }
             /* set the state */
@@ -526,8 +589,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                 break;
             if (ssn == NULL) {
                 ssn = StreamTcpNewSession(p);
-                if (ssn == NULL)
+                if (ssn == NULL) {
+                    SCPerfCounterIncr(stt->counter_tcp_ssn_memcap, tv->sc_perf_pca);
                     return -1;
+                }
                 SCPerfCounterIncr(stt->counter_tcp_sessions, tv->sc_perf_pca);
             }
             /* set the state */
@@ -2444,6 +2509,9 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     *data = (void *)stt;
 
     stt->counter_tcp_sessions = SCPerfTVRegisterCounter("tcp.sessions", tv,
+                                                        SC_PERF_TYPE_UINT64,
+                                                        "NULL");
+    stt->counter_tcp_ssn_memcap = SCPerfTVRegisterCounter("tcp.ssn_memcap_drop", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
     tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);

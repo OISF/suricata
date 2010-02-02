@@ -65,5 +65,7 @@ uint8_t g_u8_lowercasetable[256];
 void EngineStop(void);
 void EngineKill(void);
 
+int RunmodeIsUnittests(void);
+
 #endif /* __SURICATA_H__ */
 

@@ -9,6 +9,7 @@
 #include "util-print.h"
 #include "util-pool.h"
 
+#include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
@@ -896,6 +897,7 @@ void AppLayerParserCleanupState(TcpSession *ssn)
             ssn->aldata[app_layer_sid] = NULL;
         }
 
+        StreamTcpDecrMemuse((uint32_t)(StreamL7GetStorageSize() * sizeof(void *)));
         free(ssn->aldata);
         ssn->aldata = NULL;
     }
@@ -1047,7 +1049,6 @@ static int AppLayerParserTest01 (void)
                                 TestProtocolStateFree);
 
     ssn.alproto = ALPROTO_TEST;
-    StreamL7DataPtrInit(&ssn,StreamL7GetStorageSize());
     f.protoctx = (void *)&ssn;
 
     inet_pton(AF_INET, "1.2.3.4", &addr.s_addr);
@@ -1061,6 +1062,9 @@ static int AppLayerParserTest01 (void)
     f.sp = htons(20);
     f.dp = htons(40);
     f.proto = IPPROTO_TCP;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
 
     int r = AppLayerParse(&f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
@@ -1084,6 +1088,8 @@ static int AppLayerParserTest01 (void)
         goto end;
     }
 end:
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
     return result;
 }
 

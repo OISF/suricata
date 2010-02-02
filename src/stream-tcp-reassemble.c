@@ -57,6 +57,9 @@ void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 
 /** \brief alloc a tcp segment pool entry */
 void *TcpSegmentPoolAlloc(void *payload_len) {
+    if (StreamTcpCheckMemcap((uint32_t)sizeof(TcpSegment) + *((uint16_t *) payload_len)) == 0)
+        return NULL;
+
     TcpSegment *seg = malloc(sizeof (TcpSegment));
     if (seg == NULL)
         return NULL;
@@ -79,6 +82,8 @@ void *TcpSegmentPoolAlloc(void *payload_len) {
     SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
     SCMutexUnlock(&segment_pool_memuse_mutex);
 #endif
+
+    StreamTcpIncrMemuse((uint32_t)seg->pool_size + sizeof(TcpSegment));
     return seg;
 }
 
@@ -89,9 +94,11 @@ void TcpSegmentPoolFree(void *ptr) {
 
     TcpSegment *seg = (TcpSegment *) ptr;
 
+    StreamTcpDecrMemuse((uint32_t)seg->pool_size + sizeof(TcpSegment));
+
 #ifdef DEBUG
     SCMutexLock(&segment_pool_memuse_mutex);
-    segment_pool_memuse -= seg->payload_len;
+    segment_pool_memuse -= seg->pool_size;
     segment_pool_memcnt--;
     SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
     SCMutexUnlock(&segment_pool_memuse_mutex);
@@ -109,9 +116,15 @@ void TcpSegmentPoolFree(void *ptr) {
 #define segment_pool_num 8
 static uint16_t segment_pool_pktsizes[segment_pool_num] = {4, 16, 112, 248, 512,
                                                            768, 1448, 0xffff};
-static uint16_t segment_pool_poolsizes[segment_pool_num] = {2048, 3072, 3072,
-                                                            3072, 3072, 8192,
-                                                            8192, 512};
+//static uint16_t segment_pool_poolsizes[segment_pool_num] = {2048, 3072, 3072,
+//                                                            3072, 3072, 8192,
+//                                                            8192, 512};
+static uint16_t segment_pool_poolsizes[segment_pool_num] = {0, 0, 0,
+                                                            0, 0, 0,
+                                                            0, 0};
+static uint16_t segment_pool_poolsizes_prealloc[segment_pool_num] = {256, 512, 512,
+                                                            512, 512, 1024,
+                                                            1024, 128};
 static Pool *segment_pool[segment_pool_num];
 static SCMutex segment_pool_mutex[segment_pool_num];
 #ifdef DEBUG
@@ -131,7 +144,7 @@ int StreamTcpReassembleInit(char quiet)
     for (u16 = 0; u16 < segment_pool_num; u16++)
     {
         segment_pool[u16] = PoolInit(segment_pool_poolsizes[u16],
-                                     segment_pool_poolsizes[u16] / 8,
+                                     segment_pool_poolsizes_prealloc[u16],
                                      TcpSegmentPoolAlloc, (void *) &
                                      segment_pool_pktsizes[u16],
                                      TcpSegmentPoolFree);
@@ -162,6 +175,8 @@ void StreamTcpReassembleFree(char quiet)
 {
     uint16_t u16 = 0;
     for (u16 = 0; u16 < segment_pool_num; u16++) {
+        PoolPrintSaturation(segment_pool[u16]);
+
         if (quiet == FALSE) {
             PoolPrintSaturation(segment_pool[u16]);
             SCLogDebug("segment_pool[u16]->empty_list_size %"PRIu32", "
@@ -309,6 +324,8 @@ void PrintList(TcpSegment *seg)
  *  \param  stream  The given TCP stream to which this new segment belongs
  *  \param  seg     Newly arrived segment
  *  \param  p       received packet
+ *  \retval 0       success
+ *  \retval -1      error
  */
 
 static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p)
@@ -381,8 +398,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p
                     return_seg = TRUE;
                     goto end;
                 } else if (ret_value == -1) {
-                    SCLogError(SC_ERR_REASSEMBLY_FAILED,
-                                "HandleSegmentStartsBeforeListSegment failed");
+                    SCLogDebug("HandleSegmentStartsBeforeListSegment failed");
                     ret_value = -1;
                     return_seg = TRUE;
                     goto end;
@@ -396,8 +412,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p
                 return_seg = TRUE;
                 goto end;
             } else if (ret_value == -1) {
-                SCLogError(SC_ERR_REASSEMBLY_FAILED,
-                            "HandleSegmentStartsAtSameListSegment failed");
+                SCLogDebug("HandleSegmentStartsAtSameListSegment failed");
                 ret_value = -1;
                 return_seg = TRUE;
                 goto end;
@@ -426,8 +441,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p
                     return_seg = TRUE;
                     goto end;
                 } else if (ret_value == -1) {
-                    SCLogError(SC_ERR_REASSEMBLY_FAILED,
-                                "HandleSegmentStartsAfterListSegment failed");
+                    SCLogDebug("HandleSegmentStartsAfterListSegment failed");
                     ret_value = -1;
                     return_seg = TRUE;
                     goto end;
@@ -444,7 +458,7 @@ end:
 #ifdef DEBUG
     PrintList(stream->seg_list);
 #endif
-    SCReturnInt(0);
+    SCReturnInt(ret_value);
 }
 
 /**
@@ -456,6 +470,9 @@ end:
  *  \param  list_seg    Original Segment in the stream
  *  \param  seg         Newly arrived segment
  *  \param  prev_seg    Previous segment in the stream segment list
+ *  \retval 1           done
+ *  \retval 0           not done yet
+ *  \retval -1          error
  */
 
 static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
@@ -544,8 +561,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
             TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
             if (new_seg == NULL) {
                 uint16_t idx = segment_pool_idx[packet_length];
-                SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] is"
-                               " empty", idx);
+                SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
                 SCReturnInt(-1);
             }
             new_seg->payload_len = packet_length;
@@ -608,8 +624,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
                     uint16_t idx = segment_pool_idx[packet_length];
-                    SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] is"
-                               " empty", idx);
+                    SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
                     SCReturnInt(-1);
                 }
 
@@ -669,8 +684,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                     TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                     if (new_seg == NULL) {
                         uint16_t idx = segment_pool_idx[packet_length];
-                        SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] "
-                                   "is empty", idx);
+                        SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
                         SCReturnInt(-1);
                     }
                     new_seg->payload_len = packet_length;
@@ -776,6 +790,9 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
  *  \param  list_seg    Original Segment in the stream
  *  \param  seg         Newly arrived segment
  *  \param  prev_seg    Previous segment in the stream segment list
+ *  \retval 1           done
+ *  \retval 0           not done yet
+ *  \retval -1          error
  */
 
 static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
@@ -873,8 +890,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
                     uint16_t idx = segment_pool_idx[packet_length];
-                    SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] is"
-                               " empty", idx);
+                    SCLogDebug("egment_pool[%"PRIu16"] is empty", idx);
                     return -1;
                 }
                 new_seg->payload_len = packet_length;
@@ -954,6 +970,9 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
  *  \param  list_seg    Original Segment in the stream
  *  \param  seg         Newly arrived segment
  *  \param  prev_seg    Previous segment in the stream segment list
+ *  \retval 1           done
+ *  \retval 0           not done yet
+ *  \retval -1          error
  */
 
 static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
@@ -1055,8 +1074,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
                     uint16_t idx = segment_pool_idx[packet_length];
-                    SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] is"
-                               " empty", idx);
+                    SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
                     SCReturnInt(-1);
                 }
                 new_seg->payload_len = packet_length;
@@ -1122,12 +1140,13 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
 int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
                                                TcpStream *stream, Packet *p)
 {
+    SCEnter();
 
     TcpSegment *seg = StreamTcpGetSegment(p->payload_len);
     if (seg == NULL) {
         uint16_t idx = segment_pool_idx[p->payload_len];
-        SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%"PRIu16"] is empty", idx);
-        return -1;
+        SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
+        SCReturnInt(-1);
     }
 
     memcpy(seg->payload, p->payload, p->payload_len);
@@ -1137,11 +1156,11 @@ int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
     seg->prev = NULL;
 
     if (ReassembleInsertSegment(stream, seg, p) != 0) {
-        SCLogError(SC_ERR_REASSEMBLY_FAILED, "ReassembleInsertSegment failed");
-        return -1;
+        SCLogDebug("ReassembleInsertSegment failed");
+        SCReturnInt(-1);
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
@@ -1317,7 +1336,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
             if (smsg == NULL) {
                 smsg = StreamMsgGetFromPool();
                 if (smsg == NULL) {
-                    SCLogError(SC_ERR_POOL_EMPTY, "stream_msg_pool is empty");
+                    SCLogDebug("stream_msg_pool is empty");
                     return -1;
                 }
             }
@@ -1345,7 +1364,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
             if (smsg == NULL) {
                 smsg = StreamMsgGetFromPool();
                 if (smsg == NULL) {
-                    SCLogError(SC_ERR_POOL_EMPTY, "stream_msg_pool is empty");
+                    SCLogDebug("stream_msg_pool is empty");
                     return -1;
                 }
 
@@ -1433,7 +1452,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                        XXX we need a setup function */
                     smsg = StreamMsgGetFromPool();
                     if (smsg == NULL) {
-                        SCLogError(SC_ERR_POOL_EMPTY, "stream_msg_pool is empty");
+                        SCLogDebug("stream_msg_pool is empty");
                         SCReturnInt(-1);
                     }
                     smsg_offset = 0;
@@ -1561,15 +1580,13 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
     /* handle ack received */
     if (StreamTcpReassembleHandleSegmentUpdateACK(ra_ctx, ssn, opposing_stream, p) != 0)
     {
-        SCLogError(SC_ERR_REASSEMBLY_FAILED,
-                            "StreamTcpReassembleHandleSegmentUpdateACK error");
+        SCLogDebug("StreamTcpReassembleHandleSegmentUpdateACK error");
         SCReturnInt(-1);
     }
 
     if (p->payload_len > 0) {
         if (StreamTcpReassembleHandleSegmentHandleData(ssn, stream, p) != 0) {
-            SCLogError(SC_ERR_REASSEMBLY_FAILED,
-                            "StreamTcpReassembleHandleSegmentHandleData error");
+            SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
             SCReturnInt(-1);
         }
     }
@@ -1585,20 +1602,38 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
  *
  *  \todo VJ use a pool?
  */
-void StreamL7DataPtrInit(TcpSession *ssn, uint8_t cnt) {
-    if (cnt == 0)
-        return;
-
+void StreamL7DataPtrInit(TcpSession *ssn) {
     if (ssn->aldata != NULL)
         return;
 
-    ssn->aldata = (void **) malloc(sizeof (void *) * cnt);
+    uint32_t size = (uint32_t)(sizeof (void *) * StreamL7GetStorageSize());
+
+    if (StreamTcpCheckMemcap(size) == 0)
+        return;
+
+    ssn->aldata = (void **) malloc(size);
     if (ssn->aldata != NULL) {
+        StreamTcpIncrMemuse(size);
+
         uint8_t u;
-        for (u = 0; u < cnt; u++) {
+        for (u = 0; u < StreamL7GetStorageSize(); u++) {
             ssn->aldata[u] = NULL;
         }
     }
+}
+
+void StreamL7DataPtrFree(TcpSession *ssn) {
+    if (ssn == NULL)
+        return;
+
+    if (ssn->aldata == NULL)
+        return;
+
+    free(ssn->aldata);
+    ssn->aldata = NULL;
+
+    uint32_t size = (uint32_t)(sizeof (void *) * StreamL7GetStorageSize());
+    StreamTcpDecrMemuse(size);
 }
 
 /**
@@ -1707,7 +1742,7 @@ TcpSegment* StreamTcpGetSegment(uint16_t len)
 
     SCLogDebug("seg we return is %p", seg);
     if (seg == NULL) {
-        SCLogError(SC_ERR_POOL_EMPTY, "segment_pool[%u]->empty_list_size %u, "
+        SCLogDebug("segment_pool[%u]->empty_list_size %u, "
                    "alloc %u", idx, segment_pool[idx]->empty_list_size,
                    segment_pool[idx]->allocated);
     } else {
