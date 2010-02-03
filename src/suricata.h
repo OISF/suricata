@@ -39,6 +39,7 @@ enum {
     MODE_PCAP_FILE,
     MODE_PFRING,
     MODE_NFQ,
+    MODE_IPFW,
     MODE_UNITTEST
 };
 

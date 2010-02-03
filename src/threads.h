@@ -8,6 +8,10 @@
 #ifndef __THREADS_H__
 #define __THREADS_H__
 
+#ifdef OS_FREEBSD
+#include <sys/thr.h>
+#endif /* OS_FREEBSD */
+
 #include <pthread.h>
 
 /** The mutex/spinlock/condition definitions and functions are used
@@ -23,6 +27,23 @@
 #define SCMutex pthread_mutex_t
 #define SCMutexAttr pthread_mutexattr_t
 #define SCMutexDestroy pthread_mutex_destroy
+
+/** Get the Current Thread Id */
+#ifdef OS_FREEBSD
+#define SCGetThreadIdLong(...) ({ \
+    long tmpthid; \
+    thr_self(&tmpthid); \
+    u_long tid = (u_long)tmpthid; \
+    tid; \
+})
+#else
+#define SCGetThreadIdLong(...) ({ \
+   pid_t tmpthid; \
+   tmpthid = syscall(SYS_gettid); \
+   u_long tid = (u_long)tmpthid; \
+   tid; \
+})
+#endif /* OS FREEBSD */
 
 /** Mutex Functions */
 #ifdef DBG_THREADS

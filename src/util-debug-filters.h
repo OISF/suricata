@@ -9,19 +9,6 @@
 #include "threads.h"
 
 /**
- * \brief extra defines needed for FreeBSD
- */
-#ifdef OS_FREEBSD
-#ifndef SYS_gettid
-#if __i386__
-#define SYS_gettid 224
-#elif __amd64__
-#define SYS_gettid 186
-#endif /* cpu arch */
-#endif /* SYS_gettid */
-#endif /* OS_FREEBSD */
-
-/**
  * \brief Enum that holds the different kinds of filters available
  */
 enum {

@@ -11,6 +11,7 @@ source-nfq.c source-nfq.h \
 source-pcap.c source-pcap.h \
 source-pcap-file.c source-pcap-file.h \
 source-pfring.c source-pfring.h \
+source-ipfw.c source-ipfw.h \
 decode.c decode.h \
 decode-ethernet.c decode-ethernet.h \
 decode-sll.c decode-sll.h \

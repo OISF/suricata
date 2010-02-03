@@ -50,6 +50,8 @@
 #include "source-nfq.h"
 #include "source-nfq-prototypes.h"
 
+#include "source-ipfw.h"
+
 #include "source-pcap.h"
 #include "source-pcap-file.h"
 
@@ -283,6 +285,7 @@ void usage(const char *progname)
     printf("\t-i <dev>                     : run in pcap live mode\n");
     printf("\t-r <path>                    : run in pcap file/offline mode\n");
     printf("\t-q <qid>                     : run in inline nfqueue mode\n");
+    printf("\t-d <divert port>             : run in inline ipfw divert mode\n");
     printf("\t-s <path>                    : path to signature file (optional)\n");
     printf("\t-l <dir>                     : default log directory\n");
     printf("\t-D                           : run as daemon\n");
@@ -339,7 +342,7 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:Dhi:l:q:r:us:U:V";
+    char short_opts[] = "c:Dhi:l:q:d:r:us:U:V";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -414,6 +417,13 @@ int main(int argc, char **argv)
         case 'q':
             run_mode = MODE_NFQ;
             nfq_id = atoi(optarg); /* strtol? */
+            break;
+        case 'd':
+            run_mode = MODE_IPFW;
+            if (ConfSet("ipfw-divert-port", optarg, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set ipfw_divert_port\n");
+                exit(EXIT_FAILURE);
+            }
             break;
         case 'r':
             run_mode = MODE_PCAP_FILE;
@@ -523,6 +533,9 @@ int main(int argc, char **argv)
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
     TmModuleDecodeNFQRegister();
+    TmModuleReceiveIPFWRegister();
+    TmModuleVerdictIPFWRegister();
+    TmModuleDecodeIPFWRegister();
     TmModuleReceivePcapRegister();
     TmModuleDecodePcapRegister();
     TmModuleReceivePfringRegister();
@@ -673,6 +686,9 @@ int main(int argc, char **argv)
     }
     else if (run_mode == MODE_NFQ) {
         RunModeIpsNFQ(de_ctx);
+    }
+    else if (run_mode == MODE_IPFW) {
+        RunModeIpsIPFW(de_ctx);
     }
     else {
         SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");

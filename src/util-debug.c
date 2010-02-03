@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include <sys/syscall.h>
 #include <syslog.h>
-
+#include "threads.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-enum.h"
@@ -334,7 +334,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
             case SC_LOG_FMT_TID:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
-                              "%s%lu", substr, syscall(SYS_gettid));
+                              "%s%lu", substr, SCGetThreadIdLong());
                 if (cw < 0)
                     goto error;
                 temp += cw;

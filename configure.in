@@ -364,6 +364,15 @@ AC_INIT(configure.in)
     fi
     fi
 
+#enable support for IPFW
+    AC_ARG_ENABLE(ipfw,
+            [  --enable-ipfw  Enable FreeBSD IPFW support for inline IDP],
+            [ enable_ipfw=yes
+            ])
+    if test "$enable_ipfw" = "yes"; then
+    CFLAGS="$CFLAGS -DIPFW"
+    fi
+
 #libnet
     AC_ARG_WITH(libnet_includes,
             [  --with-libnet-includes=DIR     libnet include directory],

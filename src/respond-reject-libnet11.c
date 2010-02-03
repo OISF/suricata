@@ -109,7 +109,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) 
                     lpacket.sp,            /* source port */
                     lpacket.dp,            /* dst port */
                     lpacket.seq,           /* seq number */
-                    lpacket.ack,           /* ack number */
+                    lpacket.ack+1,           /* ack number */
                     TH_RST|TH_ACK,         /* flags */
                     lpacket.window,        /* window size */
                     0,                     /* checksum */

@@ -149,8 +149,34 @@ pfring:
   # clusterid.
   clusterid: 99
 
-  #Set the default rule path here to search for the files.
-  #if not set, it will look at the current working dir
+# For FreeBSD ipfw(8) divert(4) support.
+# Please make sure you have ipfw_load="YES" and ipdivert_load="YES"
+# in /etc/loader.conf or kldload'ing the appropriate kernel modules.
+# Additionally, you need to have an ipfw rule for the engine to see
+# the packets from ipfw.  For Example:
+#
+#   ipfw add 100 divert 8000 ip from any to any
+#
+# The 8000 above should be the same number you passed on the command
+# line, i.e. -d 8000
+#
+ipfw:
+
+  # Reinject packets at the specified ipfw rule number.  This config
+  # option is the ipfw rule number AT WHICH rule processing continues
+  # in the ipfw processing system after the engine has finished
+  # inspecting the packet for acceptance.  If no rule number is specified,
+  # accepted packets are reinjected at the divert rule which they entered
+  # and IPFW rule processing continues.  No check is done to verify
+  # this will rule makes sense so care must be taken to avoid loops in ipfw.
+  #
+  ## The following example tells the engine to reinject packets
+  # back into the ipfw firewall AT rule number 5500:
+  #
+  # ipfw-reinjection-rule-number: 5500
+
+# Set the default rule path here to search for the files.
+# if not set, it will look at the current working dir
 default-rule-path: /etc/suricata/rules/
 rule-files:
  - attack-responses.rules

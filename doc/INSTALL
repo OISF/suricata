@@ -256,8 +256,20 @@ For FreeBSD 8 Users
     
     sysctl net.bpf.zerocopy_enable=1
 
+    #if you would like to build suricata on FreeBSD with IPS capabilities with IPFW via --enable-ipfw.
+    You must do the following to enable ipfw and divert socket support before starting the engine
+    with -d.
 
+    #edit /etc/rc.conf and add or modify the following lines
+    firewall_enable="YES"
+    firewall_type="open"
 
+    #edit /boot/loader.conf and add or modify the following lines
+    ipfw_load="YES"
+    ipfw_nat_load="YES"
+    ipdivert_load="YES"
+    dummynet_load="YES"
+    libalias_load="YES"
 
 
 Basic Installation

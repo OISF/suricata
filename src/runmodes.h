@@ -17,6 +17,7 @@ int RunModeIdsPfring2(DetectEngineCtx *, char *);
 int RunModeIdsPfring3(DetectEngineCtx *, char *);
 int RunModeIdsPfring4(DetectEngineCtx *, char *);
 
+int RunModeIpsIPFW(DetectEngineCtx *);
 void RunModeShutDown(void);
 
 #endif /* __RUNMODES_H__ */
