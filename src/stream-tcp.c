@@ -340,7 +340,7 @@ void StreamTcpFreeConfig(char quiet)
         SCLogError(SC_ERR_POOL_EMPTY, "ssn_pool is NULL");
         exit(EXIT_FAILURE);
     }
-    SCLogInfo("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
+    SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 
     SCLogInfo("Max memuse of stream engine %"PRIu32" (in use %"PRIu32")", stream_memuse_max, stream_memuse);
     SCMutexDestroy(&ssn_pool_mutex);

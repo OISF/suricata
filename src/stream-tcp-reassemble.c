@@ -560,8 +560,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
 
             TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
             if (new_seg == NULL) {
-                uint16_t idx = segment_pool_idx[packet_length];
-                SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
+                SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                 SCReturnInt(-1);
             }
             new_seg->payload_len = packet_length;
@@ -623,8 +622,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
-                    uint16_t idx = segment_pool_idx[packet_length];
-                    SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
+                    SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                     SCReturnInt(-1);
                 }
 
@@ -683,8 +681,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
 
                     TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                     if (new_seg == NULL) {
-                        uint16_t idx = segment_pool_idx[packet_length];
-                        SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
+                        SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                         SCReturnInt(-1);
                     }
                     new_seg->payload_len = packet_length;
@@ -889,8 +886,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
-                    uint16_t idx = segment_pool_idx[packet_length];
-                    SCLogDebug("egment_pool[%"PRIu16"] is empty", idx);
+                    SCLogDebug("egment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                     return -1;
                 }
                 new_seg->payload_len = packet_length;
@@ -1073,8 +1069,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
 
                 TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
                 if (new_seg == NULL) {
-                    uint16_t idx = segment_pool_idx[packet_length];
-                    SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
+                    SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                     SCReturnInt(-1);
                 }
                 new_seg->payload_len = packet_length;
@@ -1144,8 +1139,7 @@ int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
 
     TcpSegment *seg = StreamTcpGetSegment(p->payload_len);
     if (seg == NULL) {
-        uint16_t idx = segment_pool_idx[p->payload_len];
-        SCLogDebug("segment_pool[%"PRIu16"] is empty", idx);
+        SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[p->payload_len]);
         SCReturnInt(-1);
     }
 
