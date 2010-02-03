@@ -180,6 +180,7 @@ void AppLayerDetectProtoThreadInit(void) {
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT", 7, 0, STREAM_TOSERVER);
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
 
     /** SSH */
@@ -860,6 +861,52 @@ int AlpDetectTest10(void) {
     return r;
 }
 
+/** \test why we still get http for connect... obviously because we also match on the reply, duh */
+int AlpDetectTest11(void) {
+    uint8_t l7data[] = "CONNECT www.ssllabs.com:443 HTTP/1.0\r\n";
+    uint8_t l7data_resp[] = "HTTP/1.1 405 Method Not Allowed\r\n";
+    int r = 1;
+    AlpProtoDetectCtx ctx;
+    AlpProtoDetectThreadCtx tctx;
+
+    AlpProtoInit(&ctx);
+
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
+
+    if (ctx.toserver.id != 6) {
+        printf("ctx.toserver.id %u != 6: ", ctx.toserver.id);
+        r = 0;
+    }
+
+    if (ctx.toserver.map[ctx.toserver.id - 1] != ALPROTO_HTTP) {
+        printf("ctx.toserver.id %u != %u: ", ctx.toserver.map[ctx.toserver.id - 1],ALPROTO_HTTP);
+        r = 0;
+    }
+
+    AlpProtoFinalizeGlobal(&ctx);
+    AlpProtoFinalizeThread(&ctx, &tctx);
+
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data, sizeof(l7data), STREAM_TOCLIENT);
+    if (proto == ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " == %" PRIu8 ": ", proto, ALPROTO_HTTP);
+        r = 0;
+    }
+
+    proto = AppLayerDetectGetProto(&ctx, &tctx, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER);
+    if (proto != ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_HTTP);
+        r = 0;
+    }
+
+    AlpProtoTestDestroy(&ctx);
+    return r;
+}
 
 #endif /* UNITTESTS */
 
@@ -875,5 +922,6 @@ void AlpDetectRegisterTests(void) {
     UtRegisterTest("AlpDetectTest08", AlpDetectTest08, 1);
     UtRegisterTest("AlpDetectTest09", AlpDetectTest09, 1);
     UtRegisterTest("AlpDetectTest10", AlpDetectTest10, 1);
+    UtRegisterTest("AlpDetectTest11", AlpDetectTest11, 1);
 #endif /* UNITTESTS */
 }
