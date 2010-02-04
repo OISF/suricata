@@ -406,7 +406,14 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
             break;
         case 'i':
-            run_mode = MODE_PCAP_DEV;
+            if (run_mode == MODE_UNKNOWN) {
+                run_mode = MODE_PCAP_DEV;
+            } else {
+                SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                                     "has been specified");
+                usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
             pcap_dev = optarg;
             break;
         case 'l':
@@ -422,7 +429,14 @@ int main(int argc, char **argv)
             }
             break;
         case 'q':
-            run_mode = MODE_NFQ;
+            if (run_mode == MODE_UNKNOWN) {
+                run_mode = MODE_NFQ;
+            } else {
+                SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                                     "has been specified");
+                usage(argv[0]);
+                exit(EXIT_SUCCESS);
+            }
             nfq_id = atoi(optarg); /* strtol? */
             break;
         case 'd':
@@ -433,7 +447,14 @@ int main(int argc, char **argv)
             }
             break;
         case 'r':
-            run_mode = MODE_PCAP_FILE;
+            if (run_mode == MODE_UNKNOWN) {
+                run_mode = MODE_PCAP_FILE;
+            } else {
+                SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                                     "has been specified");
+                usage(argv[0]);
+                exit(EXIT_SUCCESS);
+            }
             pcap_file = optarg;
             break;
         case 's':
@@ -441,7 +462,14 @@ int main(int argc, char **argv)
             break;
         case 'u':
 #ifdef UNITTESTS
-            run_mode = MODE_UNITTEST;
+            if (run_mode == MODE_UNKNOWN) {
+                run_mode = MODE_UNITTEST;
+            } else {
+                SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode has"
+                                                     " been specified");
+                usage(argv[0]);
+                exit(EXIT_SUCCESS);
+            }
 #else
             fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
             exit(EXIT_FAILURE);

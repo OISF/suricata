@@ -85,6 +85,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_IPFW_XMIT);
         CASE_CODE (SC_WARN_IPFW_SETSOCKOPT);
         CASE_CODE (SC_WARN_IPFW_UNBIND);
+        CASE_CODE (SC_ERR_MULTIPLE_RUN_MODE);
 
         default:
             return "UNKNOWN_ERROR";
