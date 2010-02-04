@@ -109,6 +109,7 @@ typedef enum {
     SC_ERR_MULTIPLE_RUN_MODE,
     SC_ERR_BPF,
     SC_ERR_PCAP_DISPATCH,
+    SC_ERR_BYTE_EXTRACT_FAILED,
 } SCError;
 
 const char *SCErrorToString(SCError);

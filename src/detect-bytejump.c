@@ -50,15 +50,15 @@ void DetectBytejumpRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        printf("DetectBytejumpRegister: pcre compile of \"%s\" failed "
-               "at offset %" PRId32 ": %s\n", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE,"pcre compile of \"%s\" failed "
+               "at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        printf("DetectBytejumpRegister: pcre study failed: %s\n", eb);
+        SCLogError(SC_ERR_PCRE_STUDY,"pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -104,8 +104,8 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     /* Verify the to-be-extracted data is within the packet */
     if (ptr < p->pkt || data->nbytes > len) {
-        printf("DetectBytejumpMatch: Data not within packet "
-               "pkt=%p, ptr=%p, len=%d, nbytes=%d\n",
+        SCLogDebug("Data not within packet "
+               "pkt=%p, ptr=%p, len=%d, nbytes=%d",
                p->pkt, ptr, len, data->nbytes);
         return 0;
     }
@@ -115,8 +115,8 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         extbytes = ByteExtractStringUint64(&val, data->base,
                                            data->nbytes, (const char *)ptr);
         if(extbytes <= 0) {
-            printf("DetectBytejumpMatch: Error extracting %d bytes "
-                   "of string data: %d\n", data->nbytes, extbytes);
+            SCLogError(SC_ERR_BYTE_EXTRACT_FAILED,"Error extracting %d bytes "
+                   "of string data: %d", data->nbytes, extbytes);
             return -1;
         }
     }
@@ -124,8 +124,8 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         int endianness = (data->flags & DETECT_BYTEJUMP_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
         if (extbytes != data->nbytes) {
-            printf("DetectBytejumpMatch: Error extracting %d bytes "
-                   "of numeric data: %d\n", data->nbytes, extbytes);
+            SCLogError(SC_ERR_BYTE_EXTRACT_FAILED,"Error extracting %d bytes "
+                   "of numeric data: %d", data->nbytes, extbytes);
             return -1;
         }
     }
@@ -156,8 +156,8 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
      * \todo Should this validate it is still in the *payload*?
      */
     if ((jumpptr < p->pkt) || (jumpptr >= p->pkt + p->pktlen)) {
-        printf("DetectBytejumpMatch: Jump location (%p) is not within "
-               "packet (%p-%p)\n", jumpptr, p->pkt, p->pkt + p->pktlen - 1);
+        SCLogDebug("Jump location (%p) is not within "
+               "packet (%p-%p)", jumpptr, p->pkt, p->pkt + p->pktlen - 1);
         return 0;
     }
 
@@ -198,8 +198,8 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
     ret = pcre_exec(parse_regex, parse_regex_study, optstr,
                     strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2 || ret > 10) {
-        printf("DetectBytejumpParse: parse error, ret %" PRId32
-               ", string \"%s\"\n", ret, optstr);
+        SCLogError(SC_ERR_PCRE_PARSE,"parse error, ret %" PRId32
+               ", string \"%s\"", ret, optstr);
         goto error;
     }
 
@@ -210,8 +210,8 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
     res = pcre_get_substring((char *)optstr, ov,
                              MAX_SUBSTRINGS, i + 1, (const char **)&str_ptr);
     if (res < 0) {
-        printf("DetectBytejumpParse: pcre_get_substring failed "
-               "for arg %d\n", i + 1);
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed "
+               "for arg %d", i + 1);
         goto error;
     }
 
@@ -239,7 +239,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
     for (i = 1; i < (ret - 1); i++) {
         res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS, i + 1, (const char **)&str_ptr);
         if (res < 0) {
-            printf("DetectBytejumpParse: pcre_get_substring failed for arg %d\n", i + 1);
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed for arg %d", i + 1);
             goto error;
         }
         args[i+1] = str_ptr;
@@ -249,7 +249,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
     /* Initialize the data */
     data = malloc(sizeof(DetectBytejumpData));
     if (data == NULL) {
-        printf("DetectBytejumpParse: malloc failed\n");
+        SCLogError(SC_ERR_MEM_ALLOC,"malloc failed");
         goto error;
     }
     data->base = DETECT_BYTEJUMP_BASE_UNSET;
@@ -264,13 +264,13 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
 
     /* Number of bytes */
     if (ByteExtractStringUint32(&nbytes, 10, strlen(args[0]), args[0]) <= 0) {
-        printf("DetectBytejumpParse: Malformed number of bytes: %s\n", optstr);
+        SCLogError(SC_ERR_INVALID_SIGNATURE,"Malformed number of bytes: %s", optstr);
         goto error;
     }
 
     /* Offset */
     if (ByteExtractStringInt32(&data->offset, 0, strlen(args[1]), args[1]) <= 0) {
-        printf("DetectBytejumpParse: Malformed offset: %s\n", optstr);
+        SCLogError(SC_ERR_INVALID_SIGNATURE,"Malformed offset: %s", optstr);
         goto error;
     }
 
@@ -303,7 +303,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
                                         strlen(args[i]) - 11,
                                         args[i] + 11) <= 0)
             {
-                printf("DetectBytejumpParse: Malformed multiplier: %s\n", optstr);
+                SCLogError(SC_ERR_INVALID_SIGNATURE,"Malformed multiplier: %s", optstr);
                 goto error;
             }
         } else if (strncasecmp("post_offset ", args[i], 12) == 0) {
@@ -311,11 +311,11 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
                                        strlen(args[i]) - 12,
                                        args[i] + 12) <= 0)
             {
-                printf("DetectBytejumpParse: Malformed post_offset: %s\n", optstr);
+                SCLogError(SC_ERR_INVALID_SIGNATURE,"Malformed post_offset: %s", optstr);
                 goto error;
             }
         } else {
-            printf("DetectBytejumpParse: Unknown option: \"%s\"\n", args[i]);
+            SCLogError(SC_ERR_INVALID_SIGNATURE,"Unknown option: \"%s\"", args[i]);
             goto error;
         }
     }
@@ -329,19 +329,19 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
          * "01777777777777777777777" = 0xffffffffffffffff
          */
         if (nbytes > 23) {
-            printf("DetectBytejumpParse: Cannot test more than 23 bytes "
-                   "with \"string\": %s\n", optstr);
+            SCLogError(SC_ERR_INVALID_SIGNATURE,"Cannot test more than 23 bytes "
+                   "with \"string\": %s", optstr);
             goto error;
         }
     } else {
         if (nbytes > 8) {
-            printf("DetectBytejumpParse: Cannot test more than 8 bytes "
-                   "without \"string\": %s\n", optstr);
+            SCLogError(SC_ERR_INVALID_SIGNATURE,"Cannot test more than 8 bytes "
+                   "without \"string\": %s", optstr);
             goto error;
         }
         if (data->base != DETECT_BYTEJUMP_BASE_UNSET) {
-            printf("DetectBytejumpParse: Cannot use a base "
-                   "without \"string\": %s\n", optstr);
+            SCLogError(SC_ERR_INVALID_SIGNATURE,"Cannot use a base "
+                   "without \"string\": %s", optstr);
             goto error;
         }
     }
