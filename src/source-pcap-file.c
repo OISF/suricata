@@ -107,10 +107,15 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) 
 
     ptv->in_p = p;
 
-    /// Right now we just support reading packets one at a time.
+    /* Right now we just support reading packets one at a time. */
     int r = pcap_dispatch(pcap_g.pcap_handle, 1, (pcap_handler)PcapFileCallback, (u_char *)ptv);
-    if (r <= 0) {
-        printf("ReceivePcap: code %" PRId32 " error %s\n", r, pcap_geterr(pcap_g.pcap_handle));
+    if (r < 0) {
+        SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s\n",
+            r, pcap_geterr(pcap_g.pcap_handle));
+        EngineStop();
+        return TM_ECODE_FAILED;
+    } else if (r == 0) {
+        SCLogDebug("error code %" PRId32 " %s\n", r, pcap_geterr(pcap_g.pcap_handle));
         EngineStop();
         return TM_ECODE_FAILED;
     }
@@ -175,7 +180,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
             break;
 
         default:
-            printf("Error: datalink type %" PRId32 " not yet supported in module PcapFile.\n", pcap_g.datalink);
+            printf("Error: datalink type %" PRId32 " not (yet) supported in module PcapFile.\n", pcap_g.datalink);
             free(ptv);
             return TM_ECODE_FAILED;
     }
@@ -188,7 +193,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
 void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
-    printf(" - (%s) Packets %" PRIu32 ", bytes %" PRIu64 ".\n", tv->name, ptv->pkts, ptv->bytes);
+    SCLogInfo(" - (%s) Packets %" PRIu32 ", bytes %" PRIu64 ".", tv->name, ptv->pkts, ptv->bytes);
     return;
 }
 

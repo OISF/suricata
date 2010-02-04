@@ -87,6 +87,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_IPFW_UNBIND);
         CASE_CODE (SC_ERR_MULTIPLE_RUN_MODE);
         CASE_CODE (SC_ERR_BPF);
+        CASE_CODE (SC_ERR_PCAP_DISPATCH);
         default:
             return "UNKNOWN_ERROR";
     }

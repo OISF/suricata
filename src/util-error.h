@@ -108,6 +108,7 @@ typedef enum {
     SC_ERR_UNKNOWN_RUN_MODE,
     SC_ERR_MULTIPLE_RUN_MODE,
     SC_ERR_BPF,
+    SC_ERR_PCAP_DISPATCH,
 } SCError;
 
 const char *SCErrorToString(SCError);

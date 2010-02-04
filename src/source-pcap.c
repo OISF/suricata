@@ -126,14 +126,13 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
-    /// Just read one packet at a time for now.
+    /* Just read one packet at a time for now. */
     int r = 0;
     while (r == 0) {
-        //printf("ReceivePcap: call pcap_dispatch %" PRIu32 "\n", tv->flags);
-
         r = pcap_dispatch(ptv->pcap_handle, 1, (pcap_handler)PcapCallback, (u_char *)ptv);
         if (r < 0) {
-            printf("ReceivePcap: error %s\n", pcap_geterr(ptv->pcap_handle));
+            SCLogError(SC_ERR_PCAP_DISPATCH, "error code %"PRId32" %s",
+                r, pcap_geterr(ptv->pcap_handle));
             break;
         }
 
