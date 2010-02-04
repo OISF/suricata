@@ -7,13 +7,6 @@
 #define B2G_NOCASE 0x01
 #define B2G_SCAN   0x02
 
-//#define B2G_HASHSIZE 65536
-//#define B2G_HASHSIZE 32768
-//#define B2G_HASHSIZE 16384
-//#define B2G_HASHSIZE 8192
-#define B2G_HASHSIZE 4096
-//#define B2G_HASHSIZE 2048
-
 //#define B2G_HASHSHIFT 8
 //#define B2G_HASHSHIFT 7
 //#define B2G_HASHSHIFT 6
@@ -29,8 +22,6 @@
 #define B2G_WORD_SIZE 32
 //#define B2G_WORD_SIZE 16
 //#define B2G_WORD_SIZE 8
-
-#define B2G_BLOOMSIZE 1024
 
 #define B2G_HASH16(a,b) (((a)<<B2G_HASHSHIFT) | (b))
 #define B2G_Q           2

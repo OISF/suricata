@@ -22,6 +22,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-content.h"
+#include "detect-engine-mpm.h"
 
 #include "util-print.h"
 #include "util-pool.h"
@@ -61,8 +62,8 @@ static AlpProtoDetectCtx alp_proto_ctx;
 void AlpProtoInit(AlpProtoDetectCtx *ctx) {
     memset(ctx, 0x00, sizeof(AlpProtoDetectCtx));
 
-    MpmInitCtx(&ctx->toserver.mpm_ctx, MPM_B2G);
-    MpmInitCtx(&ctx->toclient.mpm_ctx, MPM_B2G);
+    MpmInitCtx(&ctx->toserver.mpm_ctx, PatternMatchDefaultMatcher());
+    MpmInitCtx(&ctx->toclient.mpm_ctx, PatternMatchDefaultMatcher());
 
     memset(&ctx->toserver.map, 0x00, sizeof(ctx->toserver.map));
     memset(&ctx->toclient.map, 0x00, sizeof(ctx->toclient.map));

@@ -19,6 +19,7 @@
 #include "suricata.h"
 #include "util-mpm.h"
 #include "util-mpm-wumanber.h"
+#include "conf.h"
 
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -35,6 +36,9 @@
 #define HASH12(a,b) (((a)<<4) | (b))
 #define HASH9_SIZE 512
 #define HASH9(a,b) (((a)<<1) | (b))
+
+static uint32_t wm_hash_size = 0;
+static uint32_t wm_bloom_size = 0;
 
 void WmInitCtx (MpmCtx *mpm_ctx);
 void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t);
@@ -604,7 +608,7 @@ static void WmScanPrepareHash(MpmCtx *mpm_ctx) {
         if (hi == NULL)
             continue;
 
-        ctx->scan_bloom[h] = BloomFilterInit(WUMANBER_BLOOMSIZE, 2, WmBloomHash);
+        ctx->scan_bloom[h] = BloomFilterInit(wm_bloom_size, 2, WmBloomHash);
         if (ctx->scan_bloom[h] == NULL)
             continue;
 
@@ -2188,8 +2192,47 @@ uint32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
     return cnt;
 }
 
-void WmInitCtx (MpmCtx *mpm_ctx) {
-    //printf("WmInitCtx: mpm_ctx %p\n", mpm_ctx);
+/**
+ * \brief   Function to get the user defined values for wumanber algorithm from
+ *          the config file 'suricata.yaml'
+ */
+void WmGetConfig()
+{
+    ConfNode *wm_conf;
+    const char *hash_val = NULL;
+    const char *bloom_val = NULL;
+
+    /* init defaults */
+    wm_hash_size = HASHSIZE_LOW;
+    wm_bloom_size = BLOOMSIZE_MEDIUM;
+
+    ConfNode *pm = ConfGetNode("pattern-matcher");
+
+    if (pm != NULL) {
+
+        TAILQ_FOREACH(wm_conf, &pm->head, next) {
+            if (strncmp(wm_conf->val, "wumanber", 8) == 0) {
+                hash_val = ConfNodeLookupChildValue(wm_conf->head.tqh_first,
+                                                    "hash_size");
+                bloom_val = ConfNodeLookupChildValue(wm_conf->head.tqh_first,
+                                                     "bf_size");
+
+                if (hash_val != NULL)
+                    wm_hash_size = MpmGetHashSize(hash_val);
+
+                if (bloom_val != NULL)
+                    wm_bloom_size = MpmGetBloomSize(bloom_val);
+
+                SCLogDebug("hash size is %"PRIu32" and bloom size is %"PRIu32"",
+                        wm_hash_size, wm_bloom_size);
+            }
+        }
+    }
+}
+
+void WmInitCtx (MpmCtx *mpm_ctx)
+{
+    SCLogDebug("mpm_ctx %p\n", mpm_ctx);
 
     mpm_ctx->ctx = malloc(sizeof(WmCtx));
     if (mpm_ctx->ctx == NULL)
@@ -2207,6 +2250,12 @@ void WmInitCtx (MpmCtx *mpm_ctx) {
         return;
 
     memset(ctx->init_hash, 0, sizeof(WmPattern *) * INIT_HASH_SIZE);
+
+    /* Initialize the defaults value from the config file. The given check make
+       sure that we query config file only once for config values */
+    if (wm_hash_size == 0)
+        WmGetConfig();
+
 }
 
 void WmDestroyCtx(MpmCtx *mpm_ctx) {

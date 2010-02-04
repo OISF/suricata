@@ -6,6 +6,7 @@
 #include "util-mpm-wumanber.h"
 #include "util-mpm-b2g.h"
 #include "util-mpm-b3g.h"
+#include "util-hashlist.h"
 
 /** \brief Setup a pmq
   * \param pmq Pattern matcher queue to be initialized
@@ -292,6 +293,58 @@ void MpmTableSetup(void) {
     MpmWuManberRegister();
     MpmB2gRegister();
     MpmB3gRegister();
+}
+
+/** \brief  Function to return the default hash size for the mpm algorithm,
+ *          which has been defined by the user in the config file
+ *
+ *  \param  conf_val    pointer to the string value of hash size
+ *  \retval hash_value  returns the hash value as defined by user, otherwise
+ *                      default low size value
+ */
+uint32_t MpmGetHashSize(const char *conf_val)
+{
+    SCEnter();
+    uint32_t hash_value = HASHSIZE_LOW;
+
+    if(strncmp(conf_val, "lowest", 6) == 0) {
+        hash_value = HASHSIZE_LOWEST;
+    } else if(strncmp(conf_val, "low", 3) == 0) {
+        hash_value = HASHSIZE_LOW;
+    } else if(strncmp(conf_val, "medium", 6) == 0) {
+        hash_value = HASHSIZE_MEDIUM;
+    } else if(strncmp(conf_val, "high", 4) == 0) {
+        hash_value = HASHSIZE_HIGH;
+    } else if(strncmp(conf_val, "highest", 7) == 0) {
+        hash_value = HASHSIZE_HIGHEST;
+    } else if(strncmp(conf_val, "max", 3) == 0) {
+        hash_value = HASHSIZE_MAX;
+    }
+
+    SCReturnInt(hash_value);
+}
+
+/** \brief  Function to return the default bloomfilter size for the mpm algorithm,
+ *          which has been defined by the user in the config file
+ *
+ *  \param  conf_val    pointer to the string value of bloom filter size
+ *  \retval bloom_value returns the bloom filter value as defined by user,
+ *                      otherwise default medium size value
+ */
+uint32_t MpmGetBloomSize(const char *conf_val)
+{
+    SCEnter();
+    uint32_t bloom_value = BLOOMSIZE_MEDIUM;
+
+    if(strncmp(conf_val, "low", 3) == 0) {
+        bloom_value = BLOOMSIZE_LOW;
+    } else if(strncmp(conf_val, "medium", 6) == 0) {
+        bloom_value = BLOOMSIZE_MEDIUM;
+    } else if(strncmp(conf_val, "high", 4) == 0) {
+        bloom_value = BLOOMSIZE_HIGH;
+    }
+
+    SCReturnInt(bloom_value);
 }
 
 void MpmRegisterTests(void) {

@@ -23,6 +23,7 @@
 
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "conf.h"
 
 #define INIT_HASH_SIZE 65536
 
@@ -32,6 +33,11 @@
 #else
 #define COUNT(counter)
 #endif /* B2G_COUNTERS */
+
+static uint32_t b2g_hash_size = 0;
+static uint32_t b2g_bloom_size = 0;
+static void *b2g_scan_func;
+static void *b2g_search_func;
 
 void B2gInitCtx (MpmCtx *);
 void B2gThreadInitCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
@@ -566,7 +572,7 @@ static void B2gPrepareScanHash(MpmCtx *mpm_ctx) {
         if (hi == NULL)
             continue;
 
-        ctx->scan_bloom[h] = BloomFilterInit(B2G_BLOOMSIZE, 2, B2gBloomHash);
+        ctx->scan_bloom[h] = BloomFilterInit(b2g_bloom_size, 2, B2gBloomHash);
         if (ctx->scan_bloom[h] == NULL)
             continue;
 
@@ -672,7 +678,7 @@ static void B2gPrepareSearchHash(MpmCtx *mpm_ctx) {
         if (hi == NULL)
             continue;
 
-        ctx->search_bloom[h] = BloomFilterInit(B2G_BLOOMSIZE, 2, B2gBloomHash);
+        ctx->search_bloom[h] = BloomFilterInit(b2g_bloom_size, 2, B2gBloomHash);
         if (ctx->search_bloom[h] == NULL)
             continue;
 
@@ -694,6 +700,7 @@ error:
 }
 
 int B2gBuildScanMatchArray(MpmCtx *mpm_ctx) {
+    SCEnter();
     B2gCtx *ctx = (B2gCtx *)mpm_ctx->ctx;
 
     ctx->scan_B2G = malloc(sizeof(B2G_TYPE) * ctx->scan_hash_size);
@@ -703,7 +710,7 @@ int B2gBuildScanMatchArray(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (sizeof(B2G_TYPE) * ctx->scan_hash_size);
 
-    memset(ctx->scan_B2G,0, B2G_HASHSIZE * sizeof(B2G_TYPE));
+    memset(ctx->scan_B2G,0, b2g_hash_size * sizeof(B2G_TYPE));
 
     uint32_t j;
     uint32_t a;
@@ -725,7 +732,7 @@ int B2gBuildScanMatchArray(MpmCtx *mpm_ctx) {
     }
 
     ctx->scan_s0 = 1;
-    return 0;
+    SCReturnInt(0);
 }
 
 int B2gBuildSearchMatchArray(MpmCtx *mpm_ctx) {
@@ -738,7 +745,7 @@ int B2gBuildSearchMatchArray(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (sizeof(B2G_TYPE) * ctx->search_hash_size);
 
-    memset(ctx->search_B2G,0, B2G_HASHSIZE * sizeof(B2G_TYPE));
+    memset(ctx->search_B2G,0, b2g_hash_size * sizeof(B2G_TYPE));
 
     uint32_t j;
     uint32_t a;
@@ -830,7 +837,7 @@ int B2gPreparePatterns(MpmCtx *mpm_ctx) {
 
     if (mpm_ctx->search_minlen == 1) {
         ctx->Search = B2gSearch1;
-        ctx->MBSearch = B2G_SEARCHFUNC;
+        ctx->MBSearch = b2g_search_func;
     }
     /* make sure 'm' stays in bounds
        m can be max WORD_SIZE - 1 */
@@ -844,8 +851,8 @@ int B2gPreparePatterns(MpmCtx *mpm_ctx) {
     }
     if (ctx->search_m < 2) ctx->search_m = 2;
 
-    ctx->scan_hash_size = B2G_HASHSIZE;
-    ctx->search_hash_size = B2G_HASHSIZE;
+    ctx->scan_hash_size = b2g_hash_size;
+    ctx->search_hash_size = b2g_hash_size;
     B2gPrepareScanHash(mpm_ctx);
     B2gPrepareSearchHash(mpm_ctx);
     B2gBuildScanMatchArray(mpm_ctx);
@@ -860,11 +867,11 @@ int B2gPreparePatterns(MpmCtx *mpm_ctx) {
             ctx->MBScan2 = B2gScan2;
         }
 #endif
-        ctx->MBScan = B2G_SCANFUNC;
+        ctx->MBScan = b2g_scan_func;
 #ifdef B2G_SCAN2
     } else if (ctx->scan_2_pat_cnt) {
         ctx->Scan = B2gScan2;
-        ctx->MBScan = B2G_SCANFUNC;
+        ctx->MBScan = b2g_scan_func;
 #endif
     }
 
@@ -917,7 +924,72 @@ memcmp_lowercase(uint8_t *s1, uint8_t *s2, uint16_t n) {
     return 0;
 }
 
-void B2gInitCtx (MpmCtx *mpm_ctx) {
+/**
+ * \brief   Function to get the user defined values for b2g algorithm from the
+ *          config file 'suricata.yaml'
+ */
+static void B2gGetConfig()
+{
+    ConfNode *b2g_conf;
+    const char *hash_val = NULL;
+    const char *bloom_val = NULL;
+    const char *scan_algo = NULL;
+    const char *search_algo = NULL;
+
+    /* init defaults */
+    b2g_hash_size = HASHSIZE_LOW;
+    b2g_bloom_size = BLOOMSIZE_MEDIUM;
+    b2g_scan_func = B2G_SCANFUNC;
+    b2g_search_func = B2G_SEARCHFUNC;
+
+    ConfNode *pm = ConfGetNode("pattern-matcher");
+
+    if (pm != NULL) {
+
+        TAILQ_FOREACH(b2g_conf, &pm->head, next) {
+            if (strncmp(b2g_conf->val, "b2g", 3) == 0) {
+
+                scan_algo = ConfNodeLookupChildValue
+                        (b2g_conf->head.tqh_first, "scan_algo");
+                search_algo = ConfNodeLookupChildValue
+                        (b2g_conf->head.tqh_first, "search_algo");
+                hash_val = ConfNodeLookupChildValue
+                        (b2g_conf->head.tqh_first, "hash_size");
+                bloom_val = ConfNodeLookupChildValue
+                        (b2g_conf->head.tqh_first, "bf_size");
+
+                if (scan_algo != NULL) {
+                    if (strcmp(scan_algo, "B2gScan") == 0) {
+                        b2g_scan_func = B2gScan;
+                    } else if (strcmp(scan_algo, "B2gScanBNDMq") == 0) {
+                        b2g_scan_func = B2gScanBNDMq;
+                    }
+                }
+
+                if (search_algo != NULL) {
+                    if (strcmp(search_algo, "B2gSearch") == 0) {
+                        b2g_search_func = B2gSearch;
+                    } else if (strcmp(search_algo, "B2gSearchBNDMq") == 0) {
+                        b2g_search_func = B2gSearchBNDMq;
+                    }
+                }
+
+                if (hash_val != NULL)
+                    b2g_hash_size = MpmGetHashSize(hash_val);
+
+                if (bloom_val != NULL)
+                    b2g_bloom_size = MpmGetBloomSize(bloom_val);
+
+                SCLogDebug("hash size is %"PRIu32" and bloom size is %"PRIu32"",
+                b2g_hash_size, b2g_bloom_size);
+            }
+        }
+    }
+}
+
+void B2gInitCtx (MpmCtx *mpm_ctx)
+{
+    SCEnter();
     SCLogDebug("mpm_ctx %p, ctx %p", mpm_ctx, mpm_ctx->ctx);
 
     BUG_ON(mpm_ctx->ctx != NULL);
@@ -939,9 +1011,16 @@ void B2gInitCtx (MpmCtx *mpm_ctx) {
 
     memset(ctx->init_hash, 0, sizeof(B2gPattern *) * INIT_HASH_SIZE);
 
-    /* init defaults */
-    ctx->Scan = B2G_SCANFUNC;
-    ctx->Search = B2G_SEARCHFUNC;
+    /* Initialize the defaults value from the config file. The given check make
+       sure that we query config file only once for config values */
+    if (b2g_hash_size == 0)
+        B2gGetConfig();
+
+    /* init defaults scan/search functions */
+    ctx->Scan = b2g_scan_func;
+    ctx->Search = b2g_search_func;
+
+    SCReturn;
 }
 
 void B2gDestroyCtx(MpmCtx *mpm_ctx) {

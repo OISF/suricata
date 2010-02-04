@@ -17,6 +17,8 @@
 #include "util-bloomfilter.h"
 #include "util-mpm-b3g.h"
 #include "util-unittest.h"
+#include "conf.h"
+#include "util-debug.h"
 
 #define INIT_HASH_SIZE 65536
 
@@ -26,6 +28,11 @@
 #else
 #define COUNT(counter)
 #endif /* B3G_COUNTERS */
+
+static uint32_t b3g_hash_size = 0;
+static uint32_t b3g_bloom_size = 0;
+static void *b3g_scan_func;
+static void *b3g_search_func;
 
 void B3gInitCtx (MpmCtx *);
 void B3gThreadInitCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
@@ -542,7 +549,7 @@ static void B3gPrepareScanHash(MpmCtx *mpm_ctx) {
         if (hi == NULL)
             continue;
 
-        ctx->scan_bloom[h] = BloomFilterInit(B3G_BLOOMSIZE, 2, B3gBloomHash);
+        ctx->scan_bloom[h] = BloomFilterInit(b3g_bloom_size, 2, B3gBloomHash);
         if (ctx->scan_bloom[h] == NULL)
             continue;
 
@@ -676,7 +683,7 @@ static void B3gPrepareSearchHash(MpmCtx *mpm_ctx) {
         if (hi == NULL)
             continue;
 
-        ctx->search_bloom[h] = BloomFilterInit(B3G_BLOOMSIZE, 2, B3gBloomHash);
+        ctx->search_bloom[h] = BloomFilterInit(b3g_bloom_size, 2, B3gBloomHash);
         if (ctx->search_bloom[h] == NULL)
             continue;
 
@@ -708,7 +715,7 @@ int B3gBuildScanMatchArray(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (sizeof(B3G_TYPE) * ctx->scan_hash_size);
 
-    memset(ctx->scan_B3G,0, B3G_HASHSIZE * sizeof(B3G_TYPE));
+    memset(ctx->scan_B3G,0, b3g_hash_size * sizeof(B3G_TYPE));
 
     uint32_t j;
     uint32_t a;
@@ -742,7 +749,7 @@ int B3gBuildSearchMatchArray(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (sizeof(B3G_TYPE) * ctx->search_hash_size);
 
-    memset(ctx->search_B3G,0, B3G_HASHSIZE * sizeof(B3G_TYPE));
+    memset(ctx->search_B3G,0, b3g_hash_size * sizeof(B3G_TYPE));
 
     uint32_t j;
     uint32_t a;
@@ -844,8 +851,8 @@ int B3gPreparePatterns(MpmCtx *mpm_ctx) {
     }
     if (ctx->search_m < 3) ctx->search_m = 3;
 
-    ctx->scan_hash_size = B3G_HASHSIZE;
-    ctx->search_hash_size = B3G_HASHSIZE;
+    ctx->scan_hash_size = b3g_hash_size;
+    ctx->search_hash_size = b3g_hash_size;
     B3gPrepareScanHash(mpm_ctx);
     B3gPrepareSearchHash(mpm_ctx);
     B3gBuildScanMatchArray(mpm_ctx);
@@ -855,24 +862,24 @@ int B3gPreparePatterns(MpmCtx *mpm_ctx) {
         ctx->Scan = B3gScan1;
         if (ctx->scan_2_pat_cnt) {
             ctx->Scan = B3gScan12;
-            ctx->MBScan = B3G_SCANFUNC;
+            ctx->MBScan = b3g_scan_func;
         }
-        ctx->MBScan = B3G_SCANFUNC;
+        ctx->MBScan = b3g_scan_func;
     } else if (ctx->scan_2_pat_cnt) {
         ctx->Scan = B3gScan2;
-        ctx->MBScan = B3G_SCANFUNC;
+        ctx->MBScan = b3g_scan_func;
     }
 
     if (ctx->search_1_pat_cnt) {
         ctx->Search = B3gSearch1;
         if (ctx->search_2_pat_cnt) {
             ctx->Search = B3gSearch12;
-            ctx->MBSearch = B3G_SEARCHFUNC;
+            ctx->MBSearch = b3g_search_func;
         }
-        ctx->MBSearch = B3G_SEARCHFUNC;
+        ctx->MBSearch = b3g_search_func;
     } else if (ctx->search_2_pat_cnt) {
         ctx->Search = B3gSearch2;
-        ctx->MBSearch = B3G_SEARCHFUNC;
+        ctx->MBSearch = b3g_search_func;
     }
 
     return 0;
@@ -924,8 +931,71 @@ memcmp_lowercase(uint8_t *s1, uint8_t *s2, uint16_t n) {
     return 0;
 }
 
-void B3gInitCtx (MpmCtx *mpm_ctx) {
-    //printf("B3gInitCtx: mpm_ctx %p\n", mpm_ctx);
+/**
+ * \brief   Function to get the user defined values for b3g algorithm from the
+ *          config file 'suricata.yaml'
+ */
+void B3gGetConfig()
+{
+    ConfNode *b3g_conf;
+    const char *hash_val = NULL;
+    const char *bloom_val = NULL;
+    const char *scan_algo = NULL;
+    const char *search_algo = NULL;
+
+    /* init defaults */
+    b3g_hash_size = HASHSIZE_LOW;
+    b3g_bloom_size = BLOOMSIZE_MEDIUM;
+    b3g_scan_func = B3G_SCANFUNC;
+    b3g_search_func = B3G_SEARCHFUNC;
+
+    ConfNode *pm = ConfGetNode("pattern-matcher");
+
+    if (pm != NULL) {
+
+        TAILQ_FOREACH(b3g_conf, &pm->head, next) {
+            if (strncmp(b3g_conf->val, "b3g", 3) == 0) {
+                scan_algo = ConfNodeLookupChildValue(b3g_conf->head.tqh_first,
+                                                     "scan_algo");
+                search_algo = ConfNodeLookupChildValue(b3g_conf->head.tqh_first,
+                                                       "search_algo");
+                hash_val = ConfNodeLookupChildValue(b3g_conf->head.tqh_first,
+                                                    "hash_size");
+                bloom_val = ConfNodeLookupChildValue(b3g_conf->head.tqh_first,
+                                                     "bf_size");
+
+                if (scan_algo != NULL) {
+                    if (strcmp(scan_algo, "B3gScan") == 0) {
+                        b3g_scan_func = B3gScan;
+                    } else if (strcmp(scan_algo, "B3gScanBNDMq") == 0) {
+                        b3g_scan_func = B3gScanBNDMq;
+                    }
+                }
+
+                if (search_algo != NULL) {
+                    if (strcmp(search_algo, "B3gSearch") == 0) {
+                        b3g_search_func = B3gSearch;
+                    } else if (strcmp(search_algo, "B3gSearchBNDMq") == 0) {
+                        b3g_search_func = B3gSearchBNDMq;
+                    }
+                }
+
+                if (hash_val != NULL)
+                    b3g_hash_size = MpmGetHashSize(hash_val);
+
+                if (bloom_val != NULL)
+                    b3g_bloom_size = MpmGetBloomSize(bloom_val);
+
+                SCLogDebug("hash size is %"PRIu32" and bloom size is %"PRIu32"",
+                    b3g_hash_size, b3g_bloom_size);
+            }
+        }
+    }
+}
+
+void B3gInitCtx (MpmCtx *mpm_ctx)
+{
+    SCLogDebug("mpm_ctx %p\n", mpm_ctx);
 
     mpm_ctx->ctx = malloc(sizeof(B3gCtx));
     if (mpm_ctx->ctx == NULL)
@@ -944,9 +1014,14 @@ void B3gInitCtx (MpmCtx *mpm_ctx) {
 
     memset(ctx->init_hash, 0, sizeof(B3gPattern *) * INIT_HASH_SIZE);
 
+    /* Initialize the defaults value from the config file. The given check make
+       sure that we query config file only once for config values */
+    if (b3g_hash_size == 0)
+        B3gGetConfig();
+
     /* init default */
-    ctx->Scan = B3G_SCANFUNC;
-    ctx->Search = B3G_SEARCHFUNC;
+    ctx->Scan = b3g_scan_func;
+    ctx->Search = b3g_search_func;
 }
 
 void B3gDestroyCtx(MpmCtx *mpm_ctx) {

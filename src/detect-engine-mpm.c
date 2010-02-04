@@ -9,6 +9,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "util-mpm.h"
+#include "conf.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -25,8 +26,26 @@
 #define PM   MPM_B2G
 //#define PM   MPM_B3G
 
+/** \brief  Function to return the default multi pattern matcher algorithm to be
+ *          used by the engine
+ *  \retval mpm algo value
+ */
 uint16_t PatternMatchDefaultMatcher(void) {
-    return PM;
+    char *mpm_algo;
+    uint16_t mpm_algo_val = PM;
+
+    /* Get the mpm algo defined in config file by the user */
+    if ((ConfGet("mpm-algo", &mpm_algo)) == 1) {
+        if(strncmp(mpm_algo, "b2g", 3) == 0) {
+            mpm_algo_val = MPM_B2G;
+        } else if (strncmp(mpm_algo, "b3g", 3) == 0) {
+            mpm_algo_val = MPM_B3G;
+        } else if (strncmp(mpm_algo, "wumanber", 7) == 0) {
+            mpm_algo_val = MPM_WUMANBER;
+        }
+    }
+
+    return mpm_algo_val;
 }
 
 /** \brief Pattern match, scan part -- searches for only 'scan' patterns,

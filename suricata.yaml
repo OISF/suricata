@@ -42,6 +42,42 @@ defrag:
   prealloc: yes
   timeout: 60
 
+# Select the multi pattern algorithm you want to run for scan/search the
+# in the engine. The supported algorithms are b2g, b3g and wumanber.
+
+mpm-algo: b2g
+
+# The memory settings for hash size of these algorithms can vary from lowest
+# (2048) - low (4096) - medium (8192) - high (16384) - highest (32768) - max
+# (65536). The bloomfilter sizes of these algorithms can vary from low (512) -
+# medium (1024) - high (2048).
+#
+# For B2g/B3g algorithms, there is a support for two different scan/search
+# algorithms. For B2g the scan algorithms are B2gScan & B2gScanBNDMq, and
+# search algorithms are B2gSearch & B2gSearchBNDMq. For B3g scan algorithms
+# are B3gScan & B3gScanBNDMq, and search algorithms are B3gSearch &
+# B3gSearchBNDMq.
+#
+# For B2g the different scan/search algorithms and, hash and bloom
+# filter size settings. For B3g the different scan/search algorithms and, hash
+# and bloom filter size settings. For wumanber the hash and bloom filter size
+# settings.
+
+pattern-matcher:
+  - b2g:
+      scan_algo: B2gScanBNDMq
+      search_algo: B2gSearchBNDMq
+      hash_size: low
+      bf_size: medium
+  - b3g:
+      scan_algo: B3gScanBNDMq
+      search_algo: B3gSearchBNDMq
+      hash_size: low
+      bf_size: medium
+  - wumanber:
+      hash_size: low
+      bf_size: medium
+
 # Flow settings:
 # By default, the reserved memory (memcap) for flows is 32MB. This is the limit
 # for flow allocation inside the engine. You can change this value to allow

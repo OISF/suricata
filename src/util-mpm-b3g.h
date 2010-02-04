@@ -7,12 +7,6 @@
 #define B3G_NOCASE 0x01
 #define B3G_SCAN   0x02
 
-//#define B3G_HASHSIZE 65536
-//#define B3G_HASHSIZE 32768
-//#define B3G_HASHSIZE 16384
-//#define B3G_HASHSIZE 8192
-#define B3G_HASHSIZE 4096
-
 //#define B3G_HASHSHIFT 8
 //#define B3G_HASHSHIFT 7
 //#define B3G_HASHSHIFT 6
@@ -25,8 +19,6 @@
 //#define B3G_WORD_SIZE 16
 //#define B3G_WORD_SIZE 8
 #define B3G_WORD_SIZE     32
-
-#define B3G_BLOOMSIZE     1024
 
 #define B3G_HASH(a,b,c)   (((a)<<B3G_HASHSHIFT) | (b)<<(B3G_HASHSHIFT-3) |(c))
 #define B3G_Q             3

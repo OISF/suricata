@@ -9,8 +9,6 @@
 #define WUMANBER_NOCASE 0x01
 #define WUMANBER_SCAN   0x02
 
-#define WUMANBER_BLOOMSIZE 1024
-
 //#define WUMANBER_COUNTERS
 
 typedef struct WmPattern_ {
