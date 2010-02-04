@@ -45,7 +45,7 @@ typedef struct PcapFileThreadVars_
     Packet *in_p;
 } PcapFileThreadVars;
 
-static PcapFileGlobalVars pcap_g = { NULL, NULL, 0, };
+static PcapFileGlobalVars pcap_g;
 
 TmEcode ReceivePcapFile(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode ReceivePcapFileThreadInit(ThreadVars *, void *, void **);
@@ -56,6 +56,8 @@ TmEcode DecodePcapFile(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode DecodePcapFileThreadInit(ThreadVars *, void *, void **);
 
 void TmModuleReceivePcapFileRegister (void) {
+    memset(&pcap_g, 0x00, sizeof(pcap_g));
+
     tmm_modules[TMM_RECEIVEPCAPFILE].name = "ReceivePcapFile";
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadInit = ReceivePcapFileThreadInit;
     tmm_modules[TMM_RECEIVEPCAPFILE].Func = ReceivePcapFile;
@@ -117,13 +119,14 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) 
 }
 
 TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
-
-    char *tmpbpfstring;
+    char *tmpbpfstring = NULL;
 
     if (initdata == NULL) {
         printf("ReceivePcapFileThreadInit error: initdata == NULL\n");
         return TM_ECODE_FAILED;
     }
+
+    SCLogInfo("reading pcap file %s", (char *)initdata);
 
     PcapFileThreadVars *ptv = malloc(sizeof(PcapFileThreadVars));
     if (ptv == NULL) {
@@ -135,27 +138,28 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     pcap_g.pcap_handle = pcap_open_offline((char *)initdata, errbuf);
     if (pcap_g.pcap_handle == NULL) {
         printf("error %s\n", errbuf);
-        exit(1);
+        return TM_ECODE_FAILED;
     }
 
     if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
-        SCLogInfo("could not get bpf or none specified");
+        SCLogDebug("could not get bpf or none specified");
     } else {
-        SCLogInfo("using bpf-filter %s", tmpbpfstring);
+        SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
 
         if(pcap_compile(pcap_g.pcap_handle,&pcap_g.filter,tmpbpfstring,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(pcap_g.pcap_handle));
-            exit(1);
+            return TM_ECODE_FAILED;
         }
 
         if(pcap_setfilter(pcap_g.pcap_handle,&pcap_g.filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(pcap_g.pcap_handle));
-            exit(1);
+            return TM_ECODE_FAILED;
         }
     }
 
     pcap_g.datalink = pcap_datalink(pcap_g.pcap_handle);
-    printf("TmModuleReceivePcapFileRegister: datalink %" PRId32 "\n", pcap_g.datalink);
+    SCLogDebug("datalink %" PRId32 "", pcap_g.datalink);
+
     switch(pcap_g.datalink)	{
         case LINKTYPE_LINUX_SLL:
             pcap_g.Decoder = DecodeSll;

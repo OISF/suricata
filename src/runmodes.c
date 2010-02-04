@@ -740,7 +740,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, char *nfq_id) {
 }
 
 int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file) {
-    printf("RunModeFilePcap: file %s\n", file);
+    SCLogDebug("file %s", file);
     TimeModeSetOffline();
 
     /* create the threads */

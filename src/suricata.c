@@ -285,6 +285,45 @@ void EngineKill(void) {
     sigflags |= SURICATA_KILL;
 }
 
+static void SetBpfString(int optind, char *argv[]) {
+    char *bpf_filter = NULL;
+    uint32_t bpf_len = 0;
+    int tmpindex = 0;
+
+    /* attempt to parse remaining args as bpf filter */
+    tmpindex = optind;
+    while(argv[tmpindex] != NULL) {
+        bpf_len+=strlen(argv[tmpindex]) + 1;
+        tmpindex++;
+    }
+
+    if (bpf_len == 0)
+        return;
+
+    bpf_filter = malloc(bpf_len);
+    if (bpf_filter == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "%s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    memset(bpf_filter, 0x00, bpf_len);
+
+    tmpindex = optind;
+    while(argv[tmpindex] != NULL) {
+        strlcat(bpf_filter, argv[tmpindex],bpf_len);
+        if(argv[tmpindex + 1] != NULL) {
+            strlcat(bpf_filter," ", bpf_len);
+        }
+        tmpindex++;
+    }
+
+    if(strlen(bpf_filter) > 0) {
+        if (ConfSet("bpf-filter", bpf_filter, 0) != 1) {
+            fprintf(stderr, "ERROR: Failed to set bpf filter.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 void usage(const char *progname)
 {
     printf("%s %s\n", PROG_NAME, PROG_VER);
@@ -323,9 +362,6 @@ int main(int argc, char **argv)
     char *sig_file = NULL;
     char *nfq_id = NULL;
     char *conf_filename = NULL;
-    char *bpf_filter = NULL;
-    uint32_t bpf_len = 0;
-    int tmpindex = 0;
 #ifdef UNITTESTS
     char *regex_arg = NULL;
 #endif
@@ -505,30 +541,7 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
-
-    /* attempt to parse remaining args as bpf filter */
-    tmpindex = optind;
-    while(argv[tmpindex] != NULL) {
-        bpf_len+=strlen(argv[tmpindex]) + 1;
-        tmpindex++;
-    }
-    bpf_filter= malloc(bpf_len);
-
-    tmpindex = optind;
-    while(argv[tmpindex] != NULL) {
-        strlcat(bpf_filter, argv[tmpindex],bpf_len);
-        if(argv[tmpindex + 1] != NULL) {
-            strlcat(bpf_filter," ", bpf_len);
-        }
-        tmpindex++;
-    }
-
-    if(strlen(bpf_filter) > 0) {
-        if (ConfSet("bpf-filter", bpf_filter, 0) != 1) {
-            fprintf(stderr, "ERROR: Failed to set bpf filter.\n");
-            exit(EXIT_FAILURE);
-        }
-    }
+    SetBpfString(optind, argv);
 
     SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
     UtilCpuPrintSummary();

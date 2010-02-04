@@ -186,7 +186,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->pcap_handle = pcap_create((char *)initdata, errbuf);
     if (ptv->pcap_handle == NULL) {
         printf("error %s\n", pcap_geterr(ptv->pcap_handle));
-        exit(1);
+        return TM_ECODE_FAILED;
     }
 
     /* set Snaplen, Promisc, and Timeout. Must be called before pcap_activate */
@@ -194,21 +194,21 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_snaplen_r);
     if (pcap_set_snaplen_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(ptv->pcap_handle));
-        exit(1);
+        return TM_ECODE_FAILED;
     }
 
     int pcap_set_promisc_r = pcap_set_promisc(ptv->pcap_handle,LIBPCAP_PROMISC);
     //printf("ReceivePcapThreadInit: pcap_set_promisc(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_promisc_r);
     if (pcap_set_promisc_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(ptv->pcap_handle));
-        exit(1);
+        return TM_ECODE_FAILED;
     }
 
     int pcap_set_timeout_r = pcap_set_timeout(ptv->pcap_handle,LIBPCAP_COPYWAIT);
     //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_timeout_r);
     if (pcap_set_timeout_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(ptv->pcap_handle));
-        exit(1);
+        return TM_ECODE_FAILED;
     }
 
     /* activate the handle */
@@ -216,23 +216,23 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     //printf("ReceivePcapThreadInit: pcap_activate(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_activate_r);
     if (pcap_activate_r != 0) {
         printf("ReceivePcapThreadInit: error is %s\n", pcap_geterr(ptv->pcap_handle));
-        exit(1);
+        return TM_ECODE_FAILED;
     }
 
     /* set bpf filter if we have one */
     if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
-        SCLogInfo("could not get bpf or none specified");
+        SCLogDebug("could not get bpf or none specified");
     } else {
-        SCLogInfo("using bpf-filter %s", tmpbpfstring);
+        SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
 
         if(pcap_compile(ptv->pcap_handle,&ptv->filter,tmpbpfstring,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
-            exit(1);
+            return TM_ECODE_FAILED;
         }
 
         if(pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(ptv->pcap_handle));
-            exit(1);
+            return TM_ECODE_FAILED;
         }
     }
 
@@ -266,23 +266,23 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
                                         LIBPCAP_PROMISC, LIBPCAP_COPYWAIT, errbuf);
     if (ptv->pcap_handle == NULL) {
         printf("error %s\n", errbuf);
-        exit(1);
+        return TM_ECODE_FAILED;
     }
 
     /* set bpf filter if we have one */
     if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
-        SCLogInfo("could not get bpf or none specified");
+        SCLogDebug("could not get bpf or none specified");
     } else {
-        SCLogInfo("using bpf-filter %s", tmpbpfstring);
+        SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
 
         if(pcap_compile(ptv->pcap_handle,&ptv->filter,tmpbpfstring,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
-            exit(1);
+            return TM_ECODE_FAILED;
         }
 
         if(pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(ptv->pcap_handle));
-            exit(1);
+            return TM_ECODE_FAILED;
         }
     }
 
