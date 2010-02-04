@@ -252,11 +252,7 @@ void AppLayerDetectProtoThreadInit(void) {
 }
 
 uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tctx, uint8_t *buf, uint16_t buflen, uint8_t flags) {
-    //printf("AppLayerDetectGetProto: start\n");
-    //PrintRawDataFp(stdout, buf, buflen);
-
-    //if (buflen < INSPECT_BYTES)
-    //    return ALPROTO_UNKNOWN;
+    SCEnter();
 
     AlpProtoDetectDirection *dir;
     AlpProtoDetectDirectionThread *tdir;
@@ -268,8 +264,9 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
         tdir = &tctx->toclient;
     }
 
-    if (dir->id == 0)
-        return ALPROTO_UNKNOWN;
+    if (dir->id == 0) {
+        SCReturnUInt(ALPROTO_UNKNOWN);
+    }
 
     /* see if we can limit the data we scan */
     uint16_t scanlen = buflen;
@@ -349,7 +346,7 @@ end:
             break;
     }
 #endif
-    return proto;
+    SCReturnUInt(proto);
 }
 
 int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
