@@ -317,7 +317,7 @@ int main(int argc, char **argv)
     char *pcap_dev = NULL;
     char *pfring_dev = NULL;
     char *sig_file = NULL;
-    int nfq_id = 0;
+    char *nfq_id = NULL;
     char *conf_filename = NULL;
 #ifdef UNITTESTS
     char *regex_arg = NULL;
@@ -437,10 +437,17 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 exit(EXIT_SUCCESS);
             }
-            nfq_id = atoi(optarg); /* strtol? */
+            nfq_id = optarg;
             break;
         case 'd':
-            run_mode = MODE_IPFW;
+            if (run_mode == MODE_UNKNOWN) {
+                run_mode = MODE_IPFW;
+            } else {
+                SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                                     "has been specified");
+                usage(argv[0]);
+                exit(EXIT_SUCCESS);
+            }
             if (ConfSet("ipfw-divert-port", optarg, 0) != 1) {
                 fprintf(stderr, "ERROR: Failed to set ipfw_divert_port\n");
                 exit(EXIT_FAILURE);
@@ -720,7 +727,7 @@ int main(int argc, char **argv)
         RunModeIdsPfring4(de_ctx, pfring_dev);
     }
     else if (run_mode == MODE_NFQ) {
-        RunModeIpsNFQ(de_ctx);
+        RunModeIpsNFQ(de_ctx, nfq_id);
     }
     else if (run_mode == MODE_IPFW) {
         RunModeIpsIPFW(de_ctx);

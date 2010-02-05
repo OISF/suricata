@@ -21,6 +21,7 @@
 
 #include "util-debug.h"
 #include "util-error.h"
+#include "util-byte.h"
 
 #ifndef NFQ
 /** Handle the case where no NFQ support is compiled in.
@@ -296,7 +297,17 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
      * as we will need it in our callback function */
     ntv->tv = tv;
 
-    int r = NFQInitThread(ntv,receive_queue_num, NFQ_DFT_QUEUE_LEN);
+    /* Extract the queue number from the specified command line argument */
+    uint16_t queue_num = 0;
+    if ((ByteExtractStringUint16(&queue_num, 10, strlen((char *)initdata),
+                                      (char *)initdata)) < 0)
+    {
+        SCLogError(SC_INVALID_ARGUMENT, "specified queue number %s is not "
+                                        "valid", (char *)initdata);
+        exit(EXIT_FAILURE);
+    }
+
+    int r = NFQInitThread(ntv, queue_num, NFQ_DFT_QUEUE_LEN);
     if (r < 0) {
         SCLogError(SC_NFQ_THREAD_INIT, "nfq thread failed to initialize");
 

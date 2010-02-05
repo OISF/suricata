@@ -604,7 +604,7 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface) {
     return 0;
 }
 
-int RunModeIpsNFQ(DetectEngineCtx *de_ctx) {
+int RunModeIpsNFQ(DetectEngineCtx *de_ctx, char *nfq_id) {
     TimeModeSetLive();
 
     /* create the threads */
@@ -618,7 +618,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx) {
         printf("ERROR: TmModuleGetByName failed for ReceiveNFQ\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_receivenfq,tm_module,NULL);
+    Tm1SlotSetFunc(tv_receivenfq,tm_module,nfq_id);
 
     if (TmThreadSpawn(tv_receivenfq) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -703,7 +703,7 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx) {
         printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_verdict,tm_module,NULL);
+    Tm1SlotSetFunc(tv_verdict,tm_module,nfq_id);
 
     if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
