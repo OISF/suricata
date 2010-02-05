@@ -32,6 +32,10 @@ outputs:
       enabled: yes
       filename: alert-debug.log
 
+  - alert-prelude:
+      enabled: no
+      profile: suricata
+
 defrag:
   max-frags: 65535
   prealloc: yes
