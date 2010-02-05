@@ -331,7 +331,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     phdr.dst_ip = *(struct in6_addr*)GET_IPV6_DST_ADDR(p);
     phdr.protocol = IPV6_GET_NH(p);
 
-    if(p->action == ACTION_DROP)
+    if(p->action & ACTION_DROP)
         phdr.packet_action = UNIFIED2_BLOCKED_FLAG;
     else
         phdr.packet_action = 0;
@@ -442,7 +442,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     phdr.dst_ip = p->ip4h->ip_dst.s_addr;
     phdr.protocol = IPV4_GET_RAW_IPPROTO(p->ip4h);
 
-    if(p->action == ACTION_DROP)
+    if(p->action & ACTION_DROP)
         phdr.packet_action = UNIFIED2_BLOCKED_FLAG;
     else
         phdr.packet_action = 0;

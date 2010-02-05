@@ -686,7 +686,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (!(s->flags & SIG_FLAG_NOALERT)) {
                 PacketAlertHandle(de_ctx,s,p);
                 /* set verdict on packet */
-                p->action = s->action;
+                p->action |= s->action;
             }
         } else {
             /* reset pkt ptr and offset */
@@ -725,7 +725,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                     if (rmatch == 0) {
                                         PacketAlertHandle(de_ctx,s,p);
                                         /* set verdict on packet */
-                                        p->action = s->action;
+                                        p->action |= s->action;
                                     }
                                 }
                                 rmatch = fmatch = 1;
@@ -771,7 +771,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 PacketAlertHandle(de_ctx,s,p);
 
                                 /* set verdict on packet */
-                                p->action = s->action;
+                                p->action |= s->action;
                             }
                         }
                     } else {

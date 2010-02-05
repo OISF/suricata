@@ -380,7 +380,7 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
         if (!(s->flags & SIG_FLAG_NOALERT)) {
             PacketAlertHandle(de_ctx,s,p);
             /* set verdict on packet */
-            p->action = s->action;
+            p->action |= s->action;
         }
     }
 }

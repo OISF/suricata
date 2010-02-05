@@ -407,23 +407,22 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
 
     //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
 
-    switch (p->action) {
-        case ACTION_ALERT:
-        case ACTION_PASS:
-            verdict = NF_ACCEPT;
+    if (p->action & ACTION_REJECT || p->action & ACTION_REJECT_BOTH ||
+        p->action & ACTION_REJECT_DST || p->action & ACTION_DROP) {
+        verdict = NF_DROP;
 #ifdef COUNTERS
-            t->accepted++;
+        t->dropped++;
 #endif /* COUNTERS */
-            break;
-        case ACTION_REJECT:
-        case ACTION_REJECT_DST:
-        case ACTION_REJECT_BOTH:
-        case ACTION_DROP:
-        default:
-            /* a verdict we don't know about, drop to be sure */
-            verdict = NF_DROP;
+    } else if (p->action & ACTION_ALERT || p->action & ACTION_ALERT) {
+        verdict = NF_ACCEPT;
 #ifdef COUNTERS
-            t->dropped++;
+        t->accepted++;
+#endif /* COUNTERS */
+    } else {
+            /* a verdict we don't know about, drop to be sure */
+        verdict = NF_DROP;
+#ifdef COUNTERS
+        t->dropped++;
 #endif /* COUNTERS */
     }
 

@@ -300,7 +300,7 @@ typedef struct Packet_
     PacketAlerts alerts;
 
     /* IPS action to take */
-    ActionType action;
+    uint8_t action;
 
     /* double linked list ptrs */
     struct Packet_ *next;
