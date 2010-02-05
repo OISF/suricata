@@ -1,6 +1,7 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
 #include "suricata-common.h"
+#include "packet-queue.h"
 #include "decode.h"
 #include "decode-ipv6.h"
 #include "decode-icmpv6.h"
@@ -413,15 +414,18 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             break;
     }
 
-#if 0
     /* Pass to defragger if a fragment. */
     if (IPV6_EXTHDR_ISSET_FH(p)) {
         Packet *rp = Defrag(tv, NULL, p);
         if (rp != NULL) {
-            /* Reinject. */
+            DecodeIPV6(tv, dtv, rp, rp->pkt, rp->pktlen, pq);
+            PacketEnqueue(pq, rp);
+
+            /* Not really a tunnel packet, but we're piggybacking that
+             * functionality for now. */
+            SET_TUNNEL_PKT(p);
         }
     }
-#endif
 
 #ifdef DEBUG
     if (IPV6_EXTHDR_ISSET_FH(p)) {

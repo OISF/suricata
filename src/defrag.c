@@ -654,12 +654,17 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     int fragmentable_offset = 0;
     int fragmentable_len = 0;
     int ip_hdr_offset = 0;
+    uint8_t next_hdr = 0;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
         if (frag->skip)
             continue;
         if (frag->data_len - frag->ltrim <= 0)
             continue;
         if (frag->offset == 0) {
+            IPV6FragHdr *frag_hdr = (IPV6FragHdr *)(frag->pkt +
+                frag->frag_hdr_offset);
+            next_hdr = frag_hdr->ip6fh_nxt;
+
             /* This is the first packet, we use this packets link and
              * IPv6 headers. We also copy in its data, but remove the
              * fragmentation header. */
@@ -686,7 +691,9 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     }
     BUG_ON(rp->ip6h == NULL);
     rp->ip6h->s_ip6_plen = htons(fragmentable_len);
+    rp->ip6h->s_ip6_nxt = next_hdr;
     rp->pktlen = ip_hdr_offset + sizeof(IPV6Hdr) + fragmentable_len;
+    IPV6_CACHE_INIT(rp);
 
 remove_tracker:
     /* Remove the frag tracker. */
