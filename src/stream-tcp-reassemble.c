@@ -1160,6 +1160,7 @@ int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
 static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
                               StreamMsg *smsg)
 {
+    SCEnter();
     if (stream->ra_base_seq == stream->isn) {
         smsg->flags = STREAM_START;
     } else if (ssn->state > TCP_ESTABLISHED) {
@@ -1174,14 +1175,22 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
         COPY_PORT(p->flow->sp,smsg->data.src_port);
         COPY_PORT(p->flow->dp,smsg->data.dst_port);
 
-        smsg->flags |= STREAM_TOSERVER;
     } else {
         COPY_ADDRESS(&p->flow->dst,&smsg->data.src_ip);
         COPY_ADDRESS(&p->flow->src,&smsg->data.dst_ip);
         COPY_PORT(p->flow->dp,smsg->data.src_port);
         COPY_PORT(p->flow->sp,smsg->data.dst_port);
 
+    }
+
+    /* As we are opposing the stream to handle the ACK, we need to update the
+       smsg direction accordingly too */
+    if (stream == &ssn->client) {
+        smsg->flags |= STREAM_TOSERVER;
+        SCLogDebug("stream mesage is to_server");
+    } else {
         smsg->flags |= STREAM_TOCLIENT;
+        SCLogDebug("stream mesage is to_client");
     }
 
     smsg->data.data_len = 0;
@@ -1189,6 +1198,7 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
     if (smsg->flow != NULL) {
         smsg->flow->use_cnt++;
     }
+    SCReturn;
 }
 
 /** \brief Check the minimum size limits for reassembly.

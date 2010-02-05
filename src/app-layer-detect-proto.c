@@ -275,7 +275,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
 
     uint16_t proto;
     uint32_t cnt = mpm_table[dir->mpm_ctx.mpm_type].Scan(&dir->mpm_ctx, &tdir->mpm_ctx, &tdir->pmq, buf, scanlen);
-    //printf("AppLayerDetectGetProto: scan cnt %" PRIu32 "\n", cnt);
+    SCLogDebug("scan cnt %" PRIu32 "", cnt);
     if (cnt == 0) {
         proto = ALPROTO_UNKNOWN;
         goto end;
