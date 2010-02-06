@@ -1032,8 +1032,12 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         input_len = 0;
                     }
                 }
+
             } while (sstate->andx.andxcommand != SMB_NO_SECONDARY_ANDX_COMMAND
                     && input_len);
+            if (sstate->bytesprocessed == sstate->nbss.length + NBSS_HDR_LEN) {
+		sstate->bytesprocessed = 0;
+            }
             break;
         default:
             break;
