@@ -459,11 +459,8 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
     if (p->action & ACTION_REJECT || p->action & ACTION_REJECT_BOTH ||
         p->action & ACTION_REJECT_DST || p->action & ACTION_DROP) {
         verdict = IPFW_DROP;
-    } else if (p->action & ACTION_ALERT || p->action & ACTION_ALERT) {
-        verdict = IPFW_ACCEPT;
     } else {
-        /* a verdict we don't know about, drop to be sure */
-        verdict = IPFW_DROP;
+        verdict = IPFW_ACCEPT;
     }
 
     if (verdict == IPFW_ACCEPT) {
