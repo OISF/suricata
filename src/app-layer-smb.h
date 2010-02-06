@@ -35,12 +35,14 @@ typedef struct smb_hdr_ {
 
 typedef struct wordcount_ {
     uint8_t wordcount;
+    uint8_t wordcountleft;
     uint8_t *words;
 }SMBWordCount;
 
 typedef struct bytecount_ {
     uint8_t bytecountbytes;
     uint16_t bytecount;
+    uint16_t bytecountleft;
     uint8_t *bytes;
 }SMBByteCount;
 
@@ -50,7 +52,8 @@ typedef struct andxcount_ {
     uint8_t andxcommand;
     uint16_t andxoffset;
     uint16_t andxbytesprocessed;
-    uint32_t datalength;
+    uint16_t datalength;
+    uint16_t datalengthhigh;
     uint64_t dataoffset;
 }SMBAndX;
 

@@ -102,6 +102,9 @@ void hexdump(const void *buf, size_t len) {
  */
 void printUUID(char *type, struct uuid_entry *uuid) {
     uint8_t i = 0;
+    if (uuid == NULL) {
+	return;
+    }
     printf("%s UUID [%2u] %s ", type, uuid->ctxid,
             (uuid->result == 0) ? "Accepted" : "Rejected");
     for (i = 0; i < 16; i++) {
