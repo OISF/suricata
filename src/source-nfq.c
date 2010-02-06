@@ -408,21 +408,15 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
 
     if (p->action & ACTION_REJECT || p->action & ACTION_REJECT_BOTH ||
-        p->action & ACTION_REJECT_DST || p->action & ACTION_DROP) {
+        p->action & ACTION_REJECT_DST || p->action & ACTION_DROP) {
         verdict = NF_DROP;
 #ifdef COUNTERS
         t->dropped++;
 #endif /* COUNTERS */
-    } else if (p->action & ACTION_ALERT || p->action & ACTION_ALERT) {
+    } else {
         verdict = NF_ACCEPT;
 #ifdef COUNTERS
         t->accepted++;
-#endif /* COUNTERS */
-    } else {
-            /* a verdict we don't know about, drop to be sure */
-        verdict = NF_DROP;
-#ifdef COUNTERS
-        t->dropped++;
 #endif /* COUNTERS */
     }
 
