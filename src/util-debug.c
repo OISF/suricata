@@ -283,14 +283,14 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
     if (sc_log_fg_filters_present == 1) {
         if (SCLogMatchFGFilterWL(file, function, line) != 1)
-            return SC_ERR_LOG_FG_FILTER_MATCH_FAILED;
+            return SC_ERR_LOG_FG_FILTER_MATCH;
 
         if (SCLogMatchFGFilterBL(file, function, line) != 1)
-            return SC_ERR_LOG_FG_FILTER_MATCH_FAILED;
+            return SC_ERR_LOG_FG_FILTER_MATCH;
     }
 
     if (sc_log_fd_filters_present == 1 && SCLogMatchFDFilter(function) != 1)
-        return SC_ERR_LOG_FG_FILTER_MATCH_FAILED;
+        return SC_ERR_LOG_FG_FILTER_MATCH;
 
 	while ( (temp_fmt = index(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
         if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
@@ -423,7 +423,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
     return SC_OK;
 
  error:
-    return SC_ERR_SPRINTF_ERROR;
+    return SC_ERR_SPRINTF;
 }
 
 /**

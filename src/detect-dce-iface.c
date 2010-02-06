@@ -107,7 +107,7 @@ static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     /* retrieve the iface uuid string.  iface uuid is a compulsion in the keyword */
     res = pcre_get_substring(arg, ov, MAX_SUBSTRINGS, 1, &pcre_sub_str);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
     }
 
@@ -140,7 +140,7 @@ static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
          * validations of the version number, wrt. the operator */
         res = pcre_get_substring(arg, ov, MAX_SUBSTRINGS, 3, &pcre_sub_str);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
 
@@ -158,7 +158,7 @@ static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
         /* now let us handle the operator supplied with the version number */
         res = pcre_get_substring(arg, ov, MAX_SUBSTRINGS, 2, &pcre_sub_str);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
 

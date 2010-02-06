@@ -825,7 +825,7 @@ int DetectAddressSetup(DetectAddressHead *gh, char *s)
     /* parse the address */
     ad = DetectAddressParseSingle(s);
     if (ad == NULL) {
-        SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC_ERROR,
+        SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
                    "DetectAddressParse error \"%s\"", s);
         goto error;
     }
@@ -887,7 +887,7 @@ int DetectAddressSetup(DetectAddressHead *gh, char *s)
     return 0;
 
 error:
-    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC_ERROR, "DetectAddressSetup error");
+    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "DetectAddressSetup error");
     /* XXX cleanup */
     return -1;
 }

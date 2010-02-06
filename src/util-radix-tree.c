@@ -575,7 +575,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
                                        netmask)) == NULL) {
-        SCLogError(SC_ERR_RADIX_TREE_GENERIC_ERROR, "Error creating prefix");
+        SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
         return NULL;
     }
 

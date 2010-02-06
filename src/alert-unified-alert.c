@@ -124,17 +124,17 @@ int AlertUnifiedAlertCloseFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
 
 int AlertUnifiedAlertRotateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
     if (AlertUnifiedAlertCloseFile(t,aun) < 0) {
-        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC,
                    "Error: AlertUnifiedAlertCloseFile failed");
         return -1;
     }
     if (AlertUnifiedAlertOpenFileCtx(aun->file_ctx,aun->file_ctx->prefix) < 0) {
-        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC,
                    "Error: AlertUnifiedLogOpenFileCtx, open new log file failed");
         return -1;
     }
     if (AlertUnifiedAlertWriteFileHeader(t, aun) < 0) {
-        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR, "Error: "
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC, "Error: "
                    "AlertUnifiedLogAppendFile, write unified header failed");
         return -1;
     }
@@ -226,7 +226,7 @@ TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
     /** Write Unified header */
     int ret = AlertUnifiedAlertWriteFileHeader(t, aun);
     if (ret != 0) {
-        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC,
                    "Error: AlertUnifiedLogWriteFileHeader failed");
         free(aun);
         return TM_ECODE_FAILED;
@@ -266,7 +266,7 @@ LogFileCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
     LogFileCtx *file_ctx = LogFileNewCtx();
 
     if (file_ctx == NULL) {
-        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC_ERROR,
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC,
                    "AlertUnifiedAlertInitCtx: Couldn't create new file_ctx");
         return NULL;
     }

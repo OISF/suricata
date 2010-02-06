@@ -45,14 +45,14 @@ void DetectDsizeRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        SCLogError(SC_ERR_PCRE_COMPILE_FAILED,"pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE,"pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        SCLogError(SC_ERR_PCRE_STUDY_FAILED,"pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY,"pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -113,7 +113,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH_FAILED,"Parse error %s", rawstr);
+        SCLogError(SC_ERR_PCRE_MATCH,"Parse error %s", rawstr);
         goto error;
     }
 
@@ -121,7 +121,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
         goto error;
     }
     mode = (char *)str_ptr;
@@ -129,7 +129,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
         goto error;
     }
     value1 = (char *)str_ptr;
@@ -137,7 +137,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
         goto error;
     }
     range = (char *)str_ptr;
@@ -145,7 +145,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
         goto error;
     }
     value2 = (char *)str_ptr;

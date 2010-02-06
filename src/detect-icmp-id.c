@@ -127,7 +127,7 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
 
     ret = pcre_exec(parse_regex, parse_regex_study, icmpidstr, strlen(icmpidstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH_FAILED, "Parse error %s", icmpidstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", icmpidstr);
         goto error;
     }
 
@@ -136,7 +136,7 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
     for (i = 1; i < ret; i++) {
         res = pcre_get_substring((char *)icmpidstr, ov, MAX_SUBSTRINGS, i, &str_ptr);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         substr[i-1] = (char *)str_ptr;

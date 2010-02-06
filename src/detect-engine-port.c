@@ -950,7 +950,7 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
     return 0;
 
 error:
-    SCLogError(SC_ERR_PORT_PARSE_INSERT_STRING_ERR,"DetectPortParseInsertString error");
+    SCLogError(SC_ERR_PORT_PARSE_INSERT_STRING,"DetectPortParseInsertString error");
     if (ad != NULL)
         DetectPortCleanupList(ad);
     if (ad_any != NULL)

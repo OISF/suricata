@@ -163,12 +163,12 @@ int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
 
 int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
     if (Unified2AlertCloseFile(t,aun) < 0) {
-        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR,
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC,
                    "Error: Unified2AlertCloseFile failed");
         return -1;
     }
     if (Unified2AlertOpenFileCtx(aun->file_ctx,aun->file_ctx->prefix) < 0) {
-        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR,
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC,
                    "Error: Unified2AlertOpenFileCtx, open new log file failed");
         return -1;
     }
@@ -551,7 +551,7 @@ LogFileCtx *Unified2AlertInitCtx(ConfNode *conf)
 
     if(file_ctx == NULL)
     {
-        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR, "Unified2AlertInitCtx: "
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC, "Unified2AlertInitCtx: "
                    "Couldn't create new file_ctx");
         return NULL;
     }
@@ -976,7 +976,7 @@ static int Unified2TestRotate01(void)
         goto error;
 
     if (strcmp(filename, lf->filename) == 0) {
-        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC_ERROR,
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC,
                    "filename \"%s\" == \"%s\": ", filename, lf->filename);
         goto error;
     }

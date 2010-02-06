@@ -236,7 +236,7 @@ LogFileCtx *LogHttpLogInitCtx(ConfNode *conf)
 
     if(file_ctx == NULL)
     {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC_ERROR, "LogHttpLogInitCtx: Couldn't "
+        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "LogHttpLogInitCtx: Couldn't "
                    "create new file_ctx");
         return NULL;
     }

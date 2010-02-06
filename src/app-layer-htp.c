@@ -165,12 +165,12 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         } else {
 
             if (hstate->connp->last_error != NULL) {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Error in parsing HTTP client request: "
+                SCLogError(SC_ERR_ALPARSER, "Error in parsing HTTP client request: "
                         "[%"PRId32"] [%s] [%"PRId32"] %s", hstate->connp->last_error->level,
                         hstate->connp->last_error->file, hstate->connp->last_error->line,
                         hstate->connp->last_error->msg);
             } else {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Error in parsing HTTP client request");
+                SCLogError(SC_ERR_ALPARSER, "Error in parsing HTTP client request");
             }
         }
         hstate->flags |= HTP_FLAG_STATE_ERROR;
@@ -228,12 +228,12 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
         } else {
 
             if (hstate->connp->last_error != NULL) {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Error in parsing HTTP server response: "
+                SCLogError(SC_ERR_ALPARSER, "Error in parsing HTTP server response: "
                         "[%"PRId32"] [%s] [%"PRId32"] %s", hstate->connp->last_error->level,
                         hstate->connp->last_error->file, hstate->connp->last_error->line,
                         hstate->connp->last_error->msg);
             } else {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Error in parsing HTTP server response");
+                SCLogError(SC_ERR_ALPARSER, "Error in parsing HTTP server response");
             }
         }
         hstate->flags = HTP_FLAG_STATE_ERROR;

@@ -309,7 +309,7 @@ void StreamTcpInitConfig(char quiet)
                         StreamTcpSessionPoolAlloc, NULL,
                         StreamTcpSessionPoolFree);
     if (ssn_pool == NULL) {
-        SCLogError(SC_ERR_POOL_INIT_FAILED, "ssn_pool is not initialized");
+        SCLogError(SC_ERR_POOL_INIT, "ssn_pool is not initialized");
         exit(EXIT_FAILURE);
     }
 

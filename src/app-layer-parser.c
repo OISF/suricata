@@ -176,7 +176,7 @@ int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstat
         if (pstate->store_len == 0) {
             int r = AlpStoreField(output, field_idx, input, size, /* static mem */0);
             if (r == -1) {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Failed to store field value");
+                SCLogError(SC_ERR_ALPARSER, "Failed to store field value");
                 SCReturnInt(-1);
             }
             (*offset) += size;
@@ -197,7 +197,7 @@ int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstat
             int r = AlpStoreField(output, field_idx, pstate->store,
                                   pstate->store_len, /* alloc mem */1);
             if (r == -1) {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Failed to store field value");
+                SCLogError(SC_ERR_ALPARSER, "Failed to store field value");
                 SCReturnInt(-1);
             }
 
@@ -230,7 +230,7 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
 
             int r = AlpStoreField(output, field_idx, input, input_len, 0);
             if (r == -1) {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Failed to store field value");
+                SCLogError(SC_ERR_ALPARSER, "Failed to store field value");
                 SCReturnInt(-1);
             }
 
@@ -263,7 +263,7 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
 
             int r = AlpStoreField(output, field_idx, pstate->store, pstate->store_len, 1);
             if (r == -1) {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Failed to store field value");
+                SCLogError(SC_ERR_ALPARSER, "Failed to store field value");
                 SCReturnInt(-1);
             }
 
@@ -312,7 +312,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
 
             int r = AlpStoreField(output, field_idx, input, len, 0);
             if (r == -1) {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Failed to store field value");
+                SCLogError(SC_ERR_ALPARSER, "Failed to store field value");
                 SCReturnInt(-1);
             }
             (*offset) += (len + delim_len);
@@ -354,7 +354,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
             int r = AlpStoreField(output, field_idx, pstate->store,
                                   pstate->store_len, 1);
             if (r == -1) {
-                SCLogError(SC_ERR_ALPARSER_ERR, "Failed to store field value");
+                SCLogError(SC_ERR_ALPARSER, "Failed to store field value");
                 SCReturnInt(-1);
             }
             pstate->store = NULL;
@@ -390,7 +390,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                             int r = AlpStoreField(output, field_idx,
                                                   pstate->store, len, 1);
                             if (r == -1) {
-                                SCLogError(SC_ERR_ALPARSER_ERR, "Failed to store "
+                                SCLogError(SC_ERR_ALPARSER, "Failed to store "
                                            "field value");
                                 SCReturnInt(-1);
                             }
@@ -437,7 +437,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                     uint32_t len = ptr - pstate->store;
                     int r = AlpStoreField(output, field_idx, pstate->store, len, 1);
                     if (r == -1) {
-                        SCLogError(SC_ERR_ALPARSER_ERR, "Failed to store field value");
+                        SCLogError(SC_ERR_ALPARSER, "Failed to store field value");
                         SCReturnInt(-1);
                     }
                     pstate->store = NULL;
@@ -829,7 +829,7 @@ error:
             inet_ntop(AF_INET, (const void*)&f->dst.addr_data32[0], dst,
                       sizeof (dst));
 
-            SCLogError(SC_ERR_ALPARSER_ERR, "Error occured in parsing \"%s\" app layer "
+            SCLogError(SC_ERR_ALPARSER, "Error occured in parsing \"%s\" app layer "
                 "protocol, using network protocol %"PRIu8", source IP "
                 "address %s, destination IP address %s, src port %"PRIu16" and "
                 "dst port %"PRIu16"", al_proto_table[ssn->alproto].name,
@@ -844,7 +844,7 @@ error:
             inet_ntop(AF_INET6, (const void*)&f->dst.addr_data32, dst6,
                       sizeof (dst6));
 
-            SCLogError(SC_ERR_ALPARSER_ERR, "Error occured in parsing \"%s\" app layer "
+            SCLogError(SC_ERR_ALPARSER, "Error occured in parsing \"%s\" app layer "
                 "protocol, using network protocol %"PRIu8", source IPv6 "
                 "address %s, destination IPv6 address %s, src port %"PRIu16" and "
                 "dst port %"PRIu16"", al_proto_table[ssn->alproto].name,

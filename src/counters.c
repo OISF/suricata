@@ -47,7 +47,7 @@ static char *SCPerfGetLogFilename(void)
 
     if (snprintf(log_filename, PATH_MAX, "%s/%s", log_dir,
                  SC_PERF_DEFAULT_LOG_FILENAME) < 0) {
-        SCLogError(SC_ERR_SPRINTF_ERROR, "Sprintf Error");
+        SCLogError(SC_ERR_SPRINTF, "Sprintf Error");
         free(log_filename);
         return NULL;
     }
@@ -94,7 +94,7 @@ static void SCPerfInitOPCtx(void)
 
     /* init the lock used by SCPerfClubTMInst */
     if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
-        SCLogError(SC_ERR_INITIALIZATION_ERROR, "error initializing pctmi mutex");
+        SCLogError(SC_ERR_INITIALIZATION, "error initializing pctmi mutex");
         exit(EXIT_FAILURE);
     }
 
@@ -837,12 +837,12 @@ void SCPerfSpawnThreads(void)
     tv_wakeup = TmThreadCreateMgmtThread("SCPerfWakeupThread",
                                          SCPerfWakeupThread, 1);
     if (tv_wakeup == NULL) {
-        SCLogError(SC_ERR_THREAD_CREATE_ERROR, "TmThreadCreateMgmtThread "
+        SCLogError(SC_ERR_THREAD_CREATE, "TmThreadCreateMgmtThread "
                    "failed");
         exit(EXIT_FAILURE);
     }
     if (TmThreadSpawn(tv_wakeup) != 0) {
-        SCLogError(SC_ERR_THREAD_SPAWN_FAILED, "TmThreadSpawn failed for "
+        SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
                    "SCPerfWakeupThread");
         exit(EXIT_FAILURE);
     }
@@ -851,12 +851,12 @@ void SCPerfSpawnThreads(void)
     tv_mgmt = TmThreadCreateMgmtThread("SCPerfMgmtThread",
                                        SCPerfMgmtThread, 1);
     if (tv_mgmt == NULL) {
-        SCLogError(SC_ERR_THREAD_CREATE_ERROR,
+        SCLogError(SC_ERR_THREAD_CREATE,
                    "TmThreadCreateMgmtThread failed");
         exit(EXIT_FAILURE);
     }
     if (TmThreadSpawn(tv_mgmt) != 0) {
-        SCLogError(SC_ERR_THREAD_SPAWN_FAILED, "TmThreadSpawn failed for "
+        SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
                    "SCPerfWakeupThread");
         exit(EXIT_FAILURE);
     }

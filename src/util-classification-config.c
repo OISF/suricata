@@ -77,7 +77,7 @@ static inline int SCClassConfInitContext(DetectEngineCtx *de_ctx)
                                           SCClassConfClasstypeHashCompareFunc,
                                           SCClassConfClasstypeHashFree);
     if (de_ctx->class_conf_ht == NULL) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT_FAILED, "Error initializing the hash "
+        SCLogError(SC_ERR_HASH_TABLE_INIT, "Error initializing the hash "
                    "table");
         return -1;
     }
@@ -89,7 +89,7 @@ static inline int SCClassConfInitContext(DetectEngineCtx *de_ctx)
     if (fd == NULL) {
         filename = SCClassConfGetConfFilename();
         if ( (fd = fopen(filename, "r")) == NULL) {
-            SCLogError(SC_ERR_FOPEN_ERROR, "Error opening file: \"%s\": %s", filename, strerror(errno));
+            SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
             goto error;
         }
     }

@@ -559,7 +559,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         else {
             int pkt_end = fragmentable_offset + frag->offset + frag->data_len;
             if (pkt_end > (int)sizeof(rp->pkt)) {
-                SCLogWarning(SC_ERR_REASSEMBLY_FAILED, "Failed re-assemble fragmented packet, exceeds size of packet buffer.");
+                SCLogWarning(SC_ERR_REASSEMBLY, "Failed re-assemble fragmented packet, exceeds size of packet buffer.");
                 goto remove_tracker;
             }
             memcpy(rp->pkt + fragmentable_offset + frag->offset + frag->ltrim,
