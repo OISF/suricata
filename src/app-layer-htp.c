@@ -158,15 +158,20 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     }
 
     r = htp_connp_req_data(hstate->connp, 0, input, input_len);
-    if(r == STREAM_STATE_ERROR)
+    if (r == STREAM_STATE_ERROR || r == STREAM_STATE_DATA_OTHER)
     {
-        if (hstate->connp->last_error != NULL) {
-            SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request: "
-                "[%"PRId32"] [%s] [%"PRId32"] %s", hstate->connp->last_error->level,
-                hstate->connp->last_error->file, hstate->connp->last_error->line,
-                hstate->connp->last_error->msg);
+        if (r == STREAM_STATE_DATA_OTHER) {
+            SCLogDebug("CONNECT not supported yet");
         } else {
-             SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request");
+
+            if (hstate->connp->last_error != NULL) {
+                SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request: "
+                        "[%"PRId32"] [%s] [%"PRId32"] %s", hstate->connp->last_error->level,
+                        hstate->connp->last_error->file, hstate->connp->last_error->line,
+                        hstate->connp->last_error->msg);
+            } else {
+                SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP client request");
+            }
         }
         hstate->flags |= HTP_FLAG_STATE_ERROR;
         hstate->flags &= ~HTP_FLAG_STATE_DATA;
@@ -216,18 +221,23 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     HtpState *hstate = (HtpState *)htp_state;
 
     r = htp_connp_res_data(hstate->connp, 0, input, input_len);
-    if (r == STREAM_STATE_ERROR)
+    if (r == STREAM_STATE_ERROR || r == STREAM_STATE_DATA_OTHER)
     {
-         if (hstate->connp->last_error != NULL) {
-            SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server response: "
-                "[%"PRId32"] [%s] [%"PRId32"] %s", hstate->connp->last_error->level,
-                hstate->connp->last_error->file, hstate->connp->last_error->line,
-                hstate->connp->last_error->msg);
-         } else {
-             SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server response");
-         }
-         hstate->flags = HTP_FLAG_STATE_ERROR;
-         ret = -1;
+        if (r == STREAM_STATE_DATA_OTHER) {
+            SCLogDebug("CONNECT not supported yet");
+        } else {
+
+            if (hstate->connp->last_error != NULL) {
+                SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server response: "
+                        "[%"PRId32"] [%s] [%"PRId32"] %s", hstate->connp->last_error->level,
+                        hstate->connp->last_error->file, hstate->connp->last_error->line,
+                        hstate->connp->last_error->msg);
+            } else {
+                SCLogError(SC_ALPARSER_ERR, "Error in parsing HTTP server response");
+            }
+        }
+        hstate->flags = HTP_FLAG_STATE_ERROR;
+        ret = -1;
 
     } else if (r == STREAM_STATE_DATA) {
         hstate->flags |= HTP_FLAG_STATE_DATA;
@@ -291,9 +301,8 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     SCEnter();
     HtpState *hstate = (HtpState *)connp->user_data;
     htp_tx_t *tx = NULL;
-    uint8_t i = 0;
 
-    for (i=0; i < list_size(hstate->recent_in_tx) - 1; i++) {
+    while (list_size(hstate->recent_in_tx) > 0) {
         tx = list_pop(hstate->recent_in_tx);
         if (tx != NULL)
             htp_tx_destroy(tx);
