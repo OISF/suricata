@@ -1175,22 +1175,16 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
         COPY_PORT(p->flow->sp,smsg->data.src_port);
         COPY_PORT(p->flow->dp,smsg->data.dst_port);
 
+        smsg->flags |= STREAM_TOCLIENT;
+        SCLogDebug("stream mesage is to_client");
     } else {
         COPY_ADDRESS(&p->flow->dst,&smsg->data.src_ip);
         COPY_ADDRESS(&p->flow->src,&smsg->data.dst_ip);
         COPY_PORT(p->flow->dp,smsg->data.src_port);
         COPY_PORT(p->flow->sp,smsg->data.dst_port);
 
-    }
-
-    /* As we are opposing the stream to handle the ACK, we need to update the
-       smsg direction accordingly too */
-    if (stream == &ssn->client) {
         smsg->flags |= STREAM_TOSERVER;
         SCLogDebug("stream mesage is to_server");
-    } else {
-        smsg->flags |= STREAM_TOCLIENT;
-        SCLogDebug("stream mesage is to_client");
     }
 
     smsg->data.data_len = 0;
@@ -1214,7 +1208,7 @@ static int StreamTcpReassembleCheckLimit(TcpSession *ssn, TcpStream *stream,
         SCReturnInt(1);
 
     /* check if we have enough data to send to L7 */
-    if (p->flowflags & FLOW_PKT_TOSERVER) {
+    if (p->flowflags & FLOW_PKT_TOCLIENT) {
         if (stream->ra_base_seq == stream->isn) {
             if (StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER) >
                     (stream->last_ack - stream->ra_base_seq)) {
@@ -1227,7 +1221,10 @@ static int StreamTcpReassembleCheckLimit(TcpSession *ssn, TcpStream *stream,
         } else {
             if (StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER) >
                     (stream->last_ack - stream->ra_base_seq)) {
-                SCLogDebug("toserver min chunk len not yet reached");
+                SCLogDebug("toserver min chunk len not yet reached: "
+                           "last_ack %"PRIu32", ra_base_seq %"PRIu32", len "
+                           "%"PRIu32"", stream->last_ack, stream->ra_base_seq,
+                            StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER));
                 SCReturnInt(0);
             }
         }
@@ -1235,14 +1232,19 @@ static int StreamTcpReassembleCheckLimit(TcpSession *ssn, TcpStream *stream,
         if (stream->ra_base_seq == stream->isn) {
             if (StreamMsgQueueGetMinInitChunkLen(STREAM_TOCLIENT) >
                     (stream->last_ack - stream->ra_base_seq)) {
-                SCLogDebug("StreamTcpReassembleCheckLimit: toclient min init "
-                           "chunk len not yet reached");
+                SCLogDebug("toclient min init chunk len not yet reached: "
+                           "last_ack %"PRIu32", ra_base_seq %"PRIu32", len "
+                           "%"PRIu32"", stream->last_ack, stream->ra_base_seq,
+                            StreamMsgQueueGetMinInitChunkLen(STREAM_TOCLIENT));
                 SCReturnInt(0);
             }
         } else {
             if (StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT) >
                     (stream->last_ack - stream->ra_base_seq)) {
-                SCLogDebug("toclient min chunk len not yet reached");
+                SCLogDebug("toclient min chunk len not yet reached: "
+                           "last_ack %"PRIu32", ra_base_seq %"PRIu32", len "
+                           "%"PRIu32"", stream->last_ack, stream->ra_base_seq,
+                            StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT));
                 SCReturnInt(0);
             }
         }
