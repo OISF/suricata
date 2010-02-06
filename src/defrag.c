@@ -440,12 +440,12 @@ DefragContextNew(void)
     }
     else {
         if (timeout < TIMEOUT_MIN) {
-            SCLogError(SC_INVALID_ARGUMENT,
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "defrag: Timeout less than minimum allowed value.");
             exit(EXIT_FAILURE);
         }
         else if (timeout > TIMEOUT_MAX) {
-            SCLogError(SC_INVALID_ARGUMENT,
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "defrag: Tiemout greater than maximum allowed value.");
             exit(EXIT_FAILURE);
         }
@@ -780,7 +780,7 @@ DefragInsertFrag(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     }
     else {
         /* Abort - should not happen. */
-        SCLogWarning(SC_INVALID_ARGUMENT, "Invalid address family, aborting.");
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid address family, aborting.");
         return NULL;
     }
 

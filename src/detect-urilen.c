@@ -149,14 +149,14 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     ret = pcre_exec(parse_regex, parse_regex_study, urilenstr, strlen(urilenstr),
                     0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
-        SCLogError(SC_PCRE_PARSE_FAILED, "parse error, ret %" PRId32 "", ret);
+        SCLogError(SC_ERR_PCRE_PARSE_FAILED, "parse error, ret %" PRId32 "", ret);
         goto error;
     }
     const char *str_ptr;
 
     res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
-        SCLogError(SC_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
         goto error;
     }
     arg1 = (char *) str_ptr;
@@ -164,7 +164,7 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
 
     res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
     if (res < 0) {
-        SCLogError(SC_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
         goto error;
     }
     arg2 = (char *) str_ptr;
@@ -172,7 +172,7 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
 
     res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
     if (res < 0) {
-        SCLogError(SC_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
         goto error;
     }
     arg3 = (char *) str_ptr;
@@ -180,7 +180,7 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
 
     res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
     if (res < 0) {
-        SCLogError(SC_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
         goto error;
     }
     arg4 = (char *) str_ptr;
@@ -200,7 +200,7 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
 
     if (strcmp("<>", arg3) == 0) {
         if (strlen(arg1) != 0) {
-            SCLogError(SC_INVALID_ARGUMENT,"Range specified but mode also set");
+            SCLogError(SC_ERR_INVALID_ARGUMENT,"Range specified but mode also set");
             goto error;
         }
         urilend->mode = DETECT_URILEN_RA;
@@ -208,26 +208,26 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
 
     /** set the first urilen value */
     if(ByteExtractStringUint16(&urilend->urilen1,10,strlen(arg2),arg2) <= 0){
-        SCLogError(SC_INVALID_ARGUMENT,"Invalid size :\"%s\"",arg2);
+        SCLogError(SC_ERR_INVALID_ARGUMENT,"Invalid size :\"%s\"",arg2);
         goto error;
     }
 
     /** set the second urilen value if specified */
     if (strlen(arg4) > 0) {
         if (urilend->mode != DETECT_URILEN_RA) {
-            SCLogError(SC_INVALID_ARGUMENT,"Multiple urilen values specified"
+            SCLogError(SC_ERR_INVALID_ARGUMENT,"Multiple urilen values specified"
                                            " but mode is not range");
             goto error;
         }
 
         if(ByteExtractStringUint16(&urilend->urilen2,10,strlen(arg4),arg4) <= 0)
         {
-            SCLogError(SC_INVALID_ARGUMENT,"Invalid size :\"%s\"",arg4);
+            SCLogError(SC_ERR_INVALID_ARGUMENT,"Invalid size :\"%s\"",arg4);
             goto error;
         }
 
         if (urilend->urilen2 <= urilend->urilen1){
-            SCLogError(SC_INVALID_ARGUMENT,"urilen2:%"PRIu16" <= urilen:"
+            SCLogError(SC_ERR_INVALID_ARGUMENT,"urilen2:%"PRIu16" <= urilen:"
                         "%"PRIu16"",urilend->urilen2,urilend->urilen1);
             goto error;
         }

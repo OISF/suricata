@@ -209,7 +209,7 @@ Reputation *SCReputationClone(Reputation *orig)
 {
     Reputation *rep = NULL;
     if (orig == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Invalid arguments");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid arguments");
         return NULL;
     }
 
@@ -249,13 +249,13 @@ Reputation *SCReputationAddIPV4Data(uint8_t *ipv4addr, int netmask_value, Reputa
     struct in_addr *ipv4_addr = (struct in_addr *) ipv4addr;
 
     if (ipv4_addr == NULL || rep_data == NULL || rep_ctx == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Invalid arguments");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid arguments");
         return NULL;
     }
 
     /* If the reputation tree is not initialized yet */
     if (rep_ctx->reputationIPV4_tree == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Reputation trees not initialized");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Reputation trees not initialized");
         return NULL;
     }
 
@@ -268,7 +268,7 @@ Reputation *SCReputationAddIPV4Data(uint8_t *ipv4addr, int netmask_value, Reputa
 
     } else {
         if (netmask_value < 0 || netmask_value > 31) {
-            SCLogError(SC_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
+            SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
             return NULL;
         }
 
@@ -519,13 +519,13 @@ Reputation *SCReputationAddIPV6Data(uint8_t *ipv6addr, int netmask_value, Reputa
     struct in_addr *ipv6_addr = (struct in_addr *) ipv6addr;
 
     if (ipv6_addr == NULL || rep_data == NULL || rep_ctx == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Invalid arguments");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid arguments");
         return NULL;
     }
 
     /* If the reputation tree is not initialized yet */
     if (rep_ctx->reputationIPV6_tree == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Reputation trees not initialized");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Reputation trees not initialized");
         return NULL;
     }
 
@@ -538,7 +538,7 @@ Reputation *SCReputationAddIPV6Data(uint8_t *ipv6addr, int netmask_value, Reputa
 
     } else {
         if (netmask_value < 0 || netmask_value > 127) {
-            SCLogError(SC_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
+            SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
             return NULL;
         }
 
@@ -570,13 +570,13 @@ Reputation *SCReputationUpdateIPV4Data(uint8_t *ipv4addr, ReputationTransaction 
     Reputation *actual_rep;
 
     if (ipv4_addr == NULL || rtx == NULL || rep_ctx == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Invalid arguments");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid arguments");
         return NULL;
     }
 
     /* If the reputation tree is not initialized yet */
     if (rep_ctx->reputationIPV4_tree == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Reputation trees not initialized");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Reputation trees not initialized");
         return NULL;
     }
 
@@ -629,13 +629,13 @@ Reputation *SCReputationUpdateIPV6Data(uint8_t *ipv6addr, ReputationTransaction 
     Reputation *actual_rep;
 
     if (ipv6_addr == NULL || rtx == NULL || rep_ctx == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Invalid arguments");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid arguments");
         return NULL;
     }
 
     /* If the reputation tree is not initialized yet */
     if (rep_ctx->reputationIPV6_tree == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Reputation trees not initialized");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Reputation trees not initialized");
         return NULL;
     }
 

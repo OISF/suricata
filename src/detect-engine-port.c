@@ -904,7 +904,7 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
     /** parse the address */
     ad = PortParse(s);
     if (ad == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT,"PortParse error \"%s\"",s);
+        SCLogError(SC_ERR_INVALID_ARGUMENT,"PortParse error \"%s\"",s);
         goto error;
     }
 
@@ -950,7 +950,7 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
     return 0;
 
 error:
-    SCLogError(SC_PORT_PARSE_INSERT_STRING_ERR,"DetectPortParseInsertString error");
+    SCLogError(SC_ERR_PORT_PARSE_INSERT_STRING_ERR,"DetectPortParseInsertString error");
     if (ad != NULL)
         DetectPortCleanupList(ad);
     if (ad_any != NULL)
@@ -1003,7 +1003,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
             range = 1;
 
         if (range == 1 && s[u] == '!') {
-            SCLogError(SC_NEGATED_VALUE_IN_PORT_RANGE,"Can't have a negated value in a range.");
+            SCLogError(SC_ERR_NEGATED_VALUE_IN_PORT_RANGE,"Can't have a negated value in a range.");
             return -1;
         } else if (!o_set && s[u] == '!') {
             SCLogDebug("negation encountered");
@@ -1173,7 +1173,7 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
 
     /** check if the full port space is negated */
     if (DetectPortIsCompletePortSpace(*nhead) == 1) {
-        SCLogError(SC_COMPLETE_PORT_SPACE_NEGATED,"Complete port space is negated");
+        SCLogError(SC_ERR_COMPLETE_PORT_SPACE_NEGATED,"Complete port space is negated");
         goto error;
     }
 
@@ -1242,7 +1242,7 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
     }
 
     if (*head == NULL) {
-        SCLogError(SC_NO_PORTS_LEFT_AFTER_MERGE,"no ports left after merging ports with negated ports");
+        SCLogError(SC_ERR_NO_PORTS_LEFT_AFTER_MERGE,"no ports left after merging ports with negated ports");
         goto error;
     }
 

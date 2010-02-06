@@ -161,7 +161,7 @@ static void SCRadixAppendToSCRadixUserDataList(SCRadixUserData *new,
     SCRadixUserData *prev = NULL;
 
     if (new == NULL || list == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "new or list supplied as NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "new or list supplied as NULL");
         exit(EXIT_FAILURE);
     }
 
@@ -206,13 +206,13 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
     SCRadixPrefix *prefix = NULL;
 
     if ((key_bitlen % 8 != 0) || key_bitlen == 0) {
-        SCLogError(SC_INVALID_ARGUMENT, "Invalid argument bitlen - %d",
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid argument bitlen - %d",
                    key_bitlen);
         return NULL;
     }
 
     if (key_stream == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Argument \"stream\" NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Argument \"stream\" NULL");
         return NULL;
     }
 
@@ -249,7 +249,7 @@ static void SCRadixAddNetmaskUserDataToPrefix(SCRadixPrefix *prefix,
                                               void *user)
 {
     if (prefix == NULL || user == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "prefix or user NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "prefix or user NULL");
         exit(EXIT_FAILURE);
     }
 
@@ -273,7 +273,7 @@ static void SCRadixRemoveNetmaskUserDataFromPrefix(SCRadixPrefix *prefix,
     SCRadixUserData *temp = NULL, *prev = NULL;
 
     if (prefix == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "prefix NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "prefix NULL");
         exit(EXIT_FAILURE);
     }
 
@@ -310,7 +310,7 @@ static int SCRadixPrefixContainNetmask(SCRadixPrefix *prefix, uint8_t netmask)
     SCRadixUserData *user_data = NULL;
 
     if (prefix == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "prefix is NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "prefix is NULL");
         goto no_match;
     }
 
@@ -338,7 +338,7 @@ static int SCRadixPrefixNetmaskCount(SCRadixPrefix *prefix)
     uint32_t count = 0;
 
     if (prefix == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "prefix is NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "prefix is NULL");
         return 0;
     }
 
@@ -374,7 +374,7 @@ static int SCRadixPrefixContainNetmaskAndSetUserData(SCRadixPrefix *prefix,
     SCRadixUserData *user_data = NULL;
 
     if (prefix == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "prefix is NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "prefix is NULL");
         goto no_match;
     }
 
@@ -575,12 +575,12 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
                                        netmask)) == NULL) {
-        SCLogError(SC_RADIX_TREE_GENERIC_ERROR, "Error creating prefix");
+        SCLogError(SC_ERR_RADIX_TREE_GENERIC_ERROR, "Error creating prefix");
         return NULL;
     }
 
     if (tree == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Argument \"tree\" NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Argument \"tree\" NULL");
         return NULL;
     }
 
@@ -969,7 +969,7 @@ static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
     int i = 0, j = 0;
 
     if (src == NULL || dest == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "src or dest NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "src or dest NULL");
         return;
     }
 
@@ -1006,7 +1006,7 @@ static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
     int i = 0;
 
     if (node == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument.  Node is NULL");
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument.  Node is NULL");
         return;
     }
 

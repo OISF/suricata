@@ -130,7 +130,7 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
     DecodeThreadVars dtv;
     ThreadVars th_v;
     if (raw_eth == NULL || pktsize == NULL || numpkts <= 0) {
-        SCLogError(SC_INVALID_ARGUMENT, "The arrays cant be null, and the number"
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "The arrays cant be null, and the number"
                                         " of packets should be grater thatn zero");
         return NULL;
     }
@@ -293,7 +293,7 @@ int UTHGenericTest(Packet **pkt, int numpkts, char *sigs[], uint32_t sids[], uin
     int result = 0;
     if (pkt == NULL || sigs == NULL || numpkts == 0
         || sids == NULL || results == NULL || numsigs == 0) {
-        SCLogError(SC_INVALID_ARGUMENT, "Arguments invalid, that the pointer/arrays are not NULL, and the number of signatures and packets is > 0");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments invalid, that the pointer/arrays are not NULL, and the number of signatures and packets is > 0");
         goto end;
     }
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -331,7 +331,7 @@ end:
  */
 int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[], uint32_t results[], int numsids) {
     if (p == NULL || sids == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Arguments invalid, check if the packet is NULL, and if the array contain sids is set");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments invalid, check if the packet is NULL, and if the array contain sids is set");
         return 0;
     }
     int i = 0;
@@ -360,7 +360,7 @@ int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[], uint32_t results[], i
  */
 int UTHAppendSigs(DetectEngineCtx *de_ctx, char *sigs[], int numsigs) {
     if (de_ctx == NULL || numsigs <= 0 || sigs == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "Arguments invalid, check if sigs or de_ctx are NULL, and if the array contain sigs");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments invalid, check if sigs or de_ctx are NULL, and if the array contain sigs");
         return 0;
     }
     //SCLogDebug("Adding %d signatures for the current unittest", numsigs);
@@ -370,13 +370,13 @@ int UTHAppendSigs(DetectEngineCtx *de_ctx, char *sigs[], int numsigs) {
 
     for ( ; i < numsigs; i++) {
         if (sigs[i] == NULL) {
-            SCLogError(SC_INVALID_ARGUMENT, "Check the signature"
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Check the signature"
                        " at position %d", i);
             return 0;
         }
         s = DetectEngineAppendSig(de_ctx, sigs[i]);
         if (s == NULL) {
-            SCLogError(SC_INVALID_ARGUMENT, "Check the signature at"
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Check the signature at"
                        " position %d (%s)", i, sigs[i]);
             return 0;
         }
@@ -400,7 +400,7 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
     int result = 0;
 
     if (de_ctx == NULL || p == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "packet or de_ctx was null");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "packet or de_ctx was null");
         result = 0;
         goto end;
     }
@@ -449,7 +449,7 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets) {
     int result = 1;
 
     if (de_ctx == NULL || p == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "packet or de_ctx was null");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "packet or de_ctx was null");
         result = 0;
         goto end;
     }

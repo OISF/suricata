@@ -47,7 +47,7 @@ static char *SCPerfGetLogFilename(void)
 
     if (snprintf(log_filename, PATH_MAX, "%s/%s", log_dir,
                  SC_PERF_DEFAULT_LOG_FILENAME) < 0) {
-        SCLogError(SC_SPRINTF_ERROR, "Sprintf Error");
+        SCLogError(SC_ERR_SPRINTF_ERROR, "Sprintf Error");
         free(log_filename);
         return NULL;
     }
@@ -94,7 +94,7 @@ static void SCPerfInitOPCtx(void)
 
     /* init the lock used by SCPerfClubTMInst */
     if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
-        SCLogError(SC_INITIALIZATION_ERROR, "error initializing pctmi mutex");
+        SCLogError(SC_ERR_INITIALIZATION_ERROR, "error initializing pctmi mutex");
         exit(EXIT_FAILURE);
     }
 
@@ -271,7 +271,7 @@ static int SCPerfParseTBCounterInterval(SCPerfCounter *pc, char *interval)
 
     ret = pcre_exec(regex, regex_study, interval, strlen(interval), 0, 0, ov, 30);
     if (ret < 0) {
-        SCLogWarning(SC_INVALID_ARGUMENTS, "Invalid Timebased interval");
+        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "Invalid Timebased interval");
         goto error;
     }
 
@@ -403,7 +403,7 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
 
     /* (SC_PERF_TYPE_MAX - 1) because we haven't implemented SC_PERF_TYPE_STR */
     if ((type >= (SC_PERF_TYPE_MAX - 1)) || (type < 0)) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Counters of type %" PRId32 " can't "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Counters of type %" PRId32 " can't "
                    "be registered", type);
         return 0;
     }
@@ -842,7 +842,7 @@ void SCPerfSpawnThreads(void)
         exit(EXIT_FAILURE);
     }
     if (TmThreadSpawn(tv_wakeup) != 0) {
-        SCLogError(SC_THREAD_SPAWN_FAILED, "TmThreadSpawn failed for "
+        SCLogError(SC_ERR_THREAD_SPAWN_FAILED, "TmThreadSpawn failed for "
                    "SCPerfWakeupThread");
         exit(EXIT_FAILURE);
     }
@@ -856,7 +856,7 @@ void SCPerfSpawnThreads(void)
         exit(EXIT_FAILURE);
     }
     if (TmThreadSpawn(tv_mgmt) != 0) {
-        SCLogError(SC_THREAD_SPAWN_FAILED, "TmThreadSpawn failed for "
+        SCLogError(SC_ERR_THREAD_SPAWN_FAILED, "TmThreadSpawn failed for "
                    "SCPerfWakeupThread");
         exit(EXIT_FAILURE);
     }

@@ -125,7 +125,7 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
 
     res = pcre_get_substring(arg, ov, MAX_SUBSTRINGS, 0, &pcre_sub_str);
     if (res < 0) {
-        SCLogError(SC_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed");
         goto error;
     }
 

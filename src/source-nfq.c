@@ -148,7 +148,7 @@ void NFQSetupPkt (Packet *p, void *data)
             /* Will not be able to copy data ! Set length to 0
              * to trigger an error in packet decoding.
              * This is unlikely to happen */
-            SCLogWarning(SC_INVALID_ARGUMENTS, "NFQ sent too big packet");
+            SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "NFQ sent too big packet");
             p->pktlen = 0;
         } else {
             memcpy(p->pkt, pktdata, ret);
@@ -200,7 +200,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
     SCLogDebug("opening library handle");
     nfq_t->h = nfq_open();
     if (!nfq_t->h) {
-        SCLogError(SC_NFQ_OPEN, "nfq_open() failed");
+        SCLogError(SC_ERR_NFQ_OPEN, "nfq_open() failed");
         return TM_ECODE_FAILED;
     }
 
@@ -210,21 +210,21 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
          * run. Ignoring the error seems to have no bad effects. */
         SCLogDebug("unbinding existing nf_queue handler for AF_INET (if any)");
         if (nfq_unbind_pf(nfq_t->h, AF_INET) < 0) {
-            SCLogWarning(SC_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET failed");
+            SCLogWarning(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET failed");
         }
         if (nfq_unbind_pf(nfq_t->h, AF_INET6) < 0) {
-            SCLogWarning(SC_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET6 failed");
+            SCLogWarning(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET6 failed");
         }
         nfq_g.unbind = 1;
 
         SCLogDebug("binding nfnetlink_queue as nf_queue handler for AF_INET and AF_INET6");
 
         if (nfq_bind_pf(nfq_t->h, AF_INET) < 0) {
-            SCLogError(SC_NFQ_BIND, "nfq_bind_pf() for AF_INET failed");
+            SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET failed");
             return TM_ECODE_FAILED;
         }
         if (nfq_bind_pf(nfq_t->h, AF_INET6) < 0) {
-            SCLogError(SC_NFQ_BIND, "nfq_bind_pf() for AF_INET6 failed");
+            SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET6 failed");
             return TM_ECODE_FAILED;
         }
     }
@@ -236,7 +236,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
     nfq_t->qh = nfq_create_queue(nfq_t->h, nfq_t->queue_num, &NFQCallBack, (void *)nfq_t);
     if (nfq_t->qh == NULL)
     {
-        SCLogError(SC_NFQ_CREATE_QUEUE, "nfq_create_queue failed");
+        SCLogError(SC_ERR_NFQ_CREATE_QUEUE, "nfq_create_queue failed");
         return TM_ECODE_FAILED;
     }
 
@@ -245,7 +245,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
     /* 05DC = 1500 */
     //if (nfq_set_mode(nfq_t->qh, NFQNL_COPY_PACKET, 0x05DC) < 0) {
     if (nfq_set_mode(nfq_t->qh, NFQNL_COPY_PACKET, 0xFFFF) < 0) {
-        SCLogError(SC_NFQ_SET_MODE, "can't set packet_copy mode");
+        SCLogError(SC_ERR_NFQ_SET_MODE, "can't set packet_copy mode");
         return TM_ECODE_FAILED;
     }
 
@@ -257,7 +257,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
 
         /* non-fatal if it fails */
         if (nfq_set_queue_maxlen(nfq_t->qh, queue_maxlen) < 0) {
-            SCLogWarning(SC_NFQ_MAXLEN, "can't set queue maxlen: your kernel probably "
+            SCLogWarning(SC_ERR_NFQ_MAXLEN, "can't set queue maxlen: your kernel probably "
                     "doesn't support setting the queue length");
         }
     }
@@ -275,7 +275,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
     tv.tv_usec = 0;
 
     if(setsockopt(nfq_t->fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == -1) {
-        SCLogWarning(SC_NFQ_SETSOCKOPT, "can't set socket timeout: %s", strerror(errno));
+        SCLogWarning(SC_ERR_NFQ_SETSOCKOPT, "can't set socket timeout: %s", strerror(errno));
     }
 
     SCLogDebug("nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %" PRId32 "",
@@ -302,14 +302,14 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if ((ByteExtractStringUint16(&queue_num, 10, strlen((char *)initdata),
                                       (char *)initdata)) < 0)
     {
-        SCLogError(SC_INVALID_ARGUMENT, "specified queue number %s is not "
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "specified queue number %s is not "
                                         "valid", (char *)initdata);
         exit(EXIT_FAILURE);
     }
 
     int r = NFQInitThread(ntv, queue_num, NFQ_DFT_QUEUE_LEN);
     if (r < 0) {
-        SCLogError(SC_NFQ_THREAD_INIT, "nfq thread failed to initialize");
+        SCLogError(SC_ERR_NFQ_THREAD_INIT, "nfq thread failed to initialize");
 
         SCMutexUnlock(&nfq_init_lock);
         exit(EXIT_FAILURE);
@@ -359,7 +359,7 @@ void NFQRecvPkt(NFQThreadVars *t) {
 #endif /* COUNTERS */
         }
     } else if(rv == 0) {
-        SCLogWarning(SC_NFQ_RECV, "recv got returncode 0");
+        SCLogWarning(SC_ERR_NFQ_RECV, "recv got returncode 0");
     } else {
 #ifdef DBG_PERF
         if (rv > t->dbg_maxreadsize)
@@ -373,7 +373,7 @@ void NFQRecvPkt(NFQThreadVars *t) {
         SCMutexUnlock(&t->mutex_qh);
 
         if (ret != 0) {
-            SCLogWarning(SC_NFQ_HANDLE_PKT, "nfq_handle_packet error %" PRId32 "", ret);
+            SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "nfq_handle_packet error %" PRId32 "", ret);
         }
     }
 }
@@ -436,7 +436,7 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     SCMutexUnlock(&t->mutex_qh);
 
     if (ret < 0) {
-        SCLogWarning(SC_NFQ_SET_VERDICT, "nfq_set_verdict of %p failed %" PRId32 "", p, ret);
+        SCLogWarning(SC_ERR_NFQ_SET_VERDICT, "nfq_set_verdict of %p failed %" PRId32 "", p, ret);
     }
 }
 

@@ -278,19 +278,19 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         printf("Logging module not initialized.  Call SCLogInitLogModule(), "
                "before using the logging API\n");
 #endif
-        return SC_LOG_MODULE_NOT_INIT;
+        return SC_ERR_LOG_MODULE_NOT_INIT;
     }
 
     if (sc_log_fg_filters_present == 1) {
         if (SCLogMatchFGFilterWL(file, function, line) != 1)
-            return SC_LOG_FG_FILTER_MATCH_FAILED;
+            return SC_ERR_LOG_FG_FILTER_MATCH_FAILED;
 
         if (SCLogMatchFGFilterBL(file, function, line) != 1)
-            return SC_LOG_FG_FILTER_MATCH_FAILED;
+            return SC_ERR_LOG_FG_FILTER_MATCH_FAILED;
     }
 
     if (sc_log_fd_filters_present == 1 && SCLogMatchFDFilter(function) != 1)
-        return SC_LOG_FG_FILTER_MATCH_FAILED;
+        return SC_ERR_LOG_FG_FILTER_MATCH_FAILED;
 
 	while ( (temp_fmt = index(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
         if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
@@ -423,7 +423,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
     return SC_OK;
 
  error:
-    return SC_SPRINTF_ERROR;
+    return SC_ERR_SPRINTF_ERROR;
 }
 
 /**
@@ -1026,7 +1026,7 @@ void SCLogLoadConfig(void)
         sc_lid->global_log_level =
             SCMapEnumNameToValue(default_log_level_s, sc_log_level_map);
         if (sc_lid->global_log_level == -1) {
-            SCLogError(SC_INVALID_ARGUMENT, "Invalid default log level: %s",
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid default log level: %s",
                 default_log_level_s);
             exit(EXIT_FAILURE);
         }
@@ -1060,7 +1060,7 @@ void SCLogLoadConfig(void)
         if (level_s != NULL) {
             level = SCMapEnumNameToValue(level_s, sc_log_level_map);
             if (level == -1) {
-                SCLogError(SC_INVALID_ARGUMENT, "Invalid log level: %s",
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid log level: %s",
                     level_s);
                 exit(EXIT_FAILURE);
             }
@@ -1086,7 +1086,7 @@ void SCLogLoadConfig(void)
                 facility = SCMapEnumNameToValue(facility_s,
                     sc_syslog_facility_map);
                 if (facility == -1) {
-                    SCLogError(SC_INVALID_ARGUMENT,
+                    SCLogError(SC_ERR_INVALID_ARGUMENT,
                         "Invalid syslog facility: %s", facility_s);
                     exit(EXIT_FAILURE);
                 }
@@ -1096,7 +1096,7 @@ void SCLogLoadConfig(void)
             op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level);
         }
         else {
-            SCLogWarning(SC_INVALID_ARGUMENT, "Invalid logging method: %s, "
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid logging method: %s, "
                 "ignoring", output->name);
         }
         if (op_iface_ctx != NULL) {

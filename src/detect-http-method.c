@@ -134,7 +134,7 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
     bstr *method;
 
     if ((str != NULL) && (strcmp(str, "") != 0)) {
-        SCLogError(SC_INVALID_ARGUMENT,
+        SCLogError(SC_ERR_INVALID_ARGUMENT,
                    "http_method does not take an argument");
         SCReturnInt(-1);
     }

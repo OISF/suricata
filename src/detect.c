@@ -234,7 +234,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
     int lineno = 0, multiline = 0;
 
     if (sig_file == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "ERROR opening rule file null.");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "ERROR opening rule file null.");
         return -1;
     }
 

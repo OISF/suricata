@@ -77,7 +77,7 @@ typedef struct TmVarSlot_ {
 inline int TmThreadsCheckFlag(ThreadVars *tv, uint8_t flag) {
     int r;
     if (SCSpinLock(&tv->flags_spinlock) != 0) {
-        SCLogError(SC_SPINLOCK_ERROR,"spin lock errno=%d",errno);
+        SCLogError(SC_ERR_SPINLOCK_ERROR,"spin lock errno=%d",errno);
         return 0;
     }
 
@@ -88,7 +88,7 @@ inline int TmThreadsCheckFlag(ThreadVars *tv, uint8_t flag) {
 
 inline void TmThreadsSetFlag(ThreadVars *tv, uint8_t flag) {
     if (SCSpinLock(&tv->flags_spinlock) != 0) {
-        SCLogError(SC_SPINLOCK_ERROR,"spin lock errno=%d",errno);
+        SCLogError(SC_ERR_SPINLOCK_ERROR,"spin lock errno=%d",errno);
         return;
     }
 
@@ -98,7 +98,7 @@ inline void TmThreadsSetFlag(ThreadVars *tv, uint8_t flag) {
 
 inline void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag) {
     if (SCSpinLock(&tv->flags_spinlock) != 0) {
-        SCLogError(SC_SPINLOCK_ERROR,"spin lock errno=%d",errno);
+        SCLogError(SC_ERR_SPINLOCK_ERROR,"spin lock errno=%d",errno);
         return;
     }
 

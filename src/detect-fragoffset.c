@@ -43,13 +43,13 @@ void DetectFragOffsetRegister (void) {
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if (parse_regex == NULL) {
-        SCLogError(SC_PCRE_COMPILE_FAILED,"pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE_FAILED,"pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if (eb != NULL) {
-        SCLogError(SC_PCRE_STUDY_FAILED,"pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY_FAILED,"pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -121,14 +121,14 @@ DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr) {
 
     ret = pcre_exec(parse_regex, parse_regex_study, fragoffsetstr, strlen(fragoffsetstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_PCRE_MATCH_FAILED,"Parse error %s", fragoffsetstr);
+        SCLogError(SC_ERR_PCRE_MATCH_FAILED,"Parse error %s", fragoffsetstr);
         goto error;
     }
 
     for (i = 1; i < ret; i++) {
         res = pcre_get_substring((char *)fragoffsetstr, ov, MAX_SUBSTRINGS, i, &str_ptr);
         if (res < 0) {
-            SCLogError(SC_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED,"pcre_get_substring failed");
             goto error;
         }
         substr[i-1] = (char *)str_ptr;

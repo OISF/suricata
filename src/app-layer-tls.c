@@ -185,7 +185,7 @@ static int TLSParseClientRecord(Flow *f, void *tls_state, AppLayerParserState *p
                     pstate->parse_field = 0;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                    SCLogError(SC_ERR_ALPARSER_ERR, "AlpParseFieldBySize failed, "
                                "r %d", r);
                     SCReturnInt(-1);
                 }
@@ -204,7 +204,7 @@ static int TLSParseClientRecord(Flow *f, void *tls_state, AppLayerParserState *p
                     pstate->parse_field = 1;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                    SCLogError(SC_ERR_ALPARSER_ERR, "AlpParseFieldBySize failed, "
                                "r %d", r);
                     SCReturnInt(-1);
                 }
@@ -224,7 +224,7 @@ static int TLSParseClientRecord(Flow *f, void *tls_state, AppLayerParserState *p
                     pstate->parse_field = 2;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                    SCLogError(SC_ERR_ALPARSER_ERR, "AlpParseFieldBySize failed, "
                                "r %d", r);
                     SCReturnInt(-1);
                 }
@@ -310,7 +310,7 @@ static int TLSParseServerRecord(Flow *f, void *tls_state, AppLayerParserState *p
                     pstate->parse_field = 0;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                    SCLogError(SC_ERR_ALPARSER_ERR, "AlpParseFieldBySize failed, "
                                "r %d", r);
                     SCReturnInt(-1);
                 }
@@ -328,7 +328,7 @@ static int TLSParseServerRecord(Flow *f, void *tls_state, AppLayerParserState *p
                     pstate->parse_field = 1;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                    SCLogError(SC_ERR_ALPARSER_ERR, "AlpParseFieldBySize failed, "
                                "r %d", r);
                     SCReturnInt(-1);
                 }
@@ -347,7 +347,7 @@ static int TLSParseServerRecord(Flow *f, void *tls_state, AppLayerParserState *p
                     pstate->parse_field = 2;
                     SCReturnInt(0);
                 } else if (r == -1) {
-                    SCLogError(SC_ALPARSER_ERR, "AlpParseFieldBySize failed, "
+                    SCLogError(SC_ERR_ALPARSER_ERR, "AlpParseFieldBySize failed, "
                                "r %d", r);
                     SCReturnInt(-1);
                 }

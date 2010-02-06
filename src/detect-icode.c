@@ -49,14 +49,14 @@ void DetectICodeRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        SCLogError(SC_PCRE_COMPILE_FAILED, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE_FAILED, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        SCLogError(SC_PCRE_COMPILE_FAILED, "pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_COMPILE_FAILED, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -125,7 +125,7 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
 
     ret = pcre_exec(parse_regex, parse_regex_study, icodestr, strlen(icodestr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_PCRE_MATCH_FAILED, "DetectICodeParse: parse error");
+        SCLogError(SC_ERR_PCRE_MATCH_FAILED, "DetectICodeParse: parse error");
         goto error;
     }
 
@@ -134,7 +134,7 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
     for (i = 1; i < ret; i++) {
         res = pcre_get_substring((char *)icodestr, ov, MAX_SUBSTRINGS, i, &str_ptr);
         if (res < 0) {
-            SCLogError(SC_PCRE_GET_SUBSTRING_FAILED, "DetectICodeParse: pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "DetectICodeParse: pcre_get_substring failed");
             goto error;
         }
         args[i-1] = (char *)str_ptr;

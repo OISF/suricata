@@ -250,7 +250,7 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
     /* Call option parsing */
     st = SigTableGet((char *)arr[0]);
     if (st == NULL) {
-        SCLogError(SC_RULE_KEYWORD_UNKNOWN, "unknown rule keyword '%s'.", (char *)arr[0]);
+        SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "unknown rule keyword '%s'.", (char *)arr[0]);
         goto error;
     }
 

@@ -72,7 +72,7 @@ void RunModeInitializeOutputs(void)
 
         OutputModule *module = OutputGetModuleByConfName(output->val);
         if (module == NULL) {
-            SCLogWarning(SC_INVALID_ARGUMENT,
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
                 "No output module named %s, ignoring", output->val);
             continue;
         }
@@ -80,7 +80,7 @@ void RunModeInitializeOutputs(void)
         output_config = ConfNodeLookupChild(output, module->conf_name);
         if (output_config == NULL) {
             /* Shouldn't happen. */
-            SCLogError(SC_INVALID_ARGUMENT,
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "Failed to lookup configuration child node: fast");
             exit(1);
         }
@@ -95,7 +95,7 @@ void RunModeInitializeOutputs(void)
             }
             tm_module = TmModuleGetByName(module->name);
             if (tm_module == NULL) {
-                SCLogError(SC_INVALID_ARGUMENT,
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "TmModuleGetByName for %s failed", module->name);
                 exit(EXIT_FAILURE);
             }

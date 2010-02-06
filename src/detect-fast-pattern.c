@@ -48,7 +48,7 @@ int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
                            char *null_str)
 {
     if (null_str != NULL && strcmp(null_str, "") != 0) {
-        SCLogError(SC_INVALID_ARGUMENT, "DetectFastPatternSetup: fast_pattern "
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "DetectFastPatternSetup: fast_pattern "
                    "shouldn't be supplied with a value");
         return -1;
     }

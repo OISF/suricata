@@ -45,7 +45,7 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
 
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd == NULL) {
-        SCLogError(SC_INVALID_ARGUMENT, "invalid argument");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
         if (dubbed) free(str);
         return -1;
     }

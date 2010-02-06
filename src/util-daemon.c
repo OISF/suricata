@@ -87,10 +87,10 @@ int CheckValidDaemonModes (int daemon, int mode) {
     if (daemon) {
         switch (mode) {
             case MODE_PCAP_FILE:
-                SCLogError(SC_INVALID_RUNMODE, "ERROR: pcap offline mode cannot run as daemon");
+                SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: pcap offline mode cannot run as daemon");
                 return 0;
             case MODE_UNITTEST:
-                SCLogError(SC_INVALID_RUNMODE, "ERROR: unittests cannot run as daemon");
+                SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: unittests cannot run as daemon");
                 return 0;
             default:
                 SCLogDebug("Allowed mode");

@@ -799,7 +799,7 @@ int main(int argc, char **argv)
 
     /* Wait till all the threads have been initialized */
     if (TmThreadWaitOnThreadInit() == TM_ECODE_FAILED) {
-        SCLogError(SC_INITIALIZATION_ERROR, "Engine initialization failed, "
+        SCLogError(SC_ERR_INITIALIZATION_ERROR, "Engine initialization failed, "
                    "aborting...");
         exit(EXIT_FAILURE);
     }

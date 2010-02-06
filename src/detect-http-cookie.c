@@ -145,7 +145,7 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     SigMatch *sm = NULL;
 
     if (str != NULL && strcmp(str, "") != 0) {
-        SCLogError(SC_INVALID_ARGUMENT, "http_cookie shouldn't be supplied with"
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_cookie shouldn't be supplied with"
                                         " an argument");
         return -1;
     }

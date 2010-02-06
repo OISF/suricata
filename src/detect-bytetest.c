@@ -51,7 +51,7 @@ void DetectBytetestRegister (void) {
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
     {
-        SCLogError(SC_PCRE_COMPILE_FAILED, "pcre compile of \"%s\" failed at "
+        SCLogError(SC_ERR_PCRE_COMPILE_FAILED, "pcre compile of \"%s\" failed at "
                    "offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
@@ -59,7 +59,7 @@ void DetectBytetestRegister (void) {
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if(eb != NULL)
     {
-        SCLogError(SC_PCRE_STUDY_FAILED, "pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY_FAILED, "pcre study failed: %s", eb);
         goto error;
     }
     return;
@@ -125,7 +125,7 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("No Numeric value");
                 return 0;
             } else {
-                SCLogError(SC_INVALID_NUM_BYTES, "Error extracting %d "
+                SCLogError(SC_ERR_INVALID_NUM_BYTES, "Error extracting %d "
                         "bytes of string data: %d", data->nbytes, extbytes);
                 return -1;
             }
@@ -139,7 +139,7 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                           BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
         if (extbytes != data->nbytes) {
-            SCLogError(SC_INVALID_NUM_BYTES, "Error extracting %d bytes "
+            SCLogError(SC_ERR_INVALID_NUM_BYTES, "Error extracting %d bytes "
                    "of numeric data: %d\n", data->nbytes, extbytes);
             return -1;
         }
@@ -210,7 +210,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     ret = pcre_exec(parse_regex, parse_regex_study, optstr,
                     strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 6 || ret > 10) {
-        SCLogError(SC_PCRE_PARSE_FAILED, "parse error, ret %" PRId32
+        SCLogError(SC_ERR_PCRE_PARSE_FAILED, "parse error, ret %" PRId32
                ", string %s", ret, optstr);
         goto error;
     }
@@ -218,7 +218,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
         res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS,
                                  i + 1, &str_ptr);
         if (res < 0) {
-            SCLogError(SC_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed "
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING_FAILED, "pcre_get_substring failed "
                    "for arg %d", i + 1);
             goto error;
         }
