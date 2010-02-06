@@ -456,19 +456,14 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
     IPFWpoll.fd=ipfw_sock;
     IPFWpoll.events= POLLWRNORM;
 
-    /* What to do with the packet? */
-    switch (p->action) {
-        case ACTION_ALERT:
-        case ACTION_PASS:
-            verdict = IPFW_ACCEPT;
-            break;
-        case ACTION_REJECT:
-        case ACTION_REJECT_DST:
-        case ACTION_REJECT_BOTH:
-        case ACTION_DROP:
-        default:
-            /* a verdict we don't know about, drop to be sure */
-            verdict = IPFW_DROP;
+    if (p->action & ACTION_REJECT || p->action & ACTION_REJECT_BOTH ||
+        p->action & ACTION_REJECT_DST || p->action & ACTION_DROP) {
+        verdict = IPFW_DROP;
+    } else if (p->action & ACTION_ALERT || p->action & ACTION_ALERT) {
+        verdict = IPFW_ACCEPT;
+    } else {
+        /* a verdict we don't know about, drop to be sure */
+        verdict = IPFW_DROP;
     }
 
     if (verdict == IPFW_ACCEPT) {
