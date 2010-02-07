@@ -103,7 +103,7 @@ void hexdump(const void *buf, size_t len) {
 void printUUID(char *type, struct uuid_entry *uuid) {
     uint8_t i = 0;
     if (uuid == NULL) {
-	return;
+        return;
     }
     printf("%s UUID [%2u] %s ", type, uuid->ctxid,
             (uuid->result == 0) ? "Accepted" : "Rejected");
@@ -226,7 +226,9 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                             dcerpc->dcerpcbindbindack.uuid_entry->versionminor = dcerpc->dcerpcbindbindack.versionminor;
                             TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.uuid_list, dcerpc->dcerpcbindbindack.uuid_entry,
                                     next);
-                            //printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+#ifdef UNITTESTS
+                            printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+#endif
                             dcerpc->dcerpcbindbindack.numctxitemsleft--;
                             dcerpc->bytesprocessed += (44);
                             dcerpc->dcerpcbindbindack.ctxbytesprocessed += (44);
@@ -428,7 +430,9 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                         dcerpc->dcerpcbindbindack.uuid_entry->versionminor = dcerpc->dcerpcbindbindack.versionminor;
                         TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.uuid_list, dcerpc->dcerpcbindbindack.uuid_entry,
                                 next);
-                        //printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+#ifdef UNITTESTS
+                        printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+#endif
                         dcerpc->dcerpcbindbindack.numctxitemsleft--;
                         dcerpc->bytesprocessed += (44);
                         dcerpc->dcerpcbindbindack.ctxbytesprocessed += (44);
@@ -467,7 +471,9 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                         if (uuid_entry->ctxid == dcerpc->dcerpcbindbindack.numctxitems
                                 - dcerpc->dcerpcbindbindack.numctxitemsleft) {
                             uuid_entry->result = dcerpc->dcerpcbindbindack.result;
-                            //printUUID("BIND_ACK", uuid_entry);
+#ifdef UNITTESTS
+                            printUUID("BIND_ACK", uuid_entry);
+#endif
                             break;
                         }
                     }
@@ -575,7 +581,9 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                     if (uuid_entry->ctxid == dcerpc->dcerpcbindbindack.numctxitems
                             - dcerpc->dcerpcbindbindack.numctxitemsleft) {
                         uuid_entry->result = dcerpc->dcerpcbindbindack.result;
-                        //printUUID("BIND_ACK", uuid_entry);
+#ifdef UNITTESTS
+                        printUUID("BIND_ACK", uuid_entry);
+#endif
                         break;
                     }
                 }
@@ -942,18 +950,18 @@ static uint32_t DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input
                 if (!(--input_len))
                     break;
             case 14:
-                        dcerpc->dcerpchdr.call_id |= *(p++) << 8;
-                        if (!(--input_len))
-                            break;
+                dcerpc->dcerpchdr.call_id |= *(p++) << 8;
+                if (!(--input_len))
+                    break;
             case 15:
-                        dcerpc->dcerpchdr.call_id |= *(p++);
-                        if (dcerpc->dcerpchdr.packed_drep[0] == 0x01) {
-                            SCByteSwap16(dcerpc->dcerpchdr.frag_length);
-                            SCByteSwap16(dcerpc->dcerpchdr.auth_length);
-                            SCByteSwap32(dcerpc->dcerpchdr.call_id);
-                        }
-                        --input_len;
-                        break;
+                dcerpc->dcerpchdr.call_id |= *(p++);
+                if (dcerpc->dcerpchdr.packed_drep[0] == 0x01) {
+                    SCByteSwap16(dcerpc->dcerpchdr.frag_length);
+                    SCByteSwap16(dcerpc->dcerpchdr.auth_length);
+                    SCByteSwap32(dcerpc->dcerpchdr.call_id);
+                }
+                --input_len;
+                break;
         }
     }
     dcerpc->bytesprocessed += (p - input);
@@ -1663,7 +1671,6 @@ int DCERPCParserTest01(void) {
         printUUID("BIND_ACK", uuid_entry);
     }
 
-    //hexdump(dcerpcrequest, requestlen);
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_EOF, dcerpcrequest, requestlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
@@ -1819,7 +1826,6 @@ int DCERPCParserTest02(void) {
     uint32_t requestlen = sizeof(dcerpcrequest);
 
     TcpSession ssn;
-    //struct uuid_entry *uuid_entry;
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2011,7 +2017,6 @@ int DCERPCParserTest03(void) {
     uint32_t requestlen = sizeof(dcerpcrequest);
 
     TcpSession ssn;
-    //struct uuid_entry *uuid_entry;
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
