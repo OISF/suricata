@@ -106,6 +106,8 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
 
         if (event.type == YAML_SCALAR_EVENT) {
             char *value = (char *)event.data.scalar.value;
+            SCLogDebug("event.type = YAML_SCALAR_EVENT (%s) inseq=%d\n",
+                value, inseq);
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
                 seq_node->name = calloc(1, DEFAULT_NAME_LEN);
@@ -116,7 +118,9 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
             else {
                 if (state == CONF_KEY) {
                     if (parent->is_seq) {
-                        parent->val = strdup(value);
+                        if (parent->val == NULL) {
+                            parent->val = strdup(value);
+                        }
                     }
                     node = ConfNodeNew();
                     node->name = strdup(value);
@@ -130,13 +134,17 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
             }
         }
         else if (event.type == YAML_SEQUENCE_START_EVENT) {
+            SCLogDebug("event.type = YAML_SEQUENCE_START_EVENT\n");
             if (ConfYamlParse2(parser, node, 1) != 0)
                 goto fail;
+            state = CONF_KEY;
         }
         else if (event.type == YAML_SEQUENCE_END_EVENT) {
+            SCLogDebug("event.type = YAML_SEQUENCE_END_EVENT\n");
             return 0;
         }
         else if (event.type == YAML_MAPPING_START_EVENT) {
+            SCLogDebug("event.type = YAML_MAPPING_START_EVENT\n");
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
                 seq_node->is_seq = 1;
@@ -151,6 +159,7 @@ ConfYamlParse2(yaml_parser_t *parser, ConfNode *parent, int inseq)
             state = CONF_KEY;
         }
         else if (event.type == YAML_MAPPING_END_EVENT) {
+            SCLogDebug("event.type = YAML_MAPPING_END_EVENT\n");
             done = 1;
         }
         else if (event.type == YAML_STREAM_END_EVENT) {
@@ -519,6 +528,70 @@ logging:\n\
     return 1;
 }
 
+static int
+ConfYamlSecondLevelSequenceTest(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+  server-config:\n\
+    - apache-php:\n\
+        address: [\"192.168.1.0/24\"]\n\
+        personality: [\"Apache_2_2\", \"PHP_5_3\"]\n\
+        path-parsing: [\"compress_separators\", \"lowercase\"]\n\
+    - iis-php:\n\
+        address:\n\
+          - 192.168.0.0/24\n\
+\n\
+        personality:\n\
+          - IIS_7_0\n\
+          - PHP_5_3\n\
+\n\
+        path-parsing:\n\
+          - compress_separators\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    ConfYamlLoadString(input, strlen(input));
+
+    ConfNode *outputs;
+    outputs = ConfGetNode("libhtp.server-config");
+    if (outputs == NULL)
+        return 0;
+
+    ConfNode *node;
+
+    node = TAILQ_FIRST(&outputs->head);
+    if (node == NULL)
+        return 0;
+    if (strcmp(node->name, "0") != 0)
+        return 0;
+    node = TAILQ_FIRST(&node->head);
+    if (node == NULL)
+        return 0;
+    if (strcmp(node->name, "apache-php") != 0)
+        return 0;
+
+    node = ConfNodeLookupChild(node, "address");
+    if (node == NULL)
+        return 0;
+    node = TAILQ_FIRST(&node->head);
+    if (node == NULL)
+        return 0;
+    if (strcmp(node->name, "0") != 0)
+        return 0;
+    if (strcmp(node->val, "192.168.1.0/24") != 0)
+        return 0;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 void
@@ -529,5 +602,7 @@ ConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlLoggingOutputTest", ConfYamlLoggingOutputTest, 1);
     UtRegisterTest("ConfYamlNonYamlFileTest", ConfYamlNonYamlFileTest, 1);
     UtRegisterTest("ConfYamlBadYamlVersionTest", ConfYamlBadYamlVersionTest, 1);
+    UtRegisterTest("ConfYamlSecondLevelSequenceTest",
+        ConfYamlSecondLevelSequenceTest, 1);
 #endif /* UNITTESTS */
 }
