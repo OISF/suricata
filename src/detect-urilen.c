@@ -97,7 +97,7 @@ int DetectUrilenMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     SCMutexLock(&f->m);
     tx = list_get(htp_state->connp->conn->transactions, 0);
 
-    if (tx->request_uri == NULL)
+    if (tx == NULL || tx->request_uri == NULL)
         goto end;
 
     switch (urilend->mode) {
