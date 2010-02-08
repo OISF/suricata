@@ -928,7 +928,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
     long int parsed = 0;
     if (pstate == NULL)
         SCReturnInt(-1);
-    while (sstate->bytesprocessed < NBSS_HDR_LEN) {
+    while (input_len && sstate->bytesprocessed < NBSS_HDR_LEN) {
         retval
             = NBSSParseHeader(f, smb_state, pstate, input, input_len,
                     output);

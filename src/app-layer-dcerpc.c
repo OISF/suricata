@@ -5,6 +5,7 @@
  * \author Kirby Kuehl <kkuehl@gmail.com>
  */
 #include "suricata-common.h"
+#include "suricata.h"
 
 #include "debug.h"
 #include "decode.h"
@@ -227,7 +228,9 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                             TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.uuid_list, dcerpc->dcerpcbindbindack.uuid_entry,
                                     next);
 #ifdef UNITTESTS
-                            printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+                            if (RunmodeIsUnittests()) {
+                                printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+                            }
 #endif
                             dcerpc->dcerpcbindbindack.numctxitemsleft--;
                             dcerpc->bytesprocessed += (44);
@@ -431,7 +434,9 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                         TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.uuid_list, dcerpc->dcerpcbindbindack.uuid_entry,
                                 next);
 #ifdef UNITTESTS
-                        printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+                        if (RunmodeIsUnittests()) {
+                            printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+                        }
 #endif
                         dcerpc->dcerpcbindbindack.numctxitemsleft--;
                         dcerpc->bytesprocessed += (44);
@@ -472,7 +477,9 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                                 - dcerpc->dcerpcbindbindack.numctxitemsleft) {
                             uuid_entry->result = dcerpc->dcerpcbindbindack.result;
 #ifdef UNITTESTS
-                            printUUID("BIND_ACK", uuid_entry);
+                            if (RunmodeIsUnittests()) {
+                                printUUID("BIND_ACK", uuid_entry);
+                            }
 #endif
                             break;
                         }
@@ -582,7 +589,9 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                             - dcerpc->dcerpcbindbindack.numctxitemsleft) {
                         uuid_entry->result = dcerpc->dcerpcbindbindack.result;
 #ifdef UNITTESTS
-                        printUUID("BIND_ACK", uuid_entry);
+                        if (RunmodeIsUnittests()) {
+                            printUUID("BIND_ACK", uuid_entry);
+                        }
 #endif
                         break;
                     }
