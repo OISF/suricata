@@ -15,6 +15,7 @@
 #include "tm-modules.h"
 #include "tm-threads.h"
 #include "source-pfring.h"
+#include "util-debug.h"
 
 TmEcode ReceivePfring(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
@@ -256,9 +257,22 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
  */
 void ReceivePfringThreadExitStats(ThreadVars *tv, void *data) {
     PfringThreadVars *ptv = (PfringThreadVars *)data;
+    pfring_stat pfring_s;
 
-    printf(" - (%s) Packets %" PRIu32 ", bytes %" PRIu64 ".\n", tv->name, ptv->pkts, ptv->bytes);
-    return;
+    if(pfring_stats(ptv->pd, &pfring_s) < 0) {
+        SCLogError(SC_ERR_STAT_ERROR,"(%s) Failed to get pfring stats", tv->name);
+        SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+
+        return;
+    } else {
+        SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+
+        SCLogInfo("(%s) Pfring Total:%" PRIu64 " Recv:%" PRIu64 " Drop:%" PRIu64 " (%02.1f%%).", tv->name,
+        (uint64_t)pfring_s.recv + (uint64_t)pfring_s.drop, (uint64_t)pfring_s.recv,
+        (uint64_t)pfring_s.drop, ((float)pfring_s.drop/(float)(pfring_s.drop + pfring_s.recv))*100);
+
+        return;
+    }
 }
 
 /**

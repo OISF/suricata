@@ -300,9 +300,26 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
  */
 void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
+    struct pcap_stat pcap_s;
 
-    SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
-    return;
+    if (pcap_stats(ptv->pcap_handle, &pcap_s) < 0) {
+        SCLogError(SC_ERR_STAT_ERROR,"(%s) Failed to get pcap_stats: %s", tv->name, pcap_geterr(ptv->pcap_handle));
+        SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+
+        return;
+    } else {
+        SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+
+        /* these numbers are not entirely accurate as ps_recv contains packets that are still waiting to be processed at exit.
+         * ps_drop only contains packets dropped by the driver and not any packets dropped by the interface.
+         * Additionally see http://tracker.icir.org/bro/ticket/18 */
+
+        SCLogInfo("(%s) Pcap Total:%" PRIu64 " Recv:%" PRIu64 " Drop:%" PRIu64 " (%02.1f%%).", tv->name,
+        (uint64_t)pcap_s.ps_recv + (uint64_t)pcap_s.ps_drop, (uint64_t)pcap_s.ps_recv,
+        (uint64_t)pcap_s.ps_drop, ((float)pcap_s.ps_drop/(float)(pcap_s.ps_drop + pcap_s.ps_recv))*100);
+
+        return;
+    }
 }
 
 /**
