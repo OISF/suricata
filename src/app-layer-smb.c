@@ -508,7 +508,7 @@ static uint32_t PaddingParser(void *smb_state, AppLayerParserState *pstate,
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     /* Check for validity of dataoffset */
-    if ((sstate->bytesprocessed - NBSS_HDR_LEN) > sstate->andx.dataoffset) {
+    if ((uint16_t)(sstate->bytesprocessed - NBSS_HDR_LEN) > sstate->andx.dataoffset) {
         sstate->andx.paddingparsed = 1;
         SCReturnUInt((uint32_t)(p - input));
     }
