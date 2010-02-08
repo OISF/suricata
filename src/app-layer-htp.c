@@ -5,6 +5,7 @@
  *         HTP library.
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  *
  */
 
@@ -36,6 +37,7 @@ static SCMutex htp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t htp_state_memuse = 0;
 static uint64_t htp_state_memcnt = 0;
 #endif
+extern uint8_t pcre_need_htp_request_body;
 
 /** \brief Function to allocates the HTTP state memory and also creates the HTTP
  *         connection parser to be used by the HTP library
@@ -57,6 +59,10 @@ static void *HTPStateAlloc(void)
         goto error;
     }
     SCLogDebug("s->connp %p", s->connp);
+
+    s->body.nchunks = 0;
+    s->body.operation = HTP_BODY_NONE;
+    s->body.pcre_flags = HTP_PCRE_NONE;
 
     /* Create a list_array of size 8 to store the incoming requests, the size of
        8 has been chosen as half the size of conn->transactions in the
@@ -104,6 +110,11 @@ static void HTPStateFree(void *state)
         }
         if (s->recent_in_tx != NULL) {
             list_destroy(s->recent_in_tx);
+        }
+
+        /* free the list of body chunks */
+        if (s->body.nchunks > 0) {
+            HtpBodyFree(&s->body);
         }
     }
 
@@ -157,6 +168,10 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     HtpState *hstate = (HtpState *)htp_state;
 
+    /* Unset the body inspection (the callback should
+     * reactivate it if necessary) */
+    hstate->flags &= ~HTP_NEW_BODY_SET;
+
     /* Open the HTTP connection on receiving the first request */
     if (!(hstate->flags & HTP_FLAG_STATE_OPEN)) {
         SCLogDebug("opening htp handle at %p", hstate->connp);
@@ -185,12 +200,14 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         }
         hstate->flags |= HTP_FLAG_STATE_ERROR;
         hstate->flags &= ~HTP_FLAG_STATE_DATA;
+        hstate->flags &= ~HTP_NEW_BODY_SET;
         ret = -1;
 
     } else if (r == STREAM_STATE_DATA) {
         hstate->flags |= HTP_FLAG_STATE_DATA;
     } else {
         hstate->flags &= ~HTP_FLAG_STATE_DATA;
+        hstate->flags &= ~HTP_NEW_BODY_SET;
     }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
@@ -230,6 +247,10 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     HtpState *hstate = (HtpState *)htp_state;
 
+    /* Unset the body inspection (the callback should
+     * reactivate it if necessary) */
+    hstate->flags &= ~HTP_NEW_BODY_SET;
+
     r = htp_connp_res_data(hstate->connp, 0, input, input_len);
     if (r == STREAM_STATE_ERROR || r == STREAM_STATE_DATA_OTHER)
     {
@@ -247,12 +268,15 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             }
         }
         hstate->flags = HTP_FLAG_STATE_ERROR;
+        hstate->flags &= ~HTP_FLAG_STATE_DATA;
+        hstate->flags &= ~HTP_NEW_BODY_SET;
         ret = -1;
 
     } else if (r == STREAM_STATE_DATA) {
         hstate->flags |= HTP_FLAG_STATE_DATA;
     } else {
         hstate->flags &= ~HTP_FLAG_STATE_DATA;
+        hstate->flags &= ~HTP_NEW_BODY_SET;
     }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
@@ -266,6 +290,148 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     SCLogDebug("hstate->connp %p", hstate->connp);
     SCReturnInt(ret);
+}
+
+/**
+ * \brief Append a chunk of body to the HtpBody struct
+ * \param body pointer to the HtpBody holding the list
+ * \param data pointer to the data of the chunk
+ * \param len length of the chunk pointed by data
+ * \retval none
+ */
+void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
+{
+    SCEnter();
+    BodyChunk *bd = NULL;
+    if (body->nchunks == 0) {
+        /* New chunk */
+        bd = (BodyChunk *)malloc(sizeof(BodyChunk));
+        if (bd == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
+            exit(EXIT_FAILURE);
+        }
+        bd->len = len;
+        bd->data = data;
+        body->first = body->last = bd;
+        body->nchunks++;
+        bd->next = NULL;
+        bd->id = body->nchunks;
+    } else {
+        /* New or old, we have to check it.. */
+        if (body->last->data == data) {
+            /* Weird, but sometimes htp lib calls the callback
+             * more than once for the same chunk, with more
+             * len, so updating the len */
+            body->last->len = len;
+            bd = body->last;
+        } else {
+            bd = (BodyChunk *)malloc(sizeof(BodyChunk));
+            bd->len = len;
+            bd->data = data;
+            body->last->next = bd;
+            body->last = bd;
+            body->nchunks++;
+            bd->next = NULL;
+            bd->id = body->nchunks;
+        }
+    }
+    SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"\n", body,
+                bd->id, bd->data, (uint32_t)bd->len);
+}
+
+/**
+ * \brief Print the information and chunks of a Body
+ * \param body pointer to the HtpBody holding the list
+ * \retval none
+ */
+void HtpBodyPrint(HtpBody *body)
+{
+    if (SCLogDebugEnabled()) {
+        SCEnter();
+
+        if (body->nchunks == 0)
+            return;
+
+        BodyChunk *cur = NULL;
+        SCLogDebug("--- Start body chunks at %p ---", body);
+        for (cur = body->first; cur != NULL; cur = cur->next) {
+            SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"\n",
+                        body, cur->id, cur->data, (uint32_t)cur->len);
+            PrintRawDataFp(stdout, (uint8_t*)cur->data, cur->len);
+        }
+        SCLogDebug("--- End body chunks at %p ---", body);
+    }
+}
+
+/**
+ * \brief Free the information holded of the body request
+ * \param body pointer to the HtpBody holding the list
+ * \retval none
+ */
+void HtpBodyFree(HtpBody *body)
+{
+    SCEnter();
+    if (body->nchunks == 0)
+        return;
+
+    SCLogDebug("Removing chunks of Body %p; Last Chunk id: %"PRIu32", data %p,"
+               " len %"PRIu32"\n", body, body->last->id, body->last->data,
+                (uint32_t)body->last->len);
+    body->nchunks = 0;
+
+    BodyChunk *cur = NULL;
+    BodyChunk *prev = NULL;
+    prev = body->first;
+    while (prev != NULL) {
+        cur = prev->next;
+        free(prev);
+        prev = cur;
+    }
+    body->first = body->last = NULL;
+    body->pcre_flags = HTP_PCRE_NONE;
+    body->operation = HTP_BODY_NONE;
+}
+
+/**
+ * \brief Function callback to append chunks for Resquests
+ * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
+ * \retval int HOOK_OK if all goes well
+ */
+int HTPCallbackRequestBodyData(htp_tx_data_t *d)
+{
+    SCEnter();
+    HtpState *hstate = (HtpState *)d->tx->connp->user_data;
+    SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
+               "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
+
+    //PrintRawDataFp(stdout, d->data, d->len);
+
+    /* If it has been inspected by pcre and there's no match,
+     * remove this chunks */
+    if ( !(hstate->body.pcre_flags & HTP_PCRE_HAS_MATCH) &&
+          (hstate->body.pcre_flags & HTP_PCRE_DONE))
+    {
+        HtpBodyFree(&hstate->body);
+    }
+
+    /* If its a new operation, remove the old data */
+    if (hstate->body.operation == HTP_BODY_RESPONSE) {
+        HtpBodyFree(&hstate->body);
+        hstate->body.pcre_flags = HTP_PCRE_NONE;
+    }
+    hstate->body.operation = HTP_BODY_REQUEST;
+
+
+    HtpBodyAppendChunk(&hstate->body, (uint8_t*)d->data, (uint32_t)d->len);
+    hstate->body.pcre_flags = HTP_PCRE_NONE;
+    if (SCLogDebugEnabled()) {
+        HtpBodyPrint(&hstate->body);
+    }
+
+    /* set the new chunk flag */
+    hstate->flags |= HTP_NEW_BODY_SET;
+
+    SCReturnInt(HOOK_OK);
 }
 
 /**
@@ -321,6 +487,12 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
         SCReturnInt(0);
     }
 
+    /* Free data when we have a response */
+    if (hstate->body.nchunks > 0)
+        HtpBodyFree(&hstate->body);
+    hstate->body.operation = HTP_BODY_RESPONSE;
+    hstate->body.pcre_flags = HTP_PCRE_NONE;
+
     while (list_size(hstate->recent_in_tx) > 0) {
         htp_tx_t *tx = list_pop(hstate->recent_in_tx);
         if (tx != NULL) {
@@ -337,7 +509,6 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
  */
 void RegisterHTPParsers(void)
 {
-
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
 
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOSERVER,
@@ -354,6 +525,21 @@ void RegisterHTPParsers(void)
     htp_config_register_response(cfg, HTPCallbackResponse);
     /* set the normalized request parsing to be used in uricontent matching */
     htp_config_set_generate_request_uri_normalized(cfg, 1);
+}
+
+/**
+ * \brief This function is called at the end of SigLoadSignatures
+ * pcre_need_htp_request_body is a flag that indicates if we need
+ * to inspect the body of requests from a pcre keyword.
+ */
+void AppLayerHtpRegisterExtraCallbacks(void) {
+    SCLogDebug("Registering extra htp callbacks");
+    if (pcre_need_htp_request_body == 1) {
+        SCLogDebug("Registering callback htp_config_register_request_body_data on htp");
+        htp_config_register_request_body_data(cfg, HTPCallbackRequestBodyData);
+    } else {
+        SCLogDebug("No htp extra callback needed");
+    }
 }
 
 

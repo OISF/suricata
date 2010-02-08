@@ -80,6 +80,7 @@
 #include "util-rule-vars.h"
 
 #include "app-layer.h"
+#include "app-layer-htp.h"
 #include "detect-tls-version.h"
 
 #include "action-globals.h"
@@ -756,6 +757,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
                         alproto == sigmatch_table[sm->type].alproto &&
                         alstate != NULL) {
+                        SCLogDebug("App layer match function has been invoked");
                         match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
                     } else if (sigmatch_table[sm->type].Match != NULL) {
                         match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
@@ -3449,10 +3451,11 @@ static int SigTest08Real (int mpm_type) {
     TcpSession ssn;
     int result = 0;
 
+    memset(&f, 0, sizeof(Flow));
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
@@ -3461,6 +3464,7 @@ static int SigTest08Real (int mpm_type) {
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    //FlowInit(&f, &p);
     ssn.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3497,7 +3501,7 @@ static int SigTest08Real (int mpm_type) {
     }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
+    if ( (PacketAlertCheck(&p, 1) || FlowAlertSidIsset(&f, 1)) && PacketAlertCheck(&p, 2))
         result = 1;
     else
         printf("sid:1 %s, sid:2 %s: ",
@@ -3716,6 +3720,9 @@ static int SigTest11Real (int mpm_type) {
     memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    p.flow = &f;
+    FlowInit(&f, &p);
+
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
@@ -3787,6 +3794,10 @@ static int SigTest12Real (int mpm_type) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+    Flow f;
+    memset(&f, 0, sizeof(Flow));
+    p.flow = &f;
+    FlowInit(&f, &p);
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
@@ -3847,6 +3858,10 @@ static int SigTest13Real (int mpm_type) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+    Flow f;
+    memset(&f, 0, sizeof(Flow));
+    p.flow = &f;
+    FlowInit(&f, &p);
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;

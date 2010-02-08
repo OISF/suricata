@@ -15,6 +15,8 @@
 #define DETECT_PCRE_CAPTURE_FLOW  0x0100
 #define DETECT_PCRE_MATCH_LIMIT   0x0200
 
+#define DETECT_PCRE_HTTP_BODY_AL  0x0400
+
 typedef struct DetectPcreData_ {
     /* pcre options */
     pcre *re;

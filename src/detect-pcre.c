@@ -7,6 +7,7 @@
 
 #include "pkt-var.h"
 #include "flow-var.h"
+#include "flow-alert-sid.h"
 
 #include "detect-pcre.h"
 
@@ -17,7 +18,22 @@
 #include "util-var-name.h"
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "util-print.h"
+#include "util-pool.h"
+
 #include "conf.h"
+#include "app-layer-htp.h"
+#include "stream.h"
+#include "stream-tcp.h"
+#include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
+#include "app-layer-htp.h"
+
+#include <htp/htp.h>
+#include "stream.h"
+
 
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*)(?<!\\\\)/([^\"]*)"
@@ -35,7 +51,10 @@ static pcre_extra *parse_regex_study;
 static pcre *parse_capture_regex;
 static pcre_extra *parse_capture_regex_study;
 
+uint8_t pcre_need_htp_request_body = 0;
+
 int DetectPcreMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
 int DetectPcreSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
 void DetectPcreFree(void *);
 void DetectPcreRegisterTests(void);
@@ -43,11 +62,26 @@ void DetectPcreRegisterTests(void);
 void DetectPcreRegister (void) {
     sigmatch_table[DETECT_PCRE].name = "pcre";
     sigmatch_table[DETECT_PCRE].Match = DetectPcreMatch;
+    sigmatch_table[DETECT_PCRE].AppLayerMatch = NULL;
+    sigmatch_table[DETECT_PCRE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_PCRE].Setup = DetectPcreSetup;
     sigmatch_table[DETECT_PCRE].Free  = DetectPcreFree;
     sigmatch_table[DETECT_PCRE].RegisterTests  = DetectPcreRegisterTests;
 
     sigmatch_table[DETECT_PCRE].flags |= SIGMATCH_PAYLOAD;
+
+    /* register a separate sm type for the httpbody stuff
+     * because then we don't need to figure out if we need
+     * the match or AppLayerMatch function in Detect */
+    sigmatch_table[DETECT_PCRE_HTTPBODY].name = "__pcre_http_body__"; /* not a real keyword */
+    sigmatch_table[DETECT_PCRE_HTTPBODY].Match = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPBODY].AppLayerMatch = DetectPcreALMatch;
+    sigmatch_table[DETECT_PCRE_HTTPBODY].alproto = ALPROTO_HTTP;
+    sigmatch_table[DETECT_PCRE_HTTPBODY].Setup = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPBODY].Free  = DetectPcreFree;
+    sigmatch_table[DETECT_PCRE_HTTPBODY].RegisterTests  = NULL;
+
+    sigmatch_table[DETECT_PCRE_HTTPBODY].flags |= SIGMATCH_PAYLOAD;
 
     const char *eb;
     int eo;
@@ -105,16 +139,114 @@ error:
     return;
 }
 
-/*
- * returns 0: no match
- *         1: match
- *        -1: error
+/**
+ * \brief match the specified pcre at http body, requesting it from htp/L7
+ *
+ * \param t pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param p pointer to the current packet
+ * \param m pointer to the sigmatch that we will cast into DetectPcreData
+ *
+ * \retval int 0 no match; 1 match
  */
+int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+                      uint8_t flags, void *state, Signature *s, SigMatch *m)
+{
+#define MAX_SUBSTRINGS 30
+    SCEnter();
+    int ret = 0;
+    int pcreret = 0;
+    int ov[MAX_SUBSTRINGS];
 
-int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+    DetectPcreData *pe = (DetectPcreData *)m->ctx;
+    if ( !(pe->flags & DETECT_PCRE_HTTP_BODY_AL))
+        SCReturnInt(0);
+
+    SCMutexLock(&f->m);
+
+    /** If enabled http body inspection
+      * TODO: Add more HTTP options here if needed
+      */
+    HtpState *htp_state = (HtpState *)state;
+    if (htp_state == NULL) {
+        SCLogDebug("No htp state, no match at http body data");
+        goto unlock;
+    } else if (htp_state->body.nchunks == 0) {
+        SCLogDebug("No body data to inspect");
+        goto unlock;
+    } else {
+        pcreret = 0;
+        int wspace[255];
+        int flags = PCRE_PARTIAL;
+
+        BodyChunk *cur = htp_state->body.first;
+        if (cur == NULL) {
+            SCLogDebug("No body chunks to inspect");
+            goto unlock;
+        }
+        htp_state->body.pcre_flags |= HTP_PCRE_DONE;
+
+        while (cur != NULL) {
+            if (SCLogDebugEnabled()) {
+                printf("\n");
+                PrintRawUriFp(stdout, (uint8_t*)cur->data, cur->len);
+                printf("\n");
+            }
+            pcreret = pcre_dfa_exec(pe->re, NULL, (char*)cur->data, cur->len, 0,
+                                    flags|PCRE_DFA_SHORTEST, ov, MAX_SUBSTRINGS,
+                                    wspace, MAX_SUBSTRINGS);
+            cur = cur->next;
+
+            SCLogDebug("Pcre Ret %d", pcreret);
+            switch (pcreret) {
+                case PCRE_ERROR_PARTIAL:
+                    /* make pcre to use the working space of the last partial
+                     * match, (match over multiple chunks)
+                     */
+                    SCLogDebug("partial match");
+                    flags |= PCRE_DFA_RESTART;
+                    htp_state->body.pcre_flags |= HTP_PCRE_HAS_MATCH;
+                break;
+                case PCRE_ERROR_NOMATCH:
+                    SCLogDebug("no match");
+                    flags = PCRE_PARTIAL;
+                break;
+                case 0:
+                    SCLogDebug("Perfect Match!");
+                    ret = 1;
+                    goto unlock;
+                break;
+                default:
+                    if (pcreret > 0) {
+                        SCLogDebug("Match with captured data");
+                        ret = 1;
+                    } else {
+                        SCLogDebug("No match, pcre failed");
+                        ret = 0;
+                    }
+                    goto unlock;
+            }
+        }
+    }
+
+unlock:
+    SCMutexUnlock(&f->m);
+    SCReturnInt(ret ^ pe->negate);
+}
+
+/**
+ * \brief DetectPcreMatch will try to match a regex on a single packet;
+ *        DetectPcreALMatch is used if we parse the option 'P'
+ *
+ * \param t pointer to the threadvars structure
+ * \param t pointer to the threadvars structure
+ *
+ * \retval 1: match ; 0 No Match; -1: error
+ */
+int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+                     Signature *s, SigMatch *m)
 {
     SCEnter();
-
 #define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
@@ -125,6 +257,11 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
         SCReturnInt(0);
 
     DetectPcreData *pe = (DetectPcreData *)m->ctx;
+
+    /* If we want to inspect the http body, we will use HTP L7 parser */
+    if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
+        SCReturnInt(0);
+
     if (s->flags & SIG_FLAG_RECURSIVE) {
         ptr = det_ctx->pkt_ptr ? det_ctx->pkt_ptr : p->payload;
         len = p->payload_len - det_ctx->pkt_off;
@@ -325,6 +462,10 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                 case 'O':
                     pd->flags |= DETECT_PCRE_MATCH_LIMIT;
                     break;
+                case 'P':
+                    /* snort's option (http body inspeciton, chunks loaded from HTP) */
+                    pd->flags |= DETECT_PCRE_HTTP_BODY_AL;
+                    break;
                 default:
                     SCLogError(SC_ERR_UNKNOWN_REGEX_MOD, "unknown regex modifier '%c'", *op);
                     goto error;
@@ -422,6 +563,7 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
     if (capture_str_ptr != NULL) {
         pd->capname = strdup((char *)capture_str_ptr);
     }
+
     if (type_str_ptr != NULL) {
         if (strcmp(type_str_ptr,"pkt") == 0) {
             pd->flags |= DETECT_PCRE_CAPTURE_PKT;
@@ -465,6 +607,14 @@ int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *r
 
     sm->type = DETECT_PCRE;
     sm->ctx = (void *)pd;
+
+    if (pd->flags & DETECT_PCRE_HTTP_BODY_AL) {
+        sm->type = DETECT_PCRE_HTTPBODY;
+
+        SCLogDebug("Body inspection modifier set");
+        s->flags |= SIG_FLAG_APPLAYER;
+        pcre_need_htp_request_body = 1;
+    }
 
     SigMatchAppend(s,m,sm);
 
@@ -643,7 +793,9 @@ static int DetectPcreTestSig01Real(int mpm_type) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
+    Flow f;
 
+    memset(&f, 0, sizeof(f));
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
     p.src.family = AF_INET;
@@ -651,6 +803,7 @@ static int DetectPcreTestSig01Real(int mpm_type) {
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+    p.flow = &f;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -670,8 +823,9 @@ static int DetectPcreTestSig01Real(int mpm_type) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1) == 1) {
         result = 1;
+    }
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -692,12 +846,15 @@ static int DetectPcreTestSig02Real(int mpm_type) {
         "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
+    Flow f;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    p.flow = &f;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
@@ -725,8 +882,9 @@ static int DetectPcreTestSig02Real(int mpm_type) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 2))
+    if (PacketAlertCheck(&p, 2) == 1) {
         result = 1;
+    }
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -823,6 +981,275 @@ static int DetectPcreTestSig03B3g (void) {
 static int DetectPcreTestSig03Wm (void) {
     return DetectPcreTestSig03Real(MPM_WUMANBER);
 }
+
+/**
+ * \test Check the signature with pcre modifier P (match with L7 to http body data)
+ */
+static int DetectPcreModifPTest04(void) {
+    int result = 0;
+    uint8_t httpbuf1[] =
+        "GET / HTTP/1.1\r\n"
+        "Host: www.emergingthreats.net\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n"
+        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
+        "Accept-Encoding: gzip,deflate\r\n"
+        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
+        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Server: Apache\r\n"
+        "X-Powered-By: PHP/5.2.5\r\n"
+        "P3P: CP=\"NOI ADM DEV PSAi COM NAV OUR OTRo STP IND DEM\"\r\n"
+        "Expires: Mon, 1 Jan 2001 00:00:00 GMT\r\n"
+        "Last-Modified: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n"
+        "Pragma: no-cache\r\n"
+        "Keep-Alive: timeout=15, max=100\r\n"
+        "Connection: Keep-Alive\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "Content-Type: text/html; charset=utf-8\r\n"
+        "\r\n"
+        "88b7\r\n"
+        "\r\n"
+        "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n"
+        "\r\n"
+        "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en-gb\" lang=\"en-gb\">\r\n\r\n";
+
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet p;
+    Flow f;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+
+    f.protoctx = (void *)&ssn;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
+                                   "\"Pcre modifier P\"; pcre:\"/DOCTYPE/P\"; "
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\""
+                          "Pcre modifier P (no match)\"; pcre:\"/blah/P\"; sid:2;)");
+    if (s->next == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(&p, 2)) {
+        printf("sid 2 matched but shouldn't: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
+/**
+ * \test Check the signature with pcre modifier P (match with L7 to http body data)
+ *       over fragmented chunks (DOCTYPE fragmented)
+ */
+static int DetectPcreModifPTest05(void) {
+    int result = 0;
+    uint8_t httpbuf1[] =
+        "GET / HTTP/1.1\r\n"
+        "Host: www.emergingthreats.net\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n"
+        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
+        "Accept-Encoding: gzip,deflate\r\n"
+        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
+        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Server: Apache\r\n"
+        "X-Powered-By: PHP/5.2.5\r\n"
+        "P3P: CP=\"NOI ADM DEV PSAi COM NAV OUR OTRo STP IND DEM\"\r\n"
+        "Expires: Mon, 1 Jan 2001 00:00:00 GMT\r\n"
+        "Last-Modified: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n"
+        "Pragma: no-cache\r\n"
+        "Keep-Alive: timeout=15, max=100\r\n"
+        "Connection: Keep-Alive\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "Content-Type: text/html; charset=utf-8\r\n"
+        "\r\n"
+        "88b7\r\n"
+        "\r\n"
+        "<!DOC";
+
+    uint8_t httpbuf2[] = "TYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n"
+        "\r\n"
+        "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en-gb\" lang=\"en-gb\">\r\n\r\n";
+
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet p1;
+    Packet p2;
+    Flow f;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p1, 0, sizeof(Packet));
+    memset(&p2, 0, sizeof(Packet));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1.src.family = AF_INET;
+    p1.dst.family = AF_INET;
+    p1.payload = NULL;
+    p1.payload_len = 0;
+    p1.proto = IPPROTO_TCP;
+
+    p2.src.family = AF_INET;
+    p2.dst.family = AF_INET;
+    p2.payload = NULL;
+    p2.payload_len = 0;
+    p2.proto = IPPROTO_TCP;
+
+    f.protoctx = (void *)&ssn;
+    p1.flow = &f;
+    p1.flowflags |= FLOW_PKT_TOSERVER;
+    p2.flow = &f;
+    p2.flowflags |= FLOW_PKT_TOSERVER;
+    ssn.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
+                                   "\"Pcre modifier P\"; pcre:\"/DOC/P\"; "
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\""
+                          "Pcre modifier P (no match)\"; pcre:\"/DOCTYPE/P\"; sid:2;)");
+    if (s->next == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+
+    if ( !(PacketAlertCheck(&p1, 1))) {
+        printf("sid 1 didn't match but should have");
+        goto end;
+    }
+
+    if ( !(PacketAlertCheck(&p1, 2))) {
+        printf("sid 2 didn't match but should have");
+        /* It's a partial match over 2 chunks*/
+        goto end;
+    }
+
+    if ( !(PacketAlertCheck(&p2, 2))) {
+        printf("sid 2 didn't match but should have");
+        /* It's a partial match over 2 chunks*/
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -847,6 +1274,8 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreTestSig03B2g -- negated pcre test", DetectPcreTestSig03B2g, 1);
     UtRegisterTest("DetectPcreTestSig03B3g -- negated pcre test", DetectPcreTestSig03B3g, 1);
     UtRegisterTest("DetectPcreTestSig03Wm -- negated pcre test", DetectPcreTestSig03Wm, 1);
+    UtRegisterTest("DetectPcreModifPTest04 -- Modifier P", DetectPcreModifPTest04, 1);
+    UtRegisterTest("DetectPcreModifPTest05 -- Modifier P fragmented", DetectPcreModifPTest05, 1);
 #endif /* UNITTESTS */
 }
 
