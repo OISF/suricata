@@ -23,6 +23,8 @@
 #include "respond-reject.h"
 #include "respond-reject-libnet11.h"
 
+#include "util-debug.h"
+
 int RejectSendIPv4TCP(ThreadVars *, Packet *, void *);
 int RejectSendIPv4ICMP(ThreadVars *, Packet *, void *);
 int RejectSendIPv6TCP(ThreadVars *, Packet *, void *);
@@ -38,11 +40,12 @@ void TmModuleRespondRejectRegister (void) {
 }
 
 TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
-
     int ret = 0;
+
     /* ACTION_REJECT defaults to rejecting the SRC */
-    if (!(p->action & ACTION_REJECT) && !(p->action & ACTION_REJECT_DST) &&
-        (p->action & ACTION_REJECT_BOTH)) {
+    if (!(p->action & ACTION_REJECT) &&
+        !(p->action & ACTION_REJECT_DST) &&
+        !(p->action & ACTION_REJECT_BOTH)) {
         return TM_ECODE_OK;
     }
 
@@ -66,6 +69,7 @@ TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         /* we're only supporting IPv4 and IPv6 */
         return TM_ECODE_OK;
     }
+
     if (ret)
         return TM_ECODE_FAILED;
     else
@@ -104,13 +108,17 @@ int RejectSendIPv4ICMP(ThreadVars *tv, Packet *p, void *data) {
     return 0;
 }
 
+/** \todo implement */
 int RejectSendIPv6TCP(ThreadVars *tv, Packet *p, void *data) {
-    printf ("we would send a ipv6 tcp reset here\n");
-    return 1;
+    SCEnter();
+    SCLogDebug("we would send a ipv6 tcp reset here");
+    SCReturnInt(0);
 }
 
+/** \todo implement */
 int RejectSendIPv6ICMP(ThreadVars *tv, Packet *p, void *data) {
-    printf ("we would send a ipv6 icmp reset here\n");
-    return 1;
+    SCEnter();
+    SCLogDebug("we would send a ipv6 icmp reset here");
+    SCReturnInt(0);
 }
 
