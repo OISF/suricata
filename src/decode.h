@@ -34,6 +34,9 @@
 #include "decode-raw.h"
 #include "decode-vlan.h"
 
+/* forward declaration */
+struct DetectionEngineThreadCtx_;
+
 /* Address */
 typedef struct Address_
 {
@@ -317,6 +320,40 @@ typedef struct Packet_
                            * It should always point to the lowest
                            * packet in a encapsulated packet */
 
+    /* required for cuda support */
+#ifdef __SC_CUDA_SUPPORT__
+    PatternMatcherQueue *cuda_pmq;
+    MpmCtx *cuda_mpm_ctx;
+    MpmThreadCtx *cuda_mtc;
+    /* this mutex corresponds to the condition variable defined below it */
+    SCMutex cuda_mutex_q;
+    /* we need this condition variable so that the cuda dispatcher thread
+     * can inform the client threads, when they are done with the pattern
+     * matching */
+    SCCondT cuda_cond_q;
+    /* used to hold the match results.  We can instead use a void *result
+     * instead here.  That way we can make them hold any result. *todo* */
+    uint16_t cuda_matches;
+    /* the client thread uses this flag to inform the dispatcher that it
+     * has woken up and has retrieved the results and that the dispatcher
+     * can now continue its operations */
+    uint8_t cuda_done;
+    /* indicates if the dispatcher should call the search or the scan phase
+     * of the pattern matcher.  We can instead use a void *cuda_data instead.
+     * This way we can send any data across to the dispatcher */
+    uint8_t cuda_search;
+    /* indicates if the dispatcher should free this packet it has received.
+     * For some modules which don't send a packet to the dispatcher, we will
+     * have to create dummy Packets, fill them with data and send them over
+     * to the dispatcher.  The callling thread can't free the Packet once
+     * it gets the results, since the dispatcher might still be accessing
+     * the final stages of the packets.  Instead we make the dispatcher
+     * free the packet, if we want the packet to be destoryed after it has
+     * been used.  A probable *todo* would be using a static Packet, in the
+     * the modules that requires a dummy Packet.  That way we are not forced
+     * to create a new Packet every time using the expensive malloc() */
+    uint8_t cuda_free_packet;
+#endif
 } Packet;
 
 typedef struct PacketQueue_ {

@@ -7,10 +7,6 @@
 // use this for now
 #define __SC_CUDA_SUPPORT__
 
-/* compile in, only if we have a CUDA enabled device on the machine, with the
- * toolkit and the driver installed */
-#ifdef __SC_CUDA_SUPPORT__
-
 #include <cuda.h>
 #include "util-cuda.h"
 #include "suricata-common.h"
@@ -18,6 +14,10 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-unittest.h"
+
+/* compile in, only if we have a CUDA enabled device on the machine, with the
+ * toolkit and the driver installed */
+#ifdef __SC_CUDA_SUPPORT__
 
 #define CASE_CODE(E) case E: return #E
 
@@ -3213,12 +3213,6 @@ int SCCudaCtxPopCurrent(CUcontext *pctx)
 {
     CUresult result = 0;
 
-    if (pctx == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
-                   "pctx NULL");
-        goto error;
-    }
-
     result = cuCtxPopCurrent(pctx);
     if (SCCudaHandleRetValue(result, SC_CUDA_CU_CTX_POP_CURRENT) == -1)
         goto error;
@@ -3995,8 +3989,6 @@ static int SCCudaInit(unsigned int flags)
     return -1;
 }
 
-#endif /* __SC_CUDA_SUPPORT__ */
-
 /**************************Cuda_Env_Initialization_API*************************/
 
 /**
@@ -4171,3 +4163,5 @@ void SCCudaRegisterTests(void)
 
     return;
 }
+
+#endif /* __SC_CUDA_SUPPORT__ */

@@ -33,7 +33,9 @@ enum {
 
     MPM_WUMANBER,
     MPM_B2G,
+#ifdef __SC_CUDA_SUPPORT__
     MPM_B2G_CUDA,
+#endif
     MPM_B3G,
 
     /* table size */
@@ -119,7 +121,7 @@ typedef struct MpmCtx_ {
 typedef struct MpmTableElmt_ {
     char *name;
     uint8_t max_pattern_length;
-    void (*InitCtx)(struct MpmCtx_ *);
+    void (*InitCtx)(struct MpmCtx_ *, int);
     void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *, uint32_t);
     void (*DestroyCtx)(struct MpmCtx_ *);
     void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
@@ -157,7 +159,7 @@ void MpmRegisterTests(void);
 /** Return the max pattern length of a Matcher type given as arg */
 int32_t MpmMatcherGetMaxPatternLength(uint16_t);
 
-void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher);
+void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher, int module_handle);
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
 uint32_t MpmGetHashSize(const char *);
 uint32_t MpmGetBloomSize(const char *);

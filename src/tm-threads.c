@@ -862,6 +862,91 @@ void TmThreadAppend(ThreadVars *tv, int type)
     //printf("TmThreadAppend: thread \'%s\' is added to the list.\n", tv->name);
 }
 
+/**
+ * \brief Removes this TV from tv_root based on its type
+ *
+ * \param tv   The tv instance to remove from the global tv list.
+ * \param type Holds the type this TV belongs to.
+ */
+void TmThreadRemove(ThreadVars *tv, int type)
+{
+    SCMutexLock(&tv_root_lock);
+
+    if (tv_root[type] == NULL) {
+        SCMutexUnlock(&tv_root_lock);
+        return;
+    }
+
+    ThreadVars *t = tv_root[type];
+    while (t != tv) {
+        t = t->next;
+    }
+
+    if (t != NULL) {
+        if (t->prev != NULL)
+            t->prev->next = t->next;
+        if (t->next != NULL)
+            t->next->prev = t->prev;
+
+    if (t == tv_root[type])
+        tv_root[type] = t->next;;
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+
+    return;
+}
+
+/**
+ * \brief Kill a thread.
+ *
+ * \param tv A ThreadVars instance corresponding to the thread that has to be
+ *           killed.
+ */
+void TmThreadKillThread(ThreadVars *tv)
+{
+    int i = 0;
+
+    if (tv == NULL)
+        return;
+
+    /* set the thread flag informing the thread that it needs to be
+     * terminated */
+    TmThreadsSetFlag(tv, THV_KILL);
+
+    if (tv->inq != NULL) {
+        /* signal the queue for the number of users */
+        for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
+            SCCondSignal(&trans_q[tv->inq->id].cond_q);
+
+        /* to be sure, signal more */
+        while (1) {
+            if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                break;
+            }
+
+            for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
+                SCCondSignal(&trans_q[tv->inq->id].cond_q);
+
+            usleep(100);
+        }
+    }
+
+    if (tv->cond != NULL ) {
+        while (1) {
+            if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                break;
+            }
+
+            pthread_cond_broadcast(tv->cond);
+
+            usleep(100);
+        }
+    }
+
+    return;
+}
+
 void TmThreadKillThreads(void) {
     ThreadVars *tv = NULL;
     int i = 0;

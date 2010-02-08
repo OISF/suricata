@@ -17,13 +17,19 @@
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "util-mpm-b2g-cuda.h"
 
 #include "util-debug.h"
 
 /** \todo make it possible to use multiple pattern matcher algorithms next to
           eachother. */
 //#define PM   MPM_WUMANBER
+//#define PM   MPM_B2G
+#ifdef __SC_CUDA_SUPPORT__
+#define PM   MPM_B2G_CUDA
+#else
 #define PM   MPM_B2G
+#endif
 //#define PM   MPM_B3G
 
 /** \brief  Function to return the default multi pattern matcher algorithm to be
@@ -58,14 +64,31 @@ uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                            Packet *p)
 {
     SCEnter();
-    uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SCAN;
-    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Scan
-            (det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload,
-             p->payload_len);
-
+#ifndef __SC_CUDA_SUPPORT__
+    uint32_t ret;
+    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Scan(det_ctx->sgh->mpm_ctx,
+                                                          &det_ctx->mtc,
+                                                          &det_ctx->pmq,
+                                                          p->payload,
+                                                          p->payload_len);
     SCReturnInt(ret);
+#else
+    p->cuda_done = 0;
+    p->cuda_search = 0;
+    p->cuda_free_packet = 0;
+    p->cuda_mpm_ctx = det_ctx->sgh->mpm_ctx;
+    p->cuda_mtc = &det_ctx->mtc;
+    p->cuda_pmq = &det_ctx->pmq;
+    B2gCudaPushPacketTo_tv_CMB2_RC(p);
+    SCMutexLock(&p->cuda_mutex_q);
+    SCondWait(&p->cuda_cond_q, &p->cuda_mutex_q);
+    p->cuda_done = 1;
+    SCMutexUnlock(&p->cuda_mutex_q);
+    SCReturnInt(p->cuda_matches);
+#endif
+
 }
 
 /** \brief Uri Pattern match, scan part -- searches for only 'scan' patterns,
@@ -78,14 +101,32 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                         uint8_t *uri, uint16_t uri_len)
 {
     SCEnter();
-    uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SCAN;
+#ifndef __SC_CUDA_SUPPORT__
+    uint32_t ret;
     ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan
         (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq,
          uri, uri_len);
-
     SCReturnInt(ret);
+#else
+    Packet *p = malloc(sizeof(Packet));
+    memset(p, 0, sizeof(Packet));
+    p->cuda_done = 0;
+    p->cuda_free_packet = 1;
+    p->cuda_search = 0;
+    p->cuda_mpm_ctx = det_ctx->sgh->mpm_uri_ctx;
+    p->cuda_mtc = &det_ctx->mtcu;
+    p->cuda_pmq = &det_ctx->pmq;
+    p->payload = uri;
+    p->payload_len = uri_len;
+    B2gCudaPushPacketTo_tv_CMB2_RC(p);
+    SCMutexLock(&p->cuda_mutex_q);
+    SCondWait(&p->cuda_cond_q, &p->cuda_mutex_q);
+    p->cuda_done = 1;
+    SCMutexUnlock(&p->cuda_mutex_q);
+    SCReturnInt(p->cuda_matches);
+#endif
 }
 
 /** \brief Pattern match, search part -- searches for all other patterns
@@ -97,14 +138,30 @@ uint32_t PacketPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                             Packet *p)
 {
     SCEnter();
-    uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SEARCH;
-    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search
-        (det_ctx->sgh->mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, p->payload,
-         p->payload_len);
-
+#ifndef __SC_CUDA_SUPPORT__
+    uint32_t ret;
+    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
+                                                            &det_ctx->mtc,
+                                                            &det_ctx->pmq,
+                                                            p->payload,
+                                                            p->payload_len);
     SCReturnInt(ret);
+#else
+    p->cuda_done = 0;
+    p->cuda_search = 1;
+    p->cuda_free_packet = 0;
+    p->cuda_mpm_ctx = det_ctx->sgh->mpm_ctx;
+    p->cuda_mtc = &det_ctx->mtc;
+    p->cuda_pmq = &det_ctx->pmq;
+    B2gCudaPushPacketTo_tv_CMB2_RC(p);
+    SCMutexLock(&p->cuda_mutex_q);
+    SCondWait(&p->cuda_cond_q, &p->cuda_mutex_q);
+    p->cuda_done = 1;
+    SCMutexUnlock(&p->cuda_mutex_q);
+    SCReturnInt(p->cuda_matches);
+#endif
 }
 
 /** \brief Uri Pattern match, search part -- searches for all other patterns
@@ -116,14 +173,32 @@ uint32_t UriPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                          uint8_t *uri, uint16_t uri_len)
 {
     SCEnter();
-    uint32_t ret;
 
     det_ctx->pmq.mode = PMQ_MODE_SEARCH;
+#ifndef __SC_CUDA_SUPPORT__
+    uint32_t ret;
     ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search
         (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, uri,
          uri_len);
-
     SCReturnInt(ret);
+#else
+    Packet *p = malloc(sizeof(Packet));
+    memset(p, 0, sizeof(Packet));
+    p->cuda_done = 0;
+    p->cuda_free_packet = 1;
+    p->cuda_search = 1;
+    p->cuda_mpm_ctx = det_ctx->sgh->mpm_uri_ctx;
+    p->cuda_mtc = &det_ctx->mtcu;
+    p->cuda_pmq = &det_ctx->pmq;
+    B2gCudaPushPacketTo_tv_CMB2_RC(p);
+    SCMutexLock(&p->cuda_mutex_q);
+    SCondWait(&p->cuda_cond_q, &p->cuda_mutex_q);
+    p->cuda_done = 1;
+    SCMutexUnlock(&p->cuda_mutex_q);
+    SCReturnInt(p->cuda_matches);
+#endif
+
+    //printf("PacketPatternMatch: ret %" PRIu32 "\n", ret);
 }
 
 /** \brief cleans up the mpm instance after a match */
@@ -150,7 +225,7 @@ void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher) {
 
 void PatternMatchPrepare(MpmCtx *mpm_ctx, uint16_t mpm_matcher) {
     SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
-    MpmInitCtx(mpm_ctx, mpm_matcher);
+    MpmInitCtx(mpm_ctx, mpm_matcher, -1);
 }
 
 void PatternMatchThreadPrint(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher) {
@@ -621,7 +696,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             goto error;
 
         memset(sh->mpm_ctx, 0x00, sizeof(MpmCtx));
-        MpmInitCtx(sh->mpm_ctx, de_ctx->mpm_matcher);
+#ifndef __SC_CUDA_SUPPORT__
+        MpmInitCtx(sh->mpm_ctx, de_ctx->mpm_matcher, -1);
+#else
+        MpmInitCtx(sh->mpm_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+#endif
     }
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         sh->mpm_uri_ctx = malloc(sizeof(MpmCtx));
@@ -629,7 +708,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             goto error;
 
         memset(sh->mpm_uri_ctx, 0x00, sizeof(MpmCtx));
-        MpmInitCtx(sh->mpm_uri_ctx, de_ctx->mpm_matcher);
+#ifndef __SC_CUDA_SUPPORT__
+        MpmInitCtx(sh->mpm_uri_ctx, de_ctx->mpm_matcher, -1);
+#else
+        MpmInitCtx(sh->mpm_uri_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+#endif
     }
 
     uint32_t mpm_content_cnt = 0, mpm_uricontent_cnt = 0;

@@ -106,6 +106,11 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_PCAP_RECV_INIT);
         CASE_CODE (SC_ERR_NFQ_UNBIND);
         CASE_CODE (SC_ERR_NFQ_BIND);
+        CASE_CODE (SC_ERR_CUDA_ERROR);
+        CASE_CODE (SC_ERR_CUDA_HANDLER_ERROR);
+        CASE_CODE (SC_ERR_TM_THREADS_ERROR);
+        CASE_CODE (SC_ERR_TM_MODULES_ERROR);
+        CASE_CODE (SC_ERR_B2G_CUDA_ERROR);
         default:
             return "UNKNOWN_ERROR";
     }

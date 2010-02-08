@@ -117,6 +117,7 @@ util-spm-bs2bm.c util-spm-bs2bm.h \
 util-spm-bm.c util-spm-bm.h \
 util-mpm-wumanber.c util-mpm-wumanber.h \
 util-mpm-b2g.c util-mpm-b2g.h \
+util-mpm-b2g-cuda.c util-mpm-b2g-cuda.h \
 util-mpm-b3g.c util-mpm-b3g.h \
 util-cidr.c util-cidr.h \
 util-unittest.c util-unittest.h \
@@ -144,6 +145,7 @@ util-classification-config.c util-classification-config.h \
 util-strlcatu.c \
 util-strlcpyu.c \
 util-cuda.c util-cuda.h \
+util-cuda-handlers.c util-cuda-handlers.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

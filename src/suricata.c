@@ -95,6 +95,9 @@
 #include "util-daemon.h"
 #include "reputation.h"
 
+/* holds the cuda b2g module */
+#include "util-mpm-b2g-cuda.h"
+
 #include "output.h"
 
 /*
@@ -623,16 +626,6 @@ int main(int argc, char **argv)
     SCPerfInitCounterApi();
     SCReputationInitCtx();
 
-    /** \todo we need an api for these */
-    AppLayerDetectProtoThreadInit();
-    RegisterAppLayerParsers();
-    RegisterHTPParsers();
-    RegisterTLSParsers();
-    RegisterSMBParsers();
-    RegisterDCERPCParsers();
-    RegisterFTPParsers();
-    AppLayerParsersInitPostProcess();
-
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
     TmModuleDecodeNFQRegister();
@@ -659,7 +652,20 @@ int main(int argc, char **argv)
     TmModuleLogHttpLogRegister();
     TmModuleLogHttpLogIPv4Register();
     TmModuleLogHttpLogIPv6Register();
+#ifdef __SC_CUDA_SUPPORT__
+    TmModuleCudaMpmB2gRegister();
+#endif
     TmModuleDebugList();
+
+    /** \todo we need an api for these */
+    AppLayerDetectProtoThreadInit();
+    RegisterAppLayerParsers();
+    RegisterHTPParsers();
+    RegisterTLSParsers();
+    RegisterSMBParsers();
+    RegisterDCERPCParsers();
+    RegisterFTPParsers();
+    AppLayerParsersInitPostProcess();
 
 #ifdef UNITTESTS
     if (run_mode == MODE_UNITTEST) {

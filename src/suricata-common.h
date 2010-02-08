@@ -7,6 +7,8 @@
 #ifndef __SURICATA_COMMON_H__
 #define __SURICATA_COMMON_H__
 
+//#define __SC_CUDA_SUPPORT__
+
 #define TRUE   1
 #define FALSE  0
 

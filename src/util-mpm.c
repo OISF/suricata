@@ -5,6 +5,7 @@
 /* include pattern matchers */
 #include "util-mpm-wumanber.h"
 #include "util-mpm-b2g.h"
+#include "util-mpm-b2g-cuda.h"
 #include "util-mpm-b3g.h"
 #include "util-hashlist.h"
 
@@ -282,9 +283,9 @@ void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher, uint32_t m
     mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx, max_id);
 }
 
-void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher) {
+void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher, int module_handle) {
     mpm_ctx->mpm_type = matcher;
-    mpm_table[matcher].InitCtx(mpm_ctx);
+    mpm_table[matcher].InitCtx(mpm_ctx, module_handle);
 }
 
 void MpmTableSetup(void) {
@@ -292,6 +293,9 @@ void MpmTableSetup(void) {
 
     MpmWuManberRegister();
     MpmB2gRegister();
+#ifdef __SC_CUDA_SUPPORT__
+    MpmB2gCudaRegister();
+#endif
     MpmB3gRegister();
 }
 

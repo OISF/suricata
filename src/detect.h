@@ -292,6 +292,13 @@ typedef struct DetectEngineCtx_ {
     ThresholdCtx ths_ctx;
 
     uint16_t mpm_matcher; /**< mpm matcher this ctx uses */
+
+#ifdef __SC_CUDA_SUPPORT__
+    /* cuda rules content module handle.  Holds the handler serivice's
+     * (util-cuda-handler.c) handle for a module.  This module would
+     * hold the cuda context for all the rules content */
+    int cuda_rc_mod_handle;
+#endif
 } DetectEngineCtx;
 
 /**

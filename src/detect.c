@@ -102,6 +102,10 @@
 #include "util-debug.h"
 #include "util-hashlist.h"
 
+#include "util-cuda-handlers.h"
+#include "util-mpm-b2g-cuda.h"
+#include "util-cuda.h"
+
 SigMatch *SigMatchAlloc(void);
 void SigMatchFree(SigMatch *sm);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
@@ -2823,7 +2827,29 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
 int SigGroupBuild (DetectEngineCtx *de_ctx) {
     SigAddressPrepareStage1(de_ctx);
     SigAddressPrepareStage2(de_ctx);
+
+#ifdef __SC_CUDA_SUPPORT__
+    /* we register a module that would require cuda handler service.  This
+     * module would hold the context for all the patterns in the rules */
+    de_ctx->cuda_rc_mod_handle = SCCudaHlRegisterModule("SC_RULES_CONTENT_B2G_CUDA");
+#endif
+
     SigAddressPrepareStage3(de_ctx);
+
+#ifdef __SC_CUDA_SUPPORT__
+    /* the AddressPrepareStage3 actually handles the creation of device pointers
+     * on the gpu.  The cuda context that stage3 used would still be attached to
+     * this host thread.  We need to pop this cuda context so that the dispatcher
+     * thread that we are going to create for the above module we registered
+     * can attach to this cuda context */
+    CUcontext context;
+    if (SCCudaCtxPopCurrent(&context) == -1)
+        exit(EXIT_FAILURE);
+    /* start the dispatcher thread for this module */
+    if (B2gCudaStartDispatcherThreadRC("SC_RULES_CONTENT_B2G_CUDA") == -1)
+        exit(EXIT_FAILURE);
+#endif
+
 //    SigAddressPrepareStage5(de_ctx);
     DbgPrintScanSearchStats();
 //    DetectAddressPrintMemory();
