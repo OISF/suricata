@@ -303,7 +303,7 @@ void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
     struct pcap_stat pcap_s;
 
     if (pcap_stats(ptv->pcap_handle, &pcap_s) < 0) {
-        SCLogError(SC_ERR_STAT_ERROR,"(%s) Failed to get pcap_stats: %s", tv->name, pcap_geterr(ptv->pcap_handle));
+        SCLogError(SC_ERR_STAT,"(%s) Failed to get pcap_stats: %s", tv->name, pcap_geterr(ptv->pcap_handle));
         SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 
         return;
