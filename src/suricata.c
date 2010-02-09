@@ -731,7 +731,7 @@ int main(int argc, char **argv)
     SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
 
     /* pre allocate packets */
-    SCLogInfo("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)sizeof(Packet));
+    SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)sizeof(Packet));
     int i = 0;
     for (i = 0; i < max_pending_packets; i++) {
         /* XXX pkt alloc function */
@@ -745,7 +745,8 @@ int main(int argc, char **argv)
 
         PacketEnqueue(&packet_q,p);
     }
-    SCLogInfo("preallocating packets... done: total memory %"PRIuMAX"", (uintmax_t)(max_pending_packets*sizeof(Packet)));
+    SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
+        max_pending_packets, (uintmax_t)(max_pending_packets*sizeof(Packet)));
 
     FlowInitConfig(FLOW_VERBOSE);
 

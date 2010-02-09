@@ -71,6 +71,8 @@ TmEcode NoIPFWSupportExit(ThreadVars *tv, void *initdata, void **data) {
 
 #else /* We have IPFW compiled in */
 
+extern int max_pending_packets;
+
 /**
  * \brief Structure to hold thread specific variables.
  */
@@ -221,7 +223,7 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
     /* Is the packet queue full, wait if so */
     SCMutexLock(&mutex_pending);
-    if (pending > MAX_PENDING) {
+    if (pending > max_pending_packets) {
         pthread_cond_wait(&cond_pending, &mutex_pending);
     }
     SCMutexUnlock(&mutex_pending);

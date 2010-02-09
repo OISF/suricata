@@ -66,9 +66,11 @@ TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #else /* implied we do have NFQ support */
 
+extern int max_pending_packets;
+
 #define NFQ_BURST_FACTOR 4
-#define NFQ_DFT_QUEUE_LEN NFQ_BURST_FACTOR * MAX_PENDING
-#define NFQ_NF_BUFSIZE 1500 * NFQ_DFT_QUEUE_LEN
+//#define NFQ_DFT_QUEUE_LEN NFQ_BURST_FACTOR * MAX_PENDING
+//#define NFQ_NF_BUFSIZE 1500 * NFQ_DFT_QUEUE_LEN
 
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
@@ -264,7 +266,8 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
 #endif /* HAVE_NFQ_MAXLEN */
 
     /* set netlink buffer size to a decent value */
-    nfnl_rcvbufsiz(nfq_nfnlh(nfq_t->h), NFQ_NF_BUFSIZE);
+    nfnl_rcvbufsiz(nfq_nfnlh(nfq_t->h), queue_maxlen * 1500);
+    SCLogInfo("setting nfnl bufsize to %" PRId32 "", queue_maxlen * 1500);
 
     nfq_t->nh = nfq_nfnlh(nfq_t->h);
     nfq_t->fd = nfnl_fd(nfq_t->nh);
@@ -307,7 +310,7 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
         exit(EXIT_FAILURE);
     }
 
-    int r = NFQInitThread(ntv, queue_num, NFQ_DFT_QUEUE_LEN);
+    int r = NFQInitThread(ntv, queue_num, (max_pending_packets * NFQ_BURST_FACTOR));
     if (r < 0) {
         SCLogError(SC_ERR_NFQ_THREAD_INIT, "nfq thread failed to initialize");
 
@@ -389,7 +392,7 @@ TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     /* check if we have too many packets in the system
      * so we will wait for some to free up */
     SCMutexLock(&mutex_pending);
-    if (pending > MAX_PENDING) {
+    if (pending > max_pending_packets) {
         SCondWait(&cond_pending, &mutex_pending);
     }
     SCMutexUnlock(&mutex_pending);
