@@ -24,6 +24,7 @@
 #include "util-time.h"
 #include "util-debug.h"
 #include "conf.h"
+#include "util-error.h"
 
 extern int max_pending_packets;
 
@@ -77,7 +78,8 @@ void TmModuleDecodePcapFileRegister (void) {
 }
 
 void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
-    //printf("PcapFileCallback: user %p, h %p, pkt %p\n", user, h, pkt);
+    SCEnter();
+    //SCLogDebug("user %p, h %p, pkt %p", user, h, pkt);
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)user;
     //ThreadVars *tv = ptv->tv;
 
@@ -104,39 +106,42 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 }
 
 TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+    SCEnter();
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
     ptv->in_p = p;
 
     /* Right now we just support reading packets one at a time. */
     int r = pcap_dispatch(pcap_g.pcap_handle, 1, (pcap_handler)PcapFileCallback, (u_char *)ptv);
+
     if (r < 0) {
         SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s\n",
             r, pcap_geterr(pcap_g.pcap_handle));
         EngineStop();
         return TM_ECODE_FAILED;
     } else if (r == 0) {
-        SCLogDebug("error code %" PRId32 " %s\n", r, pcap_geterr(pcap_g.pcap_handle));
+        SCLogError(SC_ERR_PCAP_DISPATCH, "Error dispatching pcap file or end of pcap file, code %" PRId32 " error %s", r, pcap_geterr(pcap_g.pcap_handle));
         EngineStop();
-        return TM_ECODE_FAILED;
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
-    return TM_ECODE_OK;
+    SCReturnInt(TM_ECODE_OK);
 }
 
 TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
+    SCEnter();
     char *tmpbpfstring = NULL;
-
     if (initdata == NULL) {
-        printf("ReceivePcapFileThreadInit error: initdata == NULL\n");
-        return TM_ECODE_FAILED;
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "error: initdata == NULL");
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     SCLogInfo("reading pcap file %s", (char *)initdata);
 
     PcapFileThreadVars *ptv = malloc(sizeof(PcapFileThreadVars));
     if (ptv == NULL) {
-        return TM_ECODE_FAILED;
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for PcapFileThreadVars");
+        SCReturnInt(TM_ECODE_FAILED);
     }
     memset(ptv, 0, sizeof(PcapFileThreadVars));
 
@@ -184,18 +189,18 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
             break;
 
         default:
-            SCLogError(SC_ERR_UNIMPLEMENTED, "datalink type %" PRId32 " not "
-                      "(yet) supported in module PcapFile.\n", pcap_g.datalink);
+            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "Error: datalink type %" PRId32 " not yet supported in module PcapFile", pcap_g.datalink);
             free(ptv);
-            return TM_ECODE_FAILED;
+            SCReturnInt(TM_ECODE_FAILED);
     }
 
     ptv->tv = tv;
     *data = (void *)ptv;
-    return TM_ECODE_OK;
+    SCReturnInt(TM_ECODE_OK);
 }
 
 void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
+    SCEnter();
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
     SCLogInfo(" - (%s) Packets %" PRIu32 ", bytes %" PRIu64 ".", tv->name, ptv->pkts, ptv->bytes);
@@ -203,11 +208,13 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
 }
 
 TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data) {
-    return TM_ECODE_OK;
+    SCEnter();
+    SCReturnInt(TM_ECODE_OK);
 }
 
 TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
+    SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     /* update counters */
@@ -225,16 +232,17 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     /* call the decoder */
     pcap_g.Decoder(tv, dtv, p, p->pkt, p->pktlen, pq);
 
-    return TM_ECODE_OK;
+    SCReturnInt(TM_ECODE_OK);
 }
 
 TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
+    SCEnter();
     DecodeThreadVars *dtv = NULL;
 
     if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
-        printf("Error Allocating memory\n");
-        return TM_ECODE_FAILED;
+        SCLogError(SC_ERR_MEM_ALLOC, "Error Allocating memory for DecodeThreadVars");
+        SCReturnInt(TM_ECODE_FAILED);
     }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
@@ -242,7 +250,7 @@ TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)dtv;
 
-    return TM_ECODE_OK;
+    SCReturnInt(TM_ECODE_OK);
 }
 
 /* eof */
