@@ -353,9 +353,12 @@ typedef struct DecodeThreadVars_
     uint16_t counter_max_pkt_size;
 
     /** frag stats - defrag runs in the context of the decoder. */
-    uint16_t counter_defrag_fragments;
-    uint16_t counter_defrag_reassembled;
-    uint16_t counter_defrag_timeouts;
+    uint16_t counter_defrag_ipv4_fragments;
+    uint16_t counter_defrag_ipv4_reassembled;
+    uint16_t counter_defrag_ipv4_timeouts;
+    uint16_t counter_defrag_ipv6_fragments;
+    uint16_t counter_defrag_ipv6_reassembled;
+    uint16_t counter_defrag_ipv6_timeouts;
 } DecodeThreadVars;
 
 /* clear key vars so we don't need to call the expensive

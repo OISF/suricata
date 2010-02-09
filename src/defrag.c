@@ -921,13 +921,20 @@ insert:
     }
 
     if (tracker->seen_last) {
-        if (tracker->af == AF_INET)
+        if (tracker->af == AF_INET) {
             r = Defrag4Reassemble(tv, dc, tracker, p);
-        else if (tracker->af == AF_INET6)
+            if (r != NULL && tv != NULL && dtv != NULL) {
+                SCPerfCounterIncr(dtv->counter_defrag_ipv4_reassembled,
+                    tv->sc_perf_pca);
+            }
+        }
+        else if (tracker->af == AF_INET6) {
             r = Defrag6Reassemble(tv, dc, tracker, p);
-    }
-    if (r != NULL && tv != NULL && dtv != NULL) {
-        SCPerfCounterIncr(dtv->counter_defrag_reassembled, tv->sc_perf_pca);
+            if (r != NULL && tv != NULL && dtv != NULL) {
+                SCPerfCounterIncr(dtv->counter_defrag_ipv6_reassembled,
+                    tv->sc_perf_pca);
+            }
+        }
     }
 
 done:
@@ -964,8 +971,14 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
             DefragTrackerReset(tracker);
             PoolReturn(dc->tracker_pool, tracker);
             if (tv != NULL && dtv != NULL) {
-                SCPerfCounterIncr(dtv->counter_defrag_timeouts,
-                    tv->sc_perf_pca);
+                if (tracker->af == AF_INET) {
+                    SCPerfCounterIncr(dtv->counter_defrag_ipv4_timeouts,
+                        tv->sc_perf_pca);
+                }
+                else if (tracker->af == AF_INET6) {
+                    SCPerfCounterIncr(dtv->counter_defrag_ipv6_timeouts,
+                        tv->sc_perf_pca);
+                }
             }
             return;
         }
@@ -1068,7 +1081,14 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc, Packet *p)
     }
 
     if (tv != NULL && dtv != NULL) {
-        SCPerfCounterIncr(dtv->counter_defrag_fragments, tv->sc_perf_pca);
+        if (af == AF_INET) {
+            SCPerfCounterIncr(dtv->counter_defrag_ipv4_fragments,
+                tv->sc_perf_pca);
+        }
+        else if (af == AF_INET6) {
+            SCPerfCounterIncr(dtv->counter_defrag_ipv6_fragments,
+                tv->sc_perf_pca);
+        }
     }
 
     /* Create a lookup key. */
