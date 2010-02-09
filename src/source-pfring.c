@@ -262,7 +262,7 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data) {
     pfring_stat pfring_s;
 
     if(pfring_stats(ptv->pd, &pfring_s) < 0) {
-        SCLogError(SC_ERR_STAT, "(%s) Failed to get pfring stats", tv->name);
+        SCLogError(SC_ERR_STAT,"(%s) Failed to get pfring stats", tv->name);
         SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 
         return;
