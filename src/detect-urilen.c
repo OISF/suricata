@@ -87,35 +87,35 @@ int DetectUrilenMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     SCEnter();
     int ret = 0;
     DetectUrilenData *urilend = (DetectUrilenData *) m->ctx;
+
     HtpState *htp_state = (HtpState *)state;
     if (htp_state == NULL) {
         SCLogDebug("no HTP state, no need to match further");
         SCReturnInt(ret);
     }
 
-    htp_tx_t *tx = NULL;
     SCMutexLock(&f->m);
-    tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = list_get(htp_state->recent_in_tx, 0);
 
-    if (tx == NULL || tx->request_uri == NULL)
+    if (tx == NULL || tx->request_uri_normalized == NULL)
         goto end;
 
     switch (urilend->mode) {
         case DETECT_URILEN_EQ:
-            if (urilend->urilen1 == bstr_len(tx->request_uri))
+            if (bstr_len(tx->request_uri_normalized) == urilend->urilen1)
                 ret = 1;
             break;
         case DETECT_URILEN_LT:
-            if (bstr_len(tx->request_uri) < urilend->urilen1)
+            if (bstr_len(tx->request_uri_normalized) < urilend->urilen1)
                 ret = 1;
             break;
         case DETECT_URILEN_GT:
-            if (bstr_len(tx->request_uri) > urilend->urilen1)
+            if (bstr_len(tx->request_uri_normalized) > urilend->urilen1)
                 ret = 1;
             break;
         case DETECT_URILEN_RA:
-            if (bstr_len(tx->request_uri) > urilend->urilen1 &&
-                bstr_len(tx->request_uri) < urilend->urilen2)
+            if (bstr_len(tx->request_uri_normalized) > urilend->urilen1 &&
+                bstr_len(tx->request_uri_normalized) < urilend->urilen2)
                 ret = 1;
             break;
     }

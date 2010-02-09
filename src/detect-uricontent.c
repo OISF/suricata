@@ -542,9 +542,13 @@ int DetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ct
     SCReturnInt(res);
 }
 
+/** \brief Run the pattern matcher against the uri(s)
+ *
+ *  \warning Make sure the flow/state is locked
+ */
 uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, void *alstate) {
-    uint32_t cnt = 0;
     SCEnter();
+    uint32_t cnt = 0;
 
     HtpState *htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {

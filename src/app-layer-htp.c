@@ -56,25 +56,34 @@ static void *HTPStateAlloc(void)
     if (s->connp == NULL) {
         goto error;
     }
-
     SCLogDebug("s->connp %p", s->connp);
 
-#ifdef DEBUG
-    SCMutexLock(&htp_state_mem_lock);
-    htp_state_memcnt++;
-    htp_state_memuse+=sizeof(HtpState);
-    SCMutexUnlock(&htp_state_mem_lock);
-#endif
     /* Create a list_array of size 8 to store the incoming requests, the size of
        8 has been chosen as half the size of conn->transactions in the
        HTP lib. As we are storing only requests here not responses!! */
     s->recent_in_tx = list_array_create(8);
+    if (s->recent_in_tx == NULL) {
+        SCLogDebug("list_array_create returned NULL");
+        goto error;
+    }
+
     htp_connp_set_user_data(s->connp, (void *)s);
+
+#ifdef DEBUG
+    SCMutexLock(&htp_state_mem_lock);
+    htp_state_memcnt++;
+    htp_state_memuse += sizeof(HtpState);
+    SCMutexUnlock(&htp_state_mem_lock);
+#endif
     SCReturnPtr((void *)s, "void");
 
 error:
-    if (s != NULL)
+    if (s != NULL) {
+        if (s->connp != NULL)
+            htp_connp_destroy(s->connp);
+
         free(s);
+    }
 
     SCReturnPtr(NULL, "void");
 }
@@ -93,8 +102,9 @@ static void HTPStateFree(void *state)
         if (s->connp != NULL) {
             htp_connp_destroy_all(s->connp);
         }
-        if (s->recent_in_tx != NULL)
+        if (s->recent_in_tx != NULL) {
             list_destroy(s->recent_in_tx);
+        }
     }
 
     free(s);
@@ -102,7 +112,7 @@ static void HTPStateFree(void *state)
 #ifdef DEBUG
     SCMutexLock(&htp_state_mem_lock);
     htp_state_memcnt--;
-    htp_state_memuse-=sizeof(HtpState);
+    htp_state_memuse -= sizeof(HtpState);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
 
@@ -285,7 +295,12 @@ void HTPFreeConfig(void)
  */
 static int HTPCallbackRequest(htp_connp_t *connp) {
     SCEnter();
+
     HtpState *hstate = (HtpState *)connp->user_data;
+    if (hstate == NULL) {
+        /** \todo error condition, what should we return? */
+        SCReturnInt(0);
+    }
 
     list_add(hstate->recent_in_tx, connp->in_tx);
     SCReturnInt(0);
@@ -299,14 +314,20 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
  */
 static int HTPCallbackResponse(htp_connp_t *connp) {
     SCEnter();
+
     HtpState *hstate = (HtpState *)connp->user_data;
-    htp_tx_t *tx = NULL;
+    if (hstate == NULL) {
+        /** \todo error condition, what should we return? */
+        SCReturnInt(0);
+    }
 
     while (list_size(hstate->recent_in_tx) > 0) {
-        tx = list_pop(hstate->recent_in_tx);
-        if (tx != NULL)
+        htp_tx_t *tx = list_pop(hstate->recent_in_tx);
+        if (tx != NULL) {
             htp_tx_destroy(tx);
+        }
     }
+
     SCReturnInt(0);
 }
 
