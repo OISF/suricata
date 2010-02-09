@@ -143,8 +143,9 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     char errbuf[PCAP_ERRBUF_SIZE] = "";
     pcap_g.pcap_handle = pcap_open_offline((char *)initdata, errbuf);
     if (pcap_g.pcap_handle == NULL) {
-        printf("error %s\n", errbuf);
-        return TM_ECODE_FAILED;
+        SCLogError(SC_ERR_FOPEN, "%s\n", errbuf);
+        free(ptv);
+        exit(EXIT_FAILURE);
     }
 
     if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
@@ -154,11 +155,13 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
         if(pcap_compile(pcap_g.pcap_handle,&pcap_g.filter,tmpbpfstring,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(pcap_g.pcap_handle));
+            free(ptv);
             return TM_ECODE_FAILED;
         }
 
         if(pcap_setfilter(pcap_g.pcap_handle,&pcap_g.filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(pcap_g.pcap_handle));
+            free(ptv);
             return TM_ECODE_FAILED;
         }
     }
@@ -181,7 +184,8 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
             break;
 
         default:
-            printf("Error: datalink type %" PRId32 " not (yet) supported in module PcapFile.\n", pcap_g.datalink);
+            SCLogError(SC_ERR_UNIMPLEMENTED, "datalink type %" PRId32 " not "
+                      "(yet) supported in module PcapFile.\n", pcap_g.datalink);
             free(ptv);
             return TM_ECODE_FAILED;
     }

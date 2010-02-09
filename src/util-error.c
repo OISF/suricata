@@ -95,6 +95,9 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_INVALID_VALUE);
         CASE_CODE (SC_ERR_UNKNOWN_REGEX_MOD);
         CASE_CODE (SC_ERR_INVALID_OPERATOR);
+        CASE_CODE (SC_ERR_PCAP_RECV_INIT);
+        CASE_CODE (SC_ERR_NFQ_UNBIND);
+        CASE_CODE (SC_ERR_NFQ_BIND);
         default:
             return "UNKNOWN_ERROR";
     }

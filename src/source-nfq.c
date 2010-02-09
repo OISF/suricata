@@ -212,10 +212,12 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
          * run. Ignoring the error seems to have no bad effects. */
         SCLogDebug("unbinding existing nf_queue handler for AF_INET (if any)");
         if (nfq_unbind_pf(nfq_t->h, AF_INET) < 0) {
-            SCLogWarning(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET failed");
+            SCLogError(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET failed");
+            exit(EXIT_FAILURE);
         }
         if (nfq_unbind_pf(nfq_t->h, AF_INET6) < 0) {
-            SCLogWarning(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET6 failed");
+            SCLogError(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET6 failed");
+            exit(EXIT_FAILURE);
         }
         nfq_g.unbind = 1;
 
@@ -223,11 +225,11 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
 
         if (nfq_bind_pf(nfq_t->h, AF_INET) < 0) {
             SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET failed");
-            return TM_ECODE_FAILED;
+            exit(EXIT_FAILURE);
         }
         if (nfq_bind_pf(nfq_t->h, AF_INET6) < 0) {
             SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET6 failed");
-            return TM_ECODE_FAILED;
+            exit(EXIT_FAILURE);
         }
     }
 

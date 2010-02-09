@@ -114,6 +114,7 @@ typedef enum {
     SC_ERR_INVALID_VALUE,
     SC_ERR_UNKNOWN_REGEX_MOD,
     SC_ERR_INVALID_OPERATOR,
+    SC_ERR_PCAP_RECV_INIT,
 } SCError;
 
 const char *SCErrorToString(SCError);
