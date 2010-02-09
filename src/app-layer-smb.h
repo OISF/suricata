@@ -29,9 +29,9 @@ typedef struct smb_hdr_ {
     uint16_t uid;
     uint16_t mid;
 }SMBHdr;
-#define SMB_HDR_LEN 32U
-#define MINIMUM_SMB_LEN 35U
-#define NBSS_SMB_HDRS_LEN 36U
+#define SMB_HDR_LEN 32
+#define MINIMUM_SMB_LEN 35
+#define NBSS_SMB_HDRS_LEN 36
 
 typedef struct wordcount_ {
     uint8_t wordcount;

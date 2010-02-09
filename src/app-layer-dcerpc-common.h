@@ -88,7 +88,7 @@ typedef struct dcerpc_hdr_ {
     uint32_t call_id;      /* 12:04 call identifier */
 }DCERPCHdr;
 
-#define DCERPC_HDR_LEN 16U
+#define DCERPC_HDR_LEN 16
 
 struct uuid_entry {
     uint16_t ctxid;
