@@ -102,6 +102,9 @@ volatile sig_atomic_t sigint_count = 0;
 volatile sig_atomic_t sighup_count = 0;
 volatile sig_atomic_t sigterm_count = 0;
 
+/* Max packets processed simultaniously. */
+#define DEFAULT_MAX_PENDING_PACKETS 50
+
 #define SURICATA_SIGINT  0x01
 #define SURICATA_SIGHUP  0x02
 #define SURICATA_SIGTERM 0x04
@@ -112,6 +115,9 @@ static uint8_t sigflags = 0;
 
 /* Run mode selected */
 int run_mode = MODE_UNKNOWN;
+
+/* Maximum packets to simultaneously process. */
+intmax_t max_pending_packets;
 
 int RunmodeIsUnittests(void) {
     if (run_mode == MODE_UNITTEST)
@@ -578,6 +584,12 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    /* Pull the max pending packets from the config, if not found fall
+     * back on a sane default. */
+    if (ConfGetInt("max-pending-packets", &max_pending_packets) != 1)
+        max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
+    SCLogDebug("Max pending packets set to %"PRIiMAX, max_pending_packets);
+
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
     SCLogLoadConfig();
@@ -721,7 +733,7 @@ int main(int argc, char **argv)
     /* pre allocate packets */
     SCLogInfo("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)sizeof(Packet));
     int i = 0;
-    for (i = 0; i < MAX_PENDING; i++) {
+    for (i = 0; i < max_pending_packets; i++) {
         /* XXX pkt alloc function */
         Packet *p = malloc(sizeof(Packet));
         if (p == NULL) {
@@ -733,7 +745,7 @@ int main(int argc, char **argv)
 
         PacketEnqueue(&packet_q,p);
     }
-    SCLogInfo("preallocating packets... done: total memory %"PRIuMAX"", (uintmax_t)(MAX_PENDING*sizeof(Packet)));
+    SCLogInfo("preallocating packets... done: total memory %"PRIuMAX"", (uintmax_t)(max_pending_packets*sizeof(Packet)));
 
     FlowInitConfig(FLOW_VERBOSE);
 

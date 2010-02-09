@@ -16,16 +16,13 @@
 #define PROG_NAME "Suricata"
 #define PROG_VER "0.8.0"
 
-/* max packets processed simultaniously */
-#define MAX_PENDING 50
-
 /* number of packets in processing right now
  * This is the diff between recv'd and verdicted
  * pkts
  * XXX this should be turned into an api located
  * in the packetpool code
  */
-uint32_t pending;
+intmax_t pending;
 #ifdef DBG_PERF
 uint32_t dbg_maxpending;
 #endif /* DBG_PERF */

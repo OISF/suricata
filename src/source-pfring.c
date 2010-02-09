@@ -25,6 +25,8 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *, void *);
 TmEcode DecodePfringThreadInit(ThreadVars *, void *, void **);
 TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *);
 
+extern int max_pending_packets;
+
 #ifndef HAVE_PFRING
 
 /*Handle cases where we don't have PF_RING support built-in*/
@@ -128,7 +130,7 @@ void PfringProcessPacket(void *user, struct pfring_pkthdr *h, u_char *pkt, Packe
 
     /* We need this otherwise the other queues can't seem to keep up on busy networks */
     SCMutexLock(&mutex_pending);
-    if (pending > MAX_PENDING) {
+    if (pending > max_pending_packets) {
         SCondWait(&cond_pending, &mutex_pending);
     }
     SCMutexUnlock(&mutex_pending);
@@ -260,7 +262,7 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data) {
     pfring_stat pfring_s;
 
     if(pfring_stats(ptv->pd, &pfring_s) < 0) {
-        SCLogError(SC_ERR_STAT_ERROR,"(%s) Failed to get pfring stats", tv->name);
+        SCLogError(SC_ERR_STAT, "(%s) Failed to get pfring stats", tv->name);
         SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 
         return;

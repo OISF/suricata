@@ -19,6 +19,8 @@
 #include "conf.h"
 #include "util-debug.h"
 
+extern int max_pending_packets;
+
 /**
  * \brief Structure to hold thread specific variables.
  */
@@ -91,7 +93,7 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     ThreadVars *tv = ptv->tv;
 
     SCMutexLock(&mutex_pending);
-    if (pending > MAX_PENDING) {
+    if (pending > max_pending_packets) {
         SCondWait(&cond_pending, &mutex_pending);
     }
     SCMutexUnlock(&mutex_pending);

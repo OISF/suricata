@@ -15,6 +15,8 @@
 
 #include "tmqh-packetpool.h"
 
+extern int max_pending_packets;
+
 void TmqhPacketpoolRegister (void) {
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
@@ -137,7 +139,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     } else {
         printf("TmqhOutputPacketpool: warning, trying to subtract from 0 pending counter.\n");
     }
-    if (pending <= MAX_PENDING)
+    if (pending <= max_pending_packets)
         SCCondSignal(&cond_pending);
     SCMutexUnlock(&mutex_pending);
 }
