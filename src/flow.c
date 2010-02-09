@@ -628,7 +628,7 @@ void *FlowManagerThread(void *td)
     uint32_t sleeping = 0;
     uint8_t emerg = FALSE;
 
-    memset(&tsdiff, 0, sizeof(tsdiff));
+    memset(&ts, 0, sizeof(ts));
 
     SCLogDebug("%s started...", th_v->name);
 
@@ -702,6 +702,7 @@ void *FlowManagerThread(void *td)
         } else {
             /* If we are reading a pcap, how long the pcap timestamps
              * says that has passed */
+            memset(&tsdiff, 0, sizeof(tsdiff));
             TimeGet(&tsdiff);
 
             if (tsdiff.tv_sec == ts.tv_sec &&
