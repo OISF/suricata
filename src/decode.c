@@ -87,6 +87,14 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_max_pkt_size = SCPerfTVRegisterMaxCounter("decoder.max_pkt_size", tv,
                                                            SC_PERF_TYPE_UINT64, "NULL");
 
+    dtv->counter_defrag_fragments = SCPerfTVRegisterCounter("defrag.fragments",
+        tv, SC_PERF_TYPE_UINT64, "NULL");
+    dtv->counter_defrag_reassembled =
+        SCPerfTVRegisterCounter("defrag.reassembled", tv, SC_PERF_TYPE_UINT64,
+            "NULL");
+    dtv->counter_defrag_timeouts = SCPerfTVRegisterCounter("defrag.timeouts",
+        tv, SC_PERF_TYPE_UINT64, "NULL");
+
     tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
     SCPerfAddToClubbedTMTable(tv->name, &tv->sc_perf_pctx);
 

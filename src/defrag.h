@@ -14,7 +14,7 @@
 typedef struct _DefragContext DefragContext;
 
 void DefragInit(void);
-Packet *Defrag(ThreadVars *, DefragContext *, Packet *);
+Packet *Defrag(ThreadVars *, DecodeThreadVars *, DefragContext *, Packet *);
 void DefragRegisterTests(void);
 
 #endif /* __DEFRAG_H__ */

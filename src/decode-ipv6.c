@@ -416,7 +416,7 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 
     /* Pass to defragger if a fragment. */
     if (IPV6_EXTHDR_ISSET_FH(p)) {
-        Packet *rp = Defrag(tv, NULL, p);
+        Packet *rp = Defrag(tv, dtv, NULL, p);
         if (rp != NULL) {
             DecodeIPV6(tv, dtv, rp, rp->pkt, rp->pktlen, pq);
             PacketEnqueue(pq, rp);

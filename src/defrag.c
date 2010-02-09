@@ -715,8 +715,8 @@ done:
  * \todo Allocate packet buffers from a pool.
  */
 static Packet *
-DefragInsertFrag(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
-    Packet *p)
+DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
+    DefragTracker *tracker, Packet *p)
 {
     Packet *r = NULL;
     int ltrim = 0;
@@ -926,6 +926,9 @@ insert:
         else if (tracker->af == AF_INET6)
             r = Defrag6Reassemble(tv, dc, tracker, p);
     }
+    if (r != NULL && tv != NULL && dtv != NULL) {
+        SCPerfCounterIncr(dtv->counter_defrag_reassembled, tv->sc_perf_pca);
+    }
 
 done:
     SCMutexUnlock(&tracker->lock);
@@ -945,20 +948,25 @@ done:
  * \param p Packet that triggered this timeout run, used for timestamp.
  */
 static void
-DefragTimeoutTracker(DefragContext *dc, Packet *p)
+DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
+    Packet *p)
 {
-    struct timeval tv = p->ts;
+    struct timeval now = p->ts;
 
     HashListTableBucket *next = HashListTableGetListHead(dc->frag_table);
     DefragTracker *tracker;
     while (next != NULL) {
         tracker = HashListTableGetListData(next);
 
-        if (timercmp(&tracker->timeout, &tv, <)) {
+        if (timercmp(&tracker->timeout, &now, <)) {
             /* Tracker has timeout out. */
             HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
             DefragTrackerReset(tracker);
             PoolReturn(dc->tracker_pool, tracker);
+            if (tv != NULL && dtv != NULL) {
+                SCPerfCounterIncr(dtv->counter_defrag_timeouts,
+                    tv->sc_perf_pca);
+            }
             return;
         }
 
@@ -967,7 +975,8 @@ DefragTimeoutTracker(DefragContext *dc, Packet *p)
 }
 
 static DefragTracker *
-DefragGetTracker(DefragContext *dc, DefragTracker *lookup_key, Packet *p)
+DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
+    DefragTracker *lookup_key, Packet *p)
 {
     DefragTracker *tracker;
 
@@ -979,7 +988,7 @@ DefragGetTracker(DefragContext *dc, DefragTracker *lookup_key, Packet *p)
         tracker = PoolGet(dc->tracker_pool);
         if (tracker == NULL) {
             /* Timeout trackers and try again. */
-            DefragTimeoutTracker(dc, p);
+            DefragTimeoutTracker(tv, dtv, dc, p);
             tracker = PoolGet(dc->tracker_pool);
         }
         SCMutexUnlock(&dc->tracker_pool_lock);
@@ -1025,7 +1034,7 @@ done:
  *     NULL is returned.
  */
 Packet *
-Defrag(ThreadVars *tv, DefragContext *dc, Packet *p)
+Defrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc, Packet *p)
 {
     uint16_t frag_offset;
     uint8_t more_frags;
@@ -1058,17 +1067,21 @@ Defrag(ThreadVars *tv, DefragContext *dc, Packet *p)
         return NULL;
     }
 
+    if (tv != NULL && dtv != NULL) {
+        SCPerfCounterIncr(dtv->counter_defrag_fragments, tv->sc_perf_pca);
+    }
+
     /* Create a lookup key. */
     lookup.af = af;
     lookup.id = id;
     lookup.src_addr = p->src;
     lookup.dst_addr = p->dst;
 
-    tracker = DefragGetTracker(dc, &lookup, p);
+    tracker = DefragGetTracker(tv, dtv, dc, &lookup, p);
     if (tracker == NULL)
         return NULL;
 
-    return DefragInsertFrag(tv, dc, tracker, p);
+    return DefragInsertFrag(tv, dtv, dc, tracker, p);
 }
 
 void
@@ -1250,12 +1263,12 @@ DefragInOrderSimpleTest(void)
     if (p3 == NULL)
         goto end;
 
-    if (Defrag(NULL, dc, p1) != NULL)
+    if (Defrag(NULL, NULL, dc, p1) != NULL)
         goto end;
-    if (Defrag(NULL, dc, p2) != NULL)
+    if (Defrag(NULL, NULL, dc, p2) != NULL)
         goto end;
 
-    reassembled = Defrag(NULL, dc, p3);
+    reassembled = Defrag(NULL, NULL, dc, p3);
     if (reassembled == NULL)
         goto end;
 
@@ -1329,12 +1342,12 @@ DefragReverseSimpleTest(void)
     if (p3 == NULL)
         goto end;
 
-    if (Defrag(NULL, dc, p3) != NULL)
+    if (Defrag(NULL, NULL, dc, p3) != NULL)
         goto end;
-    if (Defrag(NULL, dc, p2) != NULL)
+    if (Defrag(NULL, NULL, dc, p2) != NULL)
         goto end;
 
-    reassembled = Defrag(NULL, dc, p1);
+    reassembled = Defrag(NULL, NULL, dc, p1);
     if (reassembled == NULL)
         goto end;
 
@@ -1409,11 +1422,11 @@ IPV6DefragInOrderSimpleTest(void)
     if (p3 == NULL)
         goto end;
 
-    if (Defrag(NULL, dc, p1) != NULL)
+    if (Defrag(NULL, NULL, dc, p1) != NULL)
         goto end;
-    if (Defrag(NULL, dc, p2) != NULL)
+    if (Defrag(NULL, NULL, dc, p2) != NULL)
         goto end;
-    reassembled = Defrag(NULL, dc, p3);
+    reassembled = Defrag(NULL, NULL, dc, p3);
     if (reassembled == NULL)
         goto end;
 
@@ -1481,11 +1494,11 @@ IPV6DefragReverseSimpleTest(void)
     if (p3 == NULL)
         goto end;
 
-    if (Defrag(NULL, dc, p3) != NULL)
+    if (Defrag(NULL, NULL, dc, p3) != NULL)
         goto end;
-    if (Defrag(NULL, dc, p2) != NULL)
+    if (Defrag(NULL, NULL, dc, p2) != NULL)
         goto end;
-    reassembled = Defrag(NULL, dc, p1);
+    reassembled = Defrag(NULL, NULL, dc, p1);
     if (reassembled == NULL)
         goto end;
 
@@ -1607,7 +1620,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
 
     /* Send all but the last. */
     for (i = 0; i < 16; i++) {
-        Packet *tp = Defrag(NULL, dc, packets[i]);
+        Packet *tp = Defrag(NULL, NULL, dc, packets[i]);
         if (tp != NULL) {
             free(tp);
             goto end;
@@ -1615,7 +1628,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     }
 
     /* And now the last one. */
-    Packet *reassembled = Defrag(NULL, dc, packets[16]);
+    Packet *reassembled = Defrag(NULL, NULL, dc, packets[16]);
     if (reassembled == NULL)
         goto end;
 
@@ -1730,89 +1743,89 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
 
     /* Send all but the last. */
     Packet *tp;
-    tp = Defrag(NULL, dc, packets[0]);
+    tp = Defrag(NULL, NULL, dc, packets[0]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[1]);
+    tp = Defrag(NULL, NULL, dc, packets[1]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[2]);
+    tp = Defrag(NULL, NULL, dc, packets[2]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[3]);
+    tp = Defrag(NULL, NULL, dc, packets[3]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[4]);
+    tp = Defrag(NULL, NULL, dc, packets[4]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[5]);
+    tp = Defrag(NULL, NULL, dc, packets[5]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[6]);
+    tp = Defrag(NULL, NULL, dc, packets[6]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[7]);
+    tp = Defrag(NULL, NULL, dc, packets[7]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[8]);
+    tp = Defrag(NULL, NULL, dc, packets[8]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[9]);
+    tp = Defrag(NULL, NULL, dc, packets[9]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[10]);
+    tp = Defrag(NULL, NULL, dc, packets[10]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[11]);
+    tp = Defrag(NULL, NULL, dc, packets[11]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[12]);
+    tp = Defrag(NULL, NULL, dc, packets[12]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[13]);
+    tp = Defrag(NULL, NULL, dc, packets[13]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[14]);
+    tp = Defrag(NULL, NULL, dc, packets[14]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
-    tp = Defrag(NULL, dc, packets[15]);
+    tp = Defrag(NULL, NULL, dc, packets[15]);
     if (tp != NULL) {
         free(tp);
         goto end;
     }
 
     /* And now the last one. */
-    Packet *reassembled = Defrag(NULL, dc, packets[16]);
+    Packet *reassembled = Defrag(NULL, NULL, dc, packets[16]);
     if (reassembled == NULL)
         goto end;
     if (memcmp(reassembled->pkt + 40, expected, expected_len) != 0)
@@ -2277,7 +2290,7 @@ DefragTimeoutTest(void)
         if (p == NULL)
             goto end;
 
-        Packet *tp = Defrag(NULL, dc, p);
+        Packet *tp = Defrag(NULL, NULL, dc, p);
 
         free(p);
 
@@ -2294,7 +2307,7 @@ DefragTimeoutTest(void)
         goto end;
 
     p->ts.tv_sec += dc->timeout;
-    Packet *tp = Defrag(NULL, dc, p);
+    Packet *tp = Defrag(NULL, NULL, dc, p);
 
     free(p);
 
@@ -2356,7 +2369,7 @@ DefragIPv4NoDataTest(void)
         goto end;
 
     /* We do not expect a packet returned. */
-    if (Defrag(NULL, dc, p) != NULL)
+    if (Defrag(NULL, NULL, dc, p) != NULL)
         goto end;
 
     /* The fragment should have been ignored so no fragments should
@@ -2395,7 +2408,7 @@ DefragIPv4TooLargeTest(void)
         goto end;
 
     /* We do not expect a packet returned. */
-    if (Defrag(NULL, dc, p) != NULL)
+    if (Defrag(NULL, NULL, dc, p) != NULL)
         goto end;
 
     /* The fragment should have been ignored so no fragments should have

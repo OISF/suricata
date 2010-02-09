@@ -619,7 +619,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 
     /* If a fragment, pass off for re-assembly. */
     if (IPV4_GET_IPOFFSET(p) > 0 || IPV4_GET_MF(p) == 1) {
-        Packet *rp = Defrag(tv, NULL, p);
+        Packet *rp = Defrag(tv, dtv, NULL, p);
         if (rp != NULL) {
             /* Got re-assembled packet, re-run through decoder. */
             DecodeIPV4(tv, dtv, rp, rp->pkt, rp->pktlen, pq);
