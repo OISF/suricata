@@ -35,11 +35,19 @@
  * compare tree's: if they have one (or more) matching
  * sig, we have a match. */
 
+#if __BIG_ENDIAN__
+#define IPONLY_EXTRACT_16(a) (((a)->ip[0] & 0xffff0000) >> 16)
+#else
 #define IPONLY_EXTRACT_16(a) ((a)->ip[0] & 0x0000ffff)
+#endif
 //#define IPONLY_EXTRACT_24(a) ((a)->ip[0] & 0x00ffffff)
 
 /* No need to calc a constant every lookup: htonl(65535) */
+#ifdef __BIG_ENDIAN__
+#define IPONLY_HTONL_65535 65535UL
+#else
 #define IPONLY_HTONL_65535 4294901760UL
+#endif
 
 static uint32_t IPOnlyHashFunc16(HashListTable *ht, void *data, uint16_t len) {
     DetectAddress *gr = (DetectAddress *) data;
@@ -101,8 +109,13 @@ static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_
         if (grtmp == NULL) {
             goto error;
         }
+#ifdef __BIG_ENDIAN__
+        grtmp->ip[0] = IPONLY_EXTRACT_16(gr) << 16;
+        grtmp->ip2[0] = IPONLY_EXTRACT_16(gr) << 16 | IPONLY_HTONL_65535;
+#else
         grtmp->ip[0] = IPONLY_EXTRACT_16(gr);
         grtmp->ip2[0] = IPONLY_EXTRACT_16(gr) | IPONLY_HTONL_65535;
+#endif
 
         DetectAddress *rgr = HashListTableLookup(ht,grtmp,0);
         if (rgr == NULL) {
@@ -274,8 +287,13 @@ void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
 }
 
 DetectAddress *IPOnlyLookupSrc16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
+#ifdef __BIG_ENDIAN__
+    io_tctx->src->ip[0] = GET_IPV4_SRC_ADDR_U32(p) & 0xffff0000;
+    io_tctx->src->ip2[0] = (GET_IPV4_SRC_ADDR_U32(p) & 0xffff0000) | IPONLY_HTONL_65535;
+#else
     io_tctx->src->ip[0] = GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff;
     io_tctx->src->ip2[0] = (GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
+#endif
 
     //printf("IPOnlyLookupSrc16: "); DetectAddressDataPrint(io_tctx->src->ad); printf("\n");
 
@@ -285,8 +303,13 @@ DetectAddress *IPOnlyLookupSrc16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThre
 }
 
 DetectAddress *IPOnlyLookupDst16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
+#ifdef __BIG_ENDIAN__
+    io_tctx->dst->ip[0] = GET_IPV4_DST_ADDR_U32(p) & 0xffff0000;
+    io_tctx->dst->ip2[0] = (GET_IPV4_DST_ADDR_U32(p) & 0xffff0000) | IPONLY_HTONL_65535;
+#else
     io_tctx->dst->ip[0] = GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff;
     io_tctx->dst->ip2[0] = (GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
+#endif
 
     //printf("IPOnlyLookupDst16: "); DetectAddressDataPrint(io_tctx->dst->ad); printf("\n");
 
