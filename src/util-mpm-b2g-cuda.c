@@ -2581,7 +2581,7 @@ int B2gCudaStartDispatcherThreadRC(const char *name)
     TmModule *tm_module = NULL;
 
     if (name == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Error invalid arguments.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Error invalid arguments.  "
                    "name NULL");
         return -1;
     }
@@ -2672,7 +2672,7 @@ int B2gCudaStartDispatcherThreadAPC(const char *name)
     TmModule *tm_module = NULL;
 
     if (name == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Error invalid arguments.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Error invalid arguments.  "
                    "name NULL");
         return -1;
     }

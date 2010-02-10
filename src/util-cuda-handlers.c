@@ -118,7 +118,7 @@ int SCCudaHlGetCudaContext(CUcontext *p_context, int handle)
     SCCudaDevices *devices = NULL;
 
     if (p_context == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Error invalid arguments.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Error invalid arguments.  "
                    "p_context NULL");
         return -1;
     }
@@ -175,7 +175,7 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
     SCCudaHlModuleData *data = NULL;
 
     if (p_module == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Error invalid arguments"
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Error invalid arguments"
                    "p_module NULL");
         return -1;
     }
@@ -276,7 +276,7 @@ int SCCudaHlGetCudaDevicePtr(CUdeviceptr *device_ptr, const char *name,
     SCCudaHlModuleDevicePointer *module_device_ptr = NULL;
 
     if (device_ptr == NULL || name == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Error invalid arguments"
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Error invalid arguments"
                    "device_ptr is NULL or name is NULL");
         goto error;
     }
@@ -367,7 +367,7 @@ int SCCudaHlRegisterDispatcherFunc(void *(*SCCudaHlDispFunc)(void *), int handle
     SCCudaHlModuleData *data = NULL;
 
     if (SCCudaHlDispFunc == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Error invalid arguments"
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Error invalid arguments"
                    "SCCudaHlDispFunc NULL");
         return -1;
     }

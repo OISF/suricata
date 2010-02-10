@@ -7,6 +7,8 @@
 #ifndef __UTIL_MPM_B2G_CUDA_H__
 #define __UTIL_MPM_B2G_CUDA_H__
 
+#ifdef __SC_CUDA_SUPPORT__
+
 #include <cuda.h>
 #include "decode.h"
 #include "util-mpm.h"
@@ -154,4 +156,5 @@ void B2gCudaKillDispatcherThreadAPC(void);
 void B2gCudaPushPacketTo_tv_CMB2_RC(Packet *);
 void B2gCudaPushPacketTo_tv_CMB2_APC(Packet *);
 
+#endif /* __SC_CUDA_SUPPORT__ */
 #endif /* __UTIL_MPM_B2G_CUDA_H__ */

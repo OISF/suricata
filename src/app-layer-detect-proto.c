@@ -69,8 +69,8 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
     memset(ctx, 0x00, sizeof(AlpProtoDetectCtx));
 
 #ifndef __SC_CUDA_SUPPORT__
-    MpmInitCtx(&ctx->toserver.mpm_ctx, PatternMatchDefaultMatcher()), -1);
-    MpmInitCtx(&ctx->toclient.mpm_ctx, PatternMatchDefaultMatcher()), -1);
+    MpmInitCtx(&ctx->toserver.mpm_ctx, PatternMatchDefaultMatcher(), -1);
+    MpmInitCtx(&ctx->toclient.mpm_ctx, PatternMatchDefaultMatcher(), -1);
 #else
     ctx->alp_content_module_handle = SCCudaHlRegisterModule("SC_ALP_CONTENT_B2G_CUDA");
     MpmInitCtx(&ctx->toserver.mpm_ctx, MPM_B2G_CUDA, ctx->alp_content_module_handle);
@@ -294,8 +294,8 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     if (scanlen > dir->max_depth)
         scanlen = dir->max_depth;
 
-    uint16_t proto;
-    uint32_t cnt;
+    uint16_t proto = ALPROTO_UNKNOWN;
+    uint32_t cnt = 0;
 #ifndef __SC_CUDA_SUPPORT__
     cnt = mpm_table[dir->mpm_ctx.mpm_type].Scan(&dir->mpm_ctx,
                                                 &tdir->mpm_ctx,

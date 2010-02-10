@@ -727,7 +727,9 @@ int main(int argc, char **argv)
         ThreadMacrosRegisterTests();
         UtilSpmSearchRegistertests();
         SCClassConfRegisterTests();
+#ifdef __SC_CUDA_SUPPORT__
         SCCudaRegisterTests();
+#endif
         if (list_unittests) {
             UtListTests(regex_arg);
         }

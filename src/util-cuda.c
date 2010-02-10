@@ -4,8 +4,9 @@
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-// use this for now
-#define __SC_CUDA_SUPPORT__
+/* compile in, only if we have a CUDA enabled device on the machine, with the
+ * toolkit and the driver installed */
+#ifdef __SC_CUDA_SUPPORT__
 
 #include <cuda.h>
 #include "util-cuda.h"
@@ -14,10 +15,6 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-unittest.h"
-
-/* compile in, only if we have a CUDA enabled device on the machine, with the
- * toolkit and the driver installed */
-#ifdef __SC_CUDA_SUPPORT__
 
 #define CASE_CODE(E) case E: return #E
 
@@ -370,7 +367,7 @@ int SCCudaArray3DCreate(CUarray *p_handle,
     CUresult result = 0;
 
     if (p_handle == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_handle is NULL");
         goto error;
     }
@@ -406,7 +403,7 @@ int SCCudaArray3DGetDescriptor(CUDA_ARRAY3D_DESCRIPTOR *p_array_descriptor,
     CUresult result = 0;
 
     if (p_array_descriptor == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_array_descriptor is NULL");
         goto error;
     }
@@ -503,7 +500,7 @@ int SCCudaArrayCreate(CUarray *p_handle,
     CUresult result = 0;
 
     if (p_handle == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_handle is NULL");
         goto error;
     }
@@ -557,7 +554,7 @@ int SCCudaArrayGetDescriptor(CUDA_ARRAY_DESCRIPTOR *p_array_descriptor,
     CUresult result = 0;
 
     if (p_array_descriptor == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_array_descriptor is NULL");
         goto error;
     }
@@ -589,7 +586,7 @@ int SCCudaMemAlloc(CUdeviceptr *dptr, unsigned int byte_size)
     CUresult result = 0;
 
     if (dptr == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "dptr is NULL");
         goto error;
     }
@@ -628,7 +625,7 @@ int SCCudaMemAllocHost(void **pp, unsigned int byte_size)
     CUresult result = 0;
 
     if (pp == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "pp is NULL");
         goto error;
     }
@@ -688,7 +685,7 @@ int SCCudaMemAllocPitch(CUdeviceptr *dptr, unsigned int *p_pitch,
     CUresult result = 0;
 
     if (dptr == NULL|| p_pitch) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "dptr is NULL or p_pitch is NULL");
         goto error;
     }
@@ -811,7 +808,7 @@ int SCCudaMemcpy2D(const CUDA_MEMCPY2D *p_copy)
     CUresult result = 0;
 
     if (p_copy) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
     }
@@ -939,7 +936,7 @@ int SCCudaMemcpy2DAsync(const CUDA_MEMCPY2D *p_copy, CUstream h_stream)
     CUresult result = 0;
 
     if (p_copy) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
     }
@@ -1067,7 +1064,7 @@ int SCCudaMemcpy2DUnaligned(const CUDA_MEMCPY2D *p_copy)
     CUresult result = 0;
 
     if (p_copy) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
     }
@@ -1193,7 +1190,7 @@ int SCCudaMemcpy3D(const CUDA_MEMCPY3D *p_copy)
     CUresult result = 0;
 
     if (p_copy) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
     }
@@ -1324,7 +1321,7 @@ int SCCudaMemcpy3DAsync(const CUDA_MEMCPY3D *p_copy, CUstream h_stream)
     CUresult result = 0;
 
     if (p_copy) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
     }
@@ -1753,7 +1750,7 @@ int SCCudaMemFreeHost(void *p)
     CUresult result = 0;
 
     if (p == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p is NULL");
         goto error;
     }
@@ -1811,7 +1808,7 @@ int SCCudaMemGetInfo(unsigned int *free, unsigned int *total)
     CUresult result = 0;
 
     if (free == NULL || total == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "free is NULL || total is NULL");
         goto error;
     }
@@ -2147,7 +2144,7 @@ int SCCudaFuncGetAttribute(int *pi, CUfunction_attribute attrib, CUfunction hfun
     CUresult result = 0;
 
     if (pi == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "pi is NULL");
         goto error;
     }
@@ -2414,7 +2411,7 @@ int SCCudaParamSetv(CUfunction h_func, int offset, void *ptr,
     CUresult result = 0;
 
     if (ptr == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "ptr is NULL");
         goto error;
     }
@@ -2450,7 +2447,7 @@ int SCCudaEventCreate(CUevent *ph_event, unsigned int flags)
     CUresult result = 0;
 
     if (ph_event == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "ph_event is NULL");
         goto error;
     }
@@ -2506,7 +2503,7 @@ int SCCudaEventElapsedTime(float *p_milli_seconds, CUevent h_start, CUevent h_en
     CUresult result = 0;
 
     if (p_milli_seconds == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_milli_seconds is NULL");
         goto error;
     }
@@ -2620,7 +2617,7 @@ int SCCudaStreamCreate(CUstream *ph_stream, unsigned int flags)
     CUresult result = 0;
 
     if (ph_stream == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "phStream is NULL");
         goto error;
     }
@@ -2722,7 +2719,7 @@ int SCCudaModuleGetFunction(CUfunction *hfunc, CUmodule hmod, const char *name)
     CUresult result = 0;
 
     if (hfunc == NULL || name == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "hfunc is NULL or name is NULL");
         goto error;
     }
@@ -2758,7 +2755,7 @@ int SCCudaModuleGetGlobal(CUdeviceptr *dptr, unsigned int *bytes, CUmodule hmod,
     CUresult result = 0;
 
     if (dptr == NULL || bytes == NULL || name == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "dptr is NULL or bytes is NULL or name is NULL");
         goto error;
     }
@@ -2792,7 +2789,7 @@ int SCCudaModuleGetTexRef(CUtexref *p_tex_ref, CUmodule hmod, const char *name)
     CUresult result = 0;
 
     if (p_tex_ref == NULL || name == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_tex_ref is NULL or name is NULL");
         goto error;
     }
@@ -2826,7 +2823,7 @@ int SCCudaModuleLoad(CUmodule *module, const char *fname)
     CUresult result = 0;
 
     if (module == NULL|| fname == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "module is NULL or fname is NULL");
         goto error;
     }
@@ -2860,7 +2857,7 @@ int SCCudaModuleLoadData(CUmodule *module, const char *image)
     CUresult result = 0;
 
     if (module == NULL|| image == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "module is NULL or image is NULL");
         goto error;
     }
@@ -2930,7 +2927,7 @@ int SCCudaModuleLoadDataEx(CUmodule *module, const char *image,
 
     if (module == NULL|| image == NULL || options == NULL ||
         option_values == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "module is NULL or image is NULL or options is NULL or "
                    "option_values is NULL");
         goto error;
@@ -2967,7 +2964,7 @@ int SCCudaModuleLoadFatBinary(CUmodule *module, const void *fat_cubin)
     CUresult result = 0;
 
     if (module == NULL|| fat_cubin == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "module is NULL or fatCubin is NULL");
         goto error;
     }
@@ -3024,7 +3021,7 @@ int SCCudaCtxAttach(CUcontext *pctx, unsigned int flags)
     CUresult result = 0;
 
     if (pctx == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "pctx NULL");
         goto error;
     }
@@ -3094,7 +3091,7 @@ int SCCudaCtxCreate(CUcontext *pctx, unsigned int flags, CUdevice dev)
     CUresult result = 0;
 
     if (pctx == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "pctx NULL");
         goto error;
     }
@@ -3173,7 +3170,7 @@ int SCCudaCtxGetDevice(CUdevice *device)
     CUresult result = 0;
 
     if (device == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "device NULL");
         goto error;
     }
@@ -3292,7 +3289,7 @@ int SCCudaDriverGetVersion(int *driver_version)
     CUresult result = 0;
 
     if (driver_version == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "driver_version NULL");
         goto error;
     }
@@ -3324,7 +3321,7 @@ static int SCCudaDeviceGetCount(int *count)
     CUresult result = 0;
 
     if (count == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "count NULL");
         goto error;
     }
@@ -3356,7 +3353,7 @@ static int SCCudaDeviceGet(CUdevice *device, int ordinal)
     CUresult result = 0;
 
     if (device == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "device NULL");
         goto error;
     }
@@ -3387,7 +3384,7 @@ static int SCCudaDeviceGetName(char *name, int len, CUdevice dev)
     CUresult result = 0;
 
     if (name == NULL || len == 0) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "name is NULL or len is 0");
         goto error;
     }
@@ -3419,7 +3416,7 @@ static int SCCudaDeviceTotalMem(unsigned int *bytes, CUdevice dev)
     CUresult result = 0;
 
     if (bytes == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "bytes is NULL");
         goto error;
     }
@@ -3451,7 +3448,7 @@ static int SCCudaDeviceComputeCapability(int *major, int *minor, CUdevice dev)
     CUresult result = 0;
 
     if (major == NULL || minor == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "major is NULL or minor is NULL");
         goto error;
     }
@@ -3495,7 +3492,7 @@ static int SCCudaDeviceGetProperties(CUdevprop *prop, CUdevice dev)
     CUresult result = 0;
 
     if (prop == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "prop is NULL");
         goto error;
     }
@@ -3574,7 +3571,7 @@ static int SCCudaDeviceGetAttribute(int *pi, CUdevice_attribute attrib,
     CUresult result = 0;
 
     if (pi == NULL) {
-        SCLogError(SC_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "prop is NULL");
         goto error;
     }

@@ -7,6 +7,8 @@
 #ifndef __UTIL_CUDA__H__
 #define __UTIL_CUDA__H__
 
+#ifdef __SC_CUDA_SUPPORT__
+
 #include <cuda.h>
 
 #define SC_CUDA_DEVICE_NAME_MAX_LEN 128
@@ -158,4 +160,5 @@ int SCCudaInitCudaEnvironment(void);
 
 void SCCudaRegisterTests(void);
 
+#endif /* __SC_CUDA_SUPPORT__ */
 #endif /* __UTIL_CUDA_H__ */

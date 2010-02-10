@@ -578,6 +578,43 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
 
     #LDFLAGS="${LDFLAGS}  -lhtp"
 
+# enable CUDA output
+    AC_ARG_ENABLE(cuda,
+            [  --enable-cuda  Enable CUDA pattern matching],
+            [ enable_cuda=yes
+            ])
+    AC_ARG_WITH(cuda_includes,
+            [  --with-cuda-includes=DIR  cuda include directory],
+            [with_cuda_includes="$withval"],[with_cuda_includes=no])
+    AC_ARG_WITH(cuda_libraries,
+            [  --with-cuda-libraries=DIR    cuda library directory],
+            [with_cuda_libraries="$withval"],[with_cuda_libraries="no"])
+
+    if test "$enable_cuda" = "yes"; then
+        CFLAGS="${CFLAGS} -D__SC_CUDA_SUPPORT__"
+
+        if test "$with_cuda_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_cuda_includes}"
+        else
+            CPPFLAGS="${CPPFLAGS} -I/usr/include/cuda"
+        fi
+
+        if test "$with_cuda_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS} -L${with_cuda_libraries}"
+        fi
+
+        AC_CHECK_HEADER(cuda.h,,[AC_ERROR(cuda.h not found ...)])
+
+        LIBCUDA=""
+        AC_CHECK_LIB(cuda, cuArray3DCreate,, LIBCUDA="no")
+        if test "$LIBCUDA" = "no"; then
+            echo
+            echo "   ERROR! libcuda library not found"
+            echo
+            exit 1
+        fi
+    fi
+
 
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
