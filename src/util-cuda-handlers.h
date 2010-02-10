@@ -55,6 +55,7 @@ int SCCudaHlGetModuleHandle(const char *);
 
 int SCCudaHlRegisterModule(const char *);
 int SCCudaHlDeRegisterModule(const char *);
+void SCCudaHlDeRegisterAllRegisteredModules(void);
 
 int SCCudaHlPushCudaContextFromModule(const char *);
 

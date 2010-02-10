@@ -514,6 +514,11 @@ int SCCudaHlDeRegisterModule(const char *name)
         return -1;
     }
 
+    /* the applicationg must take care to check that the following cuda context
+     * which is being freed is floating(not attached to any host thread) */
+    if (data->cuda_context != 0)
+        SCCudaCtxPushCurrent(data->cuda_context);
+
     /* looks like we do have a module registered by this name */
     /* first clean the cuda device pointers */
     device_ptr = data->device_ptrs;
@@ -526,6 +531,9 @@ int SCCudaHlDeRegisterModule(const char *name)
         free(temp_device_ptr);
     }
     data->device_ptrs = NULL;
+
+    if (data->name != NULL)
+        free((void *)data->name);
 
     /* clean the dispatcher function registered */
     data->SCCudaHlDispFunc = NULL;
@@ -559,6 +567,29 @@ int SCCudaHlDeRegisterModule(const char *name)
     return 0;
  error:
     return -1;
+}
+
+/**
+ * \brief DeRegister all the modules registered under cuda handlers.
+ */
+void SCCudaHlDeRegisterAllRegisteredModules(void)
+{
+    SCCudaHlModuleData *data = module_datas;
+    SCCudaHlModuleData *next_data = NULL;
+
+    next_data = data;
+    while (data != NULL) {
+        next_data = data->next;
+        if (SCCudaHlDeRegisterModule(data->name) == -1) {
+            SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Error de-registering module "
+                       "\"%s\"", data->name);
+        }
+        data = next_data;
+    }
+
+    module_datas = NULL;
+
+    return;
 }
 
 /**

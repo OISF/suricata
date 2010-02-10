@@ -1637,6 +1637,12 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
         ctx->cuda_search_B2G = 0;
     }
 
+    if (ctx->cuda_scan_B2G != 0) {
+        if (SCCudaMemFree(ctx->cuda_scan_B2G) == -1)
+            SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error freeing ctx->cuda_scan_B2G ");
+        ctx->cuda_scan_B2G = 0;
+    }
+
     free(mpm_ctx->ctx);
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(B2gCudaCtx);

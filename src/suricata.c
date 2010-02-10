@@ -97,6 +97,7 @@
 
 /* holds the cuda b2g module */
 #include "util-mpm-b2g-cuda.h"
+#include "util-cuda-handlers.h"
 
 #include "output.h"
 
@@ -389,8 +390,10 @@ int main(int argc, char **argv)
     /* Initialize the configuration module. */
     ConfInit();
 
+#ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
     SCCudaInitCudaEnvironment();
+#endif
 
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
@@ -731,6 +734,15 @@ int main(int argc, char **argv)
         else {
             uint32_t failed = UtRunTests(regex_arg);
             UtCleanup();
+#ifdef __SC_CUDA_SUPPORT__
+            /* need this in case any of the cuda dispatcher threads are still
+             * running, kill them, so that we can free the cuda contexts.  We
+             * need to free those cuda contexts so that next when we call
+             * deregister functions, we will need to attach to those contexts
+             * the contexts and its associated data */
+            TmThreadKillThreads();
+            SCCudaHlDeRegisterAllRegisteredModules();
+#endif
             if (failed) {
                 exit(EXIT_FAILURE);
             }
@@ -909,6 +921,14 @@ int main(int argc, char **argv)
 
     RunModeShutDown();
     OutputDeregisterAll();
+
+#ifdef __SC_CUDA_SUPPORT__
+    /* all cuda contexts attached to any threads should be free by now.
+     * if any host_thread is still attached to any cuda_context, they need
+     * to pop them by the time we reach here, if they aren't using those
+     * cuda contexts in any way */
+    SCCudaHlDeRegisterAllRegisteredModules();
+#endif
 
     exit(EXIT_SUCCESS);
 }
