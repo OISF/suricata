@@ -17,13 +17,13 @@ void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *p
         return;
     }
 
-    EthernetHdr *ethh = (EthernetHdr *)pkt;
-    if (ethh == NULL)
+    p->ethh = (EthernetHdr *)pkt;
+    if (p->ethh == NULL)
         return;
 
-    SCLogDebug("p %p pkt %p ether type %04x", p, pkt, ntohs(ethh->eth_type));
+    SCLogDebug("p %p pkt %p ether type %04x", p, pkt, ntohs(p->ethh->eth_type));
 
-    switch (ntohs(ethh->eth_type)) {
+    switch (ntohs(p->ethh->eth_type)) {
         case ETHERNET_TYPE_IP:
             //printf("DecodeEthernet ip4\n");
             DecodeIPV4(tv, dtv, p, pkt + ETHERNET_HEADER_LEN,
@@ -46,7 +46,7 @@ void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *p
             break;
         default:
             SCLogDebug("p %p pkt %p ether type %04x not supported", p,
-                       pkt, ntohs(ethh->eth_type));
+                       pkt, ntohs(p->ethh->eth_type));
     }
 
     return;
