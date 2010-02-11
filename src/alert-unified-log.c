@@ -55,8 +55,6 @@ void TmModuleAlertUnifiedLogRegister (void) {
 typedef struct AlertUnifiedLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
-    uint32_t size_limit;
-    uint32_t size_current;
 } AlertUnifiedLogThread;
 
 #define ALERTUNIFIEDLOG_LOGMAGIC 0xDEAD1080 /* taken from Snort */
@@ -95,7 +93,7 @@ typedef struct AlertUnifiedLogPacketHeader_ {
     uint32_t pktlen;
 } AlertUnifiedLogPacketHeader;
 
-int AlertUnifiedLogWriteFileHeader(ThreadVars *t, AlertUnifiedLogThread *aun) {
+int AlertUnifiedLogWriteFileHeader(LogFileCtx *file_ctx) {
     int ret;
     /* write the fileheader to the file so the reader can recognize it */
 
@@ -108,13 +106,13 @@ int AlertUnifiedLogWriteFileHeader(ThreadVars *t, AlertUnifiedLogThread *aun) {
     hdr.snaplen = 65536; /* XXX */
     hdr.linktype = DLT_EN10MB; /* XXX */
 
-    ret = fwrite(&hdr, sizeof(hdr), 1, aun->file_ctx->fp);
+    ret = fwrite(&hdr, sizeof(hdr), 1, file_ctx->fp);
     if (ret != 1) {
         printf("Error: fwrite failed: ret = %" PRId32 ", %s\n", ret, strerror(errno));
         return -1;
     }
 
-    aun->size_current = sizeof(hdr);
+    file_ctx->size_current = sizeof(hdr);
     return 0;
 }
 
@@ -122,7 +120,7 @@ int AlertUnifiedLogCloseFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
     if (aun->file_ctx->fp != NULL) {
         fclose(aun->file_ctx->fp);
     }
-    aun->size_current = 0;
+    aun->file_ctx->size_current = 0;
     return 0;
 }
 
@@ -136,10 +134,7 @@ int AlertUnifiedLogRotateFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
         printf("Error: AlertUnifiedLogOpenFileCtx, open new log file failed\n");
         return -1;
     }
-    if (AlertUnifiedLogWriteFileHeader(t, aun) < 0) {
-        printf("Error: AlertUnifiedLogAppendFile, write unified header failed\n");
-        return -1;
-    }
+
     return 0;
 }
 
@@ -166,7 +161,7 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     /** Wait for the mutex. We dont want all the threads rotating the file
      * at the same time :) */
     SCMutexLock(&aun->file_ctx->fp_mutex);
-    if ((aun->size_current + sizeof(hdr) + p->pktlen + ethh_offset) > aun->size_limit) {
+    if ((aun->file_ctx->size_current + sizeof(hdr) + p->pktlen + ethh_offset) > aun->file_ctx->size_limit) {
         if (AlertUnifiedLogRotateFile(tv,aun) < 0)
         {
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
@@ -217,7 +212,7 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
      * written records and choke. */
     fflush(aun->file_ctx->fp);
 
-    aun->size_current += buflen;
+    aun->file_ctx->size_current += buflen;
     return TM_ECODE_OK;
 }
 
@@ -236,17 +231,6 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     }
     /** Use the Ouptut Context (file pointer and mutex) */
     aun->file_ctx = (LogFileCtx*) initdata;
-
-    /** Write Unified header */
-    int ret = AlertUnifiedLogWriteFileHeader(t, aun);
-    if (ret != 0) {
-        printf("Error: AlertUnifiedLogWriteFileHeader failed.\n");
-        free(aun);
-        return TM_ECODE_FAILED;
-    }
-
-    /* XXX make configurable */
-    aun->size_limit = 1 * 1024 * 1024;
 
     *data = (void *)aun;
     return TM_ECODE_OK;
@@ -293,6 +277,7 @@ LogFileCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
         filename = DEFAULT_LOG_FILENAME;
 
     file_ctx->prefix = strdup(filename);
+    file_ctx->size_limit = 1 * 1024 * 1024; /* XXX Make configurable. */
 
     ret=AlertUnifiedLogOpenFileCtx(file_ctx, filename);
 
@@ -336,7 +321,8 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
         ret = -1;
     }
 
-    return ret;
+    /* Write out the header. */
+    return AlertUnifiedLogWriteFileHeader(file_ctx);
 }
 
 #ifdef UNITTESTS

@@ -68,6 +68,11 @@ typedef struct LogFileCtx_ {
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
     char *prefix;
+
+    /**< Current file size and size limits for the file - for rotating
+     * outputs. */
+    uint32_t size_limit;
+    uint32_t size_current;
 } LogFileCtx;
 
 LogFileCtx *LogFileNewCtx();
