@@ -996,7 +996,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
         hdrretval = DCERPCParseHeader(dcerpc, input, input_len);
         if (hdrretval == -1) {
 		dcerpc->bytesprocessed = 0;
-		SCReturnInt(-1);
+		SCReturnInt(hdrretval);
         } else {
 		parsed += hdrretval;
 		input_len -= hdrretval;
@@ -1185,12 +1185,13 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 } else if (input_len) {
                     SCLogDebug("Error parsing DCERPC Request");
                     parsed -= input_len;
+                    dcerpc->padleft = 0;
                     input_len = 0;
                 }
             }
             while (dcerpc->bytesprocessed >= DCERPC_HDR_LEN + 8
                     && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length
-                    && input_len) {
+                    && input_len && dcerpc->padleft) {
                 retval = StubDataParser(dcerpc, input + parsed, input_len);
                 if (retval) {
                     parsed += retval;
