@@ -446,6 +446,7 @@ enum {
     DETECT_CONTENT,    /* 8 */
     DETECT_URICONTENT, /* 9 */
     DETECT_PCRE,       /* 10 */
+    DETECT_PCRE_HTTPBODY, /* 11 */
     DETECT_ACK,
     DETECT_SEQ,
     DETECT_DEPTH,
