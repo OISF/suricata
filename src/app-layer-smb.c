@@ -508,17 +508,17 @@ static uint32_t PaddingParser(void *smb_state, AppLayerParserState *pstate,
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     /* Check for validity of dataoffset */
-    if ((uint32_t)(sstate->bytesprocessed - NBSS_HDR_LEN) > sstate->andx.dataoffset) {
+    if ((uint64_t)(sstate->bytesprocessed - NBSS_HDR_LEN) > sstate->andx.dataoffset) {
         sstate->andx.paddingparsed = 1;
         SCReturnUInt((uint32_t)(p - input));
     }
-    while (((uint32_t)(sstate->bytesprocessed - NBSS_HDR_LEN) + (p - input))
+    while (((uint64_t)(sstate->bytesprocessed - NBSS_HDR_LEN) + (p - input))
             < sstate->andx.dataoffset && sstate->bytecount.bytecountleft--
             && input_len--) {
 	SCLogDebug("0x%02x ", *p);
         p++;
     }
-    if (((uint32_t)(sstate->bytesprocessed - NBSS_HDR_LEN) + (p - input))
+    if (((uint64_t)(sstate->bytesprocessed - NBSS_HDR_LEN) + (p - input))
             == sstate->andx.dataoffset) {
         sstate->andx.paddingparsed = 1;
     }
@@ -528,20 +528,25 @@ static uint32_t PaddingParser(void *smb_state, AppLayerParserState *pstate,
 
 /**
  * \brief Parse WriteAndX and ReadAndX Data
- * \todo Hand off to DCERPC parser for DCERPC over SMB
+ * \retval -1 f DCERPCParser does not validate
+ * \retval Number of bytes processed
  */
-static uint32_t DataParser(void *smb_state, AppLayerParserState *pstate,
+static int32_t DataParser(void *smb_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
-    uint32_t parsed = 0;
+    int32_t parsed = 0;
     if (sstate->andx.paddingparsed) {
 	parsed = DCERPCParser(&sstate->dcerpc, input, input_len);
-	sstate->bytesprocessed += parsed;
-	sstate->bytecount.bytecountleft -= parsed;
-	input_len -= parsed;
+	if (parsed == -1) {
+		SCReturnInt(-1);
+	} else {
+		sstate->bytesprocessed += parsed;
+		sstate->bytecount.bytecountleft -= parsed;
+		input_len -= parsed;
+	}
     }
-    SCReturnUInt(parsed);
+    SCReturnInt(parsed);
 }
 
 /**
@@ -655,7 +660,7 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
     SCEnter();
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    uint32_t retval = 0;
+    int32_t retval = 0;
     uint32_t parsed = 0;
     if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) && sstate->smb.command
                 == SMB_COM_READ_ANDX) || (((sstate->smb.flags
@@ -672,8 +677,19 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
         if (sstate->andx.datalength && input_len) {
             retval = DataParser(sstate, pstate, input + parsed, input_len,
                     output);
-            parsed += retval;
-            input_len -= retval;
+            if (retval != -1) {
+		parsed += retval;
+		input_len -= retval;
+            } else { /* Did not Validate as DCERPC over SMB */
+		while (sstate->bytecount.bytecountleft-- && input_len--) {
+		        SCLogDebug("0x%02x bytecount %u/%u input_len %u", *p,
+		                sstate->bytecount.bytecountleft,
+		                sstate->bytecount.bytecount, input_len);
+		        p++;
+		}
+		sstate->bytesprocessed += (p - input);
+		SCReturnUInt((p - input));
+            }
         }
         SCReturnUInt(retval);
     }
@@ -685,7 +701,7 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
         p++;
     }
     sstate->bytesprocessed += (p - input);
-    SCReturnUInt((uint32_t)(p - input));
+    SCReturnUInt((p - input));
 }
 
 static uint32_t NBSSParseHeader(Flow *f, void *smb_state,
@@ -733,7 +749,7 @@ static uint32_t NBSSParseHeader(Flow *f, void *smb_state,
 /**
  * \brief SMBParseHeader parses and validates the 32 byte SMB Header
  */
-static uint32_t SMBParseHeader(Flow *f, void *smb_state,
+static int SMBParseHeader(Flow *f, void *smb_state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
         AppLayerParserResult *output) {
     SCEnter();
@@ -745,7 +761,7 @@ static uint32_t SMBParseHeader(Flow *f, void *smb_state,
                 if (input_len >= SMB_HDR_LEN) {
                     if (memcmp(p, "\xff\x53\x4d\x42", 4) != 0) {
                         SCLogDebug("SMB Header did not validate");
-                        SCReturnUInt(0);
+                        SCReturnInt(-1);
                     }
                     sstate->smb.command = *(p + 4);
                     sstate->smb.status = *(p + 5) << 24;
@@ -774,31 +790,27 @@ static uint32_t SMBParseHeader(Flow *f, void *smb_state,
                     sstate->smb.mid = *(p + 30) << 8;
                     sstate->smb.mid |= *(p + 31);
                     sstate->bytesprocessed += SMB_HDR_LEN;
-                    SCReturnUInt(32U);
+                    SCReturnInt(32);
                     break;
                 } else {
-                    //sstate->smb.protocol[0] = *(p++);
                     if (*(p++) != 0xff)
-                        SCReturnInt(0);
+                        SCReturnInt(-1);
                     if (!(--input_len))
                         break;
                 }
             case 5:
-                //sstate->smb.protocol[1] = *(p++);
                 if (*(p++) != 'S')
-                    SCReturnInt(0);
+                    SCReturnInt(-1);
                 if (!(--input_len))
                     break;
             case 6:
-                //sstate->smb.protocol[2] = *(p++);
                 if (*(p++) != 'M')
-                    SCReturnInt(0);
+                    SCReturnInt(-1);
                 if (!(--input_len))
                     break;
             case 7:
-                //sstate->smb.protocol[3] = *(p++);
                 if (*(p++) != 'B')
-                    SCReturnInt(0);
+                    SCReturnInt(-1);
                 if (!(--input_len))
                     break;
             case 8:
@@ -916,7 +928,7 @@ static uint32_t SMBParseHeader(Flow *f, void *smb_state,
         }
     }
     sstate->bytesprocessed += (p - input);
-    SCReturnUInt((uint32_t)(p - input));
+    SCReturnInt((p - input));
 }
 
 static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
@@ -952,17 +964,17 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         && sstate->bytesprocessed < NBSS_HDR_LEN + SMB_HDR_LEN)) {
                 retval = SMBParseHeader(f, smb_state, pstate, input + parsed,
                         input_len, output);
-                if (retval) {
+                if (retval == -1) {
+                    SCLogDebug("Error parsing SMB Header\n");
+                    sstate->bytesprocessed = 0;
+                    SCReturnInt(1);
+                } else {
                     parsed += retval;
                     input_len -= retval;
                     SCLogDebug(
                             "SMB Header (%u/%u) Command 0x%02x parsed %ld input_len %u",
                             sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN,
                             sstate->smb.command, parsed, input_len);
-                } else if (input_len) {
-                    SCLogDebug("Error parsing SMB Word Count\n");
-                    parsed += input_len;
-                    input_len = 0;
                 }
             }
 

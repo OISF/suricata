@@ -858,18 +858,24 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
  * A fast path for normal decoding is used when there is enough bytes
  * present to parse the entire header. A slow path is used to parse
  * fragmented packets.
+ * \retval -1 if DCEPRC Header does not validate
+ * \retval Number of bytes processed
  */
-static uint32_t DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
+static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCEnter();
     uint8_t *p = input;
     if (input_len) {
         switch (dcerpc->bytesprocessed) {
             case 0:
                 if (input_len >= DCERPC_HDR_LEN) {
-                    //if (*p != 5) SCReturnUInt();
-                    //if (!(*(p + 1 ) == 0 || (*(p + 1) == 1))) SCReturnInt(0);
                     dcerpc->dcerpchdr.rpc_vers = *p;
                     dcerpc->dcerpchdr.rpc_vers_minor = *(p + 1);
+                    if ((dcerpc->dcerpchdr.rpc_vers != 5) ||
+                       ((dcerpc->dcerpchdr.rpc_vers_minor != 0) &&
+                       (dcerpc->dcerpchdr.rpc_vers_minor != 1))) {
+			SCLogDebug("DCERPC Header did not validate");
+			SCReturnInt(-1);
+                    }
                     dcerpc->dcerpchdr.type = *(p + 2);
                     dcerpc->dcerpchdr.pfc_flags = *(p + 3);
                     dcerpc->dcerpchdr.packed_drep[0] = *(p + 4);
@@ -896,18 +902,21 @@ static uint32_t DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input
                         dcerpc->dcerpchdr.call_id |= *(p + 15) << 24;
                     }
                     dcerpc->bytesprocessed = DCERPC_HDR_LEN;
-                    SCReturnUInt(16U);
+                    SCReturnInt(16);
                     break;
                 } else {
                     dcerpc->dcerpchdr.rpc_vers = *(p++);
-                    // if dcerpc->dcerpchdr.rpc_vers != 5) SCReturnInt(2);
                     if (!(--input_len))
                         break;
                 }
             case 1:
                 dcerpc->dcerpchdr.rpc_vers_minor = *(p++);
-                // if ((sdcerpc->dcerpchdr.rpc_vers_minor != 0) ||
-                //         (dcerpc->dcerpchdr.rpc_vers_minor != 1)) SCReturnInt(3);
+                if ((dcerpc->dcerpchdr.rpc_vers != 5) ||
+                    ((dcerpc->dcerpchdr.rpc_vers_minor != 0) &&
+                    (dcerpc->dcerpchdr.rpc_vers_minor != 1))) {
+			SCLogDebug("DCERPC Header did not validate");
+			SCReturnInt(-1);
+                }
                 if (!(--input_len))
                     break;
             case 2:
@@ -974,17 +983,24 @@ static uint32_t DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input
         }
     }
     dcerpc->bytesprocessed += (p - input);
-    SCReturnUInt((uint32_t)(p - input));
+    SCReturnInt((p - input));
 }
 
-uint32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
+int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCEnter();
     uint32_t retval = 0;
     uint32_t parsed = 0;
+    int hdrretval = 0;
+
     while (dcerpc->bytesprocessed < DCERPC_HDR_LEN && input_len) {
-        retval = DCERPCParseHeader(dcerpc, input, input_len);
-        parsed += retval;
-        input_len -= retval;
+        hdrretval = DCERPCParseHeader(dcerpc, input, input_len);
+        if (hdrretval == -1) {
+		dcerpc->bytesprocessed = 0;
+		SCReturnInt(-1);
+        } else {
+		parsed += hdrretval;
+		input_len -= hdrretval;
+        }
     }
     SCLogDebug("Done with DCERPCParseHeader bytesprocessed %u/%u left %u\n",
             dcerpc->bytesprocessed, dcerpc->dcerpchdr.frag_length, input_len);
@@ -1198,18 +1214,20 @@ uint32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
             dcerpc->bytesprocessed = 0;
             break;
     }
-    SCReturnUInt(parsed);
+    SCReturnInt(parsed);
 }
 
 static int DCERPCParse(Flow *f, void *dcerpc_state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
         AppLayerParserResult *output) {
     SCEnter();
-
+    int32_t retval = 0;
     DCERPCState *sstate = (DCERPCState *) dcerpc_state;
 
-    DCERPCParser(&sstate->dcerpc, input, input_len);
-
+    retval = DCERPCParser(&sstate->dcerpc, input, input_len);
+    if (retval == -1) {
+	SCReturnInt(-1);
+    }
     if (pstate == NULL)
         SCReturnInt(-1);
 
