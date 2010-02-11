@@ -953,8 +953,8 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                     sstate->nbss.length, parsed, input_len);
         } else if (input_len) {
             SCLogDebug("Error parsing NBSS Header\n");
-            parsed += input_len;
-            input_len = 0;
+            sstate->bytesprocessed = 0;
+            SCReturnInt(-1);
         }
     }
 
@@ -967,7 +967,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                 if (retval == -1) {
                     SCLogDebug("Error parsing SMB Header\n");
                     sstate->bytesprocessed = 0;
-                    SCReturnInt(1);
+                    SCReturnInt(-1);
                 } else {
                     parsed += retval;
                     input_len -= retval;
@@ -988,8 +988,8 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         input_len -= retval;
                     } else if (input_len) {
                         SCLogDebug("Error parsing SMB Word Count\n");
-                        parsed += input_len;
-                        input_len = 0;
+                        sstate->bytesprocessed = 0;
+                        SCReturnInt(-1);
                     }
                 }
                 SCLogDebug("SMB Header (%u/%u) Command 0x%02x WordCount %u parsed %ld input_len %u\n",
@@ -1007,8 +1007,8 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         input_len -= retval;
                     } else if (input_len) {
                         SCLogDebug("Error parsing SMB Word Count Data\n");
-                        parsed += input_len;
-                        input_len = 0;
+                        sstate->bytesprocessed = 0;
+                        SCReturnInt(-1);
                     }
                 }
 
@@ -1023,8 +1023,8 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         input_len -= retval;
                     } else if (input_len) {
                         SCLogDebug("Error parsing SMB Byte Count\n");
-                        parsed += input_len;
-                        input_len = 0;
+                        sstate->bytesprocessed = 0;
+                        SCReturnInt(-1);
                     }
                 }
 
@@ -1040,8 +1040,8 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         input_len -= retval;
                     } else if (input_len) {
                         SCLogDebug("Error parsing SMB Byte Count Data\n");
-                        parsed += input_len;
-                        input_len = 0;
+                        sstate->bytesprocessed = 0;
+                        SCReturnInt(-1);
                     }
                 }
 
