@@ -256,7 +256,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
 
     if (ret > 1) {
         const char *str_ptr;
-        res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        res = pcre_get_substring((char *)regexstr+pos, ov, MAX_SUBSTRINGS, 1, &str_ptr);
         if (res < 0) {
             printf("DetectPcreParse: pcre_get_substring failed\n");
             return NULL;
@@ -264,7 +264,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
         re = (char *)str_ptr;
 
         if (ret > 2) {
-            res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+            res = pcre_get_substring((char *)regexstr+pos, ov, MAX_SUBSTRINGS, 2, &str_ptr);
             if (res < 0) {
                 printf("DetectPcreParse: pcre_get_substring failed\n");
                 return NULL;
