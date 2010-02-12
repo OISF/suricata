@@ -128,6 +128,7 @@ typedef enum {
     SC_ERR_TM_THREADS_ERROR,
     SC_ERR_TM_MODULES_ERROR,
     SC_ERR_B2G_CUDA_ERROR,
+    SC_ERR_INVALID_YAML_CONF_ENTRY,
 } SCError;
 
 const char *SCErrorToString(SCError);

@@ -45,6 +45,10 @@
 #define INSPECT_BYTES  32
 #define ALP_DETECT_MAX 256
 
+/* undef __SC_CUDA_SUPPORT__.  We will get back to this later.  Need to
+ * analyze the performance of cuda support for app layer */
+#undef __SC_CUDA_SUPPORT__
+
 typedef struct AlpProtoDetectDirection_ {
     MpmCtx mpm_ctx;
     uint32_t id;
@@ -69,8 +73,8 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
     memset(ctx, 0x00, sizeof(AlpProtoDetectCtx));
 
 #ifndef __SC_CUDA_SUPPORT__
-    MpmInitCtx(&ctx->toserver.mpm_ctx, PatternMatchDefaultMatcher(), -1);
-    MpmInitCtx(&ctx->toclient.mpm_ctx, PatternMatchDefaultMatcher(), -1);
+    MpmInitCtx(&ctx->toserver.mpm_ctx, MPM_B2G, -1);
+    MpmInitCtx(&ctx->toclient.mpm_ctx, MPM_B2G, -1);
 #else
     ctx->alp_content_module_handle = SCCudaHlRegisterModule("SC_ALP_CONTENT_B2G_CUDA");
     MpmInitCtx(&ctx->toserver.mpm_ctx, MPM_B2G_CUDA, ctx->alp_content_module_handle);

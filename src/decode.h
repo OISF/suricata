@@ -325,12 +325,23 @@ typedef struct Packet_
     PatternMatcherQueue *cuda_pmq;
     MpmCtx *cuda_mpm_ctx;
     MpmThreadCtx *cuda_mtc;
-    /* this mutex corresponds to the condition variable defined below it */
-    SCMutex cuda_mutex_q;
+
+    /* this mutex corresponds to the condition variable defined below it.
+     * this mutex would be used for the search phase of the mpm */
+    SCMutex cuda_search_mutex_q;
     /* we need this condition variable so that the cuda dispatcher thread
      * can inform the client threads, when they are done with the pattern
-     * matching */
-    SCCondT cuda_cond_q;
+     * matching for the search phase */
+    SCCondT cuda_search_cond_q;
+
+    /* this mutex corresponds to the condition variable defined below it.
+     * this mutex would be used for the scan phase of the mpm */
+    SCMutex cuda_scan_mutex_q;
+    /* we need this condition variable so that the cuda dispatcher thread
+     * can inform the client threads, when they are done with the pattern
+     * matching for the scan phase*/
+    SCCondT cuda_scan_cond_q;
+
     /* used to hold the match results.  We can instead use a void *result
      * instead here.  That way we can make them hold any result. *todo* */
     uint16_t cuda_matches;

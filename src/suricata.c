@@ -194,6 +194,13 @@ Packet *SetupPkt (void)
 
         r = SCMutexInit(&p->mutex_rtv_cnt, NULL);
 
+#ifdef __SC_CUDA_SUPPORT__
+        SCMutexInit(&p->cuda_scan_mutex_q, NULL);
+        SCCondInit(&p->cuda_scan_cond_q, NULL);
+
+        SCMutexInit(&p->cuda_search_mutex_q, NULL);
+        SCCondInit(&p->cuda_search_cond_q, NULL);
+#endif
         SCLogDebug("allocated a new packet...");
     }
 
@@ -773,6 +780,13 @@ int main(int argc, char **argv)
         }
         memset(p, 0, sizeof(Packet));
         SCMutexInit(&p->mutex_rtv_cnt, NULL);
+#ifdef __SC_CUDA_SUPPORT__
+        SCMutexInit(&p->cuda_scan_mutex_q, NULL);
+        SCCondInit(&p->cuda_scan_cond_q, NULL);
+
+        SCMutexInit(&p->cuda_search_mutex_q, NULL);
+        SCCondInit(&p->cuda_search_cond_q, NULL);
+#endif
 
         PacketEnqueue(&packet_q,p);
     }
@@ -833,6 +847,12 @@ int main(int argc, char **argv)
     }
 
     TmThreadPrioSummary("Suricata main()");
+
+#ifdef __SC_CUDA_SUPPORT__
+    /* start the dispatcher thread for this module */
+    if (B2gCudaStartDispatcherThreadRC("SC_RULES_CONTENT_B2G_CUDA") == -1)
+        exit(EXIT_FAILURE);
+#endif
 
     /* Spawn the flow manager thread */
     FlowManagerThreadSpawn();
@@ -916,7 +936,29 @@ int main(int argc, char **argv)
     HTPAtExitPrintStats();
 
     /** \todo review whats needed here */
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
+        /* all threadvars related to cuda should be free by now, which means
+         * the cuda contexts would be floating */
+        if (SCCudaHlPushCudaContextFromModule("SC_RULES_CONTENT_B2G_CUDA") == -1) {
+            SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Call to "
+                       "SCCudaHlPushCudaContextForModule() failed during the "
+                       "shutdown phase just before the call to SigGroupCleanup()");
+        }
+    }
+#endif
     SigGroupCleanup(de_ctx);
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
+        /* pop the cuda context we just pushed before the call to SigGroupCleanup() */
+        if (SCCudaCtxPopCurrent(NULL) == -1) {
+            SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Call to SCCudaCtxPopCurrent() "
+                       "during the shutdown phase just before the call to "
+                       "SigGroupCleanup()");
+            return 0;
+        }
+    }
+#endif
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     AlpProtoDestroy();

@@ -23,6 +23,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 
+#include "detect-engine-mpm.h"
 #include "app-layer-detect-proto.h"
 #include "util-cuda-handlers.h"
 #include "util-cuda.h"
@@ -2482,6 +2483,9 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCCudaHlModuleData *module_data = (SCCudaHlModuleData *)initdata;
 
+    if (PatternMatchDefaultMatcher() != MPM_B2G_CUDA)
+        return TM_ECODE_OK;
+
     if (SCCudaCtxPushCurrent(module_data->cuda_context) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error pushing cuda context");
     }
@@ -2500,6 +2504,9 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
  */
 TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
 {
+    if (PatternMatchDefaultMatcher() != MPM_B2G_CUDA)
+        return TM_ECODE_OK;
+
     if (SCCudaCtxPopCurrent(NULL) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error popping cuda context");
     }
@@ -2533,23 +2540,33 @@ TmEcode B2gCudaMpmDispatcher(ThreadVars *tv, Packet *p, void *data,
                                                               p->cuda_pmq,
                                                               p->payload,
                                                               p->payload_len);
+        /* signal the client that the result is ready */
+        SCCondSignal(&p->cuda_search_cond_q);
+        /* wait for the client indication that it has read the results.  If the
+         * client still hasn't sent the indication, signal it again and do so
+         * every 50 microseconds */
+        while (p->cuda_done == 0) {
+            SCCondSignal(&p->cuda_search_cond_q);
+            usleep(50);
+        }
     } else {
         p->cuda_matches = mpm_table[p->cuda_mpm_ctx->mpm_type].Scan(p->cuda_mpm_ctx,
                                                             p->cuda_mtc,
                                                             p->cuda_pmq,
                                                             p->payload,
                                                             p->payload_len);
+        /* signal the client that the result is ready */
+        SCCondSignal(&p->cuda_scan_cond_q);
+        /* wait for the client indication that it has read the results.  If the
+         * client still hasn't sent the indication, signal it again and do so
+         * every 50 microseconds */
+        while (p->cuda_done == 0) {
+            SCCondSignal(&p->cuda_scan_cond_q);
+            usleep(50);
+        }
     }
 
-    /* signal the client that the result is ready */
-    SCCondSignal(&p->cuda_cond_q);
-    /* wait for the client indication that it has read the results.  If the
-     * client still hasn't sent the indication, signal it again and do so
-     * every 50 microseconds */
-    while (p->cuda_done == 0) {
-        SCCondSignal(&p->cuda_cond_q);
-        usleep(50);
-    }
+    p->cuda_done = 0;
 
     if (p->cuda_free_packet == 1) {
         free(p);
@@ -2572,8 +2589,6 @@ void TmModuleCudaMpmB2gRegister(void)
 }
 
 /***************************Code_Specific_To_Mpm_B2g***************************/
-
-#ifdef UNITTESTS
 
 int B2gCudaStartDispatcherThreadRC(const char *name)
 {
@@ -2746,6 +2761,8 @@ void B2gCudaPushPacketTo_tv_CMB2_APC(Packet *p)
 }
 
 /*********************************Unittests************************************/
+
+#ifdef UNITTESTS
 
 static int B2gCudaTestInitTestEnv(void)
 {

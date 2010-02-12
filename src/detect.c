@@ -2837,17 +2837,20 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
     SigAddressPrepareStage3(de_ctx);
 
 #ifdef __SC_CUDA_SUPPORT__
-    /* the AddressPrepareStage3 actually handles the creation of device pointers
-     * on the gpu.  The cuda context that stage3 used would still be attached to
-     * this host thread.  We need to pop this cuda context so that the dispatcher
-     * thread that we are going to create for the above module we registered
-     * can attach to this cuda context */
-    CUcontext context;
-    if (SCCudaCtxPopCurrent(&context) == -1)
-        exit(EXIT_FAILURE);
-    /* start the dispatcher thread for this module */
-    if (B2gCudaStartDispatcherThreadRC("SC_RULES_CONTENT_B2G_CUDA") == -1)
-        exit(EXIT_FAILURE);
+    /* if a user has selected some other mpm algo other than b2g_cuda, inspite of
+     * enabling cuda support, then no cuda contexts or cuda vars would be created.
+     * Pop the cuda context, only on confirming that the MPM algo selected is the
+     * CUDA mpm algo */
+    if (de_ctx->mpm_matcher == MPM_B2G_CUDA) {
+        /* the AddressPrepareStage3 actually handles the creation of device
+         * pointers on the gpu.  The cuda context that stage3 used would still be
+         * attached to this host thread.  We need to pop this cuda context so that
+         * the dispatcher thread that we are going to create for the above module
+         * we registered can attach to this cuda context */
+        CUcontext context;
+        if (SCCudaCtxPopCurrent(&context) == -1)
+            exit(EXIT_FAILURE);
+    }
 #endif
 
 //    SigAddressPrepareStage5(de_ctx);
