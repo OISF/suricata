@@ -512,7 +512,7 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
             htp_tx_destroy(tx);
         }
     }
-
+#if 0 /* VJ disabled for now */
     /* Clear the trasactions which are processed by the engine from libhtp.
        This helps in reducing the meory consumptions of libhtp */
     while (list_size(hstate->connp->conn->transactions) > 0) {
@@ -520,7 +520,7 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
         if (tx != NULL)
             htp_tx_destroy(tx);
     }
-
+#endif
     SCReturnInt(0);
 }
 
