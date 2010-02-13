@@ -83,7 +83,7 @@ struct in6_addr *SCRadixValidateIPV6Address(const char *addr_str)
  *        value of 19.
  *
  * \param stream  Pointer the ip address that has to be chopped.
- * \param netmask The netmask value to which the ip address has to be chopped.
+ * \param netmask The netmask value (cidr) to which the ip address has to be chopped.
  */
 void SCRadixChopIPAddressAgainstNetmask(uint8_t *stream, uint8_t netmask,
                                                uint16_t key_bitlen)
@@ -109,7 +109,7 @@ void SCRadixChopIPAddressAgainstNetmask(uint8_t *stream, uint8_t netmask,
 /**
  * \brief Allocates and returns a new instance of SCRadixUserData.
  *
- * \param netmask The netmask entry that has to be made in the new
+ * \param netmask The netmask entry (cidr) that has to be made in the new
  *                SCRadixUserData instance
  * \param user    The user data that has to be set for the above
  *                netmask in the newly created SCRadixUserData instance.
@@ -239,7 +239,7 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
  *
  * \param prefix  The prefix stream to which the netmask and its corresponding
  *                user data has to be added.
- * \param netmask The netmask value that has to be added to the prefix.
+ * \param netmask The netmask value (cidr) that has to be added to the prefix.
  * \param user    The pointer to the user data corresponding to the above
  *                netmask.
  */
@@ -264,7 +264,7 @@ static void SCRadixAddNetmaskUserDataToPrefix(SCRadixPrefix *prefix,
  *
  * \param prefix  Pointer to the prefix from which the user_data/netmask entry
  *                has to be removed.
- * \param netmask The netmask value whose user_data has to be deleted.
+ * \param netmask The netmask value (cidr) whose user_data has to be deleted.
  */
 static void SCRadixRemoveNetmaskUserDataFromPrefix(SCRadixPrefix *prefix,
                                                    uint8_t netmask)
@@ -298,8 +298,8 @@ static void SCRadixRemoveNetmaskUserDataFromPrefix(SCRadixPrefix *prefix,
  * \brief Indicates if prefix contains an entry for an ip with a specific netmask.
  *
  * \param prefix  Pointer to the ip prefix that is being checked.
- * \param netmask The netmask value that has to be checked for presence in the
- *                prefix.
+ * \param netmask The netmask value (cidr) that has to be checked for
+ *                presence in the prefix.
  *
  * \retval 1 On match.
  * \retval 0 On no match.
@@ -532,8 +532,8 @@ void SCRadixReleaseRadixTree(SCRadixTree *tree)
  * \param tree       Pointer to the Radix tree
  * \param user       Pointer to the user data that has to be associated with
  *                   this key
- * \param netmask    The netmask if we are adding an IP netblock; 255 if we are
- *                   not adding an IP netblock
+ * \param netmask    The netmask (cidr) if we are adding an IP netblock; 255
+ *                   if we are not adding an IP netblock
  *
  * \retval node Pointer to the newly created node
  */
@@ -920,7 +920,7 @@ SCRadixNode *SCRadixAddKeyIPV6(uint8_t *key_stream, SCRadixTree *tree,
  * \param tree       Pointer to the Radix tree
  * \param user       Pointer to the user data that has to be associated with the
  *                   key
- * \param netmask    The netmask if we are adding a netblock
+ * \param netmask    The netmask (cidr) if we are adding a netblock
  *
  * \retval node Pointer to the newly created node
  */
@@ -940,7 +940,7 @@ SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
  * \param tree       Pointer to the Radix tree
  * \param user       Pointer to the user data that has to be associated with the
  *                   key
- * \param netmask    The netmask if we are adding a netblock
+ * \param netmask    The netmask (cidr) if we are adding a netblock
  *
  * \retval node Pointer to the newly created node
  */
@@ -950,6 +950,101 @@ SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
     SCRadixNode *node = SCRadixAddKey(key_stream, 128, tree, user, netmask);
 
     return node;
+}
+
+/**
+ * \brief Adds a new IPV4/netblock to the Radix tree from a string
+ *
+ * \param str        IPV4 string with optional /cidr netmask
+ * \param tree       Pointer to the Radix tree
+ * \param user       Pointer to the user data that has to be associated with
+ *                   the key
+ *
+ * \retval node Pointer to the newly created node
+ */
+SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *user) {
+    uint32_t ip;
+    uint8_t netmask = 32;
+    char ip_str[32]; /* Max length for full ipv4/mask string with NUL */
+    char *mask_str = NULL;
+    struct in_addr addr;
+
+    /* Make a copy of the string so it can be modified */
+    strncpy(ip_str, str, sizeof(ip_str) - 1);
+    *(ip_str + sizeof(ip_str)) = '\0';
+
+    /* Does it have a mask? */
+    if (NULL != (mask_str = strchr(ip_str, '/'))) {
+        int cidr;
+        *(mask_str++) = '\0';
+
+        /* Dotted type netmask not supported (yet) */
+        if (strchr(mask_str, '.') != NULL) {
+            return NULL;
+        }
+
+        /* Get binary values for cidr mask */
+        cidr = atoi(mask_str);
+        if ((cidr < 0) || (cidr > 32)) {
+            return NULL;
+        }
+        netmask = (uint8_t)cidr;
+    }
+
+    /* Validate the IP */
+    int r;
+    if ((r = inet_pton(AF_INET, ip_str, &addr)) <= 0) {
+        return NULL;
+    }
+    ip = addr.s_addr;
+
+    return SCRadixAddKey((uint8_t *)&ip, 32, tree, user, netmask);
+}
+
+/**
+ * \brief Adds a new IPV6/netblock to the Radix tree from a string
+ *
+ * \param str        IPV6 string with optional /cidr netmask
+ * \param tree       Pointer to the Radix tree
+ * \param user       Pointer to the user data that has to be associated with
+ *                   the key
+ *
+ * \retval node Pointer to the newly created node
+ */
+SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *user) {
+    uint8_t netmask = 128;
+    char ip_str[80]; /* Max length for full ipv6/mask string with NUL */
+    char *mask_str = NULL;
+    struct in6_addr addr;
+
+    /* Make a copy of the string so it can be modified */
+    strncpy(ip_str, str, sizeof(ip_str) - 1);
+    *(ip_str + sizeof(ip_str)) = '\0';
+
+    /* Does it have a mask? */
+    if (NULL != (mask_str = strchr(ip_str, '/'))) {
+        int cidr;
+        *(mask_str++) = '\0';
+
+        /* Dotted type netmask not supported (yet) */
+        if (strchr(mask_str, '.') != NULL) {
+            return NULL;
+        }
+
+        /* Get binary values for cidr mask */
+        cidr = atoi(mask_str);
+        if ((cidr < 0) || (cidr > 32)) {
+            return NULL;
+        }
+        netmask = (uint8_t)cidr;
+    }
+
+    /* Validate the IP */
+    if (inet_pton(AF_INET6, ip_str, &addr) <= 0) {
+        return NULL;
+    }
+
+    return SCRadixAddKey(addr.s6_addr, 128, tree, user, netmask);
 }
 
 static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
@@ -985,7 +1080,7 @@ static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
  *        walking up the tree and deleting the entry from the specific node.
  *
  * \param node    The node from which the netblock entry has to be removed.
- * \param netmask The netmask entry that has to be removed.
+ * \param netmask The netmask entry (cidr) that has to be removed.
  */
 static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
 {
@@ -1510,16 +1605,13 @@ void SCRadixPrintNodeInfo(SCRadixNode *node, int level,  void (*PrintData)(void*
         printf("%d, ", -1);
 
     for (i = 0; i < node->netmask_cnt; i++)
-        printf("%d, ", node->netmasks[i]);
+        printf("%s%d", (0 == i ? "" : ", "), node->netmasks[i]);
 
     printf("] (");
     if (node->prefix != NULL) {
-        for (i = 0; i * 8 < node->prefix->bitlen; i++) {
-            if (i != 0)
-                printf(".");
-            printf("%d", node->prefix->stream[i]);
-        }
-        printf(")");
+        for (i = 0; i * 8 < node->prefix->bitlen; i++)
+            printf("%s%d", (0 == i ? "" : "."), node->prefix->stream[i]);
+        printf(")\n");
 
         if (PrintData != NULL) {
             SCRadixUserData *ud = NULL;
@@ -1533,7 +1625,6 @@ void SCRadixPrintNodeInfo(SCRadixNode *node, int level,  void (*PrintData)(void*
             printf("No print function provided");
         }
         printf("\n");
-
     } else {
         printf("NULL)\n");
     }

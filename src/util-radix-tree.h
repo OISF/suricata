@@ -8,6 +8,18 @@
 #define SC_RADIX_BITTEST(x, y) ((x) & (y))
 
 /**
+ * \brief Macro to fetch the user data from a node.
+ *
+ * \param node Variable name/expression containing the node
+ * \param type User data type in which the node points to
+ *
+ * \returns User data within the node
+ */
+#define SC_RADIX_NODE_USERDATA(node, type) \
+    ((type *)( ((node) == NULL || (node)->prefix == NULL) \
+              ? NULL : (node)->prefix->user_data_result ))
+
+/**
  * \brief Structure that hold the user data and the netmask associated with it.
  */
 typedef struct SCRadixUserData_ {
@@ -92,6 +104,8 @@ SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *, SCRadixTree *, void *,
                                        uint8_t);
 SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *, SCRadixTree *, void *,
                                        uint8_t);
+SCRadixNode *SCRadixAddKeyIPV4String(const char *, SCRadixTree *, void *);
+SCRadixNode *SCRadixAddKeyIPV6String(const char *, SCRadixTree *, void *);
 
 void SCRadixRemoveKeyGeneric(uint8_t *, uint16_t, SCRadixTree *);
 void SCRadixRemoveKeyIPV4Netblock(uint8_t *, SCRadixTree *, uint8_t);
