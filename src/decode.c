@@ -11,11 +11,12 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     switch (p->tunnel_proto) {
         case PPP_OVER_GRE:
             return DecodePPP(tv, dtv, p, pkt, len, pq);
-            break;
         case IPPROTO_IP:
             return DecodeIPV4(tv, dtv, p, pkt, len, pq);
         case IPPROTO_IPV6:
             return DecodeIPV6(tv, dtv, p, pkt, len, pq);
+       case VLAN_OVER_GRE:
+            return DecodeVLAN(tv, dtv, p, pkt, len, pq);
         default:
             SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", p->tunnel_proto);
             break;
@@ -81,6 +82,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_pppoe = SCPerfTVRegisterCounter("decoder.pppoe", tv,
                                                  SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_gre = SCPerfTVRegisterCounter("decoder.gre", tv,
+                                               SC_PERF_TYPE_UINT64, "NULL");
+    dtv->counter_vlan = SCPerfTVRegisterCounter("decoder.vlan", tv,
                                                SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_avg_pkt_size = SCPerfTVRegisterAvgCounter("decoder.avg_pkt_size", tv,
                                                            SC_PERF_TYPE_DOUBLE, "NULL");

@@ -32,6 +32,7 @@
 #include "decode-tcp.h"
 #include "decode-udp.h"
 #include "decode-raw.h"
+#include "decode-vlan.h"
 
 /* Address */
 typedef struct Address_
@@ -263,6 +264,7 @@ typedef struct Packet_
     PPPOESessionHdr *pppoesh;
     PPPOEDiscoveryHdr *pppoedh;
     GREHdr *greh;
+    VLANHdr *vlanh;
 
     IPV4Hdr *ip4h;
     IPV4Vars ip4vars;
@@ -348,6 +350,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_icmpv6;
     uint16_t counter_ppp;
     uint16_t counter_gre;
+    uint16_t counter_vlan;
     uint16_t counter_pppoe;
     uint16_t counter_avg_pkt_size;
     uint16_t counter_max_pkt_size;
@@ -373,6 +376,7 @@ typedef struct DecodeThreadVars_
     (p)->ethh = NULL; \
     (p)->ppph = NULL; \
     (p)->greh = NULL; \
+    (p)->vlanh = NULL; \
     (p)->ip4h = NULL; \
     (p)->ip6h = NULL; \
     (p)->action = 0; \
@@ -467,6 +471,7 @@ void DecodeICMPV6(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_
 void DecodeTCP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeUDP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+void DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 
 Packet *SetupPkt (void);
 Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, uint8_t);
@@ -507,6 +512,7 @@ inline void DecodeSetNoPacketInspectionFlag(Packet *);
 #define LINKTYPE_PPP        9
 #define LINKTYPE_RAW        DLT_RAW
 #define PPP_OVER_GRE        11
+#define VLAN_OVER_GRE       13
 
 /*Packet Flags*/
 #define PKT_NOPACKET_INSPECTION         0x01    /**< Flag to indicate that packet header or contents should not be inspected*/

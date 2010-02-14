@@ -44,6 +44,10 @@ void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *p
             DecodePPPOEDiscovery(tv, dtv, p, pkt + ETHERNET_HEADER_LEN,
                                  len - ETHERNET_HEADER_LEN, pq);
             break;
+        case ETHERNET_TYPE_VLAN:
+            DecodeVLAN(tv, dtv, p, pkt + ETHERNET_HEADER_LEN,
+                                 len - ETHERNET_HEADER_LEN, pq);
+            break;
         default:
             SCLogDebug("p %p pkt %p ether type %04x not supported", p,
                        pkt, ntohs(p->ethh->eth_type));

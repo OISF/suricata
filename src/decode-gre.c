@@ -174,7 +174,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             {
                 if (pq != NULL) {
 
-                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, GRE_GET_PROTO(p->greh));
+                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, IPPROTO_IP);
                     DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
                     PacketEnqueue(pq,tp);
 
@@ -187,7 +187,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             {
                 if (pq != NULL) {
 
-                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, GRE_GET_PROTO(p->greh));
+                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, PPP_OVER_GRE);
                     DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
                     PacketEnqueue(pq,tp);
 
@@ -200,7 +200,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             {
                 if (pq != NULL) {
 
-                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, GRE_GET_PROTO(p->greh));
+                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, IPPROTO_IPV6);
                     DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
                     PacketEnqueue(pq,tp);
 
@@ -208,6 +208,20 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                 }
                 break;
             }
+
+        case ETHERNET_TYPE_VLAN:
+            {
+                if (pq != NULL) {
+
+                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, VLAN_OVER_GRE);
+                    DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
+                    PacketEnqueue(pq,tp);
+
+                    SET_TUNNEL_PKT(p);
+                }
+                break;
+            }
+
         default:
             return;
     }

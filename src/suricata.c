@@ -683,6 +683,7 @@ int main(int argc, char **argv)
         FlowAlertSidRegisterTests();
         SCPerfRegisterTests();
         DecodePPPRegisterTests();
+        DecodeVLANRegisterTests();
         HTPParserRegisterTests();
         TLSParserRegisterTests();
         SMBParserRegisterTests();

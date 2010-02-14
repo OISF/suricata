@@ -14,6 +14,7 @@ source-pfring.c source-pfring.h \
 source-ipfw.c source-ipfw.h \
 decode.c decode.h \
 decode-ethernet.c decode-ethernet.h \
+decode-vlan.c decode-vlan.h \
 decode-sll.c decode-sll.h \
 decode-gre.c decode-gre.h \
 decode-ppp.c decode-ppp.h \
