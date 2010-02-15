@@ -1896,6 +1896,8 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
 
     TmThreadSetCPUAffinity(tv_receivepcap, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_receivepcap, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1915,6 +1917,8 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_decode1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_decode1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1934,6 +1938,8 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_stream1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_stream1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1967,7 +1973,10 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
          */
         if (cpu == 0 && ncpus > 1) {
             TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        } else if (ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
         }
+
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -1988,6 +1997,8 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_rreject, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_rreject, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1999,6 +2010,8 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     SetupOutputs(tv_outputs);
 
     TmThreadSetCPUAffinity(tv_outputs, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_outputs, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2051,6 +2064,8 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
     Tm1SlotSetFunc(tv_receivepcap,tm_module,file);
 
     TmThreadSetCPUAffinity(tv_receivepcap, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_receivepcap, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2069,6 +2084,8 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
     }
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
     TmThreadSetCPUAffinity(tv_decode1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_decode1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2088,6 +2105,8 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_stream1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_stream1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2121,6 +2140,8 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
          */
         if (cpu == 0 && ncpus > 1) {
             TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        } else if (ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
         }
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
@@ -2134,6 +2155,8 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
     SetupOutputs(tv_outputs);
 
     TmThreadSetCPUAffinity(tv_outputs, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_outputs, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2186,6 +2209,8 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
     Tm1SlotSetFunc(tv_receiveipfw,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_receiveipfw, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_receiveipfw, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_receiveipfw) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2205,6 +2230,8 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_decode1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_decode1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2224,6 +2251,8 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_stream1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_stream1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2257,7 +2286,10 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
          */
         if (cpu == 0 && ncpus > 1) {
             TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        } else if (ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
         }
+
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -2278,6 +2310,8 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
     Tm1SlotSetFunc(tv_verdict,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_verdict, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_verdict, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2297,6 +2331,8 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
     Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_rreject, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_rreject, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2307,6 +2343,8 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
         "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
 
     TmThreadSetCPUAffinity(tv_outputs, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_outputs, PRIO_MEDIUM);
     SetupOutputs(tv_outputs);
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2358,6 +2396,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     }
     Tm1SlotSetFunc(tv_receivenfq,tm_module,nfq_id);
     TmThreadSetCPUAffinity(tv_receivenfq, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_receivenfq, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_receivenfq) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2377,6 +2417,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_decode1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_decode1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2396,6 +2438,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_stream1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_stream1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2429,7 +2473,10 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
          */
         if (cpu == 0 && ncpus > 1) {
             TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        } else if (ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
         }
+
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -2450,6 +2497,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     Tm1SlotSetFunc(tv_verdict,tm_module,nfq_id);
 
     TmThreadSetCPUAffinity(tv_verdict, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_verdict, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2469,6 +2518,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_rreject, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_rreject, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2477,8 +2528,10 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
 
     ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
         "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
-    SetupOutputs(tv_outputs);
     TmThreadSetCPUAffinity(tv_outputs, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_outputs, PRIO_MEDIUM);
+    SetupOutputs(tv_outputs);
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -2529,6 +2582,8 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
     Tm1SlotSetFunc(tv_receivepfring,tm_module,(void *)iface);
 
     TmThreadSetCPUAffinity(tv_receivepfring, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_receivepfring, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_receivepfring) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2548,6 +2603,8 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
     Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_decode1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_decode1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2567,6 +2624,8 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
     Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_stream1, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_stream1, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2600,7 +2659,10 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
          */
         if (cpu == 0 && ncpus > 1) {
             TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        } else if (ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
         }
+
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -2621,6 +2683,8 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
     Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
 
     TmThreadSetCPUAffinity(tv_rreject, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_rreject, PRIO_MEDIUM);
 
     if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2629,9 +2693,11 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
 
     ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
         "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
-    SetupOutputs(tv_outputs);
 
     TmThreadSetCPUAffinity(tv_outputs, 0);
+    if (ncpus > 1)
+        TmThreadSetThreadPriority(tv_outputs, PRIO_MEDIUM);
+    SetupOutputs(tv_outputs);
 
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
