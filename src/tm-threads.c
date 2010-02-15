@@ -14,6 +14,9 @@
 #include "tmqh-packetpool.h"
 #include "threads.h"
 #include "util-debug.h"
+#include <pthread.h>
+#include <unistd.h>
+
 
 #ifdef OS_FREEBSD
 #include <sched.h>
@@ -32,7 +35,7 @@
 #endif /* OS_FREEBSD */
 
 /* prototypes */
-static int SetCPUAffinity(int cpu);
+static int SetCPUAffinity(uint16_t cpu);
 
 /* root of the threadvars list */
 ThreadVars *tv_root[TVT_MAX] = { NULL };
@@ -115,8 +118,8 @@ void *TmThreadsSlot1NoIn(void *td) {
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
-    if (tv->set_cpu_affinity == 1)
-        SetCPUAffinity(tv->cpu_affinity);
+    if (tv->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv);
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
@@ -179,8 +182,8 @@ void *TmThreadsSlot1NoOut(void *td) {
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
-    if (tv->set_cpu_affinity == 1)
-        SetCPUAffinity(tv->cpu_affinity);
+    if (tv->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv);
 
     if (s->s.SlotThreadInit != NULL) {
         r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
@@ -236,8 +239,8 @@ void *TmThreadsSlot1NoInOut(void *td) {
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
-    if (tv->set_cpu_affinity == 1)
-        SetCPUAffinity(tv->cpu_affinity);
+    if (tv->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv);
 
     SCLogDebug("%s starting", tv->name);
 
@@ -297,8 +300,8 @@ void *TmThreadsSlot1(void *td) {
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
-    if (tv->set_cpu_affinity == 1)
-        SetCPUAffinity(tv->cpu_affinity);
+    if (tv->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv);
 
     SCLogDebug("%s starting", tv->name);
 
@@ -414,8 +417,8 @@ void *TmThreadsSlotVar(void *td) {
     TmEcode r = TM_ECODE_OK;
     TmSlot *slot = NULL;
 
-    if (tv->set_cpu_affinity == 1)
-        SetCPUAffinity(tv->cpu_affinity);
+    if (tv->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv);
 
     //printf("TmThreadsSlot1: %s starting\n", tv->name);
 
@@ -575,10 +578,14 @@ void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data) {
     }
 }
 
-/* called from the thread */
-static int SetCPUAffinity(int cpu) {
+/**
+ * \brief Set the thread affinity on the calling thread
+ * \param cpuid id of the core/cpu to setup the affinity
+ * \retval 0 if all goes well; -1 if something is wrong
+ */
+static int SetCPUAffinity(uint16_t cpuid) {
 
-    printf("Setting CPU Affinity for thread %lu to CPU %" PRId32 "\n", SCGetThreadIdLong(), cpu);
+    int cpu = (int)cpuid;
 
     cpu_set_t cs;
 
@@ -596,14 +603,70 @@ static int SetCPUAffinity(int cpu) {
 
     if (r != 0) {
         printf("Warning: sched_setaffinity failed (%" PRId32 "): %s\n", r, strerror(errno));
+        return -1;
     }
+    SCLogInfo("CPU Affinity for thread %lu set to CPU %" PRId32, SCGetThreadIdLong(), cpu);
 
     return 0;
 }
 
-TmEcode TmThreadSetCPUAffinity(ThreadVars *tv, int cpu) {
-    tv->set_cpu_affinity = 1;
+
+/**
+ * \brief Set the thread options (thread priority)
+ * \param tv pointer to the ThreadVars to setup the thread priority
+ * \retval TM_ECOE_OK
+ */
+TmEcode TmThreadSetThreadPriority(ThreadVars *tv, int prio) {
+    tv->thread_setup_flags |= THREAD_SET_PRIORITY;
+    tv->thread_priority = prio;
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Print a summary of the default thread priority, and the min and max values
+ *        supported by the system/policy
+ */
+void TmThreadPrioSummary(char *tname)
+{
+    SCEnter();
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    int my_policy;
+    struct sched_param my_param;
+
+    pthread_getschedparam (pthread_self (), &my_policy, &my_param);
+
+    SCLogInfo("at %s, threading policy: %s, priority %"PRId32"\n", tname,
+            (my_policy == SCHED_FIFO ? "Fifo" : (my_policy == SCHED_RR ? "RR"
+            : (my_policy == SCHED_OTHER ? "Other" : "unknown"))),
+            my_param.sched_priority);
+
+    SCLogInfo("at %s, Min prio: %"PRId32" Max prio: %"PRId32"", tname, sched_get_priority_min(my_policy), sched_get_priority_max(my_policy));
+}
+
+
+/**
+ * \brief Set the thread options (cpu affinity)
+ * \param tv pointer to the ThreadVars to setup the affinity
+ * \retval TM_ECOE_OK
+ */
+TmEcode TmThreadSetCPUAffinity(ThreadVars *tv, uint16_t cpu) {
+    tv->thread_setup_flags |= THREAD_SET_AFFINITY;
     tv->cpu_affinity = cpu;
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Set the thread options (cpu affinitythread)
+ *        Priority should be already set by pthread_create
+ * \param tv pointer to the ThreadVars of the calling thread
+ */
+TmEcode TmThreadSetupOptions(ThreadVars *tv) {
+    if (tv->thread_setup_flags & THREAD_SET_AFFINITY) {
+        SCLogInfo("Setting affinity for \"%s\" Module to cpu/core %"PRIu16", thread id %lu", tv->name, tv->cpu_affinity, SCGetThreadIdLong());
+        SetCPUAffinity(tv->cpu_affinity);
+    }
+    TmThreadPrioSummary(tv->name);
     return TM_ECODE_OK;
 }
 
@@ -879,6 +942,8 @@ void TmThreadKillThreads(void) {
 TmEcode TmThreadSpawn(ThreadVars *tv)
 {
     pthread_attr_t attr;
+    struct sched_param param;
+    int ret = 0;
 
     if (tv->tm_func == NULL) {
         printf("ERROR: no thread function set\n");
@@ -887,6 +952,38 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
 
     /* Initialize and set thread detached attribute */
     pthread_attr_init(&attr);
+
+    pthread_attr_getschedparam(&attr, &param);
+
+    ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+    if (ret != 0) {
+        SCLogInfo("Error setting thread explicit Scheduling");
+    } else {
+
+        if (tv->thread_setup_flags & THREAD_SET_PRIORITY) {
+            /* Then we need to change the policy. SCHED_OTHER doesn't allow
+             * to change it. So we have to choose SCHED_RR or SCHED_FIFO
+             */
+
+
+            ret = pthread_attr_setschedpolicy(&attr, SCHED_RR);
+            if (ret != 0) {
+                SCLogInfo("Error setting thread policy to SCHED_RR");
+            } else {
+                SCLogInfo("Thread policy SCHED_RR set for thread %s. Old prio: %"PRId32, tv->name, param.sched_priority);
+
+                param.sched_priority = tv->thread_priority;
+                ret = pthread_attr_setschedparam(&attr, &param);
+                if (ret != 0) {
+                    SCLogInfo("Error setting thread priority");
+                    /* Get the old default priority */
+                    pthread_attr_getschedparam(&attr, &param);
+                } else {
+                    SCLogInfo("Thread priority %"PRId32" set for thread %s", tv->thread_priority, tv->name);
+                }
+            }
+        }
+    }
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
     int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);

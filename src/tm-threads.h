@@ -36,7 +36,13 @@ void TmThreadKillThreads(void);
 
 void TmThreadAppend(ThreadVars *, int);
 
-TmEcode TmThreadSetCPUAffinity(ThreadVars *, int);
+TmEcode TmThreadSetCPUAffinity(ThreadVars *, uint16_t);
+
+TmEcode TmThreadSetThreadPriority(ThreadVars *, int);
+
+TmEcode TmThreadSetupOptions(ThreadVars *);
+
+void TmThreadPrioSummary(char *);
 
 void TmThreadInitMC(ThreadVars *);
 

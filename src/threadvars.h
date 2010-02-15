@@ -55,8 +55,9 @@ typedef struct ThreadVars_ {
     void *(*tm_func)(void *);
     void *tm_slots;
 
-    char set_cpu_affinity; /** bool: 0 no, 1 yes */
-    int cpu_affinity; /** cpu or core number to set affinity to */
+    uint8_t thread_setup_flags;
+    uint16_t cpu_affinity; /** cpu or core number to set affinity to */
+    int thread_priority; /** priority (real time) for this thread. Look at threads.h */
 
     /* the perf counter context and the perf counter array */
     SCPerfContext sc_perf_pctx;
@@ -68,6 +69,10 @@ typedef struct ThreadVars_ {
     struct ThreadVars_ *next;
     struct ThreadVars_ *prev;
 } ThreadVars;
+
+/** Thread setup flags: */
+#define THREAD_SET_AFFINITY     0x01 /** CPU/Core affinity */
+#define THREAD_SET_PRIORITY     0x02 /** Real time priority */
 
 #endif /* __THREADVARS_H__ */
 

@@ -10,6 +10,20 @@
 
 #ifdef OS_FREEBSD
 #include <sys/thr.h>
+#define PRIO_LOW 20
+#define PRIO_MEDIUM 31
+#define PRIO_HIGH 40
+#else
+#ifdef OS_DARWIN
+#include <mach/mach_init.h>
+#define PRIO_LOW 20
+#define PRIO_MEDIUM 31
+#define PRIO_HIGH 40
+#else /* LINUX */
+#define PRIO_LOW 40
+#define PRIO_MEDIUM  50
+#define PRIO_HIGH 60
+#endif /* DARWIN */
 #endif /* OS_FREEBSD */
 
 #include <pthread.h>
@@ -37,12 +51,21 @@
     tid; \
 })
 #else
+#ifdef OS_DARWIN
+#define SCGetThreadIdLong(...) ({ \
+    thread_port_t tpid; \
+    tpid = mach_thread_self(); \
+    u_long tid = (u_long)tpid; \
+    tid; \
+})
+#else
 #define SCGetThreadIdLong(...) ({ \
    pid_t tmpthid; \
    tmpthid = syscall(SYS_gettid); \
    u_long tid = (u_long)tmpthid; \
    tid; \
 })
+#endif /* OS DARWIN*/
 #endif /* OS FREEBSD */
 
 /** Mutex Functions */

@@ -777,29 +777,36 @@ int main(int argc, char **argv)
     RunModeInitializeOutputs();
     if (run_mode == MODE_PCAP_DEV) {
         //RunModeIdsPcap3(de_ctx, pcap_dev);
-        RunModeIdsPcap2(de_ctx, pcap_dev);
+        //RunModeIdsPcap2(de_ctx, pcap_dev);
         //RunModeIdsPcap(de_ctx, pcap_dev);
+        RunModeIdsPcapAuto(de_ctx, pcap_dev);
     }
     else if (run_mode == MODE_PCAP_FILE) {
-        RunModeFilePcap(de_ctx, pcap_file);
+        //RunModeFilePcap(de_ctx, pcap_file);
         //RunModeFilePcap2(de_ctx, pcap_file);
+        RunModeFilePcapAuto(de_ctx, pcap_file);
     }
     else if (run_mode == MODE_PFRING) {
         //RunModeIdsPfring3(de_ctx, pfring_dev);
         //RunModeIdsPfring2(de_ctx, pfring_dev);
         //RunModeIdsPfring(de_ctx, pfring_dev);
-        RunModeIdsPfring4(de_ctx, pfring_dev);
+        //RunModeIdsPfring4(de_ctx, pfring_dev);
+        RunModeIdsPfringAuto(de_ctx, pfring_dev);
     }
     else if (run_mode == MODE_NFQ) {
-        RunModeIpsNFQ(de_ctx, nfq_id);
+        //RunModeIpsNFQ(de_ctx, nfq_id);
+        RunModeIpsNFQAuto(de_ctx, nfq_id);
     }
     else if (run_mode == MODE_IPFW) {
-        RunModeIpsIPFW(de_ctx);
+        //RunModeIpsIPFW(de_ctx);
+        RunModeIpsIPFWAuto(de_ctx);
     }
     else {
         SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
         exit(EXIT_FAILURE);
     }
+
+    TmThreadPrioSummary("Suricata main()");
 
     /* Spawn the flow manager thread */
     FlowManagerThreadSpawn();

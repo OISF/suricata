@@ -11,6 +11,8 @@
 #include "tm-threads.h"
 #include "util-debug.h"
 #include "util-time.h"
+#include "util-cpu.h"
+#include "util-byte.h"
 #include "conf.h"
 #include "queue.h"
 
@@ -1843,6 +1845,794 @@ int RunModeIdsPfring4(DetectEngineCtx *de_ctx, char *iface) {
     ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
         "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
     SetupOutputs(tv_outputs);
+    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
+/**
+ * \brief RunModeIdsPcapAuto set up the following thread packet handlers:
+ *        - Receive thread (from iface pcap)
+ *        - Decode thread
+ *        - Stream thread
+ *        - Detect: If we have only 1 cpu, it will setup one Detect thread
+ *                  If we have more than one, it will setup num_cpus - 1
+ *                  starting from the second cpu available.
+ *        - Respond/Reject thread
+ *        - Outputs thread
+ *        By default the threads will use the first cpu available
+ *        except the Detection threads if we have more than one cpu
+ *
+ * \param de_ctx pointer to the Detection Engine
+ * \param iface pointer to the name of the interface from which we will
+ *              fetch the packets
+ * \retval 0 if all goes well. (If any problem is detected the engine will
+ *           exit())
+ */
+int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
+    SCEnter();
+    /* tname = Detect + cpuid, this is 11bytes length as max */
+    char tname[12];
+    uint16_t cpu = 0;
+
+    /* Available cpus */
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+
+    TimeModeSetLive();
+    /* create the threads */
+    ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
+    if (tv_receivepcap == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmModule *tm_module = TmModuleGetByName("ReceivePcap");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
+
+    TmThreadSetCPUAffinity(tv_receivepcap, 0);
+
+    if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
+    if (tv_decode1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("DecodePcap");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodePcap failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_decode1, 0);
+
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
+    if (tv_stream1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_stream1, 0);
+
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (cpu = 0; cpu < ncpus; cpu++) {
+        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        if (tname == NULL)
+            break;
+
+        char *thread_name = strdup(tname);
+        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
+        if (tv_detect_ncpu == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
+
+        TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
+        /* If we have more than one core/cpu, the first Detect thread
+         * (at cpu 0) will have less priority (higher 'nice' value)
+         * In this case we will set the thread priority to +10 (default is 0)
+         */
+        if (cpu == 0 && ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        }
+
+        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    ThreadVars *tv_rreject = TmThreadCreatePacketHandler("RespondReject","verdict-queue","simple","alert-queue","simple","1slot");
+    if (tv_rreject == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_rreject, 0);
+
+    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
+        "alert-queue", "simple", "packetpool", "packetpool", "varslot");
+    SetupOutputs(tv_outputs);
+
+    TmThreadSetCPUAffinity(tv_outputs, 0);
+
+    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
+/**
+ * \brief RunModeFilePcapAuto set up the following thread packet handlers:
+ *        - Receive thread (from pcap file)
+ *        - Decode thread
+ *        - Stream thread
+ *        - Detect: If we have only 1 cpu, it will setup one Detect thread
+ *                  If we have more than one, it will setup num_cpus - 1
+ *                  starting from the second cpu available.
+ *        - Outputs thread
+ *        By default the threads will use the first cpu available
+ *        except the Detection threads if we have more than one cpu
+ *
+ * \param de_ctx pointer to the Detection Engine
+ * \param file pointer to the name of the file from which we will fetch
+ *             the packets
+ * \retval 0 if all goes well. (If any problem is detected the engine will
+ *           exit())
+ */
+int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
+    SCEnter();
+    char tname[12];
+    uint16_t cpu = 0;
+
+    /* Available cpus */
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+
+    SCLogDebug("file %s", file);
+    TimeModeSetOffline();
+
+    /* create the threads */
+    ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcapFile","packetpool","packetpool","pickup-queue","simple","1slot");
+    if (tv_receivepcap == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmModule *tm_module = TmModuleGetByName("ReceivePcapFile");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_receivepcap,tm_module,file);
+
+    TmThreadSetCPUAffinity(tv_receivepcap, 0);
+
+    if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
+    if (tv_decode1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("DecodePcapFile");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodePcap failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
+    TmThreadSetCPUAffinity(tv_decode1, 0);
+
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
+    if (tv_stream1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_stream1, 0);
+
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (cpu = 0; cpu < ncpus; cpu++) {
+        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        if (tname == NULL)
+            break;
+
+        char *thread_name = strdup(tname);
+        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","alert-queue1","simple","1slot");
+        if (tv_detect_ncpu == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
+
+        TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
+        /* If we have more than one core/cpu, the first Detect thread
+         * (at cpu 0) will have less priority (higher 'nice' value)
+         * In this case we will set the thread priority to +10 (default is 0)
+         */
+        if (cpu == 0 && ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        }
+
+        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
+        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
+    SetupOutputs(tv_outputs);
+
+    TmThreadSetCPUAffinity(tv_outputs, 0);
+
+    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
+/**
+ * \brief RunModeIpsIPFWAuto set up the following thread packet handlers:
+ *        - Receive thread (from IPFW)
+ *        - Decode thread
+ *        - Stream thread
+ *        - Detect: If we have only 1 cpu, it will setup one Detect thread
+ *                  If we have more than one, it will setup num_cpus - 1
+ *                  starting from the second cpu available.
+ *        - Veredict thread (IPFW)
+ *        - Respond/Reject thread
+ *        - Outputs thread
+ *        By default the threads will use the first cpu available
+ *        except the Detection threads if we have more than one cpu
+ *
+ * \param de_ctx pointer to the Detection Engine
+ * \retval 0 if all goes well. (If any problem is detected the engine will
+ *           exit())
+ */
+int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
+    SCEnter();
+    char tname[12];
+    uint16_t cpu = 0;
+
+    /* Available cpus */
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+
+    TimeModeSetLive();
+
+    /* create the threads */
+    ThreadVars *tv_receiveipfw = TmThreadCreatePacketHandler("ReceiveIPFW","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
+
+    if (tv_receiveipfw == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmModule *tm_module = TmModuleGetByName("ReceiveIPFW");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceiveIPFW\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_receiveipfw,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_receiveipfw, 0);
+
+    if (TmThreadSpawn(tv_receiveipfw) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
+    if (tv_decode1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("DecodeIPFW");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodeIPFW failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_decode1, 0);
+
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
+    if (tv_stream1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_stream1, 0);
+
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (cpu = 0; cpu < ncpus; cpu++) {
+        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        if (tname == NULL)
+            break;
+
+        char *thread_name = strdup(tname);
+        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
+        if (tv_detect_ncpu == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
+
+        TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
+        /* If we have more than one core/cpu, the first Detect thread
+         * (at cpu 0) will have less priority (higher 'nice' value)
+         * In this case we will set the thread priority to +10 (default is 0)
+         */
+        if (cpu == 0 && ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        }
+
+        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    ThreadVars *tv_verdict = TmThreadCreatePacketHandler("Verdict","verdict-queue","simple","respond-queue","simple","1slot");
+    if (tv_verdict == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("VerdictIPFW");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName VerdictIPFW failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_verdict,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_verdict, 0);
+
+    if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_rreject = TmThreadCreatePacketHandler("RespondReject","respond-queue","simple","alert-queue1","simple","1slot");
+    if (tv_rreject == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_rreject, 0);
+
+    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
+        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
+
+    TmThreadSetCPUAffinity(tv_outputs, 0);
+    SetupOutputs(tv_outputs);
+    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
+/**
+ * \brief RunModeIpsNFQAuto set up the following thread packet handlers:
+ *        - Receive thread (from NFQ)
+ *        - Decode thread
+ *        - Stream thread
+ *        - Detect: If we have only 1 cpu, it will setup one Detect thread
+ *                  If we have more than one, it will setup num_cpus - 1
+ *                  starting from the second cpu available.
+ *        - Veredict thread (NFQ)
+ *        - Respond/Reject thread
+ *        - Outputs thread
+ *        By default the threads will use the first cpu available
+ *        except the Detection threads if we have more than one cpu
+ *
+ * \param de_ctx pointer to the Detection Engine
+ * \param nfqid pointer to the netfilter queue id
+ * \retval 0 if all goes well. (If any problem is detected the engine will
+ *           exit())
+ */
+int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
+    SCEnter();
+    char tname[12];
+    uint16_t cpu = 0;
+
+    /* Available cpus */
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+
+    TimeModeSetLive();
+
+    /* create the threads */
+    ThreadVars *tv_receivenfq = TmThreadCreatePacketHandler("ReceiveNFQ","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
+    if (tv_receivenfq == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmModule *tm_module = TmModuleGetByName("ReceiveNFQ");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceiveNFQ\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_receivenfq,tm_module,nfq_id);
+    TmThreadSetCPUAffinity(tv_receivenfq, 0);
+
+    if (TmThreadSpawn(tv_receivenfq) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
+    if (tv_decode1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("DecodeNFQ");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_decode1, 0);
+
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
+    if (tv_stream1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_stream1, 0);
+
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (cpu = 0; cpu < ncpus; cpu++) {
+        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        if (tname == NULL)
+            break;
+
+        char *thread_name = strdup(tname);
+        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
+        if (tv_detect_ncpu == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
+
+        TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
+        /* If we have more than one core/cpu, the first Detect thread
+         * (at cpu 0) will have less priority (higher 'nice' value)
+         * In this case we will set the thread priority to +10 (default is 0)
+         */
+        if (cpu == 0 && ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        }
+
+        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    ThreadVars *tv_verdict = TmThreadCreatePacketHandler("Verdict","verdict-queue","simple","respond-queue","simple","1slot");
+    if (tv_verdict == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("VerdictNFQ");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_verdict,tm_module,nfq_id);
+
+    TmThreadSetCPUAffinity(tv_verdict, 0);
+
+    if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_rreject = TmThreadCreatePacketHandler("RespondReject","respond-queue","simple","alert-queue1","simple","1slot");
+    if (tv_rreject == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_rreject, 0);
+
+    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
+        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
+    SetupOutputs(tv_outputs);
+    TmThreadSetCPUAffinity(tv_outputs, 0);
+    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
+/**
+ * \brief RunModeIdsPfringAuto set up the following thread packet handlers:
+ *        - Receive thread (from pfring)
+ *        - Decode thread
+ *        - Stream thread
+ *        - Detect: If we have only 1 cpu, it will setup one Detect thread
+ *                  If we have more than one, it will setup num_cpus - 1
+ *                  starting from the second cpu available.
+ *        - Respond/Reject thread
+ *        - Outputs thread
+ *        By default the threads will use the first cpu available
+ *        except the Detection threads if we have more than one cpu
+ *
+ * \param de_ctx pointer to the Detection Engine
+ * \param iface pointer to the name of the network interface to listen packets
+ * \retval 0 if all goes well. (If any problem is detected the engine will
+ *           exit())
+ */
+int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
+    SCEnter();
+    char tname[12];
+    uint16_t cpu = 0;
+
+    /* Available cpus */
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+
+    TimeModeSetLive();
+
+    /* create the threads */
+    ThreadVars *tv_receivepfring = TmThreadCreatePacketHandler("ReceivePfring","packetpool","packetpool","pickup-queue1","simple","1slot");
+    if (tv_receivepfring == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmModule *tm_module = TmModuleGetByName("ReceivePfring");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceivePfring\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_receivepfring,tm_module,(void *)iface);
+
+    TmThreadSetCPUAffinity(tv_receivepfring, 0);
+
+    if (TmThreadSpawn(tv_receivepfring) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode1","pickup-queue1","simple","decode-queue1","simple","1slot");
+    if (tv_decode1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("DecodePfring");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodePfring failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_decode1, 0);
+
+    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
+    if (tv_stream1 == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Stream1\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_stream1, 0);
+
+    if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (cpu = 0; cpu < ncpus; cpu++) {
+        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        if (tname == NULL)
+            break;
+
+        char *thread_name = strdup(tname);
+        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
+        if (tv_detect_ncpu == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
+
+        TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
+        /* If we have more than one core/cpu, the first Detect thread
+         * (at cpu 0) will have less priority (higher 'nice' value)
+         * In this case we will set the thread priority to +10 (default is 0)
+         */
+        if (cpu == 0 && ncpus > 1) {
+            TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+        }
+
+        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    ThreadVars *tv_rreject = TmThreadCreatePacketHandler("RespondReject","verdict-queue","simple","alert-queue1","simple","1slot");
+    if (tv_rreject == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+    tm_module = TmModuleGetByName("RespondReject");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        exit(EXIT_FAILURE);
+    }
+    Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
+
+    TmThreadSetCPUAffinity(tv_rreject, 0);
+
+    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
+        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
+    SetupOutputs(tv_outputs);
+
+    TmThreadSetCPUAffinity(tv_outputs, 0);
+
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
