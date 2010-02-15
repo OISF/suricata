@@ -404,6 +404,12 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
             PacketAlertHandle(de_ctx,s,p);
             /* set verdict on packet */
             p->action |= s->action;
+            if (p->flow != NULL) {
+                if (s->action & ACTION_DROP) p->flow->flags |= FLOW_ACTION_DROP;
+                if (s->action & ACTION_REJECT) p->flow->flags |= FLOW_ACTION_DROP;
+                if (s->action & ACTION_REJECT_DST) p->flow->flags |= FLOW_ACTION_DROP;
+                if (s->action & ACTION_REJECT_BOTH) p->flow->flags |= FLOW_ACTION_DROP;
+            }
         }
     }
 }

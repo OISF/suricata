@@ -554,8 +554,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
         /* save in the flow that we scanned this direction... locking is
          * done in the FlowSetIPOnlyFlag function. */
-        if (p->flow != NULL)
+        if (p->flow != NULL) {
             FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
+        }
+    } else if (((p->flowflags & FLOW_PKT_TOSERVER && (p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
+               (p->flowflags & FLOW_PKT_TOCLIENT && (p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) &&
+                p->flow != NULL) {
+        /* Get the result of the first IPOnlyMatch() */
+        if (p->flow->flags & FLOW_ACTION_DROP) p->flow->flags |= ACTION_DROP;
     }
 
     /* we assume we have an uri when we start inspection */
