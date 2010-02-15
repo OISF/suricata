@@ -960,7 +960,8 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
         SCLogInfo("Error setting thread explicit Scheduling");
     } else {
 
-        if (tv->thread_setup_flags & THREAD_SET_PRIORITY) {
+        /* we need to be euid == 0 (root privs) to change RT prios */
+        if (tv->thread_setup_flags & THREAD_SET_PRIORITY && geteuid() == 0) {
             /* Then we need to change the policy. SCHED_OTHER doesn't allow
              * to change it. So we have to choose SCHED_RR or SCHED_FIFO
              */
