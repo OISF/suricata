@@ -605,7 +605,7 @@ static int SetCPUAffinity(uint16_t cpuid) {
         printf("Warning: sched_setaffinity failed (%" PRId32 "): %s\n", r, strerror(errno));
         return -1;
     }
-    SCLogInfo("CPU Affinity for thread %lu set to CPU %" PRId32, SCGetThreadIdLong(), cpu);
+    SCLogDebug("CPU Affinity for thread %lu set to CPU %" PRId32, SCGetThreadIdLong(), cpu);
 
     return 0;
 }
@@ -636,12 +636,12 @@ void TmThreadPrioSummary(char *tname)
 
     pthread_getschedparam (pthread_self (), &my_policy, &my_param);
 
-    SCLogInfo("at %s, threading policy: %s, priority %"PRId32"\n", tname,
+    SCLogDebug("at %s, threading policy: %s, priority %"PRId32"", tname,
             (my_policy == SCHED_FIFO ? "Fifo" : (my_policy == SCHED_RR ? "RR"
             : (my_policy == SCHED_OTHER ? "Other" : "unknown"))),
             my_param.sched_priority);
 
-    SCLogInfo("at %s, Min prio: %"PRId32" Max prio: %"PRId32"", tname, sched_get_priority_min(my_policy), sched_get_priority_max(my_policy));
+    SCLogDebug("at %s, Min prio: %"PRId32" Max prio: %"PRId32"", tname, sched_get_priority_min(my_policy), sched_get_priority_max(my_policy));
 }
 
 
@@ -1056,7 +1056,7 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
             if (ret != 0) {
                 SCLogInfo("Error setting thread policy to SCHED_RR");
             } else {
-                SCLogInfo("Thread policy SCHED_RR set for thread %s. Old prio: %"PRId32, tv->name, param.sched_priority);
+                SCLogDebug("Thread policy SCHED_RR set for thread %s. Old prio: %"PRId32, tv->name, param.sched_priority);
 
                 param.sched_priority = tv->thread_priority;
                 ret = pthread_attr_setschedparam(&attr, &param);
@@ -1065,7 +1065,7 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
                     /* Get the old default priority */
                     pthread_attr_getschedparam(&attr, &param);
                 } else {
-                    SCLogInfo("Thread priority %"PRId32" set for thread %s", tv->thread_priority, tv->name);
+                    SCLogDebug("Thread priority %"PRId32" set for thread %s", tv->thread_priority, tv->name);
                 }
             }
         }

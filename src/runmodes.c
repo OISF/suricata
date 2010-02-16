@@ -1947,12 +1947,12 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     }
 
     for (cpu = 0; cpu < ncpus; cpu++) {
-        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        snprintf(tname, sizeof(tname),"Detect%"PRIu16, cpu+1);
         if (tname == NULL)
             break;
 
         char *thread_name = strdup(tname);
-        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
         if (tv_detect_ncpu == NULL) {
@@ -2114,12 +2114,12 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
     }
 
     for (cpu = 0; cpu < ncpus; cpu++) {
-        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        snprintf(tname, sizeof(tname),"Detect%"PRIu16, cpu+1);
         if (tname == NULL)
             break;
 
         char *thread_name = strdup(tname);
-        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","alert-queue1","simple","1slot");
         if (tv_detect_ncpu == NULL) {
@@ -2260,12 +2260,12 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
     }
 
     for (cpu = 0; cpu < ncpus; cpu++) {
-        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        snprintf(tname, sizeof(tname),"Detect%"PRIu16, cpu+1);
         if (tname == NULL)
             break;
 
         char *thread_name = strdup(tname);
-        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
         if (tv_detect_ncpu == NULL) {
@@ -2447,12 +2447,12 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     }
 
     for (cpu = 0; cpu < ncpus; cpu++) {
-        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        snprintf(tname, sizeof(tname),"Detect%"PRIu16, cpu+1);
         if (tname == NULL)
             break;
 
         char *thread_name = strdup(tname);
-        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
         if (tv_detect_ncpu == NULL) {
@@ -2633,12 +2633,12 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
     }
 
     for (cpu = 0; cpu < ncpus; cpu++) {
-        snprintf(tname, 11,"Detect%"PRIu16, cpu);
+        snprintf(tname, sizeof(tname),"Detect%"PRIu16, cpu+1);
         if (tname == NULL)
             break;
 
         char *thread_name = strdup(tname);
-        SCLogInfo("Assigning %s affinity to cpu %u", thread_name, cpu);
+        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
         if (tv_detect_ncpu == NULL) {
