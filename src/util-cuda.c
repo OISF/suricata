@@ -3966,7 +3966,7 @@ void SCCudaPrintBasicDeviceInfo(SCCudaDevices *devices)
     }
 
     for (i = 0; i < devices->count; i++) {
-        SCLogInfo("GPU Device %d: %s, %d Multiprocessors, %dMhz, CUDA Compute "
+        SCLogInfo("GPU Device %d: %s, %d Multiprocessors, %dMHz, CUDA Compute "
                   "Capability %d.%d", i + 1,
                   devices->devices[i]->name,
                   devices->devices[i]->attr_multiprocessor_count,
