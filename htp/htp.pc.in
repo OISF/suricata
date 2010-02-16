@@ -1,0 +1,11 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: HTP
+Description: HTTP parser
+Version: 0.3.X
+Libs: -L${libdir} -lhtp
+Cflags: -I${includedir}/htp -I${libdir}/htp/include
+

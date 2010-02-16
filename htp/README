@@ -1,0 +1,103 @@
+
+LibHTP (http://www.libhtp.org)
+Copyright 2009,2010 Ivan Ristic <ivanr@webkreator.com>
+======================================================
+
+LibHTP is a security-aware parser for the HTTP protocol and the related bits
+and pieces. The goals of the project, in the order of importance, are as
+follows:
+
+ 1. Completeness of coverage; LibHTP must be able to parse virtually all
+    traffic that is found in practice.
+
+ 2. Permissive parsing; LibHTP must never fail to parse a stream that would
+    be parsed by some other web server.
+
+ 3. Awareness of evasion techniques; LibHTP must be able to detect and
+    effectively deal with various evasion techniques, producing, where
+    practical, identical or practically identical results as the web
+    server processing the same traffic stream.
+
+ 4. Performance; The performance must be adequate for the desired tasks.
+    Completeness and security are often detremental to performance. Our
+    idea of handling the conflicting requirements is to put the library
+    user in control, allowing him to choose the most desired library
+    characteristic.
+
+ | IMPORTANT   LIBHTP IS NOT YET CONSIDERED STABLE. USE AT YOUR OWN RISK. DO NOT
+ |             USE IN PRODUCTION. WORK IS CURRENTLY UNDER WAY TO ENSURE THAT
+ |             LIBHTP IS SECURE AND THAT IT PERFORMS WELL.
+
+ | STATUS      LIBHTP IS VERY YOUNG AT THIS POINT. IT WILL BE SOME TIME BEFORE
+ |             IT CAN BE CONSIDER COMPLETE. AT THE MOMENT, THE FOCUS OF DEVELOPMENT
+ |             IS ON ACHIEVING THE FIRST TWO GOALS.
+
+LibHTP is an open source product, released under terms of the General Public Licence
+version 2 (GPLv2). Please refer to the file LICENSE, which contains the complete text
+of the license.
+
+In addition, there is a special exception that allows LibHTP to be freely
+used with any OSI-approved open source licence. Please refer to the file
+LIBHTP_LICENSING_EXCEPTION for the full text of the exception.
+
+
+INSTALLATION
+------------
+
+The installation process should be as simple as:
+
+  $ ./configure
+  $ make
+  $ sudo make install
+
+ | NOTE    If you already have an early 0.2.x version installed, you must
+ |         uninstall it before proceeding. Initially /usr was used for the
+ |         installation, but /usr/local is used now. If you forgot to uninstall,
+ |         clean all traces of LibHTP from /usr/lib/libhtp* and /usr/include/htp/*.
+
+If you want to use a repository version of LibHTP, do the following:
+
+ 1. Use svn export to retrieve the sources of the version you wish to use
+
+ 2. Run ./update_version, which will update htp.c with the latest Subversion
+    revision used
+
+ 3. You may wish to also update htp.pc.in and configure.ac with the correct version
+
+ 4. Run autoconf -i --force, which will prepare the library for installation
+
+ 5. Run doxygen to generate the API documentation
+
+ 6. Continue to install as described above
+
+
+DOCUMENTATION
+-------------
+
+The best documentation at this time is the code itself and the Doxygen output (which
+should be all right). There's also a quick start guide in the doc/ folder, which
+should give you enough information to get going.
+
+
+NO WARRANTY
+-----------
+
+  BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN
+OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED
+OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE ENTIRE RISK AS
+TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE
+PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING,
+REPAIR OR CORRECTION.
+
+  IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES,
+INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING
+OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED
+TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
+YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
+PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.

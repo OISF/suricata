@@ -412,6 +412,9 @@ AC_INIT(configure.in)
 
     if test "x$with_libnet_includes" != "xno"; then
     CPPFLAGS="${CPPFLAGS} -I${with_libnet_includes}"
+    libnet_dir="${with_libnet_includes}"
+    else
+    libnet_dir="/usr/include /usr/local/include /usr/local/include/libnet11 /opt/local/include"
     fi
 
     if test "x$with_libnet_libraries" != "xno"; then
@@ -420,7 +423,6 @@ AC_INIT(configure.in)
 
     LIBNET_INC_DIR=""
     AC_MSG_CHECKING("for libnet.h version 1.1.x")
-    libnet_dir="/usr/include /usr/local/include /usr/local/include/libnet11 /opt/local/include"
     for i in $libnet_dir; do
     if test -r "$i/libnet.h"; then
     LIBNET_INC_DIR="$i"
@@ -429,7 +431,7 @@ AC_INIT(configure.in)
 
     if test "$LIBNET_INC_DIR" != ""; then
     if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v 1.1 >/dev/null"; then
-    FAIL_MESSAGE("libnet 1.1.x (libnet.h)", $tmp)
+    FAIL_MESSAGE("libnet 1.1.x (libnet.h)", $libnet_dir)
     fi
 
     #CentOS, Fedora, Ubuntu-LTS, Ubuntu all set defines to the same values. libnet-config seems
@@ -439,7 +441,7 @@ AC_INIT(configure.in)
     if test "$LLIBNET" != "no"; then
     CFLAGS="${CFLAGS} -D_BSD_SOURCE -D__BSD_SOURCE -D__FAVOR_BSD -DHAVE_NET_ETHERNET_H"
     fi
-    AC_MSG_RESULT($i)
+    #AC_MSG_RESULT($i)
     else
     AC_MSG_RESULT(no)
     AC_MSG_ERROR("libnet 1.1.x could not be found.  please download and install the library from http://sourceforge.net/projects/libnet-dev/")
@@ -554,6 +556,11 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     fi
 
 #libhtp
+    AC_ARG_ENABLE(nonbundled-htp,
+            [  --enable-nonbundled-htp Enable the use of an already installed version of htp],
+            [enable_non_bundled_htp=yes],[enable_non_bundled_htp=no]
+            )
+    if test "$enable_non_bundled_htp" = "yes"; then
     AC_ARG_WITH(libhtp_includes,
             [  --with-libhtp-includes=DIR  libhtp include directory],
             [with_libhtp_includes="$withval"],[with_libhtp_includes=no])
@@ -580,7 +587,21 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     exit 1
     fi
 
-    #LDFLAGS="${LDFLAGS}  -lhtp"
+    #we did not specify non-bundled-htp so use the built-in.
+    else
+    if test -d "htp"; then
+    echo "Going to try and build the bundled htp in htp/"
+    else
+    echo
+    echo "   ERROR! htp/ dir not found in source"
+    echo
+    exit 1
+    fi
+    fi
+
+   #even if we are using an installed htp lib we still need to gen Makefiles inside of htp
+   AC_CONFIG_SUBDIRS([htp])
+   AM_CONDITIONAL([BUILD_LIBHTP], [test "$enable_non_bundled_htp" = "no"])
 
 # enable CUDA output
     AC_ARG_ENABLE(cuda,
@@ -624,5 +645,5 @@ AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
 
-AC_OUTPUT(Makefile src/Makefile)
-
+AC_CONFIG_FILES([htp/Makefile htp/htp/Makefile Makefile src/Makefile])
+AC_OUTPUT

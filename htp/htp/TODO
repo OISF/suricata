@@ -1,0 +1,88 @@
+
+TODO
+====
+
+- A failure to parse a part of a transaction does not necessarily mean we have to
+  give up (on the transaction and on the connection).
+
+- Inspect storage size choices for all structures
+
+- Table key storage and element retrieval is inefficient.
+
+- We're currently using a fixed-size line buffer. Although one buffer isn't very big,
+  they add up if we want to supports tens of thousands of concurrent connections. For
+  example 20K connections x 20K buffer = 400M. We can perhaps start with a 2K buffer
+ (configurable) and grow as needed.
+
+- Implement htp_get_version().
+
+- Find all places where we use external information to determine input length. Ensure
+  the storage types are big enough to hold the biggest numbers we want to handle, and
+  ensure that we are able to detect wrapping and such.
+
+
+MISC NOTES
+==========
+
+- Memory allocation strategies. We want to support two strategies:
+
+    #1 Supply a pair of functions (alloc and free) along with a void * pointer.
+
+    #2 Use memory pools for all allocations. Desired functions:
+
+       - create pool (w/hierarchy), destroy pool, clear pool
+       - alloc (calloc?), free
+       - register callback
+
+    The plan is to have a simple memory pool implementation that does not pool memory
+    but only tracks what is allocated so that it can free it all in one go. The library
+    users can provide an external implementation to use if they so wish.
+
+- Consider enums where appropriate.
+
+- The plan for SSL handling is as follows:
+
+  - For fully encrypted streams, upstream is free to decrypt SSL and feed the
+    parser just the data.
+
+  - On-demand SSL is not used with HTTP in practice but, in principle, the idea
+    is to have the parser return the HTP_TLS_UPGRADE code. Upon detecting the
+    code, upstream would handle the upgrade (either by passively decrypting the
+    traffic stream or handling SSL/TLS directly) and provide plain text data
+    to the HTTP parser on every subsequent invocation.
+
+- Document the source for each request method
+
+- At some point test the performance of the macros that fetch data and
+  determine if it makes more sense to implement the same functionality
+  as functions
+
+- There will be two types of hook: connection and transaction hooks. If we want to allow
+  a hook to disconnect itself (as we should) then we need to make sure the disconnect is
+  applied to the correct scope. For example, a transaction hook that requires disconnection
+  should not be invoked for the same transaction, but should be invoked for the subsequent
+  transaction. This tells me that we need to keep a prototype of transaction hooks and to
+  make a copy of it whenever a new transaction begins.
+
+- Does the API need to support closing one stream at a time? For example, when
+  a client sends his request(s), closes his side of a connection, then waits for
+  the server to respond.
+
+- Detect if the request headers were submitted across several packets (which would
+  indicate manual access).
+
+- Do we want to have separate limits for headers? Or should headers also use the line limits?
+
+- Perhaps we also want to limit the size of the request line and headers combined, like the
+  IIS does?
+
+- Chunk length evasion
+
+- Chunk length limit
+
+- Add callbacks to the list and table structures to automatically delete the elements
+  they contain when their respective destroy methods are invoked
+
+- Perhaps best-fit maps should also have the replacement character?
+
+- Test double-decoding with IIS4 or IIS5

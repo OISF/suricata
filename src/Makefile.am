@@ -187,8 +187,14 @@ win32-syslog.h
 # set the include path found by configure
 INCLUDES= $(all_includes)
 
+
 # the library search path.
-suricata_LDFLAGS = $(all_libraries) 
-#suricata_LDADD = -lnetfilter_queue -lpthread -lpcre 
+suricata_LDFLAGS = $(all_libraries)
+
+if BUILD_LIBHTP
+suricata_LDADD = $(top_builddir)/htp/htp/libhtp.la
+INCLUDES += -I$(top_builddir)/htp
+endif
+
 #suricata_CFLAGS = -Wall -fno-strict-aliasing 
 

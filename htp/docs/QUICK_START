@@ -1,0 +1,102 @@
+
+QUICK START
+-----------
+
+LibHTP is envisioned to be many things, but the only scenario in which it has been tested
+so far is that when you need to parse a duplex HTTP stream which you have obtained by
+passively intercepting a communication channel. The assumption is that you have raw TCP data
+(after SSL, if SSL is used).
+
+Every parsing operation needs to follow these steps:
+
+  1. Configure-time:
+
+     1.1. Create one or more parser configuration structures.
+
+     1.2. Tweak the configuration of each parser to match the behaviour of
+          the server you're intercepting the communication of (htp_config_set_* functions).
+
+     1.3. Register the parser callbacks you'll need. You will need to use parser callbacks
+          if you want to monitor parsing events as they occur, and gain access to partial
+          transaction information. If you are processing data in batch (off-line) you may
+          simply parse entire streams at a time and only analyze complete transaction data
+          after the fact.
+
+          If you need to gain access to request and response bodies, your only option at
+          this time is to use the callbacks, because the parser will not preserve that
+          information.
+
+          For callback registration, look up the htp_config_register_* functions.
+
+          If your program operates in real-time then it may be desirable to dispose of
+          the used resources after each transaction is parsed. To do that, you are allowed
+          to call htp_tx_destroy() at the end of the RESPONSE callback.
+
+  2. Run-time:
+
+     2.1. Create a parser instance for every TCP stream you want to process.
+
+     2.2. Feed the parser inbound and outbound data.
+
+          The parser will typically always consume complete data chunks and return
+          STREAM_STATE_DATA, which means that you can continue to feed it more data
+          when you have it. If you have a queue of data chunks, always send the
+          parsed all the request chunks you have. That will ensure that the parser
+          never encounters a response for which it had not seen a request.
+
+          If you get STREAM_STATE_ERROR, the parser has encountered a fatal error and
+          is unable to continue to parse the stream. An error should never happen for
+          a valid HTTP stream. If you encounter such an error please send me the pcap
+          file for analysis.
+
+          There is one situation when the parser will not be able to consume a complete
+          request data chunk, in which case it will return STREAM_STATE_DATA_OTHER. You
+          will then need to do the following:
+
+          2.2.1. Remember how many bytes of data were consumed (using
+                 htp_connp_req_data_consumed()).
+
+          2.2.2. Suspend request parsing until you get some response data.
+
+          2.2.3. Feed some response data to the parser.
+
+                 Note that it is now possible to receive STREAM_STATE_DATA_OTHER
+                 from the response parser. If that happens, you will need to
+                 remember how many bytes were consumed using
+                 htp_connp_res_data_consumed().
+
+          2.2.4. After each chunk of response data fed to the parser, attempt
+                 to resume request stream parsing.
+
+          2.2.5. If you again receive STREAM_STATE_DATA_OTHER go back to 2.2.3.
+
+          2.2.6. At this point you should feed the parser all the request data
+                 you have accumulated before giving it any response data. This is
+                 necessary to prevent the case of the parser seeing more responses
+                 than requests (which would inevitably result with an error).
+
+          2.2.7. Send unprocessed response data from 2.2.3 (if any).
+
+          2.2.8. Continue sending request/response data as normal.
+
+          The above situation should occur very rarely.
+
+     2.3. Analyze transaction data in callbacks (if any).
+
+     2.4. Analyze transaction data after an entire TCP stream has been processed.
+
+     2.4. Destroy parser instance to free up the allocated resources.
+
+
+USER DATA
+---------
+
+If you're using the callbacks and you need to keep state between invocations, you have two
+options:
+
+  1. Associate one opaque structure with a parser instance, using htp_connp_set_user_data().
+
+  2. Associate one opaque structure with a transaction instance, using htp_tx_set_user_data().
+     The best place to do this is in a TRANSACTION_START callback. Don't forget to free up
+     any resources you allocate on per-transaction basis, before you delete each transaction.
+
