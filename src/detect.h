@@ -355,6 +355,12 @@ typedef struct DetectionEngineThreadCtx_ {
     DetectEngineIPOnlyThreadCtx io_ctx;
 
     DetectEngineCtx *de_ctx;
+
+#ifdef __SC_CUDA_SUPPORT__
+    /* each detection thread would have it's own queue where the cuda dispatcher
+     * thread can dump the packets once it has processed them */
+    Tmq *cuda_mpm_rc_disp_outq;
+#endif
 } DetectEngineThreadCtx;
 
 /** \brief a single match condition for a signature */

@@ -22,6 +22,7 @@
 #include "detect-engine-threshold.h"
 
 //#include "util-mpm.h"
+#include "util-error.h"
 #include "util-hash.h"
 #include "util-debug.h"
 
@@ -135,7 +136,50 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     SCPerfAddToClubbedTMTable(tv->name, &tv->sc_perf_pctx);
 
     *data = (void *)det_ctx;
-    //printf("DetectEngineThreadCtxInit: data %p det_ctx %p\n", *data, det_ctx);
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() != MPM_B2G_CUDA)
+        return TM_ECODE_OK;
+
+    Tmq *tmq;
+    /* we would prepend this name to the the tv name, to obtain the final unique
+     * detection thread queue name */
+    char *cuda_outq_name = "cuda_mpm_rc_disp_outq";
+    uint8_t disp_outq_name_len = (strlen(tv->name) + strlen(cuda_outq_name) + 1);
+
+    char *disp_outq_name = malloc(disp_outq_name_len * sizeof(char));
+    if (disp_outq_name == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(disp_outq_name, tv->name);
+    strcpy(disp_outq_name + strlen(tv->name), cuda_outq_name);
+    disp_outq_name[disp_outq_name_len] = '\0';
+
+    tmq = TmqGetQueueByName(disp_outq_name);
+    if (tmq != NULL) {
+        SCLogError(SC_ERR_TMQ_ALREADY_REGISTERED, "A queue by the name \"%s\" "
+                   "is already registered, which shouldn't be the case.  Queue "
+                   "name is duplicated.  Please check if multiple instances of "
+                   "detection module are given different names ",
+                   disp_outq_name);
+        goto error;
+    }
+    tmq = TmqCreateQueue(disp_outq_name);
+    if (tmq == NULL)
+        goto error;
+
+    /* hold the queue instane we create under this detection thread instance */
+    det_ctx->cuda_mpm_rc_disp_outq = tmq;
+    det_ctx->cuda_mpm_rc_disp_outq->reader_cnt++;
+    det_ctx->cuda_mpm_rc_disp_outq->writer_cnt++;
+
+    return TM_ECODE_OK;
+
+ error:
+    return TM_ECODE_FAILED;
+#endif
+
     return TM_ECODE_OK;
 }
 

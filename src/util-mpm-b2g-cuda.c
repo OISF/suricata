@@ -29,6 +29,7 @@
 #include "util-cuda.h"
 #include "tm-threads.h"
 #include "threads.h"
+#include "tmqh-simple.h"
 
 /* macros decides if cuda is enabled for the platform or not */
 #ifdef __SC_CUDA_SUPPORT__
@@ -1746,7 +1747,7 @@ uint32_t B2gCudaScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     int i = 0;
     int host_offsets[UINT16_MAX];
 
-    if (buflen < ctx->search_m)
+    if (buflen < ctx->scan_m)
         return 0;
 
     if (SCCudaMemAlloc(&cuda_buf, buflen * sizeof(char)) == -1) {
@@ -2540,37 +2541,15 @@ TmEcode B2gCudaMpmDispatcher(ThreadVars *tv, Packet *p, void *data,
                                                               p->cuda_pmq,
                                                               p->payload,
                                                               p->payload_len);
-        /* signal the client that the result is ready */
-        SCCondSignal(&p->cuda_search_cond_q);
-        /* wait for the client indication that it has read the results.  If the
-         * client still hasn't sent the indication, signal it again and do so
-         * every 50 microseconds */
-        while (p->cuda_done == 0) {
-            SCCondSignal(&p->cuda_search_cond_q);
-            usleep(50);
-        }
     } else {
         p->cuda_matches = mpm_table[p->cuda_mpm_ctx->mpm_type].Scan(p->cuda_mpm_ctx,
                                                             p->cuda_mtc,
                                                             p->cuda_pmq,
                                                             p->payload,
                                                             p->payload_len);
-        /* signal the client that the result is ready */
-        SCCondSignal(&p->cuda_scan_cond_q);
-        /* wait for the client indication that it has read the results.  If the
-         * client still hasn't sent the indication, signal it again and do so
-         * every 50 microseconds */
-        while (p->cuda_done == 0) {
-            SCCondSignal(&p->cuda_scan_cond_q);
-            usleep(50);
-        }
     }
 
-    p->cuda_done = 0;
-
-    if (p->cuda_free_packet == 1) {
-        free(p);
-    }
+    TmqhOutputSimpleOnQ(p->cuda_outq, p);
 
     return TM_ECODE_OK;
 }

@@ -112,6 +112,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_TM_MODULES_ERROR);
         CASE_CODE (SC_ERR_B2G_CUDA_ERROR);
         CASE_CODE (SC_ERR_INVALID_YAML_CONF_ENTRY);
+        CASE_CODE (SC_ERR_TMQ_ALREADY_REGISTERED);
         default:
             return "UNKNOWN_ERROR";
     }
