@@ -308,7 +308,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
                         //printf("DetectPcre: URI det_ctx->sgh %p, det_ctx->mcu %p\n", det_ctx->sgh, det_ctx->mcu);
                         //PrintRawUriFp(stdout,p->http_uri.raw[det_ctx->pkt_cnt],p->http_uri.raw_size[det_ctx->pkt_cnt]);
                         //printf(" (pkt_cnt %" PRIu32 ", mcu %p)\n", det_ctx->pkt_cnt, det_ctx->mcu);
-
+#if 0
                         /* don't bother scanning if we don't have a pattern matcher ctx
                          * which means we don't have uricontent sigs */
                         if (det_ctx->sgh->mpm_uri_ctx != NULL) {
@@ -337,6 +337,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
                                 }
                             }
                         }
+#endif
                     } else {
                         if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
                             PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
