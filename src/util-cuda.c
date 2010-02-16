@@ -3965,18 +3965,14 @@ void SCCudaPrintBasicDeviceInfo(SCCudaDevices *devices)
         return;
     }
 
-    SCLogInfo("Printing graphics card device details used by the engine");
-
-    for (i = 0; i < devices->count && i <= 1; i++) {
-        SCLogInfo("\nDevice Name: %s\n"
-                  "Device CUDA Compute Capability: %d.%d\n"
-                  "Device Multiprocessor Count: %d\n"
-                  "Device Clock Frequency: %.2f MHz\n",
+    for (i = 0; i < devices->count; i++) {
+        SCLogInfo("GPU Device %d: %s, %d Multiprocessors, %dMhz, CUDA Compute "
+                  "Capability %d.%d", i + 1,
                   devices->devices[i]->name,
-                  devices->devices[i]->major_rev,
-                  devices->devices[i]->minor_rev,
                   devices->devices[i]->attr_multiprocessor_count,
-                  devices->devices[i]->attr_clock_rate/1000.0);
+                  devices->devices[i]->attr_clock_rate/1000,
+                  devices->devices[i]->major_rev,
+                  devices->devices[i]->minor_rev);
     }
 
     return;
