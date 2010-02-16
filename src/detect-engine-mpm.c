@@ -18,9 +18,8 @@
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "util-cuda-handlers.h"
 #include "util-mpm-b2g-cuda.h"
-
-#include "tmqh-simple.h"
 
 #include "util-enum.h"
 #include "util-debug.h"
@@ -82,20 +81,18 @@ uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
     det_ctx->pmq.mode = PMQ_MODE_SCAN;
 
-#ifndef __SC_CUDA_SUPPORT__
     uint32_t ret;
+#ifndef __SC_CUDA_SUPPORT__
     ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Scan(det_ctx->sgh->mpm_ctx,
                                                           &det_ctx->mtc,
                                                           &det_ctx->pmq,
                                                           p->payload,
                                                           p->payload_len);
-    SCReturnInt(ret);
 #else
     /* if the user has enabled cuda support, but is not using the cuda mpm
      * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
      * directly */
     if (det_ctx->sgh->mpm_ctx->mpm_type != MPM_B2G_CUDA) {
-        uint32_t ret;
         ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Scan(det_ctx->sgh->mpm_ctx,
                                                               &det_ctx->mtc,
                                                               &det_ctx->pmq,
@@ -104,20 +101,10 @@ uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(ret);
     }
 
-    p->cuda_search = 0;
-    p->cuda_mpm_ctx = det_ctx->sgh->mpm_ctx;
-    p->cuda_mtc = &det_ctx->mtc;
-    p->cuda_pmq = &det_ctx->pmq;
-    /* this outq is unique to this detection thread instance.  The dispatcher thread
-     * would use this queue to pump the packets back to this detection thread once
-     * it has processed the packet */
-    p->cuda_outq = &trans_q[det_ctx->cuda_mpm_rc_disp_outq->id];
-    B2gCudaPushPacketTo_tv_CMB2_RC(p);
-    /* wait on the detection thread instance */
-    Packet *out_p = TmqhInputSimpleOnQ(&trans_q[det_ctx->cuda_mpm_rc_disp_outq->id]);
-    SCReturnInt(out_p->cuda_matches);
+    SCCudaHlProcessPacketWithDispatcher(p, det_ctx, /* scan */ 0, &ret);
 #endif
 
+    SCReturnInt(ret);
 }
 
 /** \brief Uri Pattern match, scan part -- searches for only 'scan' patterns,
@@ -138,7 +125,6 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan
         (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq,
          uri, uri_len);
-    SCReturnInt(ret);
 #else
     /* if the user has enabled cuda support, but is not using the cuda mpm
      * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
@@ -150,28 +136,10 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(ret);
     }
 
-    Packet *p = malloc(sizeof(Packet));
-    if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
-    memset(p, 0, sizeof(Packet));
-
-    p->cuda_mpm_ctx = det_ctx->sgh->mpm_uri_ctx;
-    p->cuda_mtc = &det_ctx->mtcu;
-    p->cuda_pmq = &det_ctx->pmq;
-    p->payload = uri;
-    p->payload_len = uri_len;
-    /* this outq is unique to this detection thread instance.  The dispatcher thread
-     * would use this queue to pump the packets back to this detection thread once
-     * it has processed the packet */
-    p->cuda_outq = &trans_q[det_ctx->cuda_mpm_rc_disp_outq->id];
-    B2gCudaPushPacketTo_tv_CMB2_RC(p);
-    Packet *out_p = TmqhInputSimpleOnQ(&trans_q[det_ctx->cuda_mpm_rc_disp_outq->id]);
-    ret = out_p->cuda_matches;
-    free(p);
-    SCReturnInt(ret);
+    SCCudaHlProcessUriWithDispatcher(uri, uri_len, det_ctx, /* scan */ 0, &ret);
 #endif
+
+    SCReturnInt(ret);
 }
 
 /** \brief Pattern match, search part -- searches for all other patterns
@@ -186,20 +154,18 @@ uint32_t PacketPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
     det_ctx->pmq.mode = PMQ_MODE_SEARCH;
 
-#ifndef __SC_CUDA_SUPPORT__
     uint32_t ret;
+#ifndef __SC_CUDA_SUPPORT__
     ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
                                                             &det_ctx->mtc,
                                                             &det_ctx->pmq,
                                                             p->payload,
                                                             p->payload_len);
-    SCReturnInt(ret);
 #else
     /* if the user has enabled cuda support, but is not using the cuda mpm
      * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
      * directly */
     if (det_ctx->sgh->mpm_ctx->mpm_type != MPM_B2G_CUDA) {
-        uint32_t ret;
         ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
                                                                 &det_ctx->mtc,
                                                                 &det_ctx->pmq,
@@ -208,18 +174,10 @@ uint32_t PacketPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(ret);
     }
 
-    p->cuda_search = 1;
-    p->cuda_mpm_ctx = det_ctx->sgh->mpm_ctx;
-    p->cuda_mtc = &det_ctx->mtc;
-    p->cuda_pmq = &det_ctx->pmq;
-    /* this outq is unique to this detection thread instance.  The dispatcher thread
-     * would use this queue to pump the packets back to this detection thread once
-     * it has processed the packet */
-    p->cuda_outq = &trans_q[det_ctx->cuda_mpm_rc_disp_outq->id];
-    B2gCudaPushPacketTo_tv_CMB2_RC(p);
-    Packet *out_p = TmqhInputSimpleOnQ(&trans_q[det_ctx->cuda_mpm_rc_disp_outq->id]);
-    SCReturnInt(out_p->cuda_matches);
+    SCCudaHlProcessPacketWithDispatcher(p, det_ctx, /* search */ 1, &ret);
 #endif
+
+    SCReturnInt(ret);
 }
 
 /** \brief Uri Pattern match, search part -- searches for all other patterns
@@ -239,7 +197,6 @@ uint32_t UriPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search
         (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, uri,
          uri_len);
-    SCReturnInt(ret);
 #else
     /* if the user has enabled cuda support, but is not using the cuda mpm
      * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
@@ -251,31 +208,10 @@ uint32_t UriPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(ret);
     }
 
-    Packet *p = malloc(sizeof(Packet));
-    if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
-    memset(p, 0, sizeof(Packet));
-
-    p->cuda_search = 1;
-    p->cuda_mpm_ctx = det_ctx->sgh->mpm_uri_ctx;
-    p->cuda_mtc = &det_ctx->mtcu;
-    p->cuda_pmq = &det_ctx->pmq;
-    p->payload = uri;
-    p->payload_len = uri_len;
-    /* this outq is unique to this detection thread instance.  The dispatcher thread
-     * would use this queue to pump the packets back to this detection thread once
-     * it has processed the packet */
-    p->cuda_outq = &trans_q[det_ctx->cuda_mpm_rc_disp_outq->id];
-    B2gCudaPushPacketTo_tv_CMB2_RC(p);
-    Packet *out_p = TmqhInputSimpleOnQ(&trans_q[det_ctx->cuda_mpm_rc_disp_outq->id]);
-    ret = out_p->cuda_matches;
-    free(p);
-    SCReturnInt(ret);
+    SCCudaHlProcessUriWithDispatcher(uri, uri_len, det_ctx, /* search */ 1, &ret);
 #endif
 
-    //printf("PacketPatternMatch: ret %" PRIu32 "\n", ret);
+    SCReturnInt(ret);
 }
 
 /** \brief cleans up the mpm instance after a match */

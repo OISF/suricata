@@ -46,6 +46,9 @@
 
 #include "util-cuda.h"
 #include "util-cuda-handlers.h"
+#include "util-mpm-b2g-cuda.h"
+
+#include "tmqh-simple.h"
 
 #include "util-error.h"
 #include "util-debug.h"
@@ -657,6 +660,76 @@ int SCCudaHlTestEnvCudaContextDeInit(void)
     }
 
     return 1;
+}
+
+void SCCudaHlProcessPacketWithDispatcher(Packet *p, DetectEngineThreadCtx *det_ctx,
+                                         uint8_t search, void *result)
+{
+    Packet *out_p = NULL;
+
+    p->cuda_search = search;
+    p->cuda_mpm_ctx = det_ctx->sgh->mpm_ctx;
+    p->cuda_mtc = &det_ctx->mtc;
+    p->cuda_pmq = &det_ctx->pmq;
+    /* this outq is unique to this detection thread instance.  The dispatcher thread
+     * would use this queue to pump the packets back to this detection thread once
+     * it has processed the packet */
+    p->cuda_outq = &trans_q[det_ctx->cuda_mpm_rc_disp_outq->id];
+    /* for now it is hardcoded.  \todo Make the access to the right queue or the
+     * ThreadVars generic */
+
+    /* Push the packet into the dispatcher's input queue */
+    B2gCudaPushPacketTo_tv_CMB2_RC(p);
+
+    /* wait for the dispatcher to process and return the packet we pushed */
+    out_p = TmqhInputSimpleOnQ(&trans_q[det_ctx->cuda_mpm_rc_disp_outq->id]);
+
+    /* todo make this generic, so that if we have more than 2 modules using the
+     * cuda interface, we can call update function for the module that has
+     * queued the packet and retrieve the results */
+    *((uint32_t *)result) = p->cuda_matches;
+
+    return;
+}
+
+void SCCudaHlProcessUriWithDispatcher(uint8_t *uri, uint16_t uri_len,
+                                      DetectEngineThreadCtx *det_ctx,
+                                      uint8_t search, void *result)
+{
+    Packet *out_p = NULL;
+
+    Packet *p = malloc(sizeof(Packet));
+    if (p == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(p, 0, sizeof(Packet));
+
+    p->cuda_search = search;
+    p->cuda_mpm_ctx = det_ctx->sgh->mpm_uri_ctx;
+    p->cuda_mtc = &det_ctx->mtcu;
+    p->cuda_pmq = &det_ctx->pmq;
+    p->payload = uri;
+    p->payload_len = uri_len;
+    /* this outq is unique to this detection thread instance.  The dispatcher thread
+     * would use this queue to pump the packets back to this detection thread once
+     * it has processed the packet */
+    p->cuda_outq = &trans_q[det_ctx->cuda_mpm_rc_disp_outq->id];
+
+    /* Push the packet into the dispatcher's input queue */
+    B2gCudaPushPacketTo_tv_CMB2_RC(p);
+
+    /* wait for the dispatcher to process and return the packet we pushed */
+    out_p = TmqhInputSimpleOnQ(&trans_q[det_ctx->cuda_mpm_rc_disp_outq->id]);
+
+    /* todo make this generic, so that if we have more than 2 modules using the
+     * cuda interface, we can call update function for the module that has
+     * queued the packet and retrieve the results */
+    *((uint32_t *)result) = p->cuda_matches;
+
+    free(p);
+
+    return;
 }
 
 #endif /* __SC_CUDA_SUPPORT */
