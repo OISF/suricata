@@ -48,8 +48,6 @@ int Unified2AlertOpenFileCtx(LogFileCtx *, const char *);
  */
 typedef struct Unified2AlertThread_ {
     LogFileCtx *file_ctx;   /** LogFileCtx pointer */
-    uint32_t size_limit;    /**< file size limit */
-    uint32_t size_current;  /**< file current size */
 } Unified2AlertThread;
 
 /**
@@ -147,7 +145,7 @@ int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
     if (aun->file_ctx->fp != NULL) {
         fclose(aun->file_ctx->fp);
     }
-    aun->size_current = 0;
+    aun->file_ctx->size_current = 0;
 
     return 0;
 }
@@ -196,6 +194,7 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 
 /**
  *  \brief Function to fill unified2 packet format into the file.
+ *         No need to lock here, since it's already locked
  *
  *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param p Packet struct used to decide for ipv4 or ipv6
@@ -203,7 +202,6 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
  *  \retval 0 on succces
  *  \retval -1 on failure
  */
-
 int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
 {
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
@@ -227,16 +225,6 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
 
     memcpy(write_buffer,&hdr,sizeof(Unified2AlertFileHeader));
 
-    SCMutexLock(&aun->file_ctx->fp_mutex);
-    if ((aun->size_current + (sizeof(hdr) + sizeof(phdr))) > aun->size_limit) {
-        if (Unified2AlertRotateFile(t,aun) < 0)
-        {
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
-            return -1;
-        }
-    }
-    SCMutexUnlock(&aun->file_ctx->fp_mutex);
-
     phdr.sensor_id = 0;
     phdr.linktype = htonl(p->datalink);
     phdr.event_id = 0;
@@ -252,9 +240,7 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
         SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
         return -1;
     }
-
-    fflush(aun->file_ctx->fp);
-    aun->size_current += len;
+    aun->file_ctx->size_current += len;
 
     return 0;
 }
@@ -301,30 +287,10 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         ethh_offset = sizeof(EthernetHdr);
     }
 
-    /* check and enforce the filesize limit */
-    SCMutexLock(&aun->file_ctx->fp_mutex);
-    if ((aun->size_current +(sizeof(hdr) +  sizeof(phdr))) > aun->size_limit) {
-        if (Unified2AlertRotateFile(t,aun) < 0)
-        {
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
-            return -1;
-        }
-    }
-    SCMutexUnlock(&aun->file_ctx->fp_mutex);
-
-    /* XXX which one to add to this alert? Lets see how Snort solves this.
-     * For now just take last alert. */
-    pa = &p->alerts.alerts[p->alerts.cnt-1];
-
-    /* fill the phdr structure */
+    /* fill the phdr structure with the data of the packet */
 
     phdr.sensor_id = 0;
     phdr.event_id = 0;
-    phdr.generator_id = htonl(pa->gid);
-    phdr.signature_id = htonl(pa->sid);
-    phdr.signature_revision = htonl(pa->rev);
-    phdr.classification_id = htonl(pa->class);
-    phdr.priority_id = htonl(pa->prio);
     phdr.event_second =  htonl(p->ts.tv_sec);
     phdr.event_microsecond = htonl(p->ts.tv_usec);
     phdr.src_ip = *(struct in6_addr*)GET_IPV6_SRC_ADDR(p);
@@ -337,10 +303,22 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         phdr.packet_action = 0;
 
     switch(phdr.protocol)  {
+        case IPPROTO_ICMPV6:
+            if(p->icmpv6h)  {
+                phdr.sp = htons(p->icmpv6h->type);
+                phdr.dp = htons(p->icmpv6h->code);
+            } else {
+                phdr.sp = 0;
+                phdr.dp = 0;
+            }
+            break;
         case IPPROTO_ICMP:
             if(p->icmpv4h)  {
                 phdr.sp = htons(p->icmpv4h->type);
                 phdr.dp = htons(p->icmpv4h->code);
+            } else {
+                phdr.sp = 0;
+                phdr.dp = 0;
             }
             break;
         case IPPROTO_UDP:
@@ -355,18 +333,47 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             break;
     }
 
-    memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
+    uint16_t i = 0;
+    for (; i < p->alerts.cnt; i++) {
+        pa = &p->alerts.alerts[i];
 
-    ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
-    if (ret != 1) {
-        SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
-        return -1;
+        /* fill the header structure with the data of the alert */
+        phdr.generator_id = htonl(pa->gid);
+        phdr.signature_id = htonl(pa->sid);
+        phdr.signature_revision = htonl(pa->rev);
+        phdr.classification_id = htonl(pa->class);
+        phdr.priority_id = htonl(pa->prio);
+
+        memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
+
+        SCMutexLock(&aun->file_ctx->fp_mutex);
+
+        if ((aun->file_ctx->size_current +(sizeof(hdr) + sizeof(phdr))) > aun->file_ctx->size_limit) {
+            if (Unified2AlertRotateFile(t,aun) < 0) {
+                SCMutexUnlock(&aun->file_ctx->fp_mutex);
+                aun->file_ctx->alerts += i;
+                return -1;
+            }
+        }
+
+        ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
+
+        if (ret != 1) {
+            SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
+            SCMutexUnlock(&aun->file_ctx->fp_mutex);
+            aun->file_ctx->alerts += i;
+            return -1;
+        }
+
+        fflush(aun->file_ctx->fp);
+
+        aun->file_ctx->size_current += len;
+
+        Unified2PacketTypeAlert(t, p, data);
+        SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
 
-    fflush(aun->file_ctx->fp);
-    aun->size_current += len;
-
-    Unified2PacketTypeAlert(t, p, data);
+    aun->file_ctx->alerts += p->alerts.cnt;
 
     return 0;
 }
@@ -405,42 +412,23 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     hdr.length = htonl(sizeof(AlertIPv4Unified2));
 
     memcpy(write_buffer,&hdr,sizeof(Unified2AlertFileHeader));
-
     /* if we have no ethernet header (e.g. when using nfq), we have to create
      * one ourselves. */
     if (p->ethh == NULL) {
         ethh_offset = sizeof(EthernetHdr);
     }
 
-    /* check and enforce the filesize limit */
-    SCMutexLock(&aun->file_ctx->fp_mutex);
-    if ((aun->size_current +(sizeof(hdr) +  sizeof(phdr))) > aun->size_limit) {
-        if (Unified2AlertRotateFile(tv,aun) < 0)
-        {
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
-            return -1;
-        }
-    }
-    SCMutexUnlock(&aun->file_ctx->fp_mutex);
 
-    /* XXX which one to add to this alert? Lets see how Snort solves this.
-     * For now just take last alert. */
-    pa = &p->alerts.alerts[p->alerts.cnt-1];
-
-    /* fill the hdr structure */
+    /* fill the hdr structure with the packet data */
 
     phdr.sensor_id = 0;
     phdr.event_id = 0;
-    phdr.generator_id = htonl(pa->gid);
-    phdr.signature_id = htonl(pa->sid);
-    phdr.signature_revision = htonl(pa->rev);
-    phdr.classification_id = htonl(pa->class);
-    phdr.priority_id = htonl(pa->prio);
     phdr.event_second =  htonl(p->ts.tv_sec);
     phdr.event_microsecond = htonl(p->ts.tv_usec);
     phdr.src_ip = p->ip4h->ip_src.s_addr;
     phdr.dst_ip = p->ip4h->ip_dst.s_addr;
     phdr.protocol = IPV4_GET_RAW_IPPROTO(p->ip4h);
+
 
     if(p->action & ACTION_DROP)
         phdr.packet_action = UNIFIED2_BLOCKED_FLAG;
@@ -466,18 +454,49 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             break;
     }
 
-    memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
+    uint16_t i = 0;
+    for (; i < p->alerts.cnt; i++) {
+        pa = &p->alerts.alerts[i];
+        /* fill the hdr structure with the alert data */
+        phdr.generator_id = htonl(pa->gid);
+        phdr.signature_id = htonl(pa->sid);
+        phdr.signature_revision = htonl(pa->rev);
+        phdr.classification_id = htonl(pa->class);
+        phdr.priority_id = htonl(pa->prio);
 
-    ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
-    if (ret != 1) {
-        SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
-        return -1;
+        memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
+
+        /* check and enforce the filesize limit */
+        SCMutexLock(&aun->file_ctx->fp_mutex);
+
+        if ((aun->file_ctx->size_current +(sizeof(hdr) +  sizeof(phdr))) > aun->file_ctx->size_limit) {
+            if (Unified2AlertRotateFile(tv,aun) < 0) {
+                SCMutexUnlock(&aun->file_ctx->fp_mutex);
+                aun->file_ctx->alerts += i;
+                return -1;
+            }
+        }
+
+        ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
+        if (ret != 1) {
+            SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
+            SCMutexUnlock(&aun->file_ctx->fp_mutex);
+            aun->file_ctx->alerts += i;
+            return -1;
+        }
+        fflush(aun->file_ctx->fp);
+
+        aun->file_ctx->size_current += len;
+
+        /* Write the alert (it doesn't lock inside, since we
+         * already locked here for rotation check)
+         */
+        Unified2PacketTypeAlert(tv, p, data);
+
+        SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
+    aun->file_ctx->alerts += p->alerts.cnt;
 
-    fflush(aun->file_ctx->fp);
-    aun->size_current += len;
-
-    Unified2PacketTypeAlert(tv, p, data);
 
     return 0;
 }
@@ -508,9 +527,6 @@ TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
     /** Use the Ouptut Context (file pointer and mutex) */
     aun->file_ctx = (LogFileCtx*) initdata;
 
-    /* XXX make configurable */
-    aun->size_limit = 10 * 1024 * 1024;
-
     *data = (void *)aun;
     return TM_ECODE_OK;
 }
@@ -531,6 +547,12 @@ TmEcode Unified2AlertThreadDeinit(ThreadVars *t, void *data)
         goto error;
     }
 
+    if (!(aun->file_ctx->flags & LOGFILE_ALERTS_PRINTED)) {
+        SCLogInfo("Alert unified 2 module wrote %"PRIu64" alerts", aun->file_ctx->alerts);
+        /* Do not print it for each thread */
+        aun->file_ctx->flags |= LOGFILE_ALERTS_PRINTED;
+    }
+
     /* clear memory */
     memset(aun, 0, sizeof(Unified2AlertThread));
     free(aun);
@@ -549,8 +571,7 @@ LogFileCtx *Unified2AlertInitCtx(ConfNode *conf)
     int ret=0;
     LogFileCtx* file_ctx=LogFileNewCtx();
 
-    if(file_ctx == NULL)
-    {
+    if (file_ctx == NULL) {
         SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC, "Unified2AlertInitCtx: "
                    "Couldn't create new file_ctx");
         return NULL;
@@ -564,9 +585,12 @@ LogFileCtx *Unified2AlertInitCtx(ConfNode *conf)
         filename = DEFAULT_LOG_FILENAME;
     file_ctx->prefix = strdup(filename);
 
-    ret=Unified2AlertOpenFileCtx(file_ctx, filename);
+    ret = Unified2AlertOpenFileCtx(file_ctx, filename);
 
-    if(ret < 0)
+    /* XXX make configurable */
+    file_ctx->size_limit = UNIFIED_FILESIZE_LIMIT;
+
+    if (ret < 0)
         return NULL;
 
     return file_ctx;
@@ -589,7 +613,12 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     /** get the time so we can have a filename with seconds since epoch */
     struct timeval ts;
     memset(&ts, 0x00, sizeof(struct timeval));
-    TimeGet(&ts);
+
+    extern int run_mode;
+    if (run_mode == MODE_UNITTEST)
+        TimeGet(&ts);
+    else
+        gettimeofday(&ts, NULL);
 
     /* create the filename to use */
     char *log_dir;

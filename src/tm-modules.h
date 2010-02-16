@@ -69,11 +69,20 @@ typedef struct LogFileCtx_ {
      * the date onto the end of files. */
     char *prefix;
 
-    /**< Current file size and size limits for the file - for rotating
-     * outputs. */
-    uint32_t size_limit;
-    uint32_t size_current;
+    /** Generic size_limit and size_current
+     * They must be common to the threads accesing the same file */
+    uint32_t size_limit;    /**< file size limit */
+    uint32_t size_current;  /**< file current size */
+
+    /* Alerts on the module (not on the file) */
+    uint64_t alerts;
+    /* flag to avoid multiple threads printing the same stats */
+    uint8_t flags;
 } LogFileCtx;
+
+/* flags for LogFileCtx */
+#define LOGFILE_HEADER_WRITTEN 0x01
+#define LOGFILE_ALERTS_PRINTED 0x02
 
 LogFileCtx *LogFileNewCtx();
 int LogFileFreeCtx(LogFileCtx *);

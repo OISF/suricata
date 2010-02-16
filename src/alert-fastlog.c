@@ -78,7 +78,6 @@ void TmModuleAlertFastLogIPv6Register (void) {
 typedef struct AlertFastLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
-    uint32_t alerts;
 } AlertFastLogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
@@ -101,14 +100,15 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    aft->alerts += p->alerts.cnt;
-
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
 
+    aft->file_ctx->alerts += p->alerts.cnt;
+
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+
         char srcip[16], dstip[16];
 
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
@@ -116,8 +116,8 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
         fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
             timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
+        fflush(aft->file_ctx->fp);
     }
-    fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
@@ -132,11 +132,11 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    aft->alerts += p->alerts.cnt;
-
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
+
+    aft->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
@@ -204,7 +204,7 @@ void AlertFastLogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    SCLogInfo("(%s) Alerts %" PRIu32 "", tv->name, aft->alerts);
+    SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, aft->file_ctx->alerts);
 }
 
 /**

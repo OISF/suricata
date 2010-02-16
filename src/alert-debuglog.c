@@ -55,7 +55,6 @@ void TmModuleAlertDebugLogRegister (void) {
 typedef struct AlertDebugLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    uint32_t alerts;
 } AlertDebugLogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
@@ -138,7 +137,7 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 /* pkt vars */
 /* flowvars */
 
-    aft->alerts += p->alerts.cnt;
+    aft->file_ctx->alerts += p->alerts.cnt;
 
     fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", p->pktlen);
     fprintf(aft->file_ctx->fp, "PACKET:\n");
@@ -159,7 +158,7 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    aft->alerts += p->alerts.cnt;
+    aft->file_ctx->alerts += p->alerts.cnt;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -232,7 +231,7 @@ void AlertDebugLogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    SCLogInfo("(%s) Alerts %" PRIu32 "", tv->name, aft->alerts);
+    SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, aft->file_ctx->alerts);
 }
 
 

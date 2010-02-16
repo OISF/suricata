@@ -10,7 +10,13 @@
  * - inspect gettimeofday for threadsafely
  * - implement configuration
  *
+ * Notes: barnyard-0.2.0 read "struct timeval" instead of
+ * struct timeval32 like snort, this means that on 64 bit arch, the log entries
+ * wont have the same length. To be sure to add compatibility for barnyard
+ * and other parsers, theres a macro available for 64 bit barnyard compatibility
+ * But if you want real snort compatibility, don't use that macro
  */
+#define BARNYARD_64_COMPAT 1
 
 #include <string.h>
 
@@ -80,8 +86,19 @@ typedef struct AlertUnifiedLogPacketHeader_ {
     uint32_t sig_prio;
     uint32_t pad1; /* Snort's event_id */
     uint32_t pad2; /* Snort's event_reference */
-    uint32_t tv_sec1; /* from Snort's struct pcap_timeval */
-    uint32_t tv_usec1; /* from Snort's struct pcap_timeval */
+#ifdef BARNYARD_64_COMPAT
+    uint64_t tv_sec1; /* from Snort's struct pcap_timeval in Event */
+    uint64_t tv_usec1; /* from Snort's struct pcap_timeval in Event */
+
+    /* 32 bit unsigned flags */
+    uint32_t pktflags;
+
+    /* Snort's 'SnortPktHeader' structure */
+    uint64_t tv_sec2; /* from Snort's struct pcap_timeval */
+    uint64_t tv_usec2; /* from Snort's struct pcap_timeval */
+#else
+    uint32_t tv_sec1; /* from Snort's struct pcap_timeval in Event */
+    uint32_t tv_usec1; /* from Snort's struct pcap_timeval in Event */
 
     /* 32 bit unsigned flags */
     uint32_t pktflags;
@@ -89,12 +106,17 @@ typedef struct AlertUnifiedLogPacketHeader_ {
     /* Snort's 'SnortPktHeader' structure */
     uint32_t tv_sec2; /* from Snort's struct pcap_timeval */
     uint32_t tv_usec2; /* from Snort's struct pcap_timeval */
+#endif
     uint32_t caplen;
     uint32_t pktlen;
 } AlertUnifiedLogPacketHeader;
 
 int AlertUnifiedLogWriteFileHeader(LogFileCtx *file_ctx) {
     int ret;
+
+    if (file_ctx->flags & LOGFILE_HEADER_WRITTEN)
+        return 0;
+
     /* write the fileheader to the file so the reader can recognize it */
 
     AlertUnifiedLogFileHeader hdr;
@@ -121,6 +143,7 @@ int AlertUnifiedLogCloseFile(ThreadVars *t, AlertUnifiedLogThread *aun) {
         fclose(aun->file_ctx->fp);
     }
     aun->file_ctx->size_current = 0;
+    aun->file_ctx->flags = 0;
     return 0;
 }
 
@@ -157,29 +180,7 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         ethh_offset = sizeof(EthernetHdr);
     }
 
-    /* check and enforce the filesize limit */
-    /** Wait for the mutex. We dont want all the threads rotating the file
-     * at the same time :) */
-    SCMutexLock(&aun->file_ctx->fp_mutex);
-    if ((aun->file_ctx->size_current + sizeof(hdr) + p->pktlen + ethh_offset) > aun->file_ctx->size_limit) {
-        if (AlertUnifiedLogRotateFile(tv,aun) < 0)
-        {
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
-            return TM_ECODE_FAILED;
-        }
-    }
-    SCMutexUnlock(&aun->file_ctx->fp_mutex);
-
-    /* XXX which one to add to this alert? Lets see how Snort solves this.
-     * For now just take last alert. */
-    PacketAlert *pa = &p->alerts.alerts[p->alerts.cnt-1];
-
-    /* fill the hdr structure */
-    hdr.sig_gen = pa->gid;
-    hdr.sig_sid = pa->sid;
-    hdr.sig_rev = pa->rev;
-    hdr.sig_class = pa->class;
-    hdr.sig_prio = pa->prio;
+    /* fill the hdr structure with the data of the packet */
     hdr.pad1 = 0;
     hdr.pad2 = 0;
     hdr.tv_sec1 = hdr.tv_sec2 = p->ts.tv_sec;
@@ -187,32 +188,59 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     hdr.pktflags = 0; /* XXX */
     hdr.pktlen = hdr.caplen = p->pktlen + ethh_offset;
 
-    memcpy(buf,&hdr,sizeof(hdr));
-    buflen = sizeof(hdr);
 
-    if (p->ethh == NULL) {
-        EthernetHdr ethh;
-        memset(&ethh, 0, sizeof(EthernetHdr));
-        ethh.eth_type = htons(ETHERNET_TYPE_IP);
+    uint16_t i = 0;
+    for (; i < p->alerts.cnt; i++) {
+        PacketAlert *pa = &p->alerts.alerts[i];
 
-        memcpy(buf+buflen,&ethh,sizeof(ethh));
-        buflen += sizeof(ethh);
+        /* fill the hdr structure with the data of the alert */
+        hdr.sig_gen = pa->gid;
+        hdr.sig_sid = pa->sid;
+        hdr.sig_rev = pa->rev;
+        hdr.sig_class = pa->class;
+        hdr.sig_prio = pa->prio;
+
+        memcpy(buf,&hdr,sizeof(hdr));
+        buflen = sizeof(hdr);
+
+        if (p->ethh == NULL) {
+            EthernetHdr ethh;
+            memset(&ethh, 0, sizeof(EthernetHdr));
+            ethh.eth_type = htons(ETHERNET_TYPE_IP);
+
+            memcpy(buf+buflen,&ethh,sizeof(ethh));
+            buflen += sizeof(ethh);
+        }
+
+        memcpy(buf+buflen,&p->pkt,p->pktlen);
+        buflen += p->pktlen;
+
+        /** Wait for the mutex. We dont want all the threads rotating the file
+         * at the same time :) */
+        SCMutexLock(&aun->file_ctx->fp_mutex);
+        if ((aun->file_ctx->size_current + sizeof(hdr) + p->pktlen + ethh_offset) > aun->file_ctx->size_limit) {
+            if (AlertUnifiedLogRotateFile(tv,aun) < 0) {
+                SCMutexUnlock(&aun->file_ctx->fp_mutex);
+                aun->file_ctx->alerts += i;
+                return TM_ECODE_FAILED;
+            }
+        }
+
+        ret = fwrite(buf, buflen, 1, aun->file_ctx->fp);
+        if (ret != 1) {
+            printf("Error: fwrite failed: %s\n", strerror(errno));
+            aun->file_ctx->alerts += i;
+            SCMutexUnlock(&aun->file_ctx->fp_mutex);
+            return TM_ECODE_FAILED;
+        }
+        /* force writing to disk so barnyard will not read half
+         * written records and choke. */
+        fflush(aun->file_ctx->fp);
+        SCMutexUnlock(&aun->file_ctx->fp_mutex);
+        aun->file_ctx->size_current += buflen;
     }
+    aun->file_ctx->alerts += p->alerts.cnt;
 
-    memcpy(buf+buflen,&p->pkt,p->pktlen);
-    buflen += p->pktlen;
-
-    /** write and flush so it's written immediately, no need to lock her, no need to lock heree */
-    ret = fwrite(buf, buflen, 1, aun->file_ctx->fp);
-    if (ret != 1) {
-        printf("Error: fwrite failed: %s\n", strerror(errno));
-        return TM_ECODE_FAILED;
-    }
-    /* force writing to disk so barnyard will not read half
-     * written records and choke. */
-    fflush(aun->file_ctx->fp);
-
-    aun->file_ctx->size_current += buflen;
     return TM_ECODE_OK;
 }
 
@@ -223,8 +251,8 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
-    if(initdata == NULL)
-    {
+
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for UnifiedLog.  \"initdata\" argument NULL");
         free(aun);
         return TM_ECODE_FAILED;
@@ -241,6 +269,12 @@ TmEcode AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
     AlertUnifiedLogThread *aun = (AlertUnifiedLogThread *)data;
     if (aun == NULL) {
         goto error;
+    }
+
+    if (!(aun->file_ctx->flags & LOGFILE_ALERTS_PRINTED)) {
+        SCLogInfo("Alert unified 1 log module wrote %"PRIu64" alerts", aun->file_ctx->alerts);
+        /* Do not print it for each thread */
+        aun->file_ctx->flags |= LOGFILE_ALERTS_PRINTED;
     }
 
     /* clear memory */
@@ -260,11 +294,10 @@ error:
  * */
 LogFileCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
 {
-    int ret=0;
+    int ret = 0;
     LogFileCtx* file_ctx=LogFileNewCtx();
 
-    if(file_ctx == NULL)
-    {
+    if (file_ctx == NULL) {
         printf("AlertUnifiedLogInitCtx: Couldn't create new file_ctx\n");
         return NULL;
     }
@@ -277,11 +310,11 @@ LogFileCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
         filename = DEFAULT_LOG_FILENAME;
 
     file_ctx->prefix = strdup(filename);
-    file_ctx->size_limit = 1 * 1024 * 1024; /* XXX Make configurable. */
+    file_ctx->size_limit = UNIFIED_FILESIZE_LIMIT; /* XXX Make configurable. */
 
-    ret=AlertUnifiedLogOpenFileCtx(file_ctx, filename);
+    ret = AlertUnifiedLogOpenFileCtx(file_ctx, filename);
 
-    if(ret < 0)
+    if (ret < 0)
         return NULL;
 
     return file_ctx;
@@ -304,7 +337,12 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     /* get the time so we can have a filename with seconds since epoch */
     struct timeval ts;
     memset (&ts, 0, sizeof(struct timeval));
-    TimeGet(&ts);
+
+    extern int run_mode;
+    if (run_mode == MODE_UNITTEST)
+        TimeGet(&ts);
+    else
+        gettimeofday(&ts, NULL);
 
     /* create the filename to use */
     char *log_dir;
@@ -321,8 +359,14 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
         ret = -1;
     }
 
-    /* Write out the header. */
-    return AlertUnifiedLogWriteFileHeader(file_ctx);
+    /** Write Unified header */
+    ret = AlertUnifiedLogWriteFileHeader(file_ctx);
+    if (ret != 0) {
+        printf("Error: AlertUnifiedLogWriteFileHeader failed.\n");
+        return TM_ECODE_FAILED;
+    }
+
+    return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS
