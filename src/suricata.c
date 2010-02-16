@@ -390,11 +390,6 @@ int main(int argc, char **argv)
     /* Initialize the configuration module. */
     ConfInit();
 
-#ifdef __SC_CUDA_SUPPORT__
-    /* Init the CUDA environment */
-    SCCudaInitCudaEnvironment();
-#endif
-
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
         {"pfring-int",  required_argument, 0, 0},
@@ -562,6 +557,11 @@ int main(int argc, char **argv)
 
     SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
     UtilCpuPrintSummary();
+
+#ifdef __SC_CUDA_SUPPORT__
+    /* Init the CUDA environment */
+    SCCudaInitCudaEnvironment();
+#endif
 
     if (!CheckValidDaemonModes(daemon, run_mode)) {
         exit(EXIT_FAILURE);

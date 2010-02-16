@@ -3945,6 +3945,43 @@ void SCCudaPrintDeviceList(SCCudaDevices *devices)
 }
 
 /**
+ * \brief Prints some basic information for the default device(the first devie)
+ *        we will be using on this cuda platform for use by our engine.  This
+ *        function is basically to be used to print some minimal information to
+ *        the user at engine startup.
+ *
+ * \param devices Pointer to a SCCudaDevices instance that holds information on
+ *                the devices.
+ */
+void SCCudaPrintBasicDeviceInfo(SCCudaDevices *devices)
+{
+    int i = 0;
+
+    if (devices == NULL) {
+        SCLogError(SC_ERR_CUDA_ERROR, "CUDA environment not initialized.  "
+                   "Please initialized the CUDA environment by calling "
+                   "SCCudaInitCudaEnvironment() before making any calls "
+                   "to the CUDA API.");
+        return;
+    }
+
+    SCLogInfo("Printing graphics card device details used by our engine");
+    SCLogInfo("No of devices:  %d", devices->count);
+
+    for (i = 0; i < devices->count && i <= 1; i++) {
+        SCLogInfo("Device Name: %s", devices->devices[i]->name);
+        SCLogInfo("Device Major Revision: %d", devices->devices[i]->major_rev);
+        SCLogInfo("Device Minor Revision: %d", devices->devices[i]->minor_rev);
+        SCLogInfo("Device Multiprocessor Count: %d",
+                   devices->devices[i]->attr_multiprocessor_count);
+        SCLogInfo("Device Clock Rate: %d", devices->devices[i]->attr_clock_rate);
+        SCLogInfo("Device Clock Frequency: %d", devices->devices[i]->prop.clockRate);
+    }
+
+    return;
+}
+
+/**
  * \brief Gets the device list, for the CUDA platform environment initialized by
  *        the engine.
  *
@@ -4012,6 +4049,8 @@ int SCCudaInitCudaEnvironment(void)
                    "SCCudaGetDevices() returned NULL");
         goto error;
     }
+
+    SCCudaPrintBasicDeviceInfo(devices);
 
     return 0;
 

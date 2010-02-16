@@ -154,6 +154,7 @@ int SCCudaCtxSynchronize(void);
 int SCCudaDriverGetVersion(int *);
 
 void SCCudaPrintDeviceList(SCCudaDevices *);
+void SCCudaPrintBasicDeviceInfo(SCCudaDevices *);
 SCCudaDevices *SCCudaGetDeviceList(void);
 
 int SCCudaInitCudaEnvironment(void);
