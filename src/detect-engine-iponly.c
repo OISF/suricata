@@ -35,7 +35,7 @@
  * compare tree's: if they have one (or more) matching
  * sig, we have a match. */
 
-#if __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 #define IPONLY_EXTRACT_16(a) (((a)->ip[0] & 0xffff0000) >> 16)
 #else
 #define IPONLY_EXTRACT_16(a) ((a)->ip[0] & 0x0000ffff)
