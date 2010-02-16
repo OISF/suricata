@@ -3965,17 +3965,18 @@ void SCCudaPrintBasicDeviceInfo(SCCudaDevices *devices)
         return;
     }
 
-    SCLogInfo("Printing graphics card device details used by our engine");
-    SCLogInfo("No of devices:  %d", devices->count);
+    SCLogInfo("Printing graphics card device details used by the engine");
 
     for (i = 0; i < devices->count && i <= 1; i++) {
-        SCLogInfo("Device Name: %s", devices->devices[i]->name);
-        SCLogInfo("Device Major Revision: %d", devices->devices[i]->major_rev);
-        SCLogInfo("Device Minor Revision: %d", devices->devices[i]->minor_rev);
-        SCLogInfo("Device Multiprocessor Count: %d",
-                   devices->devices[i]->attr_multiprocessor_count);
-        SCLogInfo("Device Clock Rate: %d", devices->devices[i]->attr_clock_rate);
-        SCLogInfo("Device Clock Frequency: %d", devices->devices[i]->prop.clockRate);
+        SCLogInfo("\nDevice Name: %s\n"
+                  "Device CUDA Compute Capability: %d.%d\n"
+                  "Device Multiprocessor Count: %d\n"
+                  "Device Clock Frequency: %.2f MHz\n",
+                  devices->devices[i]->name,
+                  devices->devices[i]->major_rev,
+                  devices->devices[i]->minor_rev,
+                  devices->devices[i]->attr_multiprocessor_count,
+                  devices->devices[i]->attr_clock_rate/1000.0);
     }
 
     return;
