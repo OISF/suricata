@@ -9,7 +9,6 @@
 #define __OUTPUT_H__
 
 #include "suricata.h"
-#define UNIFIED_FILESIZE_LIMIT 10*1024*1024
 
 typedef struct OutputModule_ {
     char *name;

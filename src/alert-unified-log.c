@@ -34,11 +34,18 @@
 #include "util-time.h"
 #include "util-debug.h"
 #include "util-error.h"
+#include "util-byte.h"
 
 #include "output.h"
 #include "alert-unified-log.h"
 
 #define DEFAULT_LOG_FILENAME "unified.log"
+
+/**< Default log file limit in MB. */
+#define DEFAULT_LIMIT 32
+
+/**< Minimum log file limit in MB. */
+#define MIN_LIMIT 1
 
 #define MODULE_NAME "AlertUnifiedLog"
 
@@ -308,14 +315,36 @@ LogFileCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
     }
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
-
     file_ctx->prefix = strdup(filename);
-    file_ctx->size_limit = UNIFIED_FILESIZE_LIMIT; /* XXX Make configurable. */
+
+    const char *s_limit = NULL;
+    uint32_t limit = DEFAULT_LIMIT;
+    if (conf != NULL) {
+        s_limit = ConfNodeLookupChildValue(conf, "limit");
+        if (s_limit != NULL) {
+            if (ByteExtractStringUint32(&limit, 10, 0, s_limit) == -1) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "Fail to initialize unified log output, invalid limit: %s",
+                    s_limit);
+                exit(EXIT_FAILURE);
+            }
+            if (limit < MIN_LIMIT) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "Fail to initialize unified log output, limit less than "
+                    "allowed minimum.");
+                exit(EXIT_FAILURE);
+            }
+            SCLogDebug("limit set to %"PRIu32, limit);
+        }
+    }
+    file_ctx->size_limit = limit * 1024 * 1024;
 
     ret = AlertUnifiedLogOpenFileCtx(file_ctx, filename);
-
     if (ret < 0)
         return NULL;
+
+    SCLogInfo("Unified-log initialized: filename %s, limit %"PRIu32" MB",
+       filename, limit);
 
     return file_ctx;
 }

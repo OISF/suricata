@@ -21,13 +21,22 @@ outputs:
       enabled: yes
       filename: unified.log
 
+      # Limit in MB.
+      #limit: 32
+
   - unified-alert:
       enabled: yes
       filename: unified.alert
 
+      # Limit in MB.
+      #limit: 32
+
   - unified2-alert:
       enabled: yes
       filename: unified2.alert
+
+      # Limit in MB.
+      #limit: 32
 
   - http-log:
       enabled: yes

@@ -21,6 +21,7 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-time.h"
+#include "util-byte.h"
 
 #include "output.h"
 #include "alert-unified2-alert.h"
@@ -30,6 +31,12 @@
 #endif
 
 #define DEFAULT_LOG_FILENAME "unified2.alert"
+
+/**< Default log file limit in MB. */
+#define DEFAULT_LIMIT 32
+
+/**< Minimum log file limit in MB. */
+#define MIN_LIMIT 1
 
 /*prototypes*/
 TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
@@ -585,13 +592,33 @@ LogFileCtx *Unified2AlertInitCtx(ConfNode *conf)
         filename = DEFAULT_LOG_FILENAME;
     file_ctx->prefix = strdup(filename);
 
+    const char *s_limit = NULL;
+    uint32_t limit = DEFAULT_LIMIT;
+    if (conf != NULL) {
+        s_limit = ConfNodeLookupChildValue(conf, "limit");
+        if (s_limit != NULL) {
+            if (ByteExtractStringUint32(&limit, 10, 0, s_limit) == -1) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "Fail to initialize unified2 output, invalid limit: %s",
+                    s_limit);
+                exit(EXIT_FAILURE);
+            }
+            if (limit < MIN_LIMIT) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "Fail to initialize unified2 output, limit less than "
+                    "allowed minimum.");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+    file_ctx->size_limit = limit * 1024 * 1024;
+
     ret = Unified2AlertOpenFileCtx(file_ctx, filename);
-
-    /* XXX make configurable */
-    file_ctx->size_limit = UNIFIED_FILESIZE_LIMIT;
-
     if (ret < 0)
         return NULL;
+
+    SCLogInfo("Unified2-alert initialized: filename %s, limit %"PRIu32" MB",
+       filename, limit);
 
     return file_ctx;
 }
