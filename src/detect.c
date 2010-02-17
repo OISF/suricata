@@ -3763,7 +3763,6 @@ static int SigTest11Real (int mpm_type) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     p.flow = &f;
-    FlowInit(&f, &p);
 
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -3839,7 +3838,6 @@ static int SigTest12Real (int mpm_type) {
     Flow f;
     memset(&f, 0, sizeof(Flow));
     p.flow = &f;
-    FlowInit(&f, &p);
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
@@ -3903,7 +3901,6 @@ static int SigTest13Real (int mpm_type) {
     Flow f;
     memset(&f, 0, sizeof(Flow));
     p.flow = &f;
-    FlowInit(&f, &p);
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
