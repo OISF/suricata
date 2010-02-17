@@ -19,6 +19,7 @@ typedef struct ConfNode_ {
     int is_seq;
     int allow_override;
 
+    struct ConfNode_ *parent;
     TAILQ_HEAD(, ConfNode_) head;
     TAILQ_ENTRY(ConfNode_) next;
 } ConfNode;
@@ -30,6 +31,8 @@ typedef struct ConfNode_ {
 #define DEFAULT_LOG_DIR "/var/log/suricata"
 
 void ConfInit(void);
+void ConfDeInit(void);
+ConfNode *ConfGetRootNode(void);
 int ConfGet(char *name, char **vptr);
 int ConfGetInt(char *name, intmax_t *val);
 int ConfGetBool(char *name, int *val);
@@ -38,13 +41,12 @@ void ConfDump(void);
 void ConfNodeDump(ConfNode *node, const char *prefix);
 ConfNode *ConfNodeNew(void);
 void ConfNodeFree(ConfNode *);
-int ConfSetNode(ConfNode *node);
 ConfNode *ConfGetNode(char *key);
 void ConfCreateContextBackup(void);
 void ConfRestoreContextBackup(void);
-void ConfDeInit(void);
 ConfNode *ConfNodeLookupChild(ConfNode *node, const char *key);
 const char *ConfNodeLookupChildValue(ConfNode *node, const char *key);
+void ConfNodeRemove(ConfNode *);
 void ConfRegisterTests();
 
 #endif /* ! __CONF_H__ */
