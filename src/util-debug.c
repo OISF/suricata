@@ -9,8 +9,6 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <sys/time.h>
-#include <sys/syscall.h>
-#include <syslog.h>
 #include "threads.h"
 #include "util-debug.h"
 #include "util-error.h"
@@ -18,6 +16,7 @@
 #include "util-debug-filters.h"
 
 #include "suricata-common.h"
+
 #include "decode.h"
 #include "detect.h"
 #include "packet-queue.h"

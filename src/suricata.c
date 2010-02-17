@@ -137,6 +137,7 @@ static void SignalHandlerSigint(/*@unused@*/ int sig) { sigint_count = 1; sigfla
 static void SignalHandlerSigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= SURICATA_SIGTERM; }
 static void SignalHandlerSighup(/*@unused@*/ int sig) { sighup_count = 1; sigflags |= SURICATA_SIGHUP; }
 
+#ifndef OS_WIN32
 static void
 SignalHandlerSetup(int sig, void (*handler)())
 {
@@ -148,6 +149,7 @@ SignalHandlerSetup(int sig, void (*handler)())
     action.sa_flags = 0;
     sigaction(sig, &action, 0);
 }
+#endif /* OS_WIN32 */
 
 Packet *SetupPktWait (void)
 {
@@ -383,6 +385,14 @@ int main(int argc, char **argv)
 
     char *log_dir;
     struct stat buf;
+
+#ifdef OS_WIN32
+	WSADATA wsaData;
+	if (0 != WSAStartup(MAKEWORD(2, 2), &wsaData)) {
+		fprintf(stderr, "ERROR: Failed to initialize Windows sockets.\n");
+		exit(EXIT_FAILURE);
+	}
+#endif
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
@@ -756,10 +766,12 @@ int main(int argc, char **argv)
 
     if (daemon) Daemonize();
 
+#ifndef OS_WIN32
     /* registering signals we use */
     SignalHandlerSetup(SIGINT, SignalHandlerSigint);
     SignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
     SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
+#endif /* OS_WIN32 */
 
     /* pre allocate packets */
     SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)sizeof(Packet));

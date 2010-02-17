@@ -587,15 +587,21 @@ static int SetCPUAffinity(uint16_t cpuid) {
 
     int cpu = (int)cpuid;
 
+#ifdef OS_WIN32
+	DWORD cs = 1 << cpu;
+#else
     cpu_set_t cs;
 
     CPU_ZERO(&cs);
     CPU_SET(cpu,&cs);
+#endif /* OS_WIN32 */
 
 #ifdef OS_FREEBSD
     int r = cpuset_setaffinity(CPU_LEVEL_WHICH,CPU_WHICH_TID,SCGetThreadIdLong(),sizeof(cpu_set_t),&cs);
 #elif OS_DARWIN
     int r = thread_policy_set(mach_thread_self(), THREAD_AFFINITY_POLICY, (void*)&cs, THREAD_AFFINITY_POLICY_COUNT);
+#elif OS_WIN32
+	int r = (0 == SetThreadAffinityMask(GetCurrentThread(), cs));
 #else
     pid_t tid = syscall(SYS_gettid);
     int r = sched_setaffinity(tid,sizeof(cpu_set_t),&cs);

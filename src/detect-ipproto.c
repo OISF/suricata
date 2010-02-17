@@ -5,8 +5,6 @@
  * \author Brian Rectanus <brectanu@gmail.com>
  */
 
-#include <netdb.h>
-
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"

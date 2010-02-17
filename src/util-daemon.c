@@ -7,14 +7,16 @@
  * Daemonization process
  */
 
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
 #include "suricata.h"
 #include "suricata-common.h"
 #include "util-daemon.h"
 #include "util-debug.h"
+
+#ifndef OS_WIN32
+
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 static volatile sig_atomic_t sigflag = 0;
 
@@ -75,32 +77,6 @@ static void SetupLogging () {
 }
 
 /**
- * \brief Check for a valid combination daemon/mode
- *
- * \param daemon daemon on or off
- * \param mode selected mode
- *
- * \retval 1 valid combination
- * \retval 0 invalid combination
- */
-int CheckValidDaemonModes (int daemon, int mode) {
-    if (daemon) {
-        switch (mode) {
-            case MODE_PCAP_FILE:
-                SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: pcap offline mode cannot run as daemon");
-                return 0;
-            case MODE_UNITTEST:
-                SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: unittests cannot run as daemon");
-                return 0;
-            default:
-                SCLogDebug("Allowed mode");
-                break;
-        }
-    }
-    return 1;
-}
-
-/**
  * \brief Daemonize the process
  *
  */
@@ -157,4 +133,32 @@ void Daemonize (void) {
     SCLogDebug("Child is ready, parent exiting");
     exit(EXIT_SUCCESS);
 
+}
+
+#endif /* ifndef OS_WIN32 */
+
+/**
+ * \brief Check for a valid combination daemon/mode
+ *
+ * \param daemon daemon on or off
+ * \param mode selected mode
+ *
+ * \retval 1 valid combination
+ * \retval 0 invalid combination
+ */
+int CheckValidDaemonModes (int daemon, int mode) {
+    if (daemon) {
+        switch (mode) {
+            case MODE_PCAP_FILE:
+                SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: pcap offline mode cannot run as daemon");
+                return 0;
+            case MODE_UNITTEST:
+                SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: unittests cannot run as daemon");
+                return 0;
+            default:
+                SCLogDebug("Allowed mode");
+                break;
+        }
+    }
+    return 1;
 }

@@ -12,7 +12,12 @@
 /** \todo Adjust path */
 #define DAEMON_WORKING_DIRECTORY "/"
 
-int CheckValidDaemonModes (int, int);
+#ifdef OS_WIN32
+#define Daemonize()
+#else
 void Daemonize (void);
+#endif
+
+int CheckValidDaemonModes (int, int);
 
 #endif /* __UTIL_DAEMON_H__ */

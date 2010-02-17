@@ -4,8 +4,6 @@
  *  \author Nick Rogness <nick@rogness.net>
  */
 
-#include <poll.h>
-#include <signal.h>
 #include "suricata-common.h"
 #include "suricata.h"
 #include "decode.h"

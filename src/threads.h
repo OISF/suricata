@@ -50,8 +50,12 @@
     u_long tid = (u_long)tmpthid; \
     tid; \
 })
-#else
-#ifdef OS_DARWIN
+#elif OS_WIN32
+#define SCGetThreadIdLong(...) ({ \
+    u_long tid = (u_long)GetCurrentThreadId(); \
+	tid; \
+})
+#elif OS_DARWIN
 #define SCGetThreadIdLong(...) ({ \
     thread_port_t tpid; \
     tpid = mach_thread_self(); \
@@ -65,7 +69,6 @@
    u_long tid = (u_long)tmpthid; \
    tid; \
 })
-#endif /* OS DARWIN*/
 #endif /* OS FREEBSD */
 
 /** Mutex Functions */

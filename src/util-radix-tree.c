@@ -6,9 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
+#include "suricata-common.h"
 
 #ifdef OS_FREEBSD
 #include <netinet/in.h>

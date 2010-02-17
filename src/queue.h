@@ -91,6 +91,13 @@
 /*
  * Singly-linked List definitions.
  */
+
+/*
+ * The following macros are not used and are in conflict with Win32 API
+ */
+
+#if 0
+
 #define SLIST_HEAD(name, type)						\
 struct name {								\
 	struct type *slh_first;	/* first element */			\
@@ -160,6 +167,8 @@ struct {								\
 		_Q_INVALIDATE((elm)->field.sle_next);			\
 	}								\
 } while (0)
+
+#endif /* 0 */
 
 /*
  * List definitions.

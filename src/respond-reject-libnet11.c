@@ -14,10 +14,7 @@
  * to be the default in flexresp and iptables
  */
 
-
 #include "suricata-common.h"
-
-#include <libnet.h>
 
 #include "decode.h"
 #include "decode-ipv4.h"
@@ -31,6 +28,11 @@
 #include "action-globals.h"
 #include "respond-reject.h"
 #include "respond-reject-libnet11.h"
+
+#ifndef OS_WIN32
+
+#include <libnet.h>
+
 
 typedef struct Libnet11Packet_
 {
@@ -234,3 +236,16 @@ cleanup:
     return 0;
 }
 
+#else /* ifndef OS_WIN32 */
+
+int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) {
+	printf("RejectSendLibnet11L3IPv4TCP not implemented for OS_WIN32\n");
+	return 0;
+}
+
+int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir) {
+	printf("RejectSendLibnet11L3IPv4ICMP not implemented for OS_WIN32\n");
+	return 0;
+}
+
+#endif /*ifndef OS_WIN32 */

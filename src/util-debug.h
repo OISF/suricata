@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include "threads.h"
 #include <stdint.h>
-#include <syslog.h>
 
 #include "util-enum.h"
 #include "util-error.h"
