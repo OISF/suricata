@@ -623,8 +623,10 @@ static int SetCPUAffinity(uint16_t cpuid) {
  * \retval TM_ECOE_OK
  */
 TmEcode TmThreadSetThreadPriority(ThreadVars *tv, int prio) {
+#if 0 /* VJ disabled while we figure out how to deal with this better */
     tv->thread_setup_flags |= THREAD_SET_PRIORITY;
     tv->thread_priority = prio;
+#endif
     return TM_ECODE_OK;
 }
 
