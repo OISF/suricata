@@ -9,21 +9,32 @@
 #define __THREADS_H__
 
 #ifdef OS_FREEBSD
+
 #include <sys/thr.h>
 #define PRIO_LOW 20
 #define PRIO_MEDIUM 31
 #define PRIO_HIGH 40
-#else
-#ifdef OS_DARWIN
+
+#elif OS_DARWIN
+
 #include <mach/mach_init.h>
 #define PRIO_LOW 20
 #define PRIO_MEDIUM 31
 #define PRIO_HIGH 40
+
+#elif OS_WIN32
+
+/* nothing (yet?) */
+
 #else /* LINUX */
+
+#if HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif
 #define PRIO_LOW 40
 #define PRIO_MEDIUM  50
 #define PRIO_HIGH 60
-#endif /* DARWIN */
+
 #endif /* OS_FREEBSD */
 
 #include <pthread.h>

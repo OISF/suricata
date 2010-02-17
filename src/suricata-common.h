@@ -7,20 +7,11 @@
 #ifndef __SURICATA_COMMON_H__
 #define __SURICATA_COMMON_H__
 
-//#define __SC_CUDA_SUPPORT__
-
 #define TRUE   1
 #define FALSE  0
 
-#include <sys/types.h> /* for gettid(2) */
 #define _GNU_SOURCE
 #define __USE_GNU
-
-#if HAVE_SYS_SYSCALL_H
-#include <sys/syscall.h>
-#endif
-
-#include <sched.h>     /* for sched_setaffinity(2) */
 
 #include <stdio.h>
 #include <stdint.h>
@@ -32,8 +23,18 @@
 #include <ctype.h>
 #include <string.h>
 
+#if HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif
+
+#if HAVE_SYSCALL_H
+#include <syscall.h>
+#endif
+
+#include <sys/types.h> /* for gettid(2) */
+#include <sched.h>     /* for sched_setaffinity(2) */
+
 #include <pcre.h>
-#include "threads.h"
 
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
@@ -57,6 +58,10 @@
 
 #if HAVE_SYS_SIGNAL_H
 #include <sys/signal.h>
+#endif
+
+#if HAVE_SIGNAL_H
+#include <signal.h>
 #endif
 
 #include <sys/types.h>
@@ -93,6 +98,8 @@
 #ifdef HAVE_WS2TCPIP_H
 #include <ws2tcpip.h>
 #endif
+
+#include "threads.h"
 
 #include <assert.h>
 #define BUG_ON(x) assert(!(x))

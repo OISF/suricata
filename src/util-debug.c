@@ -2,20 +2,12 @@
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <stdarg.h>
-#include <sys/time.h>
+#include "suricata-common.h"
 #include "threads.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-enum.h"
 #include "util-debug-filters.h"
-
-#include "suricata-common.h"
 
 #include "decode.h"
 #include "detect.h"
@@ -628,8 +620,9 @@ static inline void SCLogFreeLogOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx)
         if (iface_ctx->log_format != NULL)
             free((void *)iface_ctx->log_format);
 
-        if (iface_ctx->iface == SC_LOG_OP_IFACE_SYSLOG)
+        if (iface_ctx->iface == SC_LOG_OP_IFACE_SYSLOG) {
             closelog();
+        }
 
         iface_ctx = iface_ctx->next;
 
