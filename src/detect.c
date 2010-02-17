@@ -1295,26 +1295,6 @@ static DetectAddress *GetHeadPtr(DetectAddressHead *head, int family) {
     return grhead;
 }
 
-#define MAX_UNIQ_TOCLIENT_SRC_GROUPS 2
-#define MAX_UNIQ_TOCLIENT_DST_GROUPS 2
-#define MAX_UNIQ_TOCLIENT_SP_GROUPS 2
-#define MAX_UNIQ_TOCLIENT_DP_GROUPS 3
-
-#define MAX_UNIQ_TOSERVER_SRC_GROUPS 2
-#define MAX_UNIQ_TOSERVER_DST_GROUPS 4
-#define MAX_UNIQ_TOSERVER_SP_GROUPS 2
-#define MAX_UNIQ_TOSERVER_DP_GROUPS 25
-
-#define MAX_UNIQ_SMALL_TOCLIENT_SRC_GROUPS 2
-#define MAX_UNIQ_SMALL_TOCLIENT_DST_GROUPS 2
-#define MAX_UNIQ_SMALL_TOCLIENT_SP_GROUPS 2
-#define MAX_UNIQ_SMALL_TOCLIENT_DP_GROUPS 2
-
-#define MAX_UNIQ_SMALL_TOSERVER_SRC_GROUPS 2
-#define MAX_UNIQ_SMALL_TOSERVER_DST_GROUPS 2
-#define MAX_UNIQ_SMALL_TOSERVER_SP_GROUPS 2
-#define MAX_UNIQ_SMALL_TOSERVER_DP_GROUPS 8
-
 //#define SMALL_MPM(c) 0
 #define SMALL_MPM(c) ((c) == 1)
 // || (c) == 2)
@@ -1706,8 +1686,8 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     for (ds = 0; ds < DSIZE_STATES; ds++) {
         for (f = 0; f < FLOW_STATES; f++) {
             for (proto = 0; proto < 256; proto++) {
-                int groups = ds ? (f ? MAX_UNIQ_TOSERVER_SRC_GROUPS : MAX_UNIQ_TOCLIENT_SRC_GROUPS) :
-                                  (f ? MAX_UNIQ_SMALL_TOSERVER_SRC_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_SRC_GROUPS);
+                int groups = ds ? (f ? de_ctx->max_uniq_toserver_src_groups : de_ctx->max_uniq_toclient_src_groups) :
+                                  (f ? de_ctx->max_uniq_small_toserver_src_groups : de_ctx->max_uniq_small_toclient_src_groups);
 
                 CreateGroupedAddrList(de_ctx,
                     de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]->ipv4_head, AF_INET,
@@ -1904,8 +1884,8 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
 
         /* Create the destination address list, keeping in
          * mind the limits we use. */
-        int groups = dsize ? (flow ? MAX_UNIQ_TOSERVER_DST_GROUPS : MAX_UNIQ_TOCLIENT_DST_GROUPS) :
-                             (flow ? MAX_UNIQ_SMALL_TOSERVER_DST_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_DST_GROUPS);
+        int groups = dsize ? (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups) :
+                             (flow ? de_ctx->max_uniq_small_toserver_dst_groups : de_ctx->max_uniq_small_toclient_dst_groups);
         CreateGroupedAddrList(de_ctx, tmp_gr_list, family, gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
 
         /* see if the sig group head of each address group is the
@@ -2078,8 +2058,8 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
 
         /* Create the destination address list, keeping in
          * mind the limits we use. */
-        int groups = dsize ? (flow ? MAX_UNIQ_TOSERVER_DST_GROUPS : MAX_UNIQ_TOCLIENT_DST_GROUPS) :
-                             (flow ? MAX_UNIQ_SMALL_TOSERVER_DST_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_DST_GROUPS);
+        int groups = dsize ? (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups) :
+                             (flow ? de_ctx->max_uniq_small_toserver_dst_groups : de_ctx->max_uniq_small_toclient_dst_groups);
         CreateGroupedAddrList(de_ctx, tmp_gr_list, family, src_gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
 
         /* add the ports to the dst address groups and the sigs
@@ -2129,8 +2109,8 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                     }
                 }
 
-                int spgroups = dsize ? (flow ? MAX_UNIQ_TOSERVER_SP_GROUPS : MAX_UNIQ_TOCLIENT_SP_GROUPS) :
-                                       (flow ? MAX_UNIQ_SMALL_TOSERVER_SP_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_SP_GROUPS);
+                int spgroups = dsize ? (flow ? de_ctx->max_uniq_toserver_sp_groups : de_ctx->max_uniq_toclient_sp_groups) :
+                                       (flow ? de_ctx->max_uniq_small_toserver_sp_groups : de_ctx->max_uniq_small_toclient_sp_groups);
                 CreateGroupedPortList(de_ctx, de_ctx->sport_hash_table, &dst_gr->port, spgroups, CreateGroupedPortListCmpMpmMaxlen, max_idx);
 
                 SCLogDebug("adding sgh %p to the hash", dst_gr->sh);
@@ -2183,8 +2163,8 @@ static int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, De
                             }
                         }
 
-                        int dpgroups = dsize ? (flow ? MAX_UNIQ_TOSERVER_DP_GROUPS : MAX_UNIQ_TOCLIENT_DP_GROUPS) :
-                                               (flow ? MAX_UNIQ_SMALL_TOSERVER_DP_GROUPS : MAX_UNIQ_SMALL_TOCLIENT_DP_GROUPS);
+                        int dpgroups = dsize ? (flow ? de_ctx->max_uniq_toserver_dp_groups : de_ctx->max_uniq_toclient_dp_groups) :
+                                               (flow ? de_ctx->max_uniq_small_toserver_dp_groups : de_ctx->max_uniq_small_toclient_dp_groups);
                         CreateGroupedPortList(de_ctx, de_ctx->dport_hash_table,
                             &sp->dst_ph, dpgroups,
                             CreateGroupedPortListCmpMpmMaxlen, max_idx);

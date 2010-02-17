@@ -299,7 +299,39 @@ typedef struct DetectEngineCtx_ {
      * hold the cuda context for all the rules content */
     int cuda_rc_mod_handle;
 #endif
+
+    /* Config options */
+
+    uint16_t max_uniq_toclient_src_groups;
+    uint16_t max_uniq_toclient_dst_groups;
+    uint16_t max_uniq_toclient_sp_groups;
+    uint16_t max_uniq_toclient_dp_groups;
+
+    uint16_t max_uniq_toserver_src_groups;
+    uint16_t max_uniq_toserver_dst_groups;
+    uint16_t max_uniq_toserver_sp_groups;
+    uint16_t max_uniq_toserver_dp_groups;
+
+    uint16_t max_uniq_small_toclient_src_groups;
+    uint16_t max_uniq_small_toclient_dst_groups;
+    uint16_t max_uniq_small_toclient_sp_groups;
+    uint16_t max_uniq_small_toclient_dp_groups;
+
+    uint16_t max_uniq_small_toserver_src_groups;
+    uint16_t max_uniq_small_toserver_dst_groups;
+    uint16_t max_uniq_small_toserver_sp_groups;
+    uint16_t max_uniq_small_toserver_dp_groups;
 } DetectEngineCtx;
+
+/* Engine groups profiles (low, medium, high, custom) */
+enum {
+    ENGINE_PROFILE_UNKNOWN,
+    ENGINE_PROFILE_LOW,
+    ENGINE_PROFILE_MEDIUM,
+    ENGINE_PROFILE_HIGH,
+    ENGINE_PROFILE_CUSTOM,
+    ENGINE_PROFILE_MAX
+};
 
 /**
   * Detection engine thread data.

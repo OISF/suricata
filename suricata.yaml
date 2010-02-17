@@ -55,6 +55,33 @@ defrag:
   prealloc: yes
   timeout: 60
 
+# The detection engine build internal groups of signatures. The engine
+# allow us to specify the profile to use for them, to manage memory on an
+# efficient way keeping a good performance. For the profile keyword you
+# can use the words "low", "medium", "high" or "custom". If you use custom
+# make sure to define the values at "- custom-values" as your convenience.
+# Usually you would prefer medium/high/low
+detect-engine:
+  - profile: medium
+  - custom-values:
+      toclient_src_groups: 2
+      toclient_dst_groups: 2
+      toclient_sp_groups: 2
+      toclient_dp_groups: 3
+      toserver_src_groups: 2
+      toserver_dst_groups: 4
+      toserver_sp_groups: 2
+      toserver_dp_groups: 25
+      small_toclient_src_groups: 2
+      small_toclient_dst_groups: 2
+      small_toclient_sp_groups: 2
+      small_toclient_dp_groups: 2
+      small_toserver_src_groups: 2
+      small_toserver_dst_groups: 2
+      small_toserver_sp_groups: 2
+      small_toserver_dp_groups: 8
+
+
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine. The supported algorithms are b2g, b3g and wumanber.
 
