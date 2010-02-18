@@ -84,32 +84,28 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             }
             else {
                 if (state == CONF_KEY) {
-                    /* If the node already exists, check if we can
-                     * override it.  If we can, free it then continue
-                     * otherwise move onto the next configuration
-                     * parameter. */
-                    ConfNode *n0 = ConfNodeLookupChild(parent, value);
-                    if (n0 != NULL) {
-                        if (n0->allow_override) {
-                            ConfNodeRemove(n0);
-                        }
-                        else {
-                            state = CONF_VAL;
-                            goto next;
-                        }
-                    }
                     if (parent->is_seq) {
                         if (parent->val == NULL) {
                             parent->val = strdup(value);
                         }
                     }
-                    node = ConfNodeNew();
-                    node->name = strdup(value);
-                    TAILQ_INSERT_TAIL(&parent->head, node, next);
+                    ConfNode *n0 = ConfNodeLookupChild(parent, value);
+                    if (n0 != NULL) {
+                        node = n0;
+                    }
+                    else {
+                        node = ConfNodeNew();
+                        node->name = strdup(value);
+                        TAILQ_INSERT_TAIL(&parent->head, node, next);
+                    }
                     state = CONF_VAL;
                 }
                 else {
-                    node->val = strdup(value);
+                    if (node->allow_override) {
+                        if (node->val != NULL)
+                            free(node->val);
+                        node->val = strdup(value);
+                    }
                     state = CONF_KEY;
                 }
             }
@@ -147,7 +143,6 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             done = 1;
         }
 
-    next:
         yaml_event_delete(&event);
         continue;
 

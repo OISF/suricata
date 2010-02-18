@@ -427,7 +427,6 @@ int main(int argc, char **argv)
                 }
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-clusterid") == 0){
-                printf ("clusterid %s\n",optarg);
                 if (ConfSet("pfring.clusterid", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pfring clusterid.\n");
                     exit(EXIT_FAILURE);

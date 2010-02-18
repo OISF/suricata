@@ -14,6 +14,9 @@
  * \todo Consider having the in-memory configuration database a direct
  *   reflection of the configuration file and moving command line
  *   parameters to a primary lookup table?
+ *
+ * \todo Get rid of allow override and go with a simpler first set,
+ *   stays approach?
  */
 
 #include <string.h>
@@ -62,6 +65,8 @@ ConfNodeNew(void)
             "Error allocating memory for new configuration node");
         exit(EXIT_FAILURE);
     }
+    /* By default we allow an override. */
+    new->allow_override = 1;
     TAILQ_INIT(&new->head);
 
     return new;
@@ -101,7 +106,7 @@ ConfNode *
 ConfGetNode(char *key)
 {
     ConfNode *node = root;
-    char *saveptr;
+    char *saveptr = NULL;
     char *token;
 
     /* Need to dup the key for tokenization... */
@@ -144,7 +149,7 @@ ConfSet(char *name, char *val, int allow_override)
     ConfNode *parent = root;
     ConfNode *node;
     char *token;
-    char *saveptr;
+    char *saveptr = NULL;
 
     /* First check if the node already exists. */
     node = ConfGetNode(name);
@@ -172,8 +177,13 @@ ConfSet(char *name, char *val, int allow_override)
                 TAILQ_INSERT_TAIL(&parent->head, node, next);
                 parent = node;
             }
+            else {
+                parent = node;
+            }
             token = strtok_r(NULL, ".", &saveptr);
             if (token == NULL) {
+                if (!node->allow_override)
+                    break;
                 if (node->val != NULL)
                     free(node->val);
                 node->val = strdup(val);
@@ -750,10 +760,46 @@ ConfNodeRemoveTest(void)
     return 1;
 }
 
+static int
+ConfSetTest(void)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+
+    /* Set some value with 2 levels. */
+    if (ConfSet("one.two", "three", 1) != 1)
+        return 0;
+    ConfNode *n = ConfGetNode("one.two");
+    if (n == NULL)
+        return 0;
+
+    /* Set another 2 level parameter with the same first level, this
+     * used to trigger a bug that caused the second level of the name
+     * to become a first level node. */
+    if (ConfSet("one.three", "four", 1) != 1)
+        return 0;
+
+    n = ConfGetNode("one.three");
+    if (n == NULL)
+        return 0;
+
+    /* A top level node of "three" should not exist. */
+    n = ConfGetNode("three");
+    if (n != NULL)
+        return 0;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
+
+
 void
 ConfRegisterTests(void)
 {
     UtRegisterTest("ConfTestGetNonExistant", ConfTestGetNonExistant, 1);
+    UtRegisterTest("ConfSetTest", ConfSetTest, 1);
     UtRegisterTest("ConfTestSetAndGet", ConfTestSetAndGet, 1);
     UtRegisterTest("ConfTestOverrideValue1", ConfTestOverrideValue1, 1);
     UtRegisterTest("ConfTestOverrideValue2", ConfTestOverrideValue2, 1);
