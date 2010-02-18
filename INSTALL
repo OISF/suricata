@@ -42,13 +42,7 @@ the following packages to c:\mingw (use newer versions if you like):
     MinGW Installed? :   [y]
     path to MinGW:       [c:/MinGW]
 
-3. Get SVN (required for libhtp)
-
-    http://subversion.tigris.org/files/documents/15/45940/svn-win32-1.6.2.zip
-
-    Unpack the zip to c:/msys/1.0/local
-
-4. Get git
+3. Get git
 
     Download portable GIT from this URL:
     http://code.google.com/p/msysgit/
@@ -56,7 +50,7 @@ the following packages to c:\mingw (use newer versions if you like):
     - unpack to /msys/1.0
     - don't forget to edit your ~/.gitconfig to at least give youreself a name :-)
 
-5. Get libpcre
+4. Get libpcre
 
     http://www.pcre.org/
 
@@ -64,7 +58,7 @@ the following packages to c:\mingw (use newer versions if you like):
     make
     make install
 
-6. Get libyaml
+5. Get libyaml
 
     http://pyyaml.org/wiki/LibYAML
 
@@ -74,7 +68,7 @@ the following packages to c:\mingw (use newer versions if you like):
     make
     make install
 
-7. Get libpcap
+6. Get libpcap
 
     Guide can be found here:
     http://mathieu.carbou.free.fr/wiki/index.php?title=Winpcap_/_Libpcap#Installing_Winpcap_in_MinGW
@@ -85,7 +79,7 @@ the following packages to c:\mingw (use newer versions if you like):
     - Copy includes to c:/mingw/include and libs (.a) to c:/mingw/lib
     - Rename libwpcap to libpcap
 
-8. Get zlib
+7. Get zlib
 
     http://sourceforge.net/projects/mingw/files/
 
@@ -93,20 +87,7 @@ the following packages to c:\mingw (use newer versions if you like):
     make
     make install
 
-9. Get libhtp
-
-    svn co https://libhtp.svn.sourceforge.net/svnroot/libhtp libhtp
-    cd libhtp/trunk
-    aclocal
-    libtoolize --force --automake --copy
-    autoheader
-    automake --add-missing --copy
-    autoconf
-    ./confgure --prefix=/mingw
-    make
-    make install
-
-10. Get and compile Suricata
+8. Get and compile Suricata
 
     git clone git://phalanx.openinfosecfoundation.org/oisf.git
     cd oisf

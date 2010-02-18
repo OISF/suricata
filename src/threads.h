@@ -24,7 +24,9 @@
 
 #elif OS_WIN32
 
-/* nothing (yet?) */
+#define PRIO_LOW THREAD_PRIORITY_LOWEST
+#define PRIO_MEDIUM THREAD_PRIORITY_NORMAL
+#define PRIO_HIGH THREAD_PRIORITY_HIGHEST
 
 #else /* LINUX */
 
