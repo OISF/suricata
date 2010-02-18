@@ -418,6 +418,8 @@ error:
 int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
                            char *contentstr)
 {
+    SCEnter();
+
     SigMatch *sm = NULL;
     DetectUricontentData *cd = DoDetectUricontentSetup(contentstr);
     if (cd == NULL)
@@ -440,11 +442,11 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     /* Flagged the signature as to scan the app layer data */
     s->flags |=SIG_FLAG_APPLAYER;
 
-    return 0;
+    SCReturnInt(0);
 
 error:
     if (cd) free(cd);
-    return -1;
+    SCReturnInt(-1);
 }
 
 /**

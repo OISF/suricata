@@ -202,15 +202,11 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     }
     memcpy(hd->data, ((DetectContentData *)m->ctx)->content, hd->data_len);
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_AL_HTTP_COOKIE;
-    sm->ctx = (void *)hd;
-
     /* Okay we need to replace the type to HTTP_COOKIE from CONTENT */
-    SigMatchReplace(s, m, sm);
+    free(((DetectContentData *)m->ctx)->content);
+    free(m->ctx);
+    m->type = DETECT_AL_HTTP_COOKIE;
+    m->ctx = (void *)hd;
 
     /* Flagged the signature as to scan the app layer data */
     s->flags |=SIG_FLAG_APPLAYER;
@@ -364,6 +360,46 @@ int DetectHttpCookieTest05(void)
     if (de_ctx->sig_list == NULL)
         result = 1;
 
+ end:
+    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Checks if a http_cookie is registered in a Signature, when rawbytes is
+ *       also specified in the signature
+ */
+int DetectHttpCookieTest06(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_cookie\"; content:\"one\"; "
+                               "http_cookie; uricontent:\"abc\"; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    Signature *s = de_ctx->sig_list;
+
+    if (s->match->type != DETECT_AL_HTTP_COOKIE)
+        goto end;
+
+    if (s->match->next == NULL) {
+        printf("expected another SigMatch, got NULL: ");
+        goto end;
+    }
+
+    if (s->match->next->type != DETECT_URICONTENT) {
+        goto end;
+    }
+
+    result = 1;
  end:
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
@@ -555,6 +591,7 @@ void DetectHttpCookieRegisterTests (void)
     UtRegisterTest("DetectHttpCookieTest03", DetectHttpCookieTest03, 1);
     UtRegisterTest("DetectHttpCookieTest04", DetectHttpCookieTest04, 1);
     UtRegisterTest("DetectHttpCookieTest05", DetectHttpCookieTest05, 1);
+    UtRegisterTest("DetectHttpCookieTest06", DetectHttpCookieTest06, 1);
     UtRegisterTest("DetectHttpCookieSigTest01", DetectHttpCookieSigTest01, 1);
     UtRegisterTest("DetectHttpCookieSigTest02", DetectHttpCookieSigTest02, 1);
 #endif /* UNITTESTS */

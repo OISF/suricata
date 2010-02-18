@@ -193,17 +193,11 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
     method = bstr_memdup((char *)data->content, data->content_len);
     data->method = htp_convert_method_to_number(method);
 
-    sm = SigMatchAlloc();
-    if (sm == NULL) {
-        // XXX: Should we bother with an error - it may fail too?
-        goto error;
-    }
-
-    sm->type = DETECT_AL_HTTP_METHOD;
-    sm->ctx = (void *)data;
-
-    /* Replace the CONTENT sigmatch with HTTP_METHOD */
-    SigMatchReplace(s, m, sm);
+    /* Okay we need to replace the type to HTTP_METHOD from CONTENT */
+    free(((DetectContentData *)m->ctx)->content);
+    free(m->ctx);
+    m->type = DETECT_AL_HTTP_METHOD;
+    m->ctx = (void *)data;
 
     /* Flagged the signature as to scan the app layer data */
     s->flags |=SIG_FLAG_APPLAYER;
