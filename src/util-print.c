@@ -1,13 +1,33 @@
 /* Copyright (c) 2008 by Victor Julien <victor@inliniac.net> */
 
 #include "suricata-common.h"
+#include "util-error.h"
+#include "util-debug.h"
+#include "htp/bstr.h"
 
-void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
+void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
+{
     uint32_t u;
-    for (u = 0; u < buflen; u++) {
-        if (isprint(buf[u])) fprintf(fp, "%c", buf[u]);
-        else fprintf(fp, "\\x%02X", buf[u]);
+    bstr *uri_buf;
+    char temp[5] = "";
+    uri_buf = bstr_alloc(buflen + 20);  /* XXX any sane number ? to accommodate
+                                           the non-printable chars, so that we
+                                           dont need to reallocate, if there are
+                                           less non-printable chars */
+    if (uri_buf == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
+        return;
     }
+    for (u = 0; u < buflen; u++) {
+        if (isprint(buf[u])) {
+            bstr_add_mem(uri_buf, (char *)&buf[u], 1);
+        } else {
+            sprintf(temp, "\\x%02X", buf[u]);
+            bstr_add_cstr(uri_buf, temp);
+        }
+    }
+    fprintf(fp, "%s", bstr_tocstr(uri_buf));
+    bstr_free(uri_buf);
 }
 
 void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
