@@ -1,0 +1,127 @@
+WIN32
+=====
+
+This section describes how to build and run Suricata on Windows. Currently
+Windows XP and above are supported and only in the IDS pcap mode.
+
+1. Setup MinGW environment from http://mingw.org
+
+Do not use the automatic installer as it is deprecated. Manually unpack
+the following packages to c:\mingw (use newer versions if you like):
+
+    * binutils
+          o binutils-2.20–1-mingw32-bin.tar.gz
+    * mingw-runtime (dev and dll):
+          o mingwrt-3.17-mingw32-dll.tar.gz
+          o mingwrt-3.17-mingw32-dev.tar.gz
+    * w32api
+          o w32api-3.14-mingw32-dev.tar.gz
+    * required runtime libraries for GCC (gmp, libiconv, MPFR and pthreads):
+          o gmp-4.2.4-mingw32-dll.tar.gz
+          o libiconv-1.13.1–1-mingw32-dll-2.tar.lzma
+          o mpfr-2.4.1-mingw32-dll.tar.gz
+          o pthreads-w32–2.8.0-mingw32-dll.tar.gz
+    * gcc-core (bin and dll):
+          o gcc-core-4.4.0-mingw32-bin.tar.gz
+          o gcc-core-4.4.0-mingw32-dll.tar.gz
+    * make
+          o make-3.81–20090914-mingw32-bin.tar.gz
+
+2. Install MSYS
+
+    http://sourceforge.net/projects/mingw/files/
+
+    MSYS-1.0.11.exe (MSYS Base System)
+    msysDTK-1.0.1.exe (MSYS Suplementary Tools)
+    autoconf-2.63–1-msys-1.0.11-bin.tar.lzma
+    automake-1.11–1-msys-1.0.11-bin.tar.lzma
+    libtool-2.2.7a-1-msys-1.0.11-bin.tar.lzma
+
+    MSYS will ask questions during the installation:
+    Accept Post Install: [y]
+    MinGW Installed? :   [y]
+    path to MinGW:       [c:/MinGW]
+
+3. Get SVN (required for libhtp)
+
+    http://subversion.tigris.org/files/documents/15/45940/svn-win32-1.6.2.zip
+
+    Unpack the zip to c:/msys/1.0/local
+
+4. Get git
+
+    Download portable GIT from this URL:
+    http://code.google.com/p/msysgit/
+
+    - unpack to /msys/1.0
+    - don't forget to edit your ~/.gitconfig to at least give youreself a name :-)
+
+5. Get libpcre
+
+    http://www.pcre.org/
+
+    ./configure --enable-utf8 --disable-cpp --prefix=/mingw
+    make
+    make install
+
+6. Get libyaml
+
+    http://pyyaml.org/wiki/LibYAML
+
+    It does not support mingw compilation. However it works in static mode:
+
+    ./configure --prefix=/mingw CFLAGS="-DYAML_DECLARE_STATIC"
+    make
+    make install
+
+7. Get libpcap
+
+    Guide can be found here:
+    http://mathieu.carbou.free.fr/wiki/index.php?title=Winpcap_/_Libpcap#Installing_Winpcap_in_MinGW
+
+    - Create symlink cc -> gcc
+    - You can use the precompiled version: http://www.winpcap.org/devel.htm
+    - Download and install a coresponding installer package (to have the driver in the system)
+    - Copy includes to c:/mingw/include and libs (.a) to c:/mingw/lib
+    - Rename libwpcap to libpcap
+
+8. Get zlib
+
+    http://sourceforge.net/projects/mingw/files/
+
+    ./configure --prefix=/mingw
+    make
+    make install
+
+9. Get libhtp
+
+    svn co https://libhtp.svn.sourceforge.net/svnroot/libhtp libhtp
+    cd libhtp/trunk
+    aclocal
+    libtoolize --force --automake --copy
+    autoheader
+    automake --add-missing --copy
+    autoconf
+    ./confgure --prefix=/mingw
+    make
+    make install
+
+10. Get and compile Suricata
+
+    git clone git://phalanx.openinfosecfoundation.org/oisf.git
+    cd oisf
+    ./autojunk.sh
+    ./configure CFLAGS="-DYAML_DECLARE_STATIC"
+    make
+
+If everything goes well, you'll end up with suricata.exe in src/.lib. To test it
+you will need libpcre-0.dll and pthreadGC2.dll which you already have somewhere
+under c:/mingw or c:/msys. To try it out:
+
+    - copy the executable and the DLLs to a dedicated directory
+    - get there classification.config and suricata.yaml
+    - edit suricata.yaml (at least set the directories correctly)
+    - determine your eth device UUID in the registry:
+        HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\
+    - now cross your fingers and do:
+        suricata.exe -c suricata.yaml -i \DEVICE\{your device uuid}
