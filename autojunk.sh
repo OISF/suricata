@@ -5,6 +5,6 @@ libtoolize --force --automake --copy
 autoheader
 automake --add-missing --copy
 autoconf
-cd htp/
+cd libhtp/
 autoreconf -i --force
 cd ..

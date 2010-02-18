@@ -754,7 +754,7 @@ int main_dir(int argc, char** argv) {
 /**
  * Entry point; runs a bunch of tests and exits.
  */
-int main_tests(int argc, char** argv) {
+int main(int argc, char** argv) {
     char buf[1025];
     int tests = 0, failures = 0;
 
@@ -817,7 +817,6 @@ int main_tests(int argc, char** argv) {
 
     htp_config_set_generate_request_uri_normalized(cfg, 1);
 
-    /*
     RUN_TEST(test_get, cfg);
     RUN_TEST(test_apache_header_parsing, cfg);
     RUN_TEST(test_post_urlencoded, cfg);
@@ -835,9 +834,8 @@ int main_tests(int argc, char** argv) {
     RUN_TEST(test_connect, cfg);
     RUN_TEST(test_connect_complete, cfg);
     RUN_TEST(test_connect_extra, cfg);
-     */
 
-    RUN_TEST(test_misc, cfg);
+    //RUN_TEST(test_misc, cfg);
 
     printf("Tests: %i\n", tests);
     printf("Failures: %i\n", failures);
@@ -1031,6 +1029,7 @@ int main_utf8_decoder_tests(int argc, char** argv) {
     htp_config_destroy(cfg); \
     bstr_free(expected); \
     bstr_free(input);
+
 
 int main_path_tests(int argc, char** argv) {
     htp_cfg_t *cfg = NULL;
@@ -1364,121 +1363,3 @@ int main_path_tests(int argc, char** argv) {
     printf("\n");
     printf("Total tests: %i, %i failure(s).\n", tests, failures);
 }
-
-int main_urlenp_tests(int argc, char** argv) {
-    //int main(int argc, char** argv) {
-    htp_urlenp_t *urlenp = NULL;
-
-    urlenp = htp_urlenp_create();
-    //parts[nput = "A=1&B=2&C=&=4&=";
-    //htp_urlenp_parse_complete(urlenp, input, strlen(input));
-
-    unsigned char *i1 = "A=01234567";
-    unsigned char *i2 = "89&BB";
-
-    htp_urlenp_parse_partial(urlenp, i1, strlen(i1));
-    htp_urlenp_parse_partial(urlenp, i2, strlen(i2));
-    htp_urlenp_finalize(urlenp);
-
-    htp_urlenp_destroy(urlenp);
-
-    /*
-    bstr_builder_t *bb = bstr_builder_create();
-    bstr_builder_append_cstr(bb, "|123|");
-    bstr_builder_append_cstr(bb, "|456|");
-    bstr_builder_append_cstr(bb, "|789|");
-    bstr *b = bstr_builder_to_str(bb);
-    fprint_raw_data(stderr, __FUNCTION__, bstr_ptr(b), bstr_len(b));
-     */
-}
-
-int main_multipart1(int argc, char** argv) {
-    //int main(int argc, char** argv) {
-    htp_mpartp_t *mpartp = NULL;
-
-    mpartp = htp_mpartp_create("BBB");
-
-    unsigned char *i1 = "x0000x\n--BBB\nx1111x\n--\nx2222x\n--";
-    unsigned char *i2 = "BBB\nx3333x\n--B";
-    unsigned char *i3 = "B\nx4444x\n--B";
-    unsigned char *i4 = "B\n--BBB\n\nx5555x\r";
-    unsigned char *i5 = "\n--x6666x\r";
-    unsigned char *i6 = "-";
-    unsigned char *i7 = "-";
-
-    htp_mpartp_parse(mpartp, i1, strlen(i1));
-    htp_mpartp_parse(mpartp, i2, strlen(i2));
-    htp_mpartp_parse(mpartp, i3, strlen(i3));
-    htp_mpartp_parse(mpartp, i4, strlen(i4));
-    htp_mpartp_parse(mpartp, i5, strlen(i5));
-    htp_mpartp_parse(mpartp, i6, strlen(i6));
-    htp_mpartp_parse(mpartp, i7, strlen(i7));
-    htp_mpartp_finalize(mpartp);
-
-    /*
-       "x0000x"
-       "x1111x\n--\nx2222x"
-       "x3333x"
-       "\n--B"
-       "B\nx4444x"
-       "\n--B"
-       "B" "\nx5555x"
-       "\r"
-       "\n--x6666x"
-     */
-
-    htp_mpartp_destroy(mpartp);
-}
-
-//int main_multipart2(int argc, char** argv) {
-int main(int argc, char** argv) {
-    htp_mpartp_t *mpartp = NULL;
-
-    mpartp = htp_mpartp_create("---------------------------41184676334");
-
-    unsigned char *parts[999];
-    int i = 1;
-    parts[i++] = "-----------------------------41184676334\r\n";
-    parts[i++] = "Content-Disposition: form-data;\n name=\"field1\"\r\n";
-    parts[i++] = "\r\n";
-    parts[i++] = "0123456789\r\n-";
-    parts[i++] = "-------------";
-    parts[i++] = "---------------41184676334\r\n";
-    parts[i++] = "Content-Disposition: form-data;\n name=\"field3\"\r\n";
-    parts[i++] = "\r\n";
-    parts[i++] = "0123456789\r\n-";
-    parts[i++] = "-------------";
-    parts[i++] = "--------------X\r\n";
-    parts[i++] = "-----------------------------41184676334\r\n";
-    parts[i++] = "Content-Disposition: form-data;\n";
-    parts[i++] = " ";
-    parts[i++] = "name=\"field2\"\r\n";
-    parts[i++] = "\r\n";
-    parts[i++] = "9876543210\r\n";
-    parts[i++] = "-----------------------------41184676334\r\n";
-    parts[i++] = "Content-Disposition: form-data; name=\"file1\"; filename=\"New Text Document.txt\"\r\nContent-Type: text/plain\r\n\r\n";
-    parts[i++] = "1FFFFFFFFFFFFFFFFFFFFFFFFFFF\r\n";
-    parts[i++] = "2FFFFFFFFFFFFFFFFFFFFFFFFFFE\r";
-    parts[i++] = "3FFFFFFFFFFFFFFFFFFFFFFFFFFF\r\n4FFFFFFFFFFFFFFFFFFFFFFFFF123456789";
-    parts[i++] = "\r\n";
-    parts[i++] = "-----------------------------41184676334\r\n";
-    parts[i++] = "Content-Disposition: form-data; name=\"file2\"; filename=\"New Text Document.txt\"\r\n";
-    parts[i++] = "Content-Type: text/plain\r\n";
-    parts[i++] = "\r\n";
-    parts[i++] = "FFFFFFFFFFFFFFFFFFFFFFFFFFFZ\r\n";
-    parts[i++] = "-----------------------------41184676334--\r\n";
-    parts[i++] = NULL;
-
-    i = 1;
-    for (;;) {
-        if (parts[i] == NULL) break;
-        htp_mpartp_parse(mpartp, parts[i], strlen(parts[i]));
-        i++;
-    }
-
-    htp_mpartp_finalize(mpartp);
-
-    htp_mpartp_destroy(mpartp);
-}
-
-

@@ -80,6 +80,7 @@ void htp_tx_destroy(htp_tx_t *tx) {
         bstr_free(tx->parsed_uri_incomplete->path);
         bstr_free(tx->parsed_uri_incomplete->query);
         bstr_free(tx->parsed_uri_incomplete->fragment);
+
         free(tx->parsed_uri_incomplete);
     }
 

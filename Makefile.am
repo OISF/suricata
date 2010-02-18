@@ -6,7 +6,7 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml \
 	doc/AUTHORS doc/GITGUIDE doc/INSTALL doc/NEWS \
 	doc/README doc/TODO
 if BUILD_LIBHTP
- HTP_DIR = htp
+ HTP_DIR = libhtp
 endif
 SUBDIRS = $(HTP_DIR) src
 

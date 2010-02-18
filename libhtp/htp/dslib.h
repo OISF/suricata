@@ -15,12 +15,6 @@
 #ifndef _DSLIB_H
 #define	_DSLIB_H
 
-typedef struct list_t list_t;
-typedef struct list_array_t list_array_t;
-typedef struct list_linked_element_t list_linked_element_t;
-typedef struct list_linked_t list_linked_t;
-typedef struct table_t table_t;
-
 #include "bstr.h"
 
 // IMPORTANT This library is used internally by the parser and you should
@@ -54,6 +48,13 @@ typedef struct table_t table_t;
     void (*iterator_reset)(list_t *); \
     void *(*iterator_next)(list_t *); \
     void (*destroy)(list_t *)
+
+typedef struct list_t list_t;
+typedef struct list_array_t list_array_t;
+typedef struct list_linked_element_t list_linked_element_t;
+typedef struct list_linked_t list_linked_t;
+
+typedef struct table_t table_t;
 
 struct list_t {
     LIST_COMMON;

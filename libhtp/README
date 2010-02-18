@@ -48,7 +48,7 @@ The installation process should be as simple as:
 
   $ ./configure
   $ make
-  $ sudo make install
+  # make install
 
  | NOTE    If you already have an early 0.2.x version installed, you must
  |         uninstall it before proceeding. Initially /usr was used for the

@@ -97,8 +97,8 @@ int htp_process_request_header_generic(htp_connp_t *connp) {
         bstr_add_str_noex(h_existing->value, h->value);
 
         // The header is no longer needed
-        bstr_free(h->name);
-        bstr_free(h->value);
+        free(h->name);
+        free(h->value);
         free(h);
 
         // Keep track of same-name headers

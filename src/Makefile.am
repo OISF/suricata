@@ -192,8 +192,8 @@ INCLUDES= $(all_includes)
 suricata_LDFLAGS = $(all_libraries)
 
 if BUILD_LIBHTP
-suricata_LDADD = $(top_builddir)/htp/htp/libhtp.la
-INCLUDES += -I$(top_builddir)/htp
+suricata_LDADD = $(top_builddir)/libhtp/htp/libhtp.la
+INCLUDES += -I$(top_builddir)/libhtp
 endif
 
 #suricata_CFLAGS = -Wall -fno-strict-aliasing 

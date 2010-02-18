@@ -38,12 +38,10 @@ typedef struct htp_urldecoder_t htp_urldecoder_t;
 #include "dslib.h"
 #include "hooks.h"
 #include "htp_decompressors.h"
-#include "htp_urlencoded.h"
-#include "htp_multipart.h"
 
 // -- Defines -------------------------------------------------------------------------------------
 
-#define HTP_BASE_VERSION_TEXT	"Trunk"
+#define HTP_BASE_VERSION_TEXT	"0.2.x"
 
 #define HTP_ERROR              -1
 #define HTP_OK                  0
@@ -1108,7 +1106,6 @@ void htp_log(htp_connp_t *connp, const char *file, int line, int level, int code
 void htp_print_log(FILE *stream, htp_log_t *log);
 
 void fprint_raw_data(FILE *stream, const char *name, unsigned char *data, size_t len);
-void fprint_raw_data_ex(FILE *stream, const char *name, unsigned char *data, size_t offset, size_t len);
 
 char *htp_connp_in_state_as_string(htp_connp_t *connp);
 char *htp_connp_out_state_as_string(htp_connp_t *connp);

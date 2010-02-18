@@ -589,18 +589,18 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
 
     #we did not specify non-bundled-htp so use the built-in.
     else
-    if test -d "htp"; then
+    if test -d "libhtp"; then
     echo "Going to try and build the bundled htp in htp/"
     else
     echo
-    echo "   ERROR! htp/ dir not found in source"
+    echo "   ERROR! libhtp/ dir not found in source"
     echo
     exit 1
     fi
     fi
 
    #even if we are using an installed htp lib we still need to gen Makefiles inside of htp
-   AC_CONFIG_SUBDIRS([htp])
+   AC_CONFIG_SUBDIRS([libhtp])
    AM_CONDITIONAL([BUILD_LIBHTP], [test "$enable_non_bundled_htp" = "no"])
 
 # enable CUDA output
@@ -645,5 +645,5 @@ AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
 
-AC_CONFIG_FILES([htp/Makefile htp/htp/Makefile Makefile src/Makefile])
+AC_CONFIG_FILES([libhtp/Makefile libhtp/htp/Makefile Makefile src/Makefile])
 AC_OUTPUT

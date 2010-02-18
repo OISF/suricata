@@ -15,14 +15,9 @@
 #ifndef _BSTR_H
 #define	_BSTR_H
 
-typedef struct bstr_t bstr_t;
-typedef void * bstr;
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "bstr_builder.h"
 
 // IMPORTANT This binary string library is used internally by the parser and you should
 //           not rely on it in your code. The implementation may change.
@@ -31,35 +26,10 @@ typedef void * bstr;
 //           - Add a function that wraps an existing data
 //           - Support Unicode bstrings
 
-struct bstr_t {
-    /** The length of the string stored in the buffer. */
-    size_t len;
-
-    /** The current size of the buffer. If the buffer is bigger than the
-     *  string then it will be able to expand without having to reallocate.
-     */
-    size_t size;
-
-    /** Optional buffer pointer. If this pointer is NUL (as it currently is
-     *  in virtually all cases, the string buffer will immediatelly follow
-     *  this structure. If the pointer is not NUL, it points to the actual
-     *  buffer used, and there's no data following this structure.
-     */
-    char *ptr;
-};
-
-
-// Defines
-
-#define bstr_len(X) ((*(bstr_t *)(X)).len)
-#define bstr_size(X) ((*(bstr_t *)(X)).size)
-#define bstr_ptr(X) ( ((*(bstr_t *)(X)).ptr == NULL) ? (char *)((char *)(X) + sizeof(bstr_t)) : (char *)(*(bstr_t *)(X)).ptr )
-
-
-// Functions
+typedef void * bstr;
 
 bstr *bstr_alloc(size_t newsize);
-void bstr_free(bstr *s);
+void  bstr_free(bstr *s);
 bstr *bstr_expand(bstr *s, size_t newsize);
 bstr *bstr_cstrdup(char *);
 bstr *bstr_memdup(char *data, size_t len);
@@ -99,7 +69,28 @@ void bstr_len_adjust(bstr *s, size_t newlen);
 
 char bstr_char_at(bstr *s, size_t pos);
 
+typedef struct bstr_t bstr_t;
 
+struct bstr_t {
+    /** The length of the string stored in the buffer. */
+    size_t len;
+
+    /** The current size of the buffer. If the buffer is bigger than the
+     *  string then it will be able to expand without having to reallocate.
+     */
+    size_t size;
+
+    /** Optional buffer pointer. If this pointer is NUL (as it currently is
+     *  in virtually all cases, the string buffer will immediatelly follow
+     *  this structure. If the pointer is not NUL, it points to the actual
+     *  buffer used, and there's no data following this structure.
+     */
+    char *ptr;
+};
+
+#define bstr_len(X) ((*(bstr_t *)(X)).len)
+#define bstr_size(X) ((*(bstr_t *)(X)).size)
+#define bstr_ptr(X) ( ((*(bstr_t *)(X)).ptr == NULL) ? (char *)((char *)(X) + sizeof(bstr_t)) : (char *)(*(bstr_t *)(X)).ptr )
 
 #endif	/* _BSTR_H */
 
