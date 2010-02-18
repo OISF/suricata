@@ -1,7 +1,8 @@
 noinst_HEADERS = action-globals.h \
-	app-layer-nbss.h debug.h decode-events.h \
+    app-layer-nbss.h app-layer-dcerpc-common.h \
+    debug.h decode-events.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
-	suricata-common.h threadvars.h
+	suricata-common.h threadvars.h util-binsearch.h
 bin_PROGRAMS = suricata
 suricata_SOURCES = suricata.c suricata.h \
 runmodes.c runmodes.h \
@@ -193,7 +194,7 @@ suricata_LDFLAGS = $(all_libraries)
 
 if BUILD_LIBHTP
 suricata_LDADD = $(top_builddir)/libhtp/htp/libhtp.la
-INCLUDES += -I$(top_builddir)/libhtp
+INCLUDES += -I$(top_srcdir)/libhtp
 endif
 
 #suricata_CFLAGS = -Wall -fno-strict-aliasing 

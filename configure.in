@@ -48,7 +48,6 @@ AC_INIT(configure.in)
     AC_PROG_INSTALL
     AC_PROG_LN_S
     AC_PROG_MAKE_SET
-    AC_PROG_RANLIB
 
 # Checks for libraries.
 
@@ -586,17 +585,6 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     echo
     exit 1
     fi
-
-    #we did not specify non-bundled-htp so use the built-in.
-    else
-    if test -d "libhtp"; then
-    echo "Going to try and build the bundled htp in htp/"
-    else
-    echo
-    echo "   ERROR! libhtp/ dir not found in source"
-    echo
-    exit 1
-    fi
     fi
 
    #even if we are using an installed htp lib we still need to gen Makefiles inside of htp
@@ -645,5 +633,4 @@ AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
 
-AC_CONFIG_FILES([libhtp/Makefile libhtp/htp/Makefile Makefile src/Makefile])
-AC_OUTPUT
+AC_OUTPUT(Makefile src/Makefile)

@@ -1,8 +1,6 @@
-
 SUBDIRS= $(GENERIC_LIBRARY_NAME) test
 
-DIST_SUBDIRS = $(GENERIC_LIBRARY_NAME)
+EXTRA_DIST = ChangeLog COPYING LICENSE LIBHTP_LICENSING_EXCEPTION docs/doxygen.conf docs/QUICK_START
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = htp.pc
-
