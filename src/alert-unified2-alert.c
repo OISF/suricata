@@ -375,12 +375,12 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         fflush(aun->file_ctx->fp);
 
         aun->file_ctx->size_current += len;
+        aun->file_ctx->alerts++;
 
         Unified2PacketTypeAlert(t, p, data);
         SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
 
-    aun->file_ctx->alerts += p->alerts.cnt;
 
     return 0;
 }

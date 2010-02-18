@@ -227,11 +227,11 @@ TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         /* force writing to disk so barnyard will not read half
          * written records and choke. */
         fflush(aun->file_ctx->fp);
-        SCMutexUnlock(&aun->file_ctx->fp_mutex);
 
         aun->file_ctx->size_current += sizeof(hdr);
+        aun->file_ctx->alerts++;
+        SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
-    aun->file_ctx->alerts += p->alerts.cnt;
 
     return TM_ECODE_OK;
 }
