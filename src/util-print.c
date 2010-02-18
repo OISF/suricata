@@ -22,7 +22,7 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
         if (isprint(buf[u])) {
             bstr_add_mem(uri_buf, (char *)&buf[u], 1);
         } else {
-            sprintf(temp, "\\x%02X", buf[u]);
+            snprintf(temp, sizeof(temp), "\\x%02X", buf[u]);
             bstr_add_cstr(uri_buf, temp);
         }
     }
