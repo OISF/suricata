@@ -99,7 +99,10 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         goto end;
     }
 
-    if ( !(htp_state->flags & HTP_FLAG_NEW_REQUEST)) {
+    if (htp_state->connp == NULL)
+        goto end;
+
+    if (!(htp_state->flags & HTP_FLAG_NEW_REQUEST)) {
         SCLogDebug("no new http request , so no request logging");
         goto end;
     }
@@ -196,7 +199,10 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         goto end;
     }
 
-    if ( !(htp_state->flags & HTP_FLAG_NEW_REQUEST)) {
+    if (htp_state->connp == NULL)
+        goto end;
+
+    if (!(htp_state->flags & HTP_FLAG_NEW_REQUEST)) {
         SCLogDebug("no new http request , so no request logging");
         goto end;
     }
