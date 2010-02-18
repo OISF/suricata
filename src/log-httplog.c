@@ -93,6 +93,10 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     /* check if we have HTTP state or not */
     SCMutexLock(&p->flow->m);
+    uint16_t proto = AppLayerGetProtoFromPacket(p);
+    if (proto != ALPROTO_HTTP)
+        goto end;
+
     HtpState *htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
     if (htp_state == NULL) {
         SCLogDebug("no http state, so no request logging");
@@ -193,6 +197,10 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     /* check if we have HTTP state or not */
     SCMutexLock(&p->flow->m);
+    uint16_t proto = AppLayerGetProtoFromPacket(p);
+    if (proto != ALPROTO_HTTP)
+        goto end;
+
     HtpState *htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
     if (htp_state == NULL) {
         SCLogDebug("no http state, so no request logging");
