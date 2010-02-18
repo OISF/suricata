@@ -324,7 +324,6 @@ static int SCPerfParseTBCounterInterval(SCPerfCounter *pc, char *interval)
 
     pc->type_q->total_secs = ((pc->type_q->hours * 60 * 60) +
                               (pc->type_q->minutes * 60) + pc->type_q->seconds);
-    TimeGet(&pc->type_q->ts);
 
     free(regex);
     return 0;
@@ -530,6 +529,8 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
     double d_temp = 0;
     uint64_t ui64_temp = 0;
 
+    struct timeval curr_ts;
+
     uint64_t u = 0;
 
     pc = pcae->pc;
@@ -546,11 +547,18 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
 
                 *((uint64_t *)pc->value->cvalue) = ui64_temp;
             } else if (pc->type_q->type & SC_PERF_TYPE_Q_TIMEBASED) {
+                /* we have a timebased counter.  Awesome.  Time for some more processing */
+                TimeGet(&curr_ts);
+                pc->type_q->tbc_secs += ((curr_ts.tv_sec + curr_ts.tv_usec / 1000000.0) -
+                                         (pcae->ts.tv_sec + pcae->ts.tv_usec / 1000000.0));
+
                 /* special treatment for timebased counters.  We add instead of
                  * copying to the global counters.  The job of resetting the
                  * global counters is done by the output function */
                 *((uint64_t *)pc->value->cvalue) += ui64_temp;
                 pcae->ui64_cnt = 0;
+                /* reset it to the current time */
+                TimeGet(&pcae->ts);
             } else {
                 *((uint64_t *)pc->value->cvalue) = ui64_temp;
             }
@@ -571,11 +579,18 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
 
                 *((double *)pc->value->cvalue) = d_temp;
             } else if (pc->type_q->type & SC_PERF_TYPE_Q_TIMEBASED) {
+                /* we have a timebased counter.  Awesome.  Time for some more processing */
+                TimeGet(&curr_ts);
+                pc->type_q->tbc_secs += ((curr_ts.tv_sec + curr_ts.tv_usec / 1000000.0) -
+                                         (pcae->ts.tv_sec + pcae->ts.tv_usec / 1000000.0));
+
                 /* special treatment for timebased counters.  We add instead of
                  * copying to the global counters.  The job of resetting the
                  * global counters is done by the output function */
                 *((double *)pc->value->cvalue) += d_temp;
                 pcae->d_cnt = 0;
+                /* reset it to the current time */
+                TimeGet(&pcae->ts);
             } else {
                 *((double *)pc->value->cvalue) = d_temp;
             }
@@ -604,8 +619,6 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
  */
 static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op)
 {
-    struct timeval curr_ts;
-    int elapsed_secs = 0;
     double divisor = 0;
 
     switch (pc->value->type) {
@@ -623,16 +636,11 @@ static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op
     if ( !(pc->type_q->type & SC_PERF_TYPE_Q_TIMEBASED))
         return;
 
-    /* we have a timebased counter.  Awesome.  Time for some more processing */
-    TimeGet(&curr_ts);
-    elapsed_secs = ((curr_ts.tv_sec + curr_ts.tv_usec / 1000000.0) -
-                    (pc->type_q->ts.tv_sec + pc->type_q->ts.tv_usec / 1000000.0));
+    //if (pc->type_q->tbc_secs < pc->type_q->total_secs)
+    //    return;
 
-    if (elapsed_secs < pc->type_q->total_secs)
-        return;
-
-    divisor = elapsed_secs/pc->type_q->total_secs;
-    divisor += ((double)(elapsed_secs % pc->type_q->total_secs)/
+    divisor = pc->type_q->tbc_secs/pc->type_q->total_secs;
+    divisor += ((double)(pc->type_q->tbc_secs % pc->type_q->total_secs)/
                 pc->type_q->total_secs);
 
     switch (pc->value->type) {
@@ -646,8 +654,7 @@ static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op
             break;
     }
 
-    /* reset the timestamp to the current time */
-    TimeGet(&pc->type_q->ts);
+    pc->type_q->tbc_secs = 0;
     /* reset the local counter back to 0 */
     memset(pc->value->cvalue, 0, pc->value->size);
 
@@ -1206,6 +1213,8 @@ SCPerfCounterArray *SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
     while ((pc != NULL) && (pc->id <= e_id)) {
         pca->head[i].pc = pc;
         pca->head[i].id = pc->id;
+        if (pc->type_q->type & SC_PERF_TYPE_Q_TIMEBASED)
+            TimeGet(&pca->head[i].ts);
         pc = pc->next;
         i++;
     }
@@ -2088,10 +2097,10 @@ static int SCPerfTestIntervalQual16()
     SCPerfCounterAddDouble(id1, pca, 5);
     SCPerfCounterAddDouble(id1, pca, 6);
 
-    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
-
     /* forward the time 6 seconds */
     TimeSetIncrementTime(6);
+
+    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
 
     SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
 
@@ -2122,14 +2131,95 @@ static int SCPerfTestIntervalQual17()
     SCPerfCounterAddDouble(id1, pca, 5);
     SCPerfCounterAddDouble(id1, pca, 6);
 
+    /* forward the time 3 seconds */
+    TimeSetIncrementTime(3);
+
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
+
+    SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
+
+    return (d_temp == 1050.0);
+}
+
+static int SCPerfTestIntervalQual18()
+{
+    ThreadVars tv;
+    SCPerfCounterArray *pca = NULL;
+    double d_temp = 0;
+    int result = 1;
+
+    uint16_t id1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    id1 = SCPerfRegisterIntervalCounter("t1", "c1", SC_PERF_TYPE_DOUBLE, NULL,
+                                        &tv.sc_perf_pctx, "3s");
+
+    pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+
+    SCPerfCounterAddDouble(id1, pca, 1);
+    SCPerfCounterAddDouble(id1, pca, 2);
+    SCPerfCounterAddDouble(id1, pca, 3);
+    SCPerfCounterAddDouble(id1, pca, 4);
+    SCPerfCounterAddDouble(id1, pca, 5);
+    SCPerfCounterAddDouble(id1, pca, 6);
+
+    /* forward the time 3 seconds */
+    TimeSetIncrementTime(3);
+
+    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
+
+    SCPerfCounterAddDouble(id1, pca, 1);
+    SCPerfCounterAddDouble(id1, pca, 2);
+    SCPerfCounterAddDouble(id1, pca, 3);
+
+    /* forward the time 3 seconds */
+    TimeSetIncrementTime(3);
+
+    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
+
+    SCPerfCounterAddDouble(id1, pca, 3);
+    SCPerfCounterAddDouble(id1, pca, 3);
 
     /* forward the time 3 seconds */
     TimeSetIncrementTime(3);
 
     SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
 
-    return (d_temp == 21);
+    result &= (d_temp == 13.5);
+
+    SCPerfCounterAddDouble(id1, pca, 1);
+    SCPerfCounterAddDouble(id1, pca, 2);
+    SCPerfCounterAddDouble(id1, pca, 3);
+
+    /* forward the time 3 seconds */
+    TimeSetIncrementTime(3);
+
+    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
+
+    SCPerfCounterAddDouble(id1, pca, 1);
+    SCPerfCounterAddDouble(id1, pca, 2);
+    SCPerfCounterAddDouble(id1, pca, 3);
+
+    /* forward the time 1 second */
+    TimeSetIncrementTime(1);
+
+    SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
+
+    result &= (d_temp == 6);
+
+    SCPerfCounterAddDouble(id1, pca, 2);
+
+    /* forward the time 1 second */
+    TimeSetIncrementTime(1);
+
+    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
+
+    SCPerfOutputCalculateCounterValue(tv.sc_perf_pctx.head, &d_temp);
+
+    result &= (d_temp == 12.0);
+
+    return result;
 }
 
 void SCPerfRegisterTests()
@@ -2152,6 +2242,7 @@ void SCPerfRegisterTests()
     UtRegisterTest("SCPerfTestIntervalQual15", SCPerfTestIntervalQual15, 1);
     UtRegisterTest("SCPerfTestIntervalQual16", SCPerfTestIntervalQual16, 1);
     UtRegisterTest("SCPerfTestIntervalQual17", SCPerfTestIntervalQual17, 1);
+    UtRegisterTest("SCPerfTestIntervalQual18", SCPerfTestIntervalQual18, 1);
 
     return;
 }
