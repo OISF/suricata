@@ -144,10 +144,11 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
         } else if (strncmp(de_ctx_profile, "custom", 4) == 0) {
             profile = ENGINE_PROFILE_CUSTOM;
         }
-        SCLogInfo("Profile for detection engine groups is \"%s\"", de_ctx_profile);
+
+        SCLogDebug("Profile for detection engine groups is \"%s\"", de_ctx_profile);
     } else {
-        SCLogInfo("Profile for detection engine groups not provided "
-                  "at suricata.yaml. Using default (\"medium\").");
+        SCLogDebug("Profile for detection engine groups not provided "
+                "at suricata.yaml. Using default (\"medium\").");
     }
 
     opt = NULL;

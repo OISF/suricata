@@ -342,7 +342,10 @@ void StreamTcpFreeConfig(char quiet)
     }
     SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 
-    SCLogInfo("Max memuse of stream engine %"PRIu32" (in use %"PRIu32")", stream_memuse_max, stream_memuse);
+    if (!quiet) {
+        SCLogInfo("Max memuse of stream engine %"PRIu32" (in use %"PRIu32")",
+            stream_memuse_max, stream_memuse);
+    }
     SCMutexDestroy(&ssn_pool_mutex);
 }
 

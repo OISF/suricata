@@ -410,7 +410,7 @@ int UtilSpmBasicSearchTest01() {
     uint8_t *needle = (uint8_t *)"oPqRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -424,7 +424,7 @@ int UtilSpmBasicSearchNocaseTest01() {
     uint8_t *needle = (uint8_t *)"OpQrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchNocaseWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -438,7 +438,7 @@ int UtilSpmBs2bmSearchTest01() {
     uint8_t *needle = (uint8_t *)"oPqRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -452,7 +452,7 @@ int UtilSpmBs2bmSearchNocaseTest01() {
     uint8_t *needle = (uint8_t *)"OpQrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmNocaseWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -466,7 +466,7 @@ int UtilSpmBoyerMooreSearchTest01() {
     uint8_t *needle = (uint8_t *)"oPqRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -480,7 +480,7 @@ int UtilSpmBoyerMooreSearchNocaseTest01() {
     uint8_t *needle = (uint8_t *)"OpQrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -492,7 +492,7 @@ int UtilSpmBasicSearchTest02() {
     uint8_t *needle = (uint8_t *)"oPQRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -503,7 +503,7 @@ int UtilSpmBasicSearchNocaseTest02() {
     uint8_t *needle = (uint8_t *)"OpZrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchNocaseWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -514,7 +514,7 @@ int UtilSpmBs2bmSearchTest02() {
     uint8_t *needle = (uint8_t *)"oPQRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -525,7 +525,7 @@ int UtilSpmBs2bmSearchNocaseTest02() {
     uint8_t *needle = (uint8_t *)"OpZrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmNocaseWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -536,7 +536,7 @@ int UtilSpmBoyerMooreSearchTest02() {
     uint8_t *needle = (uint8_t *)"oPQRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -547,7 +547,7 @@ int UtilSpmBoyerMooreSearchNocaseTest02() {
     uint8_t *needle = (uint8_t *)"OpZrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
-    printf("found: %s\n", found);
+    //printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
