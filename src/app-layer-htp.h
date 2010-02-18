@@ -14,19 +14,21 @@
 
 #include <htp/htp.h>
 
-#define HTP_FLAG_STATE_OPEN     0x01    /**< Flag to indicate that HTTP
+#define HTP_FLAG_STATE_OPEN         0x01    /**< Flag to indicate that HTTP
                                              connection is open */
-#define HTP_FLAG_STATE_CLOSED   0x02    /**< Flag to indicate that HTTP
+#define HTP_FLAG_STATE_CLOSED       0x02    /**< Flag to indicate that HTTP
                                              connection is closed */
-#define HTP_FLAG_STATE_DATA     0x04    /**< Flag to indicate that HTTP
+#define HTP_FLAG_STATE_DATA         0x04    /**< Flag to indicate that HTTP
                                              connection needs more data */
-#define HTP_FLAG_STATE_ERROR    0x08    /**< Flag to indicate that an error
+#define HTP_FLAG_STATE_ERROR        0x08    /**< Flag to indicate that an error
                                              has been occured on HTTP
                                              connection */
-
-#define HTP_NEW_BODY_SET        0x10    /**< Flag to indicate that HTTP
+#define HTP_FLAG_NEW_BODY_SET       0x10    /**< Flag to indicate that HTTP
                                              has parsed a new body (for
                                              pcre) */
+#define HTP_FLAG_NEW_REQUEST        0x20    /**< Flag to indicate that we have
+                                                 a new HTTP requesta and we
+                                                 need to log it */
 
 
 enum {
@@ -66,11 +68,12 @@ typedef struct Body_ {
 
 typedef struct HtpState_ {
 
-    htp_connp_t *connp;       /**< Connection parser structure for
-                                   each connection */
+    htp_connp_t *connp;         /**< Connection parser structure for
+                                     each connection */
     uint8_t flags;
-    list_t *recent_in_tx;     /**< Point to the new received HTTP request */
-    HtpBody body;             /**< Body of the request (if any) */
+    HtpBody body;               /**< Body of the request (if any) */
+    uint8_t new_in_tx_index;    /**< Index to indicate that after this we have
+                                     new requests to log */
 
 } HtpState;
 

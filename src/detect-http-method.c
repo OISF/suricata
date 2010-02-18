@@ -71,6 +71,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                           Signature *s, SigMatch *m)
 {
     SCEnter();
+    uint8_t i;
     DetectHttpMethodData *data = (DetectHttpMethodData *)m->ctx;
     HtpState *hs = (HtpState *)state;
     htp_tx_t *tx = NULL;
@@ -82,9 +83,12 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     SCMutexLock(&f->m);
-    list_iterator_reset(hs->recent_in_tx);
+    for (i = hs->new_in_tx_index; i < list_size(hs->connp->conn->transactions); i++)
+    {
+        tx = list_get(hs->connp->conn->transactions, i);
+        if (tx == NULL)
+            continue;
 
-    while ((tx = list_iterator_next(hs->recent_in_tx)) != NULL) {
 
         /* Compare the numeric methods if they are known, otherwise compare
          * the raw values.

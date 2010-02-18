@@ -310,7 +310,6 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 {
     SCEnter();
 
-    Signature *prevsig = NULL, *sig;
     ConfNode *rule_files;
     ConfNode *file = NULL;
     int ret = 0;
@@ -320,39 +319,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     int sigtotal = 0;
     char *sfile = NULL;
 
-    /* The next 3 rules handle HTTP header capture. */
-
-    /* http_uri -- for uricontent */
-    sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP GET URI cap\"; flow:to_server,established; content:\"GET \"; depth:4; pcre:\"/^GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:1;)");
-    if (sig == NULL)
-        ret = -1;
-
-    prevsig = sig;
-    de_ctx->sig_list = sig;
-
-    sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP POST URI cap\"; flow:to_server,established; content:\"POST \"; depth:5; pcre:\"/^POST (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; noalert; sid:2;)");
-    if (sig == NULL)
-        ret = -1;
-
-    prevsig->next = sig;
-    prevsig = sig;
-
-    /* http_host -- for the log-httplog module */
-    sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; flow:to_server,established; content:\"|0d 0a|Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:3;)");
-    if (sig == NULL)
-        ret = -1;
-
-    prevsig->next = sig;
-    prevsig = sig;
-
-    /* http_ua -- for the log-httplog module */
-    sig = SigInit(de_ctx, "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP UA cap\"; flow:to_server,established; content:\"|0d 0a|User-Agent:\"; pcre:\"/^User-Agent: (?P<pkt_http_ua>.*)\\r\\n/m\"; noalert; sid:4;)");
-    if (sig == NULL)
-        ret = -1;
-
-    prevsig->next = sig;
-
-    /* ok, now let's load signature files from the general config */
+    /* ok, let's load signature files from the general config */
     rule_files = ConfGetNode("rule-files");
     if (rule_files != NULL) {
         TAILQ_FOREACH(file, &rule_files->head, next) {

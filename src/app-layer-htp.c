@@ -64,15 +64,6 @@ static void *HTPStateAlloc(void)
     s->body.operation = HTP_BODY_NONE;
     s->body.pcre_flags = HTP_PCRE_NONE;
 
-    /* Create a list_array of size 8 to store the incoming requests, the size of
-       8 has been chosen as half the size of conn->transactions in the
-       HTP lib. As we are storing only requests here not responses!! */
-    s->recent_in_tx = list_array_create(8);
-    if (s->recent_in_tx == NULL) {
-        SCLogDebug("list_array_create returned NULL");
-        goto error;
-    }
-
     htp_connp_set_user_data(s->connp, (void *)s);
 
 #ifdef DEBUG
@@ -108,10 +99,6 @@ static void HTPStateFree(void *state)
         if (s->connp != NULL) {
             htp_connp_destroy_all(s->connp);
         }
-        if (s->recent_in_tx != NULL) {
-            list_destroy(s->recent_in_tx);
-        }
-
         /* free the list of body chunks */
         if (s->body.nchunks > 0) {
             HtpBodyFree(&s->body);
@@ -170,7 +157,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
-    hstate->flags &= ~HTP_NEW_BODY_SET;
+    hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
 
     /* Open the HTTP connection on receiving the first request */
     if (!(hstate->flags & HTP_FLAG_STATE_OPEN)) {
@@ -199,7 +186,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             }
             hstate->flags |= HTP_FLAG_STATE_ERROR;
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_NEW_BODY_SET;
+            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
             ret = -1;
             break;
         case STREAM_STATE_DATA:
@@ -209,12 +196,12 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             SCLogDebug("CONNECT not supported yet");
             hstate->flags |= HTP_FLAG_STATE_ERROR;
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_NEW_BODY_SET;
+            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
             ret = -1;
             break;
         default:
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_NEW_BODY_SET;
+            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
      }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
@@ -256,7 +243,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
-    hstate->flags &= ~HTP_NEW_BODY_SET;
+    hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
 
     r = htp_connp_res_data(hstate->connp, 0, input, input_len);
     switch(r) {
@@ -274,7 +261,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             }
             hstate->flags = HTP_FLAG_STATE_ERROR;
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_NEW_BODY_SET;
+            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
             ret = -1;
             break;
         case STREAM_STATE_DATA:
@@ -284,12 +271,12 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             SCLogDebug("CONNECT not supported yet");
             hstate->flags = HTP_FLAG_STATE_ERROR;
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_NEW_BODY_SET;
+            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
             ret = -1;
             break;
         default:
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_NEW_BODY_SET;
+            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
      }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
@@ -442,7 +429,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     }
 
     /* set the new chunk flag */
-    hstate->flags |= HTP_NEW_BODY_SET;
+    hstate->flags |= HTP_FLAG_NEW_BODY_SET;
 
     SCReturnInt(HOOK_OK);
 }
@@ -477,12 +464,13 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
 
     HtpState *hstate = (HtpState *)connp->user_data;
     if (hstate == NULL) {
-        /** \todo error condition, what should we return? */
-        SCReturnInt(0);
+        SCReturnInt(HOOK_ERROR);
     }
-
-    list_add(hstate->recent_in_tx, connp->in_tx);
-    SCReturnInt(0);
+    if (! (hstate->flags & HTP_FLAG_NEW_REQUEST)) {
+        hstate->flags |= HTP_FLAG_NEW_REQUEST;
+        hstate->new_in_tx_index = list_size(hstate->connp->conn->transactions) - 1;
+    }
+    SCReturnInt(HOOK_OK);
 }
 
 /**
@@ -494,10 +482,10 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
 static int HTPCallbackResponse(htp_connp_t *connp) {
     SCEnter();
 
+    uint8_t i;
     HtpState *hstate = (HtpState *)connp->user_data;
     if (hstate == NULL) {
-        /** \todo error condition, what should we return? */
-        SCReturnInt(0);
+        SCReturnInt(HOOK_ERROR);
     }
 
     /* Free data when we have a response */
@@ -506,22 +494,15 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     hstate->body.operation = HTP_BODY_RESPONSE;
     hstate->body.pcre_flags = HTP_PCRE_NONE;
 
-    while (list_size(hstate->recent_in_tx) > 0) {
-        htp_tx_t *tx = list_pop(hstate->recent_in_tx);
-        if (tx != NULL) {
-            htp_tx_destroy(tx);
-        }
-    }
-#if 0 /* VJ disabled for now */
     /* Clear the trasactions which are processed by the engine from libhtp.
        This helps in reducing the meory consumptions of libhtp */
-    while (list_size(hstate->connp->conn->transactions) > 0) {
-        htp_tx_t *tx = list_pop(hstate->connp->conn->transactions);
+    for (i = 0; i< hstate->new_in_tx_index; i++) {
+        htp_tx_t *tx = list_get(hstate->connp->conn->transactions, i);
         if (tx != NULL)
             htp_tx_destroy(tx);
     }
-#endif
-    SCReturnInt(0);
+
+    SCReturnInt(HOOK_OK);
 }
 
 /**

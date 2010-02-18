@@ -22,6 +22,9 @@
 
 #include "output.h"
 #include "log-httplog.h"
+#include "app-layer-htp.h"
+#include <htp/dslib.h>
+#include "app-layer.h"
 
 #define DEFAULT_LOG_FILENAME "http.log"
 
@@ -83,88 +86,196 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
 
 TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
+    SCEnter();
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
-    int i;
     char timebuf[64];
+    uint8_t i = 0;
 
-    /* XXX add a better check for this */
-    if (p->http_uri.cnt == 0)
-        return TM_ECODE_OK;
+    /* check if we have HTTP state or not */
+    SCMutexLock(&p->flow->m);
+    HtpState *htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+    if (htp_state == NULL) {
+        SCLogDebug("no http state, so no request logging");
+        goto end;
+    }
 
-    PktVar *pv_hn = PktVarGet(p, "http_host");
-    PktVar *pv_ua = PktVarGet(p, "http_ua");
+    if ( !(htp_state->flags & HTP_FLAG_NEW_REQUEST)) {
+        SCLogDebug("no new http request , so no request logging");
+        goto end;
+    }
+    htp_tx_t *tx = NULL;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     char srcip[16], dstip[16];
-    inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-    inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+    Port sp;
+    Port dp;
+    if ((PKT_IS_TOSERVER(p))) {
+        inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+        inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+        sp = p->sp;
+        dp = p->dp;
+    } else {
+        inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
+        inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
+        sp = p->dp;
+        dp = p->sp;
+    }
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    for (i = 0; i < p->http_uri.cnt; i++) {
+    for (i = htp_state->new_in_tx_index;
+            i < list_size(htp_state->connp->conn->transactions); i++)
+    {
+        tx = list_get(htp_state->connp->conn->transactions, i);
+        if (tx == NULL) {
+            SCLogDebug("tx is NULL not logging !!");
+            continue;
+        }
+
+        SCLogDebug("got a HTTP request and now logging !!");
         /* time */
         fprintf(aft->file_ctx->fp, "%s ", timebuf);
+
         /* hostname */
-        if (pv_hn != NULL) PrintRawUriFp(aft->file_ctx->fp, pv_hn->value, pv_hn->value_len);
-        else fprintf(aft->file_ctx->fp, "<hostname unknown>");
+        if (tx->parsed_uri != NULL &&
+                tx->parsed_uri->hostname != NULL)
+        {
+            PrintRawUriFp(aft->file_ctx->fp,
+                    (uint8_t *)bstr_ptr(tx->parsed_uri->hostname),
+                    bstr_len(tx->parsed_uri->hostname));
+        } else {
+            fprintf(aft->file_ctx->fp, "<hostname unknown>");
+        }
         fprintf(aft->file_ctx->fp, " [**] ");
+
         /* uri */
-        PrintRawUriFp(aft->file_ctx->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
+        if (tx->request_uri != NULL) {
+            PrintRawUriFp(aft->file_ctx->fp,
+                            (uint8_t *)bstr_ptr(tx->request_uri),
+                            bstr_len(tx->request_uri));
+        }
         fprintf(aft->file_ctx->fp, " [**] ");
+
         /* user agent */
-        if (pv_ua != NULL) PrintRawUriFp(aft->file_ctx->fp, pv_ua->value, pv_ua->value_len);
-        else fprintf(aft->file_ctx->fp, "<useragent unknown>");
+        htp_header_t *h_user_agent = table_getc(tx->request_headers, "user-agent");
+        if (h_user_agent != NULL) {
+            PrintRawUriFp(aft->file_ctx->fp,
+                            (uint8_t *)bstr_ptr(h_user_agent->value),
+                            bstr_len(h_user_agent->value));
+        } else {
+            fprintf(aft->file_ctx->fp, "<useragent unknown>");
+        }
+
         /* ip/tcp header info */
-        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
+        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
+                srcip, sp, dstip, dp);
     }
     fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
-    aft->uri_cnt += p->http_uri.cnt;
-    return TM_ECODE_OK;
+    aft->uri_cnt += list_size(htp_state->connp->conn->transactions) -
+                                                    htp_state->new_in_tx_index;
+    htp_state->flags &= ~HTP_FLAG_NEW_REQUEST;
+end:
+    SCMutexUnlock(&p->flow->m);
+    SCReturnUInt(TM_ECODE_OK);
 }
 
 TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
+    SCEnter();
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
-    int i;
     char timebuf[64];
+    uint8_t i = 0;
 
-    /* XXX add a better check for this */
-    if (p->http_uri.cnt == 0)
-        return TM_ECODE_OK;
+    /* check if we have HTTP state or not */
+    SCMutexLock(&p->flow->m);
+    HtpState *htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+    if (htp_state == NULL) {
+        SCLogDebug("no http state, so no request logging");
+        goto end;
+    }
 
-    PktVar *pv_hn = PktVarGet(p, "http_host");
-    PktVar *pv_ua = PktVarGet(p, "http_ua");
+    if ( !(htp_state->flags & HTP_FLAG_NEW_REQUEST)) {
+        SCLogDebug("no new http request , so no request logging");
+        goto end;
+    }
+    htp_tx_t *tx = NULL;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     char srcip[46], dstip[46];
-    inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-    inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+    Port sp;
+    Port dp;
 
+    if ((PKT_IS_TOSERVER(p))) {
+        inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+        inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+        sp = p->sp;
+        dp = p->dp;
+    } else {
+        inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+        inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+        sp = p->dp;
+        dp = p->sp;
+    }
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    for (i = 0; i < p->http_uri.cnt; i++) {
+    for (i = htp_state->new_in_tx_index;
+            i < list_size(htp_state->connp->conn->transactions); i++)
+    {
+        tx = list_get(htp_state->connp->conn->transactions, i);
+        if (tx == NULL) {
+            SCLogDebug("tx is NULL not logging !!");
+            continue;
+        }
+
+        SCLogDebug("got a HTTP request and now logging !!");
         /* time */
         fprintf(aft->file_ctx->fp, "%s ", timebuf);
+
         /* hostname */
-        if (pv_hn != NULL) PrintRawUriFp(aft->file_ctx->fp, pv_hn->value, pv_hn->value_len);
-        else fprintf(aft->file_ctx->fp, "<hostname unknown>");
+        if (tx->parsed_uri != NULL &&
+                tx->parsed_uri->hostname != NULL)
+        {
+            PrintRawUriFp(aft->file_ctx->fp,
+                    (uint8_t *)bstr_ptr(tx->parsed_uri->hostname),
+                    bstr_len(tx->parsed_uri->hostname));
+        } else {
+            fprintf(aft->file_ctx->fp, "<hostname unknown>");
+        }
         fprintf(aft->file_ctx->fp, " [**] ");
+
         /* uri */
-        PrintRawUriFp(aft->file_ctx->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
+        if (tx->request_uri != NULL) {
+            PrintRawUriFp(aft->file_ctx->fp,
+                            (uint8_t *)bstr_ptr(tx->request_uri),
+                            bstr_len(tx->request_uri));
+        }
         fprintf(aft->file_ctx->fp, " [**] ");
+
         /* user agent */
-        if (pv_ua != NULL) PrintRawUriFp(aft->file_ctx->fp, pv_ua->value, pv_ua->value_len);
-        else fprintf(aft->file_ctx->fp, "<useragent unknown>");
+        htp_header_t *h_user_agent = table_getc(tx->request_headers, "user-agent");
+        if (h_user_agent != NULL) {
+            PrintRawUriFp(aft->file_ctx->fp,
+                            (uint8_t *)bstr_ptr(h_user_agent->value),
+                            bstr_len(h_user_agent->value));
+        } else {
+            fprintf(aft->file_ctx->fp, "<useragent unknown>");
+        }
+
         /* ip/tcp header info */
-        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n", srcip, p->sp, dstip, p->dp);
+        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
+                srcip, sp, dstip, dp);
     }
     fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
-    aft->uri_cnt += p->http_uri.cnt;
-    return TM_ECODE_OK;
+    aft->uri_cnt += list_size(htp_state->connp->conn->transactions) -
+                                                    htp_state->new_in_tx_index;
+    htp_state->flags &= ~HTP_FLAG_NEW_REQUEST;
+end:
+    SCMutexUnlock(&p->flow->m);
+    SCReturnUInt(TM_ECODE_OK);
 }
 
 TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)

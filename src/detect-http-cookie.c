@@ -73,6 +73,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     int ret = 0;
+    uint8_t i;
 
     SCMutexLock(&f->m);
     SCLogDebug("got lock %p", &f->m);
@@ -100,9 +101,14 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     htp_tx_t *tx = NULL;
-    list_iterator_reset(htp_state->recent_in_tx);
 
-    while ((tx = list_iterator_next(htp_state->recent_in_tx)) != NULL) {
+    for (i = htp_state->new_in_tx_index;
+            i < list_size(htp_state->connp->conn->transactions); i++)
+    {
+        tx = list_get(htp_state->connp->conn->transactions, i);
+        if (tx == NULL)
+            continue;
+
         htp_header_t *h = NULL;
         h = (htp_header_t *) table_getc(tx->request_headers, "Cookie");
         if (h == NULL) {

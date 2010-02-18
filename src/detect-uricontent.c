@@ -549,6 +549,7 @@ int DetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ct
 uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, void *alstate) {
     SCEnter();
     uint32_t cnt = 0;
+    uint8_t i;
 
     HtpState *htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
@@ -557,10 +558,12 @@ uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_c
     }
 
     htp_tx_t *tx = NULL;
-    list_iterator_reset(htp_state->recent_in_tx);
 
-    while ((tx = list_iterator_next(htp_state->recent_in_tx)) != NULL) {
-        if (tx->request_uri_normalized == NULL)
+   for (i = htp_state->new_in_tx_index;
+            i < list_size(htp_state->connp->conn->transactions); i++)
+    {
+        tx = list_get(htp_state->connp->conn->transactions, i);
+        if (tx == NULL || tx->request_uri_normalized == NULL)
             continue;
 
         cnt += DoDetectAppLayerUricontentMatch(tv, det_ctx, (uint8_t *)
