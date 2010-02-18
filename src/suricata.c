@@ -844,8 +844,6 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    TmThreadPrioSummary("Suricata main()");
-
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
         /* start the dispatcher thread for this module */

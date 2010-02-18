@@ -11,16 +11,16 @@
 #ifdef OS_FREEBSD
 
 #include <sys/thr.h>
-#define PRIO_LOW 20
-#define PRIO_MEDIUM 31
-#define PRIO_HIGH 40
+#define PRIO_LOW 2
+#define PRIO_MEDIUM 0
+#define PRIO_HIGH -2
 
 #elif OS_DARWIN
 
 #include <mach/mach_init.h>
-#define PRIO_LOW 20
-#define PRIO_MEDIUM 31
-#define PRIO_HIGH 40
+#define PRIO_LOW 2
+#define PRIO_MEDIUM 0
+#define PRIO_HIGH -2
 
 #elif OS_WIN32
 
@@ -31,9 +31,9 @@
 #if HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
 #endif
-#define PRIO_LOW 40
-#define PRIO_MEDIUM  50
-#define PRIO_HIGH 60
+#define PRIO_LOW 2
+#define PRIO_MEDIUM  0
+#define PRIO_HIGH -2
 
 #endif /* OS_FREEBSD */
 

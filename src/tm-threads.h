@@ -32,7 +32,7 @@ void TmThreadRemove(ThreadVars *, int);
 TmEcode TmThreadSetCPUAffinity(ThreadVars *, uint16_t);
 TmEcode TmThreadSetThreadPriority(ThreadVars *, int);
 TmEcode TmThreadSetupOptions(ThreadVars *);
-void TmThreadPrioSummary(char *);
+void TmThreadSetPrio(ThreadVars *);
 
 void TmThreadInitMC(ThreadVars *);
 void TmThreadTestThreadUnPaused(ThreadVars *);
