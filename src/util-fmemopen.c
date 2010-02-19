@@ -5,14 +5,8 @@
  *         Based on FMem.c of Alexandre Flori (2008/10/17 AF)
  */
 
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "util-fmemopen.h"
-
 #include "suricata-common.h"
+#include "util-fmemopen.h"
 
 #ifdef OS_DARWIN
 #define USE_FMEM_WRAPPER 1
@@ -34,19 +28,22 @@
  * \retval pointer to the file; NULL if something is wrong
  */
 FILE *SCFmemopen(void *buf, size_t size, const char *mode) {
-	char temppath[MAX_PATH - 13];
-	if (0 == GetTempPath(sizeof(temppath), temppath))
-		return NULL;
+    char temppath[MAX_PATH - 13];
+    if (0 == GetTempPath(sizeof(temppath), temppath))
+        return NULL;
 
-	char filename[MAX_PATH + 1];
-	if (0 == GetTempFileName(temppath, "SC", 0, filename))
-		return NULL;
+    char filename[MAX_PATH + 1];
+    if (0 == GetTempFileName(temppath, "SC", 0, filename))
+        return NULL;
 
-	FILE *f = fopen(filename, "wb");
-	fwrite(buf, size, 1, f);
-	fclose(f);
+    FILE *f = fopen(filename, "wb");
+    if (NULL == f)
+        return NULL;
 
-	return fopen(filename, mode);
+    fwrite(buf, size, 1, f);
+    fclose(f);
+
+    return fopen(filename, mode);
 }
 
 #else
