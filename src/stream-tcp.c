@@ -2956,7 +2956,7 @@ static int StreamTcpTest02 (void) {
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     TCPHdr tcph;
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
@@ -3173,7 +3173,7 @@ static int StreamTcpTest05 (void) {
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
@@ -3319,7 +3319,7 @@ static int StreamTcpTest07 (void) {
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
-    u_int8_t payload[1] = {0x42};
+    uint8_t payload[1] = {0x42};
     TCPVars tcpvars;
     TCPOpt ts;
     uint32_t data[2];
@@ -3405,7 +3405,7 @@ static int StreamTcpTest08 (void) {
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
-    u_int8_t payload[1] = {0x42};
+    uint8_t payload[1] = {0x42};
     TCPVars tcpvars;
     TCPOpt ts;
     uint32_t data[2];
@@ -3493,7 +3493,7 @@ static int StreamTcpTest09 (void) {
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
-    u_int8_t payload[1] = {0x42};
+    uint8_t payload[1] = {0x42};
 
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
@@ -4036,7 +4036,7 @@ static int StreamTcpTest14 (void) {
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     struct in_addr addr;
     IPV4Hdr ipv4h;
     char os_policy_name[10] = "windows";
@@ -4412,7 +4412,7 @@ static int StreamTcpTest15 (void) {
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     struct in_addr addr;
     IPV4Hdr ipv4h;
     char os_policy_name[10] = "windows";
@@ -4578,7 +4578,7 @@ static int StreamTcpTest16 (void) {
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     struct in_addr addr;
     IPV4Hdr ipv4h;
     char os_policy_name[10] = "windows";
@@ -4745,7 +4745,7 @@ static int StreamTcpTest17 (void) {
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
-    u_int8_t payload[4];
+    uint8_t payload[4];
     struct in_addr addr;
     IPV4Hdr ipv4h;
     char os_policy_name[10] = "windows";

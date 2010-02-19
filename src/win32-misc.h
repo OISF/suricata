@@ -4,7 +4,12 @@
 #define index strchr
 #define rindex strrchr
 
-#define strtok_r(s,d,p) strtok(s,d)
+#define strtok_r(s, d, p) strtok(s, d)
+
+#define bzero(s, n) memset(s, 0, n)
+
+int setenv(const char *name, const char *value, int overwrite);
+int unsetenv(const char *name);
 
 const char* inet_ntop(int af, const void *src, char *dst, uint32_t cnt);
 int inet_pton(int af, const char *src, void *dst);

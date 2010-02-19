@@ -13,6 +13,10 @@
 #define USE_FMEM_WRAPPER 1
 #endif
 
+#ifdef OS_WIN32
+#define USE_FMEM_WRAPPER 1
+#endif
+
 #ifdef USE_FMEM_WRAPPER
 FILE *SCFmemopen(void *, size_t, const char *);
 #else
