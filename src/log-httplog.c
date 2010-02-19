@@ -91,6 +91,11 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     char timebuf[64];
     uint8_t i = 0;
 
+    /* no flow, no htp state */
+    if (p->flow == NULL) {
+        SCReturnInt(TM_ECODE_OK);
+    }
+
     /* check if we have HTTP state or not */
     SCMutexLock(&p->flow->m);
     uint16_t proto = AppLayerGetProtoFromPacket(p);
@@ -185,7 +190,7 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     htp_state->flags &= ~HTP_FLAG_NEW_REQUEST;
 end:
     SCMutexUnlock(&p->flow->m);
-    SCReturnUInt(TM_ECODE_OK);
+    SCReturnInt(TM_ECODE_OK);
 }
 
 TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
@@ -194,6 +199,11 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     char timebuf[64];
     uint8_t i = 0;
+
+    /* no flow, no htp state */
+    if (p->flow == NULL) {
+        SCReturnInt(TM_ECODE_OK);
+    }
 
     /* check if we have HTTP state or not */
     SCMutexLock(&p->flow->m);
@@ -289,21 +299,29 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     htp_state->flags &= ~HTP_FLAG_NEW_REQUEST;
 end:
     SCMutexUnlock(&p->flow->m);
-    SCReturnUInt(TM_ECODE_OK);
+    SCReturnInt(TM_ECODE_OK);
 }
 
 TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    if (!(PKT_IS_TCP(p)))
-        return TM_ECODE_OK;
+    SCEnter();
 
-    if (PKT_IS_IPV4(p)) {
-        return LogHttpLogIPv4(tv, p, data, pq);
-    } else if (PKT_IS_IPV6(p)) {
-        return LogHttpLogIPv6(tv, p, data, pq);
+    /* no flow, no htp state */
+    if (p->flow == NULL) {
+        SCReturnInt(TM_ECODE_OK);
     }
 
-    return TM_ECODE_OK;
+    if (!(PKT_IS_TCP(p))) {
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    if (PKT_IS_IPV4(p)) {
+        SCReturnInt(LogHttpLogIPv4(tv, p, data, pq));
+    } else if (PKT_IS_IPV6(p)) {
+        SCReturnInt(LogHttpLogIPv6(tv, p, data, pq));
+    }
+
+    SCReturnInt(TM_ECODE_OK);
 }
 
 TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
