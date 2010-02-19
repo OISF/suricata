@@ -174,7 +174,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    PcapThreadVars *ptv = malloc(sizeof(PcapThreadVars));
+    PcapThreadVars *ptv = SCMalloc(sizeof(PcapThreadVars));
     if (ptv == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Couldn't allocate PcapThreadVars");
         SCReturnInt(TM_ECODE_FAILED);
@@ -190,7 +190,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->pcap_handle = pcap_create((char *)initdata, errbuf);
     if (ptv->pcap_handle == NULL) {
         SCLogError(SC_ERR_PCAP_CREATE, "Coudn't create a new pcap handler, error %s", pcap_geterr(ptv->pcap_handle));
-        free(ptv);
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -199,7 +199,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_snaplen_r);
     if (pcap_set_snaplen_r != 0) {
         SCLogError(SC_ERR_PCAP_SET_SNAPLEN, "Couldn't set snaplen, error: %s", pcap_geterr(ptv->pcap_handle));
-        free(ptv);
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -207,7 +207,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     //printf("ReceivePcapThreadInit: pcap_set_promisc(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_promisc_r);
     if (pcap_set_promisc_r != 0) {
         SCLogError(SC_ERR_PCAP_SET_PROMISC, "Couldn't set promisc mode, error %s", pcap_geterr(ptv->pcap_handle));
-        free(ptv);
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -215,7 +215,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_timeout_r);
     if (pcap_set_timeout_r != 0) {
         SCLogError(SC_ERR_PCAP_SET_TIMEOUT, "Problems setting timeout, error %s", pcap_geterr(ptv->pcap_handle));
-        free(ptv);
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -224,7 +224,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     //printf("ReceivePcapThreadInit: pcap_activate(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_activate_r);
     if (pcap_activate_r != 0) {
         SCLogError(SC_ERR_PCAP_ACTIVATE_HANDLE, "Couldn't activate the pcap handler, error %s", pcap_geterr(ptv->pcap_handle));
-        free(ptv);
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -236,13 +236,13 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
         if(pcap_compile(ptv->pcap_handle,&ptv->filter,tmpbpfstring,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
-            free(ptv);
+            SCFree(ptv);
             return TM_ECODE_FAILED;
         }
 
         if(pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(ptv->pcap_handle));
-            free(ptv);
+            SCFree(ptv);
             return TM_ECODE_FAILED;
         }
     }
@@ -263,7 +263,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    PcapThreadVars *ptv = malloc(sizeof(PcapThreadVars));
+    PcapThreadVars *ptv = SCMalloc(sizeof(PcapThreadVars));
     if (ptv == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Couldn't allocate PcapThreadVars");
         SCReturnInt(TM_ECODE_FAILED);
@@ -404,7 +404,7 @@ TmEcode DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCEnter();
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error Allocating memory");
         SCReturnInt(TM_ECODE_FAILED);
     }

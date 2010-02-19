@@ -587,19 +587,19 @@ DetectContentData *DetectContentParse (char *contentstr)
     uint16_t pos = 0;
     uint16_t slen = 0;
 
-    if ((temp = strdup(contentstr)) == NULL) {
+    if ((temp = SCStrdup(contentstr)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
 
     if (strlen(temp) == 0) {
-        free(temp);
+        SCFree(temp);
         return NULL;
     }
 
-    cd = malloc(sizeof(DetectContentData));
+    cd = SCMalloc(sizeof(DetectContentData));
     if (cd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
     memset(cd, 0, sizeof(DetectContentData));
@@ -611,22 +611,22 @@ DetectContentData *DetectContentParse (char *contentstr)
     };
 
     if (temp[pos] == '!') {
-        free(temp);
-        if ((temp = strdup(contentstr + pos + 1)) == NULL)
+        SCFree(temp);
+        if ((temp = SCStrdup(contentstr + pos + 1)) == NULL)
             goto error;
         cd->negated = 1;
     }
 
     if (temp[pos] == '\"' && temp[strlen(temp)-1] == '\"') {
-        if ((str = strdup(temp + pos + 1)) == NULL)
+        if ((str = SCStrdup(temp + pos + 1)) == NULL)
             goto error;
         str[strlen(temp) - pos - 2] = '\0';
     } else {
-        if ((str = strdup(temp + pos)) == NULL)
+        if ((str = SCStrdup(temp + pos)) == NULL)
             goto error;
     }
 
-    free(temp);
+    SCFree(temp);
     temp = NULL;
 
     /*This was submitted as a patch for bug #11.  But this impliments incorrect behavior as !
@@ -638,10 +638,10 @@ DetectContentData *DetectContentParse (char *contentstr)
     //        goto error;
     //    } else {
     //        temp = str;
-    //        if ( (str = strdup(temp + 1)) == NULL)
+    //        if ( (str = SCStrdup(temp + 1)) == NULL)
     //            goto error;
     //        cd->negated = 1;
-    //        free(temp);
+    //        SCFree(temp);
     //        temp = NULL;
     //    }
     //}
@@ -730,7 +730,7 @@ DetectContentData *DetectContentParse (char *contentstr)
         }
     }
 
-    cd->content = malloc(len);
+    cd->content = SCMalloc(len);
     if (cd->content == NULL)
         goto error;
 
@@ -742,16 +742,16 @@ DetectContentData *DetectContentParse (char *contentstr)
     cd->distance = 0;
     cd->flags = 0;
 
-    free(str);
+    SCFree(str);
     return cd;
 
 error:
-    free(str);
-    free(temp);
+    SCFree(str);
+    SCFree(temp);
     if (cd != NULL) {
         if (cd->content != NULL)
-            free(cd->content);
-        free(cd);
+            SCFree(cd->content);
+        SCFree(cd);
     }
     return NULL;
 }
@@ -766,7 +766,7 @@ void DetectContentPrint(DetectContentData *cd)
         SCLogDebug("DetectContentData \"cd\" is NULL");
         return;
     }
-    char *tmpstr=malloc(sizeof(char) * cd->content_len + 1);
+    char *tmpstr=SCMalloc(sizeof(char) * cd->content_len + 1);
 
     if (tmpstr != NULL) {
         for (i = 0; i < cd->content_len; i++) {
@@ -777,7 +777,7 @@ void DetectContentPrint(DetectContentData *cd)
         }
         tmpstr[i] = '\0';
         SCLogDebug("Content: \"%s\"", tmpstr);
-        free(tmpstr);
+        SCFree(tmpstr);
     } else {
         SCLogDebug("Content: ");
         for (i = 0; i < cd->content_len; i++)
@@ -818,9 +818,9 @@ DetectContentData *DetectContentSplitChunk(DetectContentData *origcd,
                                            uint8_t remaining_content_len,
                                            uint8_t index, int32_t mpl)
 {
-    DetectContentData *cd = malloc(sizeof(DetectContentData));
+    DetectContentData *cd = SCMalloc(sizeof(DetectContentData));
     if (cd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "DetectContentData malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "DetectContentData SCMalloc failed");
         goto error;
     }
     memset(cd,0,sizeof(DetectContentData));
@@ -834,9 +834,9 @@ DetectContentData *DetectContentSplitChunk(DetectContentData *origcd,
     if (cd->content_len <= 0)
         goto error;
 
-    cd->content = (uint8_t*) malloc(sizeof(uint8_t) * cd->content_len);
+    cd->content = (uint8_t*) SCMalloc(sizeof(uint8_t) * cd->content_len);
     if (cd->content == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "string for content malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "string for content SCMalloc failed");
         goto error;
     }
 
@@ -847,8 +847,8 @@ DetectContentData *DetectContentSplitChunk(DetectContentData *origcd,
 error:
     if (cd != NULL) {
         if (cd->content != NULL)
-            free(cd->content);
-        free(cd);
+            SCFree(cd->content);
+        SCFree(cd);
     }
     return NULL;
 }
@@ -1519,12 +1519,12 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
 error:
     if (cd != NULL) DetectContentFree(cd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 }
 
 /**
- * \brief this function will free memory associated with DetectContentData
+ * \brief this function will SCFree memory associated with DetectContentData
  *
  * \param cd pointer to DetectCotentData
  */
@@ -1535,9 +1535,9 @@ void DetectContentFree(void *ptr) {
         return;
 
     if (cd->content != NULL)
-        free(cd->content);
+        SCFree(cd->content);
 
-    free(cd);
+    SCFree(cd);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
@@ -2757,6 +2757,13 @@ static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    //PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
+
     return result;
 }
 
@@ -2805,6 +2812,12 @@ static int SigTestNegativeTestContent(char *rule, uint8_t *buf)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    //PatternMatchDestroy(mpm_ctx);
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 

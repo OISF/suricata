@@ -606,13 +606,15 @@ int DetectFastPatternTest11(void)
     if (PacketPatternScan(&th_v, det_ctx, &p) == 0)
         result = 1;
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
 end:
-    DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        if (det_ctx != NULL)
+            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
     return result;
 }
 
@@ -785,13 +787,14 @@ int DetectFastPatternTest14(void)
     }else{
         SCLogInfo("match on sig 1 fast_pattern no match sig 2 inspecting same payload");
     }
+end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
-end:
     DetectEngineCtxFree(de_ctx);
+    FlowShutdown();
     return result;
 }
 

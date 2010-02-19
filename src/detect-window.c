@@ -118,7 +118,7 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
         goto error;
     }
 
-    wd = malloc(sizeof(DetectWindowData));
+    wd = SCMalloc(sizeof(DetectWindowData));
     if (wd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -155,13 +155,13 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
 
 	int i = 0;
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return wd;
 
 error:
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     if (wd != NULL) DetectWindowFree(wd);
     return NULL;
@@ -202,7 +202,7 @@ int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
 
 error:
     if (wd != NULL) DetectWindowFree(wd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 
 }
@@ -214,7 +214,7 @@ error:
  */
 void DetectWindowFree(void *ptr) {
     DetectWindowData *wd = (DetectWindowData *)ptr;
-    free(wd);
+    SCFree(wd);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

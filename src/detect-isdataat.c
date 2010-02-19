@@ -150,7 +150,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
             args[2] = (char *)str_ptr;
         }
 
-        idad = malloc(sizeof(DetectIsdataatData));
+        idad = SCMalloc(sizeof(DetectIsdataatData));
         if (idad == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
             goto error;
@@ -163,8 +163,8 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
             if (ByteExtractStringUint16(&idad->dataat, 10,
                 strlen(args[0]), args[0]) < 0 ) {
                 SCLogError(SC_ERR_INVALID_VALUE, "isdataat out of range");
-                free(idad);
-                idad=NULL;
+                SCFree(idad);
+                idad = NULL;
                 goto error;
             }
         } else {
@@ -179,7 +179,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
         }
 
         for (i = 0; i < (ret -1); i++) {
-            if (args[i] != NULL) free(args[i]);
+            if (args[i] != NULL) SCFree(args[i]);
         }
 
         return idad;
@@ -189,7 +189,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
 error:
 
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
 
     if (idad != NULL) DetectIsdataatFree(idad);
@@ -266,7 +266,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
 
 error:
     if (idad != NULL) DetectIsdataatFree(idad);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 
 }
@@ -278,7 +278,7 @@ error:
  */
 void DetectIsdataatFree(void *ptr) {
     DetectIsdataatData *idad = (DetectIsdataatData *)ptr;
-    free(idad);
+    SCFree(idad);
 }
 
 

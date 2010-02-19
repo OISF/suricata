@@ -31,6 +31,7 @@
 #include "util-debug.h"
 #include "app-layer-htp.h"
 #include "util-time.h"
+#include <htp/htp.h>
 
 #ifdef DEBUG
 static SCMutex htp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -46,7 +47,7 @@ static void *HTPStateAlloc(void)
 {
     SCEnter();
 
-    HtpState *s = malloc(sizeof(HtpState));
+    HtpState *s = SCMalloc(sizeof(HtpState));
     if (s == NULL) {
         goto error;
     }
@@ -79,7 +80,7 @@ error:
         if (s->connp != NULL)
             htp_connp_destroy(s->connp);
 
-        free(s);
+        SCFree(s);
     }
 
     SCReturnPtr(NULL, "void");
@@ -88,7 +89,7 @@ error:
 /** \brief Function to frees the HTTP state memory and also frees the HTTP
  *         connection parser memory which was used by the HTP library
  */
-static void HTPStateFree(void *state)
+void HTPStateFree(void *state)
 {
     SCEnter();
 
@@ -105,7 +106,7 @@ static void HTPStateFree(void *state)
         }
     }
 
-    free(s);
+    SCFree(s);
 
 #ifdef DEBUG
     SCMutexLock(&htp_state_mem_lock);
@@ -305,7 +306,7 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
     BodyChunk *bd = NULL;
     if (body->nchunks == 0) {
         /* New chunk */
-        bd = (BodyChunk *)malloc(sizeof(BodyChunk));
+        bd = (BodyChunk *)SCMalloc(sizeof(BodyChunk));
         if (bd == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
             exit(EXIT_FAILURE);
@@ -325,7 +326,7 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
             body->last->len = len;
             bd = body->last;
         } else {
-            bd = (BodyChunk *)malloc(sizeof(BodyChunk));
+            bd = (BodyChunk *)SCMalloc(sizeof(BodyChunk));
             bd->len = len;
             bd->data = data;
             body->last->next = bd;
@@ -384,7 +385,7 @@ void HtpBodyFree(HtpBody *body)
     prev = body->first;
     while (prev != NULL) {
         cur = prev->next;
-        free(prev);
+        SCFree(prev);
         prev = cur;
     }
     body->first = body->last = NULL;
@@ -555,6 +556,8 @@ int HTPParserTest01(void) {
                          " Data is c0oL!";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -580,7 +583,7 @@ int HTPParserTest01(void) {
         }
     }
 
-    HtpState *htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -610,6 +613,8 @@ int HTPParserTest01(void) {
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
     return result;
 }
 
@@ -620,6 +625,7 @@ int HTPParserTest02(void) {
     uint8_t httpbuf1[] = "POST";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
+    HtpState *http_state = NULL;
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -636,7 +642,7 @@ int HTPParserTest02(void) {
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -660,6 +666,8 @@ int HTPParserTest02(void) {
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
+    if (http_state != NULL)
+        HTPStateFree(http_state);
     return result;
 }
 
@@ -671,6 +679,8 @@ int HTPParserTest03(void) {
     uint8_t httpbuf1[] = "HELLO / HTTP/1.0\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -695,8 +705,7 @@ int HTPParserTest03(void) {
             goto end;
         }
     }
-
-    HtpState *htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -723,6 +732,8 @@ int HTPParserTest03(void) {
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
     return result;
 }
 
@@ -731,6 +742,7 @@ end:
 int HTPParserTest04(void) {
     int result = 1;
     Flow f;
+    HtpState *htp_state = NULL;
     uint8_t httpbuf1[] = "World!\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -745,7 +757,7 @@ int HTPParserTest04(void) {
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
 
-    HtpState *htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -772,6 +784,8 @@ int HTPParserTest04(void) {
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
     return result;
 }
 
@@ -780,6 +794,7 @@ end:
 int HTPParserTest05(void) {
     int result = 1;
     Flow f;
+    HtpState *http_state = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint8_t httpbuf2[] = "Post D";
@@ -848,7 +863,7 @@ int HTPParserTest05(void) {
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -885,6 +900,8 @@ int HTPParserTest05(void) {
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
+    if (http_state != NULL)
+        HTPStateFree(http_state);
     return result;
 }
 
@@ -936,6 +953,7 @@ int HTPParserTest06(void) {
                          "aHA=0\r\n\r\n";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
+    HtpState *http_state = NULL;
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -960,7 +978,7 @@ int HTPParserTest06(void) {
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state =  ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -997,6 +1015,8 @@ int HTPParserTest06(void) {
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
+    if (http_state != NULL)
+        HTPStateFree(http_state);
     return result;
 }
 #endif /* UNITTESTS */

@@ -254,7 +254,7 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
 TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    AlertUnifiedLogThread *aun = malloc(sizeof(AlertUnifiedLogThread));
+    AlertUnifiedLogThread *aun = SCMalloc(sizeof(AlertUnifiedLogThread));
     if (aun == NULL) {
         return TM_ECODE_FAILED;
     }
@@ -262,11 +262,22 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for UnifiedLog.  \"initdata\" argument NULL");
-        free(aun);
+        SCFree(aun);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
     aun->file_ctx = (LogFileCtx*) initdata;
+
+    /** Write Unified header */
+    int ret = AlertUnifiedLogWriteFileHeader(aun->file_ctx);
+    if (ret != 0) {
+        printf("Error: AlertUnifiedLogWriteFileHeader failed.\n");
+        SCFree(aun);
+        return TM_ECODE_FAILED;
+    }
+
+    /* XXX make configurable */
+    aun->file_ctx->size_limit = 1 * 1024 * 1024;
 
     *data = (void *)aun;
     return TM_ECODE_OK;
@@ -287,7 +298,7 @@ TmEcode AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
 
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
-    free(aun);
+    SCFree(aun);
     return TM_ECODE_OK;
 
 error:
@@ -316,7 +327,7 @@ LogFileCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
     }
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
-    file_ctx->prefix = strdup(filename);
+    file_ctx->prefix = SCStrdup(filename);
 
     const char *s_limit = NULL;
     uint32_t limit = DEFAULT_LIMIT;
@@ -362,7 +373,7 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     if (file_ctx->filename != NULL)
         filename = file_ctx->filename;
     else
-        filename = file_ctx->filename = malloc(PATH_MAX); /* XXX some sane default? */
+        filename = file_ctx->filename = SCMalloc(PATH_MAX); /* XXX some sane default? */
 
     /* get the time so we can have a filename with seconds since epoch */
     struct timeval ts;
@@ -417,7 +428,7 @@ static int AlertUnifiedLogTestRotate01(void)
     lf = AlertUnifiedLogInitCtx(NULL);
     if (lf == NULL)
         return 0;
-    char *filename = strdup(lf->filename);
+    char *filename = SCStrdup(lf->filename);
 
     memset(&tv, 0, sizeof(ThreadVars));
 

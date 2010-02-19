@@ -173,18 +173,18 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
         SCReturnInt(-1);
     }
 
-    data = malloc(sizeof(DetectHttpMethodData));
+    data = SCMalloc(sizeof(DetectHttpMethodData));
     if (data == NULL) {
         // XXX: Should we bother with an error - it may fail too?
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
 
     data->content_len = ((DetectContentData *)m->ctx)->content_len;
-    data->content = malloc(data->content_len);
+    data->content = SCMalloc(data->content_len);
     if (data->content == NULL) {
         // XXX: Should we bother with an error - it may fail too?
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
     memcpy(data->content,
@@ -194,8 +194,8 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
     data->method = htp_convert_method_to_number(method);
 
     /* Okay we need to replace the type to HTTP_METHOD from CONTENT */
-    free(((DetectContentData *)m->ctx)->content);
-    free(m->ctx);
+    SCFree(((DetectContentData *)m->ctx)->content);
+    SCFree(m->ctx);
     m->type = DETECT_AL_HTTP_METHOD;
     m->ctx = (void *)data;
 
@@ -206,7 +206,7 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 error:
     if (data != NULL) DetectHttpMethodFree(data);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     SCReturnInt(-1);
 }
 
@@ -218,8 +218,8 @@ error:
 void DetectHttpMethodFree(void *ptr) {
     DetectHttpMethodData *data = (DetectHttpMethodData *)ptr;
 
-    if (data->content != NULL) free(data->content);
-    free(data);
+    if (data->content != NULL) SCFree(data->content);
+    SCFree(data);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
@@ -371,6 +371,7 @@ static int DetectHttpMethodSigTest01(void)
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -425,7 +426,7 @@ static int DetectHttpMethodSigTest01(void)
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         SCLogDebug("no http state: ");
         goto end;
@@ -443,6 +444,7 @@ static int DetectHttpMethodSigTest01(void)
     result = 1;
 
 end:
+    if (http_state != NULL) HTPStateFree(http_state);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
@@ -465,7 +467,8 @@ static int DetectHttpMethodSigTest02(void)
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -520,7 +523,7 @@ static int DetectHttpMethodSigTest02(void)
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         SCLogDebug("no http state: ");
         goto end;
@@ -538,8 +541,10 @@ static int DetectHttpMethodSigTest02(void)
     result = 1;
 
 end:
+    if (http_state != NULL) HTPStateFree(http_state);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
     StreamL7DataPtrFree(&ssn);
@@ -559,6 +564,7 @@ static int DetectHttpMethodSigTest03(void)
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -605,7 +611,7 @@ static int DetectHttpMethodSigTest03(void)
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         SCLogDebug("no http state: ");
         goto end;
@@ -620,6 +626,7 @@ static int DetectHttpMethodSigTest03(void)
     result = 1;
 
 end:
+    if (http_state != NULL) HTPStateFree(http_state);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);

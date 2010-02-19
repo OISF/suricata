@@ -247,7 +247,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
     }
 
     /* Initialize the data */
-    data = malloc(sizeof(DetectBytejumpData));
+    data = SCMalloc(sizeof(DetectBytejumpData));
     if (data == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,"malloc failed %s", strerror(errno));
         goto error;
@@ -351,14 +351,14 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
 
     for (i = 0; i < numargs; i++){
         if (i == 1) continue; /* args[1] is part of args[0] */
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return data;
 
 error:
     for (i = 0; i < numargs; i++){
         if (i == 1) continue; /* args[1] is part of args[0] */
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     if (data != NULL) DetectBytejumpFree(data);
     return NULL;
@@ -388,7 +388,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 error:
     if (data != NULL) DetectBytejumpFree(data);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 }
 
@@ -400,7 +400,7 @@ error:
 void DetectBytejumpFree(void *ptr)
 {
     DetectBytejumpData *data = (DetectBytejumpData *)ptr;
-    free(data);
+    SCFree(data);
 }
 
 

@@ -138,7 +138,7 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
     if(found == 0)
         goto error;
 
-    de = malloc(sizeof(DetectIpOptsData));
+    de = SCMalloc(sizeof(DetectIpOptsData));
     if (de == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -149,7 +149,7 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
     return de;
 
 error:
-    if (de) free(de);
+    if (de) SCFree(de);
     return NULL;
 }
 
@@ -185,8 +185,8 @@ int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     return 0;
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return -1;
 }
 
@@ -198,7 +198,7 @@ error:
  */
 void DetectIpOptsFree(void *de_ptr) {
     DetectIpOptsData *de = (DetectIpOptsData *)de_ptr;
-    if(de) free(de);
+    if(de) SCFree(de);
 }
 
 /*
@@ -281,8 +281,8 @@ int IpOptsTestParse03 (void) {
         return 1;
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -327,8 +327,8 @@ int IpOptsTestParse04 (void) {
         return 1;
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 #endif /* UNITTESTS */

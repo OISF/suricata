@@ -516,8 +516,8 @@ TmEcode DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         return TM_ECODE_FAILED;
     }
     memset(dtv, 0, sizeof(DecodeThreadVars));

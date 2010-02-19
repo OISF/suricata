@@ -224,7 +224,7 @@ void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
     io_ctx->ht24_dst = HashListTableInit(65536, IPOnlyHashFunc24, IPOnlyCompareFunc, IPOnlyFreeFunc);
 */
     io_ctx->sig_init_size = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-    if ( (io_ctx->sig_init_array = malloc(io_ctx->sig_init_size)) == NULL) {
+    if ( (io_ctx->sig_init_array = SCMalloc(io_ctx->sig_init_size)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -240,7 +240,7 @@ void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThr
 
         /* initialize the signature bitarray */
     io_tctx->sig_match_size = de_ctx->io_ctx.max_idx / 8 + 1;
-    io_tctx->sig_match_array = malloc(io_tctx->sig_match_size);
+    io_tctx->sig_match_array = SCMalloc(io_tctx->sig_match_size);
     memset(io_tctx->sig_match_array, 0, io_tctx->sig_match_size);
 }
 
@@ -270,7 +270,8 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
     HashListTableFree(io_ctx->ht24_dst);
     io_ctx->ht24_dst = NULL;
 */
-    free(io_ctx->sig_init_array);
+    if (io_ctx->sig_init_array)
+        SCFree(io_ctx->sig_init_array);
     io_ctx->sig_init_array = NULL;
 }
 
@@ -282,7 +283,7 @@ void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
         if (io_tctx->dst != NULL) {
             DetectAddressFree(io_tctx->dst);
         }
-        free(io_tctx->sig_match_array);
+        SCFree(io_tctx->sig_match_array);
     }
 }
 
@@ -431,7 +432,7 @@ int IPOnlyBuildMatchArray(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx
     }
     //printf("IPOnlyBuildMatchArray: sig_cnt %" PRIu32 "\n", io_ctx->sig_cnt);
 
-    io_ctx->match_array = malloc(io_ctx->sig_cnt * sizeof(uint32_t));
+    io_ctx->match_array = SCMalloc(io_ctx->sig_cnt * sizeof(uint32_t));
     if (io_ctx->match_array == NULL)
         return -1;
 

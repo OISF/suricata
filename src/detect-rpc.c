@@ -180,7 +180,7 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
         }
     }
 
-    rd = malloc(sizeof(DetectRpcData));
+    rd = SCMalloc(sizeof(DetectRpcData));
     if (rd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC ,"malloc failed");
         goto error;
@@ -226,13 +226,13 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
             }
     }
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return rd;
 
 error:
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     if (rd != NULL) DetectRpcFree(rd);
     return NULL;
@@ -271,7 +271,7 @@ int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rp
 
 error:
     if (rd != NULL) DetectRpcFree(rd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 
 }
@@ -283,7 +283,7 @@ error:
  */
 void DetectRpcFree(void *ptr) {
     DetectRpcData *rd = (DetectRpcData *)ptr;
-    free(rd);
+    SCFree(rd);
 }
 
 #ifdef UNITTESTS

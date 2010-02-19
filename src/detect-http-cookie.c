@@ -187,24 +187,24 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     }
 
     /* Setup the HttpCookie data from Content data structure */
-    hd = malloc(sizeof(DetectHttpCookieData));
+    hd = SCMalloc(sizeof(DetectHttpCookieData));
     if (hd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
     memset(hd, 0, sizeof(DetectHttpCookieData));
 
     hd->data_len = ((DetectContentData *)m->ctx)->content_len;
-    hd->data = malloc(hd->data_len);
+    hd->data = SCMalloc(hd->data_len);
     if (hd->data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
     memcpy(hd->data, ((DetectContentData *)m->ctx)->content, hd->data_len);
 
     /* Okay we need to replace the type to HTTP_COOKIE from CONTENT */
-    free(((DetectContentData *)m->ctx)->content);
-    free(m->ctx);
+    SCFree(((DetectContentData *)m->ctx)->content);
+    SCFree(m->ctx);
     m->type = DETECT_AL_HTTP_COOKIE;
     m->ctx = (void *)hd;
 
@@ -215,10 +215,10 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 error:
     if (hd != NULL) {
         if (hd->data != NULL)
-            free(hd->data);
-        free(hd);
+            SCFree(hd->data);
+        SCFree(hd);
     }
-    if(sm !=NULL) free(sm);
+    if(sm !=NULL) SCFree(sm);
     return -1;
 }
 
@@ -418,6 +418,7 @@ static int DetectHttpCookieSigTest01(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -469,7 +470,7 @@ static int DetectHttpCookieSigTest01(void) {
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -490,8 +491,11 @@ static int DetectHttpCookieSigTest01(void) {
 
     result = 1;
 end:
+    if (http_state != NULL)
+        HTPStateFree(http_state);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
     StreamL7DataPtrFree(&ssn);
@@ -510,6 +514,7 @@ static int DetectHttpCookieSigTest02(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -554,7 +559,7 @@ static int DetectHttpCookieSigTest02(void) {
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -570,6 +575,8 @@ static int DetectHttpCookieSigTest02(void) {
 
     result = 1;
 end:
+    if (http_state != NULL)
+        HTPStateFree(http_state);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);

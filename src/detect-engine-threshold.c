@@ -236,9 +236,9 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
         SCReturn;
 
     /* setup the Entry we use to search our hash with */
-    ste = malloc(sizeof(DetectThresholdEntry));
+    ste = SCMalloc(sizeof(DetectThresholdEntry));
     if (ste == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s", strerror(errno));
         SCReturn;
     }
     memset(ste, 0x00, sizeof(ste));
@@ -361,7 +361,7 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
     SCMutexUnlock(&de_ctx->ths_ctx.threshold_table_lock);
 
     if (ste != NULL)
-        free(ste);
+        SCFree(ste);
 
     ThresholdTimeoutRemove(de_ctx);
     SCReturn;
@@ -370,7 +370,7 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
 void ThresholdFreeFunc(void *data)
 {
     if (data != NULL)
-        free(data);
+        SCFree(data);
     return;
 }
 

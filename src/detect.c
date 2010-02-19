@@ -211,16 +211,16 @@ char *DetectLoadCompleteSigPath(char *sig_file)
             SCLogDebug("Default path: %s", defaultpath);
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
                           strlen(sig_file) + 2);
-            path = malloc(path_len);
+            path = SCMalloc(path_len);
             strlcpy(path, defaultpath, path_len);
             if (path[strlen(path) - 1] != '/')
                 strlcat(path, "/", path_len);
             strlcat(path, sig_file, path_len);
        } else {
-            path = strdup(sig_file);
+            path = SCStrdup(sig_file);
         }
     } else {
-        path = strdup(sig_file);
+        path = SCStrdup(sig_file);
     }
     return path;
 }
@@ -341,7 +341,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
                     exit(EXIT_FAILURE);
                 }
             }
-            free(sfile);
+            SCFree(sfile);
         }
     }
 
@@ -946,7 +946,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 
     de_ctx->sig_array_len = DetectEngineGetMaxSigId(de_ctx);
     de_ctx->sig_array_size = (de_ctx->sig_array_len * sizeof(Signature *));
-    de_ctx->sig_array = (Signature **)malloc(de_ctx->sig_array_size);
+    de_ctx->sig_array = (Signature **)SCMalloc(de_ctx->sig_array_size);
     if (de_ctx->sig_array == NULL)
         goto error;
     memset(de_ctx->sig_array,0,de_ctx->sig_array_size);
@@ -3032,6 +3032,8 @@ static int SigTest01Real (int mpm_type) {
     }
 
 end:
+    if (p != NULL)
+        UTHFreePacket(p);
     return result;
 }
 
@@ -3056,7 +3058,9 @@ static int SigTest02Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     char sig[] = "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)";
-    return UTHPacketMatchSigMpm(p, sig, mpm_type);
+    int ret = UTHPacketMatchSigMpm(p, sig, mpm_type);
+    UTHFreePacket(p);
+    return ret;
 }
 
 static int SigTest02B2g (void) {
@@ -3424,15 +3428,16 @@ static int SigTest07Real (int mpm_type) {
     else
         result = 1;
 
+end:
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
+    AppLayerParserCleanupState(&ssn);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
-    StreamL7DataPtrFree(&ssn);
-    StreamTcpFreeConfig(TRUE);
     return result;
 }
 static int SigTest07B2g (void) {
@@ -3519,6 +3524,7 @@ static int SigTest08Real (int mpm_type) {
             PacketAlertCheck(&p, 1) ? "OK" : "FAIL",
             PacketAlertCheck(&p, 2) ? "OK" : "FAIL");
 
+    AppLayerParserCleanupState(&ssn);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -3610,6 +3616,7 @@ static int SigTest09Real (int mpm_type) {
     else
         result = 0;
 
+    AppLayerParserCleanupState(&ssn);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -3695,6 +3702,7 @@ static int SigTest10Real (int mpm_type) {
     else
         result = 1;
 
+    AppLayerParserCleanupState(&ssn);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -3774,6 +3782,7 @@ static int SigTest11Real (int mpm_type) {
     else
         result = 0;
 
+    AppLayerParserCleanupState(&ssn);
     SigGroupCleanup(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -3837,12 +3846,15 @@ static int SigTest12Real (int mpm_type) {
     else
         result = 0;
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        if (det_ctx != NULL)
+            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+        //PatternMatchDestroy(mpm_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
     return result;
 }
 static int SigTest12B2g (void) {
@@ -4163,16 +4175,19 @@ static int SigTest17Real (int mpm_type) {
             PrintRawUriFp(stdout, pv_hn->value, pv_hn->value_len);
             printf("\" != \"one.example.org\": ");
         }
+	PktVarFree(pv_hn);
     } else {
         printf("Pkt var http_host not captured: ");
     }
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        if (det_ctx != NULL)
+            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
     ConfDeInit();
     ConfRestoreContextBackup();
     return result;

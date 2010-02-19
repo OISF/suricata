@@ -46,11 +46,11 @@ TmModule *TmModuleGetByName(char *name) {
 LogFileCtx *LogFileNewCtx()
 {
     LogFileCtx* lf_ctx;
-    lf_ctx=(LogFileCtx*)malloc(sizeof(LogFileCtx));
+    lf_ctx=(LogFileCtx*)SCMalloc(sizeof(LogFileCtx));
 
     if(lf_ctx == NULL)
     {
-        printf("LogFileCtxNew: Couldn't malloc \n");
+        printf("LogFileCtxNew: Couldn't SCMalloc \n");
         return NULL;
     }
     memset(lf_ctx, 0, sizeof(LogFileCtx));
@@ -78,10 +78,10 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
             SCMutexUnlock(&lf_ctx->fp_mutex);
         }
         if (lf_ctx->prefix != NULL)
-            free(lf_ctx->prefix);
+            SCFree(lf_ctx->prefix);
         if(lf_ctx->filename != NULL)
-            free(lf_ctx->filename);
-        free(lf_ctx);
+            SCFree(lf_ctx->filename);
+        SCFree(lf_ctx);
         ret=1;
     }
 

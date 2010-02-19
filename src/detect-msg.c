@@ -32,11 +32,11 @@ int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ms
 
     /* strip "'s */
     if (msgstr[0] == '\"' && msgstr[strlen(msgstr)-1] == '\"') {
-        str = strdup(msgstr+1);
+        str = SCStrdup(msgstr+1);
         str[strlen(msgstr)-2] = '\0';
     } else if (msgstr[1] == '\"' && msgstr[strlen(msgstr)-1] == '\"') {
         /* XXX do this parsing in a better way */
-        str = strdup(msgstr+2);
+        str = SCStrdup(msgstr+2);
         str[strlen(msgstr)-3] = '\0';
         //printf("DetectMsgSetup: format hack applied: \'%s\'\n", str);
     } else {
@@ -93,17 +93,17 @@ int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ms
         }
     }
 
-    s->msg = malloc(len + 1);
+    s->msg = SCMalloc(len + 1);
     if (s->msg == NULL)
         goto error;
 
     strlcpy(s->msg, str, len + 1);
 
-    free(str);
+    SCFree(str);
     return 0;
 
 error:
-    free(str);
+    SCFree(str);
     return -1;
 }
 

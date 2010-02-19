@@ -93,7 +93,7 @@ static uint32_t DetectGidParse (char *rawstr)
 
     rc = (uint32_t )atol(ptr);
 
-    free(ptr);
+    SCFree(ptr);
     return rc;
 }
 

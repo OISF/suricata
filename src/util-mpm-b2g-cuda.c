@@ -550,7 +550,7 @@ void B2gCudaPrintInfo(MpmCtx *mpm_ctx)
 
 static inline B2gCudaPattern *B2gCudaAllocPattern(MpmCtx *mpm_ctx)
 {
-    B2gCudaPattern *p = malloc(sizeof(B2gCudaPattern));
+    B2gCudaPattern *p = SCMalloc(sizeof(B2gCudaPattern));
     if (p == NULL) {
         printf("ERROR: B2gAllocPattern: malloc failed\n");
         exit(EXIT_FAILURE);
@@ -565,7 +565,7 @@ static inline B2gCudaPattern *B2gCudaAllocPattern(MpmCtx *mpm_ctx)
 
 static inline B2gCudaHashItem *B2gCudaAllocHashItem(MpmCtx *mpm_ctx)
 {
-    B2gCudaHashItem *hi = malloc(sizeof(B2gCudaHashItem));
+    B2gCudaHashItem *hi = SCMalloc(sizeof(B2gCudaHashItem));
     if (hi == NULL) {
         printf("ERROR: B2gCudaAllocHashItem: malloc failed\n");
         exit(EXIT_FAILURE);
@@ -588,7 +588,7 @@ static void B2gCudaHashFree(MpmCtx *mpm_ctx, B2gCudaHashItem *hi)
 
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(B2gCudaHashItem);
-    free(hi);
+    SCFree(hi);
 
     return;
 }
@@ -686,19 +686,19 @@ void B2gCudaFreePattern(MpmCtx *mpm_ctx, B2gCudaPattern *p)
         MpmEndMatchFreeAll(mpm_ctx, p->em);
 
     if (p && p->cs && p->cs != p->ci) {
-        free(p->cs);
+        SCFree(p->cs);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= p->len;
     }
 
     if (p && p->ci) {
-        free(p->ci);
+        SCFree(p->ci);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= p->len;
     }
 
     if (p) {
-        free(p);
+        SCFree(p);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= sizeof(B2gCudaPattern);
     }
@@ -735,7 +735,7 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
             p->flags |= B2G_CUDA_NOCASE;
 
         /* setup the case insensitive part of the pattern */
-        p->ci = malloc(patlen);
+        p->ci = SCMalloc(patlen);
         if (p->ci == NULL)
             goto error;
         mpm_ctx->memory_cnt++;
@@ -751,7 +751,7 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
                 /* no diff between cs and ci: pat is lowercase */
                 p->cs = p->ci;
             } else {
-                p->cs = malloc(patlen);
+                p->cs = SCMalloc(patlen);
                 if (p->cs == NULL)
                     goto error;
                 mpm_ctx->memory_cnt++;
@@ -875,7 +875,7 @@ static void B2gCudaPrepareScanHash(MpmCtx *mpm_ctx)
     uint16_t idx = 0;
     uint8_t idx8 = 0;
 
-    ctx->scan_hash = (B2gCudaHashItem **)malloc(sizeof(B2gCudaHashItem *) *
+    ctx->scan_hash = (B2gCudaHashItem **)SCMalloc(sizeof(B2gCudaHashItem *) *
                                                 ctx->scan_hash_size);
     if (ctx->scan_hash == NULL)
         goto error;
@@ -885,7 +885,7 @@ static void B2gCudaPrepareScanHash(MpmCtx *mpm_ctx)
     mpm_ctx->memory_size += (sizeof(B2gCudaHashItem *) * ctx->scan_hash_size);
 
 #ifdef B2G_CUDA_SCAN2
-    ctx->scan_hash2 = (B2gCudaHashItem **)malloc(sizeof(B2gCudaHashItem *) *
+    ctx->scan_hash2 = (B2gCudaHashItem **)SCMalloc(sizeof(B2gCudaHashItem *) *
                                                  ctx->scan_hash_size);
     if (ctx->scan_hash2 == NULL)
         goto error;
@@ -896,7 +896,7 @@ static void B2gCudaPrepareScanHash(MpmCtx *mpm_ctx)
 #endif
 
     /* alloc the pminlen array */
-    ctx->scan_pminlen = (uint8_t *)malloc(sizeof(uint8_t) * ctx->scan_hash_size);
+    ctx->scan_pminlen = (uint8_t *)SCMalloc(sizeof(uint8_t) * ctx->scan_hash_size);
     if (ctx->scan_pminlen == NULL)
         goto error;
     memset(ctx->scan_pminlen, 0, sizeof(uint8_t) * ctx->scan_hash_size);
@@ -979,7 +979,7 @@ static void B2gCudaPrepareScanHash(MpmCtx *mpm_ctx)
     }
 
     /* alloc the bloom array */
-    ctx->scan_bloom = (BloomFilter **)malloc(sizeof(BloomFilter *) * ctx->scan_hash_size);
+    ctx->scan_bloom = (BloomFilter **)SCMalloc(sizeof(BloomFilter *) * ctx->scan_hash_size);
     if (ctx->scan_bloom == NULL) goto error;
     memset(ctx->scan_bloom, 0, sizeof(BloomFilter *) * ctx->scan_hash_size);
 
@@ -1026,7 +1026,7 @@ static void B2gCudaPrepareSearchHash(MpmCtx *mpm_ctx)
     uint16_t idx = 0;
     uint8_t idx8 = 0;
 
-    ctx->search_hash = (B2gCudaHashItem **)malloc(sizeof(B2gCudaHashItem *) *
+    ctx->search_hash = (B2gCudaHashItem **)SCMalloc(sizeof(B2gCudaHashItem *) *
                                                   ctx->search_hash_size);
     if (ctx->search_hash == NULL) goto error;
     memset(ctx->search_hash, 0, sizeof(B2gCudaHashItem *) * ctx->search_hash_size);
@@ -1035,7 +1035,7 @@ static void B2gCudaPrepareSearchHash(MpmCtx *mpm_ctx)
     mpm_ctx->memory_size += (sizeof(B2gCudaHashItem *) * ctx->search_hash_size);
 
     /* alloc the pminlen array */
-    ctx->search_pminlen = (uint8_t *)malloc(sizeof(uint8_t) * ctx->search_hash_size);
+    ctx->search_pminlen = (uint8_t *)SCMalloc(sizeof(uint8_t) * ctx->search_hash_size);
     if (ctx->search_pminlen == NULL)
         goto error;
     memset(ctx->search_pminlen, 0, sizeof(uint8_t) * ctx->search_hash_size);
@@ -1094,7 +1094,7 @@ static void B2gCudaPrepareSearchHash(MpmCtx *mpm_ctx)
     }
 
     /* alloc the bloom array */
-    ctx->search_bloom = (BloomFilter **)malloc(sizeof(BloomFilter *) * ctx->search_hash_size);
+    ctx->search_bloom = (BloomFilter **)SCMalloc(sizeof(BloomFilter *) * ctx->search_hash_size);
     if (ctx->search_bloom == NULL)
         goto error;
     memset(ctx->search_bloom, 0, sizeof(BloomFilter *) * ctx->search_hash_size);
@@ -1134,7 +1134,7 @@ int B2gCudaBuildScanMatchArray(MpmCtx *mpm_ctx)
 {
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
 
-    ctx->scan_B2G = malloc(sizeof(B2G_CUDA_TYPE) * ctx->scan_hash_size);
+    ctx->scan_B2G = SCMalloc(sizeof(B2G_CUDA_TYPE) * ctx->scan_hash_size);
     if (ctx->scan_B2G == NULL)
         return -1;
 
@@ -1173,7 +1173,7 @@ int B2gCudaBuildSearchMatchArray(MpmCtx *mpm_ctx)
 {
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
 
-    ctx->search_B2G = malloc(sizeof(B2G_CUDA_TYPE) * ctx->search_hash_size);
+    ctx->search_B2G = SCMalloc(sizeof(B2G_CUDA_TYPE) * ctx->search_hash_size);
     if (ctx->search_B2G == NULL)
         return -1;
 
@@ -1279,7 +1279,7 @@ int B2gCudaPreparePatterns(MpmCtx *mpm_ctx)
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
 
     /* alloc the pattern array */
-    ctx->parray = (B2gCudaPattern **)malloc(mpm_ctx->pattern_cnt *
+    ctx->parray = (B2gCudaPattern **)SCMalloc(mpm_ctx->pattern_cnt *
                                             sizeof(B2gCudaPattern *));
     if (ctx->parray == NULL)
         goto error;
@@ -1303,7 +1303,7 @@ int B2gCudaPreparePatterns(MpmCtx *mpm_ctx)
         }
     }
     /* we no longer need the hash, so free it's memory */
-    free(ctx->init_hash);
+    SCFree(ctx->init_hash);
     ctx->init_hash = NULL;
 
     /* set 'm' to the smallest pattern size */
@@ -1432,7 +1432,7 @@ void B2gCudaInitCtx(MpmCtx *mpm_ctx, int module_handle)
 
     BUG_ON(mpm_ctx->ctx != NULL);
 
-    mpm_ctx->ctx = malloc(sizeof(B2gCudaCtx));
+    mpm_ctx->ctx = SCMalloc(sizeof(B2gCudaCtx));
     if (mpm_ctx->ctx == NULL)
         return;
 
@@ -1443,7 +1443,7 @@ void B2gCudaInitCtx(MpmCtx *mpm_ctx, int module_handle)
 
     /* initialize the hash we use to speed up pattern insertions */
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
-    ctx->init_hash = malloc(sizeof(B2gCudaPattern *) * INIT_HASH_SIZE);
+    ctx->init_hash = SCMalloc(sizeof(B2gCudaPattern *) * INIT_HASH_SIZE);
     if (ctx->init_hash == NULL)
         return;
 
@@ -1527,7 +1527,7 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
         return;
 
     if (ctx->init_hash) {
-        free(ctx->init_hash);
+        SCFree(ctx->init_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (INIT_HASH_SIZE * sizeof(B2gCudaPattern *));
     }
@@ -1540,19 +1540,19 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
             }
         }
 
-        free(ctx->parray);
+        SCFree(ctx->parray);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(B2gCudaPattern));
     }
 
     if (ctx->scan_B2G) {
-        free(ctx->scan_B2G);
+        SCFree(ctx->scan_B2G);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B2G_CUDA_TYPE) * ctx->scan_hash_size);
     }
 
     if (ctx->search_B2G) {
-        free(ctx->search_B2G);
+        SCFree(ctx->search_B2G);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B2G_CUDA_TYPE) * ctx->search_hash_size);
     }
@@ -1569,7 +1569,7 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
             BloomFilterFree(ctx->scan_bloom[h]);
         }
 
-        free(ctx->scan_bloom);
+        SCFree(ctx->scan_bloom);
 
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->scan_hash_size);
@@ -1584,7 +1584,7 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
             B2gCudaHashFree(mpm_ctx, ctx->scan_hash[h]);
         }
 
-        free(ctx->scan_hash);
+        SCFree(ctx->scan_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B2gCudaHashItem) * ctx->scan_hash_size);
     }
@@ -1601,7 +1601,7 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
             BloomFilterFree(ctx->search_bloom[h]);
         }
 
-        free(ctx->search_bloom);
+        SCFree(ctx->search_bloom);
 
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->search_hash_size);
@@ -1616,19 +1616,19 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
             B2gCudaHashFree(mpm_ctx, ctx->search_hash[h]);
         }
 
-        free(ctx->search_hash);
+        SCFree(ctx->search_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(B2gCudaHashItem) * ctx->search_hash_size);
     }
 
     if (ctx->scan_pminlen) {
-        free(ctx->scan_pminlen);
+        SCFree(ctx->scan_pminlen);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(uint8_t) * ctx->scan_hash_size);
     }
 
     if (ctx->search_pminlen) {
-        free(ctx->search_pminlen);
+        SCFree(ctx->search_pminlen);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(uint8_t) * ctx->search_hash_size);
     }
@@ -1645,7 +1645,7 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
         ctx->cuda_scan_B2G = 0;
     }
 
-    free(mpm_ctx->ctx);
+    SCFree(mpm_ctx->ctx);
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(B2gCudaCtx);
 
@@ -1659,7 +1659,7 @@ void B2gCudaThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
     /* size can be null when optimized */
     if (sizeof(B2gCudaThreadCtx) > 0) {
-        mpm_thread_ctx->ctx = malloc(sizeof(B2gCudaThreadCtx));
+        mpm_thread_ctx->ctx = SCMalloc(sizeof(B2gCudaThreadCtx));
         if (mpm_thread_ctx->ctx == NULL)
             return;
 
@@ -1675,7 +1675,7 @@ void B2gCudaThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
      * unique id and is the array lookup key at the same time */
     uint32_t keys = matchsize + 1;
     if (keys > 0) {
-        mpm_thread_ctx->match = malloc(keys * sizeof(MpmMatchBucket));
+        mpm_thread_ctx->match = SCMalloc(keys * sizeof(MpmMatchBucket));
         if (mpm_thread_ctx->match == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Could not setup memory for "
                        "pattern matcher: %s", strerror(errno));
@@ -1702,14 +1702,14 @@ void B2gCudaThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
     if (ctx != NULL) {
         mpm_thread_ctx->memory_cnt--;
         mpm_thread_ctx->memory_size -= sizeof(B2gCudaThreadCtx);
-        free(mpm_thread_ctx->ctx);
+        SCFree(mpm_thread_ctx->ctx);
     }
 
     if (mpm_thread_ctx->match != NULL) {
         mpm_thread_ctx->memory_cnt--;
         mpm_thread_ctx->memory_size -= ((mpm_thread_ctx->matchsize + 1) *
                                         sizeof(MpmMatchBucket));
-        free(mpm_thread_ctx->match);
+        SCFree(mpm_thread_ctx->match);
     }
 
     MpmMatchFreeSpares(mpm_thread_ctx, mpm_thread_ctx->sparelist);
@@ -2636,7 +2636,7 @@ void B2gCudaKillDispatcherThreadRC(void)
 
     TmThreadKillThread(tv_CMB2_RC);
     TmThreadRemove(tv_CMB2_RC, tv_CMB2_RC->type);
-    free(tv_CMB2_RC);
+    SCFree(tv_CMB2_RC);
     tv_CMB2_RC = NULL;
 
     return;
@@ -2654,7 +2654,7 @@ void B2gCudaKillDispatcherThreadAPC(void)
 
     TmThreadKillThread(tv_CMB2_APC);
     TmThreadRemove(tv_CMB2_APC, tv_CMB2_APC->type);
-    free(tv_CMB2_APC);
+    SCFree(tv_CMB2_APC);
     tv_CMB2_APC = NULL;
 
     return;

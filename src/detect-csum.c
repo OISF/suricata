@@ -163,19 +163,19 @@ static int DetectCsumParseArg(const char *key, DetectCsumData *cd)
     char *str;
 
     if (key[0] == '\"' && key[strlen(key) - 1] == '\"') {
-        str = strdup(key + 1);
+        str = SCStrdup(key + 1);
         str[strlen(key) - 2] = '\0';
     } else
-        str = strdup(key);
+        str = SCStrdup(key);
 
     if (strcasecmp(str, DETECT_CSUM_VALID) == 0 ||
         strcasecmp(str, DETECT_CSUM_INVALID) == 0) {
         cd->valid = (strcasecmp(key, DETECT_CSUM_VALID) == 0);
-        free(str);
+        SCFree(str);
         return 1;
     }
 
-    free(str);
+    SCFree(str);
     return 0;
 }
 
@@ -242,7 +242,7 @@ int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->type = DETECT_IPV4_CSUM;
 
-    if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -259,7 +259,7 @@ int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
 error:
     if (cd != NULL) DetectIPV4CsumFree(cd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
 
     return -1;
 }
@@ -269,7 +269,7 @@ void DetectIPV4CsumFree(void *ptr)
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
     if (cd != NULL)
-        free(cd);
+        SCFree(cd);
 
     return;
 }
@@ -339,7 +339,7 @@ int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->type = DETECT_TCPV4_CSUM;
 
-    if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -356,7 +356,7 @@ int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
 error:
     if (cd != NULL) DetectTCPV4CsumFree(cd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
 
     return -1;
 }
@@ -366,7 +366,7 @@ void DetectTCPV4CsumFree(void *ptr)
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
     if (cd != NULL)
-        free(cd);
+        SCFree(cd);
 
     return;
 }
@@ -436,7 +436,7 @@ int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->type = DETECT_TCPV6_CSUM;
 
-    if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -453,7 +453,7 @@ int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
 error:
     if (cd != NULL) DetectTCPV6CsumFree(cd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
 
     return -1;
 }
@@ -463,7 +463,7 @@ void DetectTCPV6CsumFree(void *ptr)
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
     if (cd != NULL)
-        free(cd);
+        SCFree(cd);
 
     return;
 }
@@ -533,7 +533,7 @@ int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->type = DETECT_UDPV4_CSUM;
 
-    if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -550,7 +550,7 @@ int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
 error:
     if (cd != NULL) DetectUDPV4CsumFree(cd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
 
     return -1;
 }
@@ -560,7 +560,7 @@ void DetectUDPV4CsumFree(void *ptr)
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
     if (cd != NULL)
-        free(cd);
+        SCFree(cd);
 
     return;
 }
@@ -630,7 +630,7 @@ int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->type = DETECT_UDPV6_CSUM;
 
-    if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -647,7 +647,7 @@ int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
 error:
     if (cd != NULL) DetectUDPV6CsumFree(cd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
 
     return -1;
 }
@@ -657,7 +657,7 @@ void DetectUDPV6CsumFree(void *ptr)
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
     if (cd != NULL)
-        free(cd);
+        SCFree(cd);
 
     return;
 }
@@ -726,7 +726,7 @@ int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->type = DETECT_ICMPV4_CSUM;
 
-    if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -743,7 +743,7 @@ int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
 error:
     if (cd != NULL) DetectICMPV4CsumFree(cd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
 
     return -1;
 }
@@ -753,7 +753,7 @@ void DetectICMPV4CsumFree(void *ptr)
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
     if (cd != NULL)
-        free(cd);
+        SCFree(cd);
 
     return;
 }
@@ -822,7 +822,7 @@ int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->type = DETECT_ICMPV6_CSUM;
 
-    if ( (cd = malloc(sizeof(DetectCsumData))) == NULL) {
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -839,7 +839,7 @@ int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
 error:
     if (cd != NULL) DetectICMPV6CsumFree(cd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
 
     return -1;
 }
@@ -849,7 +849,7 @@ void DetectICMPV6CsumFree(void *ptr)
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
     if (cd != NULL)
-        free(cd);
+        SCFree(cd);
 
     return;
 }
@@ -876,7 +876,7 @@ int DetectCsumIPV4ValidArgsTestParse01(void)
         DetectIPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -900,7 +900,7 @@ int DetectCsumIPV4InValidArgsTestParse02(void)
         DetectIPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -925,7 +925,7 @@ int DetectCsumIPV4ValidArgsTestParse03(void)
         DetectIPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
     s.match = NULL;
 
@@ -939,7 +939,7 @@ int DetectCsumIPV4ValidArgsTestParse03(void)
         DetectIPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -963,7 +963,7 @@ int DetectCsumICMPV4ValidArgsTestParse01(void)
         DetectICMPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -986,7 +986,7 @@ int DetectCsumICMPV4InValidArgsTestParse02(void) {
         DetectICMPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1010,7 +1010,7 @@ int DetectCsumICMPV4ValidArgsTestParse03(void) {
         DetectICMPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
     s.match = NULL;
 
@@ -1024,7 +1024,7 @@ int DetectCsumICMPV4ValidArgsTestParse03(void) {
         DetectICMPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1048,7 +1048,7 @@ int DetectCsumTCPV4ValidArgsTestParse01(void)
         DetectTCPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1071,7 +1071,7 @@ int DetectCsumTCPV4InValidArgsTestParse02(void) {
         DetectTCPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1095,7 +1095,7 @@ int DetectCsumTCPV4ValidArgsTestParse03(void) {
         DetectTCPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
     s.match = NULL;
 
@@ -1109,7 +1109,7 @@ int DetectCsumTCPV4ValidArgsTestParse03(void) {
         DetectTCPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1133,7 +1133,7 @@ int DetectCsumUDPV4ValidArgsTestParse01(void)
         DetectUDPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1156,7 +1156,7 @@ int DetectCsumUDPV4InValidArgsTestParse02(void) {
         DetectUDPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1180,7 +1180,7 @@ int DetectCsumUDPV4ValidArgsTestParse03(void) {
         DetectUDPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
     s.match = NULL;
 
@@ -1194,7 +1194,7 @@ int DetectCsumUDPV4ValidArgsTestParse03(void) {
         DetectUDPV4CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1218,7 +1218,7 @@ int DetectCsumTCPV6ValidArgsTestParse01(void)
         DetectTCPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1241,7 +1241,7 @@ int DetectCsumTCPV6InValidArgsTestParse02(void) {
         DetectTCPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1265,7 +1265,7 @@ int DetectCsumTCPV6ValidArgsTestParse03(void) {
         DetectTCPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
     s.match = NULL;
 
@@ -1279,7 +1279,7 @@ int DetectCsumTCPV6ValidArgsTestParse03(void) {
         DetectTCPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1303,7 +1303,7 @@ int DetectCsumUDPV6ValidArgsTestParse01(void)
         DetectUDPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1326,7 +1326,7 @@ int DetectCsumUDPV6InValidArgsTestParse02(void) {
         DetectUDPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1350,7 +1350,7 @@ int DetectCsumUDPV6ValidArgsTestParse03(void) {
         DetectUDPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
     s.match = NULL;
 
@@ -1364,7 +1364,7 @@ int DetectCsumUDPV6ValidArgsTestParse03(void) {
         DetectUDPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1388,7 +1388,7 @@ int DetectCsumICMPV6ValidArgsTestParse01(void)
         DetectICMPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1411,7 +1411,7 @@ int DetectCsumICMPV6InValidArgsTestParse02(void) {
         DetectICMPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;
@@ -1435,7 +1435,7 @@ int DetectCsumICMPV6ValidArgsTestParse03(void) {
         DetectICMPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
     s.match = NULL;
 
@@ -1449,7 +1449,7 @@ int DetectCsumICMPV6ValidArgsTestParse03(void) {
         DetectICMPV6CsumFree(s.match->ctx);
         temp = s.match;
         s.match = s.match->next;
-        free(temp);
+        SCFree(temp);
     }
 
     return result;

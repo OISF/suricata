@@ -24,7 +24,7 @@ HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashList
     }
 
     /* setup the filter */
-    ht = malloc(sizeof(HashListTable));
+    ht = SCMalloc(sizeof(HashListTable));
     if (ht == NULL)
         goto error;
     memset(ht,0,sizeof(HashListTable));
@@ -38,7 +38,7 @@ HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashList
         ht->Compare = HashListTableDefaultCompare;
 
     /* setup the bitarray */
-    ht->array = malloc(ht->array_size * sizeof(HashListTableBucket *));
+    ht->array = SCMalloc(ht->array_size * sizeof(HashListTableBucket *));
     if (ht->array == NULL)
         goto error;
     memset(ht->array,0,ht->array_size * sizeof(HashListTableBucket *));
@@ -50,9 +50,9 @@ HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashList
 error:
     if (ht != NULL) {
         if (ht->array != NULL)
-            free(ht->array);
+            SCFree(ht->array);
 
-        free(ht);
+        SCFree(ht);
     }
     return NULL;
 }
@@ -70,16 +70,16 @@ void HashListTableFree(HashListTable *ht) {
             HashListTableBucket *next_hashbucket = hashbucket->bucknext;
             if (ht->Free != NULL)
                 ht->Free(hashbucket->data);
-            free(hashbucket);
+            SCFree(hashbucket);
             hashbucket = next_hashbucket;
         }
     }
 
-    /* free the arrray */
+    /* free the array */
     if (ht->array != NULL)
-        free(ht->array);
+        SCFree(ht->array);
 
-    free(ht);
+    SCFree(ht);
 }
 
 void HashListTablePrint(HashListTable *ht) {
@@ -97,7 +97,7 @@ int HashListTableAdd(HashListTable *ht, void *data, uint16_t datalen) {
 
     SCLogDebug("ht %p hash %"PRIu32"", ht, hash);
 
-    HashListTableBucket *hb = malloc(sizeof(HashListTableBucket));
+    HashListTableBucket *hb = SCMalloc(sizeof(HashListTableBucket));
     if (hb == NULL) {
         goto error;
     }
@@ -160,7 +160,7 @@ int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen) {
             if (ht->Free != NULL)
                 ht->Free(hb->data);
 
-            free(ht->array[hash]);
+            SCFree(ht->array[hash]);
             ht->array[hash] = NULL;
             return 0;
         }
@@ -197,7 +197,7 @@ int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen) {
             /* remove this */
             if (ht->Free != NULL)
                 ht->Free(hashbucket->data);
-            free(hashbucket);
+            SCFree(hashbucket);
             return 0;
         }
 

@@ -400,7 +400,7 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
 
 
 static void *SMB2StateAlloc(void) {
-    void *s = malloc(sizeof(SMB2State));
+    void *s = SCMalloc(sizeof(SMB2State));
     if (s == NULL)
         return NULL;
 
@@ -410,7 +410,7 @@ static void *SMB2StateAlloc(void) {
 
 static void SMB2StateFree(void *s) {
     if (s) {
-        free(s);
+        SCFree(s);
         s = NULL;
     }
 }

@@ -192,7 +192,7 @@ TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
 TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    AlertDebugLogThread *aft = malloc(sizeof(AlertDebugLogThread));
+    AlertDebugLogThread *aft = SCMalloc(sizeof(AlertDebugLogThread));
     if (aft == NULL) {
         return TM_ECODE_FAILED;
     }
@@ -201,7 +201,7 @@ TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for DebugLog.  \"initdata\" argument NULL");
-        free(aft);
+        SCFree(aft);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -221,7 +221,7 @@ TmEcode AlertDebugLogThreadDeinit(ThreadVars *t, void *data)
     /* clear memory */
     memset(aft, 0, sizeof(AlertDebugLogThread));
 
-    free(aft);
+    SCFree(aft);
     return TM_ECODE_OK;
 }
 

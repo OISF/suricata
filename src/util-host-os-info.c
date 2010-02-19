@@ -49,13 +49,13 @@ static struct in_addr *SCHInfoValidateIPV4Address(const char *addr_str)
 {
     struct in_addr *addr = NULL;
 
-    if ( (addr = malloc(sizeof(struct in_addr))) == NULL) {
+    if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
 
     if (inet_pton(AF_INET, addr_str, addr) <= 0) {
-        free(addr);
+        SCFree(addr);
         return NULL;
     }
 
@@ -76,13 +76,13 @@ static struct in6_addr *SCHInfoValidateIPV6Address(const char *addr_str)
 {
     struct in6_addr *addr = NULL;
 
-    if ( (addr = malloc(sizeof(struct in6_addr))) == NULL) {
+    if ( (addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
 
     if (inet_pton(AF_INET6, addr_str, addr) <= 0) {
-        free(addr);
+        SCFree(addr);
         return NULL;
     }
 
@@ -103,7 +103,7 @@ static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
 {
     int *user_data = NULL;
 
-    if ( (user_data = malloc(sizeof(int))) == NULL) {
+    if ( (user_data = SCMalloc(sizeof(int))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -112,7 +112,7 @@ static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
     if ( (*user_data = SCMapEnumNameToValue(host_os, sc_hinfo_os_policy_map)) == -1) {
         SCLogError(SC_ERR_INVALID_ENUM_MAP, "Invalid enum map inside "
                    "SCHInfoAddHostOSInfo()");
-        free(user_data);
+        SCFree(user_data);
         return NULL;
     }
 
@@ -127,7 +127,7 @@ static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
 static void SCHInfoFreeUserDataOSPolicy(void *data)
 {
     if (data != NULL)
-        free(data);
+        SCFree(data);
 
     return;
 }
@@ -211,7 +211,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
             host_os_ip_range = "::/0";
     }
 
-    if ( (ip_str = strdup(host_os_ip_range)) == NULL) {
+    if ( (ip_str = SCStrdup(host_os_ip_range)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -243,7 +243,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
             netmask_value = atoi(netmask_str);
             if (netmask_value < 0 || netmask_value > 32) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
-                free(ipv4_addr);
+                SCFree(ipv4_addr);
                 return -1;
             }
 
@@ -265,7 +265,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
             netmask_value = atoi(netmask_str);
             if (netmask_value < 0 || netmask_value > 128) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
-                free(ipv6_addr);
+                SCFree(ipv6_addr);
                 return -1;
             }
 

@@ -210,7 +210,7 @@ void *StreamTcpSessionPoolAlloc(void *null)
     if (StreamTcpCheckMemcap((uint32_t)sizeof(TcpSession)) == 0)
         return NULL;
 
-    void *ptr = malloc(sizeof(TcpSession));
+    void *ptr = SCMalloc(sizeof(TcpSession));
     if (ptr == NULL)
         return NULL;
 
@@ -234,7 +234,7 @@ void StreamTcpSessionPoolFree(void *s)
     StreamTcpReturnStreamSegments(&ssn->server);
 
     StreamL7DataPtrFree(ssn);
-    free(ssn);
+    SCFree(ssn);
 
     StreamTcpDecrMemuse((uint32_t)sizeof(TcpSession));
 
@@ -2503,7 +2503,7 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
-    StreamTcpThread *stt = malloc(sizeof(StreamTcpThread));
+    StreamTcpThread *stt = SCMalloc(sizeof(StreamTcpThread));
     if (stt == NULL) {
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -2546,7 +2546,7 @@ TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data)
     /* clear memory */
     memset(stt, 0, sizeof(StreamTcpThread));
 
-    free(stt);
+    SCFree(stt);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -3993,7 +3993,7 @@ char *StreamTcpParseOSPolicy (char *conf_var_name)
         goto end;
 
     /* the + 2 is for the '.' and the string termination character '\0' */
-    conf_var_full_name = (char *)malloc(strlen(conf_var_type_name) +
+    conf_var_full_name = (char *)SCMalloc(strlen(conf_var_type_name) +
                                         strlen(conf_var_name) + 2);
     if (conf_var_full_name == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -4018,7 +4018,7 @@ char *StreamTcpParseOSPolicy (char *conf_var_name)
 
  end:
     if (conf_var_full_name != NULL)
-        free(conf_var_full_name);
+        SCFree(conf_var_full_name);
     SCReturnCharPtr(conf_var_value);
 
 

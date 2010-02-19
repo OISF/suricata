@@ -27,7 +27,7 @@ IPReputationCtx *rep_ctx;
  *         NULL Error initializing moule;
  */
 IPReputationCtx *SCReputationInitCtx() {
-    rep_ctx = (IPReputationCtx *)malloc(sizeof(IPReputationCtx));
+    rep_ctx = (IPReputationCtx *)SCMalloc(sizeof(IPReputationCtx));
     if (rep_ctx == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for Reputation context");
         exit(EXIT_FAILURE);
@@ -72,7 +72,7 @@ Reputation *SCReputationAllocData()
 {
     Reputation *rep_data = NULL;
 
-    if ( (rep_data = malloc(sizeof(Reputation))) == NULL) {
+    if ( (rep_data = SCMalloc(sizeof(Reputation))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -84,14 +84,14 @@ Reputation *SCReputationAllocData()
 }
 
 /**
- * \brief Used to free the reputation data that is allocated by Reputation API
+ * \brief Used to SCFree the reputation data that is allocated by Reputation API
  *
- * \param Pointer to the data that has to be freed
+ * \param Pointer to the data that has to be SCFreed
  */
 void SCReputationFreeData(void *data)
 {
     if (data != NULL)
-        free(data);
+        SCFree(data);
 
     return;
 }
@@ -105,7 +105,7 @@ ReputationTransaction *SCReputationTransactionAlloc()
 {
     ReputationTransaction *rtx = NULL;
 
-    if ( (rtx = malloc(sizeof(ReputationTransaction))) == NULL) {
+    if ( (rtx = SCMalloc(sizeof(ReputationTransaction))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -115,14 +115,14 @@ ReputationTransaction *SCReputationTransactionAlloc()
 }
 
 /**
- * \brief Used to free the transaction data
+ * \brief Used to SCFree the transaction data
  *
- * \param Pointer to the data that has to be freed
+ * \param Pointer to the data that has to be SCFreed
  */
 void SCReputationTransactionFreeData(void *data)
 {
     if (data != NULL)
-        free(data);
+        SCFree(data);
 
     return;
 }
@@ -213,7 +213,7 @@ Reputation *SCReputationClone(Reputation *orig)
         return NULL;
     }
 
-    if ( (rep = malloc(sizeof(Reputation))) == NULL) {
+    if ( (rep = SCMalloc(sizeof(Reputation))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }

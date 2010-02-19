@@ -57,8 +57,8 @@ void DetectStreamSizeRegister(void) {
     return;
 
 error:
-    if (parse_regex != NULL) free(parse_regex);
-    if (parse_regex_study != NULL) free(parse_regex_study);
+    if (parse_regex != NULL) SCFree(parse_regex);
+    if (parse_regex_study != NULL) SCFree(parse_regex_study);
     return;
 }
 
@@ -209,7 +209,7 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     }
     value = (char *)str_ptr;
 
-    sd = malloc(sizeof(DetectStreamSizeData));
+    sd = SCMalloc(sizeof(DetectStreamSizeData));
     if (sd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -269,15 +269,15 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
         goto error;
     }
 
-    if (mode != NULL) free(mode);
-    if (arg != NULL) free(arg);
-    if (value != NULL) free(value);
+    if (mode != NULL) SCFree(mode);
+    if (arg != NULL) SCFree(arg);
+    if (value != NULL) SCFree(value);
     return sd;
 
 error:
-    if (mode != NULL) free(mode);
-    if (arg != NULL) free(arg);
-    if (value != NULL) free(value);
+    if (mode != NULL) SCFree(mode);
+    if (arg != NULL) SCFree(arg);
+    if (value != NULL) SCFree(value);
     if (sd != NULL) DetectStreamSizeFree(sd);
 
     return NULL;
@@ -316,7 +316,7 @@ int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
 
 error:
     if (sd != NULL) DetectStreamSizeFree(sd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 }
 
@@ -327,7 +327,7 @@ error:
  */
 void DetectStreamSizeFree(void *ptr) {
     DetectStreamSizeData *sd = (DetectStreamSizeData *)ptr;
-    free(sd);
+    SCFree(sd);
 }
 
 #ifdef UNITTESTS
@@ -400,16 +400,19 @@ static int DetectStreamSizeParseTest03 (void) {
     if (sd != NULL) {
         if (!(sd->flags & STREAM_SIZE_CLIENT)) {
             printf("sd->flags not STREAM_SIZE_CLIENT: ");
+            DetectStreamSizeFree(sd);
             return 0;
         }
 
         if (sd->mode != DETECTSSIZE_GT) {
             printf("sd->mode not DETECTSSIZE_GT: ");
+            DetectStreamSizeFree(sd);
             return 0;
         }
 
         if (sd->ssize != 8) {
             printf("sd->ssize is %"PRIu32", not 8: ", sd->ssize);
+            DetectStreamSizeFree(sd);
             return 0;
         }
     } else {
@@ -429,6 +432,7 @@ static int DetectStreamSizeParseTest03 (void) {
     if (result == 0) {
         printf("result 0 != 1: ");
     }
+    DetectStreamSizeFree(sd);
     return result;
 }
 

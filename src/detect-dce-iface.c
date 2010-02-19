@@ -98,7 +98,7 @@ static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
         goto error;
     }
 
-    if ( (did = malloc(sizeof(DetectDceIfaceData))) == NULL) {
+    if ( (did = SCMalloc(sizeof(DetectDceIfaceData))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -200,7 +200,7 @@ static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
 
  error:
     if (did != NULL)
-        free(did);
+        SCFree(did);
     return NULL;
 }
 
@@ -342,13 +342,13 @@ int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
  error:
     DetectDceIfaceFree(did);
     if (sm != NULL)
-        free(sm);
+        SCFree(sm);
     return -1;
 }
 
 void DetectDceIfaceFree(void *ptr)
 {
-    free(ptr);
+    SCFree(ptr);
 
     return;
 }

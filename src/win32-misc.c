@@ -6,19 +6,19 @@
 int setenv(const char *name, const char *value, int overwrite)
 {
 	if (overwrite || NULL == getenv(name)) {
-		char *str = malloc(strlen(name) + strlen(value) + 2);
+		char *str = SCMalloc(strlen(name) + strlen(value) + 2);
 		sprintf(str, "%s=%s", name, value);
 		putenv(str);
-		free(str);
+		SCFree(str);
 	}
 }
 
 int unsetenv(const char *name)
 {
-	char *str = malloc(strlen(name) + 2);
+	char *str = SCMalloc(strlen(name) + 2);
 	sprintf(str, "%s=", name);
 	putenv(str);
-	free(str);
+	SCFree(str);
 }
 
 const char* inet_ntop(int af, const void *src, char *dst, uint32_t cnt)

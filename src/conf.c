@@ -59,7 +59,7 @@ ConfNodeNew(void)
 {
     ConfNode *new;
 
-    new = calloc(1, sizeof(*new));
+    new = SCCalloc(1, sizeof(*new));
     if (new == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Error allocating memory for new configuration node");
@@ -75,7 +75,7 @@ ConfNodeNew(void)
 /**
  * \brief Free a ConfNode and all of its children.
  *
- * \param node The configuration node to free.
+ * \param node The configuration node to SCFree.
  */
 void
 ConfNodeFree(ConfNode *node)
@@ -88,10 +88,10 @@ ConfNodeFree(ConfNode *node)
     }
 
     if (node->name != NULL)
-        free(node->name);
+        SCFree(node->name);
     if (node->val != NULL)
-        free(node->val);
-    free(node);
+        SCFree(node->val);
+    SCFree(node);
 }
 
 /**
@@ -110,7 +110,7 @@ ConfGetNode(char *key)
     char *token;
 
     /* Need to dup the key for tokenization... */
-    char *tokstr = strdup(key);
+    char *tokstr = SCStrdup(key);
 
     token = strtok_r(tokstr, ".", &saveptr);
     for (;;) {
@@ -121,7 +121,7 @@ ConfGetNode(char *key)
         if (token == NULL)
             break;
     }
-    free(tokstr);
+    SCFree(tokstr);
     return node;
 }
 
@@ -159,20 +159,20 @@ ConfSet(char *name, char *val, int allow_override)
         }
         else {
             if (node->val != NULL)
-                free(node->val);
-            node->val = strdup(val);
+                SCFree(node->val);
+            node->val = SCStrdup(val);
             node->allow_override = allow_override;
             return 1;
         }
     }
     else {
-        char *tokstr = strdup(name);
+        char *tokstr = SCStrdup(name);
         token = strtok_r(tokstr, ".", &saveptr);
         node = ConfNodeLookupChild(parent, token);
         for (;;) {
             if (node == NULL) {
                 node = ConfNodeNew();
-                node->name = strdup(token);
+                node->name = SCStrdup(token);
                 node->parent = parent;
                 TAILQ_INSERT_TAIL(&parent->head, node, next);
                 parent = node;
@@ -185,8 +185,8 @@ ConfSet(char *name, char *val, int allow_override)
                 if (!node->allow_override)
                     break;
                 if (node->val != NULL)
-                    free(node->val);
-                node->val = strdup(val);
+                    SCFree(node->val);
+                node->val = SCStrdup(val);
                 node->allow_override = allow_override;
                 break;
             }
@@ -194,7 +194,7 @@ ConfSet(char *name, char *val, int allow_override)
                 node = ConfNodeLookupChild(parent, token);
             }
         }
-        free(tokstr);
+        SCFree(tokstr);
     }
 
     SCLogDebug("configuration parameter '%s' set", name);
@@ -295,7 +295,7 @@ ConfGetBool(char *name, int *val)
 }
 
 /**
- * \brief Remove (and free) the provided configuration node.
+ * \brief Remove (and SCFree) the provided configuration node.
  */
 void
 ConfNodeRemove(ConfNode *node)
@@ -392,7 +392,7 @@ ConfNodeDump(ConfNode *node, const char *prefix)
 
     level++;
     TAILQ_FOREACH(child, &node->head, next) {
-        name[level] = strdup(child->name);
+        name[level] = SCStrdup(child->name);
         if (prefix == NULL) {
             printf("%s = %s\n", ConfPrintNameArray(name, level),
                 child->val);
@@ -402,7 +402,7 @@ ConfNodeDump(ConfNode *node, const char *prefix)
                 ConfPrintNameArray(name, level), child->val);
         }
         ConfNodeDump(child, prefix);
-        free(name[level]);
+        SCFree(name[level]);
     }
     level--;
 }
@@ -651,8 +651,8 @@ ConfNodeLookupChildTest(void)
 
     for (u = 0; u < sizeof(test_vals)/sizeof(test_vals[0]); u++) {
         child = ConfNodeNew();
-        child->name = strdup(test_vals[u]);
-        child->val = strdup(test_vals[u]);
+        child->name = SCStrdup(test_vals[u]);
+        child->val = SCStrdup(test_vals[u]);
         TAILQ_INSERT_TAIL(&parent->head, child, next);
     }
 
@@ -701,8 +701,8 @@ ConfNodeLookupChildValueTest(void)
 
     for (u = 0; u < sizeof(test_vals)/sizeof(test_vals[0]); u++) {
         child = ConfNodeNew();
-        child->name = strdup(test_vals[u]);
-        child->val = strdup(test_vals[u]);
+        child->name = SCStrdup(test_vals[u]);
+        child->val = SCStrdup(test_vals[u]);
         TAILQ_INSERT_TAIL(&parent->head, child, next);
     }
 

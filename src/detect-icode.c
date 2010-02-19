@@ -140,7 +140,7 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
         args[i-1] = (char *)str_ptr;
     }
 
-    icd = malloc(sizeof(DetectICodeData));
+    icd = SCMalloc(sizeof(DetectICodeData));
     if (icd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
@@ -180,13 +180,13 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
     }
 
     for (i = 0; i < (ret-1); i++) {
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return icd;
 
 error:
     for (i = 0; i < (ret-1); i++) {
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     if (icd != NULL) DetectICodeFree(icd);
     return NULL;
@@ -223,7 +223,7 @@ int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *i
 
 error:
     if (icd != NULL) DetectICodeFree(icd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 }
 
@@ -234,7 +234,7 @@ error:
  */
 void DetectICodeFree(void *ptr) {
     DetectICodeData *icd = (DetectICodeData *)ptr;
-    free(icd);
+    SCFree(icd);
 }
 
 #ifdef UNITTESTS

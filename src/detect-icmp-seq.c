@@ -139,7 +139,7 @@ DetectIcmpSeqData *DetectIcmpSeqParse (char *icmpseqstr) {
         substr[i-1] = (char *)str_ptr;
     }
 
-    iseq = malloc(sizeof(DetectIcmpSeqData));
+    iseq = SCMalloc(sizeof(DetectIcmpSeqData));
     if (iseq == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
@@ -162,14 +162,14 @@ DetectIcmpSeqData *DetectIcmpSeqParse (char *icmpseqstr) {
     ByteExtractStringUint16(&iseq->seq, 10, 0, substr[1]);
 
     for (i = 0; i < 3; i++) {
-        if (substr[i] != NULL) free(substr[i]);
+        if (substr[i] != NULL) SCFree(substr[i]);
     }
 
     return iseq;
 
 error:
     for (i = 0; i < 3; i++) {
-        if (substr[i] != NULL) free(substr[i]);
+        if (substr[i] != NULL) SCFree(substr[i]);
     }
     if (iseq != NULL) DetectIcmpSeqFree(iseq);
     return NULL;
@@ -206,7 +206,7 @@ int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
 error:
     if (iseq != NULL) DetectIcmpSeqFree(iseq);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 
 }
@@ -218,7 +218,7 @@ error:
  */
 void DetectIcmpSeqFree (void *ptr) {
     DetectIcmpSeqData *iseq = (DetectIcmpSeqData *)ptr;
-    free(iseq);
+    SCFree(iseq);
 }
 
 #ifdef UNITTESTS

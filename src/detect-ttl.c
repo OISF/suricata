@@ -55,8 +55,8 @@ void DetectTtlRegister(void) {
     return;
 
 error:
-    if (parse_regex != NULL) free(parse_regex);
-    if (parse_regex_study != NULL) free(parse_regex_study);
+    if (parse_regex != NULL) SCFree(parse_regex);
+    if (parse_regex_study != NULL) SCFree(parse_regex_study);
     return;
 }
 
@@ -148,7 +148,7 @@ DetectTtlData *DetectTtlParse (char *ttlstr) {
     arg3 = (char *) str_ptr;
     SCLogDebug("Arg3 \"%s\"", arg3);
 
-    ttld = malloc(sizeof (DetectTtlData));
+    ttld = SCMalloc(sizeof (DetectTtlData));
     if (ttld == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -199,16 +199,16 @@ DetectTtlData *DetectTtlParse (char *ttlstr) {
             break;
     }
 
-    free(arg1);
-    free(arg2);
-    free(arg3);
+    SCFree(arg1);
+    SCFree(arg2);
+    SCFree(arg3);
     return ttld;
 
 error:
-    if (ttld) free(ttld);
-    if (arg1) free(arg1);
-    if (arg2) free(arg2);
-    if (arg3) free(arg3);
+    if (ttld) SCFree(ttld);
+    if (arg1) SCFree(arg1);
+    if (arg2) SCFree(arg2);
+    if (arg3) SCFree(arg3);
     return NULL;
 }
 
@@ -245,7 +245,7 @@ int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *tt
 
 error:
     if (ttld != NULL) DetectTtlFree(ttld);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 }
 
@@ -256,7 +256,7 @@ error:
  */
 void DetectTtlFree(void *ptr) {
     DetectTtlData *ttld = (DetectTtlData *)ptr;
-    free(ttld);
+    SCFree(ttld);
 }
 
 #ifdef UNITTESTS
@@ -410,7 +410,7 @@ static int DetectTtlParseTest06 (void) {
     ttld = DetectTtlParse(" 1 = 2 ");
     if (ttld == NULL)
         res = 1;
-    if (ttld) free(ttld);
+    if (ttld) SCFree(ttld);
 
     return res;
 }
@@ -428,7 +428,7 @@ static int DetectTtlParseTest07 (void) {
     if (ttld == NULL)
         res = 1;
 
-    if (ttld) free(ttld);
+    if (ttld) SCFree(ttld);
 
     return res;
 }
@@ -461,7 +461,7 @@ static int DetectTtlSetpTest01(void) {
     }
 
 cleanup:
-    if (ttld) free(ttld);
+    if (ttld) SCFree(ttld);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);

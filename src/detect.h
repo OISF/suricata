@@ -11,6 +11,8 @@
 #include "util-mpm.h"
 #include "util-hash.h"
 #include "util-hashlist.h"
+#include "util-debug.h"
+#include "util-error.h"
 
 #include "detect-threshold.h"
 

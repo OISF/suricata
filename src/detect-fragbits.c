@@ -165,7 +165,7 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
         goto error;
     }
 
-    de = malloc(sizeof(DetectFragBitsData));
+    de = SCMalloc(sizeof(DetectFragBitsData));
     if (de == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
@@ -228,15 +228,15 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
         goto error;
 
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return de;
 
 error:
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
-    if (de) free(de);
+    if (de) SCFree(de);
     return NULL;
 }
 
@@ -272,8 +272,8 @@ static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch 
     return 0;
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return -1;
 }
 
@@ -285,7 +285,7 @@ error:
  */
 static void DetectFragBitsFree(void *de_ptr) {
     DetectFragBitsData *de = (DetectFragBitsData *)de_ptr;
-    if(de) free(de);
+    if(de) SCFree(de);
 }
 
 /*
@@ -408,14 +408,14 @@ static int FragBitsTestParse03 (void) {
     ret = DetectFragBitsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -500,14 +500,14 @@ static int FragBitsTestParse04 (void) {
     ret = DetectFragBitsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 #endif /* UNITTESTS */

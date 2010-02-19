@@ -134,7 +134,7 @@ DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr) {
         substr[i-1] = (char *)str_ptr;
     }
 
-    fragoff = malloc(sizeof(DetectFragOffsetData));
+    fragoff = SCMalloc(sizeof(DetectFragOffsetData));
     if (fragoff == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
@@ -163,14 +163,14 @@ DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr) {
     ByteExtractStringUint16(&fragoff->frag_off, 10, 0, substr[1]);
 
     for (i = 0; i < 2; i++) {
-        if (substr[i] != NULL) free(substr[i]);
+        if (substr[i] != NULL) SCFree(substr[i]);
     }
 
     return fragoff;
 
 error:
     for (i = 0; i < 2; i++) {
-        if (substr[i] != NULL) free(substr[i]);
+        if (substr[i] != NULL) SCFree(substr[i]);
     }
     if (fragoff != NULL) DetectFragOffsetFree(fragoff);
     return NULL;
@@ -207,7 +207,7 @@ int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
 
 error:
     if (fragoff != NULL) DetectFragOffsetFree(fragoff);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 
 }
@@ -219,7 +219,7 @@ error:
  */
 void DetectFragOffsetFree (void *ptr) {
     DetectFragOffsetData *fragoff = (DetectFragOffsetData *)ptr;
-    free(fragoff);
+    SCFree(fragoff);
 }
 
 #ifdef UNITTESTS

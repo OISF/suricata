@@ -18,7 +18,7 @@ BloomFilter *BloomFilterInit(uint32_t size, uint8_t iter, uint32_t (*Hash)(void 
     }
 
     /* setup the filter */
-    bf = malloc(sizeof(BloomFilter));
+    bf = SCMalloc(sizeof(BloomFilter));
     if (bf == NULL)
         goto error;
     memset(bf,0,sizeof(BloomFilter));
@@ -27,7 +27,7 @@ BloomFilter *BloomFilterInit(uint32_t size, uint8_t iter, uint32_t (*Hash)(void 
     bf->Hash = Hash;
 
     /* setup the bitarray */
-    bf->bitarray = malloc((bf->bitarray_size/8)+1);
+    bf->bitarray = SCMalloc((bf->bitarray_size/8)+1);
     if (bf->bitarray == NULL)
         goto error;
     memset(bf->bitarray,0,(bf->bitarray_size/8)+1);
@@ -37,9 +37,9 @@ BloomFilter *BloomFilterInit(uint32_t size, uint8_t iter, uint32_t (*Hash)(void 
 error:
     if (bf != NULL) {
         if (bf->bitarray != NULL)
-            free(bf->bitarray);
+            SCFree(bf->bitarray);
 
-        free(bf);
+        SCFree(bf);
     }
     return NULL;
 }
@@ -47,9 +47,9 @@ error:
 void BloomFilterFree(BloomFilter *bf) {
     if (bf != NULL) {
         if (bf->bitarray != NULL)
-            free(bf->bitarray);
+            SCFree(bf->bitarray);
 
-        free(bf);
+        SCFree(bf);
     }
 }
 

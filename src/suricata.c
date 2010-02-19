@@ -137,6 +137,20 @@ static void SignalHandlerSigint(/*@unused@*/ int sig) { sigint_count = 1; sigfla
 static void SignalHandlerSigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= SURICATA_SIGTERM; }
 static void SignalHandlerSighup(/*@unused@*/ int sig) { sighup_count = 1; sigflags |= SURICATA_SIGHUP; }
 
+#ifdef DBG_MEM_ALLOC
+#ifndef _GLOBAL_MEM_
+#define _GLOBAL_MEM_
+/* This counter doesn't complain realloc's(), it's gives
+ * an aproximation for the startup */
+uint64_t global_mem = 0;
+#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
+uint8_t print_mem_flag = 0;
+#else
+uint8_t print_mem_flag = 1;
+#endif
+#endif
+#endif
+
 #ifndef OS_WIN32
 static void
 SignalHandlerSetup(int sig, void (*handler)())
@@ -186,9 +200,9 @@ Packet *SetupPkt (void)
     if (p == NULL) {
         TmqDebugList();
 
-        p = malloc(sizeof(Packet));
+        p = SCMalloc(sizeof(Packet));
         if (p == NULL) {
-            printf("ERROR: malloc failed: %s\n", strerror(errno));
+            printf("ERROR: SCMalloc failed: %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         }
 
@@ -314,7 +328,7 @@ static void SetBpfString(int optind, char *argv[]) {
     if (bpf_len == 0)
         return;
 
-    bpf_filter = malloc(bpf_len);
+    bpf_filter = SCMalloc(bpf_len);
     if (bpf_filter == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "%s", strerror(errno));
         exit(EXIT_FAILURE);
@@ -680,7 +694,11 @@ int main(int argc, char **argv)
     AppLayerParsersInitPostProcess();
 
 #ifdef UNITTESTS
+
     if (run_mode == MODE_UNITTEST) {
+#ifdef DBG_MEM_ALLOC
+    SCLogInfo("Memory used at startup: %"PRIu64, global_mem);
+#endif
         /* test and initialize the unittesting subsystem */
         if(regex_arg == NULL){
             regex_arg = ".*";
@@ -759,6 +777,10 @@ int main(int argc, char **argv)
             }
         }
 
+#ifdef DBG_MEM_ALLOC
+        SCLogInfo("Total memory used (without SCFree()): %"PRIu64, global_mem);
+#endif
+
         exit(EXIT_SUCCESS);
     }
 #endif /* UNITTESTS */
@@ -777,9 +799,9 @@ int main(int argc, char **argv)
     int i = 0;
     for (i = 0; i < max_pending_packets; i++) {
         /* XXX pkt alloc function */
-        Packet *p = malloc(sizeof(Packet));
+        Packet *p = SCMalloc(sizeof(Packet));
         if (p == NULL) {
-            printf("ERROR: malloc failed: %s\n", strerror(errno));
+            printf("ERROR: SCMalloc failed: %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         }
         memset(p, 0, sizeof(Packet));
@@ -876,6 +898,13 @@ int main(int argc, char **argv)
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
 
+#ifdef DBG_MEM_ALLOC
+    SCLogInfo("Memory used at startup: %"PRIu64, global_mem);
+#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
+    print_mem_flag = 1;
+#endif
+#endif
+
     while(1) {
         if (sigflags) {
             SCLogInfo("signal received");
@@ -926,11 +955,19 @@ int main(int argc, char **argv)
         usleep(100);
     }
 
+
     FlowShutdown();
     FlowPrintQueueInfo();
     StreamTcpFreeConfig(STREAM_VERBOSE);
     HTPFreeConfig();
     HTPAtExitPrintStats();
+
+#ifdef DBG_MEM_ALLOC
+    SCLogInfo("Total memory used (without SCFree()): %"PRIu64, global_mem);
+#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
+    print_mem_flag = 0;
+#endif
+#endif
 
     /** \todo review whats needed here */
 #ifdef __SC_CUDA_SUPPORT__

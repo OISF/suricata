@@ -19,6 +19,7 @@
 #include "flow-private.h"
 #include "detect.h"
 #include "util-var.h"
+#include "util-debug.h"
 #include "util-unittest.h"
 
 /* get the flowbit with idx from the flow */
@@ -37,7 +38,7 @@ static FlowBit *FlowBitGet(Flow *f, uint16_t idx) {
 static void FlowBitAdd(Flow *f, uint16_t idx) {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
-        fb = malloc(sizeof(FlowBit));
+        fb = SCMalloc(sizeof(FlowBit));
         if (fb == NULL)
             return;
 
@@ -144,7 +145,7 @@ void FlowBitFree(FlowBit *fb) {
     if (fb == NULL)
         return;
 
-    free(fb);
+    SCFree(fb);
 
 #ifdef FLOWBITS_STATS
     SCMutexLock(&flowbits_mutex);

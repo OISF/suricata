@@ -51,7 +51,7 @@ void RunModeShutDown(void)
         TAILQ_REMOVE(&RunModeOutputs, output, entries);
         if (output->logfile_ctx != NULL)
             LogFileFreeCtx(output->logfile_ctx);
-        free(output);
+        SCFree(output);
     }
 }
 
@@ -101,7 +101,7 @@ void RunModeInitializeOutputs(void)
                     "TmModuleGetByName for %s failed", module->name);
                 exit(EXIT_FAILURE);
             }
-            RunModeOutput *runmode_output = calloc(1, sizeof(RunModeOutput));
+            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
             if (runmode_output == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC,
                     "Failed to allocate memory for output.");
@@ -1951,7 +1951,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
         if (tname == NULL)
             break;
 
-        char *thread_name = strdup(tname);
+        char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
@@ -2118,7 +2118,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         if (tname == NULL)
             break;
 
-        char *thread_name = strdup(tname);
+        char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","alert-queue1","simple","1slot");
@@ -2264,7 +2264,7 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
         if (tname == NULL)
             break;
 
-        char *thread_name = strdup(tname);
+        char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
@@ -2451,7 +2451,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
         if (tname == NULL)
             break;
 
-        char *thread_name = strdup(tname);
+        char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
@@ -2637,7 +2637,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
         if (tname == NULL)
             break;
 
-        char *thread_name = strdup(tname);
+        char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");

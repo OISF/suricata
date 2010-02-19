@@ -1097,7 +1097,7 @@ int isAndX(SMBState *smb_state) {
 }
 
 static void *SMBStateAlloc(void) {
-    void *s = malloc(sizeof(SMBState));
+    void *s = SCMalloc(sizeof(SMBState));
     if (s == NULL)
         return NULL;
 
@@ -1107,7 +1107,7 @@ static void *SMBStateAlloc(void) {
 
 static void SMBStateFree(void *s) {
     if (s) {
-        free(s);
+        SCFree(s);
         s = NULL;
     }
 }

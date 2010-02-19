@@ -152,13 +152,13 @@ DetectTlsVersionData *DetectTlsVersionParse (char *str)
         }
 
         /* We have a correct id option */
-        tls = malloc(sizeof(DetectTlsVersionData));
+        tls = SCMalloc(sizeof(DetectTlsVersionData));
         if (tls == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
             goto error;
         }
 
-        orig = strdup((char*)str_ptr);
+        orig = SCStrdup((char*)str_ptr);
         tmp_str=orig;
         /* Let's see if we need to scape "'s */
         if (tmp_str[0] == '"')
@@ -180,7 +180,7 @@ DetectTlsVersionData *DetectTlsVersionParse (char *str)
 
         tls->ver = temp;
 
-        free(orig);
+        SCFree(orig);
 
         SCLogDebug("will look for tls %"PRIu8"", tls->ver);
     }
@@ -228,7 +228,7 @@ int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
 
 error:
     if (tls != NULL) DetectTlsVersionFree(tls);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 
 }
@@ -240,7 +240,7 @@ error:
  */
 void DetectTlsVersionFree(void *ptr) {
     DetectTlsVersionData *id_d = (DetectTlsVersionData *)ptr;
-    free(id_d);
+    SCFree(id_d);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

@@ -90,7 +90,7 @@ static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 error:
     if (sm != NULL)
-        free(sm);
+        SCFree(sm);
     return -1;
 
 }

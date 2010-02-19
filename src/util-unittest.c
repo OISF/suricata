@@ -23,9 +23,9 @@ static UtTest *ut_list;
  */
 
 static UtTest *UtAllocTest(void) {
-    UtTest *ut = malloc(sizeof(UtTest));
+    UtTest *ut = SCMalloc(sizeof(UtTest));
     if (ut == NULL) {
-        printf("ERROR: UtTest *ut = malloc(sizeof(UtTest)); failed\n");
+        printf("ERROR: UtTest *ut = SCMalloc(sizeof(UtTest)); failed\n");
         return NULL;
     }
 
@@ -223,7 +223,7 @@ void UtCleanup(void) {
 
     while (tmp != NULL) {
         otmp = tmp->next;
-        free(tmp);
+        SCFree(tmp);
         tmp = otmp;
     }
 

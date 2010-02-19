@@ -90,6 +90,8 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *);
 void HtpBodyPrint(HtpBody *);
 void HtpBodyFree(HtpBody *);
 void AppLayerHtpRegisterExtraCallbacks(void);
+/* To free the state from unittests using app-layer-htp */
+void HTPStateFree(void *);
 
 #endif	/* __APP_LAYER_HTP_H__ */
 

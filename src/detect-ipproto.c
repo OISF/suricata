@@ -108,7 +108,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     }
 
     /* Initialize the data */
-    data = malloc(sizeof(DetectIPProtoData));
+    data = SCMalloc(sizeof(DetectIPProtoData));
     if (data == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
@@ -138,15 +138,15 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     }
 
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return data;
 
 error:
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
-    if (data != NULL) free(data);
+    if (data != NULL) SCFree(data);
     return NULL;
 }
 
@@ -213,7 +213,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s,
     ret = 0;
 
 cleanup:
-    if (data != NULL) free(data);
+    if (data != NULL) SCFree(data);
 
     return ret;
 }
@@ -272,7 +272,7 @@ static int DetectIPProtoTestParse01(void) {
         result = 1;
     }
 
-    if (data) free(data);
+    if (data) SCFree(data);
 
     return result;
 }
@@ -288,7 +288,7 @@ static int DetectIPProtoTestParse02(void) {
         result = 1;
     }
 
-    if (data) free(data);
+    if (data) SCFree(data);
 
     return result;
 }
@@ -333,7 +333,7 @@ static int DetectIPProtoTestSetup01(void) {
     result = 1;
 
 cleanup:
-    if (data) free(data);
+    if (data) SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -375,7 +375,7 @@ static int DetectIPProtoTestSetup02(void) {
     result = 1;
 
 cleanup:
-    if (data) free(data);
+    if (data) SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -418,7 +418,7 @@ static int DetectIPProtoTestSetup03(void) {
     result = 1;
 
 cleanup:
-    if (data) free(data);
+    if (data) SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -465,7 +465,7 @@ static int DetectIPProtoTestSetup04(void) {
     result = 1;
 
 cleanup:
-    if (data) free(data);
+    if (data) SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -509,7 +509,7 @@ static int DetectIPProtoTestSetup05(void) {
     result = 1;
 
 cleanup:
-    if (data) free(data);
+    if (data) SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);

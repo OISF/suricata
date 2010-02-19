@@ -333,6 +333,7 @@ static int DetectFtpbounceTestALMatch02(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v,(void *)de_ctx,(void *)&det_ctx);
 
+    StreamL7DataPtrInit(&ssn);
     int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);

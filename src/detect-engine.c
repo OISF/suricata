@@ -34,7 +34,7 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
 DetectEngineCtx *DetectEngineCtxInit(void) {
     DetectEngineCtx *de_ctx;
 
-    de_ctx = malloc(sizeof(DetectEngineCtx));
+    de_ctx = SCMalloc(sizeof(DetectEngineCtx));
     if (de_ctx == NULL) {
         goto error;
     }
@@ -83,11 +83,11 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
 
     VariableNameFreeHash(de_ctx);
     if (de_ctx->sig_array)
-        free(de_ctx->sig_array);
+        SCFree(de_ctx->sig_array);
 
     if (de_ctx->class_conf_ht != NULL)
         HashTableFree(de_ctx->class_conf_ht);
-    free(de_ctx);
+    SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
@@ -404,7 +404,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     if (de_ctx == NULL)
         return TM_ECODE_FAILED;
 
-    DetectEngineThreadCtx *det_ctx = malloc(sizeof(DetectEngineThreadCtx));
+    DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
     if (det_ctx == NULL) {
         return TM_ECODE_FAILED;
     }
@@ -444,7 +444,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     char *cuda_outq_name = "cuda_mpm_rc_disp_outq";
     uint8_t disp_outq_name_len = (strlen(tv->name) + strlen(cuda_outq_name) + 1);
 
-    char *disp_outq_name = malloc(disp_outq_name_len * sizeof(char));
+    char *disp_outq_name = SCMalloc(disp_outq_name_len * sizeof(char));
     if (disp_outq_name == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -489,7 +489,7 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
     PatternMatchThreadDestroy(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
     PatternMatchThreadDestroy(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
 
-    free(det_ctx);
+    SCFree(det_ctx);
 
     return TM_ECODE_OK;
 }

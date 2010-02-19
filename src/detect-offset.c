@@ -32,7 +32,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
 
     /* strip "'s */
     if (offsetstr[0] == '\"' && offsetstr[strlen(offsetstr)-1] == '\"') {
-        str = strdup(offsetstr+1);
+        str = SCStrdup(offsetstr+1);
         str[strlen(offsetstr)-2] = '\0';
         dubbed = 1;
     }
@@ -42,14 +42,14 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     SigMatch *pm = DetectContentFindPrevApplicableSM(m);
     if (pm == NULL) {
         SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding content option");
-        if (dubbed) free(str);
+        if (dubbed) SCFree(str);
         return -1;
     }
 
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-        if (dubbed) free(str);
+        if (dubbed) SCFree(str);
         return -1;
     }
 
@@ -68,7 +68,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     if (cd->flags & DETECT_CONTENT_IS_CHUNK)
         DetectContentPropagateOffset(pm);
 
-    if (dubbed) free(str);
+    if (dubbed) SCFree(str);
     return 0;
 }
 

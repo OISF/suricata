@@ -209,9 +209,9 @@ void WmPrintInfo(MpmCtx *mpm_ctx) {
 }
 
 static inline WmPattern *WmAllocPattern(MpmCtx *mpm_ctx) {
-    WmPattern *p = malloc(sizeof(WmPattern));
+    WmPattern *p = SCMalloc(sizeof(WmPattern));
     if (p == NULL) {
-        printf("ERROR: WmAllocPattern: malloc failed\n");
+        printf("ERROR: WmAllocPattern: SCMalloc failed\n");
         exit(EXIT_FAILURE);
     }
     memset(p,0,sizeof(WmPattern));
@@ -223,9 +223,9 @@ static inline WmPattern *WmAllocPattern(MpmCtx *mpm_ctx) {
 
 static inline WmHashItem *
 WmAllocHashItem(MpmCtx *mpm_ctx) {
-    WmHashItem *hi = malloc(sizeof(WmHashItem));
+    WmHashItem *hi = SCMalloc(sizeof(WmHashItem));
     if (hi == NULL) {
-        printf("ERROR: WmAllocHashItem: malloc failed\n");
+        printf("ERROR: WmAllocHashItem: SCMalloc failed\n");
         exit(EXIT_FAILURE);
     }
     memset(hi,0,sizeof(WmHashItem));
@@ -244,7 +244,7 @@ static void WmHashFree(MpmCtx *mpm_ctx, WmHashItem *hi) {
 
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(WmHashItem);
-    free(hi);
+    SCFree(hi);
 }
 
 static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len) {
@@ -342,19 +342,19 @@ void WmFreePattern(MpmCtx *mpm_ctx, WmPattern *p) {
     }
 
     if (p && p->cs && p->cs != p->ci) {
-        free(p->cs);
+        SCFree(p->cs);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= p->len;
     }
 
     if (p && p->ci) {
-        free(p->ci);
+        SCFree(p->ci);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= p->len;
     }
 
     if (p) {
-        free(p);
+        SCFree(p);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= sizeof(WmPattern); 
     }
@@ -390,7 +390,7 @@ static inline int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, u
         if (nocase) p->flags |= WUMANBER_NOCASE;
 
         /* setup the case insensitive part of the pattern */
-        p->ci = malloc(patlen);
+        p->ci = SCMalloc(patlen);
         if (p->ci == NULL) goto error;
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += patlen;
@@ -405,7 +405,7 @@ static inline int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, u
                 /* no diff between cs and ci: pat is lowercase */
                 p->cs = p->ci;
             } else {
-                p->cs = malloc(patlen);
+                p->cs = SCMalloc(patlen);
                 if (p->cs == NULL) goto error;
                 mpm_ctx->memory_cnt++;
                 mpm_ctx->memory_size += patlen;
@@ -524,7 +524,7 @@ static void WmScanPrepareHash(MpmCtx *mpm_ctx) {
     uint16_t idx = 0;
     uint8_t idx8 = 0;
 
-    ctx->scan_hash = (WmHashItem **)malloc(sizeof(WmHashItem *) * ctx->scan_hash_size);
+    ctx->scan_hash = (WmHashItem **)SCMalloc(sizeof(WmHashItem *) * ctx->scan_hash_size);
     if (ctx->scan_hash == NULL) goto error;
     memset(ctx->scan_hash, 0, sizeof(WmHashItem *) * ctx->scan_hash_size);
 
@@ -532,7 +532,7 @@ static void WmScanPrepareHash(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_size += (sizeof(WmHashItem *) * ctx->scan_hash_size);
 
     /* alloc the pminlen array */
-    ctx->scan_pminlen = (uint8_t *)malloc(sizeof(uint8_t) * ctx->scan_hash_size);
+    ctx->scan_pminlen = (uint8_t *)SCMalloc(sizeof(uint8_t) * ctx->scan_hash_size);
     if (ctx->scan_pminlen == NULL) goto error;
     memset(ctx->scan_pminlen, 0, sizeof(uint8_t) * ctx->scan_hash_size);
 
@@ -595,7 +595,7 @@ static void WmScanPrepareHash(MpmCtx *mpm_ctx) {
     }
 
     /* alloc the bloom array */
-    ctx->scan_bloom = (BloomFilter **)malloc(sizeof(BloomFilter *) * ctx->scan_hash_size);
+    ctx->scan_bloom = (BloomFilter **)SCMalloc(sizeof(BloomFilter *) * ctx->scan_hash_size);
     if (ctx->scan_bloom == NULL) goto error;
     memset(ctx->scan_bloom, 0, sizeof(BloomFilter *) * ctx->scan_hash_size);
 
@@ -634,7 +634,7 @@ static void WmPrepareHash(MpmCtx *mpm_ctx) {
     uint16_t idx = 0;
     uint8_t idx8 = 0;
 
-    ctx->search_hash = (WmHashItem **)malloc(sizeof(WmHashItem *) * ctx->search_hash_size);
+    ctx->search_hash = (WmHashItem **)SCMalloc(sizeof(WmHashItem *) * ctx->search_hash_size);
     if (ctx->search_hash == NULL) goto error;
     memset(ctx->search_hash, 0, sizeof(WmHashItem *) * ctx->search_hash_size);
 
@@ -712,7 +712,7 @@ static void WmScanPrepareShiftTable(MpmCtx *mpm_ctx)
 
     ctx->scan_shiftlen = smallest;
 
-    ctx->scan_shifttable = malloc(sizeof(uint16_t) * ctx->scan_hash_size);
+    ctx->scan_shifttable = SCMalloc(sizeof(uint16_t) * ctx->scan_hash_size);
     if (ctx->scan_shifttable == NULL)
         return;
 
@@ -806,7 +806,7 @@ static void WmPrepareShiftTable(MpmCtx *mpm_ctx)
 
     ctx->search_shiftlen = smallest;
 
-    ctx->search_shifttable = malloc(sizeof(uint16_t) * ctx->search_hash_size);
+    ctx->search_shifttable = SCMalloc(sizeof(uint16_t) * ctx->search_hash_size);
     if (ctx->search_shifttable == NULL)
         return;
 
@@ -891,7 +891,7 @@ int WmPreparePatterns(MpmCtx *mpm_ctx) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 
     /* alloc the pattern array */
-    ctx->parray = (WmPattern **)malloc(mpm_ctx->pattern_cnt * sizeof(WmPattern *));
+    ctx->parray = (WmPattern **)SCMalloc(mpm_ctx->pattern_cnt * sizeof(WmPattern *));
     if (ctx->parray == NULL) goto error;
     memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(WmPattern *));
     //printf("mpm_ctx %p, parray %p\n", mpm_ctx,ctx->parray);
@@ -913,7 +913,7 @@ int WmPreparePatterns(MpmCtx *mpm_ctx) {
         }
     }
     /* we no longer need the hash, so free it's memory */
-    free(ctx->init_hash);
+    SCFree(ctx->init_hash);
     ctx->init_hash = NULL;
 
     /* TODO VJ these values are chosen pretty much randomly, so
@@ -2233,7 +2233,7 @@ void WmGetConfig()
 void WmInitCtx (MpmCtx *mpm_ctx, int module_handle) {
     SCLogDebug("mpm_ctx %p", mpm_ctx);
 
-    mpm_ctx->ctx = malloc(sizeof(WmCtx));
+    mpm_ctx->ctx = SCMalloc(sizeof(WmCtx));
     if (mpm_ctx->ctx == NULL)
         return;
 
@@ -2244,7 +2244,7 @@ void WmInitCtx (MpmCtx *mpm_ctx, int module_handle) {
 
     /* initialize the hash we use to speed up pattern insertions */
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
-    ctx->init_hash = malloc(sizeof(WmPattern *) * INIT_HASH_SIZE);
+    ctx->init_hash = SCMalloc(sizeof(WmPattern *) * INIT_HASH_SIZE);
     if (ctx->init_hash == NULL)
         return;
 
@@ -2263,7 +2263,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
         return;
 
     if (ctx->init_hash) {
-        free(ctx->init_hash);
+        SCFree(ctx->init_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (INIT_HASH_SIZE * sizeof(WmPattern *));
     }
@@ -2276,7 +2276,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
             }
         }
 
-        free(ctx->parray);
+        SCFree(ctx->parray);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(WmPattern));
     }
@@ -2293,7 +2293,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
             BloomFilterFree(ctx->scan_bloom[h]);
         }
 
-        free(ctx->scan_bloom);
+        SCFree(ctx->scan_bloom);
 
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->scan_hash_size);
@@ -2308,13 +2308,13 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
             WmHashFree(mpm_ctx, ctx->scan_hash[h]);
         }
 
-        free(ctx->scan_hash);
+        SCFree(ctx->scan_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(WmHashItem) * ctx->scan_hash_size);
     }
 
     if (ctx->scan_shifttable) {
-        free(ctx->scan_shifttable);
+        SCFree(ctx->scan_shifttable);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(uint16_t) * ctx->scan_hash_size);
     }
@@ -2331,7 +2331,7 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
             BloomFilterFree(ctx->search_bloom[h]);
         }
 
-        free(ctx->search_bloom);
+        SCFree(ctx->search_bloom);
 
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->search_hash_size);
@@ -2346,30 +2346,30 @@ void WmDestroyCtx(MpmCtx *mpm_ctx) {
             WmHashFree(mpm_ctx, ctx->search_hash[h]);
         }
 
-        free(ctx->search_hash);
+        SCFree(ctx->search_hash);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(WmHashItem) * ctx->search_hash_size);
     }
 
     if (ctx->search_shifttable) {
-        free(ctx->search_shifttable);
+        SCFree(ctx->search_shifttable);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(uint16_t) * ctx->search_hash_size);
     }
 
     if (ctx->scan_pminlen) {
-        free(ctx->scan_pminlen);
+        SCFree(ctx->scan_pminlen);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(uint8_t) * ctx->scan_hash_size);
     }
 #if 0
     if (ctx->search_pminlen) {
-        free(ctx->search_pminlen);
+        SCFree(ctx->search_pminlen);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (sizeof(uint8_t) * ctx->search_hash_size);
     }
 #endif
-    free(mpm_ctx->ctx);
+    SCFree(mpm_ctx->ctx);
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(WmCtx);
 }
@@ -2378,7 +2378,7 @@ void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t mat
     memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
     if (sizeof(WmThreadCtx) > 0) { /* size can be 0 when optimized */
-        mpm_thread_ctx->ctx = malloc(sizeof(WmThreadCtx));
+        mpm_thread_ctx->ctx = SCMalloc(sizeof(WmThreadCtx));
         if (mpm_thread_ctx->ctx == NULL)
             return;
 
@@ -2394,7 +2394,7 @@ void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t mat
      * unique id and is the array lookup key at the same time */
     uint32_t keys = matchsize + 1;
     if (keys > 0) {
-        mpm_thread_ctx->match = malloc(keys * sizeof(MpmMatchBucket));
+        mpm_thread_ctx->match = SCMalloc(keys * sizeof(MpmMatchBucket));
         if (mpm_thread_ctx->match == NULL) {
             printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
             exit(1);
@@ -2413,13 +2413,13 @@ void WmThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
     if (ctx != NULL) { /* size can be 0 when optimized */
         mpm_thread_ctx->memory_cnt--;
         mpm_thread_ctx->memory_size -= sizeof(WmThreadCtx);
-        free(mpm_thread_ctx->ctx);
+        SCFree(mpm_thread_ctx->ctx);
     }
 
     if (mpm_thread_ctx->match != NULL) {
         mpm_thread_ctx->memory_cnt--;
         mpm_thread_ctx->memory_size -= ((mpm_thread_ctx->matchsize + 1) * sizeof(MpmMatchBucket));
-        free(mpm_thread_ctx->match);
+        SCFree(mpm_thread_ctx->match);
     }
 
     MpmMatchFreeSpares(mpm_thread_ctx, mpm_thread_ctx->sparelist);

@@ -142,7 +142,7 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
         substr[i-1] = (char *)str_ptr;
     }
 
-    iid = malloc(sizeof(DetectIcmpIdData));
+    iid = SCMalloc(sizeof(DetectIcmpIdData));
     if (iid == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
@@ -163,13 +163,13 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
     ByteExtractStringUint16(&iid->id, 10, 0, substr[1]);
 
     for (i = 0; i < 3; i++) {
-        if (substr[i] != NULL) free(substr[i]);
+        if (substr[i] != NULL) SCFree(substr[i]);
     }
     return iid;
 
 error:
     for (i = 0; i < 3; i++) {
-        if (substr[i] != NULL) free(substr[i]);
+        if (substr[i] != NULL) SCFree(substr[i]);
     }
     if (iid != NULL) DetectIcmpIdFree(iid);
     return NULL;
@@ -206,7 +206,7 @@ int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
 
 error:
     if (iid != NULL) DetectIcmpIdFree(iid);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 
 }
@@ -218,7 +218,7 @@ error:
  */
 void DetectIcmpIdFree (void *ptr) {
     DetectIcmpIdData *iid = (DetectIcmpIdData *)ptr;
-    free(iid);
+    SCFree(iid);
 }
 
 #ifdef UNITTESTS

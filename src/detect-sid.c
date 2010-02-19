@@ -2,6 +2,8 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "util-debug.h"
+#include "util-error.h"
 
 int DetectSidSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);
 
@@ -20,14 +22,14 @@ int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *si
 
     /* strip "'s */
     if (sidstr[0] == '\"' && sidstr[strlen(sidstr)-1] == '\"') {
-        str = strdup(sidstr+1);
+        str = SCStrdup(sidstr+1);
         str[strlen(sidstr)-2] = '\0';
         dubbed = 1;
     }
 
     s->id = (uint32_t)atoi(str);
 
-    if (dubbed) free(str);
+    if (dubbed) SCFree(str);
     return 0;
 }
 

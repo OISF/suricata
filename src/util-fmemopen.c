@@ -136,7 +136,7 @@ static int WriteFn(void *handler, const char *buf, int size) {
  * \retval 0 on succesful
  */
 static int CloseFn(void *handler) {
-    free (handler);
+    SCFree(handler);
     return 0;
 }
 
@@ -148,7 +148,7 @@ static int CloseFn(void *handler) {
  * \retval pointer to the file; NULL if something is wrong
  */
 FILE *SCFmemopen(void *buf, size_t size, const char *mode) {
-    SCFmem *mem = (SCFmem *) malloc(sizeof(SCFmem));
+    SCFmem *mem = (SCFmem *) SCMalloc(sizeof(SCFmem));
 
     memset(mem, 0, sizeof(SCFmem));
     mem->size = size, mem->buffer = buf;

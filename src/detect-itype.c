@@ -140,7 +140,7 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
         args[i-1] = (char *)str_ptr;
     }
 
-    itd = malloc(sizeof(DetectITypeData));
+    itd = SCMalloc(sizeof(DetectITypeData));
     if (itd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
@@ -180,13 +180,13 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
     }
 
     for (i = 0; i < (ret-1); i++) {
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return itd;
 
 error:
     for (i = 0; i < (ret-1); i++) {
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     if (itd != NULL) DetectITypeFree(itd);
     return NULL;
@@ -223,7 +223,7 @@ int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *i
 
 error:
     if (itd != NULL) DetectITypeFree(itd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 }
 
@@ -234,7 +234,7 @@ error:
  */
 void DetectITypeFree(void *ptr) {
     DetectITypeData *itd = (DetectITypeData *)ptr;
-    free(itd);
+    SCFree(itd);
 }
 
 #ifdef UNITTESTS

@@ -180,7 +180,7 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
         goto error;
     }
 
-    de = malloc(sizeof(DetectFlagsData));
+    de = SCMalloc(sizeof(DetectFlagsData));
     if (de == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -396,16 +396,16 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     }
 
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
 
     SCReturnPtr(de, "DetectFlagsData");
 
 error:
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
-    if (de) free(de);
+    if (de) SCFree(de);
     SCReturnPtr(NULL, "DetectFlagsData");
 }
 
@@ -441,8 +441,8 @@ static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     return 0;
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return -1;
 }
 
@@ -454,7 +454,7 @@ error:
  */
 static void DetectFlagsFree(void *de_ptr) {
     DetectFlagsData *de = (DetectFlagsData *)de_ptr;
-    if(de) free(de);
+    if(de) SCFree(de);
 }
 
 /*
@@ -535,14 +535,14 @@ static int FlagsTestParse03 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -585,14 +585,14 @@ static int FlagsTestParse04 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -635,14 +635,14 @@ static int FlagsTestParse05 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -685,14 +685,14 @@ static int FlagsTestParse06 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -735,14 +735,14 @@ static int FlagsTestParse07 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -785,14 +785,14 @@ static int FlagsTestParse08 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -835,14 +835,14 @@ static int FlagsTestParse09 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -885,14 +885,14 @@ static int FlagsTestParse10 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -935,14 +935,14 @@ static int FlagsTestParse11 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 
@@ -987,14 +987,14 @@ static int FlagsTestParse12 (void) {
     ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
 
     if(ret) {
-        if (de) free(de);
-        if (sm) free(sm);
+        if (de) SCFree(de);
+        if (sm) SCFree(sm);
         return 1;
     }
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 

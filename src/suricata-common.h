@@ -45,7 +45,6 @@
 #ifdef OS_WIN32
 #include "win32-misc.h"
 #endif /* OS_WIN32 */
-
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -99,10 +98,15 @@
 #include <ws2tcpip.h>
 #endif
 
-#include "threads.h"
-
 #include <assert.h>
 #define BUG_ON(x) assert(!(x))
+
+#include <htp/htp.h>
+#include "threads.h"
+#include "util-debug.h"
+#include "util-error.h"
+#include "util-mem.h"
+
 
 /** type for the internal signature id. Since it's used in the matching engine
  *  extensively keeping this as small as possible reduces the overall memory

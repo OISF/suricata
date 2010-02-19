@@ -21,7 +21,7 @@ Flow *FlowAlloc(void)
         SCMutexUnlock(&flow_memuse_mutex);
         return NULL;
     }
-    f = malloc(sizeof(Flow));
+    f = SCMalloc(sizeof(Flow));
     if (f == NULL) {
         SCMutexUnlock(&flow_memuse_mutex);
         return NULL;
@@ -47,7 +47,7 @@ void FlowFree(Flow *f)
     flow_memuse -= sizeof(Flow);
     SCMutexUnlock(&flow_memuse_mutex);
 
-    free(f);
+    SCFree(f);
 }
 
 /**

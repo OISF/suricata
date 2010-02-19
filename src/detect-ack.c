@@ -83,7 +83,7 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     //printf("DetectAckSetup: \'%s\'\n", optstr);
 
-    data = malloc(sizeof(DetectAckData));
+    data = SCMalloc(sizeof(DetectAckData));
     if (data == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -106,7 +106,7 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 
 error:
-    if (data) free(data);
+    if (data) SCFree(data);
     return -1;
 
 }
@@ -120,7 +120,7 @@ error:
 static void DetectAckFree(void *ptr)
 {
     DetectAckData *data = (DetectAckData *)ptr;
-    free(data);
+    SCFree(data);
 }
 
 

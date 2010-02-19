@@ -138,7 +138,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     SCLogInfo("reading pcap file %s", (char *)initdata);
 
-    PcapFileThreadVars *ptv = malloc(sizeof(PcapFileThreadVars));
+    PcapFileThreadVars *ptv = SCMalloc(sizeof(PcapFileThreadVars));
     if (ptv == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for PcapFileThreadVars");
         SCReturnInt(TM_ECODE_FAILED);
@@ -149,7 +149,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     pcap_g.pcap_handle = pcap_open_offline((char *)initdata, errbuf);
     if (pcap_g.pcap_handle == NULL) {
         SCLogError(SC_ERR_FOPEN, "%s\n", errbuf);
-        free(ptv);
+        SCFree(ptv);
         exit(EXIT_FAILURE);
     }
 
@@ -160,13 +160,13 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
         if(pcap_compile(pcap_g.pcap_handle,&pcap_g.filter,tmpbpfstring,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(pcap_g.pcap_handle));
-            free(ptv);
+            SCFree(ptv);
             return TM_ECODE_FAILED;
         }
 
         if(pcap_setfilter(pcap_g.pcap_handle,&pcap_g.filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(pcap_g.pcap_handle));
-            free(ptv);
+            SCFree(ptv);
             return TM_ECODE_FAILED;
         }
     }
@@ -189,8 +189,9 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
             break;
 
         default:
-            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "Error: datalink type %" PRId32 " not yet supported in module PcapFile", pcap_g.datalink);
-            free(ptv);
+            SCLogError(SC_ERR_UNIMPLEMENTED, "datalink type %" PRId32 " not "
+                      "(yet) supported in module PcapFile.\n", pcap_g.datalink);
+            SCFree(ptv);
             SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -240,7 +241,7 @@ TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCEnter();
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error Allocating memory for DecodeThreadVars");
         SCReturnInt(TM_ECODE_FAILED);
     }

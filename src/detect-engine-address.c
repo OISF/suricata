@@ -63,7 +63,7 @@ static uint32_t detect_address_group_head_free_cnt = 0;
  */
 DetectAddress *DetectAddressInit(void)
 {
-    DetectAddress *ag = malloc(sizeof(DetectAddress));
+    DetectAddress *ag = SCMalloc(sizeof(DetectAddress));
     if (ag == NULL)
         return NULL;
     memset(ag, 0, sizeof(DetectAddress));
@@ -116,7 +116,7 @@ void DetectAddressFree(DetectAddress *ag)
     detect_address_group_memory -= sizeof(DetectAddress);
     detect_address_group_free_cnt++;
 #endif
-    free(ag);
+    SCFree(ag);
 
     return;
 }
@@ -600,7 +600,7 @@ static void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6)
  */
 static int DetectAddressParseString(DetectAddress *dd, char *str)
 {
-    char *ipdup = strdup(str);
+    char *ipdup = SCStrdup(str);
     char *ip = NULL;
     char *ip2 = NULL;
     char *mask = NULL;
@@ -611,7 +611,7 @@ static int DetectAddressParseString(DetectAddress *dd, char *str)
     /* first handle 'any' */
     if (strcasecmp(str, "any") == 0) {
         dd->flags |= ADDRESS_FLAG_ANY;
-        free(ipdup);
+        SCFree(ipdup);
 
         SCLogDebug("address is \'any\'");
 
@@ -756,7 +756,7 @@ static int DetectAddressParseString(DetectAddress *dd, char *str)
 
     }
 
-    free(ipdup);
+    SCFree(ipdup);
 
     BUG_ON(dd->family == 0);
 
@@ -764,7 +764,7 @@ static int DetectAddressParseString(DetectAddress *dd, char *str)
 
 error:
     if (ipdup)
-        free(ipdup);
+        SCFree(ipdup);
     return -1;
 }
 
@@ -963,7 +963,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                     goto error;
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
-                    temp_rule_var_address = malloc(strlen(rule_var_address) + 3);
+                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
                     if (temp_rule_var_address == NULL) {
                         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                         goto error;
@@ -976,7 +976,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 d_set = 0;
                 n_set = 0;
                 if (temp_rule_var_address != rule_var_address)
-                    free(temp_rule_var_address);
+                    SCFree(temp_rule_var_address);
             } else {
                 address[x - 1] = '\0';
 
@@ -1003,7 +1003,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                     goto error;
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
-                    temp_rule_var_address = malloc(strlen(rule_var_address) + 3);
+                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
                     if (temp_rule_var_address == NULL) {
                         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                         goto error;
@@ -1015,7 +1015,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                                     (negate + n_set) % 2);
                 d_set = 0;
                 if (temp_rule_var_address != rule_var_address)
-                    free(temp_rule_var_address);
+                    SCFree(temp_rule_var_address);
             } else {
                 if (!((negate + n_set) % 2)) {
                     if (DetectAddressSetup(gh, address) < 0)
@@ -1251,7 +1251,7 @@ error:
  */
 DetectAddressHead *DetectAddressHeadInit(void)
 {
-    DetectAddressHead *gh = malloc(sizeof(DetectAddressHead));
+    DetectAddressHead *gh = SCMalloc(sizeof(DetectAddressHead));
     if (gh == NULL)
         return NULL;
     memset(gh, 0, sizeof(DetectAddressHead));
@@ -1301,7 +1301,7 @@ void DetectAddressHeadFree(DetectAddressHead *gh)
 {
     if (gh != NULL) {
         DetectAddressHeadCleanup(gh);
-        free(gh);
+        SCFree(gh);
 #ifdef DEBUG
         detect_address_group_head_free_cnt++;
         detect_address_group_head_memory -= sizeof(DetectAddressHead);

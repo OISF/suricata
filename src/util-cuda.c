@@ -608,7 +608,7 @@ int SCCudaMemAlloc(CUdeviceptr *dptr, unsigned int byte_size)
  *        calls to functions such as cuMemcpy(). Since the memory can be
  *        accessed directly by the device, it can be read or written with
  *        much higher bandwidth than pageable memory obtained with functions
- *        such as malloc(). Allocating excessive amounts of memory with
+ *        such as SCMalloc(). Allocating excessive amounts of memory with
  *        cuMemAllocHost() may degrade system performance, since it reduces
  *        the amount of memory available to the system for paging. As a result,
  *        this function is best used sparingly to allocate staging areas for
@@ -1830,7 +1830,7 @@ int SCCudaMemGetInfo(unsigned int *free, unsigned int *total)
  *        functions such as cuMemcpyHtoD(). Since the memory can be accessed
  *        directly by the device, it can be read or written with much higher
  *        bandwidth than pageable memory obtained with functions such as
- *        malloc(). Allocating excessive amounts of pinned memory may degrade
+ *        SCMalloc(). Allocating excessive amounts of pinned memory may degrade
  *        system performance, since it reduces the amount of memory available
  *        to the system for paging. As a result, this function is best used
  *        sparingly to allocate staging areas for data exchange between host
@@ -3594,7 +3594,7 @@ static int SCCudaDeviceGetAttribute(int *pi, CUdevice_attribute attrib,
  */
 static SCCudaDevice *SCCudaAllocSCCudaDevice(void)
 {
-    SCCudaDevice *device = malloc(sizeof(SCCudaDevice));
+    SCCudaDevice *device = SCMalloc(sizeof(SCCudaDevice));
     if (device == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -3612,7 +3612,7 @@ static SCCudaDevice *SCCudaAllocSCCudaDevice(void)
  */
 static void SCCudaDeAllocSCCudaDevice(SCCudaDevice *device)
 {
-    free(device);
+    SCFree(device);
 
     return;
 }
@@ -3625,7 +3625,7 @@ static void SCCudaDeAllocSCCudaDevice(SCCudaDevice *device)
  */
 static SCCudaDevices *SCCudaAllocSCCudaDevices(void)
 {
-    SCCudaDevices *devices = malloc(sizeof(SCCudaDevices));
+    SCCudaDevices *devices = SCMalloc(sizeof(SCCudaDevices));
     if (devices == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -3652,10 +3652,10 @@ static void SCCudaDeAllocSCCudaDevices(SCCudaDevices *devices)
         for (i = 0; i < devices->count; i++)
             SCCudaDeAllocSCCudaDevice(devices->devices[i]);
 
-        free(devices->devices);
+        SCFree(devices->devices);
     }
 
-    free(devices);
+    SCFree(devices);
 
     return;
 }
@@ -3676,7 +3676,7 @@ static SCCudaDevices *SCCudaGetDevices(void)
     if (SCCudaDeviceGetCount(&devices->count) == -1)
         goto error;
 
-    devices->devices = malloc(devices->count * sizeof(SCCudaDevice *));
+    devices->devices = SCMalloc(devices->count * sizeof(SCCudaDevice *));
     if (devices->devices == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);

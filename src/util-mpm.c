@@ -21,7 +21,11 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
 
     memset(pmq, 0, sizeof(PatternMatcherQueue));
 
-    pmq->sig_id_array = malloc(maxid * sizeof(uint32_t));
+    if (maxid > 0)
+        pmq->sig_id_array = SCMalloc(maxid * sizeof(uint32_t));
+    else
+        pmq->sig_id_array = NULL;
+
     if (pmq->sig_id_array == NULL) {
         printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
         return -1;
@@ -30,7 +34,7 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
     pmq->sig_id_array_cnt = 0;
 
     /* lookup bitarray */
-    pmq->sig_bitarray = malloc(maxid / 8 + 1);
+    pmq->sig_bitarray = SCMalloc(maxid / 8 + 1);
     if (pmq->sig_bitarray == NULL) {
         printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
         return -1;
@@ -59,12 +63,12 @@ void PmqCleanup(PatternMatcherQueue *pmq) {
         return;
 
     if (pmq->sig_id_array != NULL) {
-        free(pmq->sig_id_array);
+        SCFree(pmq->sig_id_array);
         pmq->sig_id_array = NULL;
     }
 
     if (pmq->sig_bitarray != NULL) {
-        free(pmq->sig_bitarray);
+        SCFree(pmq->sig_bitarray);
         pmq->sig_bitarray = NULL;
     }
 
@@ -79,7 +83,7 @@ void PmqFree(PatternMatcherQueue *pmq) {
         return;
 
     PmqCleanup(pmq);
-    free(pmq);
+    SCFree(pmq);
 }
 
 /* cleanup list with all matches
@@ -121,7 +125,7 @@ MpmMatchCleanup(MpmThreadCtx *thread_ctx) {
  * used at search runtime */
 inline MpmMatch *
 MpmMatchAlloc(MpmThreadCtx *thread_ctx) {
-    MpmMatch *m = malloc(sizeof(MpmMatch));
+    MpmMatch *m = SCMalloc(sizeof(MpmMatch));
     if (m == NULL)
         return NULL;
 
@@ -224,7 +228,7 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
 void MpmMatchFree(MpmThreadCtx *ctx, MpmMatch *m) {
     ctx->memory_cnt--;
     ctx->memory_size -= sizeof(MpmMatch);
-    free(m);
+    SCFree(m);
 }
 
 void MpmMatchFreeSpares(MpmThreadCtx *mpm_ctx, MpmMatch *m) {
@@ -240,7 +244,7 @@ void MpmMatchFreeSpares(MpmThreadCtx *mpm_ctx, MpmMatch *m) {
  * Only used in the initialization phase */
 MpmEndMatch *MpmAllocEndMatch (MpmCtx *ctx)
 {
-    MpmEndMatch *e = malloc(sizeof(MpmEndMatch));
+    MpmEndMatch *e = SCMalloc(sizeof(MpmEndMatch));
     if (e == NULL)
         return NULL;
 
@@ -268,7 +272,7 @@ int32_t MpmMatcherGetMaxPatternLength(uint16_t matcher) {
 void MpmEndMatchFree(MpmCtx *ctx, MpmEndMatch *em) {
     ctx->memory_cnt--;
     ctx->memory_size -= sizeof(MpmEndMatch);
-    free(em);
+    SCFree(em);
 }
 
 void MpmEndMatchFreeAll(MpmCtx *mpm_ctx, MpmEndMatch *em) {

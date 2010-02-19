@@ -144,13 +144,13 @@ DetectIdData *DetectIdParse (char *idstr)
         }
 
         /* We have a correct id option */
-        id_d = malloc(sizeof(DetectIdData));
+        id_d = SCMalloc(sizeof(DetectIdData));
         if (id_d == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
             goto error;
         }
 
-        orig = strdup((char*)str_ptr);
+        orig = SCStrdup((char*)str_ptr);
         tmp_str=orig;
         /* Let's see if we need to scape "'s */
         if (tmp_str[0] == '"')
@@ -167,12 +167,12 @@ DetectIdData *DetectIdParse (char *idstr)
                         "the range %u - %u",
                         DETECT_IPID_MIN, DETECT_IPID_MAX);
 
-            free(orig);
+            SCFree(orig);
             goto error;
         }
         id_d->id = temp;
 
-        free(orig);
+        SCFree(orig);
 
         SCLogDebug("detect-id: will look for ip_id: %u\n", id_d->id);
     }
@@ -221,7 +221,7 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
 error:
     if (id_d != NULL) DetectIdFree(id_d);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 
 }
@@ -233,7 +233,7 @@ error:
  */
 void DetectIdFree(void *ptr) {
     DetectIdData *id_d = (DetectIdData *)ptr;
-    free(id_d);
+    SCFree(id_d);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

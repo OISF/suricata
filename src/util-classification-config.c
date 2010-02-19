@@ -146,7 +146,7 @@ static char *SCClassConfStringToLowercase(const char *str)
     char *new_str = NULL;
     char *temp_str = NULL;
 
-    if ( (new_str = strdup(str)) == NULL) {
+    if ( (new_str = SCStrdup(str)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -310,7 +310,7 @@ SCClassConfClasstype *SCClassConfAllocClasstype(const char *classtype,
     if (classtype == NULL)
         return NULL;
 
-    if ( (ct = malloc(sizeof(SCClassConfClasstype))) == NULL) {
+    if ( (ct = SCMalloc(sizeof(SCClassConfClasstype))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -322,7 +322,7 @@ SCClassConfClasstype *SCClassConfAllocClasstype(const char *classtype,
     }
 
     if (classtype_desc != NULL &&
-        (ct->classtype_desc = strdup(classtype_desc)) == NULL) {
+        (ct->classtype_desc = SCStrdup(classtype_desc)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -341,12 +341,12 @@ void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct)
 {
     if (ct != NULL) {
         if (ct->classtype != NULL)
-            free(ct->classtype);
+            SCFree(ct->classtype);
 
         if (ct->classtype_desc != NULL)
-            free(ct->classtype_desc);
+            SCFree(ct->classtype_desc);
 
-        free(ct);
+        SCFree(ct);
     }
 
     return;

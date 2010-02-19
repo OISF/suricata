@@ -2,6 +2,8 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "util-debug.h"
+#include "util-error.h"
 
 int DetectRevSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
 
@@ -20,14 +22,14 @@ int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ra
 
     /* strip "'s */
     if (rawstr[0] == '\"' && rawstr[strlen(rawstr)-1] == '\"') {
-        str = strdup(rawstr+1);
+        str = SCStrdup(rawstr+1);
         str[strlen(rawstr)-2] = '\0';
         dubbed = 1;
     }
 
     s->rev = (uint8_t)atoi(str);
 
-    if (dubbed) free(str);
+    if (dubbed) SCFree(str);
     return 0;
 }
 

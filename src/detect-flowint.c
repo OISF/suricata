@@ -263,7 +263,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
         goto error;
     }
 
-    sfd = malloc(sizeof(DetectFlowintData));
+    sfd = SCMalloc(sizeof(DetectFlowintData));
     if (sfd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -276,13 +276,13 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
         varval =(char *) str_ptr;
         if (res < 0 || strcmp(varval,"") == 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            free(sfd);
+            SCFree(sfd);
             return NULL;
         }
 
         /* get the target value to operate with
         *(it should be a value or another var) */
-        str = strdup(varval);
+        str = SCStrdup(varval);
         if (str == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "malloc from strdup failed");
             goto error;
@@ -305,7 +305,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     }
 
     /* Set the name of the origin var to modify/compared with the target */
-    sfd->name = strdup(varname);
+    sfd->name = SCStrdup(varname);
     if (de_ctx != NULL)
         sfd->idx = VariableNameGetIdx(de_ctx, varname, DETECT_FLOWINT);
     sfd->target.value =(uint32_t) value_long;
@@ -314,8 +314,8 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
 
     return sfd;
 error:
-    if (sfd != NULL) free(sfd);
-    free(str);
+    if (sfd != NULL) SCFree(sfd);
+    SCFree(str);
     return NULL;
 }
 
@@ -355,7 +355,7 @@ int DetectFlowintSetup(DetectEngineCtx *de_ctx,
 
 error:
     if (sfd) DetectFlowintFree(sfd);
-    if (sm) free(sm);
+    if (sm) SCFree(sm);
     return -1;
 }
 
@@ -367,11 +367,11 @@ void DetectFlowintFree(void *tmp)
     DetectFlowintData *sfd =(DetectFlowintData*) tmp;
     if (sfd != NULL) {
         if (sfd->name != NULL)
-            free(sfd->name);
+            SCFree(sfd->name);
         if (sfd->targettype == FLOWINT_TARGET_VAR)
             if (sfd->target.tvar.name != NULL)
-                free(sfd->target.tvar.name);
-        free(sfd);
+                SCFree(sfd->target.tvar.name);
+        SCFree(sfd);
     }
 }
 

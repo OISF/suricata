@@ -90,7 +90,7 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
     uint16_t pos = 0;
     int i = 0;
 
-    copy_str = strdup(rawstr);
+    copy_str = SCStrdup(rawstr);
 
     for(pos = 0, threshold_opt = strtok(copy_str,",");  pos < strlen(copy_str) &&  threshold_opt != NULL;  pos++, threshold_opt = strtok(NULL,",")) {
 
@@ -105,7 +105,7 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
     }
 
     if(copy_str)
-        free(copy_str);
+        SCFree(copy_str);
 
     if(count_found != 1 || second_found != 1 || type_found != 1 || track_found != 1)
         goto error;
@@ -117,7 +117,7 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
         goto error;
     }
 
-    de = malloc(sizeof(DetectThresholdData));
+    de = SCMalloc(sizeof(DetectThresholdData));
     if (de == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -161,15 +161,15 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
     }
 
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return de;
 
 error:
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
-    if (de) free(de);
+    if (de) SCFree(de);
     return NULL;
 }
 
@@ -206,8 +206,8 @@ static int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch
     return 0;
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return -1;
 }
 
@@ -219,7 +219,7 @@ error:
  */
 static void DetectThresholdFree(void *de_ptr) {
     DetectThresholdData *de = (DetectThresholdData *)de_ptr;
-    if (de) free(de);
+    if (de) SCFree(de);
 }
 
 /*
@@ -522,9 +522,9 @@ static int DetectThresholdTestSig3(void) {
     td = SigGetThresholdType(s,&p);
 
     /* setup the Entry we use to search our hash with */
-    ste = malloc(sizeof(DetectThresholdEntry));
+    ste = SCMalloc(sizeof(DetectThresholdEntry));
     if (ste == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s", strerror(errno));
         goto end;
     }
     memset(ste, 0x00, sizeof(ste));

@@ -64,8 +64,8 @@ void DetectUrilenRegister(void)
     return;
 
 error:
-    if (parse_regex != NULL) free(parse_regex);
-    if (parse_regex_study != NULL) free(parse_regex_study);
+    if (parse_regex != NULL) SCFree(parse_regex);
+    if (parse_regex_study != NULL) SCFree(parse_regex_study);
     return;
 }
 
@@ -191,9 +191,9 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     arg4 = (char *) str_ptr;
     SCLogDebug("Arg4 \"%s\"", arg4);
 
-    urilend = malloc(sizeof (DetectUrilenData));
+    urilend = SCMalloc(sizeof (DetectUrilenData));
     if (urilend == NULL) {
-        SCLogDebug("DetectUrilenSetup malloc failed");
+        SCLogDebug("DetectUrilenSetup SCMalloc failed");
         goto error;
     }
     urilend->urilen1 = 0;
@@ -238,18 +238,18 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
         }
     }
 
-    free(arg1);
-    free(arg2);
-    free(arg3);
-    free(arg4);
+    SCFree(arg1);
+    SCFree(arg2);
+    SCFree(arg3);
+    SCFree(arg4);
     return urilend;
 
 error:
-    if (urilend) free(urilend);
-    if (arg1) free(arg1);
-    if (arg2) free(arg2);
-    if (arg3) free(arg3);
-    if (arg4) free(arg4);
+    if (urilend) SCFree(urilend);
+    if (arg1) SCFree(arg1);
+    if (arg2) SCFree(arg2);
+    if (arg3) SCFree(arg3);
+    if (arg4) SCFree(arg4);
     return NULL;
 }
 
@@ -291,7 +291,7 @@ int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
 error:
     if (urilend != NULL) DetectUrilenFree(urilend);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     SCReturnInt(-1);
 }
 
@@ -303,7 +303,7 @@ error:
 void DetectUrilenFree(void *ptr)
 {
     DetectUrilenData *urilend = (DetectUrilenData *)ptr;
-    free(urilend);
+    SCFree(urilend);
 }
 
 #ifdef UNITTESTS
@@ -452,7 +452,7 @@ static int DetectUrilenSetpTest01(void) {
     }
 
 cleanup:
-    if (urilend) free(urilend);
+    if (urilend) SCFree(urilend);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);

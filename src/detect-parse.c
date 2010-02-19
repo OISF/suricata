@@ -64,7 +64,7 @@ uint32_t DbgGetDstPortAnyCnt(void) {
 }
 
 SigMatch *SigMatchAlloc(void) {
-    SigMatch *sm = malloc(sizeof(SigMatch));
+    SigMatch *sm = SCMalloc(sizeof(SigMatch));
     if (sm == NULL)
         return NULL;
 
@@ -87,7 +87,7 @@ void SigMatchFree(SigMatch *sm) {
             sigmatch_table[sm->type].Free(sm->ctx);
         }
     }
-    free(sm);
+    SCFree(sm);
 }
 
 /* Get the detection module by name */
@@ -225,7 +225,7 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
     SigTableElmt *st = NULL;
     char *optname = NULL, *optvalue = NULL, *optmore = NULL;
 
-    const char **arr = calloc(OPTION_PARTS+1, sizeof(char *));
+    const char **arr = SCCalloc(OPTION_PARTS+1, sizeof(char *));
     if (arr == NULL)
         return -1;
 
@@ -289,25 +289,25 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
 
         if (optname) pcre_free_substring(optname);
         if (optvalue) pcre_free_substring(optvalue);
-        if (optstr) free(optstr);
+        if (optstr) SCFree(optstr);
         //if (optmore) pcre_free_substring(optmore);
-        if (arr != NULL) free(arr);
+        if (arr != NULL) SCFree(arr);
         return SigParseOptions(de_ctx, s, m, optmore);
     }
 
     if (optname) pcre_free_substring(optname);
     if (optvalue) pcre_free_substring(optvalue);
     if (optmore) pcre_free_substring(optmore);
-    if (optstr) free(optstr);
-    if (arr != NULL) free(arr);
+    if (optstr) SCFree(optstr);
+    if (arr != NULL) SCFree(arr);
     return 0;
 
 error:
     if (optname) pcre_free_substring(optname);
     if (optvalue) pcre_free_substring(optvalue);
     if (optmore) pcre_free_substring(optmore);
-    if (optstr) free(optstr);
-    if (arr != NULL) free(arr);
+    if (optstr) SCFree(optstr);
+    if (arr != NULL) SCFree(arr);
     return -1;
 }
 
@@ -451,7 +451,7 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t addrs_dir
     int ov[MAX_SUBSTRINGS];
     int ret = 0, i = 0;
 
-    const char **arr = calloc(CONFIG_PARTS + 1, sizeof(char *));
+    const char **arr = SCCalloc(CONFIG_PARTS + 1, sizeof(char *));
     if (arr == NULL)
         return -1;
 
@@ -506,7 +506,7 @@ error:
 
             pcre_free_substring(arr[i - 1]);
         }
-        free(arr);
+        SCFree(arr);
     }
     *result = NULL;
     return -1;
@@ -534,7 +534,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
 
     /* we can have no options, so make sure we have them */
     if (basics[CONFIG_OPTS] != NULL) {
-        ret = SigParseOptions(de_ctx, s, NULL, strdup(basics[CONFIG_OPTS]));
+        ret = SigParseOptions(de_ctx, s, NULL, SCStrdup(basics[CONFIG_OPTS]));
         SCLogDebug("ret from SigParseOptions %d", ret);
     }
 
@@ -542,17 +542,17 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     if (basics != NULL) {
         int i = 0;
         while (basics[i] != NULL) {
-            free(basics[i]);
+            SCFree(basics[i]);
             i++;
         }
-        free(basics);
+        SCFree(basics);
     }
 
     SCReturnInt(ret);
 }
 
 Signature *SigAlloc (void) {
-    Signature *sig = malloc(sizeof(Signature));
+    Signature *sig = SCMalloc(sizeof(Signature));
     if (sig == NULL)
         return NULL;
 
@@ -586,9 +586,9 @@ void SigFree(Signature *s) {
         DetectPortCleanupList(s->dp);
     }
 
-    if (s->msg != NULL) free(s->msg);
+    if (s->msg != NULL) SCFree(s->msg);
 
-    free(s);
+    SCFree(s);
 }
 
 /**
@@ -1194,30 +1194,31 @@ end:
  */
 int SigTestBidirec01 (void) {
     Signature *sig = NULL;
+    int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        goto end;
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 1024:65535 -> !1.2.3.4 any (msg:\"SigTestBidirec01\"; sid:1;)");
     if (sig == NULL)
-        goto error;
+        goto end;
     if (sig->next != NULL)
-        goto error;
+        goto end;
     if (sig->flags & SIG_FLAG_BIDIREC)
-        goto error;
+        goto end;
     if (de_ctx->signum != 1)
-        goto error;
+        goto end;
 
-    return 1;
-error:
-    if (sig != NULL) {
-        if (sig->next != NULL)
-            SigFree(sig->next);
-        SigFree(sig);
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigCleanSignatures(de_ctx);
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
     }
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
-    return 0;
+    return result;
 }
 
 /** \test Ensure that we set a bidirectional Signature correctly */
@@ -1252,7 +1253,12 @@ int SigTestBidirec02 (void) {
     result = 1;
 
 end:
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL) {
+        SigCleanSignatures(de_ctx);
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
     return result;
 }
 
@@ -1360,9 +1366,15 @@ int SigTestBidirec03 (void) {
     uint32_t results[3] = {1, 1, 1};
     result = UTHCheckPacketMatchResults(p, sids, results, 1);
 
-    FlowShutdown();
 end:
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (p != NULL) SCFree(p);
+    if (de_ctx != NULL) {
+        SigCleanSignatures(de_ctx);
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+    FlowShutdown();
+
     return result;
 }
 

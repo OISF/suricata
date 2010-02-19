@@ -29,7 +29,7 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
 
     /* strip "'s */
     if (depthstr[0] == '\"' && depthstr[strlen(depthstr)-1] == '\"') {
-        str = strdup(depthstr+1);
+        str = SCStrdup(depthstr+1);
         str[strlen(depthstr)-2] = '\0';
         dubbed = 1;
     }
@@ -39,14 +39,14 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
     SigMatch *pm = DetectContentFindPrevApplicableSM(m);
     if (pm == NULL) {
         SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content option");
-        if (dubbed) free(str);
+        if (dubbed) SCFree(str);
         return -1;
     }
 
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-        if (dubbed) free(str);
+        if (dubbed) SCFree(str);
         return -1;
     }
 
@@ -64,7 +64,7 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
     //DetectContentPrint(cd);
     //printf("DetectDepthSetup: set depth %" PRIu32 " for previous content\n", cd->depth);
 
-    if (dubbed) free(str);
+    if (dubbed) SCFree(str);
     return 0;
 }
 

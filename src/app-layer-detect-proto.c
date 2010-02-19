@@ -306,7 +306,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
                                                 &tdir->pmq, buf,
                                                 scanlen);
 #else
-    Packet *p = malloc(sizeof(Packet));
+    Packet *p = SCMalloc(sizeof(Packet));
     if (p == NULL) goto end;
     memset(p, 0, sizeof(Packet));
     p->cuda_done = 0;
@@ -525,7 +525,7 @@ void AppLayerDetectProtoThreadSpawn()
 #ifdef UNITTESTS
 
 int AlpDetectTest01(void) {
-    char *buf = strdup("HTTP");
+    char *buf = SCStrdup("HTTP");
     int r = 1;
     AlpProtoDetectCtx ctx;
 
@@ -540,18 +540,18 @@ int AlpDetectTest01(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;
     }
 
-    buf = strdup("GET");
+    buf = SCStrdup("GET");
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOSERVER);
     if (ctx.toserver.id != 1) {
         r = 0;
     }
-    free(buf);
+    SCFree(buf);
 
     AlpProtoTestDestroy(&ctx);
 
@@ -566,7 +566,7 @@ int AlpDetectTest01(void) {
 }
 
 int AlpDetectTest02(void) {
-    char *buf = strdup("HTTP");
+    char *buf = SCStrdup("HTTP");
     int r = 1;
     AlpProtoDetectCtx ctx;
 
@@ -581,7 +581,7 @@ int AlpDetectTest02(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;
@@ -591,9 +591,9 @@ int AlpDetectTest02(void) {
         r = 0;
     }
 
-    buf = strdup("220 ");
+    buf = SCStrdup("220 ");
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 2) {
         r = 0;
@@ -617,7 +617,7 @@ int AlpDetectTest02(void) {
 
 int AlpDetectTest03(void) {
     uint8_t l7data[] = "HTTP/1.1 200 OK\r\nServer: Apache/1.0\r\n\r\n";
-    char *buf = strdup("HTTP");
+    char *buf = SCStrdup("HTTP");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
@@ -633,7 +633,7 @@ int AlpDetectTest03(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;
@@ -643,9 +643,9 @@ int AlpDetectTest03(void) {
         r = 0;
     }
 
-    buf = strdup("220 ");
+    buf = SCStrdup("220 ");
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 2) {
         r = 0;
@@ -686,7 +686,7 @@ int AlpDetectTest03(void) {
 
 int AlpDetectTest04(void) {
     uint8_t l7data[] = "HTTP/1.1 200 OK\r\nServer: Apache/1.0\r\n\r\n";
-    char *buf = strdup("200 ");
+    char *buf = SCStrdup("200 ");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
@@ -702,7 +702,7 @@ int AlpDetectTest04(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;
@@ -743,7 +743,7 @@ int AlpDetectTest04(void) {
 
 int AlpDetectTest05(void) {
     uint8_t l7data[] = "HTTP/1.1 200 OK\r\nServer: Apache/1.0\r\n\r\n<HTML><BODY>Blahblah</BODY></HTML>";
-    char *buf = strdup("HTTP");
+    char *buf = SCStrdup("HTTP");
     int r = 1;
 
     AlpProtoDetectCtx ctx;
@@ -760,7 +760,7 @@ int AlpDetectTest05(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;
@@ -770,9 +770,9 @@ int AlpDetectTest05(void) {
         r = 0;
     }
 
-    buf = strdup("220 ");
+    buf = SCStrdup("220 ");
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 2) {
         r = 0;
@@ -813,7 +813,7 @@ int AlpDetectTest05(void) {
 
 int AlpDetectTest06(void) {
     uint8_t l7data[] = "220 Welcome to the OISF FTP server\r\n";
-    char *buf = strdup("HTTP");
+    char *buf = SCStrdup("HTTP");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
@@ -829,7 +829,7 @@ int AlpDetectTest06(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;
@@ -839,9 +839,9 @@ int AlpDetectTest06(void) {
         r = 0;
     }
 
-    buf = strdup("220 ");
+    buf = SCStrdup("220 ");
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 2) {
         r = 0;
@@ -882,7 +882,7 @@ int AlpDetectTest06(void) {
 
 int AlpDetectTest07(void) {
     uint8_t l7data[] = "220 Welcome to the OISF HTTP/FTP server\r\n";
-    char *buf = strdup("HTTP");
+    char *buf = SCStrdup("HTTP");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
@@ -898,7 +898,7 @@ int AlpDetectTest07(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;
@@ -950,7 +950,7 @@ int AlpDetectTest08(void) {
         "\x20\x66\x6f\x72\x20\x57\x6f\x72\x6b\x67\x72\x6f\x75\x70\x73\x20\x33\x2e\x31\x61\x00\x02\x4c"
         "\x4d\x31\x2e\x32\x58\x30\x30\x32\x00\x02\x4c\x41\x4e\x4d\x41\x4e\x32\x2e\x31\x00\x02\x4e\x54"
         "\x20\x4c\x4d\x20\x30\x2e\x31\x32\x00";
-    char *buf = strdup("|ff|SMB");
+    char *buf = SCStrdup("|ff|SMB");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
@@ -966,7 +966,7 @@ int AlpDetectTest08(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, buf, 8, 4, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;
@@ -1015,7 +1015,7 @@ int AlpDetectTest09(void) {
         "\x24\x00\x01\x00x00\x00\x00\x00\x00\x00\x0\x00\x00\x00\x00\x00\x00\x00\x00"
         "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02";
 
-    char *buf = strdup("|fe|SMB");
+    char *buf = SCStrdup("|fe|SMB");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
@@ -1031,7 +1031,7 @@ int AlpDetectTest09(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, buf, 8, 4, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;
@@ -1075,7 +1075,7 @@ int AlpDetectTest10(void) {
         "\x01\x00\xb8\x4a\x9f\x4d\x1c\x7d\xcf\x11\x86\x1e\x00\x20\xaf\x6e\x7c\x57"
         "\x00\x00\x00\x00\x04\x5d\x88\x8a\xeb\x1c\xc9\x11\x9f\xe8\x08\x00\x2b\x10"
         "\x48\x60\x02\x00\x00\x00";
-    char *buf = strdup("|05 00|");
+    char *buf = SCStrdup("|05 00|");
     int r = 1;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
@@ -1091,7 +1091,7 @@ int AlpDetectTest10(void) {
     AlpProtoInit(&ctx);
 
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_DCERPC, buf, 4, 0, STREAM_TOCLIENT);
-    free(buf);
+    SCFree(buf);
 
     if (ctx.toclient.id != 1) {
         r = 0;

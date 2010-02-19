@@ -262,7 +262,7 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
         !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
         SCLogDebug("destroying mpm_ctx %p (sh %p)", sh->mpm_ctx, sh);
         mpm_table[sh->mpm_ctx->mpm_type].DestroyCtx(sh->mpm_ctx);
-        free(sh->mpm_ctx);
+        SCFree(sh->mpm_ctx);
 
         /* ready for reuse */
         sh->mpm_ctx = NULL;
@@ -274,7 +274,7 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
         !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         SCLogDebug("destroying mpm_uri_ctx %p (sh %p)", sh->mpm_uri_ctx, sh);
         mpm_table[sh->mpm_uri_ctx->mpm_type].DestroyCtx(sh->mpm_uri_ctx);
-        free(sh->mpm_uri_ctx);
+        SCFree(sh->mpm_uri_ctx);
 
         /* ready for reuse */
         sh->mpm_uri_ctx = NULL;
@@ -352,7 +352,7 @@ char ContentHashCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t le
 }
 
 ContentHash *ContentHashAlloc(DetectContentData *ptr) {
-    ContentHash *ch = malloc(sizeof(ContentHash));
+    ContentHash *ch = SCMalloc(sizeof(ContentHash));
     if (ch == NULL)
         return NULL;
 
@@ -365,7 +365,7 @@ ContentHash *ContentHashAlloc(DetectContentData *ptr) {
 }
 
 void ContentHashFree(void *ch) {
-    free(ch);
+    SCFree(ch);
 }
 
 /** \brief Predict a strength value for patterns
@@ -405,7 +405,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
     uint32_t sig;
     uint32_t *fast_pattern = NULL;
 
-    fast_pattern = (uint32_t *)malloc(sgh->sig_cnt * sizeof(uint32_t));
+    fast_pattern = (uint32_t *)SCMalloc(sgh->sig_cnt * sizeof(uint32_t));
     if (fast_pattern == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         return -1;
@@ -414,7 +414,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
 
     HashTable *ht = HashTableInit(4096, ContentHashFunc, ContentHashCompareFunc, ContentHashFree);
     if (ht == NULL) {
-        free(fast_pattern);
+        SCFree(fast_pattern);
         return -1;
     }
 
@@ -639,12 +639,12 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
     }
 
     if (fast_pattern != NULL)
-        free(fast_pattern);
+        SCFree(fast_pattern);
     HashTableFree(ht);
     return 0;
 error:
     if (fast_pattern != NULL)
-        free(fast_pattern);
+        SCFree(fast_pattern);
     if (ht != NULL)
         HashTableFree(ht);
     return -1;
@@ -704,7 +704,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     /* intialize contexes */
     if (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
         /* search */
-        sh->mpm_ctx = malloc(sizeof(MpmCtx));
+        sh->mpm_ctx = SCMalloc(sizeof(MpmCtx));
         if (sh->mpm_ctx == NULL)
             goto error;
 
@@ -716,7 +716,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 #endif
     }
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
-        sh->mpm_uri_ctx = malloc(sizeof(MpmCtx));
+        sh->mpm_uri_ctx = SCMalloc(sizeof(MpmCtx));
         if (sh->mpm_uri_ctx == NULL)
             goto error;
 

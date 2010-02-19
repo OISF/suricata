@@ -30,7 +30,7 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
 
     /* strip "'s */
     if (distancestr[0] == '\"' && distancestr[strlen(distancestr)-1] == '\"') {
-        str = strdup(distancestr+1);
+        str = SCStrdup(distancestr+1);
         str[strlen(distancestr)-2] = '\0';
         dubbed = 1;
     }
@@ -46,14 +46,14 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
     pm = DetectContentFindPrevApplicableSM(m);
     if (pm == NULL || DetectContentHasPrevSMPattern(pm) == NULL) {
         SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
-        if (dubbed) free(str);
+        if (dubbed) SCFree(str);
         return -1;
     }
 
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     if (cd == NULL) {
         SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous keyword!");
-        if (dubbed) free(str);
+        if (dubbed) SCFree(str);
         return -1;
     }
 
@@ -88,10 +88,10 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
         goto error;
     }
 
-    if (dubbed) free(str);
+    if (dubbed) SCFree(str);
     return 0;
 error:
-    if (dubbed) free(str);
+    if (dubbed) SCFree(str);
     return -1;
 }
 

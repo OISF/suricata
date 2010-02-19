@@ -155,7 +155,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
         }
     }
 
-    fd = malloc(sizeof(DetectFlowData));
+    fd = SCMalloc(sizeof(DetectFlowData));
     if (fd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -231,13 +231,13 @@ DetectFlowData *DetectFlowParse (char *flowstr)
         }
     }
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return fd;
 
 error:
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     if (fd != NULL) DetectFlowFree(fd);
     return NULL;
@@ -281,7 +281,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *f
 
 error:
     if (fd != NULL) DetectFlowFree(fd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 
 }
@@ -293,7 +293,7 @@ error:
  */
 void DetectFlowFree(void *ptr) {
     DetectFlowData *fd = (DetectFlowData *)ptr;
-    free(fd);
+    SCFree(fd);
 }
 
 #ifdef UNITTESTS

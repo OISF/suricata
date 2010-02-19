@@ -72,14 +72,14 @@ uint32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx)
 
 /**
  * \brief   Free the stored http_uri in the given packet
- * \param   p   pointer to the given packet whose uri has to be freed
+ * \param   p   pointer to the given packet whose uri has to be SCFreed
  */
 void PktHttpUriFree(Packet *p)
 {
     int i;
 
     for (i = 0; i < p->http_uri.cnt; i++) {
-        free(p->http_uri.raw[i]);
+        SCFree(p->http_uri.raw[i]);
         p->http_uri.raw[i] = NULL;
     }
     p->http_uri.cnt = 0;
@@ -277,17 +277,17 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     uint16_t pos = 0;
     uint16_t slen = 0;
 
-    if ((temp = strdup(contentstr)) == NULL)
+    if ((temp = SCStrdup(contentstr)) == NULL)
         goto error;
 
     if (strlen(temp) == 0) {
-        free(temp);
+        SCFree(temp);
         return NULL;
     }
 
-    cd = malloc(sizeof(DetectUricontentData));
+    cd = SCMalloc(sizeof(DetectUricontentData));
     if (cd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
     memset(cd,0,sizeof(DetectUricontentData));
@@ -305,15 +305,15 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     }
 
     if (temp[pos] == '\"' && temp[strlen(temp)-1] == '\"') {
-        if ((str = strdup(temp + pos + 1)) == NULL)
+        if ((str = SCStrdup(temp + pos + 1)) == NULL)
             goto error;
         str[strlen(temp) - pos - 2] = '\0';
     } else {
-        if ((str = strdup(temp + pos)) == NULL)
+        if ((str = SCStrdup(temp + pos)) == NULL)
             goto error;
     }
 
-    free(temp);
+    SCFree(temp);
     temp = NULL;
     len = strlen(str);
 
@@ -378,10 +378,10 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
 
     SCLogDebug("len %" PRIu32 "", len);
 
-    cd->uricontent = malloc(len);
+    cd->uricontent = SCMalloc(len);
     if (cd->uricontent == NULL) {
-        free(cd);
-        free(str);
+        SCFree(cd);
+        SCFree(str);
         return NULL;;
     }
 
@@ -393,12 +393,12 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     cd->distance = 0;
     cd->flags = 0;
 
-    free(str);
+    SCFree(str);
     return cd;
 
 error:
-    free(str);
-    if (cd) free(cd);
+    SCFree(str);
+    if (cd) SCFree(cd);
     return NULL;
 }
 
@@ -445,7 +445,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     SCReturnInt(0);
 
 error:
-    if (cd) free(cd);
+    if (cd) SCFree(cd);
     SCReturnInt(-1);
 }
 
@@ -651,6 +651,7 @@ end:
 static int HTTPUriTest02(void) {
     int result = 1;
     Flow f;
+    HtpState *htp_state = NULL;
     uint8_t httpbuf1[] = "GET /%2e%2e/images.gif HTTP/1.1\r\nHost: www.ExA"
                          "mPlE.cOM\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -666,7 +667,7 @@ static int HTTPUriTest02(void) {
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
 
-    HtpState *htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -707,6 +708,8 @@ static int HTTPUriTest02(void) {
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
+    if (htp_state == NULL)
+        HTPStateFree(htp_state);
     return result;
 }
 
@@ -770,6 +773,8 @@ static int HTTPUriTest03(void) {
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
+    if (htp_state == NULL)
+        HTPStateFree(htp_state);
     return result;
 }
 
@@ -835,6 +840,8 @@ static int HTTPUriTest04(void) {
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
+    if (htp_state == NULL)
+        HTPStateFree(htp_state);
     return result;
 }
 
@@ -875,7 +882,9 @@ int DetectUriSigTest01(void)
     }
 
  end:
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -892,6 +901,7 @@ static int DetectUriSigTest02(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
+    HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -950,7 +960,7 @@ static int DetectUriSigTest02(void) {
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -972,7 +982,10 @@ static int DetectUriSigTest02(void) {
 
     result = 1;
 end:
+    if (http_state != NULL) HTPStateFree(http_state);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
     StreamL7DataPtrFree(&ssn);
@@ -985,6 +998,7 @@ end:
 static int DetectUriSigTest03(void) {
     int result = 0;
     Flow f;
+    HtpState *http_state = NULL;
     uint8_t httpbuf1[] = "POST /one HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\nCookie:"
                          " hellocatch\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -1062,7 +1076,7 @@ static int DetectUriSigTest03(void) {
         goto end;
     }
 
-    HtpState *http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -1084,7 +1098,10 @@ static int DetectUriSigTest03(void) {
 
     result = 1;
 end:
+    if (http_state != NULL) HTPStateFree(http_state);
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
     StreamL7DataPtrFree(&ssn);

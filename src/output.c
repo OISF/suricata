@@ -27,15 +27,15 @@ static TAILQ_HEAD(, OutputModule_) output_modules =
 void
 OutputRegisterModule(char *name, char *conf_name, LogFileCtx *(*InitFunc)(ConfNode *))
 {
-    OutputModule *module = calloc(1, sizeof(*module));
+    OutputModule *module = SCCalloc(1, sizeof(*module));
     if (module == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Failed to allocated memory for new output module");
         exit(EXIT_FAILURE);
     }
 
-    module->name = strdup(name);
-    module->conf_name = strdup(conf_name);
+    module->name = SCStrdup(name);
+    module->conf_name = SCStrdup(conf_name);
     module->InitFunc = InitFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
@@ -71,8 +71,8 @@ OutputDeregisterAll(void)
 
     while ((module = TAILQ_FIRST(&output_modules))) {
         TAILQ_REMOVE(&output_modules, module, entries);
-        free(module->name);
-        free(module->conf_name);
-        free(module);
+        SCFree(module->name);
+        SCFree(module->conf_name);
+        SCFree(module);
     }
 }

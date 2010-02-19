@@ -43,7 +43,7 @@ static uint32_t detect_siggroup_matcharray_init_cnt = 0;
 static uint32_t detect_siggroup_matcharray_free_cnt = 0;
 
 static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size) {
-    SigGroupHeadInitData *sghid = malloc(sizeof(SigGroupHeadInitData));
+    SigGroupHeadInitData *sghid = SCMalloc(sizeof(SigGroupHeadInitData));
     if (sghid == NULL)
         return NULL;
 
@@ -56,16 +56,16 @@ static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size) {
 
 void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid) {
     if (sghid->content_array != NULL) {
-        free(sghid->content_array);
+        SCFree(sghid->content_array);
         sghid->content_array = NULL;
         sghid->content_size = 0;
     }
     if (sghid->uri_content_array != NULL) {
-        free(sghid->uri_content_array);
+        SCFree(sghid->uri_content_array);
         sghid->uri_content_array = NULL;
         sghid->uri_content_size = 0;
     }
-    free(sghid);
+    SCFree(sghid);
 
     detect_siggroup_head_initdata_free_cnt++;
     detect_siggroup_head_initdata_memory -= sizeof(SigGroupHeadInitData);
@@ -82,7 +82,7 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid) {
  */
 static SigGroupHead *SigGroupHeadAlloc(uint32_t size)
 {
-    SigGroupHead *sgh = malloc(sizeof(SigGroupHead));
+    SigGroupHead *sgh = SCMalloc(sizeof(SigGroupHead));
     if (sgh == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         return NULL;
@@ -98,7 +98,7 @@ static SigGroupHead *SigGroupHeadAlloc(uint32_t size)
 
     /* initialize the signature bitarray */
     sgh->sig_size = size;
-    if ( (sgh->sig_array = malloc(sgh->sig_size)) == NULL) {
+    if ( (sgh->sig_array = SCMalloc(sgh->sig_size)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -130,7 +130,7 @@ void SigGroupHeadFree(SigGroupHead *sgh)
     PatternMatchDestroyGroup(sgh);
 
     if (sgh->sig_array != NULL) {
-        free(sgh->sig_array);
+        SCFree(sgh->sig_array);
         sgh->sig_array = NULL;
 
         detect_siggroup_sigarray_free_cnt++;
@@ -140,7 +140,7 @@ void SigGroupHeadFree(SigGroupHead *sgh)
     if (sgh->match_array != NULL) {
         detect_siggroup_matcharray_free_cnt++;
         detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(SigIntId));
-        free(sgh->match_array);
+        SCFree(sgh->match_array);
         sgh->match_array = NULL;
         sgh->sig_cnt = 0;
     }
@@ -150,7 +150,7 @@ void SigGroupHeadFree(SigGroupHead *sgh)
         sgh->init = NULL;
     }
 
-    free(sgh);
+    SCFree(sgh);
 
     detect_siggroup_head_free_cnt++;
     detect_siggroup_head_memory -= sizeof(SigGroupHead);
@@ -612,7 +612,7 @@ SigGroupHead *SigGroupHeadDPortHashLookup(DetectEngineCtx *de_ctx,
  */
 void SigGroupHeadDPortHashFree(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx->dport_hash_table == NULL)
+    if (de_ctx->sgh_dport_hash_table == NULL)
         return;
 
     HashListTableFree(de_ctx->sgh_dport_hash_table);
@@ -693,7 +693,7 @@ SigGroupHead *SigGroupHeadSPortHashLookup(DetectEngineCtx *de_ctx,
  */
 void SigGroupHeadSPortHashFree(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx->sport_hash_table == NULL)
+    if (de_ctx->sgh_sport_hash_table == NULL)
         return;
 
     HashListTableFree(de_ctx->sgh_sport_hash_table);
@@ -724,7 +724,7 @@ static void SigGroupHeadFreeSigArraysHash2(DetectEngineCtx *de_ctx,
             detect_siggroup_sigarray_free_cnt++;
             detect_siggroup_sigarray_memory -= sgh->sig_size;
 
-            free(sgh->sig_array);
+            SCFree(sgh->sig_array);
             sgh->sig_array = NULL;
             sgh->sig_size = 0;
         }
@@ -760,7 +760,7 @@ static void SigGroupHeadFreeSigArraysHash(DetectEngineCtx *de_ctx,
             detect_siggroup_sigarray_free_cnt++;
             detect_siggroup_sigarray_memory -= sgh->sig_size;
 
-            free(sgh->sig_array);
+            SCFree(sgh->sig_array);
             sgh->sig_array = NULL;
             sgh->sig_size = 0;
         }
@@ -1118,7 +1118,7 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     BUG_ON(sgh->init == NULL);
 
     sgh->init->content_size = (DetectContentMaxId(de_ctx) / 8) + 1;
-    sgh->init->content_array = malloc(sgh->init->content_size);
+    sgh->init->content_array = SCMalloc(sgh->init->content_size);
     if (sgh->init->content_array == NULL)
         return -1;
 
@@ -1164,7 +1164,7 @@ int SigGroupHeadClearContent(SigGroupHead *sh)
         return 0;
 
     if (sh->init->content_array != NULL) {
-        free(sh->init->content_array);
+        SCFree(sh->init->content_array);
         sh->init->content_array = NULL;
         sh->init->content_size = 0;
     }
@@ -1201,7 +1201,7 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     BUG_ON(sgh->init == NULL);
 
     sgh->init->uri_content_size = (DetectUricontentMaxId(de_ctx) / 8) + 1;
-    sgh->init->uri_content_array = malloc(sgh->init->uri_content_size);
+    sgh->init->uri_content_array = SCMalloc(sgh->init->uri_content_size);
     if (sgh->init->uri_content_array == NULL)
         return -1;
 
@@ -1248,7 +1248,7 @@ int SigGroupHeadClearUricontent(SigGroupHead *sh)
         return 0;
 
     if (sh->init->uri_content_array != NULL) {
-        free(sh->init->uri_content_array);
+        SCFree(sh->init->uri_content_array);
         sh->init->uri_content_array = NULL;
         sh->init->uri_content_size = 0;
     }
@@ -1279,7 +1279,7 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
     BUG_ON(sgh->match_array != NULL);
 
-    sgh->match_array = malloc(sgh->sig_cnt * sizeof(SigIntId));
+    sgh->match_array = SCMalloc(sgh->sig_cnt * sizeof(SigIntId));
     if (sgh->match_array == NULL)
         return -1;
 
@@ -1362,17 +1362,15 @@ static int SigGroupHeadTest01(void)
 {
     int result = 1;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx de_ctx;
 
-    SigGroupHeadMpmHashInit(de_ctx);
+    SigGroupHeadMpmHashInit(&de_ctx);
 
-    result &= (de_ctx->sgh_mpm_hash_table != NULL);
+    result &= (de_ctx.sgh_mpm_hash_table != NULL);
 
-    SigGroupHeadMpmHashFree(de_ctx);
+    SigGroupHeadMpmHashFree(&de_ctx);
 
-    result &= (de_ctx->sgh_mpm_hash_table == NULL);
-
-    DetectEngineCtxFree(de_ctx);
+    result &= (de_ctx.sgh_mpm_hash_table == NULL);
 
     return result;
 }
@@ -1386,17 +1384,15 @@ static int SigGroupHeadTest02(void)
 {
     int result = 1;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx de_ctx;
 
-    SigGroupHeadMpmUriHashInit(de_ctx);
+    SigGroupHeadMpmUriHashInit(&de_ctx);
 
-    result &= (de_ctx->sgh_mpm_uri_hash_table != NULL);
+    result &= (de_ctx.sgh_mpm_uri_hash_table != NULL);
 
-    SigGroupHeadMpmUriHashFree(de_ctx);
+    SigGroupHeadMpmUriHashFree(&de_ctx);
 
-    result &= (de_ctx->sgh_mpm_uri_hash_table == NULL);
-
-    DetectEngineCtxFree(de_ctx);
+    result &= (de_ctx.sgh_mpm_uri_hash_table == NULL);
 
     return result;
 }
@@ -1410,17 +1406,15 @@ static int SigGroupHeadTest03(void)
 {
     int result = 1;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx de_ctx;
 
-    SigGroupHeadHashInit(de_ctx);
+    SigGroupHeadHashInit(&de_ctx);
 
-    result &= (de_ctx->sgh_hash_table != NULL);
+    result &= (de_ctx.sgh_hash_table != NULL);
 
-    SigGroupHeadHashFree(de_ctx);
+    SigGroupHeadHashFree(&de_ctx);
 
-    result &= (de_ctx->sgh_hash_table == NULL);
-
-    DetectEngineCtxFree(de_ctx);
+    result &= (de_ctx.sgh_hash_table == NULL);
 
     return result;
 }
@@ -1434,17 +1428,15 @@ static int SigGroupHeadTest04(void)
 {
     int result = 1;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx de_ctx;
 
-    SigGroupHeadDPortHashInit(de_ctx);
+    SigGroupHeadDPortHashInit(&de_ctx);
 
-    result &= (de_ctx->sgh_dport_hash_table != NULL);
+    result &= (de_ctx.sgh_dport_hash_table != NULL);
 
-    SigGroupHeadDPortHashFree(de_ctx);
+    SigGroupHeadDPortHashFree(&de_ctx);
 
-    result &= (de_ctx->sgh_dport_hash_table == NULL);
-
-    DetectEngineCtxFree(de_ctx);
+    result &= (de_ctx.sgh_dport_hash_table == NULL);
 
     return result;
 }
@@ -1458,17 +1450,15 @@ static int SigGroupHeadTest05(void)
 {
     int result = 1;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx de_ctx;
 
-    SigGroupHeadSPortHashInit(de_ctx);
+    SigGroupHeadSPortHashInit(&de_ctx);
 
-    result &= (de_ctx->sgh_sport_hash_table != NULL);
+    result &= (de_ctx.sgh_sport_hash_table != NULL);
 
-    SigGroupHeadSPortHashFree(de_ctx);
+    SigGroupHeadSPortHashFree(&de_ctx);
 
-    result &= (de_ctx->sgh_sport_hash_table == NULL);
-
-    DetectEngineCtxFree(de_ctx);
+    result &= (de_ctx.sgh_sport_hash_table == NULL);
 
     return result;
 }

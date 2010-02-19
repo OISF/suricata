@@ -206,7 +206,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     u_int32_t version;
     char *tmpclusterid;
 
-    PfringThreadVars *ptv = malloc(sizeof(PfringThreadVars));
+    PfringThreadVars *ptv = SCMalloc(sizeof(PfringThreadVars));
     if (ptv == NULL) {
         return TM_ECODE_FAILED;
     }
@@ -337,7 +337,7 @@ TmEcode DecodePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = malloc(sizeof(DecodeThreadVars))) == NULL) {
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL) {
         printf("Error Allocating memory\n");
         return TM_ECODE_FAILED;
     }

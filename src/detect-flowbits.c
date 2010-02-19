@@ -199,7 +199,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
             break;
     }
 
-    cd = malloc(sizeof(DetectFlowbitsData));
+    cd = SCMalloc(sizeof(DetectFlowbitsData));
     if (cd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "DetectFlowbitsSetup malloc failed");
         goto error;
@@ -239,9 +239,9 @@ error:
     if (fb_cmd_str != NULL)
         pcre_free_substring(fb_cmd_str);
     if (cd != NULL)
-        free(cd);
+        SCFree(cd);
     if (sm != NULL)
-        free(sm);
+        SCFree(sm);
     return -1;
 }
 
@@ -251,7 +251,7 @@ void DetectFlowbitFree (void *ptr) {
     if (fd == NULL)
         return;
 
-    free(fd);
+    SCFree(fd);
 }
 
 #ifdef UNITTESTS
@@ -814,7 +814,7 @@ static int FlowBitsTestSig07(void) {
         goto end;
     }
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:unset,myflow2; sid:11;)");
+    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:unset,myflow2; sid:11;)");
     if (s == NULL) {
         goto end;
     }

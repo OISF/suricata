@@ -17,7 +17,7 @@
 
 /* puts a new value into a flowvar */
 void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size) {
-    if (fv->data.fv_str.value) free(fv->data.fv_str.value);
+    if (fv->data.fv_str.value) SCFree(fv->data.fv_str.value);
     fv->data.fv_str.value = value;
     fv->data.fv_str.value_len = size;
 }
@@ -49,7 +49,7 @@ void FlowVarAddStr(Flow *f, uint8_t idx, uint8_t *value, uint16_t size) {
 
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
-        fv = malloc(sizeof(FlowVar));
+        fv = SCMalloc(sizeof(FlowVar));
         if (fv == NULL)
             goto out;
 
@@ -77,7 +77,7 @@ void FlowVarAddInt(Flow *f, uint8_t idx, uint32_t value) {
 
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
-        fv = malloc(sizeof(FlowVar));
+        fv = SCMalloc(sizeof(FlowVar));
         if (fv == NULL)
             goto out;
 
@@ -102,9 +102,9 @@ void FlowVarFree(FlowVar *fv) {
 
     if (fv->datatype == FLOWVAR_TYPE_STR) {
             if (fv->data.fv_str.value != NULL)
-                free(fv->data.fv_str.value);
+                SCFree(fv->data.fv_str.value);
     }
-    free(fv);
+    SCFree(fv);
 }
 
 void FlowVarPrint(GenericVar *gv) {

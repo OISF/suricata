@@ -238,7 +238,7 @@ TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
 TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    AlertUnifiedAlertThread *aun = malloc(sizeof(AlertUnifiedAlertThread));
+    AlertUnifiedAlertThread *aun = SCMalloc(sizeof(AlertUnifiedAlertThread));
     if (aun == NULL) {
         return TM_ECODE_FAILED;
     }
@@ -246,7 +246,7 @@ TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for UnifiedAlert.  \"initdata\" argument NULL");
-        free(aun);
+        SCFree(aun);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -270,7 +270,7 @@ TmEcode AlertUnifiedAlertThreadDeinit(ThreadVars *t, void *data)
     }
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedAlertThread));
-    free(aun);
+    SCFree(aun);
     return TM_ECODE_OK;
 
 error:
@@ -298,7 +298,7 @@ LogFileCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
         filename = ConfNodeLookupChildValue(conf, "filename");
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
-    file_ctx->prefix = strdup(filename);
+    file_ctx->prefix = SCStrdup(filename);
 
     const char *s_limit = NULL;
     uint32_t limit = DEFAULT_LIMIT;
@@ -343,7 +343,7 @@ int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     if (file_ctx->filename != NULL)
         filename = file_ctx->filename;
     else
-        filename = file_ctx->filename = malloc(PATH_MAX); /* XXX some sane default? */
+        filename = file_ctx->filename = SCMalloc(PATH_MAX); /* XXX some sane default? */
 
     /* get the time so we can have a filename with seconds since epoch */
     struct timeval ts;
@@ -400,7 +400,7 @@ static int AlertUnifiedAlertTestRotate01(void)
     lf = AlertUnifiedAlertInitCtx(NULL);
     if (lf == NULL)
         return 0;
-    char *filename = strdup(lf->filename);
+    char *filename = SCStrdup(lf->filename);
 
     memset(&tv, 0, sizeof(ThreadVars));
 

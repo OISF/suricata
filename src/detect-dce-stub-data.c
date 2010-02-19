@@ -105,7 +105,7 @@ int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
  error:
     if (sm != NULL)
-        free(sm);
+        SCFree(sm);
     return -1;
 }
 

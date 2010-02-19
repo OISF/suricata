@@ -77,16 +77,16 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 value, inseq);
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
-                seq_node->name = calloc(1, DEFAULT_NAME_LEN);
+                seq_node->name = SCCalloc(1, DEFAULT_NAME_LEN);
                 snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
-                seq_node->val = strdup(value);
+                seq_node->val = SCStrdup(value);
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
             }
             else {
                 if (state == CONF_KEY) {
                     if (parent->is_seq) {
                         if (parent->val == NULL) {
-                            parent->val = strdup(value);
+                            parent->val = SCStrdup(value);
                         }
                     }
                     ConfNode *n0 = ConfNodeLookupChild(parent, value);
@@ -95,7 +95,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     }
                     else {
                         node = ConfNodeNew();
-                        node->name = strdup(value);
+                        node->name = SCStrdup(value);
                         TAILQ_INSERT_TAIL(&parent->head, node, next);
                     }
                     state = CONF_VAL;
@@ -103,8 +103,8 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 else {
                     if (node->allow_override) {
                         if (node->val != NULL)
-                            free(node->val);
-                        node->val = strdup(value);
+                            SCFree(node->val);
+                        node->val = SCStrdup(value);
                     }
                     state = CONF_KEY;
                 }
@@ -125,7 +125,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
                 seq_node->is_seq = 1;
-                seq_node->name = calloc(1, DEFAULT_NAME_LEN);
+                seq_node->name = SCCalloc(1, DEFAULT_NAME_LEN);
                 snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
                 TAILQ_INSERT_TAIL(&node->head, seq_node, next);
                 ConfYamlParse(parser, seq_node, 0);

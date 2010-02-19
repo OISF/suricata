@@ -525,7 +525,7 @@ TmEcode TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *)) {
         goto error;
     }
 
-    tv->tm_slots = malloc(size);
+    tv->tm_slots = SCMalloc(size);
     if (tv->tm_slots == NULL) goto error;
     memset(tv->tm_slots, 0, size);
 
@@ -550,7 +550,7 @@ void Tm1SlotSetFunc(ThreadVars *tv, TmModule *tm, void *data) {
 
 void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data) {
     TmVarSlot *s = (TmVarSlot *)tv->tm_slots;
-    TmSlot *slot = malloc(sizeof(TmSlot));
+    TmSlot *slot = SCMalloc(sizeof(TmSlot));
     if (slot == NULL)
         return;
 
@@ -702,7 +702,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     SCLogDebug("creating thread \"%s\"...", name);
 
     /* XXX create separate function for this: allocate a thread container */
-    tv = malloc(sizeof(ThreadVars));
+    tv = SCMalloc(sizeof(ThreadVars));
     if (tv == NULL) goto error;
     memset(tv, 0, sizeof(ThreadVars));
 
@@ -1090,7 +1090,7 @@ void TmThreadSetAOF(ThreadVars *tv, uint8_t aof)
  */
 void TmThreadInitMC(ThreadVars *tv)
 {
-    if ( (tv->m = malloc(sizeof(SCMutex))) == NULL) {
+    if ( (tv->m = SCMalloc(sizeof(SCMutex))) == NULL) {
         printf("Error allocating memory\n");
         exit(0);
     }
@@ -1100,7 +1100,7 @@ void TmThreadInitMC(ThreadVars *tv)
         exit(0);
     }
 
-    if ( (tv->cond = malloc(sizeof(SCCondT))) == NULL) {
+    if ( (tv->cond = SCMalloc(sizeof(SCCondT))) == NULL) {
         printf("Error allocating memory\n");
         exit(0);
     }

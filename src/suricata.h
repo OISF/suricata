@@ -29,6 +29,7 @@ uint32_t dbg_maxpending;
 SCMutex mutex_pending;
 SCCondT cond_pending;
 
+
 /* Run mode */
 enum {
     MODE_UNKNOWN = 0,

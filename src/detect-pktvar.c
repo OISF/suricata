@@ -111,18 +111,18 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     SCLogDebug("varname %s, varcontent %s", varname, varcontent);
 
     if (varcontent[0] == '\"' && varcontent[strlen(varcontent)-1] == '\"') {
-        str = strdup(varcontent+1);
+        str = SCStrdup(varcontent+1);
         str[strlen(varcontent)-2] = '\0';
         dubbed = 1;
     }
 
     len = strlen(str);
     if (len == 0) {
-        if (dubbed) free(str);
+        if (dubbed) SCFree(str);
         return -1;
     }
 
-    cd = malloc(sizeof(DetectPktvarData));
+    cd = SCMalloc(sizeof(DetectPktvarData));
     if (cd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -185,14 +185,14 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
             len = x;
     }
 
-    cd->content = malloc(len);
+    cd->content = SCMalloc(len);
     if (cd->content == NULL) {
-        free(cd);
-        if (dubbed) free(str);
+        SCFree(cd);
+        if (dubbed) SCFree(str);
         return -1;
     }
 
-    cd->name = strdup(varname);
+    cd->name = SCStrdup(varname);
     memcpy(cd->content, str, len);
     cd->content_len = len;
     cd->flags = 0;
@@ -208,13 +208,13 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
 
     SigMatchAppend(s,m,sm);
 
-    if (dubbed) free(str);
+    if (dubbed) SCFree(str);
     return 0;
 
 error:
-    if (dubbed) free(str);
-    if (cd) free(cd);
-    if (sm) free(sm);
+    if (dubbed) SCFree(str);
+    if (cd) SCFree(cd);
+    if (sm) SCFree(sm);
     return -1;
 }
 

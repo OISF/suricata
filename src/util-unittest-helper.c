@@ -36,7 +36,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
                            uint16_t sport, uint16_t dport) {
     struct in_addr in;
 
-    Packet *p = malloc(sizeof(Packet));
+    Packet *p = SCMalloc(sizeof(Packet));
     if (p == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet");
         exit(EXIT_FAILURE);
@@ -59,12 +59,12 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
 
     switch (ipproto) {
         case IPPROTO_UDP:
-            p->ip4h = malloc(sizeof(IPV4Hdr));
+            p->ip4h = SCMalloc(sizeof(IPV4Hdr));
             if (p->ip4h == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet ip4h");
                 exit(EXIT_FAILURE);
             }
-            p->udph = malloc(sizeof(UDPHdr));
+            p->udph = SCMalloc(sizeof(UDPHdr));
             if (p->udph == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet udph");
                 exit(EXIT_FAILURE);
@@ -73,12 +73,12 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             p->udph->uh_dport = dport;
         break;
         case IPPROTO_TCP:
-            p->ip4h = malloc(sizeof(IPV4Hdr));
+            p->ip4h = SCMalloc(sizeof(IPV4Hdr));
             if (p->ip4h == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet ip4h");
                 exit(EXIT_FAILURE);
             }
-            p->tcph = malloc(sizeof(TCPHdr));
+            p->tcph = SCMalloc(sizeof(TCPHdr));
             if (p->tcph == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet tcph");
                 exit(EXIT_FAILURE);
@@ -87,7 +87,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             p->tcph->th_dport = dport;
         break;
         case IPPROTO_ICMP:
-            p->ip4h = malloc(sizeof(IPV4Hdr));
+            p->ip4h = SCMalloc(sizeof(IPV4Hdr));
             if (p->ip4h == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet ip4h");
                 exit(EXIT_FAILURE);
@@ -135,7 +135,7 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
         return NULL;
     }
     Packet **p = NULL;
-    p = malloc(sizeof(Packet *) * numpkts);
+    p = SCMalloc(sizeof(Packet *) * numpkts);
     if (p == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for the packet array");
         return NULL;
@@ -146,10 +146,10 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
 
     int i = 0;
     for (; i < numpkts; i++) {
-        p[i] = malloc(sizeof(Packet));
+        p[i] = SCMalloc(sizeof(Packet));
         if (p[i] == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for a packet of the array");
-            free(p);
+            SCFree(p);
             return NULL;
         }
         memset(p[i], 0, sizeof(Packet));
@@ -170,7 +170,7 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
 Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize) {
     DecodeThreadVars dtv;
     ThreadVars th_v;
-    Packet *p = malloc(sizeof(Packet));
+    Packet *p = SCMalloc(sizeof(Packet));
     if (p == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for the packet");
         return NULL;
@@ -246,23 +246,23 @@ void UTHFreePacket(Packet *p) {
     switch (p->proto) {
         case IPPROTO_UDP:
             if (p->udph != NULL)
-                free(p->udph);
+                SCFree(p->udph);
             if (p->ip4h != NULL)
-                free(p->ip4h);
+                SCFree(p->ip4h);
         break;
         case IPPROTO_TCP:
             if (p->tcph != NULL)
-                free(p->tcph);
+                SCFree(p->tcph);
             if (p->ip4h != NULL)
-                free(p->ip4h);
+                SCFree(p->ip4h);
         break;
         case IPPROTO_ICMP:
             if (p->ip4h != NULL)
-                free(p->ip4h);
+                SCFree(p->ip4h);
         break;
         /* TODO: Add more protocols */
     }
-    free(p);
+    SCFree(p);
 }
 
 /**
@@ -529,8 +529,12 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type) {
     }
 
 end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -582,6 +586,11 @@ int UTHPacketMatchSig(Packet *p, char *sig) {
     }
 
 end:
+    if (de_ctx) {
+	SigGroupCleanup(de_ctx);
+	SigCleanSignatures(de_ctx);
+    }
+
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
@@ -648,7 +657,10 @@ int UTHBuildPacketRealTest01(void) {
     Packet *p = UTHBuildPacketReal(payload, sizeof(payload), IPPROTO_TCP,
                                    "192.168.1.5", "192.168.1.1", 41424, 80);
 
-    return CheckUTHTestPacket(p, IPPROTO_TCP);
+    int ret = CheckUTHTestPacket(p, IPPROTO_TCP);
+    UTHFreePacket(p);
+
+    return ret;
 }
 
 /**
@@ -660,7 +672,9 @@ int UTHBuildPacketRealTest02(void) {
     Packet *p = UTHBuildPacketReal(payload, sizeof(payload), IPPROTO_UDP,
                                    "192.168.1.5", "192.168.1.1", 41424, 80);
 
-    return CheckUTHTestPacket(p, IPPROTO_UDP);
+    int ret = CheckUTHTestPacket(p, IPPROTO_UDP);
+    UTHFreePacket(p);
+    return ret;
 }
 
 /**
@@ -671,7 +685,10 @@ int UTHBuildPacketTest01(void) {
 
     Packet *p = UTHBuildPacket(payload, sizeof(payload), IPPROTO_TCP);
 
-    return CheckUTHTestPacket(p, IPPROTO_TCP);
+    int ret = CheckUTHTestPacket(p, IPPROTO_TCP);
+    UTHFreePacket(p);
+
+    return ret;
 }
 
 /**
@@ -682,7 +699,10 @@ int UTHBuildPacketTest02(void) {
 
     Packet *p = UTHBuildPacket(payload, sizeof(payload), IPPROTO_UDP);
 
-    return CheckUTHTestPacket(p, IPPROTO_UDP);
+    int ret = CheckUTHTestPacket(p, IPPROTO_UDP);
+    UTHFreePacket(p);
+
+    return ret;
 }
 
 /**
@@ -694,7 +714,10 @@ int UTHBuildPacketSrcDstTest01(void) {
     Packet *p = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_TCP,
                                      "192.168.1.5", "192.168.1.1");
 
-    return CheckUTHTestPacket(p, IPPROTO_TCP);
+    int ret = CheckUTHTestPacket(p, IPPROTO_TCP);
+    UTHFreePacket(p);
+
+    return ret;
 }
 
 /**
@@ -706,7 +729,10 @@ int UTHBuildPacketSrcDstTest02(void) {
     Packet *p = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_UDP,
                                      "192.168.1.5", "192.168.1.1");
 
-    return CheckUTHTestPacket(p, IPPROTO_UDP);
+    int ret = CheckUTHTestPacket(p, IPPROTO_UDP);
+    UTHFreePacket(p);
+
+    return ret;
 }
 
 /**
@@ -718,7 +744,10 @@ int UTHBuildPacketSrcDstPortsTest01(void) {
     Packet *p = UTHBuildPacketSrcDstPorts(payload, sizeof(payload), IPPROTO_TCP,
                                           41424, 80);
 
-    return CheckUTHTestPacket(p, IPPROTO_TCP);
+    int ret = CheckUTHTestPacket(p, IPPROTO_TCP);
+    UTHFreePacket(p);
+
+    return ret;
 }
 
 /**
@@ -730,7 +759,10 @@ int UTHBuildPacketSrcDstPortsTest02(void) {
     Packet *p = UTHBuildPacketSrcDstPorts(payload, sizeof(payload), IPPROTO_UDP,
                                           41424, 80);
 
-    return CheckUTHTestPacket(p, IPPROTO_UDP);
+    int ret = CheckUTHTestPacket(p, IPPROTO_UDP);
+    UTHFreePacket(p);
+
+    return ret;
 }
 
 #endif /* UNITTESTS */

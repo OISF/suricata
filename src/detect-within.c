@@ -34,7 +34,7 @@ int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
 
     /* strip "'s */
     if (withinstr[0] == '\"' && withinstr[strlen(withinstr)-1] == '\"') {
-        str = strdup(withinstr+1);
+        str = SCStrdup(withinstr+1);
         str[strlen(withinstr)-2] = '\0';
         dubbed = 1;
     }
@@ -91,10 +91,10 @@ int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
         goto error;
     }
 
-    if (dubbed) free(str);
+    if (dubbed) SCFree(str);
     return 0;
 error:
-    if (dubbed) free(str);
+    if (dubbed) SCFree(str);
     return -1;
 }
 

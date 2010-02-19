@@ -171,7 +171,7 @@ TmEcode AlertFastLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
 TmEcode AlertFastLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    AlertFastLogThread *aft = malloc(sizeof(AlertFastLogThread));
+    AlertFastLogThread *aft = SCMalloc(sizeof(AlertFastLogThread));
     if (aft == NULL) {
         return TM_ECODE_FAILED;
     }
@@ -179,7 +179,7 @@ TmEcode AlertFastLogThreadInit(ThreadVars *t, void *initdata, void **data)
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for AlertFastLog.  \"initdata\" argument NULL");
-        free(aft);
+        SCFree(aft);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -198,7 +198,7 @@ TmEcode AlertFastLogThreadDeinit(ThreadVars *t, void *data)
     /* clear memory */
     memset(aft, 0, sizeof(AlertFastLogThread));
 
-    free(aft);
+    SCFree(aft);
     return TM_ECODE_OK;
 }
 

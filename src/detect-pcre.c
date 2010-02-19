@@ -413,7 +413,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
     }
     //printf("ret %" PRId32 " re \'%s\', op \'%s\'\n", ret, re, op);
 
-    pd = malloc(sizeof(DetectPcreData));
+    pd = SCMalloc(sizeof(DetectPcreData));
     if (pd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -490,7 +490,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
     }
 
     if(pd->sd == NULL)
-        pd->sd = (pcre_extra *) calloc(1,sizeof(pcre_extra));
+        pd->sd = (pcre_extra *) SCCalloc(1,sizeof(pcre_extra));
 
     if(pd->sd)  {
 
@@ -519,16 +519,16 @@ DetectPcreData *DetectPcreParse (char *regexstr)
 
     }
 
-    if (re != NULL) free(re);
-    if (op_ptr != NULL) free(op_ptr);
+    if (re != NULL) SCFree(re);
+    if (op_ptr != NULL) SCFree(op_ptr);
     return pd;
 
 error:
-    if (re != NULL) free(re);
-    if (op_ptr != NULL) free(op_ptr);
+    if (re != NULL) SCFree(re);
+    if (op_ptr != NULL) SCFree(op_ptr);
     if (pd != NULL && pd->re != NULL) pcre_free(pd->re);
     if (pd != NULL && pd->sd != NULL) pcre_free(pd->sd);
-    if (pd) free(pd);
+    if (pd) SCFree(pd);
     return NULL;
 }
 
@@ -562,7 +562,7 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
     //printf("DetectPcreParseCapture: capture \'%s\'\n", capture_str_ptr ? capture_str_ptr : "NULL");
 
     if (capture_str_ptr != NULL) {
-        pd->capname = strdup((char *)capture_str_ptr);
+        pd->capname = SCStrdup((char *)capture_str_ptr);
     }
 
     if (type_str_ptr != NULL) {
@@ -585,8 +585,8 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
     return pd;
 
 error:
-    if (pd != NULL && pd->capname != NULL) free(pd->capname);
-    if (pd) free(pd);
+    if (pd != NULL && pd->capname != NULL) SCFree(pd->capname);
+    if (pd) SCFree(pd);
     return NULL;
 
 }
@@ -623,18 +623,18 @@ int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *r
 
 error:
     if (pd != NULL) DetectPcreFree(pd);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 }
 
 void DetectPcreFree(void *ptr) {
     DetectPcreData *pd = (DetectPcreData *)ptr;
 
-    if (pd->capname != NULL) free(pd->capname);
+    if (pd->capname != NULL) SCFree(pd->capname);
     if (pd->re != NULL) pcre_free(pd->re);
     if (pd->sd != NULL) pcre_free(pd->sd);
 
-    free(pd);
+    SCFree(pd);
     return;
 }
 

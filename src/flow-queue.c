@@ -11,7 +11,7 @@
 #include <string.h>
 
 FlowQueue *FlowQueueNew() {
-    FlowQueue *q = (FlowQueue *)malloc(sizeof(FlowQueue));
+    FlowQueue *q = (FlowQueue *)SCMalloc(sizeof(FlowQueue));
     if (q == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,"Error allocating flow queue");
         exit(EXIT_SUCCESS);

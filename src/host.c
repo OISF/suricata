@@ -1,8 +1,9 @@
 #include "suricata-common.h"
+#include "util-debug.h"
 #include "host.h"
 
 Host *HostAlloc(void) {
-    Host *h = malloc(sizeof(Host));
+    Host *h = SCMalloc(sizeof(Host));
     if (h == NULL)
         goto error;
 
@@ -13,7 +14,7 @@ error:
 }
 
 void HostFree(Host *h) {
-    free(h);
+    SCFree(h);
 }
 
 Host *HostNew(Address *a) {

@@ -125,7 +125,7 @@ DetectDecodeEventData *DetectDecodeEventParse (char *rawstr)
     if(found == 0)
         goto error;
 
-    de = malloc(sizeof(DetectDecodeEventData));
+    de = SCMalloc(sizeof(DetectDecodeEventData));
     if (de == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Malloc failed");
         goto error;
@@ -135,7 +135,7 @@ DetectDecodeEventData *DetectDecodeEventParse (char *rawstr)
     return de;
 
 error:
-    if (de) free(de);
+    if (de) SCFree(de);
     return NULL;
 }
 
@@ -170,8 +170,8 @@ int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, 
     return 0;
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return -1;
 }
 
@@ -181,7 +181,7 @@ error:
  * \param de pointer to DetectDecodeEventData
  */
 void DetectDecodeEventFree(DetectDecodeEventData *de) {
-    if(de) free(de);
+    if(de) SCFree(de);
 }
 
 /*
@@ -295,8 +295,8 @@ int DecodeEventTestParse06 (void) {
         return 1;
 
 error:
-    if (de) free(de);
-    if (sm) free(sm);
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
     return 0;
 }
 #endif /* UNITTESTS */

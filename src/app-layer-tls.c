@@ -485,7 +485,7 @@ static int TLSParseServerContentType(Flow *f, void *tls_state, AppLayerParserSta
  */
 static void *TLSStateAlloc(void)
 {
-    void *s = malloc(sizeof(TlsState));
+    void *s = SCMalloc(sizeof(TlsState));
     if (s == NULL)
         return NULL;
 
@@ -497,7 +497,7 @@ static void *TLSStateAlloc(void)
  */
 static void TLSStateFree(void *s)
 {
-    free(s);
+    SCFree(s);
 }
 
 /** \brief Function to register the TLS protocol parsers and other functions

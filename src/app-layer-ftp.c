@@ -110,8 +110,8 @@ static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserSt
                         * the ftpbounce condition directly from detect-ftpbounce
                         */
                         if (fstate->port_line != NULL)
-                            free(fstate->port_line);
-                        fstate->port_line = malloc(input_len);
+                            SCFree(fstate->port_line);
+                        fstate->port_line = SCMalloc(input_len);
                         if (fstate->port_line == NULL) {
                             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating"
                                                          "memory");
@@ -219,7 +219,7 @@ static uint64_t ftp_state_memcnt = 0;
 #endif
 
 static void *FTPStateAlloc(void) {
-    void *s = malloc(sizeof(FtpState));
+    void *s = SCMalloc(sizeof(FtpState));
     if (s == NULL)
         return NULL;
 
@@ -235,7 +235,7 @@ static void *FTPStateAlloc(void) {
 }
 
 static void FTPStateFree(void *s) {
-    free(s);
+    SCFree(s);
 #ifdef DEBUG
     SCMutexLock(&ftp_state_mem_lock);
     ftp_state_memcnt--;

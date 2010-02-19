@@ -1054,6 +1054,8 @@ static int DetectAddressIPv4IsCompleteIPSpace02(void)
     a->ip2[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
+    DetectAddressFree(a);
+
     if ( (a = DetectAddressInit()) == NULL)
         goto error;
 

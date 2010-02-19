@@ -215,7 +215,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                     dcerpc->dcerpcbindbindack.versionminor |= *(p + 23) << 8;
                     if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems
                             - dcerpc->dcerpcbindbindack.numctxitemsleft) {
-                        dcerpc->dcerpcbindbindack.uuid_entry = (struct uuid_entry *) calloc(1,
+                        dcerpc->dcerpcbindbindack.uuid_entry = (struct uuid_entry *) SCCalloc(1,
                                 sizeof(struct uuid_entry));
                         if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
                             SCReturnUInt(0);
@@ -421,7 +421,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 p++;
                 --input_len;
                 if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft) {
-                    dcerpc->dcerpcbindbindack.uuid_entry = (struct uuid_entry *) calloc(1,
+                    dcerpc->dcerpcbindbindack.uuid_entry = (struct uuid_entry *) SCCalloc(1,
                             sizeof(struct uuid_entry));
                     if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
                         SCReturnUInt(0);
@@ -1238,7 +1238,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
 }
 
 static void *DCERPCStateAlloc(void) {
-    void *s = malloc(sizeof(DCERPCState));
+    void *s = SCMalloc(sizeof(DCERPCState));
     if (s == NULL)
         return NULL;
 
@@ -1254,11 +1254,11 @@ static void DCERPCStateFree(void *s) {
     while ((item = TAILQ_FIRST(&sstate->dcerpc.dcerpcbindbindack.uuid_list))) {
         //printUUID("Free", item);
         TAILQ_REMOVE(&sstate->dcerpc.dcerpcbindbindack.uuid_list, item, next);
-        free(item);
+        SCFree(item);
     }
 
     if (s) {
-        free(s);
+        SCFree(s);
         s = NULL;
     }
 }

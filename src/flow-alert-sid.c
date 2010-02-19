@@ -43,7 +43,7 @@ static FlowAlertSid *FlowAlertSidGet(Flow *f, uint32_t sid) {
 static void FlowAlertSidAdd(Flow *f, uint32_t sid) {
     FlowAlertSid *fb = FlowAlertSidGet(f, sid);
     if (fb == NULL) {
-        fb = malloc(sizeof(FlowAlertSid));
+        fb = SCMalloc(sizeof(FlowAlertSid));
         if (fb == NULL)
             return;
 
@@ -153,7 +153,7 @@ void FlowAlertSidFree(FlowAlertSid *fb) {
     if (fb == NULL)
         return;
 
-    free(fb);
+    SCFree(fb);
 
 #ifdef FLOWALERTSID_STATS
     SCMutexLock(&flowbits_mutex);

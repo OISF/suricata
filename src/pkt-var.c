@@ -11,10 +11,11 @@
 #include "suricata-common.h"
 #include "decode.h"
 #include "pkt-var.h"
+#include "util-debug.h"
 
 /* puts a new value into a pktvar */
 void PktVarUpdate(PktVar *pv, uint8_t *value, uint16_t size) {
-    if (pv->value) free(pv->value);
+    if (pv->value) SCFree(pv->value);
     pv->value = value;
     pv->value_len = size;
 }
@@ -39,7 +40,7 @@ void PktVarAdd(Packet *p, char *name, uint8_t *value, uint16_t size) {
 
     PktVar *pv = PktVarGet(p, name);
     if (pv == NULL) {
-        pv = malloc(sizeof(PktVar));
+        pv = SCMalloc(sizeof(PktVar));
         if (pv == NULL)
             return;
 
@@ -71,10 +72,10 @@ void PktVarFree(PktVar *pv) {
 
     pv->name = NULL;
     if (pv->value != NULL)
-        free(pv->value);
+        SCFree(pv->value);
     PktVar *pv_next = pv->next;
 
-    free(pv);
+    SCFree(pv);
 
     if (pv_next != NULL)
         PktVarFree(pv_next);

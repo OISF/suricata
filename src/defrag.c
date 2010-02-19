@@ -260,7 +260,7 @@ DefragFragReset(Frag *frag)
     DefragContext *dc = frag->dc;
 
     if (frag->pkt != NULL)
-        free(frag->pkt);
+        SCFree(frag->pkt);
     memset(frag, 0, sizeof(*frag));
     frag->dc = dc;
 }
@@ -274,7 +274,7 @@ DefragFragNew(void *arg)
     DefragContext *dc = arg;
     Frag *frag;
 
-    frag = calloc(1, sizeof(*frag));
+    frag = SCCalloc(1, sizeof(*frag));
     frag->dc = dc;
 
     return (void *)frag;
@@ -287,7 +287,7 @@ static void
 DefragFragFree(void *arg)
 {
     Frag *frag = arg;
-    free(frag);
+    SCFree(frag);
 }
 
 /**
@@ -304,7 +304,7 @@ DefragTrackerFreeFrags(DefragTracker *tracker)
     while ((frag = TAILQ_FIRST(&tracker->frags)) != NULL) {
         TAILQ_REMOVE(&tracker->frags, frag, next);
 
-        /* Don't free the frag, just give it back to its pool. */
+        /* Don't SCFree the frag, just give it back to its pool. */
         DefragFragReset(frag);
         PoolReturn(frag->dc->frag_pool, frag);
     }
@@ -343,11 +343,11 @@ DefragTrackerNew(void *arg)
     DefragContext *dc = arg;
     DefragTracker *tracker;
 
-    tracker = calloc(1, sizeof(*tracker));
+    tracker = SCCalloc(1, sizeof(*tracker));
     if (tracker == NULL)
         return NULL;
     if (SCMutexInit(&tracker->lock, NULL) != 0) {
-        free(tracker);
+        SCFree(tracker);
         return NULL;
     }
     tracker->dc = dc;
@@ -367,7 +367,7 @@ DefragTrackerFree(void *arg)
 
     SCMutexDestroy(&tracker->lock);
     DefragTrackerFreeFrags(tracker);
-    free(tracker);
+    SCFree(tracker);
 }
 
 /**
@@ -381,7 +381,7 @@ DefragContextNew(void)
 {
     DefragContext *dc;
 
-    dc = calloc(1, sizeof(*dc));
+    dc = SCCalloc(1, sizeof(*dc));
     if (dc == NULL)
         return NULL;
 
@@ -471,9 +471,8 @@ DefragContextDestroy(DefragContext *dc)
     HashListTableFree(dc->frag_table);
     PoolFree(dc->frag_pool);
     PoolFree(dc->tracker_pool);
-    free(dc);
+    SCFree(dc);
 }
-
 
 /**
  * Attempt to re-assemble a packet.
@@ -517,7 +516,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     }
 
     /* Allocate a Packet for the reassembled packet.  On failure we
-     * free all the resources held by this tracker. */
+     * SCFree all the resources held by this tracker. */
     if (tv == NULL) {
         /* Unit test. */
         rp = SetupPkt();
@@ -635,7 +634,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     }
 
     /* Allocate a Packet for the reassembled packet.  On failure we
-     * free all the resources held by this tracker. */
+     * SCFree all the resources held by this tracker. */
     if (tv == NULL) {
         /* Unit test. */
         rp = SetupPkt();
@@ -888,7 +887,7 @@ insert:
     if (new == NULL) {
         goto done;
     }
-    new->pkt = malloc(p->pktlen);
+    new->pkt = SCMalloc(p->pktlen);
     if (new->pkt == NULL) {
         SCMutexLock(&dc->frag_pool_lock);
         PoolReturn(dc->frag_pool, new);
@@ -1143,7 +1142,7 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     int hlen = 20;
     int ttl = 64;
 
-    p = calloc(1, sizeof(*p));
+    p = SCCalloc(1, sizeof(*p));
     if (p == NULL)
         return NULL;
     gettimeofday(&p->ts, NULL);
@@ -1191,7 +1190,7 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     return p;
 error:
     if (p != NULL)
-        free(p);
+        SCFree(p);
     return NULL;
 }
 
@@ -1201,7 +1200,7 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
 {
     Packet *p = NULL;
 
-    p = calloc(1, sizeof(*p));
+    p = SCCalloc(1, sizeof(*p));
     if (p == NULL)
         return NULL;
     gettimeofday(&p->ts, NULL);
@@ -1249,7 +1248,7 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
 error:
     fprintf(stderr, "Error building test packet.\n");
     if (p != NULL)
-        free(p);
+        SCFree(p);
     return NULL;
 }
 
@@ -1321,13 +1320,13 @@ end:
     if (dc != NULL)
         DefragContextDestroy(dc);
     if (p1 != NULL)
-        free(p1);
+        SCFree(p1);
     if (p2 != NULL)
-        free(p2);
+        SCFree(p2);
     if (p3 != NULL)
-        free(p3);
+        SCFree(p3);
     if (reassembled != NULL)
-        free(reassembled);
+        SCFree(reassembled);
 
     DefragDestroy();
     return ret;
@@ -1400,13 +1399,13 @@ end:
     if (dc != NULL)
         DefragContextDestroy(dc);
     if (p1 != NULL)
-        free(p1);
+        SCFree(p1);
     if (p2 != NULL)
-        free(p2);
+        SCFree(p2);
     if (p3 != NULL)
-        free(p3);
+        SCFree(p3);
     if (reassembled != NULL)
-        free(reassembled);
+        SCFree(reassembled);
 
     DefragDestroy();
     return ret;
@@ -1476,13 +1475,13 @@ end:
     if (dc != NULL)
         DefragContextDestroy(dc);
     if (p1 != NULL)
-        free(p1);
+        SCFree(p1);
     if (p2 != NULL)
-        free(p2);
+        SCFree(p2);
     if (p3 != NULL)
-        free(p3);
+        SCFree(p3);
     if (reassembled != NULL)
-        free(reassembled);
+        SCFree(reassembled);
 
     DefragDestroy();
     return ret;
@@ -1545,13 +1544,13 @@ end:
     if (dc != NULL)
         DefragContextDestroy(dc);
     if (p1 != NULL)
-        free(p1);
+        SCFree(p1);
     if (p2 != NULL)
-        free(p2);
+        SCFree(p2);
     if (p3 != NULL)
-        free(p3);
+        SCFree(p3);
     if (reassembled != NULL)
-        free(reassembled);
+        SCFree(reassembled);
 
     DefragDestroy();
     return ret;
@@ -1642,7 +1641,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     for (i = 0; i < 16; i++) {
         Packet *tp = Defrag(NULL, NULL, dc, packets[i]);
         if (tp != NULL) {
-            free(tp);
+            SCFree(tp);
             goto end;
         }
     }
@@ -1659,7 +1658,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
 
     if (memcmp(reassembled->pkt + 20, expected, expected_len) != 0)
         goto end;
-    free(reassembled);
+    SCFree(reassembled);
 
     /* Make sure the tracker was released back to the pool. */
     if (dc->tracker_pool->outstanding != 0)
@@ -1674,7 +1673,7 @@ end:
     if (dc != NULL)
         DefragContextDestroy(dc);
     for (i = 0; i < 17; i++) {
-        free(packets[i]);
+        SCFree(packets[i]);
     }
     DefragDestroy();
     return ret;
@@ -1765,82 +1764,82 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     Packet *tp;
     tp = Defrag(NULL, NULL, dc, packets[0]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[1]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[2]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[3]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[4]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[5]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[6]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[7]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[8]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[9]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[10]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[11]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[12]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[13]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[14]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
     tp = Defrag(NULL, NULL, dc, packets[15]);
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
 
@@ -1854,7 +1853,7 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     if (IPV6_GET_PLEN(reassembled) != 192)
         goto end;
 
-    free(reassembled);
+    SCFree(reassembled);
 
     /* Make sure the tracker was released back to the pool. */
     if (dc->tracker_pool->outstanding != 0)
@@ -1869,7 +1868,7 @@ end:
     if (dc != NULL)
         DefragContextDestroy(dc);
     for (i = 0; i < 17; i++) {
-        free(packets[i]);
+        SCFree(packets[i]);
     }
     DefragDestroy();
     return ret;
@@ -2312,10 +2311,10 @@ DefragTimeoutTest(void)
 
         Packet *tp = Defrag(NULL, NULL, dc, p);
 
-        free(p);
+        SCFree(p);
 
         if (tp != NULL) {
-            free(tp);
+            SCFree(tp);
             goto end;
         }
     }
@@ -2329,10 +2328,10 @@ DefragTimeoutTest(void)
     p->ts.tv_sec += dc->timeout;
     Packet *tp = Defrag(NULL, NULL, dc, p);
 
-    free(p);
+    SCFree(p);
 
     if (tp != NULL) {
-        free(tp);
+        SCFree(tp);
         goto end;
     }
 
@@ -2402,7 +2401,7 @@ end:
     if (dc != NULL)
         DefragContextDestroy(dc);
     if (p != NULL)
-        free(p);
+        SCFree(p);
 
     DefragDestroy();
     return ret;
@@ -2441,7 +2440,7 @@ end:
     if (dc != NULL)
         DefragContextDestroy(dc);
     if (p != NULL)
-        free(p);
+        SCFree(p);
 
     DefragDestroy();
     return ret;

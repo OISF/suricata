@@ -483,9 +483,9 @@ void FlowInitConfig (char quiet)
                flow_config.hash_size, flow_config.prealloc);
 
     /* alloc hash memory */
-    flow_hash = calloc(flow_config.hash_size, sizeof(FlowBucket));
+    flow_hash = SCCalloc(flow_config.hash_size, sizeof(FlowBucket));
     if (flow_hash == NULL) {
-        printf("calloc failed %s\n", strerror(errno));
+        printf("SCCalloc failed %s\n", strerror(errno));
         exit(1);
     }
     uint32_t i = 0;
@@ -598,7 +598,7 @@ void FlowShutdown(void) {
     }
 
     if (flow_hash != NULL) {
-        free(flow_hash);
+        SCFree(flow_hash);
         flow_hash = NULL;
     }
     flow_memuse -= flow_config.hash_size * sizeof(FlowBucket);

@@ -84,7 +84,7 @@ static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     //printf("DetectSeqSetup: \'%s\'\n", optstr);
 
-    data = malloc(sizeof(DetectSeqData));
+    data = SCMalloc(sizeof(DetectSeqData));
     if (data == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         goto error;
@@ -107,7 +107,7 @@ static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 
 error:
-    if (data) free(data);
+    if (data) SCFree(data);
     return -1;
 
 }
@@ -121,7 +121,7 @@ error:
 static void DetectSeqFree(void *ptr)
 {
     DetectSeqData *data = (DetectSeqData *)ptr;
-    free(data);
+    SCFree(data);
 }
 
 

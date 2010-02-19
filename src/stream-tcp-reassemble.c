@@ -60,7 +60,7 @@ void *TcpSegmentPoolAlloc(void *payload_len) {
     if (StreamTcpCheckMemcap((uint32_t)sizeof(TcpSegment) + *((uint16_t *) payload_len)) == 0)
         return NULL;
 
-    TcpSegment *seg = malloc(sizeof (TcpSegment));
+    TcpSegment *seg = SCMalloc(sizeof (TcpSegment));
     if (seg == NULL)
         return NULL;
 
@@ -69,9 +69,9 @@ void *TcpSegmentPoolAlloc(void *payload_len) {
     seg->pool_size = *((uint16_t *) payload_len);
     seg->payload_len = seg->pool_size;
 
-    seg->payload = malloc(seg->payload_len);
+    seg->payload = SCMalloc(seg->payload_len);
     if (seg->payload == NULL) {
-        free(seg);
+        SCFree(seg);
         return NULL;
     }
 
@@ -104,13 +104,13 @@ void TcpSegmentPoolFree(void *ptr) {
     SCMutexUnlock(&segment_pool_memuse_mutex);
 #endif
 
-    free(seg->payload);
-    free(seg);
+    SCFree(seg->payload);
+    SCFree(seg);
     return;
 }
 
 /* We define serveral pools with prealloced segments with fixed size
- * payloads. We do this to prevent having to do an malloc call for every
+ * payloads. We do this to prevent having to do an SCMalloc call for every
  * data segment we receive, which would be a large performance penalty.
  * The cost is in memory of course. */
 #define segment_pool_num 8
@@ -202,7 +202,7 @@ void StreamTcpReassembleFree(char quiet)
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
 {
     SCEnter();
-    TcpReassemblyThreadCtx *ra_ctx = malloc(sizeof(TcpReassemblyThreadCtx));
+    TcpReassemblyThreadCtx *ra_ctx = SCMalloc(sizeof(TcpReassemblyThreadCtx));
     if (ra_ctx == NULL) {
         return NULL;
     }
@@ -222,7 +222,7 @@ void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
 
     ra_ctx->stream_q = NULL;
     AlpProtoDeFinalize2Thread(&ra_ctx->dp_ctx);
-    free(ra_ctx);
+    SCFree(ra_ctx);
     SCReturn;
 }
 
@@ -1617,7 +1617,7 @@ void StreamL7DataPtrInit(TcpSession *ssn) {
     if (StreamTcpCheckMemcap(size) == 0)
         return;
 
-    ssn->aldata = (void **) malloc(size);
+    ssn->aldata = (void **) SCMalloc(size);
     if (ssn->aldata != NULL) {
         StreamTcpIncrMemuse(size);
 
@@ -1635,7 +1635,7 @@ void StreamL7DataPtrFree(TcpSession *ssn) {
     if (ssn->aldata == NULL)
         return;
 
-    free(ssn->aldata);
+    SCFree(ssn->aldata);
     ssn->aldata = NULL;
 
     uint32_t size = (uint32_t)(sizeof (void *) * StreamL7GetStorageSize());
@@ -1950,6 +1950,8 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
     p.payload_len = 1;
     if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
         return 0;
+
+    StreamTcpReassembleFreeThreadCtx(ra_ctx);
 
     return 1;
 }
@@ -2799,10 +2801,12 @@ static int StreamTcpReassembleTest19(void) {
     StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsAfterListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
+	StreamTcpFreeConfig(TRUE);
         return 0;
     }
     if (StreamTcpCheckStreamContents(stream_after_solaris, sizeof(stream_after_solaris), &stream) == 0) {
         printf("failed in stream matching!!\n");
+	StreamTcpFreeConfig(TRUE);
         return 0;
     }
     StreamTcpFreeConfig(TRUE);
@@ -2824,10 +2828,12 @@ static int StreamTcpReassembleTest20(void) {
     StreamTcpInitConfig(TRUE);
     if (StreamTcpReassembleStreamTest(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
+	StreamTcpFreeConfig(TRUE);
         return 0;
     }
     if (StreamTcpCheckStreamContents(stream_solaris, sizeof(stream_solaris), &stream) == 0) {
         printf("failed in stream matching!!\n");
+	StreamTcpFreeConfig(TRUE);
         return 0;
     }
     StreamTcpFreeConfig(TRUE);

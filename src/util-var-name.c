@@ -42,11 +42,11 @@ static void VariableNameFree(void *data) {
         return;
 
     if (fn->name != NULL) {
-        free(fn->name);
+        SCFree(fn->name);
         fn->name = NULL;
     }
 
-    free(fn);
+    SCFree(fn);
 }
 
 /** \brief Initialize the Name idx hash.
@@ -76,14 +76,14 @@ void VariableNameFreeHash(DetectEngineCtx *de_ctx) {
 uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t type) {
     uint16_t idx = 0;
 
-    VariableName *fn = malloc(sizeof(VariableName));
+    VariableName *fn = SCMalloc(sizeof(VariableName));
     if (fn == NULL)
         goto error;
 
     memset(fn, 0, sizeof(VariableName));
 
     fn->type = type;
-    fn->name = strdup(name);
+    fn->name = SCStrdup(name);
     if (fn->name == NULL)
         goto error;
 

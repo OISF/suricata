@@ -72,7 +72,7 @@ Packet *TmqhInputFlow(ThreadVars *tv)
 static int StoreQueueId(TmqhFlowCtx *ctx, char *name) {
     Tmq *tmq = TmqGetQueueByName(name);
     if (tmq == NULL) {
-        tmq = TmqCreateQueue(strdup(name));
+        tmq = TmqCreateQueue(SCStrdup(name));
         if (tmq == NULL)
             return -1;
     }
@@ -83,10 +83,10 @@ static int StoreQueueId(TmqhFlowCtx *ctx, char *name) {
 
     if (ctx->queues == NULL) {
         ctx->size = 1;
-        ctx->queues = malloc(ctx->size * sizeof(uint16_t));
+        ctx->queues = SCMalloc(ctx->size * sizeof(uint16_t));
     } else {
         ctx->size++;
-        ctx->queues = realloc(ctx->queues, ctx->size * sizeof(uint16_t));
+        ctx->queues = SCRealloc(ctx->queues, ctx->size * sizeof(uint16_t));
     }
     if (ctx->queues == NULL) {
         return -1;
@@ -108,12 +108,12 @@ void *TmqhOutputFlowSetupCtx(char *queue_str) {
     if (queue_str == NULL || strlen(queue_str) == 0)
         return NULL;
 
-    TmqhFlowCtx *ctx = malloc(sizeof(TmqhFlowCtx));
+    TmqhFlowCtx *ctx = SCMalloc(sizeof(TmqhFlowCtx));
     if (ctx == NULL)
         return NULL;
     memset(ctx,0x00,sizeof(TmqhFlowCtx));
 
-    char *str = strdup(queue_str);
+    char *str = SCStrdup(queue_str);
     char *tstr = str;
 
     /* parse the comma separated string */
@@ -134,11 +134,11 @@ void *TmqhOutputFlowSetupCtx(char *queue_str) {
         tstr = comma ? (comma + 1) : comma;
     } while (tstr != NULL);
 
-    free(str);
+    SCFree(str);
     return (void *)ctx;
 error:
-    free(ctx);
-    free(str);
+    SCFree(ctx);
+    SCFree(str);
     return NULL;
 }
 

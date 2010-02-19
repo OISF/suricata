@@ -226,9 +226,9 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     }
 
     /* Initialize the data */
-    data = malloc(sizeof(DetectBytetestData));
+    data = SCMalloc(sizeof(DetectBytetestData));
     if (data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
     data->base = DETECT_BYTETEST_BASE_UNSET;
@@ -335,13 +335,13 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     data->nbytes = (uint8_t)nbytes;
 
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     return data;
 
 error:
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) free(args[i]);
+        if (args[i] != NULL) SCFree(args[i]);
     }
     if (data != NULL) DetectBytetestFree(data);
     return NULL;
@@ -371,7 +371,7 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 error:
     if (data != NULL) DetectBytetestFree(data);
-    if (sm != NULL) free(sm);
+    if (sm != NULL) SCFree(sm);
     return -1;
 }
 
@@ -383,7 +383,7 @@ error:
 void DetectBytetestFree(void *ptr)
 {
     DetectBytetestData *data = (DetectBytetestData *)ptr;
-    free(data);
+    SCFree(data);
 }
 
 

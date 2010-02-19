@@ -79,7 +79,7 @@ static inline DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
 {
     DetectDceOpnumRange *dor = NULL;
 
-    if ( (dor = malloc(sizeof(DetectDceOpnumRange))) == NULL) {
+    if ( (dor = SCMalloc(sizeof(DetectDceOpnumRange))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -129,13 +129,13 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         goto error;
     }
 
-    if ( (dod = malloc(sizeof(DetectDceOpnumData))) == NULL) {
+    if ( (dod = SCMalloc(sizeof(DetectDceOpnumData))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
     memset(dod, 0, sizeof(DetectDceOpnumData));
 
-    if ( (dup_str = strdup(pcre_sub_str)) == NULL) {
+    if ( (dup_str = SCStrdup(pcre_sub_str)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }
@@ -207,13 +207,13 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
     }
 
     if (dup_str_head != NULL)
-        free(dup_str_head);
+        SCFree(dup_str_head);
 
     return dod;
 
  error:
     if (dup_str_head != NULL)
-        free(dup_str_head);
+        SCFree(dup_str_head);
     DetectDceOpnumFree(dod);
     return NULL;
 }
@@ -299,7 +299,7 @@ int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
  error:
     DetectDceOpnumFree(dod);
     if (sm != NULL)
-        free(sm);
+        SCFree(sm);
     return -1;
 }
 
@@ -315,9 +315,9 @@ void DetectDceOpnumFree(void *ptr)
         while (dor != NULL) {
             dor_temp = dor;
             dor = dor->next;
-            free(dor_temp);
+            SCFree(dor_temp);
         }
-        free(dod);
+        SCFree(dod);
     }
 
     return;

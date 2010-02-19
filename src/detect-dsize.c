@@ -151,7 +151,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     value2 = (char *)str_ptr;
     SCLogDebug("value2 \"%s\"", value2);
 
-    dd = malloc(sizeof(DetectDsizeData));
+    dd = SCMalloc(sizeof(DetectDsizeData));
     if (dd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
@@ -197,18 +197,18 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     SCLogDebug("dsize parsed succesfully dsize: %"PRIu16" dsize2: %"PRIu16"",dd->dsize,dd->dsize2);
 
-    free(value1);
-    free(value2);
-    free(mode);
-    free(range);
+    SCFree(value1);
+    SCFree(value2);
+    SCFree(mode);
+    SCFree(range);
     return dd;
 
 error:
-    if (dd) free(dd);
-    if (value1) free(value1);
-    if (value2) free(value2);
-    if (mode) free(mode);
-    if (range) free(range);
+    if (dd) SCFree(dd);
+    if (value1) SCFree(value1);
+    if (value2) SCFree(value2);
+    if (mode) SCFree(mode);
+    if (range) SCFree(range);
     return NULL;
 }
 
@@ -255,8 +255,8 @@ int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
     return 0;
 
 error:
-    if (dd) free(dd);
-    if (sm) free(sm);
+    if (dd) SCFree(dd);
+    if (sm) SCFree(sm);
     return -1;
 }
 
@@ -268,7 +268,7 @@ error:
  */
 void DetectDsizeFree(void *de_ptr) {
     DetectDsizeData *dd = (DetectDsizeData *)de_ptr;
-    if(dd) free(dd);
+    if(dd) SCFree(dd);
 }
 
 /*

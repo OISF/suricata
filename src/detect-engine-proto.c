@@ -41,7 +41,7 @@ void DetectProtoRegister (void)
 
 DetectProto *DetectProtoInit(void)
 {
-    DetectProto *dp = malloc(sizeof(DetectProto));
+    DetectProto *dp = SCMalloc(sizeof(DetectProto));
     if (dp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "error in memory allocation");
         return NULL;
@@ -61,7 +61,7 @@ void DetectProtoFree(DetectProto *dp)
     if (dp == NULL)
         return;
 
-    free(dp);
+    SCFree(dp);
 }
 
 /**

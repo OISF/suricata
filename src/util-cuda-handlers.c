@@ -310,14 +310,14 @@ int SCCudaHlGetCudaDevicePtr(CUdeviceptr *device_ptr, const char *name,
         return 0;
     }
 
-    new_module_device_ptr = malloc(sizeof(SCCudaHlModuleDevicePointer));
+    new_module_device_ptr = SCMalloc(sizeof(SCCudaHlModuleDevicePointer));
     if (new_module_device_ptr == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(new_module_device_ptr, 0, sizeof(SCCudaHlModuleDevicePointer));
 
-    if ( (new_module_device_ptr->name = strdup(name)) == NULL) {
+    if ( (new_module_device_ptr->name = SCStrdup(name)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -350,7 +350,7 @@ int SCCudaHlGetCudaDevicePtr(CUdeviceptr *device_ptr, const char *name,
 
  error:
     if (new_module_device_ptr != NULL)
-        free(new_module_device_ptr);
+        SCFree(new_module_device_ptr);
     return -1;
 }
 
@@ -462,14 +462,14 @@ int SCCudaHlRegisterModule(const char *name)
     }
 
     /* the module is not already registered.  Register the module */
-    new_data = malloc(sizeof(SCCudaHlModuleData));
+    new_data = SCMalloc(sizeof(SCCudaHlModuleData));
     if (new_data == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(new_data, 0, sizeof(SCCudaHlModuleData));
 
-    if ( (new_data->name = strdup(name)) == NULL) {
+    if ( (new_data->name = SCStrdup(name)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -530,13 +530,13 @@ int SCCudaHlDeRegisterModule(const char *name)
         device_ptr = device_ptr->next;
         if (SCCudaMemFree(temp_device_ptr->d_ptr) == -1)
             goto error;
-        free(temp_device_ptr->name);
-        free(temp_device_ptr);
+        SCFree(temp_device_ptr->name);
+        SCFree(temp_device_ptr);
     }
     data->device_ptrs = NULL;
 
     if (data->name != NULL)
-        free((void *)data->name);
+        SCFree((void *)data->name);
 
     /* clean the dispatcher function registered */
     data->SCCudaHlDispFunc = NULL;
@@ -564,7 +564,7 @@ int SCCudaHlDeRegisterModule(const char *name)
     }
 
     /* delete the module data instance */
-    free(data);
+    SCFree(data);
 
     /* mission accomplished.  let's go */
     return 0;
@@ -698,7 +698,7 @@ void SCCudaHlProcessUriWithDispatcher(uint8_t *uri, uint16_t uri_len,
 {
     Packet *out_p = NULL;
 
-    Packet *p = malloc(sizeof(Packet));
+    Packet *p = SCMalloc(sizeof(Packet));
     if (p == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -727,7 +727,7 @@ void SCCudaHlProcessUriWithDispatcher(uint8_t *uri, uint16_t uri_len,
      * queued the packet and retrieve the results */
     *((uint32_t *)result) = p->cuda_matches;
 
-    free(p);
+    SCFree(p);
 
     return;
 }

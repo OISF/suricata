@@ -520,7 +520,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
 TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    Unified2AlertThread *aun = malloc(sizeof(Unified2AlertThread));
+    Unified2AlertThread *aun = SCMalloc(sizeof(Unified2AlertThread));
     if (aun == NULL) {
         return TM_ECODE_FAILED;
     }
@@ -528,7 +528,7 @@ TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for Unified2Alert.  \"initdata\" argument NULL");
-        free(aun);
+        SCFree(aun);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -562,7 +562,7 @@ TmEcode Unified2AlertThreadDeinit(ThreadVars *t, void *data)
 
     /* clear memory */
     memset(aun, 0, sizeof(Unified2AlertThread));
-    free(aun);
+    SCFree(aun);
     return TM_ECODE_OK;
 
 error:
@@ -590,7 +590,7 @@ LogFileCtx *Unified2AlertInitCtx(ConfNode *conf)
     }
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
-    file_ctx->prefix = strdup(filename);
+    file_ctx->prefix = SCStrdup(filename);
 
     const char *s_limit = NULL;
     uint32_t limit = DEFAULT_LIMIT;
@@ -635,7 +635,7 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     if (file_ctx->filename != NULL)
         filename = file_ctx->filename;
     else
-        filename = file_ctx->filename = malloc(PATH_MAX); /* XXX some sane default? */
+        filename = file_ctx->filename = SCMalloc(PATH_MAX); /* XXX some sane default? */
 
     /** get the time so we can have a filename with seconds since epoch */
     struct timeval ts;
@@ -805,7 +805,7 @@ static int Unified2Test02 (void)   {
  *  \retval 0 on failure
  */
 
-static int Unified2Test03 (void)   {
+static int Unified2Test03 (void) {
     ThreadVars tv;
     DecodeThreadVars dtv;
     PacketQueue pq;
@@ -865,6 +865,12 @@ static int Unified2Test03 (void)   {
 
     if(LogFileFreeCtx(lf)==0)
         return 0;
+
+    Packet *pkt = PacketDequeue(&pq);
+    while (pkt != NULL) {
+        SCFree(pkt);
+        pkt = PacketDequeue(&pq);
+    }
 
     return 1;
 }
@@ -1012,7 +1018,7 @@ static int Unified2TestRotate01(void)
     lf = Unified2AlertInitCtx(NULL);
     if (lf == NULL)
         return 0;
-    char *filename = strdup(lf->filename);
+    char *filename = SCStrdup(lf->filename);
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -1042,7 +1048,7 @@ static int Unified2TestRotate01(void)
 error:
     Unified2AlertThreadDeinit(&tv, data);
     if (lf != NULL) LogFileFreeCtx(lf);
-    if (filename != NULL) free(filename);
+    if (filename != NULL) SCFree(filename);
     return r;
 }
 #endif

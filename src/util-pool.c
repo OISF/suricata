@@ -18,7 +18,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), vo
         goto error;
 
     /* setup the filter */
-    p = malloc(sizeof(Pool));
+    p = SCMalloc(sizeof(Pool));
     if (p == NULL)
         goto error;
 
@@ -33,7 +33,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), vo
     uint32_t u32 = 0;
     for (u32 = 0; u32 < size; u32++) {
         /* populate pool */
-        PoolBucket *pb = malloc(sizeof(PoolBucket));
+        PoolBucket *pb = SCMalloc(sizeof(PoolBucket));
         if (pb == NULL)
             goto error;
 
@@ -46,7 +46,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), vo
     /* prealloc the buckets and requeue them to the alloc list */
     for (u32 = 0; u32 < prealloc_size; u32++) {
         if (size == 0) { /* unlimited */
-            PoolBucket *pb = malloc(sizeof(PoolBucket));
+            PoolBucket *pb = SCMalloc(sizeof(PoolBucket));
             if (pb == NULL)
                 goto error;
 
@@ -91,16 +91,20 @@ void PoolFree(Pool *p) {
         p->alloc_list = pb->next;
         p->Free(pb->data);
         pb->data = NULL;
-        free(pb);
+        SCFree(pb);
     }
 
     while (p->empty_list != NULL) {
         PoolBucket *pb = p->empty_list;
         p->empty_list = pb->next;
-        free(pb);
+	if (pb->data!= NULL) {
+            p->Free(pb->data);
+            pb->data = NULL;
+        }
+        SCFree(pb);
     }
 
-    free(p);
+    SCFree(p);
 }
 
 void PoolPrint(Pool *p) {
@@ -186,17 +190,17 @@ void PoolPrintSaturation(Pool *p) {
  */
 
 void *PoolTestAlloc(void *allocdata) {
-    return malloc(10);
+    return SCMalloc(10);
 }
 void *PoolTestAllocArg(void *allocdata) {
     size_t len = strlen((char *)allocdata) + 1;
-    char *str = malloc(len);
+    char *str = SCMalloc(len);
     strlcpy(str,(char *)allocdata,len);
     return (void *)str;
 }
 
 void PoolTestFree(void *ptr) {
-    free(ptr);
+    SCFree(ptr);
 }
 
 #ifdef UNITTESTS
@@ -274,7 +278,7 @@ static int PoolTestInit03 (void) {
     retval = 1;
 end:
     if (data != NULL)
-        free(data);
+        SCFree(data);
     if (p != NULL)
         PoolFree(p);
     return retval;
@@ -316,7 +320,7 @@ static int PoolTestInit04 (void) {
     retval = 1;
 end:
     if (str != NULL)
-        free(str);
+        SCFree(str);
     if (p != NULL)
         PoolFree(p);
     return retval;
@@ -367,7 +371,7 @@ static int PoolTestInit05 (void) {
     retval = 1;
 end:
     if (data != NULL)
-        free(data);
+        SCFree(data);
     if (p != NULL)
         PoolFree(p);
     return retval;
@@ -426,9 +430,9 @@ static int PoolTestInit06 (void) {
     retval = 1;
 end:
     if (data != NULL)
-        free(data);
+        SCFree(data);
     if (data2 != NULL)
-        free(data2);
+        SCFree(data2);
     if (p != NULL)
         PoolFree(p);
     return retval;
@@ -509,9 +513,9 @@ static int PoolTestInit07 (void) {
     retval = 1;
 end:
     if (data != NULL)
-        free(data);
+        SCFree(data);
     if (data2 != NULL)
-        free(data2);
+        SCFree(data2);
     if (p != NULL)
         PoolFree(p);
     return retval;

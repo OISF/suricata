@@ -23,7 +23,7 @@ static Pool *stream_msg_pool = NULL;
 static SCMutex stream_msg_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *StreamMsgAlloc(void *null) {
-    StreamMsg *s = malloc(sizeof(StreamMsg));
+    StreamMsg *s = SCMalloc(sizeof(StreamMsg));
     if (s == NULL)
         return NULL;
 
@@ -41,7 +41,7 @@ void StreamMsgFree(void *ptr) {
         return;
 
     StreamMsg *s = (StreamMsg *)ptr;
-    free(s);
+    SCFree(s);
     return;
 }
 
@@ -158,7 +158,7 @@ void StreamMsgQueuesDeinit(char quiet) {
 /** \brief alloc a stream msg queue
  *  \retval smq ptr to the queue or NULL */
 StreamMsgQueue *StreamMsgQueueGetNew(void) {
-    StreamMsgQueue *smq = malloc(sizeof(StreamMsgQueue));
+    StreamMsgQueue *smq = SCMalloc(sizeof(StreamMsgQueue));
     if (smq == NULL) {
         return NULL;
     }
@@ -174,7 +174,7 @@ StreamMsgQueue *StreamMsgQueueGetNew(void) {
  *  \todo we may want to consider non empty queue's
  */
 void StreamMsgQueueFree(StreamMsgQueue *q) {
-    free(q);
+    SCFree(q);
 }
 
 StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {

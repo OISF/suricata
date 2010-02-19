@@ -74,7 +74,7 @@ static inline const char *DetectClasstypeParseRawString(char *rawstr)
 
     /* get rid of the double quotes if present */
     if (rawstr[0] == '\"' && rawstr[strlen(rawstr) - 1] == '\"') {
-        if ( (rawstr = strdup(rawstr + 1)) == NULL) {
+        if ( (rawstr = SCStrdup(rawstr + 1)) == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             goto end;
         }
