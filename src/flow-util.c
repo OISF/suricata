@@ -47,6 +47,7 @@ void FlowFree(Flow *f)
     flow_memuse -= sizeof(Flow);
     SCMutexUnlock(&flow_memuse_mutex);
 
+    SCMutexDestroy(&f->m);
     SCFree(f);
 }
 

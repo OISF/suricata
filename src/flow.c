@@ -575,6 +575,7 @@ void FlowPrintQueueInfo (void)
 void FlowShutdown(void) {
     Flow *f;
     int i;
+    uint32_t u;
 
     while((f = FlowDequeue(&flow_spare_q))) {
         FlowFree(f);
@@ -598,6 +599,10 @@ void FlowShutdown(void) {
     }
 
     if (flow_hash != NULL) {
+        /* clean up flow mutexes */
+        for (u = 0; u < flow_config.hash_size; u++) {
+            SCMutexDestroy(&flow_hash[u].m);
+        }
         SCFree(flow_hash);
         flow_hash = NULL;
     }
