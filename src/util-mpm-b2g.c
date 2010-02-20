@@ -1162,7 +1162,7 @@ void B2gThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t ma
     if (keys > 0) {
         mpm_thread_ctx->match = SCMalloc(keys * sizeof(MpmMatchBucket));
         if (mpm_thread_ctx->match == NULL) {
-            printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
+            SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
             exit(1);
         }
         memset(mpm_thread_ctx->match, 0, keys * sizeof(MpmMatchBucket));

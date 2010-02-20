@@ -16,19 +16,22 @@
   * \retval 0 ok
   */
 int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
-    if (pmq == NULL)
-        return -1;
+    SCEnter();
+
+    if (pmq == NULL) {
+        SCReturnInt(-1);
+    }
 
     memset(pmq, 0, sizeof(PatternMatcherQueue));
 
-    if (maxid > 0)
-        pmq->sig_id_array = SCMalloc(maxid * sizeof(uint32_t));
-    else
-        pmq->sig_id_array = NULL;
+    if (maxid == 0) {
+        SCReturnInt(0);
+    }
 
+    pmq->sig_id_array = SCMalloc(maxid * sizeof(uint32_t));
     if (pmq->sig_id_array == NULL) {
-        printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
-        return -1;
+        SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
+        SCReturnInt(-1);
     }
     memset(pmq->sig_id_array, 0, maxid * sizeof(uint32_t));
     pmq->sig_id_array_cnt = 0;
@@ -36,12 +39,12 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
     /* lookup bitarray */
     pmq->sig_bitarray = SCMalloc(maxid / 8 + 1);
     if (pmq->sig_bitarray == NULL) {
-        printf("ERROR: could not setup memory for pattern matcher: %s\n", strerror(errno));
-        return -1;
+        SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
+        SCReturnInt(-1);
     }
     memset(pmq->sig_bitarray, 0, maxid / 8 + 1);
 
-    return 0;
+    SCReturnInt(0);
 }
 
 /** \brief Reset a Pmq for reusage. Meant to be called after a single search.
