@@ -578,6 +578,7 @@ SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
 /* detection api */
 SigMatch *SigMatchAlloc(void);
+void SigMatchFree(SigMatch *sm);
 void SigCleanSignatures(DetectEngineCtx *);
 
 void SigTableRegisterTests(void);

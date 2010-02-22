@@ -83,6 +83,7 @@
 #include "util-rule-vars.h"
 
 #include "app-layer.h"
+#include "app-layer-protos.h"
 #include "app-layer-htp.h"
 #include "detect-tls-version.h"
 
@@ -110,7 +111,6 @@
 #include "util-cuda.h"
 
 SigMatch *SigMatchAlloc(void);
-void SigMatchFree(SigMatch *sm);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
 
 void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
@@ -602,6 +602,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
             SCLogDebug("mpm sig without matches.");
             continue;
+        }
+
+        /* if the sig has alproto and the session as well they should match */
+        if (s->alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_UNKNOWN) {
+            if (s->alproto != alproto) {
+                continue;
+            }
         }
 
         /* check the source & dst port in the sig */

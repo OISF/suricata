@@ -247,6 +247,12 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
 
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        goto error;
+    }
+
+    s->alproto = ALPROTO_HTTP;
     SCReturnInt(0);
 
 error:

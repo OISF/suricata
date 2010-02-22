@@ -224,16 +224,16 @@ int DetectFtpbounceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  */
 int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, char *ftpbouncestr)
 {
+    SCEnter();
+
     SigMatch *sm = NULL;
 
     sm = SigMatchAlloc();
-    if (sm == NULL)
-        return -1;
+    if (sm == NULL) {
+        goto error;;
+    }
 
     sm->type = DETECT_FTPBOUNCE;
-
-//    if (s != NULL)
-//        s->flags |= SIG_FLAG_APPLAYER;
 
     /* We don't need to allocate any data for ftpbounce here.
     *
@@ -247,7 +247,20 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, char *ftpbounces
     sm->ctx = NULL;
 
     SigMatchAppendAppLayer(s, sm);
-    return 0;
+
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_FTP) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        goto error;
+    }
+
+    s->alproto = ALPROTO_FTP;
+    SCReturnInt(0);
+
+error:
+    if (sm != NULL) {
+        SigMatchFree(sm);
+    }
+    SCReturnInt(-1);
 }
 
 #ifdef UNITTESTS

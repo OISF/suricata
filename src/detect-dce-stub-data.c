@@ -100,6 +100,12 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
 
     SigMatchAppendAppLayer(s, sm);
 
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        goto error;
+    }
+
+    s->alproto = ALPROTO_DCERPC;
     return 0;
 
  error:

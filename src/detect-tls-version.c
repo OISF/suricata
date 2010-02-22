@@ -224,6 +224,13 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     sm->ctx = (void *)tls;
 
     SigMatchAppendAppLayer(s, sm);
+
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        goto error;
+    }
+
+    s->alproto = ALPROTO_TLS;
     return 0;
 
 error:
