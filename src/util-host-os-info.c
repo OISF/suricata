@@ -10,6 +10,8 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 
+#include "conf.h"
+
 #include "util-enum.h"
 #include "util-unittest.h"
 
@@ -364,6 +366,32 @@ void SCHInfoCleanResources(void)
     }
 
     return;
+}
+
+/**
+ * \brief Load the host os policy information from the configuration.
+ */
+void SCHInfoLoadFromConfig(void)
+{
+    ConfNode *root = ConfGetNode("host-os-policy");
+    if (root == NULL)
+        return;
+
+    ConfNode *policy;
+    TAILQ_FOREACH(policy, &root->head, next) {
+        ConfNode *host;
+        TAILQ_FOREACH(host, &policy->head, next) {
+            int is_ipv4 = 1;
+            if (index(host->val, ':') != NULL)
+                is_ipv4 = 0;
+            if (SCHInfoAddHostOSInfo(policy->name, host->val, is_ipv4) == -1) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "Failed to add host \"%s\" with policy \"%s\" to host "
+                    "info database", host->val, policy->name);
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
 }
 
 /*------------------------------------Unit_Tests------------------------------*/
@@ -954,6 +982,36 @@ int SCHInfoTestValidIPV4Address09(void)
     return result;
 }
 
+/**
+ * \test Check the loading of host info from a configuration file.
+ */
+int SCHInfoTestLoadFromConfig01(void)
+{
+    char config[] = "\
+%YAML 1.1\n\
+---\n\
+host-os-policy:\n\
+  windows: [10.0.0.0/8, 192.168.1.0/24]\n\
+  linux: [10.0.0.5/32]\n\
+\n";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(config, strlen(config));
+
+    SCHInfoLoadFromConfig();
+    if (SCHInfoGetHostOSFlavour("10.0.0.4") != OS_POLICY_WINDOWS)
+        return 0;
+    if (SCHInfoGetHostOSFlavour("10.0.0.5") != OS_POLICY_LINUX)
+        return 0;
+    if (SCHInfoGetHostOSFlavour("192.168.1.1") != OS_POLICY_WINDOWS)
+        return 0;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
 
 #endif /* UNITTESTS */
 
@@ -980,6 +1038,8 @@ void SCHInfoRegisterTests(void)
                    SCHInfoTestValidIPV6Address08, 1);
     UtRegisterTest("SCHInfoTestValidIPV4Address09",
                    SCHInfoTestValidIPV4Address09, 1);
+    UtRegisterTest("SCHInfoTestLoadFromConfig01",
+                   SCHInfoTestLoadFromConfig01, 1);
 
 #endif /* UNITTESTS */
 

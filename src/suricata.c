@@ -629,6 +629,9 @@ int main(int argc, char **argv)
      * logging module. */
     SCLogLoadConfig();
 
+    /* Load the Host-OS lookup. */
+    SCHInfoLoadFromConfig();
+
     if (run_mode == MODE_UNKNOWN) {
         usage(argv[0]);
         exit(EXIT_FAILURE);

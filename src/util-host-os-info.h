@@ -13,6 +13,7 @@ int SCHInfoGetHostOSFlavour(char *);
 int SCHInfoGetIPv4HostOSFlavour(uint8_t *);
 int SCHInfoGetIPv6HostOSFlavour(uint8_t *);
 void SCHInfoCleanResources(void);
+void SCHInfoLoadFromConfig(void);
 void SCHInfoRegisterTests(void);
 
 #endif /* __UTIL_HOST_OS_INFO_H__ */

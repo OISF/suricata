@@ -364,3 +364,17 @@ vars:
     ORACLE_PORTS: 1521
 
     SSH_PORTS: 22
+
+host-os-policy:
+
+  bsd: []
+  old_linux: []
+  linux: [10.0.0.0/8, 192.168.1.100, "8762:2352:6241:7245:E000:0000:0000:0000"]
+  solaris: ["::1"]
+  hpux10: []
+  hpux11: []
+  irix: []
+  macos: []
+  windows: [192.168.1.0/24, 192.168.2.0/24]
+  vista: []
+  windows2k3: []
