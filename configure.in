@@ -468,6 +468,8 @@ AC_INIT(configure.in)
     if test "$enable_pfring" = "yes"; then
     CFLAGS="$CFLAGS -DHAVE_PFRING"
     fi
+
+#We have to set CFLAGS for AC_TRY_COMPILE as it doesn't pay attention to CPPFLAGS
     AC_ARG_WITH(libpfring_includes,
             [  --with-libpfring-includes=DIR  libpfring include directory],
             [with_libpfring_includes="$withval"],[with_libpfring_includes=no])
@@ -484,16 +486,25 @@ AC_INIT(configure.in)
     fi
 
     LIBPFRING=""
-    AC_CHECK_LIB(pfring, pfring_open,, LIBPFRING="no")
+    AC_CHECK_LIB(pfring, pfring_set_cluster,, LIBPFRING="no")
     if test "$LIBPFRING" = "no"; then
         if test "enable_pfring" = "yes"; then
         echo
-        echo "   ERROR! --enable-pfring was passed but the library was not found, go get it"
+        echo "   ERROR! --enable-pfring was passed but the library was not found or version is >4, go get it"
         echo "   from http://www.ntop.org/PF_RING.html"
         echo
         exit 1
         fi
     fi
+
+    AC_TRY_COMPILE([ #include <pfring.h> ],
+    [ pfring *pd; pd = pfring_open("eth1", 1,  1515, 1); pfring_set_cluster(pd, 99, cluster_round_robin); ],
+    [ pfring_cluster_type_available=yes ], [:]
+    )
+    if test "$pfring_cluster_type_available" = "yes"; then
+     CFLAGS="${CFLAGS} -DHAVE_PFRING_CLUSTER_TYPE"
+    fi
+
 
 # libpcap
     AC_ARG_WITH(libpcap_includes,
