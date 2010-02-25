@@ -383,10 +383,10 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
     uint16_t pkt_off = det_ctx->pkt_off;
     MpmMatch *temp_m = NULL;
 
+    SCLogDebug("det_ctx->mtc.match[%"PRIu32"].len %"PRIu32"", co->id, det_ctx->mtc.match[co->id].len);
+
     /* Get the top match, we already know we have one. */
     MpmMatch *m = det_ctx->mtc.match[co->id].top;
-
-    SCLogDebug("det_ctx->mtc.match[co->id].len %"PRIu32"", det_ctx->mtc.match[co->id].len);
 
     /* reset de_checking_distancewithin */
     if (!(co->flags & DETECT_CONTENT_WITHIN) &&
@@ -1469,8 +1469,9 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
             SigMatchAppend(s,m,sm);
             m = sm;
 
-            aux->id = de_ctx->content_max_id;
-            de_ctx->content_max_id++;
+            aux->id = DetectContentGetId(de_ctx, aux);
+            //aux->id = de_ctx->content_max_id;
+            //de_ctx->content_max_id++;
 
             /** We need to setup the modifiers for the chunks respect
               * the last chunk installed inmediatelly before
@@ -1509,8 +1510,9 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
             cd->chunk_group_id = s->nchunk_groups;
         }
 
-        cd->id = de_ctx->content_max_id;
-        de_ctx->content_max_id++;
+        cd->id = DetectContentGetId(de_ctx, cd);
+        //cd->id = de_ctx->content_max_id;
+        //de_ctx->content_max_id++;
 
         DetectContentPrint(cd);
     }
@@ -1538,6 +1540,117 @@ void DetectContentFree(void *ptr) {
         SCFree(cd->content);
 
     SCFree(cd);
+}
+
+/* content hash
+ * A per detection engine hash to make sure each pattern has a unique global id
+ * but pattern that are the same share id's.
+ */
+
+typedef struct DetectContentTableElmt_ {
+    uint8_t *pattern;       /**< ptr to the pattern */
+    uint16_t pattern_len;   /**< pattern len */
+    uint32_t id;            /**< pattern id */
+} DetectContentTableElmt;
+
+static char DetectContentTableCompare(void *p1, uint16_t len1, void *p2, uint16_t len2) {
+    SCEnter();
+    BUG_ON(len1 < sizeof(DetectContentTableElmt));
+    BUG_ON(len2 < sizeof(DetectContentTableElmt));
+
+    DetectContentTableElmt *e1 = (DetectContentTableElmt *)p1;
+    DetectContentTableElmt *e2 = (DetectContentTableElmt *)p2;
+
+    if (e1->pattern_len != e2->pattern_len) {
+        SCReturnInt(0);
+    }
+
+    if (memcmp(e1->pattern, e2->pattern, e1->pattern_len) != 0) {
+        SCReturnInt(0);
+    }
+
+    SCReturnInt(1);
+}
+
+static uint32_t DetectContentTableHash(HashTable *ht, void *p, uint16_t len) {
+    SCEnter();
+    BUG_ON(len < sizeof(DetectContentTableElmt));
+
+    DetectContentTableElmt *e = (DetectContentTableElmt *)p;
+    uint32_t hash = e->pattern_len;
+    uint16_t u = 0;
+ 
+    for (u = 0; u < e->pattern_len; u++) {
+        hash += e->pattern[u];
+    }
+
+    SCReturnUInt(hash % ht->array_size);
+}
+
+static void DetectContentTableElmtFree(void *e) {
+    free(e);
+}
+
+int DetectContentTableInitHash(DetectEngineCtx *de_ctx) {
+    SCEnter();
+
+    BUG_ON(de_ctx == NULL);
+
+    de_ctx->content_hash = HashTableInit(65536, DetectContentTableHash, DetectContentTableCompare, DetectContentTableElmtFree);
+
+    BUG_ON(de_ctx->content_hash == NULL);
+
+    SCReturnInt(0);
+}
+
+void DetectContentTableFreeHash(DetectEngineCtx *de_ctx) {
+   SCEnter();
+
+    if (de_ctx == NULL || de_ctx->content_hash == NULL) {
+        SCReturn;
+    }
+
+    HashTableFree(de_ctx->content_hash);
+    SCReturn;
+}
+
+uint32_t DetectContentGetId(DetectEngineCtx *de_ctx, DetectContentData *co) {
+    SCEnter();
+
+    BUG_ON(de_ctx == NULL || de_ctx->content_hash == NULL);
+
+    DetectContentTableElmt *e = NULL;
+    DetectContentTableElmt *r = NULL;
+    uint32_t id = 0;
+
+    e = malloc(sizeof(DetectContentTableElmt));
+    BUG_ON(e == NULL);
+    e->pattern = co->content;
+    e->pattern_len = co->content_len;
+    e->id = 0;
+
+    r = HashTableLookup(de_ctx->content_hash, (void *)e, sizeof(DetectContentTableElmt));
+    if (r == NULL) {
+        e->id = de_ctx->content_max_id;
+        de_ctx->content_max_id++;
+        id = e->id;
+
+        int ret = HashTableAdd(de_ctx->content_hash, e, sizeof(DetectContentTableElmt));
+        BUG_ON(ret != 0);
+
+        e = NULL;
+
+        de_ctx->content_hash_unique++;
+    } else {
+        id = r->id;
+
+        de_ctx->content_hash_shared++;
+    }
+
+    if (e != NULL)
+        free(e);
+
+    SCReturnUInt(id);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
@@ -2846,7 +2959,7 @@ static int SigTest42TestNegatedContent(void)
  *       anyways, and we don't do a check on the offset
  */
 static int SigTest43TestNegatedContent(void)
-{
+{                                                                                                                                                         // 12345123451234512345123
     return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!twentythree; depth:15; offset:22; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 

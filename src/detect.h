@@ -323,6 +323,10 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_small_toserver_dst_groups;
     uint16_t max_uniq_small_toserver_sp_groups;
     uint16_t max_uniq_small_toserver_dp_groups;
+
+    HashTable *content_hash;
+    uint32_t content_hash_unique;
+    uint32_t content_hash_shared;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

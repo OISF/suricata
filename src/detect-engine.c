@@ -57,6 +57,9 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     DetectPortDpHashInit(de_ctx);
     ThresholdHashInit(de_ctx);
     VariableNameInitHash(de_ctx);
+
+    DetectContentTableInitHash(de_ctx);
+
     return de_ctx;
 error:
     return NULL;
@@ -67,9 +70,11 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     if (de_ctx == NULL)
         return;
 
+
     /* Normally the hashes are freed elsewhere, but
      * to be sure look at them again here.
      */
+    DetectContentTableFreeHash(de_ctx); /* normally cleaned up in SigGroupBuild */
     SigGroupHeadHashFree(de_ctx);
     SigGroupHeadMpmHashFree(de_ctx);
     SigGroupHeadMpmUriHashFree(de_ctx);

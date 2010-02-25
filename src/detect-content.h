@@ -15,6 +15,15 @@
 /** Set if the pattern is split into multiple chunks */
 #define DETECT_CONTENT_IS_CHUNK          0x0100
 
+#define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
+                                       (c)->flags & DETECT_CONTENT_WITHIN || \
+                                       (c)->flags & DETECT_CONTENT_DISTANCE_NEXT || \
+                                       (c)->flags & DETECT_CONTENT_WITHIN_NEXT || \
+                                       (c)->flags & DETECT_CONTENT_ISDATAAT_RELATIVE || \
+                                       (c)->flags & DETECT_CONTENT_IS_CHUNK || \
+                                       (c)->depth > 0 || \
+                                       (c)->within > 0))
+
 /** Used for modifier propagations, to know if they are
  * yet updated or not */
 #define CHUNK_UPDATED_DEPTH         0x01
@@ -83,5 +92,9 @@ int DetectContentPropagateIsdataat(SigMatch *);
 int DetectContentPropagateModifiers(SigMatch *);
 
 void DetectContentFree(void *);
+
+int DetectContentTableInitHash(DetectEngineCtx *);
+void DetectContentTableFreeHash(DetectEngineCtx *);
+uint32_t DetectContentGetId(DetectEngineCtx *, DetectContentData *);
 
 #endif /* __DETECT_CONTENT_H__ */
