@@ -30,6 +30,7 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
         DECODER_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);
         return;
     }
+    p->pppoedh = NULL;
 
     p->pppoedh = (PPPOEDiscoveryHdr *)pkt;
     if (p->pppoedh == NULL)
@@ -71,7 +72,7 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
         return;
     }
 
-    while (pppoe_length >=4 && packet_length >=4)
+    while (pppoedt < (PPPOEDiscoveryTag*) (pkt + (len - sizeof(PPPOEDiscoveryTag))) && pppoe_length >=4 && packet_length >=4)
     {
         tag_type = ntohs(pppoedt->pppoe_tag_type);
         tag_length = ntohs(pppoedt->pppoe_tag_length);
@@ -84,7 +85,7 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
             pppoe_length = 0; // don't want an underflow
         }
 
-        if (packet_length >= 4+tag_length) {
+        if (packet_length >= 4 + tag_length) {
             packet_length -= (4 + tag_length);
         } else {
             packet_length = 0; // don't want an underflow
@@ -113,7 +114,7 @@ void DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_
         return;
 
     SCLogDebug("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "",
-           p->pppoesh->pppoe_version,  p->pppoesh->pppoe_type,  p->pppoesh->pppoe_code,  ntohs(p->pppoesh->session_id),  ntohs(p->pppoesh->pppoe_length));
+           PPPOE_SESSION_GET_VERSION(p->pppoesh),  PPPOE_SESSION_GET_TYPE(p->pppoesh),  p->pppoesh->pppoe_code,  ntohs(p->pppoesh->session_id),  ntohs(p->pppoesh->pppoe_length));
 
     /* can't use DecodePPP() here because we only get a single 2-byte word to indicate protocol instead of the full PPP header */
 
@@ -353,6 +354,39 @@ static int DecodePPPOEtest05 (void)   {
 
     return 0;
 }
+
+/** DecodePPPOEtest06
+ *  \brief Check that the macros work as expected. Type and version are
+ * fields of 4 bits length. So they are sharing the same var and the macros
+ * should extract the first 4 bits for version and the second 4 bits for type
+ *  \retval 1 Expected test value
+ */
+static int DecodePPPOEtest06 (void)   {
+
+    PPPOESessionHdr pppoesh;
+    PPPOEDiscoveryHdr pppoedh;
+    pppoesh.pppoe_version_type = 0xAB;
+    pppoedh.pppoe_version_type = 0xCD;
+
+    if (PPPOE_SESSION_GET_VERSION(&pppoesh) != 0x0A) {
+        printf("Error, PPPOE macro pppoe_session_get_version failed: ");
+        return 0;
+    }
+    if (PPPOE_SESSION_GET_TYPE(&pppoesh) != 0x0B) {
+        printf("Error, PPPOE macro pppoe_session_get_type failed: ");
+        return 0;
+    }
+    if (PPPOE_DISCOVERY_GET_VERSION(&pppoedh) != 0x0C) {
+        printf("Error, PPPOE macro pppoe_discovery_get_version failed: ");
+        return 0;
+    }
+    if (PPPOE_DISCOVERY_GET_TYPE(&pppoedh) != 0x0D) {
+        printf("Error, PPPOE macro pppoe_discovery_get_type failed: ");
+        return 0;
+    }
+
+    return 1;
+}
 #endif /* UNITTESTS */
 
 
@@ -368,6 +402,7 @@ void DecodePPPOERegisterTests(void) {
     UtRegisterTest("DecodePPPOEtest03", DecodePPPOEtest03, 1);
     UtRegisterTest("DecodePPPOEtest04", DecodePPPOEtest04, 1);
     UtRegisterTest("DecodePPPOEtest05", DecodePPPOEtest05, 1);
+    UtRegisterTest("DecodePPPOEtest06", DecodePPPOEtest06, 1);
 #endif /* UNITTESTS */
 }
 
