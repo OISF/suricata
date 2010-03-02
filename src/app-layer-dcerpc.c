@@ -3,6 +3,20 @@
  * app-layer-dcerpc.c
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include "suricata-common.h"
 #include "suricata.h"
@@ -1084,8 +1098,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
             }
 
             while (dcerpc->bytesprocessed < DCERPC_HDR_LEN + 10
-                    + dcerpc->dcerpcbindbindack.secondaryaddrlen && input_len
-                    && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length) {
+                    + dcerpc->dcerpcbindbindack.secondaryaddrlen
+                    && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length && input_len) {
                 retval = DCERPCParseSecondaryAddr(dcerpc, input + parsed, input_len);
                 if (retval) {
                     parsed += retval;
@@ -1110,8 +1124,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
             }
 
             while (dcerpc->bytesprocessed < DCERPC_HDR_LEN + 10
-                    + dcerpc->dcerpcbindbindack.secondaryaddrlen + dcerpc->pad && input_len
-                    && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length) {
+                    + dcerpc->dcerpcbindbindack.secondaryaddrlen + dcerpc->pad
+                    && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length && input_len) {
                 retval = PaddingParser(dcerpc, input + parsed, input_len);
                 if (retval) {
                     parsed += retval;
@@ -1129,7 +1143,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
             while (dcerpc->bytesprocessed >= DCERPC_HDR_LEN + 10 + dcerpc->pad
                     + dcerpc->dcerpcbindbindack.secondaryaddrlen && dcerpc->bytesprocessed
                     < DCERPC_HDR_LEN + 14 + dcerpc->pad + dcerpc->dcerpcbindbindack.secondaryaddrlen
-                    && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length) {
+                    && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length && input_len) {
                 retval = DCERPCGetCTXItems(dcerpc, input + parsed, input_len);
                 if (retval) {
                     parsed += retval;
@@ -1148,8 +1162,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
             }
 
-            while (dcerpc->dcerpcbindbindack.numctxitemsleft && input_len && dcerpc->bytesprocessed
-                    < dcerpc->dcerpchdr.frag_length) {
+            while (dcerpc->dcerpcbindbindack.numctxitemsleft && dcerpc->bytesprocessed
+                    < dcerpc->dcerpchdr.frag_length && input_len) {
                 retval = DCERPCParseBINDACKCTXItem(dcerpc, input + parsed, input_len);
                 if (retval) {
                     if (dcerpc->dcerpcbindbindack.ctxbytesprocessed == 24) {
@@ -1191,7 +1205,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
             }
             while (dcerpc->bytesprocessed >= DCERPC_HDR_LEN + 8
                     && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length
-                    && input_len && dcerpc->padleft) {
+                    && dcerpc->padleft && input_len) {
                 retval = StubDataParser(dcerpc, input + parsed, input_len);
                 if (retval) {
                     parsed += retval;
