@@ -103,12 +103,13 @@ static unsigned int low_priority  = 3;
 static unsigned int mid_priority  = 2;
 
 
-LogFileCtx *AlertPreludeInitCtx(ConfNode *conf);
+OutputCtx *AlertPreludeInitCtx(ConfNode *conf);
 TmEcode AlertPrelude (ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode AlertPreludeThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertPreludeThreadDeinit(ThreadVars *, void *);
 int AlertPreludeOpenFileCtx(LogFileCtx *, char *);
 void AlertPreludeRegisterTests(void);
+static void AlertPreludeDeinitCtx(OutputCtx *output_ctx);
 
 void TmModuleAlertPreludeRegister (void) {
     tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
@@ -719,8 +720,8 @@ TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
     }
     memset(aun, 0, sizeof(AlertPreludeThread));
 
-    /** Use the Ouptut Context (file pointer and mutex) */
-    aun->ctx = (AlertPreludeCtx*) initdata;
+    /** Use the Ouput Context */
+    aun->ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aun;
     SCReturnInt(TM_ECODE_OK);
@@ -759,12 +760,13 @@ TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
  *
  * \return A newly allocated AlertPreludeCtx structure, or NULL
  */
-LogFileCtx *AlertPreludeInitCtx(ConfNode *conf)
+OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
 {
     int ret;
     prelude_client_t *client;
     AlertPreludeCtx *ctx;
     const char *prelude_profile_name;
+    OutputCtx *output_ctx;
 
     SCEnter();
 
@@ -810,8 +812,24 @@ LogFileCtx *AlertPreludeInitCtx(ConfNode *conf)
 
     ctx->client = client;
 
-    /* use file descriptor to store context ... eeeek */
-    SCReturnPtr((void*)ctx, "AlertPreludeCtx");
+    output_ctx = SCMalloc(sizeof(OutputCtx));
+    if (output_ctx == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocated memory for OutputCtx");
+        exit(EXIT_FAILURE);
+    }
+    output_ctx->data = ctx;
+    output_ctx->DeInit = AlertPreludeDeinitCtx;
+
+    SCReturnPtr((void*)output_ctx, "OutputCtx");
+}
+
+static void AlertPreludeDeinitCtx(OutputCtx *output_ctx)
+{
+    AlertPreludeCtx *ctx = (AlertPreludeCtx *)output_ctx->data;
+
+    prelude_client_destroy(ctx->client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
+    free(output_ctx);
 }
 
 void AlertPreludeRegisterTests (void) {
