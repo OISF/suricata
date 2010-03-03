@@ -52,6 +52,8 @@ void DetectDceIfaceRegister(void)
     sigmatch_table[DETECT_DCE_IFACE].Free  = DetectDceIfaceFree;
     sigmatch_table[DETECT_DCE_IFACE].RegisterTests = DetectDceIfaceRegisterTests;
 
+    sigmatch_table[DETECT_DCE_IFACE].flags |= SIGMATCH_PAYLOAD;
+
     parse_regex = pcre_compile(DETECT_DCE_IFACE_PCRE_PARSE_ARGS, opts, &eb,
                                &eo, NULL);
     if (parse_regex == NULL) {

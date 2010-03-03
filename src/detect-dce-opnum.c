@@ -50,6 +50,8 @@ void DetectDceOpnumRegister(void)
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
     sigmatch_table[DETECT_DCE_OPNUM].RegisterTests = DetectDceOpnumRegisterTests;
 
+    sigmatch_table[DETECT_DCE_OPNUM].flags |= SIGMATCH_PAYLOAD;
+
     parse_regex = pcre_compile(DETECT_DCE_OPNUM_PCRE_PARSE_ARGS, opts, &eb,
                                &eo, NULL);
     if (parse_regex == NULL) {

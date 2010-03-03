@@ -41,6 +41,8 @@ void DetectDceStubDataRegister(void)
     sigmatch_table[DETECT_DCE_STUB_DATA].Free  = NULL;
     sigmatch_table[DETECT_DCE_STUB_DATA].RegisterTests = DetectDceStubDataRegisterTests;
 
+    sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_PAYLOAD;
+
     return;
 }
 
