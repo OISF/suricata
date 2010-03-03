@@ -8020,7 +8020,7 @@ static int SigTestContent04Wm (void) {
 
 /** \test sigs with patterns at the limit of the pm's size limit */
 static int SigTestContent05Real (int mpm_type) {
-    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901PADabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
@@ -8044,12 +8044,12 @@ static int SigTestContent05Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:31; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("sig1 parse failed: ");
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:1; within:33; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:1; within:32; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         printf("sig2 parse failed: ");
         goto end;

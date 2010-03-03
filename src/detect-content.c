@@ -1123,6 +1123,33 @@ int DetectContentParseNegTest16(void) {
     return result;
 }
 
+/**
+ * \test Test cases where if within specified is < content lenggth we invalidate
+ *       the sig.
+ */
+int DetectContentParseTest17(void)
+{
+    int result = 0;
+    char *sigstr = "alert tcp any any -> any any (msg:\"Dummy\"; "
+        "content:one; content:two; within:2; sid:1;)";
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->sig_list = SigInit(de_ctx, sigstr);
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+end:
+    SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
@@ -1515,6 +1542,7 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest14", DetectContentParseNegTest14, 1);
     UtRegisterTest("DetectContentParseTest15", DetectContentParseNegTest15, 1);
     UtRegisterTest("DetectContentParseTest16", DetectContentParseNegTest16, 1);
+    UtRegisterTest("DetectContentParseTest17", DetectContentParseTest17, 1);
 
     /* The reals */
     UtRegisterTest("DetectContentLongPatternMatchTest01", DetectContentLongPatternMatchTest01, 1);

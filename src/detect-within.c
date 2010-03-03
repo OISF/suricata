@@ -60,6 +60,12 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
     }
 
     cd->within = strtol(str, NULL, 10);
+    if (cd->within < cd->content_len) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "within argument \"%d\" is less "
+                   "than the content length \"%s\" which is invalid, since this "
+                   "will never match.  Invalidating signature", cd->within, cd->content);
+        goto error;
+    }
     cd->flags |= DETECT_CONTENT_WITHIN;
 
     if (cd->flags & DETECT_CONTENT_DISTANCE) {

@@ -488,6 +488,11 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
 
+    if (det_ctx == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "argument \"data\" NULL");
+        return TM_ECODE_OK;
+    }
+
     DetectEngineIPOnlyThreadDeinit(&det_ctx->io_ctx);
 
     /** \todo get rid of this static */
