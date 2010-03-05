@@ -21,12 +21,10 @@ void DetectDistanceRegister (void) {
     sigmatch_table[DETECT_DISTANCE].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *distancestr)
+int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *distancestr)
 {
     char *str = distancestr;
     char dubbed = 0;
-
-    //printf("DetectDistanceSetup: s->match:%p,m:%p,distancestr:\'%s\'\n", s->match, m, distancestr);
 
     /* strip "'s */
     if (distancestr[0] == '\"' && distancestr[strlen(distancestr)-1] == '\"') {
@@ -35,16 +33,20 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
         dubbed = 1;
     }
 
-    SigMatch *pm = m;
-    if (pm == NULL) {
+    if (s->pmatch == NULL) {
         SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
         goto error;
     }
 
     /** Search for the first previous DetectContent
      * SigMatch (it can be the same as this one) */
-    pm = DetectContentFindPrevApplicableSM(m);
-    if (pm == NULL || DetectContentHasPrevSMPattern(pm) == NULL) {
+    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    if (pm == NULL) {
+        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
+        if (dubbed) SCFree(str);
+        return -1;
+    }
+    if (DetectContentHasPrevSMPattern(pm) == NULL) {
         SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
         if (dubbed) SCFree(str);
         return -1;
@@ -60,6 +62,12 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
     cd->distance = strtol(str, NULL, 10);
     cd->flags |= DETECT_CONTENT_DISTANCE;
 
+    if (cd->flags & DETECT_CONTENT_WITHIN) {
+        if (cd->distance + cd->content_len > cd->within) {
+            cd->within = cd->distance + cd->content_len;
+        }
+    }
+
     /** Propagate the modifiers through the first chunk
      * (SigMatch) if we're dealing with chunks */
     if (cd->flags & DETECT_CONTENT_IS_CHUNK)
@@ -68,7 +76,7 @@ int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
     //DetectContentPrint(cd);
     //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
 
-    pm = DetectContentFindPrevApplicableSM(m->prev);
+    pm = DetectContentFindPrevApplicableSM(s->pmatch_tail->prev);
     if (pm == NULL) {
         SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
         goto error;

@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "decode.h"
 #include "detect.h"
+#include "detect-parse.h"
 
 #include "detect-bytejump.h"
 
@@ -66,6 +67,124 @@ void DetectBytejumpRegister (void) {
 error:
     /* XXX */
     return;
+}
+
+/** \brief Byte jump match function
+ *  \param det_ctx thread detect engine ctx
+ *  \param s signature
+ *  \param m byte jump sigmatch
+ *  \param payload ptr to the payload
+ *  \param payload_len length of the payload
+ *  \retval 1 match
+ *  \retval 0 no match
+ */
+int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *m, uint8_t *payload, uint32_t payload_len) {
+    SCEnter();
+
+    DetectBytejumpData *data = (DetectBytejumpData *)m->ctx;
+    uint8_t *ptr = NULL;
+    uint8_t *jumpptr = ptr;
+    uint32_t len = 0;
+    uint64_t val = 0;
+    int extbytes;
+
+    if (payload_len == 0) {
+        SCReturnInt(0);
+    }
+
+    /* Calculate the ptr value for the bytejump and length remaining in
+     * the packet from that point.
+     */
+    if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
+        ptr = payload + det_ctx->pkt_off;
+        len = payload_len - det_ctx->pkt_off;
+
+        /* No match if there is no relative base */
+        if (ptr == NULL || len == 0) {
+            SCReturnInt(0);
+        }
+
+        ptr += data->offset;
+        len -= data->offset;
+    }
+    else {
+        ptr = payload + data->offset;
+        len = payload_len - data->offset;
+    }
+
+    /* Verify the to-be-extracted data is within the packet */
+    if (ptr < payload || data->nbytes > len) {
+        SCLogDebug("Data not within payload "
+               "pkt=%p, ptr=%p, len=%d, nbytes=%d",
+               payload, ptr, len, data->nbytes);
+        SCReturnInt(0);
+    }
+
+    /* Extract the byte data */
+    if (data->flags & DETECT_BYTEJUMP_STRING) {
+        extbytes = ByteExtractStringUint64(&val, data->base,
+                                           data->nbytes, (const char *)ptr);
+        if(extbytes <= 0) {
+            SCLogError(SC_ERR_BYTE_EXTRACT_FAILED,"Error extracting %d bytes "
+                   "of string data: %d", data->nbytes, extbytes);
+            SCReturnInt(-1);
+        }
+    }
+    else {
+        int endianness = (data->flags & DETECT_BYTEJUMP_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
+        extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
+        if (extbytes != data->nbytes) {
+            SCLogError(SC_ERR_BYTE_EXTRACT_FAILED,"Error extracting %d bytes "
+                   "of numeric data: %d", data->nbytes, extbytes);
+            SCReturnInt(-1);
+        }
+    }
+
+    //printf("VAL: (%" PRIu64 " x %" PRIu32 ") + %d + %" PRId32 "\n", val, data->multiplier, extbytes, data->post_offset);
+
+    /* Adjust the jump value based on flags */
+    val *= data->multiplier;
+    if (data->flags & DETECT_BYTEJUMP_ALIGN) {
+        if ((val % 4) != 0) {
+            val += 4 - (val % 4);
+        }
+    }
+    val += extbytes + data->post_offset;
+
+    /* Calculate the jump location */
+    if (data->flags & DETECT_BYTEJUMP_BEGIN) {
+        jumpptr = payload + val;
+        //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
+    }
+    else {
+        jumpptr = ptr + val;
+        //printf("NEWVAL: ptr %p + %ld = %p\n", ptr, val, jumpptr);
+    }
+
+
+    /* Validate that the jump location is still in the packet
+     * \todo Should this validate it is still in the *payload*?
+     */
+    if ((jumpptr < payload) || (jumpptr >= payload + payload_len)) {
+        SCLogDebug("Jump location (%p) is not within "
+               "payload (%p-%p)", jumpptr, payload, payload + payload_len - 1);
+        SCReturnInt(0);
+    }
+
+#ifdef DEBUG
+    if (SCLogDebugEnabled()) {
+        uint8_t *sptr = (data->flags & DETECT_BYTEJUMP_BEGIN) ? payload : ptr;
+        SCLogDebug("jumping %" PRId64 " bytes from %p (%08x) to %p (%08x)",
+               val, sptr, (int)(sptr - payload),
+               jumpptr, (int)(jumpptr - payload));
+    }
+#endif /* DEBUG */
+
+    /* Adjust the detection context to the jump location. */
+    det_ctx->pkt_ptr = jumpptr;
+    det_ctx->pkt_off = jumpptr - payload;
+
+    SCReturnInt(1);
 }
 
 int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
@@ -365,7 +484,7 @@ error:
 }
 
 int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s,
-                        SigMatch *m, char *optstr)
+                        SigMatch *notused, char *optstr)
 {
     DetectBytejumpData *data = NULL;
     SigMatch *sm = NULL;
@@ -382,7 +501,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_BYTEJUMP;
     sm->ctx = (void *)data;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPayload(s,sm);
 
     return 0;
 

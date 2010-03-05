@@ -20,7 +20,7 @@ void DetectDepthRegister (void) {
     sigmatch_table[DETECT_DEPTH].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *depthstr)
+int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *depthstr)
 {
     char *str = depthstr;
     char dubbed = 0;
@@ -36,7 +36,7 @@ int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
 
     /** Search for the first previous DetectContent
      * SigMatch (it can be the same as this one) */
-    SigMatch *pm = DetectContentFindPrevApplicableSM(m);
+    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
     if (pm == NULL) {
         SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content option");
         if (dubbed) SCFree(str);

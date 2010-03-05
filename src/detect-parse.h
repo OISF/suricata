@@ -26,5 +26,6 @@ void SigParsePrepare(void);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);
 void SigMatchReplace(Signature *, SigMatch *, SigMatch *);
+void SigMatchAppendPayload(Signature *s, SigMatch *);
 #endif /* __DETECT_PARSE_H__ */
 

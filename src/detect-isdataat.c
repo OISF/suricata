@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "decode.h"
 #include "detect.h"
+#include "detect-parse.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -208,7 +209,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *isdataatstr)
+int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *isdataatstr)
 {
     DetectIsdataatData *idad = NULL;
     SigMatch *sm = NULL;
@@ -221,32 +222,32 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
         /** Set it in the last parsed contet because it is relative to that content match */
         SCLogDebug("set it in the last parsed content because it is relative to that content match");
 
-        if( m == NULL ) {
+        if (s->pmatch_tail == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "No previous content, the flag "
                                    "'relative' cant be used without content");
             goto  error;
-        } else {
-            SigMatch *pm = NULL;
-            /** Search for the first previous DetectContent
-              * SigMatch (it can be the same as this one) */
-            pm = DetectContentFindPrevApplicableSM(m);
-            if (pm == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                return -1;
-            }
-
-            cd = (DetectContentData *)pm->ctx;
-            if (cd == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                return -1;
-            }
-
-            cd->flags |= DETECT_CONTENT_ISDATAAT_RELATIVE;
-            cd->isdataat = idad->dataat;
-
-            /** Propagate the changes */
-            DetectContentPropagateIsdataat(pm);
         }
+
+        SigMatch *pm = NULL;
+        /** Search for the first previous DetectContent
+         * SigMatch (it can be the same as this one) */
+        pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+        if (pm == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+            return -1;
+        }
+
+        cd = (DetectContentData *)pm->ctx;
+        if (cd == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+            return -1;
+        }
+
+        cd->flags |= DETECT_CONTENT_ISDATAAT_RELATIVE;
+        cd->isdataat = idad->dataat;
+
+        /** Propagate the changes */
+        DetectContentPropagateIsdataat(pm);
     }
     else {
         SCLogDebug("set it as a normal SigMatch");
@@ -259,7 +260,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, cha
         sm->type = DETECT_ISDATAAT;
         sm->ctx = (void *)idad;
 
-        SigMatchAppend(s,m,sm);
+        SigMatchAppendPayload(s,sm);
     }
 
     return 0;
@@ -350,7 +351,7 @@ int DetectIsdataatTestPacket01 (void) {
 
     char *sigs[5];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing window 1\"; isdataat:6; sid:1;)";
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing window 2\"; content:\"all\"; isdataat:1, relative; isdataat:7; sid:2;)";
+    sigs[1]= "alert ip any any -> any any (msg:\"Testing window 2\"; content:\"all\"; isdataat:1, relative; isdataat:6; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing window 3\"; isdataat:8; sid:3;)";
     sigs[3]= "alert ip any any -> any any (msg:\"Testing window 4\"; content:\"Hi\"; isdataat:5, relative; sid:4;)";
     sigs[4]= "alert ip any any -> any any (msg:\"Testing window 4\"; content:\"Hi\"; isdataat:6, relative; sid:5;)";

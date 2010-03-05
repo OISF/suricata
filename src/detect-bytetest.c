@@ -7,7 +7,9 @@
 #include "debug.h"
 #include "decode.h"
 #include "detect.h"
+#include "detect-parse.h"
 
+#include "detect-content.h"
 #include "detect-bytetest.h"
 
 #include "util-byte.h"
@@ -69,9 +71,154 @@ error:
     return;
 }
 
+/** \brief Bytetest detection code
+ *
+ *  Byte test works on the packet payload.
+ *
+ *  \param det_ctx thread de ctx
+ *  \param s signature
+ *  \param m sigmatch for this bytettest
+ *  \param payload ptr to the start of the buffer to inspect
+ *  \param payload_len length of the payload
+ *  \retval 1 match
+ *  \retval 0 no match
+ */
+int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *m, uint8_t *payload, uint32_t payload_len) {
+    SCEnter();
+
+    DetectBytetestData *data = (DetectBytetestData *)m->ctx;
+    uint8_t *ptr = NULL;
+    uint32_t len = 0;
+    uint64_t val = 0;
+    int extbytes;
+    int neg;
+    int match;
+
+    if (payload_len == 0) {
+        SCReturnInt(0);
+    }
+
+    /* Calculate the ptr value for the bytetest and length remaining in
+     * the packet from that point.
+     */
+    if (data->flags & DETECT_BYTETEST_RELATIVE) {
+        SCLogDebug("relative, working with det_ctx->pkt_off %"PRIu32", "
+                   "data->offset %"PRIu32"", det_ctx->pkt_off, data->offset);
+
+        ptr = payload + det_ctx->pkt_off;
+        len = payload_len - det_ctx->pkt_off;
+
+        /* No match if there is no relative base */
+        if (ptr == NULL || len == 0) {
+            SCReturnInt(0);
+        }
+
+        ptr += data->offset;
+        len -= data->offset;
+
+        //PrintRawDataFp(stdout,ptr,len);
+    }
+    else {
+        SCLogDebug("absolute, data->offset %"PRIu32"", data->offset);
+
+        ptr = payload + data->offset;
+        len = payload_len - data->offset;
+    }
+
+    /* Validate that the to-be-extracted is within the packet
+     * \todo Should this validate it is in the *payload*?
+     */
+    if (ptr < payload || data->nbytes > len) {
+        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%"PRIu32", nbytes=%d",
+                    payload, ptr, len, data->nbytes);
+        SCReturnInt(0);
+    }
+
+    neg = data->flags & DETECT_BYTETEST_NEGOP;
+
+    /* Extract the byte data */
+    if (data->flags & DETECT_BYTETEST_STRING) {
+        extbytes = ByteExtractStringUint64(&val, data->base,
+                                           data->nbytes, (const char *)ptr);
+        if (extbytes <= 0) {
+            /* strtoull() return 0 if there is no numeric value in data string */
+            if (val == 0) {
+                SCLogDebug("No Numeric value");
+                SCReturnInt(0);
+            } else {
+                SCLogError(SC_ERR_INVALID_NUM_BYTES, "Error extracting %d "
+                        "bytes of string data: %d", data->nbytes, extbytes);
+                SCReturnInt(-1);
+            }
+        }
+
+        SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%c 0x%" PRIx64 "",
+               data->base, val, (neg ? "!" : ""), data->op, data->value);
+    }
+    else {
+        int endianness = (data->flags & DETECT_BYTETEST_LITTLE) ?
+                          BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
+        extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
+        if (extbytes != data->nbytes) {
+            SCLogError(SC_ERR_INVALID_NUM_BYTES, "Error extracting %d bytes "
+                   "of numeric data: %d\n", data->nbytes, extbytes);
+            SCReturnInt(-1);
+        }
+
+        SCLogDebug("comparing numeric 0x%" PRIx64 " %s%c 0x%" PRIx64 "",
+               val, (neg ? "!" : ""), data->op, data->value);
+    }
+
+
+    /* Compare using the configured operator */
+    match = 0;
+    switch (data->op) {
+        case DETECT_BYTETEST_OP_EQ:
+            if (val == data->value) {
+                match = 1;
+            }
+            break;
+        case DETECT_BYTETEST_OP_LT:
+            if (val < data->value) {
+                match = 1;
+            }
+            break;
+        case DETECT_BYTETEST_OP_GT:
+            if (val > data->value) {
+                match = 1;
+            }
+            break;
+        case DETECT_BYTETEST_OP_AND:
+            if (val & data->value) {
+                match = 1;
+            }
+            break;
+        case DETECT_BYTETEST_OP_OR:
+            if (val ^ data->value) {
+                match = 1;
+            }
+            break;
+        default:
+            /* Should never get here as we handle this in parsing. */
+            SCReturnInt(-1);
+    }
+
+    /* A successful match depends on negation */
+    if ((!neg && match) || (neg && !match)) {
+        SCLogDebug("MATCH");
+        SCReturnInt(1);
+    }
+
+    SCLogDebug("NO MATCH");
+    SCReturnInt(0);
+
+}
+
 int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Packet *p, Signature *s, SigMatch *m)
 {
+    return DetectBytetestDoMatch(det_ctx, s, m, p->payload, p->payload_len);
+#if 0
     DetectBytetestData *data = (DetectBytetestData *)m->ctx;
     uint8_t *ptr = NULL;
     uint16_t len = 0;
@@ -190,6 +337,7 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     SCLogDebug("NO MATCH");
     return 0;
+#endif
 }
 
 DetectBytetestData *DetectBytetestParse(char *optstr)
@@ -348,7 +496,7 @@ error:
 }
 
 int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s,
-                        SigMatch *m, char *optstr)
+                        SigMatch *notused, char *optstr)
 {
     DetectBytetestData *data = NULL;
     SigMatch *sm = NULL;
@@ -358,6 +506,19 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s,
     data = DetectBytetestParse(optstr);
     if (data == NULL) goto error;
 
+    if (data->flags & DETECT_BYTETEST_RELATIVE) {
+        /** Search for the first previous DetectContent
+         * SigMatch (it can be the same as this one) */
+        SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+        if (pm == NULL) {
+            SCLogError(SC_ERR_BYTETEST_MISSING_CONTENT, "relative bytetest match needs a previous content option");
+            goto error;
+        }
+
+        DetectContentData *cd = (DetectContentData *)pm->ctx;
+        cd->flags |= DETECT_CONTENT_BYTETEST_NEXT;
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -365,7 +526,7 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_BYTETEST;
     sm->ctx = (void *)data;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPayload(s,sm);
 
     return 0;
 

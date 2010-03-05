@@ -120,6 +120,9 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
     det_ctx->pmq.mode = PMQ_MODE_SCAN;
 
+    if (det_ctx->sgh->mpm_uri_ctx == NULL)
+        SCReturnUInt(0U);
+
     uint32_t ret;
 #ifndef __SC_CUDA_SUPPORT__
     ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan
@@ -133,13 +136,13 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan
             (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq,
              uri, uri_len);
-        SCReturnInt(ret);
+        SCReturnUInt(ret);
     }
 
     SCCudaHlProcessUriWithDispatcher(uri, uri_len, det_ctx, /* scan */ 0, &ret);
 #endif
 
-    SCReturnInt(ret);
+    SCReturnUInt(ret);
 }
 
 /** \brief Pattern match, search part -- searches for all other patterns
@@ -430,7 +433,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
         SigMatch *sm;
         /* get the total no of patterns in this Signature, as well as find out
          * if we have a fast_pattern set in this Signature */
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
                 if (co == NULL)
@@ -438,6 +441,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
 
                 if (co->flags & DETECT_CONTENT_FAST_PATTERN) {
                     fast_pattern[sig] = 1;
+                    SCLogDebug("sig %"PRIu32" has a fast pattern, id %"PRIu32"", s->id, co->id);
 
                     ContentHash *ch = ContentHashAlloc(co);
                     if (ch == NULL)
@@ -463,14 +467,15 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
 
         if (fast_pattern[sig] == 1) {
             if (cnt == 1) {
-                ContentHash *ch = ContentHashAlloc(s->match->ctx);
+                ContentHash *ch = ContentHashAlloc(s->pmatch->ctx);
                 ch->nosearch = 1;
                 ch->use = 1;
+                SCLogDebug("sig %"PRIu32" has a fast pattern, id %"PRIu32"", s->id, ch->ptr->id);
             }
             continue;
         }
 
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
                 if (co == NULL)
@@ -499,7 +504,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                      * so flag that we will use this content no matter
                      * what. */
                     if (cnt == 1) {
-                        lookup_ch->use = 1;
+                        //lookup_ch->use = 1;
                     }
 
                     /* only set the nosearch flag if all sigs have it
@@ -523,17 +528,19 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             continue;
 
         ContentHash *scan_ch = NULL;
-        SigMatch *sm = s->match;
+        SigMatch *sm = s->pmatch;
         for ( ; sm != NULL; sm = sm->next) {
-
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
                 if (co == NULL)
                     continue;
 
                 if (fast_pattern[sig] == 1) {
-                    if (!(co->flags & DETECT_CONTENT_FAST_PATTERN))
+                    if (!(co->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                        SCLogDebug("not a fast pattern %"PRIu32"", co->id);
                         continue;
+                    }
+                    SCLogDebug("fast pattern %"PRIu32"", co->id);
                 } else if (co->content_len < sgh->mpm_content_maxlen) {
                     continue;
                 }
@@ -553,7 +560,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                     SCLogDebug("scan_ch == NULL, so selecting lookup_ch->ptr->id %"PRIu32"", lookup_ch->ptr->id);
                     scan_ch = lookup_ch;
                 } else {
-                    if (lookup_ch->use == 0) {
+                    ///if (lookup_ch->use == 0) {
                         uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len,sgh->mpm_content_maxlen);
                         uint32_t ss = PatternStrength(scan_ch->ptr->content,scan_ch->ptr->content_len,sgh->mpm_content_maxlen);
                         if (ls > ss) {
@@ -569,6 +576,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                         } else {
                             SCLogDebug("sticking with scan_ch");
                         }
+#if 0
                     } else {
                         if (scan_ch->use == 0)
                             scan_ch = lookup_ch;
@@ -588,6 +596,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                             }
                         }
                     }
+#endif
                 }
 
                 ContentHashFree(ch);
@@ -612,7 +621,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             SCLogDebug("%"PRIu32" no scan pattern selected", s->id);
         }
         /* add the rest of the patterns to the search ctx */
-        for (sm = s->match ; sm != NULL; sm = sm->next) {
+        for (sm = s->pmatch ; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *co = (DetectContentData *)sm->ctx;
                 if (co == NULL)
@@ -683,7 +692,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             continue;
 
         /* find flow setting of this rule */
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 co_cnt++;
                 s->flags |= SIG_FLAG_MPM;
@@ -755,7 +764,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         SigMatch *sm;
 
         /* determine the length of the longest pattern */
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
 
@@ -787,7 +796,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
 
         /* determine the min offset and max depth of the longest pattern(s) */
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
                 //if (content_maxlen < 4) {
@@ -812,7 +821,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         int content_depth_atleastone = 0;
         int content_offset_atleastone = 0;
         /* determine if we have at least one pattern with a depth */
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
                 if (cd->depth) {
@@ -867,8 +876,10 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
         if (content_cnt) {
             if (sh->mpm_content_maxlen == 0) sh->mpm_content_maxlen = content_maxlen;
-            if (sh->mpm_content_maxlen > content_maxlen)
+            if (sh->mpm_content_maxlen > content_maxlen) {
+                SCLogDebug("sgh (%p) sh->mpm_content_maxlen %u set to %u", sh, sh->mpm_content_maxlen, content_maxlen);
                 sh->mpm_content_maxlen = content_maxlen;
+            }
         }
         if (uricontent_cnt) {
             if (sh->mpm_uricontent_maxlen == 0) sh->mpm_uricontent_maxlen = uricontent_maxlen;
@@ -897,7 +908,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         uint16_t content_minlen = 0, uricontent_minlen = 0;
 
         /* determine the length of the longest pattern */
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
 
@@ -918,7 +929,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
         }
         char uricontent_scanadded = 0;
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
 

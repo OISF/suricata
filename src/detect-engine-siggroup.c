@@ -428,7 +428,7 @@ uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t datalen)
     uint32_t hash = 0;
     uint32_t b = 0;
 
-    SCLogDebug("hashing sgh %p", sgh);
+    SCLogDebug("hashing sgh %p (mpm_content_maxlen %u)", sgh, sgh->mpm_content_maxlen);
 
     for (b = 0; b < sgh->sig_size; b++)
         hash += sgh->sig_array[b];
@@ -522,10 +522,12 @@ int SigGroupHeadHashRemove(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
  */
 SigGroupHead *SigGroupHeadHashLookup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
+    SCEnter();
+
     SigGroupHead *rsgh = HashListTableLookup(de_ctx->sgh_hash_table,
                                              (void *)sgh, 0);
 
-    return rsgh;
+    SCReturnPtr(rsgh, "SigGroupHead");
 }
 
 /**
@@ -598,10 +600,12 @@ int SigGroupHeadDPortHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 SigGroupHead *SigGroupHeadDPortHashLookup(DetectEngineCtx *de_ctx,
                                           SigGroupHead *sgh)
 {
+    SCEnter();
+
     SigGroupHead *rsgh = HashListTableLookup(de_ctx->sgh_dport_hash_table,
                                              (void *)sgh, 0);
 
-    return rsgh;
+    SCReturnPtr(rsgh,"SigGroupHead");
 }
 
 /**
@@ -855,6 +859,8 @@ int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh,
 
             if ((*sgh)->mpm_content_maxlen > s->mpm_content_maxlen)
                 (*sgh)->mpm_content_maxlen = s->mpm_content_maxlen;
+
+            SCLogDebug("(%p)->mpm_content_maxlen %u", *sgh, (*sgh)->mpm_content_maxlen);
         }
         if (s->mpm_uricontent_maxlen > 0) {
             if ((*sgh)->mpm_uricontent_maxlen == 0)
@@ -1318,16 +1324,20 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
                               uint32_t sid)
 {
+    SCEnter();
+
     uint32_t sig = 0;
     Signature *s = NULL;
     uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx);
 
-    if (sgh == NULL)
-        return 0;
+    if (sgh == NULL) {
+        SCReturnInt(0);
+    }
 
     for (sig = 0; sig < max_sid; sig++) {
-        if (sgh->sig_array == NULL)
-            return 0;
+        if (sgh->sig_array == NULL) {
+            SCReturnInt(0);
+        }
 
         /* Check if the SigGroupHead has an entry for the sid */
         if ( !(sgh->sig_array[sig / 8] & (1 << (sig % 8))) )
@@ -1340,11 +1350,12 @@ int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
             continue;
 
         /* If the retrieved Signature matches the sid arg, we have a match */
-        if (s->id == sid)
-            return 1;
+        if (s->id == sid) {
+            SCReturnInt(1);
+        }
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 /*----------------------------------Unittests---------------------------------*/

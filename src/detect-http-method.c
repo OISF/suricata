@@ -53,26 +53,10 @@ void DetectHttpMethodRegister(void) {
     SCLogDebug("registering http_method rule option");
 }
 
-/**
- * \brief match the specified version on a tls session
- *
- * \param t       pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param f       pointer to the current flow
- * \param flags   flags to indicate the direction of the received packet
- * \param state   pointer the app layer state, which will cast into HtpState
- * \param m       pointer to the sigmatch cast into DetectHttpMethodData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Flow *f, uint8_t flags, void *state,
-                          Signature *s, SigMatch *m)
-{
+int DetectHttpMethodDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm, Flow *f, uint8_t flags, void *state) {
     SCEnter();
     uint8_t i;
-    DetectHttpMethodData *data = (DetectHttpMethodData *)m->ctx;
+    DetectHttpMethodData *data = (DetectHttpMethodData *)sm->ctx;
     HtpState *hs = (HtpState *)state;
     htp_tx_t *tx = NULL;
     int ret = 0;
@@ -118,6 +102,27 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 }
 
 /**
+ * \brief match the specified version on a tls session
+ *
+ * \param t       pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param f       pointer to the current flow
+ * \param flags   flags to indicate the direction of the received packet
+ * \param state   pointer the app layer state, which will cast into HtpState
+ * \param m       pointer to the sigmatch cast into DetectHttpMethodData
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                          Flow *f, uint8_t flags, void *state,
+                          Signature *s, SigMatch *sm)
+{
+    int r = DetectHttpMethodDoMatch(det_ctx, s, sm, f, flags, state);
+    SCReturnInt(r);
+}
+
+/**
  * \brief this function is used to add the parsed "http_method" option
  * \brief into the current signature
  *
@@ -130,7 +135,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval -1 on Failure
  */
 int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
-                          SigMatch *m, char *str)
+                          SigMatch *notused, char *str)
 {
     SCEnter();
     DetectHttpMethodData *data = NULL;
@@ -143,29 +148,27 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
         SCReturnInt(-1);
     }
 
-    if (m == NULL) {
+    if (s->pmatch_tail == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
                    "http_method modifier used before any signature match");
         SCReturnInt(-1);
     }
 
-    if (m->type != DETECT_CONTENT) {
-        m = SigMatchGetLastSM(s, DETECT_CONTENT);
-        if (m == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                       "http_method modifies \"content\", but none was found");
-            SCReturnInt(-1);
-        }
+    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    if (pm == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "http_method modifies \"content\", but none was found");
+        SCReturnInt(-1);
     }
 
     /** \todo snort docs only mention rawbytes, not fast_pattern */
-    if (((DetectContentData *) m->ctx)->flags & DETECT_CONTENT_FAST_PATTERN)
+    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN)
     {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
                    "http_method cannot be used with \"fast_pattern\"");
 
         SCReturnInt(-1);
-    } else if (((DetectContentData *) m->ctx)->flags & DETECT_CONTENT_RAWBYTES)
+    } else if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_RAWBYTES)
     {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
                    "http_method cannot be used with \"rawbytes\"");
@@ -180,7 +183,7 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
         goto error;
     }
 
-    data->content_len = ((DetectContentData *)m->ctx)->content_len;
+    data->content_len = ((DetectContentData *)pm->ctx)->content_len;
     data->content = SCMalloc(data->content_len);
     if (data->content == NULL) {
         // XXX: Should we bother with an error - it may fail too?
@@ -188,16 +191,17 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
         goto error;
     }
     memcpy(data->content,
-           ((DetectContentData *)m->ctx)->content, data->content_len);
+           ((DetectContentData *)pm->ctx)->content, data->content_len);
 
     method = bstr_memdup((char *)data->content, data->content_len);
+    /** \todo error check */
     data->method = htp_convert_method_to_number(method);
 
     /* Okay we need to replace the type to HTTP_METHOD from CONTENT */
-    SCFree(((DetectContentData *)m->ctx)->content);
-    SCFree(m->ctx);
-    m->type = DETECT_AL_HTTP_METHOD;
-    m->ctx = (void *)data;
+    SCFree(((DetectContentData *)pm->ctx)->content);
+    SCFree(pm->ctx);
+    pm->type = DETECT_AL_HTTP_METHOD;
+    pm->ctx = (void *)data;
 
     /* Flagged the signature as to scan the app layer data */
     s->flags |=SIG_FLAG_APPLAYER;
@@ -244,6 +248,8 @@ int DetectHttpMethodTest01(void)
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
+    } else {
+        printf("sig parse failed: ");
     }
 
  end:

@@ -51,24 +51,8 @@ void DetectHttpCookieRegister (void) {
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_PAYLOAD;
 }
 
-/**
- * \brief match the specified content in the signature with the received http
- *        cookie header in the http request.
- *
- * \param t         pointer to thread vars
- * \param det_ctx   pointer to the pattern matcher thread
- * \param f         pointer to the current flow
- * \param flags     flags to indicate the direction of the received packet
- * \param state     pointer the app layer state, which will cast into HtpState
- * \param s         pointer to the current signature
- * \param m         pointer to the sigmatch that we will cast into DetectContentData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                           Flow *f, uint8_t flags, void *state, Signature *s,
-                           SigMatch *m)
+int DetectHttpCookieDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
+        SigMatch *sm, Flow *f, uint8_t flags, void *state)
 {
     SCEnter();
 
@@ -78,7 +62,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCMutexLock(&f->m);
     SCLogDebug("got lock %p", &f->m);
 
-    DetectHttpCookieData *co = (DetectHttpCookieData *)m->ctx;
+    DetectHttpCookieData *co = (DetectHttpCookieData *)sm->ctx;
 
     HtpState *htp_state = (HtpState *)state;
     if (htp_state == NULL) {
@@ -133,6 +117,29 @@ end:
 }
 
 /**
+ * \brief match the specified content in the signature with the received http
+ *        cookie header in the http request.
+ *
+ * \param t         pointer to thread vars
+ * \param det_ctx   pointer to the pattern matcher thread
+ * \param f         pointer to the current flow
+ * \param flags     flags to indicate the direction of the received packet
+ * \param state     pointer the app layer state, which will cast into HtpState
+ * \param s         pointer to the current signature
+ * \param m         pointer to the sigmatch that we will cast into DetectContentData
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                           Flow *f, uint8_t flags, void *state, Signature *s,
+                           SigMatch *m)
+{
+    int r = DetectHttpCookieDoMatch(det_ctx, s, m, f, flags, state);
+    SCReturnInt(r);
+}
+
+/**
  * \brief this function setups the http_cookie modifier keyword used in the rule
  *
  * \param de_ctx   Pointer to the Detection Engine Context
@@ -144,7 +151,7 @@ end:
  * \retval -1 On failure
  */
 
-int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                            char *str)
 {
     DetectHttpCookieData *hd = NULL;
@@ -156,30 +163,28 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
         return -1;
     }
 
-    if (m == NULL) {
+    if (s->pmatch_tail == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie found inside the "
                      "rule, without any preceding content keywords");
         return -1;
     }
 
-    if (m->type != DETECT_CONTENT) {
-        m = SigMatchGetLastSM(s, DETECT_CONTENT);
-        if (m == NULL) {
-            SCLogWarning(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
-                         "the rule, without a content context.  Please use a "
-                         "content keyword before using http_cookie");
-            return -1;
-        }
+    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    if (pm == NULL) {
+        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
+                "the rule, without a content context.  Please use a "
+                "content keyword before using http_cookie");
+        return -1;
     }
 
     /* http_cookie should not be used with the fast_pattern rule */
-    if (((DetectContentData *) m->ctx)->flags & DETECT_CONTENT_FAST_PATTERN) {
+    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie rule can not "
                 "be used with the fast_pattern rule keyword");
 
         return -1;
     /* http_cookie should not be used with the rawbytes rule */
-    } else if (((DetectContentData *) m->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
+    } else if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
 
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie rule can not "
                 "be used with the rawbytes rule keyword");
@@ -194,19 +199,19 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     }
     memset(hd, 0, sizeof(DetectHttpCookieData));
 
-    hd->data_len = ((DetectContentData *)m->ctx)->content_len;
+    hd->data_len = ((DetectContentData *)pm->ctx)->content_len;
     hd->data = SCMalloc(hd->data_len);
     if (hd->data == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
-    memcpy(hd->data, ((DetectContentData *)m->ctx)->content, hd->data_len);
+    memcpy(hd->data, ((DetectContentData *)pm->ctx)->content, hd->data_len);
 
     /* Okay we need to replace the type to HTTP_COOKIE from CONTENT */
-    SCFree(((DetectContentData *)m->ctx)->content);
-    SCFree(m->ctx);
-    m->type = DETECT_AL_HTTP_COOKIE;
-    m->ctx = (void *)hd;
+    SCFree(((DetectContentData *)pm->ctx)->content);
+    SCFree(pm->ctx);
+    pm->type = DETECT_AL_HTTP_COOKIE;
+    pm->ctx = (void *)hd;
 
     /* Flagged the signature as to scan the app layer data */
     s->flags |=SIG_FLAG_APPLAYER;
@@ -299,7 +304,7 @@ int DetectHttpCookieTest03(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->match;
+    sm = de_ctx->sig_list->pmatch;
     while (sm != NULL) {
         if (sm->type == DETECT_AL_HTTP_COOKIE) {
                 result = 1;
@@ -387,15 +392,17 @@ int DetectHttpCookieTest06(void)
 
     Signature *s = de_ctx->sig_list;
 
-    if (s->match->type != DETECT_AL_HTTP_COOKIE)
+    BUG_ON(s->pmatch == NULL);
+
+    if (s->pmatch->type != DETECT_AL_HTTP_COOKIE)
         goto end;
 
-    if (s->match->next == NULL) {
+    if (s->pmatch->next == NULL) {
         printf("expected another SigMatch, got NULL: ");
         goto end;
     }
 
-    if (s->match->next->type != DETECT_URICONTENT) {
+    if (s->pmatch->next->type != DETECT_URICONTENT) {
         goto end;
     }
 

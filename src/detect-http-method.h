@@ -9,6 +9,7 @@ typedef struct DetectHttpMethodData_ {
 
 /* prototypes */
 void DetectHttpMethodRegister(void);
+int DetectHttpMethodDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm, Flow *f, uint8_t flags, void *state);
 
 #endif /* __DETECT_HTTP_METHOD_H__ */
 

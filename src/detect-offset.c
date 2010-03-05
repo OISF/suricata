@@ -23,7 +23,7 @@ void DetectOffsetRegister (void) {
     sigmatch_table[DETECT_OFFSET].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *offsetstr)
+int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *offsetstr)
 {
     char *str = offsetstr;
     char dubbed = 0;
@@ -39,7 +39,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
 
     /** Search for the first previous DetectContent
      * SigMatch (it can be the same as this one) */
-    SigMatch *pm = DetectContentFindPrevApplicableSM(m);
+    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
     if (pm == NULL) {
         SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding content option");
         if (dubbed) SCFree(str);

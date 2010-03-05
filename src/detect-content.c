@@ -793,6 +793,8 @@ void DetectContentPrint(DetectContentData *cd)
     SCLogDebug("Isdataat: %u ", cd->isdataat);
     SCLogDebug("flags: %u ", cd->flags);
     SCLogDebug("negated %u ", cd->negated);
+    SCLogDebug("within next: %s ", cd->flags & DETECT_CONTENT_WITHIN_NEXT ? "true" : "false");
+    SCLogDebug("distance next: %s ", cd->flags & DETECT_CONTENT_DISTANCE_NEXT ? "true" : "false");
 
     /** If it's a chunk, print the data related */
     if (cd->flags & DETECT_CONTENT_IS_CHUNK) {
@@ -1250,29 +1252,32 @@ int DetectContentPropagateOffset(SigMatch *first_sm)
  */
 int DetectContentPropagateModifiers(SigMatch *first_sm)
 {
+    SCEnter();
+
     if (first_sm == NULL)
-        return -1;
+        goto error;
 
     /** Rewind the pointer to the start of the chunk if we have a chunk group */
     first_sm = DetectContentFindPrevApplicableSM(first_sm);
 
     if (first_sm->ctx == NULL)
-        return -1;
+        goto error;
 
     DetectContentData *first_chunk = (DetectContentData*)first_sm->ctx;
     if (first_chunk == NULL)
-        return -1;
+        goto error;
 
-    if ( !(first_chunk->flags & DETECT_CONTENT_IS_CHUNK))
+    if ( !(first_chunk->flags & DETECT_CONTENT_IS_CHUNK)) {
         /** No modifiers to update */
-        return 1;
+        SCReturnInt(1);
+    }
 
     uint8_t chunk_group_id = first_chunk->chunk_group_id;
     uint8_t num_chunks = DetectContentCountChunksInGroup(first_sm, chunk_group_id);
     int16_t total_len = DetectContentChunksGetTotalLength(first_sm);
 
     if (num_chunks < 1 || total_len < 1)
-        return -1;
+        goto error;
 
     DetectContentData *cur_chunk = NULL;
     DetectContentData *last_chunk = first_chunk;
@@ -1291,11 +1296,13 @@ int DetectContentPropagateModifiers(SigMatch *first_sm)
         int16_t remaining_len = DetectContentChunksGetRemainingLength(cur_sm);
         int16_t previous_len = DetectContentChunksGetRemainingLength(cur_sm);
         if (previous_len < 0 || remaining_len < 0)
-            return -1;
+            goto error;
 
 
         /** If we are in the first chunk */
         if (cur_chunk->chunk_id == 0) {
+            SCLogDebug("handling first chunk");
+
             /** Reset the first depth removing the length of the remaining chunks
             */
             SCLogDebug("CUR depth = %u remain_len %d ", cur_chunk->depth, remaining_len);
@@ -1320,6 +1327,7 @@ int DetectContentPropagateModifiers(SigMatch *first_sm)
 
         /** If it's not the first chunk we need to propagate the changes */
         } else {
+            SCLogDebug("handling first chunk id %"PRIu8", last_chunk %p", cur_chunk->chunk_id, last_chunk);
 
             /** Propagate the flags */
             cur_chunk->flags = last_chunk->flags;
@@ -1349,8 +1357,10 @@ int DetectContentPropagateModifiers(SigMatch *first_sm)
                 cur_chunk->within = cur_chunk->content_len;
 
                 /* set the within next flag on the previous chunk */
-                if (last_chunk != NULL)
+                if (last_chunk != NULL) {
+                    SCLogDebug("within next flag set to prev chunk");
                     last_chunk->flags |= DETECT_CONTENT_WITHIN_NEXT;
+                }
             }
 
             /** We are iterating in the chunks after the first one, so distance
@@ -1381,7 +1391,9 @@ int DetectContentPropagateModifiers(SigMatch *first_sm)
         last_chunk = cur_chunk;
     }
 
-    return 1;
+    SCReturnInt(1);
+error:
+    SCReturnInt(-1);
 }
 
 /**
@@ -1466,12 +1478,9 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
             sm->type = DETECT_CONTENT;
             sm->ctx = (void *)aux;
-            SigMatchAppend(s,m,sm);
-            m = sm;
+            SigMatchAppendPayload(s,sm);
 
             aux->id = DetectContentGetId(de_ctx, aux);
-            //aux->id = de_ctx->content_max_id;
-            //de_ctx->content_max_id++;
 
             /** We need to setup the modifiers for the chunks respect
               * the last chunk installed inmediatelly before
@@ -1500,7 +1509,7 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
 
         sm->type = DETECT_CONTENT;
         sm->ctx = (void *)cd;
-        SigMatchAppend(s,m,sm);
+        SigMatchAppendPayload(s,sm);
 
         if (s != NULL) {
             /** each group of chunks has it's own internal id in the sig,
@@ -1511,8 +1520,6 @@ int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
         }
 
         cd->id = DetectContentGetId(de_ctx, cd);
-        //cd->id = de_ctx->content_max_id;
-        //de_ctx->content_max_id++;
 
         DetectContentPrint(cd);
     }
@@ -1579,7 +1586,7 @@ static uint32_t DetectContentTableHash(HashTable *ht, void *p, uint16_t len) {
     DetectContentTableElmt *e = (DetectContentTableElmt *)p;
     uint32_t hash = e->pattern_len;
     uint16_t u = 0;
- 
+
     for (u = 0; u < e->pattern_len; u++) {
         hash += e->pattern[u];
     }
@@ -1855,13 +1862,17 @@ int DetectContentChunkTestB2G01 (void) {
                    "32 bytes lentgh\"; content:\"12345678901234567890123456789012\"; sid:1;)";
 
     s = de_ctx->sig_list = SigInit(de_ctx, sigstr);
-    if (s == NULL)
+    if (s == NULL) {
+        printf("sig parse failed: ");
         goto end;
+    }
 
-    if (de_ctx->sig_list->match == NULL)
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("no match in pmatch list: ");
         goto end;
+    }
 
-    m = de_ctx->sig_list->match;
+    m = de_ctx->sig_list->pmatch;
     if (m->type == DETECT_CONTENT && m->ctx != NULL)
         cd = m->ctx;
     else
@@ -1898,13 +1909,17 @@ int DetectContentChunkTestB3G01 (void) {
                    "32 bytes lentgh\"; content:\"12345678901234567890123456789012\"; sid:1;)";
 
     s = de_ctx->sig_list = SigInit(de_ctx, sigstr);
-    if (s == NULL)
+    if (s == NULL) {
+        printf("sig parse failed: ");
         goto end;
+    }
 
-    if (de_ctx->sig_list->match == NULL)
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("no match in pmatch list: ");
         goto end;
+    }
 
-    m = de_ctx->sig_list->match;
+    m = de_ctx->sig_list->pmatch;
     if (m->type == DETECT_CONTENT && m->ctx != NULL)
         cd = m->ctx;
     else
@@ -1941,13 +1956,17 @@ int DetectContentChunkTestB2G02 (void) {
     char *sigstr = "alert tcp any any -> any any (msg:\"This content is exactly 33 bytes length, so it should be splitted\"; content:\"123456789012345678901234567890123\"; sid:1;)";
 
     s = de_ctx->sig_list = SigInit(de_ctx, sigstr);
-    if (s == NULL)
+    if (s == NULL) {
+        printf("sig parse failed: ");
         goto end;
+    }
 
-    if (de_ctx->sig_list->match == NULL)
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("no match in pmatch list: ");
         goto end;
+    }
 
-    m = de_ctx->sig_list->match;
+    m = de_ctx->sig_list->pmatch;
     if (m->type == DETECT_CONTENT && m->ctx != NULL)
         cd = m->ctx;
     else
@@ -1991,13 +2010,15 @@ int DetectContentChunkTestB3G02 (void) {
     char *sigstr = "alert tcp any any -> any any (msg:\"This content is exactly 33 bytes length, so it should be splitted\"; content:\"123456789012345678901234567890123\"; sid:1;)";
 
     s = de_ctx->sig_list = SigInit(de_ctx, sigstr);
-    if (s == NULL)
+    if (s == NULL) {
         goto end;
+    }
 
-    if (de_ctx->sig_list->match == NULL)
+    if (de_ctx->sig_list->pmatch == NULL) {
         goto end;
+    }
 
-    m = de_ctx->sig_list->match;
+    m = de_ctx->sig_list->pmatch;
     if (m->type == DETECT_CONTENT && m->ctx != NULL)
         cd = m->ctx;
     else
@@ -2042,10 +2063,10 @@ int DetectContentChunkTestB2G03 (void) {
     if (s == NULL)
         goto end;
 
-    if (de_ctx->sig_list->match == NULL)
+    if (de_ctx->sig_list->pmatch == NULL)
         goto end;
 
-    m = de_ctx->sig_list->match;
+    m = de_ctx->sig_list->pmatch;
 
     uint8_t chunk_id = 0;
     do {
@@ -2099,10 +2120,10 @@ int DetectContentChunkTestB3G03 (void) {
     if (s == NULL)
         goto end;
 
-    if (de_ctx->sig_list->match == NULL)
+    if (de_ctx->sig_list->pmatch == NULL)
         goto end;
 
-    m = de_ctx->sig_list->match;
+    m = de_ctx->sig_list->pmatch;
 
     uint8_t chunk_id = 0;
     do {
@@ -2157,10 +2178,10 @@ int DetectContentChunkModifiersTest01 (void) {
     if (s == NULL)
         goto end;
 
-    if (de_ctx->sig_list->match == NULL)
+    if (de_ctx->sig_list->pmatch == NULL)
         goto end;
 
-    m = de_ctx->sig_list->match;
+    m = de_ctx->sig_list->pmatch;
 
     if (m->type == DETECT_CONTENT && m->ctx != NULL)
         cd = m->ctx;
@@ -2265,10 +2286,10 @@ int DetectContentChunkModifiersTest02 (void) {
     if (s == NULL)
         goto end;
 
-    if (de_ctx->sig_list->match == NULL)
+    if (de_ctx->sig_list->pmatch == NULL)
         goto end;
 
-    m = de_ctx->sig_list->match;
+    m = de_ctx->sig_list->pmatch;
 
     if (m->type == DETECT_CONTENT && m->ctx != NULL)
         cd = m->ctx;
@@ -2849,32 +2870,23 @@ static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
 
     de_ctx->sig_list = SigInit(de_ctx, rule);
     if (de_ctx->sig_list == NULL) {
-        result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) == 1) {
-        result = 1;
+    if (PacketAlertCheck(&p, 1) != 1) {
         goto end;
     }
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
+    result = 1;
 end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -2885,7 +2897,7 @@ static int SigTestNegativeTestContent(char *rule, uint8_t *buf)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2904,33 +2916,27 @@ static int SigTestNegativeTestContent(char *rule, uint8_t *buf)
 
     de_ctx->sig_list = SigInit(de_ctx, rule);
     if (de_ctx->sig_list == NULL) {
-        result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) == 0) {
-        result = 1;
+    if (PacketAlertCheck(&p, 1) != 0) {
         goto end;
     }
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
+    result = 1;
 end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
-    DetectEngineCtxFree(de_ctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
     return result;
 }
 
@@ -2955,12 +2961,13 @@ static int SigTest42TestNegatedContent(void)
 /**
  * \test A negative test that checks that the content string doesn't contain
  *       the negated content within the specified depth, and also after the
- *       specified offset.  If it is present in the depth we get a failure
- *       anyways, and we don't do a check on the offset
+ *       specified offset. Since the content is there, the match fails. 
+ *
+ *       Match is at offset:23, depth:34
  */
 static int SigTest43TestNegatedContent(void)
-{                                                                                                                                                         // 12345123451234512345123
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!twentythree; depth:15; offset:22; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+{
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:!twentythree; depth:34; offset:23; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 /**
@@ -3116,12 +3123,19 @@ static int SigTest60TestNegatedContent(void)
 
 static int SigTest61TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:one; depth:10; content:!fourty; within:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
+/** \test Test negation in combination with within and depth
+ *
+ *  Match of "one" at offset:0, depth:3
+ *  Match of "fourty" at offset:46, depth:52
+ *
+ *  This signature should not match for the test to pass.
+ */
 static int SigTest62TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; depth:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:one; depth:10; content:!fourty; within:49; depth:52; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 static int SigTest63TestNegatedContent(void)
@@ -3131,47 +3145,55 @@ static int SigTest63TestNegatedContent(void)
 
 static int SigTest64TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; depth:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:one; depth:10; content:!fourty; within:30; depth:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
+/** \test Test negation in combination with within and depth
+ *
+ *  Match of "one" at offset:0, depth:3
+ *  Match of "fourty" at offset:46, depth:52
+ *
+ *  This signature should not match for the test to pass.
+ */
 static int SigTest65TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; offset:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:one; depth:10; content:!fourty; distance:0; within:49; offset:46; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 static int SigTest66TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!fourty; within:30; offset:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:one; depth:10; content:!fourty; within:30; offset:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 static int SigTest67TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:!four; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:one; depth:10; content:!four; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 static int SigTest68TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:nine; offset:8; content:!fourty; within:28; content:fiftysix; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:one; depth:10; content:nine; offset:8; content:!fourty; within:28; content:fiftysix; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 static int SigTest69TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; depth:10; content:nine; offset:8; content:!fourty; within:48; content:fiftysix; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:one; depth:10; content:nine; offset:8; content:!fourty; within:48; content:fiftysix; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 static int SigTest70TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; within:52; distance:45 sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:one; content:!fourty; within:52; distance:45 sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
+/** \test within and distance */
 static int SigTest71TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; within:40; distance:43; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:one; content:!fourty; within:40; distance:43; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 static int SigTest72TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:one; content:!fourty; within:52; distance:47; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:one; content:!fourty; within:49; distance:43; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 static int SigTest73TestNegatedContent(void)

@@ -282,8 +282,16 @@ error:
  * \param rd pointer to DetectRpcData
  */
 void DetectRpcFree(void *ptr) {
+    SCEnter();
+
+    if (ptr == NULL) {
+        SCReturn;
+    }
+
     DetectRpcData *rd = (DetectRpcData *)ptr;
     SCFree(rd);
+
+    SCReturn;
 }
 
 #ifdef UNITTESTS
@@ -527,19 +535,19 @@ static int DetectRpcTestSig01(void) {
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) == 0) {
-        SCLogDebug("sid 1 didnt alert, but it should have.");
+        printf("sid 1 didnt alert, but it should have: ");
         goto cleanup;
     } else if (PacketAlertCheck(&p, 2) == 0) {
-        SCLogDebug("sid 2 didnt alert, but it should have.");
+        printf("sid 2 didnt alert, but it should have: ");
         goto cleanup;
     } else if (PacketAlertCheck(&p, 3) == 0) {
-        SCLogDebug("sid 3 didnt alert, but it should have.");
+        printf("sid 3 didnt alert, but it should have: ");
         goto cleanup;
     } else if (PacketAlertCheck(&p, 4) == 0) {
-        SCLogDebug("sid 4 didnt alert, but it should have.");
+        printf("sid 4 didnt alert, but it should have: ");
         goto cleanup;
     } else if (PacketAlertCheck(&p, 5) > 0) {
-        SCLogDebug("sid 5 did alert, but should not.");
+        printf("sid 5 did alert, but should not: ");
         goto cleanup;
     }
 

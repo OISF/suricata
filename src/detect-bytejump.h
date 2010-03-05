@@ -93,6 +93,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr);
  */
 int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Packet *p, Signature *s, SigMatch *m);
+int DetectBytejumpDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *, uint8_t *, uint32_t);
 
 #endif /* __DETECT_BYTEJUMP_H__ */
 

@@ -37,6 +37,8 @@ typedef struct DetectPcreData_ {
 } DetectPcreData;
 
 /* prototypes */
+int DetectPcreDoMatch(DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectPcreALDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *, Flow *, uint8_t, void *);
 void DetectPcreRegister (void);
 
 #endif /* __DETECT_PCRE_H__ */

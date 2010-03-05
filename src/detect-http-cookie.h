@@ -15,5 +15,8 @@ typedef struct DetectHttpCookieData_ {
 /* prototypes */
 void DetectHttpCookieRegister (void);
 
+int DetectHttpCookieDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
+        SigMatch *sm, Flow *f, uint8_t flags, void *state);
+
 #endif	/* _DETECT_HTTP_COOKIE_H */
 

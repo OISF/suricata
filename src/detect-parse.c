@@ -107,6 +107,23 @@ SigTableElmt *SigTableGet(char *name) {
     return NULL;
 }
 
+void SigMatchAppendPayload(Signature *s, SigMatch *new) {
+    if (s->pmatch == NULL) {
+        s->pmatch = new;
+        s->pmatch_tail = new;
+        new->next = NULL;
+    } else {
+        SigMatch *cur = s->pmatch;
+
+        for ( ; cur->next != NULL; cur = cur->next);
+
+        cur->next = new;
+        new->next = NULL;
+        new->prev = cur;
+        s->pmatch_tail = new;
+    }
+}
+
 /* Append 'new' SigMatch to the current Signature. If present
  * append it to Sigmatch 'm', otherwise place it in the root.
  */
@@ -158,7 +175,7 @@ void SigMatchReplace(Signature *s, SigMatch *m, SigMatch *new) {
 
 /**
  * \brief Returns a pointer to the last SigMatch instance of a particular type
- *        in a Signature.
+ *        in a Signature of the payload list.
  *
  * \param s    Pointer to the Signature.
  * \param type SigMatch type which has to be searched for in the Signature.
@@ -167,7 +184,7 @@ void SigMatchReplace(Signature *s, SigMatch *m, SigMatch *new) {
  */
 SigMatch *SigMatchGetLastSM(Signature *s, uint8_t type)
 {
-    SigMatch *sm = s->match;
+    SigMatch *sm = s->pmatch;
     SigMatch *match = NULL;
 
     while (sm != NULL) {
@@ -576,6 +593,12 @@ void SigFree(Signature *s) {
         sm = nsm;
     }
 
+    sm = s->pmatch;
+    while (sm != NULL) {
+        nsm = sm->next;
+        SigMatchFree(sm);
+        sm = nsm;
+    }
     DetectAddressHeadCleanup(&s->src);
     DetectAddressHeadCleanup(&s->dst);
 
@@ -621,7 +644,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
 
     /* see if need to set the SIG_FLAG_MPM flag */
     SigMatch *sm;
-    for (sm = sig->match; sm != NULL; sm = sm->next) {
+    for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)sm->ctx;
             if (cd == NULL)
@@ -648,7 +671,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->mpm_content_maxlen = 0;
         sig->mpm_uricontent_maxlen = 0;
 
-        for (sm = sig->match; sm != NULL; sm = sm->next) {
+        for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
 
@@ -730,7 +753,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
 
     /* see if need to set the SIG_FLAG_MPM flag */
     SigMatch *sm;
-    for (sm = sig->match; sm != NULL; sm = sm->next) {
+    for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)sm->ctx;
             if (cd == NULL)
@@ -757,7 +780,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->mpm_content_maxlen = 0;
         sig->mpm_uricontent_maxlen = 0;
 
-        for (sm = sig->match; sm != NULL; sm = sm->next) {
+        for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
 

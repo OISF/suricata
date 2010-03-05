@@ -9,11 +9,12 @@
 #define DETECT_CONTENT_DISTANCE_NEXT     0x0010
 #define DETECT_CONTENT_WITHIN_NEXT       0x0020
 #define DETECT_CONTENT_ISDATAAT_RELATIVE 0x0040
+#define DETECT_CONTENT_BYTETEST_NEXT     0x0080
 
-#define DETECT_CONTENT_RAWBYTES          0x0080
+#define DETECT_CONTENT_RAWBYTES          0x0100
 
 /** Set if the pattern is split into multiple chunks */
-#define DETECT_CONTENT_IS_CHUNK          0x0100
+#define DETECT_CONTENT_IS_CHUNK          0x0200
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \

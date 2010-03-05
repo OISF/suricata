@@ -139,19 +139,7 @@ error:
     return;
 }
 
-/**
- * \brief match the specified pcre at http body, requesting it from htp/L7
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectPcreData
- *
- * \retval int 0 no match; 1 match
- */
-int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                      uint8_t flags, void *state, Signature *s, SigMatch *m)
-{
+int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *m, Flow *f, uint8_t flags, void *state) {
 #define MAX_SUBSTRINGS 30
     SCEnter();
     int ret = 0;
@@ -235,17 +223,23 @@ unlock:
 }
 
 /**
- * \brief DetectPcreMatch will try to match a regex on a single packet;
- *        DetectPcreALMatch is used if we parse the option 'P'
+ * \brief match the specified pcre at http body, requesting it from htp/L7
  *
- * \param t pointer to the threadvars structure
- * \param t pointer to the threadvars structure
+ * \param t pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param p pointer to the current packet
+ * \param m pointer to the sigmatch that we will cast into DetectPcreData
  *
- * \retval 1: match ; 0 No Match; -1: error
+ * \retval int 0 no match; 1 match
  */
-int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
-                     Signature *s, SigMatch *m)
+int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+                      uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
+    int r = DetectPcreALDoMatch(det_ctx, s, m, f, flags, state);
+    SCReturnInt(r);
+}
+
+int DetectPcreDoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm) {
     SCEnter();
 #define MAX_SUBSTRINGS 30
     int ret = 0;
@@ -256,7 +250,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     if (p->payload_len == 0)
         SCReturnInt(0);
 
-    DetectPcreData *pe = (DetectPcreData *)m->ctx;
+    DetectPcreData *pe = (DetectPcreData *)sm->ctx;
 
     /* If we want to inspect the http body, we will use HTP L7 parser */
     if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
@@ -297,53 +291,10 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
                 const char *str_ptr;
                 ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
                 if (ret) {
-                    if (strcmp(pe->capname,"http_uri") == 0) {
-                        p->http_uri.raw[det_ctx->pkt_cnt] = (uint8_t *)str_ptr;
-                        p->http_uri.raw_size[det_ctx->pkt_cnt] = ret;
-                        p->http_uri.cnt = det_ctx->pkt_cnt + 1;
-
-                        /* count how many uri's we handle for stats */
-                        det_ctx->uris++;
-
-                        //printf("DetectPcre: URI det_ctx->sgh %p, det_ctx->mcu %p\n", det_ctx->sgh, det_ctx->mcu);
-                        //PrintRawUriFp(stdout,p->http_uri.raw[det_ctx->pkt_cnt],p->http_uri.raw_size[det_ctx->pkt_cnt]);
-                        //printf(" (pkt_cnt %" PRIu32 ", mcu %p)\n", det_ctx->pkt_cnt, det_ctx->mcu);
-#if 0
-                        /* don't bother scanning if we don't have a pattern matcher ctx
-                         * which means we don't have uricontent sigs */
-                        if (det_ctx->sgh->mpm_uri_ctx != NULL) {
-                            if (det_ctx->sgh->mpm_uricontent_maxlen <= p->http_uri.raw_size[det_ctx->pkt_cnt]) {
-                                if (det_ctx->sgh->mpm_uricontent_maxlen == 1)      det_ctx->pkts_uri_scanned1++;
-                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_scanned2++;
-                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_scanned3++;
-                                else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_scanned4++;
-                                else                                           det_ctx->pkts_uri_scanned++;
-
-                                det_ctx->pmq.mode = PMQ_MODE_SCAN;
-                                ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
-                                if (ret > 0) {
-                                    if (det_ctx->sgh->mpm_uricontent_maxlen == 1)      det_ctx->pkts_uri_searched1++;
-                                    else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_searched2++;
-                                    else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_searched3++;
-                                    else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
-                                    else                                           det_ctx->pkts_uri_searched++;
-
-                                    det_ctx->pmq.mode = PMQ_MODE_SEARCH;
-                                    ret += mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search(det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, p->http_uri.raw[det_ctx->pkt_cnt], p->http_uri.raw_size[det_ctx->pkt_cnt]);
-
-                                    /* indicate to uricontent that we have a uri,
-                                     * we scanned it _AND_ we found pattern matches. */
-                                    det_ctx->de_have_httpuri = TRUE;
-                                }
-                            }
-                        }
-#endif
-                    } else {
-                        if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
-                            PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
-                        } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
-                            FlowVarAddStr(p->flow, pe->capidx, (uint8_t *)str_ptr, ret);
-                        }
+                    if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
+                        PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
+                    } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
+                        FlowVarAddStr(p->flow, pe->capidx, (uint8_t *)str_ptr, ret);
                     }
                 }
             }
@@ -359,8 +310,23 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
         SCLogDebug("pcre had matching error");
         ret = 0;
     }
-
     SCReturnInt(ret);
+}
+
+/**
+ * \brief DetectPcreMatch will try to match a regex on a single packet;
+ *        DetectPcreALMatch is used if we parse the option 'P'
+ *
+ * \param t pointer to the threadvars structure
+ * \param t pointer to the threadvars structure
+ *
+ * \retval 1: match ; 0 No Match; -1: error
+ */
+int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+                     Signature *s, SigMatch *sm)
+{
+    SCEnter();
+    SCReturnInt(DetectPcreDoMatch(det_ctx,p,s,sm));
 }
 
 DetectPcreData *DetectPcreParse (char *regexstr)
@@ -591,7 +557,7 @@ error:
 
 }
 
-int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *regexstr)
+int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *regexstr)
 {
     DetectPcreData *pd = NULL;
     SigMatch *sm = NULL;
@@ -617,7 +583,7 @@ int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *r
         pcre_need_htp_request_body = 1;
     }
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPayload(s,sm);
 
     return 0;
 

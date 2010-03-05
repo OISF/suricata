@@ -95,6 +95,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr);
  */
 int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Packet *p, Signature *s, SigMatch *m);
+int DetectBytetestDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *, uint8_t *, uint32_t);
 
 #endif /* __DETECT_BYTETEST_H__ */
 

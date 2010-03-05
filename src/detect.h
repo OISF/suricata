@@ -169,7 +169,9 @@ typedef struct Signature_ {
     DetectPort *sp, *dp;
 
     /** ptr to the SigMatch list */
-    struct SigMatch_ *match;
+    struct SigMatch_ *match; /* non-payload matches */
+    struct SigMatch_ *pmatch; /* payload matches */
+    struct SigMatch_ *pmatch_tail; /* payload matches */
     /** ptr to the next sig in the list */
     struct Signature_ *next;
 
@@ -344,8 +346,9 @@ enum {
   */
 typedef struct DetectionEngineThreadCtx_ {
     /* detection engine variables */
+    /** \todo rename & comment */
     uint8_t *pkt_ptr; /* ptr to the current position in the pkt */
-    uint16_t pkt_off;
+    uint32_t pkt_off;
     uint8_t pkt_cnt;
 
     char de_checking_distancewithin;
@@ -399,6 +402,13 @@ typedef struct DetectionEngineThreadCtx_ {
      * thread can dump the packets once it has processed them */
     Tmq *cuda_mpm_rc_disp_outq;
 #endif
+
+    uint64_t scans_match;
+    uint64_t scans_sigs;
+    uint64_t scans_sigsmin25;
+    uint64_t scans_sigsplus100;
+    uint64_t scans_sigsplus1000;
+    uint64_t scans_sigsmax;
 } DetectEngineThreadCtx;
 
 /** \brief a single match condition for a signature */

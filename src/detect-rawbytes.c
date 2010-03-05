@@ -26,30 +26,20 @@ void DetectRawbytesRegister (void) {
 
 int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
 {
-    //printf("DetectRawbytesSetup: s->match:%p,m:%p\n", s->match, m);
-
     if (nullstr != NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
         return -1;
     }
 
-    SigMatch *pm = m;
+    if (s->pmatch_tail == NULL)
+        return -1;
+
+    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
     if (pm != NULL) {
-#if 0
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-            printf("DetectRawbytesSetup: set depth %" PRIu32 " for previous pcre\n", pe->depth);
-        } else 
-#endif
         if (pm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
-            //printf("DetectRawbytesSetup: set nocase for previous content\n");
             cd->flags |= DETECT_CONTENT_RAWBYTES;
-        } else {
-            SCLogDebug("Unknown previous keyword!");
         }
-    } else {
-        SCLogDebug("No previous match!");
     }
 
     return 0;

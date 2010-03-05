@@ -126,6 +126,11 @@ static inline void B2gEndMatchAppend(MpmCtx *mpm_ctx, B2gPattern *p,
         m = m->next;
         SCLogDebug("m %p m->sig_id %"PRIu32"", m, m->sig_id);
     }
+    p->em_len++;
+
+    if (p->flags & B2G_SCAN) {
+        //BUG_ON(p->em_len > 500);
+    }
 }
 
 #ifdef PRINTMATCH
@@ -389,6 +394,7 @@ static inline int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, 
             if (mpm_ctx->search_minlen == 0) mpm_ctx->search_minlen = patlen;
             else if (mpm_ctx->search_minlen > patlen) mpm_ctx->search_minlen = patlen;
         }
+#if 0
     } else {
         /* if we're reusing a pattern, check we need to check that it is a
          * scan pattern if that is what we're adding. If so we set the pattern
@@ -405,6 +411,7 @@ static inline int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, 
             if (mpm_ctx->scan_minlen == 0) mpm_ctx->scan_minlen = patlen;
             else if (mpm_ctx->scan_minlen > patlen) mpm_ctx->scan_minlen = patlen;
         }
+#endif
     }
 
     /* we need a match */
@@ -433,13 +440,15 @@ int B2gAddScanPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
 int B2gAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
     uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid)
 {
-    return B2gAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */1, /* scan */0, pid, sid, 0);
+return 0;
+//    return B2gAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */1, /* scan */0, pid, sid, 0);
 }
 
 int B2gAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
     uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid)
 {
-    return B2gAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */0, /* scan */0, pid, sid, 0);
+return 0;
+//    return B2gAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */0, /* scan */0, pid, sid, 0);
 }
 
 static inline uint32_t B2gBloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
@@ -492,6 +501,8 @@ static void B2gPrepareScanHash(MpmCtx *mpm_ctx) {
         /* ignore patterns that don't have the scan flag set */
         if (!(ctx->parray[i]->flags & B2G_SCAN))
             continue;
+
+        //BUG_ON(ctx->parray[i]->em_len > 500);
 
         if(ctx->parray[i]->len == 1) {
             idx8 = (uint8_t)ctx->parray[i]->ci[0];
@@ -1889,14 +1900,14 @@ static int B2gTestInit01 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B2G, -1);
     B2gCtx *ctx = (B2gCtx *)mpm_ctx.ctx;
 
-    B2gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0); /* 1 match */
+    B2gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
 
     B2gPreparePatterns(&mpm_ctx);
 
-    if (ctx->search_m == 4)
+    if (ctx->scan_m == 4)
         result = 1;
     else
-        printf("4 != %" PRIu32 " ", ctx->search_m);
+        printf("4 != %" PRIu32 " ", ctx->scan_m);
 
     B2gDestroyCtx(&mpm_ctx);
     return result;
@@ -2590,7 +2601,7 @@ static int B2gTestScan21 (void) {
     B2gDestroyCtx(&mpm_ctx);
     return result;
 }
-
+#if 0
 static int B2gTestSearch01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
@@ -2935,6 +2946,7 @@ static int B2gTestSearch12 (void) {
     B2gDestroyCtx(&mpm_ctx);
     return result;
 }
+#endif
 #endif /* UNITTESTS */
 
 void B2gRegisterTests(void) {
@@ -2968,7 +2980,7 @@ void B2gRegisterTests(void) {
     UtRegisterTest("B2gTestScan19", B2gTestScan19, 1);
     UtRegisterTest("B2gTestScan20", B2gTestScan20, 1);
     UtRegisterTest("B2gTestScan21", B2gTestScan21, 1);
-
+#if 0
     UtRegisterTest("B2gTestSearch01", B2gTestSearch01, 1);
     UtRegisterTest("B2gTestSearch02", B2gTestSearch02, 1);
     UtRegisterTest("B2gTestSearch03", B2gTestSearch03, 1);
@@ -2981,6 +2993,7 @@ void B2gRegisterTests(void) {
     UtRegisterTest("B2gTestSearch10", B2gTestSearch10, 1);
     UtRegisterTest("B2gTestSearch11", B2gTestSearch11, 1);
     UtRegisterTest("B2gTestSearch12", B2gTestSearch12, 1);
+#endif
 #endif /* UNITTESTS */
 }
 

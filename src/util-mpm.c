@@ -167,7 +167,7 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
     /* check depth */
     if (em->depth && (offset+patlen) > em->depth)
         return 0;
-
+#if 0
     /* ok all checks passed, now append the match */
     MpmMatch *m;
     /* pull a match from the spare list */
@@ -205,7 +205,7 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
     }
 
     BUG_ON(m == m->qnext);
-
+#endif
     if (pmq != NULL) {
         /* make sure we only append a sig with a matching pattern once,
          * so we won't inspect it more than once. For this we keep a
@@ -224,7 +224,7 @@ MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
         }
     }
 
-    SCLogDebug("len %" PRIu32 " (offset %" PRIu32 ")", mb->len, m->offset);
+//    SCLogDebug("len %" PRIu32 " (offset %" PRIu32 ")", mb->len, m->offset);
     return 1;
 }
 

@@ -3689,7 +3689,7 @@ int WmTestSearch20Hash16 (void) {
     WmDestroyCtx(&mpm_ctx);
     return result;
 }
-
+#if 0
 int WmTestSearch21 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
@@ -3993,6 +3993,7 @@ static int WmTestSearch22Hash16 (void) {
     WmDestroyCtx(&mpm_ctx);
     return result;
 }
+#endif
 #endif /* UNITTESTS */
 
 void WmRegisterTests(void) {
@@ -4017,7 +4018,7 @@ void WmRegisterTests(void) {
     UtRegisterTest("WmTestPrepare04", WmTestPrepare01, 1);
     UtRegisterTest("WmTestPrepare05", WmTestPrepare02, 1);
     UtRegisterTest("WmTestPrepare06", WmTestPrepare03, 1);
-
+#if 0
     UtRegisterTest("WmTestSearch01", WmTestSearch01, 1);
     UtRegisterTest("WmTestSearch01Hash12", WmTestSearch01Hash12, 1);
     UtRegisterTest("WmTestSearch01Hash14", WmTestSearch01Hash14, 1);
@@ -4071,6 +4072,7 @@ void WmRegisterTests(void) {
     UtRegisterTest("WmTestSearch22Hash14", WmTestSearch22Hash14, 1);
     UtRegisterTest("WmTestSearch22Hash15", WmTestSearch22Hash15, 1);
     UtRegisterTest("WmTestSearch22Hash16", WmTestSearch22Hash16, 1);
+#endif
 #endif /* UNITTESTS */
 }
 

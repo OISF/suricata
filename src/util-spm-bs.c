@@ -12,10 +12,10 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+#include "util-debug.h"
+
 #include "util-spm-bs.h"
-#include <time.h>
-#include <limits.h>
-#include <string.h>
+
 
 /**
  * \brief Basic search improved. Limits are better handled, so
@@ -29,34 +29,46 @@
  * \retval ptr to start of the match; NULL if no match
  */
 inline uint8_t *BasicSearch(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *needle, uint32_t needle_len) {
+    SCEnter();
+
     const uint8_t *h, *n;
     const uint8_t *hmax = haystack + haystack_len;
     const uint8_t *nmax = needle + needle_len;
 
-    if (needle_len == 0 || needle_len > haystack_len)
-        return NULL;
+    if (needle_len == 0 || needle_len > haystack_len) {
+        SCReturnPtr(NULL, "uint8_t");
+    }
+
+    //PrintRawDataFp(stdout,needle,needle_len);
+
+    //PrintRawDataFp(stdout,haystack,haystack_len);
 
     for (n = needle; nmax - n <= hmax - haystack; haystack++) {
         if (*haystack != *n) {
             continue;
         }
+
+        SCLogDebug("*haystack == *n, %c == %c", *haystack, *n);
+
         /* one byte needles */
-        if (needle_len == 1)
-            return (uint8_t *)haystack;
+        if (needle_len == 1) {
+            SCReturnPtr((uint8_t *)haystack, "uint8_t");
+        }
 
         for (h = haystack+1, n++; nmax - n <= hmax - haystack; h++, n++) {
             if (*h != *n) {
                 break;
             }
+            SCLogDebug("*haystack == *n, %c == %c", *haystack, *n);
             /* if we run out of needle we fully matched */
             if (n == nmax - 1) {
-                return (uint8_t *)haystack;
+                SCReturnPtr((uint8_t *)haystack, "uint8_t");
             }
         }
         n = needle;
     }
 
-    return NULL;
+    SCReturnPtr(NULL, "uint8_t");
 }
 
 /**

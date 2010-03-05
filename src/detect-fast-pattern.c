@@ -44,7 +44,7 @@ void DetectFastPatternRegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                            char *null_str)
 {
     if (null_str != NULL && strcmp(null_str, "") != 0) {
@@ -53,23 +53,21 @@ int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
         return -1;
     }
 
-    if (m == NULL) {
+    if (s->pmatch_tail == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside the "
                      "rule, without any preceding keywords");
         return -1;
     }
 
-    if (m->type != DETECT_CONTENT) {
-        m = SigMatchGetLastSM(s, DETECT_CONTENT);
-        if (m == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
-                    "the rule, without a content context. Please use a "
-                    "content keyword before using fast pattern");
-            return -1;
-        }
+    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    if (pm == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
+                "the rule, without a content context. Please use a "
+                "content keyword before using fast pattern");
+        return -1;
     }
 
-    ((DetectContentData *)m->ctx)->flags |= DETECT_CONTENT_FAST_PATTERN;
+    ((DetectContentData *)pm->ctx)->flags |= DETECT_CONTENT_FAST_PATTERN;
 
     return 0;
 }
@@ -103,7 +101,7 @@ int DetectFastPatternTest01(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->match;
+    sm = de_ctx->sig_list->pmatch;
     while (sm != NULL) {
         if (sm->type == DETECT_CONTENT) {
             if ( ((DetectContentData *)sm->ctx)->flags &
@@ -145,7 +143,7 @@ int DetectFastPatternTest02(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->match;
+    sm = de_ctx->sig_list->pmatch;
     while (sm != NULL) {
         if (sm->type == DETECT_CONTENT) {
             if (((DetectContentData *)sm->ctx)->flags &
@@ -186,7 +184,7 @@ int DetectFastPatternTest03(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->match;
+    sm = de_ctx->sig_list->pmatch;
     while (sm != NULL) {
         if (sm->type == DETECT_CONTENT) {
             if ( !(((DetectContentData *)sm->ctx)->flags &
@@ -264,8 +262,10 @@ int DetectFastPatternTest05(void)
                                "content:string2; content:strings3; fast_pattern; "
                                "content:strings_str4; content:strings_string5; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL)
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
         goto end;
+    }
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);

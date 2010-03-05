@@ -300,6 +300,7 @@ int UTHGenericTest(Packet **pkt, int numpkts, char *sigs[], uint32_t sids[], uin
     if (de_ctx == NULL) {
         goto end;
     }
+    de_ctx->flags |= DE_QUIET;
 
     if (UTHAppendSigs(de_ctx, sigs, numsigs) == 0)
         goto cleanup;
@@ -505,7 +506,7 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type) {
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        result=0;
+        printf("de_ctx == NULL: ");
         goto end;
     }
 
@@ -514,20 +515,20 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type) {
 
     de_ctx->sig_list = SigInit(de_ctx, sig);
     if (de_ctx->sig_list == NULL) {
-        result = 0;
+        printf("signature == NULL: ");
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, de_ctx->sig_list->id) != 1) {
-        result = 0;
+        printf("signature didn't alert: ");
         goto end;
     }
 
+    result = 1;
 end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);

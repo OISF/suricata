@@ -24,7 +24,7 @@ void DetectNocaseRegister (void) {
     sigmatch_table[DETECT_NOCASE].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
+int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *nullstr)
 {
     int ret = 0;
 
@@ -33,8 +33,11 @@ int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
         return -1;
     }
 
-    SigMatch *pm = m;
-    for (; pm != NULL; pm = pm->prev) {
+    if (s->pmatch_tail == NULL)
+        return -1;
+
+    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    if (pm != NULL) {
         if (pm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
             //printf("DetectNocaseSetup: set nocase for previous content\n");

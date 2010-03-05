@@ -415,7 +415,7 @@ error:
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                            char *contentstr)
 {
     SCEnter();
@@ -434,13 +434,13 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_URICONTENT;
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPayload(s,sm);
 
     cd->id = de_ctx->uricontent_max_id;
     de_ctx->uricontent_max_id++;
 
     /* Flagged the signature as to scan the app layer data */
-    s->flags |=SIG_FLAG_APPLAYER;
+    s->flags |= SIG_FLAG_APPLAYER;
 
     SCReturnInt(0);
 
@@ -874,7 +874,9 @@ int DetectUriSigTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    sm = de_ctx->sig_list->match;
+    BUG_ON(de_ctx->sig_list == NULL);
+
+    sm = de_ctx->sig_list->pmatch;
     if (sm->type == DETECT_URICONTENT) {
         result = 1;
     } else {
