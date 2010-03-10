@@ -53,6 +53,7 @@ typedef struct andxcount_ {
     uint8_t isandx;
     uint8_t paddingparsed;
     uint8_t andxcommand;
+    uint8_t maxchainedandx;
     uint16_t andxoffset;
     uint16_t andxbytesprocessed;
     uint16_t datalength;

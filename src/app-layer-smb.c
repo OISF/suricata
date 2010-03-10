@@ -718,6 +718,7 @@ static uint32_t NBSSParseHeader(Flow *f, void *smb_state,
             case 0:
                 /* Initialize */
                 sstate->andx.andxcommand = SMB_NO_SECONDARY_ANDX_COMMAND;
+                sstate->andx.maxchainedandx = 5;
                 if (input_len >= NBSS_HDR_LEN) {
                     sstate->nbss.type = *p;
                     sstate->nbss.length = (*(p + 1) & 0x01) << 16;
@@ -996,11 +997,11 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         sstate->bytesprocessed = 0;
                         SCReturnInt(-1);
                     }
-                }
-                SCLogDebug("[3] WordCount SMB Header (%u/%u) Command 0x%02x WordCount %u parsed %"PRIu64" input_len %u\n",
+                    SCLogDebug("[3] WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u\n",
 				sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1,
-                        sstate->smb.command, sstate->wordcount.wordcount,
+                        sstate->wordcount.wordcount,
                         parsed, input_len);
+                }
 
                 while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN
                             + SMB_HDR_LEN + 1 && sstate->bytesprocessed < NBSS_HDR_LEN
@@ -1015,11 +1016,11 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         sstate->bytesprocessed = 0;
                         SCReturnInt(-1);
                     }
-                }
-                SCLogDebug("[4] Parsing WordCount SMB Header (%u/%u) Command 0x%02x WordCount %u parsed %"PRIu64" input_len %u\n",
+                    SCLogDebug("[4] Parsing WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u\n",
 						sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount,
-                                        sstate->smb.command, sstate->wordcount.wordcount,
+                                        sstate->wordcount.wordcount,
                                         parsed, input_len);
+                }
 
                 while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN
                             + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount
@@ -1035,6 +1036,10 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         sstate->bytesprocessed = 0;
                         SCReturnInt(-1);
                     }
+                    SCLogDebug("[5] ByteCount (%u/%u) ByteCount %u parsed %"PRIu64" input_len %u\n",
+						sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 3,
+                                           sstate->bytecount.bytecount,
+                                           parsed, input_len);
                 }
 
                 while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN
@@ -1052,16 +1057,16 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         sstate->bytesprocessed = 0;
                         SCReturnInt(-1);
                     }
+                    SCLogDebug("[6] Parsing ByteCount (%u/%u) ByteCount %u parsed %"PRIu64" input_len %u\n",
+									sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount + 2 + sstate->bytecount.bytecount,
+                                                                          sstate->bytecount.bytecount, parsed, input_len);
                 }
-                SCLogDebug("[6] ByteCount SMB Header (%u/%u) Command 0x%02x WordCount %u ByteCount %u parsed %"PRIu64" input_len %u\n",
-							sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount + 2 + sstate->bytecount.bytecount,
-                                                       sstate->smb.command, sstate->wordcount.wordcount,
-                                                       sstate->bytecount.bytecount, parsed, input_len);
 
             } while (sstate->andx.andxcommand != SMB_NO_SECONDARY_ANDX_COMMAND
-                    && input_len);
+                    && input_len && sstate->andx.maxchainedandx--);
 
-            if (sstate->bytesprocessed >= sstate->nbss.length + NBSS_HDR_LEN) {
+            if (sstate->bytesprocessed >= sstate->nbss.length + NBSS_HDR_LEN ||
+			sstate->andx.maxchainedandx == 0) {
 		sstate->bytesprocessed = 0;
             }
             break;
