@@ -79,6 +79,7 @@
 #include "detect-dce-opnum.h"
 #include "detect-dce-stub-data.h"
 #include "detect-urilen.h"
+#include "detect-detection-filter.h"
 
 #include "util-rule-vars.h"
 
@@ -2910,6 +2911,7 @@ void SigTableSetup(void) {
     DetectHttpMethodRegister();
     DetectTlsVersionRegister();
     DetectUrilenRegister();
+    DetectDetectionFilterRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

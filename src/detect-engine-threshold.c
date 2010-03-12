@@ -78,7 +78,7 @@ DetectThresholdData *SigGetThresholdType(Signature *sig, Packet *p)
         return NULL;
 
     while (sm != NULL) {
-        if (sm->type == DETECT_THRESHOLD) {
+        if (sm->type == DETECT_THRESHOLD  || sm->type == DETECT_DETECTION_FILTER) {
             tsh = (DetectThresholdData *)sm->ctx;
             return tsh;
         }
@@ -354,6 +354,34 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
                     ThresholdHashAdd(de_ctx,ste,p);
                     ste = NULL;
                 }
+            }
+            break;
+        }
+        /* detection_filter */
+        case TYPE_DETECTION:
+        {
+            SCLogDebug("detection_filter");
+
+            lookup_tsh = ThresholdHashSearch(de_ctx,ste,p);
+            if (lookup_tsh != NULL) {
+                if ((ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                    lookup_tsh->current_count++;
+                    if (lookup_tsh->current_count >= td->count) {
+                        PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                    }
+                } else {
+                    lookup_tsh->tv_sec1 = ts.tv_sec;
+                    lookup_tsh->current_count = 1;
+                }
+            } else {
+                ste->current_count = 1;
+                ste->tv_sec1 = ts.tv_sec;
+
+                if (td->count == 1) {
+                    PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                }
+                ThresholdHashAdd(de_ctx, ste, p);
+                ste = NULL;
             }
             break;
         }

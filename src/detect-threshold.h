@@ -14,6 +14,7 @@
 #define TYPE_LIMIT     1
 #define TYPE_BOTH      2
 #define TYPE_THRESHOLD 3
+#define TYPE_DETECTION 4
 
 #define TRACK_DST      1
 #define TRACK_SRC      2
@@ -24,7 +25,7 @@
  */
 
 typedef struct DetectThresholdData_ {
-    uint8_t type;       /**< Threshold type : limit , threshold, both */
+    uint8_t type;       /**< Threshold type : limit , threshold, both, detection_filter */
     uint8_t track;      /**< Track type: by_src, by_src */
     uint32_t count;     /**< Event count */
     uint32_t seconds;   /**< Event seconds */
