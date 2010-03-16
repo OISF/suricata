@@ -18,19 +18,21 @@
 
 /** Enum map for the various OS flavours */
 SCEnumCharMap sc_hinfo_os_policy_map[ ] = {
-    { "none",       OS_POLICY_NONE },
-    { "bsd",        OS_POLICY_BSD },
-    { "old_linux",  OS_POLICY_OLD_LINUX },
-    { "linux",      OS_POLICY_LINUX },
-    { "solaris",    OS_POLICY_SOLARIS },
-    { "hpux10",     OS_POLICY_HPUX10 },
-    { "hpux11",     OS_POLICY_HPUX11 },
-    { "irix",       OS_POLICY_IRIX },
-    { "macos",      OS_POLICY_MACOS },
-    { "windows",    OS_POLICY_WINDOWS },
-    { "vista",      OS_POLICY_VISTA },
-    { "windows2k3", OS_POLICY_WINDOWS2K3 },
-    { NULL,         -1 },
+    { "none",        OS_POLICY_NONE },
+    { "bsd",         OS_POLICY_BSD },
+    { "bsd_right",   OS_POLICY_BSD_RIGHT },
+    { "old_linux",   OS_POLICY_OLD_LINUX },
+    { "linux",       OS_POLICY_LINUX },
+    { "old_solaris", OS_POLICY_OLD_SOLARIS },
+    { "solaris",     OS_POLICY_SOLARIS },
+    { "hpux10",      OS_POLICY_HPUX10 },
+    { "hpux11",      OS_POLICY_HPUX11 },
+    { "irix",        OS_POLICY_IRIX },
+    { "macos",       OS_POLICY_MACOS },
+    { "windows",     OS_POLICY_WINDOWS },
+    { "vista",       OS_POLICY_VISTA },
+    { "windows2k3",  OS_POLICY_WINDOWS2K3 },
+    { NULL,          -1 },
 };
 
 /** Radix tree that holds the host OS information */
@@ -992,6 +994,7 @@ int SCHInfoTestLoadFromConfig01(void)
 %YAML 1.1\n\
 ---\n\
 host-os-policy:\n\
+  bsd: [0.0.0.0/0]\n\
   windows: [10.0.0.0/8, 192.168.1.0/24]\n\
   linux: [10.0.0.5/32]\n\
 \n";
@@ -1006,6 +1009,8 @@ host-os-policy:\n\
     if (SCHInfoGetHostOSFlavour("10.0.0.5") != OS_POLICY_LINUX)
         return 0;
     if (SCHInfoGetHostOSFlavour("192.168.1.1") != OS_POLICY_WINDOWS)
+        return 0;
+    if (SCHInfoGetHostOSFlavour("172.168.1.1") != OS_POLICY_BSD)
         return 0;
 
     ConfDeInit();

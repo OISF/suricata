@@ -447,6 +447,11 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
             stream->os_policy = OS_POLICY_DEFAULT;
     }
 
+    if (stream->os_policy == OS_POLICY_BSD_RIGHT)
+        stream->os_policy = OS_POLICY_BSD;
+    else if (stream->os_policy == OS_POLICY_OLD_SOLARIS)
+        stream->os_policy = OS_POLICY_SOLARIS;
+
     SCLogDebug("Policy is %"PRIu8"", stream->os_policy);
 
 }

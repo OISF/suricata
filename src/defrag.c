@@ -32,6 +32,9 @@
 #include "util-debug.h"
 #include "util-fix_checksum.h"
 #include "util-random.h"
+#include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
+#include "util-host-os-info.h"
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
@@ -57,15 +60,15 @@
 
 /** Fragment reassembly policies. */
 enum defrag_policies {
-    POLICY_FIRST = 0,
-    POLICY_LAST,
-    POLICY_BSD,
-    POLICY_BSD_RIGHT,
-    POLICY_LINUX,
-    POLICY_WINDOWS,
-    POLICY_SOLARIS,
+    DEFRAG_POLICY_FIRST = 1,
+    DEFRAG_POLICY_LAST,
+    DEFRAG_POLICY_BSD,
+    DEFRAG_POLICY_BSD_RIGHT,
+    DEFRAG_POLICY_LINUX,
+    DEFRAG_POLICY_WINDOWS,
+    DEFRAG_POLICY_SOLARIS,
 
-    POLICY_DEFAULT = POLICY_BSD,
+    DEFRAG_POLICY_DEFAULT = DEFRAG_POLICY_BSD,
 };
 
 /**
@@ -797,7 +800,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
             next = TAILQ_NEXT(prev, next);
 
             switch (tracker->policy) {
-            case POLICY_BSD:
+            case DEFRAG_POLICY_BSD:
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset >= prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
@@ -812,7 +815,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                     goto insert;
                 }
                 break;
-            case POLICY_LINUX:
+            case DEFRAG_POLICY_LINUX:
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset > prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
@@ -827,7 +830,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                     goto insert;
                 }
                 break;
-            case POLICY_WINDOWS:
+            case DEFRAG_POLICY_WINDOWS:
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset >= prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
@@ -839,7 +842,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                     goto insert;
                 }
                 break;
-            case POLICY_SOLARIS:
+            case DEFRAG_POLICY_SOLARIS:
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset >= prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
@@ -851,7 +854,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                     goto insert;
                 }
                 break;
-            case POLICY_FIRST:
+            case DEFRAG_POLICY_FIRST:
                 if ((frag_offset >= prev->offset) &&
                     (frag_end <= prev->offset + prev->data_len))
                     goto done;
@@ -862,7 +865,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                     goto insert;
                 }
                 break;
-            case POLICY_LAST:
+            case DEFRAG_POLICY_LAST:
                 if (frag_offset <= prev->offset) {
                     if (frag_end > prev->offset)
                         prev->ltrim = frag_end - prev->offset;
@@ -986,6 +989,72 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     }
 }
 
+/**
+ * \brief Get the defrag policy based on the destination address of
+ * the packet.
+ *
+ * \param p The packet used to get the destination address.
+ *
+ * \retval The defrag policy to use.
+ */
+static uint8_t
+DefragGetOsPolicy(Packet *p, uint8_t default_policy)
+{
+    uint8_t policy;
+
+    if (PKT_IS_IPV4(p)) {
+        policy = SCHInfoGetIPv4HostOSFlavour((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
+    }
+    else if (PKT_IS_IPV6(p)) {
+        policy = SCHInfoGetIPv6HostOSFlavour((uint8_t *)GET_IPV6_DST_ADDR(p));
+    }
+    else
+        policy = default_policy;
+
+    /* Map the OS policies returned from the configured host info to
+     * defrag specific policies. */
+    switch (policy) {
+        /* BSD. */
+    case OS_POLICY_BSD:
+    case OS_POLICY_HPUX10:
+    case OS_POLICY_IRIX:
+        return DEFRAG_POLICY_BSD;
+
+        /* BSD-Right. */
+    case OS_POLICY_BSD_RIGHT:
+        return DEFRAG_POLICY_BSD_RIGHT;
+
+        /* Linux. */
+    case OS_POLICY_OLD_LINUX:
+    case OS_POLICY_LINUX:
+        return DEFRAG_POLICY_LINUX;
+
+        /* First. */
+    case OS_POLICY_OLD_SOLARIS:
+    case OS_POLICY_HPUX11:
+    case OS_POLICY_MACOS:
+    case OS_POLICY_FIRST:
+        return DEFRAG_POLICY_FIRST;
+
+        /* Solaris. */
+    case OS_POLICY_SOLARIS:
+        return DEFRAG_POLICY_SOLARIS;
+
+        /* Windows. */
+    case OS_POLICY_WINDOWS:
+    case OS_POLICY_VISTA:
+    case OS_POLICY_WINDOWS2K3:
+        return DEFRAG_POLICY_WINDOWS;
+
+        /* Last. */
+    case OS_POLICY_LAST:
+        return DEFRAG_POLICY_LAST;
+
+    default:
+        return default_policy;
+    }
+}
+
 static DefragTracker *
 DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     DefragTracker *lookup_key, Packet *p)
@@ -1014,9 +1083,7 @@ DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
         tracker->id = lookup_key->id;
         tracker->src_addr = lookup_key->src_addr;
         tracker->dst_addr = lookup_key->dst_addr;
-
-        /* XXX Do policy lookup. */
-        tracker->policy = dc->default_policy;
+        tracker->policy = DefragGetOsPolicy(p, dc->default_policy);
 
         if (HashListTableAdd(dc->frag_table, tracker, sizeof(*tracker)) != 0) {
             /* Failed to add new tracker. */
@@ -1905,7 +1972,7 @@ DefragSturgesNovakBsdTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(POLICY_BSD, expected, sizeof(expected));
+    return DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected, sizeof(expected));
 }
 
 static int
@@ -1939,7 +2006,7 @@ IPV6DefragSturgesNovakBsdTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(POLICY_BSD, expected, sizeof(expected));
+    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected, sizeof(expected));
 }
 
 static int
@@ -1973,7 +2040,7 @@ DefragSturgesNovakLinuxTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(POLICY_LINUX, expected, sizeof(expected));
+    return DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected, sizeof(expected));
 }
 
 static int
@@ -2007,7 +2074,7 @@ IPV6DefragSturgesNovakLinuxTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(POLICY_LINUX, expected,
+    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected,
         sizeof(expected));
 }
 
@@ -2042,7 +2109,7 @@ DefragSturgesNovakWindowsTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(POLICY_WINDOWS, expected, sizeof(expected));
+    return DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected, sizeof(expected));
 }
 
 static int
@@ -2076,7 +2143,7 @@ IPV6DefragSturgesNovakWindowsTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(POLICY_WINDOWS, expected,
+    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected,
         sizeof(expected));
 }
 
@@ -2111,7 +2178,7 @@ DefragSturgesNovakSolarisTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(POLICY_SOLARIS, expected, sizeof(expected));
+    return DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected, sizeof(expected));
 }
 
 static int
@@ -2145,7 +2212,7 @@ IPV6DefragSturgesNovakSolarisTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(POLICY_SOLARIS, expected,
+    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected,
         sizeof(expected));
 }
 
@@ -2180,7 +2247,7 @@ DefragSturgesNovakFirstTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(POLICY_FIRST, expected, sizeof(expected));
+    return DefragDoSturgesNovakTest(DEFRAG_POLICY_FIRST, expected, sizeof(expected));
 }
 
 static int
@@ -2214,7 +2281,7 @@ IPV6DefragSturgesNovakFirstTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(POLICY_FIRST, expected,
+    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_FIRST, expected,
         sizeof(expected));
 }
 
@@ -2249,7 +2316,7 @@ DefragSturgesNovakLastTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(POLICY_LAST, expected, sizeof(expected));
+    return DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected, sizeof(expected));
 }
 
 static int
@@ -2283,7 +2350,7 @@ IPV6DefragSturgesNovakLastTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(POLICY_LAST, expected,
+    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected,
         sizeof(expected));
 }
 

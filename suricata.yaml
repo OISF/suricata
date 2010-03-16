@@ -365,16 +365,21 @@ vars:
 
     SSH_PORTS: 22
 
+# Host specific policies for defragmentation and TCP stream
+# reassembly.  The host OS lookup is done using a radix tree, just
+# like a routing table so the most specific entry matches.
 host-os-policy:
-
+  # Make the default policy windows.
+  windows: [0.0.0.0/0]
   bsd: []
+  bsd_right: []
   old_linux: []
   linux: [10.0.0.0/8, 192.168.1.100, "8762:2352:6241:7245:E000:0000:0000:0000"]
+  old_solaris: []
   solaris: ["::1"]
   hpux10: []
   hpux11: []
   irix: []
   macos: []
-  windows: [192.168.1.0/24, 192.168.2.0/24]
   vista: []
   windows2k3: []
