@@ -29,7 +29,7 @@ static pcre_extra *parse_regex_study;
 /*prototypes*/
 int DetectUrilenMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                        uint8_t flags, void *state, Signature *s, SigMatch *m);
-int DetectUrilenSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectUrilenSetup (DetectEngineCtx *, Signature *, char *);
 void DetectUrilenFree (void *);
 void DetectUrilenRegisterTests (void);
 
@@ -261,14 +261,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param urilenstr pointer to the user provided urilen options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                       char *urilenstr)
+static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urilenstr)
 {
     SCEnter();
     DetectUrilenData *urilend = NULL;

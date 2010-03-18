@@ -31,7 +31,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectRpcMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectRpcSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+int DetectRpcSetup (DetectEngineCtx *, Signature *, char *);
 void DetectRpcRegisterTests(void);
 void DetectRpcFree(void *);
 
@@ -250,7 +250,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rpcstr)
+int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, char *rpcstr)
 {
     DetectRpcData *rd = NULL;
     SigMatch *sm = NULL;

@@ -1,4 +1,6 @@
-/** Copyright (c) 2009 Open Information Security Foundation.
+/* Copyright (c) 2009 Open Information Security Foundation. */
+
+/** \file
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
@@ -21,7 +23,7 @@
 static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
 
-int DetectClasstypeSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectClasstypeSetup(DetectEngineCtx *, Signature *, char *);
 void DetectClasstypeRegisterTests(void);
 
 /**
@@ -125,14 +127,12 @@ static inline SCClassConfClasstype *DetectClasstypeGetClasstypeInfo(const char *
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  * \param s      Pointer the current Signature instance that is being parsed.
- * \param m      Pointer to the previous SigMatch.
  * \param rawstr Pointer to the argument supplied to the classtype keyword.
  *
  * \retval  0 On success
  * \retval -1 On failure
  */
-int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
-                         char *rawstr)
+static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     const char *parsed_ct_name = NULL;
     SCClassConfClasstype *ct = NULL;

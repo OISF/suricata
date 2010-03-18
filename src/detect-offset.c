@@ -11,7 +11,7 @@
 
 #include "util-debug.h"
 
-int DetectOffsetSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *offsetstr);
+static int DetectOffsetSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectOffsetRegister (void) {
     sigmatch_table[DETECT_OFFSET].name = "offset";
@@ -23,12 +23,10 @@ void DetectOffsetRegister (void) {
     sigmatch_table[DETECT_OFFSET].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *offsetstr)
+int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
 {
     char *str = offsetstr;
     char dubbed = 0;
-
-    //printf("DetectOffsetSetup: s->match:%p,m:%p,offsetstr:\'%s\'\n", s->match, m, offsetstr);
 
     /* strip "'s */
     if (offsetstr[0] == '\"' && offsetstr[strlen(offsetstr)-1] == '\"') {

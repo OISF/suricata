@@ -5,7 +5,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 
-int DetectSidSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);
+static int DetectSidSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectSidRegister (void) {
     sigmatch_table[DETECT_SID].name = "sid";
@@ -15,7 +15,7 @@ void DetectSidRegister (void) {
     sigmatch_table[DETECT_SID].RegisterTests = NULL;
 }
 
-int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *sidstr)
+static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
 {
     char *str = sidstr;
     char dubbed = 0;

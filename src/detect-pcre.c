@@ -55,7 +55,7 @@ uint8_t pcre_need_htp_request_body = 0;
 
 int DetectPcreMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
-int DetectPcreSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectPcreSetup (DetectEngineCtx *, Signature *, char *);
 void DetectPcreFree(void *);
 void DetectPcreRegisterTests(void);
 
@@ -555,7 +555,7 @@ error:
 
 }
 
-int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *regexstr)
+static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexstr)
 {
     DetectPcreData *pd = NULL;
     SigMatch *sm = NULL;

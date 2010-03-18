@@ -29,7 +29,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectFlowMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectFlowSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectFlowSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFlowRegisterTests(void);
 void DetectFlowFree(void *);
 
@@ -251,13 +251,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param flowstr pointer to the user provided flow options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *flowstr)
+int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
 {
     DetectFlowData *fd = NULL;
     SigMatch *sm = NULL;

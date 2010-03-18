@@ -25,7 +25,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectFragOffsetMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFragOffsetRegisterTests(void);
 void DetectFragOffsetFree(void *);
 
@@ -184,13 +184,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param fragoffsetstr pointer to the user provided fragoffset option
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *fragoffsetstr) {
+static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *fragoffsetstr) {
     DetectFragOffsetData *fragoff = NULL;
     SigMatch *sm = NULL;
 

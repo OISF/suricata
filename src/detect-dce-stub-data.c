@@ -26,7 +26,7 @@
 
 int DetectDceStubDataMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
                            void *, Signature *, SigMatch *);
-int DetectDceStubDataSetup(DetectEngineCtx *, Signature *s, SigMatch *m, char *arg);
+static int DetectDceStubDataSetup(DetectEngineCtx *, Signature *, char *);
 
 /**
  * \brief Registers the keyword handlers for the "dce_stub_data" keyword.
@@ -82,15 +82,12 @@ int DetectDceStubDataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
  * \param de_ctx Pointer to the detection engine context
  * \param s      Pointer to signature for the current Signature being parsed
  *               from the rules
- * \param m      Pointer to the head of the SigMatchs for the current rule
- *               being parsed
  * \param arg    Pointer to the string holding the keyword value
  *
  * \retval 0 on success, -1 on failure
  */
 
-int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                           char *arg)
+static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     SigMatch *sm = NULL;
 
@@ -122,7 +119,7 @@ static int DetectDceStubDataTestParse01(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectDceStubDataSetup(NULL, &s, NULL, NULL) == 0);
+    result = (DetectDceStubDataSetup(NULL, &s, NULL) == 0);
 
     if (s.match != NULL) {
         result = 1;

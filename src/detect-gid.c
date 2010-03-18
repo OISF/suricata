@@ -20,7 +20,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectGidSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectGidSetup (DetectEngineCtx *, Signature *, char *);
 
 /**
  * \brief Registration function for gid: keyword
@@ -103,18 +103,17 @@ static uint32_t DetectGidParse (char *rawstr)
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param rawstr pointer to the user provided gid options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     s->gid = DetectGidParse(rawstr);
 
     if(s->gid > 0)
-    return 0;
+        return 0;
 
     return -1;
 }

@@ -11,7 +11,7 @@
 
 #include "util-debug.h"
 
-int DetectRawbytesSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectRawbytesSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectRawbytesRegister (void) {
     sigmatch_table[DETECT_RAWBYTES].name = "rawbytes";
@@ -24,7 +24,7 @@ void DetectRawbytesRegister (void) {
     sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
+int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
 {
     if (nullstr != NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");

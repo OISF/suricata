@@ -1,7 +1,7 @@
 /* RECURSIVE part of the detection engine.
  *
  * Used to capture variables recursively in a payload,
- * used for example to extract http_uri for uricontent. 
+ * used for example to extract http_uri for uricontent.
  *
  * Note: non Snort compatible. */
 
@@ -10,7 +10,7 @@
 #include "detect.h"
 #include "flow-var.h"
 
-int DetectRecursiveSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectRecursiveSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectRecursiveRegister (void) {
     sigmatch_table[DETECT_RECURSIVE].name = "recursive";
@@ -22,17 +22,14 @@ void DetectRecursiveRegister (void) {
     sigmatch_table[DETECT_RECURSIVE].flags |= SIGMATCH_NOOPT;
 }
 
-int DetectRecursiveSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
+static int DetectRecursiveSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
 {
-    //printf("DetectRecursiveSetup: s->match:%p,m:%p\n", s->match, m);
-
     if (nullstr != NULL) {
         printf("DetectRecursiveSetup: recursive has no value\n");
         return -1;
     }
 
     s->flags |= SIG_FLAG_RECURSIVE;
-
     return 0;
 }
 

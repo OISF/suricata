@@ -3,7 +3,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 
-int DetectReferenceSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectReferenceSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectReferenceRegister (void) {
     sigmatch_table[DETECT_REFERENCE].name = "reference";
@@ -13,7 +13,7 @@ void DetectReferenceRegister (void) {
     sigmatch_table[DETECT_REFERENCE].RegisterTests = NULL;
 }
 
-int DetectReferenceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+int DetectReferenceSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     char *str = rawstr;
     char dubbed = 0;

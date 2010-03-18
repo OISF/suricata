@@ -1,4 +1,6 @@
-/** Copyright (c) 2009 Open Information Security Foundation.
+/* Copyright (c) 2009 Open Information Security Foundation. */
+
+/** \file
  *  \author Victor Julien <victor@inliniac.net>
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
@@ -17,7 +19,7 @@
 static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
 
-int DetectPrioritySetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *sidstr);
+static int DetectPrioritySetup (DetectEngineCtx *, Signature *, char *);
 void SCPriorityRegisterTests(void);
 
 /**
@@ -52,7 +54,7 @@ void DetectPriorityRegister (void)
     return;
 }
 
-int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     const char *prio_str = NULL;
 

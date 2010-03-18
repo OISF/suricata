@@ -8,7 +8,7 @@
 #include "detect-pcre.h"
 #include "util-debug.h"
 
-int DetectDepthSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *depthstr);
+static int DetectDepthSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectDepthRegister (void) {
     sigmatch_table[DETECT_DEPTH].name = "depth";
@@ -20,12 +20,10 @@ void DetectDepthRegister (void) {
     sigmatch_table[DETECT_DEPTH].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *depthstr)
+static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depthstr)
 {
     char *str = depthstr;
     char dubbed = 0;
-
-    //printf("DetectDepthSetup: s->match:%p,m:%p,depthstr:\'%s\'\n", s->match, m, depthstr);
 
     /* strip "'s */
     if (depthstr[0] == '\"' && depthstr[strlen(depthstr)-1] == '\"') {

@@ -23,7 +23,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectIcmpSeqMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectIcmpSeqSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectIcmpSeqSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIcmpSeqRegisterTests(void);
 void DetectIcmpSeqFree(void *);
 
@@ -183,13 +183,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param icmpseqstr pointer to the user provided icmp_seq option
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *icmpseqstr) {
+static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, char *icmpseqstr) {
     DetectIcmpSeqData *iseq = NULL;
     SigMatch *sm = NULL;
 

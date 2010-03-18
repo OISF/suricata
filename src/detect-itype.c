@@ -1,6 +1,6 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
 /**
- * Copyright (c) 2009 Open Information Security Foundation
- *
  * \file detect-itype.c
  * \author Gerardo Iglesias <iglesiasg@gmail.com>
  *
@@ -29,7 +29,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectITypeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectITypeSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectITypeSetup(DetectEngineCtx *, Signature *, char *);
 void DetectITypeRegisterTests(void);
 void DetectITypeFree(void *);
 
@@ -199,13 +199,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param itypestr pointer to the user provided itype options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *itypestr) {
+static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *itypestr) {
 
     DetectITypeData *itd = NULL;
     SigMatch *sm = NULL;

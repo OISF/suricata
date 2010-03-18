@@ -22,13 +22,12 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-static int DetectAckSetup(DetectEngineCtx *, Signature *s, SigMatch *m,
-                          char *sidstr);
-static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, SigMatch *m);
+/* prototypes */
+static int DetectAckSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectAckMatch(ThreadVars *, DetectEngineThreadCtx *,
+                          Packet *, Signature *, SigMatch *);
 static void DetectAckRegisterTests(void);
-static void DetectAckFree(void *ptr);
-
+static void DetectAckFree(void *);
 
 void DetectAckRegister(void) {
     sigmatch_table[DETECT_ACK].name = "ack";
@@ -75,13 +74,10 @@ static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s,
-                          SigMatch *notused, char *optstr)
+static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     DetectAckData *data;
     SigMatch *sm = NULL;
-
-    //printf("DetectAckSetup: \'%s\'\n", optstr);
 
     data = SCMalloc(sizeof(DetectAckData));
     if (data == NULL) {

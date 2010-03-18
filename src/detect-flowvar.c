@@ -22,7 +22,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectFlowvarSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectFlowvarRegister (void) {
     sigmatch_table[DETECT_FLOWVAR].name = "flowvar";
@@ -82,7 +82,7 @@ int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     return ret;
 }
 
-int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
+static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectFlowvarData *cd = NULL;
     SigMatch *sm = NULL;
@@ -116,8 +116,6 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused
         }
         varcontent = (char *)str_ptr;
     }
-
-    //printf("DetectFlowvarSetup: varname %s, varcontent %s\n", varname, varcontent);
 
     if (varcontent[0] == '\"' && varcontent[strlen(varcontent)-1] == '\"') {
         str = SCStrdup(varcontent+1);

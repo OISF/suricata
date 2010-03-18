@@ -425,14 +425,17 @@ typedef struct SigMatch_ {
 
 /** \brief element in sigmatch type table. */
 typedef struct SigTableElmt_ {
-    /** Packet match function */
+    /** Packet match function pointer */
     int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-    /** AppLayer match function */
-    int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);
-    uint16_t alproto; /**< app layer proto from app-layer-protos.h this match
-                           applies to */
 
-    int (*Setup)(DetectEngineCtx *, Signature *, SigMatch *, char *);
+    /** AppLayer match function  pointer */
+    int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);
+    /** app layer proto from app-layer-protos.h this match applies to */
+    uint16_t alproto;
+
+    /** keyword setup function pointer */
+    int (*Setup)(DetectEngineCtx *, Signature *, char *);
+
     void (*Free)(void *);
     void (*RegisterTests)(void);
 

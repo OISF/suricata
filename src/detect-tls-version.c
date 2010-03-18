@@ -1,6 +1,6 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
 /**
- * Copyright (c) 2009 Open Information Security Foundation
- *
  * \file
  * \author Victor Julien <victor@inliniac.net>
  */
@@ -38,7 +38,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
-int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, char *);
 void DetectTlsVersionRegisterTests(void);
 void DetectTlsVersionFree(void *);
 
@@ -201,13 +201,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param idstr pointer to the user provided "id" option
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *str)
+static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     DetectTlsVersionData *tls = NULL;
     SigMatch *sm = NULL;

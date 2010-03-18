@@ -43,14 +43,12 @@ void DetectBytejumpRegister (void);
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param optstr pointer to the user provided options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s,
-                        SigMatch *m, char *optstr);
+int DetectBytejumpSetup(DetectEngineCtx *, Signature *, char *);
 
 /**
  * \brief this function will free memory associated with DetectBytejumpData

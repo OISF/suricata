@@ -1,7 +1,7 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
 /**
- * Copyright (c) 2009 Open Information Security Foundation
- *
- * \file detect-icmp-id.c
+ * \file
  * \author Gerardo Iglesias Galvan <iglesiasg@gmail.com>
  *
  * "icmp_id" keyword support
@@ -26,7 +26,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectIcmpIdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIcmpIdRegisterTests(void);
 void DetectIcmpIdFree(void *);
 
@@ -183,13 +183,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param icmpidstr pointer to the user provided icmp_id option
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *icmpidstr) {
+static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, char *icmpidstr) {
     DetectIcmpIdData *iid = NULL;
     SigMatch *sm = NULL;
 

@@ -1,5 +1,6 @@
-/* DSIZE part of the detection engine. */
 /* Copyright (c) 2009 Open Information Security Foundation */
+
+/* DSIZE part of the detection engine. */
 
 /** \file
  *  \author Victor Julien <victor@inliniac.net>
@@ -27,7 +28,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectDsizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectDsizeSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, char *str);
 void DsizeRegisterTests(void);
 static void DetectDsizeFree(void *);
 
@@ -221,13 +222,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param rawstr pointer to the user provided flags options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
+static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectDsizeData *dd = NULL;
     SigMatch *sm = NULL;

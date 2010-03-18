@@ -28,7 +28,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectFlowbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectFlowbitSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFlowbitFree (void *);
 void FlowBitsRegisterTests(void);
 
@@ -133,7 +133,7 @@ int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     return 0;
 }
 
-int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
+int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectFlowbitsData *cd = NULL;
     SigMatch *sm = NULL;

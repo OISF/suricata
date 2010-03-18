@@ -481,13 +481,10 @@ error:
     return NULL;
 }
 
-int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s,
-                        SigMatch *notused, char *optstr)
+int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     DetectBytejumpData *data = NULL;
     SigMatch *sm = NULL;
-
-    //printf("DetectBytejumpSetup: \'%s\'\n", optstr);
 
     data = DetectBytejumpParse(optstr);
     if (data == NULL) goto error;

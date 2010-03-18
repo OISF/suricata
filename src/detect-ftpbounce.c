@@ -30,7 +30,7 @@ int DetectFtpbounceMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                           Signature *, SigMatch *);
 int DetectFtpbounceALMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
                            uint8_t, void *, Signature *, SigMatch *);
-int DetectFtpbounceSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectFtpbounceSetup(DetectEngineCtx *, Signature *, char *);
 int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
                              uint32_t ip_orig, uint16_t offset);
 void DetectFtpbounceRegisterTests(void);
@@ -44,7 +44,6 @@ void DetectFtpbounceRegister(void)
 {
     sigmatch_table[DETECT_FTPBOUNCE].name = "ftpbounce";
     sigmatch_table[DETECT_FTPBOUNCE].Setup = DetectFtpbounceSetup;
-    //sigmatch_table[DETECT_FTPBOUNCE].Match = DetectFtpbounceMatch;
     sigmatch_table[DETECT_FTPBOUNCE].Match = NULL;
     sigmatch_table[DETECT_FTPBOUNCE].AppLayerMatch = DetectFtpbounceALMatch;
     sigmatch_table[DETECT_FTPBOUNCE].alproto = ALPROTO_FTP;
@@ -219,8 +218,7 @@ int DetectFtpbounceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s,
-        SigMatch *notused, char *ftpbouncestr)
+int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, char *ftpbouncestr)
 {
     SigMatch *sm = NULL;
 
@@ -257,13 +255,12 @@ int DetectFtpbounceTestSetup01(void)
 {
     int res = 0;
     DetectEngineCtx *de_ctx = NULL;
-    SigMatch *m = NULL;
     Signature *s = SigAlloc();
     if (s == NULL)
         return 0;
 
     /* ftpbounce doesn't accept options so the str is NULL */
-    res = !DetectFtpbounceSetup(de_ctx, s, m, NULL);
+    res = !DetectFtpbounceSetup(de_ctx, s, NULL);
     res &= s->match != NULL && s->match->type & DETECT_FTPBOUNCE;
 
     SigFree(s);

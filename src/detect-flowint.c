@@ -30,7 +30,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectFlowintMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                         Signature *, SigMatch *);
-int DetectFlowintSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectFlowintSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFlowintFree(void *);
 void DetectFlowintRegisterTests(void);
 
@@ -324,14 +324,12 @@ error:
  *
  * \param de_ctx pointer to the engine context
  * \param s  pointer to the current Signature
- * \param m pointer to the sigmatch that we will cast into DetectFlowintData
  * \param rawstr pointer to the string holding the options
  *
  * \retval 0 if all is ok
  * \retval -1 if we find any problem
  */
-int DetectFlowintSetup(DetectEngineCtx *de_ctx,
-                        Signature *s, SigMatch *notused, char *rawstr)
+static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectFlowintData *sfd = NULL;
     SigMatch *sm = NULL;
@@ -347,7 +345,7 @@ int DetectFlowintSetup(DetectEngineCtx *de_ctx,
         goto error;
 
     sm->type = DETECT_FLOWINT;
-    sm->ctx =(void *) sfd;
+    sm->ctx = (void *)sfd;
 
     SigMatchAppendPacket(s, sm);
 

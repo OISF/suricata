@@ -1,4 +1,6 @@
-/** Copyright (c) 2009 Open Information Security Foundation.
+/* Copyright (c) 2009 Open Information Security Foundation. */
+
+/** \file
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
@@ -30,7 +32,7 @@ static pcre_extra *parse_regex_study = NULL;
 
 int DetectDceIfaceMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
                         void *, Signature *, SigMatch *);
-int DetectDceIfaceSetup(DetectEngineCtx *, Signature *s, SigMatch *m, char *arg);
+static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDceIfaceFree(void *);
 
 /**
@@ -310,15 +312,12 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
  * \param de_ctx Pointer to the detection engine context.
  * \param s      Pointer to signature for the current Signature being parsed
  *               from the rules.
- * \param m      Pointer to the head of the SigMatchs for the current rule
- *               being parsed.
  * \param arg    Pointer to the string holding the keyword value.
  *
  * \retval 0 on success, -1 on failure.
  */
 
-int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                        char *arg)
+static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     DetectDceIfaceData *did = NULL;
     SigMatch *sm = NULL;
@@ -369,7 +368,7 @@ static int DetectDceIfaceTestParse01(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -401,7 +400,7 @@ static int DetectDceIfaceTestParse02(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,>1") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -433,7 +432,7 @@ static int DetectDceIfaceTestParse03(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,<10") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<10") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -465,7 +464,7 @@ static int DetectDceIfaceTestParse04(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,!10") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,!10") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -497,7 +496,7 @@ static int DetectDceIfaceTestParse05(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,=10") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=10") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -529,7 +528,7 @@ static int DetectDceIfaceTestParse06(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,any_frag") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,any_frag") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -561,7 +560,7 @@ static int DetectDceIfaceTestParse07(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,>1,any_frag") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1,any_frag") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -593,7 +592,7 @@ static int DetectDceIfaceTestParse08(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,<1,any_frag") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<1,any_frag") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -625,7 +624,7 @@ static int DetectDceIfaceTestParse09(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,=1,any_frag") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=1,any_frag") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -657,7 +656,7 @@ static int DetectDceIfaceTestParse10(void)
     SigMatch *temp = NULL;
     int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,!1,any_frag") == 0);
+    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,!1,any_frag") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -684,15 +683,15 @@ static int DetectDceIfaceTestParse11(void)
     Signature *s = SigAlloc();
     int result = 1;
 
-    result &= (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,>1,ay_frag") == -1);
-    result &= (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-12345679ABC,>1,any_frag") == -1);
-    result &= (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-134-123456789ABC,>1,any_frag") == -1);
-    result &= (DetectDceIfaceSetup(NULL, s, NULL, "12345678-123-124-1234-123456789ABC,>1,any_frag") == -1);
-    result &= (DetectDceIfaceSetup(NULL, s, NULL, "1234568-1234-1234-1234-123456789ABC,>1,any_frag") == -1);
-    result &= (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,>65536,any_frag") == -1);
-    result &= (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,>=1,any_frag") == -1);
-    result &= (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,<0,any_frag") == -1);
-    result &= (DetectDceIfaceSetup(NULL, s, NULL, "12345678-1234-1234-1234-123456789ABC,>65535,any_frag") == -1);
+    result &= (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1,ay_frag") == -1);
+    result &= (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-12345679ABC,>1,any_frag") == -1);
+    result &= (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-134-123456789ABC,>1,any_frag") == -1);
+    result &= (DetectDceIfaceSetup(NULL, s, "12345678-123-124-1234-123456789ABC,>1,any_frag") == -1);
+    result &= (DetectDceIfaceSetup(NULL, s, "1234568-1234-1234-1234-123456789ABC,>1,any_frag") == -1);
+    result &= (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>65536,any_frag") == -1);
+    result &= (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>=1,any_frag") == -1);
+    result &= (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<0,any_frag") == -1);
+    result &= (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>65535,any_frag") == -1);
 
     SigFree(s);
     return result;

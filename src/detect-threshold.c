@@ -27,7 +27,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectThresholdMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-static int DetectThresholdSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectThresholdSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectThresholdFree(void *);
 
 /**
@@ -182,13 +182,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param rawstr pointer to the user provided threshold options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
+static int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectThresholdData *de = NULL;
     SigMatch *sm = NULL;

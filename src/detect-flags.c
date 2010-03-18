@@ -38,7 +38,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-static int DetectFlagsSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectFlagsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFlagsFree(void *);
 
 /**
@@ -424,7 +424,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
+static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectFlagsData *de = NULL;
     SigMatch *sm = NULL;

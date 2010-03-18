@@ -22,8 +22,7 @@
 
 static int DetectSameipMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                              Signature *, SigMatch *);
-static int DetectSameipSetup(DetectEngineCtx *, Signature *, SigMatch *,
-                             char *);
+static int DetectSameipSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectSameipRegisterTests(void);
 
 /**
@@ -63,14 +62,12 @@ static int DetectSameipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param optstr pointer to the user provided options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s,
-                             SigMatch *notused, char *optstr)
+static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     SigMatch *sm = NULL;
 

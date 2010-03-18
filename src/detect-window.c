@@ -30,7 +30,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectWindowMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectWindowSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+int DetectWindowSetup(DetectEngineCtx *, Signature *, char *);
 void DetectWindowRegisterTests(void);
 void DetectWindowFree(void *);
 
@@ -175,13 +175,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param windowstr pointer to the user provided window options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *windowstr)
+int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, char *windowstr)
 {
     DetectWindowData *wd = NULL;
     SigMatch *sm = NULL;

@@ -1,6 +1,6 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
 /**
- * Copyright (c) 2009 Open Information Security Foundation
- *
  * \file detect-icode.c
  * \author Gerardo Iglesias <iglesiasg@gmail.com>
  *
@@ -29,7 +29,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectICodeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectICodeSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectICodeSetup(DetectEngineCtx *, Signature *, char *);
 void DetectICodeRegisterTests(void);
 void DetectICodeFree(void *);
 
@@ -199,13 +199,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param icodestr pointer to the user provided icode options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *icodestr) {
+static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, char *icodestr) {
 
     DetectICodeData *icd = NULL;
     SigMatch *sm = NULL;

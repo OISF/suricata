@@ -28,7 +28,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectIpOptsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectIpOptsSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectIpOptsSetup (DetectEngineCtx *, Signature *, char *);
 void IpOptsRegisterTests(void);
 void DetectIpOptsFree(void *);
 
@@ -162,13 +162,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param rawstr pointer to the user provided ipopts options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
+static int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectIpOptsData *de = NULL;
     SigMatch *sm = NULL;

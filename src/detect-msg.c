@@ -10,8 +10,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
-
-int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *msgstr);
+static int DetectMsgSetup (DetectEngineCtx *, Signature *, char *);
 void DetectMsgRegisterTests(void);
 
 void DetectMsgRegister (void) {
@@ -22,7 +21,7 @@ void DetectMsgRegister (void) {
     sigmatch_table[DETECT_MSG].RegisterTests = DetectMsgRegisterTests;
 }
 
-int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *msgstr)
+static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
 {
     char *str = NULL;
     uint16_t len;

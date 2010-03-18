@@ -32,7 +32,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectIsdataatMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectIsdataatSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+int DetectIsdataatSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIsdataatRegisterTests(void);
 void DetectIsdataatFree(void *);
 
@@ -203,13 +203,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param isdataatstr pointer to the user provided isdataat options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *isdataatstr)
+int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatstr)
 {
     DetectIsdataatData *idad = NULL;
     SigMatch *sm = NULL;

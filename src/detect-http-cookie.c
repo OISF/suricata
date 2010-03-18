@@ -1,6 +1,7 @@
-/**Copyright (c) 2009 Open Information Security Foundation
- *
- * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+/* Copyright (c) 2009 Open Information Security Foundation */
+
+/** \file
+ *  \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  *
  */
 
@@ -33,7 +34,7 @@
 int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                            Flow *f, uint8_t flags, void *state, Signature *s,
                            SigMatch *m);
-int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, char *);
 void DetectHttpCookieRegisterTests(void);
 
 /**
@@ -144,15 +145,13 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \param de_ctx   Pointer to the Detection Engine Context
  * \param s        Pointer to the Signature to which the current keyword belongs
- * \param m        Pointer to the SigMatch
  * \param str      Should hold an empty string always
  *
  * \retval  0 On success
  * \retval -1 On failure
  */
 
-int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                           char *str)
+static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     DetectHttpCookieData *hd = NULL;
     SigMatch *sm = NULL;

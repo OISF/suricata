@@ -36,8 +36,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s,
-                        SigMatch *m, char *optstr);
+static int DetectIPProtoSetup(DetectEngineCtx *, Signature *, char *);
 static DetectIPProtoData *DetectIPProtoParse(const char *optstr);
 static void DetectIPProtoRegisterTests(void);
 
@@ -156,13 +155,11 @@ error:
  *
  * \param de_ctx Detection engine context
  * \param s Signature
- * \param m Signature match
  * \param optstr Options string
  *
  * \return Non-zero on error
  */
-static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s,
-                        SigMatch *m, char *optstr)
+static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     DetectIPProtoData *data = NULL;
     int ret = 0;

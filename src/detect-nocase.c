@@ -11,7 +11,7 @@
 
 #include "util-debug.h"
 
-int DetectNocaseSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *depthstr);
+static int DetectNocaseSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectNocaseRegister (void) {
     sigmatch_table[DETECT_NOCASE].name = "nocase";
@@ -24,7 +24,8 @@ void DetectNocaseRegister (void) {
     sigmatch_table[DETECT_NOCASE].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *nullstr)
+/** \todo uricontent needs fixing */
+static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
 {
     int ret = 0;
 

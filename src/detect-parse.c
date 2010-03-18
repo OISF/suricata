@@ -276,7 +276,7 @@ void SigParsePrepare(void) {
     }
 }
 
-int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *optstr) {
+static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr) {
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     int ret = 0, i = 0;
@@ -326,21 +326,10 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
     }
 
     /* setup may or may not add a new SigMatch to the list */
-    if (st->Setup(de_ctx, s, m, optvalue) < 0) {
+    if (st->Setup(de_ctx, s, optvalue) < 0) {
         SCLogDebug("\"%s\" failed to setup", st->name);
         goto error;
     }
-
-    /* thats why we check for that here
-     * (it may install more than one SigMatch!) */
-    if (m != NULL && m->next != NULL)
-        while (m != NULL && m->next != NULL)
-            m = m->next;
-    else if (m == NULL && s->match != NULL)
-            m = s->match;
-
-    while (m != NULL && m->next != NULL)
-        m = m->next;
 
     if (ret == 4 && optmore != NULL) {
         //printf("SigParseOptions: recursive call for more options... (s:%p,m:%p)\n", s, m);
@@ -350,7 +339,7 @@ int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *op
         if (optstr) SCFree(optstr);
         //if (optmore) pcre_free_substring(optmore);
         if (arr != NULL) SCFree(arr);
-        return SigParseOptions(de_ctx, s, m, optmore);
+        return SigParseOptions(de_ctx, s, optmore);
     }
 
     if (optname) pcre_free_substring(optname);
@@ -592,7 +581,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
 
     /* we can have no options, so make sure we have them */
     if (basics[CONFIG_OPTS] != NULL) {
-        ret = SigParseOptions(de_ctx, s, NULL, SCStrdup(basics[CONFIG_OPTS]));
+        ret = SigParseOptions(de_ctx, s, SCStrdup(basics[CONFIG_OPTS]));
         SCLogDebug("ret from SigParseOptions %d", ret);
     }
 

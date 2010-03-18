@@ -30,7 +30,7 @@ static pcre_extra *parse_regex_study = NULL;
 
 int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
                         void *, Signature *, SigMatch *);
-int DetectDceOpnumSetup(DetectEngineCtx *, Signature *s, SigMatch *m, char *arg);
+static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDceOpnumFree(void *);
 
 /**
@@ -267,15 +267,12 @@ int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
  * \param de_ctx Pointer to the detection engine context.
  * \param s      Pointer to signature for the current Signature being parsed
  *               from the rules.
- * \param m      Pointer to the head of the SigMatchs for the current rule
- *               being parsed.
  * \param arg    Pointer to the string holding the keyword value.
  *
  * \retval 0 on success, -1 on failure
  */
 
-int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                        char *arg)
+static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     DetectDceOpnumData *dod = NULL;
     SigMatch *sm = NULL;
@@ -336,13 +333,13 @@ static int DetectDceOpnumTestParse01(void)
 
     memset(s, 0, sizeof(Signature));
 
-    result = (DetectDceOpnumSetup(NULL, s, NULL, "12") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, NULL, "12,24") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, NULL, "12,12-24") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, NULL, "12-14,12,121,62-78") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, NULL, "12,26,62,61,6513-6666") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, NULL, "12,26,62,61,6513--") == -1);
-    result &= (DetectDceOpnumSetup(NULL, s, NULL, "12-14,12,121,62-8") == -1);
+    result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
+    result &= (DetectDceOpnumSetup(NULL, s, "12,24") == 0);
+    result &= (DetectDceOpnumSetup(NULL, s, "12,12-24") == 0);
+    result &= (DetectDceOpnumSetup(NULL, s, "12-14,12,121,62-78") == 0);
+    result &= (DetectDceOpnumSetup(NULL, s, "12,26,62,61,6513-6666") == 0);
+    result &= (DetectDceOpnumSetup(NULL, s, "12,26,62,61,6513--") == -1);
+    result &= (DetectDceOpnumSetup(NULL, s, "12-14,12,121,62-8") == -1);
 
     if (s->match != NULL) {
         SigFree(s);
@@ -362,7 +359,7 @@ static int DetectDceOpnumTestParse02(void)
 
     memset(s, 0, sizeof(Signature));
 
-    result = (DetectDceOpnumSetup(NULL, s, NULL, "12") == 0);
+    result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -389,7 +386,7 @@ static int DetectDceOpnumTestParse03(void)
 
     memset(s, 0, sizeof(Signature));
 
-    result = (DetectDceOpnumSetup(NULL, s, NULL, "12-24") == 0);
+    result = (DetectDceOpnumSetup(NULL, s, "12-24") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -416,7 +413,7 @@ static int DetectDceOpnumTestParse04(void)
 
     memset(s, 0, sizeof(Signature));
 
-    result = (DetectDceOpnumSetup(NULL, s, NULL, "12-24,24,62-72,623-635,62,25,213-235") == 0);
+    result = (DetectDceOpnumSetup(NULL, s, "12-24,24,62-72,623-635,62,25,213-235") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -480,7 +477,7 @@ static int DetectDceOpnumTestParse05(void)
 
     memset(s, 0, sizeof(Signature));
 
-    result = (DetectDceOpnumSetup(NULL, s, NULL, "1,2,3,4,5,6,7") == 0);
+    result = (DetectDceOpnumSetup(NULL, s, "1,2,3,4,5,6,7") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -544,7 +541,7 @@ static int DetectDceOpnumTestParse06(void)
 
     memset(s, 0, sizeof(Signature));
 
-    result = (DetectDceOpnumSetup(NULL, s, NULL, "1-2,3-4,5-6,7-8") == 0);
+    result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8") == 0);
 
     if (s->match != NULL) {
         temp = s->match;
@@ -591,7 +588,7 @@ static int DetectDceOpnumTestParse07(void)
 
     memset(s, 0, sizeof(Signature));
 
-    result = (DetectDceOpnumSetup(NULL, s, NULL, "1-2,3-4,5-6,7-8,9") == 0);
+    result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8,9") == 0);
 
     if (s->match != NULL) {
         temp = s->match;

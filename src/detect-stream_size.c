@@ -1,5 +1,7 @@
-/**Copyright (c) 2009 Open Information Security Foundation
- *
+/* Copyright (c) 2009 Open Information Security Foundation */
+
+/**
+ * \file
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  *
  * Stream size for the engine.
@@ -27,7 +29,7 @@ static pcre_extra *parse_regex_study;
 
 /*prototypes*/
 int DetectStreamSizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectStreamSizeSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectStreamSizeSetup (DetectEngineCtx *, Signature *, char *);
 void DetectStreamSizeFree(void *);
 void DetectStreamSizeRegisterTests(void);
 
@@ -291,13 +293,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param streamstr pointer to the user provided stream size options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *streamstr) {
+static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *streamstr) {
 
     DetectStreamSizeData *sd = NULL;
     SigMatch *sm = NULL;

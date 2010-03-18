@@ -3,7 +3,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 
-int DetectTagSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectTagSetup(DetectEngineCtx *, Signature *, char *);
 
 void DetectTagRegister (void) {
     sigmatch_table[DETECT_TAG].name = "tag";
@@ -13,7 +13,7 @@ void DetectTagRegister (void) {
     sigmatch_table[DETECT_TAG].RegisterTests = NULL;
 }
 
-int DetectTagSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+static int DetectTagSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     return 0;
 }

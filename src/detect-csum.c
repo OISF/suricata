@@ -20,43 +20,43 @@
 /* prototypes for the "ipv4-csum" rule keyword */
 int DetectIPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                         Signature *, SigMatch *);
-int DetectIPV4CsumSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectIPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIPV4CsumFree(void *);
 
 /* prototypes for the "tcpv4-csum" rule keyword */
 int DetectTCPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                          Signature *, SigMatch *);
-int DetectTCPV4CsumSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectTCPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectTCPV4CsumFree(void *);
 
 /* prototypes for the "tcpv6-csum" rule keyword */
 int DetectTCPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                          Signature *, SigMatch *);
-int DetectTCPV6CsumSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectTCPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectTCPV6CsumFree(void *);
 
 /* prototypes for the "udpv4-csum" rule keyword */
 int DetectUDPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                          Signature *, SigMatch *);
-int DetectUDPV4CsumSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectUDPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectUDPV4CsumFree(void *);
 
 /* prototypes for the "udpv6-csum" rule keyword */
 int DetectUDPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                          Signature *, SigMatch *);
-int DetectUDPV6CsumSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectUDPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectUDPV6CsumFree(void *);
 
 /* prototypes for the "icmpv4-csum" rule keyword */
 int DetectICMPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                          Signature *, SigMatch *);
-int DetectICMPV4CsumSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectICMPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectICMPV4CsumFree(void *);
 
 /* prototypes for the "icmpv6-csum" rule keyword */
 int DetectICMPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                          Signature *, SigMatch *);
-int DetectICMPV6CsumSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectICMPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectICMPV6CsumFree(void *);
 
 void DetectCsumRegisterTests(void);
@@ -225,14 +225,11 @@ int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \param de_ctx    Pointer to the detection engine context
  * \param s         Pointer to signature for the current Signature being parsed
  *                  from the rules
- * \param m         Pointer to the head of the SigMatchs for the current rule
- *                  being parsed
  * \param csum_str  Pointer to the string holding the keyword value
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                        char *csum_str)
+static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -322,14 +319,11 @@ int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \param de_ctx    Pointer to the detection engine context
  * \param s         Pointer to signature for the current Signature being parsed
  *                  from the rules
- * \param m         Pointer to the head of the SigMatchs for the current rule
- *                  being parsed
  * \param csum_str  Pointer to the string holding the keyword value
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                         char *csum_str)
+static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -419,14 +413,11 @@ int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \param de_ctx    Pointer to the detection engine context
  * \param s         Pointer to signature for the current Signature being parsed
  *                  from the rules
- * \param m         Pointer to the head of the SigMatchs for the current rule
- *                  being parsed
  * \param csum_str  Pointer to the string holding the keyword value
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                         char *csum_str)
+static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -516,14 +507,11 @@ int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \param de_ctx    Pointer to the detection engine context
  * \param s         Pointer to signature for the current Signature being parsed
  *                  from the rules
- * \param m         Pointer to the head of the SigMatchs for the current rule
- *                  being parsed
  * \param csum_str  Pointer to the string holding the keyword value
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                         char *csum_str)
+static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -613,14 +601,11 @@ int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \param de_ctx    Pointer to the detection engine context
  * \param s         Pointer to signature for the current Signature being parsed
  *                  from the rules
- * \param m         Pointer to the head of the SigMatchs for the current rule
- *                  being parsed
  * \param csum_str  Pointer to the string holding the keyword value
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                         char *csum_str)
+static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -709,14 +694,11 @@ int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \param de_ctx    Pointer to the detection engine context
  * \param s         Pointer to signature for the current Signature being parsed
  *                  from the rules
- * \param m         Pointer to the head of the SigMatchs for the current rule
- *                  being parsed
  * \param csum_str  Pointer to the string holding the keyword value
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                         char *csum_str)
+static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -805,19 +787,14 @@ int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \param de_ctx    Pointer to the detection engine context
  * \param s         Pointer to signature for the current Signature being parsed
  *                  from the rules
- * \param m         Pointer to the head of the SigMatchs for the current rule
- *                  being parsed
  * \param csum_str  Pointer to the string holding the keyword value
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                         char *csum_str)
+static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
-
-    //printf("DetectCsumSetup: \'%s\'\n", csum_str);
 
     sm = SigMatchAlloc();
     if (sm == NULL)
@@ -869,11 +846,11 @@ int DetectCsumIPV4ValidArgsTestParse01(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectIPV4CsumSetup(NULL, &s, NULL, "\"valid\"") == 0);
-    result &= (DetectIPV4CsumSetup(NULL, &s, NULL, "\"invalid\"") == 0);
-    result &= (DetectIPV4CsumSetup(NULL, &s, NULL, "\"vaLid\"") == 0);
-    result &= (DetectIPV4CsumSetup(NULL, &s, NULL, "\"VALID\"") == 0);
-    result &= (DetectIPV4CsumSetup(NULL, &s, NULL, "\"iNvaLid\"") == 0);
+    result = (DetectIPV4CsumSetup(NULL, &s, "\"valid\"") == 0);
+    result &= (DetectIPV4CsumSetup(NULL, &s, "\"invalid\"") == 0);
+    result &= (DetectIPV4CsumSetup(NULL, &s, "\"vaLid\"") == 0);
+    result &= (DetectIPV4CsumSetup(NULL, &s, "\"VALID\"") == 0);
+    result &= (DetectIPV4CsumSetup(NULL, &s, "\"iNvaLid\"") == 0);
 
     while (s.match != NULL) {
         DetectIPV4CsumFree(s.match->ctx);
@@ -893,11 +870,11 @@ int DetectCsumIPV4InValidArgsTestParse02(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectIPV4CsumSetup(NULL, &s, NULL, "vaid") == -1);
-    result &= (DetectIPV4CsumSetup(NULL, &s, NULL, "invaalid") == -1);
-    result &= (DetectIPV4CsumSetup(NULL, &s, NULL, "vaLiid") == -1);
-    result &= (DetectIPV4CsumSetup(NULL, &s, NULL, "VALieD") == -1);
-    result &= (DetectIPV4CsumSetup(NULL, &s, NULL, "iNvamid") == -1);
+    result = (DetectIPV4CsumSetup(NULL, &s, "vaid") == -1);
+    result &= (DetectIPV4CsumSetup(NULL, &s, "invaalid") == -1);
+    result &= (DetectIPV4CsumSetup(NULL, &s, "vaLiid") == -1);
+    result &= (DetectIPV4CsumSetup(NULL, &s, "VALieD") == -1);
+    result &= (DetectIPV4CsumSetup(NULL, &s, "iNvamid") == -1);
 
     while (s.match != NULL) {
         DetectIPV4CsumFree(s.match->ctx);
@@ -918,7 +895,7 @@ int DetectCsumIPV4ValidArgsTestParse03(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectIPV4CsumSetup(NULL, &s, NULL, "valid") == 0);
+    result = (DetectIPV4CsumSetup(NULL, &s, "valid") == 0);
 
     while (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -932,7 +909,7 @@ int DetectCsumIPV4ValidArgsTestParse03(void)
     }
     s.match = NULL;
 
-    result &= (DetectIPV4CsumSetup(NULL, &s, NULL, "INVALID") == 0);
+    result &= (DetectIPV4CsumSetup(NULL, &s, "INVALID") == 0);
 
     if (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -956,11 +933,11 @@ int DetectCsumICMPV4ValidArgsTestParse01(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectICMPV4CsumSetup(NULL, &s, NULL, "valid") == 0);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, NULL, "invalid") == 0);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, NULL, "vaLid") == 0);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, NULL, "VALID") == 0);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, NULL, "iNvaLid") == 0);
+    result = (DetectICMPV4CsumSetup(NULL, &s, "valid") == 0);
+    result &= (DetectICMPV4CsumSetup(NULL, &s, "invalid") == 0);
+    result &= (DetectICMPV4CsumSetup(NULL, &s, "vaLid") == 0);
+    result &= (DetectICMPV4CsumSetup(NULL, &s, "VALID") == 0);
+    result &= (DetectICMPV4CsumSetup(NULL, &s, "iNvaLid") == 0);
 
     while (s.match != NULL) {
         DetectICMPV4CsumFree(s.match->ctx);
@@ -979,11 +956,11 @@ int DetectCsumICMPV4InValidArgsTestParse02(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectICMPV4CsumSetup(NULL, &s, NULL, "vaid") == -1);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, NULL, "invaalid") == -1);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, NULL, "vaLiid") == -1);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, NULL, "VALieD") == -1);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, NULL, "iNvamid") == -1);
+    result = (DetectICMPV4CsumSetup(NULL, &s, "vaid") == -1);
+    result &= (DetectICMPV4CsumSetup(NULL, &s, "invaalid") == -1);
+    result &= (DetectICMPV4CsumSetup(NULL, &s, "vaLiid") == -1);
+    result &= (DetectICMPV4CsumSetup(NULL, &s, "VALieD") == -1);
+    result &= (DetectICMPV4CsumSetup(NULL, &s, "iNvamid") == -1);
 
     while (s.match != NULL) {
         DetectICMPV4CsumFree(s.match->ctx);
@@ -1003,7 +980,7 @@ int DetectCsumICMPV4ValidArgsTestParse03(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectICMPV4CsumSetup(NULL, &s, NULL, "valid") == 0);
+    result = (DetectICMPV4CsumSetup(NULL, &s, "valid") == 0);
 
     while (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1017,7 +994,7 @@ int DetectCsumICMPV4ValidArgsTestParse03(void) {
     }
     s.match = NULL;
 
-    result &= (DetectICMPV4CsumSetup(NULL, &s, NULL, "INVALID") == 0);
+    result &= (DetectICMPV4CsumSetup(NULL, &s, "INVALID") == 0);
 
     if (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1041,11 +1018,11 @@ int DetectCsumTCPV4ValidArgsTestParse01(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectTCPV4CsumSetup(NULL, &s, NULL, "valid") == 0);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, NULL, "invalid") == 0);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, NULL, "vaLid") == 0);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, NULL, "VALID") == 0);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, NULL, "iNvaLid") == 0);
+    result = (DetectTCPV4CsumSetup(NULL, &s, "valid") == 0);
+    result &= (DetectTCPV4CsumSetup(NULL, &s, "invalid") == 0);
+    result &= (DetectTCPV4CsumSetup(NULL, &s, "vaLid") == 0);
+    result &= (DetectTCPV4CsumSetup(NULL, &s, "VALID") == 0);
+    result &= (DetectTCPV4CsumSetup(NULL, &s, "iNvaLid") == 0);
 
     while (s.match != NULL) {
         DetectTCPV4CsumFree(s.match->ctx);
@@ -1064,11 +1041,11 @@ int DetectCsumTCPV4InValidArgsTestParse02(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectTCPV4CsumSetup(NULL, &s, NULL, "vaid") == -1);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, NULL, "invaalid") == -1);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, NULL, "vaLiid") == -1);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, NULL, "VALieD") == -1);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, NULL, "iNvamid") == -1);
+    result = (DetectTCPV4CsumSetup(NULL, &s, "vaid") == -1);
+    result &= (DetectTCPV4CsumSetup(NULL, &s, "invaalid") == -1);
+    result &= (DetectTCPV4CsumSetup(NULL, &s, "vaLiid") == -1);
+    result &= (DetectTCPV4CsumSetup(NULL, &s, "VALieD") == -1);
+    result &= (DetectTCPV4CsumSetup(NULL, &s, "iNvamid") == -1);
 
     while (s.match != NULL) {
         DetectTCPV4CsumFree(s.match->ctx);
@@ -1088,7 +1065,7 @@ int DetectCsumTCPV4ValidArgsTestParse03(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectTCPV4CsumSetup(NULL, &s, NULL, "valid") == 0);
+    result = (DetectTCPV4CsumSetup(NULL, &s, "valid") == 0);
 
     while (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1102,7 +1079,7 @@ int DetectCsumTCPV4ValidArgsTestParse03(void) {
     }
     s.match = NULL;
 
-    result &= (DetectTCPV4CsumSetup(NULL, &s, NULL, "INVALID") == 0);
+    result &= (DetectTCPV4CsumSetup(NULL, &s, "INVALID") == 0);
 
     if (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1126,11 +1103,11 @@ int DetectCsumUDPV4ValidArgsTestParse01(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectUDPV4CsumSetup(NULL, &s, NULL, "valid") == 0);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, NULL, "invalid") == 0);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, NULL, "vaLid") == 0);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, NULL, "VALID") == 0);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, NULL, "iNvaLid") == 0);
+    result = (DetectUDPV4CsumSetup(NULL, &s, "valid") == 0);
+    result &= (DetectUDPV4CsumSetup(NULL, &s, "invalid") == 0);
+    result &= (DetectUDPV4CsumSetup(NULL, &s, "vaLid") == 0);
+    result &= (DetectUDPV4CsumSetup(NULL, &s, "VALID") == 0);
+    result &= (DetectUDPV4CsumSetup(NULL, &s, "iNvaLid") == 0);
 
     while (s.match != NULL) {
         DetectUDPV4CsumFree(s.match->ctx);
@@ -1149,11 +1126,11 @@ int DetectCsumUDPV4InValidArgsTestParse02(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectUDPV4CsumSetup(NULL, &s, NULL, "vaid") == -1);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, NULL, "invaalid") == -1);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, NULL, "vaLiid") == -1);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, NULL, "VALieD") == -1);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, NULL, "iNvamid") == -1);
+    result = (DetectUDPV4CsumSetup(NULL, &s, "vaid") == -1);
+    result &= (DetectUDPV4CsumSetup(NULL, &s, "invaalid") == -1);
+    result &= (DetectUDPV4CsumSetup(NULL, &s, "vaLiid") == -1);
+    result &= (DetectUDPV4CsumSetup(NULL, &s, "VALieD") == -1);
+    result &= (DetectUDPV4CsumSetup(NULL, &s, "iNvamid") == -1);
 
     while (s.match != NULL) {
         DetectUDPV4CsumFree(s.match->ctx);
@@ -1173,7 +1150,7 @@ int DetectCsumUDPV4ValidArgsTestParse03(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectUDPV4CsumSetup(NULL, &s, NULL, "valid") == 0);
+    result = (DetectUDPV4CsumSetup(NULL, &s, "valid") == 0);
 
     while (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1187,7 +1164,7 @@ int DetectCsumUDPV4ValidArgsTestParse03(void) {
     }
     s.match = NULL;
 
-    result &= (DetectUDPV4CsumSetup(NULL, &s, NULL, "INVALID") == 0);
+    result &= (DetectUDPV4CsumSetup(NULL, &s, "INVALID") == 0);
 
     if (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1211,11 +1188,11 @@ int DetectCsumTCPV6ValidArgsTestParse01(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectTCPV6CsumSetup(NULL, &s, NULL, "valid") == 0);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, NULL, "invalid") == 0);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, NULL, "vaLid") == 0);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, NULL, "VALID") == 0);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, NULL, "iNvaLid") == 0);
+    result = (DetectTCPV6CsumSetup(NULL, &s, "valid") == 0);
+    result &= (DetectTCPV6CsumSetup(NULL, &s, "invalid") == 0);
+    result &= (DetectTCPV6CsumSetup(NULL, &s, "vaLid") == 0);
+    result &= (DetectTCPV6CsumSetup(NULL, &s, "VALID") == 0);
+    result &= (DetectTCPV6CsumSetup(NULL, &s, "iNvaLid") == 0);
 
     while (s.match != NULL) {
         DetectTCPV6CsumFree(s.match->ctx);
@@ -1234,11 +1211,11 @@ int DetectCsumTCPV6InValidArgsTestParse02(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectTCPV6CsumSetup(NULL, &s, NULL, "vaid") == -1);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, NULL, "invaalid") == -1);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, NULL, "vaLiid") == -1);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, NULL, "VALieD") == -1);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, NULL, "iNvamid") == -1);
+    result = (DetectTCPV6CsumSetup(NULL, &s, "vaid") == -1);
+    result &= (DetectTCPV6CsumSetup(NULL, &s, "invaalid") == -1);
+    result &= (DetectTCPV6CsumSetup(NULL, &s, "vaLiid") == -1);
+    result &= (DetectTCPV6CsumSetup(NULL, &s, "VALieD") == -1);
+    result &= (DetectTCPV6CsumSetup(NULL, &s, "iNvamid") == -1);
 
     while (s.match != NULL) {
         DetectTCPV6CsumFree(s.match->ctx);
@@ -1258,7 +1235,7 @@ int DetectCsumTCPV6ValidArgsTestParse03(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectTCPV6CsumSetup(NULL, &s, NULL, "valid") == 0);
+    result = (DetectTCPV6CsumSetup(NULL, &s, "valid") == 0);
 
     while (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1272,7 +1249,7 @@ int DetectCsumTCPV6ValidArgsTestParse03(void) {
     }
     s.match = NULL;
 
-    result &= (DetectTCPV6CsumSetup(NULL, &s, NULL, "INVALID") == 0);
+    result &= (DetectTCPV6CsumSetup(NULL, &s, "INVALID") == 0);
 
     if (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1296,11 +1273,11 @@ int DetectCsumUDPV6ValidArgsTestParse01(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectUDPV6CsumSetup(NULL, &s, NULL, "valid") == 0);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, NULL, "invalid") == 0);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, NULL, "vaLid") == 0);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, NULL, "VALID") == 0);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, NULL, "iNvaLid") == 0);
+    result = (DetectUDPV6CsumSetup(NULL, &s, "valid") == 0);
+    result &= (DetectUDPV6CsumSetup(NULL, &s, "invalid") == 0);
+    result &= (DetectUDPV6CsumSetup(NULL, &s, "vaLid") == 0);
+    result &= (DetectUDPV6CsumSetup(NULL, &s, "VALID") == 0);
+    result &= (DetectUDPV6CsumSetup(NULL, &s, "iNvaLid") == 0);
 
     while (s.match != NULL) {
         DetectUDPV6CsumFree(s.match->ctx);
@@ -1319,11 +1296,11 @@ int DetectCsumUDPV6InValidArgsTestParse02(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectUDPV6CsumSetup(NULL, &s, NULL, "vaid") == -1);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, NULL, "invaalid") == -1);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, NULL, "vaLiid") == -1);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, NULL, "VALieD") == -1);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, NULL, "iNvamid") == -1);
+    result = (DetectUDPV6CsumSetup(NULL, &s, "vaid") == -1);
+    result &= (DetectUDPV6CsumSetup(NULL, &s, "invaalid") == -1);
+    result &= (DetectUDPV6CsumSetup(NULL, &s, "vaLiid") == -1);
+    result &= (DetectUDPV6CsumSetup(NULL, &s, "VALieD") == -1);
+    result &= (DetectUDPV6CsumSetup(NULL, &s, "iNvamid") == -1);
 
     while (s.match != NULL) {
         DetectUDPV6CsumFree(s.match->ctx);
@@ -1343,7 +1320,7 @@ int DetectCsumUDPV6ValidArgsTestParse03(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectUDPV6CsumSetup(NULL, &s, NULL, "valid") == 0);
+    result = (DetectUDPV6CsumSetup(NULL, &s, "valid") == 0);
 
     while (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1357,7 +1334,7 @@ int DetectCsumUDPV6ValidArgsTestParse03(void) {
     }
     s.match = NULL;
 
-    result &= (DetectUDPV6CsumSetup(NULL, &s, NULL, "INVALID") == 0);
+    result &= (DetectUDPV6CsumSetup(NULL, &s, "INVALID") == 0);
 
     if (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1381,11 +1358,11 @@ int DetectCsumICMPV6ValidArgsTestParse01(void)
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectICMPV6CsumSetup(NULL, &s, NULL, "valid") == 0);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, NULL, "invalid") == 0);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, NULL, "vaLid") == 0);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, NULL, "VALID") == 0);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, NULL, "iNvaLid") == 0);
+    result = (DetectICMPV6CsumSetup(NULL, &s, "valid") == 0);
+    result &= (DetectICMPV6CsumSetup(NULL, &s, "invalid") == 0);
+    result &= (DetectICMPV6CsumSetup(NULL, &s, "vaLid") == 0);
+    result &= (DetectICMPV6CsumSetup(NULL, &s, "VALID") == 0);
+    result &= (DetectICMPV6CsumSetup(NULL, &s, "iNvaLid") == 0);
 
     while (s.match != NULL) {
         DetectICMPV6CsumFree(s.match->ctx);
@@ -1404,11 +1381,11 @@ int DetectCsumICMPV6InValidArgsTestParse02(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectICMPV6CsumSetup(NULL, &s, NULL, "vaid") == -1);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, NULL, "invaalid") == -1);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, NULL, "vaLiid") == -1);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, NULL, "VALieD") == -1);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, NULL, "iNvamid") == -1);
+    result = (DetectICMPV6CsumSetup(NULL, &s, "vaid") == -1);
+    result &= (DetectICMPV6CsumSetup(NULL, &s, "invaalid") == -1);
+    result &= (DetectICMPV6CsumSetup(NULL, &s, "vaLiid") == -1);
+    result &= (DetectICMPV6CsumSetup(NULL, &s, "VALieD") == -1);
+    result &= (DetectICMPV6CsumSetup(NULL, &s, "iNvamid") == -1);
 
     while (s.match != NULL) {
         DetectICMPV6CsumFree(s.match->ctx);
@@ -1428,7 +1405,7 @@ int DetectCsumICMPV6ValidArgsTestParse03(void) {
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectICMPV6CsumSetup(NULL, &s, NULL, "valid") == 0);
+    result = (DetectICMPV6CsumSetup(NULL, &s, "valid") == 0);
 
     while (s.match != NULL) {
         if (s.match->ctx != NULL) {
@@ -1442,7 +1419,7 @@ int DetectCsumICMPV6ValidArgsTestParse03(void) {
     }
     s.match = NULL;
 
-    result &= (DetectICMPV6CsumSetup(NULL, &s, NULL, "INVALID") == 0);
+    result &= (DetectICMPV6CsumSetup(NULL, &s, "INVALID") == 0);
 
     if (s.match != NULL) {
         if (s.match->ctx != NULL) {

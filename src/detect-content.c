@@ -52,7 +52,7 @@
 #include "threads.h"
 
 int DetectContentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectContentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectContentSetup (DetectEngineCtx *, Signature *, char *);
 void DetectContentRegisterTests(void);
 
 void DetectContentRegister (void) {
@@ -1410,7 +1410,7 @@ error:
  * \retval -1 if error
  * \retval 0 if all was ok
  */
-int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *contentstr)
+static int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
 {
     DetectContentData *cd = NULL;
     SigMatch *sm = NULL;

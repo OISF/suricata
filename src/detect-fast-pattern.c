@@ -15,7 +15,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 
-int DetectFastPatternSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectFastPatternSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFastPatternRegisterTests(void);
 
 /**
@@ -44,8 +44,7 @@ void DetectFastPatternRegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                           char *null_str)
+static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *null_str)
 {
     if (null_str != NULL && strcmp(null_str, "") != 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "DetectFastPatternSetup: fast_pattern "

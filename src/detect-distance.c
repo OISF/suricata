@@ -9,7 +9,7 @@
 #include "detect-pcre.h"
 #include "util-debug.h"
 
-int DetectDistanceSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *distancestr);
+static int DetectDistanceSetup(DetectEngineCtx *, Signature *, char *);
 
 void DetectDistanceRegister (void) {
     sigmatch_table[DETECT_DISTANCE].name = "distance";
@@ -21,7 +21,7 @@ void DetectDistanceRegister (void) {
     sigmatch_table[DETECT_DISTANCE].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *distancestr)
+static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *distancestr)
 {
     char *str = distancestr;
     char dubbed = 0;

@@ -25,7 +25,7 @@ static pcre_extra *parse_regex_study;
 
 /*prototypes*/
 int DetectTtlMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectTtlSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectTtlSetup (DetectEngineCtx *, Signature *, char *);
 void DetectTtlFree (void *);
 void DetectTtlRegisterTests (void);
 
@@ -220,13 +220,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param ttlstr pointer to the user provided ttl options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *ttlstr) {
+static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, char *ttlstr) {
 
     DetectTtlData *ttld = NULL;
     SigMatch *sm = NULL;

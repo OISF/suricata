@@ -5,7 +5,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 
-int DetectRevSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectRevSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectRevRegister (void) {
     sigmatch_table[DETECT_REV].name = "rev";
@@ -15,7 +15,7 @@ void DetectRevRegister (void) {
     sigmatch_table[DETECT_REV].RegisterTests = NULL;
 }
 
-int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     char *str = rawstr;
     char dubbed = 0;

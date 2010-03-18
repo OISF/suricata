@@ -1,6 +1,6 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
 /**
- * Copyright (c) 2009 Open Information Security Foundation
- *
  * \file
  * \author Brian Rectanus <brectanu@gmail.com>
  */
@@ -33,7 +33,7 @@
 
 int DetectHttpMethodMatch(ThreadVars *, DetectEngineThreadCtx *,
                           Flow *, uint8_t, void *, Signature *, SigMatch *);
-int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpMethodRegisterTests(void);
 void DetectHttpMethodFree(void *);
 
@@ -128,14 +128,12 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s      pointer to the Current Signature
- * \param m      pointer to the Current SigMatch
  * \param str    pointer to the user provided option string
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
-                          SigMatch *notused, char *str)
+static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
     DetectHttpMethodData *data = NULL;

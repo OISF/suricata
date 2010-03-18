@@ -38,7 +38,7 @@
 /* prototypes */
 int DetectUricontentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
                            Signature *, SigMatch *);
-int DetectUricontentSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectUricontentSetup (DetectEngineCtx *, Signature *, char *);
 void HttpUriRegisterTests(void);
 
 int DetectAppLayerUricontentMatch (ThreadVars *, DetectEngineThreadCtx *,
@@ -52,7 +52,6 @@ void DetectUricontentRegister (void)
 {
     sigmatch_table[DETECT_URICONTENT].name = "uricontent";
     sigmatch_table[DETECT_URICONTENT].AppLayerMatch = DetectAppLayerUricontentMatch;
-    //sigmatch_table[DETECT_URICONTENT].Match = DetectUricontentMatch;
     sigmatch_table[DETECT_URICONTENT].Match = NULL;
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = NULL;
@@ -406,14 +405,11 @@ error:
  * \param de_ctx    Pointer to the detection engine context
  * \param s         Pointer to signature for the current Signature being parsed
  *                  from the rules
- * \param m         Pointer to the head of the SigMatchs for the current rule
-*                  being parsed
  * \param contentstr  Pointer to the string holding the keyword value
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                           char *contentstr)
+int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
 {
     SCEnter();
 

@@ -1,7 +1,7 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
 /**
- * Copyright (c) 2009 Open Information Security Foundation
- *
- * \file detect-id.c
+ * \file
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  *
  * "id" keyword, IPv4 Identifier keyword, part of the detection engine.
@@ -34,7 +34,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectIdMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
                     Signature *, SigMatch *);
-int DetectIdSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectIdSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIdRegisterTests(void);
 void DetectIdFree(void *);
 
@@ -96,7 +96,7 @@ int DetectIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     }
 
     if (id_d->id == IPV4_GET_IPID(p)) {
-        SCLogDebug("detect-id: IPV4 Proto and matched with ip_id: %u.\n",
+        SCLogDebug("IPV4 Proto and matched with ip_id: %u.\n",
                     id_d->id);
         return 1;
     }
@@ -191,14 +191,12 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param idstr pointer to the user provided "id" option
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
-                    char *idstr)
+int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, char *idstr)
 {
     DetectIdData *id_d = NULL;
     SigMatch *sm = NULL;

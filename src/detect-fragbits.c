@@ -37,7 +37,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-static int DetectFragBitsSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFragBitsFree(void *);
 
 /**
@@ -255,7 +255,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
+static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectFragBitsData *de = NULL;
     SigMatch *sm = NULL;

@@ -13,7 +13,7 @@
 #include "detect-pcre.h"
 #include "util-debug.h"
 
-int DetectWithinSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *withinstr);
+static int DetectWithinSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectWithinRegister (void) {
     sigmatch_table[DETECT_WITHIN].name = "within";
@@ -25,7 +25,7 @@ void DetectWithinRegister (void) {
     sigmatch_table[DETECT_WITHIN].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *withinstr)
+static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withinstr)
 {
     char *str = withinstr;
     char dubbed = 0;
@@ -69,9 +69,6 @@ int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
      * (SigMatch) if we're dealing with chunks */
     if (cd->flags & DETECT_CONTENT_IS_CHUNK)
         DetectContentPropagateWithin(pm);
-
-    //DetectContentPrint(cd);
-    //printf("DetectWithinSetup: set within %" PRId32 " for previous content\n", cd->within);
 
     pm = DetectContentFindPrevApplicableSM(s->pmatch_tail->prev);
     if (pm == NULL) {

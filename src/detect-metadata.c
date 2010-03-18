@@ -3,7 +3,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 
-int DetectMetadataSetup (DetectEngineCtx *, Signature *s, SigMatch *m, char *str);
+static int DetectMetadataSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectMetadataRegister (void) {
     sigmatch_table[DETECT_METADATA].name = "metadata";
@@ -13,21 +13,8 @@ void DetectMetadataRegister (void) {
     sigmatch_table[DETECT_METADATA].RegisterTests = NULL;
 }
 
-int DetectMetadataSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+static int DetectMetadataSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
-    char *str = rawstr;
-    char dubbed = 0;
-
-    /* strip "'s */
-    if (rawstr[0] == '\"' && rawstr[strlen(rawstr)-1] == '\"') {
-        str = SCStrdup(rawstr+1);
-        str[strlen(rawstr)-2] = '\0';
-        dubbed = 1;
-    }
-
-    /* XXX */
-
-    if (dubbed) SCFree(str);
     return 0;
 }
 

@@ -4,7 +4,7 @@
 #include "detect.h"
 #include "util-debug.h"
 
-int DetectNoalertSetup (DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectNoalertSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectNoalertRegister (void) {
     sigmatch_table[DETECT_NOALERT].name = "noalert";
@@ -16,7 +16,7 @@ void DetectNoalertRegister (void) {
     sigmatch_table[DETECT_NOALERT].flags |= SIGMATCH_NOOPT;
 }
 
-int DetectNoalertSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *nullstr)
+static int DetectNoalertSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
 {
     if (nullstr != NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");

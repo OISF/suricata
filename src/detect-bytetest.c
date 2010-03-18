@@ -495,8 +495,7 @@ error:
     return NULL;
 }
 
-int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s,
-                        SigMatch *notused, char *optstr)
+int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     DetectBytetestData *data = NULL;
     SigMatch *sm = NULL;

@@ -23,12 +23,11 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 
-static int DetectSeqSetup(DetectEngineCtx *, Signature *s, SigMatch *m,
-                          char *sidstr);
-static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, SigMatch *m);
+static int DetectSeqSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectSeqMatch(ThreadVars *, DetectEngineThreadCtx *,
+                          Packet *, Signature *, SigMatch *);
 static void DetectSeqRegisterTests(void);
-static void DetectSeqFree(void *ptr);
+static void DetectSeqFree(void *);
 
 
 void DetectSeqRegister(void) {
@@ -70,19 +69,15 @@ static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
  * \param optstr pointer to the user provided options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s,
-                           SigMatch *notused, char *optstr)
+static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     DetectSeqData *data;
     SigMatch *sm = NULL;
-
-    //printf("DetectSeqSetup: \'%s\'\n", optstr);
 
     data = SCMalloc(sizeof(DetectSeqData));
     if (data == NULL) {
