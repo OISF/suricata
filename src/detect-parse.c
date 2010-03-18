@@ -158,8 +158,14 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
         if (m == old) {
             if (m == s->pmatch) {
                 s->pmatch = m->next;
+                if (m->next != NULL) {
+                    m->next->prev = NULL;
+                }
             } else {
                 pm->next = m->next;
+                if (m->next != NULL) {
+                    m->next->prev = pm;
+                }
             }
 
             if (m == s->pmatch_tail) {
@@ -172,6 +178,7 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
         pm = m;
     }
 
+    /* finally append the "new" sig match to the app layer list */
     SigMatchAppendAppLayer(s, new);
 }
 
