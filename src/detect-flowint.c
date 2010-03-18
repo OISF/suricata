@@ -331,7 +331,7 @@ error:
  * \retval -1 if we find any problem
  */
 int DetectFlowintSetup(DetectEngineCtx *de_ctx,
-                        Signature *s, SigMatch *m, char *rawstr)
+                        Signature *s, SigMatch *notused, char *rawstr)
 {
     DetectFlowintData *sfd = NULL;
     SigMatch *sm = NULL;
@@ -349,7 +349,7 @@ int DetectFlowintSetup(DetectEngineCtx *de_ctx,
     sm->type = DETECT_FLOWINT;
     sm->ctx =(void *) sfd;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

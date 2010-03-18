@@ -197,7 +197,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->uris)*100),
         (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->pkts_uri_scanned)*100));
 
-    SCLogInfo("%"PRIu64" sigs per scan match on avg needed inspection, total scans %"PRIu64", less than 25 sigs need inspect %"PRIu64", more than 100 sigs need inspect %"PRIu64", more than 1000 %"PRIu64" max %"PRIu64"", det_ctx->scans_sigs / det_ctx->scans_match, det_ctx->scans_match, det_ctx->scans_sigsmin25, det_ctx->scans_sigsplus100, det_ctx->scans_sigsplus1000, det_ctx->scans_sigsmax);
+    SCLogInfo("%"PRIu64" sigs per scan match on avg needed inspection, total scans %"PRIu64", less than 25 sigs need inspect %"PRIu64", more than 100 sigs need inspect %"PRIu64", more than 1000 %"PRIu64" max %"PRIu64"", det_ctx->scans_match ? det_ctx->scans_sigs / det_ctx->scans_match : 0, det_ctx->scans_match, det_ctx->scans_sigsmin25, det_ctx->scans_sigsplus100, det_ctx->scans_sigsplus1000, det_ctx->scans_sigsmax);
 }
 
 /** \brief Create the path if default-rule-path was specified
@@ -612,11 +612,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SCMutexUnlock(&p->flow->m);
 
         /* only consider uri sigs if we've seen at least one match */
-        /** \warn when we start supporting negated uri content matches
+        /** \warning when we start supporting negated uri content matches
           * we need to update this check as well */
         if (cnt > 0) {
             det_ctx->de_have_httpuri = TRUE;
         }
+
+        SCLogDebug("uricontent cnt %"PRIu32"", cnt);
+    } else {
+        SCLogDebug("no uri inspection: have uri %s", det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT ? "true":"false");
     }
 
     /* inspect the sigs against the packet */
@@ -643,8 +647,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             continue;
         }
 
-        //printf("idx %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 ", s->id %" PRIu32 " (MPM? %s)\n", idx, det_ctx->pmq.sig_id_array_cnt, s->id, s->flags & SIG_FLAG_MPM ? "TRUE":"FALSE");
-        //printf("Sig %" PRIu32 "\n", s->id);
         /* check the source & dst port in the sig */
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
             if (!(s->flags & SIG_FLAG_DP_ANY)) {
@@ -680,11 +682,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        /** we can't check the mpm flags if we do app layer inspection here as well */
-        //if (s->flags & SIG_FLAG_MPM) {
-        if (s->pmatch != NULL && DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
-            continue;
-        //}
+        /* Check the payload keywords. If we are a MPM sig and we've made
+         * to here, we've had at least one of the patterns match */
+        if (s->pmatch != NULL) {
+            if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                continue;
+        }
 
         /* if we get here but have no sigmatches to match against,
          * we consider the sig matched. */
@@ -698,9 +701,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 p->action |= s->action;
             }
         } else {
-            /* reset pkt ptr and offset */
-            det_ctx->pkt_ptr = NULL;
-            det_ctx->pkt_off = 0;
+            /* reset offset */
+            det_ctx->payload_offset = 0;
 
             /* new signature, so reset indicator of checking distance and within */
             det_ctx->de_checking_distancewithin = 0;

@@ -8,7 +8,10 @@
 #include "suricata-common.h"
 #include "stream-tcp.h"
 #include "util-unittest.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "flow.h"
 #include "detect-stream_size.h"
 #include "stream-tcp-private.h"
@@ -294,7 +297,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *streamstr) {
+int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *streamstr) {
 
     DetectStreamSizeData *sd = NULL;
     SigMatch *sm = NULL;
@@ -310,7 +313,7 @@ int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     sm->type = DETECT_STREAM_SIZE;
     sm->ctx = (void *)sd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

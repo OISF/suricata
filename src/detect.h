@@ -160,7 +160,7 @@ typedef struct Signature_ {
     uint8_t nchunk_groups; /**< Internal chunk grp id (for splitted patterns) */
     char *msg;
 
-    /* classification message */
+    /** classification message */
     char *class_msg;
 
     /** addresses, ports and proto this sig matches on */
@@ -170,8 +170,9 @@ typedef struct Signature_ {
 
     /** ptr to the SigMatch list */
     struct SigMatch_ *match; /* non-payload matches */
+    struct SigMatch_ *match_tail; /* non-payload matches, tail of the list */
     struct SigMatch_ *pmatch; /* payload matches */
-    struct SigMatch_ *pmatch_tail; /* payload matches */
+    struct SigMatch_ *pmatch_tail; /* payload matches, tail of the list */
     /** ptr to the next sig in the list */
     struct Signature_ *next;
 
@@ -346,9 +347,12 @@ enum {
   */
 typedef struct DetectionEngineThreadCtx_ {
     /* detection engine variables */
-    /** \todo rename & comment */
-    uint8_t *pkt_ptr; /* ptr to the current position in the pkt */
-    uint32_t pkt_off;
+
+    /** offset into the payload of the last match by:
+     *  content, pcre, etc */
+    uint32_t payload_offset;
+
+    /** recursive counter */
     uint8_t pkt_cnt;
 
     char de_checking_distancewithin;
@@ -577,7 +581,6 @@ SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
 /* detection api */
 SigMatch *SigMatchAlloc(void);
-void SigMatchAppend(Signature *, SigMatch *, SigMatch *);
 void SigCleanSignatures(DetectEngineCtx *);
 
 void SigTableRegisterTests(void);

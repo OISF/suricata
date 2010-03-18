@@ -10,7 +10,9 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
 
 #include "detect-itype.h"
 
@@ -203,7 +205,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *itypestr) {
+int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *itypestr) {
 
     DetectITypeData *itd = NULL;
     SigMatch *sm = NULL;
@@ -217,7 +219,7 @@ int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *i
     sm->type = DETECT_ITYPE;
     sm->ctx = (void *)itd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

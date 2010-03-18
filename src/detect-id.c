@@ -197,14 +197,15 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                     char *idstr)
 {
     DetectIdData *id_d = NULL;
     SigMatch *sm = NULL;
 
     id_d = DetectIdParse(idstr);
-    if (id_d == NULL) goto error;
+    if (id_d == NULL)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -215,7 +216,7 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_ID;
     sm->ctx = (void *)id_d;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

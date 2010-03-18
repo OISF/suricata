@@ -257,11 +257,11 @@ int DetectPcreDoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, S
         SCReturnInt(0);
 
     if (s->flags & SIG_FLAG_RECURSIVE) {
-        ptr = det_ctx->pkt_ptr ? det_ctx->pkt_ptr : p->payload;
-        len = p->payload_len - det_ctx->pkt_off;
+        ptr = p->payload + det_ctx->payload_offset;
+        len = p->payload_len - det_ctx->payload_offset;
     } else if (pe->flags & DETECT_PCRE_RELATIVE) {
-        ptr = det_ctx->pkt_ptr;
-        len = p->payload_len - det_ctx->pkt_off;
+        ptr = p->payload + det_ctx->payload_offset;
+        len = p->payload_len - det_ctx->payload_offset;
         if (ptr == NULL || len == 0)
             SCReturnInt(0);
     } else {
@@ -298,10 +298,8 @@ int DetectPcreDoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, S
                     }
                 }
             }
-            /* update ptrs for pcre RELATIVE */
-            det_ctx->pkt_ptr =  ptr+ov[1];
-            det_ctx->pkt_off = (ptr+ov[1]) - p->payload;
-            //printf("DetectPcre: post match: t->pkt_ptr %p t->pkt_off %" PRIu32 "\n", t->pkt_ptr, t->pkt_off);
+            /* update offset for pcre RELATIVE */
+            det_ctx->payload_offset = (ptr+ov[1]) - p->payload;
 
             ret = 1;
         }
@@ -581,9 +579,12 @@ int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, c
         SCLogDebug("Body inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
         pcre_need_htp_request_body = 1;
+
+        SigMatchAppendAppLayer(s, sm);
+    } else {
+        SigMatchAppendPayload(s, sm);
     }
 
-    SigMatchAppendPayload(s,sm);
 
     return 0;
 

@@ -7,7 +7,10 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "flow-var.h"
 #include "decode-events.h"
 
@@ -165,7 +168,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
 {
     DetectIpOptsData *de = NULL;
     SigMatch *sm = NULL;
@@ -181,7 +184,7 @@ int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     sm->type = DETECT_IPOPTS;
     sm->ctx = (void *)de;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
     return 0;
 
 error:

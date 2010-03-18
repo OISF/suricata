@@ -7,7 +7,9 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
 
 #include "detect-icmp-seq.h"
 
@@ -187,7 +189,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *icmpseqstr) {
+int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *icmpseqstr) {
     DetectIcmpSeqData *iseq = NULL;
     SigMatch *sm = NULL;
 
@@ -200,7 +202,7 @@ int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     sm->type = DETECT_ICMP_SEQ;
     sm->ctx = (void *)iseq;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

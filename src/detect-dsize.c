@@ -7,7 +7,10 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "flow-var.h"
 
 #include "detect-dsize.h"
@@ -224,7 +227,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
 {
     DetectDsizeData *dd = NULL;
     SigMatch *sm = NULL;
@@ -248,7 +251,7 @@ int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *
     sm->type = DETECT_DSIZE;
     sm->ctx = (void *)dd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     /* tell the sig it has a dsize to speed up engine init */
     s->flags |= SIG_FLAG_DSIZE;

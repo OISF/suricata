@@ -9,9 +9,10 @@
 #include "threads.h"
 #include "debug.h"
 #include "decode.h"
-#include "detect.h"
 
+#include "detect.h"
 #include "detect-parse.h"
+
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
@@ -206,7 +207,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *str)
+int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *str)
 {
     DetectTlsVersionData *tls = NULL;
     SigMatch *sm = NULL;
@@ -223,7 +224,7 @@ int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     sm->type = DETECT_AL_TLS_VERSION;
     sm->ctx = (void *)tls;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendAppLayer(s, sm);
     return 0;
 
 error:

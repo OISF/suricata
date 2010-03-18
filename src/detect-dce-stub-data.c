@@ -3,8 +3,10 @@
  */
 
 #include "suricata-common.h"
+
 #include "detect.h"
 #include "detect-parse.h"
+
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
@@ -87,7 +89,7 @@ int DetectDceStubDataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
  * \retval 0 on success, -1 on failure
  */
 
-int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                            char *arg)
 {
     SigMatch *sm = NULL;
@@ -99,7 +101,7 @@ int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_DCE_STUB_DATA;
     sm->ctx = NULL;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendAppLayer(s, sm);
 
     return 0;
 

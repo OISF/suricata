@@ -10,7 +10,9 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
 
 #include "detect-icmp-id.h"
 
@@ -187,7 +189,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *icmpidstr) {
+int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *icmpidstr) {
     DetectIcmpIdData *iid = NULL;
     SigMatch *sm = NULL;
 
@@ -200,7 +202,7 @@ int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     sm->type = DETECT_ICMP_ID;
     sm->ctx = (void *)iid;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

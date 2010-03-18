@@ -70,11 +70,9 @@ static int DetectSameipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval -1 on Failure
  */
 static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s,
-                             SigMatch *m, char *optstr)
+                             SigMatch *notused, char *optstr)
 {
     SigMatch *sm = NULL;
-
-    // printf("DetectSameipSetup: \'%s\'\n", optstr);
 
     /* Get this into a SigMatch and put it in the Signature. */
     sm = SigMatchAlloc();
@@ -84,7 +82,7 @@ static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_SAMEIP;
     sm->ctx = NULL;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

@@ -67,9 +67,9 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
                 if (cd->flags & DETECT_CONTENT_DISTANCE ||
                     cd->flags & DETECT_CONTENT_WITHIN) {
-                    SCLogDebug("det_ctx->pkt_off %"PRIu32, det_ctx->pkt_off);
+                    SCLogDebug("det_ctx->payload_offset %"PRIu32, det_ctx->payload_offset);
 
-                    offset = det_ctx->pkt_off;
+                    offset = det_ctx->payload_offset;
                     depth = payload_len;
 
                     if (cd->flags & DETECT_CONTENT_DISTANCE) {
@@ -82,17 +82,17 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                     }
 
                     if (cd->flags & DETECT_CONTENT_WITHIN) {
-                        if ((int32_t)depth > (int32_t)(det_ctx->pkt_off + cd->within)) {
-                            depth = det_ctx->pkt_off + cd->within;
+                        if ((int32_t)depth > (int32_t)(det_ctx->payload_offset + cd->within)) {
+                            depth = det_ctx->payload_offset + cd->within;
                         }
 
-                        SCLogDebug("cd->within %"PRIi32", det_ctx->pkt_off %"PRIu32", depth %"PRIu32,
-                            cd->within, det_ctx->pkt_off, depth);
+                        SCLogDebug("cd->within %"PRIi32", det_ctx->payload_offset %"PRIu32", depth %"PRIu32,
+                            cd->within, det_ctx->payload_offset, depth);
                     }
 
                     if (cd->depth != 0) {
-                        if ((cd->depth + det_ctx->pkt_off) < depth) {
-                            depth = det_ctx->pkt_off + cd->depth;
+                        if ((cd->depth + det_ctx->payload_offset) < depth) {
+                            depth = det_ctx->payload_offset + cd->depth;
                         }
 
                         SCLogDebug("cd->depth %"PRIu32", depth %"PRIu32, cd->depth, depth);
@@ -102,8 +102,6 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                         offset = cd->offset;
                         SCLogDebug("setting offset %"PRIu32, offset);
                     }
-
-                    //PrintRawDataFp(stdout,payload+offset,depth);
                 } else { /* implied no relative matches */
                     /* set depth */
                     if (cd->depth != 0) {
@@ -112,18 +110,15 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
                     /* set offset */
                     offset = cd->offset;
-
-                    //PrintRawDataFp(stdout,payload+offset,depth);
                 }
 
-                //BUG_ON(depth == 0);
                 SCLogDebug("offset %"PRIu32", depth %"PRIu32, offset, depth);
 
                 if (depth > payload_len)
                     depth = payload_len;
 
                 /* if offset is bigger than depth we can never match on a pattern.
-                 * We can however, match on a negated pattern. */
+                 * We can however, "match" on a negated pattern. */
                 if (offset > depth || depth == 0) {
                     if (cd->negated == 1) {
                         goto match;
@@ -131,7 +126,6 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                         SCReturnInt(0);
                     }
                 }
-                //BUG_ON(offset > depth);
 
                 uint8_t *spayload = payload + offset;
                 uint32_t spayload_len = depth - offset;
@@ -141,8 +135,11 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                 //PrintRawDataFp(stdout,cd->content,cd->content_len);
                 //PrintRawDataFp(stdout,spayload,spayload_len);
 
+                /* do the actual search */
                 found = BasicSearch(spayload, spayload_len, cd->content, cd->content_len);
 
+                /* next we evaluate the result in combination with the
+                 * negation flag. */
                 SCLogDebug("found %p cd->negated %d", found, cd->negated);
 
                 if (found == NULL && cd->negated == 0) {
@@ -150,17 +147,19 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                 } else if (found == NULL && cd->negated == 1) {
                     goto match;
                 } else if (found != NULL && cd->negated == 1) {
+#ifdef DEBUG
                     uint32_t match_offset = (uint32_t)((found - payload) + cd->content_len);
                     SCLogDebug("content %"PRIu32" matched at offset %"PRIu32", but negated so no match", cd->id, match_offset);
+#endif
                     SCReturnInt(0);
                 } else {
                     uint32_t match_offset = (uint32_t)((found - payload) + cd->content_len);
                     SCLogDebug("content %"PRIu32" matched at offset %"PRIu32"", cd->id, match_offset);
-                    det_ctx->pkt_off = match_offset;
+                    det_ctx->payload_offset = match_offset;
 
                     if (cd->flags & DETECT_CONTENT_ISDATAAT_RELATIVE) {
-                        if (det_ctx->pkt_off + cd->isdataat > payload_len) {
-                            SCLogDebug("det_ctx->pkt_off + cd->isdataat %"PRIu32" > %"PRIu32, det_ctx->pkt_off + cd->isdataat, payload_len);
+                        if (det_ctx->payload_offset + cd->isdataat > payload_len) {
+                            SCLogDebug("det_ctx->payload_offset + cd->isdataat %"PRIu32" > %"PRIu32, det_ctx->payload_offset + cd->isdataat, payload_len);
                             SCReturnInt(0);
                         } else {
                             SCLogDebug("relative isdataat match");
@@ -288,7 +287,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
         SCReturnInt(0);
     }
 
-    det_ctx->pkt_off = 0;
+    det_ctx->payload_offset = 0;
 
     r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, f, flags, alstate, p, p->payload, p->payload_len);
     if (r == 1) {

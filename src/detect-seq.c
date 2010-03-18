@@ -77,7 +77,7 @@ static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval -1 on Failure
  */
 static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s,
-                           SigMatch *m, char *optstr)
+                           SigMatch *notused, char *optstr)
 {
     DetectSeqData *data;
     SigMatch *sm = NULL;
@@ -102,7 +102,7 @@ static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s,
     }
     sm->ctx = data;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

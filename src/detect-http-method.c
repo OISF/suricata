@@ -141,6 +141,8 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
     DetectHttpMethodData *data = NULL;
     SigMatch *sm = NULL;
     bstr *method;
+    /** new sig match to replace previous content */
+    SigMatch *nm = NULL;
 
     if ((str != NULL) && (strcmp(str, "") != 0)) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,
@@ -176,9 +178,15 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
         SCReturnInt(-1);
     }
 
+    /* Setup the new sigmatch */
+    nm = SigMatchAlloc();
+    if (nm == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "SigMatchAlloc failed");
+        goto error;
+    }
+
     data = SCMalloc(sizeof(DetectHttpMethodData));
     if (data == NULL) {
-        // XXX: Should we bother with an error - it may fail too?
         SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
@@ -186,7 +194,6 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
     data->content_len = ((DetectContentData *)pm->ctx)->content_len;
     data->content = SCMalloc(data->content_len);
     if (data->content == NULL) {
-        // XXX: Should we bother with an error - it may fail too?
         SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
         goto error;
     }
@@ -196,15 +203,21 @@ int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s,
     method = bstr_memdup((char *)data->content, data->content_len);
     /** \todo error check */
     data->method = htp_convert_method_to_number(method);
+    bstr_free(method);
 
-    /* Okay we need to replace the type to HTTP_METHOD from CONTENT */
-    SCFree(((DetectContentData *)pm->ctx)->content);
-    SCFree(pm->ctx);
-    pm->type = DETECT_AL_HTTP_METHOD;
-    pm->ctx = (void *)data;
+    nm->type = DETECT_AL_HTTP_METHOD;
+    nm->ctx = (void *)data;
+
+    /* pull the previous content from the pmatch list, append
+     * the new match to the match list */
+    SigMatchReplaceContent(s, pm, nm);
+
+    /* free the old content sigmatch */
+    DetectContentFree(pm->ctx);
+    SCFree(pm);
 
     /* Flagged the signature as to scan the app layer data */
-    s->flags |=SIG_FLAG_APPLAYER;
+    s->flags |= SIG_FLAG_APPLAYER;
 
     SCReturnInt(0);
 

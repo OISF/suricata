@@ -33,9 +33,6 @@ static pcre *option_pcre = NULL;
 static pcre_extra *config_pcre_extra = NULL;
 static pcre_extra *option_pcre_extra = NULL;
 
-/* XXX this should be part of the DE */
-//static uint32_t signum = 0;
-
 static uint32_t dbg_srcportany_cnt = 0;
 static uint32_t dbg_dstportany_cnt = 0;
 
@@ -124,21 +121,58 @@ void SigMatchAppendPayload(Signature *s, SigMatch *new) {
     }
 }
 
-/* Append 'new' SigMatch to the current Signature. If present
- * append it to Sigmatch 'm', otherwise place it in the root.
+/** \brief Append a sig match to the signatures non-payload match list
+ *
+ *  \param s signature
+ *  \param new sigmatch to append
  */
-void SigMatchAppend(Signature *s, SigMatch *m, SigMatch *new) {
-    //printf("s:%p,m:%p,new:%p\n", s,m,new);
-
-    if (m == NULL)
-        m = s->match;
-
-    if (s->match == NULL)
+void SigMatchAppendPacket(Signature *s, SigMatch *new) {
+    if (s->match == NULL) {
         s->match = new;
-    else {
-        m->next = new;
-        new->prev = m;
+        s->match_tail = new;
+        new->next = NULL;
+    } else {
+        SigMatch *cur = s->match;
+
+        for ( ; cur->next != NULL; cur = cur->next);
+
+        cur->next = new;
+        new->next = NULL;
+        new->prev = cur;
+        s->match_tail = new;
     }
+}
+
+/** \brief Pull a content 'old' from the pmatch list, append 'new' to match list.
+  * Used for replacing contents that have http_cookie, etc modifiers.
+  */
+void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
+    if (old == NULL) {
+        return SigMatchAppendAppLayer(s, new);
+    }
+
+    SigMatch *m = s->pmatch;
+    SigMatch *pm = m;
+
+    for ( ; m != NULL; m = m->next) {
+        if (m == old) {
+            if (m == s->pmatch) {
+                s->pmatch = m->next;
+            } else {
+                pm->next = m->next;
+            }
+
+            if (m == s->pmatch_tail) {
+                s->pmatch_tail = pm;
+            }
+
+            break;
+        }
+
+        pm = m;
+    }
+
+    SigMatchAppendAppLayer(s, new);
 }
 
 /**
@@ -655,7 +689,10 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
             if (cd->negated == 1) {
                 sig->flags |= SIG_FLAG_MPM_NEGCONTENT;
             }
-        } else if (sm->type == DETECT_URICONTENT) {
+        }
+    }
+    for (sm = sig->match; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_URICONTENT) {
             DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
             if (ud == NULL)
                 continue;
@@ -679,7 +716,11 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
                     sig->mpm_content_maxlen = cd->content_len;
                 if (sig->mpm_content_maxlen < cd->content_len)
                     sig->mpm_content_maxlen = cd->content_len;
-            } else if (sm->type == DETECT_URICONTENT) {
+            }
+        }
+
+        for (sm = sig->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_URICONTENT) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (sig->mpm_uricontent_maxlen == 0)
                     sig->mpm_uricontent_maxlen = ud->uricontent_len;
@@ -764,7 +805,11 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             if (cd->negated == 1) {
                 sig->flags |= SIG_FLAG_MPM_NEGCONTENT;
             }
-        } else if (sm->type == DETECT_URICONTENT) {
+        }
+    }
+
+    for (sm = sig->match; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_URICONTENT) {
             DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
             if (ud == NULL)
                 continue;
@@ -788,7 +833,11 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                     sig->mpm_content_maxlen = cd->content_len;
                 if (sig->mpm_content_maxlen < cd->content_len)
                     sig->mpm_content_maxlen = cd->content_len;
-            } else if (sm->type == DETECT_URICONTENT) {
+            }
+        }
+
+        for (sm = sig->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_URICONTENT) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (sig->mpm_uricontent_maxlen == 0)
                     sig->mpm_uricontent_maxlen = ud->uricontent_len;
@@ -819,7 +868,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             sig->next->mpm_uricontent_maxlen = 0;
 
             SigMatch *sm;
-            for (sm = sig->next->match; sm != NULL; sm = sm->next) {
+            for (sm = sig->next->pmatch; sm != NULL; sm = sm->next) {
                 if (sm->type == DETECT_CONTENT) {
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
 
@@ -827,7 +876,10 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                         sig->next->mpm_content_maxlen = cd->content_len;
                     if (sig->next->mpm_content_maxlen < cd->content_len)
                         sig->next->mpm_content_maxlen = cd->content_len;
-                } else if (sm->type == DETECT_URICONTENT) {
+                }
+            }
+            for (sm = sig->next->match; sm != NULL; sm = sm->next) {
+                if (sm->type == DETECT_URICONTENT) {
                     DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                     if (sig->next->mpm_uricontent_maxlen == 0)
                         sig->next->mpm_uricontent_maxlen = ud->uricontent_len;

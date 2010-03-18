@@ -9,7 +9,10 @@
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
 #include "util-unittest.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "detect-urilen.h"
 #include "util-debug.h"
 #include "util-byte.h"
@@ -264,7 +267,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                        char *urilenstr)
 {
     SCEnter();
@@ -282,10 +285,10 @@ int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_AL_URILEN;
     sm->ctx = (void *)urilend;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendAppLayer(s, sm);
 
     /* Flagged the signature as to scan the app layer data */
-    s->flags |=SIG_FLAG_APPLAYER;
+    s->flags |= SIG_FLAG_APPLAYER;
 
     SCReturnInt(0);
 

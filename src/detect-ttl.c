@@ -8,7 +8,10 @@
 #include "suricata-common.h"
 #include "stream-tcp.h"
 #include "util-unittest.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "detect-ttl.h"
 #include "util-debug.h"
 
@@ -223,7 +226,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *ttlstr) {
+int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *ttlstr) {
 
     DetectTtlData *ttld = NULL;
     SigMatch *sm = NULL;
@@ -239,7 +242,7 @@ int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *tt
     sm->type = DETECT_TTL;
     sm->ctx = (void *)ttld;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

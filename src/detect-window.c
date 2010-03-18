@@ -8,7 +8,9 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
 
 #include "detect-window.h"
 #include "flow.h"
@@ -179,7 +181,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *windowstr)
+int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *windowstr)
 {
     DetectWindowData *wd = NULL;
     SigMatch *sm = NULL;
@@ -196,7 +198,7 @@ int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     sm->type = DETECT_WINDOW;
     sm->ctx = (void *)wd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

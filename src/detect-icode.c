@@ -10,7 +10,9 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
 
 #include "detect-icode.h"
 
@@ -203,7 +205,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *icodestr) {
+int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *icodestr) {
 
     DetectICodeData *icd = NULL;
     SigMatch *sm = NULL;
@@ -217,7 +219,7 @@ int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *i
     sm->type = DETECT_ICODE;
     sm->ctx = (void *)icd;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

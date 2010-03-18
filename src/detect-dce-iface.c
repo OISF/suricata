@@ -3,8 +3,10 @@
  */
 
 #include "suricata-common.h"
+
 #include "detect.h"
 #include "detect-parse.h"
+
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-dce-iface.h"
@@ -315,7 +317,7 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
  * \retval 0 on success, -1 on failure.
  */
 
-int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                         char *arg)
 {
     DetectDceIfaceData *did = NULL;
@@ -335,7 +337,7 @@ int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_DCE_IFACE;
     sm->ctx = (void *)did;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendAppLayer(s, sm);
 
     return 0;
 

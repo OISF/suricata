@@ -57,7 +57,7 @@ int DetectHttpCookieDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     SCEnter();
 
     int ret = 0;
-    uint8_t i;
+    size_t idx;
 
     SCMutexLock(&f->m);
     SCLogDebug("got lock %p", &f->m);
@@ -86,10 +86,10 @@ int DetectHttpCookieDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     htp_tx_t *tx = NULL;
 
-    for (i = htp_state->new_in_tx_index;
-            i < list_size(htp_state->connp->conn->transactions); i++)
+    for (idx = htp_state->new_in_tx_index;
+         idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
-        tx = list_get(htp_state->connp->conn->transactions, i);
+        tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL)
             continue;
 
@@ -157,6 +157,9 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notu
     DetectHttpCookieData *hd = NULL;
     SigMatch *sm = NULL;
 
+    /** new sig match to replace previous content */
+    SigMatch *nm = NULL;
+
     if (str != NULL && strcmp(str, "") != 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "http_cookie shouldn't be supplied with"
                                         " an argument");
@@ -191,6 +194,12 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notu
         return -1;
     }
 
+    nm = SigMatchAlloc();
+    if (nm == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "SigMatchAlloc failed");
+        goto error;
+    }
+
     /* Setup the HttpCookie data from Content data structure */
     hd = SCMalloc(sizeof(DetectHttpCookieData));
     if (hd == NULL) {
@@ -207,14 +216,19 @@ int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notu
     }
     memcpy(hd->data, ((DetectContentData *)pm->ctx)->content, hd->data_len);
 
-    /* Okay we need to replace the type to HTTP_COOKIE from CONTENT */
-    SCFree(((DetectContentData *)pm->ctx)->content);
-    SCFree(pm->ctx);
-    pm->type = DETECT_AL_HTTP_COOKIE;
-    pm->ctx = (void *)hd;
+    nm->type = DETECT_AL_HTTP_COOKIE;
+    nm->ctx = (void *)hd;
+
+    /* pull the previous content from the pmatch list, append
+     * the new match to the match list */
+    SigMatchReplaceContent(s, pm, nm);
+
+    /* free the old content sigmatch */
+    DetectContentFree(pm->ctx);
+    SCFree(pm);
 
     /* Flagged the signature as to scan the app layer data */
-    s->flags |=SIG_FLAG_APPLAYER;
+    s->flags |= SIG_FLAG_APPLAYER;
 
     return 0;
 error:
@@ -300,17 +314,24 @@ int DetectHttpCookieTest03(void)
                                "http_cookie; content:\"two\"; http_cookie; "
                                "content:\"two\"; http_cookie; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL)
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
         goto end;
+    }
 
     result = 0;
-    sm = de_ctx->sig_list->pmatch;
+    sm = de_ctx->sig_list->match;
+    if (sm == NULL) {
+        printf("no sigmatch(es): ");
+        goto end;
+    }
+
     while (sm != NULL) {
         if (sm->type == DETECT_AL_HTTP_COOKIE) {
-                result = 1;
+            result = 1;
         } else {
-            result = 0;
-            break;
+            printf("expected DETECT_AL_HTTP_COOKIE, got %d: ", sm->type);
+            goto end;
         }
         sm = sm->next;
     }
@@ -392,17 +413,17 @@ int DetectHttpCookieTest06(void)
 
     Signature *s = de_ctx->sig_list;
 
-    BUG_ON(s->pmatch == NULL);
+    BUG_ON(s->match == NULL);
 
-    if (s->pmatch->type != DETECT_AL_HTTP_COOKIE)
+    if (s->match->type != DETECT_AL_HTTP_COOKIE)
         goto end;
 
-    if (s->pmatch->next == NULL) {
+    if (s->match->next == NULL) {
         printf("expected another SigMatch, got NULL: ");
         goto end;
     }
 
-    if (s->pmatch->next->type != DETECT_URICONTENT) {
+    if (s->match->next->type != DETECT_URICONTENT) {
         goto end;
     }
 

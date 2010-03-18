@@ -133,7 +133,7 @@ int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     return 0;
 }
 
-int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
 {
     DetectFlowbitsData *cd = NULL;
     SigMatch *sm = NULL;
@@ -229,7 +229,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     sm->type = DETECT_FLOWBITS;
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

@@ -4,7 +4,10 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "detect-content.h"
 #include "threads.h"
 #include "flow.h"
@@ -79,7 +82,7 @@ int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     return ret;
 }
 
-int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
 {
     DetectFlowvarData *cd = NULL;
     SigMatch *sm = NULL;
@@ -213,7 +216,7 @@ int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char
     sm->type = DETECT_FLOWVAR;
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     if (dubbed) SCFree(str);
     return 0;

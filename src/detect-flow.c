@@ -8,7 +8,9 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -255,7 +257,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *flowstr)
+int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *flowstr)
 {
     DetectFlowData *fd = NULL;
     SigMatch *sm = NULL;
@@ -274,7 +276,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *f
     sm->type = DETECT_FLOW;
     sm->ctx = (void *)fd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     s->flags |= SIG_FLAG_FLOW;
     return 0;

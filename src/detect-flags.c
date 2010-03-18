@@ -7,7 +7,10 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "flow-var.h"
 #include "decode-events.h"
 
@@ -421,7 +424,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
 {
     DetectFlagsData *de = NULL;
     SigMatch *sm = NULL;
@@ -437,7 +440,7 @@ static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
     return 0;
 
 error:

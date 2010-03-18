@@ -96,8 +96,8 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch
      * the packet from that point.
      */
     if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-        ptr = payload + det_ctx->pkt_off;
-        len = payload_len - det_ctx->pkt_off;
+        ptr = payload + det_ctx->payload_offset;
+        len = payload_len - det_ctx->payload_offset;
 
         /* No match if there is no relative base */
         if (ptr == NULL || len == 0) {
@@ -181,8 +181,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch
 #endif /* DEBUG */
 
     /* Adjust the detection context to the jump location. */
-    det_ctx->pkt_ptr = jumpptr;
-    det_ctx->pkt_off = jumpptr - payload;
+    det_ctx->payload_offset = jumpptr - payload;
 
     SCReturnInt(1);
 }
@@ -205,8 +204,8 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
      * the packet from that point.
      */
     if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-        ptr = det_ctx->pkt_ptr;
-        len = p->pktlen - det_ctx->pkt_off;
+        ptr = p->payload + det_ctx->payload_offset;
+        len = p->payload_len - det_ctx->payload_offset;
 
         /* No match if there is no relative base */
         if (ptr == NULL || len == 0) {
@@ -222,10 +221,10 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     /* Verify the to-be-extracted data is within the packet */
-    if (ptr < p->pkt || data->nbytes > len) {
+    if (ptr < p->payload || data->nbytes > len) {
         SCLogDebug("Data not within packet "
-               "pkt=%p, ptr=%p, len=%d, nbytes=%d",
-               p->pkt, ptr, len, data->nbytes);
+               "payload=%p, ptr=%p, len=%d, nbytes=%d",
+               p->payload, ptr, len, data->nbytes);
         return 0;
     }
 
@@ -274,9 +273,9 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     /* Validate that the jump location is still in the packet
      * \todo Should this validate it is still in the *payload*?
      */
-    if ((jumpptr < p->pkt) || (jumpptr >= p->pkt + p->pktlen)) {
+    if ((jumpptr < p->payload) || (jumpptr >= p->payload + p->payload_len)) {
         SCLogDebug("Jump location (%p) is not within "
-               "packet (%p-%p)", jumpptr, p->pkt, p->pkt + p->pktlen - 1);
+               "packet (%p-%p)", jumpptr, p->payload, p->payload + p->payload_len - 1);
         return 0;
     }
 
@@ -291,8 +290,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 #endif /* DEBUG */
 
     /* Adjust the detection context to the jump location. */
-    det_ctx->pkt_ptr = jumpptr;
-    det_ctx->pkt_off = jumpptr - p->pkt;
+    det_ctx->payload_offset = jumpptr - p->payload;
 
     return 1;
 }

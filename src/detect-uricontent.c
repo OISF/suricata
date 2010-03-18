@@ -33,6 +33,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-binsearch.h"
+#include "util-spm.h"
 
 /* prototypes */
 int DetectUricontentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
@@ -171,10 +172,8 @@ static inline int DoDetectUricontent(ThreadVars *t, DetectEngineThreadCtx *det_c
             if (TestOffsetDepth(m, co) == 1) {
                 ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm->next);
                 if (ret == 1) {
-                    /* update pkt ptrs, content doesn't use this,
-                     * but pcre does */
-                    det_ctx->pkt_ptr = p->payload + m->offset;
-                    det_ctx->pkt_off = m->offset;
+                    /* update payload offset */
+                    det_ctx->payload_offset = m->offset;
                     match = 1;
                     break;
                 }
@@ -202,10 +201,8 @@ static inline int DoDetectUricontent(ThreadVars *t, DetectEngineThreadCtx *det_c
         for (; m != NULL; m = m->next) {
             ret = TestOffsetDepth(m,co);
             if (ret == 1) {
-                /* update pkt ptrs, content doesn't use this,
-                 * but pcre does */
-                det_ctx->pkt_ptr = p->payload + m->offset;
-                det_ctx->pkt_off = m->offset;
+                /* update payload offset */
+                det_ctx->payload_offset = m->offset;
                 match = 1;
                 break;
             }
@@ -434,8 +431,9 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notu
     sm->type = DETECT_URICONTENT;
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPayload(s,sm);
+    SigMatchAppendAppLayer(s, sm);
 
+    /** \todo use unique id here as well */
     cd->id = de_ctx->uricontent_max_id;
     de_ctx->uricontent_max_id++;
 
@@ -487,6 +485,7 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
 
         SCLogDebug("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "",
                     ret, det_ctx->pmq.searchable);
+/*
         if (det_ctx->pmq.searchable > 0) {
             if (det_ctx->sgh->mpm_uricontent_maxlen == 1) det_ctx->pkts_uri_searched1++;
             else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_searched2++;
@@ -497,6 +496,7 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
             ret += UriPatternMatch(tv, det_ctx, uri, uri_len);
 
         }
+*/
         det_ctx->pmq.searchable = 0;
     }
     return ret;
@@ -524,6 +524,8 @@ int DetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ct
 {
     SCEnter();
     int res = 0;
+    size_t idx = 0;
+    htp_tx_t *tx = NULL;
 
     /* if we don't have a uri, don't bother scanning */
     if (det_ctx->de_have_httpuri == FALSE) {
@@ -531,27 +533,63 @@ int DetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ct
         SCReturnInt(0);
     }
 
+    /* we're locking the flow as we'll be accessing the HTP state */
+    SCMutexLock(&f->m);
+
     DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
-    if (det_ctx->mtcu.match[co->id].len > 0) {
-        SCLogDebug("Match has been found in the received request and "
-                        "signature s->id %"PRIu32"", s->id);
-        res = 1;
-    } else {
-        SCLogDebug("We don't have app layer URI match");
-        res = 0;
+    if (co == NULL)
+        goto end;
+
+    SCLogDebug("co->id %"PRIu32, co->id);
+
+    HtpState *htp_state = (HtpState *)state;
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP state");
+        goto end;
     }
 
+    for (idx = htp_state->new_in_tx_index;
+         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    {
+        tx = list_get(htp_state->connp->conn->transactions, idx);
+        if (tx == NULL || tx->request_uri_normalized == NULL)
+            continue;
+
+        /* Search for the pattern in each uri. Bail out on the first match */
+        if ((BasicSearch((uint8_t *) bstr_ptr(tx->request_uri_normalized),
+                                     bstr_len(tx->request_uri_normalized),
+                                     co->uricontent, co->uricontent_len)) != NULL) {
+            SCLogDebug("Match has been found in the received request and "
+                       "signature s->id %"PRIu32"", s->id);
+            res = 1;
+            break;
+        }
+    }
+
+    if (res == 0) {
+        SCLogDebug("We don't have app layer URI match");
+    }
+
+end:
+    SCMutexUnlock(&f->m);
     SCReturnInt(res);
 }
 
 /** \brief Run the pattern matcher against the uri(s)
  *
+ *  We run against _all_ uri(s) we have as the pattern matcher will
+ *  flag each sig that has a match. We need to do this for all uri(s)
+ *  to not miss possible events.
+ *
  *  \warning Make sure the flow/state is locked
+ *  \todo what should we return? Just the fact that we matched?
  */
 uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, void *alstate) {
     SCEnter();
+
     uint32_t cnt = 0;
-    uint8_t i;
+    size_t idx = 0;
+    htp_tx_t *tx = NULL;
 
     HtpState *htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
@@ -559,12 +597,10 @@ uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_c
         SCReturnUInt(0U);
     }
 
-    htp_tx_t *tx = NULL;
-
-   for (i = htp_state->new_in_tx_index;
-            i < list_size(htp_state->connp->conn->transactions); i++)
+    for (idx = htp_state->new_in_tx_index;
+         idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
-        tx = list_get(htp_state->connp->conn->transactions, i);
+        tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL || tx->request_uri_normalized == NULL)
             continue;
 
@@ -876,7 +912,7 @@ int DetectUriSigTest01(void)
 
     BUG_ON(de_ctx->sig_list == NULL);
 
-    sm = de_ctx->sig_list->pmatch;
+    sm = de_ctx->sig_list->match;
     if (sm->type == DETECT_URICONTENT) {
         result = 1;
     } else {

@@ -9,7 +9,9 @@
 #include "decode.h"
 #include "decode-ipv4.h"
 #include "decode-ipv6.h"
+
 #include "detect.h"
+#include "detect-parse.h"
 
 #include "detect-fragoffset.h"
 
@@ -188,7 +190,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *fragoffsetstr) {
+int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *fragoffsetstr) {
     DetectFragOffsetData *fragoff = NULL;
     SigMatch *sm = NULL;
 
@@ -201,7 +203,7 @@ int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, c
     sm->type = DETECT_FRAGOFFSET;
     sm->ctx = (void *)fragoff;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

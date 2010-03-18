@@ -8,7 +8,10 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "detect-csum.h"
 
 #include "util-unittest.h"
@@ -228,7 +231,7 @@ int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                         char *csum_str)
 {
     DetectCsumData *cd = NULL;
@@ -253,7 +256,7 @@ int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 
@@ -325,7 +328,7 @@ int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                          char *csum_str)
 {
     DetectCsumData *cd = NULL;
@@ -350,7 +353,7 @@ int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 
@@ -422,7 +425,7 @@ int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                          char *csum_str)
 {
     DetectCsumData *cd = NULL;
@@ -447,7 +450,7 @@ int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 
@@ -519,7 +522,7 @@ int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                          char *csum_str)
 {
     DetectCsumData *cd = NULL;
@@ -544,7 +547,7 @@ int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 
@@ -616,7 +619,7 @@ int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                          char *csum_str)
 {
     DetectCsumData *cd = NULL;
@@ -641,7 +644,7 @@ int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 
@@ -712,7 +715,7 @@ int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                          char *csum_str)
 {
     DetectCsumData *cd = NULL;
@@ -737,7 +740,7 @@ int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 
@@ -808,7 +811,7 @@ int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
+int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused,
                          char *csum_str)
 {
     DetectCsumData *cd = NULL;
@@ -833,7 +836,7 @@ int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

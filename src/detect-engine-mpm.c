@@ -620,6 +620,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
         } else {
             SCLogDebug("%"PRIu32" no scan pattern selected", s->id);
         }
+#if 0
         /* add the rest of the patterns to the search ctx */
         for (sm = s->pmatch ; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
@@ -645,6 +646,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the search phase", s->id, co->id);
             }
         }
+#endif
     }
 
     if (fast_pattern != NULL)
@@ -696,7 +698,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (sm->type == DETECT_CONTENT) {
                 co_cnt++;
                 s->flags |= SIG_FLAG_MPM;
-            } else if (sm->type == DETECT_URICONTENT) {
+            }
+        }
+
+        for (sm = s->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_URICONTENT) {
                 ur_cnt++;
                 s->flags |= SIG_FLAG_MPM;
             }
@@ -781,7 +787,10 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 if (!content_added) {
                     content_added = 1;
                 }
-            } else if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
+            }
+        }
+        for (sm = s->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (ud->uricontent_len > uricontent_maxlen)
                     uricontent_maxlen = ud->uricontent_len;
@@ -808,11 +817,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
                     if (content_minoffset > cd->offset)
                         content_minoffset = cd->offset;
-                }
-            } else if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
-                DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
-                if (ud->uricontent_len == uricontent_maxlen) {
-                    /** \todo we don't support offset in uricontent */
                 }
             }
         }
@@ -918,7 +922,10 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 if (content_minlen == 0) content_minlen = cd->content_len;
                 else if (cd->content_len < content_minlen)
                     content_minlen = cd->content_len;
-            } else if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
+            }
+        }
+        for (sm = s->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (ud->uricontent_len > uricontent_maxlen)
                     uricontent_maxlen = ud->uricontent_len;
@@ -929,7 +936,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
         }
         char uricontent_scanadded = 0;
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+        for (sm = s->match; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
 
@@ -944,12 +951,14 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                     uricontent_scanadded = 1;
 
                 /* otherwise it's a 'search' pattern */
+#if 0
                 } else {
                     if (ud->flags & DETECT_URICONTENT_NOCASE) {
                         mpm_table[sh->mpm_uri_ctx->mpm_type].AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
                     } else {
                         mpm_table[sh->mpm_uri_ctx->mpm_type].AddPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num);
                     }
+#endif
                 }
             }
         }

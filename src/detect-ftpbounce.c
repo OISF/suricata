@@ -219,8 +219,8 @@ int DetectFtpbounceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
-                          char *ftpbouncestr)
+int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s,
+        SigMatch *notused, char *ftpbouncestr)
 {
     SigMatch *sm = NULL;
 
@@ -244,7 +244,7 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, SigMatch *m,
     */
     sm->ctx = NULL;
 
-    SigMatchAppend(s, m, sm);
+    SigMatchAppendAppLayer(s, sm);
     return 0;
 }
 

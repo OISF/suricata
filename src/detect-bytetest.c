@@ -102,11 +102,11 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch
      * the packet from that point.
      */
     if (data->flags & DETECT_BYTETEST_RELATIVE) {
-        SCLogDebug("relative, working with det_ctx->pkt_off %"PRIu32", "
-                   "data->offset %"PRIu32"", det_ctx->pkt_off, data->offset);
+        SCLogDebug("relative, working with det_ctx->payload_offset %"PRIu32", "
+                   "data->offset %"PRIu32"", det_ctx->payload_offset, data->offset);
 
-        ptr = payload + det_ctx->pkt_off;
-        len = payload_len - det_ctx->pkt_off;
+        ptr = payload + det_ctx->payload_offset;
+        len = payload_len - det_ctx->payload_offset;
 
         /* No match if there is no relative base */
         if (ptr == NULL || len == 0) {

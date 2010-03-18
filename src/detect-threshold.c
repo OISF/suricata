@@ -7,7 +7,10 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "flow-var.h"
 #include "decode-events.h"
 #include "stream-tcp.h"
@@ -185,7 +188,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+static int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
 {
     DetectThresholdData *de = NULL;
     SigMatch *sm = NULL;
@@ -201,7 +204,7 @@ static int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch
     sm->type = DETECT_THRESHOLD;
     sm->ctx = (void *)de;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

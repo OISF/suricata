@@ -250,7 +250,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rpcstr)
+int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rpcstr)
 {
     DetectRpcData *rd = NULL;
     SigMatch *sm = NULL;
@@ -265,7 +265,7 @@ int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rp
     sm->type = DETECT_RPC;
     sm->ctx = (void *)rd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 

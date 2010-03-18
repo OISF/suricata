@@ -4,7 +4,10 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "threads.h"
 #include "pkt-var.h"
 #include "detect-pktvar.h"
@@ -72,7 +75,7 @@ int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     return ret;
 }
 
-int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr)
+int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *notused, char *rawstr)
 {
     DetectPktvarData *cd = NULL;
     SigMatch *sm = NULL;
@@ -206,7 +209,7 @@ int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char 
     sm->type = DETECT_PKTVAR;
     sm->ctx = (void *)cd;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     if (dubbed) SCFree(str);
     return 0;

@@ -380,7 +380,7 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
 {
     int ret = 0;
     char match = 0;
-    uint16_t pkt_off = det_ctx->pkt_off;
+    uint16_t payload_offset = det_ctx->payload_offset;
     MpmMatch *temp_m = NULL;
 
     SCLogDebug("det_ctx->mtc.match[%"PRIu32"].len %"PRIu32"", co->id, det_ctx->mtc.match[co->id].len);
@@ -396,10 +396,10 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
 
         /* only use pkt offset of previous matches
          * on relative matches. */
-        pkt_off = 0;
+        payload_offset = 0;
     }
 
-    SCLogDebug("using pkt_off %"PRIu16"", pkt_off);
+    SCLogDebug("using payload_offset %"PRIu16"", payload_offset);
 
     /*  if we have within or distance coming up next, check this match
      *  for distance and/or within and check the rest of this match
@@ -419,17 +419,17 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
 
         for (; m != NULL; m = m->next) {
             /* first check our match for offset and depth */
-            if (TestOffsetDepth(m, co, pkt_off) == 1) {
+            if (TestOffsetDepth(m, co, payload_offset) == 1) {
                 SCLogDebug("TestOffsetDepth returned 1, for co->id %"PRIu32"", co->id);
 
                 SigMatch *real_sm_next = DetectContentFindNextApplicableSM(sm->next);
-                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm, real_sm_next, pkt_off);
+                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm, real_sm_next, payload_offset);
 
                 if (ret == 1) {
                     SCLogDebug("TestWithinDistanceOffsetDepth returned 1");
-                    det_ctx->pkt_ptr = p->payload + m->offset;
-                    /* update both the local and ctx pkt_off */
-                    pkt_off = det_ctx->pkt_off = m->offset;
+                    //det_ctx->pkt_ptr = p->payload + m->offset;
+                    /* update both the local and ctx payload_offset */
+                    payload_offset = det_ctx->payload_offset = m->offset;
                     match = 1;
                     break;
                 } else if (ret == -1) {
@@ -481,11 +481,11 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
          * after the first match */
         if (s->flags & SIG_FLAG_RECURSIVE && det_ctx->pkt_cnt) {
             for (; m != NULL; m = m->next) {
-                if (m->offset >= det_ctx->pkt_off) {
+                if (m->offset >= det_ctx->payload_offset) {
                     /* update pkt ptrs, content doesn't use this,
                      * but pcre does */
-                    det_ctx->pkt_ptr = p->payload + m->offset;
-                    det_ctx->pkt_off = m->offset;
+                    //det_ctx->pkt_ptr = p->payload + m->offset;
+                    det_ctx->payload_offset = m->offset;
                     match = 1;
                     break;
                 }
@@ -514,8 +514,8 @@ DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signat
                     if (co->negated == 0) {
                         /* update pkt ptrs, this content run doesn't
                          * use this, but pcre does */
-                        det_ctx->pkt_ptr = p->payload + m->offset;
-                        det_ctx->pkt_off = m->offset;
+                        //det_ctx->pkt_ptr = p->payload + m->offset;
+                        det_ctx->payload_offset = m->offset;
                         match = 1;
                         break;
                     }
