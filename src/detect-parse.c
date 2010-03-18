@@ -109,6 +109,7 @@ void SigMatchAppendPayload(Signature *s, SigMatch *new) {
         s->pmatch = new;
         s->pmatch_tail = new;
         new->next = NULL;
+        new->prev = NULL;
     } else {
         SigMatch *cur = s->pmatch;
 
@@ -131,6 +132,7 @@ void SigMatchAppendPacket(Signature *s, SigMatch *new) {
         s->match = new;
         s->match_tail = new;
         new->next = NULL;
+        new->prev = NULL;
     } else {
         SigMatch *cur = s->match;
 
@@ -169,9 +171,14 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
             }
 
             if (m == s->pmatch_tail) {
-                s->pmatch_tail = pm;
+                if (pm == m) {
+                    s->pmatch_tail = NULL;
+                } else {
+                    s->pmatch_tail = pm;
+                }
             }
 
+            //printf("m %p  s->pmatch %p s->pmatch_tail %p\n", m, s->pmatch, s->pmatch_tail);
             break;
         }
 
@@ -1091,6 +1098,28 @@ end:
     return result;
 }
 
+/** \test Parsing bug debugging at 2010-03-18 */
+int SigParseTest06 (void) {
+    int result = 0;
+    Signature *sig = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (flow:to_server; content:\"GET\"; nocase; http_method; uricontent:\"/uri/\"; nocase; content:\"Host|3A| abc\"; nocase; sid:1; rev:1;)");
+    if (sig != NULL) {
+        result = 1;
+    } else {
+        printf("signature failed to parse: ");
+    }
+
+end:
+    if (sig != NULL) SigFree(sig);
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 /** \test Direction operator validation (invalid) */
 int SigParseBidirecTest06 (void) {
     int result = 1;
@@ -1949,6 +1978,8 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest03", SigParseTest03, 1);
     UtRegisterTest("SigParseTest04", SigParseTest04, 1);
     UtRegisterTest("SigParseTest05", SigParseTest05, 1);
+    UtRegisterTest("SigParseTest06", SigParseTest06, 1);
+
     UtRegisterTest("SigParseBidirecTest06", SigParseBidirecTest06, 1);
     UtRegisterTest("SigParseBidirecTest07", SigParseBidirecTest07, 1);
     UtRegisterTest("SigParseBidirecTest08", SigParseBidirecTest08, 1);
