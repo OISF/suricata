@@ -40,6 +40,8 @@ void DetectThresholdRegister (void) {
     sigmatch_table[DETECT_THRESHOLD].Setup = DetectThresholdSetup;
     sigmatch_table[DETECT_THRESHOLD].Free  = DetectThresholdFree;
     sigmatch_table[DETECT_THRESHOLD].RegisterTests = ThresholdRegisterTests;
+    /* this is compatible to ip-only signatures */
+    sigmatch_table[DETECT_THRESHOLD].flags |= SIGMATCH_IPONLY_COMPAT;
 
     const char *eb;
     int opts = 0;
