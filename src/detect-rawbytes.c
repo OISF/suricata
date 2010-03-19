@@ -24,24 +24,33 @@ void DetectRawbytesRegister (void) {
     sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
+static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
 {
+    SCEnter();
+
     if (nullstr != NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
         return -1;
     }
 
-    if (s->pmatch_tail == NULL)
-        return -1;
-
     SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
-    if (pm != NULL) {
-        if (pm->type == DETECT_CONTENT) {
-            DetectContentData *cd = (DetectContentData *)pm->ctx;
-            cd->flags |= DETECT_CONTENT_RAWBYTES;
-        }
+    if (pm == NULL) {
+        SCLogError(SC_ERR_RAWBYTES_MISSING_CONTENT, "\"rawbytes\" needs a preceeding content option");
+        SCReturnInt(-1);
     }
 
-    return 0;
+    switch (pm->type) {
+        case DETECT_CONTENT:
+        {
+            DetectContentData *cd = (DetectContentData *)pm->ctx;
+            cd->flags |= DETECT_CONTENT_RAWBYTES;
+            break;
+        }
+        default:
+            SCLogError(SC_ERR_RAWBYTES_MISSING_CONTENT, "\"rawbytes\" needs a preceeding content option");
+            SCReturnInt(-1);
+    }
+
+    SCReturnInt(0);
 }
 

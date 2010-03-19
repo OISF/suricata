@@ -27,49 +27,48 @@ void DetectNocaseRegister (void) {
     sigmatch_table[DETECT_NOCASE].flags |= SIGMATCH_PAYLOAD;
 }
 
-/** \todo uricontent needs fixing */
+/** \internal
+ *  \brief Apply the nocase keyword to the last pattern match, either content or uricontent
+ *  \param det_ctx detection engine ctx
+ *  \param s signature
+ *  \param nullstr should be null
+ *  \retval 0 ok
+ *  \retval -1 failure
+ */
 static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
 {
     SCEnter();
-
-    int ret = 0;
 
     if (nullstr != NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
         SCReturnInt(-1);
     }
 
-    SigMatch *co_sm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
-    SigMatch *ur_sm = SigMatchGetLastSM(s->match, DETECT_URICONTENT);
-    char uri = 0;
-
-    if (co_sm != NULL && ur_sm != NULL) {
-        BUG_ON(co_sm->idx == ur_sm->idx);
-
-        if (co_sm->idx > ur_sm->idx)
-            uri = 0;
-        else
-            uri = 1;
-    } else if (co_sm != NULL) {
-        uri = 0;
-    } else if (ur_sm != NULL) {
-        uri = 1;
-    } else {
+    SigMatch *pm = SigMatchGetLastPattern(s);
+    if (pm == NULL) {
+        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceeding content or uricontent option.");
         SCReturnInt(-1);
     }
 
-    if (uri == 0) {
-        DetectContentData *cd = (DetectContentData *)co_sm->ctx;
-        cd->flags |= DETECT_CONTENT_NOCASE;
-        goto end;
-    } else {
-        DetectUricontentData *cd = (DetectUricontentData *)ur_sm->ctx;
-        cd->flags |= DETECT_URICONTENT_NOCASE;
-        goto end;
+    switch (pm->type) {
+        case DETECT_CONTENT:
+        {
+            DetectContentData *cd = (DetectContentData *)pm->ctx;
+            cd->flags |= DETECT_CONTENT_NOCASE;
+            break;
+        }
+        case DETECT_URICONTENT:
+        {
+            DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
+            cd->flags |= DETECT_URICONTENT_NOCASE;
+            break;
+        }
+        /* should never happen */
+        default:
+            BUG_ON(1);
+            break;
     }
 
-    ret = -1;
-end:
-    SCReturnInt(ret);
+    SCReturnInt(0);
 }
 

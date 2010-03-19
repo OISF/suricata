@@ -182,6 +182,8 @@ int DetectFtpbounceALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 int DetectFtpbounceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                           Packet *p, Signature *s, SigMatch *m)
 {
+/** \todo VJ broken and no longer used */
+#if 0
     SCEnter();
     uint16_t offset = 0;
     if (!(PKT_IS_TCP(p)))
@@ -204,6 +206,8 @@ int DetectFtpbounceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     return DetectFtpbounceMatchArgs(p->payload, p->payload_len,
                                     p->src.addr_data32[0], offset);
+#endif
+    return 0;
 }
 
 /**

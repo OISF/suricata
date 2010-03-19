@@ -4,11 +4,9 @@
 #include "tm-modules.h"
 
 uint16_t PatternMatchDefaultMatcher(void);
-uint32_t PacketPatternScan(ThreadVars *, DetectEngineThreadCtx *, Packet *);
-uint32_t PacketPatternMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *);
 
+uint32_t PacketPatternScan(ThreadVars *, DetectEngineThreadCtx *, Packet *);
 uint32_t UriPatternScan(ThreadVars *, DetectEngineThreadCtx *, uint8_t *, uint16_t);
-uint32_t UriPatternMatch(ThreadVars *, DetectEngineThreadCtx *, uint8_t *, uint16_t);
 
 void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
 

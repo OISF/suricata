@@ -89,157 +89,58 @@ void PmqFree(PatternMatcherQueue *pmq) {
     SCFree(pmq);
 }
 
-/* cleanup list with all matches
+/** \brief Verify and store a match
  *
- * used at search runtime (or actually once per search) */
-void
-MpmMatchCleanup(MpmThreadCtx *thread_ctx) {
-    SCLogDebug("mem %" PRIu32 "", thread_ctx->memory_size);
-
-    MpmMatch *nxt;
-    MpmMatch *m = thread_ctx->qlist;
-
-    while (m != NULL) {
-        BUG_ON(m == m->qnext);
-        nxt = m->qnext;
-
-        /* clear the bucket */
-        m->mb->top = NULL;
-        m->mb->bot = NULL;
-        m->mb->len = 0;
-
-        thread_ctx->qlist = m->qnext;
-
-        /* add to the spare list */
-        if (thread_ctx->sparelist == NULL) {
-            thread_ctx->sparelist = m;
-            m->qnext = NULL;
-        } else {
-            m->qnext = thread_ctx->sparelist;
-            thread_ctx->sparelist = m;
-        }
-
-        m = nxt;
-    }
-}
-
-/** \brief allocate a match
+ *   used at search runtime
  *
- * used at search runtime */
-inline MpmMatch *
-MpmMatchAlloc(MpmThreadCtx *thread_ctx) {
-    MpmMatch *m = SCMalloc(sizeof(MpmMatch));
-    if (m == NULL)
-        return NULL;
-
-    thread_ctx->memory_cnt++;
-    thread_ctx->memory_size += sizeof(MpmMatch);
-
-    m->offset = 0;
-    m->next = NULL;
-    m->qnext = NULL;
-    m->mb = NULL;
-    return m;
-}
-
-/** \brief append a match to a bucket
+ *  \param thread_ctx mpm thread ctx
+ *  \param pmq storage for match results
+ *  \param list end match to check against (entire list will be checked)
+ *  \param offset match offset in the buffer
+ *  \param patlen length of the pattern we're checking
  *
- * used at search runtime */
+ *  \retval 0 no match after all
+ *  \retval 1 (new) match
+ */
 inline int
-MpmMatchAppend(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *em, MpmMatchBucket *mb, uint16_t offset, uint16_t patlen)
+MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *list, uint16_t offset, uint16_t patlen)
 {
-    /* don't bother looking at sigs that didn't match
-     * when we scanned. There's no matching anyway. */
-    if (pmq != NULL && pmq->mode == PMQ_MODE_SEARCH) {
-        if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8))))
-            return 0;
-    }
+    SCEnter();
 
-    /* if our endmatch is set to a single match being enough,
-       we're not going to add more if we already have one */
-    if (em->flags & MPM_ENDMATCH_SINGLE && mb->len)
-        return 0;
+    MpmEndMatch *em = list;
+    int ret = 0;
 
-    /* check offset */
-    if (offset < em->offset)
-        return 0;
+    for ( ; em != NULL; em = em->next) {
+        /* check offset */
+        if (offset < em->offset)
+            continue;
 
-    /* check depth */
-    if (em->depth && (offset+patlen) > em->depth)
-        return 0;
-#if 0
-    /* ok all checks passed, now append the match */
-    MpmMatch *m;
-    /* pull a match from the spare list */
-    if (thread_ctx->sparelist != NULL) {
-        m = thread_ctx->sparelist;
-        thread_ctx->sparelist = m->qnext;
-    } else {
-        m = MpmMatchAlloc(thread_ctx);
-        if (m == NULL)
-            return 0;
-    }
+        /* check depth */
+        if (em->depth && (offset+patlen) > em->depth)
+            continue;
 
-    m->offset = offset;
-    m->mb = mb;
-    m->next = NULL;
-    m->qnext = NULL;
+        if (pmq != NULL) {
+            /* make sure we only append a sig with a matching pattern once,
+             * so we won't inspect it more than once. For this we keep a
+             * bitarray of sig internal id's and flag each sig that matched */
+            if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8)))) {
+                /* flag this sig_id as being added now */
+                pmq->sig_bitarray[(em->sig_id / 8)] |= (1<<(em->sig_id % 8));
+                /* append the sig_id to the array with matches */
+                pmq->sig_id_array[pmq->sig_id_array_cnt] = em->sig_id;
+                pmq->sig_id_array_cnt++;
+            }
 
-    /* append to the mb list */
-    if (mb->bot == NULL) { /* empty list */
-        mb->top = m;
-        mb->bot = m;
-    } else { /* more items in list */
-        mb->bot->next = m;
-        mb->bot = m;
-    }
-
-    mb->len++;
-
-    /* put in the queue list */
-    if (thread_ctx->qlist == NULL) { /* empty list */
-        thread_ctx->qlist = m;
-    } else { /* more items in list */
-        m->qnext = thread_ctx->qlist;
-        thread_ctx->qlist = m;
-    }
-
-    BUG_ON(m == m->qnext);
-#endif
-    if (pmq != NULL) {
-        /* make sure we only append a sig with a matching pattern once,
-         * so we won't inspect it more than once. For this we keep a
-         * bitarray of sig internal id's and flag each sig that matched */
-        if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8)))) {
-            /* flag this sig_id as being added now */
-            pmq->sig_bitarray[(em->sig_id / 8)] |= (1<<(em->sig_id % 8));
-            /* append the sig_id to the array with matches */
-            pmq->sig_id_array[pmq->sig_id_array_cnt] = em->sig_id;
-            pmq->sig_id_array_cnt++;
+            /* nosearch flag */
+            if (!(em->flags & MPM_ENDMATCH_NOSEARCH)) {
+                pmq->searchable++;
+            }
         }
 
-        /* nosearch flag */
-        if (pmq->mode == PMQ_MODE_SCAN && !(em->flags & MPM_ENDMATCH_NOSEARCH)) {
-            pmq->searchable++;
-        }
+        ret++;
     }
 
-//    SCLogDebug("len %" PRIu32 " (offset %" PRIu32 ")", mb->len, m->offset);
-    return 1;
-}
-
-void MpmMatchFree(MpmThreadCtx *ctx, MpmMatch *m) {
-    ctx->memory_cnt--;
-    ctx->memory_size -= sizeof(MpmMatch);
-    SCFree(m);
-}
-
-void MpmMatchFreeSpares(MpmThreadCtx *mpm_ctx, MpmMatch *m) {
-    while(m) {
-        MpmMatch *tm = m->qnext;
-        MpmMatchFree(mpm_ctx, m);
-        m = tm;
-    }
+    SCReturnInt(ret);
 }
 
 /* allocate an endmatch

@@ -79,8 +79,6 @@ uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    det_ctx->pmq.mode = PMQ_MODE_SCAN;
-
     uint32_t ret;
 #ifndef __SC_CUDA_SUPPORT__
     ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Scan(det_ctx->sgh->mpm_ctx,
@@ -118,8 +116,6 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    det_ctx->pmq.mode = PMQ_MODE_SCAN;
-
     if (det_ctx->sgh->mpm_uri_ctx == NULL)
         SCReturnUInt(0U);
 
@@ -143,78 +139,6 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 #endif
 
     SCReturnUInt(ret);
-}
-
-/** \brief Pattern match, search part -- searches for all other patterns
- *  \param tv threadvars
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to scan
- */
-uint32_t PacketPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-                            Packet *p)
-{
-    SCEnter();
-
-    det_ctx->pmq.mode = PMQ_MODE_SEARCH;
-
-    uint32_t ret;
-#ifndef __SC_CUDA_SUPPORT__
-    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
-                                                            &det_ctx->mtc,
-                                                            &det_ctx->pmq,
-                                                            p->payload,
-                                                            p->payload_len);
-#else
-    /* if the user has enabled cuda support, but is not using the cuda mpm
-     * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
-     * directly */
-    if (det_ctx->sgh->mpm_ctx->mpm_type != MPM_B2G_CUDA) {
-        ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
-                                                                &det_ctx->mtc,
-                                                                &det_ctx->pmq,
-                                                                p->payload,
-                                                                p->payload_len);
-        SCReturnInt(ret);
-    }
-
-    SCCudaHlProcessPacketWithDispatcher(p, det_ctx, /* search */ 1, &ret);
-#endif
-
-    SCReturnInt(ret);
-}
-
-/** \brief Uri Pattern match, search part -- searches for all other patterns
- *  \param tv threadvars
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to scan
- */
-uint32_t UriPatternMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-                         uint8_t *uri, uint16_t uri_len)
-{
-    SCEnter();
-
-    det_ctx->pmq.mode = PMQ_MODE_SEARCH;
-
-    uint32_t ret;
-#ifndef __SC_CUDA_SUPPORT__
-    ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search
-        (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, uri,
-         uri_len);
-#else
-    /* if the user has enabled cuda support, but is not using the cuda mpm
-     * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
-     * directly */
-    if (det_ctx->sgh->mpm_uri_ctx->mpm_type != MPM_B2G_CUDA) {
-        ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search
-            (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq, uri,
-             uri_len);
-        SCReturnInt(ret);
-    }
-
-    SCCudaHlProcessUriWithDispatcher(uri, uri_len, det_ctx, /* search */ 1, &ret);
-#endif
-
-    SCReturnInt(ret);
 }
 
 /** \brief cleans up the mpm instance after a match */

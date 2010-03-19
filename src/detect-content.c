@@ -2,38 +2,6 @@
  *
  * Copyright (C) 2008 by Victor Julien <victor@inliniac.net> */
 
-/* This is a very important part of the detection engine, and certainly one
- * of the most complex parts. String searching is complex and expensive,
- * and thus worth optimizing. The way that is done here is by only running
- * the pattern matcher once for every packet. In this search, all search words,
- * the 'content' matches, are looked for. All results, of all the search words
- * are stored in a array of lists. The array is an array of MpmMatchBucket's,
- * that can be entered through the DetectContentData id field. There, it finds
- * the bucket containing a list of 0, 1, or more matches of that content match.
- * The list contains MpmMatch items, that contain an offset field. This field
- * is the possition of the last character in the match.
- *
- * 03/22/2008 -- VJ:
- * Recursive capture runs do something special to the depth and offset: the
- * settings are only considered for the initial match. For the next matches,
- * they are not. The reason is that this way we can still anchor the first
- * match to a specific part of the payload, while the rest can be handled
- * by content and pcre matches.
- *
- * 06/11/2009 -- PR:
- * Now Patterns that exceed the max_pattern_length allowed by the current mpm
- * are split into multiple chunk. The modifiers must be set in the first
- * chunk of a group of chunks, and after a modifier is set, the modifiers of the
- * next chunks must be recalculated (propagated). This way, each DETECT_CONTENT
- * installed should be completely independent, as if it were loaded in another
- * content option of the signature.
- *
- * TODO: add a 'recursive depth' to limit the depth to do the recursion on...
- *
- * XXX more later....
- *
- */
-
 #include "suricata-common.h"
 #include "decode.h"
 #include "detect.h"
@@ -57,7 +25,7 @@ void DetectContentRegisterTests(void);
 
 void DetectContentRegister (void) {
     sigmatch_table[DETECT_CONTENT].name = "content";
-    sigmatch_table[DETECT_CONTENT].Match = DetectContentMatch;
+    sigmatch_table[DETECT_CONTENT].Match = NULL;
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
@@ -69,513 +37,6 @@ void DetectContentRegister (void) {
 uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
     //SCLogDebug("DetectContentMaxId: %" PRIu32 "", de_ctx->content_max_id);
     return de_ctx->content_max_id;
-}
-
-#ifdef DEBUG
-static void DetectContentDebugPrint(DetectContentData *co) {
-    char buf[2048] = "";
-    char tmp[4] = "";
-    uint16_t u = 0;
-
-    for (u = 0; u < co->content_len; u++) {
-        if (isprint((char)co->content[u])) {
-            snprintf(tmp,sizeof(tmp),"%c", (char)co->content[u]);
-        } else {
-            snprintf(tmp,sizeof(tmp),"\\%02x", co->content[u]);
-        }
-        strlcat(buf,tmp,sizeof(buf));
-    }
-
-    SCLogDebug("content \"%s\"",buf);
-}
-
-static void DetectContentPrintMatches(DetectEngineThreadCtx *det_ctx, DetectContentData *co) {
-    DetectContentDebugPrint(co);
-    if (det_ctx->mtc.match[co->id].len == 0)
-        SCLogDebug("pattern did not match");
-    else
-        SCLogDebug("matched %" PRIu32 " time(s) at offsets: ", det_ctx->mtc.match[co->id].len);
-
-    MpmMatch *tmpm = NULL;
-    for (tmpm = det_ctx->mtc.match[co->id].top; tmpm != NULL; tmpm = tmpm->next) {
-        SCLogDebug("pattern matched at offset %" PRIu32 " ", tmpm->offset);
-    }
-}
-#endif
-
-static inline int
-TestOffsetDepth(MpmMatch *m, DetectContentData *co, uint16_t pktoff) {
-    SCEnter();
-
-    if (m->offset >= pktoff) {
-        if (co->offset == 0 || (m->offset >= co->offset)) {
-            if (co->depth == 0 || ((m->offset + co->content_len) <= co->depth)) {
-                SCLogDebug("depth %" PRIu32 ", offset %" PRIu32 ", m->offset "
-                           "%" PRIu32 ", return 1", co->depth, co->offset,
-                           m->offset);
-
-                /* If we reach this point, it means we have obtained a depth and
-                 * offset match, which indicates that we have a FAILURE if the
-                 * content is negated, and SUCCESS if the content is not negated */
-                if (co->negated == 1)
-                    SCReturnInt(0);
-                else
-                    SCReturnInt(1);
-            } else {
-                /* We have success so far with offset, but a failure with
-                 * depth.  We can return a match at the bottom of this function
-                 * for negated_content, provided offset is 0.  If offset
-                 * isn't 0 for negated_content, we have a failure and we return
-                 * a no match here.  If the content is not negated, we have a no
-                 * match, which we return at the end of this function. */
-                if (co->offset && co->negated == 1)
-                    SCReturnInt(0);
-            }
-        } else {
-            /* If offset fails, and if the content is negated, we check if depth
-             * succeeds.  If it succeeds, we have a no match for negated content.
-             * Else we have a success for negated content.  If the content is
-             * not negated, we go down till the end and return a no match. */
-            if (co->negated == 1) {
-                if (co->offset != 0) {
-                    SCReturnInt(1);
-                } else if (co->depth && (m->offset+co->content_len) <= co->depth) {
-                    SCLogDebug("depth %" PRIu32 ", offset %" PRIu32 ", m->offset %" PRIu32 ", "
-                            "return 0", co->depth, co->offset, m->offset);
-                    SCReturnInt(0);
-                }
-            }
-        }
-    }
-    SCLogDebug("depth %" PRIu32 ", offset %" PRIu32 ", m->offset %" PRIu32 ", "
-               "return 0 (or 1 if negated)", co->depth, co->offset, m->offset);
-
-    /* If we reach this point, we have a match for negated content and no match
-     * otherwise */
-    if (co->negated == 1)
-        SCReturnInt(1);
-    else
-        SCReturnInt(0);
-}
-
-/**
- * \brief test the within, distance, offset and depth of a match
- *
- *         This function is called recursively (if necessary) to be able
- *         to determine whether or not a chain of content matches connected
- *         with 'within' and 'distance' options fully matches. The reason it
- *         was done like this is to make sure we can handle partial matches
- *         that turn out to fail being followed by full matches later in the
- *         packet. This adds some runtime complexity however.
- *
- *         WITHIN
- *         The within check, if enabled, works as follows. The check is done
- *         against the current match "m". This is the pattern that we check
- *         the next against. So we will figure out if the next pattern exists
- *         within X bytes of "m".
- *
- *         To do this, we take the next pattern (nsm) and loop through all
- *         matches of it. We then for each of the matches "nm" below, see if
- *         it is in the within limit.
- *
- *         The within limit is checked as follows. It's checked against the
- *         current match "m". "m->offset" indicates the start of that match.
- *         So we need to consider m->offset + co->content_len. This will give
- *         us the end of the match "m". The next match then needs to occur
- *         before that point + the lenght of the pattern we're checking,
- *         nco->content_len.
- *
- * \param t       thread vars
- * \param det_ctx thread local data of the detection engine ctx
- * \param m       match we are inspecting
- * \param nm      current sigmatch to work with
- * \param nsm     next sigmatch to work with
- * \param pktoff  packet offset
- *
- * \retval  1 On success.
- * \retval  0 On failure because of non-negated content.
- * \retval -1 On failure because of negated content.
- */
-int TestWithinDistanceOffsetDepth(ThreadVars *t,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  MpmMatch *m, SigMatch *sm,
-                                  SigMatch *nsm, uint16_t pktoff)
-{
-    int neg_success_flag = 0;
-
-    if (nsm == NULL) {
-        SCLogDebug("No next sigmatch, all sigmatches matched.");
-        return 1;
-    }
-
-    /** content match of current pattern */
-    DetectContentData *co = (DetectContentData *)sm->ctx;
-
-    if (!(co->flags & DETECT_CONTENT_DISTANCE_NEXT) && !(co->flags & DETECT_CONTENT_WITHIN_NEXT)) {
-        SCLogDebug("Next content does not need distance/within checking.");
-        return 1;
-    }
-
-    /** content match of next pattern */
-    DetectContentData *nco = (DetectContentData *)nsm->ctx;
-#ifdef DEBUG
-    if (SCLogDebugEnabled()) {
-        SCLogDebug("printing matches");
-        DetectContentPrintMatches(det_ctx, nco);
-    }
-#endif
-    /** list of matches of the next pattern */
-    MpmMatch *nm = det_ctx->mtc.match[nco->id].top;
-
-    /* if we have no matches and the content is negated, we can return a success */
-    if (nm == NULL) {
-        SCLogDebug("no nm to inspect");
-
-        if (nco->negated == 1)
-            return 1;
-        else
-            return 0;
-    }
-
-    /* recursively check if we have a next pattern that matches */
-    for ( ; nm != NULL; nm = nm->next) {
-        SCLogDebug("nm->offset %" PRIu32 ", m->offset %" PRIu32 ", pktoff "
-                   "%" PRIu32 "", nm->offset, m->offset, pktoff);
-        SCLogDebug("nm->offset + nco->content_len = %"PRIu32" + %"PRIu32" = "
-                   "%"PRIu32"", nm->offset, nco->content_len,
-                   nm->offset + nco->content_len);
-        SCLogDebug("within (0 if disabled) = %"PRIu32" (nco->within "
-                   "%"PRIu32" + co->content_len %"PRIu32")",
-                   (nco->flags & DETECT_CONTENT_WITHIN) ?
-                   (nco->within + co->content_len) : 0, nco->within,
-                   co->content_len);
-
-        if (nm->offset >= pktoff) {
-            if ((!(nco->flags & DETECT_CONTENT_WITHIN) ||
-                (nco->within > 0 && (nm->offset > m->offset) &&
-                (((nm->offset + nco->content_len) - m->offset) <= (nco->within + co->content_len)))))  {
-                SCLogDebug("MATCH: %" PRIu32 " <= WITHIN(%" PRIu32 ")",
-                           (nm->offset + nco->content_len) - m->offset,
-                           nco->within + co->content_len);
-
-                if (!(nco->flags & DETECT_CONTENT_DISTANCE) ||
-                    ((nm->offset >= (m->offset + co->content_len)) &&
-                    ((nm->offset - (m->offset + co->content_len)) >= nco->distance))) {
-                    SCLogDebug("MATCH: %" PRIu32 " >= DISTANCE(%" PRIu32 ")",
-                        nm->offset - (m->offset + co->content_len), nco->distance);
-
-                    if (TestOffsetDepth(nm, nco, pktoff) == 0) {
-                        /* if the content is not negated, we have to return a 0
-                         * under all circumstances, because we can't afford for
-                         * the offset and depth match to fail.  If the content
-                         * is negated, we have 2 cases.  First case is when we
-                         * have a distance or within and TestOffsetDepth() fails.
-                         * In this case we have to return a 0, irrespective of
-                         * whether we have a depth or offset, because we seem to
-                         * be having a match for within or distance.  If we don't
-                         * have distance and within, and if the depth/offset
-                         * check failed, then we still have a failure because of
-                         * the obvious reason that in the absence of within and
-                         * distance, offset/depth check has to succeed. */
-                        if (nco->negated == 1)
-                            return -1;
-                        else
-                            return 0;
-                    } else {
-                        /* if the content is negated and we had a within or a
-                         * distance, it indicates that we passed through the
-                         * within/distance, which is a failure */
-                        if (nco->negated == 1 &&
-                            ((nco->flags & DETECT_CONTENT_WITHIN) ||
-                             (nco->flags & DETECT_CONTENT_DISTANCE))) {
-                            return -1;
-                        } else {
-                            return TestWithinDistanceOffsetDepth(t, det_ctx, nm,
-                                    nsm, DetectContentFindNextApplicableSM(nsm->next),
-                                    pktoff);
-                        }
-                    }
-                } else {
-                    SCLogDebug("NO MATCH: %" PRIu32 " < DISTANCE(%" PRIu32 ")",
-                               nm->offset - (m->offset + co->content_len),
-                               nco->distance);
-                    /* looks like we got through within, but failed at distance.
-                     * An obvious failure in case of non-negated content, in which
-                     * case we move on to the next match.
-                     * In case of negated content, if there was a within
-                     * previously, it indicates that we got through the within
-                     * and we have a nomatch now with distance.  If we didn't
-                     * have within, we made it through, but we check for depth
-                     * and offset now.  If depth/offset check succeeds we have a
-                     * temporary success and we move on to the next match.  If
-                     * it fails, we check if it failed because we didn't have
-                     * offset and depth, in which case, it is not a failure and
-                     * we on to the nextmatch.  Otherwise it is a failure */
-                    if (nco->negated == 1 && (nm->offset >= (m->offset + co->content_len))) {
-                        if (nco->flags & DETECT_CONTENT_WITHIN)
-                            return -1;
-
-                        if (TestOffsetDepth(nm, nco, pktoff) == 1) {
-                            neg_success_flag = 1;
-                        } else {
-                            if (nco->offset == 0 && nco->depth == 0)
-                                neg_success_flag = 1;
-                            else
-                                return -1;
-                        }
-                    }
-                }
-            } else {
-                /* We have failed at within.  If the content is not negated we
-                 * have an obvious failure and we move on to the next match.  If
-                 * the content is negated, we check if distance exists.  If it
-                 * does, and if the distance check succeeds, we have a failure
-                 * for negated content.  If we don't have a failure or if distance
-                 * doesn't exist, we move on to test offset/depth check.  The
-                 * offset/depth test is the same as in the previous else. */
-                if (nco->negated == 1 && nm->offset > m->offset) {
-                    if ((nco->flags & DETECT_CONTENT_DISTANCE) &&
-                        ((nm->offset - (m->offset + co->content_len)) >= nco->distance)) {
-                            return -1;
-                        /* distance check meets non-negated requirements.  Let
-                         * us move on and check depth/offset */
-                    }
-
-                    if (TestOffsetDepth(nm, nco, pktoff) == 1) {
-                        /* offset, depth success for negated content.  A temp
-                         * success for us.  Let us set the flag indicating
-                         * this and move on to the next match. */
-                        neg_success_flag = 1;
-                    } else {
-                        /* looks like offset/depth failed.  If it failed because
-                         * both offset and depth weren't present, then it is not
-                         * precisely a failure, because the existance of negated
-                         * content is governed by the presence of within/distance.
-                         * So we set the flag and move on to the next content.
-                         * But if offset and depth do exist, then it indicates
-                         * that the negated content doesn't meet the requirements
-                         * of offset/depth and we have a failure. */
-                        if (nco->offset == 0 && nco->depth == 0)
-                            neg_success_flag = 1;
-                        else
-                            return -1;
-                    }
-                }
-            }
-        } else {
-            SCLogDebug("pktoff %"PRIu16" > nm->offset %"PRIu32"", pktoff, nm->offset);
-        }
-    }
-
-    if (neg_success_flag == 1) {
-        return 1;
-    }
-
-    SCLogDebug("no match found, returning 0");
-    return 0;
-}
-
-int
-DoDetectContent(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm, DetectContentData *co)
-{
-    int ret = 0;
-    char match = 0;
-    uint16_t payload_offset = det_ctx->payload_offset;
-    MpmMatch *temp_m = NULL;
-
-    SCLogDebug("det_ctx->mtc.match[%"PRIu32"].len %"PRIu32"", co->id, det_ctx->mtc.match[co->id].len);
-
-    /* Get the top match, we already know we have one. */
-    MpmMatch *m = det_ctx->mtc.match[co->id].top;
-
-    /* reset de_checking_distancewithin */
-    if (!(co->flags & DETECT_CONTENT_WITHIN) &&
-        !(co->flags & DETECT_CONTENT_DISTANCE))
-    {
-        det_ctx->de_checking_distancewithin = 0;
-
-        /* only use pkt offset of previous matches
-         * on relative matches. */
-        payload_offset = 0;
-    }
-
-    SCLogDebug("using payload_offset %"PRIu16"", payload_offset);
-
-    /*  if we have within or distance coming up next, check this match
-     *  for distance and/or within and check the rest of this match
-     *  chain as well. */
-    if ((co->flags & DETECT_CONTENT_WITHIN_NEXT ||
-         co->flags & DETECT_CONTENT_DISTANCE_NEXT) &&
-         det_ctx->de_checking_distancewithin == 0)
-    {
-        SCLogDebug("DETECT_CONTENT_WITHIN_NEXT is %s",
-            co->flags & DETECT_CONTENT_WITHIN_NEXT ? "true":"false");
-        SCLogDebug("DETECT_CONTENT_DISTANCE_NEXT is %s",
-            co->flags & DETECT_CONTENT_DISTANCE_NEXT ? "true":"false");
-
-        /* indicate to the detection engine the next sigmatch(es)
-         * are part of this match chain */
-        det_ctx->de_checking_distancewithin = 1;
-
-        for (; m != NULL; m = m->next) {
-            /* first check our match for offset and depth */
-            if (TestOffsetDepth(m, co, payload_offset) == 1) {
-                SCLogDebug("TestOffsetDepth returned 1, for co->id %"PRIu32"", co->id);
-
-                SigMatch *real_sm_next = DetectContentFindNextApplicableSM(sm->next);
-                ret = TestWithinDistanceOffsetDepth(t, det_ctx, m, sm, real_sm_next, payload_offset);
-
-                if (ret == 1) {
-                    SCLogDebug("TestWithinDistanceOffsetDepth returned 1");
-                    //det_ctx->pkt_ptr = p->payload + m->offset;
-                    /* update both the local and ctx payload_offset */
-                    payload_offset = det_ctx->payload_offset = m->offset;
-                    match = 1;
-                    break;
-                } else if (ret == -1) {
-                    SCLogDebug("TestWithinDistanceOffsetDepth returned -1");
-                    break;
-                }
-            } else {
-                SCLogDebug("TestOffsetDepth returned 0, for co->id %"PRIu32"", co->id);
-            }
-        }
-
-    /* Okay, this is complicated... on the first match of a match chain,
-     * we do the whole match of that chain (a chain here means a number
-     * of consecutive content matches that relate to each other with
-     * 'within and/or 'distance options'). But we still get to the next
-     * sigmatches. We have already inspected this sigmatch, even for
-     * offset and depth. Since the fact that we get there means we have
-     * had a match, we return match here too.
-     */
-    } else if (co->flags & DETECT_CONTENT_WITHIN ||
-               co->flags & DETECT_CONTENT_DISTANCE)
-    {
-        SCLogDebug("distance/within checking already done, returning 1");
-
-        det_ctx->de_checking_distancewithin = 0;
-        match = 1;
-
-    /* Getting here means we are not in checking an within/distance chain.
-     * This means we can just inspect this content match on it's own. So
-     * Let's see if at least one of the matches within the offset and depth
-     * settings. If so, return a match.
-     */
-    } else {
-        SCLogDebug("no distance/within checking");
-
-        /* if we have no matches, we return MATCH if the content is negated, or
-         * NOMATCH if the content is not negated */
-        if (m == NULL) {
-            if (co->negated == 1)
-                match = 1;
-            else
-                match = 0;
-
-            SCLogDebug("returning %d", match);
-            return match;
-        }
-
-        /* when in recursive capture mode don't check depth and offset
-         * after the first match */
-        if (s->flags & SIG_FLAG_RECURSIVE && det_ctx->pkt_cnt) {
-            for (; m != NULL; m = m->next) {
-                if (m->offset >= det_ctx->payload_offset) {
-                    /* update pkt ptrs, content doesn't use this,
-                     * but pcre does */
-                    //det_ctx->pkt_ptr = p->payload + m->offset;
-                    det_ctx->payload_offset = m->offset;
-                    match = 1;
-                    break;
-                }
-            }
-        } else {
-            temp_m = m;
-            for (; m != NULL; m = m->next) {
-                /* no offset as we inspect each match on it's own */
-                ret = TestOffsetDepth(m, co, 0);
-
-                /* If ret is 0 and content is negated, we have a failure and we
-                 * break.  If ret is 0 and content is not negated, we have a
-                 * failure for this match, so we will continue in this loop
-                 * testing other matches.  If ret is 1, and the content is
-                 * negated we have a success and we will continue along the loop
-                 * to check that other matches also return 1 for TestOffsetDepth()
-                 * with the negated content.  But if ret is 1, and the content
-                 * is not negated, we have a match, which is sufficient for us to
-                 * return with a break, with match = 1. */
-                if (ret == 0) {
-                    if (co->negated == 1) {
-                        match = 0;
-                        break;
-                    }
-                } else {
-                    if (co->negated == 0) {
-                        /* update pkt ptrs, this content run doesn't
-                         * use this, but pcre does */
-                        //det_ctx->pkt_ptr = p->payload + m->offset;
-                        det_ctx->payload_offset = m->offset;
-                        match = 1;
-                        break;
-                    }
-                }
-            }
-            /* If there were matches, with the content being negated, and all of
-             * them passed TestOffsetDepth(), we have a match.  This is the
-             * reason why we continue in the else part if ret == 1, if the
-             * content is negated */
-            if (temp_m != NULL && ret == 1 && co->negated == 1) {
-                SCLogDebug("setting match to true");
-                match = 1;
-            }
-        }
-    }
-
-    /* If it has matched, check if it's set a "isdataat" option and process it */
-    if (match == 1 && (co->flags & DETECT_CONTENT_ISDATAAT_RELATIVE) &&
-        co->negated == 0) {
-        /* if the rest of the payload (from the last match) is less than
-          the "isdataat" there is no data where the rule expected
-          so match=0
-        */
-
-        SCLogDebug("isdataat: payload_len: %u, used %u, rest %u, isdataat? %u", p->payload_len, (m->offset + co->content_len),p->payload_len - (m->offset + co->content_len), co->isdataat);
-
-        if ((uint32_t)(p->payload_len - (m->offset + co->content_len)) < co->isdataat)
-            match = 0;
-
-        if (match) {
-            SCLogDebug("still matching after isdataat check");
-        }
-    }
-
-    SCLogDebug("returning %d", match);
-    return match;
-}
-
-
-/*
- * returns 0: no match
- *         1: match
- *        -1: error
- */
-
-int DetectContentMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
-{
-    if (p->payload_len == 0)
-        return 0;
-
-    DetectContentData *co = (DetectContentData *)m->ctx;
-
-#ifdef DEBUG
-    if (SCLogDebugEnabled()) {
-        SCLogDebug("printing matches");
-        DetectContentPrintMatches(det_ctx, co);
-    }
-#endif
-
-    return DoDetectContent(t, det_ctx, p, s, m, co);
 }
 
 DetectContentData *DetectContentParse (char *contentstr)
@@ -949,6 +410,38 @@ SigMatch *DetectContentFindPrevApplicableSM(SigMatch *sm)
     }
     /* We should not be here */
     return NULL;
+}
+
+/** \brief get the last pattern sigmatch, content or uricontent
+ *
+ *  \param s signature
+ *
+ *  \retval sm sigmatch of either content or uricontent that is the last
+ *             or NULL if none was found
+ */
+SigMatch *SigMatchGetLastPattern(Signature *s) {
+    SCEnter();
+
+    BUG_ON(s == NULL);
+
+    SigMatch *co_sm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    SigMatch *ur_sm = SigMatchGetLastSM(s->match, DETECT_URICONTENT);
+    SigMatch *sm = NULL;
+
+    if (co_sm != NULL && ur_sm != NULL) {
+        BUG_ON(co_sm->idx == ur_sm->idx);
+
+        if (co_sm->idx > ur_sm->idx)
+            sm = co_sm;
+        else
+            sm = ur_sm;
+    } else if (co_sm != NULL) {
+        sm = co_sm;
+    } else if (ur_sm != NULL) {
+        sm = ur_sm;
+    }
+
+    SCReturnPtr(sm, "SigMatch");
 }
 
 /**

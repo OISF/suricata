@@ -52,18 +52,7 @@ typedef struct MpmEndMatch_ {
     uint8_t flags;
 } MpmEndMatch;
 
-typedef struct MpmMatch_ {
-    struct MpmMatch_ *next; /**< match list -- used to connect a match to a
-                             *   pattern id. */
-    struct MpmMatch_ *qnext; /**< queue list -- used to cleanup all matches
-                              *   after the inspection. */
-    struct MpmMatchBucket_ *mb; /**< pointer back to the bucket */
-    uint16_t offset; /**< offset of this match in the search buffer */
-} MpmMatch;
-
 typedef struct MpmMatchBucket_ {
-    MpmMatch *top;
-    MpmMatch *bot;
     uint32_t len;
 } MpmMatchBucket;
 
@@ -72,18 +61,7 @@ typedef struct MpmThreadCtx_ {
 
     uint32_t memory_cnt;
     uint32_t memory_size;
-
-    MpmMatchBucket *match;
-    /* list of all matches */
-    MpmMatch *qlist;
-    /* spare list */
-    MpmMatch *sparelist;
-
-    uint32_t matchsize;
 } MpmThreadCtx;
-
-#define PMQ_MODE_SCAN   0
-#define PMQ_MODE_SEARCH 1
 
 /** \brief helper structure for the pattern matcher engine. The Pattern Matcher
  *         thread has this and passes a pointer to it to the pattern matcher.
@@ -94,9 +72,8 @@ typedef struct PatternMatcherQueue_ {
                                futher by the detection engine. */
     uint32_t sig_id_array_cnt;
     uint8_t *sig_bitarray;
-    char mode; /* 0: scan, 1: search */
     uint32_t searchable; /* counter of the number of matches that
-                             require a search-followup */
+                            require a search-followup */
 } PatternMatcherQueue;
 
 typedef struct MpmCtx_ {
@@ -114,8 +91,6 @@ typedef struct MpmCtx_ {
 
     uint16_t scan_minlen;
     uint16_t scan_maxlen;
-    uint16_t search_minlen;
-    uint16_t search_maxlen;
 } MpmCtx;
 
 typedef struct MpmTableElmt_ {
@@ -127,11 +102,11 @@ typedef struct MpmTableElmt_ {
     void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
     int  (*AddScanPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
     int  (*AddScanPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
-    int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t);
-    int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t);
+//    int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t);
+//    int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t);
     int  (*Prepare)(struct MpmCtx_ *);
     uint32_t (*Scan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
-    uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+//    uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     void (*Cleanup)(struct MpmThreadCtx_ *);
     void (*PrintCtx)(struct MpmCtx_ *);
     void (*PrintThreadCtx)(struct MpmThreadCtx_ *);
@@ -146,12 +121,10 @@ void PmqReset(PatternMatcherQueue *);
 void PmqCleanup(PatternMatcherQueue *);
 void PmqFree(PatternMatcherQueue *);
 
-void MpmMatchCleanup(MpmThreadCtx *);
-MpmMatch *MpmMatchAlloc(MpmThreadCtx *);
-int MpmMatchAppend(MpmThreadCtx *, PatternMatcherQueue *, MpmEndMatch *, MpmMatchBucket *, uint16_t, uint16_t);
+int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, MpmEndMatch *, uint16_t, uint16_t);
+
 MpmEndMatch *MpmAllocEndMatch (MpmCtx *);
 void MpmEndMatchFreeAll(MpmCtx *mpm_ctx, MpmEndMatch *em);
-void MpmMatchFreeSpares(MpmThreadCtx *mpm_ctx, MpmMatch *m);
 
 void MpmTableSetup(void);
 void MpmRegisterTests(void);

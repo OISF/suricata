@@ -5,7 +5,6 @@
 #include "util-bloomfilter.h"
 
 #define B2G_NOCASE 0x01
-#define B2G_SCAN   0x02
 
 //#define B2G_HASHSHIFT 8
 //#define B2G_HASHSHIFT 7

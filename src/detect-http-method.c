@@ -190,13 +190,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     }
 
     data->content_len = ((DetectContentData *)pm->ctx)->content_len;
-    data->content = SCMalloc(data->content_len);
-    if (data->content == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
-        goto error;
-    }
-    memcpy(data->content,
-           ((DetectContentData *)pm->ctx)->content, data->content_len);
+    data->content = ((DetectContentData *)pm->ctx)->content;
 
     method = bstr_memdup((char *)data->content, data->content_len);
     /** \todo error check */
@@ -210,8 +204,9 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
      * the new match to the match list */
     SigMatchReplaceContent(s, pm, nm);
 
-    /* free the old content sigmatch */
-    DetectContentFree(pm->ctx);
+    /* free the old content sigmatch, the memory for the pattern
+     * is taken over by our new sigmatch */
+    SCFree(pm->ctx);
     SCFree(pm);
 
     /* Flagged the signature as to scan the app layer data */

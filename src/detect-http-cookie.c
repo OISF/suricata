@@ -208,12 +208,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     memset(hd, 0, sizeof(DetectHttpCookieData));
 
     hd->data_len = ((DetectContentData *)pm->ctx)->content_len;
-    hd->data = SCMalloc(hd->data_len);
-    if (hd->data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
-        goto error;
-    }
-    memcpy(hd->data, ((DetectContentData *)pm->ctx)->content, hd->data_len);
+    hd->data = ((DetectContentData *)pm->ctx)->content;
 
     nm->type = DETECT_AL_HTTP_COOKIE;
     nm->ctx = (void *)hd;
@@ -222,8 +217,9 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
      * the new match to the match list */
     SigMatchReplaceContent(s, pm, nm);
 
-    /* free the old content sigmatch */
-    DetectContentFree(pm->ctx);
+    /* free the old content sigmatch, the content pattern memory
+     * is taken over by the new sigmatch */
+    SCFree(pm->ctx);
     SCFree(pm);
 
     /* Flagged the signature as to scan the app layer data */

@@ -125,13 +125,6 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         PrintRawDataFp(aft->file_ctx->fp, pv->value, pv->value_len);
     }
 
-    for (i = 0; i < p->http_uri.cnt; i++) {
-        fprintf(aft->file_ctx->fp, "RAW URI [%2d]:      ", i);
-        PrintRawUriFp(aft->file_ctx->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
-        fprintf(aft->file_ctx->fp, "\n");
-        PrintRawDataFp(aft->file_ctx->fp, p->http_uri.raw[i], p->http_uri.raw_size[i]);
-    }
-
 /* any stuff */
 /* Sig details? */
 /* pkt vars */

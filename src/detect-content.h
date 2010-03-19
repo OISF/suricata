@@ -81,6 +81,8 @@ SigMatch *DetectContentFindNextApplicableSM(SigMatch *);
  * a Pattern before the SigMatch passed as argument */
 SigMatch *DetectContentHasPrevSMPattern(SigMatch *);
 
+SigMatch *SigMatchGetLastPattern(Signature *s);
+
 /** After setting a new modifier, we should call one of the followings */
 int DetectContentPropagateDepth(SigMatch *);
 int DetectContentPropagateIsdataat(SigMatch *);

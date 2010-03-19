@@ -179,21 +179,6 @@ typedef struct PacketAlerts_ {
     PacketAlert alerts[PACKET_ALERT_MAX];
 } PacketAlerts;
 
-#define HTTP_URI_MAXCNT 8
-#define HTTP_URI_MAXLEN 1024
-
-typedef struct HttpUri_ {
-    /* the raw uri for the packet as set by pcre */
-    uint8_t *raw[HTTP_URI_MAXCNT];
-    uint16_t raw_size[HTTP_URI_MAXCNT];
-
-    /* normalized uri */
-    uint8_t norm[HTTP_URI_MAXCNT][HTTP_URI_MAXLEN];
-    uint16_t norm_size[HTTP_URI_MAXCNT];
-
-    uint8_t cnt;
-} HttpUri;
-
 typedef struct PktVar_ {
     char *name;
     struct PktVar_ *next; /* right now just implement this as a list,
@@ -305,8 +290,6 @@ typedef struct Packet_
     /* decoder events: review how many events we have */
     uint8_t events[65535 / 8];
 
-    HttpUri http_uri;
-
     PacketAlerts alerts;
 
     /* IPS action to take */
@@ -416,7 +399,6 @@ typedef struct DecodeThreadVars_
     (p)->flowflags = 0; \
     (p)->flags = 0; \
     (p)->alerts.cnt = 0; \
-    PktHttpUriFree((p)); \
     if ((p)->pktvar != NULL) { \
         PktVarFree((p)->pktvar); \
     } \
