@@ -354,6 +354,8 @@ static int DetectThresholdTestSig1(void) {
     p.ip4h = &ip4h;
     p.ip4h->ip_src.s_addr = 0x01010101;
     p.ip4h->ip_dst.s_addr = 0x02020202;
+    p.sp = 1024;
+    p.dp = 80;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -362,12 +364,18 @@ static int DetectThresholdTestSig1(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
     SigGroupBuild(de_ctx);
+
+    if (s->flags & SIG_FLAG_IPONLY) {
+        printf("signature is ip-only: ");
+        goto end;
+    }
+
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -384,9 +392,8 @@ static int DetectThresholdTestSig1(void) {
     if(alerts == 5)
         result = 1;
     else
-        goto cleanup;
+        printf("alerts %"PRIi32", expected 5: ", alerts);
 
-cleanup:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -426,6 +433,8 @@ static int DetectThresholdTestSig2(void) {
     p.ip4h = &ip4h;
     p.ip4h->ip_src.s_addr = 0x01010101;
     p.ip4h->ip_dst.s_addr = 0x02020202;
+    p.sp = 1024;
+    p.dp = 80;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -434,7 +443,7 @@ static int DetectThresholdTestSig2(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold\"; threshold: type threshold, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold\"; threshold: type threshold, track by_dst, count 5, seconds 60; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -507,6 +516,8 @@ static int DetectThresholdTestSig3(void) {
     p.ip4h = &ip4h;
     p.ip4h->ip_src.s_addr = 0x01010101;
     p.ip4h->ip_dst.s_addr = 0x02020202;
+    p.sp = 1024;
+    p.dp = 80;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -515,7 +526,7 @@ static int DetectThresholdTestSig3(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:10;)");
     if (s == NULL) {
         goto end;
     }
@@ -618,6 +629,8 @@ static int DetectThresholdTestSig4(void) {
     p.ip4h = &ip4h;
     p.ip4h->ip_src.s_addr = 0x01010101;
     p.ip4h->ip_dst.s_addr = 0x02020202;
+    p.sp = 1024;
+    p.dp = 80;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -626,7 +639,7 @@ static int DetectThresholdTestSig4(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold both\"; threshold: type both, track by_dst, count 2, seconds 60; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold both\"; threshold: type both, track by_dst, count 2, seconds 60; sid:10;)");
     if (s == NULL) {
         goto end;
     }
@@ -690,6 +703,8 @@ static int DetectThresholdTestSig5(void) {
     p.ip4h = &ip4h;
     p.ip4h->ip_src.s_addr = 0x01010101;
     p.ip4h->ip_dst.s_addr = 0x02020202;
+    p.sp = 1024;
+    p.dp = 80;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -698,12 +713,12 @@ static int DetectThresholdTestSig5(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit sid 1000\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    s = s->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
     if (s == NULL) {
         goto end;
     }

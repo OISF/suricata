@@ -475,10 +475,10 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
                     if (dport != NULL) {
                         sgh = dport->sh;
                     } else {
-                        SCLogDebug("no dst port group found for the packet");
+                        SCLogDebug("no dst port group found for the packet with dp %"PRIu16"", p->dp);
                     }
                 } else {
-                    SCLogDebug("no src port group found for the packet");
+                    SCLogDebug("no src port group found for the packet with sp %"PRIu16"", p->sp);
                 }
             }
         } else {
