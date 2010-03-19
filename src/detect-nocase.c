@@ -2,7 +2,10 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+
 #include "detect.h"
+#include "detect-parse.h"
+
 #include "flow-var.h"
 
 #include "detect-content.h"
@@ -27,33 +30,46 @@ void DetectNocaseRegister (void) {
 /** \todo uricontent needs fixing */
 static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
 {
+    SCEnter();
+
     int ret = 0;
 
     if (nullstr != NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
-        return -1;
+        SCReturnInt(-1);
     }
 
-    if (s->pmatch_tail == NULL)
-        return -1;
+    SigMatch *co_sm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    SigMatch *ur_sm = SigMatchGetLastSM(s->match, DETECT_URICONTENT);
+    char uri = 0;
 
-    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
-    if (pm != NULL) {
-        if (pm->type == DETECT_CONTENT) {
-            DetectContentData *cd = (DetectContentData *)pm->ctx;
-            //printf("DetectNocaseSetup: set nocase for previous content\n");
-            cd->flags |= DETECT_CONTENT_NOCASE;
-            goto end;
-        } else if (pm->type == DETECT_URICONTENT) {
-            DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
-            //printf("DetectNocaseSetup: set nocase for previous content\n");
-            cd->flags |= DETECT_URICONTENT_NOCASE;
-            goto end;
-        }
+    if (co_sm != NULL && ur_sm != NULL) {
+        BUG_ON(co_sm->idx == ur_sm->idx);
+
+        if (co_sm->idx > ur_sm->idx)
+            uri = 0;
+        else
+            uri = 1;
+    } else if (co_sm != NULL) {
+        uri = 0;
+    } else if (ur_sm != NULL) {
+        uri = 1;
+    } else {
+        SCReturnInt(-1);
+    }
+
+    if (uri == 0) {
+        DetectContentData *cd = (DetectContentData *)co_sm->ctx;
+        cd->flags |= DETECT_CONTENT_NOCASE;
+        goto end;
+    } else {
+        DetectUricontentData *cd = (DetectUricontentData *)ur_sm->ctx;
+        cd->flags |= DETECT_URICONTENT_NOCASE;
+        goto end;
     }
 
     ret = -1;
 end:
-    return ret;
+    SCReturnInt(ret);
 }
 

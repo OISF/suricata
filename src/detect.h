@@ -185,6 +185,9 @@ typedef struct Signature_ {
 
     /* app layer signature stuff */
     uint8_t alproto;
+
+    /** number of sigmatches in the match and pmatch list */
+    uint16_t sm_cnt;
 } Signature;
 
 /** \brief IP only rules matching ctx.
@@ -417,6 +420,7 @@ typedef struct DetectionEngineThreadCtx_ {
 
 /** \brief a single match condition for a signature */
 typedef struct SigMatch_ {
+    uint16_t idx; /**< position in the signature */
     uint8_t type; /**< match type */
     void *ctx; /**< plugin specific data */
     struct SigMatch_ *next;

@@ -120,6 +120,9 @@ void SigMatchAppendPayload(Signature *s, SigMatch *new) {
         new->prev = cur;
         s->pmatch_tail = new;
     }
+
+    new->idx = s->sm_cnt;
+    s->sm_cnt++;
 }
 
 /** \brief Append a sig match to the signatures non-payload match list
@@ -143,15 +146,16 @@ void SigMatchAppendPacket(Signature *s, SigMatch *new) {
         new->prev = cur;
         s->match_tail = new;
     }
+
+    new->idx = s->sm_cnt;
+    s->sm_cnt++;
 }
 
 /** \brief Pull a content 'old' from the pmatch list, append 'new' to match list.
   * Used for replacing contents that have http_cookie, etc modifiers.
   */
 void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
-    if (old == NULL) {
-        return SigMatchAppendAppLayer(s, new);
-    }
+    BUG_ON(old == NULL);
 
     SigMatch *m = s->pmatch;
     SigMatch *pm = m;
@@ -186,7 +190,25 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
     }
 
     /* finally append the "new" sig match to the app layer list */
-    SigMatchAppendAppLayer(s, new);
+    /** \todo if the app layer gets it's own list, adapt this code */
+    if (s->match == NULL) {
+        s->match = new;
+        s->match_tail = new;
+        new->next = NULL;
+        new->prev = NULL;
+    } else {
+        SigMatch *cur = s->match;
+
+        for ( ; cur->next != NULL; cur = cur->next);
+
+        cur->next = new;
+        new->next = NULL;
+        new->prev = cur;
+        s->match_tail = new;
+    }
+
+    /* move over the idx */
+    new->idx = pm->idx;
 }
 
 /**
@@ -230,18 +252,16 @@ void SigMatchReplace(Signature *s, SigMatch *m, SigMatch *new) {
  *
  * \retval match Pointer to the last SigMatch instance of type 'type'.
  */
-SigMatch *SigMatchGetLastSM(Signature *s, uint8_t type)
+SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
 {
-    SigMatch *sm = s->pmatch;
-    SigMatch *match = NULL;
-
     while (sm != NULL) {
-        if (sm->type == type)
-            match = sm;
+        if (sm->type == type) {
+            return sm;
+        }
         sm = sm->next;
     }
 
-    return match;
+    return NULL;
 }
 
 void SigParsePrepare(void) {
