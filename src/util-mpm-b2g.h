@@ -25,10 +25,10 @@
 #define B2G_HASH16(a,b) (((a)<<B2G_HASHSHIFT) | (b))
 #define B2G_Q           2
 
-#define B2G_SCANFUNC B2gScanBNDMq
-//#define B2G_SCANFUNC B2gScan
+#define B2G_SEARCHFUNC B2gSearchBNDMq
+//#define B2G_SEARCHFUNC B2gSearch
 
-//#define B2G_SCAN2
+//#define B2G_SEARCH2
 //#define B2G_COUNTERS
 
 typedef struct B2gPattern_ {
@@ -48,55 +48,55 @@ typedef struct B2gHashItem_ {
 } B2gHashItem;
 
 typedef struct B2gCtx_ {
-    B2G_TYPE *scan_B2G;
-    B2G_TYPE scan_m;
-    BloomFilter **scan_bloom;
-    uint8_t *scan_pminlen; /* array containing the minimal length
+    B2G_TYPE *B2G;
+    B2G_TYPE m;
+    BloomFilter **bloom;
+    uint8_t *pminlen; /* array containing the minimal length
                                of the patters in a hash bucket. Used
                                for the BloomFilter. */
     /* pattern arrays */
     B2gPattern **parray;
 
-    uint16_t scan_1_pat_cnt;
-#ifdef B2G_SCAN2
-    uint16_t scan_2_pat_cnt;
+    uint16_t pat_1_cnt;
+#ifdef B2G_SEARCH2
+    uint16_t pat_2_cnt;
 #endif
-    uint16_t scan_x_pat_cnt;
+    uint16_t pat_x_cnt;
 
-    uint32_t scan_hash_size;
-    B2gHashItem **scan_hash;
-    B2gHashItem scan_hash1[256];
-#ifdef B2G_SCAN2
-    B2gHashItem **scan_hash2;
+    uint32_t hash_size;
+    B2gHashItem **hash;
+    B2gHashItem hash1[256];
+#ifdef B2G_SEARCH2
+    B2gHashItem **hash2;
 #endif
 
     /* hash used during ctx initialization */
     B2gPattern **init_hash;
 
-    uint8_t scan_s0;
+    uint8_t s0;
 
     /* we store our own multi byte scan ptr here for B2gSearch1 */
-    uint32_t (*Scan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+    uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
 
     /* we store our own multi byte scan ptr here for B2gSearch1 */
-    uint32_t (*MBScan2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
-    uint32_t (*MBScan)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+    uint32_t (*MBSearch2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+    uint32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
 } B2gCtx;
 
 typedef struct B2gThreadCtx_ {
 #ifdef B2G_COUNTERS
-    uint32_t scan_stat_pminlen_calls;
-    uint32_t scan_stat_pminlen_total;
-    uint32_t scan_stat_bloom_calls;
-    uint32_t scan_stat_bloom_hits;
-    uint32_t scan_stat_calls;
-    uint32_t scan_stat_m_total;
-    uint32_t scan_stat_d0;
-    uint32_t scan_stat_d0_hashloop;
-    uint32_t scan_stat_loop_match;
-    uint32_t scan_stat_loop_no_match;
-    uint32_t scan_stat_num_shift;
-    uint32_t scan_stat_total_shift;
+    uint32_t stat_pminlen_calls;
+    uint32_t stat_pminlen_total;
+    uint32_t stat_bloom_calls;
+    uint32_t stat_bloom_hits;
+    uint32_t stat_calls;
+    uint32_t stat_m_total;
+    uint32_t stat_d0;
+    uint32_t stat_d0_hashloop;
+    uint32_t stat_loop_match;
+    uint32_t stat_loop_no_match;
+    uint32_t stat_num_shift;
+    uint32_t stat_total_shift;
 #endif /* B2G_COUNTERS */
 } B2gThreadCtx;
 

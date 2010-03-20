@@ -1088,6 +1088,8 @@ static uint32_t DetectContentTableHash(HashTable *ht, void *p, uint16_t len) {
 }
 
 static void DetectContentTableElmtFree(void *e) {
+    DetectContentTableElmt *c = (DetectContentTableElmt *)e;
+    free(c->pattern);
     free(e);
 }
 
@@ -1125,7 +1127,9 @@ uint32_t DetectContentGetId(DetectEngineCtx *de_ctx, DetectContentData *co) {
 
     e = malloc(sizeof(DetectContentTableElmt));
     BUG_ON(e == NULL);
-    e->pattern = co->content;
+    e->pattern = SCMalloc(co->content_len);
+    BUG_ON(e->pattern == NULL);
+    memcpy(e->pattern, co->content, co->content_len);
     e->pattern_len = co->content_len;
     e->id = 0;
 

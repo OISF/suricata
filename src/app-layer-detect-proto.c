@@ -126,7 +126,7 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
         dir = &ctx->toserver;
     }
 
-    mpm_table[dir->mpm_ctx.mpm_type].AddScanPattern(&dir->mpm_ctx, cd->content, cd->content_len,
+    mpm_table[dir->mpm_ctx.mpm_type].AddPattern(&dir->mpm_ctx, cd->content, cd->content_len,
                                 cd->offset, cd->depth, dir->id, dir->id, 0);
     dir->map[dir->id] = al_proto;
     dir->id++;
@@ -301,7 +301,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     uint16_t proto = ALPROTO_UNKNOWN;
     uint32_t cnt = 0;
 #ifndef __SC_CUDA_SUPPORT__
-    cnt = mpm_table[dir->mpm_ctx.mpm_type].Scan(&dir->mpm_ctx,
+    cnt = mpm_table[dir->mpm_ctx.mpm_type].Search(&dir->mpm_ctx,
                                                 &tdir->mpm_ctx,
                                                 &tdir->pmq, buf,
                                                 scanlen);
@@ -666,7 +666,7 @@ int AlpDetectTest03(void) {
     }
 #endif
 
-    uint32_t cnt = mpm_table[ctx.toclient.mpm_ctx.mpm_type].Scan(&ctx.toclient.mpm_ctx, &tctx.toclient.mpm_ctx, NULL, l7data, sizeof(l7data));
+    uint32_t cnt = mpm_table[ctx.toclient.mpm_ctx.mpm_type].Search(&ctx.toclient.mpm_ctx, &tctx.toclient.mpm_ctx, NULL, l7data, sizeof(l7data));
     if (cnt != 1) {
         printf("cnt %u != 1: ", cnt);
         r = 0;
@@ -723,7 +723,7 @@ int AlpDetectTest04(void) {
     }
 #endif
 
-    uint32_t cnt = mpm_table[ctx.toclient.mpm_ctx.mpm_type].Scan(&ctx.toclient.mpm_ctx, &tctx.toclient.mpm_ctx, NULL, l7data, sizeof(l7data));
+    uint32_t cnt = mpm_table[ctx.toclient.mpm_ctx.mpm_type].Search(&ctx.toclient.mpm_ctx, &tctx.toclient.mpm_ctx, NULL, l7data, sizeof(l7data));
     if (cnt != 0) {
         printf("cnt %u != 0: ", cnt);
         r = 0;

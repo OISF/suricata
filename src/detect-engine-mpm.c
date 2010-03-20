@@ -81,7 +81,7 @@ uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret;
 #ifndef __SC_CUDA_SUPPORT__
-    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Scan(det_ctx->sgh->mpm_ctx,
+    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
                                                           &det_ctx->mtc,
                                                           &det_ctx->pmq,
                                                           p->payload,
@@ -91,7 +91,7 @@ uint32_t PacketPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
      * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
      * directly */
     if (det_ctx->sgh->mpm_ctx->mpm_type != MPM_B2G_CUDA) {
-        ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Scan(det_ctx->sgh->mpm_ctx,
+        ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
                                                               &det_ctx->mtc,
                                                               &det_ctx->pmq,
                                                               p->payload,
@@ -121,7 +121,7 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret;
 #ifndef __SC_CUDA_SUPPORT__
-    ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan
+    ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search
         (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq,
          uri, uri_len);
 #else
@@ -129,7 +129,7 @@ uint32_t UriPatternScan(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
      * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
      * directly */
     if (det_ctx->sgh->mpm_uri_ctx->mpm_type != MPM_B2G_CUDA) {
-        ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Scan
+        ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search
             (det_ctx->sgh->mpm_uri_ctx, &det_ctx->mtcu, &det_ctx->pmq,
              uri, uri_len);
         SCReturnUInt(ret);
@@ -535,9 +535,9 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             depth = scan_ch->cnt ? 0 : depth;
 
             if (co->flags & DETECT_CONTENT_NOCASE) {
-                mpm_table[sgh->mpm_ctx->mpm_type].AddScanPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
+                mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
             } else {
-                mpm_table[sgh->mpm_ctx->mpm_type].AddScanPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
+                mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
             }
 
             SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the scan phase (s->num %"PRIu32")", s->id, co->id, s->num);
@@ -868,9 +868,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                  * length is the same as maxlen (ie we only add the longest pattern) */
                 if (!uricontent_scanadded && uricontent_maxlen == ud->uricontent_len) {
                     if (ud->flags & DETECT_URICONTENT_NOCASE) {
-                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddScanPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
+                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
                     } else {
-                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddScanPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
+                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
                     }
                     uricontent_scanadded = 1;
 

@@ -31,21 +31,21 @@
 
 static uint32_t b3g_hash_size = 0;
 static uint32_t b3g_bloom_size = 0;
-static void *b3g_scan_func;
+static void *b3g_func;
 
 void B3gInitCtx (MpmCtx *, int);
 void B3gThreadInitCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
 void B3gDestroyCtx(MpmCtx *);
 void B3gThreadDestroyCtx(MpmCtx *, MpmThreadCtx *);
-int B3gAddScanPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
-int B3gAddScanPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
+int B3gAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
+int B3gAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
 int B3gPreparePatterns(MpmCtx *);
-inline uint32_t B3gScanWrap(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
-uint32_t B3gScan1(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
-uint32_t B3gScan2(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
-uint32_t B3gScan12(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
-uint32_t B3gScan(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
-uint32_t B3gScanBNDMq(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
+inline uint32_t B3gSearchWrap(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
+uint32_t B3gSearch1(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
+uint32_t B3gSearch2(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
+uint32_t B3gSearch12(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
+uint32_t B3gSearch(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
+uint32_t B3gSearchBNDMq(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
 void B3gPrintInfo(MpmCtx *);
 void B3gPrintSearchStats(MpmThreadCtx *);
 void B3gRegisterTests(void);
@@ -57,14 +57,11 @@ void MpmB3gRegister (void) {
     mpm_table[MPM_B3G].InitThreadCtx = B3gThreadInitCtx;
     mpm_table[MPM_B3G].DestroyCtx = B3gDestroyCtx;
     mpm_table[MPM_B3G].DestroyThreadCtx = B3gThreadDestroyCtx;
-    mpm_table[MPM_B3G].AddScanPattern = B3gAddScanPatternCS;
-    mpm_table[MPM_B3G].AddScanPatternNocase = B3gAddScanPatternCI;
-    //mpm_table[MPM_B3G].AddPattern = B3gAddPatternCS;
-    //mpm_table[MPM_B3G].AddPatternNocase = B3gAddPatternCI;
+    mpm_table[MPM_B3G].AddPattern = B3gAddPatternCS;
+    mpm_table[MPM_B3G].AddPatternNocase = B3gAddPatternCI;
     mpm_table[MPM_B3G].Prepare = B3gPreparePatterns;
-    mpm_table[MPM_B3G].Scan = B3gScanWrap;
-    //mpm_table[MPM_B3G].Search = B3gSearchWrap;
-    //mpm_table[MPM_B3G].Cleanup = MpmMatchCleanup;
+    mpm_table[MPM_B3G].Search = B3gSearchWrap;
+    mpm_table[MPM_B3G].Cleanup = NULL;
     mpm_table[MPM_B3G].PrintCtx = B3gPrintInfo;
     mpm_table[MPM_B3G].PrintThreadCtx = B3gPrintSearchStats;
     mpm_table[MPM_B3G].RegisterUnittests = B3gRegisterTests;
@@ -128,11 +125,11 @@ void B3gPrintInfo(MpmCtx *mpm_ctx) {
     printf("  B3gPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(B3gPattern));
     printf("  B3gHashItem     %" PRIuMAX "\n", (uintmax_t)sizeof(B3gHashItem));
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
-    printf("Scan Patterns:   %" PRIu32 "\n", mpm_ctx->scan_pattern_cnt);
+    printf("Scan Patterns:   %" PRIu32 "\n", mpm_ctx->pattern_cnt);
     printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);
-    printf("Smallest:        %" PRIu32 "\n", mpm_ctx->scan_minlen);
-    printf("Largest:         %" PRIu32 "\n", mpm_ctx->scan_maxlen);
-    printf("Hash size:       %" PRIu32 "\n", ctx->scan_hash_size);
+    printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
+    printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
+    printf("Hash size:       %" PRIu32 "\n", ctx->hash_size);
     printf("\n");
 }
 
@@ -352,19 +349,18 @@ static inline int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, 
             printf("Max search words reached\n");
             exit(1);
         }
-        if (scan) mpm_ctx->scan_pattern_cnt++;
         mpm_ctx->pattern_cnt++;
 
-        if (mpm_ctx->scan_maxlen < patlen) mpm_ctx->scan_maxlen = patlen;
-        if (mpm_ctx->scan_minlen == 0) mpm_ctx->scan_minlen = patlen;
-        else if (mpm_ctx->scan_minlen > patlen) mpm_ctx->scan_minlen = patlen;
+        if (mpm_ctx->maxlen < patlen) mpm_ctx->maxlen = patlen;
+        if (mpm_ctx->minlen == 0) mpm_ctx->minlen = patlen;
+        else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
     } else {
         /* if we're reusing a pattern, check we need to check that it is a
          * scan pattern if that is what we're adding. If so we set the pattern
          * to be a scan pattern. */
-        if (mpm_ctx->scan_maxlen < patlen) mpm_ctx->scan_maxlen = patlen;
-        if (mpm_ctx->scan_minlen == 0) mpm_ctx->scan_minlen = patlen;
-        else if (mpm_ctx->scan_minlen > patlen) mpm_ctx->scan_minlen = patlen;
+        if (mpm_ctx->maxlen < patlen) mpm_ctx->maxlen = patlen;
+        if (mpm_ctx->minlen == 0) mpm_ctx->minlen = patlen;
+        else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
     }
 
     /* we need a match */
@@ -378,13 +374,13 @@ error:
     return -1;
 }
 
-int B3gAddScanPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+int B3gAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
     uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t nosearch)
 {
     return B3gAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */1, /* scan */1, pid, sid, nosearch);
 }
 
-int B3gAddScanPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+int B3gAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
     uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t nosearch)
 {
     return B3gAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */0, /* scan */1, pid, sid, nosearch);
@@ -405,127 +401,127 @@ static uint32_t B3gBloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_
      return hash;
 }
 
-static void B3gPrepareScanHash(MpmCtx *mpm_ctx) {
+static void B3gPrepareHash(MpmCtx *mpm_ctx) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
     uint16_t i;
     uint16_t idx = 0;
     uint8_t idx8 = 0;
 
-    ctx->scan_hash = (B3gHashItem **)SCMalloc(sizeof(B3gHashItem *) * ctx->scan_hash_size);
-    if (ctx->scan_hash == NULL) goto error;
-    memset(ctx->scan_hash, 0, sizeof(B3gHashItem *) * ctx->scan_hash_size);
+    ctx->hash = (B3gHashItem **)SCMalloc(sizeof(B3gHashItem *) * ctx->hash_size);
+    if (ctx->hash == NULL) goto error;
+    memset(ctx->hash, 0, sizeof(B3gHashItem *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += (sizeof(B3gHashItem *) * ctx->scan_hash_size);
+    mpm_ctx->memory_size += (sizeof(B3gHashItem *) * ctx->hash_size);
 
     /* 2 byte pattern hash */
-    ctx->scan_hash2 = (B3gHashItem **)SCMalloc(sizeof(B3gHashItem *) * ctx->scan_hash_size);
-    if (ctx->scan_hash2 == NULL) goto error;
-    memset(ctx->scan_hash2, 0, sizeof(B3gHashItem *) * ctx->scan_hash_size);
+    ctx->hash2 = (B3gHashItem **)SCMalloc(sizeof(B3gHashItem *) * ctx->hash_size);
+    if (ctx->hash2 == NULL) goto error;
+    memset(ctx->hash2, 0, sizeof(B3gHashItem *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += (sizeof(B3gHashItem *) * ctx->scan_hash_size);
+    mpm_ctx->memory_size += (sizeof(B3gHashItem *) * ctx->hash_size);
 
     /* alloc the pminlen array */
-    ctx->scan_pminlen = (uint8_t *)SCMalloc(sizeof(uint8_t) * ctx->scan_hash_size);
-    if (ctx->scan_pminlen == NULL) goto error;
-    memset(ctx->scan_pminlen, 0, sizeof(uint8_t) * ctx->scan_hash_size);
+    ctx->pminlen = (uint8_t *)SCMalloc(sizeof(uint8_t) * ctx->hash_size);
+    if (ctx->pminlen == NULL) goto error;
+    memset(ctx->pminlen, 0, sizeof(uint8_t) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += (sizeof(uint8_t) * ctx->scan_hash_size);
+    mpm_ctx->memory_size += (sizeof(uint8_t) * ctx->hash_size);
 
     for (i = 0; i < mpm_ctx->pattern_cnt; i++)
     {
         if(ctx->parray[i]->len == 1) {
             idx8 = (uint8_t)ctx->parray[i]->ci[0];
-            if (ctx->scan_hash1[idx8].flags == 0) {
-                ctx->scan_hash1[idx8].idx = i;
-                ctx->scan_hash1[idx8].flags |= 0x01;
+            if (ctx->hash1[idx8].flags == 0) {
+                ctx->hash1[idx8].idx = i;
+                ctx->hash1[idx8].flags |= 0x01;
             } else {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
                 hi->idx = i;
                 hi->flags |= 0x01;
 
                 /* Append this HashItem to the list */
-                B3gHashItem *thi = &ctx->scan_hash1[idx8];
+                B3gHashItem *thi = &ctx->hash1[idx8];
                 while (thi->nxt) thi = thi->nxt;
                 thi->nxt = hi;
             }
-            ctx->scan_1_pat_cnt++;
+            ctx->pat_1_cnt++;
         } else if(ctx->parray[i]->len == 2) {
             idx = (uint16_t)(ctx->parray[i]->ci[0] << B3G_HASHSHIFT | ctx->parray[i]->ci[1]);
-            if (ctx->scan_hash2[idx] == NULL) {
+            if (ctx->hash2[idx] == NULL) {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
                 hi->idx = i;
                 hi->flags |= 0x01;
 
-                ctx->scan_hash2[idx] = hi;
+                ctx->hash2[idx] = hi;
             } else {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
                 hi->idx = i;
                 hi->flags |= 0x01;
 
                 /* Append this HashItem to the list */
-                B3gHashItem *thi = ctx->scan_hash2[idx];
+                B3gHashItem *thi = ctx->hash2[idx];
                 while (thi->nxt) thi = thi->nxt;
                 thi->nxt = hi;
             }
-            ctx->scan_2_pat_cnt++;
+            ctx->pat_2_cnt++;
         } else {
-            idx = B3G_HASH(ctx->parray[i]->ci[ctx->scan_m - 3], ctx->parray[i]->ci[ctx->scan_m - 2], ctx->parray[i]->ci[ctx->scan_m - 1]);
-            //printf("idx %" PRIu32 ", %c.%c.%c\n", idx, ctx->parray[i]->ci[ctx->scan_m - 3], ctx->parray[i]->ci[ctx->scan_m - 2], ctx->parray[i]->ci[ctx->scan_m - 1]);
+            idx = B3G_HASH(ctx->parray[i]->ci[ctx->m - 3], ctx->parray[i]->ci[ctx->m - 2], ctx->parray[i]->ci[ctx->m - 1]);
+            //printf("idx %" PRIu32 ", %c.%c.%c\n", idx, ctx->parray[i]->ci[ctx->m - 3], ctx->parray[i]->ci[ctx->m - 2], ctx->parray[i]->ci[ctx->m - 1]);
 
-            if (ctx->scan_hash[idx] == NULL) {
+            if (ctx->hash[idx] == NULL) {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
                 hi->idx = i;
                 hi->flags |= 0x01;
-                ctx->scan_pminlen[idx] = ctx->parray[i]->len;
+                ctx->pminlen[idx] = ctx->parray[i]->len;
 
-                ctx->scan_hash[idx] = hi;
+                ctx->hash[idx] = hi;
             } else {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
                 hi->idx = i;
                 hi->flags |= 0x01;
 
-                if (ctx->parray[i]->len < ctx->scan_pminlen[idx])
-                    ctx->scan_pminlen[idx] = ctx->parray[i]->len;
+                if (ctx->parray[i]->len < ctx->pminlen[idx])
+                    ctx->pminlen[idx] = ctx->parray[i]->len;
 
                 /* Append this HashItem to the list */
-                B3gHashItem *thi = ctx->scan_hash[idx];
+                B3gHashItem *thi = ctx->hash[idx];
                 while (thi->nxt) thi = thi->nxt;
                 thi->nxt = hi;
             }
-            ctx->scan_x_pat_cnt++;
+            ctx->pat_x_cnt++;
         }
     }
 
     /* alloc the bloom array */
-    ctx->scan_bloom = (BloomFilter **)SCMalloc(sizeof(BloomFilter *) * ctx->scan_hash_size);
-    if (ctx->scan_bloom == NULL) goto error;
-    memset(ctx->scan_bloom, 0, sizeof(BloomFilter *) * ctx->scan_hash_size);
+    ctx->bloom = (BloomFilter **)SCMalloc(sizeof(BloomFilter *) * ctx->hash_size);
+    if (ctx->bloom == NULL) goto error;
+    memset(ctx->bloom, 0, sizeof(BloomFilter *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += (sizeof(BloomFilter *) * ctx->scan_hash_size);
+    mpm_ctx->memory_size += (sizeof(BloomFilter *) * ctx->hash_size);
 
     uint32_t h;
-    for (h = 0; h < ctx->scan_hash_size; h++) {
-        B3gHashItem *hi = ctx->scan_hash[h];
+    for (h = 0; h < ctx->hash_size; h++) {
+        B3gHashItem *hi = ctx->hash[h];
         if (hi == NULL)
             continue;
 
-        ctx->scan_bloom[h] = BloomFilterInit(b3g_bloom_size, 2, B3gBloomHash);
-        if (ctx->scan_bloom[h] == NULL)
+        ctx->bloom[h] = BloomFilterInit(b3g_bloom_size, 2, B3gBloomHash);
+        if (ctx->bloom[h] == NULL)
             continue;
 
-        mpm_ctx->memory_cnt += BloomFilterMemoryCnt(ctx->scan_bloom[h]);
-        mpm_ctx->memory_size += BloomFilterMemorySize(ctx->scan_bloom[h]);
+        mpm_ctx->memory_cnt += BloomFilterMemoryCnt(ctx->bloom[h]);
+        mpm_ctx->memory_size += BloomFilterMemorySize(ctx->bloom[h]);
 
-        if (ctx->scan_pminlen[h] > 8)
-            ctx->scan_pminlen[h] = 8;
+        if (ctx->pminlen[h] > 8)
+            ctx->pminlen[h] = 8;
 
         B3gHashItem *thi = hi;
         do {
-            BloomFilterAdd(ctx->scan_bloom[h], ctx->parray[thi->idx]->ci, ctx->scan_pminlen[h]);
+            BloomFilterAdd(ctx->bloom[h], ctx->parray[thi->idx]->ci, ctx->pminlen[h]);
             thi = thi->nxt;
         } while (thi != NULL);
     }
@@ -535,34 +531,34 @@ error:
     return;
 }
 
-int B3gBuildScanMatchArray(MpmCtx *mpm_ctx) {
+int B3gBuildMatchArray(MpmCtx *mpm_ctx) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
 
-    ctx->scan_B3G = SCMalloc(sizeof(B3G_TYPE) * ctx->scan_hash_size);
-    if (ctx->scan_B3G == NULL)
+    ctx->B3G = SCMalloc(sizeof(B3G_TYPE) * ctx->hash_size);
+    if (ctx->B3G == NULL)
         return -1;
 
     mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += (sizeof(B3G_TYPE) * ctx->scan_hash_size);
+    mpm_ctx->memory_size += (sizeof(B3G_TYPE) * ctx->hash_size);
 
-    memset(ctx->scan_B3G,0, b3g_hash_size * sizeof(B3G_TYPE));
+    memset(ctx->B3G,0, b3g_hash_size * sizeof(B3G_TYPE));
 
     uint32_t j;
     uint32_t a;
 
     /* fill the match array */
-    for (j = 0; j <= (ctx->scan_m - B3G_Q); j++) {
+    for (j = 0; j <= (ctx->m - B3G_Q); j++) {
         for (a = 0; a < mpm_ctx->pattern_cnt; a++) {
-            if (ctx->parray[a]->len < ctx->scan_m)
+            if (ctx->parray[a]->len < ctx->m)
                 continue;
 
             uint16_t h = B3G_HASH(u8_tolower(ctx->parray[a]->ci[j]),u8_tolower(ctx->parray[a]->ci[j+1]), u8_tolower(ctx->parray[a]->ci[j+2]));
-//printf("B3gBuildScanMatchArray: h %" PRIu32 ", %c.%c.%c\n", h, u8_tolower(ctx->parray[a]->ci[j]),u8_tolower(ctx->parray[a]->ci[j+1]), u8_tolower(ctx->parray[a]->ci[j+2]));
-            ctx->scan_B3G[h] = ctx->scan_B3G[h] | (1 << (ctx->scan_m - j));
+//printf("B3gBuildMatchArray: h %" PRIu32 ", %c.%c.%c\n", h, u8_tolower(ctx->parray[a]->ci[j]),u8_tolower(ctx->parray[a]->ci[j+1]), u8_tolower(ctx->parray[a]->ci[j+2]));
+            ctx->B3G[h] = ctx->B3G[h] | (1 << (ctx->m - j));
         }
     }
 
-    ctx->scan_s0 = 1;
+    ctx->s0 = 1;
     return 0;
 }
 
@@ -596,30 +592,30 @@ int B3gPreparePatterns(MpmCtx *mpm_ctx) {
     ctx->init_hash = NULL;
 
     /* set 'm' to the smallest pattern size */
-    ctx->scan_m = mpm_ctx->scan_minlen;
+    ctx->m = mpm_ctx->minlen;
 
     /* make sure 'm' stays in bounds
        m can be max WORD_SIZE - 1 */
-    if (ctx->scan_m >= B3G_WORD_SIZE) {
-        ctx->scan_m = B3G_WORD_SIZE - 1;
+    if (ctx->m >= B3G_WORD_SIZE) {
+        ctx->m = B3G_WORD_SIZE - 1;
     }
-    if (ctx->scan_m < 3) ctx->scan_m = 3;
+    if (ctx->m < 3) ctx->m = 3;
 
 
-    ctx->scan_hash_size = b3g_hash_size;
-    B3gPrepareScanHash(mpm_ctx);
-    B3gBuildScanMatchArray(mpm_ctx);
+    ctx->hash_size = b3g_hash_size;
+    B3gPrepareHash(mpm_ctx);
+    B3gBuildMatchArray(mpm_ctx);
 
-    if (ctx->scan_1_pat_cnt) {
-        ctx->Scan = B3gScan1;
-        if (ctx->scan_2_pat_cnt) {
-            ctx->Scan = B3gScan12;
-            ctx->MBScan = b3g_scan_func;
+    if (ctx->pat_1_cnt) {
+        ctx->Search = B3gSearch1;
+        if (ctx->pat_2_cnt) {
+            ctx->Search = B3gSearch12;
+            ctx->MBSearch = b3g_func;
         }
-        ctx->MBScan = b3g_scan_func;
-    } else if (ctx->scan_2_pat_cnt) {
-        ctx->Scan = B3gScan2;
-        ctx->MBScan = b3g_scan_func;
+        ctx->MBSearch = b3g_func;
+    } else if (ctx->pat_2_cnt) {
+        ctx->Search = B3gSearch2;
+        ctx->MBSearch = b3g_func;
     }
 
 
@@ -633,19 +629,18 @@ void B3gPrintSearchStats(MpmThreadCtx *mpm_thread_ctx) {
     B3gThreadCtx *tctx = (B3gThreadCtx *)mpm_thread_ctx->ctx;
 
     printf("B3g Thread Search stats (tctx %p)\n", tctx);
-    printf("Scan phase:\n");
-    printf("Total calls/scans: %" PRIu32 "\n", tctx->scan_stat_calls);
-    printf("Avg m/scan: %0.2f\n", tctx->scan_stat_calls ? (float)((float)tctx->scan_stat_m_total / (float)tctx->scan_stat_calls) : 0);
-    printf("D != 0 (possible match): %" PRIu32 "\n", tctx->scan_stat_d0);
-    printf("Avg hash items per bucket %0.2f (%" PRIu32 ")\n", tctx->scan_stat_d0 ? (float)((float)tctx->scan_stat_d0_hashloop / (float)tctx->scan_stat_d0) : 0, tctx->scan_stat_d0_hashloop);
-    printf("Loop match: %" PRIu32 "\n", tctx->scan_stat_loop_match);
-    printf("Loop no match: %" PRIu32 "\n", tctx->scan_stat_loop_no_match);
-    printf("Num shifts: %" PRIu32 "\n", tctx->scan_stat_num_shift);
-    printf("Total shifts: %" PRIu32 "\n", tctx->scan_stat_total_shift);
-    printf("Avg shifts: %0.2f\n", tctx->scan_stat_num_shift ? (float)((float)tctx->scan_stat_total_shift / (float)tctx->scan_stat_num_shift) : 0);
-    printf("Total BloomFilter checks: %" PRIu32 "\n", tctx->scan_stat_bloom_calls);
-    printf("BloomFilter hits: %0.4f%% (%" PRIu32 ")\n", tctx->scan_stat_bloom_calls ? (float)((float)((float)tctx->scan_stat_bloom_hits / (float)tctx->scan_stat_bloom_calls)*(float)100) : 0, tctx->scan_stat_bloom_hits);
-    printf("Avg pminlen: %0.2f\n\n", tctx->scan_stat_pminlen_calls ? (float)((float)tctx->scan_stat_pminlen_total / (float)tctx->scan_stat_pminlen_calls) : 0);
+    printf("Total calls/scans: %" PRIu32 "\n", tctx->stat_calls);
+    printf("Avg m/scan: %0.2f\n", tctx->stat_calls ? (float)((float)tctx->stat_m_total / (float)tctx->stat_calls) : 0);
+    printf("D != 0 (possible match): %" PRIu32 "\n", tctx->stat_d0);
+    printf("Avg hash items per bucket %0.2f (%" PRIu32 ")\n", tctx->stat_d0 ? (float)((float)tctx->stat_d0_hashloop / (float)tctx->stat_d0) : 0, tctx->stat_d0_hashloop);
+    printf("Loop match: %" PRIu32 "\n", tctx->stat_loop_match);
+    printf("Loop no match: %" PRIu32 "\n", tctx->stat_loop_no_match);
+    printf("Num shifts: %" PRIu32 "\n", tctx->stat_num_shift);
+    printf("Total shifts: %" PRIu32 "\n", tctx->stat_total_shift);
+    printf("Avg shifts: %0.2f\n", tctx->stat_num_shift ? (float)((float)tctx->stat_total_shift / (float)tctx->stat_num_shift) : 0);
+    printf("Total BloomFilter checks: %" PRIu32 "\n", tctx->stat_bloom_calls);
+    printf("BloomFilter hits: %0.4f%% (%" PRIu32 ")\n", tctx->stat_bloom_calls ? (float)((float)((float)tctx->stat_bloom_hits / (float)tctx->stat_bloom_calls)*(float)100) : 0, tctx->stat_bloom_hits);
+    printf("Avg pminlen: %0.2f\n\n", tctx->stat_pminlen_calls ? (float)((float)tctx->stat_pminlen_total / (float)tctx->stat_pminlen_calls) : 0);
 #endif /* B3G_COUNTERS */
 }
 
@@ -673,12 +668,12 @@ void B3gGetConfig()
     ConfNode *b3g_conf;
     const char *hash_val = NULL;
     const char *bloom_val = NULL;
-    const char *scan_algo = NULL;
+    const char *algo = NULL;
 
     /* init defaults */
     b3g_hash_size = HASHSIZE_LOW;
     b3g_bloom_size = BLOOMSIZE_MEDIUM;
-    b3g_scan_func = B3G_SCANFUNC;
+    b3g_func = B3G_SEARCHFUNC;
 
     ConfNode *pm = ConfGetNode("pattern-matcher");
 
@@ -686,18 +681,18 @@ void B3gGetConfig()
 
         TAILQ_FOREACH(b3g_conf, &pm->head, next) {
             if (strncmp(b3g_conf->val, "b3g", 3) == 0) {
-                scan_algo = ConfNodeLookupChildValue(b3g_conf->head.tqh_first,
-                                                     "scan_algo");
+                algo = ConfNodeLookupChildValue(b3g_conf->head.tqh_first,
+                                                     "algo");
                 hash_val = ConfNodeLookupChildValue(b3g_conf->head.tqh_first,
                                                     "hash_size");
                 bloom_val = ConfNodeLookupChildValue(b3g_conf->head.tqh_first,
                                                      "bf_size");
 
-                if (scan_algo != NULL) {
-                    if (strcmp(scan_algo, "B3gScan") == 0) {
-                        b3g_scan_func = B3gScan;
-                    } else if (strcmp(scan_algo, "B3gScanBNDMq") == 0) {
-                        b3g_scan_func = B3gScanBNDMq;
+                if (algo != NULL) {
+                    if (strcmp(algo, "B3gSearch") == 0) {
+                        b3g_func = B3gSearch;
+                    } else if (strcmp(algo, "B3gSearchBNDMq") == 0) {
+                        b3g_func = B3gSearchBNDMq;
                     }
                 }
 
@@ -740,7 +735,7 @@ void B3gInitCtx (MpmCtx *mpm_ctx, int module_handle) {
         B3gGetConfig();
 
     /* init default */
-    ctx->Scan = b3g_scan_func;
+    ctx->Search = b3g_func;
 }
 
 void B3gDestroyCtx(MpmCtx *mpm_ctx) {
@@ -767,61 +762,61 @@ void B3gDestroyCtx(MpmCtx *mpm_ctx) {
         mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(B3gPattern));
     }
 
-    if (ctx->scan_B3G) {
-        SCFree(ctx->scan_B3G);
+    if (ctx->B3G) {
+        SCFree(ctx->B3G);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (sizeof(B3G_TYPE) * ctx->scan_hash_size);
+        mpm_ctx->memory_size -= (sizeof(B3G_TYPE) * ctx->hash_size);
     }
 
-    if (ctx->scan_bloom) {
+    if (ctx->bloom) {
         uint32_t h;
-        for (h = 0; h < ctx->scan_hash_size; h++) {
-            if (ctx->scan_bloom[h] == NULL)
+        for (h = 0; h < ctx->hash_size; h++) {
+            if (ctx->bloom[h] == NULL)
                 continue;
 
-            mpm_ctx->memory_cnt -= BloomFilterMemoryCnt(ctx->scan_bloom[h]);
-            mpm_ctx->memory_size -= BloomFilterMemorySize(ctx->scan_bloom[h]);
+            mpm_ctx->memory_cnt -= BloomFilterMemoryCnt(ctx->bloom[h]);
+            mpm_ctx->memory_size -= BloomFilterMemorySize(ctx->bloom[h]);
 
-            BloomFilterFree(ctx->scan_bloom[h]);
+            BloomFilterFree(ctx->bloom[h]);
         }
 
-        SCFree(ctx->scan_bloom);
+        SCFree(ctx->bloom);
 
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->scan_hash_size);
+        mpm_ctx->memory_size -= (sizeof(BloomFilter *) * ctx->hash_size);
     }
 
-    if (ctx->scan_hash) {
+    if (ctx->hash) {
         uint32_t h;
-        for (h = 0; h < ctx->scan_hash_size; h++) {
-            if (ctx->scan_hash[h] == NULL)
+        for (h = 0; h < ctx->hash_size; h++) {
+            if (ctx->hash[h] == NULL)
                 continue;
 
-            B3gHashFree(mpm_ctx, ctx->scan_hash[h]);
+            B3gHashFree(mpm_ctx, ctx->hash[h]);
         }
 
-        SCFree(ctx->scan_hash);
+        SCFree(ctx->hash);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->scan_hash_size);
+        mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->hash_size);
     }
-    if (ctx->scan_hash2) {
+    if (ctx->hash2) {
         uint32_t h;
-        for (h = 0; h < ctx->scan_hash_size; h++) {
-            if (ctx->scan_hash2[h] == NULL)
+        for (h = 0; h < ctx->hash_size; h++) {
+            if (ctx->hash2[h] == NULL)
                 continue;
 
-            B3gHashFree(mpm_ctx, ctx->scan_hash2[h]);
+            B3gHashFree(mpm_ctx, ctx->hash2[h]);
         }
 
-        SCFree(ctx->scan_hash2);
+        SCFree(ctx->hash2);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->scan_hash_size);
+        mpm_ctx->memory_size -= (sizeof(B3gHashItem) * ctx->hash_size);
     }
 
-    if (ctx->scan_pminlen) {
-        SCFree(ctx->scan_pminlen);
+    if (ctx->pminlen) {
+        SCFree(ctx->pminlen);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (sizeof(uint8_t) * ctx->scan_hash_size);
+        mpm_ctx->memory_size -= (sizeof(uint8_t) * ctx->hash_size);
     }
 
     SCFree(mpm_ctx->ctx);
@@ -856,63 +851,63 @@ void B3gThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
     }
 }
 
-inline uint32_t B3gScanWrap(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
+inline uint32_t B3gSearchWrap(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
-    return ctx->Scan(mpm_ctx, mpm_thread_ctx, pmq, buf, buflen);
+    return ctx->Search(mpm_ctx, mpm_thread_ctx, pmq, buf, buflen);
 }
 
-uint32_t B3gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
+uint32_t B3gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
 #ifdef B3G_COUNTERS
     B3gThreadCtx *tctx = (B3gThreadCtx *)mpm_thread_ctx->ctx;
 #endif
-    uint32_t pos = ctx->scan_m - B3G_Q + 1, matches = 0;
+    uint32_t pos = ctx->m - B3G_Q + 1, matches = 0;
     B3G_TYPE d;
 
-    COUNT(tctx->scan_stat_calls++);
-    COUNT(tctx->scan_stat_m_total+=ctx->scan_m);
+    COUNT(tctx->stat_calls++);
+    COUNT(tctx->stat_m_total+=ctx->m);
 
-    if (buflen < ctx->scan_m)
+    if (buflen < ctx->m)
         return 0;
 
     while (pos <= (uint32_t)(buflen - B3G_Q + 1)) {
         uint16_t h = B3G_HASH(u8_tolower(buf[pos - 1]), u8_tolower(buf[pos]),u8_tolower(buf[pos + 1]));
-        d = ctx->scan_B3G[h];
+        d = ctx->B3G[h];
 
         if (d != 0) {
-            COUNT(tctx->scan_stat_d0++);
+            COUNT(tctx->stat_d0++);
             uint32_t j = pos;
-            uint32_t first = pos - (ctx->scan_m - B3G_Q + 1);
+            uint32_t first = pos - (ctx->m - B3G_Q + 1);
 
             do {
                 j = j - 1;
-                if (d >= (uint32_t)(1 << (ctx->scan_m - 1))) {
+                if (d >= (uint32_t)(1 << (ctx->m - 1))) {
                     if (j > first) pos = j;
                     else {
                         /* get our patterns from the hash */
-                        h = B3G_HASH(u8_tolower(buf[j + ctx->scan_m - 3]), u8_tolower(buf[j + ctx->scan_m - 2]),u8_tolower(buf[j + ctx->scan_m - 1]));
+                        h = B3G_HASH(u8_tolower(buf[j + ctx->m - 3]), u8_tolower(buf[j + ctx->m - 2]),u8_tolower(buf[j + ctx->m - 1]));
 
-                        if (ctx->scan_bloom[h] != NULL) {
-                            COUNT(tctx->scan_stat_pminlen_calls++);
-                            COUNT(tctx->scan_stat_pminlen_total+=ctx->scan_pminlen[h]);
+                        if (ctx->bloom[h] != NULL) {
+                            COUNT(tctx->stat_pminlen_calls++);
+                            COUNT(tctx->stat_pminlen_total+=ctx->pminlen[h]);
 
-                            if ((buflen - j) < ctx->scan_pminlen[h]) {
+                            if ((buflen - j) < ctx->pminlen[h]) {
                                 goto skip_loop;
                             } else {
-                                COUNT(tctx->scan_stat_bloom_calls++);
+                                COUNT(tctx->stat_bloom_calls++);
 
-                                if (BloomFilterTest(ctx->scan_bloom[h], buf+j, ctx->scan_pminlen[h]) == 0) {
-                                    COUNT(tctx->scan_stat_bloom_hits++);
+                                if (BloomFilterTest(ctx->bloom[h], buf+j, ctx->pminlen[h]) == 0) {
+                                    COUNT(tctx->stat_bloom_hits++);
 
-                                    //printf("Bloom: %p, buflen %" PRIu32 ", pos %" PRIu32 ", p_min_len %" PRIu32 "\n", ctx->scan_bloom[h], buflen, pos, ctx->scan_pminlen[h]);
+                                    //printf("Bloom: %p, buflen %" PRIu32 ", pos %" PRIu32 ", p_min_len %" PRIu32 "\n", ctx->bloom[h], buflen, pos, ctx->pminlen[h]);
                                     goto skip_loop;
                                 }
                             }
                         }
 
-                        B3gHashItem *hi = ctx->scan_hash[h], *thi;
+                        B3gHashItem *hi = ctx->hash[h], *thi;
                         for (thi = hi; thi != NULL; thi = thi->nxt) {
-                            COUNT(tctx->scan_stat_d0_hashloop++);
+                            COUNT(tctx->stat_d0_hashloop++);
                             B3gPattern *p = ctx->parray[thi->idx];
 
                             if (p->flags & B3G_NOCASE) {
@@ -920,27 +915,27 @@ uint32_t B3gScanBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatc
                                     continue;
 
                                 if (memcmp_lowercase(p->ci, buf+j, p->len) == 0) {
-                                    COUNT(tctx->scan_stat_loop_match++);
+                                    COUNT(tctx->stat_loop_match++);
 
                                     matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, j, p->len);
                                 } else {
-                                    COUNT(tctx->scan_stat_loop_no_match++);
+                                    COUNT(tctx->stat_loop_no_match++);
                                 }
                             } else {
                                 if (buflen - j < p->len)
                                     continue;
 
                                 if (memcmp(p->cs, buf+j, p->len) == 0) {
-                                    COUNT(tctx->scan_stat_loop_match++);
+                                    COUNT(tctx->stat_loop_match++);
 
                                     matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, j, p->len);
                                 } else {
-                                    COUNT(tctx->scan_stat_loop_no_match++);
+                                    COUNT(tctx->stat_loop_no_match++);
                                 }
                             }
                         }
 skip_loop:
-                        //printf("output at pos %" PRIu32 ": ", j); prt(buf + (j), ctx->scan_m); printf("\n");
+                        //printf("output at pos %" PRIu32 ": ", j); prt(buf + (j), ctx->m); printf("\n");
                         ; // gcc doesn't like the goto label without this :-S
                     }
                 }
@@ -949,17 +944,17 @@ skip_loop:
                     break;
 
                 h = B3G_HASH(u8_tolower(buf[j - 1]), u8_tolower(buf[j - 0]),u8_tolower(buf[j+1]));
-                d = (d << 1) & ctx->scan_B3G[h];
+                d = (d << 1) & ctx->B3G[h];
             } while (d != 0);
         }
-        COUNT(tctx->scan_stat_num_shift++);
-        COUNT(tctx->scan_stat_total_shift += (ctx->scan_m - B3G_Q + 1));
-        pos = pos + ctx->scan_m - B3G_Q + 1;
+        COUNT(tctx->stat_num_shift++);
+        COUNT(tctx->stat_total_shift += (ctx->m - B3G_Q + 1));
+        pos = pos + ctx->m - B3G_Q + 1;
     }
     return matches;
 }
 
-uint32_t B3gScan(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
+uint32_t B3gSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
 #ifdef B3G_COUNTERS
     B3gThreadCtx *tctx = (B3gThreadCtx *)mpm_thread_ctx->ctx;
@@ -968,53 +963,53 @@ uint32_t B3gScan(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQu
     B3G_TYPE d;
     uint32_t j;
 
-    COUNT(tctx->scan_stat_calls++);
-    COUNT(tctx->scan_stat_m_total+=ctx->scan_m);
+    COUNT(tctx->stat_calls++);
+    COUNT(tctx->stat_m_total+=ctx->m);
 
-    if (buflen < ctx->scan_m)
+    if (buflen < ctx->m)
         return 0;
 
-    while (pos <= (buflen - ctx->scan_m)) {
-        j = ctx->scan_m - 2;
+    while (pos <= (buflen - ctx->m)) {
+        j = ctx->m - 2;
         d = ~0;
 
         do {
             uint16_t h = B3G_HASH(u8_tolower(buf[pos + j - 1]), u8_tolower(buf[pos + j - 0]),u8_tolower(buf[pos + j + 1]));
 //            printf("scan: h %" PRIu32 ", %c.%c.%c\n", h, u8_tolower(buf[pos + j - 1]), u8_tolower(buf[pos + j - 0]),u8_tolower(buf[pos + j + 1]));
-            d = ((d << 1) & ctx->scan_B3G[h]);
+            d = ((d << 1) & ctx->B3G[h]);
             j = j - 1;
         } while (d != 0 && j != 0);
 //        printf("scan: d %" PRIu32 ", j %" PRIu32 "\n", d, j);
 
         /* (partial) match, move on to verification */
         if (d != 0) {
-            COUNT(tctx->scan_stat_d0++);
-            //printf("output at pos %" PRIu32 ": ", pos); prt(buf + pos, ctx->scan_m); printf("\n");
+            COUNT(tctx->stat_d0++);
+            //printf("output at pos %" PRIu32 ": ", pos); prt(buf + pos, ctx->m); printf("\n");
 
             /* get our patterns from the hash */
-            uint16_t h = B3G_HASH(u8_tolower(buf[pos + ctx->scan_m - 3]), u8_tolower(buf[pos + ctx->scan_m - 2]),u8_tolower(buf[pos + ctx->scan_m - 1]));
+            uint16_t h = B3G_HASH(u8_tolower(buf[pos + ctx->m - 3]), u8_tolower(buf[pos + ctx->m - 2]),u8_tolower(buf[pos + ctx->m - 1]));
 
-            if (ctx->scan_bloom[h] != NULL) {
-                COUNT(tctx->scan_stat_pminlen_calls++);
-                COUNT(tctx->scan_stat_pminlen_total+=ctx->scan_pminlen[h]);
+            if (ctx->bloom[h] != NULL) {
+                COUNT(tctx->stat_pminlen_calls++);
+                COUNT(tctx->stat_pminlen_total+=ctx->pminlen[h]);
 
-                if ((buflen - pos) < ctx->scan_pminlen[h]) {
+                if ((buflen - pos) < ctx->pminlen[h]) {
                     goto skip_loop;
                 } else {
-                    COUNT(tctx->scan_stat_bloom_calls++);
+                    COUNT(tctx->stat_bloom_calls++);
 
-                    if (BloomFilterTest(ctx->scan_bloom[h], buf+pos, ctx->scan_pminlen[h]) == 0) {
-                        COUNT(tctx->scan_stat_bloom_hits++);
+                    if (BloomFilterTest(ctx->bloom[h], buf+pos, ctx->pminlen[h]) == 0) {
+                        COUNT(tctx->stat_bloom_hits++);
 
-                        //printf("Bloom: %p, buflen %" PRIu32 ", pos %" PRIu32 ", p_min_len %" PRIu32 "\n", ctx->scan_bloom[h], buflen, pos, ctx->scan_pminlen[h]);
+                        //printf("Bloom: %p, buflen %" PRIu32 ", pos %" PRIu32 ", p_min_len %" PRIu32 "\n", ctx->bloom[h], buflen, pos, ctx->pminlen[h]);
                         goto skip_loop;
                     }
                 }
             }
 
-            B3gHashItem *hi = ctx->scan_hash[h], *thi;
+            B3gHashItem *hi = ctx->hash[h], *thi;
             for (thi = hi; thi != NULL; thi = thi->nxt) {
-                COUNT(tctx->scan_stat_d0_hashloop++);
+                COUNT(tctx->stat_d0_hashloop++);
                 B3gPattern *p = ctx->parray[thi->idx];
 
                 if (p->flags & B3G_NOCASE) {
@@ -1022,31 +1017,31 @@ uint32_t B3gScan(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQu
                         continue;
 
                     if (memcmp_lowercase(p->ci, buf+pos, p->len) == 0) {
-                        COUNT(tctx->scan_stat_loop_match++);
+                        COUNT(tctx->stat_loop_match++);
 
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, pos, p->len);
                     } else {
-                        COUNT(tctx->scan_stat_loop_no_match++);
+                        COUNT(tctx->stat_loop_no_match++);
                     }
                 } else {
                     if (buflen - pos < p->len)
                         continue;
 
                     if (memcmp(p->cs, buf+pos, p->len) == 0) {
-                        COUNT(tctx->scan_stat_loop_match++);
+                        COUNT(tctx->stat_loop_match++);
 
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, pos, p->len);
                     } else {
-                        COUNT(tctx->scan_stat_loop_no_match++);
+                        COUNT(tctx->stat_loop_no_match++);
                     }
                 }
             }
 skip_loop:
             pos = pos + 1;
-            //pos = pos + ctx->scan_s0;
+            //pos = pos + ctx->s0;
         } else {
-            COUNT(tctx->scan_stat_num_shift++);
-            COUNT(tctx->scan_stat_total_shift += (j + 1));
+            COUNT(tctx->stat_num_shift++);
+            COUNT(tctx->stat_total_shift += (j + 1));
 
             pos = pos + j + 1;
         }
@@ -1056,7 +1051,7 @@ skip_loop:
     return matches;
 }
 
-uint32_t B3gScan12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
+uint32_t B3gSearch12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
     uint8_t *bufmin = buf;
     uint8_t *bufend = buf + buflen - 1;
@@ -1068,7 +1063,7 @@ uint32_t B3gScan12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
 
     while (buf <= bufend) {
         uint8_t h8 = u8_tolower(*buf);
-        hi = &ctx->scan_hash1[h8];
+        hi = &ctx->hash1[h8];
 
         if (hi->flags & 0x01) {
             for (thi = hi; thi != NULL; thi = thi->nxt) {
@@ -1089,7 +1084,7 @@ uint32_t B3gScan12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
         if (buf != bufend) {
             /* save one conversion by reusing h8 */
             uint16_t h16 = (uint16_t)(h8 << B3G_HASHSHIFT | u8_tolower(*(buf+1)));
-            hi = ctx->scan_hash2[h16];
+            hi = ctx->hash2[h16];
 
             for (thi = hi; thi != NULL; thi = thi->nxt) {
                 p = ctx->parray[thi->idx];
@@ -1109,16 +1104,16 @@ uint32_t B3gScan12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
     }
 
     //printf("B3gSearch12: after 1/2byte cnt %" PRIu32 "\n", cnt);
-    if (ctx->scan_x_pat_cnt > 0) {
+    if (ctx->pat_x_cnt > 0) {
         /* Pass bufmin on because buf no longer points to the
          * start of the buffer. */
-        cnt += ctx->MBScan(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
+        cnt += ctx->MBSearch(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
         //printf("B3gSearch1: after 2+byte cnt %" PRIu32 "\n", cnt);
     }
     return cnt;
 }
 
-uint32_t B3gScan2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
+uint32_t B3gSearch2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
     uint8_t *bufmin = buf;
     uint8_t *bufend = buf + buflen - 1;
@@ -1134,7 +1129,7 @@ uint32_t B3gScan2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQ
 
     while (buf <= bufend) {
         uint16_t h = u8_tolower(*buf) << B3G_HASHSHIFT | u8_tolower(*(buf+1));
-        hi = ctx->scan_hash2[h];
+        hi = ctx->hash2[h];
 
         if (hi != NULL) {
             for (thi = hi; thi != NULL; thi = thi->nxt) {
@@ -1166,15 +1161,15 @@ uint32_t B3gScan2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQ
     }
 
     //printf("B3gSearch2: after 2byte cnt %" PRIu32 "\n", cnt);
-    if (ctx->scan_x_pat_cnt) {
+    if (ctx->pat_x_cnt) {
         /* Pass bufmin on because buf no longer points to the
          * start of the buffer. */
-        cnt += ctx->MBScan(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
+        cnt += ctx->MBSearch(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
         //printf("B3gSearch1: after 2+byte cnt %" PRIu32 "\n", cnt);
     }
     return cnt;
 }
-uint32_t B3gScan1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
+uint32_t B3gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
     uint8_t *bufmin = buf;
     uint8_t *bufend = buf + buflen - 1;
@@ -1189,7 +1184,7 @@ uint32_t B3gScan1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQ
 
     while (buf <= bufend) {
         uint8_t h = u8_tolower(*buf);
-        hi = &ctx->scan_hash1[h];
+        hi = &ctx->hash1[h];
 
         if (hi->flags & 0x01) {
             for (thi = hi; thi != NULL; thi = thi->nxt) {
@@ -1212,12 +1207,12 @@ uint32_t B3gScan1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQ
         buf += 1;
     }
 
-    if (ctx->scan_2_pat_cnt) {
+    if (ctx->pat_2_cnt) {
         /* Pass bufmin on because buf no longer points to the
          * start of the buffer. */
-        cnt += ctx->MBScan2(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
-    } else if (ctx->scan_x_pat_cnt) {
-        cnt += ctx->MBScan(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
+        cnt += ctx->MBSearch2(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
+    } else if (ctx->pat_x_cnt) {
+        cnt += ctx->MBSearch(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
     }
     return cnt;
 }
@@ -1234,14 +1229,14 @@ static int B3gTestInit01 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
 
-    if (ctx->scan_m == 4)
+    if (ctx->m == 4)
         result = 1;
     else
-        printf("4 != %" PRIu32 " ", ctx->scan_m);
+        printf("4 != %" PRIu32 " ", ctx->m);
 
     B3gDestroyCtx(&mpm_ctx);
     return result;
@@ -1255,14 +1250,14 @@ static int B3gTestS0Init01 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
 
-    if (ctx->scan_s0 == 4)
+    if (ctx->s0 == 4)
         result = 1;
     else
-        printf("4 != %" PRIu32 " ", ctx->scan_s0);
+        printf("4 != %" PRIu32 " ", ctx->s0);
 
     B3gDestroyCtx(&mpm_ctx);
     return result;
@@ -1275,15 +1270,15 @@ static int B3gTestS0Init02 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0); /* 1 match */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"cdef", 4, 0, 0, 1, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"cdef", 4, 0, 0, 1, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
 
-    if (ctx->scan_s0 == 2)
+    if (ctx->s0 == 2)
         result = 1;
     else
-        printf("2 != %" PRIu32 " ", ctx->scan_s0);
+        printf("2 != %" PRIu32 " ", ctx->s0);
 
     B3gDestroyCtx(&mpm_ctx);
     return result;
@@ -1296,15 +1291,15 @@ static int B3gTestS0Init03 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0); /* 1 match */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
 
-    if (ctx->scan_s0 == 1)
+    if (ctx->s0 == 1)
         result = 1;
     else
-        printf("1 != %" PRIu32 " ", ctx->scan_s0);
+        printf("1 != %" PRIu32 " ", ctx->s0);
 
     B3gDestroyCtx(&mpm_ctx);
     return result;
@@ -1317,14 +1312,14 @@ static int B3gTestS0Init04 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abab", 4, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abab", 4, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
 
-    if (ctx->scan_s0 == 2)
+    if (ctx->s0 == 2)
         result = 1;
     else
-        printf("2 != %" PRIu32 " ", ctx->scan_s0);
+        printf("2 != %" PRIu32 " ", ctx->s0);
 
     B3gDestroyCtx(&mpm_ctx);
     return result;
@@ -1337,21 +1332,21 @@ static int B3gTestS0Init05 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcab", 5, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcab", 5, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
 
-    if (ctx->scan_s0 == 3)
+    if (ctx->s0 == 3)
         result = 1;
     else
-        printf("3 != %" PRIu32 " ", ctx->scan_s0);
+        printf("3 != %" PRIu32 " ", ctx->s0);
 
     B3gDestroyCtx(&mpm_ctx);
     return result;
 }
 #endif
 
-static int B3gTestScan01 (void) {
+static int B3gTestSearch01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1359,12 +1354,12 @@ static int B3gTestScan01 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
 
     if (cnt == 1)
         result = 1;
@@ -1376,7 +1371,7 @@ static int B3gTestScan01 (void) {
     return result;
 }
 
-static int B3gTestScan02 (void) {
+static int B3gTestSearch02 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1384,12 +1379,12 @@ static int B3gTestScan02 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abce", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abce", 4, 0, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
 
     if (cnt == 0)
         result = 1;
@@ -1401,7 +1396,7 @@ static int B3gTestScan02 (void) {
     return result;
 }
 
-static int B3gTestScan03 (void) {
+static int B3gTestSearch03 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1409,14 +1404,14 @@ static int B3gTestScan03 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0, 0); /* 1 match */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"fghj", 4, 0, 0, 2, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"fghj", 4, 0, 0, 2, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3 /* 3 patterns */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
 
     if (cnt == 3)
         result = 1;
@@ -1429,7 +1424,7 @@ static int B3gTestScan03 (void) {
 }
 
 /* test patterns longer than 'm'. M is 4 here. */
-static int B3gTestScan04 (void) {
+static int B3gTestSearch04 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1437,14 +1432,14 @@ static int B3gTestScan04 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"bcdegh", 6, 0, 0, 1, 0, 0); /* 1 match */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"fghjxyz", 7, 0, 0, 2, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"bcdegh", 6, 0, 0, 1, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"fghjxyz", 7, 0, 0, 2, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3 /* 3 patterns */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
 
     if (cnt == 1)
         result = 1;
@@ -1457,7 +1452,7 @@ static int B3gTestScan04 (void) {
 }
 
 /* case insensitive test patterns longer than 'm'. M is 4 here. */
-static int B3gTestScan05 (void) {
+static int B3gTestSearch05 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1465,14 +1460,14 @@ static int B3gTestScan05 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0); /* 1 match */
-    B3gAddScanPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0); /* 1 match */
-    B3gAddScanPatternCI(&mpm_ctx, (uint8_t *)"fghJikl", 7, 0, 0, 2, 0, 0); /* 1 match */
+    B3gAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0); /* 1 match */
+    B3gAddPatternCI(&mpm_ctx, (uint8_t *)"fghJikl", 7, 0, 0, 2, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3 /* 3 patterns */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
 
     if (cnt == 3)
         result = 1;
@@ -1484,7 +1479,7 @@ static int B3gTestScan05 (void) {
     return result;
 }
 
-static int B3gTestScan06 (void) {
+static int B3gTestSearch06 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1492,12 +1487,12 @@ static int B3gTestScan06 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcd", 4);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcd", 4);
 
     if (cnt == 1)
         result = 1;
@@ -1509,7 +1504,7 @@ static int B3gTestScan06 (void) {
     return result;
 }
 
-static int B3gTestScan07 (void) {
+static int B3gTestSearch07 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1517,18 +1512,18 @@ static int B3gTestScan07 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0); /* should match 30 times */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0, 0); /* should match 29 times */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0, 0); /* should match 28 times */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0, 0); /* 26 */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0, 0); /* 21 */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0, 0); /* 1 */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0); /* should match 30 times */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0, 0); /* should match 29 times */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0, 0); /* should match 28 times */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0, 0); /* 26 */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0, 0); /* 21 */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0, 0); /* 1 */
     /* total matches: 135 */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 6 /* 6 patterns */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
 
     if (cnt == 135)
         result = 1;
@@ -1540,7 +1535,7 @@ static int B3gTestScan07 (void) {
     return result;
 }
 
-static int B3gTestScan08 (void) {
+static int B3gTestSearch08 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1548,12 +1543,12 @@ static int B3gTestScan08 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"a", 1);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"a", 1);
 
     if (cnt == 0)
         result = 1;
@@ -1565,7 +1560,7 @@ static int B3gTestScan08 (void) {
     return result;
 }
 
-static int B3gTestScan09 (void) {
+static int B3gTestSearch09 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1573,12 +1568,12 @@ static int B3gTestScan09 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"ab", 2);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"ab", 2);
 
     if (cnt == 1)
         result = 1;
@@ -1590,7 +1585,7 @@ static int B3gTestScan09 (void) {
     return result;
 }
 
-static int B3gTestScan10 (void) {
+static int B3gTestSearch10 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1598,12 +1593,12 @@ static int B3gTestScan10 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcdefgh", 8, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefgh", 8, 0, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"012345679012345679012345679012345679012345679012345679012345679012345679012345679012345679abcdefgh012345679012345679012345679012345679012345679012345679012345679012345679012345679012345679", 208);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"012345679012345679012345679012345679012345679012345679012345679012345679012345679012345679abcdefgh012345679012345679012345679012345679012345679012345679012345679012345679012345679012345679", 208);
 
     if (cnt == 1)
         result = 1;
@@ -1615,7 +1610,7 @@ static int B3gTestScan10 (void) {
     return result;
 }
 
-static int B3gTestScan11 (void) {
+static int B3gTestSearch11 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1623,13 +1618,13 @@ static int B3gTestScan11 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2 /* 2 patterns */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
 
     if (cnt == 2)
         result = 1;
@@ -1641,7 +1636,7 @@ static int B3gTestScan11 (void) {
     return result;
 }
 
-static int B3gTestScan12 (void) {
+static int B3gTestSearch12 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -1649,13 +1644,13 @@ static int B3gTestScan12 (void) {
     MpmInitCtx(&mpm_ctx, MPM_B3G, -1);
     B3gCtx *ctx = (B3gCtx *)mpm_ctx.ctx;
 
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"wxyz", 4, 0, 0, 0, 0, 0); /* 1 match */
-    B3gAddScanPatternCS(&mpm_ctx, (uint8_t *)"vwxyz", 5, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"wxyz", 4, 0, 0, 0, 0, 0); /* 1 match */
+    B3gAddPatternCS(&mpm_ctx, (uint8_t *)"vwxyz", 5, 0, 0, 0, 0, 0); /* 1 match */
 
     B3gPreparePatterns(&mpm_ctx);
     B3gThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2 /* 2 patterns */);
 
-    uint32_t cnt = ctx->Scan(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
+    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
 
     if (cnt == 2)
         result = 1;
@@ -1679,19 +1674,19 @@ void B3gRegisterTests(void) {
     UtRegisterTest("B3gTestS0Init04", B3gTestS0Init04, 1);
     UtRegisterTest("B3gTestS0Init05", B3gTestS0Init05, 1);
 */
-    UtRegisterTest("B3gTestScan01", B3gTestScan01, 1);
+    UtRegisterTest("B3gTestSearch01", B3gTestSearch01, 1);
 
-    UtRegisterTest("B3gTestScan02", B3gTestScan02, 1);
-    UtRegisterTest("B3gTestScan03", B3gTestScan03, 1);
-    UtRegisterTest("B3gTestScan04", B3gTestScan04, 1);
-    UtRegisterTest("B3gTestScan05", B3gTestScan05, 1);
-    UtRegisterTest("B3gTestScan06", B3gTestScan06, 1);
-    UtRegisterTest("B3gTestScan07", B3gTestScan07, 1);
-    UtRegisterTest("B3gTestScan08", B3gTestScan08, 1);
-    UtRegisterTest("B3gTestScan09", B3gTestScan09, 1);
-    UtRegisterTest("B3gTestScan10", B3gTestScan10, 1);
-    UtRegisterTest("B3gTestScan11", B3gTestScan11, 1);
-    UtRegisterTest("B3gTestScan12", B3gTestScan12, 1);
+    UtRegisterTest("B3gTestSearch02", B3gTestSearch02, 1);
+    UtRegisterTest("B3gTestSearch03", B3gTestSearch03, 1);
+    UtRegisterTest("B3gTestSearch04", B3gTestSearch04, 1);
+    UtRegisterTest("B3gTestSearch05", B3gTestSearch05, 1);
+    UtRegisterTest("B3gTestSearch06", B3gTestSearch06, 1);
+    UtRegisterTest("B3gTestSearch07", B3gTestSearch07, 1);
+    UtRegisterTest("B3gTestSearch08", B3gTestSearch08, 1);
+    UtRegisterTest("B3gTestSearch09", B3gTestSearch09, 1);
+    UtRegisterTest("B3gTestSearch10", B3gTestSearch10, 1);
+    UtRegisterTest("B3gTestSearch11", B3gTestSearch11, 1);
+    UtRegisterTest("B3gTestSearch12", B3gTestSearch12, 1);
 #endif /* UNITTESTS */
 }
 
