@@ -5135,6 +5135,173 @@ end:
     ConfRestoreContextBackup();
     return ret;
 }
+
+/** \test   Test the stream mem leaks conditions. */
+static int StreamTcpTest23(void)
+{
+    TcpSession ssn;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpStream stream;
+    memset(&stream, 0, sizeof (TcpStream));
+    stream.os_policy = OS_POLICY_BSD;
+    uint8_t packet[1460] = "";
+    int result = 1;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.protoctx = &ssn;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    tcph.th_win = 5480;
+    tcph.th_flags = TH_PUSH | TH_ACK;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    p.payload = packet;
+
+    p.tcph->th_seq = htonl(3184324453UL);
+    p.tcph->th_ack = htonl(3373419609UL);
+    p.payload_len = 2;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1) {
+        printf("failed in segment reassmebling\n");
+        result &= 0;
+        goto end;
+    }
+
+    p.tcph->th_seq = htonl(3184324455UL);
+    p.tcph->th_ack = htonl(3373419621UL);
+    p.payload_len = 2;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1) {
+        printf("failed in segment reassmebling\n");
+        result &= 0;
+        goto end;
+    }
+
+    p.tcph->th_seq = htonl(3184324453UL);
+    p.tcph->th_ack = htonl(3373419621UL);
+    p.payload_len = 6;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1) {
+        printf("failed in segment reassmebling\n");
+        result &= 0;
+        goto end;
+    }
+
+    if(stream.seg_list_tail->payload_len != 4) {
+        printf("failed in segment reassmebling\n");
+        result &= 0;
+    }
+
+end:
+    StreamTcpReturnStreamSegments(&stream);
+    StreamTcpFreeConfig(TRUE);
+    if (stream_memuse == 0) {
+        result &= 1;
+    } else {
+        printf("stream_memuse %"PRIu32"\n", stream_memuse);
+    }
+    return result;
+}
+
+/** \test   Test the stream mem leaks conditions. */
+static int StreamTcpTest24(void)
+{
+    TcpSession ssn;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpStream stream;
+    memset(&stream, 0, sizeof (TcpStream));
+    stream.os_policy = OS_POLICY_BSD;
+    uint8_t packet[1460] = "";
+    int result = 1;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
+
+    memset(&ssn, 0, sizeof (TcpSession));
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    f.protoctx = &ssn;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    tcph.th_win = 5480;
+    tcph.th_flags = TH_PUSH | TH_ACK;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    p.payload = packet;
+
+    p.tcph->th_seq = htonl(3184324455UL);
+    p.tcph->th_ack = htonl(3373419621UL);
+    p.payload_len = 4;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1) {
+        printf("failed in segment reassmebling\n");
+        result &= 0;
+        goto end;
+    }
+
+    p.tcph->th_seq = htonl(3184324459UL);
+    p.tcph->th_ack = htonl(3373419633UL);
+    p.payload_len = 2;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1) {
+        printf("failed in segment reassmebling\n");
+        result &= 0;
+        goto end;
+    }
+
+    p.tcph->th_seq = htonl(3184324459UL);
+    p.tcph->th_ack = htonl(3373419657UL);
+    p.payload_len = 4;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1) {
+        printf("failed in segment reassmebling\n");
+        result &= 0;
+        goto end;
+    }
+
+    if(stream.seg_list_tail->payload_len != 2) {
+        printf("failed in segment reassmebling\n");
+        result &= 0;
+    }
+
+end:
+    StreamTcpReturnStreamSegments(&stream);
+    StreamTcpFreeConfig(TRUE);
+    if (stream_memuse == 0) {
+        result &= 1;
+    } else {
+        printf("stream_memuse %"PRIu32"\n", stream_memuse);
+    }
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void StreamTcpRegisterTests (void) {
@@ -5177,6 +5344,8 @@ void StreamTcpRegisterTests (void) {
     UtRegisterTest("StreamTcpTest20 -- setup OS policy", StreamTcpTest20, 1);
     UtRegisterTest("StreamTcpTest21 -- setup OS policy", StreamTcpTest21, 1);
     UtRegisterTest("StreamTcpTest22 -- setup OS policy", StreamTcpTest22, 1);
+    UtRegisterTest("StreamTcpTest23 -- stream memory leaks", StreamTcpTest23, 1);
+    UtRegisterTest("StreamTcpTest24 -- stream memory leaks", StreamTcpTest24, 1);
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
 #endif /* UNITTESTS */

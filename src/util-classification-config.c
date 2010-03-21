@@ -227,11 +227,21 @@ static inline int SCClassConfAddClasstype(char *rawstr, DetectEngineCtx *de_ctx)
             SCLogDebug("HashTable Add failed");
     } else {
         SCLogDebug("Duplicate classtype found inside classification.config");
+        if (ct_new->classtype_desc) free(ct_new->classtype_desc);
+        if (ct_new->classtype) free (ct_new->classtype);
+        free(ct_new);
     }
 
+    if (ct_name) free((char *)ct_name);
+    if (ct_desc) free((char *)ct_desc);
+    if (ct_priority_str) free((char *)ct_priority_str);
     return 0;
 
  error:
+    if (ct_name) free((char *)ct_name);
+    if (ct_desc) free((char *)ct_desc);
+    if (ct_priority_str) free((char *)ct_priority_str);
+
     return -1;
 }
 

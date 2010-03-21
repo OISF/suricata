@@ -726,6 +726,71 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                     list_seg = new_seg;
                     return_after = TRUE;
                 }
+            /* Handle the case, when list_seg is the end of segment list, but
+               seg is ending after the list_seg. So we need to copy the data
+               from newly received segment. After copying return the newly
+               received seg to pool */
+            } else {
+                if (SEQ_GT(seg->seq, (list_seg->prev->seq +
+                                list_seg->prev->payload_len)))
+                    {
+                        packet_length = list_seg->payload_len + (list_seg->seq -
+                                                                 seg->seq);
+                    } else {
+                        packet_length = list_seg->payload_len + (list_seg->seq -
+                                                (list_seg->prev->seq +
+                                                 list_seg->prev->payload_len));
+                    }
+
+                    packet_length += (seg->seq + seg->payload_len) -
+                                        (list_seg->seq + list_seg->payload_len);
+
+                    TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
+                    if (new_seg == NULL) {
+                        SCLogDebug("segment_pool[%"PRIu16"] is empty",
+                                segment_pool_idx[packet_length]);
+                        SCReturnInt(-1);
+                    }
+                    new_seg->payload_len = packet_length;
+
+                    if (SEQ_GT((list_seg->prev->seq +
+                                    list_seg->prev->payload_len), seg->seq))
+                    {
+                        new_seg->seq = (list_seg->prev->seq +
+                                            list_seg->prev->payload_len);
+                    } else {
+                        new_seg->seq = seg->seq;
+                    }
+                    SCLogDebug("new_seg->seq %"PRIu32" and new->payload_len "
+                           "%" PRIu16"", new_seg->seq, new_seg->payload_len);
+                    new_seg->next = list_seg->next;
+                    new_seg->prev = list_seg->prev;
+
+                    /* create a new seg, copy the list_seg data over */
+                    StreamTcpSegmentDataCopy(new_seg, list_seg);
+
+                    /* copy the part before list_seg */
+                    uint16_t copy_len = list_seg->seq - new_seg->seq;
+                    StreamTcpSegmentDataReplace(new_seg, seg, new_seg->seq,
+                                                copy_len);
+
+                    /* copy the part after list_seg */
+                    copy_len = (seg->seq + seg->payload_len) -
+                                    (list_seg->seq + list_seg->payload_len);
+                    StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq +
+                                              list_seg->payload_len), copy_len);
+
+                    if (new_seg->prev != NULL) {
+                        new_seg->prev->next = new_seg;
+                    }
+
+                    /*update the stream last_seg in case of removal of list_seg*/
+                    if (stream->seg_list_tail == list_seg)
+                        stream->seg_list_tail = new_seg;
+
+                    StreamTcpSegmentReturntoPool(list_seg);
+                    list_seg = new_seg;
+                    return_after = TRUE;
             }
         }
 
@@ -865,6 +930,12 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
                 {
                     handle_beyond = TRUE;
                 }
+            /* Handle the case, when list_seg is the end of segment list, but
+               seg is ending after the list_seg. So we need to copy the data
+               from newly received segment. After copying return the newly
+               received seg to pool */
+            } else {
+                fill_gap = TRUE;
             }
 
             SCLogDebug("fill_gap %s, handle_beyond %s", fill_gap?"TRUE":"FALSE",
