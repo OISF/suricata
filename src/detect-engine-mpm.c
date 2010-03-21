@@ -484,7 +484,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                     SCLogDebug("scan_ch == NULL, so selecting lookup_ch->ptr->id %"PRIu32"", lookup_ch->ptr->id);
                     scan_ch = lookup_ch;
                 } else {
-                    ///if (lookup_ch->use == 0) {
+                    //if (lookup_ch->use == 0) {
                         uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len,sgh->mpm_content_maxlen);
                         uint32_t ss = PatternStrength(scan_ch->ptr->content,scan_ch->ptr->content_len,sgh->mpm_content_maxlen);
                         if (ls > ss) {
@@ -533,11 +533,12 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             uint16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->depth;
             offset = scan_ch->cnt ? 0 : offset;
             depth = scan_ch->cnt ? 0 : depth;
+            uint8_t flags = 0;
 
             if (co->flags & DETECT_CONTENT_NOCASE) {
-                mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
+                mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, flags);
             } else {
-                mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, scan_ch->nosearch);
+                mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, flags);
             }
 
             SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the scan phase (s->num %"PRIu32")", s->id, co->id, s->num);
@@ -867,10 +868,12 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 /* only add the pattern if: we didn't add a pattern already,
                  * length is the same as maxlen (ie we only add the longest pattern) */
                 if (!uricontent_scanadded && uricontent_maxlen == ud->uricontent_len) {
+                    uint8_t flags = 0;
+
                     if (ud->flags & DETECT_URICONTENT_NOCASE) {
-                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
+                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddPatternNocase(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, flags);
                     } else {
-                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, 0);
+                        mpm_table[sh->mpm_uri_ctx->mpm_type].AddPattern(sh->mpm_uri_ctx, ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, flags);
                     }
                     uricontent_scanadded = 1;
 

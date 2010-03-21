@@ -4,8 +4,6 @@
 #include "util-mpm.h"
 #include "util-bloomfilter.h"
 
-#define B3G_NOCASE 0x01
-
 //#define B3G_HASHSHIFT 8
 //#define B3G_HASHSHIFT 7
 //#define B3G_HASHSHIFT 6

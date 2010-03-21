@@ -4,8 +4,6 @@
 #include "util-mpm.h"
 #include "util-bloomfilter.h"
 
-#define B2G_NOCASE 0x01
-
 //#define B2G_HASHSHIFT 8
 //#define B2G_HASHSHIFT 7
 //#define B2G_HASHSHIFT 6
@@ -32,13 +30,12 @@
 //#define B2G_COUNTERS
 
 typedef struct B2gPattern_ {
-    uint8_t flags;
-    uint16_t len; /** \todo we're limited to 32/64 byte lengths, uint8_t would be fine here */
+    uint8_t flags; /**< MPM_PATTERN_FLAG_* flags */
+    uint16_t len; /**< \todo we're limited to 32/64 byte lengths, uint8_t would be fine here */
     uint8_t *cs; /* case sensitive */
     uint8_t *ci; /* case INsensitive */
     struct B2gPattern_ *next;
     MpmEndMatch *em;
-    uint32_t em_len;
 } B2gPattern;
 
 typedef struct B2gHashItem_ {

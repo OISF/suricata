@@ -71,8 +71,7 @@ void MpmB3gRegister (void) {
  *
  * Only used in the initialization phase */
 static inline void B3gEndMatchAppend(MpmCtx *mpm_ctx, B3gPattern *p,
-    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid,
-    uint8_t nosearch)
+    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid)
 {
     MpmEndMatch *em = MpmAllocEndMatch(mpm_ctx);
     if (em == NULL) {
@@ -84,9 +83,6 @@ static inline void B3gEndMatchAppend(MpmCtx *mpm_ctx, B3gPattern *p,
     em->sig_id = sid;
     em->depth = depth;
     em->offset = offset;
-
-    if (nosearch)
-        em->flags |= MPM_ENDMATCH_NOSEARCH;
 
     if (p->em == NULL) {
         p->em = em;
@@ -224,9 +220,9 @@ static inline int B3gInitHashAdd(B3gCtx *ctx, B3gPattern *p) {
     return 0;
 }
 
-static inline int B3gCmpPattern(B3gPattern *p, uint8_t *pat, uint16_t patlen, char nocase);
+static inline int B3gCmpPattern(B3gPattern *p, uint8_t *pat, uint16_t patlen, char flags);
 
-static inline B3gPattern *B3gInitHashLookup(B3gCtx *ctx, uint8_t *pat, uint16_t patlen, char nocase) {
+static inline B3gPattern *B3gInitHashLookup(B3gCtx *ctx, uint8_t *pat, uint16_t patlen, char flags) {
     uint32_t hash = B3gInitHashRaw(pat,patlen);
 
     //printf("B3gInitHashLookup: %" PRIu32 ", head %p\n", hash, ctx->init_hash[hash]);
@@ -237,18 +233,18 @@ static inline B3gPattern *B3gInitHashLookup(B3gCtx *ctx, uint8_t *pat, uint16_t 
 
     B3gPattern *t = ctx->init_hash[hash];
     for ( ; t != NULL; t = t->next) {
-        if (B3gCmpPattern(t,pat,patlen,nocase) == 1)
+        if (B3gCmpPattern(t,pat,patlen,flags) == 1)
             return t;
     }
 
     return NULL;
 }
 
-static inline int B3gCmpPattern(B3gPattern *p, uint8_t *pat, uint16_t patlen, char nocase) {
+static inline int B3gCmpPattern(B3gPattern *p, uint8_t *pat, uint16_t patlen, char flags) {
     if (p->len != patlen)
         return 0;
 
-    if (!((nocase && p->flags & B3G_NOCASE) || (!nocase && !(p->flags & B3G_NOCASE))))
+    if (p->flags != flags)
         return 0;
 
     if (memcmp(p->cs, pat, patlen) != 0)
@@ -293,36 +289,34 @@ void B3gFreePattern(MpmCtx *mpm_ctx, B3gPattern *p) {
  * pid: pattern id
  * sid: signature id (internal id)
  */
-static inline int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, char nocase, char scan, uint32_t pid, uint32_t sid, uint8_t nosearch) {
+static inline int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
-
-//    printf("B3gAddPattern: ctx %p \"", mpm_ctx); prt(pat, patlen);
-//    printf("\" id %" PRIu32 ", nocase %s\n", id, nocase ? "true" : "false");
 
     if (patlen == 0)
         return 0;
 
     /* get a memory piece */
-    B3gPattern *p = B3gInitHashLookup(ctx, pat, patlen, nocase);
+    B3gPattern *p = B3gInitHashLookup(ctx, pat, patlen, flags);
     if (p == NULL) {
-//        printf("B3gAddPattern: allocing new pattern\n");
         p = B3gAllocPattern(mpm_ctx);
         if (p == NULL)
             goto error;
 
         p->len = patlen;
 
-        if (nocase) p->flags |= B3G_NOCASE;
+        p->flags = flags;
 
         /* setup the case insensitive part of the pattern */
         p->ci = SCMalloc(patlen);
-        if (p->ci == NULL) goto error;
+        if (p->ci == NULL)
+            goto error;
+
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += patlen;
         memcpy_tolower(p->ci, pat, patlen);
 
         /* setup the case sensitive part of the pattern */
-        if (p->flags & B3G_NOCASE) {
+        if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
             /* nocase means no difference between cs and ci */
             p->cs = p->ci;
         } else {
@@ -331,7 +325,9 @@ static inline int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, 
                 p->cs = p->ci;
             } else {
                 p->cs = SCMalloc(patlen);
-                if (p->cs == NULL) goto error;
+                if (p->cs == NULL)
+                    goto error;
+
                 mpm_ctx->memory_cnt++;
                 mpm_ctx->memory_size += patlen;
                 memcpy(p->cs, pat, patlen);
@@ -354,17 +350,10 @@ static inline int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, 
         if (mpm_ctx->maxlen < patlen) mpm_ctx->maxlen = patlen;
         if (mpm_ctx->minlen == 0) mpm_ctx->minlen = patlen;
         else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
-    } else {
-        /* if we're reusing a pattern, check we need to check that it is a
-         * scan pattern if that is what we're adding. If so we set the pattern
-         * to be a scan pattern. */
-        if (mpm_ctx->maxlen < patlen) mpm_ctx->maxlen = patlen;
-        if (mpm_ctx->minlen == 0) mpm_ctx->minlen = patlen;
-        else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
     }
 
     /* we need a match */
-    B3gEndMatchAppend(mpm_ctx, p, offset, depth, pid, sid, nosearch);
+    B3gEndMatchAppend(mpm_ctx, p, offset, depth, pid, sid);
 
     mpm_ctx->total_pattern_cnt++;
     return 0;
@@ -375,15 +364,16 @@ error:
 }
 
 int B3gAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t nosearch)
+    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags)
 {
-    return B3gAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */1, /* scan */1, pid, sid, nosearch);
+    flags |= MPM_PATTERN_FLAG_NOCASE;
+    return B3gAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
 
 int B3gAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t nosearch)
+    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags)
 {
-    return B3gAddPattern(mpm_ctx, pat, patlen, offset, depth, /* nocase */0, /* scan */1, pid, sid, nosearch);
+    return B3gAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
 
 static uint32_t B3gBloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
@@ -910,7 +900,7 @@ uint32_t B3gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
                             COUNT(tctx->stat_d0_hashloop++);
                             B3gPattern *p = ctx->parray[thi->idx];
 
-                            if (p->flags & B3G_NOCASE) {
+                            if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
                                 if (buflen - j < p->len)
                                     continue;
 
@@ -1012,7 +1002,7 @@ uint32_t B3gSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
                 COUNT(tctx->stat_d0_hashloop++);
                 B3gPattern *p = ctx->parray[thi->idx];
 
-                if (p->flags & B3G_NOCASE) {
+                if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
                     if (buflen - pos < p->len)
                         continue;
 
@@ -1069,7 +1059,7 @@ uint32_t B3gSearch12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatch
             for (thi = hi; thi != NULL; thi = thi->nxt) {
                 p = ctx->parray[thi->idx];
 
-                if (p->flags & B3G_NOCASE) {
+                if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
                     if (h8 == p->ci[0]) {
                         cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, (buf+1 - bufmin), p->len);
                     }
@@ -1089,7 +1079,7 @@ uint32_t B3gSearch12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatch
             for (thi = hi; thi != NULL; thi = thi->nxt) {
                 p = ctx->parray[thi->idx];
 
-                if (p->flags & B3G_NOCASE) {
+                if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
                     if (h8 == p->ci[0] && u8_tolower(*(buf+1)) == p->ci[1]) {
                         cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, (buf+1 - bufmin), p->len);
                     }
@@ -1138,7 +1128,7 @@ uint32_t B3gSearch2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
                 if (p->len != 2)
                     continue;
 
-                if (p->flags & B3G_NOCASE) {
+                if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
                     if (u8_tolower(*buf) == p->ci[0] && u8_tolower(*(buf+1)) == p->ci[1]) {
                         //printf("CI Exact match: "); prt(p->ci, p->len); printf(" in buf "); prt(buf, p->len);printf(" (B3gSearch1)\n");
                         for (em = p->em; em; em = em->next) {
@@ -1193,7 +1183,7 @@ uint32_t B3gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
                 if (p->len != 1)
                     continue;
 
-                if (p->flags & B3G_NOCASE) {
+                if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
                     if (u8_tolower(*buf) == p->ci[0]) {
                         cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, (buf+1 - bufmin), p->len);
                     }

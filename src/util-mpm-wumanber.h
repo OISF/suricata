@@ -6,8 +6,6 @@
 #include "util-mpm.h"
 #include "util-bloomfilter.h"
 
-#define WUMANBER_NOCASE 0x01
-
 //#define WUMANBER_COUNTERS
 
 typedef struct WmPattern_ {

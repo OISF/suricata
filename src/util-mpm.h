@@ -93,6 +93,15 @@ typedef struct MpmCtx_ {
     uint16_t maxlen;
 } MpmCtx;
 
+/** pattern is case insensitive */
+#define MPM_PATTERN_FLAG_NOCASE     0x01
+/** pattern is negated */
+#define MPM_PATTERN_FLAG_NEGATED    0x02
+/** pattern has a depth setting */
+#define MPM_PATTERN_FLAG_DEPTH      0x04
+/** pattern has an offset setting */
+#define MPM_PATTERN_FLAG_OFFSET     0x08
+
 typedef struct MpmTableElmt_ {
     char *name;
     uint8_t max_pattern_length;
@@ -100,6 +109,18 @@ typedef struct MpmTableElmt_ {
     void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *, uint32_t);
     void (*DestroyCtx)(struct MpmCtx_ *);
     void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
+
+    /** function pointers for adding patterns to the mpm ctx.
+     *
+     *  \param mpm_ctx Mpm context to add the pattern to
+     *  \param pattern pointer to the pattern
+     *  \param pattern_len length of the pattern in bytes
+     *  \param offset pattern offset setting
+     *  \param depth pattern depth setting
+     *  \param pid pattern id
+     *  \param sid signature _internal_ id
+     *  \param flags pattern flags
+     */
     int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
     int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
     int  (*Prepare)(struct MpmCtx_ *);
