@@ -303,14 +303,17 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
 {
     SCEnter();
-    BodyChunk *bd = NULL;
+
+    HtpBodyChunk *bd = NULL;
+
     if (body->nchunks == 0) {
         /* New chunk */
-        bd = (BodyChunk *)SCMalloc(sizeof(BodyChunk));
+        bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
             exit(EXIT_FAILURE);
         }
+
         bd->len = len;
         bd->data = data;
         body->first = body->last = bd;
@@ -326,7 +329,12 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
             body->last->len = len;
             bd = body->last;
         } else {
-            bd = (BodyChunk *)SCMalloc(sizeof(BodyChunk));
+            bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
+            if (bd == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
+                exit(EXIT_FAILURE);
+            }
+
             bd->len = len;
             bd->data = data;
             body->last->next = bd;
@@ -353,7 +361,7 @@ void HtpBodyPrint(HtpBody *body)
         if (body->nchunks == 0)
             return;
 
-        BodyChunk *cur = NULL;
+        HtpBodyChunk *cur = NULL;
         SCLogDebug("--- Start body chunks at %p ---", body);
         for (cur = body->first; cur != NULL; cur = cur->next) {
             SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"\n",
@@ -372,6 +380,7 @@ void HtpBodyPrint(HtpBody *body)
 void HtpBodyFree(HtpBody *body)
 {
     SCEnter();
+
     if (body->nchunks == 0)
         return;
 
@@ -380,8 +389,9 @@ void HtpBodyFree(HtpBody *body)
                 (uint32_t)body->last->len);
     body->nchunks = 0;
 
-    BodyChunk *cur = NULL;
-    BodyChunk *prev = NULL;
+    HtpBodyChunk *cur = NULL;
+    HtpBodyChunk *prev = NULL;
+
     prev = body->first;
     while (prev != NULL) {
         cur = prev->next;

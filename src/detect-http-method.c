@@ -53,9 +53,25 @@ void DetectHttpMethodRegister(void) {
     SCLogDebug("registering http_method rule option");
 }
 
-int DetectHttpMethodDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm, Flow *f, uint8_t flags, void *state) {
+/**
+ * \brief match the specified version on a tls session
+ *
+ * \param t       pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param f       pointer to the current flow
+ * \param flags   flags to indicate the direction of the received packet
+ * \param state   pointer the app layer state, which will cast into HtpState
+ * \param sm      pointer to the sigmatch
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                          Flow *f, uint8_t flags, void *state,
+                          Signature *s, SigMatch *sm)
+{
     SCEnter();
-    uint8_t i;
+    size_t idx;
     DetectHttpMethodData *data = (DetectHttpMethodData *)sm->ctx;
     HtpState *hs = (HtpState *)state;
     htp_tx_t *tx = NULL;
@@ -67,16 +83,15 @@ int DetectHttpMethodDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
     }
 
     SCMutexLock(&f->m);
-    for (i = hs->new_in_tx_index; i < list_size(hs->connp->conn->transactions); i++)
+    for (   idx = hs->new_in_tx_index;
+            idx < list_size(hs->connp->conn->transactions); idx++)
     {
-        tx = list_get(hs->connp->conn->transactions, i);
+        tx = list_get(hs->connp->conn->transactions, idx);
         if (tx == NULL)
             continue;
 
-
         /* Compare the numeric methods if they are known, otherwise compare
-         * the raw values.
-         */
+         * the raw values. */
         if (data->method != M_UNKNOWN) {
             if (data->method == tx->request_method_number) {
                SCLogDebug("Matched numeric HTTP method values.");
@@ -85,7 +100,6 @@ int DetectHttpMethodDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
         } else if (tx->request_method != NULL) {
             const uint8_t *meth_str = (const uint8_t *)
                                                bstr_ptr(tx->request_method);
-
             if ((meth_str != NULL) &&
                     SpmSearch((uint8_t*) meth_str, bstr_size(tx->request_method),
                     data->content, data->content_len) != NULL)
@@ -99,27 +113,6 @@ int DetectHttpMethodDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
 
     SCMutexUnlock(&f->m);
     SCReturnInt(ret);
-}
-
-/**
- * \brief match the specified version on a tls session
- *
- * \param t       pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param f       pointer to the current flow
- * \param flags   flags to indicate the direction of the received packet
- * \param state   pointer the app layer state, which will cast into HtpState
- * \param m       pointer to the sigmatch cast into DetectHttpMethodData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Flow *f, uint8_t flags, void *state,
-                          Signature *s, SigMatch *sm)
-{
-    int r = DetectHttpMethodDoMatch(det_ctx, s, sm, f, flags, state);
-    SCReturnInt(r);
 }
 
 /**

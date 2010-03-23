@@ -89,7 +89,7 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     SCEnter();
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     char timebuf[64];
-    uint8_t i = 0;
+    size_t idx = 0;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
@@ -135,10 +135,10 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     }
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    for (i = htp_state->new_in_tx_index;
-            i < list_size(htp_state->connp->conn->transactions); i++)
+    for (idx = htp_state->new_in_tx_index;
+         idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
-        tx = list_get(htp_state->connp->conn->transactions, i);
+        tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL) {
             SCLogDebug("tx is NULL not logging !!");
             continue;
@@ -181,12 +181,12 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         /* ip/tcp header info */
         fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
                 srcip, sp, dstip, dp);
+
+        aft->uri_cnt ++;
     }
     fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
-    aft->uri_cnt += list_size(htp_state->connp->conn->transactions) -
-                                                    htp_state->new_in_tx_index;
     htp_state->flags &= ~HTP_FLAG_NEW_REQUEST;
 end:
     SCMutexUnlock(&p->flow->m);
@@ -198,7 +198,7 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     SCEnter();
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     char timebuf[64];
-    uint8_t i = 0;
+    size_t idx = 0;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
@@ -244,10 +244,10 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         dp = p->sp;
     }
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    for (i = htp_state->new_in_tx_index;
-            i < list_size(htp_state->connp->conn->transactions); i++)
+    for (idx = htp_state->new_in_tx_index;
+         idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
-        tx = list_get(htp_state->connp->conn->transactions, i);
+        tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL) {
             SCLogDebug("tx is NULL not logging !!");
             continue;
@@ -290,12 +290,12 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         /* ip/tcp header info */
         fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
                 srcip, sp, dstip, dp);
+
+        aft->uri_cnt++;
     }
     fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
-    aft->uri_cnt += list_size(htp_state->connp->conn->transactions) -
-                                                    htp_state->new_in_tx_index;
     htp_state->flags &= ~HTP_FLAG_NEW_REQUEST;
 end:
     SCMutexUnlock(&p->flow->m);

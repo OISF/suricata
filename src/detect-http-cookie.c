@@ -52,8 +52,24 @@ void DetectHttpCookieRegister (void) {
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_PAYLOAD;
 }
 
-int DetectHttpCookieDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
-        SigMatch *sm, Flow *f, uint8_t flags, void *state)
+/**
+ * \brief match the specified content in the signature with the received http
+ *        cookie header in the http request.
+ *
+ * \param t         pointer to thread vars
+ * \param det_ctx   pointer to the pattern matcher thread
+ * \param f         pointer to the current flow
+ * \param flags     flags to indicate the direction of the received packet
+ * \param state     pointer the app layer state, which will cast into HtpState
+ * \param s         pointer to the current signature
+ * \param sm        pointer to the sigmatch
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                           Flow *f, uint8_t flags, void *state, Signature *s,
+                           SigMatch *sm)
 {
     SCEnter();
 
@@ -115,29 +131,6 @@ end:
     SCMutexUnlock(&f->m);
     SCLogDebug("released lock %p", &f->m);
     SCReturnInt(ret);
-}
-
-/**
- * \brief match the specified content in the signature with the received http
- *        cookie header in the http request.
- *
- * \param t         pointer to thread vars
- * \param det_ctx   pointer to the pattern matcher thread
- * \param f         pointer to the current flow
- * \param flags     flags to indicate the direction of the received packet
- * \param state     pointer the app layer state, which will cast into HtpState
- * \param s         pointer to the current signature
- * \param m         pointer to the sigmatch that we will cast into DetectContentData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                           Flow *f, uint8_t flags, void *state, Signature *s,
-                           SigMatch *m)
-{
-    int r = DetectHttpCookieDoMatch(det_ctx, s, m, f, flags, state);
-    SCReturnInt(r);
 }
 
 /**

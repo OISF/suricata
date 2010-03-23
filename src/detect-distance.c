@@ -1,12 +1,15 @@
 /* DISTANCE part of the detection engine. */
 
 #include "suricata-common.h"
+
 #include "decode.h"
+
 #include "detect.h"
-#include "flow-var.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
-#include "detect-pcre.h"
+
+#include "flow-var.h"
+
 #include "util-debug.h"
 
 static int DetectDistanceSetup(DetectEngineCtx *, Signature *, char *);

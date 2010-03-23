@@ -48,17 +48,17 @@ enum {
                                              matched on some rule */
 
 /** Struct used to hold chunks of a body on a request */
-typedef struct BodyChunk_ {
+typedef struct HtpBodyChunk_ {
     uint8_t *data;              /**< Pointer to the data of the chunk */
     uint32_t len;               /**< Length of the chunk */
-    struct BodyChunk_ *next;    /**< Pointer to the next chunk */
+    struct HtpBodyChunk_ *next; /**< Pointer to the next chunk */
     uint32_t id;                /**< number of chunk of the current body */
-} BodyChunk;
+} HtpBodyChunk;
 
 /** Struct used to hold all the chunks of a body on a request */
-typedef struct Body_ {
-    BodyChunk *first;    /**< Pointer to the first chunk */
-    BodyChunk *last;     /**< Pointer to the last chunk */
+typedef struct HtpBody_ {
+    HtpBodyChunk *first; /**< Pointer to the first chunk */
+    HtpBodyChunk *last;  /**< Pointer to the last chunk */
     uint32_t nchunks;    /**< Number of chunks in the current operation */
     uint8_t operation;   /**< This flag indicate if it's a request
                               or a response */
@@ -68,13 +68,12 @@ typedef struct Body_ {
 
 typedef struct HtpState_ {
 
-    htp_connp_t *connp;         /**< Connection parser structure for
-                                     each connection */
+    htp_connp_t *connp;     /**< Connection parser structure for
+                                 each connection */
+    HtpBody body;           /**< Body of the request (if any) */
+    size_t new_in_tx_index; /**< Index to indicate that after this we have
+                                 new requests to log */
     uint8_t flags;
-    HtpBody body;               /**< Body of the request (if any) */
-    uint8_t new_in_tx_index;    /**< Index to indicate that after this we have
-                                     new requests to log */
-
 } HtpState;
 
 htp_cfg_t *cfg; /**< Config structure for HTP library */

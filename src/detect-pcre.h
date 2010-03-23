@@ -1,21 +1,15 @@
 #ifndef __DETECT_PCRE_H__
 #define __DETECT_PCRE_H__
 
-#define DETECT_PCRE_DISTANCE      0x0001
-#define DETECT_PCRE_WITHIN        0x0002
-#define DETECT_PCRE_RELATIVE      0x0004
+#define DETECT_PCRE_RELATIVE      0x01
+#define DETECT_PCRE_RAWBYTES      0x02
+#define DETECT_PCRE_URI           0x04
 
-#define DETECT_PCRE_DISTANCE_NEXT 0x0008
-#define DETECT_PCRE_WITHIN_NEXT   0x0010
+#define DETECT_PCRE_CAPTURE_PKT   0x08
+#define DETECT_PCRE_CAPTURE_FLOW  0x10
+#define DETECT_PCRE_MATCH_LIMIT   0x20
 
-#define DETECT_PCRE_RAWBYTES      0x0020
-#define DETECT_PCRE_URI           0x0040
-
-#define DETECT_PCRE_CAPTURE_PKT   0x0080
-#define DETECT_PCRE_CAPTURE_FLOW  0x0100
-#define DETECT_PCRE_MATCH_LIMIT   0x0200
-
-#define DETECT_PCRE_HTTP_BODY_AL  0x0400
+#define DETECT_PCRE_HTTP_BODY_AL  0x40
 
 typedef struct DetectPcreData_ {
     /* pcre options */
@@ -23,13 +17,7 @@ typedef struct DetectPcreData_ {
     pcre_extra *sd;
     int opts;
 
-    /* match position vars */
-    uint16_t depth;
-    uint16_t offset;
-    int32_t within;
-    int32_t distance;
-
-    uint16_t flags;
+    uint8_t flags;
     uint8_t negate;
 
     char *capname;
@@ -37,8 +25,7 @@ typedef struct DetectPcreData_ {
 } DetectPcreData;
 
 /* prototypes */
-int DetectPcreDoMatch(DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectPcreALDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *, Flow *, uint8_t, void *);
+int DetectPcrePayloadMatch(DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 void DetectPcreRegister (void);
 
 #endif /* __DETECT_PCRE_H__ */

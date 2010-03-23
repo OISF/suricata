@@ -167,7 +167,7 @@ int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *
         int wspace[255];
         int flags = PCRE_PARTIAL;
 
-        BodyChunk *cur = htp_state->body.first;
+        HtpBodyChunk *cur = htp_state->body.first;
         if (cur == NULL) {
             SCLogDebug("No body chunks to inspect");
             goto unlock;
@@ -239,7 +239,18 @@ int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     SCReturnInt(r);
 }
 
-int DetectPcreDoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm) {
+/**
+ * \brief match a regex on a single payload'
+ *
+ * \param det_ctx thread detection ctx
+ * \param p packet
+ * \param s signature
+ * \param sm sig match to match against
+ *
+ * \retval 1: match
+ * \retval 0: no match
+ */
+int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm) {
     SCEnter();
 #define MAX_SUBSTRINGS 30
     int ret = 0;
@@ -269,24 +280,28 @@ int DetectPcreDoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, S
         len = p->payload_len;
     }
 
-    //printf("DetectPcre: ptr %p, len %" PRIu32 "\n", ptr, len);
-
+    /* run the actual pcre detection */
     ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
     SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
         if (pe->negate == 1) {
-            /* regex didn't match with negate option means we consider it a match */
+            /* regex didn't match with negate option means we
+             * consider it a match */
             ret = 1;
         } else {
             ret = 0;
         }
     } else if (ret >= 0) {
         if (pe->negate == 1) {
-            /* regex matched but we're negated, so not considering it a match */
+            /* regex matched but we're negated, so not
+             * considering it a match */
             ret = 0;
         } else {
-            /* regex matched and we're not negated, considering it a match */
+            /* regex matched and we're not negated,
+             * considering it a match */
+
+            /* see if we need to do substring capturing. */
             if (ret > 1 && pe->capidx != 0) {
                 const char *str_ptr;
                 ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
@@ -298,6 +313,7 @@ int DetectPcreDoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, S
                     }
                 }
             }
+
             /* update offset for pcre RELATIVE */
             det_ctx->payload_offset = (ptr+ov[1]) - p->payload;
 
@@ -316,15 +332,20 @@ int DetectPcreDoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, S
  *        DetectPcreALMatch is used if we parse the option 'P'
  *
  * \param t pointer to the threadvars structure
- * \param t pointer to the threadvars structure
+ * \param det_ctx thread detection ctx
+ * \param p packet
+ * \param s signature
+ * \param sm sig match to match against
  *
- * \retval 1: match ; 0 No Match; -1: error
+ * \retval 1: match
+ * \retval 0: no match
  */
 int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
                      Signature *s, SigMatch *sm)
 {
     SCEnter();
-    SCReturnInt(DetectPcreDoMatch(det_ctx,p,s,sm));
+    int r = DetectPcrePayloadMatch(det_ctx, p, s, sm);
+    SCReturnInt(r);
 }
 
 DetectPcreData *DetectPcreParse (char *regexstr)

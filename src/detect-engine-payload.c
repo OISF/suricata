@@ -1,18 +1,20 @@
+/* Copyright (c) 2010 Victor Julien <victor@inliniac.net> */
+
+/** \file
+ *  \author Victor Julien <victor@inliniac.net>
+ */
+
 #include "suricata-common.h"
 #include "suricata.h"
 
 #include "decode.h"
 
 #include "detect.h"
-
 #include "detect-content.h"
-#include "detect-uricontent.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
-#include "detect-http-method.h"
-#include "detect-http-cookie.h"
 
 #include "util-spm.h"
 #include "util-debug.h"
@@ -23,13 +25,22 @@
 
 /** \brief Run the actual payload match functions
  *
+ *  The follwing keywords are inspected:
+ *  - content
+ *  - isdaatat
+ *  - pcre
+ *  - bytejump
+ *  - bytetest
+ *
+ *  All keywords are evaluated against the payload with payload_len.
+ *
+ *  For accounting the last match in relative matching the
+ *  det_ctx->payload_offset int is used.
+ *
  *  \param de_ctx Detection engine context
  *  \param det_ctx Detection engine thread context
  *  \param s Signature to inspect
  *  \param sm SigMatch to inspect
- *  \param f Flow
- *  \param flags app layer flags
- *  \param state App layer state
  *  \param p Packet
  *  \param payload ptr to the payload to inspect
  *  \param payload_len length of the payload
@@ -38,9 +49,8 @@
  *  \retval 1 match
  */
 static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm, Flow *f,
-        uint8_t flags, void *alstate, Packet *p, uint8_t *payload,
-        uint32_t payload_len)
+        DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm, 
+        Packet *p, uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
 
@@ -78,9 +88,10 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                     depth = payload_len;
 
                     if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                        /** \todo distance can be negative */
-
-                        offset += cd->distance;
+                        if (cd->distance < 0 && (uint32_t)(abs(cd->distance)) > offset)
+                            offset = 0;
+                        else
+                            offset += cd->distance;
 
                         SCLogDebug("cd->distance %"PRIi32", offset %"PRIu32", depth %"PRIu32,
                             cd->distance, offset, depth);
@@ -179,8 +190,8 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
                     /* see if the next payload keywords match. If not, we will
                      * search for another occurence of this content and see
-                     * if the others match then */
-                    int r = DoInspectPacketPayload(de_ctx,det_ctx,s,sm->next, f, flags, alstate, p, payload, payload_len);
+                     * if the others match then until we run out of matches */
+                    int r = DoInspectPacketPayload(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
                     if (r == 1) {
                         SCReturnInt(1);
                     }
@@ -219,8 +230,7 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
         {
             SCLogDebug("inspecting pcre");
 
-            /** \todo consider ptrs */
-            int r = DetectPcreDoMatch(det_ctx, p, s, sm);
+            int r = DetectPcrePayloadMatch(det_ctx, p, s, sm);
             if (r == 1) {
                 goto match;
             }
@@ -243,6 +253,7 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
             goto match;
         }
+        /* we should never get here, but bail out just in case */
         default:
         {
             BUG_ON(1);
@@ -250,16 +261,19 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
     }
 
     SCReturnInt(0);
+
 match:
+    /* this sigmatch matched, inspect the next one. If it was the last,
+     * the payload portion of the signature matched. */
     if (sm->next != NULL) {
-        int r = DoInspectPacketPayload(de_ctx,det_ctx,s,sm->next, f, flags, alstate, p, payload, payload_len);
+        int r = DoInspectPacketPayload(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
         SCReturnInt(r);
     } else {
         SCReturnInt(1);
     }
 }
 
-/** \brief Do the content inspection for a signature
+/** \brief Do the content inspection & validation for a signature
  *
  *  \param de_ctx Detection engine context
  *  \param det_ctx Detection engine thread context
@@ -286,7 +300,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
 
     det_ctx->payload_offset = 0;
 
-    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, f, flags, alstate, p, p->payload, p->payload_len);
+    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, p, p->payload, p->payload_len);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -339,12 +353,34 @@ end:
     return result;
 }
 
+/** \test Negative distance matching */
+static int PayloadTestSig03 (void) {
+    uint8_t *buf = (uint8_t *)
+                    "abcaBcd";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (content:\"aBc\"; nocase; content:\"abca\"; distance:-10; within:1; sid:1;)";
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("PayloadTestSig01", PayloadTestSig01, 1);
     UtRegisterTest("PayloadTestSig02", PayloadTestSig02, 1);
+    UtRegisterTest("PayloadTestSig03", PayloadTestSig03, 1);
 #endif /* UNITTESTS */
 }
 
