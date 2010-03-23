@@ -373,27 +373,17 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /* counters */
     uint32_t pkts;
-    uint32_t pkts_scanned;
     uint32_t pkts_searched;
-    uint32_t pkts_scanned1;
     uint32_t pkts_searched1;
-    uint32_t pkts_scanned2;
     uint32_t pkts_searched2;
-    uint32_t pkts_scanned3;
     uint32_t pkts_searched3;
-    uint32_t pkts_scanned4;
     uint32_t pkts_searched4;
 
     uint32_t uris;
-    uint32_t pkts_uri_scanned;
     uint32_t pkts_uri_searched;
-    uint32_t pkts_uri_scanned1;
     uint32_t pkts_uri_searched1;
-    uint32_t pkts_uri_scanned2;
     uint32_t pkts_uri_searched2;
-    uint32_t pkts_uri_scanned3;
     uint32_t pkts_uri_searched3;
-    uint32_t pkts_uri_scanned4;
     uint32_t pkts_uri_searched4;
 
     /** id for alert counter */

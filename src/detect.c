@@ -135,67 +135,37 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
     if (det_ctx == NULL)
         return;
 
-    SCLogInfo("(%s) (1byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->pkts, det_ctx->pkts_scanned1,
-        (float)(det_ctx->pkts_scanned1/(float)(det_ctx->pkts)*100),
-        det_ctx->pkts_searched1,
-        (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts)*100),
-        (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts_scanned1)*100));
-    SCLogInfo("(%s) (2byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->pkts, det_ctx->pkts_scanned2,
-        (float)(det_ctx->pkts_scanned2/(float)(det_ctx->pkts)*100),
-        det_ctx->pkts_searched2,
-        (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts)*100),
-        (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts_scanned2)*100));
-    SCLogInfo("(%s) (3byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->pkts, det_ctx->pkts_scanned3,
-        (float)(det_ctx->pkts_scanned3/(float)(det_ctx->pkts)*100),
-        det_ctx->pkts_searched3,
-        (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts)*100),
-        (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts_scanned3)*100));
-    SCLogInfo("(%s) (4byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->pkts, det_ctx->pkts_scanned4,
-        (float)(det_ctx->pkts_scanned4/(float)(det_ctx->pkts)*100),
-        det_ctx->pkts_searched4,
-        (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts)*100),
-        (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts_scanned4)*100));
-    SCLogInfo("(%s) (+byte) Pkts %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->pkts, det_ctx->pkts_scanned,
-        (float)(det_ctx->pkts_scanned/(float)(det_ctx->pkts)*100),
-        det_ctx->pkts_searched,
-        (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts)*100),
-        (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts_scanned)*100));
+    SCLogInfo("(%s) (1byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->pkts, det_ctx->pkts_searched1,
+        (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts)*100));
+    SCLogInfo("(%s) (2byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->pkts, det_ctx->pkts_searched2,
+        (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts)*100));
+    SCLogInfo("(%s) (3byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->pkts, det_ctx->pkts_searched3,
+        (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts)*100));
+    SCLogInfo("(%s) (4byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->pkts, det_ctx->pkts_searched4,
+        (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts)*100));
+    SCLogInfo("(%s) (+byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->pkts, det_ctx->pkts_searched,
+        (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts)*100));
 
-    SCLogInfo("(%s) URI (1byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->uris, det_ctx->pkts_uri_scanned1,
-        (float)(det_ctx->pkts_uri_scanned1/(float)(det_ctx->uris)*100),
-        det_ctx->pkts_uri_searched1,
-        (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->uris)*100),
-        (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->pkts_uri_scanned1)*100));
-    SCLogInfo("(%s) URI (2byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->uris, det_ctx->pkts_uri_scanned2,
-        (float)(det_ctx->pkts_uri_scanned2/(float)(det_ctx->uris)*100),
-        det_ctx->pkts_uri_searched2,
-        (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->uris)*100),
-        (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->pkts_uri_scanned2)*100));
-    SCLogInfo("(%s) URI (3byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->uris, det_ctx->pkts_uri_scanned3,
-        (float)(det_ctx->pkts_uri_scanned3/(float)(det_ctx->uris)*100),
-        det_ctx->pkts_uri_searched3,
-        (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->uris)*100),
-        (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->pkts_uri_scanned3)*100));
-    SCLogInfo("(%s) URI (4byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->uris, det_ctx->pkts_uri_scanned4,
-        (float)(det_ctx->pkts_uri_scanned4/(float)(det_ctx->uris)*100),
-        det_ctx->pkts_uri_searched4,
-        (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->uris)*100),
-        (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->pkts_uri_scanned4)*100));
-    SCLogInfo("(%s) URI (+byte) Uri's %" PRIu32 ", Scanned %" PRIu32 " (%02.1f), Searched %" PRIu32 " (%02.1f): %02.1f%%.", tv->name,
-        det_ctx->uris, det_ctx->pkts_uri_scanned,
-        (float)(det_ctx->pkts_uri_scanned/(float)(det_ctx->uris)*100),
-        det_ctx->pkts_uri_searched,
-        (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->uris)*100),
-        (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->pkts_uri_scanned)*100));
+    SCLogInfo("(%s) URI (1byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched1,
+        (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->uris)*100));
+    SCLogInfo("(%s) URI (2byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched2,
+        (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->uris)*100));
+    SCLogInfo("(%s) URI (3byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched3,
+        (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->uris)*100));
+    SCLogInfo("(%s) URI (4byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched4,
+        (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->uris)*100));
+    SCLogInfo("(%s) URI (+byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
+        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched,
+        (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->uris)*100));
 
     SCLogInfo("%"PRIu64" sigs per scan match on avg needed inspection, total scans %"PRIu64", less than 25 sigs need inspect %"PRIu64", more than 100 sigs need inspect %"PRIu64", more than 1000 %"PRIu64" max %"PRIu64"", det_ctx->scans_match ? det_ctx->scans_sigs / det_ctx->scans_match : 0, det_ctx->scans_match, det_ctx->scans_sigsmin25, det_ctx->scans_sigsplus100, det_ctx->scans_sigsplus1000, det_ctx->scans_sigsmax);
 }
@@ -560,11 +530,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             SCLogDebug("scan: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")", det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
             /* scan, but only if the noscan flag isn't set */
 
-            if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_scanned1++;
-            else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_scanned2++;
-            else if (det_ctx->sgh->mpm_content_maxlen == 3) det_ctx->pkts_scanned3++;
-            else if (det_ctx->sgh->mpm_content_maxlen == 4) det_ctx->pkts_scanned4++;
-            else                                        det_ctx->pkts_scanned++;
+            if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_searched1++;
+            else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_searched2++;
+            else if (det_ctx->sgh->mpm_content_maxlen == 3) det_ctx->pkts_searched3++;
+            else if (det_ctx->sgh->mpm_content_maxlen == 4) det_ctx->pkts_searched4++;
+            else                                            det_ctx->pkts_searched++;
 
             cnt = PacketPatternScan(th_v, det_ctx, p);
             if (cnt > 0) {
@@ -582,22 +552,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     det_ctx->scans_sigsmax = det_ctx->pmq.sig_id_array_cnt;
             }
 
-            //if (cnt != det_ctx->pmq.searchable)
             SCLogDebug("post scan: cnt %" PRIu32 ", searchable %" PRIu32 ", sigs %"PRIu32" (out of %"PRIu32")", cnt, det_ctx->pmq.searchable, det_ctx->pmq.sig_id_array_cnt, det_ctx->sgh->sig_cnt);
-#if 0
-            if (det_ctx->pmq.searchable > 0) {
-                //printf("now search\n");
-                if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_searched1++;
-                else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_searched2++;
-                else if (det_ctx->sgh->mpm_content_maxlen == 3) det_ctx->pkts_searched3++;
-                else if (det_ctx->sgh->mpm_content_maxlen == 4) det_ctx->pkts_searched4++;
-                else                                        det_ctx->pkts_searched++;
-
-                cnt += PacketPatternMatch(th_v, det_ctx, p);
-
-                // printf("RAW: cnt %" PRIu32 ", det_ctx->pmq.sig_id_array_cnt %" PRIu32 "\n", cnt, det_ctx->pmq.sig_id_array_cnt);
-            }
-#endif
             det_ctx->pmq.searchable = 0;
         }
     }
@@ -6906,7 +6861,7 @@ int SigTest40NoPayloadInspection02(void) {
     else
         result &= 1;
 
-    if (det_ctx->pkts_scanned == 1)
+    if (det_ctx->pkts_searched == 1)
         result &= 0;
 
     SigGroupCleanup(de_ctx);

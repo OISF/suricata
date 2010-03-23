@@ -282,28 +282,16 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
 
         det_ctx->uris++;
 
-        if (det_ctx->sgh->mpm_uricontent_maxlen == 1) det_ctx->pkts_uri_scanned1++;
-        else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_scanned2++;
-        else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_scanned3++;
-        else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_scanned4++;
-        else det_ctx->pkts_uri_scanned++;
+        if (det_ctx->sgh->mpm_uricontent_maxlen == 1) det_ctx->pkts_uri_searched1++;
+        else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_searched2++;
+        else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_searched3++;
+        else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
+        else det_ctx->pkts_uri_searched++;
 
         ret += UriPatternScan(tv, det_ctx, uri, uri_len);
 
         SCLogDebug("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "",
                     ret, det_ctx->pmq.searchable);
-/*
-        if (det_ctx->pmq.searchable > 0) {
-            if (det_ctx->sgh->mpm_uricontent_maxlen == 1) det_ctx->pkts_uri_searched1++;
-            else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_searched2++;
-            else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_searched3++;
-            else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
-            else det_ctx->pkts_uri_searched++;
-
-            ret += UriPatternMatch(tv, det_ctx, uri, uri_len);
-
-        }
-*/
         det_ctx->pmq.searchable = 0;
     }
     return ret;
