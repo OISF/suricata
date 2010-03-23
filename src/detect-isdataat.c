@@ -242,25 +242,17 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             return -1;
         }
 
-        cd->flags |= DETECT_CONTENT_ISDATAAT_RELATIVE;
-        cd->isdataat = idad->dataat;
-
-        /** Propagate the changes */
-        DetectContentPropagateIsdataat(pm);
+        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
     }
-    else {
-        SCLogDebug("set it as a normal SigMatch");
 
-        /** else Set it as a normal SigMatch */
-        sm = SigMatchAlloc();
-        if (sm == NULL)
-            goto error;
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
 
-        sm->type = DETECT_ISDATAAT;
-        sm->ctx = (void *)idad;
+    sm->type = DETECT_ISDATAAT;
+    sm->ctx = (void *)idad;
 
-        SigMatchAppendPayload(s,sm);
-    }
+    SigMatchAppendPayload(s, sm);
 
     return 0;
 

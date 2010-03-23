@@ -68,29 +68,15 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
         }
     }
 
-    /** Propagate the modifiers through the first chunk
-     * (SigMatch) if we're dealing with chunks */
-    if (cd->flags & DETECT_CONTENT_IS_CHUNK)
-        DetectContentPropagateDistance(pm);
-
-    //DetectContentPrint(cd);
-    //printf("DetectDistanceSetup: set distance %" PRId32 " for previous content\n", cd->distance);
-
     pm = DetectContentFindPrevApplicableSM(s->pmatch_tail->prev);
     if (pm == NULL) {
         SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
         goto error;
     }
 
-    if (pm->type == DETECT_PCRE) {
-        DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-        pe->flags |= DETECT_PCRE_DISTANCE_NEXT;
-    } else if (pm->type == DETECT_CONTENT) {
+    if (pm->type == DETECT_CONTENT) {
         DetectContentData *cd = (DetectContentData *)pm->ctx;
-        cd->flags |= DETECT_CONTENT_DISTANCE_NEXT;
-    } else if (pm->type == DETECT_URICONTENT) {
-        DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
-        cd->flags |= DETECT_URICONTENT_DISTANCE_NEXT;
+        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
     } else {
         SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!");
         goto error;

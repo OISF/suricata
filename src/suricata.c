@@ -26,6 +26,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-sigorder.h"
+#include "detect-engine-payload.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
@@ -757,6 +758,7 @@ int main(int argc, char **argv)
 #ifdef __SC_CUDA_SUPPORT__
         SCCudaRegisterTests();
 #endif
+        PayloadRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

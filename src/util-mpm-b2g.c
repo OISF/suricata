@@ -305,7 +305,7 @@ void B2gFreePattern(MpmCtx *mpm_ctx, B2gPattern *p) {
 static inline int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags) {
     B2gCtx *ctx = (B2gCtx *)mpm_ctx->ctx;
 
-    SCLogDebug("ctx %p len %"PRIu16" pid %" PRIu32 ", nocase %s", ctx, patlen, pid, nocase ? "true" : "false");
+    SCLogDebug("ctx %p len %"PRIu16" pid %" PRIu32, ctx, patlen, pid);
 
     if (patlen == 0)
         return 0;

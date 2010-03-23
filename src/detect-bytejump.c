@@ -10,6 +10,7 @@
 #include "detect-parse.h"
 
 #include "detect-bytejump.h"
+#include "detect-content.h"
 
 #include "util-byte.h"
 #include "util-unittest.h"
@@ -488,6 +489,19 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 
     data = DetectBytejumpParse(optstr);
     if (data == NULL) goto error;
+
+    if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
+        /** Search for the first previous DetectContent
+         * SigMatch (it can be the same as this one) */
+        SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+        if (pm == NULL) {
+            SCLogError(SC_ERR_BYTEJUMP_MISSING_CONTENT, "relative bytejump match needs a previous content option");
+            goto error;
+        }
+
+        DetectContentData *cd = (DetectContentData *)pm->ctx;
+        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+    }
 
     sm = SigMatchAlloc();
     if (sm == NULL)

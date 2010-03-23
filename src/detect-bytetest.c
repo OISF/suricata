@@ -515,7 +515,7 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         }
 
         DetectContentData *cd = (DetectContentData *)pm->ctx;
-        cd->flags |= DETECT_CONTENT_BYTETEST_NEXT;
+        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
     }
 
     sm = SigMatchAlloc();

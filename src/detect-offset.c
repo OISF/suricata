@@ -35,7 +35,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
         dubbed = 1;
     }
 
-    /** Search for the first previous DetectContent
+    /* Search for the first previous DetectContent
      * SigMatch (it can be the same as this one) */
     SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
     if (pm == NULL) {
@@ -60,11 +60,6 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             cd->depth = cd->content_len + cd->offset;
         }
     }
-
-    /** Propagate the modifiers through the first chunk
-     * (SigMatch) if we're dealing with chunks */
-    if (cd->flags & DETECT_CONTENT_IS_CHUNK)
-        DetectContentPropagateOffset(pm);
 
     if (dubbed) SCFree(str);
     return 0;

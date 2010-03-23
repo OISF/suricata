@@ -494,7 +494,9 @@ end:
  * \retval return 0 if not
  */
 int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type) {
-    int result = 1;
+    SCEnter();
+
+    int result = 0;
 
     DecodeThreadVars dtv;
 
@@ -539,7 +541,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    return result;
+    SCReturnInt(result);
 }
 
 /**

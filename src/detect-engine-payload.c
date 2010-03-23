@@ -16,6 +16,10 @@
 
 #include "util-spm.h"
 #include "util-debug.h"
+#include "util-print.h"
+
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 /** \brief Run the actual payload match functions
  *
@@ -61,10 +65,11 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
             /* search for our pattern, checking the matches recursively.
              * if we match we look for the next SigMatch as well */
             uint8_t *found = NULL;
-            do {
-                uint32_t offset = 0;
-                uint32_t depth = payload_len;
+            uint32_t offset = 0;
+            uint32_t depth = payload_len;
+            uint32_t prev_offset = 0; /**< used in recursive searching */
 
+            do {
                 if (cd->flags & DETECT_CONTENT_DISTANCE ||
                     cd->flags & DETECT_CONTENT_WITHIN) {
                     SCLogDebug("det_ctx->payload_offset %"PRIu32, det_ctx->payload_offset);
@@ -112,6 +117,11 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                     offset = cd->offset;
                 }
 
+                /* update offset with prev_offset if we're searching for
+                 * matches after the first occurence. */
+                SCLogDebug("offset %"PRIu32", prev_offset %"PRIu32, prev_offset, depth);
+                offset += prev_offset;
+
                 SCLogDebug("offset %"PRIu32", depth %"PRIu32, offset, depth);
 
                 if (depth > payload_len)
@@ -120,7 +130,7 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                 /* if offset is bigger than depth we can never match on a pattern.
                  * We can however, "match" on a negated pattern. */
                 if (offset > depth || depth == 0) {
-                    if (cd->negated == 1) {
+                    if (cd->flags & DETECT_CONTENT_NEGATED) {
                         goto match;
                     } else {
                         SCReturnInt(0);
@@ -129,6 +139,7 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
                 uint8_t *spayload = payload + offset;
                 uint32_t spayload_len = depth - offset;
+                uint32_t match_offset = 0;
                 SCLogDebug("spayload_len %"PRIu32, spayload_len);
                 BUG_ON(spayload_len > payload_len);
 
@@ -140,36 +151,44 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
                 /* next we evaluate the result in combination with the
                  * negation flag. */
-                SCLogDebug("found %p cd->negated %d", found, cd->negated);
+                SCLogDebug("found %p cd negated %s", found, cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
 
-                if (found == NULL && cd->negated == 0) {
+                if (found == NULL && !(cd->flags & DETECT_CONTENT_NEGATED)) {
                     SCReturnInt(0);
-                } else if (found == NULL && cd->negated == 1) {
+                } else if (found == NULL && cd->flags & DETECT_CONTENT_NEGATED) {
                     goto match;
-                } else if (found != NULL && cd->negated == 1) {
+                } else if (found != NULL && cd->flags & DETECT_CONTENT_NEGATED) {
 #ifdef DEBUG
-                    uint32_t match_offset = (uint32_t)((found - payload) + cd->content_len);
+                    match_offset = (uint32_t)((found - payload) + cd->content_len);
                     SCLogDebug("content %"PRIu32" matched at offset %"PRIu32", but negated so no match", cd->id, match_offset);
 #endif
                     SCReturnInt(0);
                 } else {
-                    uint32_t match_offset = (uint32_t)((found - payload) + cd->content_len);
+                    match_offset = (uint32_t)((found - payload) + cd->content_len);
                     SCLogDebug("content %"PRIu32" matched at offset %"PRIu32"", cd->id, match_offset);
                     det_ctx->payload_offset = match_offset;
 
-                    if (cd->flags & DETECT_CONTENT_ISDATAAT_RELATIVE) {
-                        if (det_ctx->payload_offset + cd->isdataat > payload_len) {
-                            SCLogDebug("det_ctx->payload_offset + cd->isdataat %"PRIu32" > %"PRIu32, det_ctx->payload_offset + cd->isdataat, payload_len);
-                            SCReturnInt(0);
-                        } else {
-                            SCLogDebug("relative isdataat match");
-                        }
+                    if (!(cd->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
+                        SCLogDebug("no relative match coming up, so this is a match");
+                        goto match;
                     }
+
+                    BUG_ON(sm->next == NULL);
+                    SCLogDebug("content %"PRIu32, cd->id);
+
+                    /* see if the next payload keywords match. If not, we will
+                     * search for another occurence of this content and see
+                     * if the others match then */
+                    int r = DoInspectPacketPayload(de_ctx,det_ctx,s,sm->next, f, flags, alstate, p, payload, payload_len);
+                    if (r == 1) {
+                        SCReturnInt(1);
+                    }
+
+                    /* set the previous match offset to the start of this match + 1 */
+                    prev_offset += (match_offset - (cd->content_len - 1));
+                    SCLogDebug("trying to see if there is another match after prev_offset %"PRIu32, prev_offset);
                 }
 
-                SCLogDebug("content %"PRIu32", next? %s", cd->id, sm->next?"true":"false");
-
-                goto match;
             } while(1);
         }
         case DETECT_ISDATAAT:
@@ -177,14 +196,22 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
             SCLogDebug("inspecting isdataat");
 
             DetectIsdataatData *id = (DetectIsdataatData *)sm->ctx;
-            BUG_ON(id->flags & ISDATAAT_RELATIVE);
-
-            if (id->dataat < payload_len) {
-                SCLogDebug("absolute isdataat match");
-                goto match;
+            if (id->flags & ISDATAAT_RELATIVE) {
+                if (det_ctx->payload_offset + id->dataat > payload_len) {
+                    SCLogDebug("det_ctx->payload_offset + id->dataat %"PRIu32" > %"PRIu32, det_ctx->payload_offset + id->dataat, payload_len);
+                    SCReturnInt(0);
+                } else {
+                    SCLogDebug("relative isdataat match");
+                    goto match;
+                }
             } else {
-                SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", payload_len %"PRIu32"", id->dataat,payload_len);
-                SCReturnInt(0);
+                if (id->dataat < payload_len) {
+                    SCLogDebug("absolute isdataat match");
+                    goto match;
+                } else {
+                    SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", payload_len %"PRIu32"", id->dataat,payload_len);
+                    SCReturnInt(0);
+                }
             }
         }
         case DETECT_PCRE:
@@ -198,34 +225,6 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
             }
 
             SCReturnInt(0);
-        }
-        case DETECT_PCRE_HTTPBODY:
-        {
-            SCLogDebug("inspecting pcre http body");
-            int r = DetectPcreALDoMatch(det_ctx, s, sm, f, flags, alstate);
-            if (r != 1) {
-                SCReturnInt(0);
-            }
-
-            goto match;
-        }
-        case DETECT_AL_HTTP_COOKIE:
-        {
-            int r = DetectHttpCookieDoMatch(det_ctx, s, sm, f, flags, alstate);
-            if (r != 1) {
-                SCReturnInt(0);
-            }
-
-            goto match;
-        }
-        case DETECT_AL_HTTP_METHOD:
-        {
-            int r = DetectHttpMethodDoMatch(det_ctx, s, sm, f, flags, alstate);
-            if (r != 1) {
-                SCReturnInt(0);
-            }
-
-            goto match;
         }
         case DETECT_BYTETEST:
         {
@@ -243,12 +242,9 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
             goto match;
         }
-        /* assume unsupported matches match */
         default:
         {
-            SCLogDebug("inspecting default, match assumed");
-
-            goto match;
+            BUG_ON(1);
         }
     }
 
@@ -295,5 +291,35 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     }
 
     SCReturnInt(0);
+}
+
+#ifdef UNITTESTS
+
+static int PayloadTestSig01 (void) {
+    uint8_t *buf = (uint8_t *)
+                    "abcabcd";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (content:\"abc\"; content:\"d\"; distance:0; within:1; sid:1;)";
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+#endif /* UNITTESTS */
+
+void PayloadRegisterTests(void) {
+#ifdef UNITTESTS
+    UtRegisterTest("PayloadTestSig01", PayloadTestSig01, 1);
+#endif /* UNITTESTS */
 }
 

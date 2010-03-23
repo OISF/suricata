@@ -54,14 +54,6 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         cd->depth = cd->content_len + cd->offset;
     }
 
-    /** Propagate the modifiers through the first chunk
-     * (SigMatch) if we're dealing with chunks */
-    if (cd->flags & DETECT_CONTENT_IS_CHUNK)
-        DetectContentPropagateDepth(pm);
-
-    //DetectContentPrint(cd);
-    //printf("DetectDepthSetup: set depth %" PRIu32 " for previous content\n", cd->depth);
-
     if (dubbed) SCFree(str);
     return 0;
 }

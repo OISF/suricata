@@ -709,7 +709,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
 
             sig->flags |= SIG_FLAG_MPM;
 
-            if (cd->negated == 1) {
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
                 sig->flags |= SIG_FLAG_MPM_NEGCONTENT;
             }
         }
@@ -825,7 +825,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
 
             sig->flags |= SIG_FLAG_MPM;
 
-            if (cd->negated == 1) {
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
                 sig->flags |= SIG_FLAG_MPM_NEGCONTENT;
             }
         }

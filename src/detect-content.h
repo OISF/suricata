@@ -1,64 +1,39 @@
 #ifndef __DETECT_CONTENT_H__
 #define __DETECT_CONTENT_H__
 
-#define DETECT_CONTENT_NOCASE            0x0001
-#define DETECT_CONTENT_DISTANCE          0x0002
-#define DETECT_CONTENT_WITHIN            0x0004
+/* Flags affecting this content */
 
-#define DETECT_CONTENT_FAST_PATTERN      0x0008
-#define DETECT_CONTENT_DISTANCE_NEXT     0x0010
-#define DETECT_CONTENT_WITHIN_NEXT       0x0020
-#define DETECT_CONTENT_ISDATAAT_RELATIVE 0x0040
-#define DETECT_CONTENT_BYTETEST_NEXT     0x0080
+#define DETECT_CONTENT_NOCASE            0x01
+#define DETECT_CONTENT_DISTANCE          0x02
+#define DETECT_CONTENT_WITHIN            0x04
+#define DETECT_CONTENT_FAST_PATTERN      0x08
+/** content applies to a "raw"/undecoded field if applicable */
+#define DETECT_CONTENT_RAWBYTES          0x10
+/** content is negated */
+#define DETECT_CONTENT_NEGATED           0x20
 
-#define DETECT_CONTENT_RAWBYTES          0x0100
-
-/** Set if the pattern is split into multiple chunks */
-#define DETECT_CONTENT_IS_CHUNK          0x0200
+/** a relative match to this content is next, used in matching phase */
+#define DETECT_CONTENT_RELATIVE_NEXT     0x40
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \
-                                       (c)->flags & DETECT_CONTENT_DISTANCE_NEXT || \
-                                       (c)->flags & DETECT_CONTENT_WITHIN_NEXT || \
-                                       (c)->flags & DETECT_CONTENT_ISDATAAT_RELATIVE || \
-                                       (c)->flags & DETECT_CONTENT_IS_CHUNK || \
+                                       (c)->flags & DETECT_CONTENT_RELATIVE || \
                                        (c)->depth > 0 || \
                                        (c)->within > 0))
-
-/** Used for modifier propagations, to know if they are
- * yet updated or not */
-#define CHUNK_UPDATED_DEPTH         0x01
-#define CHUNK_UPDATED_OFFSET        0x02
-#define CHUNK_UPDATED_ISDATAAT      0x04
-#define CHUNK_UPDATED_DISTANCE      0x08
-#define CHUNK_UPDATED_WITHIN        0x10
 
 typedef struct DetectContentData_ {
     uint8_t *content;   /**< ptr to chunk of memory containing the pattern */
     uint8_t content_len;/**< length of the pattern (and size of the memory) */
-    uint32_t id;        /**< unique pattern id */
 
-    uint8_t negated;
+    uint32_t id;        /**< unique pattern id */
 
     uint16_t depth;
     uint16_t offset;
-    uint32_t isdataat;
+    /** distance from the last match this match should start.
+     *  Can be negative */
     int32_t distance;
     int32_t within;
-    uint16_t flags;
-
-    /** The group this chunk belongs to, relative to the signature
-     * It start from 1, and the last SigMatch of the list should be
-     * also the total number of DetectContent "Real" Patterns loaded
-     * from the Signature */
-    uint8_t chunk_group_id;
-    /** The id number for this chunk in the current group of chunks
-     * Starts from 0, and a chunk with chunk_id == 0 should be the
-     * of the current chunk group where real modifiers are set before
-     * propagation */
-    uint8_t chunk_id;
-    /** For modifier propagations (the new flags) */
-    uint8_t chunk_flags;
+    uint8_t flags;
 } DetectContentData;
 
 /* prototypes */
@@ -82,17 +57,6 @@ SigMatch *DetectContentFindNextApplicableSM(SigMatch *);
 SigMatch *DetectContentHasPrevSMPattern(SigMatch *);
 
 SigMatch *SigMatchGetLastPattern(Signature *s);
-
-/** After setting a new modifier, we should call one of the followings */
-int DetectContentPropagateDepth(SigMatch *);
-int DetectContentPropagateIsdataat(SigMatch *);
-int DetectContentPropagateWithin(SigMatch *);
-int DetectContentPropagateOffset(SigMatch *);
-int DetectContentPropagateDistance(SigMatch *);
-int DetectContentPropagateIsdataat(SigMatch *);
-
-/** This shall not be called from outside detect-content.c (used internally)*/
-int DetectContentPropagateModifiers(SigMatch *);
 
 void DetectContentFree(void *);
 

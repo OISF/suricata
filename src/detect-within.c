@@ -2,7 +2,7 @@
 
 /** \file
  *  \author Victor Julien <victor@inliniac.net>
- *  \todo within logic is not Snort compat atm: it is applied to pcre and uricontent as well */
+ */
 
 #include "suricata-common.h"
 #include "decode.h"
@@ -65,27 +65,16 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         }
     }
 
-    /** Propagate the modifiers through the first chunk
-     * (SigMatch) if we're dealing with chunks */
-    if (cd->flags & DETECT_CONTENT_IS_CHUNK)
-        DetectContentPropagateWithin(pm);
-
     pm = DetectContentFindPrevApplicableSM(s->pmatch_tail->prev);
     if (pm == NULL) {
         SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content options");
         goto error;
     }
 
-    /* Set the within next flag on the prev sigmatch */
-    if (pm->type == DETECT_PCRE) {
-        DetectPcreData *pe = (DetectPcreData *)pm->ctx;
-        pe->flags |= DETECT_PCRE_WITHIN_NEXT;
-    } else if (pm->type == DETECT_CONTENT) {
+    /* Set the relative next flag on the prev sigmatch */
+    if (pm->type == DETECT_CONTENT) {
         DetectContentData *cd = (DetectContentData *)pm->ctx;
-        cd->flags |= DETECT_CONTENT_WITHIN_NEXT;
-    } else if (pm->type == DETECT_URICONTENT) {
-        DetectUricontentData *ud = (DetectUricontentData *)pm->ctx;
-        ud->flags |= DETECT_URICONTENT_WITHIN_NEXT;
+        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
     } else {
         printf("DetectWithinSetup: Unknown previous-previous keyword!\n");
         goto error;
