@@ -28,9 +28,9 @@ inline uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t 
 #define SpmNocaseSearch(text, textlen, needle, needlelen) ({\
     uint8_t *mfound; \
     if (needlelen < 4 && textlen < 512) \
-          mfound = BasicNocaseSearch(text, textlen, needle, needlelen); \
+          mfound = BasicSearchNocase(text, textlen, needle, needlelen); \
     else if (needlelen < 4) \
-          mfound = BasicNocaseSearch(text, textlen, needle, needlelen); \
+          mfound = BasicSearchNocase(text, textlen, needle, needlelen); \
     else \
           mfound = BoyerMooreNocaseSearch(text, textlen, needle, needlelen); \
     mfound; \

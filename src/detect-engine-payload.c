@@ -147,7 +147,10 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                 //PrintRawDataFp(stdout,spayload,spayload_len);
 
                 /* do the actual search */
-                found = BasicSearch(spayload, spayload_len, cd->content, cd->content_len);
+                if (cd->flags & DETECT_CONTENT_NOCASE)
+                    found = SpmNocaseSearch(spayload, spayload_len, cd->content, cd->content_len);
+                else
+                    found = SpmSearch(spayload, spayload_len, cd->content, cd->content_len);
 
                 /* next we evaluate the result in combination with the
                  * negation flag. */
@@ -158,10 +161,8 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                 } else if (found == NULL && cd->flags & DETECT_CONTENT_NEGATED) {
                     goto match;
                 } else if (found != NULL && cd->flags & DETECT_CONTENT_NEGATED) {
-#ifdef DEBUG
                     match_offset = (uint32_t)((found - payload) + cd->content_len);
                     SCLogDebug("content %"PRIu32" matched at offset %"PRIu32", but negated so no match", cd->id, match_offset);
-#endif
                     SCReturnInt(0);
                 } else {
                     match_offset = (uint32_t)((found - payload) + cd->content_len);
@@ -295,6 +296,8 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
 
 #ifdef UNITTESTS
 
+/** \test Not the first but the second occurence of "abc" should be used
+  *       for the 2nd match */
 static int PayloadTestSig01 (void) {
     uint8_t *buf = (uint8_t *)
                     "abcabcd";
@@ -315,11 +318,33 @@ end:
     return result;
 }
 
+/** \test Nocase matching */
+static int PayloadTestSig02 (void) {
+    uint8_t *buf = (uint8_t *)
+                    "abcaBcd";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (content:\"abc\"; nocase; content:\"d\"; distance:0; within:1; sid:1;)";
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("PayloadTestSig01", PayloadTestSig01, 1);
+    UtRegisterTest("PayloadTestSig02", PayloadTestSig02, 1);
 #endif /* UNITTESTS */
 }
 
