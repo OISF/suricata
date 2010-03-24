@@ -293,10 +293,10 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
         SCReturnUInt(ALPROTO_UNKNOWN);
     }
 
-    /* see if we can limit the data we scan */
-    uint16_t scanlen = buflen;
-    if (scanlen > dir->max_depth)
-        scanlen = dir->max_depth;
+    /* see if we can limit the data we inspect */
+    uint16_t searchlen = buflen;
+    if (searchlen > dir->max_depth)
+        searchlen = dir->max_depth;
 
     uint16_t proto = ALPROTO_UNKNOWN;
     uint32_t cnt = 0;
@@ -304,11 +304,13 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     cnt = mpm_table[dir->mpm_ctx.mpm_type].Search(&dir->mpm_ctx,
                                                 &tdir->mpm_ctx,
                                                 &tdir->pmq, buf,
-                                                scanlen);
+                                                searchlen);
 #else
     Packet *p = SCMalloc(sizeof(Packet));
-    if (p == NULL) goto end;
+    if (p == NULL)
+        goto end;
     memset(p, 0, sizeof(Packet));
+
     p->cuda_done = 0;
     p->cuda_free_packet = 1;
     p->cuda_search = 0;
@@ -316,7 +318,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     p->cuda_mtc = &tdir->mpm_ctx;
     p->cuda_pmq = &tdir->pmq;
     p->payload = buf;
-    p->payload_len = scanlen;
+    p->payload_len = searchlen;
     B2gCudaPushPacketTo_tv_CMB2_APC(p);
     SCMutexLock(&p->cuda_mutex_q);
     SCondWait(&p->cuda_cond_q, &p->cuda_mutex_q);
@@ -324,7 +326,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     SCMutexUnlock(&p->cuda_mutex_q);
     cnt = p->cuda_matches;
 #endif
-    SCLogDebug("scan cnt %" PRIu32 "", cnt);
+    SCLogDebug("search cnt %" PRIu32 "", cnt);
     if (cnt == 0) {
         proto = ALPROTO_UNKNOWN;
         goto end;

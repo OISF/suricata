@@ -167,7 +167,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         tv->name, det_ctx->uris, det_ctx->pkts_uri_searched,
         (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->uris)*100));
 
-    SCLogInfo("%"PRIu64" sigs per scan match on avg needed inspection, total scans %"PRIu64", less than 25 sigs need inspect %"PRIu64", more than 100 sigs need inspect %"PRIu64", more than 1000 %"PRIu64" max %"PRIu64"", det_ctx->scans_match ? det_ctx->scans_sigs / det_ctx->scans_match : 0, det_ctx->scans_match, det_ctx->scans_sigsmin25, det_ctx->scans_sigsplus100, det_ctx->scans_sigsplus1000, det_ctx->scans_sigsmax);
+    SCLogInfo("%"PRIu64" sigs per mpm match on avg needed inspection, total mpm searches %"PRIu64", less than 25 sigs need inspect %"PRIu64", more than 100 sigs need inspect %"PRIu64", more than 1000 %"PRIu64" max %"PRIu64"", det_ctx->mpm_match ? det_ctx->mpm_sigs / det_ctx->mpm_match : 0, det_ctx->mpm_match, det_ctx->mpm_sigsmin25, det_ctx->mpm_sigsplus100, det_ctx->mpm_sigsplus1000, det_ctx->mpm_sigsmax);
 }
 
 /** \brief Create the path if default-rule-path was specified
@@ -525,10 +525,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL && !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
         /* run the pattern matcher against the packet */
         if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
-            SCLogDebug("not scanning as pkt payload is smaller than the largest content length we need to match");
+            SCLogDebug("not mpm-inspecting as pkt payload is smaller than "
+                "the largest content length we need to match");
         } else {
-            SCLogDebug("scan: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")", det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
-            /* scan, but only if the noscan flag isn't set */
+            SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
+                det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
 
             if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_searched1++;
             else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_searched2++;
@@ -536,31 +537,32 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             else if (det_ctx->sgh->mpm_content_maxlen == 4) det_ctx->pkts_searched4++;
             else                                            det_ctx->pkts_searched++;
 
-            cnt = PacketPatternScan(th_v, det_ctx, p);
+            cnt = PacketPatternSearch(th_v, det_ctx, p);
             if (cnt > 0) {
-                det_ctx->scans_match++;
-                det_ctx->scans_sigs += det_ctx->pmq.sig_id_array_cnt;
+                det_ctx->mpm_match++;
+                det_ctx->mpm_sigs += det_ctx->pmq.sig_id_array_cnt;
                 if (det_ctx->pmq.sig_id_array_cnt < 25) {
-                    det_ctx->scans_sigsmin25++;
+                    det_ctx->mpm_sigsmin25++;
                 } else if (det_ctx->pmq.sig_id_array_cnt > 1000) {
-                    det_ctx->scans_sigsplus1000++;
+                    det_ctx->mpm_sigsplus1000++;
                 } else if (det_ctx->pmq.sig_id_array_cnt > 100) {
-                    det_ctx->scans_sigsplus100++;
+                    det_ctx->mpm_sigsplus100++;
                 }
 
-                if (det_ctx->pmq.sig_id_array_cnt > det_ctx->scans_sigsmax)
-                    det_ctx->scans_sigsmax = det_ctx->pmq.sig_id_array_cnt;
+                if (det_ctx->pmq.sig_id_array_cnt > det_ctx->mpm_sigsmax)
+                    det_ctx->mpm_sigsmax = det_ctx->pmq.sig_id_array_cnt;
             }
 
-            SCLogDebug("post scan: cnt %" PRIu32 ", searchable %" PRIu32 ", sigs %"PRIu32" (out of %"PRIu32")", cnt, det_ctx->pmq.searchable, det_ctx->pmq.sig_id_array_cnt, det_ctx->sgh->sig_cnt);
+            SCLogDebug("post search: cnt %" PRIu32 ", searchable %" PRIu32 ", sigs %"PRIu32" (out of %"PRIu32")", cnt, det_ctx->pmq.searchable, det_ctx->pmq.sig_id_array_cnt, det_ctx->sgh->sig_cnt);
             det_ctx->pmq.searchable = 0;
         }
     }
 
     /* If we have the uricontent multi pattern matcher signatures in
-       signature list, then scan the received HTTP uri(s) in the htp state
-       against those patterns */
-    if (det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT && p->flow != NULL && alproto == ALPROTO_HTTP)
+       signature list, then search the received HTTP uri(s) in the htp
+       state against those patterns */
+    if (det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT && p->flow != NULL &&
+        alproto == ALPROTO_HTTP)
     {
         SCMutexLock(&p->flow->m);
         cnt = DetectUricontentInspectMpm(th_v, det_ctx, alstate);
@@ -2823,7 +2825,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
 #endif
 
 //    SigAddressPrepareStage5(de_ctx);
-    DbgPrintScanSearchStats();
+    DbgPrintSearchStats();
 //    DetectAddressPrintMemory();
 //    DetectSigGroupPrintMemory();
 //    DetectPortPrintMemory();
@@ -3759,14 +3761,12 @@ static int SigTest11Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Scan vs Search (1)\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
-        result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Scan vs Search (2)\"; content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
-        result = 0;
         goto end;
     }
 
@@ -3776,8 +3776,6 @@ static int SigTest11Real (int mpm_type) {
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
-    else
-        result = 0;
 
     AppLayerParserCleanupState(&ssn);
     SigGroupCleanup(de_ctx);
@@ -8455,9 +8453,9 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTest10B3g -- long content match, longer than pkt", SigTest10B3g, 1);
     UtRegisterTest("SigTest10Wm -- long content match, longer than pkt", SigTest10Wm, 1);
 
-    UtRegisterTest("SigTest11B2g -- scan vs search", SigTest11B2g, 1);
-    UtRegisterTest("SigTest11B3g -- scan vs search", SigTest11B3g, 1);
-    UtRegisterTest("SigTest11Wm -- scan vs search", SigTest11Wm, 1);
+    UtRegisterTest("SigTest11B2g -- mpm searching", SigTest11B2g, 1);
+    UtRegisterTest("SigTest11B3g -- mpm searching", SigTest11B3g, 1);
+    UtRegisterTest("SigTest11Wm -- mpm searching", SigTest11Wm, 1);
 
     UtRegisterTest("SigTest12B2g -- content order matching, normal", SigTest12B2g, 1);
     UtRegisterTest("SigTest12B3g -- content order matching, normal", SigTest12B3g, 1);

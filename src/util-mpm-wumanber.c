@@ -148,7 +148,6 @@ void WmPrintInfo(MpmCtx *mpm_ctx) {
     printf("  WmPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(WmPattern));
     printf("  WmHashItem     %" PRIuMAX "\n", (uintmax_t)sizeof(WmHashItem));
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
-    printf("Scan Patterns:   %" PRIu32 "\n", mpm_ctx->pattern_cnt);
     printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);
     printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
     printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
@@ -684,7 +683,6 @@ int WmPreparePatterns(MpmCtx *mpm_ctx) {
      * we should do some performance testing
      * */
 
-    /* scan */
     if (ctx->hash_size == 0) {
         if (mpm_ctx->pattern_cnt < 50) {
             ctx->hash_size = HASH9_SIZE;

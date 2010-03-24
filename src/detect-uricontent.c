@@ -244,7 +244,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     cd->id = de_ctx->uricontent_max_id;
     de_ctx->uricontent_max_id++;
 
-    /* Flagged the signature as to scan the app layer data */
+    /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
 
     SCReturnInt(0);
@@ -258,7 +258,7 @@ error:
  * \brief   Checks if the content sent as the argument, has a uricontent which
  *          has been provided in the rule. This match function matches the
  *          normalized http uri against the given rule using multi pattern
- *          scan/search algorithms.
+ *          search algorithms.
  *
  * \param t             Pointer to the tv for this detection module instance
  * \param det_ctx       Pointer to the detection engine thread context
@@ -273,10 +273,10 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
     int ret = 0;
     /* run the pattern matcher against the uri */
     if (det_ctx->sgh->mpm_uricontent_maxlen > uri_len) {
-        SCLogDebug("not scanning as pkt payload is smaller than the "
+        SCLogDebug("not searching as pkt payload is smaller than the "
                 "largest uricontent length we need to match");
     } else {
-        SCLogDebug("scan: (%p, maxlen %" PRIu32 ", sgh->sig_cnt "
+        SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt "
                 "%" PRIu32 ")", det_ctx->sgh, det_ctx->sgh->
                 mpm_uricontent_maxlen, det_ctx->sgh->sig_cnt);
 
@@ -288,9 +288,9 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
         else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
         else det_ctx->pkts_uri_searched++;
 
-        ret += UriPatternScan(tv, det_ctx, uri, uri_len);
+        ret += UriPatternSearch(tv, det_ctx, uri, uri_len);
 
-        SCLogDebug("post scan: cnt %" PRIu32 ", searchable %" PRIu32 "",
+        SCLogDebug("post search: cnt %" PRIu32 ", searchable %" PRIu32 "",
                     ret, det_ctx->pmq.searchable);
         det_ctx->pmq.searchable = 0;
     }
@@ -322,7 +322,7 @@ int DetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ct
     size_t idx = 0;
     htp_tx_t *tx = NULL;
 
-    /* if we don't have a uri, don't bother scanning */
+    /* if we don't have a uri, don't bother inspecting */
     if (det_ctx->de_have_httpuri == FALSE) {
         SCLogDebug("We don't have uri");
         SCReturnInt(0);
@@ -826,7 +826,7 @@ end:
     return result;
 }
 
-/** \test Check the working of scan/search once per packet only in applayer
+/** \test Check the working of search once per packet only in applayer
  *        match */
 static int DetectUriSigTest03(void) {
     int result = 0;

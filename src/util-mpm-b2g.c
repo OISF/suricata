@@ -3,7 +3,7 @@
  * Copyright (c) 2009 Victor Julien <victor@inliniac.net>
  *
  * Ideas:
- *  - B2g does a full match in the scan phase of up to 'm' characters,
+ *  - B2g does a full match in the search of up to 'm' characters,
  *    in case of a case insensitive search we could say it's match if
  *    the pattern is of len 'm' or just compare the rest of the chars.
  *
@@ -133,7 +133,6 @@ void B2gPrintInfo(MpmCtx *mpm_ctx) {
     printf("  B2gPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(B2gPattern));
     printf("  B2gHashItem     %" PRIuMAX "\n", (uintmax_t)sizeof(B2gHashItem));
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
-    printf("Scan Patterns:   %" PRIu32 "\n", mpm_ctx->pattern_cnt);
     printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);
     printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
     printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
@@ -644,8 +643,8 @@ void B2gPrintSearchStats(MpmThreadCtx *mpm_thread_ctx) {
     B2gThreadCtx *tctx = (B2gThreadCtx *)mpm_thread_ctx->ctx;
 
     printf("B2g Thread Search stats (tctx %p)\n", tctx);
-    printf("Total calls/scans: %" PRIu32 "\n", tctx->stat_calls);
-    printf("Avg m/scan: %0.2f\n", tctx->stat_calls ? (float)((float)tctx->stat_m_total / (float)tctx->stat_calls) : 0);
+    printf("Total calls: %" PRIu32 "\n", tctx->stat_calls);
+    printf("Avg m/search: %0.2f\n", tctx->stat_calls ? (float)((float)tctx->stat_m_total / (float)tctx->stat_calls) : 0);
     printf("D != 0 (possible match): %" PRIu32 "\n", tctx->stat_d0);
     printf("Avg hash items per bucket %0.2f (%" PRIu32 ")\n", tctx->stat_d0 ? (float)((float)tctx->stat_d0_hashloop / (float)tctx->stat_d0) : 0, tctx->stat_d0_hashloop);
     printf("Loop match: %" PRIu32 "\n", tctx->stat_loop_match);
@@ -752,7 +751,7 @@ void B2gInitCtx (MpmCtx *mpm_ctx, int module_handle) {
     if (b2g_hash_size == 0)
         B2gGetConfig();
 
-    /* init defaults scan/search functions */
+    /* init defaults search functions */
     ctx->Search = b2g_func;
 
     SCReturn;
@@ -1007,7 +1006,6 @@ uint32_t B2gSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
             d = ((d << 1) & ctx->B2G[h]);
             j = j - 1;
         } while (d != 0 && j != 0);
-        //printf("scan: d %" PRIu32 ", j %" PRIu32 "\n", d, j);
 
         /* (partial) match, move on to verification */
         if (d != 0) {

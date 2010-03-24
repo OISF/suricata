@@ -215,7 +215,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     SCFree(pm->ctx);
     SCFree(pm);
 
-    /* Flagged the signature as to scan the app layer data */
+    /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
 
     return 0;

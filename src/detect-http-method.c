@@ -202,7 +202,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     SCFree(pm->ctx);
     SCFree(pm);
 
-    /* Flagged the signature as to scan the app layer data */
+    /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
 
     SCReturnInt(0);

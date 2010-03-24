@@ -85,7 +85,6 @@ typedef struct MpmCtx_ {
 
     uint32_t endmatches;
 
-    uint32_t scan_pattern_cnt;  /* scan patterns */
     uint32_t pattern_cnt;       /* unique patterns */
     uint32_t total_pattern_cnt; /* total patterns added */
 

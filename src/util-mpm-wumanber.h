@@ -39,9 +39,9 @@ typedef struct WmCtx_ {
                                for the BloomFilter. */
     WmHashItem hash1[256];
 
-    /* we store our own scan ptr here for WmSearch1 */
+    /* we store our own search func ptr here for WmSearch1 */
     uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
-    /* we store our own multi byte scan ptr here for WmSearch1 */
+    /* we store our own multi byte search func ptr here for WmSearch1 */
     uint32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
 
     /* pattern arrays */

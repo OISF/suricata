@@ -229,7 +229,7 @@ int DetectFastPatternTest04(void)
 }
 
 /**
- * \test Checks that a fast_pattern is used in the Scan phase.
+ * \test Checks that a fast_pattern is used in the mpm phase.
  */
 int DetectFastPatternTest05(void)
 {
@@ -269,9 +269,9 @@ int DetectFastPatternTest05(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    /* start the scan phase */
+    /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternScan(&th_v, det_ctx, &p) != 0)
+    if (PacketPatternSearch(&th_v, det_ctx, &p) != 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -285,7 +285,7 @@ end:
 }
 
 /**
- * \test Checks that a fast_pattern is used in the Scan phase.
+ * \test Checks that a fast_pattern is used in the mpm phase.
  */
 int DetectFastPatternTest06(void)
 {
@@ -323,9 +323,9 @@ int DetectFastPatternTest06(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    /* start the scan phase */
+    /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternScan(&th_v, det_ctx, &p) != 0)
+    if (PacketPatternSearch(&th_v, det_ctx, &p) != 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -339,7 +339,7 @@ end:
 }
 
 /**
- * \test Checks that a fast_pattern is used in the Scan phase, when the payload
+ * \test Checks that a fast_pattern is used in the mpm phase, when the payload
  *       doesn't contain the fast_pattern string within it.
  */
 int DetectFastPatternTest07(void)
@@ -378,9 +378,9 @@ int DetectFastPatternTest07(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    /* start the scan phase */
+    /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternScan(&th_v, det_ctx, &p) == 0)
+    if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -394,8 +394,8 @@ end:
 }
 
 /**
- * \test Checks that a fast_pattern is used in the Scan phase and that we get
- *       exactly 1 match for the scan phase.
+ * \test Checks that a fast_pattern is used in the mpm phase and that we get
+ *       exactly 1 match for the mpm phase.
  */
 int DetectFastPatternTest08(void)
 {
@@ -433,9 +433,9 @@ int DetectFastPatternTest08(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    /* start the scan phase */
+    /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternScan(&th_v, det_ctx, &p) == 1)
+    if (PacketPatternSearch(&th_v, det_ctx, &p) == 1)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -449,7 +449,7 @@ end:
 }
 
 /**
- * \test Checks that a fast_pattern is used in the Scan phase, when the payload
+ * \test Checks that a fast_pattern is used in the mpm phase, when the payload
  *       doesn't contain the fast_pattern string within it.
  */
 int DetectFastPatternTest09(void)
@@ -488,9 +488,9 @@ int DetectFastPatternTest09(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    /* start the scan phase */
+    /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternScan(&th_v, det_ctx, &p) == 0)
+    if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -506,7 +506,7 @@ end:
 /**
  * \test Checks that a the SigInit chooses the fast_pattern with better pattern
  *       strength, when we have multiple fast_patterns in the Signature.  Also
- *       checks that we get a match for the fast_pattern from the Scan phase.
+ *       checks that we get a match for the fast_pattern from the mpm phase.
  */
 int DetectFastPatternTest10(void)
 {
@@ -544,9 +544,9 @@ int DetectFastPatternTest10(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    /* start the scan phase */
+    /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternScan(&th_v, det_ctx, &p) == 1)
+    if (PacketPatternSearch(&th_v, det_ctx, &p) == 1)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -562,7 +562,7 @@ end:
 /**
  * \test Checks that a the SigInit chooses the fast_pattern with better pattern
  *       strength, when we have multiple fast_patterns in the Signature.  Also
- *       checks that we get no matches for the fast_pattern from the Scan phase.
+ *       checks that we get no matches for the fast_pattern from the mpm phase.
  */
 int DetectFastPatternTest11(void)
 {
@@ -600,9 +600,9 @@ int DetectFastPatternTest11(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    /* start the scan phase */
+    /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternScan(&th_v, det_ctx, &p) == 0)
+    if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
         result = 1;
 
 
@@ -618,7 +618,7 @@ end:
 }
 
 /**
- * \test Checks that we don't get a match for the scan phase.
+ * \test Checks that we don't get a match for the mpm phase.
  */
 int DetectFastPatternTest12(void)
 {
@@ -656,9 +656,9 @@ int DetectFastPatternTest12(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    /* start the scan phase */
+    /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternScan(&th_v, det_ctx, &p) == 0)
+    if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -674,7 +674,7 @@ end:
 /**
  * \test Checks that a the SigInit chooses the fast_pattern with a better
  *       strength from the available patterns, when we don't specify a
- *       fast_pattern.  We also check that we get a match from the Scan
+ *       fast_pattern.  We also check that we get a match from the mpm
  *       phase.
  */
 int DetectFastPatternTest13(void)
@@ -713,9 +713,9 @@ int DetectFastPatternTest13(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    /* start the scan phase */
+    /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternScan(&th_v, det_ctx, &p) == 1)
+    if (PacketPatternSearch(&th_v, det_ctx, &p) == 1)
         result = 1;
 
     SigGroupCleanup(de_ctx);

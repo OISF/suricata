@@ -64,7 +64,7 @@ typedef struct B3gCtx_ {
 
     uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
 
-    /* we store our own multi byte scan ptr here for B3gSearch1 */
+    /* we store our own multi byte search func ptr here for B3gSearch1 */
     uint32_t (*MBSearch2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     uint32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
 

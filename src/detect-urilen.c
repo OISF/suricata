@@ -285,7 +285,7 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
 
     SigMatchAppendAppLayer(s, sm);
 
-    /* Flagged the signature as to scan the app layer data */
+    /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
 
     SCReturnInt(0);
