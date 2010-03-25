@@ -11,6 +11,7 @@
 #include "stream-tcp-reassemble.h"
 
 #include "conf.h"
+#include "conf-yaml-loader.h"
 
 #include "util-enum.h"
 #include "util-unittest.h"
