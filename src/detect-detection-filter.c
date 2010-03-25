@@ -30,7 +30,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectDetectionFilterMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectDetectionFilterSetup(DetectEngineCtx *, Signature *, SigMatch *, char *);
+static int DetectDetectionFilterSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDetectionFilterRegisterTests(void);
 void DetectDetectionFilterFree(void *);
 
@@ -43,6 +43,8 @@ void DetectDetectionFilterRegister (void) {
     sigmatch_table[DETECT_DETECTION_FILTER].Setup = DetectDetectionFilterSetup;
     sigmatch_table[DETECT_DETECTION_FILTER].Free = DetectDetectionFilterFree;
     sigmatch_table[DETECT_DETECTION_FILTER].RegisterTests = DetectDetectionFilterRegisterTests;
+    /* this is compatible to ip-only signatures */
+    sigmatch_table[DETECT_DETECTION_FILTER].flags |= SIGMATCH_IPONLY_COMPAT;
 
     const char *eb;
     int eo;
@@ -187,20 +189,20 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch *m, char *rawstr) {
+int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr) {
     SCEnter();
     DetectThresholdData *df = NULL;
     SigMatch *sm = NULL;
     SigMatch *tmpm = NULL;
 
     /* checks if there's a previous instance of threshold */
-    tmpm = SigMatchGetLastSM(s, DETECT_THRESHOLD);
+    tmpm = SigMatchGetLastSM(s->match_tail, DETECT_THRESHOLD);
     if (tmpm != NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"detection_filter\" and \"threshold\" are not allowed in the same rule");
         SCReturnInt(-1);
     }
     /* checks there's no previous instance of detection_filter */
-    tmpm = SigMatchGetLastSM(s, DETECT_DETECTION_FILTER);
+    tmpm = SigMatchGetLastSM(s->match_tail, DETECT_DETECTION_FILTER);
     if (tmpm != NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "At most one \"detection_filter\" is allowed per rule");
         SCReturnInt(-1);
@@ -217,7 +219,7 @@ int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, SigMatch 
     sm->type = DETECT_DETECTION_FILTER;
     sm->ctx = (void *)df;
 
-    SigMatchAppend(s,m,sm);
+    SigMatchAppendPacket(s, sm);
 
     return 0;
 
@@ -381,6 +383,8 @@ static int DetectDetectionFilterTestSig1(void) {
     p.ip4h = &ip4h;
     p.ip4h->ip_src.s_addr = 0x01010101;
     p.ip4h->ip_dst.s_addr = 0x02020202;
+    p.sp = 1024;
+    p.dp = 80;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -389,7 +393,7 @@ static int DetectDetectionFilterTestSig1(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"detection_filter Test\"; detection_filter: track by_dst, count 4, seconds 60; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"detection_filter Test\"; detection_filter: track by_dst, count 4, seconds 60; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -454,6 +458,8 @@ static int DetectDetectionFilterTestSig2(void) {
     p.ip4h = &ip4h;
     p.ip4h->ip_src.s_addr = 0x01010101;
     p.ip4h->ip_dst.s_addr = 0x02020202;
+    p.sp = 1024;
+    p.dp = 80;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -462,7 +468,7 @@ static int DetectDetectionFilterTestSig2(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"detection_filter Test 2\"; detection_filter: track by_dst, count 4, seconds 60; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"detection_filter Test 2\"; detection_filter: track by_dst, count 4, seconds 60; sid:10;)");
     if (s == NULL) {
         goto end;
     }

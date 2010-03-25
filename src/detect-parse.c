@@ -247,7 +247,7 @@ void SigMatchReplace(Signature *s, SigMatch *m, SigMatch *new) {
  * \brief Returns a pointer to the last SigMatch instance of a particular type
  *        in a Signature of the payload list.
  *
- * \param s    Pointer to the Signature.
+ * \param s    Pointer to the tail of the sigmatch list
  * \param type SigMatch type which has to be searched for in the Signature.
  *
  * \retval match Pointer to the last SigMatch instance of type 'type'.
@@ -258,7 +258,7 @@ SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
         if (sm->type == type) {
             return sm;
         }
-        sm = sm->next;
+        sm = sm->prev;
     }
 
     return NULL;
