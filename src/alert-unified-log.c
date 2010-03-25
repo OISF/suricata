@@ -269,17 +269,6 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     /** Use the Ouptut Context (file pointer and mutex) */
     aun->file_ctx = ((OutputCtx *)initdata)->data;
 
-    /** Write Unified header */
-    int ret = AlertUnifiedLogWriteFileHeader(aun->file_ctx);
-    if (ret != 0) {
-        printf("Error: AlertUnifiedLogWriteFileHeader failed.\n");
-        SCFree(aun);
-        return TM_ECODE_FAILED;
-    }
-
-    /* XXX make configurable */
-    aun->file_ctx->size_limit = 1 * 1024 * 1024;
-
     *data = (void *)aun;
     return TM_ECODE_OK;
 }
