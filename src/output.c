@@ -25,7 +25,8 @@ static TAILQ_HEAD(, OutputModule_) output_modules =
  * \retval Returns 0 on success, -1 on failure.
  */
 void
-OutputRegisterModule(char *name, char *conf_name, LogFileCtx *(*InitFunc)(ConfNode *))
+OutputRegisterModule(char *name, char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *))
 {
     OutputModule *module = SCCalloc(1, sizeof(*module));
     if (module == NULL) {

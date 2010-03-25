@@ -52,6 +52,7 @@ TmEcode AlertUnifiedAlertThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertUnifiedAlertThreadDeinit(ThreadVars *, void *);
 int AlertUnifiedAlertOpenFileCtx(LogFileCtx *, const char *);
 void AlertUnifiedAlertRegisterTests (void);
+static void AlertUnifiedAlertDeInitCtx(OutputCtx *);
 
 void TmModuleAlertUnifiedAlertRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDALERT].name = MODULE_NAME;
@@ -250,7 +251,7 @@ TmEcode AlertUnifiedAlertThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
-    aun->file_ctx = (LogFileCtx*) initdata;
+    aun->file_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aun;
     return TM_ECODE_OK;
@@ -282,7 +283,7 @@ error:
  *  \param conf The ConfNode for this output.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
+OutputCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
 {
     int ret = 0;
     LogFileCtx *file_ctx = LogFileNewCtx();
@@ -325,10 +326,25 @@ LogFileCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
     if (ret < 0)
         return NULL;
 
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (output_ctx == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for OutputCtx.");
+        exit(EXIT_FAILURE);
+    }
+    output_ctx->data = file_ctx;
+    output_ctx->DeInit = AlertUnifiedAlertDeInitCtx;
+
     SCLogInfo("Unified-alert initialized: filename %s, limit %"PRIu32" MB",
        filename, limit);
 
-    return file_ctx;
+    return output_ctx;
+}
+
+static void AlertUnifiedAlertDeInitCtx(OutputCtx *output_ctx)
+{
+    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    LogFileFreeCtx(logfile_ctx);
+    free(output_ctx);
 }
 
 /** \brief Read the config set the file pointer, open the file
@@ -394,10 +410,14 @@ static int AlertUnifiedAlertTestRotate01(void)
     int ret = 0;
     int r = 0;
     ThreadVars tv;
+    OutputCtx *oc;
     LogFileCtx *lf;
     void *data = NULL;
 
-    lf = AlertUnifiedAlertInitCtx(NULL);
+    oc = AlertUnifiedAlertInitCtx(NULL);
+    if (oc == NULL)
+        return 0;
+    lf = (LogFileCtx *)oc->data;
     if (lf == NULL)
         return 0;
     char *filename = SCStrdup(lf->filename);
@@ -407,7 +427,7 @@ static int AlertUnifiedAlertTestRotate01(void)
     if (lf == NULL)
         return 0;
 
-    ret = AlertUnifiedAlertThreadInit(&tv, lf, &data);
+    ret = AlertUnifiedAlertThreadInit(&tv, oc, &data);
     if (ret == TM_ECODE_FAILED) {
         LogFileFreeCtx(lf);
         return 0;
@@ -426,7 +446,7 @@ static int AlertUnifiedAlertTestRotate01(void)
 
 error:
     AlertUnifiedAlertThreadDeinit(&tv, data);
-    if (lf != NULL) LogFileFreeCtx(lf);
+    if (oc != NULL) AlertUnifiedAlertDeInitCtx(oc);
     return r;
 }
 #endif /* UNITTESTS */

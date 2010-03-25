@@ -37,6 +37,7 @@ TmEcode LogHttpLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogHttpLogThreadDeinit(ThreadVars *, void *);
 void LogHttpLogExitPrintStats(ThreadVars *, void *);
 int LogHttpLogOpenFileCtx(LogFileCtx* , const char *);
+static void LogHttpLogDeInitCtx(OutputCtx *);
 
 void TmModuleLogHttpLogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].name = MODULE_NAME;
@@ -339,7 +340,7 @@ TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx=(LogFileCtx*) initdata;
+    aft->file_ctx= ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -372,7 +373,7 @@ void LogHttpLogExitPrintStats(ThreadVars *tv, void *data) {
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *LogHttpLogInitCtx(ConfNode *conf)
+OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
 {
     int ret=0;
     LogFileCtx* file_ctx=LogFileNewCtx();
@@ -394,7 +395,23 @@ LogFileCtx *LogHttpLogInitCtx(ConfNode *conf)
     if(ret < 0)
         return NULL;
 
-    return file_ctx;
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (output_ctx == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate OutputCtx for LogHttpLog");
+        exit(EXIT_FAILURE);
+    }
+    output_ctx->data = file_ctx;
+    output_ctx->DeInit = LogHttpLogDeInitCtx;
+
+    return output_ctx;
+}
+
+static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
+{
+    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    LogFileFreeCtx(logfile_ctx);
+    free(output_ctx);
 }
 
 /** \brief Read the config set the file pointer, open the file

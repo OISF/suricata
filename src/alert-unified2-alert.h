@@ -22,7 +22,7 @@
 #define UNIFIED2_IDS_EVENT_IPV6_MPLS_TYPE 100
 
 void TmModuleUnified2AlertRegister (void);
-LogFileCtx *Unified2AlertInitCtx(ConfNode *);
+OutputCtx *Unified2AlertInitCtx(ConfNode *);
 
 #endif /* __ALERT_UNIFIED2_ALERT_H__ */
 

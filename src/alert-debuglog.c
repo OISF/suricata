@@ -198,7 +198,7 @@ TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx=(LogFileCtx *) initdata;
+    aft->file_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -232,7 +232,7 @@ void AlertDebugLogExitPrintStats(ThreadVars *tv, void *data) {
  *  \param ConfNode containing configuration for this logger.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-LogFileCtx *AlertDebugLogInitCtx(ConfNode *conf)
+OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
 {
     int ret=0;
     LogFileCtx* file_ctx=LogFileNewCtx();
@@ -253,7 +253,15 @@ LogFileCtx *AlertDebugLogInitCtx(ConfNode *conf)
     if(ret < 0)
         return NULL;
 
-    return file_ctx;
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (output_ctx == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate OutputCtx for AlertDebugLog");
+        exit(EXIT_FAILURE);
+    }
+    output_ctx->data = file_ctx;
+
+    return output_ctx;
 }
 
 /** \brief Read the config set the file pointer, open the file

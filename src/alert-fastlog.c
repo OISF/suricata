@@ -47,8 +47,9 @@ TmEcode AlertFastLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode AlertFastLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertFastLogThreadDeinit(ThreadVars *, void *);
 void AlertFastLogExitPrintStats(ThreadVars *, void *);
-int AlertFastLogOpenFileCtx(LogFileCtx *, const char *);
+static int AlertFastLogOpenFileCtx(LogFileCtx *, const char *);
 void AlertFastLogRegisterTests(void);
+static void AlertFastLogDeInitCtx(OutputCtx *);
 
 void TmModuleAlertFastLogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].name = MODULE_NAME;
@@ -183,7 +184,8 @@ TmEcode AlertFastLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx = (LogFileCtx*) initdata;
+    aft->file_ctx = ((OutputCtx *)initdata)->data;
+
     *data = (void *)aft;
     return TM_ECODE_OK;
 }
@@ -216,7 +218,7 @@ void AlertFastLogExitPrintStats(ThreadVars *tv, void *data) {
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-LogFileCtx *AlertFastLogInitCtx(ConfNode *conf)
+OutputCtx *AlertFastLogInitCtx(ConfNode *conf)
 {
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
@@ -232,9 +234,25 @@ LogFileCtx *AlertFastLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    SCLogInfo("Fast log output registered, filename: %s", filename);
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (output_ctx == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocated memory for OutputCtx");
+        exit(EXIT_FAILURE);
+    }
+    output_ctx->data = logfile_ctx;
+    output_ctx->DeInit = AlertFastLogDeInitCtx;
 
-    return logfile_ctx;
+    SCLogInfo("Fast log output initialized, filename: %s", filename);
+
+    return output_ctx;
+}
+
+static void AlertFastLogDeInitCtx(OutputCtx *output_ctx)
+{
+    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    LogFileFreeCtx(logfile_ctx);
+    free(output_ctx);
 }
 
 /** \brief Read the config set the file pointer, open the file
@@ -242,7 +260,7 @@ LogFileCtx *AlertFastLogInitCtx(ConfNode *conf)
  *  \param filename name of log file
  *  \return -1 if failure, 0 if succesful
  * */
-int AlertFastLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
+static int AlertFastLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
 {
     char log_path[PATH_MAX], *log_dir;
     if (ConfGet("default-log-dir", &log_dir) != 1)

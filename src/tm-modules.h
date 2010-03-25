@@ -87,6 +87,18 @@ typedef struct LogFileCtx_ {
 #define LOGFILE_HEADER_WRITTEN 0x01
 #define LOGFILE_ALERTS_PRINTED 0x02
 
+/**
+ * Structure that output modules use to maintain private data.
+ */
+typedef struct OutputCtx_ {
+
+    /** Pointer to data private to the output. */
+    void *data;
+
+    /** Pointer to a cleanup function. */
+    void (*DeInit)(struct OutputCtx_ *);
+} OutputCtx;
+
 LogFileCtx *LogFileNewCtx();
 int LogFileFreeCtx(LogFileCtx *);
 

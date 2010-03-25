@@ -7,7 +7,7 @@
 void TmModuleAlertFastLogRegister (void);
 void TmModuleAlertFastLogIPv4Register (void);
 void TmModuleAlertFastLogIPv6Register (void);
-LogFileCtx *AlertFastLogInitCtx(ConfNode *);
+OutputCtx *AlertFastLogInitCtx(ConfNode *);
 
 #endif /* __ALERT_FASTLOG_H__ */
 

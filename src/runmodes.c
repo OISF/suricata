@@ -32,7 +32,7 @@
  */
 typedef struct RunModeOutput_ {
     TmModule *tm_module;
-    LogFileCtx *logfile_ctx;
+    OutputCtx *output_ctx;
 
     TAILQ_ENTRY(RunModeOutput_) entries;
 } RunModeOutput;
@@ -49,8 +49,8 @@ void RunModeShutDown(void)
     while ((output = TAILQ_FIRST(&RunModeOutputs))) {
         SCLogDebug("Shutting down output %s.", output->tm_module->name);
         TAILQ_REMOVE(&RunModeOutputs, output, entries);
-        if (output->logfile_ctx != NULL)
-            LogFileFreeCtx(output->logfile_ctx);
+        if (output->output_ctx != NULL && output->output_ctx->DeInit != NULL)
+            output->output_ctx->DeInit(output->output_ctx);
         SCFree(output);
     }
 }
@@ -89,11 +89,14 @@ void RunModeInitializeOutputs(void)
 
         enabled = ConfNodeLookupChildValue(output_config, "enabled");
         if (enabled != NULL && strcasecmp(enabled, "yes") == 0) {
-            LogFileCtx *logfile_ctx = module->InitFunc(output_config);
-            if (logfile_ctx == NULL) {
-                /* In most cases the init function will have logged the
-                 * error. Maybe we should exit on init errors? */
-                continue;
+            OutputCtx *output_ctx = NULL;
+            if (module->InitFunc != NULL) {
+                output_ctx = module->InitFunc(output_config);
+                if (output_ctx == NULL) {
+                    /* In most cases the init function will have logged the
+                     * error. Maybe we should exit on init errors? */
+                    continue;
+                }
             }
             tm_module = TmModuleGetByName(module->name);
             if (tm_module == NULL) {
@@ -108,7 +111,7 @@ void RunModeInitializeOutputs(void)
                 exit(EXIT_FAILURE);
             }
             runmode_output->tm_module = tm_module;
-            runmode_output->logfile_ctx = logfile_ctx;
+            runmode_output->output_ctx = output_ctx;
             TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
         }
     }
@@ -124,7 +127,7 @@ static void SetupOutputs(ThreadVars *tv)
 {
     RunModeOutput *output;
     TAILQ_FOREACH(output, &RunModeOutputs, entries) {
-        TmVarSlotSetFuncAppend(tv, output->tm_module, output->logfile_ctx);
+        TmVarSlotSetFuncAppend(tv, output->tm_module, output->output_ctx);
     }
 }
 

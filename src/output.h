@@ -13,12 +13,12 @@
 typedef struct OutputModule_ {
     char *name;
     char *conf_name;
-    LogFileCtx *(*InitFunc)(ConfNode *);
+    OutputCtx *(*InitFunc)(ConfNode *);
 
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
 
-void OutputRegisterModule(char *, char *, LogFileCtx *(*)(ConfNode *));
+void OutputRegisterModule(char *, char *, OutputCtx *(*)(ConfNode *));
 OutputModule *OutputGetModuleByConfName(char *name);
 void OutputDeregisterAll(void);
 
