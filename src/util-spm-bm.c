@@ -14,9 +14,40 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "util-spm-bm.h"
+#include "util-debug.h"
+#include "util-error.h"
 #include <time.h>
 #include <limits.h>
 #include <string.h>
+
+/**
+ * \brief Setup a Booyer More context.
+ *
+ * \param str pointer to the pattern string
+ * \param size length of the string
+ * \retval BmCtx pointer to the newly created Context for the pattern
+ */
+BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len) {
+    BmCtx *new = SCMalloc(sizeof(BmCtx));
+    if (new == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating a BmCtx");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Prepare bad chars */
+    PreBmBc(needle, needle_len, new->bmBc);
+
+    new->bmGs = SCMalloc(sizeof(int32_t) * (needle_len + 1));
+    if (new->bmGs == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating a BmCtx");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Prepare good Suffixes */
+    PreBmGs(needle, needle_len, new->bmGs);
+
+    return new;
+}
 
 /**
  * \brief Array setup function for bad characters that split the pattern

@@ -17,6 +17,7 @@
 #include "detect-bytejump.h"
 
 #include "util-spm.h"
+#include "util-spm-bm.h"
 #include "util-debug.h"
 #include "util-print.h"
 
@@ -159,9 +160,9 @@ static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
                 /* do the actual search */
                 if (cd->flags & DETECT_CONTENT_NOCASE)
-                    found = SpmNocaseSearch(spayload, spayload_len, cd->content, cd->content_len);
+                    found = BoyerMooreNocase(cd->content, cd->content_len, spayload, spayload_len, cd->bm_ctx->bmGs, cd->bm_ctx->bmBc);
                 else
-                    found = SpmSearch(spayload, spayload_len, cd->content, cd->content_len);
+                    found = BoyerMoore(cd->content, cd->content_len, spayload, spayload_len, cd->bm_ctx->bmGs, cd->bm_ctx->bmBc);
 
                 /* next we evaluate the result in combination with the
                  * negation flag. */

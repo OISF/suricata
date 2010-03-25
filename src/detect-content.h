@@ -21,12 +21,15 @@
                                        (c)->depth > 0 || \
                                        (c)->within > 0))
 
+#include "util-spm-bm.h"
+
 typedef struct DetectContentData_ {
     uint8_t *content;   /**< ptr to chunk of memory containing the pattern */
     uint8_t content_len;/**< length of the pattern (and size of the memory) */
 
     uint32_t id;        /**< unique pattern id */
 
+    BmCtx *bm_ctx;
     uint16_t depth;
     uint16_t offset;
     /** distance from the last match this match should start.

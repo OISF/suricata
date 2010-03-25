@@ -17,6 +17,7 @@
 #include "util-unittest.h"
 #include "util-print.h"
 #include "util-debug.h"
+#include "util-spm-bm.h"
 #include "threads.h"
 
 int DetectContentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
@@ -198,6 +199,9 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     memcpy(cd->content, str, len);
     cd->content_len = len;
+
+    /* Prepare Boyer Moore context for searching faster */
+    cd->bm_ctx = BoyerMooreCtxInit(cd->content, cd->content_len);
     cd->depth = 0;
     cd->offset = 0;
     cd->within = 0;
