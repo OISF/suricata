@@ -604,7 +604,10 @@ int main(int argc, char **argv)
 
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
-        ConfYamlLoadFile(conf_filename);
+        if (ConfYamlLoadFile(conf_filename) != 0) {
+            /* Error already displayed. */
+            exit(EXIT_FAILURE);
+        }
     } else if (run_mode != MODE_UNITTEST){
         SCLogError(SC_ERR_OPENING_FILE, "Configuration file has not been provided");
         usage(argv[0]);

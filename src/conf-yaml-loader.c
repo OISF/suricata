@@ -47,8 +47,9 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
 
     while (!done) {
         if (!yaml_parser_parse(parser, &event)) {
-            fprintf(stderr, "Failed to parse configuration file: %s\n",
-                parser->problem);
+            fprintf(stderr,
+                "Failed to parse configuration file at line %zu: %s\n",
+                parser->problem_mark.line, parser->problem);
             return -1;
         }
 
@@ -128,10 +129,12 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 seq_node->name = SCCalloc(1, DEFAULT_NAME_LEN);
                 snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
                 TAILQ_INSERT_TAIL(&node->head, seq_node, next);
-                ConfYamlParse(parser, seq_node, 0);
+                if (ConfYamlParse(parser, seq_node, 0) != 0)
+                    goto fail;
             }
             else {
-                ConfYamlParse(parser, node, inseq);
+                if (ConfYamlParse(parser, node, inseq) != 0)
+                    goto fail;
             }
             state = CONF_KEY;
         }
