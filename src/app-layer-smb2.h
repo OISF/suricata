@@ -1,32 +1,20 @@
-/*
- * Copyright (c) 2009,2010 Open Information Security Foundation
- * app-layer-smb2.h
+/* Copyright (c) 2009,2010 Open Information Security Foundation */
+
+/**
+ * \file
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef APPLAYERSMB2_H_
-#define APPLAYERSMB2_H_
+#ifndef __APP_LAYER_SMB2_H__
+#define __APP_LAYER_SMB2_H__
+
+#include "suricata-common.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-nbss.h"
 #include "flow.h"
 #include "stream.h"
-#include <stdint.h>
 
 typedef struct smb2_hdr {
     uint32_t Protocol; // Contains 0xFE,'SMB'
@@ -76,5 +64,5 @@ typedef struct SMB2State_ {
 void RegisterSMB2Parsers(void);
 void SMB2ParserRegisterTests(void);
 
+#endif /* __APP_LAYER_SMB2_H__ */
 
-#endif /* APPLAYERSMB2_H_ */
