@@ -124,6 +124,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             SCLogDebug("match has been found in received request and given http_"
                     "cookie rule");
             ret = 1;
+            goto end;
         }
     }
 
