@@ -83,8 +83,8 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     SCMutexLock(&f->m);
-    for (   idx = hs->new_in_tx_index;
-            idx < list_size(hs->connp->conn->transactions); idx++)
+    for (idx = hs->new_in_tx_index;
+         idx < list_size(hs->connp->conn->transactions); idx++)
     {
         tx = list_get(hs->connp->conn->transactions, idx);
         if (tx == NULL)
@@ -107,6 +107,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("Matched raw HTTP method values.");
 
                 ret = 1;
+                break;
             }
         }
     }
