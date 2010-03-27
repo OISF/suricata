@@ -462,6 +462,11 @@ inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx 
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
+/** \brief Signature match function
+ *
+ *  \retval 1 one or more signatures matched
+ *  \retval 0 no matches were found
+ */
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     int match = 0, fmatch = 0;
@@ -523,8 +528,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         goto end;
     }
 
-    if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL && !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
-        /* run the pattern matcher against the packet */
+    if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL &&
+        !(p->flags & PKT_NOPAYLOAD_INSPECTION))
+    {
+        /* run the multi packet matcher against the payload of the packet */
         if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
             SCLogDebug("not mpm-inspecting as pkt payload is smaller than "
                 "the largest content length we need to match");
