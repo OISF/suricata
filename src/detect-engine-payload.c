@@ -361,7 +361,7 @@ static int PayloadTestSig03 (void) {
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     int result = 0;
 
-    char sig[] = "alert tcp any any -> any any (content:\"aBc\"; nocase; content:\"abca\"; distance:-10; within:1; sid:1;)";
+    char sig[] = "alert tcp any any -> any any (content:\"aBc\"; nocase; content:\"abca\"; distance:-10; within:4; sid:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
         goto end;

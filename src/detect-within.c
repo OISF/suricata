@@ -28,6 +28,13 @@ void DetectWithinRegister (void) {
     sigmatch_table[DETECT_WITHIN].flags |= SIGMATCH_PAYLOAD;
 }
 
+/** \brief Setup within pattern (content/uricontent) modifier.
+ *
+ *  \todo apply to uricontent
+ *
+ *  \retval 0 ok
+ *  \retval -1 error, sig needs to be invalidated
+ */
 static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withinstr)
 {
     char *str = withinstr;
@@ -45,7 +52,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         goto error;
     }
 
-    /** Search for the first previous DetectContent
+    /* Search for the first previous DetectContent
      * SigMatch (it can be the same as this one) */
     SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
     if (pm == NULL || DetectContentHasPrevSMPattern(pm) == NULL) {
@@ -60,12 +67,14 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
     }
 
     cd->within = strtol(str, NULL, 10);
-    if (cd->within < cd->content_len) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "within argument \"%d\" is less "
-                   "than the content length \"%s\" which is invalid, since this "
-                   "will never match.  Invalidating signature", cd->within, cd->content);
+    if (cd->within < (int32_t)cd->content_len) {
+        SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                "less than the content length \"%"PRIu32"\" which is invalid, since "
+                "this will never match.  Invalidating signature", cd->within,
+                cd->content_len);
         goto error;
     }
+
     cd->flags |= DETECT_CONTENT_WITHIN;
 
     if (cd->flags & DETECT_CONTENT_DISTANCE) {
