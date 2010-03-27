@@ -128,6 +128,8 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_INVALID_YAML_CONF_ENTRY);
         CASE_CODE (SC_ERR_TMQ_ALREADY_REGISTERED);
         CASE_CODE (SC_ERR_CONFLICTING_RULE_KEYWORDS);
+        CASE_CODE (SC_ERR_INITIALIZATION);
+        CASE_CODE (SC_ERR_UNIFIED_LOG_FILE_HEADER);
         default:
             return "UNKNOWN_ERROR";
     }

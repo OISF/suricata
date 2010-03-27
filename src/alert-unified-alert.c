@@ -116,6 +116,11 @@ int AlertUnifiedAlertWriteFileHeader(LogFileCtx *file_ctx) {
     if (file_ctx->flags & LOGFILE_HEADER_WRITTEN)
         return 0;
 
+    if (file_ctx->fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "file pointer is NULL");
+        return -1;
+    }
+
     /** write the fileheader to the file so the reader can recognize it */
     AlertUnifiedAlertFileHeader hdr;
     hdr.magic = ALERTUNIFIEDALERT_ALERTMAGIC;
@@ -383,7 +388,7 @@ int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
             strerror(errno));
-        ret = -1;
+        return TM_ECODE_FAILED;
     }
     file_ctx->flags = 0;
 

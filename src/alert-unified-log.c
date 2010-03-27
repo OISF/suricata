@@ -138,7 +138,8 @@ int AlertUnifiedLogWriteFileHeader(LogFileCtx *file_ctx) {
 
     ret = fwrite(&hdr, sizeof(hdr), 1, file_ctx->fp);
     if (ret != 1) {
-        printf("Error: fwrite failed: ret = %" PRId32 ", %s\n", ret, strerror(errno));
+        SCLogError(SC_ERR_FWRITE, "fwrite failed: ret = %" PRId32 ", %s", ret,
+                strerror(errno));
         return -1;
     }
 
@@ -236,7 +237,7 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
         ret = fwrite(buf, buflen, 1, aun->file_ctx->fp);
         if (ret != 1) {
-            printf("Error: fwrite failed: %s\n", strerror(errno));
+            SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
             aun->file_ctx->alerts += i;
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
             return TM_ECODE_FAILED;
@@ -262,12 +263,18 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
 
     if (initdata == NULL) {
-        SCLogDebug("Error getting context for UnifiedLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for UnifiedLog. \"initdata\" argument NULL");
         SCFree(aun);
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
     aun->file_ctx = ((OutputCtx *)initdata)->data;
+
+    if (aun->file_ctx->fp == NULL) {
+        SCLogError (SC_ERR_OPENING_FILE, "Target file has not been opened, check"
+                " the write permission");
+        return TM_ECODE_FAILED;
+    }
 
     *data = (void *)aun;
     return TM_ECODE_OK;
@@ -307,7 +314,7 @@ OutputCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
     LogFileCtx* file_ctx=LogFileNewCtx();
 
     if (file_ctx == NULL) {
-        printf("AlertUnifiedLogInitCtx: Couldn't create new file_ctx\n");
+        SCLogError(SC_ERR_MEM_ALLOC, "Couldn't create new file_ctx");
         return NULL;
     }
 
@@ -403,7 +410,7 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
             strerror(errno));
-        ret = -1;
+        return TM_ECODE_FAILED;
     }
 
     /** Write Unified header */

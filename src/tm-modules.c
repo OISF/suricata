@@ -50,7 +50,7 @@ LogFileCtx *LogFileNewCtx()
 
     if(lf_ctx == NULL)
     {
-        printf("LogFileCtxNew: Couldn't SCMalloc \n");
+        SCLogError(SC_ERR_MEM_ALLOC, "Couldn't SCMalloc");
         return NULL;
     }
     memset(lf_ctx, 0, sizeof(LogFileCtx));
