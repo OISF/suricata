@@ -470,6 +470,15 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                                     StreamTcpThread *stt, TcpSession *ssn)
 {
     switch (p->tcph->th_flags) {
+        /* The following cases will allow us to create the tcp sessions in congestion
+         * conditions, where the client open a connection with SYN and
+         * any of the following flags:
+         * TH_CWR -> Establish a new connection reducing window
+         * TH_ECN -> Echo Congestion flag
+         */
+        case TH_SYN | TH_CWR | TH_ECN:
+        case TH_SYN | TH_ECN:
+        case TH_SYN | TH_CWR:
         case TH_SYN:
         {
             if (ssn == NULL) {
@@ -5314,6 +5323,258 @@ end:
     return result;
 }
 
+/**
+ *  \test   Test the initialization of tcp streams with congestion flags
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+static int StreamTcpTest25(void) {
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    uint8_t payload[4];
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    p.flow = &f;
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN | TH_CWR;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_flags = TH_SYN | TH_ACK;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(1);
+    p.tcph->th_flags = TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(2);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(6);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    StreamTcpSessionClear(p.flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
+/**
+ *  \test   Test the initialization of tcp streams with congestion flags
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+static int StreamTcpTest26(void) {
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    uint8_t payload[4];
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    p.flow = &f;
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN | TH_ECN;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_flags = TH_SYN | TH_ACK;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(1);
+    p.tcph->th_flags = TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(2);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(6);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    StreamTcpSessionClear(p.flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
+/**
+ *  \test   Test the initialization of tcp streams with congestion flags
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+static int StreamTcpTest27(void) {
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    uint8_t payload[4];
+    TCPHdr tcph;
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    p.flow = &f;
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN | TH_CWR | TH_ECN;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_flags = TH_SYN | TH_ACK;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(1);
+    p.tcph->th_flags = TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(2);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(6);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    if (StreamTcpPacket(&tv, &p, &stt) == -1 || (TcpSession *)p.flow->protoctx == NULL)
+        goto end;
+
+    StreamTcpSessionClear(p.flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 void StreamTcpRegisterTests (void) {
@@ -5358,6 +5619,13 @@ void StreamTcpRegisterTests (void) {
     UtRegisterTest("StreamTcpTest22 -- setup OS policy", StreamTcpTest22, 1);
     UtRegisterTest("StreamTcpTest23 -- stream memory leaks", StreamTcpTest23, 1);
     UtRegisterTest("StreamTcpTest24 -- stream memory leaks", StreamTcpTest24, 1);
+    UtRegisterTest("StreamTcpTest25 -- test ecn/cwr sessions",
+                    StreamTcpTest25, 1);
+    UtRegisterTest("StreamTcpTest26 -- test ecn/cwr sessions",
+                    StreamTcpTest26, 1);
+    UtRegisterTest("StreamTcpTest27 -- test ecn/cwr sessions",
+                    StreamTcpTest27, 1);
+
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
 #endif /* UNITTESTS */

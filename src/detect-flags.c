@@ -232,11 +232,11 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     found++;
                     break;
                 case '1':
-                    de->flags |= TH_RES1;
+                    de->flags |= TH_CWR;
                     found++;
                     break;
                 case '2':
-                    de->flags |= TH_RES2;
+                    de->flags |= TH_ECN;
                     found++;
                     break;
                 case '0':
@@ -296,11 +296,11 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                 found++;
                 break;
             case '1':
-                de->flags |= TH_RES1;
+                de->flags |= TH_CWR;
                 found++;
                 break;
             case '2':
-                de->flags |= TH_RES2;
+                de->flags |= TH_ECN;
                 found++;
                 break;
             case '0':
@@ -377,11 +377,11 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     ignore++;
                     break;
                 case '1':
-                    de->ignored_flags &= ~TH_RES1;
+                    de->ignored_flags &= ~TH_CWR;
                     ignore++;
                     break;
                 case '2':
-                    de->ignored_flags &= ~TH_RES2;
+                    de->ignored_flags &= ~TH_ECN;
                     ignore++;
                     break;
                 case '0':
