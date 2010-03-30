@@ -9,14 +9,7 @@
  * - inspect error messages for threadsafety
  * - inspect gettimeofday for threadsafely
  * - implement configuration
- *
- * Notes: barnyard-0.2.0 read "struct timeval" instead of
- * struct timeval32 like snort, this means that on 64 bit arch, the log entries
- * wont have the same length. To be sure to add compatibility for barnyard
- * and other parsers, theres a macro available for 64 bit barnyard compatibility
- * But if you want real snort compatibility, don't use that macro
  */
-#define BARNYARD_64_COMPAT 1
 
 #include "suricata-common.h"
 #include "debug.h"
@@ -90,19 +83,9 @@ typedef struct AlertUnifiedAlertPacketHeader_ {
     uint32_t sig_prio;
     uint32_t pad1; /* Snort's event_id */
     uint32_t pad2; /* Snort's event_reference */
-#ifdef BARNYARD_64_COMPAT
-    uint64_t tv_sec1; /* from Snort's struct pcap_timeval in Event */
-    uint64_t tv_usec1; /* from Snort's struct pcap_timeval in Event */
-    uint64_t tv_sec2; /* from Snort's struct pcap_timeval */
-    uint64_t tv_usec2; /* from Snort's struct pcap_timeval */
-#else
-    uint32_t tv_sec1; /* from Snort's struct pcap_timeval in Event */
-    uint32_t tv_usec1; /* from Snort's struct pcap_timeval in Event */
-    uint32_t tv_sec2; /* from Snort's struct pcap_timeval */
-    uint32_t tv_usec2; /* from Snort's struct pcap_timeval */
-#endif
+    struct sc_timeval32 ref_ts; /* Reference timestamp. */
+    struct sc_timeval32 ts; /* Timestamp. */
     uint32_t src_ip;
-
     uint32_t dst_ip;
     uint16_t sp;
     uint16_t dp;
@@ -193,8 +176,8 @@ TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     /* fill the hdr structure with the data of the packet */
     hdr.pad1 = 0;
     hdr.pad2 = 0;
-    hdr.tv_sec1 = hdr.tv_sec2 = p->ts.tv_sec;
-    hdr.tv_usec1 = hdr.tv_usec2 = p->ts.tv_usec;
+    hdr.ts.tv_sec = hdr.ref_ts.tv_sec = p->ts.tv_sec;
+    hdr.ts.tv_usec = hdr.ref_ts.tv_usec = p->ts.tv_sec;
     hdr.src_ip = GET_IPV4_SRC_ADDR_U32(p);
     hdr.dst_ip = GET_IPV4_DST_ADDR_U32(p);
     hdr.sp = p->sp;

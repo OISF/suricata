@@ -9,15 +9,7 @@
  * - inspect error messages for threadsafety
  * - inspect gettimeofday for threadsafely
  * - implement configuration
- *
- * Notes: barnyard-0.2.0 read "struct timeval" instead of
- * struct timeval32 like snort, this means that on 64 bit arch, the log entries
- * wont have the same length. To be sure to add compatibility for barnyard
- * and other parsers, theres a macro available for 64 bit barnyard compatibility
- * But if you want real snort compatibility, don't use that macro
  */
-#define BARNYARD_64_COMPAT 1
-
 #include <string.h>
 
 #include "suricata-common.h"
@@ -94,27 +86,13 @@ typedef struct AlertUnifiedLogPacketHeader_ {
     uint32_t sig_prio;
     uint32_t pad1; /* Snort's event_id */
     uint32_t pad2; /* Snort's event_reference */
-#ifdef BARNYARD_64_COMPAT
-    uint64_t tv_sec1; /* from Snort's struct pcap_timeval in Event */
-    uint64_t tv_usec1; /* from Snort's struct pcap_timeval in Event */
+    struct sc_timeval32 ref_tv;
 
     /* 32 bit unsigned flags */
     uint32_t pktflags;
 
     /* Snort's 'SnortPktHeader' structure */
-    uint64_t tv_sec2; /* from Snort's struct pcap_timeval */
-    uint64_t tv_usec2; /* from Snort's struct pcap_timeval */
-#else
-    uint32_t tv_sec1; /* from Snort's struct pcap_timeval in Event */
-    uint32_t tv_usec1; /* from Snort's struct pcap_timeval in Event */
-
-    /* 32 bit unsigned flags */
-    uint32_t pktflags;
-
-    /* Snort's 'SnortPktHeader' structure */
-    uint32_t tv_sec2; /* from Snort's struct pcap_timeval */
-    uint32_t tv_usec2; /* from Snort's struct pcap_timeval */
-#endif
+    struct sc_timeval32 tv;
     uint32_t caplen;
     uint32_t pktlen;
 } AlertUnifiedLogPacketHeader;
@@ -192,8 +170,8 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     /* fill the hdr structure with the data of the packet */
     hdr.pad1 = 0;
     hdr.pad2 = 0;
-    hdr.tv_sec1 = hdr.tv_sec2 = p->ts.tv_sec;
-    hdr.tv_usec1 = hdr.tv_usec2 = p->ts.tv_usec;
+    hdr.tv.tv_sec = hdr.ref_tv.tv_sec = p->ts.tv_sec;
+    hdr.tv.tv_usec = hdr.ref_tv.tv_usec = p->ts.tv_usec;
     hdr.pktflags = 0; /* XXX */
     hdr.pktlen = hdr.caplen = p->pktlen + ethh_offset;
 
