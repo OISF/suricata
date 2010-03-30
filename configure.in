@@ -582,6 +582,15 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     CFLAGS="${CFLAGS} -DUNITTESTS"
     fi
 
+# enable native timeval for unified alert output
+    AC_ARG_ENABLE(unified-native-timeval,
+            [  --enable-unified-native-timeval  Use native timeval for unified outputs],
+            [ enable_unified_native_timeval=yes
+            ])
+    if test "$enable_unified_native_timeval" = "yes"; then
+    CFLAGS="${CFLAGS} -DUNIFIED_NATIVE_TIMEVAL"
+    fi
+
 # enable debug output
     AC_ARG_ENABLE(debug,
             [  --enable-debug  Enable debug output],

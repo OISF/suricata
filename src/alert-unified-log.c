@@ -86,13 +86,21 @@ typedef struct AlertUnifiedLogPacketHeader_ {
     uint32_t sig_prio;
     uint32_t pad1; /* Snort's event_id */
     uint32_t pad2; /* Snort's event_reference */
+#ifdef UNIFIED_NATIVE_TIMEVAL
+    struct timeval ref_tv;
+#else
     struct sc_timeval32 ref_tv;
+#endif /* UNIFIED_NATIVE_TIMEVAL */
 
     /* 32 bit unsigned flags */
     uint32_t pktflags;
 
     /* Snort's 'SnortPktHeader' structure */
+#ifdef UNIFIED_NATIVE_TIMEVAL
+    struct timeval tv;
+#else
     struct sc_timeval32 tv;
+#endif /* UNIFIED_NATIVE_TIMEVAL */
     uint32_t caplen;
     uint32_t pktlen;
 } AlertUnifiedLogPacketHeader;

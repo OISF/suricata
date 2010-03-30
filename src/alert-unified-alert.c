@@ -83,8 +83,13 @@ typedef struct AlertUnifiedAlertPacketHeader_ {
     uint32_t sig_prio;
     uint32_t pad1; /* Snort's event_id */
     uint32_t pad2; /* Snort's event_reference */
+#ifdef UNIFIED_NATIVE_TIMEVAL
+    struct timeval ref_ts; /* Reference timestamp. */
+    struct timeval ts; /* Timestamp. */
+#else
     struct sc_timeval32 ref_ts; /* Reference timestamp. */
     struct sc_timeval32 ts; /* Timestamp. */
+#endif /* UNIFIED_NATIVE_TIMEVAL */
     uint32_t src_ip;
     uint32_t dst_ip;
     uint16_t sp;
