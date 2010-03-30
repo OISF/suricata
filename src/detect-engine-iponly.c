@@ -1,17 +1,18 @@
-/* ip only part of the detection engine */
-
-/* TODO: needs a lot of work, for example IPv6 support
+/**
+ * Copyright (c) 2009 Open Information Security Foundation
  *
- * The dificulty with ip only matching is that we need to support (very large)
- * netblocks as well. So we can't just add every single ip to a hash as that
- * would be consuming to much memory. Thats why I've chosen to have a hash of
- * /16's with a list inside them. If a netblock to add is bigger than a /16, 
- * we split it into /16's.
+ * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
+ *
+ * Signatures that only inspect IP addresses are processed here
+ * We use radix trees for src dst ipv4 and ipv6 adresses
+ * This radix trees hold information for subnets and hosts in a
+ * hierarchical distribution
  */
 
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
+#include "decode.h"
 #include "flow.h"
 
 #include "detect-parse.h"
@@ -24,498 +25,1367 @@
 #include "detect-engine-mpm.h"
 
 #include "detect-engine-threshold.h"
+#include "detect-engine-iponly.h"
 #include "detect-threshold.h"
 #include "util-classification-config.h"
+#include "util-rule-vars.h"
 
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
+#include <netinet/in.h>
 
-/* build a lookup tree for src, if we have one: save
- * build a lookup tree for dst, if we have one: save
- * compare tree's: if they have one (or more) matching
- * sig, we have a match. */
 
-#ifdef __BIG_ENDIAN__
-#define IPONLY_EXTRACT_16(a) (((a)->ip[0] & 0xffff0000) >> 16)
-#else
-#define IPONLY_EXTRACT_16(a) ((a)->ip[0] & 0x0000ffff)
-#endif
-//#define IPONLY_EXTRACT_24(a) ((a)->ip[0] & 0x00ffffff)
+/**
+ * \brief This function creates a new IPOnlyCIDRItem
+ *
+ * \retval IPOnlyCIDRItem address of the new instance
+ */
+IPOnlyCIDRItem *IPOnlyCIDRItemNew() {
+    IPOnlyCIDRItem *item = NULL;
 
-/* No need to calc a constant every lookup: htonl(65535) */
-#ifdef __BIG_ENDIAN__
-#define IPONLY_HTONL_65535 65535UL
-#else
-#define IPONLY_HTONL_65535 4294901760UL
-#endif
-
-static uint32_t IPOnlyHashFunc16(HashListTable *ht, void *data, uint16_t len) {
-    DetectAddress *gr = (DetectAddress *) data;
-
-    uint32_t hash = IPONLY_EXTRACT_16(gr) % ht->array_size;
-    return hash;
-}
-
-/*
-static uint32_t IPOnlyHashFunc24(HashListTable *ht, void *data, uint16_t len) {
-    DetectAddress *gr = (DetectAddress *) data;
-
-    uint32_t hash = IPONLY_EXTRACT_24(gr->ad) % ht->array_size;
-    return hash;
-}
-*/
-
-static void IPOnlyAddSlash16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, HashListTable *ht, DetectAddress *gr, char direction, Signature *s) {
-    uint32_t high = ntohl(gr->ip2[0]);
-    uint32_t low = ntohl(gr->ip[0]);
-
-    if ((ntohl(gr->ip2[0]) - ntohl(gr->ip[0])) > 65536) {
-        //printf("Bigger than a class/16:\n"); DetectAddressDataPrint(gr->ad);
-
-        uint32_t s16_cnt = 0;
-
-        while (high > low) {
-            s16_cnt++;
-
-            DetectAddress *grtmp = DetectAddressCopy(gr);
-            if (grtmp == NULL) {
-                goto error;
-            }
-            grtmp->ip[0] = htonl(high - 65535);
-            grtmp->ip2[0] = htonl(high);
-
-            SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
-
-            DetectAddress *rgr = HashListTableLookup(ht,grtmp,0);
-            if (rgr == NULL) {
-                SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
-
-                HashListTableAdd(ht,grtmp,0);
-                direction ? io_ctx->a_dst_uniq16++ : io_ctx->a_src_uniq16++;
-            } else {
-                SigGroupHeadAppendSig(de_ctx, &rgr->sh, s);
-
-                DetectAddressFree(grtmp);
-                direction ? io_ctx->a_dst_total16++ : io_ctx->a_src_total16++;
-            }
-
-            if (high >= 65536)
-                high -= 65536;
-            else
-                high = 0;
-        }
-    } else {
-        DetectAddress *grtmp = DetectAddressCopy(gr);
-        if (grtmp == NULL) {
-            goto error;
-        }
-#ifdef __BIG_ENDIAN__
-        grtmp->ip[0] = IPONLY_EXTRACT_16(gr) << 16;
-        grtmp->ip2[0] = IPONLY_EXTRACT_16(gr) << 16 | IPONLY_HTONL_65535;
-#else
-        grtmp->ip[0] = IPONLY_EXTRACT_16(gr);
-        grtmp->ip2[0] = IPONLY_EXTRACT_16(gr) | IPONLY_HTONL_65535;
-#endif
-
-        DetectAddress *rgr = HashListTableLookup(ht,grtmp,0);
-        if (rgr == NULL) {
-            SigGroupHeadAppendSig(de_ctx, &grtmp->sh, s);
-
-            HashListTableAdd(ht,grtmp,0);
-            direction ? io_ctx->a_dst_uniq16++ : io_ctx->a_src_uniq16++;
-        } else {
-            SigGroupHeadAppendSig(de_ctx, &rgr->sh, s);
-
-            DetectAddressFree(grtmp);
-            direction ? io_ctx->a_dst_total16++ : io_ctx->a_src_total16++;
-        }
+    item = SCMalloc(sizeof(IPOnlyCIDRItem));
+    if (item == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating IPOnlyCIDRItem");
+        exit(EXIT_FAILURE);
     }
-error:
-    return;
+    memset(item, 0, sizeof(IPOnlyCIDRItem));
+
+    return item;
 }
 
-/*
-static void IPOnlyAddSlash24(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, HashListTable *ht, DetectAddress *gr, char direction, Signature *s) {
-    if ((ntohl(gr->ad->ip2[0]) - ntohl(gr->ad->ip[0])) > 256) {
-        //printf("Bigger than a class/24:\n"); DetectAddressDataPrint(a);
+/**
+ * \brief This function insert a IPOnlyCIDRItem
+ *        to a list of IPOnlyCIDRItems sorted by netmask
+ *        ascending
+ * \param head Pointer to the head of IPOnlyCIDRItems list
+ * \param item Pointer to the item to insert in the list
+ *
+ * \retval IPOnlyCIDRItem address of the new head if apply
+ */
+IPOnlyCIDRItem *IPOnlyCIDRItemInsertReal(IPOnlyCIDRItem *head,
+                                         IPOnlyCIDRItem *item)
+{
+    IPOnlyCIDRItem *it, *prev = NULL;
 
-        uint32_t high = ntohl(gr->ad->ip2[0]);
-        uint32_t low = ntohl(gr->ad->ip[0]);
-        uint32_t s24_cnt = 0;
+    if (item == NULL)
+        return head;
 
-        while (high > low) {
-            s24_cnt++;
-
-            DetectAddress *grtmp = DetectAddressInit();
-            if (grtmp == NULL) {
-                goto error;
-            }
-            DetectAddressData *adtmp = DetectAddressDataCopy(gr->ad);
-            if (adtmp == NULL) {
-                goto error;
-            }
-            adtmp->ip[0] = htonl(high - 255);
-            adtmp->ip2[0] = htonl(high);
-            grtmp->ad = adtmp;
-            grtmp->cnt = 1;
-
-            //printf("  -=-  "); DetectAddressDataPrint(na);
-
-            DetectAddress *rgr = HashListTableLookup(ht,grtmp,0);
-            if (rgr == NULL) {
-                HashListTableAdd(ht,grtmp,0);
-                direction ? io_ctx->a_dst_uniq24++ : io_ctx->a_src_uniq24++;
-                //printf(" uniq\n");
-            } else {
-                DetectAddressFree(grtmp);
-                direction ? io_ctx->a_dst_total24++ : io_ctx->a_src_total24++;
-                //printf(" dup\n");
-            }
-
-            if (high >= 256)
-                high -= 256;
-            else
-                high = 0;
-        }
-        //printf(" contains %" PRIu32 " /24's\n", s24_cnt);
-
-    } else {
-        DetectAddress *rgr = HashListTableLookup(ht,gr,0);
-        if (rgr == NULL) {
-            HashListTableAdd(ht,gr,0);
-            direction ? io_ctx->a_dst_uniq24++ : io_ctx->a_src_uniq24++;
-        } else {
-            direction ? io_ctx->a_dst_total24++ : io_ctx->a_src_total24++;
-        }
+    /* Compare with the head */
+    if (item->netmask <= head->netmask) {
+        item->next = head;
+        return item;
     }
-error:
-    return;
-}
-*/
 
-static char IPOnlyCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
-    DetectAddress *a1 = (DetectAddress *)data1;
-    DetectAddress *a2 = (DetectAddress *)data2;
+    for (prev = it = head;
+         it != NULL && it->netmask < item->netmask;
+         it = it->next)
+        prev = it;
 
-    //printf("IPOnlyCompareFunc: "); DetectAddressDataPrint(a1->ad);
-    //printf(" "); DetectAddressDataPrint(a2->ad); printf("\n");
+    if (it == NULL) {
+        prev->next = item;
+    } else {
+        item->next = it;
+        prev->next = item;
+    }
 
-    if (DetectAddressCmp(a1,a2) != ADDRESS_EQ)
-        return 0;
-
-    return 1;
+    return head;
 }
 
+/**
+ * \brief This function insert a IPOnlyCIDRItem list
+ *        to a list of IPOnlyCIDRItems sorted by netmask
+ *        ascending
+ * \param head Pointer to the head of IPOnlyCIDRItems list
+ * \param item Pointer to the list of items to insert in the list
+ *
+ * \retval IPOnlyCIDRItem address of the new head if apply
+ */
+IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
+                                     IPOnlyCIDRItem *item)
+{
+    IPOnlyCIDRItem *it, *prev = NULL;
 
-static void IPOnlyFreeFunc(void *g) {
-    if (g == NULL)
+    /* The first element */
+    if (head == NULL) {
+        SCLogDebug("Head is NULL");
+        return item;
+    }
+
+    if (item == NULL) {
+        SCLogDebug("Item is NULL");
+        return head;
+    }
+
+    SCLogDebug("Inserting %u ", item->netmask);
+
+    prev = item;
+    while (prev != NULL) {
+        it = prev->next;
+
+        /* Separate from the item list */
+        prev->next = NULL;
+
+        head = IPOnlyCIDRItemInsertReal(head, prev);
+        prev = it;
+    }
+
+    return head;
+}
+
+/**
+ * \brief This function free a IPOnlyCIDRItem list
+ * \param tmphead Pointer to the list
+ */
+void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead) {
+    uint32_t i = 0;
+
+    IPOnlyCIDRItem *it, *next = NULL;
+
+    if (tmphead == NULL)
         return;
 
-    DetectAddress *ag = (DetectAddress *)g;
-    DetectAddressFree(ag);
+    it = tmphead;
+    next = it->next;
+
+    while (it != NULL) {
+        i++;
+        SCFree(it);
+        SCLogDebug("Item %"PRIu32" removed", i);
+        it = next;
+
+        if (next != NULL)
+            next = next->next;
+    }
 }
 
-/* XXX error checking */
+/**
+ * \brief This function update a list of IPOnlyCIDRItems
+ *        setting the signature internal id (signum) to "i"
+ *
+ * \param tmphead Pointer to the list
+ * \param i number of signature internal id
+ */
+void IPOnlyCIDRListSetSigNum(IPOnlyCIDRItem *tmphead, SigIntId i) {
+    while (tmphead != NULL) {
+        tmphead->signum = i;
+        tmphead = tmphead->next;
+    }
+}
+
+/**
+ * \brief This function print a IPOnlyCIDRItem list
+ * \param tmphead Pointer to the head of IPOnlyCIDRItems list
+ */
+void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead) {
+    uint32_t i = 0;
+
+    while (tmphead != NULL) {
+        i++;
+        SCLogDebug("Item %"PRIu32" has netmask %"PRIu16" negated:"
+                   " %s; IP: %s; signum: %"PRIu16, i, tmphead->netmask,
+                   (tmphead->negated) ? "yes":"no",
+                   inet_ntoa(*(struct in_addr*)&tmphead->ip[0]),
+                   tmphead->signum);
+        tmphead = tmphead->next;
+    }
+}
+
+/**
+ * \brief This function print a SigNumArray, it's used with the
+ *        radix tree print function to help debugging
+ * \param tmp Pointer to the head of SigNumArray
+ */
+void SigNumArrayPrint(void *tmp) {
+    SigNumArray *sna = (SigNumArray *)tmp;
+    uint32_t u;
+
+    for (u = 0; u < sna->size; u++) {
+        uint8_t bitarray = sna->array[u];
+        uint8_t i = 0;
+
+        for (; i < 8; i++) {
+            if (bitarray & 0x0001)
+                printf(", %"PRIu16"", u * 8 + i);
+            else
+                printf(", ");
+
+            bitarray = bitarray >> 1;
+        }
+    }
+}
+
+/**
+ * \brief This function creates a new SigNumArray with the
+ *        size fixed to the io_ctx->max_idx
+ * \param de_ctx Pointer to the current detection context
+ * \param io_ctx Pointer to the current ip only context
+ *
+ * \retval SigNumArray address of the new instance
+ */
+SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
+                            DetectEngineIPOnlyCtx *io_ctx)
+{
+    SigNumArray *new = SCMalloc(sizeof(SigNumArray));
+
+    if (new == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,"Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(new, 0, sizeof(SigNumArray));
+
+    new->array = SCMalloc(io_ctx->max_idx / 8 + 1);
+    if (new->array == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(new->array, 0, io_ctx->max_idx / 8 + 1);
+    new->size = io_ctx->max_idx / 8 + 1;
+
+    SCLogDebug("max idx= %u", io_ctx->max_idx);
+
+    return new;
+}
+
+/**
+ * \brief This function creates a new SigNumArray with the
+ *        same data as the argument
+ *
+ * \param orig Pointer to the original SigNumArray to copy
+ *
+ * \retval SigNumArray address of the new instance
+ */
+SigNumArray *SigNumArrayCopy(SigNumArray *orig) {
+    SigNumArray *new = SCMalloc(sizeof(SigNumArray));
+
+    if (new == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,"Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(new, 0, sizeof(SigNumArray));
+    new->size = orig->size;
+
+    new->array = SCMalloc(orig->size);
+    if (new->array == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(new->array, orig->array, orig->size);
+    return new;
+}
+
+/**
+ * \brief This function free() a SigNumArray
+ * \param orig Pointer to the original SigNumArray to copy
+ */
+void SigNumArrayFree(void *tmp) {
+    SigNumArray *sna = (SigNumArray *)tmp;
+
+    if (sna == NULL)
+        return;
+
+    if (sna->array != NULL)
+        SCFree(sna->array);
+
+    SCFree(sna);
+}
+
+/**
+ * \brief This function parses and return a list of IPOnlyCIDRItem
+ *
+ * \param s Pointer to the string of the addresses
+ *          (in the format of signatures)
+ * \param negate flag to indicate if all this string is negated or not
+ *
+ * \retval 0 if success
+ * \retval -1 if fails
+ */
+IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
+{
+    size_t x = 0;
+    size_t u = 0;
+    int o_set = 0, n_set = 0, d_set = 0;
+    int depth = 0;
+    size_t size = strlen(s);
+    char address[1024] = "";
+    char *rule_var_address = NULL;
+    char *temp_rule_var_address = NULL;
+    IPOnlyCIDRItem *head;
+    IPOnlyCIDRItem *subhead;
+    head = subhead = NULL;
+
+    SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
+
+    for (u = 0, x = 0; u < size && x < sizeof(address); u++) {
+        address[x] = s[u];
+        x++;
+
+        if (!o_set && s[u] == '!') {
+            n_set = 1;
+            x--;
+        } else if (s[u] == '[') {
+            if (!o_set) {
+                o_set = 1;
+                x = 0;
+            }
+            depth++;
+        } else if (s[u] == ']') {
+            if (depth == 1) {
+                address[x - 1] = '\0';
+                x = 0;
+
+                if ( (subhead = IPOnlyCIDRListParse2(address,
+                                                (negate + n_set) % 2)) == NULL)
+                    goto error;
+
+                head = IPOnlyCIDRItemInsert(head, subhead);
+                n_set = 0;
+            }
+            depth--;
+        } else if (depth == 0 && s[u] == ',') {
+            if (o_set == 1) {
+                o_set = 0;
+            } else if (d_set == 1) {
+                address[x - 1] = '\0';
+                x = 0;
+                rule_var_address = SCRuleVarsGetConfVar(address,
+                                                  SC_RULE_VARS_ADDRESS_GROUPS);
+                if (rule_var_address == NULL)
+                    goto error;
+
+                temp_rule_var_address = rule_var_address;
+                if ((negate + n_set) % 2) {
+                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
+
+                    if (temp_rule_var_address == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        goto error;
+                    }
+
+                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
+                             "[%s]", rule_var_address);
+                }
+
+                subhead = IPOnlyCIDRListParse2(temp_rule_var_address,
+                                               (negate + n_set) % 2);
+                head = IPOnlyCIDRItemInsert(head, subhead);
+
+                d_set = 0;
+                n_set = 0;
+
+                if (temp_rule_var_address != rule_var_address)
+                    SCFree(temp_rule_var_address);
+
+            } else {
+                address[x - 1] = '\0';
+
+                subhead = IPOnlyCIDRItemNew();
+
+                if (!((negate + n_set) % 2))
+                    subhead->negated = 0;
+                else
+                    subhead->negated = 1;
+
+                if (IPOnlyCIDRItemSetup(subhead, address) < 0) {
+                    IPOnlyCIDRListFree(subhead);
+                    subhead = NULL;
+                    goto error;
+                }
+                head = IPOnlyCIDRItemInsert(head, subhead);
+
+                n_set = 0;
+            }
+            x = 0;
+        } else if (depth == 0 && s[u] == '$') {
+            d_set = 1;
+        } else if (depth == 0 && u == size - 1) {
+            address[x] = '\0';
+            x = 0;
+
+            if (d_set == 1) {
+                rule_var_address = SCRuleVarsGetConfVar(address,
+                                                    SC_RULE_VARS_ADDRESS_GROUPS);
+                if (rule_var_address == NULL)
+                    goto error;
+
+                temp_rule_var_address = rule_var_address;
+                if ((negate + n_set) % 2) {
+                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
+                    if (temp_rule_var_address == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        goto error;
+                    }
+                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
+                            "[%s]", rule_var_address);
+                }
+                subhead = IPOnlyCIDRListParse2(temp_rule_var_address,
+                                               (negate + n_set) % 2);
+                head = IPOnlyCIDRItemInsert(head, subhead);
+
+                d_set = 0;
+
+                if (temp_rule_var_address != rule_var_address)
+                    SCFree(temp_rule_var_address);
+            } else {
+                subhead = IPOnlyCIDRItemNew();
+
+                if (!((negate + n_set) % 2))
+                    subhead->negated = 0;
+                else
+                    subhead->negated = 1;
+
+                if (IPOnlyCIDRItemSetup(subhead, address) < 0) {
+                    IPOnlyCIDRListFree(subhead);
+                    subhead = NULL;
+                    goto error;
+                }
+                head = IPOnlyCIDRItemInsert(head, subhead);
+            }
+            n_set = 0;
+        }
+    }
+
+    return head;
+
+error:
+    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,"Error parsing addresses");
+    return head;
+}
+
+
+/**
+ * \brief Parses an address group sent as a character string and updates the
+ *        IPOnlyCIDRItem list
+ *
+ * \param gh  Pointer to the IPOnlyCIDRItem list
+ * \param str Pointer to the character string containing the address group
+ *            that has to be parsed.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int IPOnlyCIDRListParse(IPOnlyCIDRItem **gh, char *str)
+{
+    SCLogDebug("gh %p, str %s", gh, str);
+
+    *gh = IPOnlyCIDRListParse2(str, 0);
+    if (gh == NULL) {
+        SCLogDebug("DetectAddressParse2 returned null");
+        goto error;
+    }
+
+    return 0;
+
+error:
+    return -1;
+}
+
+/**
+ * \brief Parses an address group sent as a character string and updates the
+ *        IPOnlyCIDRItem lists src and dst of the Signature *s
+ *
+ * \param s Pointer to the signature structure
+ * \param addrstr Pointer to the character string containing the address group
+ *            that has to be parsed.
+ * \param flag to indicate if we are parsing the src string or the dst string
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int IPOnlySigParseAddress(Signature *s, const char *addrstr, char flag)
+{
+    SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
+    IPOnlyCIDRItem *tmp = NULL;
+
+    /* pass on to the address(list) parser */
+    if (flag == 0) {
+        if (strcasecmp(addrstr, "any") == 0) {
+            s->flags |= SIG_FLAG_SRC_ANY;
+
+            if (IPOnlyCIDRListParse(&s->CidrSrc, (char *)"0.0.0.0/0") < 0)
+                goto error;
+
+            if (IPOnlyCIDRListParse(&tmp, (char *)"::/0") < 0)
+                goto error;
+
+            s->CidrSrc = IPOnlyCIDRItemInsert(s->CidrSrc, tmp);
+
+        } else if (IPOnlyCIDRListParse(&s->CidrSrc, (char *)addrstr) < 0) {
+            goto error;
+        }
+
+        /* IPOnlyCIDRListPrint(s->CidrSrc); */
+    } else {
+        if (strcasecmp(addrstr, "any") == 0) {
+            s->flags |= SIG_FLAG_DST_ANY;
+
+            if (IPOnlyCIDRListParse(&tmp, (char *)"0.0.0.0/0") < 0)
+                goto error;
+
+            if (IPOnlyCIDRListParse(&s->CidrDst, (char *)"::/0") < 0)
+                goto error;
+
+            s->CidrDst = IPOnlyCIDRItemInsert(s->CidrDst, tmp);
+
+        } else if (IPOnlyCIDRListParse(&s->CidrDst, (char *)addrstr) < 0) {
+            goto error;
+        }
+
+        /* IPOnlyCIDRListPrint(s->CidrDst); */
+    }
+
+    return 0;
+
+error:
+    return -1;
+}
+
+/**
+ * \internal
+ * \brief Parses an ipv4/ipv6 address string and updates the result into the
+ *        IPOnlyCIDRItem instance sent as the argument.
+ *
+ * \param dd  Pointer to the IPOnlyCIDRItem instance which should be updated with
+ *            the address (in cidr) details from the parsed ip string.
+ * \param str Pointer to address string that has to be parsed.
+ *
+ * \retval  0 On successfully parsing the address string.
+ * \retval -1 On failure.
+ */
+int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
+{
+    char *ipdup = SCStrdup(str);
+    char *ip = NULL;
+    char *ip2 = NULL;
+    char *mask = NULL;
+    int r = 0;
+
+    SCLogDebug("str %s", str);
+
+    /* first handle 'any' */
+    if (strcasecmp(str, "any") == 0) {
+        /* if any, insert 0.0.0.0/0 and ::/0 as well */
+        SCLogDebug("adding 0.0.0.0/0 and ::/0 as we\'re handling \'any\'");
+
+        IPOnlyCIDRItemParseSingle(dd, "0.0.0.0/0");
+        BUG_ON(dd->family == 0);
+
+        dd->next = IPOnlyCIDRItemNew();
+
+        IPOnlyCIDRItemParseSingle(dd->next, "::/0");
+        BUG_ON(dd->family == 0);
+
+        SCFree(ipdup);
+
+        SCLogDebug("address is \'any\'");
+
+        return 0;
+    }
+
+    /* we dup so we can put a nul-termination in it later */
+    ip = ipdup;
+
+    /* handle the negation case */
+    if (ip[0] == '!') {
+        dd->negated = (dd->negated)? 0 : 1;
+        ip++;
+    }
+
+    /* see if the address is an ipv4 or ipv6 address */
+    if ((strchr(str, ':')) == NULL) {
+        /* IPv4 Address */
+        struct in_addr in;
+
+        dd->family = AF_INET;
+
+        if ((mask = strchr(ip, '/')) != NULL) {
+            /* 1.2.3.4/xxx format (either dotted or cidr notation */
+            ip[mask - ip] = '\0';
+            mask++;
+            uint32_t netmask = 0;
+            size_t u = 0;
+
+            if ((strchr (mask, '.')) == NULL) {
+                /* 1.2.3.4/24 format */
+
+                for (u = 0; u < strlen(mask); u++) {
+                    if(!isdigit(mask[u]))
+                        goto error;
+                }
+
+                int cidr = atoi(mask);
+                if (cidr < 0 || cidr > 32)
+                    goto error;
+
+                dd->netmask = cidr;
+            } else {
+                /* 1.2.3.4/255.255.255.0 format */
+                r = inet_pton(AF_INET, mask, &in);
+                if (r <= 0)
+                    goto error;
+
+                netmask = in.s_addr;
+
+                /* Extract cidr netmask */
+                while ((0x0001 & netmask) == 0) {
+                    dd->netmask++;
+                    netmask = netmask >> 1;
+                }
+                dd->netmask = 32 - dd->netmask;
+            }
+
+            r = inet_pton(AF_INET, ip, &in);
+            if (r <= 0)
+                goto error;
+
+            dd->ip[0] = in.s_addr;
+
+        } else if ((ip2 = strchr(ip, '-')) != NULL)  {
+            /* 1.2.3.4-1.2.3.6 range format */
+            ip[ip2 - ip] = '\0';
+            ip2++;
+
+            uint32_t tmp_ip[4];
+            uint32_t tmp_ip2[4];
+            uint32_t first, last;
+
+            r = inet_pton(AF_INET, ip, &in);
+            if (r <= 0)
+                goto error;
+            tmp_ip[0] = in.s_addr;
+
+            r = inet_pton(AF_INET, ip2, &in);
+            if (r <= 0)
+                goto error;
+            tmp_ip2[0] = in.s_addr;
+
+            /* a > b is illegal, a = b is ok */
+            if (ntohl(tmp_ip[0]) > ntohl(tmp_ip2[0]))
+                goto error;
+
+            first = ntohl(tmp_ip[0]);
+            last = ntohl(tmp_ip2[0]);
+
+            dd->netmask = 32;
+            dd->ip[0] =htonl(first);
+
+            if (first < last) {
+                for (first++; first <= last; first++) {
+                    IPOnlyCIDRItem *new = IPOnlyCIDRItemNew();
+                    dd->next = new;
+                    new->negated = dd->negated;
+                    new->family= dd->family;
+                    new->netmask = dd->netmask;
+                    new->ip[0] = htonl(first);
+                    dd = dd->next;
+                }
+            }
+
+        } else {
+            /* 1.2.3.4 format */
+            r = inet_pton(AF_INET, ip, &in);
+            if (r <= 0)
+                goto error;
+            /* single host */
+            dd->ip[0] = in.s_addr;
+            dd->netmask = 32;
+        }
+    } else {
+        /* IPv6 Address */
+        struct in6_addr in6;
+        uint32_t ip6addr[4];
+
+        dd->family = AF_INET6;
+
+        if ((mask = strchr(ip, '/')) != NULL)  {
+            mask[0] = '\0';
+            mask++;
+
+            r = inet_pton(AF_INET6, ip, &in6);
+            if (r <= 0)
+                goto error;
+
+            /* Format is cidr val */
+            dd->netmask = atoi(mask);
+
+            memcpy(dd->ip, &in6.s6_addr, sizeof(ip6addr));
+        } else {
+            r = inet_pton(AF_INET6, ip, &in6);
+            if (r <= 0)
+                goto error;
+
+            memcpy(dd->ip, &in6.s6_addr, sizeof(dd->ip));
+            dd->netmask = 128;
+        }
+
+    }
+
+    SCFree(ipdup);
+
+    BUG_ON(dd->family == 0);
+
+    return 0;
+
+error:
+    if (ipdup)
+        SCFree(ipdup);
+    return -1;
+}
+
+/**
+ * \brief Setup a single address string, parse it and add the resulting
+ *        Address items in cidr format to the list of gh
+ *
+ * \param gh Pointer to the IPOnlyCIDRItem list Head to which the
+ *           resulting Address-Range(s) from the parsed ip string has to
+ *           be added.
+ * \param s  Pointer to the ip address string to be parsed.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int IPOnlyCIDRItemSetup(IPOnlyCIDRItem *gh, char *s) {
+    SCLogDebug("gh %p, s %s", gh, s);
+
+    /* parse the address */
+    if (IPOnlyCIDRItemParseSingle(gh, s) == -1) {
+        SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
+                   "DetectAddressParse error \"%s\"", s);
+        goto error;
+    }
+
+    return 0;
+
+error:
+    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "IPOnlyCIDRItemSetup error");
+    /* XXX cleanup */
+    return -1;
+}
+
+/**
+ * \brief Setup the IP Only detection engine context
+ *
+ * \param de_ctx Pointer to the current detection engine
+ * \param io_ctx Pointer to the current ip only detection engine
+ */
 void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
-    io_ctx->ht16_src = HashListTableInit(65536, IPOnlyHashFunc16, IPOnlyCompareFunc, IPOnlyFreeFunc);
-    io_ctx->ht16_dst = HashListTableInit(65536, IPOnlyHashFunc16, IPOnlyCompareFunc, IPOnlyFreeFunc);
-/*
-    io_ctx->ht24_src = HashListTableInit(65536, IPOnlyHashFunc24, IPOnlyCompareFunc, IPOnlyFreeFunc);
-    io_ctx->ht24_dst = HashListTableInit(65536, IPOnlyHashFunc24, IPOnlyCompareFunc, IPOnlyFreeFunc);
-*/
     io_ctx->sig_init_size = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
+
     if ( (io_ctx->sig_init_array = SCMalloc(io_ctx->sig_init_size)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
+
     memset(io_ctx->sig_init_array, 0, io_ctx->sig_init_size);
+
+    io_ctx->tree_ipv4src = SCRadixCreateRadixTree(SigNumArrayFree,
+                                                  SigNumArrayPrint);
+    io_ctx->tree_ipv4dst = SCRadixCreateRadixTree(SigNumArrayFree,
+                                                  SigNumArrayPrint);
+    io_ctx->tree_ipv6src = SCRadixCreateRadixTree(SigNumArrayFree,
+                                                  SigNumArrayPrint);
+    io_ctx->tree_ipv6dst = SCRadixCreateRadixTree(SigNumArrayFree,
+                                                  SigNumArrayPrint);
 }
 
-/* XXX error checking */
-void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx) {
-    io_tctx->src = DetectAddressInit();
-    io_tctx->src->family = AF_INET;
-    io_tctx->dst = DetectAddressInit();
-    io_tctx->dst->family = AF_INET;
-
-        /* initialize the signature bitarray */
+/**
+ * \brief Setup the IP Only thread detection engine context
+ *
+ * \param de_ctx Pointer to the current detection engine
+ * \param io_ctx Pointer to the current ip only thread detection engine
+ */
+void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx,
+                                  DetectEngineIPOnlyThreadCtx *io_tctx) {
+    /* initialize the signature bitarray */
     io_tctx->sig_match_size = de_ctx->io_ctx.max_idx / 8 + 1;
     io_tctx->sig_match_array = SCMalloc(io_tctx->sig_match_size);
+
     memset(io_tctx->sig_match_array, 0, io_tctx->sig_match_size);
 }
 
+/**
+ * \brief Print stats of the IP Only engine
+ *
+ * \param de_ctx Pointer to the current detection engine
+ * \param io_ctx Pointer to the current ip only detection engine
+ */
 void IPOnlyPrint(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
-    if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("IP ONLY (SRC): %" PRIu32 " /16's in our hash, %" PRIu32 " total address ranges",
-                io_ctx->a_src_uniq16, io_ctx->a_src_uniq16 + io_ctx->a_src_total16);
-        SCLogInfo("IP ONLY (DST): %" PRIu32 " /16's in our hash, %" PRIu32 " total address ranges",
-                io_ctx->a_dst_uniq16, io_ctx->a_dst_uniq16 + io_ctx->a_dst_total16);
-/*
-        printf(" * IP ONLY (SRC): %" PRIu32 " /24's in our hash, %" PRIu32 " total address ranges in them\n",
-                io_ctx->a_src_uniq24, io_ctx->a_src_uniq24 + io_ctx->a_src_total24);
-        printf(" * IP ONLY (DST): %" PRIu32 " /24's in our hash, %" PRIu32 " total address ranges in them\n",
-                io_ctx->a_dst_uniq24, io_ctx->a_dst_uniq24 + io_ctx->a_dst_total24);
-*/
-    }
+    /* XXX: how are we going to print the stats now? */
 }
 
+/**
+ * \brief Deinitialize the IP Only detection engine context
+ *
+ * \param de_ctx Pointer to the current detection engine
+ * \param io_ctx Pointer to the current ip only detection engine
+ */
 void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
-    HashListTableFree(io_ctx->ht16_src);
-    io_ctx->ht16_src = NULL;
-    HashListTableFree(io_ctx->ht16_dst);
-    io_ctx->ht16_dst = NULL;
-/*
-    HashListTableFree(io_ctx->ht24_src);
-    io_ctx->ht24_src = NULL;
-    HashListTableFree(io_ctx->ht24_dst);
-    io_ctx->ht24_dst = NULL;
-*/
+
+    if (io_ctx->tree_ipv4src != NULL)
+        SCRadixReleaseRadixTree(io_ctx->tree_ipv4src);
+
+    if (io_ctx->tree_ipv4dst != NULL)
+        SCRadixReleaseRadixTree(io_ctx->tree_ipv4dst);
+
+    if (io_ctx->tree_ipv6src != NULL)
+        SCRadixReleaseRadixTree(io_ctx->tree_ipv6src);
+
+    if (io_ctx->tree_ipv6dst != NULL)
+        SCRadixReleaseRadixTree(io_ctx->tree_ipv6dst);
+
     if (io_ctx->sig_init_array)
         SCFree(io_ctx->sig_init_array);
     io_ctx->sig_init_array = NULL;
 }
 
+/**
+ * \brief Deinitialize the IP Only thread detection engine context
+ *
+ * \param de_ctx Pointer to the current detection engine
+ * \param io_ctx Pointer to the current ip only detection engine
+ */
 void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
-    if (io_tctx != NULL) {
-        if (io_tctx->src != NULL) {
-            DetectAddressFree(io_tctx->src);
-        }
-        if (io_tctx->dst != NULL) {
-            DetectAddressFree(io_tctx->dst);
-        }
-        SCFree(io_tctx->sig_match_array);
-    }
+    SCFree(io_tctx->sig_match_array);
 }
 
-DetectAddress *IPOnlyLookupSrc16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
-#ifdef __BIG_ENDIAN__
-    io_tctx->src->ip[0] = GET_IPV4_SRC_ADDR_U32(p) & 0xffff0000;
-    io_tctx->src->ip2[0] = (GET_IPV4_SRC_ADDR_U32(p) & 0xffff0000) | IPONLY_HTONL_65535;
-#else
-    io_tctx->src->ip[0] = GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff;
-    io_tctx->src->ip2[0] = (GET_IPV4_SRC_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
-#endif
-
-    //printf("IPOnlyLookupSrc16: "); DetectAddressDataPrint(io_tctx->src->ad); printf("\n");
-
-    DetectAddress *rgr = HashListTableLookup(de_ctx->io_ctx.ht16_src, io_tctx->src, 0);
-
-    return rgr;
-}
-
-DetectAddress *IPOnlyLookupDst16(DetectEngineCtx *de_ctx, DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
-#ifdef __BIG_ENDIAN__
-    io_tctx->dst->ip[0] = GET_IPV4_DST_ADDR_U32(p) & 0xffff0000;
-    io_tctx->dst->ip2[0] = (GET_IPV4_DST_ADDR_U32(p) & 0xffff0000) | IPONLY_HTONL_65535;
-#else
-    io_tctx->dst->ip[0] = GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff;
-    io_tctx->dst->ip2[0] = (GET_IPV4_DST_ADDR_U32(p) & 0x0000ffff) | IPONLY_HTONL_65535;
-#endif
-
-    //printf("IPOnlyLookupDst16: "); DetectAddressDataPrint(io_tctx->dst->ad); printf("\n");
-
-    DetectAddress *rgr = HashListTableLookup(de_ctx->io_ctx.ht16_dst, io_tctx->dst, 0);
-
-    return rgr;
-}
-
-/* XXX handle any case: preinit a array with the any's set to 1 for both
- * src and dst, and use that if src/dst is NULL and AND that with the other
- * array. */
+/**
+ * \brief Match a packet against the IP Only detection engine contexts
+ *
+ * \param de_ctx Pointer to the current detection engine
+ * \param io_ctx Pointer to the current ip only detection engine
+ * \param io_ctx Pointer to the current ip only thread detection engine
+ * \param p Pointer to the Packet to match against
+ */
 void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
-                       DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p) {
-    DetectAddress *src = NULL, *dst = NULL;
-#if 0
-    /* debug print */
-    char s[16], d[16];
-    inet_ntop(AF_INET, (const void *)(p->src.addr_data32), s, sizeof(s));
-    inet_ntop(AF_INET, (const void *)(p->dst.addr_data32), d, sizeof(d));
-    printf("IPV4 %s->%s\n",s,d);
+                       DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p)
+{
+    SCRadixNode *srcnode = NULL, *dstnode = NULL;
+    SigNumArray *src = NULL;
+    SigNumArray *dst = NULL;
 
-    printf("IPOnlyMatchPacket starting...\n");
-#endif
-    if (io_tctx->src == NULL)
+    if (p->src.family == AF_INET) {
+        srcnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)&GET_IPV4_SRC_ADDR_U32(p),
+                                              io_ctx->tree_ipv4src);
+    } else if (p->src.family == AF_INET6) {
+        srcnode = SCRadixFindKeyIPV6BestMatch((uint8_t *)&GET_IPV6_SRC_ADDR(p),
+                                              io_ctx->tree_ipv6src);
+    }
+
+    if (p->dst.family == AF_INET) {
+        dstnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)&GET_IPV4_DST_ADDR_U32(p),
+                                              io_ctx->tree_ipv4dst);
+    } else if (p->dst.family == AF_INET6) {
+        dstnode = SCRadixFindKeyIPV6BestMatch((uint8_t *)&GET_IPV6_DST_ADDR(p),
+                                              io_ctx->tree_ipv6dst);
+    }
+
+
+    /* The radix trees are printed without our logging format
+       comment this out if you need to debug
+    printf("Src: \n");
+    SCRadixPrintNodeInfo(srcnode, 4, SigNumArrayPrint);
+    printf("Dst: \n");
+    SCRadixPrintNodeInfo(dstnode, 4, SigNumArrayPrint);
+    */
+
+    if (srcnode != NULL && srcnode->prefix != NULL &&
+        srcnode->prefix->user_data_result != NULL) {
+        src = srcnode->prefix->user_data_result;
+    } else {
+        //SCLogError(SC_ERR_IPONLY_RADIX, "Error, no userdata found at the radix"
+        //           " on src node!");
         return;
+    }
 
-    //printf("IPOnlyMatchPacket looking up src...\n");
-    /* lookup source address group */
-    src = IPOnlyLookupSrc16(de_ctx, io_tctx, p);
-    if (src == NULL || src->sh == NULL)
+    if (dstnode != NULL && dstnode->prefix != NULL &&
+        dstnode->prefix->user_data_result != NULL) {
+        dst = dstnode->prefix->user_data_result;
+    } else {
+        //SCLogError(SC_ERR_IPONLY_RADIX, "Error, no userdata found at the radix"
+        //           " on dst node!");
         return;
-    //printf("IPOnlyMatchPacket looking up dst...\n");
+    }
 
-    /* lookup source address group */
-    dst = IPOnlyLookupDst16(de_ctx, io_tctx, p);
-    if (dst == NULL || dst->sh == NULL)
-        return;
-    //printf("IPOnlyMatchPacket processing arrays...\n");
-
-    /* copy the match array from source... */
     uint32_t u;
-    for (u = 0; u < io_tctx->sig_match_size; u++) {
-        io_tctx->sig_match_array[u] = src->sh->sig_array[u];
-    }
+    for (u = 0; u < src->size; u++) {
+        SCLogDebug("And %"PRIu8" & %"PRIu8, src->array[u], dst->array[u]);
 
-    /* ...then bitwise AND it with the dst... */
-    for (u = 0; u < io_tctx->sig_match_size; u++) {
-        io_tctx->sig_match_array[u] &= dst->sh->sig_array[u];
-    }
+        /* The final results will be at io_tctx */
+        io_tctx->sig_match_array[u] = dst->array[u] & src->array[u];
 
-    //printf("Let's inspect the sigs\n");
+        if (io_tctx->sig_match_array[u] != 0) {
+            /* We have a match :) Let's see from which signum's */
+            uint8_t bitarray = io_tctx->sig_match_array[u];
+            uint8_t i = 0;
 
-    //uint32_t sig_cnt;
-    //if (src->sh->sig_cnt > dst->sh->sig_cnt) sig_cnt = dst->sh->sig_cnt;
-    //else                                     sig_cnt = src->sh->sig_cnt;
+            for (; i < 8; i++, bitarray = bitarray >> 1) {
+                if (bitarray & 0x0001) {
+                    Signature *s = de_ctx->sig_array[u * 8 + i];
 
-    /* ...the result is that only the sigs with both
-     * enable match */
-    uint32_t idx;
-    for (idx = 0; idx < io_ctx->sig_cnt; idx++) {
-        uint32_t sig = io_ctx->match_array[idx];
+                    /* Need to check the protocol first */
+                    if (!(s->proto.proto[(p->proto/8)] & (1 << (p->proto % 8))))
+                        continue;
 
-        //printf("sig internal id %" PRIu32 "\n", sig);
+                    SCLogDebug("Signum %"PRIu16" match (sid: %"PRIu16", msg: %s)",
+                               u * 8 + i, s->id, s->msg);
 
-        /* sig doesn't match */
-        if (!(io_tctx->sig_match_array[(sig / 8)] & (1<<(sig % 8)))) {
-            continue;
-        }
+                    if (!(s->flags & SIG_FLAG_NOALERT)) {
+                        PacketAlertHandle(de_ctx,s,p);
+                        /* set verdict on packet */
+                        p->action |= s->action;
 
-        Signature *s = de_ctx->sig_array[sig];
-        if (s == NULL)
-            continue;
-
-        /* check the protocol */
-        if (!(s->proto.proto[(p->proto/8)] & (1<<(p->proto%8))))
-            continue;
-
-        /* check the source address */
-        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
-            if (saddr == NULL)
-                continue;
-        }
-        /* check the destination address */
-        if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
-            if (daddr == NULL)
-                continue;
-        }
-
-        if (!(s->flags & SIG_FLAG_NOALERT)) {
-            PacketAlertHandle(de_ctx,s,p);
-            /* set verdict on packet */
-            p->action |= s->action;
-            if (p->flow != NULL) {
-                if (s->action & ACTION_DROP) p->flow->flags |= FLOW_ACTION_DROP;
-                if (s->action & ACTION_REJECT) p->flow->flags |= FLOW_ACTION_DROP;
-                if (s->action & ACTION_REJECT_DST) p->flow->flags |= FLOW_ACTION_DROP;
-                if (s->action & ACTION_REJECT_BOTH) p->flow->flags |= FLOW_ACTION_DROP;
+                        if (p->flow != NULL) {
+                            if (s->action & ACTION_DROP)
+                                p->flow->flags |= FLOW_ACTION_DROP;
+                            if (s->action & ACTION_REJECT)
+                                p->flow->flags |= FLOW_ACTION_DROP;
+                            if (s->action & ACTION_REJECT_DST)
+                                p->flow->flags |= FLOW_ACTION_DROP;
+                            if (s->action & ACTION_REJECT_BOTH)
+                                p->flow->flags |= FLOW_ACTION_DROP;
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-int IPOnlyBuildMatchArray(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
-    uint32_t idx = 0;
-    uint32_t sig = 0;
-
-    //printf("IPOnlyBuildMatchArray: max_idx %" PRIu32 "\n", io_ctx->max_idx);
-    for (sig = 0; sig < io_ctx->max_idx + 1; sig++) {
-        if (!(io_ctx->sig_init_array[(sig/8)] & (1<<(sig%8))))
-            continue;
-
-        Signature *s = de_ctx->sig_array[sig];
-        if (s == NULL)
-            continue;
-
-        io_ctx->sig_cnt++;
-    }
-    //printf("IPOnlyBuildMatchArray: sig_cnt %" PRIu32 "\n", io_ctx->sig_cnt);
-
-    io_ctx->match_array = SCMalloc(io_ctx->sig_cnt * sizeof(uint32_t));
-    if (io_ctx->match_array == NULL)
-        return -1;
-
-    memset(io_ctx->match_array,0, io_ctx->sig_cnt * sizeof(uint32_t));
-
-    for (sig = 0; sig < io_ctx->max_idx + 1; sig++) {
-        if (!(io_ctx->sig_init_array[(sig/8)] & (1<<(sig%8))))
-            continue;
-
-        Signature *s = de_ctx->sig_array[sig];
-        if (s == NULL)
-            continue;
-
-        io_ctx->match_array[idx] = s->num;
-        idx++;
-    }
-    //printf("IPOnlyBuildMatchArray: idx %" PRIu32 "\n", idx);
-
-    return 0;
-}
-
+/**
+ * \brief Build the radix trees from the lists of parsed adresses in CIDR format
+ *        the result should be 4 radix trees: src/dst ipv4 and src/dst ipv6
+ *        holding SigNumArrays, each of them with a hierarchical relation
+ *        of subnets and hosts
+ *
+ * \param de_ctx Pointer to the current detection engine
+ */
 void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
-    IPOnlyBuildMatchArray(de_ctx, &de_ctx->io_ctx);
+    SCLogDebug("Preparing Final Lists");
 
-    /* source: set sig_cnt */
-    HashListTableBucket *hb = HashListTableGetListHead(de_ctx->io_ctx.ht16_src);
-    if (hb == NULL)
-        return;
+    /*
+       IPOnlyCIDRListPrint((de_ctx->io_ctx).ip_src);
+       IPOnlyCIDRListPrint((de_ctx->io_ctx).ip_dst);
+     */
 
-    //printf("SRC: ");
-    for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
-        DetectAddress *gr = (DetectAddress *)HashListTableGetListData(hb);
-        if (gr == NULL)
-            continue;
+    IPOnlyCIDRItem *src, *dst;
+    SCRadixNode *node = NULL;
 
-        SigGroupHeadSetSigCnt(gr->sh, de_ctx->io_ctx.max_idx);
-        SigGroupHeadInitDataFree(gr->sh->init);
-        gr->sh->init = NULL;
-        //printf(PRIu32 " ", gr->sh->sig_cnt);
+    /* Prepare Src radix trees */
+    for (src = (de_ctx->io_ctx).ip_src; src != NULL; ) {
+        if (src->family == AF_INET) {
+            /*
+            SCLogDebug("To IPv4");
+            SCLogDebug("Item has netmask %"PRIu16" negated: %s; IP: %s; "
+                       "signum: %"PRIu16, src->netmask,
+                        (src->negated) ? "yes":"no",
+                        inet_ntoa( *(struct in_addr*)&src->ip[0]),
+                        src->signum);
+            */
+
+            if (src->netmask == 32)
+                node = SCRadixFindKeyIPV4ExactMatch((uint8_t *)&src->ip[0],
+                                                    (de_ctx->io_ctx).tree_ipv4src);
+            else
+                node = SCRadixFindKeyIPV4Netblock((uint8_t *)&src->ip[0],
+                                                  (de_ctx->io_ctx).tree_ipv4src,
+                                                  src->netmask);
+
+            if (node == NULL) {
+                SCLogDebug("Exact match not found");
+
+                /** Not found, look if there's a subnet of this range with
+                 * bigger netmask */
+                node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&src->ip[0],
+                                                   (de_ctx->io_ctx).tree_ipv4src);
+
+                if (node == NULL) {
+                    SCLogDebug("best match not found");
+
+                    /* Not found, insert a new one */
+                    SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
+
+                    /* Update the sig */
+                    uint8_t tmp = 1 << (src->signum % 8);
+
+                    if (src->negated > 0)
+                        /* Unset it */
+                        sna->array[src->signum / 8] &= ~tmp;
+                    else
+                        /* Set it */
+                        sna->array[src->signum / 8] |= tmp;
+
+                    if (src->netmask == 32)
+                        node = SCRadixAddKeyIPV4((uint8_t *)&src->ip[0],
+                                                 (de_ctx->io_ctx).tree_ipv4src, sna);
+                    else
+                        node = SCRadixAddKeyIPV4Netblock((uint8_t *)&src->ip[0],
+                                                         (de_ctx->io_ctx).tree_ipv4src,
+                                                         sna, src->netmask);
+
+                    if (node == NULL)
+                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the "
+                                                        "src ipv4 radix tree");
+                } else {
+                    SCLogDebug("Best match found");
+
+                    /* Found, copy the sig num table, add this signum and insert */
+                    SigNumArray *sna = NULL;
+                    sna = SigNumArrayCopy((SigNumArray *) node->prefix->user_data_result);
+
+                    /* Update the sig */
+                    uint8_t tmp = 1 << (src->signum % 8);
+
+                    if (src->negated > 0)
+                        /* Unset it */
+                        sna->array[src->signum / 8] &= ~tmp;
+                    else
+                        /* Set it */
+                        sna->array[src->signum / 8] |= tmp;
+
+                    if (src->netmask == 32)
+                        node = SCRadixAddKeyIPV4((uint8_t *)&src->ip[0],
+                                                 (de_ctx->io_ctx).tree_ipv4src, sna);
+                    else
+                        node = SCRadixAddKeyIPV4Netblock((uint8_t *)&src->ip[0],
+                                                         (de_ctx->io_ctx).tree_ipv4src, sna,
+                                                         src->netmask);
+
+                    if (node == NULL)
+                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the"
+                                   " src ipv4 radix tree");
+                }
+            } else {
+                SCLogDebug("Exact match found");
+
+                /* it's already inserted. Update it */
+                SigNumArray *sna = (SigNumArray *)node->prefix->user_data_result;
+
+                /* Update the sig */
+                uint8_t tmp = 1 << (src->signum % 8);
+
+                if (src->negated > 0)
+                    /* Unset it */
+                    sna->array[src->signum / 8] &= ~tmp;
+                else
+                    /* Set it */
+                    sna->array[src->signum / 8] |= tmp;
+            }
+        } else if (src->family == AF_INET6) {
+            SCLogDebug("To IPv6");
+
+            if (src->netmask == 128)
+                node = SCRadixFindKeyIPV6ExactMatch((uint8_t *)&src->ip[0],
+                                                    (de_ctx->io_ctx).tree_ipv6src);
+            else
+                node = SCRadixFindKeyIPV6Netblock((uint8_t *)&src->ip[0],
+                                                  (de_ctx->io_ctx).tree_ipv6src,
+                                                  src->netmask);
+
+            if (node == NULL) {
+                /* Not found, look if there's a subnet of this range with bigger netmask */
+                node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&src->ip[0],
+                                                   (de_ctx->io_ctx).tree_ipv6src);
+
+                if (node == NULL) {
+                    /* Not found, insert a new one */
+                    SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
+
+                    /* Update the sig */
+                    uint8_t tmp = 1 << (src->signum % 8);
+
+                    if (src->negated > 0)
+                        /* Unset it */
+                        sna->array[src->signum / 8] &= ~tmp;
+                    else
+                        /* Set it */
+                        sna->array[src->signum / 8] |= tmp;
+
+                    if (src->netmask == 128)
+                        node = SCRadixAddKeyIPV6((uint8_t *)&src->ip[0],
+                                                 (de_ctx->io_ctx).tree_ipv6src, sna);
+                    else
+                        node = SCRadixAddKeyIPV6Netblock((uint8_t *)&src->ip[0],
+                                                         (de_ctx->io_ctx).tree_ipv6src,
+                                                         sna, src->netmask);
+                    if (node == NULL)
+                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the src "
+                                   "ipv6 radix tree");
+                } else {
+                    /* Found, copy the sig num table, add this signum and insert */
+                    SigNumArray *sna = NULL;
+                    sna = SigNumArrayCopy((SigNumArray *)node->prefix->user_data_result);
+
+                    /* Update the sig */
+                    uint8_t tmp = 1 << (src->signum % 8);
+                    if (src->negated > 0)
+                        /* Unset it */
+                        sna->array[src->signum / 8] &= ~tmp;
+                    else
+                        /* Set it */
+                        sna->array[src->signum / 8] |= tmp;
+
+                    if (src->netmask == 128)
+                        node = SCRadixAddKeyIPV6((uint8_t *)&src->ip[0],
+                                                 (de_ctx->io_ctx).tree_ipv6src, sna);
+                    else
+                        node = SCRadixAddKeyIPV6Netblock((uint8_t *)&src->ip[0],
+                                                         (de_ctx->io_ctx).tree_ipv6src,
+                                                         sna, src->netmask);
+                    if (node == NULL)
+                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the src "
+                                   "ipv6 radix tree");
+                }
+            } else {
+                /* it's already inserted. Update it */
+                SigNumArray *sna = (SigNumArray *)node->prefix->user_data_result;
+
+                /* Update the sig */
+                uint8_t tmp = 1 << (src->signum % 8);
+                if (src->negated > 0)
+                    /* Unset it */
+                    sna->array[src->signum / 8] &= ~tmp;
+                else
+                    /* Set it */
+                    sna->array[src->signum / 8] |= tmp;
+            }
+        }
+        IPOnlyCIDRItem *tmpaux = src;
+        src = src->next;
+        SCFree(tmpaux);
     }
-    //printf("\n");
 
-    /* destination: set sig_cnt */
-    hb = HashListTableGetListHead(de_ctx->io_ctx.ht16_dst);
-    if (hb == NULL)
-        return;
+    SCLogDebug("dsts:");
 
-    //printf("DST: ");
-    for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
-        DetectAddress *gr = (DetectAddress *)HashListTableGetListData(hb);
-        if (gr == NULL)
-            continue;
+    /* Prepare Dst radix trees */
+    for (dst = (de_ctx->io_ctx).ip_dst; dst != NULL; ) {
+        if (dst->family == AF_INET) {
 
-        SigGroupHeadSetSigCnt(gr->sh, de_ctx->io_ctx.max_idx);
-        SigGroupHeadInitDataFree(gr->sh->init);
-        gr->sh->init = NULL;
-        //printf(PRIu32 " ", gr->sh->sig_cnt);
+            SCLogDebug("To IPv4");
+            SCLogDebug("Item has netmask %"PRIu16" negated: %s; IP: %s; signum:"
+                       " %"PRIu16"", dst->netmask, (dst->negated)?"yes":"no",
+                       inet_ntoa(*(struct in_addr*)&dst->ip[0]), dst->signum);
+
+            if (dst->netmask == 32)
+                node = SCRadixFindKeyIPV4ExactMatch((uint8_t *) &dst->ip[0],
+                                                    (de_ctx->io_ctx).tree_ipv4dst);
+            else
+                node = SCRadixFindKeyIPV4Netblock((uint8_t *) &dst->ip[0],
+                                                  (de_ctx->io_ctx).tree_ipv4dst,
+                                                  dst->netmask);
+
+            if (node == NULL) {
+                SCLogDebug("Exact match not found");
+
+                /**
+                 * Not found, look if there's a subnet of this range
+                 * with bigger netmask
+                 */
+                node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&dst->ip[0],
+                                                   (de_ctx->io_ctx).tree_ipv4dst);
+                if (node == NULL) {
+                    SCLogDebug("Best match not found");
+
+                    /** Not found, insert a new one */
+                    SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
+
+                    /** Update the sig */
+                    uint8_t tmp = 1 << (dst->signum % 8);
+                    if (dst->negated > 0)
+                        /** Unset it */
+                        sna->array[dst->signum / 8] &= ~tmp;
+                    else
+                        /** Set it */
+                        sna->array[dst->signum / 8] |= tmp;
+
+                    if (dst->netmask == 32)
+                        node = SCRadixAddKeyIPV4((uint8_t *)&dst->ip[0],
+                                                 (de_ctx->io_ctx).tree_ipv4dst, sna);
+                    else
+                        node = SCRadixAddKeyIPV4Netblock((uint8_t *)&dst->ip[0],
+                                                         (de_ctx->io_ctx).tree_ipv4dst,
+                                                         sna, dst->netmask);
+
+                    if (node == NULL)
+                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the dst "
+                                   "ipv4 radix tree");
+                } else {
+                    SCLogDebug("Best match found");
+
+                    /* Found, copy the sig num table, add this signum and insert */
+                    SigNumArray *sna = NULL;
+                    sna = SigNumArrayCopy((SigNumArray *)node->prefix->user_data_result);
+
+                    /* Update the sig */
+                    uint8_t tmp = 1 << (dst->signum % 8);
+                    if (dst->negated > 0)
+                        /* Unset it */
+                        sna->array[dst->signum / 8] &= ~tmp;
+                    else
+                        /* Set it */
+                        sna->array[dst->signum / 8] |= tmp;
+
+                    if (dst->netmask == 32)
+                        node = SCRadixAddKeyIPV4((uint8_t *)&dst->ip[0],
+                                                 (de_ctx->io_ctx).tree_ipv4dst, sna);
+                    else
+                        node = SCRadixAddKeyIPV4Netblock((uint8_t *)&dst->ip[0],
+                                                         (de_ctx->io_ctx).tree_ipv4dst,
+                                                          sna, dst->netmask);
+
+                    if (node == NULL)
+                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the dst "
+                                   "ipv4 radix tree");
+                }
+            } else {
+                SCLogDebug("Exact match found");
+
+                /* it's already inserted. Update it */
+                SigNumArray *sna = (SigNumArray *)node->prefix->user_data_result;
+
+                /* Update the sig */
+                uint8_t tmp = 1 << (dst->signum % 8);
+                if (dst->negated > 0)
+                    /* Unset it */
+                    sna->array[dst->signum / 8] &= ~tmp;
+                else
+                    /* Set it */
+                    sna->array[dst->signum / 8] |= tmp;
+            }
+        } else if (dst->family == AF_INET6) {
+            SCLogDebug("To IPv6");
+
+            if (dst->netmask == 128)
+                node = SCRadixFindKeyIPV6ExactMatch((uint8_t *)&dst->ip[0],
+                                                    (de_ctx->io_ctx).tree_ipv6dst);
+            else
+                node = SCRadixFindKeyIPV6Netblock((uint8_t *)&dst->ip[0],
+                                                  (de_ctx->io_ctx).tree_ipv6dst,
+                                                  dst->netmask);
+
+            if (node == NULL) {
+                /** Not found, look if there's a subnet of this range with
+                 * bigger netmask
+                 */
+                node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&dst->ip[0],
+                                                   (de_ctx->io_ctx).tree_ipv6dst);
+
+                if (node == NULL) {
+                    /* Not found, insert a new one */
+                    SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
+
+                    /* Update the sig */
+                    uint8_t tmp = 1 << (dst->signum % 8);
+                    if (dst->negated > 0)
+                        /* Unset it */
+                        sna->array[dst->signum / 8] &= ~tmp;
+                    else
+                        /* Set it */
+                        sna->array[dst->signum / 8] |= tmp;
+
+                    if (dst->netmask == 128)
+                        node = SCRadixAddKeyIPV6((uint8_t *)&dst->ip[0],
+                                                 (de_ctx->io_ctx).tree_ipv6dst, sna);
+                    else
+                        node = SCRadixAddKeyIPV6Netblock((uint8_t *)&dst->ip[0],
+                                                         (de_ctx->io_ctx).tree_ipv6dst,
+                                                          sna, dst->netmask);
+
+                    if (node == NULL)
+                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the dst "
+                                   "ipv6 radix tree");
+                } else {
+                    /* Found, copy the sig num table, add this signum and insert */
+                    SigNumArray *sna = NULL;
+                    sna = SigNumArrayCopy((SigNumArray *)node->prefix->user_data_result);
+
+                    /* Update the sig */
+                    uint8_t tmp = 1 << (dst->signum % 8);
+                    if (dst->negated > 0)
+                        /* Unset it */
+                        sna->array[dst->signum / 8] &= ~tmp;
+                    else
+                        /* Set it */
+                        sna->array[dst->signum / 8] |= tmp;
+
+                    if (dst->netmask == 128)
+                        node = SCRadixAddKeyIPV6((uint8_t *)&dst->ip[0],
+                                                 (de_ctx->io_ctx).tree_ipv6dst, sna);
+                    else
+                        node = SCRadixAddKeyIPV6Netblock((uint8_t *)&dst->ip[0],
+                                                         (de_ctx->io_ctx).tree_ipv6dst,
+                                                         sna, dst->netmask);
+
+                    if (node == NULL)
+                        SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the dst "
+                                   "ipv6 radix tree");
+                }
+            } else {
+                /* it's already inserted. Update it */
+                SigNumArray *sna = (SigNumArray *)node->prefix->user_data_result;
+
+                /* Update the sig */
+                uint8_t tmp = 1 << (dst->signum % 8);
+                if (dst->negated > 0)
+                    /* Unset it */
+                    sna->array[dst->signum / 8] &= ~tmp;
+                else
+                    /* Set it */
+                    sna->array[dst->signum / 8] |= tmp;
+            }
+        }
+        IPOnlyCIDRItem *tmpaux = dst;
+        dst = dst->next;
+        SCFree(tmpaux);
     }
-    //printf("\n");
+
+    /* print all the trees: for debuggin it might print too much info
+    SCLogDebug("Radix tree src ipv4:");
+    SCRadixPrintTree((de_ctx->io_ctx).tree_ipv4src);
+    SCLogDebug("Radix tree src ipv6:");
+    SCRadixPrintTree((de_ctx->io_ctx).tree_ipv6src);
+    SCLogDebug("__________________");
+
+    SCLogDebug("Radix tree dst ipv4:");
+    SCRadixPrintTree((de_ctx->io_ctx).tree_ipv4dst);
+    SCLogDebug("Radix tree dst ipv6:");
+    SCRadixPrintTree((de_ctx->io_ctx).tree_ipv6dst);
+    SCLogDebug("__________________");
+    */
 }
 
-void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx, Signature *s) {
+/**
+ * \brief Add a signature to the lists of Adrresses in CIDR format (sorted)
+ *        this step is necesary to build the radix tree with a hierarchical
+ *        relation between nodes
+ * \param de_ctx Pointer to the current detection engine context
+ * \param de_ctx Pointer to the current ip only detection engine contest
+ * \param s Pointer to the current signature
+ */
+void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
+                        Signature *s) {
     if (!(s->flags & SIG_FLAG_IPONLY))
         return;
 
-    DetectAddress *src = s->src.ipv4_head;
-    DetectAddress *dst = s->dst.ipv4_head;
+    /* Set the internal signum to the list before merging */
+    IPOnlyCIDRListSetSigNum(s->CidrSrc, s->num);
 
-    for ( ; src != NULL; src = src->next) {
-        IPOnlyAddSlash16(de_ctx, io_ctx, io_ctx->ht16_src, src, 0, s);
-//        IPOnlyAddSlash24(de_ctx, io_ctx, io_ctx->ht24_src, src, 0, s);
-    }
+    IPOnlyCIDRListSetSigNum(s->CidrDst, s->num);
 
-    for ( ; dst != NULL; dst = dst->next) {
-        IPOnlyAddSlash16(de_ctx, io_ctx, io_ctx->ht16_dst, dst, 1, s);
-//        IPOnlyAddSlash24(de_ctx, io_ctx, io_ctx->ht24_dst, dst, 1, s);
-    }
+    /**
+     * ipv4 and ipv6 are mixed, but later we will separate them into
+     * different trees
+     */
+    io_ctx->ip_src = IPOnlyCIDRItemInsert(io_ctx->ip_src, s->CidrSrc);
+    io_ctx->ip_dst = IPOnlyCIDRItemInsert(io_ctx->ip_dst, s->CidrDst);
 
     if (s->num > io_ctx->max_idx)
         io_ctx->max_idx = s->num;
 
     /* enable the sig in the bitarray */
-    io_ctx->sig_init_array[(s->num/8)] |= 1<<(s->num%8);
+    io_ctx->sig_init_array[(s->num/8)] |= 1 << (s->num % 8);
 }
 
 #ifdef UNITTESTS
@@ -703,6 +1573,363 @@ end:
         DetectEngineCtxFree(de_ctx);
     return result;
 }
+
+/**
+ * \test
+ */
+static int IPOnlyTestSig04 (void) {
+    int result = 1;
+
+    IPOnlyCIDRItem *head = NULL;
+    IPOnlyCIDRItem *new;
+
+    new = IPOnlyCIDRItemNew();
+    new->netmask= 10;
+
+    head = IPOnlyCIDRItemInsert(head, new);
+
+    new = IPOnlyCIDRItemNew();
+    new->netmask= 11;
+
+    head = IPOnlyCIDRItemInsert(head, new);
+
+    new = IPOnlyCIDRItemNew();
+    new->netmask= 9;
+
+    head = IPOnlyCIDRItemInsert(head, new);
+
+    new = IPOnlyCIDRItemNew();
+    new->netmask= 10;
+
+    head = IPOnlyCIDRItemInsert(head, new);
+
+    new = IPOnlyCIDRItemNew();
+    new->netmask= 10;
+
+    head = IPOnlyCIDRItemInsert(head, new);
+
+    IPOnlyCIDRListPrint(head);
+    new = head;
+    if (new->netmask != 9) {
+        result = 0;
+        goto end;
+    }
+    new = new->next;
+    if (new->netmask != 10) {
+        result = 0;
+        goto end;
+    }
+    new = new->next;
+    if (new->netmask != 10) {
+        result = 0;
+        goto end;
+    }
+    new = new->next;
+    if (new->netmask != 10) {
+        result = 0;
+        goto end;
+    }
+    new = new->next;
+    if (new->netmask != 11) {
+        result = 0;
+        goto end;
+    }
+
+end:
+    IPOnlyCIDRListFree(head);
+    return result;
+}
+
+/**
+ * \test Test a set of ip only signatures making use a lot of
+ * addresses for src and dst (all should match)
+ */
+int IPOnlyTestSig05(void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 1;
+    uint8_t numsigs = 7;
+
+    Packet *p[1];
+
+    p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    char *sigs[numsigs];
+    sigs[0]= "alert tcp 192.168.1.5 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert tcp any any -> 192.168.1.1 any (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
+    sigs[2]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
+    sigs[3]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
+    sigs[4]= "alert tcp 192.168.1.0/24 any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
+    sigs[5]= "alert tcp any any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
+    sigs[6]= "alert tcp 192.168.1.0/24 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\";sid:7;)";
+
+    /* Sid numbers (we could extract them from the sig) */
+    uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
+    uint32_t results[7] = { 1, 1, 1, 1, 1, 1, 1};
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    return result;
+}
+
+/**
+ * \test Test a set of ip only signatures making use a lot of
+ * addresses for src and dst (none should match)
+ */
+int IPOnlyTestSig06(void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 1;
+    uint8_t numsigs = 7;
+
+    Packet *p[1];
+
+    p[0] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "80.58.0.33", "195.235.113.3");
+
+    char *sigs[numsigs];
+    sigs[0]= "alert tcp 192.168.1.5 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert tcp any any -> 192.168.1.1 any (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
+    sigs[2]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
+    sigs[3]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
+    sigs[4]= "alert tcp 192.168.1.0/24 any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
+    sigs[5]= "alert tcp any any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
+    sigs[6]= "alert tcp 192.168.1.0/24 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\";sid:7;)";
+
+    /* Sid numbers (we could extract them from the sig) */
+    uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
+    uint32_t results[7] = { 0, 0, 0, 0, 0, 0, 0};
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    return result;
+}
+
+/**
+ * \test Test a set of ip only signatures making use a lot of
+ * addresses for src and dst (all should match)
+ */
+int IPOnlyTestSig07(void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 1;
+    uint8_t numsigs = 7;
+
+    Packet *p[1];
+
+    p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    char *sigs[numsigs];
+    sigs[0]= "alert tcp 192.168.1.5 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert tcp [192.168.1.2,192.168.1.5,192.168.1.4] any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 2)\"; sid:2;)";
+    sigs[2]= "alert tcp [192.168.1.0/24,!192.168.1.1] any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
+    sigs[3]= "alert tcp [192.0.0.0/8,!192.168.0.0/16,192.168.1.0/24,!192.168.1.1] any -> [192.168.1.0/24,!192.168.1.5] any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
+    sigs[5]= "alert tcp any any -> [192.168.0.0/16,!192.168.1.0/24,192.168.1.1] any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
+    sigs[6]= "alert tcp [78.129.202.0/24,192.168.1.5,78.129.205.64,78.129.214.103,78.129.223.19,78.129.233.17,78.137.168.33,78.140.132.11,78.140.133.15,78.140.138.105,78.140.139.105,78.140.141.107,78.140.141.114,78.140.143.103,78.140.143.13,78.140.145.144,78.140.170.164,78.140.23.18,78.143.16.7,78.143.46.124,78.157.129.71] any -> 192.168.1.1 any (msg:\"ET RBN Known Russian Business Network IP TCP - BLOCKING (246)\"; sid:7;)"; /* real sid:"2407490" */
+
+    /* Sid numbers (we could extract them from the sig) */
+    uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
+    uint32_t results[7] = { 1, 1, 1, 1, 1, 1, 1};
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    return result;
+}
+
+/**
+ * \test Test a set of ip only signatures making use a lot of
+ * addresses for src and dst (none should match)
+ */
+int IPOnlyTestSig08(void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 1;
+    uint8_t numsigs = 7;
+
+    Packet *p[1];
+
+    p[0] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP,"192.168.1.1","192.168.1.5");
+
+    char *sigs[numsigs];
+    sigs[0]= "alert tcp 192.168.1.5 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert tcp [192.168.1.2,192.168.1.5,192.168.1.4] any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 2)\"; sid:2;)";
+    sigs[2]= "alert tcp [192.168.1.0/24,!192.168.1.1] any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
+    sigs[3]= "alert tcp [192.0.0.0/8,!192.168.0.0/16,192.168.1.0/24,!192.168.1.1] any -> [192.168.1.0/24,!192.168.1.5] any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> !192.168.1.5 any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
+    sigs[5]= "alert tcp any any -> [192.168.0.0/16,!192.168.1.0/24,192.168.1.1] any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
+    sigs[6]= "alert tcp [78.129.202.0/24,192.168.1.5,78.129.205.64,78.129.214.103,78.129.223.19,78.129.233.17,78.137.168.33,78.140.132.11,78.140.133.15,78.140.138.105,78.140.139.105,78.140.141.107,78.140.141.114,78.140.143.103,78.140.143.13,78.140.145.144,78.140.170.164,78.140.23.18,78.143.16.7,78.143.46.124,78.157.129.71] any -> 192.168.1.1 any (msg:\"ET RBN Known Russian Business Network IP TCP - BLOCKING (246)\"; sid:7;)"; /* real sid:"2407490" */
+
+    /* Sid numbers (we could extract them from the sig) */
+    uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
+    uint32_t results[7] = { 0, 0, 0, 0, 0, 0, 0};
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    return result;
+}
+
+/**
+ * \test Test a set of ip only signatures making use a lot of
+ * addresses for src and dst (all should match)
+ */
+int IPOnlyTestSig09(void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 1;
+    uint8_t numsigs = 7;
+
+    Packet *p[1];
+
+    p[0] = UTHBuildPacketIPV6SrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565", "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562");
+
+    char *sigs[numsigs];
+    sigs[0]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert tcp any any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562 any (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
+    sigs[2]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
+    sigs[3]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:0/96 any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
+    sigs[4]= "alert tcp 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
+    sigs[5]= "alert tcp any any -> 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
+    sigs[6]= "alert tcp 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\";sid:7;)";
+
+    /* Sid numbers (we could extract them from the sig) */
+    uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
+    uint32_t results[7] = { 1, 1, 1, 1, 1, 1, 1};
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    return result;
+}
+
+/**
+ * \test Test a set of ip only signatures making use a lot of
+ * addresses for src and dst (none should match)
+ */
+int IPOnlyTestSig10(void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 1;
+    uint8_t numsigs = 7;
+
+    Packet *p[1];
+
+    p[0] = UTHBuildPacketIPV6SrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562", "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565");
+
+    char *sigs[numsigs];
+    sigs[0]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert tcp any any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562 any (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
+    sigs[2]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
+    sigs[3]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> !3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562/96 any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
+    sigs[4]= "alert tcp !3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
+    sigs[5]= "alert tcp any any -> !3FFE:FFFF:7654:FEDA:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
+    sigs[6]= "alert tcp 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> 3FFE:FFFF:7654:FEDB:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\";sid:7;)";
+
+    /* Sid numbers (we could extract them from the sig) */
+    uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
+    uint32_t results[7] = { 0, 0, 0, 0, 0, 0, 0};
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    return result;
+}
+
+/**
+ * \test Test a set of ip only signatures making use a lot of
+ * addresses for src and dst (all should match) with ipv4 and ipv6 mixed
+ */
+int IPOnlyTestSig11(void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 2;
+    uint8_t numsigs = 7;
+
+    Packet *p[2];
+
+    p[0] = UTHBuildPacketIPV6SrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565", "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562");
+    p[1] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP,"192.168.1.1","192.168.1.5");
+
+    char *sigs[numsigs];
+    sigs[0]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565,192.168.1.1 any -> 3FFE:FFFF:7654:FEDA:0:0:0:0/64,192.168.1.5 any (msg:\"Testing src/dst ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert tcp [192.168.1.1,3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565,192.168.1.4,192.168.1.5,!192.168.1.0/24] any -> [3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.0/24] any (msg:\"Testing src/dst ip (sid 2)\"; sid:2;)";
+    sigs[2]= "alert tcp [3FFE:FFFF:7654:FEDA:0:0:0:0/64,!3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.1] any -> [3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.5] any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
+    sigs[3]= "alert tcp [3FFE:FFFF:0:0:0:0:0:0/32,!3FFE:FFFF:7654:FEDA:0:0:0:0/64,3FFE:FFFF:7654:FEDA:0:0:0:0/64,!3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.1] any -> [3FFE:FFFF:7654:FEDA:0:0:0:0/64,192.168.1.0/24,!3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565] any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
+    sigs[5]= "alert tcp any any -> [3FFE:FFFF:7654:FEDA:0:0:0:0/64,!3FFE:FFFF:7654:FEDA:0:0:0:0/64,3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.5] any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
+    sigs[6]= "alert tcp [78.129.202.0/24,3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565,192.168.1.1,78.129.205.64,78.129.214.103,78.129.223.19,78.129.233.17,78.137.168.33,78.140.132.11,78.140.133.15,78.140.138.105,78.140.139.105,78.140.141.107,78.140.141.114,78.140.143.103,78.140.143.13,78.140.145.144,78.140.170.164,78.140.23.18,78.143.16.7,78.143.46.124,78.157.129.71] any -> [3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.0.0.0/8] any (msg:\"ET RBN Known Russian Business Network IP TCP - BLOCKING (246)\"; sid:7;)"; /* real sid:"2407490" */
+
+    /* Sid numbers (we could extract them from the sig) */
+    uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
+    uint32_t results[2][7] = {{ 1, 1, 1, 1, 1, 1, 1}, { 1, 1, 1, 1, 1, 1, 1}};
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    return result;
+}
+
+/**
+ * \test Test a set of ip only signatures making use a lot of
+ * addresses for src and dst (none should match) with ipv4 and ipv6 mixed
+ */
+int IPOnlyTestSig12(void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 2;
+    uint8_t numsigs = 7;
+
+    Packet *p[2];
+
+    p[0] = UTHBuildPacketIPV6SrcDst((uint8_t *)buf, buflen, IPPROTO_TCP,"3FBE:FFFF:7654:FEDA:1245:BA98:3210:4562","3FBE:FFFF:7654:FEDA:1245:BA98:3210:4565");
+    p[1] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP,"195.85.1.1","80.198.1.5");
+
+    char *sigs[numsigs];
+    sigs[0]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565,192.168.1.1 any -> 3FFE:FFFF:7654:FEDA:0:0:0:0/64,192.168.1.5 any (msg:\"Testing src/dst ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert tcp [192.168.1.1,3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565,192.168.1.4,192.168.1.5,!192.168.1.0/24] any -> [3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.0/24] any (msg:\"Testing src/dst ip (sid 2)\"; sid:2;)";
+    sigs[2]= "alert tcp [3FFE:FFFF:7654:FEDA:0:0:0:0/64,!3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.1] any -> [3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.5] any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
+    sigs[3]= "alert tcp [3FFE:FFFF:0:0:0:0:0:0/32,!3FFE:FFFF:7654:FEDA:0:0:0:0/64,3FFE:FFFF:7654:FEDA:0:0:0:0/64,!3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.1] any -> [3FFE:FFFF:7654:FEDA:0:0:0:0/64,192.168.1.0/24,!3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565] any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> [!3FBE:FFFF:7654:FEDA:1245:BA98:3210:4565,!80.198.1.5] any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
+    sigs[5]= "alert tcp any any -> [3FFE:FFFF:7654:FEDA:0:0:0:0/64,!3FFE:FFFF:7654:FEDA:0:0:0:0/64,3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.5] any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
+    sigs[6]= "alert tcp [78.129.202.0/24,3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565,192.168.1.1,78.129.205.64,78.129.214.103,78.129.223.19,78.129.233.17,78.137.168.33,78.140.132.11,78.140.133.15,78.140.138.105,78.140.139.105,78.140.141.107,78.140.141.114,78.140.143.103,78.140.143.13,78.140.145.144,78.140.170.164,78.140.23.18,78.143.16.7,78.143.46.124,78.157.129.71] any -> [3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.0.0.0/8] any (msg:\"ET RBN Known Russian Business Network IP TCP - BLOCKING (246)\"; sid:7;)"; /* real sid:"2407490" */
+
+    /* Sid numbers (we could extract them from the sig) */
+    uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
+    uint32_t results[2][7] = {{ 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}};
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void IPOnlyRegisterTests(void) {
@@ -710,6 +1937,17 @@ void IPOnlyRegisterTests(void) {
     UtRegisterTest("IPOnlyTestSig01", IPOnlyTestSig01, 1);
     UtRegisterTest("IPOnlyTestSig02", IPOnlyTestSig02, 1);
     UtRegisterTest("IPOnlyTestSig03", IPOnlyTestSig03, 1);
+    UtRegisterTest("IPOnlyTestSig04", IPOnlyTestSig04, 1);
+
+    UtRegisterTest("IPOnlyTestSig05", IPOnlyTestSig05, 1);
+    UtRegisterTest("IPOnlyTestSig06", IPOnlyTestSig06, 1);
+    UtRegisterTest("IPOnlyTestSig07", IPOnlyTestSig07, 1);
+    UtRegisterTest("IPOnlyTestSig08", IPOnlyTestSig08, 1);
+
+    UtRegisterTest("IPOnlyTestSig09", IPOnlyTestSig09, 1);
+    UtRegisterTest("IPOnlyTestSig10", IPOnlyTestSig10, 1);
+    UtRegisterTest("IPOnlyTestSig11", IPOnlyTestSig11, 1);
+    UtRegisterTest("IPOnlyTestSig12", IPOnlyTestSig12, 1);
 #endif
 }
 

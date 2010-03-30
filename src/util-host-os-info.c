@@ -199,7 +199,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
 
     /* create the radix tree that would hold all the host os info */
     if (sc_hinfo_tree == NULL)
-        sc_hinfo_tree = SCRadixCreateRadixTree(SCHInfoFreeUserDataOSPolicy);
+        sc_hinfo_tree = SCRadixCreateRadixTree(SCHInfoFreeUserDataOSPolicy, NULL);
 
     /* the host os flavour that has to be sent as user data */
     if ( (user_data = SCHInfoAllocUserDataOSPolicy(host_os)) == NULL) {

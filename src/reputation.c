@@ -34,7 +34,7 @@ IPReputationCtx *SCReputationInitCtx() {
     }
     memset(rep_ctx,0,sizeof(IPReputationCtx));
 
-    rep_ctx->reputationIPV4_tree = SCRadixCreateRadixTree(SCReputationFreeData);
+    rep_ctx->reputationIPV4_tree = SCRadixCreateRadixTree(SCReputationFreeData, NULL);
     if (rep_ctx->reputationIPV4_tree == NULL) {
         SCLogDebug("Error initializing Reputation IPV4 module");
         return NULL;
@@ -42,7 +42,7 @@ IPReputationCtx *SCReputationInitCtx() {
 
     SCLogDebug("Reputation IPV4 module initialized");
 
-    rep_ctx->reputationIPV6_tree = SCRadixCreateRadixTree(SCReputationFreeData);
+    rep_ctx->reputationIPV6_tree = SCRadixCreateRadixTree(SCReputationFreeData, NULL);
     if (rep_ctx->reputationIPV6_tree == NULL) {
         SCLogDebug("Error initializing Reputation IPV6 module");
         return NULL;

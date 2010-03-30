@@ -204,7 +204,7 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
 {
     SCRadixPrefix *prefix = NULL;
 
-    if ((key_bitlen % 8 != 0) || key_bitlen == 0) {
+    if ((key_bitlen % 8 != 0)) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid argument bitlen - %d",
                    key_bitlen);
         return NULL;
@@ -408,7 +408,7 @@ static int SCRadixPrefixContainNetmaskAndSetUserData(SCRadixPrefix *prefix,
         }
     }
 
- no_match:
+no_match:
     return 0;
 }
 
@@ -486,7 +486,7 @@ static inline void SCRadixReleaseNode(SCRadixNode *node, SCRadixTree *tree)
  *
  * \retval tree The newly created radix tree on success
  */
-SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*))
+SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*))
 {
     SCRadixTree *tree = NULL;
 
@@ -497,6 +497,7 @@ SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*))
     memset(tree, 0, sizeof(SCRadixTree));
 
     tree->Free = Free;
+    tree->PrintData = PrintData;
 
     return tree;
 }
@@ -526,7 +527,8 @@ static void SCRadixReleaseRadixSubtree(SCRadixNode *node, SCRadixTree *tree)
  */
 void SCRadixReleaseRadixTree(SCRadixTree *tree)
 {
-    SCRadixReleaseRadixSubtree(tree->head, tree);
+    if (tree != NULL)
+        SCRadixReleaseRadixSubtree(tree->head, tree);
 
     tree->head = NULL;
 
@@ -1415,6 +1417,48 @@ SCRadixNode *SCRadixFindKeyIPV4BestMatch(uint8_t *key_stream, SCRadixTree *tree)
 }
 
 /**
+ * \brief Checks if an IPV4 Netblock address is present in the tree
+ *
+ * \param key_stream Data that has to be found in the Radix tree.  In this case
+ *                   an IPV4  netblock address
+ * \param tree       Pointer to the Radix tree instance
+ */
+SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
+                                        uint8_t netmask)
+{
+    SCRadixNode *node = NULL;
+    node = SCRadixFindKey(key_stream, 32, tree, 0);
+    if (node == NULL)
+        return node;
+
+    if (SCRadixPrefixContainNetmaskAndSetUserData(node->prefix, netmask, 1))
+        return node;
+    else
+        return NULL;
+}
+
+/**
+ * \brief Checks if an IPV6 Netblock address is present in the tree
+ *
+ * \param key_stream Data that has to be found in the Radix tree.  In this case
+ *                   an IPV6  netblock address
+ * \param tree       Pointer to the Radix tree instance
+ */
+SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
+                                        uint8_t netmask)
+{
+    SCRadixNode *node = NULL;
+    node = SCRadixFindKey(key_stream, 128, tree, 0);
+    if (node == NULL)
+        return node;
+
+    if (SCRadixPrefixContainNetmaskAndSetUserData(node->prefix, (uint16_t)netmask, 1))
+        return node;
+    else
+        return NULL;
+}
+
+/**
  * \brief Checks if an IPV6 address is present in the tree
  *
  * \param key_stream Data that has to be found in the Radix tree.  In this case
@@ -1444,7 +1488,7 @@ SCRadixNode *SCRadixFindKeyIPV6BestMatch(uint8_t *key_stream, SCRadixTree *tree)
  * \param node  Pointer to the Radix node whose information has to be printed
  * \param level Used for indentation purposes
  */
-static void SCRadixPrintNodeInfo(SCRadixNode *node, int level)
+void SCRadixPrintNodeInfo(SCRadixNode *node, int level,  void (*PrintData)(void*))
 {
     int i = 0;
 
@@ -1469,7 +1513,21 @@ static void SCRadixPrintNodeInfo(SCRadixNode *node, int level)
                 printf(".");
             printf("%d", node->prefix->stream[i]);
         }
-        printf(")\n");
+        printf(")");
+
+        if (PrintData != NULL) {
+            SCRadixUserData *ud = NULL;
+            do {
+                ud = node->prefix->user_data;
+                printf(" [%d], ", ud->netmask);
+                PrintData(ud->user);
+                ud = ud->next;
+            } while (ud != NULL);
+        } else {
+            printf("No print function provided");
+        }
+        printf("\n");
+
     } else {
         printf("NULL)\n");
     }
@@ -1484,12 +1542,12 @@ static void SCRadixPrintNodeInfo(SCRadixNode *node, int level)
  * \param node  Pointer to the node that is the root of the subtree to be printed
  * \param level Used for indentation purposes
  */
-static void SCRadixPrintRadixSubtree(SCRadixNode *node, int level)
+static void SCRadixPrintRadixSubtree(SCRadixNode *node, int level, void (*PrintData)(void*))
 {
     if (node != NULL) {
-        SCRadixPrintNodeInfo(node, level);
-        SCRadixPrintRadixSubtree(node->left, level + 1);
-        SCRadixPrintRadixSubtree(node->right, level + 1);
+        SCRadixPrintNodeInfo(node, level, PrintData);
+        SCRadixPrintRadixSubtree(node->left, level + 1, PrintData);
+        SCRadixPrintRadixSubtree(node->right, level + 1, PrintData);
     }
 
     return;
@@ -1517,7 +1575,7 @@ void SCRadixPrintTree(SCRadixTree *tree)
 {
     printf("Printing the Radix Tree: \n");
 
-    SCRadixPrintRadixSubtree(tree->head, 0);
+    SCRadixPrintRadixSubtree(tree->head, 0, tree->PrintData);
 
     return;
 }
@@ -1533,7 +1591,8 @@ int SCRadixTestInsertion01(void)
 
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
+
 
     node[0] = SCRadixAddKeyGeneric((uint8_t *)"abaa", 32, tree, NULL);
     node[1] = SCRadixAddKeyGeneric((uint8_t *)"abab", 32, tree, NULL);
@@ -1552,7 +1611,7 @@ int SCRadixTestInsertion02(void)
     SCRadixTree *tree = NULL;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     SCRadixAddKeyGeneric((uint8_t *)"aaaaaa", 48, tree, NULL);
     SCRadixAddKeyGeneric((uint8_t *)"aaaaab", 48, tree, NULL);
@@ -1570,7 +1629,7 @@ int SCRadixTestIPV4Insertion03(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -1681,7 +1740,7 @@ int SCRadixTestIPV4Removal04(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -1792,7 +1851,7 @@ int SCRadixTestCharacterInsertion05(void)
     SCRadixTree *tree = NULL;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* Let us have our team here ;-) */
     SCRadixAddKeyGeneric((uint8_t *)"Victor", 48, tree, NULL);
@@ -1832,7 +1891,7 @@ int SCRadixTestCharacterRemoval06(void)
     SCRadixTree *tree = NULL;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* Let us have our team here ;-) */
     SCRadixAddKeyGeneric((uint8_t *)"Victor", 48, tree, NULL);
@@ -1887,7 +1946,7 @@ int SCRadixTestIPV6Insertion07(void)
     struct sockaddr_in6 servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2001,7 +2060,7 @@ int SCRadixTestIPV6Removal08(void)
     struct sockaddr_in6 servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2240,7 +2299,7 @@ int SCRadixTestIPV4NetblockInsertion09(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2350,7 +2409,7 @@ int SCRadixTestIPV4NetblockInsertion10(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2457,7 +2516,7 @@ int SCRadixTestIPV4NetblockInsertion11(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2625,7 +2684,7 @@ int SCRadixTestIPV4NetblockInsertion12(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2749,7 +2808,7 @@ int SCRadixTestIPV6NetblockInsertion13(void)
     struct sockaddr_in6 servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2880,7 +2939,7 @@ int SCRadixTestIPV6NetblockInsertion14(void)
     struct sockaddr_in6 servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL);
+    tree = SCRadixCreateRadixTree(NULL, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));

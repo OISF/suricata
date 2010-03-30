@@ -518,6 +518,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                    (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)))) {
         /* Get the result of the first IPOnlyMatch() */
         if (p->flow->flags & FLOW_ACTION_DROP) p->action |= ACTION_DROP;
+    } else {
+        /* Even without flow we should match the packet src/dst */
+        IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
     }
 
     /* we assume we have an uri when we start inspection */

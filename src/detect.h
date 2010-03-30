@@ -13,6 +13,7 @@
 #include "util-hashlist.h"
 #include "util-debug.h"
 #include "util-error.h"
+#include "util-radix-tree.h"
 
 #include "detect-threshold.h"
 
@@ -175,11 +176,21 @@ typedef struct DetectPort_ {
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
 
-typedef struct DetectEngineIPOnlyThreadCtx_ {
-    DetectAddress *src, *dst;
-    uint8_t *sig_match_array; /* bit array of sig nums */
-    uint32_t sig_match_size;  /* size in bytes of the array */
-} DetectEngineIPOnlyThreadCtx;
+typedef struct IPOnlyCIDRItem_ {
+    /* address data for this item */
+    uint8_t family;
+    uint32_t ip[4];
+    /* netmask in CIDR values (ex. /16 /18 /24..) */
+    uint8_t netmask;
+
+    /* If this host or net is negated for the signum */
+    uint8_t negated;
+    SigIntId signum; /**< our internal id */
+
+    /* linked list, the header should be the biggest network */
+    struct IPOnlyCIDRItem_ *next;
+
+} IPOnlyCIDRItem;
 
 /** \brief Signature container */
 typedef struct Signature_ {
@@ -201,6 +212,9 @@ typedef struct Signature_ {
     DetectAddressHead src, dst;
     DetectProto proto;
     DetectPort *sp, *dp;
+
+    /** netblocks and hosts specified at the sid, in CIDR format */
+    IPOnlyCIDRItem *CidrSrc, *CidrDst;
 
     /** ptr to the SigMatch lists */
     struct SigMatch_ *match; /* non-payload matches */
@@ -226,12 +240,24 @@ typedef struct Signature_ {
     uint16_t sm_cnt;
 } Signature;
 
+typedef struct DetectEngineIPOnlyThreadCtx_ {
+    uint8_t *sig_match_array; /* bit array of sig nums */
+    uint32_t sig_match_size;  /* size in bytes of the array */
+} DetectEngineIPOnlyThreadCtx;
+
 /** \brief IP only rules matching ctx.
  *  \todo a radix tree would be great here */
 typedef struct DetectEngineIPOnlyCtx_ {
     /* lookup hashes */
     HashListTable *ht16_src, *ht16_dst;
     HashListTable *ht24_src, *ht24_dst;
+
+    /* Lookup trees */
+    SCRadixTree *tree_ipv4src, *tree_ipv4dst;
+    SCRadixTree *tree_ipv6src, *tree_ipv6dst;
+
+    /* Used to build the radix trees */
+    IPOnlyCIDRItem *ip_src, *ip_dst;
 
     /* counters */
     uint32_t a_src_uniq16, a_src_total16;

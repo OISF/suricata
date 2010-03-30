@@ -12,6 +12,6 @@
 
 #define CLOCK_PRINT_SEC     printf("Seconds spent: %.4fs\n", ((clo2 - clo1)/(double)CLOCKS_PER_SEC))
 
-#define GET_CLOCK_END_SECS  ((clo - clo1)/(double)CLOCKS_PER_SEC)
+#define GET_CLOCK_END_SECS  ((clo1 - clo2)/(double)CLOCKS_PER_SEC)
 
 #endif /*__UTIL_CLOCK_H__ */

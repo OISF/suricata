@@ -73,6 +73,7 @@ typedef struct SCRadixTree_ {
 
     /* function pointer that is supplied by the user to free the user data
      * held by the user field of SCRadixNode */
+    void (*PrintData)(void *);
     void (*Free)(void *);
 } SCRadixTree;
 
@@ -81,7 +82,7 @@ struct in_addr *SCRadixValidateIPV4Address(const char *);
 struct in6_addr *SCRadixValidateIPV6Address(const char *);
 void SCRadixChopIPAddressAgainstNetmask(uint8_t *, uint8_t, uint16_t);
 
-SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*));
+SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*));
 void SCRadixReleaseRadixTree(SCRadixTree *);
 
 SCRadixNode *SCRadixAddKeyGeneric(uint8_t *, uint16_t, SCRadixTree *, void *);
@@ -99,12 +100,17 @@ void SCRadixRemoveKeyIPV6Netblock(uint8_t *, SCRadixTree *, uint8_t);
 void SCRadixRemoveKeyIPV6(uint8_t *, SCRadixTree *);
 
 SCRadixNode *SCRadixFindKeyGeneric(uint8_t *, uint16_t, SCRadixTree *);
+
 SCRadixNode *SCRadixFindKeyIPV4ExactMatch(uint8_t *, SCRadixTree *);
+SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *, SCRadixTree *, uint8_t);
 SCRadixNode *SCRadixFindKeyIPV4BestMatch(uint8_t *, SCRadixTree *);
+
 SCRadixNode *SCRadixFindKeyIPV6ExactMatch(uint8_t *, SCRadixTree *);
+SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *, SCRadixTree *, uint8_t);
 SCRadixNode *SCRadixFindKeyIPV6BestMatch(uint8_t *, SCRadixTree *);
 
 void SCRadixPrintTree(SCRadixTree *);
+void SCRadixPrintNodeInfo(SCRadixNode *, int,  void (*PrintData)(void*));
 
 void SCRadixRegisterTests(void);
 

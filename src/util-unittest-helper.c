@@ -19,6 +19,67 @@
 
 /**
  * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
+ * specifying ip and port sources and destinations (IPV6)
+ *
+ * \param payload pointer to the payloadd buffer
+ * \param payload_len pointer to the length of the payload
+ * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
+ * \param src pointer to a string containing the ip source
+ * \param dst pointer to a string containing the ip destination
+ * \param sport pointer to a string containing the port source
+ * \param dport pointer to a string containing the port destination
+ *
+ * \retval Packet pointer to the built in packet
+ */
+Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
+                           uint16_t ipproto, char *src, char *dst,
+                           uint16_t sport, uint16_t dport) {
+    uint32_t in[4];
+
+    Packet *p = SCMalloc(sizeof(Packet));
+    if (p == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet");
+        exit(EXIT_FAILURE);
+    }
+    memset(p, 0, sizeof(Packet));
+
+    p->src.family = AF_INET6;
+    p->dst.family = AF_INET6;
+    p->payload = payload;
+    p->payload_len = payload_len;
+    p->proto = ipproto;
+
+    inet_pton(AF_INET6, src, &in);
+    p->src.addr_data32[0] = in[0];
+    p->src.addr_data32[1] = in[1];
+    p->src.addr_data32[2] = in[2];
+    p->src.addr_data32[3] = in[3];
+    p->sp = sport;
+
+    inet_pton(AF_INET6, dst, &in);
+    p->dst.addr_data32[0] = in[0];
+    p->dst.addr_data32[1] = in[1];
+    p->dst.addr_data32[2] = in[2];
+    p->dst.addr_data32[3] = in[3];
+    p->dp = dport;
+
+    p->ip6h = SCMalloc(sizeof(IPV6Hdr));
+    if (p->ip6h == NULL) {
+       SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet ip6h");
+        exit(EXIT_FAILURE);
+    }
+    p->tcph = SCMalloc(sizeof(TCPHdr));
+    if (p->tcph == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet tcph");
+        exit(EXIT_FAILURE);
+    }
+    p->tcph->th_sport = sport;
+    p->tcph->th_dport = dport;
+    return p;
+}
+
+/**
+ * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
  * specifying ip and port sources and destinations
  *
  * \param payload pointer to the payloadd buffer
@@ -201,6 +262,23 @@ Packet *UTHBuildPacketSrcDst(uint8_t *payload, uint16_t payload_len,
 }
 
 /**
+ * \brief UTHBuildPacketSrcDst is a wrapper that build packets specifying IPs
+ * and defaulting ports (IPV6)
+ *
+ * \param payload pointer to the payloadd buffer
+ * \param payload_len pointer to the length of the payload
+ * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
+ *
+ * \retval Packet pointer to the built in packet
+ */
+Packet *UTHBuildPacketIPV6SrcDst(uint8_t *payload, uint16_t payload_len,
+                           uint16_t ipproto, char *src, char *dst) {
+    return UTHBuildPacketIPV6Real(payload, payload_len, ipproto,
+                              src, dst,
+                              41424, 80);
+}
+
+/**
  * \brief UTHBuildPacketSrcDstPorts is a wrapper that build packets specifying
  * src and dst ports and defaulting IPs
  *
@@ -277,7 +355,7 @@ void UTHFreePacket(Packet *p) {
  * \param sigs array of char* pointing to signatures to load
  * \param numsigs number of signatures to load and check
  * \param results pointer to arrays of numbers, each of them foreach packet
- *                to check if sids matches that packet as espected with
+ *                to check if sids matches that packet as expected with
  *                that number of times or not. The size of results should be
  *                numpkts * numsigs * sizeof(uint16_t *)
  *
@@ -340,7 +418,7 @@ int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[], uint32_t results[], i
     for (; i < numsids; i++) {
         uint16_t r = PacketAlertCheck(p, sids[i]);
         if (r != results[i]) {
-            SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, and not %"PRIu16" as espected", sids[i], r, results[i]);
+            SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, and not %"PRIu16" as expected", sids[i], r, results[i]);
             res = 0;
         } else {
             SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, as expected", sids[i], r);

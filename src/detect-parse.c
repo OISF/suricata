@@ -27,6 +27,7 @@
 #include "util-debug.h"
 #include "string.h"
 #include "detect-parse.h"
+#include "detect-engine-iponly.h"
 
 static pcre *config_pcre = NULL;
 static pcre *option_pcre = NULL;
@@ -580,6 +581,15 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t addrs_dir
 
     if (SigParseAddress(s, arr[CONFIG_DST], SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
+
+    /* For IPOnly */
+    if (IPOnlySigParseAddress(s, arr[CONFIG_SRC], SIG_DIREC_SRC ^ addrs_direction) < 0)
+       goto error;
+
+    if (IPOnlySigParseAddress(s, arr[CONFIG_DST], SIG_DIREC_DST ^ addrs_direction) < 0)
+        goto error;
+
+
     /* For "ip" we parse the ports as well, even though they will be just "any".
      *  We do this for later sgh building for the tcp and udp protocols. */
     if (DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
@@ -614,7 +624,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
 
     int ret = SigParseBasics(s, sigstr, &basics, addrs_direction);
     if (ret < 0) {
-        //printf("SigParseBasics failed\n");
+        printf("SigParseBasics failed\n");
         SCReturnInt(-1);
     }
 
