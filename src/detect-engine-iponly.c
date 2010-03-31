@@ -205,7 +205,7 @@ void SigNumArrayPrint(void *tmp) {
         uint8_t i = 0;
 
         for (; i < 8; i++) {
-            if (bitarray & 0x0001)
+            if (bitarray & 0x01)
                 printf(", %"PRIu16"", u * 8 + i);
             else
                 printf(", ");
@@ -630,7 +630,7 @@ int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
                 netmask = in.s_addr;
 
                 /* Extract cidr netmask */
-                while ((0x0001 & netmask) == 0) {
+                while ((0x01 & netmask) == 0) {
                     dd->netmask++;
                     netmask = netmask >> 1;
                 }
@@ -922,7 +922,7 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
             uint8_t i = 0;
 
             for (; i < 8; i++, bitarray = bitarray >> 1) {
-                if (bitarray & 0x0001) {
+                if (bitarray & 0x01) {
                     Signature *s = de_ctx->sig_array[u * 8 + i];
 
                     /* Need to check the protocol first */
