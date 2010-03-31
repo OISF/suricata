@@ -374,8 +374,8 @@ void usage(const char *progname)
     printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\t--dump-config                : show the running configuration\n");
     printf("\t--pfring-int <dev>           : run in pfring mode\n");
-    printf("\t--pfring-clusterid <id>      : pfring cluster id \n");
-    printf("\t--pfring-ctype <ctype>       : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow");
+    printf("\t--pfring-cluster-id <id>     : pfring cluster id \n");
+    printf("\t--pfring-cluster-type <type> : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -419,8 +419,8 @@ int main(int argc, char **argv)
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
         {"pfring-int",  required_argument, 0, 0},
-        {"pfring-clusterid",  required_argument, 0, 0},
-        {"pfring-ctype",  required_argument, 0, 0},
+        {"pfring-cluster-id",  required_argument, 0, 0},
+        {"pfring-cluster-type",  required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
         {"init-errors-fatal", 0, 0, 0},
@@ -443,15 +443,15 @@ int main(int argc, char **argv)
                     exit(EXIT_FAILURE);
                 }
             }
-            else if(strcmp((long_opts[option_index]).name , "pfring-clusterid") == 0){
-                if (ConfSet("pfring.clusterid", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set pfring clusterid.\n");
+            else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
+                if (ConfSet("pfring.cluster-id", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set pfring cluster-id.\n");
                     exit(EXIT_FAILURE);
                 }
             }
-            else if(strcmp((long_opts[option_index]).name , "pfring-ctype") == 0){
-                if (ConfSet("pfring.ctype", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set pfring cluster type.\n");
+            else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
+                if (ConfSet("pfring.cluster-type", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set pfring cluster-type.\n");
                     exit(EXIT_FAILURE);
                 }
             }
