@@ -142,6 +142,7 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
     }
 
     stream->seg_list = NULL;
+    stream->seg_list_tail = NULL;
 }
 
 /** \brief Function to return the stream back to the pool. It returns the
