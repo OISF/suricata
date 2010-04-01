@@ -65,10 +65,10 @@ typedef struct AlpProtoDetectCtx_ {
     int alp_content_module_handle;
 } AlpProtoDetectCtx;
 
+/** global app layer detection context */
 static AlpProtoDetectCtx alp_proto_ctx;
-//static AlpProtoDetectThreadCtx alp_proto_tctx;
 
-
+/** \brief Initialize the app layer proto detection */
 void AlpProtoInit(AlpProtoDetectCtx *ctx) {
     memset(ctx, 0x00, sizeof(AlpProtoDetectCtx));
 
@@ -276,6 +276,16 @@ void AppLayerDetectProtoThreadInit(void) {
     AlpProtoFinalizeGlobal(&alp_proto_ctx);
 }
 
+/** \brief Get the app layer proto based on a buffer
+ *
+ *  \param ctx Global app layer detection context
+ *  \param tctx Thread app layer detection context
+ *  \param buf Pointer to the buffer to inspect
+ *  \param buflen Lenght of the buffer
+ *  \param flags Flags.
+ *
+ *  \retval proto App Layer proto, or ALPROTO_UNKNOWN if unknown
+ */
 uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tctx, uint8_t *buf, uint16_t buflen, uint8_t flags) {
     SCEnter();
 
@@ -400,6 +410,16 @@ end:
     SCReturnUInt(proto);
 }
 
+/** \brief Handle a app layer message
+ *
+ *  If the protocol is yet unknown, the proto detection code is run first.
+ *
+ *  \param dp_ctx Thread app layer detect context
+ *  \param smsg Stream message
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
 int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
 {
     SCEnter();
@@ -409,10 +429,12 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
     TcpSession *ssn = smsg->flow->protoctx;
     if (ssn != NULL) {
         alproto = ssn->alproto;
-    }
 
-    if (ssn != NULL) {
-        if (smsg->flags & STREAM_START) {
+        /* if we don't know the proto yet and we have received a stream
+         * initializer message, we run proto detection.
+         * We receive 2 stream init msgs (one for each direction) but we
+         * only run the proto detection once. */
+        if (alproto == ALPROTO_UNKNOWN && smsg->flags & STREAM_START) {
             SCLogDebug("Stream initializer (len %" PRIu32 " (%" PRIu32 "))",
                         smsg->data.data_len, MSG_DATA_SIZE);
 
@@ -470,6 +492,9 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
 
     SCReturnInt(r);
 }
+
+/* VJ Originally I thought of having separate app layer
+ * handling threads, leaving this here in case we'll revisit that */
 #if 0
 void *AppLayerDetectProtoThread(void *td)
 {
