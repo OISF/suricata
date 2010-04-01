@@ -954,7 +954,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
             parsed += retval;
             input_len -= retval;
             SCLogDebug(
-                    "[1] NBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %"PRIu64" input_len %u\n",
+                    "[1] NBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %"PRIu64" input_len %u",
                     sstate->bytesprocessed, NBSS_HDR_LEN, sstate->nbss.type,
                     sstate->nbss.length, parsed, input_len);
         } else if (input_len) {
@@ -978,7 +978,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                     parsed += hdrretval;
                     input_len -= hdrretval;
                     SCLogDebug(
-                            "[2] SMB Header (%u/%u) Command 0x%02x parsed %"PRIu64" input_len %u\n",
+                            "[2] SMB Header (%u/%u) Command 0x%02x parsed %"PRIu64" input_len %u",
                             sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN,
                             sstate->smb.command, parsed, input_len);
                 }
@@ -997,7 +997,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         sstate->bytesprocessed = 0;
                         SCReturnInt(-1);
                     }
-                    SCLogDebug("[3] WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u\n",
+                    SCLogDebug("[3] WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u",
 				sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1,
                         sstate->wordcount.wordcount,
                         parsed, input_len);
@@ -1016,7 +1016,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         sstate->bytesprocessed = 0;
                         SCReturnInt(-1);
                     }
-                    SCLogDebug("[4] Parsing WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u\n",
+                    SCLogDebug("[4] Parsing WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u",
 						sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount,
                                         sstate->wordcount.wordcount,
                                         parsed, input_len);
@@ -1036,7 +1036,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         sstate->bytesprocessed = 0;
                         SCReturnInt(-1);
                     }
-                    SCLogDebug("[5] ByteCount (%u/%u) ByteCount %u parsed %"PRIu64" input_len %u\n",
+                    SCLogDebug("[5] ByteCount (%u/%u) ByteCount %u parsed %"PRIu64" input_len %u",
 						sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 3,
                                            sstate->bytecount.bytecount,
                                            parsed, input_len);
@@ -1057,7 +1057,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         sstate->bytesprocessed = 0;
                         SCReturnInt(-1);
                     }
-                    SCLogDebug("[6] Parsing ByteCount (%u/%u) ByteCount %u parsed %"PRIu64" input_len %u\n",
+                    SCLogDebug("[6] Parsing ByteCount (%u/%u) ByteCount %u parsed %"PRIu64" input_len %u",
 									sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount + 2 + sstate->bytecount.bytecount,
                                                                           sstate->bytecount.bytecount, parsed, input_len);
                 }
@@ -1066,12 +1066,12 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                     && input_len && sstate->andx.maxchainedandx--);
 
             if (sstate->bytesprocessed >= sstate->nbss.length + NBSS_HDR_LEN ||
-			sstate->andx.maxchainedandx == 0) {
-		sstate->bytesprocessed = 0;
+                    sstate->andx.maxchainedandx == 0) {
+                sstate->bytesprocessed = 0;
             }
             break;
         default:
-		sstate->bytesprocessed = 0;
+            sstate->bytesprocessed = 0;
             break;
     }
     pstate->parse_field = 0;
@@ -1103,20 +1103,35 @@ int isAndX(SMBState *smb_state) {
     }
 }
 
+/** \internal
+ *  \brief Allocate a SMBState
+ *  \retval s State, or NULL in case of error
+ */
 static void *SMBStateAlloc(void) {
+    SCEnter();
+
     void *s = SCMalloc(sizeof(SMBState));
-    if (s == NULL)
-        return NULL;
+    if (s == NULL) {
+        SCReturnPtr(NULL, "void");
+    }
 
     memset(s, 0, sizeof(SMBState));
-    return s;
+
+    SCReturnPtr(s, "void");
 }
 
+/** \internal
+ *  \brief Free a SMBState
+ */
 static void SMBStateFree(void *s) {
+    SCEnter();
+
     if (s) {
         SCFree(s);
         s = NULL;
     }
+
+    SCReturn;
 }
 
 void RegisterSMBParsers(void) {

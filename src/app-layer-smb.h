@@ -17,7 +17,7 @@
 #include "app-layer-nbss.h"
 #include "app-layer-dcerpc-common.h"
 
-typedef struct smb_hdr_ {
+typedef struct SMBHdr_ {
     uint8_t protocol[4];
     uint8_t command;
     uint32_t status;
@@ -30,26 +30,26 @@ typedef struct smb_hdr_ {
     uint16_t pid;
     uint16_t uid;
     uint16_t mid;
-}SMBHdr;
+} SMBHdr;
 
 #define SMB_HDR_LEN 32
 #define MINIMUM_SMB_LEN 35
 #define NBSS_SMB_HDRS_LEN 36
 
-typedef struct wordcount_ {
+typedef struct SMBWordCount_ {
     uint8_t wordcount;
     uint8_t wordcountleft;
     uint8_t *words;
-}SMBWordCount;
+} SMBWordCount;
 
-typedef struct bytecount_ {
+typedef struct SMBByteCount_ {
     uint8_t bytecountbytes;
     uint16_t bytecount;
     uint16_t bytecountleft;
     uint8_t *bytes;
-}SMBByteCount;
+} SMBByteCount;
 
-typedef struct andxcount_ {
+typedef struct SMBAndX_ {
     uint8_t isandx;
     uint8_t paddingparsed;
     uint8_t andxcommand;
@@ -59,9 +59,10 @@ typedef struct andxcount_ {
     uint16_t datalength;
     uint16_t datalengthhigh;
     uint64_t dataoffset;
-}SMBAndX;
+} SMBAndX;
 
 typedef struct SMBState_ {
+    uint32_t head;
     NBSSHdr nbss;
     SMBHdr smb;
     SMBWordCount wordcount;
@@ -69,7 +70,8 @@ typedef struct SMBState_ {
     SMBAndX andx;
     uint16_t bytesprocessed;
     DCERPC dcerpc;
-}SMBState;
+    uint32_t tail;
+} SMBState;
 
 #define SMB_FLAGS_SERVER_TO_REDIR 0x80
 #define SMB_NO_SECONDARY_ANDX_COMMAND 0xff
