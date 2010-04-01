@@ -812,11 +812,6 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     SCReturnInt(0);
 error:
     if (ssn != NULL) {
-        /* Clear the app layer protocol state memory and the given function also
-         * cleans the parser state memory */
-        if (f->use_cnt == 0)
-            AppLayerParserCleanupState(ssn);
-
         /* Set the no reassembly flag for both the stream in this TcpSession */
         StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOCLIENT ? 1 : 0);
         StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOSERVER ? 1 : 0);
@@ -834,7 +829,6 @@ error:
                 "address %s, destination IP address %s, src port %"PRIu16" and "
                 "dst port %"PRIu16"", al_proto_table[ssn->alproto].name,
                 f->proto, src, dst, f->sp, f->dp);
-
         } else {
             char dst6[46];
             char src6[46];
@@ -890,6 +884,7 @@ void AppLayerParserCleanupState(TcpSession *ssn)
         }
     }
 
+    /* free the app layer parser api state */
     if (ssn->aldata != NULL) {
         if (ssn->aldata[app_layer_sid] != NULL) {
             SCLogDebug("calling AppLayerParserStateStoreFree");

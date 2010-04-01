@@ -1,6 +1,7 @@
-/** Copyright (c) 2008 Victor Julien <victor@inliniac.net>
- *  Copyright (c) 2009 Open Information Security Foundation
- *
+/* Copyright (c) 2008 Victor Julien <victor@inliniac.net>
+ * Copyright (c) 2009 Open Information Security Foundation */
+
+/**
  * \file
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  * \author Victor Julien <victor@inliniac.net>
@@ -1612,25 +1613,32 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
 
 /** \brief Handle the queue'd smsgs containing reassembled app layer data when
  *         we're running the app layer handling as part of the stream threads.
- *  \param ra_ctx Reassembly thread ctx, contains the queue
+ *
+ *  \param ra_ctx Reassembly thread ctx, contains the queue with stream msgs
+ *
+ *  \todo Currently we process all msgs even if we encounter an error in one
+ *        of them. We do this to make sure the thread ctx's queue is emptied.
+ *        Maybe we should just clear & return the msgs in case of error.
+ *
  *  \retval 0 ok
+ *  \retval -1 error
  */
 int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
 {
     SCEnter();
+
     int r = 0;
     if (ra_ctx != NULL && ra_ctx->stream_q && ra_ctx->stream_q->len > 0) {
         StreamMsg *smsg = NULL;
         do {
             smsg = StreamMsgGetFromQueue(ra_ctx->stream_q);
-            if (smsg == NULL)
-                break;
-
-            /** Handle the stream msg. No need to use locking, flow is already
-             *  locked at this point. */
-            r = AppLayerHandleMsg(&ra_ctx->dp_ctx, smsg);
-            if (r < 0)
-                break;
+            if (smsg != NULL) {
+                /* Handle the stream msg. No need to use locking, flow is
+                 * already locked at this point. Don't break out of the
+                 * loop if we encounter an error. */
+                if (AppLayerHandleMsg(&ra_ctx->dp_ctx, smsg) != 0)
+                    r = -1;
+            }
         } while (ra_ctx->stream_q->len > 0);
     }
 
