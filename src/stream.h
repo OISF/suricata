@@ -13,6 +13,8 @@
 
 #define MSG_DATA_SIZE       512
 
+#define STREAMQUEUE_FLAG_INIT    0x01
+
 typedef struct StreamMsg_ {
     uint32_t id; /* unique stream id */
     uint8_t flags; /* msg flags */
@@ -42,6 +44,7 @@ typedef struct StreamMsgQueue_ {
     uint16_t len;
     SCMutex mutex_q;
     SCCondT cond_q;
+    uint8_t flags;
 #ifdef DBG_PERF
     uint16_t dbg_maxlen;
 #endif /* DBG_PERF */

@@ -2964,6 +2964,10 @@ static int StreamTcpTest02 (void) {
     StreamTcpThread stt;
     uint8_t payload[4];
     TCPHdr tcph;
+    TcpReassemblyThreadCtx ra_ctx;
+    StreamMsgQueue stream_q;
+    memset(&stream_q, 0, sizeof(StreamMsgQueue));
+    memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
@@ -2975,6 +2979,8 @@ static int StreamTcpTest02 (void) {
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
     int ret = 0;
+    ra_ctx.stream_q = &stream_q;
+    stt.ra_ctx = &ra_ctx;
 
     StreamTcpInitConfig(TRUE);
 

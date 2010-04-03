@@ -1077,11 +1077,6 @@ static int AppLayerParserTest01 (void)
         goto end;
     }
 
-    if (ssn.aldata != NULL) {
-        printf("App Layer state has not been cleared\n");
-        result = 0;
-        goto end;
-    }
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);

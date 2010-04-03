@@ -54,8 +54,12 @@ typedef struct AlpProtoDetectDirection_ {
     uint32_t id;
     uint16_t map[ALP_DETECT_MAX];   /**< a mapping between condition id's and
                                          protocol */
-    uint16_t max_depth;             /**< max depth of all patterns, so we can
+    uint16_t max_len;              /**< max length of all patterns, so we can
                                          limit the search */
+    uint16_t min_len;              /**< min length of all patterns, so we can
+                                         tell the stream engine to feed data
+                                         to app layer as soon as it has min
+                                         size data */
 } AlpProtoDetectDirection;
 
 typedef struct AlpProtoDetectCtx_ {
@@ -86,6 +90,8 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
 
     ctx->toserver.id = 0;
     ctx->toclient.id = 0;
+    ctx->toclient.min_len = INSPECT_BYTES;
+    ctx->toserver.min_len = INSPECT_BYTES;
 }
 
 void AlpProtoTestDestroy(AlpProtoDetectCtx *ctx) {
@@ -131,8 +137,13 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
     dir->map[dir->id] = al_proto;
     dir->id++;
 
-    if (depth > dir->max_depth)
-        dir->max_depth = depth;
+    if (depth > dir->max_len)
+        dir->max_len = depth;
+
+    /* set the min_len for the stream engine to set the min smsg size for app
+       layer*/
+    if (depth < dir->min_len)
+        dir->min_len = depth;
 
     /* no longer need the cd */
     DetectContentFree(cd);
@@ -189,9 +200,10 @@ void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
         exit(EXIT_FAILURE);
 #endif
 
-    /* tell the stream reassembler we only want chunks of size max_depth */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, ctx->toclient.max_depth);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, ctx->toserver.max_depth);
+    /* tell the stream reassembler, that initially we only want chunks of size
+       min_len */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, ctx->toclient.min_len);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, ctx->toserver.min_len);
 }
 
 void AppLayerDetectProtoThreadInit(void) {
@@ -305,8 +317,8 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
 
     /* see if we can limit the data we inspect */
     uint16_t searchlen = buflen;
-    if (searchlen > dir->max_depth)
-        searchlen = dir->max_depth;
+    if (searchlen > dir->max_len)
+        searchlen = dir->max_len;
 
     uint16_t proto = ALPROTO_UNKNOWN;
     uint32_t cnt = 0;
@@ -448,21 +460,24 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                 /* store the proto and setup the L7 data array */
                 StreamL7DataPtrInit(ssn);
                 ssn->alproto = alproto;
+                ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
 
                 r = AppLayerParse(smsg->flow, alproto, smsg->flags,
                                smsg->data.data, smsg->data.data_len);
             } else {
-                SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
-
-                TcpSession *ssn = smsg->flow->protoctx;
-                if (ssn != NULL) {
-                    if (smsg->flags & STREAM_TOCLIENT) {
-                        StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
-                    } else if (smsg->flags & STREAM_TOSERVER) {
+                if (smsg->flags & STREAM_TOSERVER) {
+                    if (smsg->data.data_len >= alp_proto_ctx.toserver.max_len) {
+                        ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                        SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
                         StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
                     }
+                } else if (smsg->flags & STREAM_TOCLIENT) {
+                    if (smsg->data.data_len >= alp_proto_ctx.toclient.max_len) {
+                        ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                        SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
+                        StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
+                    }
                 }
-
             }
         } else {
             SCLogDebug("stream data (len %" PRIu32 " (%" PRIu32 ")), alproto "

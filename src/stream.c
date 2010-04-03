@@ -144,7 +144,7 @@ void StreamMsgQueuesInit(void) {
 
     stream_msg_pool = PoolInit(5000,250,StreamMsgAlloc,NULL,StreamMsgFree);
     if (stream_msg_pool == NULL)
-        exit(1); /* XXX */
+        exit(EXIT_FAILURE); /* XXX */
 }
 
 void StreamMsgQueuesDeinit(char quiet) {

@@ -54,6 +54,8 @@ void StreamL7DataPtrFree(TcpSession *);
 
 void StreamTcpSetSessionNoReassemblyFlag (TcpSession *, char );
 void StreamTcpSetOSPolicy(TcpStream *, Packet *);
+void StreamTcpReassemblePause (TcpSession *, char );
+void StreamTcpReassembleUnPause (TcpSession *, char );
 
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 
