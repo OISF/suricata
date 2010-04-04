@@ -148,6 +148,7 @@ util-fix_checksum.c util-fix_checksum.h \
 util-daemon.c util-daemon.h \
 util-random.c util-random.h \
 util-classification-config.c util-classification-config.h \
+util-threshold-config.c util-threshold-config.h \
 util-strlcatu.c \
 util-strlcpyu.c \
 util-cuda.c util-cuda.h \

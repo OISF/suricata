@@ -145,6 +145,7 @@ typedef enum {
     SC_ERR_INVALID_YAML_CONF_ENTRY,
     SC_ERR_TMQ_ALREADY_REGISTERED,
     SC_ERR_CONFLICTING_RULE_KEYWORDS,
+    SC_ERR_OPTS_WRONG_ORDER,
     SC_ERR_UNIFIED_LOG_FILE_HEADER,  /**< Error to indicate the unified file
                                           header writing function has been
                                           failed */

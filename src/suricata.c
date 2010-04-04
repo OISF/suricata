@@ -83,6 +83,7 @@
 #include "util-time.h"
 #include "util-rule-vars.h"
 #include "util-classification-config.h"
+#include "util-threshold-config.h"
 
 #include "defrag.h"
 
@@ -769,6 +770,7 @@ int main(int argc, char **argv)
         ThreadMacrosRegisterTests();
         UtilSpmSearchRegistertests();
         SCClassConfRegisterTests();
+        SCThresholdConfRegisterTests();
 #ifdef __SC_CUDA_SUPPORT__
         SCCudaRegisterTests();
 #endif
@@ -843,7 +845,9 @@ int main(int argc, char **argv)
         if (de_ctx->failure_fatal)
             exit(EXIT_FAILURE);
     }
+
     AppLayerHtpRegisterExtraCallbacks();
+    SCThresholdConfInitContext(de_ctx,NULL);
 
     struct timeval start_time;
     memset(&start_time, 0, sizeof(start_time));

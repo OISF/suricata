@@ -620,6 +620,7 @@ SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
 /* detection api */
 SigMatch *SigMatchAlloc(void);
+Signature *FindSidGidSignature(DetectEngineCtx *, uint32_t, uint32_t);
 void SigMatchFree(SigMatch *sm);
 void SigCleanSignatures(DetectEngineCtx *);
 
