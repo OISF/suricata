@@ -152,10 +152,9 @@ inline int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
         return -1;
 
     ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
-    if (ret < 0) {
-        SCLogError(SC_ERR_OPTS_WRONG_ORDER, "Invalid event type in "
-                "threshold.config file "
-                "The valid format is : event_filter gen_id 1, sig_id 10, type limit, track by_src, count 1, seconds 60");
+
+    if (ret < 8) {
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
