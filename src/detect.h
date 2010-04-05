@@ -23,46 +23,80 @@ struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
 
 /*
+
+  The detection engine groups similar signatures/rules together. Internally a
+  tree of different types of data is created on initialization. This is it's
+  global layout:
+
+   For TCP/UDP
+
+   Packet data size (dsize)
+   - Flow direction
+   -- Protocol
+   -=- Src address
+   -==- Dst address
+   -===- Src port
+   -====- Dst port
+
+   For the other protocols
+
+   Packet data size (dsize)
+   - Flow direction
+   -- Protocol
+   -=- Src address
+   -==- Dst address
+
+*/
+
+/*
  * DETECT ADDRESS
  */
 
 /* a is ... than b */
 enum {
-    ADDRESS_ER = -1, /* error e.g. compare ipv4 and ipv6 */
-    ADDRESS_LT,      /* smaller              [aaa] [bbb] */
-    ADDRESS_LE,      /* smaller with overlap [aa[bab]bb] */
-    ADDRESS_EQ,      /* exactly equal        [abababab]  */
-    ADDRESS_ES,      /* within               [bb[aaa]bb] and [[abab]bbb] and [bbb[abab]] */
-    ADDRESS_EB,      /* completely overlaps  [aa[bbb]aa] and [[baba]aaa] and [aaa[baba]] */
-    ADDRESS_GE,      /* bigger with overlap  [bb[aba]aa] */
-    ADDRESS_GT,      /* bigger               [bbb] [aaa] */
+    ADDRESS_ER = -1, /**< error e.g. compare ipv4 and ipv6 */
+    ADDRESS_LT,      /**< smaller              [aaa] [bbb] */
+    ADDRESS_LE,      /**< smaller with overlap [aa[bab]bb] */
+    ADDRESS_EQ,      /**< exactly equal        [abababab]  */
+    ADDRESS_ES,      /**< within               [bb[aaa]bb] and [[abab]bbb] and [bbb[abab]] */
+    ADDRESS_EB,      /**< completely overlaps  [aa[bbb]aa] and [[baba]aaa] and [aaa[baba]] */
+    ADDRESS_GE,      /**< bigger with overlap  [bb[aba]aa] */
+    ADDRESS_GT,      /**< bigger               [bbb] [aaa] */
 };
 
-#define ADDRESS_FLAG_ANY            0x01
-#define ADDRESS_FLAG_NOT            0x02
+#define ADDRESS_FLAG_ANY            0x01 /**< address is "any" */
+#define ADDRESS_FLAG_NOT            0x02 /**< address is negated */
 
-#define ADDRESS_SIGGROUPHEAD_COPY   0x04
-#define ADDRESS_PORTS_COPY          0x08
+#define ADDRESS_SIGGROUPHEAD_COPY   0x04 /**< sgh is a ptr to another sgh */
+#define ADDRESS_PORTS_COPY          0x08 /**< ports are a ptr to other ports */
 #define ADDRESS_PORTS_NOTUNIQ       0x10
-#define ADDRESS_HAVEPORT            0x20
+#define ADDRESS_HAVEPORT            0x20 /**< address has a ports ptr */
 
+/** \brief address structure for use in the detection engine.
+ *
+ *  Contains the address information and matching information.
+ */
 typedef struct DetectAddress_ {
-    /* address data for this group */
-    uint8_t family;
-    uint32_t ip[4];
-    uint32_t ip2[4];
+    /** address data for this group */
+    uint8_t family; /**< address family, AF_INET (IPv4) or AF_INET6 (IPv6) */
+    uint32_t ip[4]; /**< the address, or lower end of a range */
+    uint32_t ip2[4]; /**< higher end of a range */
 
-    /* XXX ptr to rules, or PortGroup or whatever */
+    /** ptr to the next address (dst addr in that case) or to the src port */
     union {
-        struct DetectAddressHead_ *dst_gh;
-        struct DetectPort_ *port;
+        struct DetectAddressHead_ *dst_gh; /**< destination address */
+        struct DetectPort_ *port; /**< source port */
     };
-    /* signatures that belong in this group */
+
+    /** signatures that belong in this group */
     struct SigGroupHead_ *sh;
+
+    /** flags affecting this address */
     uint8_t flags;
 
-    /* double linked list */
+    /** ptr to the previous address in the list */
     struct DetectAddress_ *prev;
+    /** ptr to the next address in the list */
     struct DetectAddress_ *next;
 
     uint32_t cnt;

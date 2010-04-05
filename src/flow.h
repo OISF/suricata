@@ -19,8 +19,6 @@
 #define FLOW_PKT_NOSTREAM               0x40
 #define FLOW_PKT_STREAMONLY             0x80
 
-#define FLOW_ACTION_DROP                0x100
-
 /* global flow config */
 typedef struct FlowCnf_
 {
