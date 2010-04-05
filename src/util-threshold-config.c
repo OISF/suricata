@@ -26,8 +26,6 @@
 /* Default path for the threshold.config file */
 #define THRESHOLD_CONF_DEF_CONF_FILEPATH "threshold.config"
 
-/* Holds a pointer to the default path for the threshold.config file */
-static const char *default_file_path = THRESHOLD_CONF_DEF_CONF_FILEPATH;
 static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
 
@@ -42,7 +40,7 @@ static pcre_extra *regex_study = NULL;
  */
 char *SCThresholdConfGetConfFilename(void)
 {
-    char *log_filename = (char *)default_file_path;
+    char *log_filename = (char *)THRESHOLD_CONF_DEF_CONF_FILEPATH;
 
     ConfGet("threshold-file", &log_filename);
 
@@ -99,11 +97,7 @@ inline int SCThresholdConfInitContext(DetectEngineCtx *de_ctx, FILE *utfd)
     return 0;
 
 error:
-    if (fd != NULL) {
-        fclose(fd);
-        fd = NULL;
-    }
-
+    SCThresholdConfDeInitContext(de_ctx, fd);
     return -1;
 }
 
@@ -118,35 +112,7 @@ void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
 
     if(fd != NULL)
         fclose(fd);
-    default_file_path = THRESHOLD_CONF_DEF_CONF_FILEPATH;
-    fd = NULL;
     return;
-}
-
-/**
- * \brief Converts a string to lowercase.
- *
- * \param str Pointer to the string to be converted.
- * \retval new_str Pointer to lower case string
- */
-char *SCThresholdConfStringToLowercase(char *str)
-{
-    char *new_str = NULL;
-    char *temp_str = NULL;
-
-    if ( (new_str = SCStrdup(str)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        /* Lets try to parse the original string */
-        return str;
-    }
-
-    temp_str = new_str;
-    while (*temp_str != '\0') {
-        *temp_str = tolower(*temp_str);
-        temp_str++;
-    }
-
-    return new_str;
 }
 
 /**
@@ -346,7 +312,7 @@ inline int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
             s = ns;
         }
     } else {
-        sig = FindSidGidSignature(de_ctx,id,gid);
+        sig = SigFindSignatureBySidGid(de_ctx,id,gid);
 
         if(sig != NULL) {
 
@@ -447,7 +413,6 @@ int SCThresholdConfIsLineBlankOrComment(char *line)
 inline void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
-    char *normalized_line;
 
     if(fd == NULL)
         return;
@@ -456,9 +421,7 @@ inline void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
         if (SCThresholdConfIsLineBlankOrComment(line))
             continue;
 
-        normalized_line = SCThresholdConfStringToLowercase(line);
-        SCThresholdConfAddThresholdtype(normalized_line, de_ctx);
-        if(normalized_line) SCFree(normalized_line);
+        SCThresholdConfAddThresholdtype(line, de_ctx);
     }
 
     return;

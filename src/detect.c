@@ -863,18 +863,16 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
  *  \retval s sig found
  *  \retval NULL sig not found
  */
-Signature *FindSidGidSignature(DetectEngineCtx *de_ctx, uint32_t sid, uint32_t gid)
+Signature *SigFindSignatureBySidGid(DetectEngineCtx *de_ctx, uint32_t sid, uint32_t gid)
 {
-    Signature *s = NULL, *ns;
+    Signature *s = NULL;
 
     if (de_ctx == NULL)
         return NULL;
 
-    for (s = de_ctx->sig_list; s != NULL;) {
-        ns = s->next;
-        if(s->id == sid && s->gid == gid)
+    for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if (s->id == sid && s->gid == gid)
             return s;
-        s = ns;
     }
 
     return NULL;
