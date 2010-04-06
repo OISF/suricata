@@ -113,6 +113,7 @@ detect-dce-opnum.c detect-dce-opnum.h \
 detect-dce-stub-data.c detect-dce-stub-data.h \
 detect-urilen.c detect-urilen.h \
 detect-detection-filter.c detect-detection-filter.h \
+detect-http-client-body.c detect-http-client-body.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \
 util-cpu.c util-cpu.h \

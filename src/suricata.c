@@ -123,7 +123,6 @@ static uint8_t sigflags = 0;
 
 /* Run mode selected */
 int run_mode = MODE_UNKNOWN;
-extern uint8_t pcre_need_htp_request_body;
 
 /* Maximum packets to simultaneously process. */
 intmax_t max_pending_packets;
@@ -721,7 +720,7 @@ int main(int argc, char **argv)
             UtRunSelftest(regex_arg); /* inits and cleans up again */
         }
 
-        pcre_need_htp_request_body = 1;
+        AppLayerHtpEnableRequestBodyCallback();
         AppLayerHtpRegisterExtraCallbacks();
 
         UtInitialize();

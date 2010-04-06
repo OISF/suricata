@@ -38,7 +38,8 @@ static SCMutex htp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t htp_state_memuse = 0;
 static uint64_t htp_state_memcnt = 0;
 #endif
-extern uint8_t pcre_need_htp_request_body;
+
+static uint8_t need_htp_request_body = 0;
 
 /** \brief Function to allocates the HTTP state memory and also creates the HTTP
  *         connection parser to be used by the HTP library
@@ -117,6 +118,18 @@ void HTPStateFree(void *state)
 
     SCReturn;
 }
+
+/**
+ * \brief Sets a flag that informs the HTP app layer that some module in the
+ *        engine needs the http request body data.
+ */
+void AppLayerHtpEnableRequestBodyCallback(void)
+{
+    need_htp_request_body = 1;
+
+    return;
+}
+
 
 /**
  *  \brief  Function to convert the IP addresses in to the string
@@ -553,13 +566,14 @@ void RegisterHTPParsers(void)
 }
 
 /**
- * \brief This function is called at the end of SigLoadSignatures
- * pcre_need_htp_request_body is a flag that indicates if we need
- * to inspect the body of requests from a pcre keyword.
+ * \brief This function is called at the end of SigLoadSignatures.  This function
+ *        enables the htp layer to register a callback for the http request body.
+ *        need_htp_request_body is a flag that informs the htp app layer that
+ *        a module in the engine needs the http request body.
  */
 void AppLayerHtpRegisterExtraCallbacks(void) {
     SCLogDebug("Registering extra htp callbacks");
-    if (pcre_need_htp_request_body == 1) {
+    if (need_htp_request_body == 1) {
         SCLogDebug("Registering callback htp_config_register_request_body_data on htp");
         htp_config_register_request_body_data(cfg, HTPCallbackRequestBodyData);
     } else {

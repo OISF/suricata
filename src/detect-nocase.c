@@ -11,6 +11,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
+#include "detect-http-client-body.h"
 
 #include "util-debug.h"
 
@@ -61,7 +62,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
                 SCReturnInt(-1);
             }
             ud->flags |= DETECT_URICONTENT_NOCASE;
-        break;
+            break;
 
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
@@ -70,12 +71,18 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
                 SCReturnInt(-1);
             }
             cd->flags |= DETECT_CONTENT_NOCASE;
-        break;
+            break;
+        case DETECT_AL_HTTP_CLIENT_BODY:
+            {
+                ((DetectHttpClientBodyData *)(pm->ctx))->flags |= DETECT_AL_HTTP_CLIENT_BODY_NOCASE;
+                break;
+            }
 
+        /* should never happen */
         default:
             SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding content (or uricontent) option");
             SCReturnInt(-1);
-        break;
+            break;
     }
 
     SCReturnInt(0);

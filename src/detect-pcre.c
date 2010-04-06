@@ -51,8 +51,6 @@ static pcre_extra *parse_regex_study;
 static pcre *parse_capture_regex;
 static pcre_extra *parse_capture_regex_study;
 
-uint8_t pcre_need_htp_request_body = 0;
-
 int DetectPcreMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, char *);
@@ -599,7 +597,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         SCLogDebug("Body inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
-        pcre_need_htp_request_body = 1;
+        AppLayerHtpEnableRequestBodyCallback();
 
         SigMatchAppendAppLayer(s, sm);
     } else {

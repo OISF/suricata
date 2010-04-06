@@ -91,6 +91,7 @@ void HtpBodyFree(HtpBody *);
 void AppLayerHtpRegisterExtraCallbacks(void);
 /* To free the state from unittests using app-layer-htp */
 void HTPStateFree(void *);
+void AppLayerHtpEnableRequestBodyCallback(void);
 
 #endif	/* __APP_LAYER_HTP_H__ */
 

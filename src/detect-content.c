@@ -338,21 +338,42 @@ SigMatch *SigMatchGetLastPattern(Signature *s) {
 
     BUG_ON(s == NULL);
 
-    SigMatch *co_sm = DetectContentGetLastPattern(s->pmatch_tail);
-    SigMatch *ur_sm = SigMatchGetLastSM(s->umatch_tail, DETECT_URICONTENT);
+    SigMatch *co_sm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    SigMatch *ur_sm = SigMatchGetLastSM(s->match_tail, DETECT_URICONTENT);
+    /* http client body SigMatch */
+    SigMatch *hcbd_sm = SigMatchGetLastSM(s->match_tail, DETECT_AL_HTTP_CLIENT_BODY);
     SigMatch *sm = NULL;
 
-    if (co_sm != NULL && ur_sm != NULL) {
+    if (co_sm != NULL && ur_sm != NULL && hcbd_sm != NULL) {
         BUG_ON(co_sm->idx == ur_sm->idx);
 
+        if (co_sm->idx > ur_sm->idx && ur_sm > hcbd_sm)
+            sm = co_sm;
+        else if (ur_sm->idx > co_sm->idx && co_sm > hcbd_sm)
+            sm = ur_sm;
+        else
+            sm = hcbd_sm;
+    } else if (co_sm != NULL && ur_sm != NULL) {
         if (co_sm->idx > ur_sm->idx)
             sm = co_sm;
         else
             sm = ur_sm;
+    } else if (co_sm != NULL && hcbd_sm != NULL) {
+        if (co_sm->idx > hcbd_sm->idx)
+            sm = co_sm;
+        else
+            sm = hcbd_sm;
+    } else if (ur_sm != NULL && hcbd_sm != NULL) {
+        if (ur_sm->idx > hcbd_sm->idx)
+            sm = ur_sm;
+        else
+            sm = hcbd_sm;
     } else if (co_sm != NULL) {
         sm = co_sm;
     } else if (ur_sm != NULL) {
         sm = ur_sm;
+    } else if (hcbd_sm != NULL) {
+        sm = hcbd_sm;
     }
 
     SCReturnPtr(sm, "SigMatch");
