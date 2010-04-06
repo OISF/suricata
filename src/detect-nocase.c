@@ -43,30 +43,39 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
         SCReturnInt(-1);
     }
-
-    SigMatch *pm = SigMatchGetLastPattern(s);
+    /** Search for the first previous DetectContent or uricontent
+     * SigMatch (it can be the same as this one) */
+    SigMatch *pm = SignatureGetLastModifiableSM(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceeding content or uricontent option.");
+        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content option");
         SCReturnInt(-1);
     }
 
+    DetectUricontentData *ud = NULL;
+    DetectContentData *cd = NULL;
     switch (pm->type) {
-        case DETECT_CONTENT:
-        {
-            DetectContentData *cd = (DetectContentData *)pm->ctx;
-            cd->flags |= DETECT_CONTENT_NOCASE;
-            break;
-        }
         case DETECT_URICONTENT:
-        {
-            DetectUricontentData *cd = (DetectUricontentData *)pm->ctx;
-            cd->flags |= DETECT_URICONTENT_NOCASE;
-            break;
-        }
-        /* should never happen */
+            ud = (DetectUricontentData *)pm->ctx;
+            if (ud == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argpment");
+                SCReturnInt(-1);
+            }
+            ud->flags |= DETECT_URICONTENT_NOCASE;
+        break;
+
+        case DETECT_CONTENT:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
+                SCReturnInt(-1);
+            }
+            cd->flags |= DETECT_CONTENT_NOCASE;
+        break;
+
         default:
-            BUG_ON(1);
-            break;
+            SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content (or uricontent) option");
+            SCReturnInt(-1);
+        break;
     }
 
     SCReturnInt(0);

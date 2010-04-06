@@ -9,6 +9,14 @@
 #define DETECT_URICONTENT_WITHIN_NEXT   0x10
 
 #define DETECT_URICONTENT_RAWBYTES      0x20
+#define DETECT_URICONTENT_NEGATED       0x40
+#define DETECT_URICONTENT_RELATIVE_NEXT 0x80
+
+#define DETECT_URICONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_URICONTENT_DISTANCE || \
+                                       (c)->flags & DETECT_URICONTENT_WITHIN || \
+                                       (c)->flags & DETECT_URICONTENT_RELATIVE || \
+                                       (c)->depth > 0 || \
+                                       (c)->within > 0))
 
 typedef struct DetectUricontentData_ {
     uint8_t *uricontent;
@@ -26,6 +34,8 @@ typedef struct DetectUricontentData_ {
 void DetectUricontentRegister (void);
 uint32_t DetectUricontentMaxId(DetectEngineCtx *);
 uint32_t DetectUricontentInspectMpm(ThreadVars *th_v, DetectEngineThreadCtx *det_ctx, void *alstate);
+SigMatch *DetectUricontentFindPrevApplicableSM(SigMatch *);
+void DetectUricontentPrint(DetectUricontentData *);
 
 #endif /* __DETECT_URICONTENT_H__ */
 

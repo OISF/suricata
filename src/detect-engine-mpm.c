@@ -145,6 +145,7 @@ uint32_t UriPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     SCReturnUInt(ret);
 }
 
+
 /** \brief cleans up the mpm instance after a match */
 void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
     PmqReset(&det_ctx->pmq);
@@ -586,7 +587,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
         }
 
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
                 ur_cnt++;
                 s->flags |= SIG_FLAG_MPM;
@@ -674,7 +675,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 }
             }
         }
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (ud->uricontent_len > uricontent_maxlen)
@@ -809,7 +810,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                     content_minlen = cd->content_len;
             }
         }
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (ud->uricontent_len > uricontent_maxlen)
@@ -821,7 +822,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
         }
         char uricontent_mpmadded = 0;
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
 

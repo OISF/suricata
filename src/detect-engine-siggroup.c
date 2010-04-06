@@ -1223,7 +1223,7 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (!(s->flags & SIG_FLAG_MPM))
             continue;
 
-        sm = s->match;
+        sm = s->umatch;
         if (sm == NULL)
             continue;
 
@@ -1246,7 +1246,7 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
  * \param Pointer to the SigGroupHead whose uri_content_array would to be
  *        cleared.
  *
- * \ret 0 Always.
+ * \retval 0 Always.
  */
 int SigGroupHeadClearUricontent(SigGroupHead *sh)
 {

@@ -413,12 +413,12 @@ int DetectHttpCookieTest06(void)
     if (s->match->type != DETECT_AL_HTTP_COOKIE)
         goto end;
 
-    if (s->match->next == NULL) {
+    if (s->umatch == NULL) {
         printf("expected another SigMatch, got NULL: ");
         goto end;
     }
 
-    if (s->match->next->type != DETECT_URICONTENT) {
+    if (s->umatch->type != DETECT_URICONTENT) {
         goto end;
     }
 

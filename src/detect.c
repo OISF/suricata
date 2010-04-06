@@ -18,6 +18,7 @@
 #include "detect-engine-iponly.h"
 #include "detect-engine-threshold.h"
 #include "detect-engine-payload.h"
+#include "detect-engine-uricontent.h"
 
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"
@@ -661,6 +662,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 continue;
         }
 
+        /* Check the uricontent keywords here. */
+        if (s->umatch != NULL) {
+            if (DetectEngineInspectPacketUricontentPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                continue;
+        }
+
         /* if we get here but have no sigmatches to match against,
          * we consider the sig matched. */
         if (s->match == NULL) {
@@ -880,6 +887,9 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     }
 
     if (s->pmatch != NULL)
+        return 0;
+
+    if (s->umatch != NULL)
         return 0;
 
     SigMatch *sm = s->match;
@@ -3328,6 +3338,7 @@ static int SigTest06Real (int mpm_type) {
         result = 0;
         goto end;
     }
+
     de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;

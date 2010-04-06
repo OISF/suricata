@@ -33,7 +33,6 @@
 
 #include "stream.h"
 
-
 #include "util-debug.h"
 #include "app-layer-protos.h"
 //#define DEBUG

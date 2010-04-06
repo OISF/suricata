@@ -5,6 +5,7 @@
 #include "decode.h"
 
 #include "detect.h"
+#include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
@@ -36,53 +37,84 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
         dubbed = 1;
     }
 
-    if (s->pmatch == NULL) {
-        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
-        goto error;
-    }
-
     /** Search for the first previous DetectContent
      * SigMatch (it can be the same as this one) */
-    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    SigMatch *pm = SignatureGetLastModifiableSM(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
-        if (dubbed) SCFree(str);
-        return -1;
-    }
-    if (DetectContentHasPrevSMPattern(pm) == NULL) {
-        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
+        SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "depth needs two preceeding content (or uricontent) options");
         if (dubbed) SCFree(str);
         return -1;
     }
 
-    DetectContentData *cd = (DetectContentData *)pm->ctx;
-    if (cd == NULL) {
-        SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous keyword!");
-        if (dubbed) SCFree(str);
-        return -1;
-    }
+    DetectUricontentData *ud = NULL;
+    DetectContentData *cd = NULL;
 
-    cd->distance = strtol(str, NULL, 10);
-    cd->flags |= DETECT_CONTENT_DISTANCE;
+    switch (pm->type) {
+        case DETECT_URICONTENT:
+            ud = (DetectUricontentData *)pm->ctx;
+            if (ud == NULL) {
+                printf("DetectWithinSetup: Unknown previous keyword!\n");
+                goto error;
+            }
 
-    if (cd->flags & DETECT_CONTENT_WITHIN) {
-        if (cd->distance + cd->content_len > cd->within) {
-            cd->within = cd->distance + cd->content_len;
-        }
-    }
+            ud->distance = strtol(str, NULL, 10);
+            ud->flags |= DETECT_URICONTENT_DISTANCE;
+            if (ud->flags & DETECT_URICONTENT_WITHIN) {
+                if (ud->distance + ud->uricontent_len > ud->within) {
+                    ud->within = ud->distance + ud->uricontent_len;
+                }
+            }
 
-    pm = DetectContentFindPrevApplicableSM(s->pmatch_tail->prev);
-    if (pm == NULL) {
-        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
-        goto error;
-    }
+            pm = DetectUricontentFindPrevApplicableSM(s->umatch_tail->prev);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
+                goto error;
+            }
 
-    if (pm->type == DETECT_CONTENT) {
-        DetectContentData *cd = (DetectContentData *)pm->ctx;
-        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-    } else {
-        SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!");
-        goto error;
+            if (pm->type == DETECT_URICONTENT) {
+                ud = (DetectUricontentData *)pm->ctx;
+                ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
+            } else {
+                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!");
+                goto error;
+            }
+        break;
+
+        case DETECT_CONTENT:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd == NULL) {
+                printf("DetectWithinSetup: Unknown previous keyword!\n");
+                goto error;
+            }
+
+            cd->distance = strtol(str, NULL, 10);
+            cd->flags |= DETECT_CONTENT_DISTANCE;
+            if (cd->flags & DETECT_CONTENT_WITHIN) {
+                if (cd->distance + cd->content_len > cd->within) {
+                    cd->within = cd->distance + cd->content_len;
+                }
+            }
+
+            pm = DetectContentFindPrevApplicableSM(s->pmatch_tail->prev);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
+                goto error;
+            }
+
+            if (pm->type == DETECT_CONTENT) {
+                cd = (DetectContentData *)pm->ctx;
+                cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!");
+                goto error;
+            }
+        break;
+
+        default:
+            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content (or uricontent) options");
+            if (dubbed) SCFree(str);
+                return -1;
+        break;
     }
 
     if (dubbed) SCFree(str);

@@ -5,6 +5,7 @@
 #include "decode.h"
 
 #include "detect.h"
+#include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
@@ -36,26 +37,51 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         dubbed = 1;
     }
 
-    /** Search for the first previous DetectContent
+    /** Search for the first previous DetectContent or uricontent
      * SigMatch (it can be the same as this one) */
-    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    SigMatch *pm = SignatureGetLastModifiableSM(s);
     if (pm == NULL) {
         SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content option");
         if (dubbed) SCFree(str);
         return -1;
     }
 
-    DetectContentData *cd = (DetectContentData *)pm->ctx;
-    if (cd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-        if (dubbed) SCFree(str);
-        return -1;
-    }
+    DetectUricontentData *ud = NULL;
+    DetectContentData *cd = NULL;
+    switch (pm->type) {
+        case DETECT_URICONTENT:
+            ud = (DetectUricontentData *)pm->ctx;
+            if (ud == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argpment");
+                if (dubbed) SCFree(str);
+                return -1;
+            }
+            ud->depth = (uint32_t)atoi(str);
+            if (ud->uricontent_len + ud->offset > ud->depth) {
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len and offset", ud->uricontent_len + ud->offset);
+                ud->depth = ud->uricontent_len + ud->offset;
+            }
+        break;
 
-    cd->depth = (uint32_t)atoi(str);
-    if (cd->content_len + cd->offset > cd->depth) {
-        SCLogDebug("depth increased to %"PRIu32" to match pattern len and offset", cd->content_len + cd->offset);
-        cd->depth = cd->content_len + cd->offset;
+        case DETECT_CONTENT:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
+                if (dubbed) SCFree(str);
+                return -1;
+            }
+            cd->depth = (uint32_t)atoi(str);
+            if (cd->content_len + cd->offset > cd->depth) {
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len and offset", cd->content_len + cd->offset);
+                cd->depth = cd->content_len + cd->offset;
+            }
+        break;
+
+        default:
+            SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content (or uricontent) option");
+            if (dubbed) SCFree(str);
+                return -1;
+        break;
     }
 
     if (dubbed) SCFree(str);

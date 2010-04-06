@@ -104,6 +104,30 @@ SigTableElmt *SigTableGet(char *name) {
     return NULL;
 }
 
+/**
+ * \brief SigMatchAppendUricontent, append a SigMatch of type uricontent
+ *        to the Signature structure
+ * \param s pointer to the Signature
+ * \param new pointer to the SigMatch of type uricontent to be appended
+ */
+void SigMatchAppendUricontent(Signature *s, SigMatch *new) {
+    if (s->umatch == NULL) {
+        s->umatch = new;
+        s->umatch_tail = new;
+        new->next = NULL;
+        new->prev = NULL;
+    } else {
+        SigMatch *cur = s->umatch_tail;
+        cur->next = new;
+        new->prev = cur;
+        new->next = NULL;
+        s->umatch_tail = new;
+    }
+
+    new->idx = s->sm_cnt;
+    s->sm_cnt++;
+}
+
 void SigMatchAppendPayload(Signature *s, SigMatch *new) {
     if (s->pmatch == NULL) {
         s->pmatch = new;
@@ -111,13 +135,10 @@ void SigMatchAppendPayload(Signature *s, SigMatch *new) {
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->pmatch;
-
-        for ( ; cur->next != NULL; cur = cur->next);
-
+        SigMatch *cur = s->pmatch_tail;
         cur->next = new;
-        new->next = NULL;
         new->prev = cur;
+        new->next = NULL;
         s->pmatch_tail = new;
     }
 
@@ -260,6 +281,48 @@ SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
         }
         sm = sm->prev;
     }
+
+    return NULL;
+}
+
+/**
+ * \brief Returns a pointer to the last SigMatch instance that apply to Modifiers
+ *        (atm: DETECT_CONTENT and DETECT_URICONTENT)
+ *
+ * \param s    Pointer to the signature (it will search at pmatch and umatch)
+ *
+ * \retval match Pointer to the last SigMatch instance.
+ */
+SigMatch *SignatureGetLastModifiableSM(Signature *s)
+{
+    SigMatch *pm = s->pmatch_tail;
+    SigMatch *um = s->umatch_tail;
+    while (pm != NULL) {
+        if (pm->type == DETECT_CONTENT) {
+            break;
+        }
+        pm = pm->prev;
+    }
+
+    while (um != NULL) {
+        if (um->type == DETECT_URICONTENT) {
+            break;
+        }
+        um = um->prev;
+    }
+
+    if (um == NULL)
+        return pm;
+
+    if (pm == NULL)
+        return um;
+
+    /* Now we should have the latest content and uricontent.
+     * Let's see which one is more recent */
+    if (um->idx > pm->idx)
+        return um;
+    else
+        return pm;
 
     return NULL;
 }
@@ -714,7 +777,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
             }
         }
     }
-    for (sm = sig->match; sm != NULL; sm = sm->next) {
+    for (sm = sig->umatch; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_URICONTENT) {
             DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
             if (ud == NULL)
@@ -742,7 +805,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
             }
         }
 
-        for (sm = sig->match; sm != NULL; sm = sm->next) {
+        for (sm = sig->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (sig->mpm_uricontent_maxlen == 0)
@@ -831,7 +894,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         }
     }
 
-    for (sm = sig->match; sm != NULL; sm = sm->next) {
+    for (sm = sig->umatch; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_URICONTENT) {
             DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
             if (ud == NULL)
@@ -859,7 +922,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             }
         }
 
-        for (sm = sig->match; sm != NULL; sm = sm->next) {
+        for (sm = sig->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (sig->mpm_uricontent_maxlen == 0)
@@ -901,7 +964,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                         sig->next->mpm_content_maxlen = cd->content_len;
                 }
             }
-            for (sm = sig->next->match; sm != NULL; sm = sm->next) {
+            for (sm = sig->next->umatch; sm != NULL; sm = sm->next) {
                 if (sm->type == DETECT_URICONTENT) {
                     DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                     if (sig->next->mpm_uricontent_maxlen == 0)

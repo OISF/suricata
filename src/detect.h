@@ -202,11 +202,13 @@ typedef struct Signature_ {
     DetectProto proto;
     DetectPort *sp, *dp;
 
-    /** ptr to the SigMatch list */
+    /** ptr to the SigMatch lists */
     struct SigMatch_ *match; /* non-payload matches */
     struct SigMatch_ *match_tail; /* non-payload matches, tail of the list */
     struct SigMatch_ *pmatch; /* payload matches */
     struct SigMatch_ *pmatch_tail; /* payload matches, tail of the list */
+    struct SigMatch_ *umatch; /* uricontent payload matches */
+    struct SigMatch_ *umatch_tail; /* uricontent payload matches, tail of the list */
     /** ptr to the next sig in the list */
     struct Signature_ *next;
 
@@ -389,10 +391,15 @@ typedef struct DetectionEngineThreadCtx_ {
      *  content, pcre, etc */
     uint32_t payload_offset;
 
+    /** offset into the uri payload of the last match by
+     *  uricontent */
+    uint32_t uricontent_payload_offset;
+
     /** recursive counter */
     uint8_t pkt_cnt;
 
     char de_checking_distancewithin;
+    char de_checking_uricontent_distancewithin;
 
     /* http_uri stuff for uricontent */
     char de_have_httpuri;

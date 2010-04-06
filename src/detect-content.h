@@ -57,6 +57,7 @@ SigMatch *DetectContentFindNextApplicableSM(SigMatch *);
 SigMatch *DetectContentHasPrevSMPattern(SigMatch *);
 
 SigMatch *SigMatchGetLastPattern(Signature *s);
+void SigMatchAppendUricontent(Signature *, SigMatch *);
 
 void DetectContentFree(void *);
 
