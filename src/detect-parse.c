@@ -285,48 +285,6 @@ SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
     return NULL;
 }
 
-/**
- * \brief Returns a pointer to the last SigMatch instance that apply to Modifiers
- *        (atm: DETECT_CONTENT and DETECT_URICONTENT)
- *
- * \param s    Pointer to the signature (it will search at pmatch and umatch)
- *
- * \retval match Pointer to the last SigMatch instance.
- */
-SigMatch *SignatureGetLastModifiableSM(Signature *s)
-{
-    SigMatch *pm = s->pmatch_tail;
-    SigMatch *um = s->umatch_tail;
-    while (pm != NULL) {
-        if (pm->type == DETECT_CONTENT) {
-            break;
-        }
-        pm = pm->prev;
-    }
-
-    while (um != NULL) {
-        if (um->type == DETECT_URICONTENT) {
-            break;
-        }
-        um = um->prev;
-    }
-
-    if (um == NULL)
-        return pm;
-
-    if (pm == NULL)
-        return um;
-
-    /* Now we should have the latest content and uricontent.
-     * Let's see which one is more recent */
-    if (um->idx > pm->idx)
-        return um;
-    else
-        return pm;
-
-    return NULL;
-}
-
 void SigParsePrepare(void) {
     char *regexstr = CONFIG_PCRE;
     const char *eb;

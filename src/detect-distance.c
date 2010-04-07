@@ -39,9 +39,9 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
 
     /** Search for the first previous DetectContent
      * SigMatch (it can be the same as this one) */
-    SigMatch *pm = SignatureGetLastModifiableSM(s);
+    SigMatch *pm = SigMatchGetLastPattern(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "depth needs two preceeding content (or uricontent) options");
+        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "depth needs two preceeding content (or uricontent) options");
         if (dubbed) SCFree(str);
         return -1;
     }
@@ -53,7 +53,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
         case DETECT_URICONTENT:
             ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
-                printf("DetectWithinSetup: Unknown previous keyword!\n");
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "Unknown previous keyword!\n");
                 goto error;
             }
 
@@ -65,7 +65,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
                 }
             }
 
-            pm = DetectUricontentFindPrevApplicableSM(s->umatch_tail->prev);
+            pm = DetectUriGetLastPattern(s->umatch_tail->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
                 goto error;
@@ -83,7 +83,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
-                printf("DetectWithinSetup: Unknown previous keyword!\n");
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "Unknown previous keyword!\n");
                 goto error;
             }
 
@@ -95,7 +95,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
                 }
             }
 
-            pm = DetectContentFindPrevApplicableSM(s->pmatch_tail->prev);
+            pm = DetectContentGetLastPattern(s->pmatch_tail->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
                 goto error;
@@ -111,7 +111,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
         break;
 
         default:
-            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content (or uricontent) options");
+            SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content (or uricontent) options");
             if (dubbed) SCFree(str);
                 return -1;
         break;

@@ -309,7 +309,7 @@ SigMatch *DetectContentHasPrevSMPattern(SigMatch *sm)
  * \retval pointer to the SigMatch that has the previous SigMatch
  *                 of type DetectContent
  */
-SigMatch *DetectContentFindPrevApplicableSM(SigMatch *sm)
+SigMatch *DetectContentGetLastPattern(SigMatch *sm)
 {
     if (sm == NULL)
         return NULL;
@@ -338,7 +338,7 @@ SigMatch *SigMatchGetLastPattern(Signature *s) {
 
     BUG_ON(s == NULL);
 
-    SigMatch *co_sm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    SigMatch *co_sm = DetectContentGetLastPattern(s->pmatch_tail);
     SigMatch *ur_sm = SigMatchGetLastSM(s->umatch_tail, DETECT_URICONTENT);
     SigMatch *sm = NULL;
 

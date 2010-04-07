@@ -148,7 +148,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
         SCReturnInt(-1);
     }
 
-    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    SigMatch *pm = DetectContentGetLastPattern(s->pmatch_tail);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
                 "http_method modifies \"content\", but none was found");

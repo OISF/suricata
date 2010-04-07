@@ -46,7 +46,7 @@ void DetectContentPrint(DetectContentData *);
 /** This function search backwards the first applicable SigMatch holding
  * a DETECT_CONTENT context (If it belongs to a chunk group, the first chunk
  * of the group will be returned). Modifiers must call this */
-SigMatch *DetectContentFindPrevApplicableSM(SigMatch *);
+SigMatch *DetectContentGetLastPattern(SigMatch *);
 
 /** This function search forwards the first applicable SigMatch holding
  * a DETECT_CONTENT context. The Match process call this */

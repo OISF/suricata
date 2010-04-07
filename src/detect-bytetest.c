@@ -508,7 +508,7 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
     if (data->flags & DETECT_BYTETEST_RELATIVE) {
         /** Search for the first previous DetectContent
          * SigMatch (it can be the same as this one) */
-        SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+        SigMatch *pm = DetectContentGetLastPattern(s->pmatch_tail);
         if (pm == NULL) {
             SCLogError(SC_ERR_BYTETEST_MISSING_CONTENT, "relative bytetest match needs a previous content option");
             goto error;

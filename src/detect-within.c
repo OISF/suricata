@@ -50,7 +50,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 
     /** Search for the first previous DetectContent
      * SigMatch (it can be the same as this one) */
-    SigMatch *pm = SignatureGetLastModifiableSM(s);
+    SigMatch *pm = SigMatchGetLastPattern(s);
     if (pm == NULL) {
         SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "depth needs two preceeding content (or uricontent) options");
         if (dubbed) SCFree(str);
@@ -64,7 +64,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         case DETECT_URICONTENT:
             ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
-                printf("DetectWithinSetup: Unknown previous keyword!\n");
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "Unknown previous keyword!\n");
                 goto error;
             }
 
@@ -85,7 +85,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            pm = DetectUricontentFindPrevApplicableSM(s->umatch_tail->prev);
+            pm = DetectUriGetLastPattern(s->umatch_tail->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content options");
                 goto error;
@@ -96,7 +96,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 ud = (DetectUricontentData *)pm->ctx;
                 ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
             } else {
-                printf("DetectWithinSetup: Unknown previous-previous keyword!\n");
+                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!\n");
                 goto error;
             }
             DetectUricontentPrint(ud);
@@ -106,7 +106,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
-                printf("DetectWithinSetup: Unknown previous keyword!\n");
+                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous keyword!\n");
                 goto error;
             }
 
@@ -127,7 +127,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            pm = DetectContentFindPrevApplicableSM(s->pmatch_tail->prev);
+            pm = DetectContentGetLastPattern(s->pmatch_tail->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content options");
                 goto error;
@@ -138,7 +138,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 cd = (DetectContentData *)pm->ctx;
                 cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
             } else {
-                printf("DetectWithinSetup: Unknown previous-previous keyword!\n");
+                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!\n");
                 goto error;
             }
         break;

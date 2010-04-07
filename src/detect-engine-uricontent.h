@@ -1,7 +1,7 @@
 #ifndef __DETECT_ENGINE_URICONTENT_H__
 #define __DETECT_ENGINE_URICONTENT_H__
 
-int DetectEngineInspectPacketUricontentPayload(DetectEngineCtx *,
+int DetectEngineInspectPacketUris(DetectEngineCtx *,
         DetectEngineThreadCtx *, Signature *, Flow *, uint8_t,
         void *, Packet *);
 

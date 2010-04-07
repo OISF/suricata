@@ -33,7 +33,7 @@ static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nul
         return -1;
     }
 
-    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    SigMatch *pm = DetectContentGetLastPattern(s->pmatch_tail);
     if (pm == NULL) {
         SCLogError(SC_ERR_RAWBYTES_MISSING_CONTENT, "\"rawbytes\" needs a preceeding content option");
         SCReturnInt(-1);

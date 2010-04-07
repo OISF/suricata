@@ -45,9 +45,9 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     }
     /** Search for the first previous DetectContent or uricontent
      * SigMatch (it can be the same as this one) */
-    SigMatch *pm = SignatureGetLastModifiableSM(s);
+    SigMatch *pm = SigMatchGetLastPattern(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content option");
+        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding content option");
         SCReturnInt(-1);
     }
 
@@ -73,7 +73,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         break;
 
         default:
-            SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content (or uricontent) option");
+            SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding content (or uricontent) option");
             SCReturnInt(-1);
         break;
     }

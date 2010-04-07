@@ -230,7 +230,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         SigMatch *pm = NULL;
         /** Search for the first previous DetectContent
          * SigMatch (it can be the same as this one) */
-        pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+        pm = DetectContentGetLastPattern(s->pmatch_tail);
         if (pm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
             return -1;

@@ -22,7 +22,6 @@ Signature *SigAlloc(void);
 void SigFree(Signature *s);
 Signature *SigInit(DetectEngineCtx *,char *sigstr);
 SigMatch *SigMatchGetLastSM(SigMatch *, uint8_t);
-SigMatch *SignatureGetLastModifiableSM(Signature *);
 
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);

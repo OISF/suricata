@@ -664,7 +664,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* Check the uricontent keywords here. */
         if (s->umatch != NULL) {
-            if (DetectEngineInspectPacketUricontentPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+            if (DetectEngineInspectPacketUris(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
                 continue;
         }
 

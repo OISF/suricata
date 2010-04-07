@@ -165,7 +165,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
         return -1;
     }
 
-    SigMatch *pm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    SigMatch *pm = DetectContentGetLastPattern(s->pmatch_tail);
     if (pm == NULL) {
         SCLogWarning(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                 "the rule, without a content context.  Please use a "

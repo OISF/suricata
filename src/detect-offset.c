@@ -39,9 +39,9 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
 
     /** Search for the first previous DetectContent or uricontent
      * SigMatch (it can be the same as this one) */
-    SigMatch *pm = SignatureGetLastModifiableSM(s);
+    SigMatch *pm = SigMatchGetLastPattern(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content option");
+        SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding content option");
         if (dubbed) SCFree(str);
         return -1;
     }
@@ -78,7 +78,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
         break;
 
         default:
-            SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content (or uricontent) option");
+            SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding content (or uricontent) option");
             if (dubbed) SCFree(str);
                 return -1;
         break;
