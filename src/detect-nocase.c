@@ -29,6 +29,61 @@ void DetectNocaseRegister (void) {
 }
 
 /** \internal
+ *  \brief get the last pattern sigmatch that supports nocase:
+ *         content, uricontent, http_client_body
+ *
+ *  \param s signature
+ *
+ *  \retval sm sigmatch of either content or uricontent that is the last
+ *             or NULL if none was found
+ */
+static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
+    SCEnter();
+
+    BUG_ON(s == NULL);
+
+    SigMatch *co_sm = DetectContentGetLastPattern(s->pmatch_tail);
+    SigMatch *ur_sm = SigMatchGetLastSM(s->umatch_tail, DETECT_URICONTENT);
+    /* http client body SigMatch */
+    SigMatch *hcbd_sm = SigMatchGetLastSM(s->match_tail, DETECT_AL_HTTP_CLIENT_BODY);
+    SigMatch *sm = NULL;
+
+    if (co_sm != NULL && ur_sm != NULL && hcbd_sm != NULL) {
+        BUG_ON(co_sm->idx == ur_sm->idx);
+
+        if (co_sm->idx > ur_sm->idx && ur_sm > hcbd_sm)
+            sm = co_sm;
+        else if (ur_sm->idx > co_sm->idx && co_sm > hcbd_sm)
+            sm = ur_sm;
+        else
+            sm = hcbd_sm;
+    } else if (co_sm != NULL && ur_sm != NULL) {
+        if (co_sm->idx > ur_sm->idx)
+            sm = co_sm;
+        else
+            sm = ur_sm;
+    } else if (co_sm != NULL && hcbd_sm != NULL) {
+        if (co_sm->idx > hcbd_sm->idx)
+            sm = co_sm;
+        else
+            sm = hcbd_sm;
+    } else if (ur_sm != NULL && hcbd_sm != NULL) {
+        if (ur_sm->idx > hcbd_sm->idx)
+            sm = ur_sm;
+        else
+            sm = hcbd_sm;
+    } else if (co_sm != NULL) {
+        sm = co_sm;
+    } else if (ur_sm != NULL) {
+        sm = ur_sm;
+    } else if (hcbd_sm != NULL) {
+        sm = hcbd_sm;
+    }
+
+    SCReturnPtr(sm, "SigMatch");
+}
+
+/** \internal
  *  \brief Apply the nocase keyword to the last pattern match, either content or uricontent
  *  \param det_ctx detection engine ctx
  *  \param s signature
@@ -46,7 +101,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     }
     /** Search for the first previous DetectContent or uricontent
      * SigMatch (it can be the same as this one) */
-    SigMatch *pm = SigMatchGetLastPattern(s);
+    SigMatch *pm = SigMatchGetLastNocasePattern(s);
     if (pm == NULL) {
         SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding content option");
         SCReturnInt(-1);

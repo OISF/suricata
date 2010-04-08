@@ -164,7 +164,7 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         return -1;
     }
 
-    sm = DetectContentFindPrevApplicableSM(s->pmatch_tail);
+    sm = DetectContentGetLastPattern(s->pmatch_tail);
     /* if still we are unable to find any content previous keywords, it is an
      * invalid rule */
     if (sm == NULL) {
