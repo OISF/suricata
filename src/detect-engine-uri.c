@@ -1,7 +1,11 @@
-/**
- * Copyright (c) 2009 Open Information Security Foundation
+/* Copyright (c) 2010 Open Information Security Foundation */
+
+/** \file
  *
- * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
+ *  \author Victor Julien <victor@inliniac.net>
+ *  \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
+ *
+ *  Based on detect-engine-payload.c
  */
 
 #include "suricata-common.h"

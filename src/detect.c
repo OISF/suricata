@@ -17,8 +17,9 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-threshold.h"
+
 #include "detect-engine-payload.h"
-#include "detect-engine-uricontent.h"
+#include "detect-engine-uri.h"
 
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"

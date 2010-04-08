@@ -85,7 +85,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            pm = DetectUriGetLastPattern(s->umatch_tail->prev);
+            pm = DetectUricontentGetLastPattern(s->umatch_tail->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content options");
                 goto error;

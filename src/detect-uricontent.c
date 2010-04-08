@@ -118,7 +118,7 @@ void DetectUricontentPrint(DetectUricontentData *cd)
  * \retval pointer to the SigMatch that has the previous SigMatch
  *                 of type DetectUricontent
  */
-SigMatch *DetectUriGetLastPattern(SigMatch *sm)
+SigMatch *DetectUricontentGetLastPattern(SigMatch *sm)
 {
     if (sm == NULL)
         return NULL;

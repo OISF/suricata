@@ -65,7 +65,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
                 }
             }
 
-            pm = DetectUriGetLastPattern(s->umatch_tail->prev);
+            pm = DetectUricontentGetLastPattern(s->umatch_tail->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
                 goto error;

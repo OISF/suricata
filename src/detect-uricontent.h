@@ -34,7 +34,7 @@ typedef struct DetectUricontentData_ {
 void DetectUricontentRegister (void);
 uint32_t DetectUricontentMaxId(DetectEngineCtx *);
 uint32_t DetectUricontentInspectMpm(ThreadVars *th_v, DetectEngineThreadCtx *det_ctx, void *alstate);
-SigMatch *DetectUriGetLastPattern(SigMatch *);
+SigMatch *DetectUricontentGetLastPattern(SigMatch *);
 void DetectUricontentPrint(DetectUricontentData *);
 
 #endif /* __DETECT_URICONTENT_H__ */
