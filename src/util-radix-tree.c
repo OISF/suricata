@@ -356,10 +356,7 @@ static int SCRadixPrefixNetmaskCount(SCRadixPrefix *prefix)
  *        SCRadixPrefix->user_data_result to the netmask user_data entry.
  *
  * \param prefix      Pointer to the ip prefix that is being checked.
- * \param bitlen      The bitlen for the ip key. Actually it can carry only 2
- *                    values 32 or 128, incase of ip keys and it's mainly
- *                    supplied to check if we have an entry for an exact ip(the
- *                    one with netmask of 32 or 128) or not.
+ * \param netmask     The netmask value for which we will have to return the user_data
  * \param exact_match Bool flag which indicates if we should check if the prefix
  *                    holds proper netblock(< 32 for ipv4 and < 128 for ipv6) or not.
  *
@@ -367,7 +364,7 @@ static int SCRadixPrefixNetmaskCount(SCRadixPrefix *prefix)
  * \retval 0 On no match.
  */
 static int SCRadixPrefixContainNetmaskAndSetUserData(SCRadixPrefix *prefix,
-                                                     uint16_t bitlen,
+                                                     uint16_t netmask,
                                                      int exact_match)
 {
     SCRadixUserData *user_data = NULL;
@@ -381,7 +378,7 @@ static int SCRadixPrefixContainNetmaskAndSetUserData(SCRadixPrefix *prefix,
     /* Check if we have a match for an exact ip.  An exact ip as in not a proper
      * netblock, i.e. an ip with a netmask of 32(ipv4) or 128(ipv6) */
     if (exact_match) {
-        if (user_data->netmask == bitlen) {
+        if (user_data->netmask == netmask) {
             prefix->user_data_result = user_data->user;
             return 1;
         } else {
@@ -389,23 +386,13 @@ static int SCRadixPrefixContainNetmaskAndSetUserData(SCRadixPrefix *prefix,
         }
     }
 
-    /* Check for the maximum netmask entry, apart from 32 or 128.  In this case
-     * it has to be at the top of the list after the entry for 32 or 128, since
-     * the list is arranged in descending order wrt netmask values.  The reason
-     * we return the max value is because, if we have a match for a netblock,
-     * the user data would always correspond to the maximum netmask value */
-    if (user_data != NULL) {
-        if (user_data->netmask == bitlen) {
-            if (user_data->next != NULL) {
-                prefix->user_data_result = user_data->next->user;
-                return 1;
-            } else {
-                goto no_match;
-            }
-        } else {
+    /* Check for the user_data entry for this netmask_value */
+    while (user_data != NULL) {
+        if (user_data->netmask == netmask) {
             prefix->user_data_result = user_data->user;
             return 1;
         }
+        user_data = user_data->next;
     }
 
 no_match:
@@ -1311,7 +1298,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(SCRadixPrefix *prefix,
 
             if (prefix->bitlen % 8 == 0 ||
                 (node->prefix->stream[bytes] & mask) == (prefix->stream[bytes] & mask)) {
-                if (SCRadixPrefixContainNetmaskAndSetUserData(node->prefix, prefix->bitlen, 0))
+                if (SCRadixPrefixContainNetmaskAndSetUserData(node->prefix, netmask_node->netmasks[j], 0))
                     return node;
             }
         }
