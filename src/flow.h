@@ -9,6 +9,33 @@
 #define FLOW_QUIET      TRUE
 #define FLOW_VERBOSE    FALSE
 
+/* per flow flags */
+
+/** At least on packet from the source address was seen */
+#define FLOW_TO_SRC_SEEN            0x0001
+/** At least on packet from the destination address was seen */
+#define FLOW_TO_DST_SEEN            0x0002
+
+/** Flow lives in the flow-state-NEW list */
+#define FLOW_NEW_LIST               0x0004
+/** Flow lives in the flow-state-EST (established) list */
+#define FLOW_EST_LIST               0x0008
+/** Flow lives in the flow-state-CLOSED list */
+#define FLOW_CLOSED_LIST            0x0010
+
+/** Flow was inspected against IP-Only sigs in the toserver direction */
+#define FLOW_TOSERVER_IPONLY_SET    0x0020
+/** Flow was inspected against IP-Only sigs in the toclient direction */
+#define FLOW_TOCLIENT_IPONLY_SET    0x0040
+
+/** Packet belonging to this flow should not be inspected at all */
+#define FLOW_NOPACKET_INSPECTION    0x0080
+/** Packet payloads belonging to this flow should not be inspected */
+#define FLOW_NOPAYLOAD_INSPECTION   0x0100
+
+/** All packets in this flow should be dropped */
+#define FLOW_ACTION_DROP            0x0200
+
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER               0x01
 #define FLOW_PKT_TOCLIENT               0x02
