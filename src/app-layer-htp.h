@@ -12,6 +12,8 @@
 #ifndef __APP_LAYER_HTP_H__
 #define __APP_LAYER_HTP_H__
 
+#include "util-radix-tree.h"
+
 #include <htp/htp.h>
 
 #define HTP_FLAG_STATE_OPEN         0x01    /**< Flag to indicate that HTTP
@@ -75,8 +77,6 @@ typedef struct HtpState_ {
                                  new requests to log */
     uint8_t flags;
 } HtpState;
-
-htp_cfg_t *cfg; /**< Config structure for HTP library */
 
 void RegisterHTPParsers(void);
 void HTPParserRegisterTests(void);

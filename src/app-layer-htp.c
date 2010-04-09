@@ -6,6 +6,7 @@
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
+ * \author Brian Rectanus <brectanu@gmail.com>
  *
  */
 
@@ -16,6 +17,7 @@
 
 #include "util-print.h"
 #include "util-pool.h"
+#include "util-radix-tree.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -33,6 +35,19 @@
 #include "util-time.h"
 #include <htp/htp.h>
 
+#include "conf.h"
+
+/* Need a linked list in order to keep track of these */
+typedef struct HTPCfgRec_ HTPCfgRec;
+struct HTPCfgRec_ {
+    htp_cfg_t         *cfg;
+    HTPCfgRec         *next;
+};
+
+/* These are used to keep track of the various HTP configurations */
+static SCRadixTree *cfgtree;
+static HTPCfgRec cfglist;
+
 #ifdef DEBUG
 static SCMutex htp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t htp_state_memuse = 0;
@@ -40,6 +55,67 @@ static uint64_t htp_state_memcnt = 0;
 #endif
 
 static uint8_t need_htp_request_body = 0;
+
+
+#if 0 /* Not used yet */
+/**
+ * \internal
+ *
+ * \brief Lookup the HTP personality string from the numeric personality.
+ *
+ * \todo This needs to be a libhtp function.
+ */
+static const char *HTPLookupPersonalityString(int p)
+{
+#define CASE_HTP_PERSONALITY_STRING(p) \
+    case HTP_SERVER_ ## p: return #p
+
+    switch (p) {
+        CASE_HTP_PERSONALITY_STRING(MINIMAL);
+        CASE_HTP_PERSONALITY_STRING(GENERIC);
+        CASE_HTP_PERSONALITY_STRING(IDS);
+        CASE_HTP_PERSONALITY_STRING(IIS_4_0);
+        CASE_HTP_PERSONALITY_STRING(IIS_5_0);
+        CASE_HTP_PERSONALITY_STRING(IIS_5_1);
+        CASE_HTP_PERSONALITY_STRING(IIS_6_0);
+        CASE_HTP_PERSONALITY_STRING(IIS_7_0);
+        CASE_HTP_PERSONALITY_STRING(IIS_7_5);
+        CASE_HTP_PERSONALITY_STRING(TOMCAT_6_0);
+        CASE_HTP_PERSONALITY_STRING(APACHE);
+        CASE_HTP_PERSONALITY_STRING(APACHE_2_2);
+    }
+
+    return NULL;
+}
+#endif /* Not used yet */
+
+/**
+ * \internal
+ *
+ * \brief Lookup the numeric HTP personality from a string.
+ *
+ * \todo This needs to be a libhtp function.
+ */
+static int HTPLookupPersonality(const char *str)
+{
+#define IF_HTP_PERSONALITY_NUM(p) \
+    if (strcasecmp(#p, str) == 0) return HTP_SERVER_ ## p
+
+    IF_HTP_PERSONALITY_NUM(MINIMAL);
+    IF_HTP_PERSONALITY_NUM(GENERIC);
+    IF_HTP_PERSONALITY_NUM(IDS);
+    IF_HTP_PERSONALITY_NUM(IIS_4_0);
+    IF_HTP_PERSONALITY_NUM(IIS_5_0);
+    IF_HTP_PERSONALITY_NUM(IIS_5_1);
+    IF_HTP_PERSONALITY_NUM(IIS_6_0);
+    IF_HTP_PERSONALITY_NUM(IIS_7_0);
+    IF_HTP_PERSONALITY_NUM(IIS_7_5);
+    IF_HTP_PERSONALITY_NUM(TOMCAT_6_0);
+    IF_HTP_PERSONALITY_NUM(APACHE);
+    IF_HTP_PERSONALITY_NUM(APACHE_2_2);
+
+    return -1;
+}
 
 /** \brief Function to allocates the HTTP state memory and also creates the HTTP
  *         connection parser to be used by the HTP library
@@ -55,18 +131,9 @@ static void *HTPStateAlloc(void)
 
     memset(s, 0x00, sizeof(HtpState));
 
-    /* create the connection parser structure to be used by HTP library */
-    s->connp = htp_connp_create(cfg);
-    if (s->connp == NULL) {
-        goto error;
-    }
-    SCLogDebug("s->connp %p", s->connp);
-
     s->body.nchunks = 0;
     s->body.operation = HTP_BODY_NONE;
     s->body.pcre_flags = HTP_PCRE_NONE;
-
-    htp_connp_set_user_data(s->connp, (void *)s);
 
 #ifdef DEBUG
     SCMutexLock(&htp_state_mem_lock);
@@ -140,10 +207,12 @@ void AppLayerHtpEnableRequestBodyCallback(void)
  */
 void HTPGetIPAddr(Flow *f, int family, char *remote_addr, char *local_addr)
 {
+    SCEnter();
     inet_ntop(family, (const void *)&f->src.addr_data32[0], remote_addr,
             sizeof (remote_addr));
     inet_ntop(family, (const void *)&f->dst.addr_data32[0], local_addr,
             sizeof (local_addr));
+    SCReturn;
 }
 
 /**
@@ -164,10 +233,45 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
                                 AppLayerParserResult *output)
 {
     SCEnter();
+    SCRadixNode *cfgnode = NULL;
     int r = -1;
     int ret = 1;
-
     HtpState *hstate = (HtpState *)htp_state;
+    htp_cfg_t *htp = cfglist.cfg; /* Default to the global HTP config */
+
+    /* On the first invocation, create the connection parser structure to
+     * be used by HTP library.  This is looked up via IP in the radix
+     * tree.  Failing that, the default HTP config is used.
+     */
+    if (NULL == hstate->connp ) {
+        if (AF_INET == f->dst.family) {
+            SCLogDebug("Looking up HTP config for ipv4 %08x", *GET_IPV4_DST_ADDR_PTR(f));
+            cfgnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(f), cfgtree);
+        }
+        else {
+            SCLogDebug("Looking up HTP config for ipv6");
+            cfgnode = SCRadixFindKeyIPV6BestMatch((uint8_t *)GET_IPV6_DST_ADDR(f), cfgtree);
+        }
+        if (cfgnode != NULL) {
+            htp = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec)->cfg;
+            SCLogDebug("LIBHTP using config: %p", htp);
+        } else {
+            SCLogDebug("Using default HTP config: %p", htp);
+        }
+
+        if (NULL == htp) {
+            goto error;
+        }
+
+        hstate->connp = htp_connp_create(htp);
+        if (hstate->connp == NULL) {
+            goto error;
+        }
+
+        htp_connp_set_user_data(hstate->connp, (void *)hstate);
+
+        SCLogDebug("New hstate->connp %p", hstate->connp);
+    }
 
     if (hstate->connp->in_status == STREAM_STATE_ERROR) {
         SCLogError(SC_ERR_ALPARSER, "Inbound parser is in error state, no"
@@ -224,7 +328,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
      }
 
-    /* if we the TCP connection is closed, then close the HTTP connection */
+    /* if the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
             ! (hstate->flags & HTP_FLAG_STATE_CLOSED) &&
             ! (hstate->flags & HTP_FLAG_STATE_DATA))
@@ -236,6 +340,9 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     SCLogDebug("hstate->connp %p", hstate->connp);
     SCReturnInt(ret);
+
+error:
+    SCReturnInt(-1);
 }
 
 /**
@@ -336,7 +443,12 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
         bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
-            exit(EXIT_FAILURE);
+            if (SCLogDebugEnabled()) {
+                abort();
+            }
+            else {
+                exit(EXIT_FAILURE);
+            }
         }
 
         bd->len = len;
@@ -398,7 +510,7 @@ void HtpBodyPrint(HtpBody *body)
 }
 
 /**
- * \brief Free the information holded of the body request
+ * \brief Free the information held in the request body
  * \param body pointer to the HtpBody holding the list
  * \retval none
  */
@@ -429,7 +541,7 @@ void HtpBodyFree(HtpBody *body)
 }
 
 /**
- * \brief Function callback to append chunks for Resquests
+ * \brief Function callback to append chunks for Requests
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
  * \retval int HOOK_OK if all goes well
  */
@@ -476,17 +588,31 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 void HTPAtExitPrintStats(void)
 {
 #ifdef DEBUG
+    SCEnter();
     SCMutexLock(&htp_state_mem_lock);
     SCLogDebug("http_state_memcnt %"PRIu64", http_state_memuse %"PRIu64"",
                 htp_state_memcnt, htp_state_memuse);
     SCMutexUnlock(&htp_state_mem_lock);
+    SCReturn;
 #endif
 }
 
 /** \brief Clears the HTTP server configuration memory used by HTP library */
 void HTPFreeConfig(void)
 {
-    htp_config_destroy(cfg);
+    SCEnter();
+
+    HTPCfgRec *nextrec = cfglist.next;
+    SCRadixReleaseRadixTree(cfgtree);
+    SCFree(cfglist.cfg);
+    while (nextrec != NULL) {
+        HTPCfgRec *htprec = nextrec;
+
+        SCFree(htprec->cfg);
+        SCFree(htprec);
+        nextrec = nextrec->next;
+    }
+    SCReturn;
 }
 
 /**
@@ -543,12 +669,227 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     SCReturnInt(HOOK_OK);
 }
 
+static void HTPConfigure(void)
+{
+    SCEnter();
+    ConfNode *default_config;
+    ConfNode *server_config;
+
+    AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
+
+    cfglist.next = NULL;
+
+    cfgtree = SCRadixCreateRadixTree(NULL, NULL);
+    if (NULL == cfgtree) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error initializing HTP config tree");
+
+        if (SCLogDebugEnabled()) {
+            abort();
+        }
+        else {
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    /* Default Config */
+    cfglist.cfg = htp_config_create();
+    if (NULL == cfglist.cfg) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP default config");
+
+        if (SCLogDebugEnabled()) {
+            abort();
+        }
+        else {
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
+
+    htp_config_register_request(cfglist.cfg, HTPCallbackRequest);
+    htp_config_register_response(cfglist.cfg, HTPCallbackResponse);
+    htp_config_set_generate_request_uri_normalized(cfglist.cfg, 1);
+
+    default_config = ConfGetNode("libhtp.default-config");
+    if (NULL != default_config) {
+        ConfNode *p = NULL;
+
+        /* Default Parameters */
+        TAILQ_FOREACH(p, &default_config->head, next) {
+            ConfNode *pval;
+
+            if (strcasecmp("personality", p->name) == 0) {
+                /* Personalities */
+                TAILQ_FOREACH(pval, &p->head, next) {
+                    int personality = HTPLookupPersonality(pval->val);
+
+                    SCLogDebug("LIBHTP default: %s=%s",
+                               p->name, pval->val);
+
+
+                    if (personality >= 0) {
+                        SCLogDebug("LIBHTP default: %s=%s (%d)",
+                                   p->name, pval->val,
+                                   personality);
+                        if (htp_config_set_server_personality(cfglist.cfg,
+                                personality) == HTP_ERROR)
+                        {
+                            SCLogWarning(SC_ERR_INVALID_VALUE,
+                                         "LIBHTP Failed adding personality "
+                                         "\"%s\", ignoring", pval->val);
+                        }
+                    }
+                    else {
+                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                                     "LIBHTP Unknown personality "
+                                     "\"%s\", ignoring", pval->val);
+                        continue;
+                    }
+
+                }
+            } else {
+                SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                             "LIBHTP Ignoring unknown default config: %s",
+                             p->name);
+            }
+        }
+    }
+
+    /* Read server config and create a parser for each IP in radix tree */
+    server_config = ConfGetNode("libhtp.server-config");
+    SCLogDebug("LIBHTP Configuring %p", server_config);
+    if (server_config != NULL) {
+        ConfNode *si;
+        ConfNode *s;
+        HTPCfgRec *htprec;
+        HTPCfgRec *nextrec;
+        htp_cfg_t *htp;
+
+        /* Server Nodes */
+        TAILQ_FOREACH(si, &server_config->head, next) {
+            ConfNode *p = NULL;
+
+            /* Need the named node, not the index */
+            s = TAILQ_FIRST(&si->head);
+            if (NULL == s) {
+                SCLogDebug("LIBHTP s NULL");
+                continue;
+            }
+
+            SCLogDebug("LIBHTP server %s", s->name);
+
+            nextrec = cfglist.next;
+            htprec = cfglist.next = SCMalloc(sizeof(HTPCfgRec));
+            if (NULL == htprec) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config rec");
+                if (SCLogDebugEnabled()) {
+                    abort();
+                }
+                else {
+                    exit(EXIT_FAILURE);
+                }
+            }
+
+            cfglist.next->next = nextrec;
+            htp = cfglist.next->cfg = htp_config_create();
+            if (NULL == htp) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config");
+                if (SCLogDebugEnabled()) {
+                    abort();
+                }
+                else {
+                    exit(EXIT_FAILURE);
+                }
+            }
+
+            htp_config_register_request(htp, HTPCallbackRequest);
+            htp_config_register_response(htp, HTPCallbackResponse);
+            htp_config_set_generate_request_uri_normalized(htp, 1);
+
+            /* Server Parameters */
+            TAILQ_FOREACH(p, &s->head, next) {
+                ConfNode *pval;
+
+                if (strcasecmp("address", p->name) == 0) {
+
+                    /* Addresses */
+                    TAILQ_FOREACH(pval, &p->head, next) {
+                        SCLogDebug("LIBHTP server %s: %s=%s",
+                                   s->name, p->name, pval->val);
+
+                        /* IPV6 or IPV4? */
+                        if (strchr(pval->val, ':') != NULL) {
+                            SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
+                                       s->name, pval->val, htp);
+                            if (SCRadixAddKeyIPV6String(pval->val,
+                                                        cfgtree, htprec) == NULL)
+                            {
+                                SCLogWarning(SC_ERR_INVALID_VALUE,
+                                             "LIBHTP failed to add "
+                                             "ipv6 server %s, ignoring",
+                                             pval->val);
+                            }
+                        } else {
+                            SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
+                                       s->name, pval->val, htp);
+                            if (SCRadixAddKeyIPV4String(pval->val,
+                                                        cfgtree, htprec) == NULL)
+                            {
+                                SCLogWarning(SC_ERR_INVALID_VALUE,
+                                             "LIBHTP failed to add "
+                                             "ipv4 server %s, ignoring",
+                                             pval->val);
+                            }
+                        }
+                    }
+                } else if (strcasecmp("personality", p->name) == 0) {
+                    /* Personalities */
+                    TAILQ_FOREACH(pval, &p->head, next) {
+                        int personality = HTPLookupPersonality(pval->val);
+
+                        SCLogDebug("LIBHTP server %s: %s=%s",
+                                   s->name, p->name, pval->val);
+
+
+                        if (personality >= 0) {
+                            SCLogDebug("LIBHTP %s: %s=%s (%d)",
+                                       s->name, p->name, pval->val,
+                                       personality);
+                            if (htp_config_set_server_personality(htp,
+                                    personality) == HTP_ERROR)
+                            {
+                                SCLogWarning(SC_ERR_INVALID_VALUE,
+                                             "LIBHTP Failed adding personality "
+                                             "\"%s\", ignoring", pval->val);
+                            }
+                        }
+                        else {
+                            SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                                         "LIBHTP Unknown personality "
+                                         "\"%s\", ignoring", pval->val);
+                            continue;
+                        }
+
+                    }
+                } else {
+                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                                 "LIBHTP Ignoring unknown server config: %s",
+                                 p->name);
+                }
+            }
+        }
+    }
+
+    SCReturn;
+}
+
 /**
  *  \brief  Register the HTTP protocol and state handling functions to APP layer
  *          of the engine.
  */
 void RegisterHTPParsers(void)
 {
+    SCEnter();
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
 
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOSERVER,
@@ -556,15 +897,8 @@ void RegisterHTPParsers(void)
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOCLIENT,
                           HTPHandleResponseData);
 
-    cfg = htp_config_create();
-    /* Register the callback for request to store the recent incoming request
-       in to the recent_in_tx for the given htp state */
-    htp_config_register_request(cfg, HTPCallbackRequest);
-    /* Register the callback for response to remove the recently received request
-       from the recent_in_tx for the given htp state */
-    htp_config_register_response(cfg, HTPCallbackResponse);
-    /* set the normalized request parsing to be used in uricontent matching */
-    htp_config_set_generate_request_uri_normalized(cfg, 1);
+    HTPConfigure();
+    SCReturn;
 }
 
 /**
@@ -574,17 +908,21 @@ void RegisterHTPParsers(void)
  *        a module in the engine needs the http request body.
  */
 void AppLayerHtpRegisterExtraCallbacks(void) {
+    SCEnter();
     SCLogDebug("Registering extra htp callbacks");
     if (need_htp_request_body == 1) {
         SCLogDebug("Registering callback htp_config_register_request_body_data on htp");
-        htp_config_register_request_body_data(cfg, HTPCallbackRequestBodyData);
+        htp_config_register_request_body_data(cfglist.cfg,
+                                              HTPCallbackRequestBodyData);
     } else {
         SCLogDebug("No htp extra callback needed");
     }
+    SCReturn;
 }
 
 
 #ifdef UNITTESTS
+
 /** \test Test case where chunks are sent in smaller chunks and check the
  *        response of the parser from HTP library. */
 int HTPParserTest01(void) {
@@ -1057,6 +1395,374 @@ end:
         HTPStateFree(http_state);
     return result;
 }
+
+#include "conf-yaml-loader.h"
+
+/** \test Test basic config */
+int HTPParserConfigTest01(void)
+{
+    int ret = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+\n\
+  server-config:\n\
+\n\
+    - apache-tomcat:\n\
+        address: [192.168.1.0/24, 127.0.0.0/8, \"::1\"]\n\
+        personality: Tomcat_6_0\n\
+\n\
+    - iis7:\n\
+        address: \n\
+          - 192.168.0.0/24\n\
+          - 192.168.10.0/24\n\
+        personality: IIS_7_0\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    ConfYamlLoadString(input, strlen(input));
+
+    ConfNode *outputs;
+    outputs = ConfGetNode("libhtp.default-config.personality");
+    if (outputs == NULL) {
+        goto end;
+    }
+
+    outputs = ConfGetNode("libhtp.server-config");
+    if (outputs == NULL) {
+        goto end;
+    }
+
+    ConfNode *node = TAILQ_FIRST(&outputs->head);
+    if (node == NULL) {
+        goto end;
+    }
+    if (strcmp(node->name, "0") != 0) {
+        goto end;
+    }
+    node = TAILQ_FIRST(&node->head);
+    if (node == NULL) {
+        goto end;
+    }
+    if (strcmp(node->name, "apache-tomcat") != 0) {
+        goto end;
+    }
+
+    int i = 0;
+    ConfNode *n;
+
+    ConfNode *node2 = ConfNodeLookupChild(node, "personality");
+    if (node2 == NULL) {
+        goto end;
+    }
+    if (strcmp(node2->val, "Tomcat_6_0") != 0) {
+        goto end;
+    }
+
+    node = ConfNodeLookupChild(node, "address");
+    if (node == NULL) {
+        goto end;
+    }
+    TAILQ_FOREACH(n, &node->head, next) {
+        if (n == NULL) {
+            goto end;
+        }
+
+        switch(i) {
+            case 0:
+                if (strcmp(n->name, "0") != 0) {
+                    goto end;
+                }
+                if (strcmp(n->val, "192.168.1.0/24") != 0) {
+                    goto end;
+                }
+                break;
+            case 1:
+                if (strcmp(n->name, "1") != 0) {
+                    goto end;
+                }
+                if (strcmp(n->val, "127.0.0.0/8") != 0) {
+                    goto end;
+                }
+                break;
+            case 2:
+                if (strcmp(n->name, "2") != 0) {
+                    goto end;
+                }
+                if (strcmp(n->val, "::1") != 0) {
+                    goto end;
+                }
+                break;
+            default:
+                goto end;
+        }
+        i++;
+    }
+
+    outputs = ConfGetNode("libhtp.server-config");
+    if (outputs == NULL) {
+        goto end;
+    }
+
+    node = TAILQ_FIRST(&outputs->head);
+    node = TAILQ_NEXT(node, next);
+    if (node == NULL) {
+        goto end;
+    }
+    if (strcmp(node->name, "1") != 0) {
+        goto end;
+    }
+    node = TAILQ_FIRST(&node->head);
+    if (node == NULL) {
+        goto end;
+    }
+    if (strcmp(node->name, "iis7") != 0) {
+        goto end;
+    }
+
+    node2 = ConfNodeLookupChild(node, "personality");
+    if (node2 == NULL) {
+        goto end;
+    }
+    if (strcmp(node2->val, "IIS_7_0") != 0) {
+        goto end;
+    }
+
+    node = ConfNodeLookupChild(node, "address");
+    if (node == NULL) {
+        goto end;
+    }
+
+    i = 0;
+    TAILQ_FOREACH(n, &node->head, next) {
+        if (n == NULL) {
+            goto end;
+        }
+
+        switch(i) {
+            case 0:
+                if (strcmp(n->name, "0") != 0) {
+                    goto end;
+                }
+                if (strcmp(n->val, "192.168.0.0/24") != 0) {
+                    goto end;
+                }
+                break;
+            case 1:
+                if (strcmp(n->name, "1") != 0) {
+                    goto end;
+                }
+                if (strcmp(n->val, "192.168.10.0/24") != 0) {
+                    goto end;
+                }
+                break;
+            default:
+                goto end;
+        }
+        i++;
+    }
+
+    ret = 1;
+
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return ret;
+}
+
+/** \test Test config builds radix correctly */
+int HTPParserConfigTest02(void)
+{
+    int ret = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+\n\
+  server-config:\n\
+\n\
+    - apache-tomcat:\n\
+        address: [192.168.1.0/24, 127.0.0.0/8, \"::1\"]\n\
+        personality: Tomcat_6_0\n\
+\n\
+    - iis7:\n\
+        address: \n\
+          - 192.168.0.0/24\n\
+          - 192.168.10.0/24\n\
+        personality: IIS_7_0\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    ConfYamlLoadString(input, strlen(input));
+
+    HTPConfigure();
+
+    if (cfglist.cfg == NULL) {
+        printf("No default config created.\n");
+        goto end;
+    }
+
+    if (cfgtree == NULL) {
+        printf("No config tree created.\n");
+        goto end;
+    }
+
+    SCRadixNode *cfgnode = NULL;
+    htp_cfg_t *htp = cfglist.cfg;
+    uint8_t buf[128];
+    const char *addr;
+
+    addr = "192.168.10.42";
+    if (inet_pton(AF_INET, addr, buf) == 1) {
+        cfgnode = SCRadixFindKeyIPV4BestMatch(buf, cfgtree);
+        htp = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec)->cfg;
+        if (htp == NULL) {
+            printf("Could not get config for: %s\n", addr);
+            goto end;
+        }
+    }
+    else {
+        printf("Failed to parse address: %s\n", addr);
+        goto end;
+    }
+
+    addr = "::1";
+    if (inet_pton(AF_INET6, addr, buf) == 1) {
+        cfgnode = SCRadixFindKeyIPV6BestMatch(buf, cfgtree);
+        htp = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec)->cfg;
+        if (htp == NULL) {
+            printf("Could not get config for: %s\n", addr);
+            goto end;
+        }
+    }
+    else {
+        printf("Failed to parse address: %s\n", addr);
+        goto end;
+    }
+
+    ret = 1;
+
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return ret;
+}
+
+/** \test Test traffic is handled by the correct htp config */
+int HTPParserConfigTest03(void)
+{
+    int result = 1;
+    Flow f;
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
+                         " Data is c0oL!";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+\n\
+  server-config:\n\
+\n\
+    - apache-tomcat:\n\
+        address: [192.168.1.0/24, 127.0.0.0/8, \"::1\"]\n\
+        personality: Tomcat_6_0\n\
+\n\
+    - iis7:\n\
+        address: \n\
+          - 192.168.0.0/24\n\
+          - 192.168.10.0/24\n\
+        personality: IIS_7_0\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    ConfYamlLoadString(input, strlen(input));
+
+    HTPConfigure();
+
+    const char *addr = "192.168.10.42";
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+    f.dst.family = AF_INET;
+    inet_pton(f.dst.family, addr, f.dst.addr_data32);
+
+    SCRadixNode *cfgnode = NULL;
+    htp_cfg_t *htp = cfglist.cfg;
+    cfgnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(&f), cfgtree);
+    htp = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec)->cfg;
+    if (htp == NULL) {
+        printf("Could not get config for: %s\n", addr);
+        goto end;
+    }
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            goto end;
+        }
+    }
+
+    htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* Check that the HTP state config matches the correct one */
+    if (htp_state->connp->cfg != htp) {
+        printf("wrong HTP config (%p instead of %p - default=%p): ",
+               htp_state->connp->cfg, htp, cfglist.cfg);
+        result = 0;
+        goto end;
+    }
+
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    return result;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -1070,6 +1776,9 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserTest04", HTPParserTest04, 1);
     UtRegisterTest("HTPParserTest05", HTPParserTest05, 1);
     UtRegisterTest("HTPParserTest06", HTPParserTest06, 1);
+    UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01, 1);
+    UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02, 1);
+    UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03, 1);
 #endif /* UNITTESTS */
 }
 

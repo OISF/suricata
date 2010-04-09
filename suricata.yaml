@@ -387,3 +387,45 @@ host-os-policy:
   macos: []
   vista: []
   windows2k3: []
+
+###########################################################################
+# Configure libhtp.
+#
+#
+# default-config:  Used when no server-config matches
+#   personality:   List of personalities used by default
+#
+# server-config:   List of server configurations to use if address matches
+#   address:       List of ip addresses or networks for this block
+#   personalitiy:  List of personalities used by this block
+#
+# Currently Available Personalities:
+#   Minimal
+#   Generic
+#   IDS (default)
+#   IIS_4_0
+#   IIS_5_0
+#   IIS_5_1
+#   IIS_6_0
+#   IIS_7_0
+#   IIS_7_5
+#   Apache
+#   Apache_2_2
+###########################################################################
+libhtp:
+
+   default-config:
+     personality: IDS
+
+   server-config:
+
+     - apache:
+         address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
+         personality: Apache_2_2
+
+     - iis7:
+         address:
+           - 192.168.0.0/24
+           - 192.168.10.0/24
+         personality: IIS_7_0
+
