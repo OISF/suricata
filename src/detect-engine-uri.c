@@ -243,14 +243,13 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
 {
     SCEnter();
     SigMatch *sm = NULL;
-    int r = 1;
+    int r = 0;
     HtpState *htp_state = NULL;
 
     htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
         SCLogDebug("no HTTP state");
-        r = 0;
-        goto end;
+        SCReturnInt(0);
     }
 
     /* locking the flow, we will inspect the htp state */
@@ -259,7 +258,6 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     /* if we don't have a uri, don't bother inspecting */
     if (det_ctx->de_have_httpuri == FALSE) {
         SCLogDebug("We don't have uri");
-        r = 0;
         goto end;
     }
 
