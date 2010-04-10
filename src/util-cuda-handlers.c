@@ -663,11 +663,10 @@ int SCCudaHlTestEnvCudaContextDeInit(void)
 }
 
 void SCCudaHlProcessPacketWithDispatcher(Packet *p, DetectEngineThreadCtx *det_ctx,
-                                         uint8_t search, void *result)
+                                         void *result)
 {
     Packet *out_p = NULL;
 
-    p->cuda_search = search;
     p->cuda_mpm_ctx = det_ctx->sgh->mpm_ctx;
     p->cuda_mtc = &det_ctx->mtc;
     p->cuda_pmq = &det_ctx->pmq;
@@ -694,7 +693,7 @@ void SCCudaHlProcessPacketWithDispatcher(Packet *p, DetectEngineThreadCtx *det_c
 
 void SCCudaHlProcessUriWithDispatcher(uint8_t *uri, uint16_t uri_len,
                                       DetectEngineThreadCtx *det_ctx,
-                                      uint8_t search, void *result)
+                                      void *result)
 {
     Packet *out_p = NULL;
 
@@ -705,7 +704,6 @@ void SCCudaHlProcessUriWithDispatcher(uint8_t *uri, uint16_t uri_len,
     }
     memset(p, 0, sizeof(Packet));
 
-    p->cuda_search = search;
     p->cuda_mpm_ctx = det_ctx->sgh->mpm_uri_ctx;
     p->cuda_mtc = &det_ctx->mtcu;
     p->cuda_pmq = &det_ctx->pmq;

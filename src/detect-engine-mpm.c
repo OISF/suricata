@@ -101,7 +101,7 @@ uint32_t PacketPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(ret);
     }
 
-    SCCudaHlProcessPacketWithDispatcher(p, det_ctx, /* scan */ 0, &ret);
+    SCCudaHlProcessPacketWithDispatcher(p, det_ctx, &ret);
 #endif
 
     SCReturnInt(ret);
@@ -139,7 +139,7 @@ uint32_t UriPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnUInt(ret);
     }
 
-    SCCudaHlProcessUriWithDispatcher(uri, uri_len, det_ctx, /* scan */ 0, &ret);
+    SCCudaHlProcessUriWithDispatcher(uri, uri_len, det_ctx, &ret);
 #endif
 
     SCReturnUInt(ret);

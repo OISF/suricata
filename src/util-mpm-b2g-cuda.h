@@ -14,23 +14,15 @@
 #include "util-mpm.h"
 #include "util-bloomfilter.h"
 
-#define B2G_CUDA_NOCASE 0x01
-#define B2G_CUDA_SCAN   0x02
-
-#define B2G_CUDA_HASHSIZE  4096
 #define B2G_CUDA_HASHSHIFT 4
 #define B2G_CUDA_TYPE      uint32_t
 #define B2G_CUDA_WORD_SIZE 32
-#define B2G_CUDA_BLOOMSIZE 1024
 #define B2G_CUDA_Q         2
 
 #define B2G_CUDA_HASH16(a, b) (((a) << B2G_CUDA_HASHSHIFT) | (b))
 
-#define B2G_CUDA_SCANFUNC_NAME   "B2gCudaScanBNDMq"
-#define B2G_CUDA_SEARCHFUNC_NAME "B2gCudaSearchBNDMq"
-
-#define B2G_CUDA_SCANFUNC B2gCudaScanBNDMq
 #define B2G_CUDA_SEARCHFUNC B2gCudaSearchBNDMq
+#define B2G_CUDA_SEARCHFUNC_NAME "B2gCudaSearchBNDMq"
 
 typedef struct B2gCudaPattern_ {
     uint8_t flags;
@@ -51,95 +43,73 @@ typedef struct B2gCudaHashItem_ {
 } B2gCudaHashItem;
 
 typedef struct B2gCudaCtx_ {
+    /* unique handle given by the cuda-handlers API, which indicates the module
+     * in the engine that is holding this B2g_Cuda_Ctx */
     int module_handle;
 
     CUcontext cuda_context;
     CUmodule cuda_module;
 
+    /* the search kernel */
     CUfunction cuda_search_kernel;
-    CUfunction cuda_scan_kernel;
 
+    /* cuda device pointer to thelower case table g_u8_lowercasetable */
     CUdeviceptr cuda_g_u8_lowercasetable;
-    CUdeviceptr cuda_search_B2G;
-    CUdeviceptr cuda_scan_B2G;
+    /* cuda device pointer to B2gCudaCtx->B2G */
+    CUdeviceptr cuda_B2G;
 
-    B2G_CUDA_TYPE *scan_B2G;
-    B2G_CUDA_TYPE scan_m;
-    BloomFilter **scan_bloom;
+    B2G_CUDA_TYPE *B2G;
+    B2G_CUDA_TYPE m;
+    BloomFilter **bloom;
     /* array containing the minimal length of the patters in a hash bucket.
      * Used for the BloomFilter. */
-    uint8_t *scan_pminlen;
+    uint8_t *pminlen;
     /* pattern arrays */
     B2gCudaPattern **parray;
 
-    B2G_CUDA_TYPE search_m;
-    B2G_CUDA_TYPE *search_B2G;
-
-    uint16_t scan_1_pat_cnt;
-#ifdef B2G_CUDA_SCAN2
-    uint16_t scan_2_pat_cnt;
+    uint16_t pat_1_cnt;
+#ifdef B2G_CUDA_SEARCH2
+    uint16_t pat_2_cnt;
 #endif
-    uint16_t scan_x_pat_cnt;
+    uint16_t pat_x_cnt;
 
-    uint32_t scan_hash_size;
-    B2gCudaHashItem **scan_hash;
-    B2gCudaHashItem scan_hash1[256];
-#ifdef B2G_CUDA_SCAN2
-    B2gHashItem **scan_hash2;
+    uint32_t hash_size;
+    B2gCudaHashItem **hash;
+    B2gCudaHashItem hash1[256];
+#ifdef B2G_CUDA_SEARCH2
+    B2gCudaHashItem **hash2;
 #endif
-    uint32_t search_hash_size;
-    BloomFilter **search_bloom;
-    /* array containing the minimal length of the patters in a hash bucket.
-     * Used for the BloomFilter. */
-    uint8_t *search_pminlen;
-
-    B2gCudaHashItem **search_hash;
-    B2gCudaHashItem search_hash1[256];
 
     /* hash used during ctx initialization */
     B2gCudaPattern **init_hash;
 
-    uint8_t scan_s0;
-    uint8_t search_s0;
+    uint8_t s0;
 
-    /* we store our own multi byte scan ptr here for B2gCudaSearch1 */
-    uint32_t (*Scan)(struct MpmCtx_ *, struct MpmThreadCtx_ *,
-                     PatternMatcherQueue *, uint8_t *, uint16_t);
-    /* we store our own multi byte search ptr here for B2gCudaSearch1 */
+    /* we store our own multi byte search func ptr here for B2gCudaSearch1 */
     uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *,
                        PatternMatcherQueue *, uint8_t *, uint16_t);
 
-    /* we store our own multi byte scan ptr here for B2gCudaSearch1 */
-    uint32_t (*MBScan2)(struct MpmCtx_ *, struct MpmThreadCtx_ *,
-                        PatternMatcherQueue *, uint8_t *, uint16_t);
-    uint32_t (*MBScan)(struct MpmCtx_ *, struct MpmThreadCtx_ *,
-                       PatternMatcherQueue *, uint8_t *, uint16_t);
-    /* we store our own multi byte search ptr here for B2gCudaSearch1 */
+    /* we store our own multi byte search func ptr here for B2gCudaSearch2 */
+    uint32_t (*MBSearch2)(struct MpmCtx_ *, struct MpmThreadCtx_ *,
+                          PatternMatcherQueue *, uint8_t *, uint16_t);
     uint32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *,
                          PatternMatcherQueue *, uint8_t *, uint16_t);
-
 } B2gCudaCtx;
 
 typedef struct B2gCudaThreadCtx_ {
 #ifdef B2G_CUDA_COUNTERS
-    uint32_t scan_stat_pminlen_calls;
-    uint32_t scan_stat_pminlen_total;
-    uint32_t scan_stat_bloom_calls;
-    uint32_t scan_stat_bloom_hits;
-    uint32_t scan_stat_calls;
-    uint32_t scan_stat_m_total;
-    uint32_t scan_stat_d0;
-    uint32_t scan_stat_d0_hashloop;
-    uint32_t scan_stat_loop_match;
-    uint32_t scan_stat_loop_no_match;
-    uint32_t scan_stat_num_shift;
-    uint32_t scan_stat_total_shift;
-
-    uint32_t search_stat_d0;
-    uint32_t search_stat_loop_match;
-    uint32_t search_stat_loop_no_match;
-    uint32_t search_stat_num_shift;
-    uint32_t search_stat_total_shift;
+    uint32_t stat_pminlen_calls;
+    uint32_t stat_pminlen_total;
+    uint32_t stat_bloom_calls;
+    uint32_t stat_bloom_hits;
+    uint32_t stat_calls;
+    uint32_t stat_m_total;
+    uint32_t stat_d0;
+    uint32_t stat_d0_hashloop;
+    uint32_t stat_loop_match;
+    uint32_t stat_loop_no_match;
+    uint32_t stat_num_shift;
+    uint32_t stat_total_shift;
 #endif /* B2G_CUDA_COUNTERS */
 } B2gCudaThreadCtx;
 
@@ -157,4 +127,5 @@ void B2gCudaPushPacketTo_tv_CMB2_RC(Packet *);
 void B2gCudaPushPacketTo_tv_CMB2_APC(Packet *);
 
 #endif /* __SC_CUDA_SUPPORT__ */
+
 #endif /* __UTIL_MPM_B2G_CUDA_H__ */

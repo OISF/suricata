@@ -63,9 +63,9 @@ int SCCudaHlTestEnvCudaContextInit(void);
 int SCCudaHlTestEnvCudaContextDeInit(void);
 
 void SCCudaHlProcessPacketWithDispatcher(Packet *, DetectEngineThreadCtx *,
-                                         uint8_t, void *);
+                                         void *);
 void SCCudaHlProcessUriWithDispatcher(uint8_t *, uint16_t, DetectEngineThreadCtx *,
-                                      uint8_t, void *);
+                                      void *);
 
 #endif /* __UTIL_CUDA_HANDLERS__ */
 
