@@ -1075,12 +1075,16 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
             node = node->left;
         }
 
-        if (node == NULL)
+        if (node == NULL) {
+            SCRadixReleasePrefix(prefix, tree);
             return;
+        }
     }
 
-    if (node->bit != prefix->bitlen || node->prefix == NULL)
+    if (node->bit != prefix->bitlen || node->prefix == NULL) {
+        SCRadixReleasePrefix(prefix, tree);
         return;
+    }
 
     i = prefix->bitlen / 8;
     if (memcmp(node->prefix->stream, prefix->stream, i) == 0) {
@@ -1091,16 +1095,19 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
             if (!SCRadixPrefixContainNetmask(node->prefix, netmask)) {
                 SCLogDebug("The ip key exists in the Radix Tree, but this(%d) "
                            "netblock entry doesn't exist", netmask);
+                SCRadixReleasePrefix(prefix, tree);
                 return;
             }
         } else {
             SCLogDebug("You are trying to remove a key that doesn't exist in "
                        "the Radix Tree");
+            SCRadixReleasePrefix(prefix, tree);
             return;
         }
     } else {
         SCLogDebug("You are trying to remove a key that doesn't exist in the "
                    "Radix Tree");
+        SCRadixReleasePrefix(prefix, tree);
         return;
     }
 
@@ -1110,6 +1117,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
      * particular netblock entry, and make our way out of this function */
     if (SCRadixPrefixNetmaskCount(node->prefix) > 1) {
         SCRadixRemoveNetblockEntry(node, netmask);
+        SCRadixReleasePrefix(prefix, tree);
         return;
     }
 
@@ -1118,6 +1126,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
     if (tree->head == node) {
         SCFree(node);
         tree->head = NULL;
+        SCRadixReleasePrefix(prefix, tree);
         return;
     }
 
@@ -1163,6 +1172,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
     /* release the nodes */
     SCRadixReleaseNode(parent, tree);
     SCRadixReleaseNode(node, tree);
+    SCRadixReleasePrefix(prefix, tree);
 
     return;
 }
