@@ -3031,10 +3031,9 @@ int SCRadixTestIPV6NetblockInsertion14(void)
 }
 
 /**
- * \test SCRadixTestIPV4NetblockInsertion15 insert a node and
- *       loop multiple times searching on it. Should always return true
- *       but the purposse of the test is to monitor the memory usage to
- *       detect memleaks (there was one on searching)
+ * \test SCRadixTestIPV4NetblockInsertion15 insert a node searching on it.
+ *       Should always return true but the purposse of the test is to monitor
+ *       the memory usage to detect memleaks (there was one on searching)
  */
 int SCRadixTestIPV4NetblockInsertion15(void)
 {
@@ -3049,16 +3048,12 @@ int SCRadixTestIPV4NetblockInsertion15(void)
         return 0;
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, NULL, 16);
 
-    uint64_t i = 0;
-    uint64_t limit = 100000;
-
     /* test for the existance of a key */
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.128.53", &servaddr.sin_addr) <= 0)
         return 0;
-    for (; i < limit; i++) {
-        result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree) != NULL);
-    }
+
+    result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree) != NULL);
 
     SCRadixReleaseRadixTree(tree);
 
