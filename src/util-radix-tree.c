@@ -1587,7 +1587,7 @@ int SCRadixTestInsertion01(void)
 
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
 
     node[0] = SCRadixAddKeyGeneric((uint8_t *)"abaa", 32, tree, NULL);
@@ -1607,7 +1607,7 @@ int SCRadixTestInsertion02(void)
     SCRadixTree *tree = NULL;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     SCRadixAddKeyGeneric((uint8_t *)"aaaaaa", 48, tree, NULL);
     SCRadixAddKeyGeneric((uint8_t *)"aaaaab", 48, tree, NULL);
@@ -1625,7 +1625,7 @@ int SCRadixTestIPV4Insertion03(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -1736,7 +1736,7 @@ int SCRadixTestIPV4Removal04(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -1847,7 +1847,7 @@ int SCRadixTestCharacterInsertion05(void)
     SCRadixTree *tree = NULL;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* Let us have our team here ;-) */
     SCRadixAddKeyGeneric((uint8_t *)"Victor", 48, tree, NULL);
@@ -1887,7 +1887,7 @@ int SCRadixTestCharacterRemoval06(void)
     SCRadixTree *tree = NULL;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* Let us have our team here ;-) */
     SCRadixAddKeyGeneric((uint8_t *)"Victor", 48, tree, NULL);
@@ -1942,7 +1942,7 @@ int SCRadixTestIPV6Insertion07(void)
     struct sockaddr_in6 servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2056,7 +2056,7 @@ int SCRadixTestIPV6Removal08(void)
     struct sockaddr_in6 servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2295,7 +2295,7 @@ int SCRadixTestIPV4NetblockInsertion09(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2405,7 +2405,7 @@ int SCRadixTestIPV4NetblockInsertion10(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2512,7 +2512,7 @@ int SCRadixTestIPV4NetblockInsertion11(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2680,7 +2680,7 @@ int SCRadixTestIPV4NetblockInsertion12(void)
     struct sockaddr_in servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2804,7 +2804,7 @@ int SCRadixTestIPV6NetblockInsertion13(void)
     struct sockaddr_in6 servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -2935,7 +2935,7 @@ int SCRadixTestIPV6NetblockInsertion14(void)
     struct sockaddr_in6 servaddr;
     int result = 1;
 
-    tree = SCRadixCreateRadixTree(NULL, NULL);
+    tree = SCRadixCreateRadixTree(free, NULL);
 
     /* add the keys */
     bzero(&servaddr, sizeof(servaddr));
@@ -3039,7 +3039,6 @@ int SCRadixTestIPV6NetblockInsertion14(void)
 int SCRadixTestIPV4NetblockInsertion15(void)
 {
     SCRadixTree *tree = NULL;
-    SCRadixNode *node = NULL;
     struct sockaddr_in servaddr;
     int result = 1;
 
