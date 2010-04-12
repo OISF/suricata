@@ -1260,7 +1260,6 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(SCRadixPrefix *prefix,
 
     if (node == NULL)
         return NULL;
-
     /* hold the node found containing a netmask.  We will need it when we call
      * this function recursively */
     netmask_node = node;
@@ -1341,12 +1340,16 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
             node = node->left;
         }
 
-        if (node == NULL)
+        if (node == NULL) {
+            SCRadixReleasePrefix(prefix, tree);
             return NULL;
+        }
     }
 
-    if (node->bit != prefix->bitlen || node->prefix == NULL)
+    if (node->bit != prefix->bitlen || node->prefix == NULL) {
+        SCRadixReleasePrefix(prefix, tree);
         return NULL;
+    }
 
     bytes = prefix->bitlen / 8;
     if (memcmp(node->prefix->stream, prefix->stream, bytes) == 0) {
@@ -1354,16 +1357,22 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
 
         if (prefix->bitlen % 8 == 0 ||
             (node->prefix->stream[bytes] & mask) == (prefix->stream[bytes] & mask)) {
-            if (SCRadixPrefixContainNetmaskAndSetUserData(node->prefix, key_bitlen, 1))
+            if (SCRadixPrefixContainNetmaskAndSetUserData(node->prefix, key_bitlen, 1)) {
+                SCRadixReleasePrefix(prefix, tree);
                 return node;
+            }
         }
     }
 
     /* if you are not an ip key, get out of here */
-    if (exact_match)
+    if (exact_match) {
+        SCRadixReleasePrefix(prefix, tree);
         return NULL;
+    }
 
-    return SCRadixFindKeyIPNetblock(prefix, node);
+    SCRadixNode *ret = SCRadixFindKeyIPNetblock(prefix, node);
+    SCRadixReleasePrefix(prefix, tree);
+    return ret;
 }
 
 /**
