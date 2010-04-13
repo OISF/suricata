@@ -518,7 +518,8 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
 static int HTPCallbackResponse(htp_connp_t *connp) {
     SCEnter();
 
-    uint8_t i;
+    size_t idx;
+
     HtpState *hstate = (HtpState *)connp->user_data;
     if (hstate == NULL) {
         SCReturnInt(HOOK_ERROR);
@@ -527,13 +528,14 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     /* Free data when we have a response */
     if (hstate->body.nchunks > 0)
         HtpBodyFree(&hstate->body);
+
     hstate->body.operation = HTP_BODY_RESPONSE;
     hstate->body.pcre_flags = HTP_PCRE_NONE;
 
     /* Clear the trasactions which are processed by the engine from libhtp.
        This helps in reducing the meory consumptions of libhtp */
-    for (i = 0; i< hstate->new_in_tx_index; i++) {
-        htp_tx_t *tx = list_get(hstate->connp->conn->transactions, i);
+    for (idx = 0; idx < hstate->new_in_tx_index; idx++) {
+        htp_tx_t *tx = list_get(hstate->connp->conn->transactions, idx);
         if (tx != NULL)
             htp_tx_destroy(tx);
     }
