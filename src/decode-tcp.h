@@ -12,13 +12,16 @@
                                                  * (type + len), except EOL and NOP */
 
 /* TCP flags */
+
 #define TH_FIN                               0x01
 #define TH_SYN                               0x02
 #define TH_RST                               0x04
 #define TH_PUSH                              0x08
 #define TH_ACK                               0x10
 #define TH_URG                               0x20
+/** Establish a new connection reducing window */
 #define TH_ECN                               0x40
+/** Echo Congestion flag */
 #define TH_CWR                               0x80
 
 /* tcp option codes */

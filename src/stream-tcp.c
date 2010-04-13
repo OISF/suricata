@@ -714,6 +714,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                "toclient":"toserver");
 
     switch (p->tcph->th_flags) {
+        /** \todo what about ECN/CWR here? */
         case TH_SYN:
             SCLogDebug("ssn %p: SYN packet on state SYN_SENT... resent", ssn);
             if (ssn->flags & STREAMTCP_FLAG_4WHS)
