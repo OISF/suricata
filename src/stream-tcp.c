@@ -5336,17 +5336,27 @@ static int StreamTcpTest25(void) {
     StreamTcpThread stt;
     uint8_t payload[4];
     TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    int ret = 0;
+
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+
+    stt.ra_ctx = ra_ctx;
     p.flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN | TH_CWR;
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
-    int ret = 0;
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
     StreamTcpInitConfig(TRUE);
 
@@ -5420,17 +5430,21 @@ static int StreamTcpTest26(void) {
     StreamTcpThread stt;
     uint8_t payload[4];
     TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    int ret = 0;
+
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+
+    stt.ra_ctx = ra_ctx;
     p.flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN | TH_ECN;
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
-    int ret = 0;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5504,17 +5518,21 @@ static int StreamTcpTest27(void) {
     StreamTcpThread stt;
     uint8_t payload[4];
     TCPHdr tcph;
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    int ret = 0;
+
     memset (&p, 0, sizeof(Packet));
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+
+    stt.ra_ctx = ra_ctx;
     p.flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN | TH_CWR | TH_ECN;
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
-    int ret = 0;
 
     StreamTcpInitConfig(TRUE);
 
