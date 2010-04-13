@@ -261,6 +261,11 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         goto end;
     }
 
+    if (htp_state->connp == NULL) {
+        SCLogDebug("HTP state has no connp");
+        goto end;
+    }
+
     sm = s->umatch;
 
     det_ctx->uricontent_payload_offset = 0;

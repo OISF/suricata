@@ -146,9 +146,6 @@ static void *HTPStateAlloc(void)
 
 error:
     if (s != NULL) {
-        if (s->connp != NULL)
-            htp_connp_destroy(s->connp);
-
         SCFree(s);
     }
 
@@ -262,6 +259,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         }
 
         if (NULL == htp) {
+            BUG_ON(htp == NULL);
             /* should never happen if HTPConfigure is properly invoked */
             goto error;
         }
@@ -275,6 +273,9 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
         SCLogDebug("New hstate->connp %p", hstate->connp);
     }
+
+    /* the code block above should make sure connp is never NULL here */
+    BUG_ON(hstate->connp == NULL);
 
     if (hstate->connp->in_status == STREAM_STATE_ERROR) {
         SCLogError(SC_ERR_ALPARSER, "Inbound parser is in error state, no"
@@ -370,6 +371,10 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     int ret = 1;
 
     HtpState *hstate = (HtpState *)htp_state;
+    if (hstate->connp == NULL) {
+        SCLogError(SC_ERR_ALPARSER, "HTP state has no connp");
+        SCReturnInt(-1);
+    }
 
     if (hstate->connp->out_status == STREAM_STATE_ERROR) {
         SCLogError(SC_ERR_ALPARSER, "Outbound parser is in error state, no"

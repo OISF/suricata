@@ -387,8 +387,8 @@ uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_c
     htp_tx_t *tx = NULL;
 
     HtpState *htp_state = (HtpState *)alstate;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
+    if (htp_state == NULL || htp_state->connp == NULL) {
+        SCLogDebug("no HTTP state / no connp");
         SCReturnUInt(0U);
     }
 
