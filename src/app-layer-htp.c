@@ -37,15 +37,16 @@
 
 #include "conf.h"
 
-/* Need a linked list in order to keep track of these */
+/** Need a linked list in order to keep track of these */
 typedef struct HTPCfgRec_ HTPCfgRec;
 struct HTPCfgRec_ {
     htp_cfg_t         *cfg;
     HTPCfgRec         *next;
 };
 
-/* These are used to keep track of the various HTP configurations */
+/** Fast lookup tree (radix) for the various HTP configurations */
 static SCRadixTree *cfgtree;
+/** List of HTP configurations. */
 static HTPCfgRec cfglist;
 
 #ifdef DEBUG
@@ -233,17 +234,18 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
                                 AppLayerParserResult *output)
 {
     SCEnter();
-    SCRadixNode *cfgnode = NULL;
     int r = -1;
     int ret = 1;
     HtpState *hstate = (HtpState *)htp_state;
-    htp_cfg_t *htp = cfglist.cfg; /* Default to the global HTP config */
 
     /* On the first invocation, create the connection parser structure to
      * be used by HTP library.  This is looked up via IP in the radix
      * tree.  Failing that, the default HTP config is used.
      */
     if (NULL == hstate->connp ) {
+        htp_cfg_t *htp = cfglist.cfg; /* Default to the global HTP config */
+        SCRadixNode *cfgnode = NULL;
+
         if (AF_INET == f->dst.family) {
             SCLogDebug("Looking up HTP config for ipv4 %08x", *GET_IPV4_DST_ADDR_PTR(f));
             cfgnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(f), cfgtree);
@@ -260,6 +262,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         }
 
         if (NULL == htp) {
+            /* should never happen if HTPConfigure is properly invoked */
             goto error;
         }
 
