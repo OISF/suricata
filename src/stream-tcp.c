@@ -527,6 +527,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             break;
         }
         case TH_SYN|TH_ACK:
+        case TH_SYN|TH_ACK|TH_ECN:
             if (stream_config.midstream == FALSE &&
                     stream_config.async_oneside == FALSE)
                 break;
@@ -602,7 +603,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         /* Handle SYN/ACK and 3WHS shake missed together as it is almost
          * similar. */
         case TH_ACK:
+        case TH_ACK|TH_ECN:
         case TH_ACK|TH_PUSH:
+        case TH_ACK|TH_PUSH|TH_ECN:
             if (stream_config.midstream == FALSE)
                 break;
             if (ssn == NULL) {
@@ -680,10 +683,14 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
         case TH_RST|TH_ACK|TH_PUSH:
+        case TH_RST|TH_ACK|TH_PUSH|TH_ECN:
         case TH_FIN:
         case TH_FIN|TH_ACK:
+        case TH_FIN|TH_ACK|TH_ECN:
         case TH_FIN|TH_ACK|TH_PUSH:
+        case TH_FIN|TH_ACK|TH_PUSH|TH_ECN:
             BUG_ON(p->flow->protoctx != NULL);
             SCLogDebug("FIN or RST packet received, no session setup");
             break;
@@ -714,8 +721,9 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                "toclient":"toserver");
 
     switch (p->tcph->th_flags) {
-        /** \todo what about ECN/CWR here? */
         case TH_SYN:
+        case TH_SYN|TH_CWR:
+        case TH_SYN|TH_CWR|TH_ECN:
             SCLogDebug("ssn %p: SYN packet on state SYN_SENT... resent", ssn);
             if (ssn->flags & STREAMTCP_FLAG_4WHS)
                 SCLogDebug("ssn %p: SYN packet on state SYN_SENT... resent of "
@@ -773,6 +781,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
             break;
         case TH_SYN|TH_ACK:
+        case TH_SYN|TH_ACK|TH_ECN:
             if (ssn->flags & STREAMTCP_FLAG_4WHS && PKT_IS_TOSERVER(p)) {
                 SCLogDebug("ssn %p: SYN/ACK received on 4WHS session", ssn);
 
@@ -941,7 +950,9 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             ssn->flags &=~ STREAMTCP_FLAG_4WHS;
             break;
         case TH_ACK:
-        case TH_ACK|TH_PUSH :
+        case TH_ACK|TH_ECN:
+        case TH_ACK|TH_PUSH:
+        case TH_ACK|TH_PUSH|TH_ECN:
             /* Handle the asynchronous stream, when we receive a  SYN packet
              and now istead of receving a SYN/ACK we receive a ACK from the
              same host, which sent the SYN, this suggests the ASNYC streams.*/
@@ -1000,6 +1011,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
             if(ValidReset(ssn, p)){
                 if(SEQ_EQ(TCP_GET_SEQ(p), ssn->client.isn) &&
                         SEQ_EQ(TCP_GET_WINDOW(p), 0) &&
@@ -1039,13 +1051,18 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
     switch (p->tcph->th_flags) {
         case TH_SYN:
+        case TH_SYN|TH_CWR:
+        case TH_SYN|TH_CWR|TH_ECN:
             SCLogDebug("ssn %p: SYN packet on state SYN_RECV... resent", ssn);
             break;
         case TH_SYN|TH_ACK:
+        case TH_SYN|TH_ACK|TH_ECN:
             SCLogDebug("ssn %p: SYN/ACK packet on state SYN_RECV. resent", ssn);
             break;
         case TH_ACK:
+        case TH_ACK|TH_ECN:
         case TH_ACK|TH_PUSH:
+        case TH_ACK|TH_PUSH|TH_ECN:
             /* If the timestamp option is enabled for both the streams, then
              * validate the received packet timestamp value against the
              * stream->last_ts. If the timestamp is valid then process the
@@ -1192,6 +1209,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
 
             if(ValidReset(ssn, p)) {
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
@@ -1468,14 +1486,19 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
 
     switch (p->tcph->th_flags) {
         case TH_SYN:
+        case TH_SYN|TH_CWR:
+        case TH_SYN|TH_CWR|TH_ECN:
             SCLogDebug("ssn %p: SYN packet on state ESTABLISED... resent", ssn);
             break;
         case TH_SYN|TH_ACK:
+        case TH_SYN|TH_ACK|TH_ECN:
             SCLogDebug("ssn %p: SYN/ACK packet on state ESTABLISHED... resent",
                         ssn);
             break;
         case TH_ACK:
+        case TH_ACK|TH_ECN:
         case TH_ACK|TH_PUSH:
+        case TH_ACK|TH_PUSH|TH_ECN:
 
             /* If the timestamp option is enabled for both the streams, then
              * validate the received packet timestamp value against the
@@ -1508,7 +1531,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
             break;
         case TH_FIN:
         case TH_FIN|TH_ACK:
+        case TH_FIN|TH_ACK|TH_ECN:
         case TH_FIN|TH_ACK|TH_PUSH:
+        case TH_FIN|TH_ACK|TH_PUSH|TH_ECN:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!ValidTimestamp(ssn, p))
@@ -1526,6 +1551,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
 
             if(ValidReset(ssn, p)) {
                 if(PKT_IS_TOSERVER(p)) {
@@ -1679,6 +1705,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
     switch (p->tcph->th_flags) {
         case TH_ACK:
+        case TH_ACK|TH_ECN:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!ValidTimestamp(ssn, p))
@@ -1752,7 +1779,9 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             break;
         case TH_FIN:
         case TH_FIN|TH_ACK:
+        case TH_FIN|TH_ACK|TH_ECN:
         case TH_FIN|TH_ACK|TH_PUSH:
+        case TH_FIN|TH_ACK|TH_PUSH|TH_ECN:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!ValidTimestamp(ssn, p))
@@ -1835,6 +1864,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
 
             if(ValidReset(ssn, p)) {
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
@@ -1872,6 +1902,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
 
     switch (p->tcph->th_flags) {
         case TH_ACK:
+        case TH_ACK|TH_ECN:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!ValidTimestamp(ssn, p))
@@ -1946,6 +1977,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
 
             if(ValidReset(ssn, p)) {
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
@@ -2049,6 +2081,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
 
     switch(p->tcph->th_flags) {
         case TH_ACK:
+        case TH_ACK|TH_ECN:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!ValidTimestamp(ssn, p))
@@ -2144,6 +2177,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
     switch(p->tcph->th_flags) {
         case TH_FIN:
         case TH_FIN|TH_ACK:
+        case TH_FIN|TH_ACK|TH_ECN:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!ValidTimestamp(ssn, p))
@@ -2209,6 +2243,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
             }
             break;
         case TH_ACK:
+        case TH_ACK|TH_ECN:
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!ValidTimestamp(ssn, p))
                     SCReturnInt(-1);
@@ -2291,6 +2326,7 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p,
 
     switch(p->tcph->th_flags) {
         case TH_ACK:
+        case TH_ACK|TH_ECN:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!ValidTimestamp(ssn, p))
@@ -2352,6 +2388,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
 
     switch(p->tcph->th_flags) {
         case TH_ACK:
+        case TH_ACK|TH_ECN:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!ValidTimestamp(ssn, p))
