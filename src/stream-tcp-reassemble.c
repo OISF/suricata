@@ -1198,8 +1198,9 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
                             overlap);
                 break;
         }
-        if (end_before == TRUE || end_same == TRUE || handle_beyond == FALSE)
+        if (end_before == TRUE || end_same == TRUE || handle_beyond == FALSE) {
             SCReturnInt(1);
+        }
     }
     SCReturnInt(0);
 }
@@ -1351,6 +1352,10 @@ void StreamTcpReassembleUnPause (TcpSession *ssn, char direction)
                 (ssn->flags &= ~STREAMTCP_FLAG_PAUSE_TOCLIENT_REASSEMBLY);
 }
 
+/**
+ *  \brief Update the stream reassembly upon receiving an ACK packet.
+ *  \todo this function is too long, we need to break it up
+ */
 int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                                                TcpSession *ssn, TcpStream *stream,
                                                Packet *p)
@@ -1452,7 +1457,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                 }
 
                 if (stream->seg_list_tail == seg)
-                    stream->seg_list_tail = next_seg;
+                    stream->seg_list_tail = seg->prev;
+
                 seg->flags &= ~SEGMENTTCP_FLAG_PROCESSED;
                 StreamTcpSegmentReturntoPool(seg);
                 seg = next_seg;
@@ -1495,7 +1501,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
             }
 
             if (stream->seg_list_tail == seg)
-                stream->seg_list_tail = next_seg;
+                stream->seg_list_tail = seg->prev;
+
             StreamTcpSegmentReturntoPool(seg);
             seg = next_seg;
             continue;
@@ -1602,7 +1609,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                                                                 payload_offset;
                     }
                 } else {
-                payload_len = seg->payload_len - payload_offset;
+                    payload_len = seg->payload_len - payload_offset;
                 }
 
                 if (SCLogDebugEnabled()) {
@@ -1778,7 +1785,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
 
             /* Update seg_list_tail, in case it also points to this segment*/
             if (stream->seg_list_tail == seg)
-                stream->seg_list_tail = next_seg;
+                stream->seg_list_tail = seg->prev;
+
             SCLogDebug("removing seg %p, seg->next %p", seg, seg->next);
             StreamTcpSegmentReturntoPool(seg);
         } else {
