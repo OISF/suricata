@@ -75,7 +75,7 @@ enum defrag_policies {
  * A context for an instance of a fragmentation re-assembler, in case
  * we ever need more than one.
  */
-typedef struct _DefragContext {
+typedef struct DefragContext_ {
     uint64_t ip4_frags; /**< Number of IPv4 fragments seen. */
     uint64_t ip6_frags; /**< Number of IPv6 fragments seen. */
 
@@ -96,7 +96,7 @@ typedef struct _DefragContext {
 /**
  * Storage for an individual fragment.
  */
-typedef struct _frag {
+typedef struct Frag_ {
     DefragContext *dc; /**< The defragmentation context this frag was
                         * allocated under. */
 
@@ -124,14 +124,14 @@ typedef struct _frag {
 
     int8_t skip; /**< Skip this fragment during re-assembly. */
 
-    TAILQ_ENTRY(_frag) next; /**< Pointer to next fragment for tailq. */
+    TAILQ_ENTRY(Frag_) next; /**< Pointer to next fragment for tailq. */
 } Frag;
 
 /**
  * A defragmentation tracker.  Used to track fragments that make up a
  * single packet.
  */
-typedef struct _DefragTracker {
+typedef struct DefragTracker_ {
     DefragContext *dc; /**< The defragmentation context this tracker
                         * was allocated under. */
 
@@ -153,7 +153,7 @@ typedef struct _DefragTracker {
     SCMutex lock; /**< Mutex for locking list operations on
                            * this tracker. */
 
-    TAILQ_HEAD(frag_tailq, _frag) frags; /**< Head of list of fragments. */
+    TAILQ_HEAD(frag_tailq, Frag_) frags; /**< Head of list of fragments. */
 } DefragTracker;
 
 /** A random value used for hash key generation. */

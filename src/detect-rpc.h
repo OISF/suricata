@@ -8,15 +8,15 @@
 #define    DETECT_RPC_CHECK_VERSION   0x02
 #define    DETECT_RPC_CHECK_PROCEDURE 0x04
 
-/* Simple struct for a rpc msg call */
-struct rpc_msg {
-     unsigned int xid;
-     unsigned int type;         /*< CALL = 0 (We only search for CALLS */
-     unsigned int rpcvers;      /*< must be equal to two (2) */
-     unsigned int prog;
-     unsigned int vers;
-     unsigned int proc;
-}*msg;
+/** Simple struct for a rpc msg call */
+typedef struct RpcMsg_ {
+     uint32_t xid;
+     uint32_t type;     /**< CALL = 0 (We only search for CALLS */
+     uint32_t rpcvers;  /**< must be equal to two (2) */
+     uint32_t prog;
+     uint32_t vers;
+     uint32_t proc;
+} RpcMsg;
 
 /* Extract uint32_t */
 #define EXT_GET_UINT32T(buf)      ((long)ntohl((long)*(buf)++))

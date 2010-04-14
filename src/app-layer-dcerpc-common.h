@@ -79,29 +79,29 @@ typedef struct {
 #define RESERVED_40 0x40
 #define RESERVED_80 0x80
 
-typedef struct dcerpc_hdr_ {
-    uint8_t rpc_vers;     	/* 00:01 RPC version should be 5 */
-    uint8_t rpc_vers_minor; /* 01:01 minor version */
-    uint8_t type;           /* 02:01 packet type */
-    uint8_t pfc_flags;      /* 03:01 flags (see PFC_... ) */
-    uint8_t packed_drep[4]; /* 04:04 NDR data representation format label */
-    uint16_t frag_length;   /* 08:02 total length of fragment */
-    uint16_t auth_length;   /* 10:02 length of auth_value */
-    uint32_t call_id;      /* 12:04 call identifier */
-}DCERPCHdr;
+typedef struct DCERPCHdr_ {
+    uint8_t rpc_vers;       /**< 00:01 RPC version should be 5 */
+    uint8_t rpc_vers_minor; /**< 01:01 minor version */
+    uint8_t type;           /**< 02:01 packet type */
+    uint8_t pfc_flags;      /**< 03:01 flags (see PFC_... ) */
+    uint8_t packed_drep[4]; /**< 04:04 NDR data representation format label */
+    uint16_t frag_length;   /**< 08:02 total length of fragment */
+    uint16_t auth_length;   /**< 10:02 length of auth_value */
+    uint32_t call_id;       /**< 12:04 call identifier */
+} DCERPCHdr;
 
 #define DCERPC_HDR_LEN 16
 
-struct uuid_entry {
+typedef struct DCERPCUuidEntry_ {
     uint16_t ctxid;
     uint16_t result;
     uint8_t uuid[16];
     uint16_t version;
     uint16_t versionminor;
-    TAILQ_ENTRY(uuid_entry) next;
-};
+    TAILQ_ENTRY(DCERPCUuidEntry_) next;
+} DCERPCUuidEntry;
 
-typedef struct dcerpc_bind_bind_ack_ {
+typedef struct DCERPCBindBindAck_ {
     uint8_t numctxitems;
     uint8_t numctxitemsleft;
     uint8_t ctxbytesprocessed;
@@ -109,17 +109,17 @@ typedef struct dcerpc_bind_bind_ack_ {
     uint8_t uuid[16];
     uint16_t version;
     uint16_t versionminor;
-    struct uuid_entry *uuid_entry;
-    TAILQ_HEAD(, uuid_entry) uuid_list;
+    DCERPCUuidEntry *uuid_entry;
+    TAILQ_HEAD(, DCERPCUuidEntry_) uuid_list;
     uint16_t secondaryaddrlen;
     uint16_t secondaryaddrlenleft;
     uint16_t result;
-}DCERPCBindBindAck;
+} DCERPCBindBindAck;
 
-typedef struct dcerpc_request_ {
+typedef struct DCERPCRequest_ {
     uint16_t opnum;
     uint8_t *stub_data;
-}DCERPCRequest;
+} DCERPCRequest;
 
 
 typedef struct DCERPC_ {
@@ -129,24 +129,28 @@ typedef struct DCERPC_ {
 	uint16_t bytesprocessed;
 	uint8_t pad;
 	uint8_t padleft;
-}DCERPC;
+} DCERPC;
 
 
-#define PFC_FIRST_FRAG           0x01/* First fragment */
-#define PFC_LAST_FRAG            0x02/* Last fragment */
-#define PFC_PENDING_CANCEL       0x04/* Cancel was pending at sender */
+/** First fragment */
+#define PFC_FIRST_FRAG           0x01
+/** Last fragment */
+#define PFC_LAST_FRAG            0x02
+/** Cancel was pending at sender */
+#define PFC_PENDING_CANCEL       0x04
 #define PFC_RESERVED_1           0x08
-#define PFC_CONC_MPX             0x10/* supports concurrent multiplexing
-                                      * of a single connection. */
-#define PFC_DID_NOT_EXECUTE      0x20/* only meaningful on `fault' packet;
-                                      * if true, guaranteed call did not
-                                      * execute. */
-#define PFC_MAYBE                0x40/* `maybe' call semantics requested */
-#define PFC_OBJECT_UUID          0x80/* if true, a non-nil object UUID
-                                      * was specified in the handle, and
-                                      * is present in the optional object
-                                      * field. If false, the object field
-                                      * is omitted. */
+/** supports concurrent multiplexing of a single connection. */
+#define PFC_CONC_MPX             0x10
+/** only meaningful on `fault' packet; if true, guaranteed
+ *  call did not execute. */
+#define PFC_DID_NOT_EXECUTE      0x20
+/** `maybe' call semantics requested */
+#define PFC_MAYBE                0x40
+/** if true, a non-nil object UUID was specified in the handle, and
+ *  is present in the optional object field. If false, the object field
+ * is omitted. */
+#define PFC_OBJECT_UUID          0x80
+
 #define REASON_NOT_SPECIFIED            0
 #define TEMPORARY_CONGESTION            1
 #define LOCAL_LIMIT_EXCEEDED            2
@@ -155,25 +159,10 @@ typedef struct DCERPC_ {
 #define DEFAULT_CONTEXT_NOT_SUPPORTED   5 /* not used */
 #define USER_DATA_NOT_READABLE          6 /* not used */
 #define NO_PSAP_AVAILABLE               7 /* not used */
-/*
-   typedef uint16_t p_context_id_t;
-   typedef   struct   {
-   uuid_t   if_uuid;
-   uint32_t if_version;
-   } p_syntax_id_t;
-
-   typedef   struct {
-   p_context_id_t   p_cont_id;
-   uint8_t n_transfer_syn;     // number of items
-   uint8_t reserved;           // alignment pad, m.b.z.
-   p_syntax_id_t    abstract_syntax;    // transfer syntax list
-   p_syntax_id_t [size_is(n_transfer_syn)] transfer_syntaxes[];
-   } p_cont_elem_t;
-   */
 
 int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len);
 void hexdump(const void *buf, size_t len);
-void printUUID(char *type, struct uuid_entry *uuid);
+void printUUID(char *type, DCERPCUuidEntry *uuid);
 
 #endif /* __APP_LAYER_DCERPC_COMMON_H__ */
 

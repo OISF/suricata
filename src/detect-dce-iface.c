@@ -253,7 +253,7 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                         uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
     int ret = 1;
-    struct uuid_entry *item = NULL;
+    DCERPCUuidEntry *item = NULL;
     int i = 0;
     DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m->ctx;
     DCERPCState *dcerpc_state = (DCERPCState *)state;

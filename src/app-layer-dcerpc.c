@@ -103,7 +103,7 @@ void hexdump(const void *buf, size_t len) {
  * \brief printUUID function used to print UUID, Major and Minor Version Number
  * and if it was Accepted or Rejected in the BIND_ACK.
  */
-void printUUID(char *type, struct uuid_entry *uuid) {
+void printUUID(char *type, DCERPCUuidEntry *uuid) {
     uint8_t i = 0;
     if (uuid == NULL) {
         return;
@@ -217,8 +217,8 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                     dcerpc->dcerpcbindbindack.versionminor |= *(p + 23) << 8;
                     if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems
                             - dcerpc->dcerpcbindbindack.numctxitemsleft) {
-                        dcerpc->dcerpcbindbindack.uuid_entry = (struct uuid_entry *) SCCalloc(1,
-                                sizeof(struct uuid_entry));
+                        dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *) SCCalloc(1,
+                                sizeof(DCERPCUuidEntry));
                         if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
                             SCReturnUInt(0);
                         } else {
@@ -423,8 +423,8 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 p++;
                 --input_len;
                 if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft) {
-                    dcerpc->dcerpcbindbindack.uuid_entry = (struct uuid_entry *) SCCalloc(1,
-                            sizeof(struct uuid_entry));
+                    dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *) SCCalloc(1,
+                            sizeof(DCERPCUuidEntry));
                     if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
                         SCReturnUInt(0);
                     } else {
@@ -466,7 +466,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
 static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCEnter();
     uint8_t *p = input;
-    struct uuid_entry *uuid_entry;
+    DCERPCUuidEntry *uuid_entry;
 
     if (input_len) {
         switch (dcerpc->dcerpcbindbindack.ctxbytesprocessed) {
@@ -1251,7 +1251,7 @@ static void *DCERPCStateAlloc(void) {
 static void DCERPCStateFree(void *s) {
     DCERPCState *sstate = (DCERPCState *) s;
 
-    struct uuid_entry *item;
+    DCERPCUuidEntry *item;
 
     while ((item = TAILQ_FIRST(&sstate->dcerpc.dcerpcbindbindack.uuid_list))) {
         //printUUID("Free", item);
@@ -1638,7 +1638,7 @@ int DCERPCParserTest01(void) {
     uint32_t bindlen = sizeof(dcerpcbind);
     uint32_t bindacklen = sizeof(dcerpcbindack);
     TcpSession ssn;
-    struct uuid_entry *uuid_entry;
+    DCERPCUuidEntry *uuid_entry;
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));

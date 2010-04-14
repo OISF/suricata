@@ -111,7 +111,7 @@ int DetectRpcMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
     }
 
     /* Point through the rpc msg structure. Use ntohl() to compare values */
-    struct rpc_msg *msg = (struct rpc_msg *)rpcmsg;
+    RpcMsg *msg = (RpcMsg *)rpcmsg;
 
     /* If its not a call, no match */
     if (ntohl(msg->type) != 0) {
