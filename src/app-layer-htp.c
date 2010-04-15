@@ -1271,9 +1271,7 @@ int HTPParserTest05(void) {
         goto end;
     }
 
-    if (tx->response_status_number != 200 ||
-            h == NULL || tx->request_protocol_number != HTTP_1_0)
-    {
+    if (tx->response_status_number != 200) {
         printf("expected response 200 OK and got %"PRId32" %s: , expected protocol "
                 "HTTP/1.0 and got %s \n", tx->response_status_number,
                 bstr_tocstr(tx->response_message),

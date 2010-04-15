@@ -690,7 +690,6 @@ int SCLogCheckFDFilterEntry(const char *function)
     SCLogFDFilter *curr = NULL;
 
     SCLogFDFilterThreadList *thread_list = NULL;
-    SCLogFDFilterThreadList *thread_list_prev = NULL;
     SCLogFDFilterThreadList *thread_list_temp = NULL;
 
     //pid_t self = syscall(SYS_gettid);
@@ -748,10 +747,7 @@ int SCLogCheckFDFilterEntry(const char *function)
     thread_list_temp->t = self;
     thread_list_temp->entered++;
 
-    if (thread_list_prev == NULL)
-        sc_log_fd_filters_tl = thread_list_temp;
-    else
-        thread_list_prev->next = thread_list_temp;
+    sc_log_fd_filters_tl = thread_list_temp;
 
     SCMutexUnlock(&sc_log_fd_filters_tl_m);
 
@@ -868,12 +864,10 @@ int SCLogAddFDFilter(const char *function)
         exit(EXIT_FAILURE);
     }
 
-    if (curr == NULL) {
-        if (sc_log_fd_filters == NULL)
-            sc_log_fd_filters = temp;
-        else
-            prev->next = temp;
-    }
+    if (sc_log_fd_filters == NULL)
+        sc_log_fd_filters = temp;
+    else
+        prev->next = temp;
 
     SCMutexUnlock(&sc_log_fd_filters_m);
     sc_log_fd_filters_present = 1;

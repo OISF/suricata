@@ -868,9 +868,13 @@ void AppLayerParserCleanupState(TcpSession *ssn)
         SCLogDebug("no ssn");
         return;
     }
+    if (ssn->alproto >= ALPROTO_MAX) {
+        SCLogDebug("app layer proto unknown");
+        return;
+    }
 
     AppLayerProto *p = &al_proto_table[ssn->alproto];
-    if (p == NULL) {
+    if (p->name == NULL) {
         SCLogDebug("no parser state for %"PRIu16"", ssn->alproto);
         return;
     }
