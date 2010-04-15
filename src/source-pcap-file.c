@@ -79,9 +79,8 @@ void TmModuleDecodePcapFileRegister (void) {
 
 void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     SCEnter();
-    //SCLogDebug("user %p, h %p, pkt %p", user, h, pkt);
+
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)user;
-    //ThreadVars *tv = ptv->tv;
 
     SCMutexLock(&mutex_pending);
     if (pending > max_pending_packets) {
@@ -103,24 +102,32 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     p->pktlen = h->caplen;
     memcpy(p->pkt, pkt, p->pktlen);
     //printf("PcapFileCallback: p->pktlen: %" PRIu32 " (pkt %02x, p->pkt %02x)\n", p->pktlen, *pkt, *p->pkt);
+
+    SCReturn;
 }
 
+/**
+ *  \brief Main PCAP file reading function
+ */
 TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     SCEnter();
-    PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
+    PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
     ptv->in_p = p;
 
     /* Right now we just support reading packets one at a time. */
-    int r = pcap_dispatch(pcap_g.pcap_handle, 1, (pcap_handler)PcapFileCallback, (u_char *)ptv);
-
+    int r = pcap_dispatch(pcap_g.pcap_handle, 1,
+            (pcap_handler)PcapFileCallback, (u_char *)ptv);
     if (r < 0) {
-        SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s\n",
-            r, pcap_geterr(pcap_g.pcap_handle));
+        SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
+                r, pcap_geterr(pcap_g.pcap_handle));
+
         EngineStop();
-        return TM_ECODE_FAILED;
+        SCReturnInt(TM_ECODE_FAILED);
     } else if (r == 0) {
-        SCLogError(SC_ERR_PCAP_DISPATCH, "Error dispatching pcap file or end of pcap file, code %" PRId32 " error %s", r, pcap_geterr(pcap_g.pcap_handle));
+        SCLogError(SC_ERR_PCAP_DISPATCH, "pcap file end of file reached (pcap "
+                "err code %" PRId32 ")", r);
+
         EngineStop();
         SCReturnInt(TM_ECODE_FAILED);
     }
