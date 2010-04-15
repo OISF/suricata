@@ -35,6 +35,7 @@
 #include "util-unittest.h"
 #include "util-binsearch.h"
 #include "util-spm.h"
+#include "util-spm-bm.h"
 
 /* prototypes */
 static int DetectUricontentSetup (DetectEngineCtx *, Signature *, char *);
@@ -263,6 +264,9 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     cd->within = 0;
     cd->distance = 0;
     cd->flags = 0;
+
+    /* Prepare Boyer Moore context for searching faster */
+    cd->bm_ctx = BoyerMooreCtxInit(cd->uricontent, cd->uricontent_len);
 
     SCFree(str);
     return cd;

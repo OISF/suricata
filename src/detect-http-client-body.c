@@ -114,12 +114,14 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         }
         /* call the case insensitive version if nocase has been specified in the sig */
         if (hcbd->flags & DETECT_AL_HTTP_CLIENT_BODY_NOCASE) {
-            result = (SpmNocaseSearch(chunks_buffer, total_chunks_len,
-                                      hcbd->content, hcbd->content_len) != NULL);
+            result = (BoyerMooreNocase(hcbd->content, hcbd->content_len, chunks_buffer,
+                                       total_chunks_len, hcbd->bm_ctx->bmGs,
+                                       hcbd->bm_ctx->bmBc) != NULL);
         /* call the case sensitive version if nocase has been specified in the sig */
         } else {
-            result = (SpmSearch(chunks_buffer, total_chunks_len,
-                                hcbd->content, hcbd->content_len) != NULL);
+            result = (BoyerMoore(hcbd->content, hcbd->content_len, chunks_buffer,
+                                       total_chunks_len, hcbd->bm_ctx->bmGs,
+                                       hcbd->bm_ctx->bmBc) != NULL);
         }
         SCFree(chunks_buffer);
     }
@@ -202,6 +204,7 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         DETECT_AL_HTTP_CLIENT_BODY_NOCASE : 0;
     hcbd->flags |= (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
         DETECT_AL_HTTP_CLIENT_BODY_NEGATED : 0;
+    hcbd->bm_ctx = ((DetectContentData *)sm->ctx)->bm_ctx;
 
     nm = SigMatchAlloc();
     if (nm == NULL) {

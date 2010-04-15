@@ -18,6 +18,8 @@
                                        (c)->depth > 0 || \
                                        (c)->within > 0))
 
+#include "util-spm-bm.h"
+
 typedef struct DetectUricontentData_ {
     uint8_t *uricontent;
     uint8_t uricontent_len;
@@ -28,6 +30,9 @@ typedef struct DetectUricontentData_ {
     int32_t distance;
     int32_t within;
     uint8_t flags;
+
+    BmCtx *bm_ctx;     /**< Boyer Moore context (for spm search) */
+
 } DetectUricontentData;
 
 /* prototypes */

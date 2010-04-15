@@ -29,7 +29,6 @@ typedef struct DetectContentData_ {
 
     uint32_t id;        /**< unique pattern id */
 
-    BmCtx *bm_ctx;
     uint16_t depth;
     uint16_t offset;
     /** distance from the last match this match should start.
@@ -37,6 +36,9 @@ typedef struct DetectContentData_ {
     int32_t distance;
     int32_t within;
     uint8_t flags;
+
+    BmCtx *bm_ctx;     /**< Boyer Moore context (for spm search) */
+
 } DetectContentData;
 
 /* prototypes */

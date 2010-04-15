@@ -161,11 +161,11 @@ static inline int DoInspectPacketUris(DetectEngineCtx *de_ctx,
             //PrintRawDataFp(stdout,ud->uricontent,ud->uricontent_len);
             //PrintRawDataFp(stdout,spayload,spayload_len);
 
-            /* do the actual search */
+            /* do the actual search with boyer moore precooked ctx */
             if (ud->flags & DETECT_URICONTENT_NOCASE)
-                found = SpmNocaseSearch(spayload, spayload_len, ud->uricontent, ud->uricontent_len);
+                found = BoyerMooreNocase(ud->uricontent, ud->uricontent_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
             else
-                found = SpmSearch(spayload, spayload_len, ud->uricontent, ud->uricontent_len);
+                found = BoyerMoore(ud->uricontent, ud->uricontent_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
 
             /* next we evaluate the result in combination with the
              * negation flag. */
