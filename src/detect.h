@@ -6,6 +6,7 @@
 #include "flow.h"
 
 #include "detect-engine-proto.h"
+#include "detect-reference.h"
 
 #include "packet-queue.h"
 #include "util-mpm.h"
@@ -207,6 +208,9 @@ typedef struct Signature_ {
 
     /** classification message */
     char *class_msg;
+
+    /** Reference */
+    References *sigref;
 
     /** addresses, ports and proto this sig matches on */
     DetectAddressHead src, dst;
@@ -660,7 +664,7 @@ int SigGroupCleanup();
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 int PacketAlertAppend(Packet *, uint32_t, uint32_t, uint8_t, uint8_t, char *,
-                      char *);
+                      char *, References *);
 
 int SigLoadSignatures (DetectEngineCtx *, char *);
 void SigTableSetup(void);

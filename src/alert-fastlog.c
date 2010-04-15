@@ -29,6 +29,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-reference.h"
 #include "util-classification-config.h"
 
 #include "output.h"
@@ -91,15 +92,16 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
     uint32_t sec = ts->tv_sec % 86400;
 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-        t->tm_mon + 1, t->tm_mday, t->tm_year - 100,
-        sec / 3600, (sec % 3600) / 60, sec % 60,
-        (uint32_t) ts->tv_usec);
+            t->tm_mon + 1, t->tm_mday, t->tm_year - 100,
+            sec / 3600, (sec % 3600) / 60, sec % 60,
+            (uint32_t) ts->tv_usec);
 }
 
 TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
+    References *sref = NULL;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
@@ -119,8 +121,16 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
-            timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
+        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 " ",
+                timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
+        if(pa->sigref != NULL)  {
+            for (sref = pa->sigref; sref != NULL; sref = sref->next)   {
+                fprintf(aft->file_ctx->fp,"[Xref => %s]",sref->reference);
+            }
+        }
+
+        fprintf(aft->file_ctx->fp,"\n");
+
         fflush(aft->file_ctx->fp);
     }
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
@@ -132,6 +142,7 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
+    References *sref = NULL;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
@@ -150,10 +161,19 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
+        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 " ",
                 timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
+
+        if(pa->sigref != NULL)  {
+            for (sref = pa->sigref; sref != NULL; sref = sref->next)   {
+                fprintf(aft->file_ctx->fp,"[Xref => %s]",sref->reference);
+            }
+        }
+
+        fprintf(aft->file_ctx->fp,"\n");
+
+        fflush(aft->file_ctx->fp);
     }
-    fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
@@ -237,7 +257,7 @@ OutputCtx *AlertFastLogInitCtx(ConfNode *conf)
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (output_ctx == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocated memory for OutputCtx");
+                "Failed to allocated memory for OutputCtx");
         exit(EXIT_FAILURE);
     }
     output_ctx->data = logfile_ctx;
@@ -271,7 +291,7 @@ static int AlertFastLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
 
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
-            strerror(errno));
+                strerror(errno));
         return -1;
     }
 
@@ -314,8 +334,8 @@ int AlertFastLogTest01()
     SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"FastLog test\"; content:GET; "
-                               "Classtype:unknown; sid:1;)");
+            "(msg:\"FastLog test\"; content:GET; "
+            "Classtype:unknown; sid:1;)");
     result = (de_ctx->sig_list != NULL);
 
     SigGroupBuild(de_ctx);
@@ -375,8 +395,8 @@ int AlertFastLogTest02()
     SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"FastLog test\"; content:GET; "
-                               "Classtype:unknown; sid:1;)");
+            "(msg:\"FastLog test\"; content:GET; "
+            "Classtype:unknown; sid:1;)");
     result = (de_ctx->sig_list != NULL);
     if (result == 0) printf("sig parse failed: ");
 
@@ -389,7 +409,7 @@ int AlertFastLogTest02()
         result = (strcmp(p.alerts.alerts[0].class_msg, "Unknown Traffic") != 0);
         if (result == 0) printf("p.alerts.alerts[0].class_msg %s: ", p.alerts.alerts[0].class_msg);
         result = (strcmp(p.alerts.alerts[0].class_msg,
-                         "Unknown are we") == 0);
+                    "Unknown are we") == 0);
         if (result == 0) printf("p.alerts.alerts[0].class_msg %s: ", p.alerts.alerts[0].class_msg);
     } else {
         result = 0;
@@ -424,7 +444,7 @@ void AlertFastLogRegisterTests(void)
 
 #ifdef __SC_CUDA_SUPPORT__
     UtRegisterTest("AlertFastLogCudaContextInit",
-                   SCCudaHlTestEnvCudaContextInit, 1);
+            SCCudaHlTestEnvCudaContextInit, 1);
 #endif
 
     UtRegisterTest("AlertFastLogTest01", AlertFastLogTest01, 1);
@@ -432,7 +452,7 @@ void AlertFastLogRegisterTests(void)
 
 #ifdef __SC_CUDA_SUPPORT__
     UtRegisterTest("AlertFastLogCudaContextDeInit",
-                   SCCudaHlTestEnvCudaContextDeInit, 1);
+            SCCudaHlTestEnvCudaContextDeInit, 1);
 #endif
 
 #endif /* UNITTESTS */

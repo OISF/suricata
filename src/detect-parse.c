@@ -11,6 +11,7 @@
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-reference.h"
 
 #include "flow.h"
 
@@ -683,6 +684,23 @@ Signature *SigAlloc (void) {
     return sig;
 }
 
+/**
+ * \brief Free Reference list
+ *
+ * \param s Pointer to the signature
+ */
+void SigRefFree(Signature *s) {
+    References *sref = NULL;
+    if (s == NULL)
+        return;
+
+    if(s->sigref != NULL)  {
+        for (sref = s->sigref; sref != NULL; sref = sref->next)   {
+            SCFree(sref);
+        }
+    }
+}
+
 void SigFree(Signature *s) {
     if (s == NULL)
         return;
@@ -711,6 +729,8 @@ void SigFree(Signature *s) {
     }
 
     if (s->msg != NULL) SCFree(s->msg);
+
+    SigRefFree(s);
 
     SCFree(s);
 }

@@ -34,6 +34,8 @@
 #include "decode-raw.h"
 #include "decode-vlan.h"
 
+#include "detect-reference.h"
+
 /* forward declaration */
 struct DetectionEngineThreadCtx_;
 
@@ -170,6 +172,7 @@ typedef struct PacketAlert_ {
     uint8_t prio;
     char *msg;
     char *class_msg;
+    References *sigref;
 } PacketAlert;
 
 #define PACKET_ALERT_MAX 256
