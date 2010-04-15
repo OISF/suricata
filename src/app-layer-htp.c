@@ -446,30 +446,24 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
 
     HtpBodyChunk *bd = NULL;
 
+    if (len == 0 || data == NULL)
+        goto error;
+
     if (body->nchunks == 0) {
         /* New chunk */
         bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
-            if (SCLogDebugEnabled()) {
-                abort();
-            }
-            else {
-                exit(EXIT_FAILURE);
-            }
+            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
+            goto error;
         }
 
         bd->len = len;
         bd->data = SCMalloc(len);
         if (bd->data == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC,"Couldn't allocate memory for a http body chunk");
-            if (SCLogDebugEnabled()) {
-                abort();
-            }
-            else {
-                exit(EXIT_FAILURE);
-            }
+            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
+            goto error;
         }
+
         memcpy(bd->data, data, len);
         body->first = body->last = bd;
         body->nchunks++;
@@ -483,40 +477,28 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
              * len, so updating the len */
             body->last->len = len;
             bd = body->last;
+
             bd->data = SCRealloc(bd->data, len);
             if (bd->data == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
-                if (SCLogDebugEnabled()) {
-                    abort();
-                }
-                else {
-                    exit(EXIT_FAILURE);
-                }
+                SCLogError(SC_ERR_MEM_ALLOC, "realloc failed: %s", strerror(errno));
+                goto error;
             }
+
             memcpy(bd->data, data, len);
         } else {
             bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
             if (bd == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
-                if (SCLogDebugEnabled()) {
-                    abort();
-                }
-                else {
-                    exit(EXIT_FAILURE);
-                }
+                SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
+                goto error;
             }
 
             bd->len = len;
             bd->data = SCMalloc(len);
             if (bd->data == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC,"Couldn't allocate memory for a http body chunk");
-                if (SCLogDebugEnabled()) {
-                    abort();
-                }
-                else {
-                    exit(EXIT_FAILURE);
-                }
+                SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
+                goto error;
             }
+
             memcpy(bd->data, data, len);
             body->last->next = bd;
             body->last = bd;
@@ -525,8 +507,19 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
             bd->id = body->nchunks;
         }
     }
-    SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"\n", body,
+    SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"", body,
                 bd->id, bd->data, (uint32_t)bd->len);
+
+    SCReturn;
+
+error:
+    if (bd != NULL) {
+        if (bd->data != NULL) {
+            SCFree(bd->data);
+        }
+        SCFree(bd->data);
+    }
+    SCReturn;
 }
 
 /**
