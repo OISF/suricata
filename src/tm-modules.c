@@ -16,7 +16,7 @@ void TmModuleDebugList(void) {
         if (t->name == NULL)
             continue;
 
-        SCLogDebug("%s:%p\n", t->name, t->Func);
+        SCLogDebug("%s:%p", t->name, t->Func);
     }
 }
 
@@ -54,7 +54,8 @@ LogFileCtx *LogFileNewCtx()
         return NULL;
     }
     memset(lf_ctx, 0, sizeof(LogFileCtx));
-    /** Ensure that it is unlocked */
+
+    /* Ensure that it is unlocked */
     SCMutexInit(&lf_ctx->fp_mutex,NULL);
     SCMutexUnlock(&lf_ctx->fp_mutex);
 
