@@ -460,7 +460,17 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
         }
 
         bd->len = len;
-        bd->data = data;
+        bd->data = SCMalloc(len);
+        if (bd->data == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC,"Couldn't allocate memory for a http body chunk");
+            if (SCLogDebugEnabled()) {
+                abort();
+            }
+            else {
+                exit(EXIT_FAILURE);
+            }
+        }
+        memcpy(bd->data, data, len);
         body->first = body->last = bd;
         body->nchunks++;
         bd->next = NULL;
@@ -473,15 +483,41 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
              * len, so updating the len */
             body->last->len = len;
             bd = body->last;
+            bd->data = SCRealloc(bd->data, len);
+            if (bd->data == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
+                if (SCLogDebugEnabled()) {
+                    abort();
+                }
+                else {
+                    exit(EXIT_FAILURE);
+                }
+            }
+            memcpy(bd->data, data, len);
         } else {
             bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
             if (bd == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Fatal error, error allocationg memory");
-                exit(EXIT_FAILURE);
+                if (SCLogDebugEnabled()) {
+                    abort();
+                }
+                else {
+                    exit(EXIT_FAILURE);
+                }
             }
 
             bd->len = len;
-            bd->data = data;
+            bd->data = SCMalloc(len);
+            if (bd->data == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC,"Couldn't allocate memory for a http body chunk");
+                if (SCLogDebugEnabled()) {
+                    abort();
+                }
+                else {
+                    exit(EXIT_FAILURE);
+                }
+            }
+            memcpy(bd->data, data, len);
             body->last->next = bd;
             body->last = bd;
             body->nchunks++;
