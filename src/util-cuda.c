@@ -4068,7 +4068,48 @@ int SCCudaTest01(void)
     return (devices->count != 0);
 }
 
-static const char *sc_cuda_test_kernel =
+#if defined(__x86_64__) || defined(__ia64__)
+/**
+ * extern "C" __global__ void SCCudaSuricataTest(int *input, int *output)
+ * {
+ *   output[threadIdx.x] = input[threadIdx.x] * 2;
+ * }
+ */
+static const char *sc_cuda_test_kernel_64_bit =
+    "    .version 1.4\n"
+    "    .target sm_10, map_f64_to_f32\n"
+    "    .entry SCCudaSuricataTest (\n"
+    "                               .param .u64 __cudaparm_SCCudaSuricataTest_input,\n"
+    "                               .param .u64 __cudaparm_SCCudaSuricataTest_output)\n"
+    "{\n"
+    "    .reg .u32 %r<5>;\n"
+    "    .reg .u64 %rd<8>;\n"
+    "    .loc 15 1 0\n"
+    "    $LBB1_SCCudaSuricataTest:\n"
+    "    .loc 15 3 0\n"
+    "    cvt.u32.u16 %r1, %tid.x;\n"
+    "    cvt.u64.u32 %rd1, %r1;\n"
+    "    mul.lo.u64 %rd2, %rd1, 4;\n"
+    "    ld.param.u64 %rd3, [__cudaparm_SCCudaSuricataTest_input];\n"
+    "    add.u64 %rd4, %rd3, %rd2;\n"
+    "    ld.global.s32 %r2, [%rd4+0];\n"
+    "    mul.lo.s32 %r3, %r2, 2;\n"
+    "    ld.param.u64 %rd5, [__cudaparm_SCCudaSuricataTest_output];\n"
+    "    add.u64 %rd6, %rd5, %rd2;\n"
+    "    st.global.s32 [%rd6+0], %r3;\n"
+    "    .loc 15 4 0\n"
+    "    exit;\n"
+    " $LDWend_SCCudaSuricataTest:\n"
+    "} // SCCudaSuricataTest\n"
+    "\n";
+#else
+/**
+ * extern "C" __global__ void SCCudaSuricataTest(int *input, int *output)
+ * {
+ *   output[threadIdx.x] = input[threadIdx.x] * 2;
+ * }
+ */
+static const char *sc_cuda_test_kernel_32_bit =
     "        .version 1.4\n"
     "        .target sm_10, map_f64_to_f32\n"
     "        .entry SCCudaSuricataTest (\n"
@@ -4094,6 +4135,7 @@ static const char *sc_cuda_test_kernel =
     "$LDWend_SCCudaSuricataTest:\n"
     "        } // SCCudaSuricataTest\n"
     "";
+#endif
 
 int SCCudaTest02(void)
 {
@@ -4120,8 +4162,13 @@ int SCCudaTest02(void)
     if (SCCudaCtxCreate(&context, 0, devices->devices[0]->device) == -1)
         goto end;
 
-    if (SCCudaModuleLoadData(&module, (void *)sc_cuda_test_kernel) == -1)
+#if defined(__x86_64__) || defined(__ia64__)
+    if (SCCudaModuleLoadData(&module, (void *)sc_cuda_test_kernel_64_bit) == -1)
         goto end;
+#else
+    if (SCCudaModuleLoadData(&module, (void *)sc_cuda_test_kernel_32_bit) == -1)
+        goto end;
+#endif
 
     if (SCCudaModuleGetFunction(&kernel, module, "SCCudaSuricataTest") == -1)
         goto end;
