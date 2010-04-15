@@ -23,6 +23,18 @@ AC_INIT(configure.in)
             exit 1
             ])
 
+    AC_DEFUN([LIBNET_FAIL_WARN],[
+            echo
+            echo "*************************************************************************"
+            echo "   Warning! libnet version 1.1.x could not be found in " $1
+            echo "   Reject keywords will not be supported."
+            echo "   If you require reject support plese install libnet 1.1.x. "
+            echo "   If libnet is not installed in a non-standard location please use the"
+            echo "   --with-libnet-includes and --with-libnet-libraries configure options"
+            echo "*************************************************************************"
+            echo
+            ])
+
     dnl get gcc version
     AC_MSG_CHECKING([gcc version])
             gccver=$($CC -dumpversion)
@@ -410,55 +422,69 @@ AC_INIT(configure.in)
             [with_libnet_libraries="$withval"],[with_libnet_libraries="no"])
 
     if test "x$with_libnet_includes" != "xno"; then
-    CPPFLAGS="${CPPFLAGS} -I${with_libnet_includes}"
-    libnet_dir="${with_libnet_includes}"
+        CPPFLAGS="${CPPFLAGS} -I${with_libnet_includes}"
+        libnet_dir="${with_libnet_includes}"
     else
-    libnet_dir="/usr/include /usr/local/include /usr/local/include/libnet11 /opt/local/include"
+        libnet_dir="/usr/include /usr/local/include /usr/local/include/libnet11 /opt/local/include"
     fi
 
     if test "x$with_libnet_libraries" != "xno"; then
-    LDFLAGS="${LDFLAGS} -L${with_libnet_libraries}"
+        LDFLAGS="${LDFLAGS} -L${with_libnet_libraries}"
     fi
 
+    LIBNET_DETECT_FAIL="no"
     LIBNET_INC_DIR=""
-    AC_MSG_CHECKING("for libnet.h version 1.1.x")
+
     for i in $libnet_dir; do
     if test -r "$i/libnet.h"; then
-    LIBNET_INC_DIR="$i"
+        LIBNET_INC_DIR="$i"
     fi
     done
 
+    AC_MSG_CHECKING(for libnet.h version 1.1.x)
     if test "$LIBNET_INC_DIR" != ""; then
-    if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v 1.1 >/dev/null"; then
-    FAIL_MESSAGE("libnet 1.1.x (libnet.h)", $libnet_dir)
-    fi
+        if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v 1.1 >/dev/null"; then
+            AC_MSG_RESULT(no)
+            LIBNET_DETECT_FAIL="yes"
+            LIBNET_FAIL_WARN($libnet_dir)
+        else
+            AC_MSG_RESULT(yes)
+        fi
 
-    #CentOS, Fedora, Ubuntu-LTS, Ubuntu all set defines to the same values. libnet-config seems
-    #to have been depreciated but all distro's seem to include it as part of the package.
-    LLIBNET=""
-    AC_CHECK_LIB(net, libnet_write,, LLIBNET="no")
-    if test "$LLIBNET" != "no"; then
-    CFLAGS="${CFLAGS} -D_BSD_SOURCE -D__BSD_SOURCE -D__FAVOR_BSD -DHAVE_NET_ETHERNET_H"
-    fi
-    #AC_MSG_RESULT($i)
+        #CentOS, Fedora, Ubuntu-LTS, Ubuntu all set defines to the same values. libnet-config seems
+        #to have been depreciated but all distro's seem to include it as part of the package.
+        if test "$LIBNET_DETECT_FAIL" = "no"; then
+            LLIBNET=""
+            AC_CHECK_LIB(net, libnet_write,, LLIBNET="no")
+            if test "$LLIBNET" != "no"; then
+                CFLAGS="${CFLAGS} -DHAVE_LIBNET11 -D_BSD_SOURCE -D__BSD_SOURCE -D__FAVOR_BSD -DHAVE_NET_ETHERNET_H"
+            else
+            #if we displayed a warning already no reason to do it again.
+                if test "$LIBNET_DETECT_FAIL" = "no"; then
+                    LIBNET_DETECT_FAIL="yes"
+                    LIBNET_FAIL_WARN($libnet_dir)
+                fi
+            fi
+
+            # see if we have the patched libnet 1.1
+            # http://www.inliniac.net/blog/2007/10/16/libnet-11-ipv6-fixes-and-additions.html
+            #
+            # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+            # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+            if test "$LIBNET_DETECT_FAIL" = "no"; then
+                LLIBNET=""
+                TMPLIBS="${LIBS}"
+                AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
+                if test "$LLIBNET" != "no"; then
+                    CFLAGS="$CFLAGS -DHAVE_LIBNET_ICMPV6_UNREACH"
+                fi
+                LIBS="${TMPLIBS}"
+            fi
+        fi
     else
-    AC_MSG_RESULT(no)
-    AC_MSG_ERROR("libnet 1.1.x could not be found.  please download and install the library from http://sourceforge.net/projects/libnet-dev/")
+        LIBNET_DETECT_FAIL="yes"
+        LIBNET_FAIL_WARN($libnet_dir)
     fi
-
-# see if we have the patched libnet 1.1
-# http://www.inliniac.net/blog/2007/10/16/libnet-11-ipv6-fixes-and-additions.html
-    LLIBNET=""
-
-#To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-#see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-    TMPLIBS="${LIBS}"
-    AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
-    if test "$LLIBNET" != "no"; then
-    CFLAGS="$CFLAGS -DHAVE_LIBNET_ICMPV6_UNREACH"
-    fi
-    LIBS="${TMPLIBS}"
-
 # libpfring (currently only supported for libpcap enabled pfring)
 # Error on the side of caution. If libpfring enabled pcap is being used and we don't link against -lpfring compilation will fail.
     AC_ARG_ENABLE(pfring,

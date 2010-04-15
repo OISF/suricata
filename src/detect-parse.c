@@ -525,6 +525,7 @@ int SigParseAction(Signature *s, const char *action) {
     } else if(strcasecmp(action, "pass") == 0) {
         s->action = ACTION_PASS;
         return 0;
+#ifdef HAVE_LIBNET11
     } else if(strcasecmp(action, "reject") == 0) {
         s->action = ACTION_REJECT;
         return 0;
@@ -537,7 +538,22 @@ int SigParseAction(Signature *s, const char *action) {
     } else if(strcasecmp(action, "rejectboth") == 0) {
         s->action = ACTION_REJECT_BOTH;
         return 0;
+#else
+    } else if(strcasecmp(action, "reject") == 0) {
+        SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION,"Libnet 1.1.x is required for action \"%s\" and is not installed or could not be found",action);
+        return -1;
+    } else if(strcasecmp(action, "rejectsrc") == 0) {
+        SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION,"Libnet 1.1.x is required for action \"%s\" and is not installed or could not be found",action);
+        return -1;
+    } else if(strcasecmp(action, "rejectdst") == 0) {
+        SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION,"Libnet 1.1.x is required for action \"%s\" and is not installed or could not be found",action);
+        return -1;
+    } else if(strcasecmp(action, "rejectboth") == 0) {
+        SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION,"Libnet 1.1.x is required for action \"%s\" and is not installed or could not be found",action);
+        return -1;
+#endif /* HAVE_LIBNET11 */
     } else {
+        SCLogError(SC_ERR_INVALID_ACTION,"An invalid action \"%s\" was given",action);
         return -1;
     }
 }

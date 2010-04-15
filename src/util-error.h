@@ -146,6 +146,13 @@ typedef enum {
     SC_ERR_INVALID_YAML_CONF_ENTRY,
     SC_ERR_TMQ_ALREADY_REGISTERED,
     SC_ERR_CONFLICTING_RULE_KEYWORDS,
+    SC_ERR_INVALID_ACTION,
+    SC_ERR_LIBNET_REQUIRED_FOR_ACTION,
+    SC_ERR_LIBNET_INIT,
+    SC_ERR_LIBNET_INVALID_DIR,
+    SC_ERR_LIBNET_BUILD_FAILED,
+    SC_ERR_LIBNET_WRITE_FAILED,
+    SC_ERR_LIBNET_NOT_ENABLED,
     SC_ERR_UNIFIED_LOG_FILE_HEADER,  /**< Error to indicate the unified file
                                           header writing function has been
                                           failed */
