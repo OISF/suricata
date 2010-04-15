@@ -16,6 +16,7 @@
 #include "detect-engine-mpm.h"
 
 #include "util-var-name.h"
+#include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-print.h"
@@ -36,7 +37,7 @@
 
 
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
-#define PARSE_REGEX         "(?<!\\\\)/(.*)(?<!\\\\)/([^\"]*)"
+#define PARSE_REGEX         "(?<!\\\\)/(.*(?<!(?<!\\\\)\\\\))/([^\"]*)"
 
 #define DEFAULT_MATCH_LIMIT 10000000
 #define DEFAULT_MATCH_LIMIT_RECURSION 10000000
@@ -767,6 +768,25 @@ static int DetectPcreParseTest08 (void) {
     return result;
 }
 
+/**
+ * \test DetectPcreParseTest09 make sure we parse pcre with a content
+ *       that has slashes
+ */
+static int DetectPcreParseTest09 (void) {
+    int result = 1;
+    DetectPcreData *pd = NULL;
+    char *teststring = "/lala\\\\/";
+
+    pd = DetectPcreParse(teststring);
+    if (pd == NULL) {
+        printf("expected %p: got NULL", pd);
+        result = 0;
+    }
+
+    DetectPcreFree(pd);
+    return result;
+}
+
 static int DetectPcreTestSig01Real(int mpm_type) {
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
@@ -1237,6 +1257,25 @@ end:
     return result;
 }
 
+int DetectPcreTestSig06() {
+    uint8_t *buf = (uint8_t *)
+                    "lalala lalala\\ lala\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; pcre:\"/ lalala\\\\/\"; sid:1;)";
+    if (UTHPacketMatchSig(p, sig) == 0) {
+        result = 0;
+        goto end;
+    }
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -1252,6 +1291,7 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreParseTest06", DetectPcreParseTest06, 1);
     UtRegisterTest("DetectPcreParseTest07", DetectPcreParseTest07, 1);
     UtRegisterTest("DetectPcreParseTest08", DetectPcreParseTest08, 1);
+    UtRegisterTest("DetectPcreParseTest09", DetectPcreParseTest09, 1);
     UtRegisterTest("DetectPcreTestSig01B2g -- pcre test", DetectPcreTestSig01B2g, 1);
     UtRegisterTest("DetectPcreTestSig01B3g -- pcre test", DetectPcreTestSig01B3g, 1);
     UtRegisterTest("DetectPcreTestSig01Wm -- pcre test", DetectPcreTestSig01Wm, 1);
@@ -1263,6 +1303,7 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreTestSig03Wm -- negated pcre test", DetectPcreTestSig03Wm, 1);
     UtRegisterTest("DetectPcreModifPTest04 -- Modifier P", DetectPcreModifPTest04, 1);
     UtRegisterTest("DetectPcreModifPTest05 -- Modifier P fragmented", DetectPcreModifPTest05, 1);
+    UtRegisterTest("DetectPcreTestSig06", DetectPcreTestSig06, 1);
 #endif /* UNITTESTS */
 }
 
