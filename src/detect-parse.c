@@ -519,37 +519,34 @@ int SigParseAction(Signature *s, const char *action) {
     if (strcasecmp(action, "alert") == 0) {
         s->action = ACTION_ALERT;
         return 0;
-    } else if(strcasecmp(action, "drop") == 0) {
+    } else if (strcasecmp(action, "drop") == 0) {
         s->action = ACTION_DROP;
         return 0;
-    } else if(strcasecmp(action, "pass") == 0) {
+    } else if (strcasecmp(action, "pass") == 0) {
         s->action = ACTION_PASS;
         return 0;
 #ifdef HAVE_LIBNET11
-    } else if(strcasecmp(action, "reject") == 0) {
+    } else if (strcasecmp(action, "reject") == 0) {
         s->action = ACTION_REJECT;
         return 0;
-    } else if(strcasecmp(action, "rejectsrc") == 0) {
+    } else if (strcasecmp(action, "rejectsrc") == 0) {
         s->action = ACTION_REJECT;
         return 0;
-    } else if(strcasecmp(action, "rejectdst") == 0) {
+    } else if (strcasecmp(action, "rejectdst") == 0) {
         s->action = ACTION_REJECT_DST;
         return 0;
-    } else if(strcasecmp(action, "rejectboth") == 0) {
+    } else if (strcasecmp(action, "rejectboth") == 0) {
         s->action = ACTION_REJECT_BOTH;
         return 0;
 #else
-    } else if(strcasecmp(action, "reject") == 0) {
-        SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION,"Libnet 1.1.x is required for action \"%s\" and is not installed or could not be found",action);
-        return -1;
-    } else if(strcasecmp(action, "rejectsrc") == 0) {
-        SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION,"Libnet 1.1.x is required for action \"%s\" and is not installed or could not be found",action);
-        return -1;
-    } else if(strcasecmp(action, "rejectdst") == 0) {
-        SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION,"Libnet 1.1.x is required for action \"%s\" and is not installed or could not be found",action);
-        return -1;
-    } else if(strcasecmp(action, "rejectboth") == 0) {
-        SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION,"Libnet 1.1.x is required for action \"%s\" and is not installed or could not be found",action);
+    } else if (strcasecmp(action, "reject") == 0 ||
+               strcasecmp(action, "rejectsrc") == 0 ||
+               strcasecmp(action, "rejectdst") == 0 ||
+               strcasecmp(action, "rejectboth") == 0)
+    {
+        SCLogError(SC_ERR_LIBNET_REQUIRED_FOR_ACTION, "Libnet 1.1.x is "
+                "required for action \"%s\" but is not compiled into Suricata",
+                action);
         return -1;
 #endif /* HAVE_LIBNET11 */
     } else {
