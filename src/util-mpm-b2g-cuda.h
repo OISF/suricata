@@ -53,6 +53,15 @@ typedef struct B2gCudaCtx_ {
     /* the search kernel */
     CUfunction cuda_search_kernel;
 
+    /* the cuda_search_kernel argument offsets */
+    uint8_t cuda_search_kernel_arg0_offset;
+    uint8_t cuda_search_kernel_arg1_offset;
+    uint8_t cuda_search_kernel_arg2_offset;
+    uint8_t cuda_search_kernel_arg3_offset;
+    uint8_t cuda_search_kernel_arg4_offset;
+    uint8_t cuda_search_kernel_arg5_offset;
+    uint8_t cuda_search_kernel_arg_total;
+
     /* cuda device pointer to thelower case table g_u8_lowercasetable */
     CUdeviceptr cuda_g_u8_lowercasetable;
     /* cuda device pointer to B2gCudaCtx->B2G */

@@ -826,7 +826,7 @@ int B2gCudaSetKernelArgs(MpmCtx *mpm_ctx)
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
 
     /* search kernel */
-    if (SCCudaParamSetv(ctx->cuda_search_kernel, B2G_CUDA_KERNEL_ARG2_OFFSET,
+    if (SCCudaParamSetv(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg2_offset,
                         (void *)&ctx->cuda_g_u8_lowercasetable,
                         sizeof(void *)) == -1) {
         goto error;
@@ -1062,46 +1062,44 @@ void B2gCudaInitCtx(MpmCtx *mpm_ctx, int module_handle)
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda function");
     }
 
-    /* we will need this for debugging purposes.  keep it here now */
-//#define ALIGN_UP(offset, alignment)
-//    (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
-//
-//    int offset = 0;
-//
-//    ALIGN_UP(offset, __alignof(void *));
-//    arg0 = offset;
-//    offset += sizeof(void *);
-//
-//    ALIGN_UP(offset, __alignof(void *));
-//    arg1 = offset;
-//    offset += sizeof(void *);
-//
-//    ALIGN_UP(offset, __alignof(void *));
-//    arg2 = offset;
-//    offset += sizeof(void *);
-//
-//    ALIGN_UP(offset, __alignof(void *));
-//    arg3 = offset;
-//    offset += sizeof(void *);
-//
-//    ALIGN_UP(offset, __alignof(unsigned short));
-//    arg4 = offset;
-//    offset += sizeof(unsigned short);
-//
-//    ALIGN_UP(offset, __alignof(unsigned int));
-//    arg5 = offset;
-//    offset += sizeof(unsigned int);
-//
-//    printf("arg0: %d\n", arg0);
-//    printf("arg1: %d\n", arg1);
-//    printf("arg2: %d\n", arg2);
-//    printf("arg3: %d\n", arg3);
-//    printf("arg4: %d\n", arg4);
-//    printf("arg5: %d\n", arg5);
-//
-//    arg_total = offset;
-//
-//    printf("arg_total: %d\n", arg_total);
+#define ALIGN_UP(offset, alignment) (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
+
+    int offset = 0;
+
+    ALIGN_UP(offset, __alignof(void *));
+    ctx->cuda_search_kernel_arg0_offset = offset;
+    offset += sizeof(void *);
+
+    ALIGN_UP(offset, __alignof(void *));
+    ctx->cuda_search_kernel_arg1_offset = offset;
+    offset += sizeof(void *);
+
+    ALIGN_UP(offset, __alignof(void *));
+    ctx->cuda_search_kernel_arg2_offset = offset;
+    offset += sizeof(void *);
+
+    ALIGN_UP(offset, __alignof(void *));
+    ctx->cuda_search_kernel_arg3_offset = offset;
+    offset += sizeof(void *);
+
+    ALIGN_UP(offset, __alignof(unsigned short));
+    ctx->cuda_search_kernel_arg4_offset = offset;
+    offset += sizeof(unsigned short);
+
+    ALIGN_UP(offset, __alignof(unsigned int));
+    ctx->cuda_search_kernel_arg5_offset = offset;
+    offset += sizeof(unsigned int);
+
+    ctx->cuda_search_kernel_arg_total = offset;
+
+    //printf("arg0: %d\n", arg0);
+    //printf("arg1: %d\n", arg1);
+    //printf("arg2: %d\n", arg2);
+    //printf("arg3: %d\n", arg3);
+    //printf("arg4: %d\n", arg4);
+    //printf("arg5: %d\n", arg5);
+
+    //printf("arg_total: %d\n", arg_total);
 
     return;
 }
@@ -1262,32 +1260,32 @@ uint32_t B2gCudaSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         goto error;
     }
 
-    if (SCCudaParamSetv(ctx->cuda_search_kernel, B2G_CUDA_KERNEL_ARG0_OFFSET,
+    if (SCCudaParamSetv(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg0_offset,
                         (void *)&cuda_offsets, sizeof(void *)) == -1) {
         goto error;
     }
 
-    if (SCCudaParamSetv(ctx->cuda_search_kernel, B2G_CUDA_KERNEL_ARG1_OFFSET,
+    if (SCCudaParamSetv(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg1_offset,
                         (void *)&ctx->cuda_B2G, sizeof(void *)) == -1) {
         goto error;
     }
 
-    if (SCCudaParamSetv(ctx->cuda_search_kernel, B2G_CUDA_KERNEL_ARG3_OFFSET,
+    if (SCCudaParamSetv(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg3_offset,
                         (void *)&cuda_buf, sizeof(void *)) == -1) {
         goto error;
     }
 
-    if (SCCudaParamSeti(ctx->cuda_search_kernel, B2G_CUDA_KERNEL_ARG4_OFFSET,
+    if (SCCudaParamSeti(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg4_offset,
                         buflen) == -1) {
         goto error;
     }
 
-    if (SCCudaParamSeti(ctx->cuda_search_kernel, B2G_CUDA_KERNEL_ARG5_OFFSET,
+    if (SCCudaParamSeti(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg5_offset,
                         ctx->m) == -1) {
         goto error;
     }
 
-    if (SCCudaParamSetSize(ctx->cuda_search_kernel, B2G_CUDA_KERNEL_TOTAL_ARG_SIZE) == -1)
+    if (SCCudaParamSetSize(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg_total) == -1)
         goto error;
 
     if (SCCudaFuncSetBlockShape(ctx->cuda_search_kernel, CUDA_THREADS, 1, 1) == -1)
