@@ -125,8 +125,7 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) 
         EngineStop();
         SCReturnInt(TM_ECODE_FAILED);
     } else if (r == 0) {
-        SCLogError(SC_ERR_PCAP_DISPATCH, "pcap file end of file reached (pcap "
-                "err code %" PRId32 ")", r);
+        SCLogInfo("pcap file end of file reached (pcap err code %" PRId32 ")", r);
 
         EngineStop();
         SCReturnInt(TM_ECODE_FAILED);
