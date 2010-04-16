@@ -644,10 +644,10 @@ void HTPFreeConfig(void)
     SCFree(cfglist.cfg);
     while (nextrec != NULL) {
         HTPCfgRec *htprec = nextrec;
+        nextrec = nextrec->next;
 
         SCFree(htprec->cfg);
         SCFree(htprec);
-        nextrec = nextrec->next;
     }
     SCReturn;
 }
