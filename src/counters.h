@@ -229,6 +229,7 @@ inline void SCPerfCounterSetUI64(uint16_t, SCPerfCounterArray *, uint64_t);
 inline void SCPerfCounterSetDouble(uint16_t, SCPerfCounterArray *, double);
 
 int SCPerfUpdateCounterArray(SCPerfCounterArray *, SCPerfContext *, int);
+double SCPerfGetLocalCounterValue(uint16_t, SCPerfCounterArray *);
 
 void SCPerfOutputCounters(void);
 

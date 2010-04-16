@@ -1536,6 +1536,42 @@ int SCPerfUpdateCounterArray(SCPerfCounterArray *pca, SCPerfContext *pctx,
     return 1;
 }
 
+/*
+ * \brief Get the value of the local copy of the counter that hold this id.
+ *
+ * \param id  The counter id.
+ * \param pca Pointer to the SCPerfCounterArray.
+ *
+ * \retval  0 on success.
+ * \retval -1 on error.
+ */
+double SCPerfGetLocalCounterValue(uint16_t id, SCPerfCounterArray *pca)
+{
+    if (pca == NULL) {
+        SCLogDebug("pca NULL inside SCPerfUpdateCounterArray");
+        return -1;
+    }
+
+    if ((id < 1) || (id > pca->size)) {
+        SCLogDebug("counter doesn't exist");
+        return -1;
+    }
+
+    /* we check the type of the counter.  Whether it's a counter that holds an
+     * unsigned_int_64 value or double value */
+    switch (pca->head[id].pc->value->type) {
+        /* the counter holds an unsigned_int_64 value */
+        case SC_PERF_TYPE_UINT64:
+            return pca->head[id].ui64_cnt;
+        /* the counter holds a double */
+        case SC_PERF_TYPE_DOUBLE:
+            return pca->head[id].d_cnt;
+        default:
+            /* this can never happen */
+            return -1;
+    }
+}
+
 /**
  * \brief The output interface dispatcher for the counter api
  */
