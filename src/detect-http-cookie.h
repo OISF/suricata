@@ -7,9 +7,13 @@
 #ifndef _DETECT_HTTP_COOKIE_H
 #define	_DETECT_HTTP_COOKIE_H
 
+#define DETECT_AL_HTTP_COOKIE_NOCASE   0x01
+#define DETECT_AL_HTTP_COOKIE_NEGATED  0x02
+
 typedef struct DetectHttpCookieData_ {
     uint8_t *data;
     uint8_t data_len;
+    uint8_t flags;
 } DetectHttpCookieData;
 
 /* prototypes */

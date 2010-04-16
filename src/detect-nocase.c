@@ -12,6 +12,7 @@
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
 #include "detect-http-client-body.h"
+#include "detect-http-cookie.h"
 
 #include "util-debug.h"
 
@@ -46,41 +47,68 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     SigMatch *ur_sm = SigMatchGetLastSM(s->umatch_tail, DETECT_URICONTENT);
     /* http client body SigMatch */
     SigMatch *hcbd_sm = SigMatchGetLastSM(s->match_tail, DETECT_AL_HTTP_CLIENT_BODY);
-    SigMatch *sm = NULL;
+    /* http cookie SigMatch */
+    SigMatch *hcd_sm = SigMatchGetLastSM(s->match_tail, DETECT_AL_HTTP_COOKIE);
+    SigMatch *temp_sm = NULL;
 
-    if (co_sm != NULL && ur_sm != NULL && hcbd_sm != NULL) {
-        BUG_ON(co_sm->idx == ur_sm->idx);
+    SigMatch **sm_list = NULL;
+    uint8_t sm_list_count = 0;
 
-        if (co_sm->idx > ur_sm->idx && ur_sm > hcbd_sm)
-            sm = co_sm;
-        else if (ur_sm->idx > co_sm->idx && co_sm > hcbd_sm)
-            sm = ur_sm;
-        else
-            sm = hcbd_sm;
-    } else if (co_sm != NULL && ur_sm != NULL) {
-        if (co_sm->idx > ur_sm->idx)
-            sm = co_sm;
-        else
-            sm = ur_sm;
-    } else if (co_sm != NULL && hcbd_sm != NULL) {
-        if (co_sm->idx > hcbd_sm->idx)
-            sm = co_sm;
-        else
-            sm = hcbd_sm;
-    } else if (ur_sm != NULL && hcbd_sm != NULL) {
-        if (ur_sm->idx > hcbd_sm->idx)
-            sm = ur_sm;
-        else
-            sm = hcbd_sm;
-    } else if (co_sm != NULL) {
-        sm = co_sm;
-    } else if (ur_sm != NULL) {
-        sm = ur_sm;
-    } else if (hcbd_sm != NULL) {
-        sm = hcbd_sm;
+    if (co_sm != NULL) {
+        sm_list_count++;
+        if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        sm_list[sm_list_count - 1] = co_sm;
+    }
+    if (ur_sm != NULL) {
+        sm_list_count++;
+        if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        sm_list[sm_list_count - 1] = ur_sm;
+    }
+    if (hcbd_sm != NULL) {
+        sm_list_count++;
+        if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        sm_list[sm_list_count - 1] = hcbd_sm;
+    }
+    if (hcd_sm != NULL) {
+        sm_list_count++;
+        if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        sm_list[sm_list_count - 1] = hcd_sm;
     }
 
-    SCReturnPtr(sm, "SigMatch");
+    if (sm_list_count == 0)
+        SCReturnPtr(NULL, "SigMatch");
+
+    int i = 0, j = 0;
+    int swapped = 1;
+    while (swapped) {
+        swapped = 0;
+        for (j = i; j < sm_list_count - 1; j++) {
+            if (sm_list[j]->idx < sm_list[j + 1]->idx) {
+                temp_sm = sm_list[j];
+                sm_list[j] = sm_list[j + 1];
+                sm_list[j + 1] = temp_sm;
+                swapped = 1;
+                i++;
+            }
+        }
+    }
+
+    temp_sm = sm_list[0];
+    SCFree(sm_list);
+
+    SCReturnPtr(temp_sm, "SigMatch");
 }
 
 /** \internal
@@ -113,7 +141,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         case DETECT_URICONTENT:
             ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argpment");
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
                 SCReturnInt(-1);
             }
             ud->flags |= DETECT_URICONTENT_NOCASE;
@@ -128,12 +156,12 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             cd->flags |= DETECT_CONTENT_NOCASE;
             break;
         case DETECT_AL_HTTP_CLIENT_BODY:
-            {
-                ((DetectHttpClientBodyData *)(pm->ctx))->flags |= DETECT_AL_HTTP_CLIENT_BODY_NOCASE;
-                break;
-            }
-
-        /* should never happen */
+            ((DetectHttpClientBodyData *)(pm->ctx))->flags |= DETECT_AL_HTTP_CLIENT_BODY_NOCASE;
+            break;
+        case DETECT_AL_HTTP_COOKIE:
+            ((DetectHttpCookieData *)(pm->ctx))->flags |= DETECT_AL_HTTP_COOKIE_NOCASE;
+            break;
+            /* should never happen */
         default:
             SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding content (or uricontent) option");
             SCReturnInt(-1);
