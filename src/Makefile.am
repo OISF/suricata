@@ -117,6 +117,7 @@ detect-http-client-body.c detect-http-client-body.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \
 util-cpu.c util-cpu.h \
+util-pidfile.c util-pidfile.h \
 util-mpm.c util-mpm.h \
 util-spm.c util-spm.h util-clock.h \
 util-spm-bs.c util-spm-bs.h \

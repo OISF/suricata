@@ -22,6 +22,7 @@
 #include <limits.h>
 #include <ctype.h>
 #include <string.h>
+#include <fcntl.h>
 
 #if HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>

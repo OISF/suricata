@@ -21,6 +21,7 @@
 #include "util-pool.h"
 #include "util-byte.h"
 #include "util-cpu.h"
+#include "util-pidfile.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -371,6 +372,7 @@ void usage(const char *progname)
     printf("\t--list-unittests             : list unit tests\n");
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
+    printf("\t--pidfile                    : write pid to this file (only for daemon mode)\n");
     printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\t--dump-config                : show the running configuration\n");
     printf("\t--pfring-int <dev>           : run in pfring mode\n");
@@ -392,6 +394,7 @@ int main(int argc, char **argv)
     char *sig_file = NULL;
     char *nfq_id = NULL;
     char *conf_filename = NULL;
+    char *pid_filename = NULL;
 #ifdef UNITTESTS
     char *regex_arg = NULL;
 #endif
@@ -425,6 +428,7 @@ int main(int argc, char **argv)
         {"pfring-cluster-type",  required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
+        {"pidfile", required_argument, 0, 0},
         {"init-errors-fatal", 0, 0, 0},
         {"fatal-unittests", 0, 0, 0},
         {NULL, 0, NULL, 0}
@@ -471,6 +475,9 @@ int main(int argc, char **argv)
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
+            }
+            else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
+                pid_filename = optarg;
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
@@ -803,7 +810,17 @@ int main(int argc, char **argv)
     }
 #endif /* UNITTESTS */
 
-    if (daemon) Daemonize();
+    if (daemon == 1) {
+        Daemonize();
+        if (pid_filename != NULL) {
+            if (SCPidfileCreate(pid_filename) != 0)
+                pid_filename = NULL;
+        }
+    } else {
+        if (pid_filename != NULL)
+            SCLogWarning(SC_ERR_PIDLOG, "The pidfile file option apply only to daemon modes");
+        pid_filename = NULL;
+    }
 
 #ifndef OS_WIN32
     /* registering signals we use */
@@ -988,6 +1005,8 @@ int main(int argc, char **argv)
     print_mem_flag = 0;
 #endif
 #endif
+
+    SCPidfileRemove(pid_filename);
 
     /** \todo review whats needed here */
 #ifdef __SC_CUDA_SUPPORT__
