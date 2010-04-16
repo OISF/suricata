@@ -644,9 +644,9 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     SCLogLevel log_level = SC_LOG_NOTSET;
     const char *s = NULL;
 
-    if (sc_lid != NULL)
+    if (sc_lid != NULL) {
         log_level = sc_lid->global_log_level;
-    else {
+    } else {
         s = getenv(SC_LOG_ENV_LOG_LEVEL);
         if (s != NULL)
             log_level = SCMapEnumNameToValue(s, sc_log_level_map);
@@ -658,9 +658,11 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     else {
         sc_lc->log_level = SC_LOG_DEF_LOG_LEVEL;
 #ifndef UNITTESTS
-        printf("Warning: Invalid global_log_level assigned by user.  Falling "
-               "back on the default_log_level \"%s\"\n",
-               SCMapEnumValueToName(sc_lc->log_level, sc_log_level_map));
+        if (sc_lid != NULL) {
+            printf("Warning: Invalid/No global_log_level assigned by user.  Falling "
+                   "back on the default_log_level \"%s\"\n",
+                   SCMapEnumValueToName(sc_lc->log_level, sc_log_level_map));
+        }
 #endif
     }
 
@@ -694,15 +696,16 @@ static inline void SCLogSetLogFormat(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     if (format == NULL || strlen(format) > SC_LOG_MAX_LOG_FORMAT_LEN) {
         format = SC_LOG_DEF_LOG_FORMAT;
 #ifndef UNITTESTS
-        printf("Warning: Invalid global_log_format supplied by user or format "
-               "length exceeded limit of \"%d\" characters.  Falling back on "
-               "default log_format \"%s\"\n", SC_LOG_MAX_LOG_FORMAT_LEN,
-               format);
+        if (sc_lid != NULL) {
+            printf("Warning: Invalid/No global_log_format supplied by user or format "
+                   "length exceeded limit of \"%d\" characters.  Falling back on "
+                   "default log_format \"%s\"\n", SC_LOG_MAX_LOG_FORMAT_LEN,
+                   format);
+        }
 #endif
     }
 
-    if (format != NULL &&
-        (sc_lc->log_format = strdup(format)) == NULL) {
+    if (format != NULL && (sc_lc->log_format = strdup(format)) == NULL) {
         printf("Error allocating memory\n");
         exit(EXIT_FAILURE);
     }
@@ -731,8 +734,7 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
         sc_lc->op_ifaces = sc_lid->op_ifaces;
         sc_lid->op_ifaces = NULL;
         sc_lc->op_ifaces_cnt = sc_lid->op_ifaces_cnt;
-    }
-    else {
+    } else {
         s = getenv(SC_LOG_ENV_LOG_OP_IFACE);
         if (s != NULL) {
             op_iface = SCMapEnumNameToValue(s, sc_log_op_iface_map);
@@ -749,9 +751,11 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
         else {
             op_iface = SC_LOG_DEF_LOG_OP_IFACE;
 #ifndef UNITTESTS
-            printf("Warning: Output_interface not supplied by user.  Falling "
-                   "back on default_output_interface \"%s\"\n",
-                   SCMapEnumValueToName(op_iface, sc_log_op_iface_map));
+            if (sc_lid != NULL) {
+                printf("Warning: Output_interface not supplied by user.  Falling "
+                       "back on default_output_interface \"%s\"\n",
+                       SCMapEnumValueToName(op_iface, sc_log_op_iface_map));
+            }
 #endif
         }
 
@@ -968,9 +972,11 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
 }
 
 /**
- * \brief Initializes the logging module
+ * \brief Initializes the logging module.
  *
- * \param sc_did The initialization data for the logging module
+ * \param sc_lid The initialization data for the logging module.  If sc_lid is
+ *               NULL, we would stick to the default configuration for the
+ *               logging subsystem.
  *
  */
 void SCLogInitLogModule(SCLogInitData *sc_lid)

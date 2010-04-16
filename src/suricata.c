@@ -410,6 +410,8 @@ int main(int argc, char **argv)
 	}
 #endif
 
+    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
+
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
 
@@ -587,7 +589,6 @@ int main(int argc, char **argv)
     }
     SetBpfString(optind, argv);
 
-    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
     UtilCpuPrintSummary();
 
 #ifdef __SC_CUDA_SUPPORT__
