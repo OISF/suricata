@@ -29,9 +29,10 @@ void DetectNocaseRegister (void) {
     sigmatch_table[DETECT_NOCASE].flags |= SIGMATCH_PAYLOAD;
 }
 
-/** \internal
+/**
+ *  \internal
  *  \brief get the last pattern sigmatch that supports nocase:
- *         content, uricontent, http_client_body
+ *         content, uricontent, http_client_body, http_cookie
  *
  *  \param s signature
  *
@@ -90,6 +91,7 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     if (sm_list_count == 0)
         SCReturnPtr(NULL, "SigMatch");
 
+    /* find the highest idx sm, so we apply to the last sm that we support */
     int i = 0, j = 0;
     int swapped = 1;
     while (swapped) {
@@ -111,7 +113,8 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     SCReturnPtr(temp_sm, "SigMatch");
 }
 
-/** \internal
+/**
+ *  \internal
  *  \brief Apply the nocase keyword to the last pattern match, either content or uricontent
  *  \param det_ctx detection engine ctx
  *  \param s signature
@@ -127,11 +130,12 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
         SCReturnInt(-1);
     }
-    /** Search for the first previous DetectContent or uricontent
-     * SigMatch (it can be the same as this one) */
+
+    /* Search for the first previous SigMatch that supports nocase */
     SigMatch *pm = SigMatchGetLastNocasePattern(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding content option");
+        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding "
+                "content, uricontent, http_client_body or http_cookie option");
         SCReturnInt(-1);
     }
 
@@ -163,7 +167,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             break;
             /* should never happen */
         default:
-            SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding content (or uricontent) option");
+            SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding "
+                    "content, uricontent, http_client_body or http_cookie option");
             SCReturnInt(-1);
             break;
     }
