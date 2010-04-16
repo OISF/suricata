@@ -13,7 +13,6 @@
 typedef enum {
     SC_OK,
     SC_ERR_MEM_ALLOC,
-    SC_ERR_PIDLOG,
     SC_ERR_PCRE_MATCH,
     SC_ERR_PCRE_GET_SUBSTRING,
     SC_ERR_PCRE_COMPILE,
@@ -158,6 +157,10 @@ typedef enum {
                                           header writing function has been
                                           failed */
     SC_ERR_REFERENCE_UNKNOWN,       /**< unknown reference key (cve, url, etc) */
+    SC_ERR_PIDFILE_SNPRINTF,
+    SC_ERR_PIDFILE_OPEN,
+    SC_ERR_PIDFILE_WRITE,
+    SC_ERR_PIDFILE_DAEMON,
 
 } SCError;
 

@@ -3,4 +3,6 @@
 
 int SCPidfileCreate(const char *);
 void SCPidfileRemove(const char *);
-#endif
+
+#endif /* __UTIL_PID_H__ */
+

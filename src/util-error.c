@@ -18,7 +18,6 @@ const char * SCErrorToString(SCError err)
     switch (err) {
         CASE_CODE (SC_OK);
         CASE_CODE (SC_ERR_MEM_ALLOC);
-        CASE_CODE (SC_ERR_PIDLOG);
         CASE_CODE (SC_ERR_PCRE_MATCH);
         CASE_CODE (SC_ERR_PCRE_GET_SUBSTRING);
         CASE_CODE (SC_ERR_PCRE_COMPILE);
@@ -140,6 +139,10 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_LIBNET_NOT_ENABLED);
         CASE_CODE (SC_ERR_UNIFIED_LOG_FILE_HEADER);
         CASE_CODE (SC_ERR_REFERENCE_UNKNOWN);
+        CASE_CODE (SC_ERR_PIDFILE_SNPRINTF);
+        CASE_CODE (SC_ERR_PIDFILE_OPEN);
+        CASE_CODE (SC_ERR_PIDFILE_WRITE);
+        CASE_CODE (SC_ERR_PIDFILE_DAEMON);
 
         default:
             return "UNKNOWN_ERROR";

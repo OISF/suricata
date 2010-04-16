@@ -372,7 +372,7 @@ void usage(const char *progname)
     printf("\t--list-unittests             : list unit tests\n");
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
-    printf("\t--pidfile                    : write pid to this file (only for daemon mode)\n");
+    printf("\t--pidfile <file>             : write pid to this file (only for daemon mode)\n");
     printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\t--dump-config                : show the running configuration\n");
     printf("\t--pfring-int <dev>           : run in pfring mode\n");
@@ -813,13 +813,18 @@ int main(int argc, char **argv)
     if (daemon == 1) {
         Daemonize();
         if (pid_filename != NULL) {
-            if (SCPidfileCreate(pid_filename) != 0)
+            if (SCPidfileCreate(pid_filename) != 0) {
                 pid_filename = NULL;
+                exit(EXIT_FAILURE);
+            }
         }
     } else {
-        if (pid_filename != NULL)
-            SCLogWarning(SC_ERR_PIDLOG, "The pidfile file option apply only to daemon modes");
-        pid_filename = NULL;
+        if (pid_filename != NULL) {
+            SCLogError(SC_ERR_PIDFILE_DAEMON, "The pidfile file option applies "
+                    "only to the daemon modes");
+            pid_filename = NULL;
+            exit(EXIT_FAILURE);
+        }
     }
 
 #ifndef OS_WIN32
