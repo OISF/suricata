@@ -210,7 +210,7 @@ typedef struct Signature_ {
     char *class_msg;
 
     /** Reference */
-    References *sigref;
+    Reference *references;
 
     /** addresses, ports and proto this sig matches on */
     DetectAddressHead src, dst;
@@ -664,7 +664,7 @@ int SigGroupCleanup();
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 int PacketAlertAppend(Packet *, uint32_t, uint32_t, uint8_t, uint8_t, char *,
-                      char *, References *);
+                      char *, Reference *);
 
 int SigLoadSignatures (DetectEngineCtx *, char *);
 void SigTableSetup(void);

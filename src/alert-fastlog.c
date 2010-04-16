@@ -101,7 +101,7 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
-    References *sref = NULL;
+    Reference *ref = NULL;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
@@ -123,9 +123,10 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
         fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 " ",
                 timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
-        if(pa->sigref != NULL)  {
-            for (sref = pa->sigref; sref != NULL; sref = sref->next)   {
-                fprintf(aft->file_ctx->fp,"[Xref => %s]",sref->reference);
+
+        if(pa->references != NULL)  {
+            for (ref = pa->references; ref != NULL; ref = ref->next)   {
+                fprintf(aft->file_ctx->fp,"[Xref => %s%s]", ref->key, ref->reference);
             }
         }
 
@@ -142,7 +143,7 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
-    References *sref = NULL;
+    Reference *ref = NULL;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
@@ -164,9 +165,9 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 " ",
                 timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
 
-        if(pa->sigref != NULL)  {
-            for (sref = pa->sigref; sref != NULL; sref = sref->next)   {
-                fprintf(aft->file_ctx->fp,"[Xref => %s]",sref->reference);
+        if(pa->references != NULL)  {
+            for (ref = pa->references; ref != NULL; ref = ref->next)   {
+                fprintf(aft->file_ctx->fp,"[Xref => %s%s]", ref->key, ref->reference);
             }
         }
 

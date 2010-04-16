@@ -1,6 +1,7 @@
-/* Copyright (c) 2009 Open Information Security Foundation */
+/* Copyright (c) 2009, 2010 Open Information Security Foundation */
 
-/** \file
+/**
+ *  \file
  *  \author Breno Silva <breno.silva@gmail.com>
  */
 
@@ -23,7 +24,7 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX "^\\s*(cve|nessus|url|mcafee|bugtraq|arachnids)\\s*,\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\\s*"
+#define PARSE_REGEX "^\\s*(cve|nessus|url|mcafee|bugtraq|arachnids)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
 
 /* Static prefix for references - Maybe we should move them to reference.config in the future */
 char REFERENCE_BUGTRAQ[] =   "http://www.securityfocus.com/bid/";
@@ -53,6 +54,8 @@ void DetectReferenceRegister (void) {
     int opts = 0;
     int eo;
 
+    opts |= PCRE_CASELESS;
+
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if (parse_regex == NULL)
     {
@@ -73,49 +76,60 @@ error:
 }
 
 /**
+ *  \brief Free a Reference object
+ */
+void DetectReferenceFree(Reference *ref) {
+    SCEnter();
+
+    if (ref->reference != NULL) {
+        SCFree(ref->reference);
+    }
+    SCFree(ref);
+
+    SCReturn;
+}
+
+/**
  * \internal
  * \brief This function is used to parse reference options passed via reference: keyword
  *
  * \param rawstr Pointer to the user provided reference options
  *
- * \retval sigref pointer to signature reference on success
+ * \retval ref pointer to signature reference on success
  * \retval NULL on failure
  */
-static char *DetectReferenceParse (char *rawstr)
+static Reference *DetectReferenceParse (char *rawstr)
 {
-    DetectReferenceData *ref = NULL;
-    char *sigref = NULL;
+    SCEnter();
+
+    Reference *ref = NULL;
+    char *str = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *ref_key = NULL;
     const char *ref_content = NULL;
-    int sig_len = 0;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-
     if (ret < 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
-    ref = SCMalloc(sizeof(DetectReferenceData));
+    ref = SCMalloc(sizeof(Reference));
     if (ref == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
         goto error;
     }
-
-    memset(ref,0,sizeof(DetectReferenceData));
+    memset(ref, 0, sizeof(Reference));
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,1, &ref_key);
-
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
     }
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,2, &ref_content);
-
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
@@ -125,46 +139,52 @@ static char *DetectReferenceParse (char *rawstr)
         goto error;
 
     if (strcasecmp(ref_key,"cve") == 0)  {
-        ref->reference = REFERENCE_CVE;
+        ref->key = REFERENCE_CVE;
     } else if (strcasecmp(ref_key,"bugtraq") == 0) {
-        ref->reference = REFERENCE_BUGTRAQ;
+        ref->key = REFERENCE_BUGTRAQ;
     } else if (strcasecmp(ref_key,"nessus") == 0) {
-        ref->reference = REFERENCE_NESSUS;
+        ref->key = REFERENCE_NESSUS;
     } else if (strcasecmp(ref_key,"url") == 0) {
-        ref->reference = REFERENCE_URL;
+        ref->key = REFERENCE_URL;
     } else if (strcasecmp(ref_key,"mcafee") == 0) {
-        ref->reference = REFERENCE_MCAFEE;
+        ref->key = REFERENCE_MCAFEE;
     } else if (strcasecmp(ref_key,"arachnids") == 0) {
-        ref->reference = REFERENCE_ARACHNIDS;
-    }
-
-    sig_len = (strlen(ref->reference) + strlen(ref_content)+1);
-
-    sigref = SCMalloc(sig_len+1);
-    if (sigref == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        ref->key = REFERENCE_ARACHNIDS;
+    } else {
+        SCLogError(SC_ERR_REFERENCE_UNKNOWN, "unknown reference key \"%s\". "
+                "Supported keys are cve, bugtraq, nessus, url, mcafee, "
+                "arachnids.", ref_key);
         goto error;
     }
 
-    memset(sigref,0,sig_len);
+    /* make a copy so we can free pcre's substring */
+    str = SCStrdup((char *)ref_content);
+    if (str == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "strdup failed: %s", strerror(errno));
+        goto error;
+    }
 
-    strlcpy(sigref,ref->reference,strlen(ref->reference)+1);
-    strlcat(sigref,ref_content,sig_len);
+    ref->reference = str;
 
-    sigref[strlen(sigref)] = '\0';
+    /* free the substrings */
+    pcre_free_substring(ref_key);
+    pcre_free_substring(ref_content);
 
-    if (ref) SCFree(ref);
-    if (ref_key) SCFree((char *)ref_key);
-    if (ref_content) SCFree((char *)ref_content);
-    return sigref;
+    SCReturnPtr(ref, "Reference");
 
 error:
+    if (ref_key != NULL) {
+        pcre_free_substring(ref_key);
+    }
+    if (ref_content != NULL) {
+        pcre_free_substring(ref_content);
+    }
 
-    if (ref_key) SCFree((char *)ref_key);
-    if (ref_content) SCFree((char *)ref_content);
-    if (ref) SCFree(ref);
+    if (ref != NULL) {
+        DetectReferenceFree(ref);
+    }
 
-    return NULL;
+    SCReturnPtr(NULL, "Reference");
 }
 
 /**
@@ -181,51 +201,40 @@ error:
  */
 static int DetectReferenceSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
-    char *ref = NULL;
-    References *sref = NULL;
-    References *actual_reference = NULL;
+    SCEnter();
+
+    Reference *ref = NULL;
+    Reference *actual_reference = NULL;
 
     ref = DetectReferenceParse(rawstr);
     if (ref == NULL)
         goto error;
 
-    if(s->sigref == NULL)  {
+    SCLogDebug("ref %s %s", ref->key, ref->reference);
 
-        s->sigref = SCMalloc(sizeof(References));
-        if (s->sigref == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
-            goto error;
-        }
-
-        s->sigref->reference = ref;
-        s->sigref->next = NULL;
-
+    if (s->references == NULL)  {
+        s->references = ref;
+        ref->next = NULL;
     } else {
-
-        sref = SCMalloc(sizeof(References));
-        if (sref == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
-            goto error;
-        }
-
-        sref->reference = ref;
-        sref->next = NULL;
-
-        actual_reference = s->sigref;
+        actual_reference = s->references;
 
         while (actual_reference->next != NULL)    {
             actual_reference = actual_reference->next;
         }
 
-        actual_reference->next = sref;
+        actual_reference->next = ref;
+        ref->next = NULL;
     }
 
-    return 0;
+    SCLogDebug("s->references %p", s->references);
+    SCReturnInt(0);
 
 error:
-    if (ref) SCFree(ref);
-    if (sref) SCFree(sref);
-    return -1;
+    if (ref != NULL) {
+        DetectReferenceFree(ref);
+    }
+
+    SCReturnInt(-1);
 }
 
 /*
@@ -234,7 +243,7 @@ error:
 #ifdef UNITTESTS
 
 /**
- * \test DetectReferenceParseTest01 is a test for one valid reference.
+ * \test one valid reference.
  *
  *  \retval 1 on succces
  *  \retval 0 on failure
@@ -242,42 +251,12 @@ error:
 static int DetectReferenceParseTest01(void)
 {
     int result = 0;
-
-    uint8_t raw_icmpv4[] = {
-        0x08, 0x00, 0x42, 0xb4, 0x02, 0x00, 0x08, 0xa8,
-        0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
-        0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x70,
-        0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x61,
-        0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69};
-    Packet p;
     Signature *s = NULL;
-    DecodeThreadVars dtv;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    IPV4Hdr ip4h;
-    References *sref = NULL;
-
-    memset(&p, 0, sizeof(Packet));
-    memset(&ip4h, 0, sizeof(IPV4Hdr));
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&th_v, 0, sizeof(ThreadVars));
-
-    FlowInitConfig(FLOW_QUIET);
-
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
-
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
-
-    DecodeICMPV4(&th_v, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    Reference *ref = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        goto cleanup;
     }
 
     de_ctx->flags |= DE_QUIET;
@@ -285,33 +264,31 @@ static int DetectReferenceParseTest01(void)
     s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (msg:\"One reference\"; reference:cve,001-2010; sid:2;)");
 
     if (s == NULL) {
-        goto end;
-    }
-
-    if (s->sigref == NULL)  {
         goto cleanup;
     }
 
-    for (sref = s->sigref; sref != NULL; sref = sref->next) {
-        if (strcmp(sref->reference,"http://cve.mitre.org/cgi-bin/cvename.cgi?name=001-2010") != 0)  {
-            goto cleanup;
-        }
+    if (s->references == NULL)  {
+        goto cleanup;
+    }
+
+    ref = s->references;
+    if (strcmp(ref->key,"http://cve.mitre.org/cgi-bin/cvename.cgi?name=") != 0 ||
+            strcmp(ref->reference,"001-2010") != 0)  {
+        goto cleanup;
     }
 
     result = 1;
 
 cleanup:
-    if (s) SigFree(s);
-    if (det_ctx) DetectEngineCtxFree(de_ctx);
-
-    FlowShutdown();
-end:
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
     return result;
 
 }
 
 /**
- * \test DetectReferenceParseTest02 is a test for two valid references.
+ * \test for two valid references.
  *
  *  \retval 1 on succces
  *  \retval 0 on failure
@@ -319,83 +296,53 @@ end:
 static int DetectReferenceParseTest02(void)
 {
     int result = 0;
-
-    uint8_t raw_icmpv4[] = {
-        0x08, 0x00, 0x42, 0xb4, 0x02, 0x00, 0x08, 0xa8,
-        0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
-        0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x70,
-        0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x61,
-        0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69};
-    Packet p;
     Signature *s = NULL;
-    DecodeThreadVars dtv;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    IPV4Hdr ip4h;
-    References *sref = NULL;
-
-    memset(&p, 0, sizeof(Packet));
-    memset(&ip4h, 0, sizeof(IPV4Hdr));
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&th_v, 0, sizeof(ThreadVars));
-
-    FlowInitConfig(FLOW_QUIET);
-
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
-
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
-
-    DecodeICMPV4(&th_v, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        goto cleanup;
     }
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (msg:\"Two references\"; reference:url,www.openinfosecfoundation.org; reference:cve,001-2010; sid:2;)");
-
     if (s == NULL) {
-        goto end;
-    }
-
-    if (s->sigref == NULL)  {
+        printf("sig parse failed: ");
         goto cleanup;
     }
 
-    for (sref = s->sigref; sref != NULL; sref = sref->next) {
-
-        if (strcmp(sref->reference,"http://www.openinfosecfoundation.org") == 0)  {
-            result++;
-        }
-
-        if (strcmp(sref->reference,"http://cve.mitre.org/cgi-bin/cvename.cgi?name=001-2010") == 0)  {
-            result++;
-        }
+    if (s->references == NULL || s->references->next == NULL)  {
+        printf("no ref or not enough refs: ");
+        goto cleanup;
     }
 
-    if (result == 2)    {
-        result = 1;
+    if (strcmp(s->references->key, "http://") != 0 ||
+            strcmp(s->references->reference, "www.openinfosecfoundation.org") != 0) {
+        printf("first ref failed: ");
+        goto cleanup;
+
     }
+
+    if (strcmp(s->references->next->key,
+                "http://cve.mitre.org/cgi-bin/cvename.cgi?name=") != 0 ||
+            strcmp(s->references->next->reference, "001-2010") != 0) {
+        printf("second ref failed: ");
+        goto cleanup;
+
+    }
+
+    result = 1;
 
 cleanup:
-    if (s) SigFree(s);
-    if (det_ctx) DetectEngineCtxFree(de_ctx);
-
-    FlowShutdown();
-end:
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
     return result;
 
 }
 
 /**
- * \test DetectReferenceParseTest03 is a test for one invalid reference.
+ * \test parsing: invalid reference
  *
  *  \retval 1 on succces
  *  \retval 0 on failure
@@ -403,68 +350,27 @@ end:
 static int DetectReferenceParseTest03(void)
 {
     int result = 0;
-
-    uint8_t raw_icmpv4[] = {
-        0x08, 0x00, 0x42, 0xb4, 0x02, 0x00, 0x08, 0xa8,
-        0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
-        0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x70,
-        0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x61,
-        0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69};
-    Packet p;
     Signature *s = NULL;
-    DecodeThreadVars dtv;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    IPV4Hdr ip4h;
-    References *sref = NULL;
-
-    memset(&p, 0, sizeof(Packet));
-    memset(&ip4h, 0, sizeof(IPV4Hdr));
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&th_v, 0, sizeof(ThreadVars));
-
-    FlowInitConfig(FLOW_QUIET);
-
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
-
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
-
-    DecodeICMPV4(&th_v, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        goto cleanup;
     }
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (msg:\"Two references\"; reference:url,www.openinfosecfoundation.org; reference:oisf,001-2010; sid:2;)");
-
-    if (s == NULL) {
-        goto end;
-    }
-
-    if (s->sigref == NULL)  {
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (msg:\"invalid ref\"; reference:unknownkey,001-2010; sid:2;)");
+    if (s != NULL) {
+        printf("sig parsed even though it's invalid: ");
         goto cleanup;
     }
 
-    for (sref = s->sigref; sref != NULL; sref = sref->next) {
-        result++;
+    result = 1;
+cleanup:
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
     }
 
-cleanup:
-    if (s) SigFree(s);
-    if (det_ctx) DetectEngineCtxFree(de_ctx);
-
-    FlowShutdown();
-end:
     return result;
-
 }
 #endif /* UNITTESTS */
 
@@ -472,6 +378,6 @@ void ReferenceRegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("DetectReferenceParseTest01", DetectReferenceParseTest01, 1);
     UtRegisterTest("DetectReferenceParseTest02", DetectReferenceParseTest02, 1);
-    UtRegisterTest("DetectReferenceParseTest03", DetectReferenceParseTest03, 0);
+    UtRegisterTest("DetectReferenceParseTest03", DetectReferenceParseTest03, 1);
 #endif /* UNITTESTS */
 }

@@ -685,20 +685,32 @@ Signature *SigAlloc (void) {
 }
 
 /**
+ * \internal
  * \brief Free Reference list
  *
  * \param s Pointer to the signature
  */
-void SigRefFree(Signature *s) {
-    References *sref = NULL;
-    if (s == NULL)
-        return;
+static void SigRefFree (Signature *s) {
+    SCEnter();
 
-    if(s->sigref != NULL)  {
-        for (sref = s->sigref; sref != NULL; sref = sref->next)   {
-            SCFree(sref);
-        }
+    Reference *ref = NULL;
+    Reference *next_ref = NULL;
+
+    if (s == NULL) {
+        SCReturn;
     }
+
+    SCLogDebug("s %p, s->references %p", s, s->references);
+
+    for (ref = s->references; ref != NULL;)   {
+        next_ref = ref->next;
+        DetectReferenceFree(ref);
+        ref = next_ref;
+    }
+
+    s->references = NULL;
+
+    SCReturn;
 }
 
 void SigFree(Signature *s) {
@@ -728,7 +740,8 @@ void SigFree(Signature *s) {
         DetectPortCleanupList(s->dp);
     }
 
-    if (s->msg != NULL) SCFree(s->msg);
+    if (s->msg != NULL)
+        SCFree(s->msg);
 
     SigRefFree(s);
 

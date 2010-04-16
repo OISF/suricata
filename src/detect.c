@@ -389,7 +389,7 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
 }
 
 int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev,
-                      uint8_t prio, char *msg, char *class_msg, References *sigref)
+                      uint8_t prio, char *msg, char *class_msg, Reference *references)
 {
     if (p->alerts.cnt == PACKET_ALERT_MAX)
         return 0;
@@ -406,7 +406,7 @@ int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev,
     p->alerts.alerts[p->alerts.cnt].prio = prio;
     p->alerts.alerts[p->alerts.cnt].msg = msg;
     p->alerts.alerts[p->alerts.cnt].class_msg = class_msg;
-    p->alerts.alerts[p->alerts.cnt].sigref = sigref;
+    p->alerts.alerts[p->alerts.cnt].references = references;
     p->alerts.cnt++;
 
     return 0;

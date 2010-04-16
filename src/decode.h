@@ -172,7 +172,7 @@ typedef struct PacketAlert_ {
     uint8_t prio;
     char *msg;
     char *class_msg;
-    References *sigref;
+    Reference *references;
 } PacketAlert;
 
 #define PACKET_ALERT_MAX 256

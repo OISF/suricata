@@ -156,6 +156,7 @@ typedef enum {
     SC_ERR_UNIFIED_LOG_FILE_HEADER,  /**< Error to indicate the unified file
                                           header writing function has been
                                           failed */
+    SC_ERR_REFERENCE_UNKNOWN,       /**< unknown reference key (cve, url, etc) */
 
 } SCError;
 
