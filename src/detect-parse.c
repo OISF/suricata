@@ -11,6 +11,7 @@
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-reference.h"
 
 #include "flow.h"
 
@@ -683,6 +684,35 @@ Signature *SigAlloc (void) {
     return sig;
 }
 
+/**
+ * \internal
+ * \brief Free Reference list
+ *
+ * \param s Pointer to the signature
+ */
+static void SigRefFree (Signature *s) {
+    SCEnter();
+
+    Reference *ref = NULL;
+    Reference *next_ref = NULL;
+
+    if (s == NULL) {
+        SCReturn;
+    }
+
+    SCLogDebug("s %p, s->references %p", s, s->references);
+
+    for (ref = s->references; ref != NULL;)   {
+        next_ref = ref->next;
+        DetectReferenceFree(ref);
+        ref = next_ref;
+    }
+
+    s->references = NULL;
+
+    SCReturn;
+}
+
 void SigFree(Signature *s) {
     if (s == NULL)
         return;
@@ -710,7 +740,10 @@ void SigFree(Signature *s) {
         DetectPortCleanupList(s->dp);
     }
 
-    if (s->msg != NULL) SCFree(s->msg);
+    if (s->msg != NULL)
+        SCFree(s->msg);
+
+    SigRefFree(s);
 
     SCFree(s);
 }

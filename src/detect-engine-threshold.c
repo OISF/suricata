@@ -42,20 +42,21 @@
  * \param p Packet structure
  *
  */
-void PacketAlertHandle(DetectEngineCtx *de_ctx, Signature *sig, Packet *p)
+void PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+                       Signature *s, Packet *p)
 {
     SCEnter();
 
     /* retrieve the sig match data */
-    DetectThresholdData *td = SigGetThresholdType(sig,p);
+    DetectThresholdData *td = SigGetThresholdType(s,p);
 
     SCLogDebug("td %p", td);
 
     /* if have none just alert, otherwise handle thresholding */
     if (td == NULL) {
-        PacketAlertAppend(p, sig->gid, sig->id, sig->rev, sig->prio, sig->msg, sig->class_msg);
+        PacketAlertAppend(det_ctx, s, p);
     } else    {
-        PacketAlertThreshold(de_ctx, td, p, sig);
+        PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
     }
 
     SCReturn;
@@ -224,7 +225,8 @@ void ThresholdHashAdd(DetectEngineCtx *de_ctx, DetectThresholdEntry *tsh_ptr, Pa
  * \param s Signature structure
  *
  */
-void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Packet *p, Signature *s)
+void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+                          DetectThresholdData *td, Packet *p, Signature *s)
 {
     SCEnter();
 
@@ -277,20 +279,20 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
             if (lookup_tsh != NULL)  {
                 if ((ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                     if (lookup_tsh->current_count < td->count) {
-                        PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                        PacketAlertAppend(det_ctx, s, p);
                     }
                     lookup_tsh->current_count++;
                 } else    {
                     lookup_tsh->tv_sec1 = ts.tv_sec;
                     lookup_tsh->current_count = 1;
 
-                    PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                    PacketAlertAppend(det_ctx, s, p);
                 }
             } else {
                 ste->tv_sec1 = ts.tv_sec;
                 ste->current_count = 1;
 
-                PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                PacketAlertAppend(det_ctx, s, p);
 
                 ThresholdHashAdd(de_ctx, ste, p);
                 ste = NULL;
@@ -307,7 +309,7 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count >= td->count) {
-                        PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                        PacketAlertAppend(det_ctx, s, p);
                         lookup_tsh->current_count = 0;
                     }
                 } else {
@@ -319,7 +321,7 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
                 ste->tv_sec1 = ts.tv_sec;
 
                 if (td->count == 1)  {
-                    PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                    PacketAlertAppend(det_ctx, s, p);
                     ste->current_count = 0;
                 } else {
                     ThresholdHashAdd(de_ctx,ste,p);
@@ -337,7 +339,7 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
                 if ((ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                     lookup_tsh->current_count++;
                     if (lookup_tsh->current_count == td->count)    {
-                        PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                        PacketAlertAppend(det_ctx, s, p);
                     }
                 } else    {
                     lookup_tsh->tv_sec1 = ts.tv_sec;
@@ -348,7 +350,7 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
                 ste->tv_sec1 = ts.tv_sec;
 
                 if (td->count == 1)  {
-                    PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                    PacketAlertAppend(det_ctx, s, p);
                     ste->current_count = 0;
                 } else {
                     ThresholdHashAdd(de_ctx,ste,p);
@@ -367,7 +369,7 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
                 if ((ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                     lookup_tsh->current_count++;
                     if (lookup_tsh->current_count >= td->count) {
-                        PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                        PacketAlertAppend(det_ctx, s, p);
                     }
                 } else {
                     lookup_tsh->tv_sec1 = ts.tv_sec;
@@ -378,7 +380,7 @@ void PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectThresholdData *td, Pack
                 ste->tv_sec1 = ts.tv_sec;
 
                 if (td->count == 1) {
-                    PacketAlertAppend(p, s->gid, s->id, s->rev, s->prio, s->msg, s->class_msg);
+                    PacketAlertAppend(det_ctx, s, p);
                 }
                 ThresholdHashAdd(de_ctx, ste, p);
                 ste = NULL;

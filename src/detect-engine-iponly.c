@@ -859,7 +859,9 @@ void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
  * \param io_ctx Pointer to the current ip only thread detection engine
  * \param p Pointer to the Packet to match against
  */
-void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
+void IPOnlyMatchPacket(DetectEngineCtx *de_ctx,
+                       DetectEngineThreadCtx *det_ctx,
+                       DetectEngineIPOnlyCtx *io_ctx,
                        DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p)
 {
     SCRadixNode *srcnode = NULL, *dstnode = NULL;
@@ -933,7 +935,7 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
                                u * 8 + i, s->id, s->msg);
 
                     if (!(s->flags & SIG_FLAG_NOALERT)) {
-                        PacketAlertHandle(de_ctx,s,p);
+                        PacketAlertHandle(de_ctx, det_ctx, s, p);
                         /* set verdict on packet */
                         p->action |= s->action;
 

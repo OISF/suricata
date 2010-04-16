@@ -138,6 +138,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_LIBNET_WRITE_FAILED);
         CASE_CODE (SC_ERR_LIBNET_NOT_ENABLED);
         CASE_CODE (SC_ERR_UNIFIED_LOG_FILE_HEADER);
+        CASE_CODE (SC_ERR_REFERENCE_UNKNOWN);
 
         default:
             return "UNKNOWN_ERROR";

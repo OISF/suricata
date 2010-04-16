@@ -437,6 +437,9 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
     SCPerfAddToClubbedTMTable(tv->name, &tv->sc_perf_pctx);
 
+    /* this detection engine context belongs to this thread instance */
+    det_ctx->tv = tv;
+
     *data = (void *)det_ctx;
 
 #ifdef __SC_CUDA_SUPPORT__

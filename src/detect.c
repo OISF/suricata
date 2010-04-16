@@ -388,25 +388,27 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
     return match;
 }
 
-int PacketAlertAppend(Packet *p, uint32_t gid, uint32_t sid, uint8_t rev,
-                      uint8_t prio, char *msg, char *class_msg)
+int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
 {
     if (p->alerts.cnt == PACKET_ALERT_MAX)
         return 0;
 
-    SCLogDebug("sid %"PRIu32"", sid);
+    SCLogDebug("sid %"PRIu32"", s->id);
 
-    if (gid > 1)
-        p->alerts.alerts[p->alerts.cnt].gid = gid;
+    if (s->gid > 1)
+        p->alerts.alerts[p->alerts.cnt].gid = s->gid;
     else
         p->alerts.alerts[p->alerts.cnt].gid = 1;
 
-    p->alerts.alerts[p->alerts.cnt].sid = sid;
-    p->alerts.alerts[p->alerts.cnt].rev = rev;
-    p->alerts.alerts[p->alerts.cnt].prio = prio;
-    p->alerts.alerts[p->alerts.cnt].msg = msg;
-    p->alerts.alerts[p->alerts.cnt].class_msg = class_msg;
+    p->alerts.alerts[p->alerts.cnt].sid = s->id;
+    p->alerts.alerts[p->alerts.cnt].rev = s->rev;
+    p->alerts.alerts[p->alerts.cnt].prio = s->prio;
+    p->alerts.alerts[p->alerts.cnt].msg = s->msg;
+    p->alerts.alerts[p->alerts.cnt].class_msg = s->class_msg;
+    p->alerts.alerts[p->alerts.cnt].references = s->references;
     p->alerts.cnt++;
+
+    SCPerfCounterIncr(det_ctx->counter_alerts, det_ctx->tv->sc_perf_pca);
 
     return 0;
 }
@@ -506,7 +508,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
         SCLogDebug("testing against \"ip-only\" signatures");
 
-        IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
+        IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
         /* save in the flow that we scanned this direction... locking is
          * done in the FlowSetIPOnlyFlag function. */
         if (p->flow != NULL) {
@@ -520,7 +522,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (p->flow->flags & FLOW_ACTION_DROP) p->action |= ACTION_DROP;
     } else {
         /* Even without flow we should match the packet src/dst */
-        IPOnlyMatchPacket(de_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
+        IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
     }
 
     /* we assume we have an uri when we start inspection */
@@ -680,7 +682,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                PacketAlertHandle(de_ctx,s,p);
+                PacketAlertHandle(de_ctx, det_ctx, s, p);
                 /* set verdict on packet */
                 p->action |= s->action;
             }
@@ -718,7 +720,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                                     /* only add once */
                                     if (rmatch == 0) {
-                                        PacketAlertHandle(de_ctx,s,p);
+                                        PacketAlertHandle(de_ctx, det_ctx, s, p);
                                         /* set verdict on packet */
                                         p->action |= s->action;
                                     }
@@ -764,7 +766,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
 
                                 /* set flowbit for this match */
-                                PacketAlertHandle(de_ctx,s,p);
+                                PacketAlertHandle(de_ctx, det_ctx, s, p);
 
                                 /* set verdict on packet */
                                 p->action |= s->action;
@@ -8462,6 +8464,62 @@ static int SigTestDepthOffset01Wm (void) {
     return SigTestDepthOffset01Real(MPM_WUMANBER);
 }
 
+static int SigTestDetectAlertCounter(void)
+{
+    Packet p;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    int result = 0;
+
+    memset(&tv, 0, sizeof(tv));
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Test counter\"; "
+                               "content:\"boo\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    tv.name = "detect_test";
+    DetectEngineThreadCtxInit(&tv, de_ctx, (void *)&det_ctx);
+
+    memset(&p, 0, sizeof(p));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = (uint8_t *)"boo";
+    p.payload_len = strlen((char *)p.payload);
+    p.proto = IPPROTO_TCP;
+    Detect(&tv, &p, det_ctx, NULL);
+    result = (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.sc_perf_pca) == 1);
+
+    Detect(&tv, &p, det_ctx, NULL);
+    result &= (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.sc_perf_pca) == 2);
+
+    p.payload = (uint8_t *)"roo";
+    p.payload_len = strlen((char *)p.payload);
+    Detect(&tv, &p, det_ctx, NULL);
+    result &= (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.sc_perf_pca) == 2);
+
+    p.payload = (uint8_t *)"laboosa";
+    p.payload_len = strlen((char *)p.payload);
+    Detect(&tv, &p, det_ctx, NULL);
+    result &= (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.sc_perf_pca) == 3);
+
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
 
 #endif /* UNITTESTS */
 
@@ -8662,6 +8720,8 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTestDepthOffset01B2g", SigTestDepthOffset01B2g, 1);
     UtRegisterTest("SigTestDepthOffset01B3g", SigTestDepthOffset01B3g, 1);
     UtRegisterTest("SigTestDepthOffset01Wm", SigTestDepthOffset01Wm, 1);
+
+    UtRegisterTest("SigTestDetectAlertCounter", SigTestDetectAlertCounter, 1);
 
 #endif /* UNITTESTS */
 }

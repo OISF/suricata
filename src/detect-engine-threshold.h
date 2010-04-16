@@ -12,9 +12,11 @@
 
 #define THRESHOLD_HASH_SIZE 0xffff
 
-void PacketAlertHandle(DetectEngineCtx *de_ctx, Signature *sig, Packet *p);
+void PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
+                       Signature *sig, Packet *p);
 DetectThresholdData *SigGetThresholdType(Signature *, Packet *);
-void PacketAlertThreshold(DetectEngineCtx *,DetectThresholdData *, Packet *, Signature *);
+void PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
+                          DetectThresholdData *, Packet *, Signature *);
 void ThresholdFreeFunc(void *data);
 char ThresholdCompareFunc(void *data1, uint16_t len1, void *data2,uint16_t len2);
 uint32_t ThresholdHashFunc(HashListTable *ht, void *data, uint16_t datalen);
