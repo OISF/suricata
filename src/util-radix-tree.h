@@ -1,4 +1,7 @@
-/** Copyright (c) 2009 Open Information Security Foundation.
+/* Copyright (c) 2009, 2010 Open Information Security Foundation. */
+
+/**
+ *  \file
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
@@ -8,7 +11,8 @@
 #define SC_RADIX_BITTEST(x, y) ((x) & (y))
 
 /**
- * \brief Macro to fetch the user data from a node.
+ * \brief Macro to fetch the user data from a node. It checks if node is a
+ *        valid pointer and if node->prefix is as well.
  *
  * \param node Variable name/expression containing the node
  * \param type User data type in which the node points to
@@ -16,8 +20,8 @@
  * \returns User data within the node
  */
 #define SC_RADIX_NODE_USERDATA(node, type) \
-    ((type *)( ((node) == NULL || (node)->prefix == NULL) \
-              ? NULL : (node)->prefix->user_data_result ))
+    ((type *)(((node) != NULL) ? (((node)->prefix != NULL) ? \
+                (node)->prefix->user_data_result : NULL) : NULL))
 
 /**
  * \brief Structure that hold the user data and the netmask associated with it.

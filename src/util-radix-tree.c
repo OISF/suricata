@@ -1,4 +1,7 @@
-/** Copyright (c) 2009 Open Information Security Foundation.
+/* Copyright (c) 2009, 2010 Open Information Security Foundation. */
+
+/**
+ *  \file
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
@@ -4042,6 +4045,76 @@ int SCRadixTestIPV4NetblockInsertion25(void)
     return result;
 }
 
+/**
+ * \test SC_RADIX_NODE_USERDATA macro
+ */
+static int SCRadixTestUserdataMacro01(void) {
+    SCRadixNode node;
+    int result = 0;
+
+    memset(&node, 0x00, sizeof(node));
+
+    void *ptr = SC_RADIX_NODE_USERDATA(&node, void);
+    if (ptr != NULL) {
+        printf("ptr %p, expected NULL: ", ptr);
+        goto end;
+    }
+
+    result = 1;
+end:
+    return result;
+}
+
+/**
+ * \test SC_RADIX_NODE_USERDATA macro
+ */
+static int SCRadixTestUserdataMacro02(void) {
+    SCRadixNode node;
+    SCRadixPrefix prefix;
+    int result = 0;
+
+    memset(&node, 0x00, sizeof(node));
+    memset(&prefix, 0x00, sizeof(prefix));
+
+    node.prefix = &prefix;
+
+    void *ptr = SC_RADIX_NODE_USERDATA(&node, void);
+    if (ptr != NULL) {
+        printf("ptr %p, expected NULL: ", ptr);
+        goto end;
+    }
+
+    result = 1;
+end:
+    return result;
+}
+
+/**
+ * \test SC_RADIX_NODE_USERDATA macro
+ */
+static int SCRadixTestUserdataMacro03(void) {
+    SCRadixNode node;
+    SCRadixPrefix prefix;
+    int result = 0;
+    void *somep = &result;
+
+    memset(&node, 0x00, sizeof(node));
+    memset(&prefix, 0x00, sizeof(prefix));
+
+    node.prefix = &prefix;
+    prefix.user_data_result = somep;
+
+    void *ptr = SC_RADIX_NODE_USERDATA(&node, void);
+    if (ptr != somep) {
+        printf("ptr %p, expected %p: ", ptr, somep);
+        goto end;
+    }
+
+    result = 1;
+end:
+    return result;
+}
+
 #endif
 
 void SCRadixRegisterTests(void)
@@ -4092,6 +4165,12 @@ void SCRadixRegisterTests(void)
                    SCRadixTestIPV6NetBlocksAndBestSearch24, 1);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion25",
                    SCRadixTestIPV4NetblockInsertion25, 1);
+    UtRegisterTest("SCRadixTestUserdataMacro01",
+                   SCRadixTestUserdataMacro01, 1);
+    UtRegisterTest("SCRadixTestUserdataMacro02",
+                   SCRadixTestUserdataMacro02, 1);
+    UtRegisterTest("SCRadixTestUserdataMacro03",
+                   SCRadixTestUserdataMacro03, 1);
 #endif
 
     return;

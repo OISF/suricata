@@ -256,9 +256,12 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             goto error;
         }
 
-        if (cfgnode != NULL && cfgnode->prefix != NULL) {
-            htp = ((HTPCfgRec*)(cfgnode->prefix->user_data_result))->cfg;
-            SCLogDebug("LIBHTP using config: %p", htp);
+        if (cfgnode != NULL) {
+            HTPCfgRec *htp_cfg_rec = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec);
+            if (htp_cfg_rec != NULL) {
+                htp = htp_cfg_rec->cfg;
+                SCLogDebug("LIBHTP using config: %p", htp);
+            }
         } else {
             SCLogDebug("Using default HTP config: %p", htp);
         }
@@ -1680,8 +1683,12 @@ libhtp:\n\
     addr = "192.168.10.42";
     if (inet_pton(AF_INET, addr, buf) == 1) {
         cfgnode = SCRadixFindKeyIPV4BestMatch(buf, cfgtree);
-        if (cfgnode != NULL && cfgnode->prefix != NULL) {
-            htp = ((HTPCfgRec*)(cfgnode->prefix->user_data_result))->cfg;
+        if (cfgnode != NULL) {
+            HTPCfgRec *htp_cfg_rec = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec);
+            if (htp_cfg_rec != NULL) {
+                htp = htp_cfg_rec->cfg;
+                SCLogDebug("LIBHTP using config: %p", htp);
+            }
         }
         if (htp == NULL) {
             printf("Could not get config for: %s\n", addr);
@@ -1696,8 +1703,12 @@ libhtp:\n\
     addr = "::1";
     if (inet_pton(AF_INET6, addr, buf) == 1) {
         cfgnode = SCRadixFindKeyIPV6BestMatch(buf, cfgtree);
-        if (cfgnode != NULL && cfgnode->prefix != NULL) {
-            htp = ((HTPCfgRec*)(cfgnode->prefix->user_data_result))->cfg;
+        if (cfgnode != NULL) {
+            HTPCfgRec *htp_cfg_rec = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec);
+            if (htp_cfg_rec != NULL) {
+                htp = htp_cfg_rec->cfg;
+                SCLogDebug("LIBHTP using config: %p", htp);
+            }
         }
         if (htp == NULL) {
             printf("Could not get config for: %s\n", addr);
@@ -1769,8 +1780,12 @@ libhtp:\n\
     SCRadixNode *cfgnode = NULL;
     htp_cfg_t *htp = cfglist.cfg;
     cfgnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(&f), cfgtree);
-    if (cfgnode != NULL && cfgnode->prefix != NULL) {
-            htp = ((HTPCfgRec*)(cfgnode->prefix->user_data_result))->cfg;
+    if (cfgnode != NULL) {
+        HTPCfgRec *htp_cfg_rec = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec);
+        if (htp_cfg_rec != NULL) {
+            htp = htp_cfg_rec->cfg;
+            SCLogDebug("LIBHTP using config: %p", htp);
+        }
     }
     if (htp == NULL) {
         printf("Could not get config for: %s\n", addr);
