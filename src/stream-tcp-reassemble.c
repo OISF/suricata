@@ -198,9 +198,8 @@ void StreamTcpReassembleFree(char quiet)
     SCLogDebug("segment_pool_memuse %"PRIu64"", segment_pool_memuse);
     SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
     SCMutexDestroy(&segment_pool_memuse_mutex);
-#endif
-
     SCMutexDestroy(&segment_pool_cnt_mutex);
+#endif
 }
 
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
