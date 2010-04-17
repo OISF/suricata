@@ -86,9 +86,13 @@ void FlowInit(Flow *f, Packet *p)
     if (p->ip4h != NULL) { /* XXX MACRO */
         SET_IPV4_SRC_ADDR(p,&f->src);
         SET_IPV4_DST_ADDR(p,&f->dst);
+        f->src.family = AF_INET;
+        f->dst.family = AF_INET;
     } else if (p->ip6h != NULL) { /* XXX MACRO */
         SET_IPV6_SRC_ADDR(p,&f->src);
         SET_IPV6_DST_ADDR(p,&f->dst);
+        f->src.family = AF_INET6;
+        f->dst.family = AF_INET6;
     } /* XXX handle default */
     else {
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
