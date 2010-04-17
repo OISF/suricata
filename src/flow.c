@@ -1,5 +1,9 @@
-/** Copyright (c) 2008 Victor Julien <victor@inliniac.net>
+/* Copyright (c) 2008, 2009, 2010 Victor Julien <victor@inliniac.net> */
+
+/**
  *  \file
+ *  \author Victor Julien <victor@inliniac.net>
+ *
  *  Flow implementation.
  *
  *  IDEAS:
@@ -607,6 +611,14 @@ void FlowShutdown(void) {
         flow_hash = NULL;
     }
     flow_memuse -= flow_config.hash_size * sizeof(FlowBucket);
+
+    int ifq = 0;
+    FlowQueueDestroy(&flow_spare_q);
+    for (ifq = 0; ifq < FLOW_PROTO_MAX; ifq++) {
+        FlowQueueDestroy(&flow_new_q[ifq]);
+        FlowQueueDestroy(&flow_est_q[ifq]);
+        FlowQueueDestroy(&flow_close_q[ifq]);
+    }
 
     SCMutexDestroy(&flow_memuse_mutex);
 }

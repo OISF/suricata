@@ -185,6 +185,7 @@
 #define SCCondInit pthread_cond_init
 #define SCCondSignal pthread_cond_signal
 #define SCCondTimedwait pthread_cond_timedwait
+#define SCCondDestroy pthread_cond_destroy
 
 #ifdef DBG_THREAD
 #define SCondWait_dbg(cond, mut) ({ \

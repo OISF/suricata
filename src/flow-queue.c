@@ -29,6 +29,16 @@ FlowQueue *FlowQueueInit (FlowQueue *q) {
     return q;
 }
 
+/**
+ *  \brief Destroy a flow queue
+ *
+ *  \param q the flow queue to destroy
+ */
+void FlowQueueDestroy (FlowQueue *q) {
+    SCMutexDestroy(&q->mutex_q);
+    SCCondDestroy(&q->cond_q);
+}
+
 void FlowEnqueue (FlowQueue *q, Flow *f) {
     /* more packets in queue */
     if (q->top != NULL) {

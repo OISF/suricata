@@ -22,6 +22,7 @@ typedef struct FlowQueue_
 /* prototypes */
 FlowQueue *FlowQueueNew();
 FlowQueue *FlowQueueInit(FlowQueue *);
+void FlowQueueDestroy (FlowQueue *);
 
 void FlowEnqueue (FlowQueue *, Flow *);
 Flow *FlowDequeue (FlowQueue *);
