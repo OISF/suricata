@@ -390,9 +390,11 @@ static int DetectDceIfaceTestParse01(void)
         }
     }
 
-    result &= (did->version == 0);
-    result &= (did->op == 0);
-    result &= (did->any_frag == 0);
+    if (did != NULL) {
+        result &= (did->version == 0);
+        result &= (did->op == 0);
+        result &= (did->any_frag == 0);
+    }
 
     SigFree(s);
     return result;
@@ -422,9 +424,11 @@ static int DetectDceIfaceTestParse02(void)
         }
     }
 
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_GT);
-    result &= (did->any_frag == 0);
+    if (did != NULL) {
+        result &= (did->version == 1);
+        result &= (did->op == DETECT_DCE_IFACE_OP_GT);
+        result &= (did->any_frag == 0);
+    }
 
     SigFree(s);
     return result;
@@ -454,9 +458,11 @@ static int DetectDceIfaceTestParse03(void)
         }
     }
 
-    result &= (did->version == 10);
-    result &= (did->op == DETECT_DCE_IFACE_OP_LT);
-    result &= (did->any_frag == 0);
+    if (did != NULL) {
+        result &= (did->version == 10);
+        result &= (did->op == DETECT_DCE_IFACE_OP_LT);
+        result &= (did->any_frag == 0);
+    }
 
     SigFree(s);
     return result;
@@ -486,9 +492,11 @@ static int DetectDceIfaceTestParse04(void)
         }
     }
 
-    result &= (did->version == 10);
-    result &= (did->op == DETECT_DCE_IFACE_OP_NE);
-    result &= (did->any_frag == 0);
+    if (did != NULL) {
+        result &= (did->version == 10);
+        result &= (did->op == DETECT_DCE_IFACE_OP_NE);
+        result &= (did->any_frag == 0);
+    }
 
     SigFree(s);
     return result;
@@ -518,9 +526,11 @@ static int DetectDceIfaceTestParse05(void)
         }
     }
 
-    result &= (did->version == 10);
-    result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
-    result &= (did->any_frag == 0);
+    if (did != NULL) {
+        result &= (did->version == 10);
+        result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
+        result &= (did->any_frag == 0);
+    }
 
     SigFree(s);
     return result;
@@ -550,10 +560,11 @@ static int DetectDceIfaceTestParse06(void)
         }
     }
 
-    result &= (did->version == 0);
-    result &= (did->op == 0);
-    result &= (did->any_frag == 1);
-
+    if (did != NULL) {
+        result &= (did->version == 0);
+        result &= (did->op == 0);
+        result &= (did->any_frag == 1);
+    }
     SigFree(s);
     return result;
 }
@@ -582,9 +593,11 @@ static int DetectDceIfaceTestParse07(void)
         }
     }
 
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_GT);
-    result &= (did->any_frag == 1);
+    if (did != NULL) {
+        result &= (did->version == 1);
+        result &= (did->op == DETECT_DCE_IFACE_OP_GT);
+        result &= (did->any_frag == 1);
+    }
 
     SigFree(s);
     return result;
@@ -614,9 +627,11 @@ static int DetectDceIfaceTestParse08(void)
         }
     }
 
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_LT);
-    result &= (did->any_frag == 1);
+    if (did != NULL) {
+        result &= (did->version == 1);
+        result &= (did->op == DETECT_DCE_IFACE_OP_LT);
+        result &= (did->any_frag == 1);
+    }
 
     SigFree(s);
     return result;
@@ -646,9 +661,11 @@ static int DetectDceIfaceTestParse09(void)
         }
     }
 
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
-    result &= (did->any_frag == 1);
+    if (did != NULL) {
+        result &= (did->version == 1);
+        result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
+        result &= (did->any_frag == 1);
+    }
 
     SigFree(s);
     return result;
@@ -678,9 +695,11 @@ static int DetectDceIfaceTestParse10(void)
         }
     }
 
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_NE);
-    result &= (did->any_frag == 1);
+    if (did != NULL) {
+        result &= (did->version == 1);
+        result &= (did->op == DETECT_DCE_IFACE_OP_NE);
+        result &= (did->any_frag == 1);
+    }
 
     SigFree(s);
     return result;

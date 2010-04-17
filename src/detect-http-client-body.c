@@ -267,8 +267,11 @@ static int DetectHttpClientBodyTest01(void)
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_client_body\"; "
                                "content:one; http_client_body; sid:1;)");
-    if (de_ctx->sig_list != NULL)
+    if (de_ctx->sig_list != NULL) {
         result = 1;
+    } else {
+        goto end;
+    }
 
     sm = de_ctx->sig_list->match;
     if (sm != NULL) {

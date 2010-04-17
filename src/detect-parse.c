@@ -231,7 +231,8 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
     }
 
     /* move over the idx */
-    new->idx = pm->idx;
+    if (pm != NULL)
+        new->idx = pm->idx;
 }
 
 /**
@@ -811,6 +812,8 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
+                 if (cd == NULL)
+                    continue;
 
                 if (sig->mpm_content_maxlen == 0)
                     sig->mpm_content_maxlen = cd->content_len;
@@ -822,6 +825,9 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         for (sm = sig->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                if (ud == NULL)
+                    continue;
+
                 if (sig->mpm_uricontent_maxlen == 0)
                     sig->mpm_uricontent_maxlen = ud->uricontent_len;
                 if (sig->mpm_uricontent_maxlen < ud->uricontent_len)
@@ -928,6 +934,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if (cd == NULL)
+                    continue;
 
                 if (sig->mpm_content_maxlen == 0)
                     sig->mpm_content_maxlen = cd->content_len;
@@ -939,6 +947,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         for (sm = sig->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                if (ud == NULL)
+                    continue;
                 if (sig->mpm_uricontent_maxlen == 0)
                     sig->mpm_uricontent_maxlen = ud->uricontent_len;
                 if (sig->mpm_uricontent_maxlen < ud->uricontent_len)
@@ -971,6 +981,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             for (sm = sig->next->pmatch; sm != NULL; sm = sm->next) {
                 if (sm->type == DETECT_CONTENT) {
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
+                    if (cd == NULL)
+                        continue;
 
                     if (sig->next->mpm_content_maxlen == 0)
                         sig->next->mpm_content_maxlen = cd->content_len;
@@ -981,6 +993,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             for (sm = sig->next->umatch; sm != NULL; sm = sm->next) {
                 if (sm->type == DETECT_URICONTENT) {
                     DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                    if (ud == NULL)
+                        continue;
                     if (sig->next->mpm_uricontent_maxlen == 0)
                         sig->next->mpm_uricontent_maxlen = ud->uricontent_len;
                     if (sig->next->mpm_uricontent_maxlen < ud->uricontent_len)
@@ -1563,8 +1577,8 @@ int SigTestBidirec03 (void) {
     uint32_t results[3] = {1, 1, 1};
     result = UTHCheckPacketMatchResults(p, sids, results, 1);
 
-end:
     if (p != NULL) SCFree(p);
+end:
     if (de_ctx != NULL) {
         SigCleanSignatures(de_ctx);
         SigGroupCleanup(de_ctx);

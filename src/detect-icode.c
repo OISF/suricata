@@ -152,7 +152,7 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
     icd->mode = 0;
 
     /* we have either "<" or ">" */
-    if (strlen(args[0]) != 0) {
+    if (args[0] != NULL && strlen(args[0]) != 0) {
         /* we have a third part ("<> y"), therefore it's invalid */
         if (args[2] != NULL) {
             SCLogError(SC_ERR_INVALID_VALUE, "icode: invalid value");

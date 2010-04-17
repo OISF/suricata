@@ -239,7 +239,7 @@ int DetectFastPatternTest05(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -295,7 +295,7 @@ int DetectFastPatternTest06(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -350,7 +350,7 @@ int DetectFastPatternTest07(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -405,7 +405,7 @@ int DetectFastPatternTest08(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -460,7 +460,7 @@ int DetectFastPatternTest09(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -516,7 +516,7 @@ int DetectFastPatternTest10(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -572,7 +572,7 @@ int DetectFastPatternTest11(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -628,7 +628,7 @@ int DetectFastPatternTest12(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -685,7 +685,7 @@ int DetectFastPatternTest13(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -740,7 +740,7 @@ int DetectFastPatternTest14(void)
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int alertcnt = 0;
     int result = 0;
 

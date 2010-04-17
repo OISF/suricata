@@ -514,9 +514,10 @@ static void SCRadixReleaseRadixSubtree(SCRadixNode *node, SCRadixTree *tree)
  */
 void SCRadixReleaseRadixTree(SCRadixTree *tree)
 {
-    if (tree != NULL)
-        SCRadixReleaseRadixSubtree(tree->head, tree);
+    if (tree == NULL)
+        return;
 
+    SCRadixReleaseRadixSubtree(tree->head, tree);
     tree->head = NULL;
 
     return;
@@ -1601,11 +1602,12 @@ void SCRadixPrintNodeInfo(SCRadixNode *node, int level,  void (*PrintData)(void*
 
     printf("%d [", node->bit);
 
-    if (node->netmasks == NULL)
+    if (node->netmasks == NULL) {
         printf("%d, ", -1);
-
-    for (i = 0; i < node->netmask_cnt; i++)
-        printf("%s%d", (0 == i ? "" : ", "), node->netmasks[i]);
+    } else {
+        for (i = 0; i < node->netmask_cnt; i++)
+            printf("%s%d", (0 == i ? "" : ", "), node->netmasks[i]);
+    }
 
     printf("] (");
     if (node->prefix != NULL) {

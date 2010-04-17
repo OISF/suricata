@@ -455,7 +455,7 @@ static int DetectHttpCookieSigTest01(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -531,13 +531,12 @@ static int DetectHttpCookieSigTest01(void) {
     }
 
     result = 1;
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 end:
     if (http_state != NULL)
         HTPStateFree(http_state);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
@@ -554,7 +553,7 @@ static int DetectHttpCookieSigTest02(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -618,13 +617,12 @@ static int DetectHttpCookieSigTest02(void) {
     }
 
     result = 1;
+
 end:
     if (http_state != NULL)
         HTPStateFree(http_state);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
-
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
     return result;

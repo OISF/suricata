@@ -552,11 +552,11 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets) {
      * the de_ctx can have multiple signatures, and some of them may match
      * and others may not. That check will be outside
      */
-end:
-    SigGroupCleanup(de_ctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
+end:
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
 
     return result;
 }

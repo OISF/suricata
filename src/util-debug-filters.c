@@ -807,7 +807,8 @@ void SCLogCheckFDFilterExit(const char *function)
 
     SCMutexUnlock(&sc_log_fd_filters_tl_m);
 
-    thread_list->entered--;
+    if (thread_list != NULL)
+        thread_list->entered--;
 
     return;
 }

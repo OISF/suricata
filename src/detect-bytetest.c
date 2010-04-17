@@ -396,24 +396,26 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
 
     /* Operator is next two args: neg + op */
     data->op = 0;
-    if (*args[1] == '!') {
+    if (args[1] != NULL && *args[1] == '!') {
         data->flags |= DETECT_BYTETEST_NEGOP;
     }
-    if ((strcmp("=", args[2]) == 0) || ((data->flags & DETECT_BYTETEST_NEGOP)
-                && strcmp("", args[2]) == 0))
-    {
-        data->op |= DETECT_BYTETEST_OP_EQ;
-    } else if (strcmp("<", args[2]) == 0) {
-        data->op |= DETECT_BYTETEST_OP_LT;
-    } else if (strcmp(">", args[2]) == 0) {
-        data->op |= DETECT_BYTETEST_OP_GT;
-    } else if (strcmp("&", args[2]) == 0) {
-        data->op |= DETECT_BYTETEST_OP_AND;
-    } else if (strcmp("^", args[2]) == 0) {
-        data->op |= DETECT_BYTETEST_OP_OR;
-    } else {
-        SCLogError(SC_ERR_INVALID_OPERATOR, "Invalid operator");
-        goto error;
+
+    if (args[2] != NULL) {
+        if ((strcmp("=", args[2]) == 0) || ((data->flags & DETECT_BYTETEST_NEGOP)
+                && strcmp("", args[2]) == 0)) {
+            data->op |= DETECT_BYTETEST_OP_EQ;
+        } else if (strcmp("<", args[2]) == 0) {
+            data->op |= DETECT_BYTETEST_OP_LT;
+        } else if (strcmp(">", args[2]) == 0) {
+            data->op |= DETECT_BYTETEST_OP_GT;
+        } else if (strcmp("&", args[2]) == 0) {
+            data->op |= DETECT_BYTETEST_OP_AND;
+        } else if (strcmp("^", args[2]) == 0) {
+            data->op |= DETECT_BYTETEST_OP_OR;
+        } else {
+            SCLogError(SC_ERR_INVALID_OPERATOR, "Invalid operator");
+            goto error;
+        }
     }
 
     /* Value */
@@ -432,25 +434,28 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
     /* The remaining options are flags. */
     /** \todo Error on dups? */
     for (i = 5; i < (ret - 1); i++) {
-        if (strcmp("relative", args[i]) == 0) {
-            data->flags |= DETECT_BYTETEST_RELATIVE;
-        } else if (strcasecmp("string", args[i]) == 0) {
-            data->flags |= DETECT_BYTETEST_STRING;
-        } else if (strcasecmp("dec", args[i]) == 0) {
-            data->base |= DETECT_BYTETEST_BASE_DEC;
-        } else if (strcasecmp("hex", args[i]) == 0) {
-            data->base |= DETECT_BYTETEST_BASE_HEX;
-        } else if (strcasecmp("oct", args[i]) == 0) {
-            data->base |= DETECT_BYTETEST_BASE_OCT;
-        } else if (strcasecmp("big", args[i]) == 0) {
-            if (data->flags & DETECT_BYTETEST_LITTLE) {
-                data->flags ^= DETECT_BYTETEST_LITTLE;
+        if (args[i] != NULL) {
+            if (strcmp("relative", args[i]) == 0) {
+                data->flags |= DETECT_BYTETEST_RELATIVE;
+            } else if (strcasecmp("string", args[i]) == 0) {
+                data->flags |= DETECT_BYTETEST_STRING;
+            } else if (strcasecmp("dec", args[i]) == 0) {
+                data->base |= DETECT_BYTETEST_BASE_DEC;
+            } else if (strcasecmp("hex", args[i]) == 0) {
+                data->base |= DETECT_BYTETEST_BASE_HEX;
+            } else if (strcasecmp("oct", args[i]) == 0) {
+                data->base |= DETECT_BYTETEST_BASE_OCT;
+            } else if (strcasecmp("big", args[i]) == 0) {
+                if (data->flags & DETECT_BYTETEST_LITTLE) {
+                    data->flags ^= DETECT_BYTETEST_LITTLE;
+                }
+            } else if (strcasecmp("little", args[i]) == 0) {
+                data->flags |= DETECT_BYTETEST_LITTLE;
+            } else {
+                SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown value: \"%s\"",
+                        args[i]);
+                goto error;
             }
-        } else if (strcasecmp("little", args[i]) == 0) {
-            data->flags |= DETECT_BYTETEST_LITTLE;
-        } else {
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown value: \"%s\"", args[i]);
-            goto error;
         }
     }
 

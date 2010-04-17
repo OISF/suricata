@@ -709,28 +709,33 @@ static int SCPerfOutputCounterFileIface()
         for (u = 0; u < TVT_MAX; u++) {
             tv = tv_root[u];
 
+            if (pc_heads == NULL || pc_heads[u] == NULL)
+                continue;
+
             while (tv != NULL) {
                 SCMutexLock(&tv->sc_perf_pctx.m);
                 pc = tv->sc_perf_pctx.head;
 
                 while (pc != NULL) {
-                    if (pc->disp == 0) {
+                    if (pc->disp == 0 || pc->value == NULL) {
                         pc = pc->next;
                         continue;
                     }
 
                     switch (pc->value->type) {
                         case SC_PERF_TYPE_UINT64:
-                            SCPerfOutputCalculateCounterValue(pc_heads[u], &ui64_temp);
-                            fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
-                                    pc->name->cname, pc->name->tm_name, ui64_temp);
-
+                            SCPerfOutputCalculateCounterValue(pc_heads[u],
+                                    &ui64_temp);
+                            fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | "
+                                    "%-" PRIu64 "\n", pc->name->cname,
+                                    pc->name->tm_name, ui64_temp);
                             break;
                         case SC_PERF_TYPE_DOUBLE:
-                            SCPerfOutputCalculateCounterValue(pc_heads[u], &double_temp);
-                            fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-lf\n",
-                                    pc->name->cname, pc->name->tm_name, double_temp);
-
+                            SCPerfOutputCalculateCounterValue(pc_heads[u],
+                                    &double_temp);
+                            fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s |"
+                                    " %-lf\n", pc->name->cname,
+                                    pc->name->tm_name, double_temp);
                             break;
                     }
 
@@ -767,6 +772,8 @@ static int SCPerfOutputCounterFileIface()
         while(flag) {
             ui64_result = 0;
             double_result = 0;
+            if (pc_heads[0] == NULL)
+                break;
             pc = pc_heads[0];
 
             for (u = 0; u < pctmi->size; u++) {
@@ -786,11 +793,12 @@ static int SCPerfOutputCounterFileIface()
                 pc_heads[u] = pc_heads[u]->next;
 
                 if (pc_heads[u] == NULL ||
-                    strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name))
+                    (pc_heads[0] != NULL &&
+                        strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name)))
                     flag = 0;
             }
 
-            if (pc->disp == 0)
+            if (pc->disp == 0 || pc->value == NULL)
                 continue;
 
             switch (pc->value->type) {

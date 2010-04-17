@@ -151,7 +151,7 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
     }
     iid->id = 0;
 
-    if (strlen(substr[0]) != 0) {
+    if (substr[0]!= NULL && strlen(substr[0]) != 0) {
         if (substr[2] == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Missing close quote in input");
             goto error;

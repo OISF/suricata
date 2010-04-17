@@ -87,7 +87,9 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             }
         } else {
             //printf("TmqhOutputPacketpool: NOT IS_TUNNEL_ROOT_PKT\n");
-            if (p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1) {
+            if (p->root != NULL && p->root->tunnel_verdicted == 1 &&
+                    TUNNEL_PKT_TPR(p) == 1)
+            {
                 //printf("TmqhOutputPacketpool: p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1\n");
                 /* the root is ready and we are the last tunnel packet,
                  * lets enqueue them both. */

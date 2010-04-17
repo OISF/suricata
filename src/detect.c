@@ -2488,6 +2488,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
 void DbgPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     if (sgh == NULL) {
         printf("\n");
+        return;
     }
 
     uint32_t sig;
@@ -3430,7 +3431,7 @@ static int SigTest07Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
     TcpSession ssn;
     int result = 0;
@@ -3912,13 +3913,12 @@ static int SigTest12Real (int mpm_type) {
     else
         result = 0;
 
+    if (det_ctx != NULL)
+            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 end:
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
-        if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        //PatternMatchDestroy(mpm_ctx);
         DetectEngineCtxFree(de_ctx);
     }
     return result;
@@ -4198,7 +4198,7 @@ static int SigTest17Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet p;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -5868,6 +5868,7 @@ int SigTest34ICMPV4Keyword(void)
 
     p1.icmpv4c.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
+    p1.ip4h->ip_verhl = 69;
     p1.icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1.ip4h) * 4);
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
@@ -5877,6 +5878,7 @@ int SigTest34ICMPV4Keyword(void)
 
     p2.icmpv4c.comp_csum = -1;
     p2.ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
+    p2.ip4h->ip_verhl = 69;
     p2.icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2.ip4h) * 4);
     p2.src.family = AF_INET;
     p2.dst.family = AF_INET;
@@ -5976,6 +5978,7 @@ int SigTest35NegativeICMPV4Keyword(void)
 
     p1.icmpv4c.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
+    p1.ip4h->ip_verhl = 69;
     p1.icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1.ip4h) * 4);
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
@@ -5985,6 +5988,7 @@ int SigTest35NegativeICMPV4Keyword(void)
 
     p2.icmpv4c.comp_csum = -1;
     p2.ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
+    p2.ip4h->ip_verhl = 69;
     p2.icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2.ip4h) * 4);
     p2.src.family = AF_INET;
     p2.dst.family = AF_INET;

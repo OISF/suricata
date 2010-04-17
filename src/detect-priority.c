@@ -119,40 +119,52 @@ int DetectPriorityTest02()
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Priority test\"; priority:1; sid:1;)");
     de_ctx->sig_list = last = sig;
-    result = (sig != NULL);
-    result &= (sig->prio == 1);
+    if (sig == NULL) {
+        result = 0;
+    } else {
+        result = 1;
+        result &= (sig->prio == 1);
+    }
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Priority test\"; priority:boo; sid:1;)");
-    last->next = sig;
+    if (last != NULL)
+        last->next = sig;
     result &= (sig == NULL);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Priority test\"; priority:10boo; sid:1;)");
-    last->next = sig;
+    if (last != NULL)
+        last->next = sig;
     result &= (sig == NULL);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Priority test\"; priority:b10oo; sid:1;)");
-    last->next = sig;
+    if (last != NULL)
+        last->next = sig;
     result &= (sig == NULL);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Priority test\"; priority:boo10; sid:1;)");
-    last->next = sig;
+    if (last != NULL)
+        last->next = sig;
     result &= (sig == NULL);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Priority test\"; priority:-1; sid:1;)");
-    last->next = sig;
+    if (last != NULL)
+        last->next = sig;
     result &= (sig == NULL);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Priority test\"; sid:1;)");
-    last->next = sig;
-    last = sig;
-    result &= (sig != NULL);
-    result &= (sig->prio == 3);
+    if (last != NULL)
+        last->next = sig;
+    if (sig == NULL) {
+        result &= 0;
+    } else {
+        result &= (sig->prio == 3);
+    }
 
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);

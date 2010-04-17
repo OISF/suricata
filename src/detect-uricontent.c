@@ -696,7 +696,7 @@ int DetectUriSigTest01(void)
     SigMatch *sm = NULL;
     int result = 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     Signature *s = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -745,7 +745,7 @@ static int DetectUriSigTest02(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -857,7 +857,7 @@ static int DetectUriSigTest03(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -1039,15 +1039,16 @@ static int DetectUriSigTest04(void) {
                                    "uricontent:\"foo\"; content:\"bar\";"
                                    " depth:10; offset: 5; content:"
                                    "\"two_contents\"; within:30; sid:1;)");
-    if (s == NULL ||
-        s->umatch == NULL ||
-        s->pmatch == NULL ||
-        ((DetectContentData*)s->pmatch->ctx)->depth != 8||
-        ((DetectContentData*)s->pmatch->ctx)->offset != 5 ||
-        ((DetectContentData*)s->pmatch_tail->ctx)->within != 30 ||
-        s->match != NULL)
+    if (s == NULL) {
+        goto end;
+    } else if (s->umatch == NULL ||
+            s->pmatch == NULL ||
+            ((DetectContentData*) s->pmatch->ctx)->depth != 8 ||
+            ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
+            ((DetectContentData*) s->pmatch_tail->ctx)->within != 30 ||
+            s->match != NULL)
     {
-        DetectContentPrint((DetectContentData*)s->pmatch_tail->ctx);
+        DetectContentPrint((DetectContentData*) s->pmatch_tail->ctx);
         goto end;
     }
 
@@ -1056,15 +1057,16 @@ static int DetectUriSigTest04(void) {
                                    "uricontent:\"foo\"; content:\"bar\";"
                                    " depth:10; offset: 5; uricontent:"
                                    "\"two_uricontents\"; within:30; sid:1;)");
-    if (s == NULL ||
-        s->umatch == NULL ||
-        s->pmatch == NULL ||
-        ((DetectContentData*)s->pmatch->ctx)->depth != 8||
-        ((DetectContentData*)s->pmatch->ctx)->offset != 5 ||
-        ((DetectContentData*)s->umatch_tail->ctx)->within != 30 ||
-        s->match != NULL)
+    if (s == NULL) {
+        goto end;
+    } else if (s->umatch == NULL ||
+            s->pmatch == NULL ||
+            ((DetectContentData*) s->pmatch->ctx)->depth != 8 ||
+            ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
+            ((DetectContentData*) s->umatch_tail->ctx)->within != 30 ||
+            s->match != NULL)
     {
-        DetectUricontentPrint((DetectUricontentData*)s->umatch_tail->ctx);
+        DetectUricontentPrint((DetectUricontentData*) s->umatch_tail->ctx);
         goto end;
     }
 
@@ -1073,15 +1075,17 @@ static int DetectUriSigTest04(void) {
                                    "uricontent:\"foo\"; content:\"bar\";"
                                    " depth:10; offset: 5; content:"
                                    "\"two_contents\"; distance:30; sid:1;)");
-    if (s == NULL ||
-        s->umatch == NULL ||
-        s->pmatch == NULL ||
-        ((DetectContentData*)s->pmatch->ctx)->depth != 8||
-        ((DetectContentData*)s->pmatch->ctx)->offset != 5 ||
-        ((DetectContentData*)s->pmatch_tail->ctx)->distance != 30 ||
-        s->match != NULL)
+    if (s == NULL) {
+        goto end;
+    } else if (
+            s->umatch == NULL ||
+            s->pmatch == NULL ||
+            ((DetectContentData*) s->pmatch->ctx)->depth != 8 ||
+            ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
+            ((DetectContentData*) s->pmatch_tail->ctx)->distance != 30 ||
+            s->match != NULL)
     {
-        DetectContentPrint((DetectContentData*)s->pmatch_tail->ctx);
+        DetectContentPrint((DetectContentData*) s->pmatch_tail->ctx);
         goto end;
     }
 
@@ -1090,15 +1094,17 @@ static int DetectUriSigTest04(void) {
                                    "uricontent:\"foo\"; content:\"bar\";"
                                    " depth:10; offset: 5; uricontent:"
                                    "\"two_uricontents\"; distance:30; sid:1;)");
-    if (s == NULL ||
-        s->umatch == NULL ||
-        s->pmatch == NULL ||
-        ((DetectContentData*)s->pmatch->ctx)->depth != 8||
-        ((DetectContentData*)s->pmatch->ctx)->offset != 5 ||
-        ((DetectContentData*)s->umatch_tail->ctx)->distance != 30 ||
-        s->match != NULL)
+    if (s == NULL) {
+        goto end;
+    } else if (
+            s->umatch == NULL ||
+            s->pmatch == NULL ||
+            ((DetectContentData*) s->pmatch->ctx)->depth != 8 ||
+            ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
+            ((DetectContentData*) s->umatch_tail->ctx)->distance != 30 ||
+            s->match != NULL)
     {
-        DetectUricontentPrint((DetectUricontentData*)s->umatch_tail->ctx);
+        DetectUricontentPrint((DetectUricontentData*) s->umatch_tail->ctx);
         goto end;
     }
 
@@ -1109,18 +1115,18 @@ static int DetectUriSigTest04(void) {
                                    "\"two_uricontents\"; distance:30; "
                                    "within:60; content:\"two_contents\";"
                                    " within:70; distance:45; sid:1;)");
-    if (s == NULL ||
-        s->umatch == NULL ||
-        s->pmatch == NULL ||
-        ((DetectContentData*)s->pmatch->ctx)->depth != 8 ||
-        ((DetectContentData*)s->pmatch->ctx)->offset != 5 ||
-        ((DetectContentData*)s->umatch_tail->ctx)->distance != 30 ||
-        ((DetectContentData*)s->umatch_tail->ctx)->within != 60 ||
-        ((DetectContentData*)s->pmatch_tail->ctx)->distance != 45 ||
-        ((DetectContentData*)s->pmatch_tail->ctx)->within != 70 ||
-        s->match != NULL)
-    {
-        DetectUricontentPrint((DetectUricontentData*)s->umatch_tail->ctx);
+    if (s == NULL) {
+        goto end;
+    } else if (s->umatch == NULL ||
+            s->pmatch == NULL ||
+            ((DetectContentData*) s->pmatch->ctx)->depth != 8 ||
+            ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
+            ((DetectContentData*) s->umatch_tail->ctx)->distance != 30 ||
+            ((DetectContentData*) s->umatch_tail->ctx)->within != 60 ||
+            ((DetectContentData*) s->pmatch_tail->ctx)->distance != 45 ||
+            ((DetectContentData*) s->pmatch_tail->ctx)->within != 70 ||
+            s->match != NULL) {
+        DetectUricontentPrint((DetectUricontentData*) s->umatch_tail->ctx);
         goto end;
     }
 
@@ -1145,7 +1151,7 @@ static int DetectUriSigTest05(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -1255,7 +1261,7 @@ static int DetectUriSigTest06(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -1372,7 +1378,7 @@ static int DetectUriSigTest07(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));

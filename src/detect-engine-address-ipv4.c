@@ -1368,9 +1368,12 @@ static int DetectAddressIPv4CutNot08(void)
         goto error;
     result &= (a->ip2[0] = in.s_addr);
 
-    result &= (b != NULL);
-    if (result == 0)
+    if (b == NULL) {
+        result = 0;
         goto error;
+    } else {
+        result &= 1;
+    }
     if (inet_pton(AF_INET, "1.2.3.5", &in) < 0)
         goto error;
     result &= (b->ip[0] == in.s_addr);
@@ -1417,9 +1420,12 @@ static int DetectAddressIPv4CutNot09(void)
         goto error;
     result &= (a->ip2[0] = in.s_addr);
 
-    result &= (b != NULL);
-    if (result == 0)
+    if (b == NULL) {
+        result = 0;
         goto error;
+    } else {
+        result &= 1;
+    }
     if (inet_pton(AF_INET, "192.168.1.3", &in) < 0)
         goto error;
     result &= (b->ip[0] == in.s_addr);
