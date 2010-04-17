@@ -1480,6 +1480,7 @@ end:
 int SigTestBidirec03 (void) {
     int result = 0;
     Signature *sig = NULL;
+    Packet *p = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1566,7 +1567,7 @@ int SigTestBidirec03 (void) {
         0x76,0x65,0x0d,0x0a,0x0d,0x0a }; /* end rawpkt1_ether */
 
     FlowInitConfig(FLOW_QUIET);
-    Packet *p = UTHBuildPacketFromEth(rawpkt1_ether, sizeof(rawpkt1_ether));
+    p = UTHBuildPacketFromEth(rawpkt1_ether, sizeof(rawpkt1_ether));
     if (p == NULL) {
         SCLogDebug("Error building packet");
         goto end;
@@ -1577,8 +1578,9 @@ int SigTestBidirec03 (void) {
     uint32_t results[3] = {1, 1, 1};
     result = UTHCheckPacketMatchResults(p, sids, results, 1);
 
-    if (p != NULL) SCFree(p);
 end:
+    if (p != NULL)
+        SCFree(p);
     if (de_ctx != NULL) {
         SigCleanSignatures(de_ctx);
         SigGroupCleanup(de_ctx);
