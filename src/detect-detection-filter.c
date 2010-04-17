@@ -114,7 +114,6 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
         goto error;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-
     if (ret < 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
@@ -122,18 +121,15 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
 
     df = SCMalloc(sizeof(DetectDetectionFilterData));
     if (df == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
         goto error;
     }
-
-    memset(df,0,sizeof(DetectDetectionFilterData));
+    memset(df, 0, sizeof(DetectDetectionFilterData));
 
     df->type = TYPE_DETECTION;
 
     for (i = 0; i < (ret - 1); i++) {
-
         res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, i + 1, &str_ptr);
-
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
@@ -151,15 +147,17 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
             seconds_pos = i+1;
     }
 
-    if (args[count_pos] != NULL &&
-            ByteExtractStringUint32(&df->count, 10, strlen(args[count_pos]),
+    if (args[count_pos] == NULL) {
+        goto error;
+    }
+
+    if (ByteExtractStringUint32(&df->count, 10, strlen(args[count_pos]),
             args[count_pos]) <= 0)
     {
         goto error;
     }
 
-    if (args[seconds_pos] != NULL &&
-            ByteExtractStringUint32(&df->seconds, 10, strlen(args[seconds_pos]),
+    if (ByteExtractStringUint32(&df->seconds, 10, strlen(args[seconds_pos]),
             args[seconds_pos]) <= 0)
     {
         goto error;
