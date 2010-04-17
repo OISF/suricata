@@ -368,6 +368,8 @@ void DetectDceIfaceFree(void *ptr)
 
 static int DetectDceIfaceTestParse01(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
@@ -378,30 +380,36 @@ static int DetectDceIfaceTestParse01(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    if (s->match == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->match;
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 0);
-        result &= (did->op == 0);
-        result &= (did->any_frag == 0);
-    }
+    result &= (did->version == 0);
+    result &= (did->op == 0);
+    result &= (did->any_frag == 0);
 
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse02(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
@@ -412,30 +420,36 @@ static int DetectDceIfaceTestParse02(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    if (s->match == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->match;
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 1);
-        result &= (did->op == DETECT_DCE_IFACE_OP_GT);
-        result &= (did->any_frag == 0);
-    }
+    result &= (did->version == 1);
+    result &= (did->op == DETECT_DCE_IFACE_OP_GT);
+    result &= (did->any_frag == 0);
 
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse03(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
@@ -446,30 +460,32 @@ static int DetectDceIfaceTestParse03(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<10") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    if (s->match == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->match;
+    did = temp->ctx;
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 10);
-        result &= (did->op == DETECT_DCE_IFACE_OP_LT);
-        result &= (did->any_frag == 0);
-    }
+    result &= (did->version == 10);
+    result &= (did->op == DETECT_DCE_IFACE_OP_LT);
+    result &= (did->any_frag == 0);
 
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse04(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
@@ -480,30 +496,36 @@ static int DetectDceIfaceTestParse04(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,!10") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    if (s->match == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->match;
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 10);
-        result &= (did->op == DETECT_DCE_IFACE_OP_NE);
-        result &= (did->any_frag == 0);
-    }
+    result &= (did->version == 10);
+    result &= (did->op == DETECT_DCE_IFACE_OP_NE);
+    result &= (did->any_frag == 0);
 
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse05(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
@@ -514,30 +536,36 @@ static int DetectDceIfaceTestParse05(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=10") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    if (s->match == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->match;
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 10);
-        result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
-        result &= (did->any_frag == 0);
-    }
+    result &= (did->version == 10);
+    result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
+    result &= (did->any_frag == 0);
 
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse06(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
@@ -548,29 +576,36 @@ static int DetectDceIfaceTestParse06(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,any_frag") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    if (s->match == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->match;
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 0);
-        result &= (did->op == 0);
-        result &= (did->any_frag == 1);
-    }
+    result &= (did->version == 0);
+    result &= (did->op == 0);
+    result &= (did->any_frag == 1);
+
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse07(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
@@ -581,26 +616,30 @@ static int DetectDceIfaceTestParse07(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1,any_frag") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    if (s->match == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->match;
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 1);
-        result &= (did->op == DETECT_DCE_IFACE_OP_GT);
-        result &= (did->any_frag == 1);
-    }
+    result &= (did->version == 1);
+    result &= (did->op == DETECT_DCE_IFACE_OP_GT);
+    result &= (did->any_frag == 1);
 
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse08(void)
@@ -615,30 +654,36 @@ static int DetectDceIfaceTestParse08(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<1,any_frag") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    if (s->match == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->match;
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 1);
-        result &= (did->op == DETECT_DCE_IFACE_OP_LT);
-        result &= (did->any_frag == 1);
-    }
+    result &= (did->version == 1);
+    result &= (did->op == DETECT_DCE_IFACE_OP_LT);
+    result &= (did->any_frag == 1);
 
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse09(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
@@ -649,30 +694,32 @@ static int DetectDceIfaceTestParse09(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=1,any_frag") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    temp = s->match;
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 1);
-        result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
-        result &= (did->any_frag == 1);
-    }
+    result &= (did->version == 1);
+    result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
+    result &= (did->any_frag == 1);
 
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse10(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
@@ -683,30 +730,36 @@ static int DetectDceIfaceTestParse10(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,!1,any_frag") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
-        did = temp->ctx;
-        result &= 1;
-        for (i = 0; i < 16; i++) {
-            if (did->uuid[i] != test_uuid[i]) {
-                result = 0;
-                break;
-            }
+    if (s->match == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->match;
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    result &= 1;
+    for (i = 0; i < 16; i++) {
+        if (did->uuid[i] != test_uuid[i]) {
+            result = 0;
+            break;
         }
     }
 
-    if (did != NULL) {
-        result &= (did->version == 1);
-        result &= (did->op == DETECT_DCE_IFACE_OP_NE);
-        result &= (did->any_frag == 1);
-    }
+    result &= (did->version == 1);
+    result &= (did->op == DETECT_DCE_IFACE_OP_NE);
+    result &= (did->any_frag == 1);
 
     SigFree(s);
-    return result;
+    SCReturnInt(result);
 }
 
 static int DetectDceIfaceTestParse11(void)
 {
+    SCEnter();
+
     Signature *s = SigAlloc();
     int result = 1;
 
