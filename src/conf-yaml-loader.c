@@ -74,7 +74,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
         }
         else if (event.type == YAML_SCALAR_EVENT) {
             char *value = (char *)event.data.scalar.value;
-            SCLogDebug("event.type = YAML_SCALAR_EVENT (%s) inseq=%d\n",
+            SCLogDebug("event.type = YAML_SCALAR_EVENT (%s) inseq=%d",
                 value, inseq);
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
@@ -112,17 +112,17 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             }
         }
         else if (event.type == YAML_SEQUENCE_START_EVENT) {
-            SCLogDebug("event.type = YAML_SEQUENCE_START_EVENT\n");
+            SCLogDebug("event.type = YAML_SEQUENCE_START_EVENT");
             if (ConfYamlParse(parser, node, 1) != 0)
                 goto fail;
             state = CONF_KEY;
         }
         else if (event.type == YAML_SEQUENCE_END_EVENT) {
-            SCLogDebug("event.type = YAML_SEQUENCE_END_EVENT\n");
+            SCLogDebug("event.type = YAML_SEQUENCE_END_EVENT");
             return 0;
         }
         else if (event.type == YAML_MAPPING_START_EVENT) {
-            SCLogDebug("event.type = YAML_MAPPING_START_EVENT\n");
+            SCLogDebug("event.type = YAML_MAPPING_START_EVENT");
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
                 seq_node->is_seq = 1;
@@ -139,7 +139,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             state = CONF_KEY;
         }
         else if (event.type == YAML_MAPPING_END_EVENT) {
-            SCLogDebug("event.type = YAML_MAPPING_END_EVENT\n");
+            SCLogDebug("event.type = YAML_MAPPING_END_EVENT");
             done = 1;
         }
         else if (event.type == YAML_STREAM_END_EVENT) {
