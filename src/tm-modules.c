@@ -55,9 +55,7 @@ LogFileCtx *LogFileNewCtx()
     }
     memset(lf_ctx, 0, sizeof(LogFileCtx));
 
-    /* Ensure that it is unlocked */
     SCMutexInit(&lf_ctx->fp_mutex,NULL);
-    SCMutexUnlock(&lf_ctx->fp_mutex);
 
     return lf_ctx;
 }
@@ -68,25 +66,28 @@ LogFileCtx *LogFileNewCtx()
  *  */
 int LogFileFreeCtx(LogFileCtx *lf_ctx)
 {
-    int ret=0;
-
-    if(lf_ctx != NULL)
-    {
-        if (lf_ctx->fp != NULL)
-        {
-            SCMutexLock(&lf_ctx->fp_mutex);
-            fclose(lf_ctx->fp);
-            SCMutexUnlock(&lf_ctx->fp_mutex);
-        }
-        if (lf_ctx->prefix != NULL)
-            SCFree(lf_ctx->prefix);
-        if(lf_ctx->filename != NULL)
-            SCFree(lf_ctx->filename);
-        SCFree(lf_ctx);
-        ret=1;
+    if (lf_ctx == NULL) {
+        SCReturnInt(0);
     }
 
-    return ret;
+    if (lf_ctx->fp != NULL)
+    {
+        SCMutexLock(&lf_ctx->fp_mutex);
+        fclose(lf_ctx->fp);
+        SCMutexUnlock(&lf_ctx->fp_mutex);
+    }
+
+    SCMutexDestroy(&lf_ctx->fp_mutex);
+
+    if (lf_ctx->prefix != NULL)
+        SCFree(lf_ctx->prefix);
+
+    if(lf_ctx->filename != NULL)
+        SCFree(lf_ctx->filename);
+
+    SCFree(lf_ctx);
+
+    SCReturnInt(1);
 }
 
 /** \brief register all unittests for the tm modules */
