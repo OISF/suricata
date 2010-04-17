@@ -974,7 +974,7 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
     struct in_addr addr;
 
     /* Make a copy of the string so it can be modified */
-    strncpy(ip_str, str, sizeof(ip_str) - 2);
+    strlcpy(ip_str, str, sizeof(ip_str) - 2);
     *(ip_str + (sizeof(ip_str) - 1)) = '\0';
 
     /* Does it have a mask? */
@@ -1022,7 +1022,7 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
     struct in6_addr addr;
 
     /* Make a copy of the string so it can be modified */
-    strncpy(ip_str, str, sizeof(ip_str) - 2);
+    strlcpy(ip_str, str, sizeof(ip_str) - 2);
     *(ip_str + sizeof(ip_str) - 1) = '\0';
 
     /* Does it have a mask? */
