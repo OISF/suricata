@@ -269,25 +269,38 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         printf("Logging module not initialized.  Call SCLogInitLogModule(), "
                "before using the logging API\n");
 #endif
+        if (temp_fmt != NULL)
+            free(temp_fmt);
         return SC_ERR_LOG_MODULE_NOT_INIT;
     }
 
     if (sc_log_fg_filters_present == 1) {
-        if (SCLogMatchFGFilterWL(file, function, line) != 1)
+        if (SCLogMatchFGFilterWL(file, function, line) != 1) {
+            if (temp_fmt != NULL)
+                free(temp_fmt);
             return SC_ERR_LOG_FG_FILTER_MATCH;
+        }
 
-        if (SCLogMatchFGFilterBL(file, function, line) != 1)
+        if (SCLogMatchFGFilterBL(file, function, line) != 1) {
+            if (temp_fmt != NULL)
+                free(temp_fmt);
             return SC_ERR_LOG_FG_FILTER_MATCH;
+        }
     }
 
-    if (sc_log_fd_filters_present == 1 && SCLogMatchFDFilter(function) != 1)
+    if (sc_log_fd_filters_present == 1 && SCLogMatchFDFilter(function) != 1) {
+        if (temp_fmt != NULL)
+            free(temp_fmt);
         return SC_ERR_LOG_FG_FILTER_MATCH;
+    }
 
 	while ( (temp_fmt = index(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
         if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
             printf("Warning: Log message exceeded message length limit of %d\n",
                    SC_LOG_MAX_LOG_MSG_LEN);
             *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
+            if (temp_fmt_h != NULL)
+                free(temp_fmt_h);
             return SC_OK;
         }
         switch(temp_fmt[1]) {
@@ -414,6 +427,8 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
     return SC_OK;
 
  error:
+    if (temp_fmt != NULL)
+        free(temp_fmt_h);
     return SC_ERR_SPRINTF;
 }
 

@@ -1059,12 +1059,11 @@ static int Unified2TestRotate01(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    if (lf == NULL)
-        return 0;
-
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if (ret == TM_ECODE_FAILED) {
         LogFileFreeCtx(lf);
+        if (filename != NULL)
+            free(filename);
         return 0;
     }
 

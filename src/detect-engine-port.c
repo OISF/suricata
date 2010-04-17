@@ -1079,7 +1079,11 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
             d_set = 1;
         } else if (depth == 0 && u == size-1) {
             range = 0;
-            address[x] = '\0';
+            if (x == 1024) {
+                address[x - 1] = '\0';
+            } else {
+                address[x] = '\0';
+            }
             SCLogDebug("%s", address);
             x = 0;
             if (d_set == 1) {

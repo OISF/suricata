@@ -968,7 +968,7 @@ int UtilSpmSearchOffsetsTest01() {
     int i, j;
     uint8_t *found = NULL;
     for (i = 0; i < 26; i++) {
-        for (j = 0; j <= 26 - i; j++) {
+        for (j = 0; j <= (26 - i); j++) {
             found = BasicSearchWrapper((uint8_t *)text[i][j], (uint8_t *)needle[i], 1);
             if (found == 0) {
                 printf("Error1 searching for %s in text %s\n", needle[i], text[i][j]);
@@ -1403,7 +1403,7 @@ int UtilSpmSearchOffsetsNocaseTest01() {
     int i, j;
     uint8_t *found = NULL;
     for (i = 0; i < 26; i++) {
-        for (j = 0; j <= 26-i; j++) {
+        for (j = 0; j <= (26-i); j++) {
             found = BasicSearchNocaseWrapper((uint8_t *)text[i][j], (uint8_t *)needle[i], 1);
             if (found == 0) {
                 printf("Error1 searching for %s in text %s\n", needle[i], text[i][j]);

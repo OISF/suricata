@@ -449,12 +449,11 @@ static int AlertUnifiedLogTestRotate01(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    if (lf == NULL)
-        return 0;
-
     ret = AlertUnifiedLogThreadInit(&tv, oc, &data);
     if (ret == TM_ECODE_FAILED) {
         LogFileFreeCtx(lf);
+        if (filename != NULL)
+            free(filename);
         return 0;
     }
 
@@ -472,6 +471,7 @@ static int AlertUnifiedLogTestRotate01(void)
 error:
     AlertUnifiedLogThreadDeinit(&tv, data);
     if (oc != NULL) AlertUnifiedLogDeInitCtx(oc);
+    if (filename != NULL) free(filename);
     return r;
 }
 #endif /* UNITTESTS */

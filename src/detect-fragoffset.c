@@ -113,7 +113,7 @@ int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
  */
 DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr) {
     DetectFragOffsetData *fragoff = NULL;
-    char *substr[2] = {NULL, NULL};
+    char *substr[3] = {NULL, NULL, NULL};
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
@@ -164,14 +164,14 @@ DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr) {
 
     ByteExtractStringUint16(&fragoff->frag_off, 10, 0, substr[1]);
 
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < 3; i++) {
         if (substr[i] != NULL) SCFree(substr[i]);
     }
 
     return fragoff;
 
 error:
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < 3; i++) {
         if (substr[i] != NULL) SCFree(substr[i]);
     }
     if (fragoff != NULL) DetectFragOffsetFree(fragoff);

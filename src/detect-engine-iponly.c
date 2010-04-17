@@ -402,7 +402,11 @@ IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
         } else if (depth == 0 && s[u] == '$') {
             d_set = 1;
         } else if (depth == 0 && u == size - 1) {
-            address[x] = '\0';
+            if (x == 1024) {
+                address[x - 1] = '\0';
+            } else {
+                address[x] = '\0';
+            }
             x = 0;
 
             if (d_set == 1) {
