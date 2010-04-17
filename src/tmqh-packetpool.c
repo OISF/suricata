@@ -87,6 +87,12 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             }
         } else {
             //printf("TmqhOutputPacketpool: NOT IS_TUNNEL_ROOT_PKT\n");
+
+            /* the p->root != NULL here seems unnecessary: IS_TUNNEL_PKT checks
+             * that p->tunnel_pkt == 1, IS_TUNNEL_ROOT_PKT checks that +
+             * p->root == NULL. So when we are here p->root can only be
+             * non-NULL, right? CLANG thinks differently. May be a FP, but
+             * better safe than sorry. VJ */
             if (p->root != NULL && p->root->tunnel_verdicted == 1 &&
                     TUNNEL_PKT_TPR(p) == 1)
             {
