@@ -348,6 +348,8 @@ void StreamTcpFreeConfig(char quiet)
             stream_memuse_max, stream_memuse);
     }
     SCMutexDestroy(&ssn_pool_mutex);
+
+    SCSpinDestroy(&stream_memuse_spinlock);
 }
 
 /** \brief The function is used to to fetch a TCP session from the
