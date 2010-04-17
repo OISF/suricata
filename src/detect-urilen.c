@@ -488,6 +488,9 @@ static int DetectUrilenSigTest01(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;

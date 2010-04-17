@@ -1041,6 +1041,9 @@ static int DetectPcreModifPTest04(void) {
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -1172,6 +1175,9 @@ static int DetectPcreModifPTest05(void) {
     p2.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
     p2.flow = &f;

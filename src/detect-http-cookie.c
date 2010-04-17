@@ -470,6 +470,9 @@ static int DetectHttpCookieSigTest01(void) {
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -566,6 +569,9 @@ static int DetectHttpCookieSigTest02(void) {
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -650,6 +656,9 @@ static int DetectHttpCookieSigTest03(void) {
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -734,6 +743,9 @@ static int DetectHttpCookieSigTest04(void) {
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -818,6 +830,9 @@ static int DetectHttpCookieSigTest05(void) {
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -902,6 +917,9 @@ static int DetectHttpCookieSigTest06(void) {
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -986,6 +1004,9 @@ static int DetectHttpCookieSigTest07(void) {
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;

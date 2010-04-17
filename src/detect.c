@@ -3350,6 +3350,8 @@ static int SigTest06Real (int mpm_type) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -3443,6 +3445,8 @@ static int SigTest07Real (int mpm_type) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -3536,6 +3540,8 @@ static int SigTest08Real (int mpm_type) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     //FlowInit(&f, &p);
@@ -3631,6 +3637,8 @@ static int SigTest09Real (int mpm_type) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -3717,6 +3725,8 @@ static int SigTest10Real (int mpm_type) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -3805,6 +3815,8 @@ static int SigTest11Real (int mpm_type) {
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;

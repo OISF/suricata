@@ -433,6 +433,9 @@ static int DetectHttpClientBodyTest06(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -540,6 +543,9 @@ static int DetectHttpClientBodyTest07(void)
     p2.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
     p2.flow = &f;
@@ -664,6 +670,9 @@ static int DetectHttpClientBodyTest08(void)
     p2.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
     p2.flow = &f;
@@ -788,6 +797,9 @@ static int DetectHttpClientBodyTest09(void)
     p2.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
     p2.flow = &f;
@@ -912,6 +924,9 @@ static int DetectHttpClientBodyTest10(void)
     p2.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
     p2.flow = &f;
@@ -1025,6 +1040,9 @@ static int DetectHttpClientBodyTest11(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -1121,6 +1139,9 @@ static int DetectHttpClientBodyTest12(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -1217,6 +1238,9 @@ static int DetectHttpClientBodyTest13(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;

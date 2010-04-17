@@ -247,10 +247,15 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             SCLogDebug("Looking up HTP config for ipv4 %08x", *GET_IPV4_DST_ADDR_PTR(f));
             cfgnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(f), cfgtree);
         }
-        else {
+        else if (AF_INET6 == f->dst.family) {
             SCLogDebug("Looking up HTP config for ipv6");
             cfgnode = SCRadixFindKeyIPV6BestMatch((uint8_t *)GET_IPV6_DST_ADDR(f), cfgtree);
         }
+        else {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown address family, bug!");
+            goto error;
+        }
+
         if (cfgnode != NULL) {
             htp = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec)->cfg;
             SCLogDebug("LIBHTP using config: %p", htp);
@@ -975,6 +980,8 @@ int HTPParserTest01(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
     StreamL7DataPtrInit(&ssn);
@@ -1043,6 +1050,8 @@ int HTPParserTest02(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
     StreamL7DataPtrInit(&ssn);
@@ -1098,6 +1107,8 @@ int HTPParserTest03(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
     StreamL7DataPtrInit(&ssn);
@@ -1163,6 +1174,8 @@ int HTPParserTest04(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
     StreamL7DataPtrInit(&ssn);
@@ -1226,6 +1239,8 @@ int HTPParserTest05(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
     StreamL7DataPtrInit(&ssn);
@@ -1368,7 +1383,10 @@ int HTPParserTest06(void) {
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
     f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
     StreamL7DataPtrInit(&ssn);
