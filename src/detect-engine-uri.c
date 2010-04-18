@@ -270,8 +270,10 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
 
     det_ctx->uricontent_payload_offset = 0;
 
+#ifdef DEBUG
     DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
     SCLogDebug("co->id %"PRIu32, co->id);
+#endif
 
     size_t idx = 0;
     htp_tx_t *tx = NULL;

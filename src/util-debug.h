@@ -370,7 +370,7 @@ extern int sc_log_module_cleaned;
  */
 #define SCReturnInt(x)        do {                                           \
                                   if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning: %d ... <<", x); \
+                                      SCLogDebug("Returning: %"PRIdMAX" ... <<", (intmax_t)x); \
                                       SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \
@@ -388,7 +388,7 @@ extern int sc_log_module_cleaned;
  */
 #define SCReturnUInt(x)       do {                                           \
                                   if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning: %u ... <<", x); \
+                                      SCLogDebug("Returning: %"PRIuMAX" ... <<", (uintmax_t)x); \
                                       SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \

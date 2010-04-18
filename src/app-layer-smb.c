@@ -658,33 +658,35 @@ static uint32_t SMBParseWordCount(Flow *f, void *smb_state,
 
 static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-        AppLayerParserResult *output) {
+        AppLayerParserResult *output)
+{
     SCEnter();
+
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    int32_t retval = 0;
+    uint32_t ures = 0; /* unsigned */
+    int32_t sres = 0; /* signed */
     uint32_t parsed = 0;
+
     if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) && sstate->smb.command
                 == SMB_COM_READ_ANDX) || (((sstate->smb.flags
                             & SMB_FLAGS_SERVER_TO_REDIR) == 0) && sstate->smb.command
                     == SMB_COM_WRITE_ANDX) || (sstate->smb.command
                         == SMB_COM_TRANSACTION)) {
         if (sstate->andx.paddingparsed == 0) {
-            retval = PaddingParser(sstate, pstate, input + parsed, input_len,
-                    output);
-            parsed += retval;
-            input_len -= retval;
+            ures = PaddingParser(sstate, pstate, input + parsed, input_len, output);
+            parsed += ures;
+            input_len -= ures;
         }
 
         if (sstate->andx.datalength && input_len) {
-            retval = DataParser(sstate, pstate, input + parsed, input_len,
-                    output);
-            if (retval != -1) {
-		parsed += retval;
-		input_len -= retval;
+            sres = DataParser(sstate, pstate, input + parsed, input_len, output);
+            if (sres != -1) {
+		parsed += (uint32_t)sres;
+		input_len -= (uint32_t)sres;
             } else { /* Did not Validate as DCERPC over SMB */
 		while (sstate->bytecount.bytecountleft-- && input_len--) {
-		        SCLogDebug("0x%02x bytecount %u/%u input_len %u", *p,
+		        SCLogDebug("0x%02x bytecount %"PRIu16"/%"PRIu16" input_len %"PRIu32, *p,
 		                sstate->bytecount.bytecountleft,
 		                sstate->bytecount.bytecount, input_len);
 		        p++;
@@ -693,7 +695,7 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
 		SCReturnUInt((p - input));
             }
         }
-        SCReturnUInt(retval);
+        SCReturnUInt(ures);
     }
 
     while (sstate->bytecount.bytecountleft-- && input_len--) {
@@ -703,6 +705,7 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
         p++;
     }
     sstate->bytesprocessed += (p - input);
+
     SCReturnUInt((p - input));
 }
 
