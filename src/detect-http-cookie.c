@@ -651,7 +651,7 @@ static int DetectHttpCookieSigTest03(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -743,7 +743,7 @@ static int DetectHttpCookieSigTest04(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -835,7 +835,7 @@ static int DetectHttpCookieSigTest05(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -927,7 +927,7 @@ static int DetectHttpCookieSigTest06(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1019,7 +1019,7 @@ static int DetectHttpCookieSigTest07(void) {
     Packet p;
     Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));

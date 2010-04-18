@@ -147,17 +147,15 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
             seconds_pos = i+1;
     }
 
-    if (args[count_pos] == NULL) {
-        goto error;
-    }
-
-    if (ByteExtractStringUint32(&df->count, 10, strlen(args[count_pos]),
+    if (args[count_pos] == NULL||
+            ByteExtractStringUint32(&df->count, 10, strlen(args[count_pos]),
             args[count_pos]) <= 0)
     {
         goto error;
     }
 
-    if (ByteExtractStringUint32(&df->seconds, 10, strlen(args[seconds_pos]),
+    if (args[seconds_pos] == NULL ||
+            ByteExtractStringUint32(&df->seconds, 10, strlen(args[seconds_pos]),
             args[seconds_pos]) <= 0)
     {
         goto error;
