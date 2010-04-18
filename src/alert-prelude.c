@@ -607,6 +607,7 @@ static int EventToReference(PacketAlert *pa, Packet *p, idmef_classification_t *
  */
 TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
+    SCSetThreadName(tv->name);
     AlertPreludeThread *apn = (AlertPreludeThread *)data;
     uint8_t ethh_offset = 0;
     int ret;

@@ -306,6 +306,7 @@ end:
 TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
+    SCSetThreadName(tv->name);
 
     /* no flow, no htp state */
     if (p->flow == NULL) {

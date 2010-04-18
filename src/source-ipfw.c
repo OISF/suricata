@@ -163,6 +163,7 @@ void TmModuleDecodeIPFWRegister (void) {
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
 TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+    SCSetThreadName(tv->name);
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     char pkt[IP_MAXPACKET];
     int pktlen=0;
@@ -385,6 +386,7 @@ TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data) {
  */
 TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
+    SCSetThreadName(tv->name);
     IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
     IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -521,6 +523,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
  * \param pq pointer for the Packet Queue access (Not used)
  */
 TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+    SCSetThreadName(tv->name);
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     TmEcode retval = TM_ECODE_OK;
 

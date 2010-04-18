@@ -183,6 +183,7 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
 
 TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
+    SCSetThreadName(t->name);
     int ret = 0;
 
     if(PKT_IS_IPV4(p))  {

@@ -40,6 +40,8 @@ void TmModuleRespondRejectRegister (void) {
 }
 
 TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+    SCSetThreadName(tv->name);
+
     int ret = 0;
 
     /* ACTION_REJECT defaults to rejecting the SRC */

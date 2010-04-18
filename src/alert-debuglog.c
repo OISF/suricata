@@ -174,6 +174,7 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 
 TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
+    SCSetThreadName(tv->name);
     if (PKT_IS_IPV4(p)) {
         return AlertDebugLogIPv4(tv, p, data, pq);
     } else if (PKT_IS_IPV6(p)) {

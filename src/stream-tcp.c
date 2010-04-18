@@ -2535,6 +2535,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt)
 
 TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
+    SCSetThreadName(tv->name);
     StreamTcpThread *stt = (StreamTcpThread *)data;
     TmEcode ret = TM_ECODE_OK;
 

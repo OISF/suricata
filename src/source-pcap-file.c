@@ -111,6 +111,7 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
  */
 TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     SCEnter();
+    SCSetThreadName(tv->name);
 
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
     ptv->in_p = p;
@@ -222,6 +223,7 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data) {
 TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
+    SCSetThreadName(tv->name);
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     /* update counters */

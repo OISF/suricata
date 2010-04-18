@@ -128,6 +128,7 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
  */
 TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     SCEnter();
+    SCSetThreadName(tv->name);
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
     /* Just read one packet at a time for now. */
@@ -363,6 +364,7 @@ TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
 TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
+    SCSetThreadName(tv->name);
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     /* update counters */

@@ -639,6 +639,7 @@ void FlowShutdown(void) {
 void *FlowManagerThread(void *td)
 {
     ThreadVars *th_v = (ThreadVars *)td;
+    SCSetThreadName(th_v->name);
     struct timeval ts;
     struct timeval tsdiff;
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0, nowcnt;
