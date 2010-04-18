@@ -56,6 +56,12 @@ void TmModuleAlertUnifiedLogRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDLOG].RegisterTests = AlertUnifiedLogRegisterTests;
 
     OutputRegisterModule(MODULE_NAME, "unified-log", AlertUnifiedLogInitCtx);
+
+#if __WORDSIZE == 64
+    SCLogInfo("The Unified1 module detected a 64-bit system. For Barnyard "
+            "0.2.0 to work correctly, it needs to be patched. Patch can be "
+            "found here: https://redmine.openinfosecfoundation.org/attachments/download/184/barnyard.64bit.diff");
+#endif
 }
 
 typedef struct AlertUnifiedLogThread_ {
@@ -89,7 +95,7 @@ typedef struct AlertUnifiedLogPacketHeader_ {
 #ifdef UNIFIED_NATIVE_TIMEVAL
     struct timeval ref_tv;
 #else
-    struct sc_timeval32 ref_tv;
+    SCTimeval32 ref_tv;
 #endif /* UNIFIED_NATIVE_TIMEVAL */
 
     /* 32 bit unsigned flags */
@@ -99,7 +105,7 @@ typedef struct AlertUnifiedLogPacketHeader_ {
 #ifdef UNIFIED_NATIVE_TIMEVAL
     struct timeval tv;
 #else
-    struct sc_timeval32 tv;
+    SCTimeval32 tv;
 #endif /* UNIFIED_NATIVE_TIMEVAL */
     uint32_t caplen;
     uint32_t pktlen;

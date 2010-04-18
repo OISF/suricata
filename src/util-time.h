@@ -6,10 +6,10 @@
  *
  * Used by the unified on disk file format.
  */
-struct sc_timeval32 {
+typedef struct SCTimeval32_ {
     uint32_t tv_sec;
     uint32_t tv_usec;
-};
+} SCTimeval32;
 
 void TimeSet(struct timeval *);
 void TimeGet(struct timeval *);

@@ -87,8 +87,8 @@ typedef struct AlertUnifiedAlertPacketHeader_ {
     struct timeval ref_ts; /* Reference timestamp. */
     struct timeval ts; /* Timestamp. */
 #else
-    struct sc_timeval32 ref_ts; /* Reference timestamp. */
-    struct sc_timeval32 ts; /* Timestamp. */
+    SCTimeval32 ref_ts; /* Reference timestamp. */
+    SCTimeval32 ts; /* Timestamp. */
 #endif /* UNIFIED_NATIVE_TIMEVAL */
     uint32_t src_ip;
     uint32_t dst_ip;
