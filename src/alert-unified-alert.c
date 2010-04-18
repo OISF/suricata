@@ -183,8 +183,8 @@ TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     hdr.pad2 = 0;
     hdr.ts.tv_sec = hdr.ref_ts.tv_sec = p->ts.tv_sec;
     hdr.ts.tv_usec = hdr.ref_ts.tv_usec = p->ts.tv_sec;
-    hdr.src_ip = GET_IPV4_SRC_ADDR_U32(p);
-    hdr.dst_ip = GET_IPV4_DST_ADDR_U32(p);
+    hdr.src_ip = ntohl(GET_IPV4_SRC_ADDR_U32(p)); /* addr is host order */
+    hdr.dst_ip = ntohl(GET_IPV4_DST_ADDR_U32(p)); /* addr is host order */
     hdr.sp = p->sp;
     hdr.dp = p->dp;
     hdr.protocol = IPV4_GET_RAW_IPPROTO(p->ip4h);
