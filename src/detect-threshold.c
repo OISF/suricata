@@ -158,17 +158,17 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
             second_pos = i+1;
     }
 
-    if (args[count_pos] == NULL ||
-            ByteExtractStringUint32(&de->count, 10, strlen(args[count_pos]),
-                args[count_pos]) <= 0)
-    {
+    if (args[count_pos] == NULL || args[second_pos] == NULL) {
         goto error;
     }
 
-    if (args[second_pos] == NULL ||
-            ByteExtractStringUint32(&de->seconds, 10, strlen(args[second_pos]),
-                args[second_pos]) <= 0)
-    {
+    if (ByteExtractStringUint32(&de->count, 10, strlen(args[count_pos]),
+                args[count_pos]) <= 0) {
+        goto error;
+    }
+
+    if (ByteExtractStringUint32(&de->seconds, 10, strlen(args[second_pos]),
+                args[second_pos]) <= 0) {
         goto error;
     }
 

@@ -1,7 +1,7 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
 /**
- * Copyright (c) 2009 Open Information Security Foundation
- *
- * \file detect-detection-filter.c
+ * \file
  * \author Gerardo Iglesias <iglesiasg@gmail.com>
  *
  * "detection_filter" keyword support
@@ -147,17 +147,17 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
             seconds_pos = i+1;
     }
 
-    if (args[count_pos] == NULL||
-            ByteExtractStringUint32(&df->count, 10, strlen(args[count_pos]),
-            args[count_pos]) <= 0)
-    {
+    if (args[count_pos] == NULL || args[seconds_pos] == NULL) {
         goto error;
     }
 
-    if (args[seconds_pos] == NULL ||
-            ByteExtractStringUint32(&df->seconds, 10, strlen(args[seconds_pos]),
-            args[seconds_pos]) <= 0)
-    {
+    if (ByteExtractStringUint32(&df->count, 10, strlen(args[count_pos]),
+                args[count_pos]) <= 0) {
+        goto error;
+    }
+
+    if (ByteExtractStringUint32(&df->seconds, 10, strlen(args[seconds_pos]),
+                args[seconds_pos]) <= 0) {
         goto error;
     }
 
