@@ -37,6 +37,7 @@
 #include <sys/prctl.h>
 #define THREAD_NAME_LEN 16
 #endif
+
 #define PRIO_LOW 2
 #define PRIO_MEDIUM  0
 #define PRIO_HIGH -2
@@ -323,19 +324,29 @@
 #define SCSpinDestroy(spin)                     pthread_spin_destroy(spin)
 #endif /* DBG_THREADS */
 
-#ifdef OS_FREEBSD
-/* TODO Add implementation for FreeBSD */
-#elif OS_WIN32
-/* TODO Add implementation for Windows */
-#elif OS_DARWIN
-/* TODO Add implementation for MacOS */
-#else
+/*
+ * OS specific macro's for setting the thread name. "top" can display
+ * this name.
+ */
+#ifdef OS_FREEBSD /* FreeBSD */
+/** \todo Add implementation for FreeBSD */
+#define SCSetThreadName(n)
+#elif OS_WIN32 /* Windows */
+/** \todo Add implementation for Windows */
+#define SCSetThreadName(n)
+#elif OS_DARWIN /* Mac OS X */
+/** \todo Add implementation for MacOS */
+#define SCSetThreadName(n)
+#else /* Linux */
+/**
+ * \brief Set the threads name
+ */
 #define SCSetThreadName(n) ({ \
-    char tname[THREAD_NAME_LEN + 1] = {'\0'}; \
+    char tname[THREAD_NAME_LEN + 1] = ""; \
     if (strlen(n) > THREAD_NAME_LEN) \
         SCLogDebug("Thread name is too long, truncating it..."); \
-    strncpy(tname, n, THREAD_NAME_LEN); \
-    int ret; \
+    strlcpy(tname, n, THREAD_NAME_LEN); \
+    int ret = 0; \
     if ((ret = prctl(PR_SET_NAME, tname, 0, 0, 0)) < 0) \
         SCLogDebug("Error setting thread name \"%s\": %s", tname, strerror(errno)); \
     ret; \
@@ -343,5 +354,6 @@
 #endif
 
 void ThreadMacrosRegisterTests(void);
+
 #endif /* __THREADS_H__ */
 

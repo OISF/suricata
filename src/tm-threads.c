@@ -118,6 +118,9 @@ void *TmThreadsSlot1NoIn(void *td) {
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
+    /* Set the thread name */
+    SCSetThreadName(tv->name);
+
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -182,6 +185,9 @@ void *TmThreadsSlot1NoOut(void *td) {
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
+    /* Set the thread name */
+    SCSetThreadName(tv->name);
+
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -238,6 +244,9 @@ void *TmThreadsSlot1NoInOut(void *td) {
     Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     char run = 1;
     TmEcode r = TM_ECODE_OK;
+
+    /* Set the thread name */
+    SCSetThreadName(tv->name);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
@@ -299,6 +308,9 @@ void *TmThreadsSlot1(void *td) {
     Packet *p = NULL;
     char run = 1;
     TmEcode r = TM_ECODE_OK;
+
+    /* Set the thread name */
+    SCSetThreadName(tv->name);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
@@ -416,6 +428,9 @@ void *TmThreadsSlotVar(void *td) {
     char run = 1;
     TmEcode r = TM_ECODE_OK;
     TmSlot *slot = NULL;
+
+    /* Set the thread name */
+    SCSetThreadName(tv->name);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);

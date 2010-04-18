@@ -164,7 +164,6 @@ void PfringProcessPacket(void *user, struct pfring_pkthdr *h, u_char *pkt, Packe
  * \retval TM_ECODE_FAILED on failure
  */
 TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
-    SCSetThreadName(tv->name);
     PfringThreadVars *ptv = (PfringThreadVars *)data;
 
     struct pfring_pkthdr hdr;
@@ -324,7 +323,6 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
  */
 TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    SCSetThreadName(tv->name);
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     /* update counters */

@@ -141,9 +141,11 @@ static void SCPerfReleaseOPCtx()
 static void *SCPerfMgmtThread(void *arg)
 {
     ThreadVars *tv_local = (ThreadVars *)arg;
-    SCSetThreadName(tv_local->name);
     uint8_t run = 1;
     struct timespec cond_time;
+
+    /* Set the thread name */
+    SCSetThreadName(tv_local->name);
 
     if (sc_perf_op_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
@@ -184,11 +186,13 @@ static void *SCPerfMgmtThread(void *arg)
 static void *SCPerfWakeupThread(void *arg)
 {
     ThreadVars *tv_local = (ThreadVars *)arg;
-    SCSetThreadName(tv_local->name);
     uint8_t run = 1;
     ThreadVars *tv = NULL;
     PacketQueue *q = NULL;
     struct timespec cond_time;
+
+    /* Set the thread name */
+    SCSetThreadName(tv_local->name);
 
     if (sc_perf_op_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"

@@ -385,7 +385,6 @@ void NFQRecvPkt(NFQThreadVars *t) {
 }
 
 TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
-    SCSetThreadName(tv->name);
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     //printf("%p receiving on queue %" PRIu32 "\n", ntv, ntv->queue_num);
@@ -448,7 +447,6 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
 }
 
 TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
-    SCSetThreadName(tv->name);
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     /* if this is a tunnel packet we check if we are ready to verdict
@@ -488,7 +486,6 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
  */
 TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    SCSetThreadName(tv->name);
     IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
     IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;

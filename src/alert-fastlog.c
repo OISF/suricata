@@ -182,7 +182,6 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
 TmEcode AlertFastLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    SCSetThreadName(tv->name);
     if (PKT_IS_IPV4(p)) {
         return AlertFastLogIPv4(tv, p, data, pq);
     } else if (PKT_IS_IPV6(p)) {

@@ -174,7 +174,6 @@ int AlertUnifiedAlertRotateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
 
 TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
-    SCSetThreadName(tv->name);
     AlertUnifiedAlertThread *aun = (AlertUnifiedAlertThread *)data;
     AlertUnifiedAlertPacketHeader hdr;
 

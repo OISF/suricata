@@ -807,9 +807,7 @@ end:
  */
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
-    SCSetThreadName(tv->name);
-
-    /*No need to perform any detection on this packet, if the the given flag is set.*/
+    /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION)
         return 0;
 
