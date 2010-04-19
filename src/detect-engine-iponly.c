@@ -33,8 +33,12 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include <netinet/in.h>
 
+#ifdef OS_WIN32
+#include <winsock.h>
+#else
+#include <netinet/in.h>
+#endif /* OS_WIN32 */
 
 /**
  * \brief This function creates a new IPOnlyCIDRItem

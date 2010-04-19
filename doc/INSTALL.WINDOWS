@@ -2,7 +2,7 @@ WIN32
 =====
 
 This section describes how to build and run Suricata on Windows. Currently
-Windows XP and above are supported and only in the IDS pcap mode.
+Windows XP and above are supported and only in the IDS pcap mode. You will need to download and install 7zip (www.7-zip.org) to extract these files.
 
 1. Setup MinGW environment from http://mingw.org
 
@@ -26,6 +26,9 @@ the following packages to c:\mingw (use newer versions if you like):
           o gcc-core-4.4.0-mingw32-dll.tar.gz
     * make
           o make-3.81–20090914-mingw32-bin.tar.gz
+    * zlib
+          o libz-1.2.3-1-mingw32-dll-1.tar.gz
+	  o libz-1.2.3-1-mingw32-dev.tar.gz
 
 2. Install MSYS
 
@@ -71,32 +74,27 @@ the following packages to c:\mingw (use newer versions if you like):
 6. Get libpcap
 
     Guide can be found here:
-    http://mathieu.carbou.free.fr/wiki/index.php?title=Winpcap_/_Libpcap#Installing_Winpcap_in_MinGW
-
-    - Create symlink cc -> gcc
-    - You can use the precompiled version: http://www.winpcap.org/devel.htm
-    - Download and install a coresponding installer package (to have the driver in the system)
+    - Download Devlopers pack http://www.winpcap.org/devel.htm
+    - Download and install a coresponding installer package http://www.winpcap.org/install/default.htm (to have the driver in the system)
     - Copy includes to c:/mingw/include and libs (.a) to c:/mingw/lib
     - Rename libwpcap to libpcap
-
-7. Get zlib
-
-    http://sourceforge.net/projects/mingw/files/
-
-    ./configure --prefix=/mingw
-    make
-    make install
 
 8. Get and compile Suricata
 
     git clone git://phalanx.openinfosecfoundation.org/oisf.git
     cd oisf
-    ./autojunk.sh
+
+    Because of some weird autools port bug we do the following:
+    dos2unix.exe libhtp/configure.ac
+    dos2unix.exe libhtp/htp.pc.in
+    dos2unix.exe libhtp/Makefile.am
+
+    ./autogen.sh
     ./configure CFLAGS="-DYAML_DECLARE_STATIC"
     make
 
 If everything goes well, you'll end up with suricata.exe in src/.lib. To test it
-you will need libpcre-0.dll and pthreadGC2.dll which you already have somewhere
+you will need libpcre-0.dll ,libz-1.dll, and pthreadGC2.dll which you already have somewhere
 under c:/mingw or c:/msys. To try it out:
 
     - copy the executable and the DLLs to a dedicated directory
@@ -105,4 +103,4 @@ under c:/mingw or c:/msys. To try it out:
     - determine your eth device UUID in the registry:
         HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\
     - now cross your fingers and do:
-        suricata.exe -c suricata.yaml -i \DEVICE\{your device uuid}
+        suricata.exe -c suricata.yaml -i \DEVICE\NPF_{your device uuid}

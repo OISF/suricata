@@ -8,6 +8,10 @@
 
 #define bzero(s, n) memset(s, 0, n)
 
+#ifndef O_NOFOLLOW
+#define O_NOFOLLOW 0
+#endif /* O_NOFOLLOW */
+
 int setenv(const char *name, const char *value, int overwrite);
 int unsetenv(const char *name);
 
