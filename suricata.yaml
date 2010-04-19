@@ -191,18 +191,24 @@ logging:
   # The default log level, can be overridden in an output section.
   # Note that debug level logging will only be emitted if Suricata was
   # compiled with the --enable-debug configure option.
+  #
+  # This value is overriden by the SC_LOG_LEVEL env var.
   default-log-level: info
 
   # The default output format.  Optional parameter, should default to
   # something reasonable if not provided.  Can be overriden in an
   # output section.  You can leave this out to get the default.
+  #
+  # This value is overriden by the SC_LOG_FORMAT env var.
   #default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
 
   # A regex to filter output.  Can be overridden in an output section.
   # Defaults to empty (no filter).
+  #
+  # This value is overriden by the SC_LOG_OP_FILTER env var.
   default-output-filter:
 
-  # Define your logging outputs.  If none are define, or they are all
+  # Define your logging outputs.  If none are defined, or they are all
   # disabled you will get the default - console output.
   outputs:
   - console:

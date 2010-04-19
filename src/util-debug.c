@@ -1,4 +1,7 @@
-/** Copyright (c) 2009 Open Information Security Foundation.
+/* Copyright (c) 2009 Open Information Security Foundation. */
+
+/**
+ *  \file
  *  \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
@@ -541,7 +544,8 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
 }
 
 /**
- * \brief Initializes the console output interface
+ * \brief Initializes the console output interface and deals with possible
+ *        env var overrides.
  *
  * \param log_format Pointer to the log_format for this op interface, that
  *                   overrides the global_log_format
@@ -552,6 +556,8 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
 static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
                                                        SCLogLevel log_level)
 {
+    printf("SCLogInitConsoleOPIface start\n");
+
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
     if ( (iface_ctx = malloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
@@ -562,13 +568,33 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
 
     iface_ctx->iface = SC_LOG_OP_IFACE_CONSOLE;
 
-    if (log_format != NULL &&
-        (iface_ctx->log_format = strdup(log_format)) == NULL) {
+    /* console log format is overridden by envvars */
+    const char *tmp_log_format = log_format;
+    const char *s = getenv(SC_LOG_ENV_LOG_FORMAT);
+    if (s != NULL) {
+        printf("Overriding setting for \"console.format\" because of env "
+                "var SC_LOG_FORMAT=\"%s\".\n", s);
+        tmp_log_format = s;
+    }
+
+    if (tmp_log_format != NULL &&
+        (iface_ctx->log_format = strdup(tmp_log_format)) == NULL) {
         printf("Error allocating memory\n");
         exit(EXIT_FAILURE);
     }
 
-    iface_ctx->log_level = log_level;
+    /* console log level is overridden by envvars */
+    SCLogLevel tmp_log_level = log_level;
+    s = getenv(SC_LOG_ENV_LOG_LEVEL);
+    if (s != NULL) {
+        SCLogLevel l = SCMapEnumNameToValue(s, sc_log_level_map);
+        if (l > SC_LOG_NOTSET && l < SC_LOG_LEVEL_MAX) {
+            printf("Overriding setting for \"console.level\" because of env "
+                    "var SC_LOG_LEVEL=\"%s\".\n", s);
+            tmp_log_level = l;
+        }
+    }
+    iface_ctx->log_level = tmp_log_level;
 
     return iface_ctx;
 }
@@ -659,12 +685,12 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     SCLogLevel log_level = SC_LOG_NOTSET;
     const char *s = NULL;
 
-    if (sc_lid != NULL) {
+    /* envvar overrides config */
+    s = getenv(SC_LOG_ENV_LOG_LEVEL);
+    if (s != NULL) {
+        log_level = SCMapEnumNameToValue(s, sc_log_level_map);
+    } else if (sc_lid != NULL) {
         log_level = sc_lid->global_log_level;
-    } else {
-        s = getenv(SC_LOG_ENV_LOG_LEVEL);
-        if (s != NULL)
-            log_level = SCMapEnumNameToValue(s, sc_log_level_map);
     }
 
     /* deal with the global_log_level to be used */
@@ -702,10 +728,13 @@ static inline void SCLogSetLogFormat(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 {
     char *format = NULL;
 
-    if (sc_lid != NULL)
-        format = sc_lid->global_log_format;
-    else
-        format = getenv(SC_LOG_ENV_LOG_FORMAT);
+    /* envvar overrides config */
+    format = getenv(SC_LOG_ENV_LOG_FORMAT);
+    if (format == NULL) {
+        if (sc_lid != NULL) {
+            format = sc_lid->global_log_format;
+        }
+    }
 
     /* deal with the global log format to be used */
     if (format == NULL || strlen(format) > SC_LOG_MAX_LOG_FORMAT_LEN) {
