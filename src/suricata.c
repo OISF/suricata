@@ -413,10 +413,10 @@ int main(int argc, char **argv)
 	}
 #endif
 
-    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
-
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
+
+    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
 
     /* Initialize the configuration module. */
     ConfInit();
