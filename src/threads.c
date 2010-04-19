@@ -1,5 +1,8 @@
+/* Copyright (c) 2009 Open Information Security Foundation */
+
 /**
- * Copyright (c) 2009 Open Information Security Foundation
+ *
+ * \file
  *
  * \author Victor Julien <victor@inliniac.net>
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
@@ -31,6 +34,18 @@ int ThreadMacrosTest01Mutex(void) {
 
 /**
  * \brief Test Spin Macros
+ *
+ * Valgrind's DRD tool (valgrind-3.5.0-Debian) reports:
+ *
+ * ==31156== Recursive locking not allowed: mutex 0x7fefff97c, recursion count 1, owner 1.
+ * ==31156==    at 0x4C2C77E: pthread_spin_trylock (drd_pthread_intercepts.c:829)
+ * ==31156==    by 0x40EB3E: ThreadMacrosTest02Spinlocks (threads.c:40)
+ * ==31156==    by 0x532E8A: UtRunTests (util-unittest.c:182)
+ * ==31156==    by 0x4065C3: main (suricata.c:789)
+ *
+ * To me this is a false possitve, as the whole point of "trylock" is to see
+ * if a spinlock is actually locked.
+ *
  */
 int ThreadMacrosTest02Spinlocks(void) {
     SCSpinlock mut;

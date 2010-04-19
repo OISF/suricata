@@ -1231,33 +1231,36 @@ static int FlowTest02 (void) {
 static int FlowTestPrune(Flow *f, struct timeval *ts) {
 
     FlowQueue *q = FlowQueueNew();
-
-    int r = SCMutexInit(&q->mutex_q, NULL);
-
-    if (r != 0) {
-        SCLogDebug("Error initializing mutex!");
-        return 0;
+    if (q == NULL) {
+        goto error;
     }
 
     q->top = NULL;
 
     FlowEnqueue(q, f);
     if (q->len != 1) {
-        printf("Failed in enqueue the flow in flowqueue\n");
-        return 0;
+        printf("Failed in enqueue the flow in flowqueue: ");
+        goto error;
     }
 
     FlowPrune(q, ts);
     if (q->len != 0) {
-        printf("Failed in prunning the flow\n");
-        return 0;
+        printf("Failed in prunning the flow: ");
+        goto error;
     }
 
     if (f->protoctx != NULL){
-        printf("Failed in freeing the TcpSession\n");
-        return 0;
+        printf("Failed in freeing the TcpSession: ");
+        goto error;
     }
+
     return 1;
+
+error:
+    if (q != NULL) {
+        FlowQueueDestroy(q);
+    }
+    return 0;
 }
 
 /**
@@ -1278,19 +1281,25 @@ static int FlowTest03 (void) {
     memset(&f, 0, sizeof(Flow));
     memset(&ts, 0, sizeof(ts));
     memset(&fb, 0, sizeof(FlowBucket));
+
+    SCMutexInit(&fb.m, NULL);
     SCMutexInit(&f.m, NULL);
 
     TimeGet(&ts);
     f.lastts.tv_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
-    SCMutexInit(&fb.m, NULL);
     f.fb = &fb;
 
     f.proto = IPPROTO_TCP;
 
-    if (FlowTestPrune(&f, &ts) != 1)
+    if (FlowTestPrune(&f, &ts) != 1) {
+        SCMutexDestroy(&fb.m);
+        SCMutexDestroy(&f.m);
         return 0;
+    }
 
+    SCMutexDestroy(&fb.m);
+    SCMutexDestroy(&f.m);
     return 1;
 }
 
@@ -1318,8 +1327,8 @@ static int FlowTest04 (void) {
     memset(&seg, 0, sizeof(TcpSegment));
     memset(&client, 0, sizeof(TcpSegment));
 
-    SCMutexInit(&f.m, NULL);
     SCMutexInit(&fb.m, NULL);
+    SCMutexInit(&f.m, NULL);
 
     TimeGet(&ts);
     seg.payload = payload;
@@ -1335,9 +1344,14 @@ static int FlowTest04 (void) {
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
 
-    if (FlowTestPrune(&f, &ts) != 1)
+    if (FlowTestPrune(&f, &ts) != 1) {
+        SCMutexDestroy(&fb.m);
+        SCMutexDestroy(&f.m);
         return 0;
+    }
 
+    SCMutexDestroy(&fb.m);
+    SCMutexDestroy(&f.m);
     return 1;
 
 }
@@ -1361,8 +1375,8 @@ static int FlowTest05 (void) {
     memset(&ts, 0, sizeof(ts));
     memset(&fb, 0, sizeof(FlowBucket));
 
-    SCMutexInit(&f.m, NULL);
     SCMutexInit(&fb.m, NULL);
+    SCMutexInit(&f.m, NULL);
 
     TimeGet(&ts);
     ssn.state = TCP_SYN_SENT;
@@ -1372,9 +1386,14 @@ static int FlowTest05 (void) {
     f.proto = IPPROTO_TCP;
     f.flags = FLOW_EMERGENCY;
 
-    if (FlowTestPrune(&f, &ts) != 1)
+    if (FlowTestPrune(&f, &ts) != 1) {
+        SCMutexDestroy(&fb.m);
+        SCMutexDestroy(&f.m);
         return 0;
+    }
 
+    SCMutexDestroy(&fb.m);
+    SCMutexDestroy(&f.m);
     return 1;
 }
 
@@ -1420,9 +1439,14 @@ static int FlowTest06 (void) {
     f.proto = IPPROTO_TCP;
     f.flags = FLOW_EMERGENCY;
 
-    if (FlowTestPrune(&f, &ts) != 1)
+    if (FlowTestPrune(&f, &ts) != 1) {
+        SCMutexDestroy(&fb.m);
+        SCMutexDestroy(&f.m);
         return 0;
+    }
 
+    SCMutexDestroy(&fb.m);
+    SCMutexDestroy(&f.m);
     return 1;
 
 }
