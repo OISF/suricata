@@ -1,6 +1,7 @@
 /* Copyright (c) 2009 Open Information Security Foundation */
 
-/** \file
+/**
+ *  \file
  *  \author Breno Silva <breno.silva@gmail.com>
  */
 
@@ -74,6 +75,10 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     DetectIcmpSeqData *iseq = (DetectIcmpSeqData *)m->ctx;
 
     if (PKT_IS_ICMPV4(p)) {
+        SCLogInfo("ICMPV4_GET_SEQ(p) %"PRIu16" (network byte order), "
+                "%"PRIu16" (host byte order)", ICMPV4_GET_SEQ(p),
+                ntohs(ICMPV4_GET_SEQ(p)));
+
         switch (ICMPV4_GET_TYPE(p)){
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:
@@ -104,7 +109,8 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
         return 0;
     }
 
-    if (seqn == iseq->seq) return 1;
+    if (seqn == iseq->seq)
+        return 1;
 
     return 0;
 }
@@ -161,7 +167,9 @@ DetectIcmpSeqData *DetectIcmpSeqParse (char *icmpseqstr) {
         }
     }
 
-    ByteExtractStringUint16(&iseq->seq, 10, 0, substr[1]);
+    uint16_t seq = 0;
+    ByteExtractStringUint16(&seq, 10, 0, substr[1]);
+    iseq->seq = htons(seq);
 
     for (i = 0; i < 3; i++) {
         if (substr[i] != NULL) SCFree(substr[i]);
@@ -234,7 +242,7 @@ void DetectIcmpSeqFree (void *ptr) {
 int DetectIcmpSeqParseTest01 (void) {
     DetectIcmpSeqData *iseq = NULL;
     iseq = DetectIcmpSeqParse("300");
-    if (iseq != NULL && iseq->seq == 300) {
+    if (iseq != NULL && iseq->seq == htons(300)) {
         DetectIcmpSeqFree(iseq);
         return 1;
     }
@@ -248,7 +256,7 @@ int DetectIcmpSeqParseTest01 (void) {
 int DetectIcmpSeqParseTest02 (void) {
     DetectIcmpSeqData *iseq = NULL;
     iseq = DetectIcmpSeqParse("  300  ");
-    if (iseq != NULL && iseq->seq == 300) {
+    if (iseq != NULL && iseq->seq == htons(300)) {
         DetectIcmpSeqFree(iseq);
         return 1;
     }

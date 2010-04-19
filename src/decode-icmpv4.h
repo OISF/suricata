@@ -190,15 +190,15 @@ typedef struct ICMPV4Vars_
 /** macro for icmpv4 "csum" access */
 #define ICMPV4_GET_CSUM(p)      (p)->icmpv4h->csum
 
-/** If message is informational */
-/** macro for icmpv4 "id" access */
-/* #define ICMPV4_GET_ID(p)        (p)->icmpv4h->icmpv4b.icmpv4i.id */
-#define ICMPV4_GET_ID(p)        (p)->icmpv4vars.id
-/** macro for icmpv4 "seq" access */
-/* #define ICMPV4_GET_SEQ(p)       (p)->icmpv4h->icmpv4b.icmpv4i.seq */
-#define ICMPV4_GET_SEQ(p)       (ntohs((p)->icmpv4vars.seq))
+/* If message is informational */
 
-/** If message is Error */
+/** macro for icmpv4 "id" access */
+#define ICMPV4_GET_ID(p)        ((p)->icmpv4vars.id)
+/** macro for icmpv4 "seq" access */
+#define ICMPV4_GET_SEQ(p)       ((p)->icmpv4vars.seq)
+
+/* If message is Error */
+
 /** macro for icmpv4 "unused" access */
 #define ICMPV4_GET_UNUSED(p)       (p)->icmpv4h->icmpv4b.icmpv4e.unused
 /** macro for icmpv4 "error_ptr" access */

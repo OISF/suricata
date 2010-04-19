@@ -77,6 +77,10 @@ int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     DetectIcmpIdData *iid = (DetectIcmpIdData *)m->ctx;
 
     if (PKT_IS_ICMPV4(p)) {
+        SCLogDebug("ICMPV4_GET_ID(p) %"PRIu16" (network byte order), "
+                "%"PRIu16" (host byte order)", ICMPV4_GET_ID(p),
+                ntohs(ICMPV4_GET_ID(p)));
+
         switch (ICMPV4_GET_TYPE(p)){
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:
@@ -107,7 +111,8 @@ int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
     }
 
-    if (pid == iid->id) return 1;
+    if (pid == iid->id)
+        return 1;
 
     return 0;
 }
@@ -162,7 +167,11 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
             goto error;
         }
     }
-    ByteExtractStringUint16(&iid->id, 10, 0, substr[1]);
+
+    /** \todo can ByteExtractStringUint16 do this? */
+    uint16_t id = 0;
+    ByteExtractStringUint16(&id, 10, 0, substr[1]);
+    iid->id = htons(id);
 
     for (i = 0; i < 3; i++) {
         if (substr[i] != NULL) SCFree(substr[i]);
@@ -234,7 +243,7 @@ void DetectIcmpIdFree (void *ptr) {
 int DetectIcmpIdParseTest01 (void) {
     DetectIcmpIdData *iid = NULL;
     iid = DetectIcmpIdParse("300");
-    if (iid != NULL && iid->id == 300) {
+    if (iid != NULL && iid->id == htons(300)) {
         DetectIcmpIdFree(iid);
         return 1;
     }
@@ -248,7 +257,7 @@ int DetectIcmpIdParseTest01 (void) {
 int DetectIcmpIdParseTest02 (void) {
     DetectIcmpIdData *iid = NULL;
     iid = DetectIcmpIdParse("  300  ");
-    if (iid != NULL && iid->id == 300) {
+    if (iid != NULL && iid->id == htons(300)) {
         DetectIcmpIdFree(iid);
         return 1;
     }
@@ -262,7 +271,7 @@ int DetectIcmpIdParseTest02 (void) {
 int DetectIcmpIdParseTest03 (void) {
     DetectIcmpIdData *iid = NULL;
     iid = DetectIcmpIdParse("\"300\"");
-    if (iid != NULL && iid->id == 300) {
+    if (iid != NULL && iid->id == htons(300)) {
         DetectIcmpIdFree(iid);
         return 1;
     }
@@ -276,7 +285,7 @@ int DetectIcmpIdParseTest03 (void) {
 int DetectIcmpIdParseTest04 (void) {
     DetectIcmpIdData *iid = NULL;
     iid = DetectIcmpIdParse("   \"   300 \"");
-    if (iid != NULL && iid->id == 300) {
+    if (iid != NULL && iid->id == htons(300)) {
         DetectIcmpIdFree(iid);
         return 1;
     }
@@ -346,12 +355,12 @@ int DetectIcmpIdMatchTest01 (void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (icmp_id:5461; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (icmp_id:21781; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx, "alert icmp any any -> any any (icmp_id:5000; sid:2;)");
+    s = s->next = SigInit(de_ctx, "alert icmp any any -> any any (icmp_id:21782; sid:2;)");
     if (s == NULL) {
         goto end;
     }
