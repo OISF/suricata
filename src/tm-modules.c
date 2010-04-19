@@ -73,6 +73,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     if (lf_ctx->fp != NULL)
     {
         SCMutexLock(&lf_ctx->fp_mutex);
+        fflush(lf_ctx->fp);
         fclose(lf_ctx->fp);
         SCMutexUnlock(&lf_ctx->fp_mutex);
     }
