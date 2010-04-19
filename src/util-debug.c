@@ -556,8 +556,6 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
 static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
                                                        SCLogLevel log_level)
 {
-    printf("SCLogInitConsoleOPIface start\n");
-
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
     if ( (iface_ctx = malloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
