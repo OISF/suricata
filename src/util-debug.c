@@ -846,10 +846,13 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     const char *ep;
     int eo = 0;
 
-    if (sc_lid != NULL)
-        filter = sc_lid->op_filter;
-    else
-        filter = getenv(SC_LOG_ENV_LOG_OP_FILTER);
+    /* envvar overrides */
+    filter = getenv(SC_LOG_ENV_LOG_OP_FILTER);
+    if (filter == NULL) {
+        if (sc_lid != NULL) {
+            filter = sc_lid->op_filter;
+        }
+    }
 
     if (filter != NULL && strcmp(filter, "") != 0) {
         sc_lc->op_filter_regex = pcre_compile(filter, opts, &ep, &eo, NULL);
