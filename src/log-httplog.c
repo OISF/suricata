@@ -76,7 +76,8 @@ typedef struct LogHttpLogThread_ {
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
-    struct tm *t = gmtime(&time);
+    struct tm local_tm;
+    struct tm *t = gmtime_r(&time, &local_tm);
     uint32_t sec = ts->tv_sec % 86400;
 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",

@@ -697,7 +697,8 @@ static int SCPerfOutputCounterFileIface()
     memset(&tval, 0, sizeof(struct timeval));
 
     gettimeofday(&tval, NULL);
-    tms = (struct tm *)localtime(&tval.tv_sec);
+    struct tm local_tm;
+    tms = (struct tm *)localtime_r(&tval.tv_sec, &local_tm);
 
     fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
             "---------------------\n");
