@@ -25,7 +25,8 @@ void DetectDistanceRegister (void) {
     sigmatch_table[DETECT_DISTANCE].flags |= SIGMATCH_PAYLOAD;
 }
 
-static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *distancestr)
+static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
+        char *distancestr)
 {
     char *str = distancestr;
     char dubbed = 0;
@@ -41,7 +42,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
      * SigMatch (it can be the same as this one) */
     SigMatch *pm = SigMatchGetLastPattern(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "depth needs two preceeding content (or uricontent) options");
+        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
+                "preceeding content or uricontent options");
         if (dubbed) SCFree(str);
         return -1;
     }
@@ -53,7 +55,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
         case DETECT_URICONTENT:
             ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
-                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "Unknown previous keyword!\n");
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
+                "preceeding content or uricontent options");
                 goto error;
             }
 
@@ -67,7 +70,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
 
             pm = DetectUricontentGetLastPattern(s->umatch_tail->prev);
             if (pm == NULL) {
-                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two"
+                        " preceeding content or  uricontent options");
                 goto error;
             }
 
@@ -75,7 +79,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
                 ud = (DetectUricontentData *)pm->ctx;
                 ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
             } else {
-                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!");
+                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous"
+                        " keyword!");
                 goto error;
             }
         break;
@@ -83,7 +88,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
-                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "Unknown previous keyword!\n");
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
+                "preceeding content or uricontent options");
                 goto error;
             }
 
@@ -97,7 +103,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
 
             pm = DetectContentGetLastPattern(s->pmatch_tail->prev);
             if (pm == NULL) {
-                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content options");
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two"
+                        " preceeding content or uricontent options");
                 goto error;
             }
 
@@ -105,13 +112,15 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s, char *dis
                 cd = (DetectContentData *)pm->ctx;
                 cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
             } else {
-                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!");
+                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous "
+                        "keyword!");
                 goto error;
             }
         break;
 
         default:
-            SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two preceeding content (or uricontent) options");
+            SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
+                "preceeding content or uricontent options");
             if (dubbed) SCFree(str);
                 return -1;
         break;

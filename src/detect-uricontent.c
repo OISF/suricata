@@ -105,8 +105,10 @@ void DetectUricontentPrint(DetectUricontentData *cd)
     SCLogDebug("Within: %"PRIi32, cd->within);
     SCLogDebug("Distance: %"PRIi32, cd->distance);
     SCLogDebug("flags: %u ", cd->flags);
-    SCLogDebug("negated: %s ", cd->flags & DETECT_URICONTENT_NEGATED ? "true" : "false");
-    SCLogDebug("relative match next: %s ", cd->flags & DETECT_URICONTENT_RELATIVE_NEXT ? "true" : "false");
+    SCLogDebug("negated: %s ",
+            cd->flags & DETECT_URICONTENT_NEGATED ? "true" : "false");
+    SCLogDebug("relative match next: %s ",
+            cd->flags & DETECT_URICONTENT_RELATIVE_NEXT ? "true" : "false");
     SCLogDebug("-----------");
 }
 
@@ -316,7 +318,8 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     s->flags |= SIG_FLAG_APPLAYER;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
+                " keywords.");
         goto error;
     }
 
@@ -1224,13 +1227,13 @@ static int DetectUriSigTest05(void) {
     }
 
     if ((PacketAlertCheck(&p, 1))) {
-        printf("sig: 1 alerted, but it should not\n");
+        printf("sig: 1 alerted, but it should not:");
         goto end;
     } else if (! PacketAlertCheck(&p, 2)) {
-        printf("sig: 2 did not alerted, but it should\n");
+        printf("sig: 2 did not alerted, but it should:");
         goto end;
     } else if (! (PacketAlertCheck(&p, 3))) {
-        printf("sig: 3 did not alerted, but it should\n");
+        printf("sig: 3 did not alerted, but it should:");
         goto end;
     }
 
@@ -1341,13 +1344,13 @@ static int DetectUriSigTest06(void) {
     }
 
     if ((PacketAlertCheck(&p, 1))) {
-        printf("sig: 1 alerted, but it should not\n");
+        printf("sig: 1 alerted, but it should not:");
         goto end;
     } else if (! PacketAlertCheck(&p, 2)) {
-        printf("sig: 2 did not alerted, but it should\n");
+        printf("sig: 2 did not alerted, but it should:");
         goto end;
     } else if (! (PacketAlertCheck(&p, 3))) {
-        printf("sig: 3 did not alerted, but it should\n");
+        printf("sig: 3 did not alerted, but it should:");
         goto end;
     }
 
@@ -1458,13 +1461,13 @@ static int DetectUriSigTest07(void) {
     }
 
     if (PacketAlertCheck(&p, 1)) {
-        printf("sig: 1 alerted, but it should not\n");
+        printf("sig: 1 alerted, but it should not:");
         goto end;
     } else if (PacketAlertCheck(&p, 2)) {
-        printf("sig: 2 did not alerted, but it should\n");
+        printf("sig: 2 alerted, but it should not:");
         goto end;
     } else if (PacketAlertCheck(&p, 3)) {
-        printf("sig: 3 did not alerted, but it should\n");
+        printf("sig: 3 alerted, but it should not:");
         goto end;
     }
 

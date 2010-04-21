@@ -127,15 +127,15 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     SCEnter();
 
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
+        SCLogError(SC_ERR_INVALID_VALUE, "nocase has value");
         SCReturnInt(-1);
     }
 
     /* Search for the first previous SigMatch that supports nocase */
     SigMatch *pm = SigMatchGetLastNocasePattern(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding "
-                "content, uricontent, http_client_body or http_cookie option");
+        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceeding"
+                " content, uricontent, http_client_body or http_cookie option");
         SCReturnInt(-1);
     }
 
@@ -167,8 +167,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             break;
             /* should never happen */
         default:
-            SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs a preceeding "
-                    "content, uricontent, http_client_body or http_cookie option");
+            SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a"
+                    " preceeding content, uricontent, http_client_body or http_cookie option");
             SCReturnInt(-1);
             break;
     }

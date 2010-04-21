@@ -52,7 +52,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
      * SigMatch (it can be the same as this one) */
     SigMatch *pm = SigMatchGetLastPattern(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "depth needs two preceeding content (or uricontent) options");
+        SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "depth needs"
+                   "two preceeding content or uricontent options");
         if (dubbed) SCFree(str);
         return -1;
     }
@@ -87,7 +88,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 
             pm = DetectUricontentGetLastPattern(s->umatch_tail->prev);
             if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content options");
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two"
+                           " preceeding content or uricontent options");
                 goto error;
             }
 
@@ -129,7 +131,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 
             pm = DetectContentGetLastPattern(s->pmatch_tail->prev);
             if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content options");
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two"
+                           " preceeding content or uricontent options");
                 goto error;
             }
 
@@ -144,7 +147,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         break;
 
         default:
-            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content (or uricontent) options");
+            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content or uricontent options");
             if (dubbed) SCFree(str);
                 return -1;
         break;

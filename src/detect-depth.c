@@ -41,7 +41,8 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
      * SigMatch (it can be the same as this one) */
     SigMatch *pm = SigMatchGetLastPattern(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content option");
+        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding "
+                "content or uricontent option");
         if (dubbed) SCFree(str);
         return -1;
     }
@@ -52,13 +53,14 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         case DETECT_URICONTENT:
             ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argpment");
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
                 if (dubbed) SCFree(str);
                 return -1;
             }
             ud->depth = (uint32_t)atoi(str);
             if (ud->uricontent_len + ud->offset > ud->depth) {
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len and offset", ud->uricontent_len + ud->offset);
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len "
+                        "and offset", ud->uricontent_len + ud->offset);
                 ud->depth = ud->uricontent_len + ud->offset;
             }
         break;
@@ -72,13 +74,15 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             }
             cd->depth = (uint32_t)atoi(str);
             if (cd->content_len + cd->offset > cd->depth) {
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len and offset", cd->content_len + cd->offset);
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len "
+                        "and offset", cd->content_len + cd->offset);
                 cd->depth = cd->content_len + cd->offset;
             }
         break;
 
         default:
-            SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding content (or uricontent) option");
+            SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding "
+                    "content (or uricontent) option");
             if (dubbed) SCFree(str);
                 return -1;
         break;
@@ -87,4 +91,3 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
     if (dubbed) SCFree(str);
     return 0;
 }
-

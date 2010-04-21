@@ -41,7 +41,8 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
      * SigMatch (it can be the same as this one) */
     SigMatch *pm = SigMatchGetLastPattern(s);
     if (pm == NULL) {
-        SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding content option");
+        SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding "
+                "content or uricontent option");
         if (dubbed) SCFree(str);
         return -1;
     }
@@ -52,13 +53,14 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
         case DETECT_URICONTENT:
             ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argpment");
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
                 if (dubbed) SCFree(str);
                 return -1;
             }
             ud->offset = (uint32_t)atoi(str);
             if (ud->depth != 0) {
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len and offset", ud->uricontent_len + ud->offset);
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len"
+                        " and offset", ud->uricontent_len + ud->offset);
                 ud->depth = ud->uricontent_len + ud->offset;
             }
         break;
@@ -72,13 +74,15 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             }
             cd->offset = (uint32_t)atoi(str);
             if (cd->depth != 0) {
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len and offset", cd->content_len + cd->offset);
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len"
+                        " and offset", cd->content_len + cd->offset);
                 cd->depth = cd->content_len + cd->offset;
             }
         break;
 
         default:
-            SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding content (or uricontent) option");
+            SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding"
+                    " content or uricontent option");
             if (dubbed) SCFree(str);
                 return -1;
         break;
