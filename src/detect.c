@@ -238,6 +238,8 @@ char *DetectLoadCompleteSigPath(char *sig_file)
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
                           strlen(sig_file) + 2);
             path = SCMalloc(path_len);
+            if (path == NULL)
+                return NULL;
             strlcpy(path, defaultpath, path_len);
             if (path[strlen(path) - 1] != '/')
                 strlcat(path, "/", path_len);

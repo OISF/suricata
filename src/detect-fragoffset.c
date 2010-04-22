@@ -156,10 +156,8 @@ DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr) {
     }
 
     fragoff = SCMalloc(sizeof(DetectFragOffsetData));
-    if (fragoff == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (fragoff == NULL)
         goto error;
-    }
 
     fragoff->frag_off = 0;
     fragoff->mode = 0;

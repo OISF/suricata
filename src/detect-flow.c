@@ -176,10 +176,8 @@ DetectFlowData *DetectFlowParse (char *flowstr)
     }
 
     fd = SCMalloc(sizeof(DetectFlowData));
-    if (fd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (fd == NULL)
         goto error;
-    }
     fd->flags = 0;
     fd->match_cnt = 0;
 

@@ -3614,10 +3614,8 @@ static int SCCudaDeviceGetAttribute(int *pi, CUdevice_attribute attrib,
 static SCCudaDevice *SCCudaAllocSCCudaDevice(void)
 {
     SCCudaDevice *device = SCMalloc(sizeof(SCCudaDevice));
-    if (device == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if (device == NULL)
+        return NULL;
     memset(device, 0 , sizeof(SCCudaDevice));
 
     return device;
@@ -3645,10 +3643,8 @@ static void SCCudaDeAllocSCCudaDevice(SCCudaDevice *device)
 static SCCudaDevices *SCCudaAllocSCCudaDevices(void)
 {
     SCCudaDevices *devices = SCMalloc(sizeof(SCCudaDevices));
-    if (devices == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if (devices == NULL)
+        return NULL;
     memset(devices, 0 , sizeof(SCCudaDevices));
 
     return devices;
@@ -3696,10 +3692,8 @@ static SCCudaDevices *SCCudaGetDevices(void)
         goto error;
 
     devices->devices = SCMalloc(devices->count * sizeof(SCCudaDevice *));
-    if (devices->devices == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if (devices->devices == NULL)
+        goto error;
 
     /* update the device properties */
     for (i = 0; i < devices->count; i++) {

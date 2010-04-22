@@ -34,12 +34,10 @@
  * It will log a lot of lines more, so think that is a performance killer */
 
 /* Uncomment this if you want to print memory allocations and free's() */
-//#define DBG_MEM_ALLOC
+#define DBG_MEM_ALLOC
 
 /* Uncomment this if you want to print mallocs at the startup (recommended) */
-//#define DBG_MEM_ALLOC_SKIP_STARTUP
-
-#ifdef DBG_MEM_ALLOC
+#define DBG_MEM_ALLOC_SKIP_STARTUP
 
 #define SCMalloc(a) ({ \
     void *ptrmem = NULL; \
@@ -47,8 +45,7 @@
     extern uint8_t print_mem_flag; \
     ptrmem = malloc(a); \
     if (ptrmem == NULL && a > 0) { \
-        SCLogError(SC_ERR_MEM_ALLOC, "Malloc of size %"PRIu64" failed! exiting.", (uint64_t)a); \
-        exit(EXIT_FAILURE); \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying to allocate %"PRIu64" bytes", strerror(errno), (uint64_t)a); \
     } \
     global_mem += a; \
     if (print_mem_flag == 1) \
@@ -62,8 +59,7 @@
     extern uint8_t print_mem_flag; \
     ptrmem = realloc(x, a); \
     if (ptrmem == NULL && a > 0) { \
-        SCLogError(SC_ERR_MEM_ALLOC, "Realloc of size %"PRIu64" failed! exiting.", (uint64_t)a); \
-        exit(EXIT_FAILURE); \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCRealloc failed: %s, while trying to allocate %"PRIu64" bytes", strerror(errno), (uint64_t)a); \
     } \
     global_mem += a; \
     if (print_mem_flag == 1) \
@@ -77,8 +73,7 @@
     extern uint8_t print_mem_flag; \
     ptrmem = calloc(nm, a); \
     if (ptrmem == NULL && a > 0) { \
-        SCLogError(SC_ERR_MEM_ALLOC, "Calloc of size %"PRIu64" failed! exiting.", (uint64_t)a); \
-        exit(EXIT_FAILURE); \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCCalloc failed: %s, while trying to allocate %"PRIu64" bytes", strerror(errno), (uint64_t)a); \
     } \
     global_mem += a*nm; \
     if (print_mem_flag == 1) \
@@ -109,16 +104,6 @@
     free(a); \
 })
 
-#else
-
-/* Replace them with the normal calls, so we get no performance penalty */
-#define SCMalloc(a)         malloc(a)
-#define SCCalloc(nm,a)      calloc(nm,a)
-#define SCRealloc(x,a)      realloc(x,a)
-#define SCStrdup(a)         strdup(a)
-#define SCFree(a)           free(a)
-
-#endif
 
 //#endif /* __UTIL_MEM_H__ */
 

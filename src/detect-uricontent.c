@@ -96,6 +96,8 @@ void DetectUricontentPrint(DetectUricontentData *cd)
         return;
     }
     char *tmpstr = SCMalloc(sizeof(char) * cd->uricontent_len + 1);
+    if (tmpstr == NULL)
+        return;
 
     if (tmpstr != NULL) {
         for (i = 0; i < cd->uricontent_len; i++) {
@@ -176,10 +178,8 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     }
 
     cd = SCMalloc(sizeof(DetectUricontentData));
-    if (cd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
+    if (cd == NULL)
         goto error;
-    }
     memset(cd,0,sizeof(DetectUricontentData));
 
     /* skip the first spaces */

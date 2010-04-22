@@ -188,10 +188,8 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
     }
 
     de = SCMalloc(sizeof(DetectFragBitsData));
-    if (de == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (de == NULL)
         goto error;
-    }
 
     memset(de,0,sizeof(DetectFragBitsData));
 

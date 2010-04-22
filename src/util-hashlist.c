@@ -119,9 +119,8 @@ int HashListTableAdd(HashListTable *ht, void *data, uint16_t datalen) {
     SCLogDebug("ht %p hash %"PRIu32"", ht, hash);
 
     HashListTableBucket *hb = SCMalloc(sizeof(HashListTableBucket));
-    if (hb == NULL) {
+    if (hb == NULL)
         goto error;
-    }
     memset(hb, 0, sizeof(HashListTableBucket));
     hb->data = data;
     hb->size = datalen;

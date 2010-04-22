@@ -364,10 +364,8 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
     uint32_t *fast_pattern = NULL;
 
     fast_pattern = (uint32_t *)SCMalloc(sgh->sig_cnt * sizeof(uint32_t));
-    if (fast_pattern == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (fast_pattern == NULL)
         return -1;
-    }
     memset(fast_pattern, 0, sgh->sig_cnt * sizeof(uint32_t));
 
     HashTable *ht = HashTableInit(4096, ContentHashFunc, ContentHashCompareFunc, ContentHashFree);

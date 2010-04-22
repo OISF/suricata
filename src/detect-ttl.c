@@ -170,10 +170,8 @@ DetectTtlData *DetectTtlParse (char *ttlstr) {
     SCLogDebug("Arg3 \"%s\"", arg3);
 
     ttld = SCMalloc(sizeof (DetectTtlData));
-    if (ttld == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (ttld == NULL)
         goto error;
-    }
     ttld->ttl1 = 0;
     ttld->ttl2 = 0;
 

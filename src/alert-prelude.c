@@ -731,9 +731,8 @@ TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
     }
 
     aun = SCMalloc(sizeof(AlertPreludeThread));
-    if (aun == NULL) {
+    if (aun == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    }
     memset(aun, 0, sizeof(AlertPreludeThread));
 
     /** Use the Ouput Context */
@@ -829,11 +828,8 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     ctx->client = client;
 
     output_ctx = SCMalloc(sizeof(OutputCtx));
-    if (output_ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocated memory for OutputCtx");
-        exit(EXIT_FAILURE);
-    }
+    if (output_ctx == NULL)
+        return NULL;
     output_ctx->data = ctx;
     output_ctx->DeInit = AlertPreludeDeinitCtx;
 

@@ -182,9 +182,8 @@ void StreamMsgQueuesDeinit(char quiet) {
  *  \retval smq ptr to the queue or NULL */
 StreamMsgQueue *StreamMsgQueueGetNew(void) {
     StreamMsgQueue *smq = SCMalloc(sizeof(StreamMsgQueue));
-    if (smq == NULL) {
+    if (smq == NULL)
         return NULL;
-    }
 
     memset(smq, 0x00, sizeof(StreamMsgQueue));
     SCMutexInit(&smq->mutex_q, NULL);

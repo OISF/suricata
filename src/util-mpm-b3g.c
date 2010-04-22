@@ -119,10 +119,8 @@ void B3gPrintInfo(MpmCtx *mpm_ctx) {
 
 static inline B3gPattern *B3gAllocPattern(MpmCtx *mpm_ctx) {
     B3gPattern *p = SCMalloc(sizeof(B3gPattern));
-    if (p == NULL) {
-        printf("ERROR: B3gAllocPattern: SCMalloc failed\n");
-        exit(EXIT_FAILURE);
-    }
+    if (p == NULL)
+        return NULL;
     memset(p,0,sizeof(B3gPattern));
 
     mpm_ctx->memory_cnt++;
@@ -133,10 +131,8 @@ static inline B3gPattern *B3gAllocPattern(MpmCtx *mpm_ctx) {
 static inline B3gHashItem *
 B3gAllocHashItem(MpmCtx *mpm_ctx) {
     B3gHashItem *hi = SCMalloc(sizeof(B3gHashItem));
-    if (hi == NULL) {
-        printf("ERROR: B3gAllocHashItem: SCMalloc failed\n");
-        exit(EXIT_FAILURE);
-    }
+    if (hi == NULL)
+        return NULL;
     memset(hi,0,sizeof(B3gHashItem));
 
     mpm_ctx->memory_cnt++;
@@ -379,7 +375,8 @@ static void B3gPrepareHash(MpmCtx *mpm_ctx) {
     uint8_t idx8 = 0;
 
     ctx->hash = (B3gHashItem **)SCMalloc(sizeof(B3gHashItem *) * ctx->hash_size);
-    if (ctx->hash == NULL) goto error;
+    if (ctx->hash == NULL)
+        goto error;
     memset(ctx->hash, 0, sizeof(B3gHashItem *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -387,7 +384,8 @@ static void B3gPrepareHash(MpmCtx *mpm_ctx) {
 
     /* 2 byte pattern hash */
     ctx->hash2 = (B3gHashItem **)SCMalloc(sizeof(B3gHashItem *) * ctx->hash_size);
-    if (ctx->hash2 == NULL) goto error;
+    if (ctx->hash2 == NULL)
+        goto error;
     memset(ctx->hash2, 0, sizeof(B3gHashItem *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -395,7 +393,8 @@ static void B3gPrepareHash(MpmCtx *mpm_ctx) {
 
     /* alloc the pminlen array */
     ctx->pminlen = (uint8_t *)SCMalloc(sizeof(uint8_t) * ctx->hash_size);
-    if (ctx->pminlen == NULL) goto error;
+    if (ctx->pminlen == NULL)
+        goto error;
     memset(ctx->pminlen, 0, sizeof(uint8_t) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -410,6 +409,8 @@ static void B3gPrepareHash(MpmCtx *mpm_ctx) {
                 ctx->hash1[idx8].flags |= 0x01;
             } else {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -423,12 +424,16 @@ static void B3gPrepareHash(MpmCtx *mpm_ctx) {
             idx = (uint16_t)(ctx->parray[i]->ci[0] << B3G_HASHSHIFT | ctx->parray[i]->ci[1]);
             if (ctx->hash2[idx] == NULL) {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
                 ctx->hash2[idx] = hi;
             } else {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -444,6 +449,8 @@ static void B3gPrepareHash(MpmCtx *mpm_ctx) {
 
             if (ctx->hash[idx] == NULL) {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
                 ctx->pminlen[idx] = ctx->parray[i]->len;
@@ -451,6 +458,8 @@ static void B3gPrepareHash(MpmCtx *mpm_ctx) {
                 ctx->hash[idx] = hi;
             } else {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -468,7 +477,8 @@ static void B3gPrepareHash(MpmCtx *mpm_ctx) {
 
     /* alloc the bloom array */
     ctx->bloom = (BloomFilter **)SCMalloc(sizeof(BloomFilter *) * ctx->hash_size);
-    if (ctx->bloom == NULL) goto error;
+    if (ctx->bloom == NULL)
+        goto error;
     memset(ctx->bloom, 0, sizeof(BloomFilter *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -538,7 +548,8 @@ int B3gPreparePatterns(MpmCtx *mpm_ctx) {
 
     /* alloc the pattern array */
     ctx->parray = (B3gPattern **)SCMalloc(mpm_ctx->pattern_cnt * sizeof(B3gPattern *));
-    if (ctx->parray == NULL) goto error;
+    if (ctx->parray == NULL)
+        goto error;
     memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(B3gPattern *));
     //printf("mpm_ctx %p, parray %p\n", mpm_ctx,ctx->parray);
     mpm_ctx->memory_cnt++;

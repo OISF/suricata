@@ -79,7 +79,7 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
         return;
 
     if ( (temp = SCMalloc(sizeof(SCSigOrderFunc))) == NULL) {
-        printf("Error allocating memory\n");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCSigRegisterSignatureOrderingFunc. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(temp, 0, sizeof(SCSigOrderFunc));
@@ -785,25 +785,19 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
     SCSigSignatureWrapper *sw = NULL;
     int i = 0;
 
-    if ( (sw = SCMalloc(sizeof(SCSigSignatureWrapper))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
+    if ( (sw = SCMalloc(sizeof(SCSigSignatureWrapper))) == NULL)
+        return NULL;
     memset(sw, 0, sizeof(SCSigSignatureWrapper));
 
     sw->sig = sig;
 
-    if ( (sw->user = SCMalloc(SC_RADIX_USER_DATA_MAX * sizeof(int *))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
+    if ( (sw->user = SCMalloc(SC_RADIX_USER_DATA_MAX * sizeof(int *))) == NULL)
+        return NULL;
     memset(sw->user, 0, SC_RADIX_USER_DATA_MAX * sizeof(int *));
 
     for (i = 0; i < SC_RADIX_USER_DATA_MAX; i++) {
-        if ( (sw->user[i] = SCMalloc(sizeof(int))) == NULL) {
-            printf("Error allocating memory\n");
-            exit(EXIT_FAILURE);
-        }
+        if ( (sw->user[i] = SCMalloc(sizeof(int))) == NULL)
+            return NULL;
         memset(sw->user[i], 0, sizeof(int));
     }
 

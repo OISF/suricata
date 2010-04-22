@@ -389,10 +389,8 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
 
     /* Initialize the data */
     data = SCMalloc(sizeof(DetectBytejumpData));
-    if (data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,"malloc failed %s", strerror(errno));
+    if (data == NULL)
         goto error;
-    }
     data->base = DETECT_BYTEJUMP_BASE_UNSET;
     data->flags = 0;
     data->multiplier = 1;

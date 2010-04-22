@@ -78,9 +78,7 @@ ConfNodeNew(void)
 
     new = SCCalloc(1, sizeof(*new));
     if (new == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Error allocating memory for new configuration node");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
     /* By default we allow an override. */
     new->allow_override = 1;

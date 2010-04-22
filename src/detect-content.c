@@ -81,10 +81,8 @@ DetectContentData *DetectContentParse (char *contentstr)
     }
 
     cd = SCMalloc(sizeof(DetectContentData));
-    if (cd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
+    if (cd == NULL)
         goto error;
-    }
     memset(cd, 0, sizeof(DetectContentData));
 
     /* skip the first spaces */

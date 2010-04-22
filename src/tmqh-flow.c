@@ -105,6 +105,9 @@ static int StoreQueueId(TmqhFlowCtx *ctx, char *name) {
     } else {
         ctx->size++;
         ctx->queues = SCRealloc(ctx->queues, ctx->size * sizeof(uint16_t));
+        if (ctx->queues == NULL) {
+            return -1;
+        }
     }
     if (ctx->queues == NULL) {
         return -1;

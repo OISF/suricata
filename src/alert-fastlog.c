@@ -216,9 +216,8 @@ TmEcode AlertFastLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 TmEcode AlertFastLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertFastLogThread *aft = SCMalloc(sizeof(AlertFastLogThread));
-    if (aft == NULL) {
+    if (aft == NULL)
         return TM_ECODE_FAILED;
-    }
     memset(aft, 0, sizeof(AlertFastLogThread));
     if(initdata == NULL)
     {
@@ -278,11 +277,8 @@ OutputCtx *AlertFastLogInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-                "Failed to allocated memory for OutputCtx");
-        exit(EXIT_FAILURE);
-    }
+    if (output_ctx == NULL)
+        return NULL;
     output_ctx->data = logfile_ctx;
     output_ctx->DeInit = AlertFastLogDeInitCtx;
 

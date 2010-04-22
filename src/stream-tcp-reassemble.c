@@ -222,9 +222,8 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
 {
     SCEnter();
     TcpReassemblyThreadCtx *ra_ctx = SCMalloc(sizeof(TcpReassemblyThreadCtx));
-    if (ra_ctx == NULL) {
+    if (ra_ctx == NULL)
         return NULL;
-    }
 
     memset(ra_ctx, 0x00, sizeof(TcpReassemblyThreadCtx));
     ra_ctx->stream_q = StreamMsgQueueGetNew();

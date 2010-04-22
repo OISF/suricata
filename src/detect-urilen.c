@@ -213,10 +213,8 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     SCLogDebug("Arg4 \"%s\"", arg4);
 
     urilend = SCMalloc(sizeof (DetectUrilenData));
-    if (urilend == NULL) {
-        SCLogDebug("DetectUrilenSetup SCMalloc failed");
+    if (urilend == NULL)
         goto error;
-    }
     urilend->urilen1 = 0;
     urilend->urilen2 = 0;
 

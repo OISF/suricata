@@ -162,10 +162,8 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCLogInfo("reading pcap file %s", (char *)initdata);
 
     PcapFileThreadVars *ptv = SCMalloc(sizeof(PcapFileThreadVars));
-    if (ptv == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for PcapFileThreadVars");
+    if (ptv == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    }
     memset(ptv, 0, sizeof(PcapFileThreadVars));
 
     char errbuf[PCAP_ERRBUF_SIZE] = "";
@@ -264,10 +262,8 @@ TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCEnter();
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error Allocating memory for DecodeThreadVars");
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeRegisterPerfCounters(dtv, tv);

@@ -343,10 +343,8 @@ SCClassConfClasstype *SCClassConfAllocClasstype(const char *classtype,
     if (classtype == NULL)
         return NULL;
 
-    if ( (ct = SCMalloc(sizeof(SCClassConfClasstype))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (ct = SCMalloc(sizeof(SCClassConfClasstype))) == NULL)
+        return NULL;
     memset(ct, 0, sizeof(SCClassConfClasstype));
 
     if ( (ct->classtype = SCClassConfStringToLowercase(classtype)) == NULL) {

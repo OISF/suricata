@@ -81,7 +81,7 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     if (co_sm != NULL) {
         sm_list_count++;
         if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigMatchGetLastNocasePattern. Exiting...");
             exit(EXIT_FAILURE);
         }
         sm_list[sm_list_count - 1] = co_sm;
@@ -89,7 +89,7 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     if (ur_sm != NULL) {
         sm_list_count++;
         if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigMatchGetLastNocasePattern. Exiting...");
             exit(EXIT_FAILURE);
         }
         sm_list[sm_list_count - 1] = ur_sm;
@@ -97,7 +97,7 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     if (hcbd_sm != NULL) {
         sm_list_count++;
         if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigMatchGetLastNocasePattern. Exiting...");
             exit(EXIT_FAILURE);
         }
         sm_list[sm_list_count - 1] = hcbd_sm;
@@ -105,7 +105,7 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     if (hcd_sm != NULL) {
         sm_list_count++;
         if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigMatchGetLastNocasePattern. Exiting...");
             exit(EXIT_FAILURE);
         }
         sm_list[sm_list_count - 1] = hcd_sm;

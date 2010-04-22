@@ -65,9 +65,8 @@ static void *AlpResultElmtPoolAlloc(void *null)
 {
     AppLayerParserResultElmt *e = (AppLayerParserResultElmt *)SCMalloc
                                     (sizeof(AppLayerParserResultElmt));
-    if (e == NULL) {
+    if (e == NULL)
         return NULL;
-    }
 
     memset(e, 0, sizeof(AppLayerParserResultElmt));
 
@@ -178,19 +177,15 @@ int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstat
     if ((pstate->store_len + input_len) < size) {
         if (pstate->store_len == 0) {
             pstate->store = SCMalloc(input_len);
-            if (pstate->store == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed!");
+            if (pstate->store == NULL)
                 SCReturnInt(-1);
-            }
 
             memcpy(pstate->store, input, input_len);
             pstate->store_len = input_len;
         } else {
             pstate->store = SCRealloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory reallocation failed!");
+            if (pstate->store == NULL)
                 SCReturnInt(-1);
-            }
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
@@ -209,10 +204,8 @@ int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstat
             uint32_t diff = size - pstate->store_len;
 
             pstate->store = SCRealloc(pstate->store, (diff + pstate->store_len));
-            if (pstate->store == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory reallocation failed!");
+            if (pstate->store == NULL)
                 SCReturnInt(-1);
-            }
 
             memcpy(pstate->store+pstate->store_len, input, diff);
             pstate->store_len += diff;
@@ -263,10 +256,8 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
 
             /* delimiter field not found, so store the result for the next run */
             pstate->store = SCMalloc(input_len);
-            if (pstate->store == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed!");
+            if (pstate->store == NULL)
                 SCReturnInt(-1);
-            }
 
             memcpy(pstate->store, input, input_len);
             pstate->store_len = input_len;
@@ -276,10 +267,8 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
             SCLogDebug("store_len %" PRIu32 " and EOF", pstate->store_len);
 
             pstate->store = SCRealloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory reallocation failed!");
+            if (pstate->store == NULL)
                 SCReturnInt(-1);
-            }
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
@@ -299,10 +288,8 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
 
             /* delimiter field not found, so store the result for the next run */
             pstate->store = SCRealloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory reallocation failed!");
+            if (pstate->store == NULL)
                 SCReturnInt(-1);
-            }
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
@@ -350,10 +337,8 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
 
             /* delimiter field not found, so store the result for the next run */
             pstate->store = SCMalloc(input_len);
-            if (pstate->store == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed!");
+            if (pstate->store == NULL)
                 SCReturnInt(-1);
-            }
 
             memcpy(pstate->store, input, input_len);
             pstate->store_len = input_len;
@@ -366,10 +351,8 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                         pstate->store_len, len + pstate->store_len);
 
             pstate->store = SCRealloc(pstate->store, (len + pstate->store_len));
-            if (pstate->store == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory reallocation failed!");
+            if (pstate->store == NULL)
                 SCReturnInt(-1);
-            }
 
             memcpy(pstate->store+pstate->store_len, input, len);
             pstate->store_len += len;
@@ -394,10 +377,8 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                      * next run */
                     pstate->store = SCRealloc(pstate->store, (input_len +
                                             pstate->store_len));
-                    if (pstate->store == NULL) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "Memory reallocation failed!");
+                    if (pstate->store == NULL)
                         SCReturnInt(-1);
-                    }
 
                     memcpy(pstate->store+pstate->store_len, input, input_len);
                     pstate->store_len += input_len;
@@ -440,10 +421,8 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
 
             /* delimiter field not found, so store the result for the next run */
             pstate->store = SCRealloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Memory reallocation failed!");
+            if (pstate->store == NULL)
                 SCReturnInt(-1);
-            }
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
@@ -960,8 +939,8 @@ void AppLayerParsersInitPostProcess(void)
                                     (al_proto_table[u16].map_size *
                                         sizeof(AppLayerLocalMap *));
         if (al_proto_table[u16].map == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "memory error");
-            exit(1);
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered in AppLayerParsersInitPostProcess. Exiting...");
+            exit(EXIT_FAILURE);
         }
         memset(al_proto_table[u16].map, 0, al_proto_table[u16].map_size *
                 sizeof(AppLayerLocalMap *));
@@ -981,8 +960,8 @@ void AppLayerParsersInitPostProcess(void)
             if (parser_local_id < al_proto_table[u16].map_size) {
                 al_proto_table[u16].map[parser_local_id] = SCMalloc(sizeof(AppLayerLocalMap));
                 if (al_proto_table[u16].map[parser_local_id] == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "XXX memory error");
-                    exit(1);
+                    SCLogError(SC_ERR_FATAL, "Fatal error encountered in AppLayerParsersInitPostProcess. Exiting...");
+                    exit(EXIT_FAILURE);
                 }
 
                 al_proto_table[u16].map[parser_local_id]->parser_id = u;

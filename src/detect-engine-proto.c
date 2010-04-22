@@ -63,10 +63,8 @@ void DetectProtoRegister (void)
 DetectProto *DetectProtoInit(void)
 {
     DetectProto *dp = SCMalloc(sizeof(DetectProto));
-    if (dp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "error in memory allocation");
+    if (dp == NULL)
         return NULL;
-    }
     memset(dp,0,sizeof(DetectProto));
 
     return dp;

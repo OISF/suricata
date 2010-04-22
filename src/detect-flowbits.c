@@ -219,10 +219,8 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     }
 
     cd = SCMalloc(sizeof(DetectFlowbitsData));
-    if (cd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "DetectFlowbitsSetup malloc failed");
+    if (cd == NULL)
         goto error;
-    }
 
     if (fb_name != NULL) {
         cd->idx = VariableNameGetIdx(de_ctx,fb_name,DETECT_FLOWBITS);

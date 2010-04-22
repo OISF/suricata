@@ -159,10 +159,8 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
     }
 
     itd = SCMalloc(sizeof(DetectITypeData));
-    if (itd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (itd == NULL)
         goto error;
-    }
     itd->type1 = 0;
     itd->type2 = 0;
     itd->mode = 0;

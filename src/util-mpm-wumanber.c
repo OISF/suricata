@@ -163,10 +163,8 @@ void WmPrintInfo(MpmCtx *mpm_ctx) {
 
 static inline WmPattern *WmAllocPattern(MpmCtx *mpm_ctx) {
     WmPattern *p = SCMalloc(sizeof(WmPattern));
-    if (p == NULL) {
-        printf("ERROR: WmAllocPattern: SCMalloc failed\n");
-        exit(EXIT_FAILURE);
-    }
+    if (p == NULL)
+        return NULL;
     memset(p,0,sizeof(WmPattern));
 
     mpm_ctx->memory_cnt++;
@@ -177,10 +175,8 @@ static inline WmPattern *WmAllocPattern(MpmCtx *mpm_ctx) {
 static inline WmHashItem *
 WmAllocHashItem(MpmCtx *mpm_ctx) {
     WmHashItem *hi = SCMalloc(sizeof(WmHashItem));
-    if (hi == NULL) {
-        printf("ERROR: WmAllocHashItem: SCMalloc failed\n");
-        exit(EXIT_FAILURE);
-    }
+    if (hi == NULL)
+        return NULL;
     memset(hi,0,sizeof(WmHashItem));
 
     mpm_ctx->memory_cnt++;
@@ -447,7 +443,8 @@ static void WmSearchPrepareHash(MpmCtx *mpm_ctx) {
     uint8_t idx8 = 0;
 
     ctx->hash = (WmHashItem **)SCMalloc(sizeof(WmHashItem *) * ctx->hash_size);
-    if (ctx->hash == NULL) goto error;
+    if (ctx->hash == NULL)
+        goto error;
     memset(ctx->hash, 0, sizeof(WmHashItem *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -455,7 +452,8 @@ static void WmSearchPrepareHash(MpmCtx *mpm_ctx) {
 
     /* alloc the pminlen array */
     ctx->pminlen = (uint8_t *)SCMalloc(sizeof(uint8_t) * ctx->hash_size);
-    if (ctx->pminlen == NULL) goto error;
+    if (ctx->pminlen == NULL)
+        goto error;
     memset(ctx->pminlen, 0, sizeof(uint8_t) * ctx->hash_size);
 
     for (i = 0; i < mpm_ctx->pattern_cnt; i++)
@@ -467,6 +465,8 @@ static void WmSearchPrepareHash(MpmCtx *mpm_ctx) {
                 ctx->hash1[idx8].flags |= 0x01;
             } else {
                 WmHashItem *hi = WmAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -491,6 +491,8 @@ static void WmSearchPrepareHash(MpmCtx *mpm_ctx) {
 
             if (ctx->hash[idx] == NULL) {
                 WmHashItem *hi = WmAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
                 ctx->pminlen[idx] = ctx->parray[i]->len;
@@ -498,6 +500,8 @@ static void WmSearchPrepareHash(MpmCtx *mpm_ctx) {
                 ctx->hash[idx] = hi;
             } else {
                 WmHashItem *hi = WmAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -514,7 +518,8 @@ static void WmSearchPrepareHash(MpmCtx *mpm_ctx) {
 
     /* alloc the bloom array */
     ctx->bloom = (BloomFilter **)SCMalloc(sizeof(BloomFilter *) * ctx->hash_size);
-    if (ctx->bloom == NULL) goto error;
+    if (ctx->bloom == NULL)
+        goto error;
     memset(ctx->bloom, 0, sizeof(BloomFilter *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -638,7 +643,8 @@ int WmPreparePatterns(MpmCtx *mpm_ctx) {
 
     /* alloc the pattern array */
     ctx->parray = (WmPattern **)SCMalloc(mpm_ctx->pattern_cnt * sizeof(WmPattern *));
-    if (ctx->parray == NULL) goto error;
+    if (ctx->parray == NULL)
+        goto error;
     memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(WmPattern *));
     //printf("mpm_ctx %p, parray %p\n", mpm_ctx,ctx->parray);
     mpm_ctx->memory_cnt++;
@@ -1329,7 +1335,6 @@ void WmInitCtx (MpmCtx *mpm_ctx, int module_handle) {
     mpm_ctx->ctx = SCMalloc(sizeof(WmCtx));
     if (mpm_ctx->ctx == NULL)
         return;
-
     memset(mpm_ctx->ctx, 0, sizeof(WmCtx));
 
     mpm_ctx->memory_cnt++;

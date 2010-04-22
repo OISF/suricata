@@ -269,9 +269,8 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertUnifiedLogThread *aun = SCMalloc(sizeof(AlertUnifiedLogThread));
-    if (aun == NULL) {
+    if (aun == NULL)
         return TM_ECODE_FAILED;
-    }
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
 
     if (initdata == NULL) {
@@ -367,11 +366,8 @@ OutputCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
         return NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate OutputCtx for AlertUnifiedLog");
-        exit(EXIT_FAILURE);
-    }
+    if (output_ctx == NULL)
+        return NULL;
     output_ctx->data = file_ctx;
     output_ctx->DeInit = AlertUnifiedLogDeInitCtx;
 
@@ -399,8 +395,11 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     char *filename = NULL;
     if (file_ctx->filename != NULL)
         filename = file_ctx->filename;
-    else
+    else {
         filename = file_ctx->filename = SCMalloc(PATH_MAX); /* XXX some sane default? */
+        if (filename == NULL)
+            return -1;
+    }
 
     /* get the time so we can have a filename with seconds since epoch */
     struct timeval ts;

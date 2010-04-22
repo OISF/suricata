@@ -350,9 +350,8 @@ TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogHttpLogThread *aft = SCMalloc(sizeof(LogHttpLogThread));
-    if (aft == NULL) {
+    if (aft == NULL)
         return TM_ECODE_FAILED;
-    }
     memset(aft, 0, sizeof(LogHttpLogThread));
 
     if(initdata == NULL)
@@ -418,11 +417,8 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
         return NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate OutputCtx for LogHttpLog");
-        exit(EXIT_FAILURE);
-    }
+    if (output_ctx == NULL)
+        return NULL;
     output_ctx->data = file_ctx;
     output_ctx->DeInit = LogHttpLogDeInitCtx;
 

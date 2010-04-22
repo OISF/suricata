@@ -552,10 +552,8 @@ void B2gCudaPrintInfo(MpmCtx *mpm_ctx)
 static inline B2gCudaPattern *B2gCudaAllocPattern(MpmCtx *mpm_ctx)
 {
     B2gCudaPattern *p = SCMalloc(sizeof(B2gCudaPattern));
-    if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if (p == NULL)
+        return NULL;
     memset(p, 0, sizeof(B2gCudaPattern));
 
     mpm_ctx->memory_cnt++;
@@ -567,10 +565,8 @@ static inline B2gCudaPattern *B2gCudaAllocPattern(MpmCtx *mpm_ctx)
 static inline B2gCudaHashItem *B2gCudaAllocHashItem(MpmCtx *mpm_ctx)
 {
     B2gCudaHashItem *hi = SCMalloc(sizeof(B2gCudaHashItem));
-    if (hi == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if (hi == NULL)
+        return NULL;
     memset(hi, 0, sizeof(B2gCudaHashItem));
 
     mpm_ctx->memory_cnt++;
@@ -861,6 +857,8 @@ static void B2gCudaPrepareHash(MpmCtx *mpm_ctx)
                 ctx->hash1[idx8].flags |= 0x01;
             } else {
                 B2gCudaHashItem *hi = B2gCudaAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -876,12 +874,16 @@ static void B2gCudaPrepareHash(MpmCtx *mpm_ctx)
             idx = B2G_CUDA_HASH16(ctx->parray[i]->ci[0], ctx->parray[i]->ci[1]);
             if (ctx->hash2[idx] == NULL) {
                 B2gCudaHashItem *hi = B2gCudaAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
                 ctx->hash2[idx] = hi;
             } else {
                 B2gCudaHashItem *hi = B2gCudaAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -901,6 +903,8 @@ static void B2gCudaPrepareHash(MpmCtx *mpm_ctx)
 
             if (ctx->hash[idx] == NULL) {
                 B2gCudaHashItem *hi = B2gCudaAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
                 ctx->pminlen[idx] = ctx->parray[i]->len;
@@ -908,6 +912,8 @@ static void B2gCudaPrepareHash(MpmCtx *mpm_ctx)
                 ctx->hash[idx] = hi;
             } else {
                 B2gCudaHashItem *hi = B2gCudaAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 

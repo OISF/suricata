@@ -176,10 +176,8 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     SCLogDebug("value2 \"%s\"", value2);
 
     dd = SCMalloc(sizeof(DetectDsizeData));
-    if (dd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (dd == NULL)
         goto error;
-    }
     dd->dsize = 0;
     dd->dsize2 = 0;
 

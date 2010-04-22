@@ -283,10 +283,8 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     }
 
     sfd = SCMalloc(sizeof(DetectFlowintData));
-    if (sfd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (sfd == NULL)
         goto error;
-    }
 
     /* If we need another arg, check it out(isset doesn't need another arg) */
     if (modifier != FLOWINT_MODIFIER_ISSET && modifier != FLOWINT_MODIFIER_NOTSET) {

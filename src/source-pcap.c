@@ -195,10 +195,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     PcapThreadVars *ptv = SCMalloc(sizeof(PcapThreadVars));
-    if (ptv == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Couldn't allocate PcapThreadVars");
+    if (ptv == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    }
     memset(ptv, 0, sizeof(PcapThreadVars));
 
     ptv->tv = tv;
@@ -284,10 +282,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     PcapThreadVars *ptv = SCMalloc(sizeof(PcapThreadVars));
-    if (ptv == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Couldn't allocate PcapThreadVars");
+    if (ptv == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    }
     memset(ptv, 0, sizeof(PcapThreadVars));
 
     ptv->tv = tv;
@@ -424,10 +420,8 @@ TmEcode DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCEnter();
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error Allocating memory");
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeRegisterPerfCounters(dtv, tv);

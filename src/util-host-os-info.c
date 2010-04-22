@@ -76,7 +76,7 @@ static struct in_addr *SCHInfoValidateIPV4Address(const char *addr_str)
     struct in_addr *addr = NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCHInfoValidateIPV4Address. Exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -103,7 +103,7 @@ static struct in6_addr *SCHInfoValidateIPV6Address(const char *addr_str)
     struct in6_addr *addr = NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCHInfoValidateIPV6Address. Exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -129,10 +129,8 @@ static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
 {
     int *user_data = NULL;
 
-    if ( (user_data = SCMalloc(sizeof(int))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (user_data = SCMalloc(sizeof(int))) == NULL)
+        return NULL;
 
     /* the host os flavour that has to be sent as user data */
     if ( (*user_data = SCMapEnumNameToValue(host_os, sc_hinfo_os_policy_map)) == -1) {

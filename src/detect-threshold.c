@@ -143,10 +143,8 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
     }
 
     de = SCMalloc(sizeof(DetectThresholdData));
-    if (de == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (de == NULL)
         goto error;
-    }
 
     memset(de,0,sizeof(DetectThresholdData));
 
@@ -586,10 +584,8 @@ static int DetectThresholdTestSig3(void) {
 
     /* setup the Entry we use to search our hash with */
     ste = SCMalloc(sizeof(DetectThresholdEntry));
-    if (ste == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s", strerror(errno));
+    if (ste == NULL)
         goto end;
-    }
     memset(ste, 0x00, sizeof(ste));
 
     if (PKT_IS_IPV4(&p))

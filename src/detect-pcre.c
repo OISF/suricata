@@ -421,10 +421,8 @@ DetectPcreData *DetectPcreParse (char *regexstr)
     //printf("ret %" PRId32 " re \'%s\', op \'%s\'\n", ret, re, op);
 
     pd = SCMalloc(sizeof(DetectPcreData));
-    if (pd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (pd == NULL)
         goto error;
-    }
     memset(pd, 0, sizeof(DetectPcreData));
 
     if (negate)
@@ -524,6 +522,8 @@ DetectPcreData *DetectPcreParse (char *regexstr)
 #endif /* NO_PCRE_MATCH_RLIMIT */
         }
 
+    } else {
+        goto error;
     }
 
     if (re != NULL) SCFree(re);

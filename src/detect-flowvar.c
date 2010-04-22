@@ -151,10 +151,8 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     }
 
     cd = SCMalloc(sizeof(DetectFlowvarData));
-    if (cd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (cd == NULL)
         goto error;
-    }
 
     char converted = 0;
 

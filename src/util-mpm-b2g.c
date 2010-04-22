@@ -125,10 +125,8 @@ void B2gPrintInfo(MpmCtx *mpm_ctx) {
 
 static inline B2gPattern *B2gAllocPattern(MpmCtx *mpm_ctx) {
     B2gPattern *p = SCMalloc(sizeof(B2gPattern));
-    if (p == NULL) {
-        printf("ERROR: B2gAllocPattern: SCMalloc failed\n");
-        exit(EXIT_FAILURE);
-    }
+    if (p == NULL)
+        return NULL;
     memset(p,0,sizeof(B2gPattern));
 
     mpm_ctx->memory_cnt++;
@@ -139,10 +137,8 @@ static inline B2gPattern *B2gAllocPattern(MpmCtx *mpm_ctx) {
 static inline B2gHashItem *
 B2gAllocHashItem(MpmCtx *mpm_ctx) {
     B2gHashItem *hi = SCMalloc(sizeof(B2gHashItem));
-    if (hi == NULL) {
-        printf("ERROR: B2gAllocHashItem: SCMalloc failed\n");
-        exit(EXIT_FAILURE);
-    }
+    if (hi == NULL)
+        return NULL;
     memset(hi,0,sizeof(B2gHashItem));
 
     mpm_ctx->memory_cnt++;
@@ -390,7 +386,8 @@ static void B2gPrepareHash(MpmCtx *mpm_ctx) {
     uint8_t idx8 = 0;
 
     ctx->hash = (B2gHashItem **)SCMalloc(sizeof(B2gHashItem *) * ctx->hash_size);
-    if (ctx->hash == NULL) goto error;
+    if (ctx->hash == NULL)
+        goto error;
     memset(ctx->hash, 0, sizeof(B2gHashItem *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -398,7 +395,8 @@ static void B2gPrepareHash(MpmCtx *mpm_ctx) {
 
 #ifdef B2G_SEARCH2
     ctx->hash2 = (B2gHashItem **)SCMalloc(sizeof(B2gHashItem *) * ctx->hash_size);
-    if (ctx->hash2 == NULL) goto error;
+    if (ctx->hash2 == NULL)
+        goto error;
     memset(ctx->hash2, 0, sizeof(B2gHashItem *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -407,7 +405,8 @@ static void B2gPrepareHash(MpmCtx *mpm_ctx) {
 
     /* alloc the pminlen array */
     ctx->pminlen = (uint8_t *)SCMalloc(sizeof(uint8_t) * ctx->hash_size);
-    if (ctx->pminlen == NULL) goto error;
+    if (ctx->pminlen == NULL)
+        goto error;
     memset(ctx->pminlen, 0, sizeof(uint8_t) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -422,6 +421,8 @@ static void B2gPrepareHash(MpmCtx *mpm_ctx) {
                 ctx->hash1[idx8].flags |= 0x01;
             } else {
                 B2gHashItem *hi = B2gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -436,12 +437,16 @@ static void B2gPrepareHash(MpmCtx *mpm_ctx) {
             idx = B2G_HASH16(ctx->parray[i]->ci[0],ctx->parray[i]->ci[1]);
             if (ctx->hash2[idx] == NULL) {
                 B2gHashItem *hi = B2gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
                 ctx->hash2[idx] = hi;
             } else {
                 B2gHashItem *hi = B2gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -458,6 +463,8 @@ static void B2gPrepareHash(MpmCtx *mpm_ctx) {
 
             if (ctx->hash[idx] == NULL) {
                 B2gHashItem *hi = B2gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
                 ctx->pminlen[idx] = ctx->parray[i]->len;
@@ -465,6 +472,8 @@ static void B2gPrepareHash(MpmCtx *mpm_ctx) {
                 ctx->hash[idx] = hi;
             } else {
                 B2gHashItem *hi = B2gAllocHashItem(mpm_ctx);
+                if (hi == NULL)
+                    goto error;
                 hi->idx = i;
                 hi->flags |= 0x01;
 
@@ -482,7 +491,8 @@ static void B2gPrepareHash(MpmCtx *mpm_ctx) {
 
     /* alloc the bloom array */
     ctx->bloom = (BloomFilter **)SCMalloc(sizeof(BloomFilter *) * ctx->hash_size);
-    if (ctx->bloom == NULL) goto error;
+    if (ctx->bloom == NULL)
+        goto error;
     memset(ctx->bloom, 0, sizeof(BloomFilter *) * ctx->hash_size);
 
     mpm_ctx->memory_cnt++;
@@ -555,7 +565,8 @@ int B2gPreparePatterns(MpmCtx *mpm_ctx) {
 
     /* alloc the pattern array */
     ctx->parray = (B2gPattern **)SCMalloc(mpm_ctx->pattern_cnt * sizeof(B2gPattern *));
-    if (ctx->parray == NULL) goto error;
+    if (ctx->parray == NULL)
+        goto error;
     memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(B2gPattern *));
     //printf("mpm_ctx %p, parray %p\n", mpm_ctx,ctx->parray);
     mpm_ctx->memory_cnt++;

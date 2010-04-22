@@ -241,9 +241,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     char *tmpctype;
 
     PfringThreadVars *ptv = SCMalloc(sizeof(PfringThreadVars));
-    if (ptv == NULL) {
+    if (ptv == NULL)
         return TM_ECODE_FAILED;
-    }
     memset(ptv, 0, sizeof(PfringThreadVars));
 
     ptv->tv = tv;
@@ -386,10 +385,8 @@ TmEcode DecodePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,"Error Allocating memory");
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
         return TM_ECODE_FAILED;
-    }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeRegisterPerfCounters(dtv, tv);

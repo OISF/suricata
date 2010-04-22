@@ -161,10 +161,8 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
         goto error;
 
     de = SCMalloc(sizeof(DetectIpOptsData));
-    if (de == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (de == NULL)
         goto error;
-    }
 
     de->ipopt = DIpOpts[i].code;
 

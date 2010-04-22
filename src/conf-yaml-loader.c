@@ -94,6 +94,8 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
                 seq_node->name = SCCalloc(1, DEFAULT_NAME_LEN);
+                if (seq_node->name == NULL)
+                    return -1;
                 snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
                 seq_node->val = SCStrdup(value);
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
@@ -142,6 +144,8 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 ConfNode *seq_node = ConfNodeNew();
                 seq_node->is_seq = 1;
                 seq_node->name = SCCalloc(1, DEFAULT_NAME_LEN);
+                if (seq_node->name == NULL)
+                    return -1;
                 snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
                 TAILQ_INSERT_TAIL(&node->head, seq_node, next);
                 if (ConfYamlParse(parser, seq_node, 0) != 0)

@@ -45,10 +45,8 @@ IPReputationCtx *rep_ctx;
  */
 IPReputationCtx *SCReputationInitCtx() {
     rep_ctx = (IPReputationCtx *)SCMalloc(sizeof(IPReputationCtx));
-    if (rep_ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for Reputation context");
-        exit(EXIT_FAILURE);
-    }
+    if (rep_ctx == NULL)
+        return NULL;
     memset(rep_ctx,0,sizeof(IPReputationCtx));
 
     rep_ctx->reputationIPV4_tree = SCRadixCreateRadixTree(SCReputationFreeData, NULL);
@@ -89,10 +87,8 @@ Reputation *SCReputationAllocData()
 {
     Reputation *rep_data = NULL;
 
-    if ( (rep_data = SCMalloc(sizeof(Reputation))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (rep_data = SCMalloc(sizeof(Reputation))) == NULL)
+        return NULL;
     memset(rep_data,0, sizeof(Reputation));
     rep_data->ctime = time(NULL);
     rep_data->mtime= time(NULL);
@@ -122,10 +118,8 @@ ReputationTransaction *SCReputationTransactionAlloc()
 {
     ReputationTransaction *rtx = NULL;
 
-    if ( (rtx = SCMalloc(sizeof(ReputationTransaction))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (rtx = SCMalloc(sizeof(ReputationTransaction))) == NULL)
+        return NULL;
     memset(rtx, 0, sizeof(ReputationTransaction));
 
     return rtx;
@@ -230,10 +224,8 @@ Reputation *SCReputationClone(Reputation *orig)
         return NULL;
     }
 
-    if ( (rep = SCMalloc(sizeof(Reputation))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (rep = SCMalloc(sizeof(Reputation))) == NULL)
+        return NULL;
     memcpy(rep, orig, sizeof(Reputation));
     return rep;
 }

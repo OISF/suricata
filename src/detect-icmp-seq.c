@@ -166,10 +166,8 @@ DetectIcmpSeqData *DetectIcmpSeqParse (char *icmpseqstr) {
     }
 
     iseq = SCMalloc(sizeof(DetectIcmpSeqData));
-    if (iseq == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (iseq == NULL)
         goto error;
-    }
 
     iseq->seq = 0;
 

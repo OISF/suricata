@@ -141,9 +141,8 @@ static void *HTPStateAlloc(void)
     SCEnter();
 
     HtpState *s = SCMalloc(sizeof(HtpState));
-    if (s == NULL) {
+    if (s == NULL)
         goto error;
-    }
 
     memset(s, 0x00, sizeof(HtpState));
 
@@ -475,10 +474,8 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
     if (body->nchunks == 0) {
         /* New chunk */
         bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
-        if (bd == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
-            goto error;
-        }
+        if (bd == NULL)
+            return;
 
         bd->len = len;
         bd->data = SCMalloc(len);
@@ -510,10 +507,8 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
             memcpy(bd->data, data, len);
         } else {
             bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
-            if (bd == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
-                goto error;
-            }
+            if (bd == NULL)
+                return;
 
             bd->len = len;
             bd->data = SCMalloc(len);

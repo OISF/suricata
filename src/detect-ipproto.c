@@ -126,10 +126,8 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
 
     /* Initialize the data */
     data = SCMalloc(sizeof(DetectIPProtoData));
-    if (data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (data == NULL)
         goto error;
-    }
     data->op = DETECT_IPPROTO_OP_EQ;
     data->proto = 0;
 

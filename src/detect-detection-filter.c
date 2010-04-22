@@ -136,11 +136,10 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
     }
 
     df = SCMalloc(sizeof(DetectDetectionFilterData));
-    if (df == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
+    if (df == NULL)
         goto error;
-    }
-    memset(df, 0, sizeof(DetectDetectionFilterData));
+
+    memset(df,0,sizeof(DetectDetectionFilterData));
 
     df->type = TYPE_DETECTION;
 

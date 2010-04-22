@@ -326,14 +326,12 @@ int SCCudaHlGetCudaDevicePtr(CUdeviceptr *device_ptr, const char *name,
     }
 
     new_module_device_ptr = SCMalloc(sizeof(SCCudaHlModuleDevicePointer));
-    if (new_module_device_ptr == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if (new_module_device_ptr == NULL)
+        goto error;
     memset(new_module_device_ptr, 0, sizeof(SCCudaHlModuleDevicePointer));
 
     if ( (new_module_device_ptr->name = SCStrdup(name)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCCudaHlGetCudaDevicePtr. Exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -479,7 +477,7 @@ int SCCudaHlRegisterModule(const char *name)
     /* the module is not already registered.  Register the module */
     new_data = SCMalloc(sizeof(SCCudaHlModuleData));
     if (new_data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCCudaHlRegisterModule. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(new_data, 0, sizeof(SCCudaHlModuleData));
@@ -714,7 +712,7 @@ void SCCudaHlProcessUriWithDispatcher(uint8_t *uri, uint16_t uri_len,
 
     Packet *p = SCMalloc(sizeof(Packet));
     if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCCudaHlProcessUriWithDispatcher. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(p, 0, sizeof(Packet));

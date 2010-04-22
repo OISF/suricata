@@ -172,10 +172,8 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
         }
 
         idad = SCMalloc(sizeof(DetectIsdataatData));
-        if (idad == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        if (idad == NULL)
             goto error;
-        }
 
         idad->flags = 0;
         idad->dataat = 0;

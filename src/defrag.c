@@ -292,6 +292,8 @@ DefragFragNew(void *arg)
     Frag *frag;
 
     frag = SCCalloc(1, sizeof(*frag));
+    if (frag == NULL)
+        return NULL;
     frag->dc = dc;
 
     return (void *)frag;

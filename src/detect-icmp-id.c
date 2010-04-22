@@ -166,10 +166,8 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
     }
 
     iid = SCMalloc(sizeof(DetectIcmpIdData));
-    if (iid == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (iid == NULL)
         goto error;
-    }
     iid->id = 0;
 
     if (substr[0]!= NULL && strlen(substr[0]) != 0) {

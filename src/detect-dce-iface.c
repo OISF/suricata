@@ -123,10 +123,8 @@ static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
         goto error;
     }
 
-    if ( (did = SCMalloc(sizeof(DetectDceIfaceData))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (did = SCMalloc(sizeof(DetectDceIfaceData))) == NULL)
         goto error;
-    }
     memset(did, 0, sizeof(DetectDceIfaceData));
 
     /* retrieve the iface uuid string.  iface uuid is a compulsion in the keyword */

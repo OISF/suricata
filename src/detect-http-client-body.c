@@ -124,9 +124,8 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         /* club all the chunks into one whole buffer and call the SPM on the buffer */
         while (cur != NULL) {
             total_chunks_len += cur->len;
-            if ( (chunks_buffer = realloc(chunks_buffer, total_chunks_len)) == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                exit(EXIT_FAILURE);
+            if ( (chunks_buffer = SCRealloc(chunks_buffer, total_chunks_len)) == NULL) {
+                return 0;
             }
             memcpy(chunks_buffer + total_chunks_len - cur->len, cur->data, cur->len);
             cur = cur->next;
@@ -210,10 +209,8 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
     /* setup the HttpClientBodyData's data from content data structure's data */
     hcbd = SCMalloc(sizeof(DetectHttpClientBodyData));
-    if (hcbd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc() failed");
+    if (hcbd == NULL)
         goto error;
-    }
     memset(hcbd, 0, sizeof(DetectHttpClientBodyData));
 
     /* transfer the pattern details from the content struct to the clientbody struct */

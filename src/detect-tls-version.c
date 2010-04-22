@@ -172,10 +172,8 @@ DetectTlsVersionData *DetectTlsVersionParse (char *str)
 
         /* We have a correct id option */
         tls = SCMalloc(sizeof(DetectTlsVersionData));
-        if (tls == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        if (tls == NULL)
             goto error;
-        }
 
         orig = SCStrdup((char*)str_ptr);
         tmp_str=orig;

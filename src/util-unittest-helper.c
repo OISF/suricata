@@ -55,10 +55,8 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     uint32_t in[4];
 
     Packet *p = SCMalloc(sizeof(Packet));
-    if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet");
-        exit(EXIT_FAILURE);
-    }
+    if (p == NULL)
+        return NULL;
     memset(p, 0, sizeof(Packet));
 
     p->src.family = AF_INET6;
@@ -82,15 +80,11 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->dp = dport;
 
     p->ip6h = SCMalloc(sizeof(IPV6Hdr));
-    if (p->ip6h == NULL) {
-       SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet ip6h");
-        exit(EXIT_FAILURE);
-    }
+    if (p->ip6h == NULL)
+        return NULL;
     p->tcph = SCMalloc(sizeof(TCPHdr));
-    if (p->tcph == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet tcph");
-        exit(EXIT_FAILURE);
-    }
+    if (p->tcph == NULL)
+        return NULL;
     p->tcph->th_sport = sport;
     p->tcph->th_dport = dport;
     return p;
@@ -116,10 +110,8 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     struct in_addr in;
 
     Packet *p = SCMalloc(sizeof(Packet));
-    if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet");
-        exit(EXIT_FAILURE);
-    }
+    if (p == NULL)
+        return NULL;
     memset(p, 0, sizeof(Packet));
 
     p->src.family = AF_INET;
@@ -139,38 +131,28 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     switch (ipproto) {
         case IPPROTO_UDP:
             p->ip4h = SCMalloc(sizeof(IPV4Hdr));
-            if (p->ip4h == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet ip4h");
-                exit(EXIT_FAILURE);
-            }
+            if (p->ip4h == NULL)
+                return NULL;
             p->udph = SCMalloc(sizeof(UDPHdr));
-            if (p->udph == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet udph");
-                exit(EXIT_FAILURE);
-            }
+            if (p->udph == NULL)
+                return NULL;
             p->udph->uh_sport = sport;
             p->udph->uh_dport = dport;
         break;
         case IPPROTO_TCP:
             p->ip4h = SCMalloc(sizeof(IPV4Hdr));
-            if (p->ip4h == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet ip4h");
-                exit(EXIT_FAILURE);
-            }
+            if (p->ip4h == NULL)
+                return NULL;
             p->tcph = SCMalloc(sizeof(TCPHdr));
-            if (p->tcph == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet tcph");
-                exit(EXIT_FAILURE);
-            }
+            if (p->tcph == NULL)
+                return NULL;
             p->tcph->th_sport = sport;
             p->tcph->th_dport = dport;
         break;
         case IPPROTO_ICMP:
             p->ip4h = SCMalloc(sizeof(IPV4Hdr));
-            if (p->ip4h == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating packet ip4h");
-                exit(EXIT_FAILURE);
-            }
+            if (p->ip4h == NULL)
+                return NULL;
         break;
         /* TODO: Add more protocols */
     }
@@ -215,10 +197,8 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
     }
     Packet **p = NULL;
     p = SCMalloc(sizeof(Packet *) * numpkts);
-    if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for the packet array");
+    if (p == NULL)
         return NULL;
-    }
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
@@ -227,7 +207,6 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
     for (; i < numpkts; i++) {
         p[i] = SCMalloc(sizeof(Packet));
         if (p[i] == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for a packet of the array");
             SCFree(p);
             return NULL;
         }
@@ -250,10 +229,8 @@ Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize) {
     DecodeThreadVars dtv;
     ThreadVars th_v;
     Packet *p = SCMalloc(sizeof(Packet));
-    if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for the packet");
+    if (p == NULL)
         return NULL;
-    }
     memset(p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));

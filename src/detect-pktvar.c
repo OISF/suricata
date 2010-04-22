@@ -147,10 +147,8 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
     }
 
     cd = SCMalloc(sizeof(DetectPktvarData));
-    if (cd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (cd == NULL)
         goto error;
-    }
 
     char converted = 0;
 

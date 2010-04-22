@@ -206,10 +206,8 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     }
 
     de = SCMalloc(sizeof(DetectFlagsData));
-    if (de == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (de == NULL)
         goto error;
-    }
 
     memset(de,0,sizeof(DetectFlagsData));
 

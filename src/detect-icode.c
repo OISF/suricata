@@ -159,10 +159,8 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
     }
 
     icd = SCMalloc(sizeof(DetectICodeData));
-    if (icd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (icd == NULL)
         goto error;
-    }
     icd->code1 = 0;
     icd->code2 = 0;
     icd->mode = 0;

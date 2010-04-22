@@ -260,10 +260,8 @@ static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum
 
     sm->type = DETECT_IPV4_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
-    }
     memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
@@ -354,10 +352,8 @@ static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
 
     sm->type = DETECT_TCPV4_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
-    }
     memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
@@ -448,10 +444,8 @@ static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
 
     sm->type = DETECT_TCPV6_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
-    }
     memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
@@ -542,10 +536,8 @@ static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
 
     sm->type = DETECT_UDPV4_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
-    }
     memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
@@ -636,10 +628,8 @@ static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
 
     sm->type = DETECT_UDPV6_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
-    }
     memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
@@ -729,10 +719,8 @@ static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *cs
 
     sm->type = DETECT_ICMPV4_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
-    }
     memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
@@ -820,10 +808,8 @@ static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *cs
 
     sm->type = DETECT_ICMPV6_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
-    }
     memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)

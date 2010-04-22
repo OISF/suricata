@@ -272,8 +272,7 @@ static char *SCPerfGetLogFilename(void)
         log_dir = DEFAULT_LOG_DIR;
 
     if ( (log_filename = SCMalloc(PATH_MAX)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     if (snprintf(log_filename, PATH_MAX, "%s/%s", log_dir,
@@ -294,7 +293,7 @@ static char *SCPerfGetLogFilename(void)
 static void SCPerfInitOPCtx(void)
 {
     if ( (sc_perf_op_ctx = SCMalloc(sizeof(SCPerfOPIfaceContext))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(sc_perf_op_ctx, 0, sizeof(SCPerfOPIfaceContext));
@@ -671,24 +670,20 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
         return(temp->id);
 
     /* if we reach this point we don't have a counter registered by this cname */
-    if ( (pc = SCMalloc(sizeof(SCPerfCounter))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (pc = SCMalloc(sizeof(SCPerfCounter))) == NULL)
+        return 0;
     memset(pc, 0, sizeof(SCPerfCounter));
 
     if ( (pc->name = SCMalloc(sizeof(SCPerfCounterName))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         SCFree(pc);
-        exit(EXIT_FAILURE);
+        return 0;
     }
     memset(pc->name, 0, sizeof(SCPerfCounterName));
 
     if ( (pc->value = SCMalloc(sizeof(SCPerfCounterValue))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         SCFree(pc->name);
         SCFree(pc);
-        exit(EXIT_FAILURE);
+        return 0;
     }
     memset(pc->value, 0, sizeof(SCPerfCounterValue));
 
@@ -711,10 +706,8 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
         exit(EXIT_FAILURE);
     }
 
-    if ( (pc->type_q = SCMalloc(sizeof(SCPerfCounterTypeQ))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (pc->type_q = SCMalloc(sizeof(SCPerfCounterTypeQ))) == NULL)
+        return 0;
     memset(pc->type_q, 0, sizeof(SCPerfCounterTypeQ));
 
     pc->type_q->type = type_q;
@@ -742,10 +735,8 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
             break;
     }
 
-    if ( (pc->value->cvalue = SCMalloc(pc->value->size)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (pc->value->cvalue = SCMalloc(pc->value->size)) == NULL)
+        return 0;
     memset(pc->value->cvalue, 0, pc->value->size);
 
     /* display flag which specifies if the counter should be displayed or not */
@@ -1001,10 +992,8 @@ static int SCPerfOutputCounterFileIface()
 
     pctmi = sc_perf_op_ctx->pctmi;
     while (pctmi != NULL) {
-        if ( (pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
+        if ( (pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL)
+            return 0;
         memset(pc_heads, 0, pctmi->size * sizeof(SCPerfCounter **));
 
         for (u = 0; u < pctmi->size; u++) {
@@ -1369,14 +1358,14 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
 
     /* get me the bugger who wrote this junk of a code :P */
     if (pctmi == NULL) {
-        if ( (temp = SCMalloc(sizeof(SCPerfClubTMInst))) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(0);
-        }
+        if ( (temp = SCMalloc(sizeof(SCPerfClubTMInst))) == NULL)
+            return 0;
         memset(temp, 0, sizeof(SCPerfClubTMInst));
 
         temp->size++;
         temp->head = SCRealloc(temp->head, temp->size * sizeof(SCPerfContext **));
+        if (temp->head == NULL)
+            return 0;
         temp->head[0] = pctx;
         temp->tm_name = SCStrdup(tm_name);
 
@@ -1400,6 +1389,8 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
 
     pctmi->head = SCRealloc(pctmi->head,
                           (pctmi->size + 1) * sizeof(SCPerfContext **));
+    if (pctmi->head == NULL)
+        return 0;
     hpctx = pctmi->head;
 
     hpctx[pctmi->size] = pctx;
@@ -1449,16 +1440,12 @@ SCPerfCounterArray *SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
         return NULL;
     }
 
-    if ( (pca = SCMalloc(sizeof(SCPerfCounterArray))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (pca = SCMalloc(sizeof(SCPerfCounterArray))) == NULL)
+        return NULL;
     memset(pca, 0, sizeof(SCPerfCounterArray));
 
-    if ( (pca->head = SCMalloc(sizeof(SCPCAElem) * (e_id - s_id  + 2))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (pca->head = SCMalloc(sizeof(SCPCAElem) * (e_id - s_id  + 2))) == NULL)
+        return NULL;
     memset(pca->head, 0, sizeof(SCPCAElem) * (e_id - s_id  + 2));
 
     pc = pctx->head;

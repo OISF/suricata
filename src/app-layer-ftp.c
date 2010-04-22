@@ -128,11 +128,8 @@ static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserSt
                         if (fstate->port_line != NULL)
                             SCFree(fstate->port_line);
                         fstate->port_line = SCMalloc(input_len);
-                        if (fstate->port_line == NULL) {
-                            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating"
-                                                         "memory");
-                            exit(EXIT_FAILURE);
-                        }
+                        if (fstate->port_line == NULL)
+                            return 0;
                         fstate->port_line = memcpy(fstate->port_line, input,
                                                    input_len);
                         fstate->port_line_len = input_len;

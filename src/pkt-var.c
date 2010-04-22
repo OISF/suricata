@@ -78,7 +78,6 @@ void PktVarAdd(Packet *p, char *name, uint8_t *value, uint16_t size) {
                     tpv->next = pv;
                     return;
                 }
-                    
                 tpv = tpv->next;
             }
         }

@@ -56,9 +56,8 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     DetectEngineCtx *de_ctx;
 
     de_ctx = SCMalloc(sizeof(DetectEngineCtx));
-    if (de_ctx == NULL) {
+    if (de_ctx == NULL)
         goto error;
-    }
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
 
@@ -435,9 +434,8 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
         return TM_ECODE_FAILED;
 
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
-    if (det_ctx == NULL) {
+    if (det_ctx == NULL)
         return TM_ECODE_FAILED;
-    }
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
     det_ctx->de_ctx = de_ctx;
@@ -479,10 +477,8 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     uint8_t disp_outq_name_len = (strlen(tv->name) + strlen(cuda_outq_name) + 1);
 
     char *disp_outq_name = SCMalloc(disp_outq_name_len * sizeof(char));
-    if (disp_outq_name == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if (disp_outq_name == NULL)
+        goto error;
     strcpy(disp_outq_name, tv->name);
     strcpy(disp_outq_name + strlen(tv->name), cuda_outq_name);
     disp_outq_name[disp_outq_name_len] = '\0';

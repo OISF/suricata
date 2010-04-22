@@ -243,10 +243,8 @@ static void SetBpfString(int optind, char *argv[]) {
         return;
 
     bpf_filter = SCMalloc(bpf_len);
-    if (bpf_filter == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "%s", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+    if (bpf_filter == NULL)
+        return;
     memset(bpf_filter, 0x00, bpf_len);
 
     tmpindex = optind;
@@ -803,7 +801,7 @@ int main(int argc, char **argv)
         /* XXX pkt alloc function */
         Packet *p = SCMalloc(sizeof(Packet));
         if (p == NULL) {
-            printf("ERROR: SCMalloc failed: %s\n", strerror(errno));
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered while allocating a packet. Exiting...");
             exit(EXIT_FAILURE);
         }
         PACKET_INITIALIZE(p);

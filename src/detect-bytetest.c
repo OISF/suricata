@@ -397,10 +397,8 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
 
     /* Initialize the data */
     data = SCMalloc(sizeof(DetectBytetestData));
-    if (data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
+    if (data == NULL)
         goto error;
-    }
     data->base = DETECT_BYTETEST_BASE_UNSET;
     data->flags = 0;
 

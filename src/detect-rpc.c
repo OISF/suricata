@@ -198,10 +198,8 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
     }
 
     rd = SCMalloc(sizeof(DetectRpcData));
-    if (rd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC ,"malloc failed");
+    if (rd == NULL)
         goto error;
-    }
     rd->flags = 0;
     rd->program = 0;
     rd->program_version = 0;

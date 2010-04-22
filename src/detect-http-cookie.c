@@ -225,10 +225,8 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
 
     /* Setup the HttpCookie data from Content data structure */
     hd = SCMalloc(sizeof(DetectHttpCookieData));
-    if (hd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
+    if (hd == NULL)
         goto error;
-    }
     memset(hd, 0, sizeof(DetectHttpCookieData));
 
     hd->data_len = ((DetectContentData *)pm->ctx)->content_len;

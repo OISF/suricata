@@ -57,7 +57,6 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t sig_maxid, uint32_t patmaxid) {
     if (patmaxid > 0) {
         pmq->pattern_id_array = SCMalloc(patmaxid * sizeof(uint32_t));
         if (pmq->pattern_id_array == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
             SCReturnInt(-1);
         }
         memset(pmq->pattern_id_array, 0, patmaxid * sizeof(uint32_t));
@@ -66,7 +65,6 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t sig_maxid, uint32_t patmaxid) {
         /* lookup bitarray */
         pmq->pattern_id_bitarray = SCMalloc((patmaxid / 8) + 1);
         if (pmq->pattern_id_bitarray == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
             SCReturnInt(-1);
         }
         memset(pmq->pattern_id_bitarray, 0, (patmaxid / 8) + 1);

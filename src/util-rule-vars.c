@@ -82,10 +82,8 @@ char *SCRuleVarsGetConfVar(const char *conf_var_name,
     /* the + 2 is for the '.' and the string termination character '\0' */
     conf_var_full_name = (char *)SCMalloc(strlen(conf_var_type_name) +
                                         strlen(conf_var_name) + 2);
-    if (conf_var_full_name == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (conf_var_full_name == NULL)
         goto end;
-    }
 
     if (snprintf(conf_var_full_name,
                  strlen(conf_var_type_name) + strlen(conf_var_name) + 2, "%s.%s",

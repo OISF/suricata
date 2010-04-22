@@ -48,8 +48,7 @@ OutputRegisterModule(char *name, char *conf_name,
 {
     OutputModule *module = SCCalloc(1, sizeof(*module));
     if (module == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocated memory for new output module");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in OutputRegisterModule. Exiting...");
         exit(EXIT_FAILURE);
     }
 

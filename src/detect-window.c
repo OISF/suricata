@@ -139,10 +139,8 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
     }
 
     wd = SCMalloc(sizeof(DetectWindowData));
-    if (wd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (wd == NULL)
         goto error;
-    }
 
 
     if (ret > 1) {

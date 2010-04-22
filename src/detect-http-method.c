@@ -196,10 +196,8 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     }
 
     data = SCMalloc(sizeof(DetectHttpMethodData));
-    if (data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
+    if (data == NULL)
         goto error;
-    }
 
     data->content_len = ((DetectContentData *)pm->ctx)->content_len;
     data->content = ((DetectContentData *)pm->ctx)->content;

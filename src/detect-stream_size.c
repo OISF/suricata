@@ -231,10 +231,8 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     value = (char *)str_ptr;
 
     sd = SCMalloc(sizeof(DetectStreamSizeData));
-    if (sd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (sd == NULL)
         goto error;
-    }
     sd->ssize = 0;
     sd->flags = 0;
 

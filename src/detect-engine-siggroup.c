@@ -104,10 +104,8 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid) {
 static SigGroupHead *SigGroupHeadAlloc(uint32_t size)
 {
     SigGroupHead *sgh = SCMalloc(sizeof(SigGroupHead));
-    if (sgh == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (sgh == NULL)
         return NULL;
-    }
     memset(sgh, 0, sizeof(SigGroupHead));
 
     sgh->init = SigGroupHeadInitDataAlloc(size);
@@ -119,10 +117,8 @@ static SigGroupHead *SigGroupHeadAlloc(uint32_t size)
 
     /* initialize the signature bitarray */
     sgh->sig_size = size;
-    if ( (sgh->sig_array = SCMalloc(sgh->sig_size)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (sgh->sig_array = SCMalloc(sgh->sig_size)) == NULL)
         goto error;
-    }
     memset(sgh->sig_array, 0, sgh->sig_size);
 
     detect_siggroup_sigarray_init_cnt++;

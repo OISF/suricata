@@ -213,9 +213,8 @@ TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertDebugLogThread *aft = SCMalloc(sizeof(AlertDebugLogThread));
-    if (aft == NULL) {
+    if (aft == NULL)
         return TM_ECODE_FAILED;
-    }
     memset(aft, 0, sizeof(AlertDebugLogThread));
 
     if(initdata == NULL)
@@ -281,11 +280,8 @@ OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
         return NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate OutputCtx for AlertDebugLog");
-        exit(EXIT_FAILURE);
-    }
+    if (output_ctx == NULL)
+        return NULL;
     output_ctx->data = file_ctx;
 
     return output_ctx;

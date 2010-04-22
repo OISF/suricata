@@ -485,9 +485,9 @@ SCLogOPBuffer *SCLogAllocLogOPBuffer(void)
     SCLogOPIfaceCtx *op_iface_ctx = NULL;
     int i = 0;
 
-    if ( (buffer = malloc(sc_log_config->op_ifaces_cnt *
+    if ( (buffer = SCMalloc(sc_log_config->op_ifaces_cnt *
                           sizeof(SCLogOPBuffer))) == NULL) {
-        printf("Error allocating memory\n");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogAllocLogOPBuffer. Exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -513,8 +513,8 @@ static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx()
 {
     SCLogOPIfaceCtx *iface_ctx = NULL;
 
-    if ( (iface_ctx = malloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
-        printf("Error allocating memory\n");
+    if ( (iface_ctx = SCMalloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogallocLogOPIfaceCtx. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(iface_ctx, 0, sizeof(SCLogOPIfaceCtx));
@@ -577,8 +577,8 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
-    if ( (iface_ctx = malloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
-        printf("Error allocating memory\n");
+    if ( (iface_ctx = SCMalloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitConsoleOPIface. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(iface_ctx, 0, sizeof(SCLogOPIfaceCtx));
@@ -632,8 +632,8 @@ static inline SCLogOPIfaceCtx *SCLogInitSyslogOPIface(int facility,
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
-    if ( (iface_ctx = malloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
-        printf("Error allocating memory\n");
+    if ( (iface_ctx = SCMalloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitSyslogOPIface. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(iface_ctx, 0, sizeof(SCLogOPIfaceCtx));
@@ -905,10 +905,8 @@ SCLogInitData *SCLogAllocLogInitData(void)
 {
     SCLogInitData *sc_lid = NULL;
 
-    if ( (sc_lid = malloc(sizeof(SCLogInitData))) == NULL) {
-        printf("Error allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
+    if ( (sc_lid = SCMalloc(sizeof(SCLogInitData))) == NULL)
+        return NULL;
     memset(sc_lid, 0, sizeof(SCLogInitData));
 
     return sc_lid;
@@ -1050,8 +1048,8 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
     SCLogDeInitLogModule();
 
     /* sc_log_config is a global variable */
-    if ( (sc_log_config = malloc(sizeof(SCLogConfig))) == NULL) {
-        printf("Error Allocating memory\n");
+    if ( (sc_log_config = SCMalloc(sizeof(SCLogConfig))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitLogModule. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(sc_log_config, 0, sizeof(SCLogConfig));
@@ -1081,6 +1079,10 @@ void SCLogLoadConfig(void)
     }
 
     sc_lid = SCLogAllocLogInitData();
+    if (sc_lid == NULL) {
+        SCLogDebug("Could not allocate memory for log init data");
+        return;
+    }
 
     /* Get default log level and format. */
     char *default_log_level_s = NULL;
@@ -1190,10 +1192,8 @@ void SCLogInitLogModuleIfEnvSet(void)
     SCLogLevel log_level = SC_LOG_NOTSET;
 
     /* sc_log_config is a global variable */
-    if ( (sc_log_config = malloc(sizeof(SCLogConfig))) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
+    if ( (sc_log_config = SCMalloc(sizeof(SCLogConfig))) == NULL)
+        return;
     memset(sc_log_config, 0, sizeof(SCLogConfig));
     sc_lc = sc_log_config;
 
@@ -1318,7 +1318,7 @@ static char *SCLogGetLogFilename(char *filearg)
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
 
-    log_filename = malloc(PATH_MAX);
+    log_filename = SCMalloc(PATH_MAX);
     if (log_filename == NULL)
         return NULL;
     snprintf(log_filename, PATH_MAX, "%s/%s", log_dir, filearg);
@@ -1408,6 +1408,8 @@ int SCLogTestInit02()
     int result = 1;
     char *logfile = SCLogGetLogFilename("boo.txt");
     sc_lid = SCLogAllocLogInitData();
+    if (sc_lid == NULL)
+        return 0;
     sc_lid->startup_message = "Test02";
     sc_lid->global_log_level = SC_LOG_DEBUG;
     sc_lid->op_filter = "boo";
@@ -1441,6 +1443,8 @@ int SCLogTestInit02()
     SCLogDeInitLogModule();
 
     sc_lid = SCLogAllocLogInitData();
+    if (sc_lid == NULL)
+        return 0;
     sc_lid->startup_message = "Test02";
     sc_lid->global_log_level = SC_LOG_DEBUG;
     sc_lid->op_filter = "boo";

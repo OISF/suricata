@@ -265,10 +265,8 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
     /* setup the Entry we use to search our hash with */
     ste = SCMalloc(sizeof(DetectThresholdEntry));
-    if (ste == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s", strerror(errno));
-        SCReturnInt(ret);
-    }
+    if (ste == NULL)
+        SCReturnInt(0);
     memset(ste, 0x00, sizeof(ste));
 
     if (PKT_IS_IPV4(p))

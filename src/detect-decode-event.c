@@ -148,10 +148,8 @@ DetectDecodeEventData *DetectDecodeEventParse (char *rawstr)
         goto error;
 
     de = SCMalloc(sizeof(DetectDecodeEventData));
-    if (de == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Malloc failed");
+    if (de == NULL)
         goto error;
-    }
 
     de->event = DEvents[i].code;
     return de;

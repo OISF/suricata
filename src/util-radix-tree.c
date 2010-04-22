@@ -59,7 +59,7 @@ struct in_addr *SCRadixValidateIPV4Address(const char *addr_str)
     struct in_addr *addr = NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixValidateIPV4Address. Exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -86,7 +86,7 @@ struct in6_addr *SCRadixValidateIPV6Address(const char *addr_str)
     struct in6_addr *addr = NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixValidateIPV6Address. Exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -141,9 +141,10 @@ static SCRadixUserData *SCRadixAllocSCRadixUserData(uint8_t netmask, void *user)
 {
     SCRadixUserData *user_data = SCMalloc(sizeof(SCRadixUserData));
     if (user_data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAllocSCRadixUserData. Exiting...");
         exit(EXIT_FAILURE);
     }
+
     memset(user_data, 0, sizeof(SCRadixUserData));
 
     user_data->netmask = netmask;
@@ -236,16 +237,12 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
         return NULL;
     }
 
-    if ( (prefix = SCMalloc(sizeof(SCRadixPrefix))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (prefix = SCMalloc(sizeof(SCRadixPrefix))) == NULL)
+        return NULL;
     memset(prefix, 0, sizeof(SCRadixPrefix));
 
-    if ( (prefix->stream = SCMalloc(key_bitlen / 8)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (prefix->stream = SCMalloc(key_bitlen / 8)) == NULL)
+        return NULL;
     memset(prefix->stream, 0, key_bitlen / 8);
 
     memcpy(prefix->stream, key_stream, key_bitlen / 8);
@@ -462,7 +459,7 @@ static inline SCRadixNode *SCRadixCreateNode()
     SCRadixNode *node = NULL;
 
     if ( (node = SCMalloc(sizeof(SCRadixNode))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixCreateNode. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(node, 0, sizeof(SCRadixNode));
@@ -499,7 +496,7 @@ SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*
     SCRadixTree *tree = NULL;
 
     if ( (tree = SCMalloc(sizeof(SCRadixTree))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixCreateRadixTree. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(tree, 0, sizeof(SCRadixTree));
@@ -613,7 +610,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
         node->netmask_cnt++;
         if ( (node->netmasks = SCRealloc(node->netmasks, (node->netmask_cnt *
                                                         sizeof(uint8_t)))) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAddKey. Exiting...");
             exit(EXIT_FAILURE);
         }
         node->netmasks[0] = netmask;
@@ -731,7 +728,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
                 node->netmask_cnt++;
                 if ( (node->netmasks = SCRealloc(node->netmasks, (node->netmask_cnt *
                                                                 sizeof(uint8_t)))) == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                    SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAddKey. Exiting...");
                     exit(EXIT_FAILURE);
                 }
 
@@ -803,7 +800,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
 
             if ( (inter_node->netmasks = SCMalloc((node->netmask_cnt - i) *
                                                 sizeof(uint8_t))) == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAddKey. Exiting...");
                 exit(EXIT_FAILURE);
             }
 
@@ -851,7 +848,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
         node->netmask_cnt++;
         if ( (node->netmasks = SCRealloc(node->netmasks, (node->netmask_cnt *
                                                         sizeof(uint8_t)))) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAddKey. Exiting...");
             exit(EXIT_FAILURE);
         }
 
@@ -1084,10 +1081,8 @@ static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
 
     if ( (dest->netmasks = SCRealloc(dest->netmasks,
                                    (src->netmask_cnt + dest->netmask_cnt) *
-                                   sizeof(uint8_t))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+                                   sizeof(uint8_t))) == NULL)
+        return;
 
     for (i = dest->netmask_cnt, j = 0; j < src->netmask_cnt; i++, j++)
         dest->netmasks[i] = src->netmasks[j];
@@ -1149,10 +1144,8 @@ static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
     }
 
     node->netmasks = SCRealloc(node->netmasks, node->netmask_cnt * sizeof(uint8_t));
-    if (node->netmasks == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory using realloc");
-        exit(EXIT_FAILURE);
-    }
+    if (node->netmasks == NULL)
+        return;
 
     return;
 }

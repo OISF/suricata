@@ -96,10 +96,8 @@ static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s, char *optstr)
     SigMatch *sm = NULL;
 
     data = SCMalloc(sizeof(DetectSeqData));
-    if (data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+    if (data == NULL)
         goto error;
-    }
 
     sm = SigMatchAlloc();
     if (sm == NULL) {

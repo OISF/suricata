@@ -121,11 +121,8 @@ void RunModeInitializeOutputs(void)
                 exit(EXIT_FAILURE);
             }
             RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-            if (runmode_output == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                    "Failed to allocate memory for output.");
-                exit(EXIT_FAILURE);
-            }
+            if (runmode_output == NULL)
+                return;
             runmode_output->tm_module = tm_module;
             runmode_output->output_ctx = output_ctx;
             TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);

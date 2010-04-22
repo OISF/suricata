@@ -526,8 +526,8 @@ void FlowInitConfig (char quiet)
     /* alloc hash memory */
     flow_hash = SCCalloc(flow_config.hash_size, sizeof(FlowBucket));
     if (flow_hash == NULL) {
-        printf("SCCalloc failed %s\n", strerror(errno));
-        exit(1);
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in FlowInitConfig. Exiting...");
+        exit(EXIT_FAILURE);
     }
     uint32_t i = 0;
 

@@ -104,10 +104,8 @@ static inline DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
 {
     DetectDceOpnumRange *dor = NULL;
 
-    if ( (dor = SCMalloc(sizeof(DetectDceOpnumRange))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
+    if ( (dor = SCMalloc(sizeof(DetectDceOpnumRange))) == NULL)
+        return NULL;
     memset(dor, 0, sizeof(DetectDceOpnumRange));
     dor->range1 = dor->range2 = DCE_OPNUM_RANGE_UNINITIALIZED;
 
@@ -154,10 +152,8 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         goto error;
     }
 
-    if ( (dod = SCMalloc(sizeof(DetectDceOpnumData))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if ( (dod = SCMalloc(sizeof(DetectDceOpnumData))) == NULL)
         goto error;
-    }
     memset(dod, 0, sizeof(DetectDceOpnumData));
 
     if ( (dup_str = SCStrdup(pcre_sub_str)) == NULL) {
@@ -177,6 +173,8 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         dup_str = comma_token + 1;
 
         dor = DetectDceOpnumAllocDetectDceOpnumRange();
+        if (dor == NULL)
+            goto error;
 
         if ((hyphen_token = index(dup_str_temp, '-')) != NULL) {
             hyphen_token[0] = '\0';
@@ -206,6 +204,8 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
     }
 
     dor = DetectDceOpnumAllocDetectDceOpnumRange();
+    if (dor == NULL)
+        goto error;
 
     if ( (hyphen_token = index(dup_str, '-')) != NULL) {
         hyphen_token[0] = '\0';

@@ -316,10 +316,8 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     /* Setup Threadvars */
     IPFWThreadVars *ptv = SCMalloc(sizeof(IPFWThreadVars));
-    if (ptv == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,"Error Allocating memory for IPFW Receive PTV: %s",strerror(errno));
+    if (ptv == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    }
     memset(ptv, 0, sizeof(IPFWThreadVars));
 
     SCMutexInit(&ipfw_socket_lock, NULL);
@@ -452,10 +450,8 @@ TmEcode DecodeIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,"Error Allocating memory for IPFW Decode DTV: %s",strerror(errno));
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeRegisterPerfCounters(dtv, tv);
@@ -601,10 +597,8 @@ TmEcode VerdictIPFWThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
 
     /* Setup Thread vars */
-    if ( (ptv = SCMalloc(sizeof(IPFWThreadVars))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,"Error Allocating memory for IPFW Verdict PTV: %s", strerror(errno));
+    if ( (ptv = SCMalloc(sizeof(IPFWThreadVars))) == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    }
     memset(ptv, 0, sizeof(IPFWThreadVars));
 
 

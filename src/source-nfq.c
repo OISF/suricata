@@ -498,6 +498,7 @@ process_rv:
  * \brief NFQ receive module main entry function: receive a packet from NFQ
  */
 TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     /* make sure we have at least one packet in the packet pool, to prevent
@@ -572,6 +573,7 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
  * \brief NFQ verdict module packet entry function
  */
 TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
     /* if this is a tunnel packet we check if we are ready to verdict
@@ -609,6 +611,7 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
  */
 TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
+
     IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
     IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -642,10 +645,8 @@ TmEcode DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed");
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
         return TM_ECODE_FAILED;
-    }
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeRegisterPerfCounters(dtv, tv);
