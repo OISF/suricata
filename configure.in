@@ -313,6 +313,10 @@ AC_INIT(configure.in)
     CFLAGS="$CFLAGS -DNFQ"
 
 #libnfnetlink
+case $host in
+*-*-mingw32*)
+;;
+*)
     AC_ARG_WITH(libnfnetlink_includes,
             [  --with-libnfnetlink-includes=DIR  libnfnetlink include directory],
             [with_libnfnetlink_includes="$withval"],[with_libnfnetlink_includes=no])
@@ -343,6 +347,8 @@ AC_INIT(configure.in)
     echo
     exit 
     fi
+;;
+esac
 
 #libnetfilter_queue
     AC_ARG_WITH(libnetfilter_queue_includes,
@@ -365,7 +371,25 @@ AC_INIT(configure.in)
 #LDFLAGS="${LDFLAGS} -lnetfilter_queue"
 
     NFQ=""
+
+case $host in
+*-*-mingw32*)
+    AC_CHECK_LIB(netfilter_queue, nfq_open,, NFQ="no",-lws2_32)
+
+    AC_ARG_WITH(netfilterforwin_includes,
+            [  --with-netfilterforwin-includes=DIR  netfilterforwin include directory],
+            [with_netfilterforwin_includes="$withval"],[with_netfilterforwin_includes=no])
+
+    if test "$with_netfilterforwin_includes" != "no"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_netfilterforwin_includes}"
+    else
+    CPPFLAGS="${CPPFLAGS} -I../../netfilterforwin"
+    fi
+;;
+*)
     AC_CHECK_LIB(netfilter_queue, nfq_open,, NFQ="no",)
+;;
+esac
 
     if test "$NFQ" = "no"; then
     echo

@@ -1,8 +1,9 @@
-WIN32
-=====
+This file describes how to build and run Suricata on Windows. Currently
+Windows XP and above are supported.
 
-This section describes how to build and run Suricata on Windows. Currently
-Windows XP and above are supported and only in the IDS pcap mode. You will need to download and install 7zip (www.7-zip.org) to extract these files.
+
+Preparing the build environment
+===============================
 
 1. Setup MinGW environment from http://mingw.org
 
@@ -79,7 +80,7 @@ the following packages to c:\mingw (use newer versions if you like):
     - Copy includes to c:/mingw/include and libs (.a) to c:/mingw/lib
     - Rename libwpcap to libpcap
 
-8. Get and compile Suricata
+7. Get and compile Suricata
 
     git clone git://phalanx.openinfosecfoundation.org/oisf.git
     cd oisf
@@ -91,16 +92,69 @@ the following packages to c:\mingw (use newer versions if you like):
 
     ./autogen.sh
     ./configure CFLAGS="-DYAML_DECLARE_STATIC"
+	# add --enable-nfqueue as parameter to configure to enable inline mode
     make
 
 If everything goes well, you'll end up with suricata.exe in src/.lib. To test it
-you will need libpcre-0.dll ,libz-1.dll, and pthreadGC2.dll which you already have somewhere
-under c:/mingw or c:/msys. To try it out:
+you will need libpcre-0.dll, libz-1.dll, and pthreadGC2.dll which you already have somewhere
+under c:/mingw or c:/msys. To prepare the runtime environment:
 
     - copy the executable and the DLLs to a dedicated directory
     - get there classification.config and suricata.yaml
     - edit suricata.yaml (at least set the directories correctly)
+
+PCAP Mode
+=========
+
+Make sure you have winpcap runtime and driver installed and then:
+
     - determine your eth device UUID in the registry:
         HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\
     - now cross your fingers and do:
-        suricata.exe -c suricata.yaml -i \DEVICE\NPF_{your device uuid}
+        suricata.exe -c suricata.yaml -i \DEVICE\{your device uuid}
+
+
+Inline Mode
+===========
+
+You need to downoad, compile and install netfilterforwin (the netfilter.sys
+driver and Windows port of the libnetfilter_queue library):
+
+1. Download and install Windows Driver Kit from Microsoft
+
+    http://www.microsoft.com/downloads/details.aspx?displaylang=en&FamilyID=36a2630f-5d56-43b5-b996-7633f2ec14ff
+
+2. Download netfilterforwin
+
+    http://sourceforge.net/projects/netfilterforwin/
+
+	Unpack it so the netfilterforwin directory (omit the version from its name)
+	is beside the oisf directory.
+
+3. Compile the driver
+
+    - Open the build environment from you Start menu:
+        Start->All Programs->windows Driver Kits->WDK xxxx.yyyy.z->Build Environments
+            ->Windows Server 2003->x86 Free Build Environment
+        (or the one which is proper for your system)
+    - cd to netfilterforwin/netfilter
+    - enter command:
+        nmake
+
+4. Install the driver
+
+    - copy inf/* files and the freshly built netfilter.sys to a separate directory
+    - open network connecions
+	- right-click an interface, select properties
+	- click install...
+	- select service
+	- click add
+	- click 'have disk...'
+	- browse to the directory with the inf files and netfilter.sys, select netfilter.inf anc click ok
+	- confirm everything
+
+	You should have the driver installed now.
+
+5. Run Suricata in inline mode:
+
+    suricata.exe -c suricata.yaml -q 0

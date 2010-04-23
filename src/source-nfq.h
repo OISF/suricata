@@ -6,7 +6,11 @@
 #ifdef NFQ
 
 #include "threads.h"
+#ifdef OS_WIN32
+#include <netfilter/netfilter.h>
+#else
 #include <linux/netfilter.h>		/* for NF_ACCEPT */
+#endif
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
 #define NFQ_MAX_QUEUE 16
@@ -27,13 +31,19 @@ typedef struct NFQPacketVars_
 typedef struct NFQThreadVars_
 {
     struct nfq_handle *h;
+#ifndef OS_WIN32
     struct nfnl_handle *nh;
+    int fd;
+#else
+    HANDLE fd;
+    OVERLAPPED ovr;
+#endif
     /* 2 threads deal with the queue handle, so add a mutex */
     struct nfq_q_handle *qh;
     SCMutex mutex_qh;
     /* this one should be not changing after init */
     uint16_t queue_num;
-    int fd;
+
 #ifdef DBG_PERF
     int dbg_maxreadsize;
 #endif /* DBG_PERF */
