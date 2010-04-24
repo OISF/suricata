@@ -5,37 +5,7 @@
 
 /** \todo: Remove the fprintf errors in favor of logging */
 
-int ByteExtract(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
-{
-    uint64_t b = 0;
-    int i;
-
-    if ((e != BYTE_BIG_ENDIAN) && (e != BYTE_LITTLE_ENDIAN)) {
-        /** \todo Need standard return values */
-        return -1;
-    }
-
-    *res = 0;
-
-    /* Go through each byte and merge it into the result in the correct order */
-    /** \todo Probably a more efficient way to do this. */
-    for (i = 0; i < len; i++) {
-
-        if (e == BYTE_LITTLE_ENDIAN) {
-            b = bytes[i];
-        }
-        else {
-            b = bytes[len - i - 1];
-        }
-
-        *res |= (b << ((i & 7) << 3));
-
-    }
-
-    return len;
-}
-
-inline int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
+int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
 {
     uint64_t i64;
     int ret;
@@ -56,7 +26,7 @@ inline int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *
     return ret;
 }
 
-inline int ByteExtractUint32(uint32_t *res, int e, uint16_t len, const uint8_t *bytes)
+int ByteExtractUint32(uint32_t *res, int e, uint16_t len, const uint8_t *bytes)
 {
     uint64_t i64;
     int ret;
@@ -77,7 +47,7 @@ inline int ByteExtractUint32(uint32_t *res, int e, uint16_t len, const uint8_t *
     return ret;
 }
 
-inline int ByteExtractUint16(uint16_t *res, int e, uint16_t len, const uint8_t *bytes)
+int ByteExtractUint16(uint16_t *res, int e, uint16_t len, const uint8_t *bytes)
 {
     uint64_t i64;
     int ret;
@@ -152,12 +122,12 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
     return (endptr - ptr);
 }
 
-inline int ByteExtractStringUint64(uint64_t *res, int base, uint16_t len, const char *str)
+int ByteExtractStringUint64(uint64_t *res, int base, uint16_t len, const char *str)
 {
     return ByteExtractString(res, base, len, str);
 }
 
-inline int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *str)
+int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *str)
 {
     uint64_t i64;
     int ret;
@@ -178,7 +148,7 @@ inline int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const 
     return ret;
 }
 
-inline int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *str)
+int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *str)
 {
     uint64_t i64;
     int ret;
@@ -199,7 +169,7 @@ inline int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const 
     return ret;
 }
 
-inline int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str)
+int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str)
 {
     uint64_t i64;
     int ret;
@@ -271,12 +241,12 @@ int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *st
     return (endptr - ptr);
 }
 
-inline int ByteExtractStringInt64(int64_t *res, int base, uint16_t len, const char *str)
+int ByteExtractStringInt64(int64_t *res, int base, uint16_t len, const char *str)
 {
     return ByteExtractStringSigned(res, base, len, str);
 }
 
-inline int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const char *str)
+int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const char *str)
 {
     int64_t i64;
     int ret;
@@ -297,7 +267,7 @@ inline int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const ch
     return ret;
 }
 
-inline int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const char *str)
+int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const char *str)
 {
     int64_t i64;
     int ret;
@@ -318,7 +288,7 @@ inline int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const ch
     return ret;
 }
 
-inline int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char *str)
+int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char *str)
 {
     int64_t i64;
     int ret;
