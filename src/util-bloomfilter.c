@@ -77,22 +77,6 @@ int BloomFilterAdd(BloomFilter *bf, void *data, uint16_t datalen) {
     return 0;
 }
 
-inline int BloomFilterTest(BloomFilter *bf, void *data, uint16_t datalen) {
-    uint8_t iter = 0;
-    uint32_t hash = 0;
-    int hit = 1;
-
-    for (iter = 0; iter < bf->hash_iterations; iter++) {
-        hash = bf->Hash(data, datalen, iter, bf->bitarray_size);
-        if (!(bf->bitarray[hash/8] & (1<<hash%8))) {
-            hit = 0;
-            break;
-        }
-    }
-
-    return hit;
-}
-
 uint32_t BloomFilterMemoryCnt(BloomFilter *bf) {
      if (bf == NULL)
          return 0;
