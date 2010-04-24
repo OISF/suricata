@@ -1,10 +1,16 @@
 /* Copyright (c) 2008 Victor Julien <victor@inliniac.net> */
 
-/* TODO
- * - test if Receive and Verdict if both are present
+/**
+ *  \file
  *
+ *  \brief Netfilter's netfilter_queue support for reading packets from the
+ *         kernel and setting verdicts back to it (inline mode).
  *
+ *  Supported on Linux and Windows.
  *
+ *  \todo test if Receive and Verdict if both are present
+ *
+ *  \author Victor Julien <victor@inliniac.net>
  */
 
 #include "suricata-common.h"
@@ -289,11 +295,12 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
     SCLogDebug("nfq_t->h %p, nfq_t->nh %p, nfq_t->qh %p, nfq_t->fd %" PRId32 "",
             nfq_t->h, nfq_t->nh, nfq_t->qh, nfq_t->fd);
 #else /* OS_WIN32 */
-	SCMutexInit(&nfq_t->mutex_qh, NULL);
-	nfq_t->ovr.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	nfq_t->fd = nfq_fd(nfq_t->h);
+    SCMutexInit(&nfq_t->mutex_qh, NULL);
+    nfq_t->ovr.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    nfq_t->fd = nfq_fd(nfq_t->h);
     SCLogDebug("nfq_t->h %p, nfq_t->qh %p, nfq_t->fd %p", nfq_t->h, nfq_t->qh, nfq_t->fd);
 #endif /* OS_WIN32 */
+
     return TM_ECODE_OK;
 }
 
@@ -360,53 +367,22 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     return TM_ECODE_OK;
 }
 
+/**
+ * \brief NFQ function to get a packet from the kernel
+ *
+ * \note separate functions for Linux and Win32 for readability.
+ */
+#ifndef OS_WIN32
 void NFQRecvPkt(NFQThreadVars *t) {
     int rv, ret;
     char buf[70000];
 
-#ifdef OS_WIN32
-	static int timeouted = 0;
-
-	if (timeouted) {
-		if (WaitForSingleObject(t->ovr.hEvent, 1000) == WAIT_TIMEOUT) {
-			rv = -1;
-			errno = EINTR;
-			goto process_rv;
-		}
-		timeouted = 0;
-	}
-
-read_packet_again:
-
-	if (!ReadFile(t->fd, buf, sizeof(buf), (DWORD*)&rv, &t->ovr)) {
-		if (GetLastError() != ERROR_IO_PENDING) {
-			rv = -1;
-			errno = EIO;
-		} else {
-			if (WaitForSingleObject(t->ovr.hEvent, 1000) == WAIT_TIMEOUT) {
-				rv = -1;
-				errno = EINTR;
-				timeouted = 1;
-			} else {
-				/* We needn't to call GetOverlappedResult() because it always fail with our error code ERROR_MORE_DATA. */
-				goto read_packet_again;
-			}
-		}
-	}
-
-process_rv:
-
-#else /* OS_WIN32 */
     /* XXX what happens on rv == 0? */
     rv = recv(t->fd, buf, sizeof(buf), 0);
-#endif /* OS_WIN32 */
 
     if (rv < 0) {
-        if (errno == EINTR
-#ifndef OS_WIN32
-			|| errno == EWOULDBLOCK
-#endif
-			) {
+        if (errno == EINTR || errno == EWOULDBLOCK
+           ) {
             /* no error on timeout */
         } else {
 #ifdef COUNTERS
@@ -432,7 +408,74 @@ process_rv:
         }
     }
 }
+#else /* WIN32 version of NFQRecvPkt */
+void NFQRecvPkt(NFQThreadVars *t) {
+    int rv, ret;
+    char buf[70000];
+    static int timeouted = 0;
 
+    if (timeouted) {
+        if (WaitForSingleObject(t->ovr.hEvent, 1000) == WAIT_TIMEOUT) {
+            rv = -1;
+            errno = EINTR;
+            goto process_rv;
+        }
+        timeouted = 0;
+    }
+
+read_packet_again:
+
+    if (!ReadFile(t->fd, buf, sizeof(buf), (DWORD*)&rv, &t->ovr)) {
+        if (GetLastError() != ERROR_IO_PENDING) {
+            rv = -1;
+            errno = EIO;
+        } else {
+            if (WaitForSingleObject(t->ovr.hEvent, 1000) == WAIT_TIMEOUT) {
+                rv = -1;
+                errno = EINTR;
+                timeouted = 1;
+            } else {
+                /* We needn't to call GetOverlappedResult() because it always
+                 * fail with our error code ERROR_MORE_DATA. */
+                goto read_packet_again;
+            }
+        }
+    }
+
+process_rv:
+
+    if (rv < 0) {
+        if (errno == EINTR) {
+            /* no error on timeout */
+        } else {
+#ifdef COUNTERS
+            t->errs++;
+#endif /* COUNTERS */
+        }
+    } else if(rv == 0) {
+        SCLogWarning(SC_ERR_NFQ_RECV, "recv got returncode 0");
+    } else {
+#ifdef DBG_PERF
+        if (rv > t->dbg_maxreadsize)
+            t->dbg_maxreadsize = rv;
+#endif /* DBG_PERF */
+
+        //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
+
+        SCMutexLock(&t->mutex_qh);
+        ret = nfq_handle_packet(t->h, buf, rv);
+        SCMutexUnlock(&t->mutex_qh);
+
+        if (ret != 0) {
+            SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "nfq_handle_packet error %" PRId32 "", ret);
+        }
+    }
+}
+#endif /* OS_WIN32 */
+
+/**
+ * \brief NFQ receive module main entry function: receive a packet from NFQ
+ */
 TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
@@ -451,6 +494,9 @@ TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     return TM_ECODE_OK;
 }
 
+/**
+ * \brief NFQ receive module stats printing function
+ */
 void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 #ifdef COUNTERS
@@ -459,6 +505,9 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
 #endif
 }
 
+/**
+ * \brief NFQ verdict module stats printing function
+ */
 void VerdictNFQThreadExitStats(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 #ifdef COUNTERS
@@ -467,6 +516,9 @@ void VerdictNFQThreadExitStats(ThreadVars *tv, void *data) {
 #endif
 }
 
+/**
+ * \brief NFQ verdict function
+ */
 void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     int ret;
     uint32_t verdict;
@@ -495,6 +547,9 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     }
 }
 
+/**
+ * \brief NFQ verdict module packet entry function
+ */
 TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
@@ -528,10 +583,8 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     return TM_ECODE_OK;
 }
 
-/*
- *
- *
- *
+/**
+ * \brief Decode a packet coming from NFQ
  */
 TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
@@ -561,6 +614,9 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return TM_ECODE_OK;
 }
 
+/**
+ * \brief Initialize the NFQ Decode threadvars
+ */
 TmEcode DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
