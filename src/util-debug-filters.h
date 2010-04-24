@@ -7,6 +7,7 @@
 
 #include <pthread.h>
 #include "threads.h"
+#include "util-mem.h"
 
 /**
  * \brief Enum that holds the different kinds of filters available
@@ -99,4 +100,18 @@ int SCLogMatchFDFilter(const char *);
 
 int SCLogPrintFGFilters(void);
 
+void SCLogAddToFGFFileList(SCLogFGFilterFile *,
+                                         const char *,
+                                         const char *, int,
+                                         int);
+
+void SCLogAddToFGFFuncList(SCLogFGFilterFile *,
+                                         SCLogFGFilterFunc *,
+                                         const char *, int);
+
+void SCLogAddToFGFLineList(SCLogFGFilterFunc *,
+                                         SCLogFGFilterLine *,
+                                         int);
+
+void SCLogReleaseFDFilter(SCLogFDFilter *);
 #endif /* __DEBUG_H__ */

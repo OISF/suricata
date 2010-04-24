@@ -27,7 +27,7 @@ int sc_log_fd_filters_present = 0;
 /**
  * \brief Holds the fine-grained filters
  */
-static SCLogFGFilterFile *sc_log_fg_filters[SC_LOG_FILTER_MAX] = { NULL, NULL };
+SCLogFGFilterFile *sc_log_fg_filters[SC_LOG_FILTER_MAX] = { NULL, NULL };
 
 /**
  * \brief Mutex for accessing the fine-grained fiters sc_log_fg_filters
@@ -55,159 +55,6 @@ static SCLogFDFilterThreadList *sc_log_fd_filters_tl = NULL;
  */
 static SCMutex sc_log_fd_filters_tl_m = PTHREAD_MUTEX_INITIALIZER;
 
-
-/**
- * \brief Helper function used internally to add a FG filter.  This function is
- *        called when the file component of the incoming filter has no entry
- *        in the filter list.
- *
- * \param fgf_file The file component(basically the position in the list) from
- *                 the filter list, after which the new filter has to be added
- * \param file     File_name of the filter
- * \param function Function_name of the filter
- * \param line     Line number of the filter
- * \param listtype The filter listtype.  Can be either a blacklist or whitelist
- *                 filter listtype(SC_LOG_FILTER_BL or SC_LOG_FILTER_WL)
- */
-static inline void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
-                                         const char *file,
-                                         const char *function, int line,
-                                         int listtype)
-{
-    SCLogFGFilterFile *fgf_file_temp = NULL;
-    SCLogFGFilterFunc *fgf_func_temp = NULL;
-    SCLogFGFilterLine *fgf_line_temp = NULL;
-
-    if ( (fgf_file_temp = SCMalloc(sizeof(SCLogFGFilterFile))) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-    memset(fgf_file_temp, 0, sizeof(SCLogFGFilterFile));
-
-    if ( file != NULL && (fgf_file_temp->file = SCStrdup(file)) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if ( (fgf_func_temp = SCMalloc(sizeof(SCLogFGFilterFunc))) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-    memset(fgf_func_temp, 0, sizeof(SCLogFGFilterFunc));
-
-    if ( function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-    memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
-
-    fgf_line_temp->line = line;
-
-    /* add to the lists */
-    fgf_func_temp->line = fgf_line_temp;
-
-    fgf_file_temp->func = fgf_func_temp;
-
-    if (fgf_file == NULL)
-        sc_log_fg_filters[listtype] = fgf_file_temp;
-    else
-        fgf_file->next = fgf_file_temp;
-
-    return;
-}
-
-/**
- * \brief Helper function used internally to add a FG filter.  This function is
- *        called when the file component of the incoming filter has an entry
- *        in the filter list, but the function component doesn't have an entry
- *        for the corresponding file component
- *
- * \param fgf_file The file component from the filter list to which the new
- *                 filter has to be added
- * \param fgf_func The function component(basically the position in the list),
- *                 from the filter list, after which the new filter has to be
- *                 added
- * \param function Function_name of the filter
- * \param line     Line number of the filter
- */
-static inline void SCLogAddToFGFFuncList(SCLogFGFilterFile *fgf_file,
-                                         SCLogFGFilterFunc *fgf_func,
-                                         const char *function, int line)
-{
-    SCLogFGFilterFunc *fgf_func_temp = NULL;
-    SCLogFGFilterLine *fgf_line_temp = NULL;
-
-    if ( (fgf_func_temp = SCMalloc(sizeof(SCLogFGFilterFunc))) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-    memset(fgf_func_temp, 0, sizeof(SCLogFGFilterFunc));
-
-    if ( function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-    memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
-
-    fgf_line_temp->line = line;
-
-    /* add to the lists */
-    fgf_func_temp->line = fgf_line_temp;
-
-    if (fgf_func == NULL)
-        fgf_file->func = fgf_func_temp;
-    else
-        fgf_func->next = fgf_func_temp;
-
-    return;
-}
-
-/**
- * \brief Helper function used internally to add a FG filter.  This function is
- *        called when the file and function components of the incoming filter
- *        have an entry in the filter list, but the line component doesn't have
- *        an entry for the corresponding function component
- *
- * \param fgf_func The function component from the filter list to which the new
- *                 filter has to be added
- * \param fgf_line The function component(basically the position in the list),
- *                 from the filter list, after which the new filter has to be
- *                 added
- * \param line     Line number of the filter
- */
-static inline void SCLogAddToFGFLineList(SCLogFGFilterFunc *fgf_func,
-                                         SCLogFGFilterLine *fgf_line,
-                                         int line)
-{
-    SCLogFGFilterLine *fgf_line_temp = NULL;
-
-    if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
-        printf("Error Allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-    memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
-
-    fgf_line_temp->line = line;
-
-    /* add to the lists */
-    if (fgf_line == NULL)
-        fgf_func->line = fgf_line_temp;
-    else
-        fgf_line->next = fgf_line_temp;
-
-    return;
-}
-
 /**
  * \brief Helper function used internally to add a FG filter
  *
@@ -220,7 +67,7 @@ static inline void SCLogAddToFGFLineList(SCLogFGFilterFunc *fgf_func,
  * \retval  0 on successfully adding the filter;
  * \retval -1 on failure
  */
-static inline int SCLogAddFGFilter(const char *file, const char *function,
+int SCLogAddFGFilter(const char *file, const char *function,
                                    int line, int listtype)
 {
     SCLogFGFilterFile *fgf_file = NULL;
@@ -607,22 +454,6 @@ int SCLogPrintFGFilters()
  */
 
 /**
- * \brief Releases the memory alloted to a FD filter
- *
- * \param Pointer to the FD filter that has to be freed
- */
-static inline void SCLogReleaseFDFilter(SCLogFDFilter *fdf)
-{
-    if (fdf != NULL) {
-        if (fdf->func != NULL)
-            SCFree(fdf->func);
-        SCFree(fdf);
-    }
-
-    return;
-}
-
-/**
  * \brief Checks if there is a match for the incoming log_message with any
  *        of the FD filters
  *
@@ -999,3 +830,172 @@ int SCLogPrintFDFilters(void)
 
     return count;
 }
+
+/**
+ * \brief Helper function used internally to add a FG filter.  This function is
+ *        called when the file component of the incoming filter has no entry
+ *        in the filter list.
+ *
+ * \param fgf_file The file component(basically the position in the list) from
+ *                 the filter list, after which the new filter has to be added
+ * \param file     File_name of the filter
+ * \param function Function_name of the filter
+ * \param line     Line number of the filter
+ * \param listtype The filter listtype.  Can be either a blacklist or whitelist
+ *                 filter listtype(SC_LOG_FILTER_BL or SC_LOG_FILTER_WL)
+ */
+void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
+                                         const char *file,
+                                         const char *function, int line,
+                                         int listtype)
+{
+    SCLogFGFilterFile *fgf_file_temp = NULL;
+    SCLogFGFilterFunc *fgf_func_temp = NULL;
+    SCLogFGFilterLine *fgf_line_temp = NULL;
+
+    if ( (fgf_file_temp = SCMalloc(sizeof(SCLogFGFilterFile))) == NULL) {
+        printf("Error Allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    memset(fgf_file_temp, 0, sizeof(SCLogFGFilterFile));
+
+    if ( file != NULL && (fgf_file_temp->file = SCStrdup(file)) == NULL) {
+        printf("Error Allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if ( (fgf_func_temp = SCMalloc(sizeof(SCLogFGFilterFunc))) == NULL) {
+        printf("Error Allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    memset(fgf_func_temp, 0, sizeof(SCLogFGFilterFunc));
+
+    if ( function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
+        printf("Error Allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
+        printf("Error Allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
+
+    fgf_line_temp->line = line;
+
+    /* add to the lists */
+    fgf_func_temp->line = fgf_line_temp;
+
+    fgf_file_temp->func = fgf_func_temp;
+
+    if (fgf_file == NULL)
+        sc_log_fg_filters[listtype] = fgf_file_temp;
+    else
+        fgf_file->next = fgf_file_temp;
+
+    return;
+}
+
+/**
+ * \brief Helper function used internally to add a FG filter.  This function is
+ *        called when the file component of the incoming filter has an entry
+ *        in the filter list, but the function component doesn't have an entry
+ *        for the corresponding file component
+ *
+ * \param fgf_file The file component from the filter list to which the new
+ *                 filter has to be added
+ * \param fgf_func The function component(basically the position in the list),
+ *                 from the filter list, after which the new filter has to be
+ *                 added
+ * \param function Function_name of the filter
+ * \param line     Line number of the filter
+ */
+void SCLogAddToFGFFuncList(SCLogFGFilterFile *fgf_file,
+                                         SCLogFGFilterFunc *fgf_func,
+                                         const char *function, int line)
+{
+    SCLogFGFilterFunc *fgf_func_temp = NULL;
+    SCLogFGFilterLine *fgf_line_temp = NULL;
+
+    if ( (fgf_func_temp = SCMalloc(sizeof(SCLogFGFilterFunc))) == NULL) {
+        printf("Error Allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    memset(fgf_func_temp, 0, sizeof(SCLogFGFilterFunc));
+
+    if ( function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
+        printf("Error Allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
+        printf("Error Allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
+
+    fgf_line_temp->line = line;
+
+    /* add to the lists */
+    fgf_func_temp->line = fgf_line_temp;
+
+    if (fgf_func == NULL)
+        fgf_file->func = fgf_func_temp;
+    else
+        fgf_func->next = fgf_func_temp;
+
+    return;
+}
+
+/**
+ * \brief Helper function used internally to add a FG filter.  This function is
+ *        called when the file and function components of the incoming filter
+ *        have an entry in the filter list, but the line component doesn't have
+ *        an entry for the corresponding function component
+ *
+ * \param fgf_func The function component from the filter list to which the new
+ *                 filter has to be added
+ * \param fgf_line The function component(basically the position in the list),
+ *                 from the filter list, after which the new filter has to be
+ *                 added
+ * \param line     Line number of the filter
+ */
+void SCLogAddToFGFLineList(SCLogFGFilterFunc *fgf_func,
+                                         SCLogFGFilterLine *fgf_line,
+                                         int line)
+{
+    SCLogFGFilterLine *fgf_line_temp = NULL;
+
+    if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
+        printf("Error Allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
+
+    fgf_line_temp->line = line;
+
+    /* add to the lists */
+    if (fgf_line == NULL)
+        fgf_func->line = fgf_line_temp;
+    else
+        fgf_line->next = fgf_line_temp;
+
+    return;
+}
+
+/**
+ * \brief Releases the memory alloted to a FD filter
+ *
+ * \param Pointer to the FD filter that has to be freed
+ */
+void SCLogReleaseFDFilter(SCLogFDFilter *fdf)
+{
+    if (fdf != NULL) {
+        if (fdf->func != NULL)
+            SCFree(fdf->func);
+        SCFree(fdf);
+    }
+
+    return;
+}
+
