@@ -413,7 +413,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
     return 0;
 }
 
-inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
+SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
     SCEnter();
 
     int ds,f;
