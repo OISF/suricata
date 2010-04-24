@@ -186,8 +186,66 @@ typedef struct IPV4Vars_
     IPV4Opt *o_rtralt;
 } IPV4Vars;
 
-inline uint16_t IPV4CalculateChecksum(uint16_t *, uint16_t);
 void DecodeIPV4RegisterTests(void);
+
+/** ----- Inline functions ----- */
+static inline uint16_t IPV4CalculateChecksum(uint16_t *, uint16_t);
+/**
+ * \brief Calculates the checksum for the IP packet
+ *
+ * \param pkt  Pointer to the start of the IP packet
+ * \param hlen Length of the IP header
+ *
+ * \retval csum Checksum for the IP packet
+ */
+static inline uint16_t IPV4CalculateChecksum(uint16_t *pkt, uint16_t hlen)
+{
+    uint32_t csum = pkt[0];
+
+    csum += pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[6] + pkt[7] + pkt[8] +
+        pkt[9];
+
+    hlen -= 20;
+    pkt += 10;
+
+    if (hlen == 0) {
+        ;
+    }
+    if (hlen == 4)
+        csum += pkt[0] + pkt[1];
+    else if (hlen == 8)
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3];
+    else if (hlen == 12)
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5];
+    else if (hlen == 16)
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+            pkt[7];
+    else if (hlen == 20)
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+            pkt[7] + pkt[8] + pkt[9];
+    else if (hlen == 24)
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11];
+    else if (hlen == 28)
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13];
+    else if (hlen == 32)
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
+            pkt[14] + pkt[15];
+    if (hlen == 36)
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
+            pkt[14] + pkt[15] + pkt[16] + pkt[17];
+    if (hlen == 40)
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
+            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
+            pkt[14] + pkt[15] + pkt[16] + pkt[17] + pkt[18] + pkt[19];
+
+    csum = (csum >> 16) + (csum & 0x0000FFFF);
+
+    return (uint16_t) ~csum;
+}
 
 #endif /* __DECODE_IPV4_H__ */
 
