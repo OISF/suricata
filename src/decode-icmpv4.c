@@ -13,58 +13,6 @@
 #include "util-debug.h"
 
 /**
- * \brief Calculates the checksum for the ICMP packet
- *
- * \param pkt  Pointer to the start of the ICMP packet
- * \param hlen Total length of the ICMP packet(header + payload)
- *
- * \retval csum Checksum for the ICMP packet
- */
-inline uint16_t ICMPV4CalculateChecksum(uint16_t *pkt, uint16_t tlen)
-{
-    uint16_t pad = 0;
-    uint32_t csum = pkt[0];
-
-    tlen -= 4;
-    pkt += 2;
-
-    while (tlen >= 32) {
-        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
-            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
-            pkt[14] + pkt[15];
-        tlen -= 32;
-        pkt += 16;
-    }
-
-    while(tlen >= 8) {
-        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3];
-        tlen -= 8;
-        pkt += 4;
-    }
-
-    while(tlen >= 4) {
-        csum += pkt[0] + pkt[1];
-        tlen -= 4;
-        pkt += 2;
-    }
-
-    while (tlen > 1) {
-        csum += pkt[0];
-        tlen -= 2;
-        pkt += 1;
-    }
-
-    if (tlen == 1) {
-        *(uint8_t *)(&pad) = (*(uint8_t *)pkt);
-        csum += pad;
-    }
-
-    csum = (csum >> 16) + (csum & 0x0000FFFF);
-
-    return (uint16_t) ~csum;
-}
-
-/**
  * Note, this is the IP header, plus a bit of the original packet, not the whole thing!
  */
 void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
