@@ -75,7 +75,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *n
 
 #ifdef UNITTESTS
 
-inline SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *,
+SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *,
                                               DetectEngineCtx *,
                                               DetectEngineThreadCtx *,
                                               Packet *);
