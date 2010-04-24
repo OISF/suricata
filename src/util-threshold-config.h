@@ -6,8 +6,8 @@
 #define __UTIL_THRESHOLD_CONFIG_H__
 
 void SCThresholdConfDeInitContext(DetectEngineCtx *, FILE *);
-inline void SCThresholdConfParseFile(DetectEngineCtx *, FILE *);
-inline int SCThresholdConfInitContext(DetectEngineCtx *, FILE *);
+void SCThresholdConfParseFile(DetectEngineCtx *, FILE *);
+int SCThresholdConfInitContext(DetectEngineCtx *, FILE *);
 
 void SCThresholdConfRegisterTests();
 

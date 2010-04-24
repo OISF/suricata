@@ -62,7 +62,7 @@ char *SCThresholdConfGetConfFilename(void)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-inline int SCThresholdConfInitContext(DetectEngineCtx *de_ctx, FILE *utfd)
+int SCThresholdConfInitContext(DetectEngineCtx *de_ctx, FILE *utfd)
 {
     char *filename = NULL;
     const char *eb = NULL;
@@ -124,7 +124,7 @@ void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-inline int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
+int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
 {
     const char *th_gid = NULL;
     const char *th_sid = NULL;
@@ -409,7 +409,7 @@ int SCThresholdConfIsLineBlankOrComment(char *line)
  * \param de_ctx Pointer to the Detection Engine Context.
  * \param fd Pointer to file descriptor.
  */
-inline void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
+void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
 
