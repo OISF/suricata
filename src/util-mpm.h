@@ -138,8 +138,6 @@ void PmqReset(PatternMatcherQueue *);
 void PmqCleanup(PatternMatcherQueue *);
 void PmqFree(PatternMatcherQueue *);
 
-int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, MpmEndMatch *, uint16_t, uint16_t);
-
 MpmEndMatch *MpmAllocEndMatch (MpmCtx *);
 void MpmEndMatchFreeAll(MpmCtx *mpm_ctx, MpmEndMatch *em);
 
@@ -149,6 +147,7 @@ void MpmRegisterTests(void);
 /** Return the max pattern length of a Matcher type given as arg */
 int32_t MpmMatcherGetMaxPatternLength(uint16_t);
 
+int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, MpmEndMatch *, uint16_t, uint16_t);
 void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher, int module_handle);
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
 uint32_t MpmGetHashSize(const char *);

@@ -47,6 +47,60 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
     SCReturnInt(0);
 }
 
+/** \brief Verify and store a match
+ *
+ *   used at search runtime
+ *
+ *  \param thread_ctx mpm thread ctx
+ *  \param pmq storage for match results
+ *  \param list end match to check against (entire list will be checked)
+ *  \param offset match offset in the buffer
+ *  \param patlen length of the pattern we're checking
+ *
+ *  \retval 0 no match after all
+ *  \retval 1 (new) match
+ */
+int
+MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *list, uint16_t offset, uint16_t patlen)
+{
+    SCEnter();
+
+    MpmEndMatch *em = list;
+    int ret = 0;
+
+    for ( ; em != NULL; em = em->next) {
+        /* check offset */
+        if (offset < em->offset)
+            continue;
+
+        /* check depth */
+        if (em->depth && (offset+patlen) > em->depth)
+            continue;
+
+        if (pmq != NULL) {
+            /* make sure we only append a sig with a matching pattern once,
+             * so we won't inspect it more than once. For this we keep a
+             * bitarray of sig internal id's and flag each sig that matched */
+            if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8)))) {
+                /* flag this sig_id as being added now */
+                pmq->sig_bitarray[(em->sig_id / 8)] |= (1<<(em->sig_id % 8));
+                /* append the sig_id to the array with matches */
+                pmq->sig_id_array[pmq->sig_id_array_cnt] = em->sig_id;
+                pmq->sig_id_array_cnt++;
+            }
+
+            /* nosearch flag */
+            if (!(em->flags & MPM_ENDMATCH_NOSEARCH)) {
+                pmq->searchable++;
+            }
+        }
+
+        ret++;
+    }
+
+    SCReturnInt(ret);
+}
+
 /** \brief Reset a Pmq for reusage. Meant to be called after a single search.
  *  \param pmq Pattern matcher to be reset.
  */
@@ -87,60 +141,6 @@ void PmqFree(PatternMatcherQueue *pmq) {
 
     PmqCleanup(pmq);
     SCFree(pmq);
-}
-
-/** \brief Verify and store a match
- *
- *   used at search runtime
- *
- *  \param thread_ctx mpm thread ctx
- *  \param pmq storage for match results
- *  \param list end match to check against (entire list will be checked)
- *  \param offset match offset in the buffer
- *  \param patlen length of the pattern we're checking
- *
- *  \retval 0 no match after all
- *  \retval 1 (new) match
- */
-inline int
-MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *list, uint16_t offset, uint16_t patlen)
-{
-    SCEnter();
-
-    MpmEndMatch *em = list;
-    int ret = 0;
-
-    for ( ; em != NULL; em = em->next) {
-        /* check offset */
-        if (offset < em->offset)
-            continue;
-
-        /* check depth */
-        if (em->depth && (offset+patlen) > em->depth)
-            continue;
-
-        if (pmq != NULL) {
-            /* make sure we only append a sig with a matching pattern once,
-             * so we won't inspect it more than once. For this we keep a
-             * bitarray of sig internal id's and flag each sig that matched */
-            if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8)))) {
-                /* flag this sig_id as being added now */
-                pmq->sig_bitarray[(em->sig_id / 8)] |= (1<<(em->sig_id % 8));
-                /* append the sig_id to the array with matches */
-                pmq->sig_id_array[pmq->sig_id_array_cnt] = em->sig_id;
-                pmq->sig_id_array_cnt++;
-            }
-
-            /* nosearch flag */
-            if (!(em->flags & MPM_ENDMATCH_NOSEARCH)) {
-                pmq->searchable++;
-            }
-        }
-
-        ret++;
-    }
-
-    SCReturnInt(ret);
 }
 
 /* allocate an endmatch
