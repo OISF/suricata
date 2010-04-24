@@ -32,24 +32,7 @@ uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datale
 char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
                                          void *data2, uint16_t datalen2);
 void SCClassConfClasstypeHashFree(void *ch);
-
-/**
- * \brief Returns the path for the Classification Config file.  We check if we
- *        can retrieve the path from the yaml conf file.  If it is not present,
- *        return the default path for the classification file which is
- *        "./classification.config".
- *
- * \retval log_filename Pointer to a string containing the path for the
- *                      Classification Config file.
- */
-static char *SCClassConfGetConfFilename(void)
-{
-    char *log_filename = (char *)default_file_path;
-
-    ConfGet("classification-file", &log_filename);
-
-    return log_filename;
-}
+static char *SCClassConfGetConfFilename(void);
 
 /**
  * \brief Inits the context to be used by the Classification Config parsing API.
@@ -65,7 +48,7 @@ static char *SCClassConfGetConfFilename(void)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static inline int SCClassConfInitContext(DetectEngineCtx *de_ctx)
+int SCClassConfInitContext(DetectEngineCtx *de_ctx)
 {
     char *filename = NULL;
     const char *eb = NULL;
@@ -124,6 +107,25 @@ static inline int SCClassConfInitContext(DetectEngineCtx *de_ctx)
 //    return -1;
 }
 
+
+/**
+ * \brief Returns the path for the Classification Config file.  We check if we
+ *        can retrieve the path from the yaml conf file.  If it is not present,
+ *        return the default path for the classification file which is
+ *        "./classification.config".
+ *
+ * \retval log_filename Pointer to a string containing the path for the
+ *                      Classification Config file.
+ */
+static char *SCClassConfGetConfFilename(void)
+{
+    char *log_filename = (char *)default_file_path;
+
+    ConfGet("classification-file", &log_filename);
+
+    return log_filename;
+}
+
 /**
  * \brief Releases resources used by the Classification Config API.
  */
@@ -170,7 +172,7 @@ static char *SCClassConfStringToLowercase(const char *str)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static inline int SCClassConfAddClasstype(char *rawstr, DetectEngineCtx *de_ctx)
+int SCClassConfAddClasstype(char *rawstr, DetectEngineCtx *de_ctx)
 {
     const char *ct_name = NULL;
     const char *ct_desc = NULL;
@@ -281,7 +283,7 @@ static int SCClassConfIsLineBlankOrComment(char *line)
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  */
-static inline void SCClassConfParseFile(DetectEngineCtx *de_ctx)
+void SCClassConfParseFile(DetectEngineCtx *de_ctx)
 {
     char line[1024];
 
