@@ -23,26 +23,6 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     }
 }
 
-/** \brief Set the No payload inspection Flag for the packet.
- *
- * \param p Packet to set the flag in
- */
-inline void DecodeSetNoPayloadInspectionFlag(Packet *p) {
-    SCEnter();
-    p->flags |= PKT_NOPAYLOAD_INSPECTION;
-    SCReturn;
-}
-
-/** \brief Set the No packet inspection Flag for the packet.
- *
- * \param p Packet to set the flag in
- */
-inline void DecodeSetNoPacketInspectionFlag(Packet *p) {
-    SCEnter();
-    p->flags |= PKT_NOPACKET_INSPECTION;
-    SCReturn;
-}
-
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 {
     /* register counters */

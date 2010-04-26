@@ -484,8 +484,22 @@ void DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t,
 Packet *SetupPkt (void);
 Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, uint8_t);
 
-inline void DecodeSetNoPayloadInspectionFlag(Packet *);
-inline void DecodeSetNoPacketInspectionFlag(Packet *);
+/** \brief Set the No payload inspection Flag for the packet.
+ *
+ * \param p Packet to set the flag in
+ */
+#define DecodeSetNoPayloadInspectionFlag(p) { \
+    (p)->flags |= PKT_NOPAYLOAD_INSPECTION; \
+}
+
+/** \brief Set the No packet inspection Flag for the packet.
+ *
+ * \param p Packet to set the flag in
+ */
+#define DecodeSetNoPacketInspectionFlag(p) { \
+    (p)->flags |= PKT_NOPACKET_INSPECTION; \
+}
+
 
 #define DECODER_SET_EVENT(p, e)   ((p)->events[(e/8)] |= (1<<(e%8)))
 #define DECODER_ISSET_EVENT(p, e) ((p)->events[(e/8)] & (1<<(e%8)))
