@@ -47,7 +47,7 @@ struct DetectDecodeEvents_ {
     { "ipv6.wrong_ip_version", IPV6_WRONG_IP_VER, },
     { "icmpv4.pkt_too_small", ICMPV4_PKT_TOO_SMALL, },
     { "icmpv4.unknown_type", ICMPV4_UNKNOWN_TYPE, },
-    { "icmpv4.unknown_code", ICMPV4_UNKOWN_CODE, },
+    { "icmpv4.unknown_code", ICMPV4_UNKNOWN_CODE, },
     { "icmpv4.ipv4_trunc_pkt", ICMPV4_IPV4_TRUNC_PKT, },
     { "icmpv4.ipv4_unknown_ver", ICMPV4_IPV4_UNKNOWN_VER, },
     { "icmpv6.unknown_type", ICMPV6_UNKNOWN_TYPE,},
