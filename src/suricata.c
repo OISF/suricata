@@ -223,7 +223,7 @@ Packet *SetupPkt (void)
 
 void GlobalInits()
 {
-    memset(&trans_q, 0,sizeof(trans_q));
+    memset(trans_q, 0, sizeof(trans_q));
 
     /* Initialize the trans_q mutex */
     int blah;
