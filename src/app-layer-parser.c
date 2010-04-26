@@ -873,13 +873,8 @@ void AppLayerParserCleanupState(TcpSession *ssn)
         return;
     }
 
-    AppLayerProto *p = &al_proto_table[ssn->alproto];
-    if (p->name == NULL) {
-        SCLogDebug("no parser state for %"PRIu16"", ssn->alproto);
-        return;
-    }
-
     /* free the parser protocol state */
+    AppLayerProto *p = &al_proto_table[ssn->alproto];
     if (p->StateFree != NULL && ssn->aldata != NULL) {
         if (ssn->aldata[p->storage_id] != NULL) {
             SCLogDebug("calling StateFree");
