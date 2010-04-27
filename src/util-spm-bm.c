@@ -21,6 +21,23 @@
 #include <string.h>
 
 /**
+ * \brief Given a BmCtx structure, recreate the pre/suffixes for
+ *        nocase
+ *
+ * \retval BmCtx pointer to the already created BmCtx (with BoyerMooreCtxInit())
+ * \param str pointer to the pattern string
+ * \param size length of the string
+ */
+void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint32_t needle_len) {
+
+    /* Prepare bad chars with nocase chars */
+    PreBmBcNocase(needle, needle_len, bm_ctx->bmBc);
+
+    /* Prepare good Suffixes with nocase chars */
+    PreBmGsNocase(needle, needle_len, bm_ctx->bmGs);
+}
+
+/**
  * \brief Setup a Booyer More context.
  *
  * \param str pointer to the pattern string

@@ -15,6 +15,7 @@ typedef struct BmCtx_ {
 /** Prepare and return a Boyer Moore context */
 BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len);
 
+void BoyerMooreCtxToNocase(BmCtx *, uint8_t *, uint32_t);
 void PreBmBc(const uint8_t *x, int32_t m, int32_t *bmBc);
 void BoyerMooreSuffixes(const uint8_t *x, int32_t m, int32_t *suff);
 void PreBmGs(const uint8_t *x, int32_t m, int32_t *bmGs);

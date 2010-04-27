@@ -487,6 +487,29 @@ int UtilSpmBoyerMooreSearchNocaseTest01() {
         return 0;
 }
 
+/**
+ * \test issue 130 (@redmine) check to ensure that the
+ *       problem is not the algorithm implementation
+ */
+int UtilSpmBoyerMooreSearchNocaseTestIssue130() {
+    uint8_t *needle = (uint8_t *)"WWW-Authenticate: ";
+    uint8_t *text = (uint8_t *)"Date: Mon, 23 Feb 2009 13:31:49 GMT"
+                "Server: Apache\r\n"
+                "Www-authenticate: Basic realm=\"Authentification user password\"\r\n"
+                "Vary: accept-language,accept-charset\r\n"
+                "Accept-ranges: bytes\r\n"
+                "Connection: close\r\n"
+                "Content-type: text/html; charset=iso-8859-1\r\n"
+                "Content-language: fr\r\n"
+                "Expires: Mon, 23 Feb 2009 13:31:49 GMT\r\n\r\n";
+    uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
+    //printf("found: %s\n", found);
+    if (found != NULL)
+        return 1;
+    else
+        return 0;
+}
+
 /* Generic tests that should not match */
 int UtilSpmBasicSearchTest02() {
     uint8_t *needle = (uint8_t *)"oPQRsT";
@@ -2253,6 +2276,7 @@ void UtilSpmSearchRegistertests(void) {
 
     UtRegisterTest("UtilSpmBoyerMooreSearchTest01", UtilSpmBoyerMooreSearchTest01, 1);
     UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTest01", UtilSpmBoyerMooreSearchNocaseTest01, 1);
+    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTestIssue130", UtilSpmBoyerMooreSearchNocaseTestIssue130, 1);
 
     UtRegisterTest("UtilSpmBs2bmSearchTest02", UtilSpmBs2bmSearchTest02, 1);
     UtRegisterTest("UtilSpmBs2bmSearchNocaseTest02", UtilSpmBs2bmSearchNocaseTest02, 1);

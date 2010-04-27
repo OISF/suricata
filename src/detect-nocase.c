@@ -141,6 +141,9 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
 
     DetectUricontentData *ud = NULL;
     DetectContentData *cd = NULL;
+    DetectHttpClientBodyData *dhcb = NULL;
+    DetectHttpCookieData *dhcd = NULL;
+
     switch (pm->type) {
         case DETECT_URICONTENT:
             ud = (DetectUricontentData *)pm->ctx;
@@ -149,6 +152,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
                 SCReturnInt(-1);
             }
             ud->flags |= DETECT_URICONTENT_NOCASE;
+            /* Recreate the context with nocase chars */
+            BoyerMooreCtxToNocase(ud->bm_ctx, ud->uricontent, ud->uricontent_len);
             break;
 
         case DETECT_CONTENT:
@@ -158,12 +163,18 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
                 SCReturnInt(-1);
             }
             cd->flags |= DETECT_CONTENT_NOCASE;
+            /* Recreate the context with nocase chars */
+            BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);
             break;
         case DETECT_AL_HTTP_CLIENT_BODY:
-            ((DetectHttpClientBodyData *)(pm->ctx))->flags |= DETECT_AL_HTTP_CLIENT_BODY_NOCASE;
+            dhcb =(DetectHttpClientBodyData *) pm->ctx;
+            dhcb->flags |= DETECT_AL_HTTP_CLIENT_BODY_NOCASE;
+            /* Recreate the context with nocase chars */
+            BoyerMooreCtxToNocase(dhcb->bm_ctx, dhcb->content, dhcb->content_len);
             break;
         case DETECT_AL_HTTP_COOKIE:
-            ((DetectHttpCookieData *)(pm->ctx))->flags |= DETECT_AL_HTTP_COOKIE_NOCASE;
+            dhcd = (DetectHttpCookieData *) pm->ctx;
+            dhcd->flags |= DETECT_AL_HTTP_COOKIE_NOCASE;
             break;
             /* should never happen */
         default:
