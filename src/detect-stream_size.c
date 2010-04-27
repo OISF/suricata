@@ -78,7 +78,7 @@ error:
  *  \retval 1 on success and 0 on failure.
  */
 
-static inline int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode) {
+static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode) {
 
     int ret = 0;
     switch (mode) {
