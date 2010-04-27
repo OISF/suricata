@@ -83,6 +83,7 @@
 #include "detect-urilen.h"
 #include "detect-detection-filter.h"
 #include "detect-http-client-body.h"
+#include "detect-http-header.h"
 
 #include "util-rule-vars.h"
 
@@ -2961,6 +2962,7 @@ void SigTableSetup(void) {
     DetectTlsVersionRegister();
     DetectUrilenRegister();
     DetectDetectionFilterRegister();
+    DetectHttpHeaderRegister();
     DetectHttpClientBodyRegister();
 
     uint8_t i = 0;
