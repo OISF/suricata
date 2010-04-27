@@ -497,12 +497,12 @@ void FlowInitConfig (char quiet)
     memset(flow_hash, 0, flow_config.hash_size * sizeof(FlowBucket));
     for (i = 0; i < flow_config.hash_size; i++)
         SCMutexInit(&flow_hash[i].m, NULL);
-    flow_config.memuse += (flow_config.hash_size * sizeof(FlowBucket));
+    flow_memuse += (flow_config.hash_size * sizeof(FlowBucket));
 
     if (quiet == FALSE)
         SCLogInfo("allocated %" PRIu32 " bytes of memory for the flow hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
-                  flow_config.memuse, flow_config.hash_size,
+                  flow_memuse, flow_config.hash_size,
                   (uintmax_t)sizeof(FlowBucket));
 
     /* pre allocate flows */
@@ -519,7 +519,7 @@ void FlowInitConfig (char quiet)
         SCLogInfo("preallocated %" PRIu32 " flows of size %" PRIuMAX "",
                 flow_spare_q.len, (uintmax_t)sizeof(Flow));
         SCLogInfo("flow memory usage: %" PRIu32 " bytes, maximum: %" PRIu32 "",
-                flow_config.memuse, flow_config.memcap);
+                flow_memuse, flow_config.memcap);
     }
 
     FlowInitFlowProto();
@@ -664,7 +664,7 @@ void *FlowManagerThread(void *td)
             PRIu32"\n", timeout_est, timeout_new);*/
             if (flow_flags & FLOW_EMERGENCY) {
                 emerg = TRUE;
-                printf("Flow emergency mode entered...\n");
+                SCLogDebug("Flow emergency mode entered...");
             }
 
             /* Get the time */
@@ -706,7 +706,7 @@ void *FlowManagerThread(void *td)
             if (emerg == TRUE) {
                 flow_flags &= ~FLOW_EMERGENCY;
                 emerg = FALSE;
-                printf("Flow emergency mode over, back to normal...\n");
+                SCLogDebug("Flow emergency mode over, back to normal...");
             }
         }
 
