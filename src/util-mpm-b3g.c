@@ -40,7 +40,7 @@ void B3gThreadDestroyCtx(MpmCtx *, MpmThreadCtx *);
 int B3gAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
 int B3gAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
 int B3gPreparePatterns(MpmCtx *);
-inline uint32_t B3gSearchWrap(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
+uint32_t B3gSearchWrap(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
 uint32_t B3gSearch1(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
 uint32_t B3gSearch2(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
 uint32_t B3gSearch12(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
