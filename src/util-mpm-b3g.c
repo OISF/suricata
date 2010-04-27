@@ -276,7 +276,7 @@ void B3gFreePattern(MpmCtx *mpm_ctx, B3gPattern *p) {
     if (p) {
         SCFree(p);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= sizeof(B3gPattern); 
+        mpm_ctx->memory_size -= sizeof(B3gPattern);
     }
 }
 
@@ -288,7 +288,7 @@ void B3gFreePattern(MpmCtx *mpm_ctx, B3gPattern *p) {
  * pid: pattern id
  * sid: signature id (internal id)
  */
-static inline int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags) {
+static int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags) {
     B3gCtx *ctx = (B3gCtx *)mpm_ctx->ctx;
 
     if (patlen == 0)

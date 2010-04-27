@@ -319,7 +319,7 @@ void WmFreePattern(MpmCtx *mpm_ctx, WmPattern *p) {
     if (p) {
         SCFree(p);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= sizeof(WmPattern); 
+        mpm_ctx->memory_size -= sizeof(WmPattern);
     }
 }
 
@@ -331,7 +331,7 @@ void WmFreePattern(MpmCtx *mpm_ctx, WmPattern *p) {
  * pid: pattern id
  * sid: signature id (internal id)
  */
-static inline int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags) {
+static int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
 
 //    printf("WmAddPattern: ctx %p \"", mpm_ctx); prt(pat, patlen);
