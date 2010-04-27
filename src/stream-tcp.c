@@ -385,7 +385,7 @@ TcpSession *StreamTcpNewSession (Packet *p)
     return ssn;
 }
 
-static inline void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
+static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
                                            uint8_t state)
 {
     if (state == ssn->state)
@@ -405,7 +405,7 @@ static inline void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
  *  \param  ssn TcpSession to whom this packet belongs
  *  \param  p   Packet whose flag has to be changed
  */
-static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
+static void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
 {
     SCLogDebug("ssn %p: switching pkt direction", ssn);
 
