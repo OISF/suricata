@@ -44,49 +44,10 @@ void TmThreadCheckThreadState(void);
 TmEcode TmThreadWaitOnThreadInit(void);
 ThreadVars *TmThreadsGetCallingThread(void);
 
-/**
- *  \brief Check if a thread flag is set
- *
- *  \retval 1 flag is set
- *  \retval 0 flag is not set
- */
-static inline int TmThreadsCheckFlag(ThreadVars *tv, uint8_t flag) { \
-    int r;
-    if (SCSpinLock(&tv->flags_spinlock) != 0) {
-        SCLogError(SC_ERR_SPINLOCK,"spin lock errno=%d",errno);
-        return 0;
-    }
+int TmThreadsCheckFlag(ThreadVars *, uint8_t);
+void TmThreadsSetFlag(ThreadVars *, uint8_t);
+void TmThreadsUnsetFlag(ThreadVars *, uint8_t);
 
-    r = (tv->flags & flag);
-    SCSpinUnlock(&tv->flags_spinlock);
-    return r;
-}
-
-/**
- *  \brief Set a thread flag
- */
-static inline void TmThreadsSetFlag(ThreadVars *tv, uint8_t flag) {
-    if (SCSpinLock(&tv->flags_spinlock) != 0) {
-        SCLogError(SC_ERR_SPINLOCK,"spin lock errno=%d",errno);
-        return;
-    }
-
-    tv->flags |= flag;
-    SCSpinUnlock(&tv->flags_spinlock);
-}
-
-/**
- *  \brief Unset a thread flag
- */
-static inline void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag) {
-    if (SCSpinLock(&tv->flags_spinlock) != 0) {
-        SCLogError(SC_ERR_SPINLOCK,"spin lock errno=%d",errno);
-        return;
-    }
-
-    tv->flags &= ~flag;
-    SCSpinUnlock(&tv->flags_spinlock);
-}
 
 #endif /* __TM_THREADS_H__ */
 
