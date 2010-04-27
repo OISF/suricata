@@ -22,6 +22,80 @@
 static SCPerfOPIfaceContext *sc_perf_op_ctx = NULL;
 
 /**
+ * \brief Adds a value of type uint64_t to the local counter.
+ *
+ * \param id  ID of the counter as set by the API
+ * \param pca Counter array that holds the local counter for this TM
+ * \param x   Value to add to this local counter
+ */
+void SCPerfCounterAddUI64(uint16_t id, SCPerfCounterArray *pca, uint64_t x)
+{
+    if (!pca) {
+        SCLogDebug("counterarray is NULL");
+        return;
+    }
+    if ((id < 1) || (id > pca->size)) {
+        SCLogDebug("counter doesn't exist");
+        return;
+    }
+
+    switch (pca->head[id].pc->value->type) {
+        case SC_PERF_TYPE_UINT64:
+            pca->head[id].ui64_cnt += x;
+            break;
+        case SC_PERF_TYPE_DOUBLE:
+            pca->head[id].d_cnt += x;
+            break;
+    }
+
+    if (pca->head[id].syncs == ULONG_MAX) {
+        pca->head[id].syncs = 0;
+        pca->head[id].wrapped_syncs++;
+    }
+    pca->head[id].syncs++;
+
+    return;
+}
+
+/**
+ * \brief Adds a value of type double to the local counter
+ *
+ * \param id  ID of the counter as set by the API
+ * \param pca Counter array that holds the local counter for this TM
+ * \param x   Value to add to this local counter
+ */
+void SCPerfCounterAddDouble(uint16_t id, SCPerfCounterArray *pca, double x)
+{
+    if (!pca) {
+        SCLogDebug("counterarray is NULL");
+        return;
+    }
+    if ((id < 1) || (id > pca->size)) {
+        SCLogDebug("counter doesn't exist");
+        return;
+    }
+
+    /* incase you are trying to add a double to a counter of type SC_PERF_TYPE_UINT64
+     * it will be truncated */
+    switch (pca->head[id].pc->value->type) {
+        case SC_PERF_TYPE_UINT64:
+            pca->head[id].ui64_cnt += x;
+            break;
+        case SC_PERF_TYPE_DOUBLE:
+            pca->head[id].d_cnt += x;
+            break;
+    }
+
+    if (pca->head[id].syncs == ULONG_MAX) {
+        pca->head[id].syncs = 0;
+        pca->head[id].wrapped_syncs++;
+    }
+    pca->head[id].syncs++;
+
+    return;
+}
+
+/**
  * \brief Increments the local counter
  *
  * \param id  Index of the counter in the counter array
