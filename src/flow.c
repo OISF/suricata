@@ -824,159 +824,153 @@ void FlowInitFlowProto(void) {
         ConfNode *proto = NULL;
         uint32_t configval = 0;
 
-        TAILQ_FOREACH(proto, &flow_timeouts->head, next) {
-            if (strncmp("default", proto->val, 7)) {
-                new = ConfNodeLookupChildValue(proto->head.tqh_first, "new");
-                established = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                       "established");
-                closed = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                  "closed");
-                emergency_new = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                         "emergency_new");
-                emergency_established = ConfNodeLookupChildValue(
-                                                      proto->head.tqh_first,
-                                                      "emergency_established");
-                emergency_closed = ConfNodeLookupChildValue(
-                                                      proto->head.tqh_first,
-                                                      "emergency_closed");
+        /* Defaults. */
+        proto = ConfNodeLookupChild(flow_timeouts, "default");
+        if (proto != NULL) {
+            new = ConfNodeLookupChildValue(proto, "new");
+            established = ConfNodeLookupChildValue(proto, "established");
+            closed = ConfNodeLookupChildValue(proto, "closed");
+            emergency_new = ConfNodeLookupChildValue(proto, "emergency_new");
+            emergency_established = ConfNodeLookupChildValue(proto,
+                "emergency_established");
+            emergency_closed = ConfNodeLookupChildValue(proto,
+                "emergency_closed");
 
-                if (new != NULL && ByteExtractStringUint32(&configval, 10,
-                                                        strlen(new), new) > 0) {
+            if (new != NULL && ByteExtractStringUint32(&configval, 10,
+                                                    strlen(new), new) > 0) {
 
                     flow_proto[FLOW_PROTO_DEFAULT].new_timeout = configval;
-                }
-                if (established != NULL && ByteExtractStringUint32(&configval,
+            }
+            if (established != NULL && ByteExtractStringUint32(&configval,
                                     10, strlen(established), established) > 0) {
 
-                    flow_proto[FLOW_PROTO_DEFAULT].est_timeout = configval;
-                }
-                if (closed != NULL && ByteExtractStringUint32(&configval, 10,
+                flow_proto[FLOW_PROTO_DEFAULT].est_timeout = configval;
+            }
+            if (closed != NULL && ByteExtractStringUint32(&configval, 10,
                                                   strlen(closed), closed) > 0) {
 
-                    flow_proto[FLOW_PROTO_DEFAULT].closed_timeout = configval;
-                }
-                if (emergency_new != NULL && ByteExtractStringUint32(&configval,
+                flow_proto[FLOW_PROTO_DEFAULT].closed_timeout = configval;
+            }
+            if (emergency_new != NULL && ByteExtractStringUint32(&configval,
                                 10, strlen(emergency_new), emergency_new) > 0) {
 
-                    flow_proto[FLOW_PROTO_DEFAULT].emerg_new_timeout = configval;
-                }
-                if (emergency_established != NULL &&
+                flow_proto[FLOW_PROTO_DEFAULT].emerg_new_timeout = configval;
+            }
+            if (emergency_established != NULL &&
                     ByteExtractStringUint32(&configval, 10,
                     strlen(emergency_established), emergency_established) > 0) {
 
-                    flow_proto[FLOW_PROTO_DEFAULT].emerg_est_timeout= configval;
-                }
-                if (emergency_closed != NULL &&
+                flow_proto[FLOW_PROTO_DEFAULT].emerg_est_timeout= configval;
+            }
+            if (emergency_closed != NULL &&
                     ByteExtractStringUint32(&configval, 10,
                     strlen(emergency_closed), emergency_closed) > 0) {
 
-                    flow_proto[FLOW_PROTO_DEFAULT].emerg_closed_timeout = configval;
-                }
-            } else if (strncmp("tcp", proto->val, 3)) {
+                flow_proto[FLOW_PROTO_DEFAULT].emerg_closed_timeout = configval;
+            }
+        }
 
-                new = ConfNodeLookupChildValue(proto->head.tqh_first, "new");
+        /* TCP. */
+        proto = ConfNodeLookupChild(flow_timeouts, "tcp");
+        if (proto != NULL) {
+            new = ConfNodeLookupChildValue(proto, "new");
+            established = ConfNodeLookupChildValue(proto, "established");
+            closed = ConfNodeLookupChildValue(proto, "closed");
+            emergency_new = ConfNodeLookupChildValue(proto, "emergency_new");
+            emergency_established = ConfNodeLookupChildValue(proto,
+                "emergency_established");
+            emergency_closed = ConfNodeLookupChildValue(proto,
+                "emergency_closed");
 
-                established = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                                 "established");
-                closed = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                                      "closed");
-                emergency_new = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                               "emergency_new");
-                emergency_established = ConfNodeLookupChildValue(
-                                proto->head.tqh_first, "emergency_established");
-                emergency_closed = ConfNodeLookupChildValue(
-                                     proto->head.tqh_first, "emergency_closed");
-
-                if (new != NULL && ByteExtractStringUint32(&configval, 10,
+            if (new != NULL && ByteExtractStringUint32(&configval, 10,
                                                         strlen(new), new) > 0) {
 
-                    flow_proto[FLOW_PROTO_TCP].new_timeout = configval;
-                }
-                if (established != NULL && ByteExtractStringUint32(&configval,
+                flow_proto[FLOW_PROTO_TCP].new_timeout = configval;
+            }
+            if (established != NULL && ByteExtractStringUint32(&configval,
                                     10, strlen(established), established) > 0) {
 
-                    flow_proto[FLOW_PROTO_TCP].est_timeout = configval;
-                }
-                if (closed != NULL && ByteExtractStringUint32(&configval, 10,
+                flow_proto[FLOW_PROTO_TCP].est_timeout = configval;
+            }
+            if (closed != NULL && ByteExtractStringUint32(&configval, 10,
                                                   strlen(closed), closed) > 0) {
 
-                    flow_proto[FLOW_PROTO_TCP].closed_timeout = configval;
-                }
-                if (emergency_new != NULL && ByteExtractStringUint32(&configval,
+                flow_proto[FLOW_PROTO_TCP].closed_timeout = configval;
+            }
+            if (emergency_new != NULL && ByteExtractStringUint32(&configval,
                                 10, strlen(emergency_new), emergency_new) > 0) {
-                    flow_proto[FLOW_PROTO_TCP].emerg_new_timeout = configval;
-                }
-                if (emergency_established != NULL &&
+                flow_proto[FLOW_PROTO_TCP].emerg_new_timeout = configval;
+            }
+            if (emergency_established != NULL &&
                     ByteExtractStringUint32(&configval, 10,
                     strlen(emergency_established), emergency_established) > 0) {
 
-                    flow_proto[FLOW_PROTO_TCP].emerg_est_timeout = configval;
-                }
-                if (emergency_closed != NULL &&
+                flow_proto[FLOW_PROTO_TCP].emerg_est_timeout = configval;
+            }
+            if (emergency_closed != NULL &&
                     ByteExtractStringUint32(&configval, 10,
                               strlen(emergency_closed), emergency_closed) > 0) {
 
-                    flow_proto[FLOW_PROTO_TCP].emerg_closed_timeout = configval;
-                }
-            } else if (strncmp("udp", proto->val, 3)) {
+                flow_proto[FLOW_PROTO_TCP].emerg_closed_timeout = configval;
+            }
+        }
 
-                new = ConfNodeLookupChildValue(proto->head.tqh_first, "new");
-                established = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                                 "established");
-                emergency_new = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                               "emergency_new");
-                emergency_established = ConfNodeLookupChildValue(
-                                proto->head.tqh_first, "emergency_established");
-                if (new != NULL && ByteExtractStringUint32(&configval, 10,
+        /* UDP. */
+        proto = ConfNodeLookupChild(flow_timeouts, "udp");
+        if (proto != NULL) {
+            new = ConfNodeLookupChildValue(proto, "new");
+            established = ConfNodeLookupChildValue(proto, "established");
+            emergency_new = ConfNodeLookupChildValue(proto, "emergency_new");
+            emergency_established = ConfNodeLookupChildValue(proto,
+                "emergency_established");
+            if (new != NULL && ByteExtractStringUint32(&configval, 10,
                                                         strlen(new), new) > 0) {
-                    flow_proto[FLOW_PROTO_TCP].new_timeout = configval;
-                }
-                if (established != NULL && ByteExtractStringUint32(&configval,
+                flow_proto[FLOW_PROTO_UDP].new_timeout = configval;
+            }
+            if (established != NULL && ByteExtractStringUint32(&configval,
                                     10, strlen(established), established) > 0) {
-                    flow_proto[FLOW_PROTO_TCP].est_timeout = configval;
-                }
-                if (emergency_new != NULL && ByteExtractStringUint32(&configval,
+                flow_proto[FLOW_PROTO_UDP].est_timeout = configval;
+            }
+            if (emergency_new != NULL && ByteExtractStringUint32(&configval,
                                 10, strlen(emergency_new), emergency_new) > 0) {
-                    flow_proto[FLOW_PROTO_TCP].emerg_new_timeout = configval;
-                }
-                if (emergency_established != NULL &&
+                flow_proto[FLOW_PROTO_UDP].emerg_new_timeout = configval;
+            }
+            if (emergency_established != NULL &&
                     ByteExtractStringUint32(&configval, 10,
                     strlen(emergency_established), emergency_established) > 0) {
-                    flow_proto[FLOW_PROTO_TCP].emerg_est_timeout = configval;
-                }
-            } else if (strncmp("icmp", proto->val, 4)) {
-                new = ConfNodeLookupChildValue(proto->head.tqh_first, "new");
-                established = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                                 "established");
-                emergency_new = ConfNodeLookupChildValue(proto->head.tqh_first,
-                                                               "emergency_new");
-                emergency_established = ConfNodeLookupChildValue(
-                                proto->head.tqh_first, "emergency_established");
+                flow_proto[FLOW_PROTO_UDP].emerg_est_timeout = configval;
+            }
+        }
 
-                if (new != NULL && ByteExtractStringUint32(&configval, 10,
+        /* ICMP. */
+        proto = ConfNodeLookupChild(flow_timeouts, "icmp");
+        if (proto != NULL) {
+            new = ConfNodeLookupChildValue(proto, "new");
+            established = ConfNodeLookupChildValue(proto, "established");
+            emergency_new = ConfNodeLookupChildValue(proto, "emergency_new");
+            emergency_established = ConfNodeLookupChildValue(proto,
+                "emergency_established");
+
+            if (new != NULL && ByteExtractStringUint32(&configval, 10,
                                                         strlen(new), new) > 0) {
 
-                    flow_proto[FLOW_PROTO_TCP].new_timeout = configval;
-                }
-                if (established != NULL && ByteExtractStringUint32(&configval,
+                flow_proto[FLOW_PROTO_ICMP].new_timeout = configval;
+            }
+            if (established != NULL && ByteExtractStringUint32(&configval,
                                     10, strlen(established), established) > 0) {
 
-                    flow_proto[FLOW_PROTO_TCP].est_timeout = configval;
-                }
-                if (emergency_new != NULL && ByteExtractStringUint32(&configval,
+                flow_proto[FLOW_PROTO_ICMP].est_timeout = configval;
+            }
+            if (emergency_new != NULL && ByteExtractStringUint32(&configval,
                                 10, strlen(emergency_new), emergency_new) > 0) {
 
-                    flow_proto[FLOW_PROTO_TCP].emerg_new_timeout = configval;
-                }
-                if (emergency_established != NULL &&
+                flow_proto[FLOW_PROTO_ICMP].emerg_new_timeout = configval;
+            }
+            if (emergency_established != NULL &&
                     ByteExtractStringUint32(&configval, 10,
                     strlen(emergency_established), emergency_established) > 0) {
 
-                    flow_proto[FLOW_PROTO_TCP].emerg_est_timeout = configval;
-                }
-            } else {
-                SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "Unknown protocol for flow"
-                           "timeouts. Please, review your config");
+                flow_proto[FLOW_PROTO_ICMP].emerg_est_timeout = configval;
             }
         }
     }

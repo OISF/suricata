@@ -150,30 +150,30 @@ flow:
 
 flow-timeouts:
 
-  - default:
-      new: 30
-      established: 300
-      closed: 0
-      emergency_new: 10
-      emergency_established: 100
-      emergency_closed: 0
-  - tcp:
-      new: 60
-      established: 3600
-      closed: 120
-      emergency_new: 10
-      emergency_established: 300
-      emergency_closed: 20
-  - udp:
-      new: 30
-      established: 300
-      emergency_new: 10
-      emergency_established: 100
-  - icmp:
-      new: 30
-      established: 300
-      emergency_new: 10
-      emergency_established: 100
+  default:
+    new: 30
+    established: 300
+    closed: 0
+    emergency_new: 10
+    emergency_established: 100
+    emergency_closed: 0
+  tcp:
+    new: 60
+    established: 3600
+    closed: 120
+    emergency_new: 10
+    emergency_established: 300
+    emergency_closed: 20
+  udp:
+    new: 30
+    established: 300
+    emergency_new: 10
+    emergency_established: 100
+  icmp:
+    new: 30
+    established: 300
+    emergency_new: 10
+    emergency_established: 100
 
 # Stream engine settings.
 # stream:
