@@ -54,7 +54,7 @@
  *  \retval 0 no match
  *  \retval 1 match
  */
-static inline int DoInspectPacketUris(DetectEngineCtx *de_ctx,
+static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
         Packet *p, uint8_t *payload, uint32_t payload_len)
 {
@@ -195,7 +195,7 @@ static inline int DoInspectPacketUris(DetectEngineCtx *de_ctx,
                 /* see if the next payload keywords match. If not, we will
                  * search for another occurence of this uricontent and see
                  * if the others match then until we run out of matches */
-                int r = DoInspectPacketUris(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
+                int r = DoInspectPacketUri(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
                 if (r == 1) {
                     SCReturnInt(1);
                 }
@@ -216,7 +216,7 @@ match:
     /* this sigmatch matched, inspect the next one. If it was the last,
      * the payload portion of the signature matched. */
     if (sm->next != NULL) {
-        int r = DoInspectPacketUris(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
+        int r = DoInspectPacketUri(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
         SCReturnInt(r);
     } else {
         SCReturnInt(1);
@@ -285,8 +285,11 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         if (tx == NULL || tx->request_uri_normalized == NULL)
             continue;
 
-        /* Inspect all the uricontents fetched on each transaction at the app layer */
-        r = DoInspectPacketUris(de_ctx, det_ctx, s, s->umatch, p, (uint8_t *) bstr_ptr(tx->request_uri_normalized), bstr_len(tx->request_uri_normalized));
+        /* Inspect all the uricontents fetched on each
+         * transaction at the app layer */
+        r = DoInspectPacketUri(de_ctx, det_ctx, s, s->umatch, p,
+                (uint8_t *) bstr_ptr(tx->request_uri_normalized),
+                bstr_len(tx->request_uri_normalized));
 
         if (r == 1) {
             break;

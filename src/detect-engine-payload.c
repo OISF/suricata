@@ -49,7 +49,7 @@
  *  \retval 0 no match
  *  \retval 1 match
  */
-static inline int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
+static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
         Packet *p, uint8_t *payload, uint32_t payload_len)
 {
