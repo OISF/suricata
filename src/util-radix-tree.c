@@ -458,7 +458,7 @@ static inline SCRadixNode *SCRadixCreateNode()
  * \param node Pointer to a Radix tree node
  * \param tree Pointer to the Radix tree to which this node belongs
  */
-static inline void SCRadixReleaseNode(SCRadixNode *node, SCRadixTree *tree)
+static void SCRadixReleaseNode(SCRadixNode *node, SCRadixTree *tree)
 {
     if (node != NULL) {
         SCRadixReleasePrefix(node->prefix, tree);
