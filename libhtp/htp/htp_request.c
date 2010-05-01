@@ -431,8 +431,6 @@ int htp_connp_REQ_HEADERS(htp_connp_t *connp) {
                 free(connp->in_header_line);
                 connp->in_line_len = 0;
                 connp->in_header_line = NULL;
-                connp->in_header_line_index = -1;
-                connp->in_header_line_counter = 0;
 
                 // We've seen all request headers
                 if (connp->in_chunk_count != connp->in_chunk_request_index) {
@@ -462,7 +460,7 @@ int htp_connp_REQ_HEADERS(htp_connp_t *connp) {
             }
 
             // Prepare line for consumption
-            htp_chomp(connp->in_line, &connp->in_line_len);
+            int chomp_result = htp_chomp(connp->in_line, &connp->in_line_len);
 
             // Check for header folding
             if (htp_connp_is_line_folded(connp->in_line, connp->in_line_len) == 0) {
@@ -493,7 +491,7 @@ int htp_connp_REQ_HEADERS(htp_connp_t *connp) {
             }
 
             // Add the raw header line to the list
-            connp->in_header_line->line = bstr_memdup((char *) connp->in_line, connp->in_line_len);
+            connp->in_header_line->line = bstr_memdup((char *) connp->in_line, connp->in_line_len + chomp_result);
             list_add(connp->in_tx->request_header_lines, connp->in_header_line);
             connp->in_header_line = NULL;
 

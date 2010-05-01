@@ -99,4 +99,3 @@ options:
   2. Associate one opaque structure with a transaction instance, using htp_tx_set_user_data().
      The best place to do this is in a TRANSACTION_START callback. Don't forget to free up
      any resources you allocate on per-transaction basis, before you delete each transaction.
-

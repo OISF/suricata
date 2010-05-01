@@ -8,5 +8,3 @@ AM_CFLAGS = -g -O2
 
 #check: all
 #	./main
-
-

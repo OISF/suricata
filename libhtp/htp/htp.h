@@ -41,7 +41,7 @@ typedef struct htp_urldecoder_t htp_urldecoder_t;
 
 // -- Defines -------------------------------------------------------------------------------------
 
-#define HTP_BASE_VERSION_TEXT	"0.2.x"
+#define HTP_BASE_VERSION_TEXT	"0.2.3"
 
 #define HTP_ERROR              -1
 #define HTP_OK                  0
@@ -825,6 +825,17 @@ struct htp_tx_t {
     /** Parsed request headers. */
     table_t *request_headers;
 
+    /** Contains raw request headers. This field is generated on demand, use
+     *  htp_tx_get_request_headers_raw() to get it.
+     */
+    bstr *request_headers_raw;
+
+    /** How many request header lines have been included in the raw
+     *  buffer (above).
+     */
+    size_t request_headers_raw_lines;
+
+
     /** Request transfer coding: IDENTITY or CHUNKED. Only available on requests that have bodies. */
     int request_transfer_coding;
 
@@ -1112,6 +1123,8 @@ char *htp_connp_out_state_as_string(htp_connp_t *connp);
 char *htp_tx_progress_as_string(htp_tx_t *tx);
 
 bstr *htp_unparse_uri_noencode(htp_uri_t *uri);
+
+bstr *htp_tx_get_request_headers_raw(htp_tx_t *tx);
 
 #endif	/* _HTP_H */
 

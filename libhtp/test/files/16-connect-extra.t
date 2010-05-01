@@ -29,4 +29,3 @@ Location: https://www.feistyduck.com/
 Vary: Accept-Encoding
 Connection: close
 Content-Type: text/html; charset=iso-8859-1
-

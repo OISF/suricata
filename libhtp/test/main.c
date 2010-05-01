@@ -67,6 +67,9 @@ int test_post_urlencoded_chunked(htp_cfg_t *cfg) {
         free(key);
     }
 
+    bstr *raw = htp_tx_get_request_headers_raw(tx);
+    fprint_raw_data(stdout, "REQUEST HEADERS RAW 2", bstr_ptr(raw), bstr_len(raw));
+
     htp_connp_destroy_all(connp);
 
     return 1;
@@ -836,6 +839,7 @@ int main(int argc, char** argv) {
     RUN_TEST(test_connect_extra, cfg);
 
     //RUN_TEST(test_misc, cfg);
+    //RUN_TEST(test_post_urlencoded_chunked, cfg);
 
     printf("Tests: %i\n", tests);
     printf("Failures: %i\n", failures);

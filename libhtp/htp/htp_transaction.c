@@ -107,6 +107,10 @@ void htp_tx_destroy(htp_tx_t *tx) {
 
     table_destroy(tx->request_headers);
 
+    if (tx->request_headers_raw != NULL) {
+        bstr_free(tx->request_headers_raw);
+    }
+
     bstr_free(tx->response_line);
     bstr_free(tx->response_protocol);
     bstr_free(tx->response_status);
