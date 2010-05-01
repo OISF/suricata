@@ -448,7 +448,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                     pd->flags |= DETECT_PCRE_MATCH_LIMIT;
                     break;
                 case 'P':
-                    /* snort's option (http body inspeciton, chunks loaded from HTP) */
+                    /* snort's option (http body inspection, chunks loaded from HTP) */
                     pd->flags |= DETECT_PCRE_HTTP_BODY_AL;
                     break;
                 default:
