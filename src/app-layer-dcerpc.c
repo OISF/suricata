@@ -860,7 +860,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
  * A fast path for normal decoding is used when there is enough bytes
  * present to parse the entire header. A slow path is used to parse
  * fragmented packets.
- * \retval -1 if DCEPRC Header does not validate
+ * \retval -1 if DCERPC Header does not validate
  * \retval Number of bytes processed
  */
 static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
