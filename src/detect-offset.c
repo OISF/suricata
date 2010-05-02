@@ -37,7 +37,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
         dubbed = 1;
     }
 
-    /** Search for the first previous DetectContent or uricontent
+    /* Search for the first previous DetectContent or uricontent
      * SigMatch (it can be the same as this one) */
     SigMatch *pm = SigMatchGetLastPattern(s);
     if (pm == NULL) {
@@ -58,12 +58,12 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 return -1;
             }
             ud->offset = (uint32_t)atoi(str);
-            if (ud->depth != 0) {
+            if (ud->depth != 0 && (ud->uricontent_len + ud->offset) > ud->depth) {
                 SCLogDebug("depth increased to %"PRIu32" to match pattern len"
                         " and offset", ud->uricontent_len + ud->offset);
                 ud->depth = ud->uricontent_len + ud->offset;
             }
-        break;
+            break;
 
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
@@ -73,22 +73,24 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 return -1;
             }
             cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0 && cd->offset != 0) {
+            if (cd->depth != 0 && (cd->content_len + cd->offset) > cd->depth) {
                 SCLogDebug("depth increased to %"PRIu32" to match pattern len"
                         " and offset", cd->content_len + cd->offset);
                 cd->depth = cd->content_len + cd->offset;
             }
-        break;
+            break;
 
         default:
             SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding"
                     " content or uricontent option");
             if (dubbed) SCFree(str);
                 return -1;
-        break;
+
+            break;
     }
 
-    if (dubbed) SCFree(str);
+    if (dubbed)
+        SCFree(str);
     return 0;
 }
 
