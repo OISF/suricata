@@ -447,7 +447,7 @@ static int DetectHttpHeaderTest06(void)
 
     http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
-        printf("no http state: \n");
+        printf("no http state: ");
         result = 0;
         goto end;
     }
@@ -456,7 +456,7 @@ static int DetectHttpHeaderTest06(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if (!(PacketAlertCheck(&p, 1))) {
-        printf("sid 1 didn't match but should have\n");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -566,7 +566,7 @@ static int DetectHttpHeaderTest07(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
 
     if ( (PacketAlertCheck(&p1, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -581,7 +581,7 @@ static int DetectHttpHeaderTest07(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
 
     if (!(PacketAlertCheck(&p2, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -690,7 +690,7 @@ static int DetectHttpHeaderTest08(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
 
     if ((PacketAlertCheck(&p1, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -705,7 +705,7 @@ static int DetectHttpHeaderTest08(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
 
     if (!(PacketAlertCheck(&p2, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -815,7 +815,7 @@ static int DetectHttpHeaderTest09(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
 
     if ((PacketAlertCheck(&p1, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -830,7 +830,7 @@ static int DetectHttpHeaderTest09(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
 
     if (!(PacketAlertCheck(&p2, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -931,7 +931,7 @@ static int DetectHttpHeaderTest10(void)
 
     http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
-        printf("no http state: \n");
+        printf("no http state: ");
         result = 0;
         goto end;
     }
@@ -940,13 +940,13 @@ static int DetectHttpHeaderTest10(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
 
     if ((PacketAlertCheck(&p1, 1))) {
-        printf("sid 1 didn't match but should have\n");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
@@ -955,7 +955,7 @@ static int DetectHttpHeaderTest10(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
 
     if (!(PacketAlertCheck(&p2, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -1053,7 +1053,7 @@ static int DetectHttpHeaderTest11(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if (!(PacketAlertCheck(&p, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -1151,7 +1151,7 @@ static int DetectHttpHeaderTest12(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if ((PacketAlertCheck(&p, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
@@ -1250,7 +1250,7 @@ static int DetectHttpHeaderTest13(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if (!(PacketAlertCheck(&p, 1))) {
-        printf("sid 1 didn't match but should have");
+        printf("sid 1 didn't match but should have: ");
         goto end;
     }
 
