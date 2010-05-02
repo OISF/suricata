@@ -131,7 +131,7 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
                 /* update offset with prev_offset if we're searching for
                  * matches after the first occurence. */
-                SCLogDebug("offset %"PRIu32", prev_offset %"PRIu32, prev_offset, depth);
+                SCLogDebug("offset %"PRIu32", prev_offset %"PRIu32, offset, prev_offset);
                 offset += prev_offset;
 
                 SCLogDebug("offset %"PRIu32", depth %"PRIu32, offset, depth);

@@ -73,7 +73,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 return -1;
             }
             cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0) {
+            if (cd->depth != 0 && cd->offset != 0) {
                 SCLogDebug("depth increased to %"PRIu32" to match pattern len"
                         " and offset", cd->content_len + cd->offset);
                 cd->depth = cd->content_len + cd->offset;
