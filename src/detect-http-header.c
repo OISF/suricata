@@ -249,12 +249,17 @@ static int DetectHttpHeaderTest01(void)
                                "content:one; http_header; sid:1;)");
     if (de_ctx->sig_list != NULL)
         result = 1;
+    else
+        printf("Error parsing signature: ");
 
     sm = de_ctx->sig_list->match;
     if (sm != NULL) {
         result &= (sm->type == DETECT_AL_HTTP_HEADER);
         result &= (sm->next == NULL);
+    } else {
+        printf("Error updating content pattern to http_header pattern: ");
     }
+
 
  end:
     SigGroupCleanup(de_ctx);
@@ -283,6 +288,8 @@ static int DetectHttpHeaderTest02(void)
                                "content:one; http_header:; sid:1;)");
     if (de_ctx->sig_list != NULL)
         result = 1;
+    else
+        printf("Error parsing signature: ");
 
  end:
     SigGroupCleanup(de_ctx);
@@ -311,6 +318,8 @@ static int DetectHttpHeaderTest03(void)
                                "http_header; sid:1;)");
     if (de_ctx->sig_list == NULL)
         result = 1;
+    else
+        printf("Error parsing signature: ");
 
  end:
     SigGroupCleanup(de_ctx);
@@ -339,6 +348,8 @@ static int DetectHttpHeaderTest04(void)
                                "content:one; rawbytes; http_header; sid:1;)");
     if (de_ctx->sig_list == NULL)
         result = 1;
+    else
+        printf("Error parsing signature: ");
 
  end:
     SigGroupCleanup(de_ctx);
@@ -367,6 +378,8 @@ static int DetectHttpHeaderTest05(void)
                                "content:one; nocase; http_header; sid:1;)");
     if (de_ctx->sig_list != NULL)
         result = 1;
+    else
+        printf("Error parsing signature: ");
 
  end:
     SigGroupCleanup(de_ctx);
