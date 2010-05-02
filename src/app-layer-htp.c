@@ -703,8 +703,8 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     hstate->body.operation = HTP_BODY_RESPONSE;
     hstate->body.pcre_flags = HTP_PCRE_NONE;
 
-    /* Clear the trasactions which are processed by the engine from libhtp.
-       This helps in reducing the meory consumptions of libhtp */
+    /* Clear the transactions which are processed by the engine from libhtp.
+       This helps in reducing the memory consumptions of libhtp */
     for (idx = 0; idx < hstate->new_in_tx_index; idx++) {
         htp_tx_t *tx = list_get(hstate->connp->conn->transactions, idx);
         if (tx != NULL)
