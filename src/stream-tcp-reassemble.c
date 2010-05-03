@@ -4619,7 +4619,7 @@ static int StreamTcpReassembleTest40 (void) {
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
     uint8_t httpbuf4[] = "S";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
-    uint8_t httpbuf5[] = "T\r\n";
+    uint8_t httpbuf5[] = "T \r\n";
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
 
     uint8_t httpbuf2[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
