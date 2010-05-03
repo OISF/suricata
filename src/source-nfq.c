@@ -28,6 +28,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-byte.h"
+#include "util-privs.h"
 
 #ifndef NFQ
 /** Handle the case where no NFQ support is compiled in.
@@ -43,6 +44,7 @@ void TmModuleReceiveNFQRegister (void) {
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
+    tmm_modules[TMM_RECEIVENFQ].cap_flags = SC_CAP_NET_ADMIN;
 }
 
 void TmModuleVerdictNFQRegister (void) {
@@ -52,6 +54,7 @@ void TmModuleVerdictNFQRegister (void) {
     tmm_modules[TMM_VERDICTNFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
+    tmm_modules[TMM_VERDICTNFQ].cap_flags = SC_CAP_NET_ADMIN;
 }
 
 void TmModuleDecodeNFQRegister (void) {
@@ -61,6 +64,7 @@ void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODENFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
+    tmm_modules[TMM_DECODENFQ].cap_flags = 0;
 }
 
 TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)

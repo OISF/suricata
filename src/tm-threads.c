@@ -19,6 +19,7 @@
 #include "util-debug.h"
 #include <pthread.h>
 #include <unistd.h>
+#include "util-privs.h"
 
 #ifdef OS_FREEBSD
 #include <sched.h>
@@ -131,6 +132,9 @@ void *TmThreadsSlot1NoIn(void *td) {
     /* Set the thread name */
     SCSetThreadName(tv->name);
 
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
+
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -198,6 +202,9 @@ void *TmThreadsSlot1NoOut(void *td) {
     /* Set the thread name */
     SCSetThreadName(tv->name);
 
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
+
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -257,6 +264,9 @@ void *TmThreadsSlot1NoInOut(void *td) {
 
     /* Set the thread name */
     SCSetThreadName(tv->name);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
@@ -321,6 +331,9 @@ void *TmThreadsSlot1(void *td) {
 
     /* Set the thread name */
     SCSetThreadName(tv->name);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
@@ -441,6 +454,9 @@ void *TmThreadsSlotVar(void *td) {
 
     /* Set the thread name */
     SCSetThreadName(tv->name);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
@@ -571,6 +587,7 @@ void Tm1SlotSetFunc(ThreadVars *tv, TmModule *tm, void *data) {
     s1->s.SlotFunc = tm->Func;
     s1->s.SlotThreadExitPrintStats = tm->ThreadExitPrintStats;
     s1->s.SlotThreadDeinit = tm->ThreadDeinit;
+    tv->cap_flags |= tm->cap_flags;
 }
 
 void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data) {
@@ -586,6 +603,7 @@ void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data) {
     slot->SlotFunc = tm->Func;
     slot->SlotThreadExitPrintStats = tm->ThreadExitPrintStats;
     slot->SlotThreadDeinit = tm->ThreadDeinit;
+    tv->cap_flags |= tm->cap_flags;
 
     if (s->s == NULL) {
         s->s = slot;

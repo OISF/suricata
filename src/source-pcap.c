@@ -19,6 +19,7 @@
 #include "conf.h"
 #include "util-debug.h"
 #include "util-error.h"
+#include "util-privs.h"
 
 extern int max_pending_packets;
 
@@ -63,6 +64,7 @@ void TmModuleReceivePcapRegister (void) {
     tmm_modules[TMM_RECEIVEPCAP].ThreadExitPrintStats = ReceivePcapThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAP].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEPCAP].RegisterTests = NULL;
+    tmm_modules[TMM_RECEIVEPCAP].cap_flags = SC_CAP_NET_RAW;
 }
 
 /**
@@ -76,6 +78,7 @@ void TmModuleDecodePcapRegister (void) {
     tmm_modules[TMM_DECODEPCAP].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEPCAP].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEPCAP].RegisterTests = NULL;
+    tmm_modules[TMM_DECODEPCAP].cap_flags = 0;
 }
 
 /**

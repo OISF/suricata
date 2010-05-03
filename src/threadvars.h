@@ -66,6 +66,8 @@ typedef struct ThreadVars_ {
     SCMutex *m;
     SCCondT *cond;
 
+    uint8_t cap_flags; /**< Flags to indicate the capabilities of all the
+                            TmModules resgitered under this thread */
     struct ThreadVars_ *next;
     struct ThreadVars_ *prev;
 } ThreadVars;

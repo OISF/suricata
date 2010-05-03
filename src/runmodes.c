@@ -127,6 +127,7 @@ static void SetupOutputs(ThreadVars *tv)
 {
     RunModeOutput *output;
     TAILQ_FOREACH(output, &RunModeOutputs, entries) {
+        tv->cap_flags |= output->tm_module->cap_flags;
         TmVarSlotSetFuncAppend(tv, output->tm_module, output->output_ctx);
     }
 }

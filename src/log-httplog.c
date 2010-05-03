@@ -25,6 +25,7 @@
 #include "app-layer-htp.h"
 #include <htp/dslib.h>
 #include "app-layer.h"
+#include "util-privs.h"
 
 #define DEFAULT_LOG_FILENAME "http.log"
 
@@ -46,6 +47,7 @@ void TmModuleLogHttpLogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].ThreadExitPrintStats = LogHttpLogExitPrintStats;
     tmm_modules[TMM_LOGHTTPLOG].ThreadDeinit = LogHttpLogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG].RegisterTests = NULL;
+    tmm_modules[TMM_LOGHTTPLOG].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "http-log", LogHttpLogInitCtx);
 }

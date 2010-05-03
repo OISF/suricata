@@ -30,6 +30,7 @@
 
 #include "output.h"
 #include "alert-unified-log.h"
+#include "util-privs.h"
 
 #define DEFAULT_LOG_FILENAME "unified.log"
 
@@ -54,6 +55,7 @@ void TmModuleAlertUnifiedLogRegister (void) {
     tmm_modules[TMM_ALERTUNIFIEDLOG].Func = AlertUnifiedLog;
     tmm_modules[TMM_ALERTUNIFIEDLOG].ThreadDeinit = AlertUnifiedLogThreadDeinit;
     tmm_modules[TMM_ALERTUNIFIEDLOG].RegisterTests = AlertUnifiedLogRegisterTests;
+    tmm_modules[TMM_ALERTUNIFIEDLOG].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "unified-log", AlertUnifiedLogInitCtx);
 

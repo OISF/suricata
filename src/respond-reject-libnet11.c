@@ -31,6 +31,10 @@
 
 #ifdef HAVE_LIBNET11
 
+/** set to true in main if we're setting caps. We need it here if we're using
+  * reject rules as libnet 1.1 is not compatible with caps. */
+extern int sc_set_caps;
+
 #include <libnet.h>
 
 

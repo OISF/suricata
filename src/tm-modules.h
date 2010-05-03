@@ -21,6 +21,9 @@ typedef struct TmModule_ {
     TmEcode (*Func)(ThreadVars *, Packet *, void *, PacketQueue *);
 
     void (*RegisterTests)(void);
+
+    uint8_t cap_flags;   /**< Flags to indicate the capability requierment of
+                             the given TmModule */
 } TmModule;
 
 enum {

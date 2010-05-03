@@ -38,6 +38,7 @@
 #include "util-error.h"
 
 #include "output.h"
+#include "util-privs.h"
 
 #ifndef PRELUDE
 /** Handle the case where no PRELUDE support is compiled in.
@@ -117,6 +118,7 @@ void TmModuleAlertPreludeRegister (void) {
     tmm_modules[TMM_ALERTPRELUDE].Func = AlertPrelude;
     tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
     tmm_modules[TMM_ALERTPRELUDE].RegisterTests = AlertPreludeRegisterTests;
+    tmm_modules[TMM_ALERTPRELUDE].cap_flags = 0;
 
     OutputRegisterModule("AlertPrelude", "alert-prelude", AlertPreludeInitCtx);
 }

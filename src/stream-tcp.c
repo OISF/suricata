@@ -36,6 +36,7 @@
 
 #include "app-layer-parser.h"
 #include "util-host-os-info.h"
+#include "util-privs.h"
 
 //#define DEBUG
 
@@ -93,6 +94,7 @@ void TmModuleStreamTcpRegister (void)
     tmm_modules[TMM_STREAMTCP].ThreadExitPrintStats = StreamTcpExitPrintStats;
     tmm_modules[TMM_STREAMTCP].ThreadDeinit = StreamTcpThreadDeinit;
     tmm_modules[TMM_STREAMTCP].RegisterTests = StreamTcpRegisterTests;
+    tmm_modules[TMM_STREAMTCP].cap_flags = 0;
 }
 
 void StreamTcpIncrMemuse(uint32_t size) {

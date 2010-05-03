@@ -12,6 +12,7 @@
 #include "util-time.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-privs.h"
 
 /** \todo Get the default log directory from some global resource. */
 #define SC_PERF_DEFAULT_LOG_FILENAME "stats.log"
@@ -356,6 +357,11 @@ static void *SCPerfMgmtThread(void *arg)
     /* Set the thread name */
     SCSetThreadName(tv_local->name);
 
+    /* Set the threads capability */
+    tv_local->cap_flags = 0;
+
+    SCDropCaps(tv_local);
+
     if (sc_perf_op_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
                    "SCPerfInitCounterApi() has to be called first");
@@ -402,6 +408,11 @@ static void *SCPerfWakeupThread(void *arg)
 
     /* Set the thread name */
     SCSetThreadName(tv_local->name);
+
+    /* Set the threads capability */
+    tv_local->cap_flags = 0;
+
+    SCDropCaps(tv_local);
 
     if (sc_perf_op_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
@@ -1657,9 +1668,7 @@ void SCPerfReleasePCA(SCPerfCounterArray *pca)
     return;
 }
 
-
 /*----------------------------------Unit_Tests--------------------------------*/
-
 
 static int SCPerfTestCounterReg01()
 {

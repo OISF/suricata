@@ -25,6 +25,7 @@
 
 #include "output.h"
 #include "alert-unified2-alert.h"
+#include "util-privs.h"
 
 #ifndef IPPROTO_SCTP
 #define IPPROTO_SCTP 132
@@ -138,6 +139,7 @@ void TmModuleUnified2AlertRegister (void) {
     tmm_modules[TMM_ALERTUNIFIED2ALERT].Func = Unified2Alert;
     tmm_modules[TMM_ALERTUNIFIED2ALERT].ThreadDeinit = Unified2AlertThreadDeinit;
     tmm_modules[TMM_ALERTUNIFIED2ALERT].RegisterTests = Unified2RegisterTests;
+    tmm_modules[TMM_ALERTUNIFIED2ALERT].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "unified2-alert", Unified2AlertInitCtx);
 }

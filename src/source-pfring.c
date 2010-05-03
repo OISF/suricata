@@ -16,6 +16,7 @@
 #include "tm-threads.h"
 #include "source-pfring.h"
 #include "util-debug.h"
+#include "util-privs.h"
 
 TmEcode ReceivePfring(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
@@ -39,6 +40,8 @@ void TmModuleReceivePfringRegister (void) {
     tmm_modules[TMM_RECEIVEPFRING].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVEPFRING].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEPFRING].RegisterTests = NULL;
+    tmm_modules[TMM_RECEIVEPFRING].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
+        SC_CAP_NET_BIND_SERVICE | SC_CAP_NET_BROADCAST;
 }
 
 void TmModuleDecodePfringRegister (void) {
@@ -48,6 +51,7 @@ void TmModuleDecodePfringRegister (void) {
     tmm_modules[TMM_DECODEPFRING].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEPFRING].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEPFRING].RegisterTests = NULL;
+    tmm_modules[TMM_DECODEPFRING].cap_flags = 0;
 }
 
 /**

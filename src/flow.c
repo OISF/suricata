@@ -33,6 +33,7 @@
 #include "util-byte.h"
 
 #include "util-debug.h"
+#include "util-privs.h"
 
 //#define FLOW_DEFAULT_HASHSIZE    262144
 #define FLOW_DEFAULT_HASHSIZE    65536
@@ -650,6 +651,10 @@ void *FlowManagerThread(void *td)
     /* set the thread name */
     SCSetThreadName(th_v->name);
     SCLogDebug("%s started...", th_v->name);
+
+    /* Set the threads capability */
+    th_v->cap_flags = 0;
+    SCDropCaps(th_v);
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1)

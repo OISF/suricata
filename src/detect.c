@@ -114,6 +114,7 @@
 #include "util-cuda-handlers.h"
 #include "util-mpm-b2g-cuda.h"
 #include "util-cuda.h"
+#include "util-privs.h"
 
 SigMatch *SigMatchAlloc(void);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
@@ -133,6 +134,7 @@ void TmModuleDetectRegister (void) {
     tmm_modules[TMM_DETECT].ThreadExitPrintStats = DetectExitPrintStats;
     tmm_modules[TMM_DETECT].ThreadDeinit = DetectThreadDeinit;
     tmm_modules[TMM_DETECT].RegisterTests = SigRegisterTests;
+    tmm_modules[TMM_DETECT].cap_flags = 0;
 }
 
 void DetectExitPrintStats(ThreadVars *tv, void *data) {

@@ -24,6 +24,7 @@
 #include "respond-reject-libnet11.h"
 
 #include "util-debug.h"
+#include "util-privs.h"
 
 int RejectSendIPv4TCP(ThreadVars *, Packet *, void *);
 int RejectSendIPv4ICMP(ThreadVars *, Packet *, void *);
@@ -37,6 +38,7 @@ void TmModuleRespondRejectRegister (void) {
     tmm_modules[TMM_RESPONDREJECT].Func = RespondRejectFunc;
     tmm_modules[TMM_RESPONDREJECT].ThreadDeinit = NULL;
     tmm_modules[TMM_RESPONDREJECT].RegisterTests = NULL;
+    tmm_modules[TMM_RESPONDREJECT].cap_flags = 0; /* libnet is not compat with caps */
 }
 
 TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {

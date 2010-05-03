@@ -37,6 +37,7 @@
 
 #include "util-mpm-b2g-cuda.h"
 #include "util-cuda-handlers.h"
+#include "util-privs.h"
 
 #define DEFAULT_LOG_FILENAME "fast.log"
 
@@ -59,6 +60,7 @@ void TmModuleAlertFastLogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].ThreadExitPrintStats = AlertFastLogExitPrintStats;
     tmm_modules[TMM_ALERTFASTLOG].ThreadDeinit = AlertFastLogThreadDeinit;
     tmm_modules[TMM_ALERTFASTLOG].RegisterTests = AlertFastLogRegisterTests;
+    tmm_modules[TMM_ALERTFASTLOG].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "fast", AlertFastLogInitCtx);
 }

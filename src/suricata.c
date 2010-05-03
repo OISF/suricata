@@ -103,6 +103,7 @@
 #include "util-cuda-handlers.h"
 
 #include "output.h"
+#include "util-privs.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -122,11 +123,14 @@ volatile sig_atomic_t sigterm_count = 0;
 
 static uint8_t sigflags = 0;
 
-/* Run mode selected */
+/** Run mode selected */
 int run_mode = MODE_UNKNOWN;
 
-/* Maximum packets to simultaneously process. */
+/** Maximum packets to simultaneously process. */
 intmax_t max_pending_packets;
+
+/** set caps or not */
+int sc_set_caps;
 
 int RunmodeIsUnittests(void) {
     if (run_mode == MODE_UNITTEST)
@@ -401,9 +405,17 @@ int main(int argc, char **argv)
     int dump_config = 0;
     int list_unittests = 0;
     int daemon = 0;
+    char *user_name = NULL;
+    char *group_name = NULL;
+    uint8_t do_setuid = FALSE;
+    uint8_t do_setgid = FALSE;
+    uint32_t userid = 0;
+    uint32_t groupid = 0;
 
     char *log_dir;
     struct stat buf;
+
+    sc_set_caps = FALSE;
 
 #ifdef OS_WIN32
 	WSADATA wsaData;
@@ -431,6 +443,8 @@ int main(int argc, char **argv)
         {"pidfile", required_argument, 0, 0},
         {"init-errors-fatal", 0, 0, 0},
         {"fatal-unittests", 0, 0, 0},
+        {"user", required_argument, 0, 0},
+        {"group", required_argument, 0, 0},
         {NULL, 0, NULL, 0}
     };
 
@@ -489,6 +503,26 @@ int main(int argc, char **argv)
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
+            }
+            else if(strcmp((long_opts[option_index]).name, "user") == 0) {
+#ifndef HAVE_LIBCAP_NG
+                SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
+                        " drop privileges, but it was not compiled into Suricata.");
+                exit(EXIT_FAILURE);
+#else
+                user_name = optarg;
+                do_setuid = TRUE;
+#endif /* HAVE_LIBCAP_NG */
+            }
+            else if(strcmp((long_opts[option_index]).name, "group") == 0) {
+#ifndef HAVE_LIBCAP_NG
+                SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
+                        " drop privileges, but it was not compiled into Suricata.");
+                exit(EXIT_FAILURE);
+#else
+                group_name = optarg;
+                do_setgid = TRUE;
+#endif /* HAVE_LIBCAP_NG */
             }
             break;
         case 'c':
@@ -834,6 +868,24 @@ int main(int argc, char **argv)
     SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
 #endif /* OS_WIN32 */
 
+    /* Get the suricata user ID to given user ID */
+    if (do_setuid == TRUE) {
+        if (SCGetUserID(user_name, group_name, &userid, &groupid) != 0) {
+            SCLogError(SC_ERR_UID_FAILED, "failed in getting user ID");
+            exit(EXIT_FAILURE);
+        }
+
+        sc_set_caps = TRUE;
+    /* Get the suricata group ID to given group ID */
+    } else if (do_setgid == TRUE) {
+        if (SCGetGroupID(group_name, &groupid) != 0) {
+            SCLogError(SC_ERR_GID_FAILED, "failed in getting group ID");
+            exit(EXIT_FAILURE);
+        }
+
+        sc_set_caps = TRUE;
+    }
+
     /* pre allocate packets */
     SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)sizeof(Packet));
     int i = 0;
@@ -875,7 +927,11 @@ int main(int argc, char **argv)
     memset(&start_time, 0, sizeof(start_time));
     gettimeofday(&start_time, NULL);
 
+    SCDropMainThreadCaps(userid, groupid);
+
     RunModeInitializeOutputs();
+
+    /* run the selected runmode */
     if (run_mode == MODE_PCAP_DEV) {
         //RunModeIdsPcap3(de_ctx, pcap_dev);
         //RunModeIdsPcap2(de_ctx, pcap_dev);

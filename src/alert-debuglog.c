@@ -28,6 +28,7 @@
 
 #include "output.h"
 #include "alert-debuglog.h"
+#include "util-privs.h"
 
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
@@ -48,6 +49,7 @@ void TmModuleAlertDebugLogRegister (void) {
     tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebugLogExitPrintStats;
     tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebugLogThreadDeinit;
     tmm_modules[TMM_ALERTDEBUGLOG].RegisterTests = NULL;
+    tmm_modules[TMM_ALERTDEBUGLOG].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "alert-debug", AlertDebugLogInitCtx);
 }

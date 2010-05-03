@@ -16,6 +16,7 @@
 #include "source-ipfw.h"
 #include "util-debug.h"
 #include "conf.h"
+#include "util-privs.h"
 
 #define IPFW_ACCEPT 0
 #define IPFW_DROP 1
@@ -40,6 +41,8 @@ void TmModuleReceiveIPFWRegister (void) {
     tmm_modules[TMM_RECEIVEIPFW].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVEIPFW].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEIPFW].RegisterTests = NULL;
+    tmm_modules[TMM_RECEIVEIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
+        SC_CAP_NET_BIND_SERVICE | SC_CAP_NET_BROADCAST; /** \todo untested */
 }
 
 void TmModuleVerdictIPFWRegister (void) {
@@ -49,6 +52,8 @@ void TmModuleVerdictIPFWRegister (void) {
     tmm_modules[TMM_VERDICTIPFW].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_VERDICTIPFW].ThreadDeinit = NULL;
     tmm_modules[TMM_VERDICTIPFW].RegisterTests = NULL;
+    tmm_modules[TMM_VERDICTIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
+        SC_CAP_NET_BIND_SERVICE; /** \todo untested */
 }
 
 void TmModuleDecodeIPFWRegister (void) {
@@ -58,6 +63,7 @@ void TmModuleDecodeIPFWRegister (void) {
     tmm_modules[TMM_DECODEIPFW].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEIPFW].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEIPFW].RegisterTests = NULL;
+    tmm_modules[TMM_DECODEIPFW].cap_flags = 0;
 }
 
 TmEcode NoIPFWSupportExit(ThreadVars *tv, void *initdata, void **data) {
