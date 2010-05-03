@@ -74,7 +74,8 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     SCMutexLock(&f->m);
 
-    if (htp_state == NULL) {
+    if (htp_state == NULL || htp_state->connp == NULL ||
+        htp_state->connp->conn == NULL) {
         SCLogDebug("No htp state, no match at http header data");
         goto end;
     }
