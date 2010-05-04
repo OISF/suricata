@@ -1,14 +1,34 @@
-/* implement per flow bits
+/* Copyright (C) 2007-2010 Open Information Security Foundation
  *
- * actually, not a bit, but called that way because of Snort's
- * flowbits. It's a binary storage. */
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
 
-/* TODO
- * - move away from a linked list implementation
- * - use different datatypes, such as string, int, etc.
- * - have more than one instance of the same var, and be able to match on a 
- *   specific one, or one all at a time. So if a certain capture matches
- *   multiple times, we can operate on all of them.
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Implements per flow bits. Actually, not a bit,
+ * but called that way because of Snort's flowbits.
+ * It's a binary storage.
+ *
+ * \todo move away from a linked list implementation
+ * \todo use different datatypes, such as string, int, etc.
+ * \todo have more than one instance of the same var, and be able to match on a
+ *       specific one, or one all at a time. So if a certain capture matches
+ *       multiple times, we can operate on all of them.
  */
 
 #include "suricata-common.h"

@@ -1,18 +1,37 @@
-/* Implementation of the Wu-Manber pattern matching algorithm.
+/* Copyright (C) 2007-2010 Victor Julien <victor@inliniac.net>
  *
- * Copyright (c) 2008 Victor Julien <victor@inliniac.net>
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Implementation of the Wu-Manber pattern matching algorithm.
  *
  * Ideas:
  *   - the hash contains a list of patterns. Maybe we can 'train' the hash
  *     so the most common patterns always appear first in this list.
  *
- * TODO VJ
- *  - make hash1 a array of ptr and get rid of the flag field in the
+ * \todo make hash1 a array of ptr and get rid of the flag field in the
  *    WmHashItem
- *  - remove exit() calls
- *  - only calc prefixci_buf for nocase patterns? -- would be in a
+ * \todo remove exit() calls
+ * \todo only calc prefixci_buf for nocase patterns? -- would be in a
  *    loop though, so probably not a performance inprovement.
- *  - make sure runtime counters can be disabled (at compile time)
+ * \todo make sure runtime counters can be disabled (at compile time)
  */
 
 #include "suricata-common.h"
