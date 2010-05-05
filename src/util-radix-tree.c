@@ -840,7 +840,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     }
 
     /* insert the netmask into the tree */
-    if (netmask != 255 || (netmask != 32 || (netmask == 32 && bitlen != 32)) || netmask != 128) {
+    if (netmask != 255 && (netmask != 32 || (netmask == 32 && bitlen != 32)) && netmask != 128) {
         node = new_node;
         parent = new_node->parent;
         while (parent != NULL && netmask < (parent->bit + 1)) {
