@@ -319,6 +319,9 @@ typedef struct Packet_
     /* IPS action to take */
     uint8_t action;
 
+    /** packet number in the pcap file, matches wireshark */
+    uint64_t pcap_cnt;
+
     /* double linked list ptrs */
     struct Packet_ *next;
     struct Packet_ *prev;

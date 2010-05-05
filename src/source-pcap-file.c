@@ -51,6 +51,7 @@ typedef struct PcapFileGlobalVars_ {
     void (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
     int datalink;
     struct bpf_program filter;
+    uint64_t cnt; /** packet counter */
 } PcapFileGlobalVars;
 
 typedef struct PcapFileThreadVars_
@@ -150,6 +151,8 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) 
         EngineStop();
         SCReturnInt(TM_ECODE_FAILED);
     }
+    p->pcap_cnt = pcap_g.cnt;
+    pcap_g.cnt++;
 
     SCReturnInt(TM_ECODE_OK);
 }
