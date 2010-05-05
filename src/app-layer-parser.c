@@ -706,15 +706,16 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
     uint16_t parser_idx = 0;
     AppLayerProto *p = &al_proto_table[proto];
+    TcpSession *ssn = NULL;
 
-    if (flags & STREAM_GAP) {
-        SCLogDebug("stream gap detected (missing packets), this is not yet supported.");
+    ssn = f->protoctx;
+    if (ssn == NULL) {
+        SCLogDebug("no TCP session");
         goto error;
     }
 
-    TcpSession *ssn = f->protoctx;
-    if (ssn == NULL) {
-        SCLogDebug("no TCP session");
+    if (flags & STREAM_GAP) {
+        SCLogDebug("stream gap detected (missing packets), this is not yet supported.");
         goto error;
     }
 
