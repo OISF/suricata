@@ -56,6 +56,8 @@
 
 /** All packets in this flow should be dropped */
 #define FLOW_ACTION_DROP            0x0200
+/** All packets in this flow should be accepted */
+#define FLOW_ACTION_PASS            0x0400
 
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER               0x01

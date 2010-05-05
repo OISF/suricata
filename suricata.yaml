@@ -5,6 +5,15 @@
 # conservative 50.
 #max-pending-packets: 50
 
+# Set the order of alerts bassed on actions
+# The default order is pass, drop, reject, alert
+action-order:
+  - pass
+  - drop
+  - reject
+  - alert
+
+
 # The default logging directory.  Any log or output file will be
 # placed here if its not specified with a full path name.  This can be
 # overridden with the -l command line parameter.

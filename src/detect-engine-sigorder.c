@@ -36,6 +36,8 @@
 
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-action.h"
+#include "action-globals.h"
 
 #define DETECT_FLOWVAR_NOT_USED   1
 #define DETECT_FLOWVAR_TYPE_READ  2
@@ -270,7 +272,7 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
     while (min != max) {
         prev = min;
         /* the sorting logic */
-        if (sw->sig->action <= min->sig->action) {
+        if (ActionOrderVal(sw->sig->action) >= ActionOrderVal(min->sig->action)) {
             min = min->next;
             continue;
         }
@@ -696,7 +698,7 @@ static void SCSigOrderByPriority(DetectEngineCtx *de_ctx,
     while (min != max) {
         prev = min;
         /* the sorting logic */
-        if (sw->sig->prio >= min->sig->prio) {
+        if (sw->sig->prio <= min->sig->prio) {
             min = min->next;
             continue;
         }
@@ -1550,6 +1552,508 @@ end:
     return result;
 }
 
+static int SCSigTestSignatureOrdering07(void)
+{
+    int result = 1;
+    Signature *prevsig = NULL, *sig = NULL;
+    SCSigSignatureWrapper *sw = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1; rev:4;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig = sig;
+    de_ctx->sig_list = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; sid:2; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:10; depth:4; sid:3; rev:4; priority:3;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; depth:4; sid:4; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:5; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "reject tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:7; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; sid:8; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigOrderSignatures(de_ctx);
+
+    sw = de_ctx->sc_sig_sig_wrapper;
+    uint8_t pos = 0;
+    while (sw != NULL) {
+        switch (pos) {
+            case 0:
+                result &=(sw->sig->id == 2)? 1 : 0;
+            break;
+            case 1:
+                result &=(sw->sig->id == 4)? 1 : 0;
+            break;
+            case 2:
+                result &=(sw->sig->id == 5)? 1 : 0;
+            break;
+            case 3:
+                result &=(sw->sig->id == 6)? 1 : 0;
+            break;
+            case 4:
+                result &=(sw->sig->id == 7)? 1 : 0;
+            break;
+            case 5:
+                result &=(sw->sig->id == 1)? 1 : 0;
+            break;
+            case 6:
+                result &=(sw->sig->id == 3)? 1 : 0;
+            break;
+            case 7:
+                result &=(sw->sig->id == 8)? 1 : 0;
+            break;
+        }
+        sw = sw->next;
+        pos++;
+    }
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Order with a different Action priority
+ * (as specified from config)
+ */
+static int SCSigTestSignatureOrdering08(void)
+{
+    int result = 1;
+    Signature *prevsig = NULL, *sig = NULL;
+    SCSigSignatureWrapper *sw = NULL;
+    extern uint8_t action_order_sigs[4];
+
+    /* Let's change the order. Default is pass, drop, reject, alert (pass has highest prio) */
+    action_order_sigs[0] = ACTION_REJECT;
+    action_order_sigs[1] = ACTION_DROP;
+    action_order_sigs[2] = ACTION_ALERT;
+    action_order_sigs[3] = ACTION_PASS;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1; rev:4;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig = sig;
+    de_ctx->sig_list = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; sid:2; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:10; depth:4; sid:3; rev:4; priority:3;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; depth:4; sid:4; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:5; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "reject tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:7; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; sid:8; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigOrderSignatures(de_ctx);
+
+    sw = de_ctx->sc_sig_sig_wrapper;
+
+    uint8_t pos = 0;
+    while (sw != NULL) {
+
+        switch (pos) {
+            case 0:
+                result &=(sw->sig->id == 7)? 1 : 0;
+            break;
+            case 1:
+                result &=(sw->sig->id == 6)? 1 : 0;
+            break;
+            case 2:
+                result &=(sw->sig->id == 1)? 1 : 0;
+            break;
+            case 3:
+                result &=(sw->sig->id == 3)? 1 : 0;
+            break;
+            case 4:
+                result &=(sw->sig->id == 8)? 1 : 0;
+            break;
+            case 5:
+                result &=(sw->sig->id == 2)? 1 : 0;
+            break;
+            case 6:
+                result &=(sw->sig->id == 4)? 1 : 0;
+            break;
+            case 7:
+                result &=(sw->sig->id == 5)? 1 : 0;
+            break;
+        }
+        sw = sw->next;
+        pos++;
+    }
+
+end:
+    /* Restore the default pre-order definition */
+    action_order_sigs[0] = ACTION_PASS;
+    action_order_sigs[1] = ACTION_DROP;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Order with a different Action priority
+ * (as specified from config)
+ */
+static int SCSigTestSignatureOrdering09(void)
+{
+    int result = 1;
+    Signature *prevsig = NULL, *sig = NULL;
+    SCSigSignatureWrapper *sw = NULL;
+    extern uint8_t action_order_sigs[4];
+
+    /* Let's change the order. Default is pass, drop, reject, alert (pass has highest prio) */
+    action_order_sigs[0] = ACTION_DROP;
+    action_order_sigs[1] = ACTION_REJECT;
+    action_order_sigs[2] = ACTION_ALERT;
+    action_order_sigs[3] = ACTION_PASS;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1; rev:4;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig = sig;
+    de_ctx->sig_list = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; sid:2; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:10; depth:4; sid:3; rev:4; priority:3;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; depth:4; sid:4; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:5; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "reject tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:7; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; sid:8; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigOrderSignatures(de_ctx);
+
+    sw = de_ctx->sc_sig_sig_wrapper;
+
+    uint8_t pos = 0;
+    while (sw != NULL) {
+
+        switch (pos) {
+            case 0:
+                result &=(sw->sig->id == 6)? 1 : 0;
+            break;
+            case 1:
+                result &=(sw->sig->id == 7)? 1 : 0;
+            break;
+            case 2:
+                result &=(sw->sig->id == 1)? 1 : 0;
+            break;
+            case 3:
+                result &=(sw->sig->id == 3)? 1 : 0;
+            break;
+            case 4:
+                result &=(sw->sig->id == 8)? 1 : 0;
+            break;
+            case 5:
+                result &=(sw->sig->id == 2)? 1 : 0;
+            break;
+            case 6:
+                result &=(sw->sig->id == 4)? 1 : 0;
+            break;
+            case 7:
+                result &=(sw->sig->id == 5)? 1 : 0;
+            break;
+        }
+        sw = sw->next;
+        pos++;
+    }
+
+end:
+    /* Restore the default pre-order definition */
+    action_order_sigs[0] = ACTION_DROP;
+    action_order_sigs[1] = ACTION_REJECT;
+    action_order_sigs[2] = ACTION_PASS;
+    action_order_sigs[3] = ACTION_ALERT;
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Order with a different Action priority
+ * (as specified from config)
+ */
+static int SCSigTestSignatureOrdering10(void)
+{
+    int result = 1;
+    Signature *prevsig = NULL, *sig = NULL;
+    SCSigSignatureWrapper *sw = NULL;
+    extern uint8_t action_order_sigs[4];
+
+    /* Let's change the order. Default is pass, drop, reject, alert (pass has highest prio) */
+    action_order_sigs[0] = ACTION_PASS;
+    action_order_sigs[1] = ACTION_ALERT;
+    action_order_sigs[2] = ACTION_DROP;
+    action_order_sigs[3] = ACTION_REJECT;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:1; rev:4;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig = sig;
+    de_ctx->sig_list = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; sid:2; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:10; depth:4; sid:3; rev:4; priority:3;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:10; depth:4; sid:4; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering pass\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:5; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "reject tcp any !21:902 -> any any (msg:\"Testing sigordering reject\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:7; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering alert\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; sid:8; rev:4; priority:2;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigOrderSignatures(de_ctx);
+
+    sw = de_ctx->sc_sig_sig_wrapper;
+
+    uint8_t pos = 0;
+    while (sw != NULL) {
+
+        switch (pos) {
+            case 0:
+                result &=(sw->sig->id == 2)? 1 : 0;
+            break;
+            case 1:
+                result &=(sw->sig->id == 4)? 1 : 0;
+            break;
+            case 2:
+                result &=(sw->sig->id == 5)? 1 : 0;
+            break;
+            case 3:
+                result &=(sw->sig->id == 1)? 1 : 0;
+            break;
+            case 4:
+                result &=(sw->sig->id == 3)? 1 : 0;
+            break;
+            case 5:
+                result &=(sw->sig->id == 8)? 1 : 0;
+            break;
+            case 6:
+                result &=(sw->sig->id == 6)? 1 : 0;
+            break;
+            case 7:
+                result &=(sw->sig->id == 7)? 1 : 0;
+            break;
+        }
+        sw = sw->next;
+        pos++;
+    }
+
+end:
+    /* Restore the default pre-order definition */
+    action_order_sigs[0] = ACTION_PASS;
+    action_order_sigs[1] = ACTION_DROP;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif
 
 void SCSigRegisterSignatureOrderingTests(void)
@@ -1563,6 +2067,10 @@ void SCSigRegisterSignatureOrderingTests(void)
     UtRegisterTest("SCSigTestSignatureOrdering04", SCSigTestSignatureOrdering04, 1);
     UtRegisterTest("SCSigTestSignatureOrdering05", SCSigTestSignatureOrdering05, 1);
     UtRegisterTest("SCSigTestSignatureOrdering06", SCSigTestSignatureOrdering06, 1);
+    UtRegisterTest("SCSigTestSignatureOrdering07", SCSigTestSignatureOrdering07, 1);
+    UtRegisterTest("SCSigTestSignatureOrdering08", SCSigTestSignatureOrdering08, 1);
+    UtRegisterTest("SCSigTestSignatureOrdering09", SCSigTestSignatureOrdering09, 1);
+    UtRegisterTest("SCSigTestSignatureOrdering10", SCSigTestSignatureOrdering10, 1);
 
 #endif
 

@@ -192,6 +192,7 @@ app-layer-ftp.c app-layer-ftp.h \
 defrag.c defrag.h \
 output.c output.h \
 win32-misc.c win32-misc.h \
+util-action.c util-action.h \
 win32-syslog.h
 
 # set the include path found by configure

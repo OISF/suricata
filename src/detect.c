@@ -388,6 +388,17 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
 
+    Signature *s = de_ctx->sig_list;
+
+    /* Assign the unique id of signatures after sorting,
+     * so the IP Only engine process them in order too */
+    uint16_t sig_id = 0;
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+    de_ctx->signum = sig_id;
+
     /* Setup the signature group lookup structure and pattern matchers */
     SigGroupBuild(de_ctx);
     SCReturnInt(0);
@@ -416,22 +427,55 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
 
 int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
 {
+    int i = 0;
+
     if (p->alerts.cnt == PACKET_ALERT_MAX)
         return 0;
 
     SCLogDebug("sid %"PRIu32"", s->id);
 
-    if (s->gid > 1)
-        p->alerts.alerts[p->alerts.cnt].gid = s->gid;
-    else
-        p->alerts.alerts[p->alerts.cnt].gid = 1;
+    /* It should be usually the last, so check it before iterating */
+    if (p->alerts.cnt == 0 || (p->alerts.cnt > 0 &&
+                               p->alerts.alerts[p->alerts.cnt - 1].num < s->num)) {
+        /* We just add it */
+        if (s->gid > 1)
+            p->alerts.alerts[p->alerts.cnt].gid = s->gid;
+        else
+            p->alerts.alerts[p->alerts.cnt].gid = 1;
 
-    p->alerts.alerts[p->alerts.cnt].sid = s->id;
-    p->alerts.alerts[p->alerts.cnt].rev = s->rev;
-    p->alerts.alerts[p->alerts.cnt].prio = s->prio;
-    p->alerts.alerts[p->alerts.cnt].msg = s->msg;
-    p->alerts.alerts[p->alerts.cnt].class_msg = s->class_msg;
-    p->alerts.alerts[p->alerts.cnt].references = s->references;
+        p->alerts.alerts[p->alerts.cnt].num= s->num;
+        p->alerts.alerts[p->alerts.cnt].action = s->action;
+        p->alerts.alerts[p->alerts.cnt].sid = s->id;
+        p->alerts.alerts[p->alerts.cnt].rev = s->rev;
+        p->alerts.alerts[p->alerts.cnt].prio = s->prio;
+        p->alerts.alerts[p->alerts.cnt].msg = s->msg;
+        p->alerts.alerts[p->alerts.cnt].class_msg = s->class_msg;
+        p->alerts.alerts[p->alerts.cnt].references = s->references;
+    } else {
+        /* We need to make room for this s->num
+         (a bit ugly with mamcpy but we are planning changes here)*/
+        for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--) {
+            memcpy(&p->alerts.alerts[i + 1], &p->alerts.alerts[i], sizeof(PacketAlert));
+        }
+
+        i++; /* The right place to store the alert */
+
+        if (s->gid > 1)
+            p->alerts.alerts[i].gid = s->gid;
+        else
+            p->alerts.alerts[i].gid = 1;
+
+        p->alerts.alerts[p->alerts.cnt].num= s->num;
+        p->alerts.alerts[p->alerts.cnt].action = s->action;
+        p->alerts.alerts[i].sid = s->id;
+        p->alerts.alerts[i].rev = s->rev;
+        p->alerts.alerts[i].prio = s->prio;
+        p->alerts.alerts[i].msg = s->msg;
+        p->alerts.alerts[i].class_msg = s->class_msg;
+        p->alerts.alerts[i].references = s->references;
+    }
+
+    /* Update the count */
     p->alerts.cnt++;
 
     SCPerfCounterIncr(det_ctx->counter_alerts, det_ctx->tv->sc_perf_pca);
@@ -508,6 +552,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     void *alstate = NULL;
     uint8_t flags = 0;
     uint32_t cnt = 0;
+    uint16_t i = 0;
 
     SCEnter();
 
@@ -545,6 +590,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                    (p->flowflags & FLOW_PKT_TOCLIENT &&
                                    (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)))) {
         /* Get the result of the first IPOnlyMatch() */
+        if (p->flow->flags & FLOW_ACTION_PASS) {
+            /* if it matched a "pass" rule, we have to let it go */
+            p->action |= ACTION_PASS;
+        }
         if (p->flow->flags & FLOW_ACTION_DROP) p->action |= ACTION_DROP;
     } else {
         /* Even without flow we should match the packet src/dst */
@@ -708,9 +757,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                PacketAlertHandle(de_ctx, det_ctx, s, p);
                 /* set verdict on packet */
                 p->action |= s->action;
+                PacketAlertHandle(de_ctx, det_ctx, s, p);
             }
         } else {
             /* reset offset */
@@ -746,9 +795,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                                     /* only add once */
                                     if (rmatch == 0) {
-                                        PacketAlertHandle(de_ctx, det_ctx, s, p);
                                         /* set verdict on packet */
                                         p->action |= s->action;
+
+                                        PacketAlertHandle(de_ctx, det_ctx, s, p);
                                     }
                                 }
                                 rmatch = fmatch = 1;
@@ -760,11 +810,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             rmatch = 0;
                         }
                     }
+
                     /* Limit the number of times we do this recursive thing.
                      * XXX is this a sane limit? Should it be configurable? */
                     if (det_ctx->pkt_cnt == 10)
                         break;
                 } while (rmatch);
+
             } else {
                 sm = s->match;
 
@@ -790,12 +842,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (sm == NULL) {
                             fmatch = 1;
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
-
-                                /* set flowbit for this match */
-                                PacketAlertHandle(de_ctx, det_ctx, s, p);
-
                                 /* set verdict on packet */
                                 p->action |= s->action;
+
+                                PacketAlertHandle(de_ctx, det_ctx, s, p);
                             }
                         }
                     } else {
@@ -803,7 +853,24 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         sm = NULL;
                     }
                 }
+
                 SCLogDebug("match functions done, sm %p", sm);
+            }
+        }
+    }
+
+    /* so now let's iterate the alerts and remove the ones after a pass rule
+     * matched (if any) */
+end:
+    SCLogDebug("(p->action & ation pass)) = %"PRIu8, (p->action & ACTION_PASS));
+    if (p->action & ACTION_PASS) {
+        for (; i < p->alerts.cnt; i++) {
+            SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
+            if (p->alerts.alerts[i].action & ACTION_PASS) {
+                /* Ok, reset the alert cnt to end in the previous of pass
+                 * so we ignore the rest with less prio */
+                p->alerts.cnt = i;
+                break;
             }
         }
     }
@@ -811,7 +878,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
 
-end:
     if (p->flow != NULL) {
         SCMutexLock(&p->flow->m);
         p->flow->use_cnt--;

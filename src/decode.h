@@ -186,6 +186,8 @@ typedef uint16_t Port;
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
 typedef struct PacketAlert_ {
+    uint16_t num; /* Internal num, used for sorting */
+    uint8_t action; /* Internal num, used for sorting */
     uint32_t  gid;
     uint32_t sid;
     uint8_t  rev;

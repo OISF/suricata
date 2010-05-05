@@ -42,6 +42,7 @@
 #include "util-pool.h"
 #include "util-byte.h"
 #include "util-cpu.h"
+#include "util-action.h"
 #include "util-pidfile.h"
 
 #include "detect-parse.h"
@@ -831,6 +832,7 @@ int main(int argc, char **argv)
         AppLayerParserRegisterTests();
         ThreadMacrosRegisterTests();
         UtilSpmSearchRegistertests();
+        UtilActionRegisterTests();
         SCClassConfRegisterTests();
         SCThresholdConfRegisterTests();
 #ifdef __SC_CUDA_SUPPORT__
@@ -930,6 +932,8 @@ int main(int argc, char **argv)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     SCClassConfLoadClassficationConfigFile(de_ctx);
+
+    ActionInitConfig();
 
     if (SigLoadSignatures(de_ctx, sig_file) < 0) {
         if (sig_file == NULL) {

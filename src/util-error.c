@@ -42,6 +42,7 @@ const char * SCErrorToString(SCError err)
     switch (err) {
         CASE_CODE (SC_OK);
         CASE_CODE (SC_ERR_MEM_ALLOC);
+        CASE_CODE (SC_ERR_ACTION_ORDER);
         CASE_CODE (SC_ERR_PCRE_MATCH);
         CASE_CODE (SC_ERR_PCRE_GET_SUBSTRING);
         CASE_CODE (SC_ERR_PCRE_COMPILE);
