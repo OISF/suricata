@@ -248,9 +248,15 @@ void PrintList2(TcpSegment *seg)
                     seg->seq, seg->payload_len, seg, seg->prev, seg->next);
 
         if (seg->prev != NULL && SEQ_LT(seg->seq,seg->prev->seq)) {
-            SCLogDebug("inconsistant list: SEQ_LT(seg->seq,seg->prev->seq)) =="
-                       " TRUE, seg->seq %" PRIu32 ", seg->prev->seq %" PRIu32 ""
-                       "", seg->seq, seg->prev->seq);
+            /* check for SEQ_LT cornercase where a - b is exactly 2147483648,
+             * which makes the marco return TRUE in both directions. This is
+             * a hack though, we're going to check next how we end up with
+             * a segment list with seq differences that big */
+            if (!(SEQ_LT(seg->prev->seq,seg->seq))) {
+                SCLogDebug("inconsistant list: SEQ_LT(seg->seq,seg->prev->seq)) =="
+                        " TRUE, seg->seq %" PRIu32 ", seg->prev->seq %" PRIu32 ""
+                        "", seg->seq, seg->prev->seq);
+            }
         }
 
         if (SEQ_LT(seg->seq,next_seq)) {
@@ -291,11 +297,17 @@ void PrintList(TcpSegment *seg)
                     seg->seq, seg->payload_len, seg, seg->prev, seg->next);
 
         if (seg->prev != NULL && SEQ_LT(seg->seq,seg->prev->seq)) {
-            SCLogDebug("inconsistant list: SEQ_LT(seg->seq,seg->prev->seq)) == "
-                       "TRUE, seg->seq %" PRIu32 ", seg->prev->seq %" PRIu32 "",
+            /* check for SEQ_LT cornercase where a - b is exactly 2147483648,
+             * which makes the marco return TRUE in both directions. This is
+             * a hack though, we're going to check next how we end up with
+             * a segment list with seq differences that big */
+            if (!(SEQ_LT(seg->prev->seq,seg->seq))) {
+                SCLogDebug("inconsistant list: SEQ_LT(seg->seq,seg->prev->seq)) == "
+                        "TRUE, seg->seq %" PRIu32 ", seg->prev->seq %" PRIu32 "",
                         seg->seq, seg->prev->seq);
-            PrintList2(head_seg);
-            abort();
+                PrintList2(head_seg);
+                abort();
+            }
         }
 
         if (SEQ_LT(seg->seq,next_seq)) {
