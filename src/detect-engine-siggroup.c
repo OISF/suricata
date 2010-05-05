@@ -1161,7 +1161,7 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (!(s->flags & SIG_FLAG_MPM))
             continue;
 
-        sm = s->match;
+        sm = s->pmatch;
         if (sm == NULL)
             continue;
 
