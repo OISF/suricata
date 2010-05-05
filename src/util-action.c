@@ -970,6 +970,735 @@ end:
     return res;
 }
 
+/**
+ * \test Check mixed sigs (iponly and normal)
+ */
+int UtilActionTest15(void)
+{
+    int res = 1;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+
+    p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+    p[1] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.1", "192.168.1.5",
+                   80, 41424);
+    p[2] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
+    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[3][3] = {
+                              {0, 0, 0},
+                              {0, 0, 0},
+                              {0, 0, 0} };
+     /* All the patckets should match the 3 sigs. As drop
+      * and alert have more priority than pass, both should
+      * alert on each packet */
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto cleanup;
+    de_ctx->flags |= DE_QUIET;
+
+    if (UTHAppendSigs(de_ctx, sigs, 3) == 0)
+        goto cleanup;
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+
+    Signature *s = de_ctx->sig_list;
+    uint16_t sig_id = 0;
+    /* Assing the internal id after sorting, so the IP Only engine
+    * process them in order too */
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+
+    de_ctx->signum = sig_id;
+
+    res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
+
+cleanup:
+    UTHFreePackets(p, 3);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+end:
+    return res;
+}
+
+/**
+ * \test Check mixed sigs (iponly and normal)
+ */
+int UtilActionTest16(void)
+{
+    int res = 1;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+
+    p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+    p[1] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.1", "192.168.1.5",
+                   80, 41424);
+    p[2] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "drop tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[2]= "pass tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[3][3] = {
+                              {0, 0, 0},
+                              {0, 0, 0},
+                              {0, 0, 0} };
+     /* All the patckets should match the 3 sigs. As drop
+      * and alert have more priority than pass, both should
+      * alert on each packet */
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto cleanup;
+    de_ctx->flags |= DE_QUIET;
+
+    if (UTHAppendSigs(de_ctx, sigs, 3) == 0)
+        goto cleanup;
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+
+    Signature *s = de_ctx->sig_list;
+    uint16_t sig_id = 0;
+    /* Assing the internal id after sorting, so the IP Only engine
+    * process them in order too */
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+
+    de_ctx->signum = sig_id;
+
+    res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
+
+cleanup:
+    UTHFreePackets(p, 3);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+end:
+    return res;
+}
+
+/**
+ * \test Check mixed sigs (iponly and normal)
+ */
+int UtilActionTest17(void)
+{
+    int res = 1;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+
+    p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+    p[1] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.1", "192.168.1.5",
+                   80, 41424);
+    p[2] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "pass tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
+    sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[3][3] = {
+                              {0, 0, 0},
+                              {0, 0, 0},
+                              {0, 0, 0} };
+     /* All the patckets should match the 3 sigs. As drop
+      * and alert have more priority than pass, both should
+      * alert on each packet */
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto cleanup;
+    de_ctx->flags |= DE_QUIET;
+
+    if (UTHAppendSigs(de_ctx, sigs, 3) == 0)
+        goto cleanup;
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+
+    Signature *s = de_ctx->sig_list;
+    uint16_t sig_id = 0;
+    /* Assing the internal id after sorting, so the IP Only engine
+    * process them in order too */
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+
+    de_ctx->signum = sig_id;
+
+    res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
+
+cleanup:
+    UTHFreePackets(p, 3);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+end:
+    return res;
+}
+
+/**
+ * \test Check mixed sigs (iponly and normal) with more prio for drop
+ */
+int UtilActionTest18(void)
+{
+    int res = 1;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+
+    action_order_sigs[0] = ACTION_DROP;
+    action_order_sigs[1] = ACTION_PASS;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+
+    p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+    p[1] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.1", "192.168.1.5",
+                   80, 41424);
+    p[2] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
+    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[3][3] = {
+                              {0, 0, 1},
+                              {0, 0, 1},
+                              {0, 0, 1} };
+     /* All the patckets should match the 3 sigs. As drop
+      * and alert have more priority than pass, both should
+      * alert on each packet */
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto cleanup;
+    de_ctx->flags |= DE_QUIET;
+
+    if (UTHAppendSigs(de_ctx, sigs, 3) == 0)
+        goto cleanup;
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+
+    Signature *s = de_ctx->sig_list;
+    uint16_t sig_id = 0;
+    /* Assing the internal id after sorting, so the IP Only engine
+    * process them in order too */
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+
+    de_ctx->signum = sig_id;
+
+    res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
+
+cleanup:
+    UTHFreePackets(p, 3);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+end:
+    /* Restore default values */
+    action_order_sigs[0] = ACTION_PASS;
+    action_order_sigs[1] = ACTION_DROP;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+
+    return res;
+}
+
+/**
+ * \test Check mixed sigs (iponly and normal) with more prio for drop
+ */
+int UtilActionTest19(void)
+{
+    int res = 1;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+
+    action_order_sigs[0] = ACTION_DROP;
+    action_order_sigs[1] = ACTION_PASS;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+
+    p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+    p[1] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.1", "192.168.1.5",
+                   80, 41424);
+    p[2] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "drop tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[2]= "pass tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[3][3] = {
+                              {1, 0, 0},
+                              {1, 0, 0},
+                              {1, 0, 0} };
+     /* All the patckets should match the 3 sigs. As drop
+      * and alert have more priority than pass, both should
+      * alert on each packet */
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto cleanup;
+    de_ctx->flags |= DE_QUIET;
+
+    if (UTHAppendSigs(de_ctx, sigs, 3) == 0)
+        goto cleanup;
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+
+    Signature *s = de_ctx->sig_list;
+    uint16_t sig_id = 0;
+    /* Assing the internal id after sorting, so the IP Only engine
+    * process them in order too */
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+
+    de_ctx->signum = sig_id;
+
+    res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
+
+cleanup:
+    UTHFreePackets(p, 3);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+end:
+    /* Restore default values */
+    action_order_sigs[0] = ACTION_PASS;
+    action_order_sigs[1] = ACTION_DROP;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+
+    return res;
+}
+
+/**
+ * \test Check mixed sigs (iponly and normal) with more prio for drop
+ */
+int UtilActionTest20(void)
+{
+    int res = 1;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+
+    action_order_sigs[0] = ACTION_DROP;
+    action_order_sigs[1] = ACTION_PASS;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+
+    p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+    p[1] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.1", "192.168.1.5",
+                   80, 41424);
+    p[2] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "pass tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
+    sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[3][3] = {
+                              {0, 1, 0},
+                              {0, 1, 0},
+                              {0, 1, 0} };
+     /* All the patckets should match the 3 sigs. As drop
+      * and alert have more priority than pass, both should
+      * alert on each packet */
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto cleanup;
+    de_ctx->flags |= DE_QUIET;
+
+    if (UTHAppendSigs(de_ctx, sigs, 3) == 0)
+        goto cleanup;
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+
+    Signature *s = de_ctx->sig_list;
+    uint16_t sig_id = 0;
+    /* Assing the internal id after sorting, so the IP Only engine
+    * process them in order too */
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+
+    de_ctx->signum = sig_id;
+
+    res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
+
+cleanup:
+    UTHFreePackets(p, 3);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+end:
+    return res;
+}
+
+/**
+ * \test Check mixed sigs (iponly and normal) with more prio for alert and drop
+ */
+int UtilActionTest21(void)
+{
+    int res = 1;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+
+    action_order_sigs[0] = ACTION_DROP;
+    action_order_sigs[1] = ACTION_ALERT;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_PASS;
+
+    p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+    p[1] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.1", "192.168.1.5",
+                   80, 41424);
+    p[2] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
+    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[3][3] = {
+                              {1, 0, 1},
+                              {1, 0, 1},
+                              {1, 0, 1} };
+     /* All the patckets should match the 3 sigs. As drop
+      * and alert have more priority than pass, both should
+      * alert on each packet */
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto cleanup;
+    de_ctx->flags |= DE_QUIET;
+
+    if (UTHAppendSigs(de_ctx, sigs, 3) == 0)
+        goto cleanup;
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+
+    Signature *s = de_ctx->sig_list;
+    uint16_t sig_id = 0;
+    /* Assing the internal id after sorting, so the IP Only engine
+    * process them in order too */
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+
+    de_ctx->signum = sig_id;
+
+    res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
+
+cleanup:
+    UTHFreePackets(p, 3);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+end:
+    /* Restore default values */
+    action_order_sigs[0] = ACTION_PASS;
+    action_order_sigs[1] = ACTION_DROP;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+
+    return res;
+}
+
+/**
+ * \test Check mixed sigs (iponly and normal) with more prio for alert and drop
+ */
+int UtilActionTest22(void)
+{
+    int res = 1;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+
+    action_order_sigs[0] = ACTION_DROP;
+    action_order_sigs[1] = ACTION_ALERT;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_PASS;
+
+    p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+    p[1] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.1", "192.168.1.5",
+                   80, 41424);
+    p[2] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "drop tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[2]= "pass tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[3][3] = {
+                              {1, 1, 0},
+                              {1, 1, 0},
+                              {1, 1, 0} };
+     /* All the patckets should match the 3 sigs. As drop
+      * and alert have more priority than pass, both should
+      * alert on each packet */
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto cleanup;
+    de_ctx->flags |= DE_QUIET;
+
+    if (UTHAppendSigs(de_ctx, sigs, 3) == 0)
+        goto cleanup;
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+
+    Signature *s = de_ctx->sig_list;
+    uint16_t sig_id = 0;
+    /* Assing the internal id after sorting, so the IP Only engine
+    * process them in order too */
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+
+    de_ctx->signum = sig_id;
+
+    res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
+
+cleanup:
+    UTHFreePackets(p, 3);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+end:
+    /* Restore default values */
+    action_order_sigs[0] = ACTION_PASS;
+    action_order_sigs[1] = ACTION_DROP;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+
+    return res;
+}
+
+/**
+ * \test Check mixed sigs (iponly and normal) with more prio for alert and drop
+ */
+int UtilActionTest23(void)
+{
+    int res = 1;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p[3];
+
+    action_order_sigs[0] = ACTION_DROP;
+    action_order_sigs[1] = ACTION_ALERT;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_PASS;
+
+    p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+    p[1] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.1", "192.168.1.5",
+                   80, 41424);
+    p[2] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
+                   "192.168.1.5", "192.168.1.1",
+                   41424, 80);
+
+    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "pass tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
+    sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[3][3] = {
+                              {0, 1, 1},
+                              {0, 1, 1},
+                              {0, 1, 1} };
+     /* All the patckets should match the 3 sigs. As drop
+      * and alert have more priority than pass, both should
+      * alert on each packet */
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto cleanup;
+    de_ctx->flags |= DE_QUIET;
+
+    if (UTHAppendSigs(de_ctx, sigs, 3) == 0)
+        goto cleanup;
+
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+
+    Signature *s = de_ctx->sig_list;
+    uint16_t sig_id = 0;
+    /* Assing the internal id after sorting, so the IP Only engine
+    * process them in order too */
+    while (s != NULL) {
+        s->num = sig_id++;
+        s = s->next;
+    }
+
+    de_ctx->signum = sig_id;
+
+    res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
+
+cleanup:
+    UTHFreePackets(p, 3);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+end:
+    return res;
+}
+
 #endif
 
 /* Register unittests */
@@ -990,6 +1719,15 @@ void UtilActionRegisterTests(void) {
     UtRegisterTest("UtilActionTest11", UtilActionTest11, 1);
     UtRegisterTest("UtilActionTest12", UtilActionTest12, 1);
     UtRegisterTest("UtilActionTest13", UtilActionTest13, 1);
-    UtRegisterTest("UtilActionTest15", UtilActionTest13, 1);
+    UtRegisterTest("UtilActionTest14", UtilActionTest14, 1);
+    UtRegisterTest("UtilActionTest15", UtilActionTest15, 1);
+    UtRegisterTest("UtilActionTest16", UtilActionTest16, 1);
+    UtRegisterTest("UtilActionTest17", UtilActionTest17, 1);
+    UtRegisterTest("UtilActionTest18", UtilActionTest18, 1);
+    UtRegisterTest("UtilActionTest19", UtilActionTest19, 1);
+    UtRegisterTest("UtilActionTest20", UtilActionTest20, 1);
+    UtRegisterTest("UtilActionTest21", UtilActionTest21, 1);
+    UtRegisterTest("UtilActionTest22", UtilActionTest22, 1);
+    UtRegisterTest("UtilActionTest23", UtilActionTest23, 1);
 #endif
 }

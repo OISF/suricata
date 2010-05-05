@@ -465,8 +465,8 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
         else
             p->alerts.alerts[i].gid = 1;
 
-        p->alerts.alerts[p->alerts.cnt].num= s->num;
-        p->alerts.alerts[p->alerts.cnt].action = s->action;
+        p->alerts.alerts[i].num= s->num;
+        p->alerts.alerts[i].action = s->action;
         p->alerts.alerts[i].sid = s->id;
         p->alerts.alerts[i].rev = s->rev;
         p->alerts.alerts[i].prio = s->prio;
