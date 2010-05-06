@@ -889,7 +889,6 @@ int main(int argc, char **argv)
     SignalHandlerSetup(SIGINT, SignalHandlerSigint);
     SignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
     SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
-#endif /* OS_WIN32 */
 
     /* Get the suricata user ID to given user ID */
     if (do_setuid == TRUE) {
@@ -908,6 +907,7 @@ int main(int argc, char **argv)
 
         sc_set_caps = TRUE;
     }
+#endif /* OS_WIN32 */
 
     /* pre allocate packets */
     SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)sizeof(Packet));

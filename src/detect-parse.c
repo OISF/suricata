@@ -534,7 +534,7 @@ int SigParsePort(Signature *s, const char *portstr, char flag)
 /** \retval 1 valid
  *  \retval 0 invalid
  */
-static int SigParseActionRejectValidate(void) {
+static int SigParseActionRejectValidate(const char *action) {
 #ifdef HAVE_LIBNET11
 #ifdef HAVE_LIBCAP_NG
     if (sc_set_caps == TRUE) {
@@ -575,22 +575,22 @@ int SigParseAction(Signature *s, const char *action) {
         s->action = ACTION_PASS;
         return 0;
     } else if (strcasecmp(action, "reject") == 0) {
-        if (!(SigParseActionRejectValidate()))
+        if (!(SigParseActionRejectValidate(action)))
             return -1;
         s->action = ACTION_REJECT;
         return 0;
     } else if (strcasecmp(action, "rejectsrc") == 0) {
-        if (!(SigParseActionRejectValidate()))
+        if (!(SigParseActionRejectValidate(action)))
             return -1;
         s->action = ACTION_REJECT;
         return 0;
     } else if (strcasecmp(action, "rejectdst") == 0) {
-        if (!(SigParseActionRejectValidate()))
+        if (!(SigParseActionRejectValidate(action)))
             return -1;
         s->action = ACTION_REJECT_DST;
         return 0;
     } else if (strcasecmp(action, "rejectboth") == 0) {
-        if (!(SigParseActionRejectValidate()))
+        if (!(SigParseActionRejectValidate(action)))
             return -1;
         s->action = ACTION_REJECT_BOTH;
         return 0;

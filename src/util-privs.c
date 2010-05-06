@@ -24,6 +24,8 @@
  * Steve Grubb
  */
 
+#ifndef OS_WIN32
+
 #include <grp.h>
 #include <pwd.h>
 #include "util-debug.h"
@@ -219,3 +221,4 @@ int SCGetGroupID(char *group_name, uint32_t *gid)
 
     return 0;
 }
+#endif /* OS_WIN32 */
