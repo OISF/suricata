@@ -126,10 +126,10 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     fprintf(aft->file_ctx->fp, "SRC IP:            %s\n", srcip);
     fprintf(aft->file_ctx->fp, "DST IP:            %s\n", dstip);
     fprintf(aft->file_ctx->fp, "PROTO:             %" PRIu32 "\n", IPV4_GET_IPPROTO(p));
-    if (IPV4_GET_IPPROTO(p) == IPPROTO_TCP || IPV4_GET_IPPROTO(p) == IPPROTO_UDP) {
+    if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
         fprintf(aft->file_ctx->fp, "SRC PORT:          %" PRIu32 "\n", p->sp);
         fprintf(aft->file_ctx->fp, "DST PORT:          %" PRIu32 "\n", p->dp);
-        if (IPV4_GET_IPPROTO(p) == IPPROTO_TCP) {
+        if (PKT_IS_TCP(p)) {
             fprintf(aft->file_ctx->fp, "TCP SEQ:           %"PRIu32"\n", TCP_GET_SEQ(p));
             fprintf(aft->file_ctx->fp, "TCP ACK:           %"PRIu32"\n", TCP_GET_ACK(p));
         }
