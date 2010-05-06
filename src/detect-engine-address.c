@@ -1492,6 +1492,7 @@ void DetectAddressPrint(DetectAddress *gr)
         inet_ntop(AF_INET, &in, mask, sizeof(mask));
 
         SCLogDebug("%s/%s", ip, mask);
+//        printf("%s/%s", ip, mask);
     } else if (gr->family == AF_INET6) {
         struct in6_addr in6;
         char ip[66], mask[66];
@@ -1502,6 +1503,7 @@ void DetectAddressPrint(DetectAddress *gr)
         inet_ntop(AF_INET6, &in6, mask, sizeof(mask));
 
         SCLogDebug("%s/%s", ip, mask);
+//        printf("%s/%s", ip, mask);
     }
 
     return;

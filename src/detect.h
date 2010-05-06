@@ -265,6 +265,8 @@ typedef struct Signature_ {
 
     /** number of sigmatches in the match and pmatch list */
     uint16_t sm_cnt;
+
+    SigIntId order_id;
 } Signature;
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {

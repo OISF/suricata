@@ -392,14 +392,13 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 
     Signature *s = de_ctx->sig_list;
 
-    /* Assign the unique id of signatures after sorting,
+    /* Assign the unique order id of signatures after sorting,
      * so the IP Only engine process them in order too */
-    uint16_t sig_id = 0;
+    SigIntId sig_id = 0;
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
-    de_ctx->signum = sig_id;
 
     /* Setup the signature group lookup structure and pattern matchers */
     SigGroupBuild(de_ctx);
@@ -792,6 +791,7 @@ end:
     for (i = 0; i < p->alerts.cnt; i++) {
         SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
         s = de_ctx->sig_array[p->alerts.alerts[i].num];
+
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, i);
         /* Thresholding might remove one alert */
         if (res == 0) {
@@ -2577,7 +2577,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
     for (ds = 0; ds < DSIZE_STATES; ds++) {
         for (f = 0; f < FLOW_STATES; f++) {
             for (proto = 0; proto < 256; proto++) {
-                if (proto != 6)
+                if (proto != 17)
                     continue;
 
                 for (global_src_gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]->ipv4_head; global_src_gr != NULL;
@@ -2596,6 +2596,8 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                             global_dst_gr = global_dst_gr->next)
                     {
                         printf(" 2 Dst Addr: "); DetectAddressPrint(global_dst_gr);
+                        printf("\n");
+
                         //printf(" (sh %p) ", global_dst_gr->sh);
                         if (global_dst_gr->sh) {
                             if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
@@ -2612,7 +2614,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                             DetectPort *dp = sp->dst_ph;
                             for ( ; dp != NULL; dp = dp->next) {
                                 printf("   4 Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %" PRIu32 ", maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh->mpm_content_maxlen);
+                                printf(" (sigs %" PRIu32 ", sgh %p, maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh, dp->sh->mpm_content_maxlen);
 #ifdef PRINTSIGS
                                 printf(" - ");
                                 for (u = 0; u < dp->sh->sig_cnt; u++) {
@@ -2656,7 +2658,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                         }
                     }
                 }
-//#if 0
+#if 0
                 for (global_src_gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]->ipv6_head; global_src_gr != NULL;
                         global_src_gr = global_src_gr->next)
                 {
@@ -2835,7 +2837,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                         }
                     }
                 }
-//#endif
+#endif
             }
         }
     }

@@ -479,7 +479,6 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
     /* now determine which one to add to the mpm phase */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         uint32_t num = sgh->match_array[sig];
-
         Signature *s = de_ctx->sig_array[num];
         if (s == NULL)
             continue;

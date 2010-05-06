@@ -448,7 +448,7 @@ int UtilActionTest08(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -531,7 +531,7 @@ int UtilActionTest09(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -613,7 +613,7 @@ int UtilActionTest10(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -698,7 +698,7 @@ int UtilActionTest11(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -776,7 +776,7 @@ int UtilActionTest12(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -857,7 +857,7 @@ int UtilActionTest13(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -944,7 +944,7 @@ int UtilActionTest14(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -1024,7 +1024,7 @@ int UtilActionTest15(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -1099,7 +1099,7 @@ int UtilActionTest16(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -1174,7 +1174,7 @@ int UtilActionTest17(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -1254,7 +1254,7 @@ int UtilActionTest18(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -1340,7 +1340,7 @@ int UtilActionTest19(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -1426,7 +1426,7 @@ int UtilActionTest20(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -1506,7 +1506,7 @@ int UtilActionTest21(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -1592,7 +1592,7 @@ int UtilActionTest22(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 
@@ -1678,7 +1678,7 @@ int UtilActionTest23(void)
     /* Assing the internal id after sorting, so the IP Only engine
     * process them in order too */
     while (s != NULL) {
-        s->num = sig_id++;
+        s->order_id = sig_id++;
         s = s->next;
     }
 

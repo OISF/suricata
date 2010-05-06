@@ -42,6 +42,7 @@
   */
 int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
     SCEnter();
+    SCLogDebug("maxid %u", maxid);
 
     if (pmq == NULL) {
         SCReturnInt(-1);
@@ -94,6 +95,8 @@ MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
     int ret = 0;
 
     for ( ; em != NULL; em = em->next) {
+        SCLogDebug("em->sig_id %u", em->sig_id);
+
         /* check offset */
         if (offset < em->offset)
             continue;

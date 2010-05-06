@@ -830,8 +830,10 @@ void DetectPortPrint(DetectPort *dp) {
 
     if (dp->flags & PORT_FLAG_ANY) {
         SCLogDebug("=> port %p: ANY", dp);
+        //printf("ANY");
     } else {
         SCLogDebug("=> port %p %" PRIu32 "-%" PRIu32 "", dp, dp->port, dp->port2);
+        //printf("%" PRIu32 "-%" PRIu32 "", dp->port, dp->port2);
     }
 }
 
