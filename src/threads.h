@@ -347,7 +347,9 @@
  * OS specific macro's for setting the thread name. "top" can display
  * this name.
  */
-#ifdef OS_FREEBSD /* FreeBSD */
+#ifndef PR_SET_NAME /*PR_SET_NAME */
+#define SCSetThreadName(n)
+#elif OS_FREEBSD /* FreeBSD */
 /** \todo Add implementation for FreeBSD */
 #define SCSetThreadName(n)
 #elif OS_WIN32 /* Windows */

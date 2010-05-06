@@ -232,6 +232,21 @@ AC_INIT(configure.in)
     exit 1
     fi
 
+   # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+   # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+   PCRE=""
+   TMPLIBS="${LIBS}"
+   AC_CHECK_LIB(pcre, pcre_dfa_exec,, PCRE="no")
+   if test "$PCRE" = "no"; then
+   echo
+   echo "   ERROR!  pcre library was found but version was < 6.0"
+   echo "   please upgrade to a newer version of pcre which you can get from"
+   echo "   www.pcre.org."
+   echo
+   exit 1
+   fi
+   LIBS="${TMPLIBS}"
+
    AC_TRY_COMPILE([ #include <pcre.h> ],
    [ int eo = 0; eo |= PCRE_EXTRA_MATCH_LIMIT_RECURSION; ],
    [ pcre_match_limit_recursion_available=yes ], [:]
