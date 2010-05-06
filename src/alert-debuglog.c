@@ -103,6 +103,9 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 
     fprintf(aft->file_ctx->fp, "+================\n");
     fprintf(aft->file_ctx->fp, "TIME:              %s\n", timebuf);
+    if (p->pcap_cnt > 0) {
+        fprintf(aft->file_ctx->fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
+    }
     fprintf(aft->file_ctx->fp, "ALERT CNT:         %" PRIu32 "\n", p->alerts.cnt);
 
     for (i = 0; i < p->alerts.cnt; i++) {
@@ -126,6 +129,10 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     if (IPV4_GET_IPPROTO(p) == IPPROTO_TCP || IPV4_GET_IPPROTO(p) == IPPROTO_UDP) {
         fprintf(aft->file_ctx->fp, "SRC PORT:          %" PRIu32 "\n", p->sp);
         fprintf(aft->file_ctx->fp, "DST PORT:          %" PRIu32 "\n", p->dp);
+        if (IPV4_GET_IPPROTO(p) == IPPROTO_TCP) {
+            fprintf(aft->file_ctx->fp, "TCP SEQ:           %"PRIu32"\n", TCP_GET_SEQ(p));
+            fprintf(aft->file_ctx->fp, "TCP ACK:           %"PRIu32"\n", TCP_GET_ACK(p));
+        }
     }
 
     /* flow stuff */
