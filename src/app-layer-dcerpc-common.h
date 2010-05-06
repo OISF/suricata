@@ -176,7 +176,7 @@ typedef struct DCERPC_ {
 #define NO_PSAP_AVAILABLE               7 /* not used */
 
 int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len);
-void hexdump(const void *buf, size_t len);
+void hexdump(Flow *f, const void *buf, size_t len);
 void printUUID(char *type, DCERPCUuidEntry *uuid);
 
 #endif /* __APP_LAYER_DCERPC_COMMON_H__ */

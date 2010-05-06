@@ -217,6 +217,10 @@ static uint32_t SMBParseWriteAndX(Flow *f, void *smb_state,
             sstate->andx.dataoffset |= (uint64_t) *(p++) << 32;
             --input_len;
             break;
+        default:
+		sstate->bytesprocessed++;
+		SCReturnUInt(1);
+		break;
     }
     sstate->bytesprocessed += (p - input);
     SCReturnUInt((uint32_t)(p - input));
@@ -334,6 +338,11 @@ static uint32_t SMBParseReadAndX(Flow *f, void *smb_state,
             p++;
             --input_len;
             break;
+        default:
+		sstate->bytesprocessed++;
+		SCReturnUInt(1);
+		break;
+
     }
     sstate->bytesprocessed += (p - input);
     SCReturnUInt((uint32_t)(p - input));
@@ -511,6 +520,13 @@ static uint32_t SMBParseTransact(Flow *f, void *smb_state,
                 p++;
                 --input_len;
                 break;
+        default:
+		SCLogDebug("SMB_COM_TRANSACTION AndX bytes processed is greater than 31 %u\n", sstate->andx.andxbytesprocessed);
+		sstate->bytesprocessed++;
+		sstate->andx.andxbytesprocessed++;
+		SCReturnUInt(1);
+		break;
+
     }
     sstate->bytesprocessed += (p - input);
     sstate->andx.andxbytesprocessed += (p - input);
@@ -628,32 +644,25 @@ static uint32_t SMBParseWordCount(Flow *f, void *smb_state,
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
     uint32_t retval = 0;
-    uint32_t parsed = 0;
     if ((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) && sstate->smb.command
             == SMB_COM_READ_ANDX) {
-        retval = SMBParseReadAndX(f, sstate, pstate, input + parsed, input_len,
+        retval = SMBParseReadAndX(f, sstate, pstate, input, input_len,
                 output);
-        parsed += retval;
-        input_len -= retval;
         sstate->wordcount.wordcountleft -= retval;
-        SCLogDebug("SMB_COM_READ_ANDX %u bytes at offset %"PRIu64"\n", sstate->andx.datalength, sstate->andx.dataoffset);
+        SCLogDebug("SMB_COM_READ_ANDX returned %d - %u bytes at offset %"PRIu64"\n", retval, sstate->andx.datalength, sstate->andx.dataoffset);
         SCReturnUInt(retval);
     } else if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) == 0)
             && sstate->smb.command == SMB_COM_WRITE_ANDX) {
-        retval = SMBParseWriteAndX(f, sstate, pstate, input + parsed,
+        retval = SMBParseWriteAndX(f, sstate, pstate, input,
                 input_len, output);
-        parsed += retval;
-        input_len -= retval;
         sstate->wordcount.wordcountleft -= retval;
-        SCLogDebug("SMB_COM_WRITE_ANDX %u bytes at offset %"PRIu64"\n", sstate->andx.datalength, sstate->andx.dataoffset);
+        SCLogDebug("SMB_COM_WRITE_ANDX returned %d -  %u bytes at offset %"PRIu64"\n", retval, sstate->andx.datalength, sstate->andx.dataoffset);
         SCReturnUInt(retval);
     } else if (sstate->smb.command == SMB_COM_TRANSACTION) {
-	retval = SMBParseTransact(f, sstate, pstate, input + parsed, input_len,
+	retval = SMBParseTransact(f, sstate, pstate, input, input_len,
 			output);
-	parsed += retval;
-	input_len -= retval;
 	sstate->wordcount.wordcountleft -= retval;
-        SCLogDebug("SMB_COM_TRANSACTION %u bytes at offset %"PRIu64"\n", sstate->andx.datalength, sstate->andx.dataoffset);
+        SCLogDebug("SMB_COM_TRANSACTION returned %d -  %u bytes at offset %"PRIu64"\n", retval, sstate->andx.datalength, sstate->andx.dataoffset);
 		SCReturnUInt(retval);
     } else { /* Generic WordCount Handler */
         while (sstate->wordcount.wordcountleft-- && input_len--) {
@@ -702,10 +711,10 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
 		input_len -= (uint32_t)sres;
             } else { /* Did not Validate as DCERPC over SMB */
 		while (sstate->bytecount.bytecountleft-- && input_len--) {
-		        SCLogDebug("0x%02x bytecount %"PRIu16"/%"PRIu16" input_len %"PRIu32, *p,
+			SCLogDebug("0x%02x bytecount %"PRIu16"/%"PRIu16" input_len %"PRIu32, *p,
 		                sstate->bytecount.bytecountleft,
 		                sstate->bytecount.bytecount, input_len);
-		        p++;
+			p++;
 		}
 		sstate->bytesprocessed += (p - input);
 		SCReturnUInt((p - input));
@@ -765,6 +774,7 @@ static uint32_t NBSSParseHeader(Flow *f, void *smb_state,
         }
         sstate->bytesprocessed += (p - input);
     }
+    if ((p - input < 0))
     SCReturnUInt((uint32_t)(p - input));
 }
 
@@ -815,24 +825,32 @@ static int SMBParseHeader(Flow *f, void *smb_state,
                     SCReturnInt(32);
                     break;
                 } else {
-                    if (*(p++) != 0xff)
+                    if (*(p++) != 0xff) {
+                        SCLogDebug("SMB Header did not validate");
                         SCReturnInt(-1);
+                    }
                     if (!(--input_len))
                         break;
                 }
             case 5:
-                if (*(p++) != 'S')
+                if (*(p++) != 'S') {
+                        SCLogDebug("SMB Header did not validate");
                     SCReturnInt(-1);
+                }
                 if (!(--input_len))
                     break;
             case 6:
-                if (*(p++) != 'M')
+                if (*(p++) != 'M') {
+                        SCLogDebug("SMB Header did not validate");
                     SCReturnInt(-1);
+                }
                 if (!(--input_len))
                     break;
             case 7:
-                if (*(p++) != 'B')
+                if (*(p++) != 'B') {
+                        SCLogDebug("SMB Header did not validate");
                     SCReturnInt(-1);
+                }
                 if (!(--input_len))
                     break;
             case 8:
@@ -963,7 +981,8 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
     int hdrretval = 0;
 
     if (pstate == NULL) {
-        SCReturnInt(-1);
+	SCLogDebug("pstate == NULL");
+        SCReturnInt(0);
     }
     while (input_len && sstate->bytesprocessed < NBSS_HDR_LEN) {
         retval
@@ -973,13 +992,13 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
             parsed += retval;
             input_len -= retval;
             SCLogDebug(
-                    "[1] NBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %"PRIu64" input_len %u",
+                    "[1] NBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %"PRIu64" input_len %u\n",
                     sstate->bytesprocessed, NBSS_HDR_LEN, sstate->nbss.type,
                     sstate->nbss.length, parsed, input_len);
         } else if (input_len) {
             SCLogDebug("Error parsing NBSS Header\n");
             sstate->bytesprocessed = 0;
-            SCReturnInt(-1);
+            SCReturnInt(0);
         }
     }
 
@@ -992,12 +1011,12 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                 if (hdrretval == -1) {
                     SCLogDebug("Error parsing SMB Header\n");
                     sstate->bytesprocessed = 0;
-                    SCReturnInt(hdrretval);
+                    SCReturnInt(0);
                 } else {
                     parsed += hdrretval;
                     input_len -= hdrretval;
                     SCLogDebug(
-                            "[2] SMB Header (%u/%u) Command 0x%02x parsed %"PRIu64" input_len %u",
+                            "[2] SMB Header (%u/%u) Command 0x%02x parsed %"PRIu64" input_len %u\n",
                             sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN,
                             sstate->smb.command, parsed, input_len);
                 }
@@ -1014,12 +1033,12 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                     } else if (input_len) {
                         SCLogDebug("Error parsing SMB Word Count\n");
                         sstate->bytesprocessed = 0;
-                        SCReturnInt(-1);
+                        SCReturnInt(0);
                     }
-                    SCLogDebug("[3] WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u",
+                    SCLogDebug("[3] WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u\n",
 				sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1,
-                        sstate->wordcount.wordcount,
-                        parsed, input_len);
+				sstate->wordcount.wordcount,
+				parsed, input_len);
                 }
 
                 while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN
@@ -1031,11 +1050,11 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                         parsed += retval;
                         input_len -= retval;
                     } else if (input_len) {
-                        SCLogDebug("Error parsing SMB Word Count Data\n");
+                        SCLogDebug("Error parsing SMB Word Count Data retval %"PRIu64" input_len %u\n", retval, input_len);
                         sstate->bytesprocessed = 0;
-                        SCReturnInt(-1);
+                        SCReturnInt(0);
                     }
-                    SCLogDebug("[4] Parsing WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u",
+                    SCLogDebug("[4] Parsing WordCount (%u/%u) WordCount %u parsed %"PRIu64" input_len %u\n",
 						sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount,
                                         sstate->wordcount.wordcount,
                                         parsed, input_len);
@@ -1053,7 +1072,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                     } else if (input_len) {
                         SCLogDebug("Error parsing SMB Byte Count\n");
                         sstate->bytesprocessed = 0;
-                        SCReturnInt(-1);
+                        SCReturnInt(0);
                     }
                     SCLogDebug("[5] ByteCount (%u/%u) ByteCount %u parsed %"PRIu64" input_len %u",
 						sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 3,
@@ -1074,9 +1093,9 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                     } else if (input_len) {
                         SCLogDebug("Error parsing SMB Byte Count Data\n");
                         sstate->bytesprocessed = 0;
-                        SCReturnInt(-1);
+                        SCReturnInt(0);
                     }
-                    SCLogDebug("[6] Parsing ByteCount (%u/%u) ByteCount %u parsed %"PRIu64" input_len %u",
+                    SCLogDebug("[6] Parsing ByteCount (%u/%u) ByteCount %u parsed %"PRIu64" input_len %u\n",
 									sstate->bytesprocessed, NBSS_HDR_LEN + SMB_HDR_LEN + 1 + sstate->wordcount.wordcount + 2 + sstate->bytecount.bytecount,
                                                                           sstate->bytecount.bytecount, parsed, input_len);
                 }
