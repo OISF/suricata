@@ -413,15 +413,21 @@ static int DetectThresholdTestSig1(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-
     alerts = PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
 
     if(alerts == 5)
         result = 1;
@@ -486,17 +492,25 @@ static int DetectThresholdTestSig2(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-
     alerts = PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
 
     if (alerts == 2)
         result = 1;
@@ -682,16 +696,20 @@ static int DetectThresholdTestSig4(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts = PacketAlertCheck(&p, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 10);
 
     TimeSetIncrementTime(200);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-
-    alerts = PacketAlertCheck(&p, 10);
+    alerts += PacketAlertCheck(&p, 10);
 
     if (alerts == 2)
         result = 1;
@@ -761,16 +779,28 @@ static int DetectThresholdTestSig5(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-
     alerts = PacketAlertCheck(&p, 1);
-
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
     alerts += PacketAlertCheck(&p, 1000);
 
     if(alerts == 10)

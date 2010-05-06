@@ -479,6 +479,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     SCEnter();
 
+    /* when we start there are no alerts yet. Only this function may set them */
+    p->alerts.cnt = 0;
+
     det_ctx->pkts++;
 
     /* grab the protocol state we will detect on */
