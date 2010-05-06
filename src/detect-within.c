@@ -100,7 +100,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             ud->flags |= DETECT_URICONTENT_WITHIN;
 
             if (ud->flags & DETECT_URICONTENT_DISTANCE) {
-                if (ud->distance > (ud->uricontent_len + ud->within)) {
+                if ((ud->distance + ud->uricontent_len) + ud->within) {
                     ud->within = ud->distance + ud->uricontent_len;
                 }
             }
@@ -143,7 +143,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             cd->flags |= DETECT_CONTENT_WITHIN;
 
             if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                if (cd->distance > (cd->content_len + cd->within)) {
+                if ((cd->distance + cd->content_len) > cd->within) {
                     cd->within = cd->distance + cd->content_len;
                 }
             }

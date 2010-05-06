@@ -29,21 +29,25 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine.h"
+
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
 #include "flow-var.h"
 
 #include "util-debug.h"
+#include "util-unittest.h"
 
 static int DetectDistanceSetup(DetectEngineCtx *, Signature *, char *);
+void DetectDistanceRegisterTests(void);
 
 void DetectDistanceRegister (void) {
     sigmatch_table[DETECT_DISTANCE].name = "distance";
     sigmatch_table[DETECT_DISTANCE].Match = NULL;
     sigmatch_table[DETECT_DISTANCE].Setup = DetectDistanceSetup;
     sigmatch_table[DETECT_DISTANCE].Free  = NULL;
-    sigmatch_table[DETECT_DISTANCE].RegisterTests = NULL;
+    sigmatch_table[DETECT_DISTANCE].RegisterTests = DetectDistanceRegisterTests;
 
     sigmatch_table[DETECT_DISTANCE].flags |= SIGMATCH_PAYLOAD;
 }
@@ -86,7 +90,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             ud->distance = strtol(str, NULL, 10);
             ud->flags |= DETECT_URICONTENT_DISTANCE;
             if (ud->flags & DETECT_URICONTENT_WITHIN) {
-                if (ud->distance + ud->uricontent_len > ud->within) {
+                if ((ud->distance + ud->uricontent_len) > ud->within) {
                     ud->within = ud->distance + ud->uricontent_len;
                 }
             }
@@ -119,7 +123,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             cd->distance = strtol(str, NULL, 10);
             cd->flags |= DETECT_CONTENT_DISTANCE;
             if (cd->flags & DETECT_CONTENT_WITHIN) {
-                if (cd->distance + cd->content_len > cd->within) {
+                if ((cd->distance + cd->content_len) > cd->within) {
                     cd->within = cd->distance + cd->content_len;
                 }
             }
@@ -154,5 +158,68 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 error:
     if (dubbed) SCFree(str);
     return -1;
+}
+
+#ifdef UNITTESTS
+
+static int DetectDistanceTest01(void)
+{
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        printf("no de_ctx: ");
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (content:\"|AA BB|\"; content:\"|CC DD EE FF 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE|\"; distance: 4; within: 19; sid:1; rev:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigMatch *sm = de_ctx->sig_list->pmatch;
+    if (sm == NULL) {
+        printf("sm NULL: ");
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm == NULL) {
+        printf("sm2 NULL: ");
+        goto end;
+    }
+
+    DetectContentData *co = (DetectContentData *)sm->ctx;
+    if (co == NULL) {
+        printf("co == NULL: ");
+    }
+
+    if (co->distance != 4) {
+        printf("distance %"PRIi32", expected 4: ", co->distance);
+        goto end;
+    }
+
+    /* within needs to be 23: distance + content_len as Snort auto fixes this */
+    if (co->within != 23) {
+        printf("within %"PRIi32", expected 23: ", co->within);
+        goto end;
+    }
+
+    result = 1;
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+#endif /* UNITTESTS */
+
+void DetectDistanceRegisterTests(void) {
+#ifdef UNITTESTS
+    UtRegisterTest("DetectDistanceTest01 -- distance / within mix", DetectDistanceTest01, 1);
+#endif /* UNITTESTS */
 }
 
