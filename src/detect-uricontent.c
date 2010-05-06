@@ -1147,17 +1147,24 @@ static int DetectUriSigTest04(void) {
     if (s == NULL) {
         printf("sig 10 failed to parse: ");
         goto end;
-    } else if (s->umatch == NULL ||
-            s->pmatch == NULL ||
-            ((DetectContentData*) s->pmatch->ctx)->depth != 10 ||
+    }
+
+    if (s->umatch == NULL || s->pmatch == NULL) {
+        printf("umatch %p or pmatch %p: ", s->umatch, s->pmatch);
+        goto end;
+    }
+
+    if (    ((DetectContentData*) s->pmatch->ctx)->depth != 10 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
-            ((DetectContentData*) s->umatch_tail->ctx)->distance != 30 ||
-            ((DetectContentData*) s->umatch_tail->ctx)->within != 60 ||
+            ((DetectUricontentData*) s->umatch_tail->ctx)->distance != 30 ||
+            ((DetectUricontentData*) s->umatch_tail->ctx)->within != 60 ||
             ((DetectContentData*) s->pmatch_tail->ctx)->distance != 45 ||
             ((DetectContentData*) s->pmatch_tail->ctx)->within != 70 ||
             s->match != NULL) {
         printf("sig 10 failed to parse, content not setup properly: ");
+        DetectContentPrint((DetectContentData*) s->pmatch->ctx);
         DetectUricontentPrint((DetectUricontentData*) s->umatch_tail->ctx);
+        DetectContentPrint((DetectContentData*) s->pmatch_tail->ctx);
         goto end;
     }
 
