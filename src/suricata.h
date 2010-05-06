@@ -29,7 +29,7 @@
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
-#define PROG_VER "0.8.2"
+#define PROG_VER "0.9.0"
 
 /* number of packets in processing right now
  * This is the diff between recv'd and verdicted
