@@ -40,6 +40,7 @@ host.c host.h \
 reputation.c reputation.h \
 detect.c detect.h \
 detect-engine-sigorder.c detect-engine-sigorder.h \
+detect-engine-alert.c detect-engine-alert.h \
 detect-engine.c detect-engine.h \
 detect-rpc.c detect-rpc.h \
 detect-isdataat.c detect-isdataat.h \

@@ -690,17 +690,11 @@ int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup();
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
-int PacketAlertAppend(DetectEngineThreadCtx *, Signature *s, Packet *);
-
 int SigLoadSignatures (DetectEngineCtx *, char *);
 void SigTableSetup(void);
-int PacketAlertCheck(Packet *p, uint32_t sid);
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
 
-int PacketAlertCheck(Packet *p, uint32_t sid);
-int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
-                       DetectEngineThreadCtx *det_ctx, Packet *p);
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s);
 
 #endif /* __DETECT_H__ */

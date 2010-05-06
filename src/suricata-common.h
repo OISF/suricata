@@ -121,19 +121,20 @@
 #include <assert.h>
 #define BUG_ON(x) assert(!(x))
 
-#include <htp/htp.h>
-#include "threads.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-mem.h"
-
-
 /** type for the internal signature id. Since it's used in the matching engine
  *  extensively keeping this as small as possible reduces the overall memory
  *  footprint of the engine. Set to uint32_t if the engine needs to support
  *  more than 64k sigs. */
 #define SigIntId uint16_t
 //#define SigIntId uint32_t
+
+
+#include <htp/htp.h>
+#include "threads.h"
+#include "util-debug.h"
+#include "util-error.h"
+#include "util-mem.h"
+#include "detect-engine-alert.h"
 
 size_t strlcat(char *, const char *src, size_t siz);
 size_t strlcpy(char *dst, const char *src, size_t siz);

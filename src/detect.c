@@ -33,6 +33,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 
+#include "detect-engine-alert.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
 #include "detect-engine-proto.h"
@@ -138,6 +139,7 @@
 #include "util-mpm-b2g-cuda.h"
 #include "util-cuda.h"
 #include "util-privs.h"
+
 
 SigMatch *SigMatchAlloc(void);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
@@ -404,85 +406,6 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     SCReturnInt(0);
 }
 
-/**
- * \brief Check if a certain sid alerted, this is used in the test functions
- *
- * \param p   Packet on which we want to check if the signature alerted or not
- * \param sid Signature id of the signature that thas to be checked for a match
- *
- * \retval match A value > 0 on a match; 0 on no match
- */
-int PacketAlertCheck(Packet *p, uint32_t sid)
-{
-    uint16_t i = 0;
-    int match = 0;
-
-    for (i = 0; i < p->alerts.cnt; i++) {
-        if (p->alerts.alerts[i].sid == sid)
-            match++;
-    }
-
-    return match;
-}
-
-int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
-{
-    int i = 0;
-
-    if (p->alerts.cnt == PACKET_ALERT_MAX)
-        return 0;
-
-    SCLogDebug("sid %"PRIu32"", s->id);
-
-    /* It should be usually the last, so check it before iterating */
-    if (p->alerts.cnt == 0 || (p->alerts.cnt > 0 &&
-                               p->alerts.alerts[p->alerts.cnt - 1].num < s->num)) {
-        /* We just add it */
-        if (s->gid > 1)
-            p->alerts.alerts[p->alerts.cnt].gid = s->gid;
-        else
-            p->alerts.alerts[p->alerts.cnt].gid = 1;
-
-        p->alerts.alerts[p->alerts.cnt].num= s->num;
-        p->alerts.alerts[p->alerts.cnt].action = s->action;
-        p->alerts.alerts[p->alerts.cnt].sid = s->id;
-        p->alerts.alerts[p->alerts.cnt].rev = s->rev;
-        p->alerts.alerts[p->alerts.cnt].prio = s->prio;
-        p->alerts.alerts[p->alerts.cnt].msg = s->msg;
-        p->alerts.alerts[p->alerts.cnt].class_msg = s->class_msg;
-        p->alerts.alerts[p->alerts.cnt].references = s->references;
-    } else {
-        /* We need to make room for this s->num
-         (a bit ugly with mamcpy but we are planning changes here)*/
-        for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--) {
-            memcpy(&p->alerts.alerts[i + 1], &p->alerts.alerts[i], sizeof(PacketAlert));
-        }
-
-        i++; /* The right place to store the alert */
-
-        if (s->gid > 1)
-            p->alerts.alerts[i].gid = s->gid;
-        else
-            p->alerts.alerts[i].gid = 1;
-
-        p->alerts.alerts[i].num= s->num;
-        p->alerts.alerts[i].action = s->action;
-        p->alerts.alerts[i].sid = s->id;
-        p->alerts.alerts[i].rev = s->rev;
-        p->alerts.alerts[i].prio = s->prio;
-        p->alerts.alerts[i].msg = s->msg;
-        p->alerts.alerts[i].class_msg = s->class_msg;
-        p->alerts.alerts[i].references = s->references;
-    }
-
-    /* Update the count */
-    p->alerts.cnt++;
-
-    SCPerfCounterIncr(det_ctx->counter_alerts, det_ctx->tv->sc_perf_pca);
-
-    return 0;
-}
-
 SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
     SCEnter();
 
@@ -552,7 +475,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     void *alstate = NULL;
     uint8_t flags = 0;
     uint32_t cnt = 0;
-    uint16_t i = 0;
+    int i = 0;
 
     SCEnter();
 
@@ -759,7 +682,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (!(s->flags & SIG_FLAG_NOALERT)) {
                 /* set verdict on packet */
                 p->action |= s->action;
-                PacketAlertHandle(de_ctx, det_ctx, s, p);
+                PacketAlertAppend(det_ctx, s, p);
             }
         } else {
             /* reset offset */
@@ -798,7 +721,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                         /* set verdict on packet */
                                         p->action |= s->action;
 
-                                        PacketAlertHandle(de_ctx, det_ctx, s, p);
+                                        PacketAlertAppend(det_ctx, s, p);
                                     }
                                 }
                                 rmatch = fmatch = 1;
@@ -845,7 +768,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 /* set verdict on packet */
                                 p->action |= s->action;
 
-                                PacketAlertHandle(de_ctx, det_ctx, s, p);
+                                PacketAlertAppend(det_ctx, s, p);
                             }
                         }
                     } else {
@@ -863,9 +786,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
      * matched (if any) */
 end:
     SCLogDebug("(p->action & ation pass)) = %"PRIu8, (p->action & ACTION_PASS));
-    if (p->action & ACTION_PASS) {
-        for (; i < p->alerts.cnt; i++) {
-            SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
+    for (i = 0; i < p->alerts.cnt; i++) {
+        SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
+        s = de_ctx->sig_array[p->alerts.alerts[i].num];
+        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, i);
+        /* Thresholding might remove one alert */
+        if (res == 0) {
+            i--;
+        } else {
             if (p->alerts.alerts[i].action & ACTION_PASS) {
                 /* Ok, reset the alert cnt to end in the previous of pass
                  * so we ignore the rest with less prio */
@@ -873,6 +801,9 @@ end:
                 break;
             }
         }
+        /* Because we removed the alert from the array, we should
+         * have compacted the array and decreased cnt by one, so
+         * process again the same position (with different alert now) */
     }
 
     /* cleanup pkt specific part of the patternmatcher */

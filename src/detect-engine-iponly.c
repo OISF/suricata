@@ -977,7 +977,7 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx,
                                 p->flow->flags |= FLOW_ACTION_PASS;
                         }
                         p->action |= ACTION_PASS;
-                        PacketAlertHandle(de_ctx, det_ctx, s, p);
+                        PacketAlertAppend(det_ctx, s, p);
                     }
                 }
             }
