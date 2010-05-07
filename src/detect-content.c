@@ -40,6 +40,7 @@
 #include "util-debug.h"
 #include "util-spm-bm.h"
 #include "threads.h"
+#include "util-unittest-helper.h"
 
 int DetectContentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 static int DetectContentSetup (DetectEngineCtx *, Signature *, char *);
@@ -1541,6 +1542,55 @@ static int SigTest75TestNegatedContent(void)
     return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:\"!PASS\"; sid:1;)",  (uint8_t *)"USER !PASS");
 }
 
+static int SigTest76TestBug134(void)
+{
+    uint8_t *buf = (uint8_t *)"test detect ${IFS} in traffic";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    p->dp = 515;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    char sig[] = "alert tcp any any -> any 515 "
+            "(msg:\"detect IFS\"; flow:to_server,established; content:\"${IFS}\";"
+            " depth:50; offset:0; sid:900091; rev:1;)";
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+static int SigTest77TestBug139(void)
+{
+    uint8_t buf[] = {
+        0x12, 0x23, 0x34, 0x35, 0x52, 0x52, 0x24, 0x42, 0x22, 0x24,
+        0x52, 0x24, 0x82, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x34 };
+    uint16_t buflen = sizeof(buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_UDP);
+    int result = 0;
+
+    p->dp = 53;
+    char sig[] = "alert udp any any -> any 53 (msg:\"dns testing\";"
+                    " content:\"|00 00|\"; depth:5; offset:13; sid:9436601;"
+                    " rev:1;)";
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -1616,6 +1666,9 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("SigTest73TestNegatedContent", SigTest73TestNegatedContent, 1);
     UtRegisterTest("SigTest74TestNegatedContent", SigTest74TestNegatedContent, 1);
     UtRegisterTest("SigTest75TestNegatedContent", SigTest75TestNegatedContent, 1);
+
+    UtRegisterTest("SigTest76TestBug134", SigTest76TestBug134, 1);
+    UtRegisterTest("SigTest77TestBug139", SigTest77TestBug139, 1);
 
 #endif /* UNITTESTS */
 }

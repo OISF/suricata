@@ -555,9 +555,9 @@ static int SigParseActionRejectValidate(const char *action) {
 
 /**
  * \brief Parses the action that has been used by the Signature and allots it
- *        to its Signatue instance.
+ *        to its Signature instance.
  *
- * \param s      Pointer to the Signatue instance to which the action belongs.
+ * \param s      Pointer to the Signature instance to which the action belongs.
  * \param action Pointer to the action string used by the Signature.
  *
  * \retval  0 On successfully parsing the action string and adding it to the

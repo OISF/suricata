@@ -787,7 +787,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* so now let's iterate the alerts and remove the ones after a pass rule
      * matched (if any) */
 end:
-    SCLogDebug("(p->action & ation pass)) = %"PRIu8, (p->action & ACTION_PASS));
+    SCLogDebug("(p->action & action pass)) = %"PRIu8, (p->action & ACTION_PASS));
     for (i = 0; i < p->alerts.cnt; i++) {
         SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
         s = de_ctx->sig_array[p->alerts.alerts[i].num];
