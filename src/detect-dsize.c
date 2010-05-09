@@ -98,9 +98,12 @@ error:
  */
 int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
+    SCEnter();
     int ret = 0;
 
     DetectDsizeData *dd = (DetectDsizeData *)m->ctx;
+
+    SCLogDebug("p->payload_len %"PRIu16"", p->payload_len);
 
     if (dd->mode == DETECTDSIZE_EQ && dd->dsize == p->payload_len)
         ret = 1;
@@ -111,7 +114,7 @@ int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
     else if (dd->mode == DETECTDSIZE_RA && p->payload_len > dd->dsize && p->payload_len < dd->dsize2)
         ret = 1;
 
-    return ret;
+    SCReturnInt(ret);
 }
 
 /**
@@ -270,6 +273,8 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
 
     SigMatchAppendPacket(s, sm);
 
+    SCLogDebug("dd->dsize %"PRIu16", dd->dsize2 %"PRIu16", dd->mode %"PRIu8"",
+            dd->dsize, dd->dsize2, dd->mode);
     /* tell the sig it has a dsize to speed up engine init */
     s->flags |= SIG_FLAG_DSIZE;
     return 0;
