@@ -151,8 +151,8 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) 
         EngineStop();
         SCReturnInt(TM_ECODE_FAILED);
     }
-    p->pcap_cnt = pcap_g.cnt;
     pcap_g.cnt++;
+    p->pcap_cnt = pcap_g.cnt;
 
     SCReturnInt(TM_ECODE_OK);
 }
