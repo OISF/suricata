@@ -682,8 +682,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                /* set verdict on packet */
-                p->action |= s->action;
                 PacketAlertAppend(det_ctx, s, p);
             }
         } else {
@@ -720,9 +718,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                                     /* only add once */
                                     if (rmatch == 0) {
-                                        /* set verdict on packet */
-                                        p->action |= s->action;
-
                                         PacketAlertAppend(det_ctx, s, p);
                                     }
                                 }
@@ -767,9 +762,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (sm == NULL) {
                             fmatch = 1;
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                                /* set verdict on packet */
-                                p->action |= s->action;
-
                                 PacketAlertAppend(det_ctx, s, p);
                             }
                         }
@@ -787,7 +779,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* so now let's iterate the alerts and remove the ones after a pass rule
      * matched (if any) */
 end:
-    SCLogDebug("(p->action & action pass)) = %"PRIu8, (p->action & ACTION_PASS));
     for (i = 0; i < p->alerts.cnt; i++) {
         SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
         s = de_ctx->sig_array[p->alerts.alerts[i].num];
@@ -797,6 +788,35 @@ end:
         if (res == 0) {
             i--;
         } else {
+            if (s->flags & SIG_FLAG_IPONLY) {
+                if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
+                    (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
+                    SCLogDebug("testing against \"ip-only\" signatures");
+
+                    /* save in the flow that we scanned this direction... locking is
+                     * done in the FlowSetIPOnlyFlag function. */
+                    if (p->flow != NULL) {
+                        FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
+                    }
+
+                    /* Update flow flags for iponly */
+                    if (p->flow != NULL) {
+                        if (s->action & ACTION_DROP)
+                            p->flow->flags |= FLOW_ACTION_DROP;
+                        if (s->action & ACTION_REJECT)
+                            p->flow->flags |= FLOW_ACTION_DROP;
+                        if (s->action & ACTION_REJECT_DST)
+                            p->flow->flags |= FLOW_ACTION_DROP;
+                        if (s->action & ACTION_REJECT_BOTH)
+                            p->flow->flags |= FLOW_ACTION_DROP;
+                        if (s->action & ACTION_PASS)
+                            p->flow->flags |= FLOW_ACTION_PASS;
+                    }
+                }
+            }
+
+            /* set verdict on packet */
+            p->action |= p->alerts.alerts[i].action;
             if (p->alerts.alerts[i].action & ACTION_PASS) {
                 /* Ok, reset the alert cnt to end in the previous of pass
                  * so we ignore the rest with less prio */

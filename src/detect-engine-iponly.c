@@ -963,20 +963,7 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx,
                     SCLogDebug("Signum %"PRIu16" match (sid: %"PRIu16", msg: %s)",
                                u * 8 + i, s->id, s->msg);
 
-                    if (!(s->flags & SIG_FLAG_NOALERT)) {
-                        if (p->flow != NULL) {
-                            if (s->action & ACTION_DROP)
-                                p->flow->flags |= FLOW_ACTION_DROP;
-                            if (s->action & ACTION_REJECT)
-                                p->flow->flags |= FLOW_ACTION_DROP;
-                            if (s->action & ACTION_REJECT_DST)
-                                p->flow->flags |= FLOW_ACTION_DROP;
-                            if (s->action & ACTION_REJECT_BOTH)
-                                p->flow->flags |= FLOW_ACTION_DROP;
-                            if (s->action & ACTION_PASS)
-                                p->flow->flags |= FLOW_ACTION_PASS;
-                        }
-                        p->action |= ACTION_PASS;
+                    if ( !(s->flags & SIG_FLAG_NOALERT)) {
                         PacketAlertAppend(det_ctx, s, p);
                     }
                 }
