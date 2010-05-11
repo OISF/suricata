@@ -30,6 +30,7 @@
 #include <pwd.h>
 #include "util-debug.h"
 #include "suricata-common.h"
+#include "suricata.h"
 
 #ifdef HAVE_LIBCAP_NG
 
@@ -41,6 +42,9 @@
 
 /** flag indicating if we'll be using caps */
 extern int sc_set_caps;
+
+/** our current runmode */
+extern int run_mode;
 
 /**
  * \brief   Drop all the previliges of the given thread
@@ -63,12 +67,18 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
         return;
 
     capng_clear(CAPNG_SELECT_BOTH);
-    capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-            CAP_NET_RAW,            /* needed for pcap live mode */
-#ifdef NFQ
-            CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
-#endif
-            -1);
+
+    if (run_mode == MODE_PFRING || run_mode == MODE_NFQ) {
+        capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
+                      CAP_NET_RAW,            /* needed for pcap live mode */
+                      CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
+                      -1);
+    } else if (run_mode == MODE_PCAP_DEV) {
+        capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
+                      CAP_NET_RAW,            /* needed for pcap live mode */
+                      -1);
+    }
+
     if (capng_change_id(userid, groupid, CAPNG_DROP_SUPP_GRP |
             CAPNG_CLEAR_BOUNDING) < 0)
     {
