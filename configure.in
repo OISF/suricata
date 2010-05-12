@@ -670,6 +670,13 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     echo
     exit 1
     fi
+    PKG_CHECK_MODULES(LIBHTPMINVERSION, htp >= 0.2.3,[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
+    if test "$libhtp_minver_found" = "no"; then
+    echo
+    echo "   ERROR! libhtp was found but is not the minimum version required >=0.2.3"
+    echo
+    exit 1
+    fi
     fi
 
    #even if we are using an installed htp lib we still need to gen Makefiles inside of htp
