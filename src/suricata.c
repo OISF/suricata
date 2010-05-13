@@ -271,8 +271,12 @@ void usage(const char *progname)
     printf("\t-c <path>                    : path to configuration file\n");
     printf("\t-i <dev>                     : run in pcap live mode\n");
     printf("\t-r <path>                    : run in pcap file/offline mode\n");
+#ifdef NFQ
     printf("\t-q <qid>                     : run in inline nfqueue mode\n");
+#endif /* NFQ */
+#ifdef IPFW
     printf("\t-d <divert port>             : run in inline ipfw divert mode\n");
+#endif /* IPFW */
     printf("\t-s <path>                    : path to signature file (optional)\n");
     printf("\t-l <dir>                     : default log directory\n");
     printf("\t-D                           : run as daemon\n");
@@ -285,9 +289,15 @@ void usage(const char *progname)
     printf("\t--pidfile <file>             : write pid to this file (only for daemon mode)\n");
     printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\t--dump-config                : show the running configuration\n");
+#ifdef HAVE_PFRING
     printf("\t--pfring-int <dev>           : run in pfring mode\n");
     printf("\t--pfring-cluster-id <id>     : pfring cluster id \n");
-    printf("\t--pfring-cluster-type <type> : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow");
+    printf("\t--pfring-cluster-type <type> : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
+#endif /* HAVE_PFRING */
+#ifdef HAVE_LIBCAP_NG
+    printf("\t--user <user>                : run suricata as this user after init\n");
+    printf("\t--group <group>              : run suricata as this group after init\n");
+#endif /* HAVE_LIBCAP_NG */
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -363,23 +373,38 @@ int main(int argc, char **argv)
         switch (opt) {
         case 0:
             if(strcmp((long_opts[option_index]).name , "pfring-int") == 0){
+#ifdef HAVE_PFRING
                 run_mode = MODE_PFRING;
                 if (ConfSet("pfring.interface", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pfring interface.\n");
                     exit(EXIT_FAILURE);
                 }
+#else
+                SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure to pass --enable-pfring to configure when building.");
+                exit(EXIT_FAILURE);
+#endif /* HAVE_PFRING */
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
+#ifdef HAVE_PFRING
                 if (ConfSet("pfring.cluster-id", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pfring cluster-id.\n");
                     exit(EXIT_FAILURE);
                 }
+#else
+                SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure to pass --enable-pfring to configure when building.");
+                exit(EXIT_FAILURE);
+#endif /* HAVE_PFRING */
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
+#ifdef HAVE_PFRING
                 if (ConfSet("pfring.cluster-type", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pfring cluster-type.\n");
                     exit(EXIT_FAILURE);
                 }
+#else
+                SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure to pass --enable-pfring to configure when building.");
+                exit(EXIT_FAILURE);
+#endif /* HAVE_PFRING */
             }
             else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
                 if (ConfSet("engine.init_failure_fatal", "1", 0) != 1) {
@@ -465,6 +490,7 @@ int main(int argc, char **argv)
             }
             break;
         case 'q':
+#ifdef NFQ
             if (run_mode == MODE_UNKNOWN) {
                 run_mode = MODE_NFQ;
             } else {
@@ -474,8 +500,13 @@ int main(int argc, char **argv)
                 exit(EXIT_SUCCESS);
             }
             nfq_id = optarg;
+#else
+            SCLogError(SC_ERR_NFQ_NOSUPPORT,"NFQUEUE not enabled. Make sure to pass --enable-nfqueue to configure when building.");
+            exit(EXIT_FAILURE);
+#endif /* NFQ */
             break;
         case 'd':
+#ifdef IPFW
             if (run_mode == MODE_UNKNOWN) {
                 run_mode = MODE_IPFW;
             } else {
@@ -488,6 +519,10 @@ int main(int argc, char **argv)
                 fprintf(stderr, "ERROR: Failed to set ipfw_divert_port\n");
                 exit(EXIT_FAILURE);
             }
+#else
+            SCLogError(SC_ERR_IPFW_NOSUPPORT,"IPFW not enabled. Make sure to pass --enable-ipfw to configure when building.");
+            exit(EXIT_FAILURE);
+#endif /* IPFW */
             break;
         case 'r':
             if (run_mode == MODE_UNKNOWN) {

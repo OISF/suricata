@@ -83,8 +83,8 @@ void TmModuleDecodeNFQRegister (void) {
 
 TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 {
-    printf("Error creating thread %s: you do not have support for nfqueue "
-           "enabled please recompile with --enable-nfqueue\n", tv->name);
+    SCLogError(SC_ERR_NFQ_NOSUPPORT,"Error creating thread %s: you do not have support for nfqueue "
+           "enabled please recompile with --enable-nfqueue", tv->name);
     exit(EXIT_FAILURE);
 }
 
