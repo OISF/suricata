@@ -15,12 +15,6 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
- */
-
 #ifndef __DETECT_WINDOW_H__
 #define __DETECT_WINDOW_H__
 

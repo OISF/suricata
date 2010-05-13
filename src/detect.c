@@ -496,7 +496,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     void *alstate = NULL;
     uint8_t flags = 0;
     uint32_t cnt = 0;
-    int i = 0;
 
     SCEnter();
 
@@ -803,58 +802,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
     }
 
-    /* so now let's iterate the alerts and remove the ones after a pass rule
-     * matched (if any) */
 end:
-    for (i = 0; i < p->alerts.cnt; i++) {
-        SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
-        s = de_ctx->sig_array[p->alerts.alerts[i].num];
-
-        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, i);
-        /* Thresholding might remove one alert */
-        if (res == 0) {
-            i--;
-        } else {
-            if (s->flags & SIG_FLAG_IPONLY) {
-                if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
-                    (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
-                    SCLogDebug("testing against \"ip-only\" signatures");
-
-                    /* save in the flow that we scanned this direction... locking is
-                     * done in the FlowSetIPOnlyFlag function. */
-                    if (p->flow != NULL) {
-                        FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
-                    }
-
-                    /* Update flow flags for iponly */
-                    if (p->flow != NULL) {
-                        if (s->action & ACTION_DROP)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_REJECT)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_REJECT_DST)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_REJECT_BOTH)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_PASS)
-                            p->flow->flags |= FLOW_ACTION_PASS;
-                    }
-                }
-            }
-
-            /* set verdict on packet */
-            p->action |= p->alerts.alerts[i].action;
-            if (p->alerts.alerts[i].action & ACTION_PASS) {
-                /* Ok, reset the alert cnt to end in the previous of pass
-                 * so we ignore the rest with less prio */
-                p->alerts.cnt = i;
-                break;
-            }
-        }
-        /* Because we removed the alert from the array, we should
-         * have compacted the array and decreased cnt by one, so
-         * process again the same position (with different alert now) */
-    }
+    /* so now let's iterate the alerts and remove the ones after a pass rule
+     * matched (if any). This is done inside PacketAlertReal() */
+    PacketAlertReal(de_ctx, det_ctx, p);
 
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);

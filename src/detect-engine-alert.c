@@ -1,7 +1,26 @@
+/* Copyright (C) 2007-2010 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
 #include "detect-engine-alert.h"
 #include "suricata-common.h"
 #include "detect.h"
 #include "decode.h"
+#include "flow.h"
+#include "flow-private.h"
 
 /**
  * \brief Check if a certain sid alerted, this is used in the test functions
@@ -106,5 +125,70 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
     SCPerfCounterIncr(det_ctx->counter_alerts, det_ctx->tv->sc_perf_pca);
 
     return 0;
+}
+
+/**
+ * \brief Check the threshold of the sigs that match, set actions, break on pass action
+ *        This function iterate the packet alerts array, removing those that didn't match
+ *        the threshold, and those that match after a signature with the action "pass".
+ *        The array is sorted by action priority/order
+ * \param de_ctx detection engine context
+ * \param det_ctx detection engine thread context
+ * \param p pointer to the packet
+ * \retval 1 if at least one signature match on this packet, 0 if not
+ */
+int PacketAlertReal(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
+    int i = 0;
+    Signature *s = NULL;
+    for (i = 0; i < p->alerts.cnt; i++) {
+        SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
+        s = de_ctx->sig_array[p->alerts.alerts[i].num];
+
+        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, i);
+        /* Thresholding might remove one alert */
+        if (res == 0) {
+            i--;
+        } else {
+            if (s->flags & SIG_FLAG_IPONLY) {
+                if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
+                    (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
+                    SCLogDebug("testing against \"ip-only\" signatures");
+
+                    /* save in the flow that we scanned this direction... locking is
+                     * done in the FlowSetIPOnlyFlag function. */
+                    if (p->flow != NULL) {
+                        FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
+                    }
+
+                    /* Update flow flags for iponly */
+                    if (p->flow != NULL) {
+                        if (s->action & ACTION_DROP)
+                            p->flow->flags |= FLOW_ACTION_DROP;
+                        if (s->action & ACTION_REJECT)
+                            p->flow->flags |= FLOW_ACTION_DROP;
+                        if (s->action & ACTION_REJECT_DST)
+                            p->flow->flags |= FLOW_ACTION_DROP;
+                        if (s->action & ACTION_REJECT_BOTH)
+                            p->flow->flags |= FLOW_ACTION_DROP;
+                        if (s->action & ACTION_PASS)
+                            p->flow->flags |= FLOW_ACTION_PASS;
+                    }
+                }
+            }
+
+            /* set verdict on packet */
+            p->action |= p->alerts.alerts[i].action;
+            if (p->alerts.alerts[i].action & ACTION_PASS) {
+                /* Ok, reset the alert cnt to end in the previous of pass
+                 * so we ignore the rest with less prio */
+                p->alerts.cnt = i;
+                break;
+            }
+        }
+        /* Because we removed the alert from the array, we should
+         * have compacted the array and decreased cnt by one, so
+         * process again the same position (with different alert now) */
+    }
+
 }
 
