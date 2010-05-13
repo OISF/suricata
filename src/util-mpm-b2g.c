@@ -383,10 +383,10 @@ static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_
         if (mpm_ctx->maxlen < patlen) mpm_ctx->maxlen = patlen;
         if (mpm_ctx->minlen == 0) mpm_ctx->minlen = patlen;
         else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
-    }
 
     /* we need a match */
     B2gEndMatchAppend(mpm_ctx, p, offset, depth, pid, sid);
+    }
 
     mpm_ctx->total_pattern_cnt++;
     return 0;

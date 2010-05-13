@@ -79,7 +79,10 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     ThresholdHashInit(de_ctx);
     VariableNameInitHash(de_ctx);
 
-    DetectContentTableInitHash(de_ctx);
+    de_ctx->mpm_pattern_id_store = MpmPatternIdTableInitHash();
+    if (de_ctx->mpm_pattern_id_store == NULL) {
+        goto error;
+    }
 
     return de_ctx;
 error:
@@ -95,7 +98,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     /* Normally the hashes are freed elsewhere, but
      * to be sure look at them again here.
      */
-    DetectContentTableFreeHash(de_ctx); /* normally cleaned up in SigGroupBuild */
+    MpmPatternIdTableFreeHash(de_ctx->mpm_pattern_id_store); /* normally cleaned up in SigGroupBuild */
+
     SigGroupHeadHashFree(de_ctx);
     SigGroupHeadMpmHashFree(de_ctx);
     SigGroupHeadMpmUriHashFree(de_ctx);
@@ -447,7 +451,8 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher, DetectContentMaxId(de_ctx));
     PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher, DetectUricontentMaxId(de_ctx));
 
-    PmqSetup(&det_ctx->pmq, DetectEngineGetMaxSigId(de_ctx));
+    //PmqSetup(&det_ctx->pmq, DetectEngineGetMaxSigId(de_ctx), DetectContentMaxId(de_ctx));
+    PmqSetup(&det_ctx->pmq, 0, DetectContentMaxId(de_ctx));
 
     /* IP-ONLY */
     DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);

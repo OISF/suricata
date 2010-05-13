@@ -883,12 +883,16 @@ int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh,
 
             SCLogDebug("(%p)->mpm_content_maxlen %u", *sgh, (*sgh)->mpm_content_maxlen);
         }
+    }
+    if (s->flags & SIG_FLAG_MPM) {
         if (s->mpm_uricontent_maxlen > 0) {
             if ((*sgh)->mpm_uricontent_maxlen == 0)
                 (*sgh)->mpm_uricontent_maxlen = s->mpm_uricontent_maxlen;
 
             if ((*sgh)->mpm_uricontent_maxlen > s->mpm_uricontent_maxlen)
                 (*sgh)->mpm_uricontent_maxlen = s->mpm_uricontent_maxlen;
+
+            SCLogDebug("(%p)->mpm_uricontent_maxlen %u", *sgh, (*sgh)->mpm_uricontent_maxlen);
         }
     }
     return 0;
@@ -1241,7 +1245,7 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s == NULL)
             continue;
 
-        if (!(s->flags & SIG_FLAG_MPM))
+        if (!(s->flags & SIG_FLAG_MPM_URI))
             continue;
 
         sm = s->umatch;

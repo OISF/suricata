@@ -612,13 +612,40 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             continue;
         }
 
-        /* filter out sigs that want pattern matches, but
-         * have no matches */
-        if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
-                (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
-            SCLogDebug("mpm sig without matches.");
-            continue;
+        if (s->flags & SIG_FLAG_MPM) {
+            if (det_ctx->pmq.pattern_id_bitarray != NULL) {
+                /* filter out sigs that want pattern matches, but
+                 * have no matches */
+                if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
+                        (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                    SCLogDebug("mpm sig without matches (pat id check in content).");
+                    continue;
+                }
+
+            }
         }
+        if (s->flags & SIG_FLAG_MPM_URI) {
+            if (det_ctx->pmq.pattern_id_bitarray != NULL) {
+                /* filter out sigs that want pattern matches, but
+                 * have no matches */
+                if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] & (1<<(s->mpm_uripattern_id % 8))) &&
+                        (s->flags & SIG_FLAG_MPM_URI) && !(s->flags & SIG_FLAG_MPM_URI_NEG)) {
+                    SCLogDebug("mpm sig without matches (pat id check in uri).");
+                    continue;
+                }
+            }
+        }
+#if 0
+        } else {
+            /* filter out sigs that want pattern matches, but
+             * have no matches */
+            if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
+                    (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                SCLogDebug("mpm sig without matches (sig id check).");
+                continue;
+            }
+        }
+#endif
 
         /* if the sig has alproto and the session as well they should match */
         if (s->alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_UNKNOWN) {

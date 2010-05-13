@@ -841,7 +841,11 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
             if (ud == NULL)
                 continue;
 
-            sig->flags |= SIG_FLAG_MPM;
+            sig->flags |= SIG_FLAG_MPM_URI;
+
+            if (ud->flags & DETECT_URICONTENT_NEGATED) {
+                sig->flags |= SIG_FLAG_MPM_URI_NEG;
+            }
         }
     }
 
@@ -850,7 +854,6 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     /* determine the length of the longest pattern in the sig */
     if (sig->flags & SIG_FLAG_MPM) {
         sig->mpm_content_maxlen = 0;
-        sig->mpm_uricontent_maxlen = 0;
 
         for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
@@ -864,6 +867,9 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
                     sig->mpm_content_maxlen = cd->content_len;
             }
         }
+    }
+    if (sig->flags & SIG_FLAG_MPM_URI) {
+        sig->mpm_uricontent_maxlen = 0;
 
         for (sm = sig->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
@@ -963,7 +969,11 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             if (ud == NULL)
                 continue;
 
-            sig->flags |= SIG_FLAG_MPM;
+            sig->flags |= SIG_FLAG_MPM_URI;
+
+            if (ud->flags & DETECT_URICONTENT_NEGATED) {
+                sig->flags |= SIG_FLAG_MPM_URI_NEG;
+            }
         }
     }
 
@@ -972,7 +982,6 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     /* determine the length of the longest pattern in the sig */
     if (sig->flags & SIG_FLAG_MPM) {
         sig->mpm_content_maxlen = 0;
-        sig->mpm_uricontent_maxlen = 0;
 
         for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
@@ -986,6 +995,9 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                     sig->mpm_content_maxlen = cd->content_len;
             }
         }
+    }
+    if (sig->flags & SIG_FLAG_MPM_URI) {
+        sig->mpm_uricontent_maxlen = 0;
 
         for (sm = sig->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
@@ -1018,7 +1030,6 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         /* determine the length of the longest pattern in the sig */
         if (sig->next->flags & SIG_FLAG_MPM) {
             sig->next->mpm_content_maxlen = 0;
-            sig->next->mpm_uricontent_maxlen = 0;
 
             SigMatch *sm;
             for (sm = sig->next->pmatch; sm != NULL; sm = sm->next) {
@@ -1033,11 +1044,16 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                         sig->next->mpm_content_maxlen = cd->content_len;
                 }
             }
+        }
+        if (sig->next->flags & SIG_FLAG_MPM_URI) {
+            sig->next->mpm_uricontent_maxlen = 0;
+
             for (sm = sig->next->umatch; sm != NULL; sm = sm->next) {
                 if (sm->type == DETECT_URICONTENT) {
                     DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                     if (ud == NULL)
                         continue;
+
                     if (sig->next->mpm_uricontent_maxlen == 0)
                         sig->next->mpm_uricontent_maxlen = ud->uricontent_len;
                     if (sig->next->mpm_uricontent_maxlen < ud->uricontent_len)

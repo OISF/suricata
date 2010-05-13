@@ -177,25 +177,28 @@ typedef struct DetectPort_ {
 } DetectPort;
 
 /* Signature flags */
-#define SIG_FLAG_RECURSIVE 0x0001   /**< recursive capturing enabled */
-#define SIG_FLAG_SRC_ANY   0x0002   /**< source is any */
-#define SIG_FLAG_DST_ANY   0x0004   /**< destination is any */
-#define SIG_FLAG_SP_ANY    0x0008   /**< source port is any */
+#define SIG_FLAG_RECURSIVE      0x00000001  /**< recursive capturing enabled */
+#define SIG_FLAG_SRC_ANY        0x00000002  /**< source is any */
+#define SIG_FLAG_DST_ANY        0x00000004  /**< destination is any */
+#define SIG_FLAG_SP_ANY         0x00000008  /**< source port is any */
 
-#define SIG_FLAG_DP_ANY    0x0010   /**< destination port is any */
-#define SIG_FLAG_NOALERT   0x0020   /**< no alert flag is set */
-#define SIG_FLAG_IPONLY    0x0040   /**< ip only signature */
-#define SIG_FLAG_MPM       0x0080   /**< sig has mpm portion (content, uricontent, etc) */
+#define SIG_FLAG_DP_ANY         0x00000010  /**< destination port is any */
+#define SIG_FLAG_NOALERT        0x00000020  /**< no alert flag is set */
+#define SIG_FLAG_IPONLY         0x00000040  /**< ip only signature */
+#define SIG_FLAG_DEONLY         0x00000080  /**< decode event only signature */
 
-#define SIG_FLAG_DEONLY    0x0100   /**< decode event only signature */
-#define SIG_FLAG_PAYLOAD   0x0200   /**< signature is inspecting the packet payload */
-#define SIG_FLAG_DSIZE     0x0400   /**< signature has a dsize setting */
-#define SIG_FLAG_FLOW      0x0800   /**< signature has a flow setting */
+#define SIG_FLAG_MPM            0x00000100  /**< sig has mpm portion (content) */
+#define SIG_FLAG_MPM_NEGCONTENT 0x00000200  /**< sig has negative mpm portion(!content) */
+#define SIG_FLAG_MPM_URI        0x00000400  /**< sig has mpm portion (uricontent) */
+#define SIG_FLAG_MPM_URI_NEG    0x00000800  /**< sig has negative mpm portion(!uricontent) */
 
-#define SIG_FLAG_MPM_NEGCONTENT 0x1000  /**< sig has negative mpm portion(!content) */
-#define SIG_FLAG_APPLAYER  0x2000   /**< signature applies to app layer instead of packets */
-#define SIG_FLAG_BIDIREC   0x4000   /**< signature has bidirectional operator */
-#define SIG_FLAG_PACKET    0x8000   /**< signature has matches against a packet (as opposed to app layer) */
+#define SIG_FLAG_PAYLOAD        0x00001000  /**< signature is inspecting the packet payload */
+#define SIG_FLAG_DSIZE          0x00002000  /**< signature has a dsize setting */
+#define SIG_FLAG_FLOW           0x00004000  /**< signature has a flow setting */
+
+#define SIG_FLAG_APPLAYER       0x00008000  /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_BIDIREC        0x00010000  /**< signature has bidirectional operator */
+#define SIG_FLAG_PACKET         0x00020000  /**< signature has matches against a packet (as opposed to app layer) */
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
@@ -218,7 +221,7 @@ typedef struct IPOnlyCIDRItem_ {
 
 /** \brief Signature container */
 typedef struct Signature_ {
-    uint16_t flags;
+    uint32_t flags;
 
     uint8_t rev;
     int prio;
@@ -267,6 +270,11 @@ typedef struct Signature_ {
     uint16_t sm_cnt;
 
     SigIntId order_id;
+
+    /** pattern in the mpm matcher */
+    uint32_t mpm_pattern_id;
+    uint32_t mpm_uripattern_id;
+
 } Signature;
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {
@@ -325,6 +333,15 @@ typedef struct DetectEngineLookupDsize_ {
  */
 #define DSIZE_STATES 2
 
+/* mpm pattern id api */
+typedef struct MpmPatternIdStore_ {
+    HashTable *hash;
+    uint32_t max_id;
+
+    uint32_t unique_patterns;
+    uint32_t shared_patterns;
+} MpmPatternIdStore;
+
 /** \brief threshold ctx */
 typedef struct ThresholdCtx_    {
     HashListTable *threshold_hash_table_dst;        /**< Ipv4 dst hash table */
@@ -364,10 +381,6 @@ typedef struct DetectEngineCtx_ {
 
     uint32_t mpm_max_patcnt, mpm_min_patcnt, mpm_tot_patcnt,
         mpm_uri_max_patcnt, mpm_uri_min_patcnt, mpm_uri_tot_patcnt;
-
-    /* content and uricontent vars */
-    uint32_t content_max_id;
-    uint32_t uricontent_max_id;
 
     /* init phase vars */
     HashListTable *sgh_hash_table;
@@ -421,9 +434,9 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_small_toserver_sp_groups;
     uint16_t max_uniq_small_toserver_dp_groups;
 
-    HashTable *content_hash;
-    uint32_t content_hash_unique;
-    uint32_t content_hash_shared;
+    /** hash table for looking up patterns for
+     *  id sharing and id tracking. */
+    MpmPatternIdStore *mpm_pattern_id_store;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

@@ -26,6 +26,9 @@
 
 #include "tm-modules.h"
 
+#include "detect-content.h"
+#include "detect-uricontent.h"
+
 uint16_t PatternMatchDefaultMatcher(void);
 
 uint32_t PacketPatternSearch(ThreadVars *, DetectEngineThreadCtx *, Packet *);
@@ -48,6 +51,12 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 
 void DbgPrintSearchStats();
+
+MpmPatternIdStore *MpmPatternIdTableInitHash(void);
+void MpmPatternIdTableFreeHash(MpmPatternIdStore *);
+uint32_t MpmPatternIdStoreGetMaxId(MpmPatternIdStore *);
+uint32_t DetectContentGetId(MpmPatternIdStore *, DetectContentData *);
+uint32_t DetectUricontentGetId(MpmPatternIdStore *, DetectUricontentData *);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

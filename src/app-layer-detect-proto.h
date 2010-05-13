@@ -25,6 +25,7 @@
 #define __APP_LAYER_DETECT_PROTO_H__
 
 #include "stream.h"
+#include "detect-content.h"
 
 typedef struct AlpProtoDetectDirectionThread_ {
     MpmThreadCtx mpm_ctx;
@@ -36,10 +37,57 @@ typedef struct AlpProtoDetectThreadCtx_ {
     AlpProtoDetectDirectionThread toclient;
 } AlpProtoDetectThreadCtx;
 
-int AppLayerHandleMsg(AlpProtoDetectThreadCtx *, StreamMsg *smsg);
+/** \brief Signature for proto detection
+ *  \todo we might just use SigMatch here
+ */
+typedef struct AlpProtoSignature_ {
+    uint16_t proto;                     /**< protocol */
+    DetectContentData *co;              /**< content match that needs to match */
+    struct AlpProtoSignature_ *next;    /**< next signature */
+} AlpProtoSignature;
+
+#define ALP_DETECT_MAX 256
+
+typedef struct AlpProtoDetectDirection_ {
+    MpmCtx mpm_ctx;
+    uint32_t id;
+    uint16_t map[ALP_DETECT_MAX];   /**< a mapping between condition id's and
+                                         protocol */
+    uint16_t max_len;              /**< max length of all patterns, so we can
+                                         limit the search */
+    uint16_t min_len;              /**< min length of all patterns, so we can
+                                         tell the stream engine to feed data
+                                         to app layer as soon as it has min
+                                         size data */
+} AlpProtoDetectDirection;
+
+typedef struct AlpProtoDetectCtx_ {
+    AlpProtoDetectDirection toserver;
+    AlpProtoDetectDirection toclient;
+
+    MpmPatternIdStore *mpm_pattern_id_store;    /** pattern id store */
+
+    int alp_content_module_handle;
+
+    /** mapping between proto id's and pattern id's: this will
+     *  be used to look up a proto by the pattern id. The pattern
+     *  id is returned by the mpm */
+    //uint16_t *proto_map;
+
+    /** Mapping between pattern id and signature. As each signature has a
+     *  unique pattern with a unique id, we can lookup the signature by
+     *  the pattern id. */
+    AlpProtoSignature **map;
+
+    AlpProtoSignature *head;    /**< list of sigs */
+    uint16_t sigs;              /**< number of sigs */
+} AlpProtoDetectCtx;
+
 void *AppLayerDetectProtoThread(void *td);
 
 void AppLayerDetectProtoThreadInit(void);
+
+uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *, AlpProtoDetectThreadCtx *, uint8_t *, uint16_t, uint8_t);
 
 void AppLayerDetectProtoThreadSpawn(void);
 void AlpDetectRegisterTests(void);

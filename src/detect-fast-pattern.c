@@ -438,8 +438,10 @@ int DetectFastPatternTest08(void)
     p.proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
+    if (de_ctx == NULL) {
+        printf("de_ctx init: ");
         goto end;
+    }
 
     de_ctx->flags |= DE_QUIET;
 
@@ -448,27 +450,30 @@ int DetectFastPatternTest08(void)
                                "content:string2; content:strings3; fast_pattern; "
                                "content:strings_str4; content:strings_string5; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL)
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
         goto end;
+    }
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternSearch(&th_v, det_ctx, &p) == 1)
-        result = 1;
+    uint32_t r = PacketPatternSearch(&th_v, det_ctx, &p);
+    if (r != 1) {
+        printf("expected 1, got %"PRIu32": ", r);
+        goto end;
+    }
 
+    result = 1;
+end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
-
 /**
  * \test Checks that a fast_pattern is used in the mpm phase, when the payload
  *       doesn't contain the fast_pattern string within it.
@@ -549,8 +554,10 @@ int DetectFastPatternTest10(void)
     p.proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
+    if (de_ctx == NULL) {
+        printf("de_ctx init: ");
         goto end;
+    }
 
     de_ctx->flags |= DE_QUIET;
 
@@ -559,23 +566,27 @@ int DetectFastPatternTest10(void)
                                "content:string2; content:strings3; fast_pattern; "
                                "content:strings4_imp; fast_pattern; "
                                "content:strings_string5; sid:1;)");
-    if (de_ctx->sig_list == NULL)
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
         goto end;
+    }
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternSearch(&th_v, det_ctx, &p) == 1)
-        result = 1;
+    uint32_t r = PacketPatternSearch(&th_v, det_ctx, &p);
+    if (r != 1) {
+        printf("expected 1, got %"PRIu32": ", r);
+        goto end;
+    }
 
+    result = 1;
+end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -718,8 +729,10 @@ int DetectFastPatternTest13(void)
     p.proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
+    if (de_ctx == NULL) {
+        printf("de_ctx init: ");
         goto end;
+    }
 
     de_ctx->flags |= DE_QUIET;
 
@@ -728,23 +741,27 @@ int DetectFastPatternTest13(void)
                                "content:string2; content:strings3; "
                                "content:strings4_imp; "
                                "content:strings_string5; sid:1;)");
-    if (de_ctx->sig_list == NULL)
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
         goto end;
+    }
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
-    if (PacketPatternSearch(&th_v, det_ctx, &p) == 1)
-        result = 1;
+    uint32_t r = PacketPatternSearch(&th_v, det_ctx, &p);
+    if (r != 1) {
+        printf("expected 1 result, got %"PRIu32": ", r);
+        goto end;
+    }
 
+    result = 1;
+end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }

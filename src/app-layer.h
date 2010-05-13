@@ -29,11 +29,13 @@
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "app-layer-detect-proto.h"
 #include "stream.h"
 
 uint16_t AppLayerGetProtoFromPacket(Packet *);
 void *AppLayerGetProtoStateFromPacket(Packet *);
 void *AppLayerGetProtoStateFromFlow(Flow *);
+int AppLayerHandleMsg(AlpProtoDetectThreadCtx *, StreamMsg *smsg);
 
 #endif /* __APP_LAYER_H__ */
 

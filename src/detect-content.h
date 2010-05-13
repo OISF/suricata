@@ -88,8 +88,4 @@ SigMatch *SigMatchGetLastPattern(Signature *s);
 
 void DetectContentFree(void *);
 
-int DetectContentTableInitHash(DetectEngineCtx *);
-void DetectContentTableFreeHash(DetectEngineCtx *);
-uint32_t DetectContentGetId(DetectEngineCtx *, DetectContentData *);
-
 #endif /* __DETECT_CONTENT_H__ */

@@ -82,7 +82,7 @@ void DetectUricontentRegister (void)
  */
 uint32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx)
 {
-    return de_ctx->uricontent_max_id;
+    return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
 }
 
 /**
@@ -323,11 +323,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     sm->type = DETECT_URICONTENT;
     sm->ctx = (void *)cd;
 
-    //SigMatchAppendAppLayer(s, sm);
-
-    /** \todo use unique id here as well */
-    cd->id = de_ctx->uricontent_max_id;
-    de_ctx->uricontent_max_id++;
+    cd->id = DetectUricontentGetId(de_ctx->mpm_pattern_id_store, cd);
 
     /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;

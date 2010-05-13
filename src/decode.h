@@ -404,38 +404,10 @@ typedef struct DecodeThreadVars_
  * memset or bzero
  */
 #define CLEAR_PACKET(p) { \
-    CLEAR_ADDR(&p->src); \
-    CLEAR_ADDR(&p->dst); \
-    if ((p)->tcph != NULL) { \
-        CLEAR_TCP_PACKET((p)); \
-    } \
-    (p)->ethh = NULL; \
-    (p)->ppph = NULL; \
-    (p)->greh = NULL; \
-    (p)->vlanh = NULL; \
-    (p)->ip4h = NULL; \
-    (p)->ip6h = NULL; \
-    (p)->action = 0; \
-    (p)->pktlen = 0; \
-    (p)->tunnel_pkt = 0; \
-    (p)->tunnel_verdicted = 0; \
-    (p)->rtv_cnt = 0; \
-    (p)->tpr_cnt = 0; \
-    (p)->root = NULL; \
-    (p)->proto = 0; \
-    (p)->sp = 0; \
-    (p)->dp = 0; \
-    (p)->flow = NULL; \
-    (p)->flowflags = 0; \
-    (p)->flags = 0; \
-    (p)->alerts.cnt = 0; \
     if ((p)->pktvar != NULL) { \
         PktVarFree((p)->pktvar); \
     } \
-    (p)->pktvar = NULL; \
-    (p)->recursion_level = 0; \
-    (p)->ts.tv_sec = 0; \
-    (p)->ts.tv_usec = 0; \
+    memset((p), 0x00, sizeof(Packet)); \
 }
 
 /* reset these to -1(indicates that the packet is fresh from the queue) */

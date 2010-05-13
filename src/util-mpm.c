@@ -34,15 +34,19 @@
 #include "util-mpm-b3g.h"
 #include "util-hashlist.h"
 
-/** \brief Setup a pmq
-  * \param pmq Pattern matcher queue to be initialized
-  * \param maxid Max id to be matched on
-  * \retval -1 error
-  * \retval 0 ok
-  */
-int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
+/**
+ *  \brief Setup a pmq
+ *
+ *  \param pmq Pattern matcher queue to be initialized
+ *  \param maxid Max sig id to be matched on
+ *  \param patmaxid Max pattern id to be matched on
+ *
+ *  \retval -1 error
+ *  \retval 0 ok
+ */
+int PmqSetup(PatternMatcherQueue *pmq, uint32_t sig_maxid, uint32_t patmaxid) {
     SCEnter();
-    SCLogDebug("maxid %u", maxid);
+    SCLogDebug("sig_maxid %u, patmaxid %u", sig_maxid, patmaxid);
 
     if (pmq == NULL) {
         SCReturnInt(-1);
@@ -50,25 +54,47 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t maxid) {
 
     memset(pmq, 0, sizeof(PatternMatcherQueue));
 
-    if (maxid == 0) {
-        SCReturnInt(0);
+    if (sig_maxid > 0) {
+        pmq->sig_id_array = SCMalloc(sig_maxid * sizeof(uint32_t));
+        if (pmq->sig_id_array == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
+            SCReturnInt(-1);
+        }
+        memset(pmq->sig_id_array, 0, sig_maxid * sizeof(uint32_t));
+        pmq->sig_id_array_cnt = 0;
+
+        /* lookup bitarray */
+        pmq->sig_bitarray = SCMalloc((sig_maxid / 8) + 1);
+        if (pmq->sig_bitarray == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
+            SCReturnInt(-1);
+        }
+        memset(pmq->sig_bitarray, 0, (sig_maxid / 8) + 1);
+
+        SCLogDebug("pmq->sig_id_array %p, pmq->sig_bitarray %p",
+                pmq->sig_id_array, pmq->sig_bitarray);
     }
 
-    pmq->sig_id_array = SCMalloc(maxid * sizeof(uint32_t));
-    if (pmq->sig_id_array == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
-        SCReturnInt(-1);
-    }
-    memset(pmq->sig_id_array, 0, maxid * sizeof(uint32_t));
-    pmq->sig_id_array_cnt = 0;
+    if (patmaxid > 0) {
+        pmq->pattern_id_array = SCMalloc(patmaxid * sizeof(uint32_t));
+        if (pmq->pattern_id_array == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
+            SCReturnInt(-1);
+        }
+        memset(pmq->pattern_id_array, 0, patmaxid * sizeof(uint32_t));
+        pmq->pattern_id_array_cnt = 0;
 
-    /* lookup bitarray */
-    pmq->sig_bitarray = SCMalloc(maxid / 8 + 1);
-    if (pmq->sig_bitarray == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
-        SCReturnInt(-1);
+        /* lookup bitarray */
+        pmq->pattern_id_bitarray = SCMalloc((patmaxid / 8) + 1);
+        if (pmq->pattern_id_bitarray == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "memory alloc failed");
+            SCReturnInt(-1);
+        }
+        memset(pmq->pattern_id_bitarray, 0, (patmaxid / 8) + 1);
+
+        SCLogDebug("pmq->pattern_id_array %p, pmq->pattern_id_bitarray %p",
+                pmq->pattern_id_array, pmq->pattern_id_bitarray);
     }
-    memset(pmq->sig_bitarray, 0, maxid / 8 + 1);
 
     SCReturnInt(0);
 }
@@ -94,37 +120,59 @@ MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, MpmEndMatch *
     MpmEndMatch *em = list;
     int ret = 0;
 
-    for ( ; em != NULL; em = em->next) {
-        SCLogDebug("em->sig_id %u", em->sig_id);
+    /* Handle pattern id storage */
+    if (pmq != NULL && pmq->pattern_id_bitarray != NULL) {
+        SCLogDebug("using pattern id arrays");
 
-        /* check offset */
-        if (offset < em->offset)
-            continue;
-
-        /* check depth */
-        if (em->depth && (offset+patlen) > em->depth)
-            continue;
-
-        if (pmq != NULL) {
-            /* make sure we only append a sig with a matching pattern once,
-             * so we won't inspect it more than once. For this we keep a
-             * bitarray of sig internal id's and flag each sig that matched */
-            if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8)))) {
-                /* flag this sig_id as being added now */
-                pmq->sig_bitarray[(em->sig_id / 8)] |= (1<<(em->sig_id % 8));
-                /* append the sig_id to the array with matches */
-                pmq->sig_id_array[pmq->sig_id_array_cnt] = em->sig_id;
-                pmq->sig_id_array_cnt++;
-            }
-
-            /* nosearch flag */
-            if (!(em->flags & MPM_ENDMATCH_NOSEARCH)) {
-                pmq->searchable++;
-            }
+        if (!(pmq->pattern_id_bitarray[(em->id / 8)] & (1<<(em->id % 8)))) {
+            /* flag this pattern id as being added now */
+            pmq->pattern_id_bitarray[(em->id / 8)] |= (1<<(em->id % 8));
+            /* append the pattern_id to the array with matches */
+            pmq->pattern_id_array[pmq->pattern_id_array_cnt] = em->id;
+            pmq->pattern_id_array_cnt++;
         }
 
-        ret++;
+        ret = 1;
+    } else {
+        SCLogDebug("not using pattern id arrays, pmq %p, pmq->pattern_id_bitarray %p", pmq, pmq ? pmq->pattern_id_bitarray:NULL);
     }
+
+    if (pmq != NULL && pmq->sig_bitarray != NULL) {
+        for ( ; em != NULL; em = em->next) {
+            SCLogDebug("em->sig_id %u", em->sig_id);
+
+            /* check offset */
+            if (offset < em->offset)
+                continue;
+
+            /* check depth */
+            if (em->depth && (offset+patlen) > em->depth)
+                continue;
+
+            if (pmq != NULL) {
+                /* make sure we only append a sig with a matching pattern once,
+                 * so we won't inspect it more than once. For this we keep a
+                 * bitarray of sig internal id's and flag each sig that matched */
+                if (!(pmq->sig_bitarray[(em->sig_id / 8)] & (1<<(em->sig_id % 8)))) {
+                    /* flag this sig_id as being added now */
+                    pmq->sig_bitarray[(em->sig_id / 8)] |= (1<<(em->sig_id % 8));
+                    /* append the sig_id to the array with matches */
+                    pmq->sig_id_array[pmq->sig_id_array_cnt] = em->sig_id;
+                    pmq->sig_id_array_cnt++;
+                }
+
+                /* nosearch flag */
+                if (!(em->flags & MPM_ENDMATCH_NOSEARCH)) {
+                    pmq->searchable++;
+                }
+            }
+
+            ret++;
+        }
+    }
+
+    if (pmq == NULL)
+        ret = 1;
 
     SCReturnInt(ret);
 }
@@ -138,6 +186,11 @@ void PmqReset(PatternMatcherQueue *pmq) {
         pmq->sig_bitarray[(pmq->sig_id_array[u] / 8)] &= ~(1<<(pmq->sig_id_array[u] % 8));
     }
     pmq->sig_id_array_cnt = 0;
+
+    for (u = 0; u < pmq->pattern_id_array_cnt; u++) {
+        pmq->pattern_id_bitarray[(pmq->pattern_id_array[u] / 8)] &= ~(1<<(pmq->pattern_id_array[u] % 8));
+    }
+    pmq->pattern_id_array_cnt = 0;
 }
 
 /** \brief Cleanup a Pmq

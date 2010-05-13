@@ -50,6 +50,7 @@
 
 #include "util-debug.h"
 #include "app-layer-protos.h"
+#include "app-layer.h"
 //#define DEBUG
 
 #ifdef DEBUG
