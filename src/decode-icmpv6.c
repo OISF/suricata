@@ -167,6 +167,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     p->type = p->icmpv6h->type;
     p->code = p->icmpv6h->code;
     p->payload_len = len - ICMPV6_HEADER_LEN;
+    p->payload = pkt + ICMPV6_HEADER_LEN;
 
     SCLogDebug("ICMPV6 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv6h->type,
                p->icmpv6h->code);

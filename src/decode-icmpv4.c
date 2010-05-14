@@ -144,6 +144,8 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     p->proto = IPPROTO_ICMP;
     p->type = p->icmpv4h->type;
     p->code = p->icmpv4h->code;
+    p->payload = pkt + ICMPV4_HEADER_LEN;
+    p->payload_len = len - ICMPV4_HEADER_LEN;
 
     ICMPV4ExtHdr* icmp4eh = (ICMPV4ExtHdr*) p->icmpv4h;
 

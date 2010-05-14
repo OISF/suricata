@@ -63,7 +63,7 @@ void B2gThreadDestroyCtx(MpmCtx *, MpmThreadCtx *);
 int B2gAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
 int B2gAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
 int B2gPreparePatterns(MpmCtx *mpm_ctx);
-uint32_t B2gSearchWrap(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
+inline uint32_t B2gSearchWrap(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
 uint32_t B2gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
 #ifdef B2G_SEARCH2
 uint32_t B2gSearch2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
@@ -852,7 +852,8 @@ uint32_t B2gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
     //printf("\n");
     //PrintRawDataFp(stdout, buf, buflen);
 
-    SCLogDebug("buflen %"PRIu32", ctx->m %"PRIu32", pos %"PRIu32"", buflen, ctx->m, pos);
+    SCLogDebug("buflen %"PRIu16", ctx->m %"PRIu32", pos %"PRIu32"", buflen,
+            ctx->m, pos);
 
     COUNT(tctx->stat_calls++);
     COUNT(tctx->stat_m_total+=ctx->m);
