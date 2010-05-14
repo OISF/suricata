@@ -155,7 +155,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     /* unlock list */
     SCMutexUnlock(&q->mutex_q);
 
-    if (SCMutexTrylock(&f->fb->m) != 0) {
+    if (SCSpinTrylock(&f->fb->s) != 0) {
         SCMutexUnlock(&f->m);
         SCLogDebug("cant lock 2");
         return 0;
@@ -210,7 +210,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
 
     /* do the timeout check */
     if ((int32_t)(f->lastts.tv_sec + timeout) >= ts->tv_sec) {
-        SCMutexUnlock(&f->fb->m);
+        SCSpinUnlock(&f->fb->s);
         SCMutexUnlock(&f->m);
         SCLogDebug("timeout check failed");
         return 0;
@@ -220,7 +220,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
      *  we are currently processing in one of the threads */
     if (f->use_cnt > 0) {
         SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", f->use_cnt, f, f->proto);
-        SCMutexUnlock(&f->fb->m);
+        SCSpinUnlock(&f->fb->s);
         SCMutexUnlock(&f->m);
         SCLogDebug("it is in one of the threads");
         return 0;
@@ -237,7 +237,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     f->hnext = NULL;
     f->hprev = NULL;
 
-    SCMutexUnlock(&f->fb->m);
+    SCSpinUnlock(&f->fb->s);
     f->fb = NULL;
 
     FlowClearMemory (f, f->protomap);
@@ -511,7 +511,7 @@ void FlowInitConfig (char quiet)
 
     memset(flow_hash, 0, flow_config.hash_size * sizeof(FlowBucket));
     for (i = 0; i < flow_config.hash_size; i++)
-        SCMutexInit(&flow_hash[i].m, NULL);
+        SCSpinInit(&flow_hash[i].s, 0);
     flow_memuse += (flow_config.hash_size * sizeof(FlowBucket));
 
     if (quiet == FALSE)
@@ -620,7 +620,7 @@ void FlowShutdown(void) {
     if (flow_hash != NULL) {
         /* clean up flow mutexes */
         for (u = 0; u < flow_config.hash_size; u++) {
-            SCMutexDestroy(&flow_hash[u].m);
+            SCSpinDestroy(&flow_hash[u].s);
         }
         SCFree(flow_hash);
         flow_hash = NULL;
@@ -1295,7 +1295,7 @@ static int FlowTest03 (void) {
     memset(&ts, 0, sizeof(ts));
     memset(&fb, 0, sizeof(FlowBucket));
 
-    SCMutexInit(&fb.m, NULL);
+    SCSpinInit(&fb.s, 0);
     SCMutexInit(&f.m, NULL);
 
     TimeGet(&ts);
@@ -1306,12 +1306,12 @@ static int FlowTest03 (void) {
     f.proto = IPPROTO_TCP;
 
     if (FlowTestPrune(&f, &ts) != 1) {
-        SCMutexDestroy(&fb.m);
+        SCSpinDestroy(&fb.s);
         SCMutexDestroy(&f.m);
         return 0;
     }
 
-    SCMutexDestroy(&fb.m);
+    SCSpinDestroy(&fb.s);
     SCMutexDestroy(&f.m);
     return 1;
 }
@@ -1340,7 +1340,7 @@ static int FlowTest04 (void) {
     memset(&seg, 0, sizeof(TcpSegment));
     memset(&client, 0, sizeof(TcpSegment));
 
-    SCMutexInit(&fb.m, NULL);
+    SCSpinInit(&fb.s, 0);
     SCMutexInit(&f.m, NULL);
 
     TimeGet(&ts);
@@ -1358,12 +1358,12 @@ static int FlowTest04 (void) {
     f.proto = IPPROTO_TCP;
 
     if (FlowTestPrune(&f, &ts) != 1) {
-        SCMutexDestroy(&fb.m);
+        SCSpinDestroy(&fb.s);
         SCMutexDestroy(&f.m);
         return 0;
     }
 
-    SCMutexDestroy(&fb.m);
+    SCSpinDestroy(&fb.s);
     SCMutexDestroy(&f.m);
     return 1;
 
@@ -1388,7 +1388,7 @@ static int FlowTest05 (void) {
     memset(&ts, 0, sizeof(ts));
     memset(&fb, 0, sizeof(FlowBucket));
 
-    SCMutexInit(&fb.m, NULL);
+    SCSpinInit(&fb.s, 0);
     SCMutexInit(&f.m, NULL);
 
     TimeGet(&ts);
@@ -1400,12 +1400,12 @@ static int FlowTest05 (void) {
     f.flags = FLOW_EMERGENCY;
 
     if (FlowTestPrune(&f, &ts) != 1) {
-        SCMutexDestroy(&fb.m);
+        SCSpinDestroy(&fb.s);
         SCMutexDestroy(&f.m);
         return 0;
     }
 
-    SCMutexDestroy(&fb.m);
+    SCSpinDestroy(&fb.s);
     SCMutexDestroy(&f.m);
     return 1;
 }
@@ -1434,7 +1434,7 @@ static int FlowTest06 (void) {
     memset(&seg, 0, sizeof(TcpSegment));
     memset(&client, 0, sizeof(TcpSegment));
 
-    SCMutexInit(&fb.m, NULL);
+    SCSpinInit(&fb.s, 0);
     SCMutexInit(&f.m, NULL);
 
     TimeGet(&ts);
@@ -1453,12 +1453,12 @@ static int FlowTest06 (void) {
     f.flags = FLOW_EMERGENCY;
 
     if (FlowTestPrune(&f, &ts) != 1) {
-        SCMutexDestroy(&fb.m);
+        SCSpinDestroy(&fb.s);
         SCMutexDestroy(&f.m);
         return 0;
     }
 
-    SCMutexDestroy(&fb.m);
+    SCSpinDestroy(&fb.s);
     SCMutexDestroy(&f.m);
     return 1;
 

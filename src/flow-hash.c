@@ -97,7 +97,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
     uint32_t key = FlowGetKey(p);
     /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[key];
-    SCMutexLock(&fb->m);
+    SCSpinLock(&fb->s);
 
     SCLogDebug("fb %p fb->f %p", fb, fb->f);
 
@@ -110,7 +110,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
             f = fb->f = FlowAlloc();
             if (f == NULL) {
-                SCMutexUnlock(&fb->m);
+                SCSpinUnlock(&fb->s);
                 return NULL;
             }
         }
@@ -125,7 +125,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
         f->flags |= FLOW_NEW_LIST;
         f->fb = fb;
 
-        SCMutexUnlock(&fb->m);
+        SCSpinUnlock(&fb->s);
         return f;
     }
 
@@ -151,7 +151,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
                     f = fb->f = FlowAlloc();
                     if (f == NULL) {
-                        SCMutexUnlock(&fb->m);
+                        SCSpinUnlock(&fb->s);
                         return NULL;
                     }
                 }
@@ -167,7 +167,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 f->flags |= FLOW_NEW_LIST;
                 f->fb = fb;
 
-                SCMutexUnlock(&fb->m);
+                SCSpinUnlock(&fb->s);
                 return f;
             }
 
@@ -185,7 +185,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 fb->f = f;
 
                 /* found our flow */
-                SCMutexUnlock(&fb->m);
+                SCSpinUnlock(&fb->s);
                 return f;
             }
 
@@ -196,7 +196,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
     /* The 'root' flow was our flow, return it.
      * It's already locked. */
-    SCMutexUnlock(&fb->m);
+    SCSpinUnlock(&fb->s);
     return f;
 }
 

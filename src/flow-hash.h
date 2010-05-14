@@ -30,7 +30,8 @@
  * to the list, the entire bucket is locked. */
 typedef struct FlowBucket_ {
     Flow *f;
-    SCMutex m;
+//    SCMutex m;
+    SCSpinlock s;
 } FlowBucket;
 
 /* prototypes */
