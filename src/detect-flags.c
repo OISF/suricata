@@ -128,7 +128,7 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
         SCReturnInt(ret);
     }
 
-    flags &= (de->flags & de->ignored_flags);
+    flags &= de->ignored_flags;
 
     switch(de->modifier)    {
         case MODIFIER_ANY:
@@ -138,7 +138,7 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
             SCReturnInt(ret);
 
         case MODIFIER_PLUS:
-            if(((flags & de->flags) == de->flags) && (((p->tcph->th_flags - flags) + de->ignored_flags) != 0xff)) {
+            if(((flags & de->flags) == de->flags)) {
                 SCReturnInt(1);
             }
             SCReturnInt(ret);
@@ -150,7 +150,8 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
             SCReturnInt(ret);
 
         default:
-            if((flags & de->flags) == de->flags) {
+            SCLogDebug("flags %"PRIu8" and de->flags %"PRIu8"",flags,de->flags);
+            if(flags == de->flags) {
                 SCReturnInt(1);
             }
     }
@@ -180,7 +181,8 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     char *ptr;
     int i;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr),
+            0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre match failed");
         goto error;
@@ -188,7 +190,8 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
 
     for (i = 0; i < (ret - 1); i++) {
 
-        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,i + 1, &str_ptr);
+        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,i + 1,
+                &str_ptr);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
@@ -329,24 +332,30 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
 
             case '!':
                 if (de->modifier != 0) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only one modifier at a time");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
+                            " one modifier at a time");
                     goto error;
                 }
                 de->modifier = MODIFIER_NOT;
+                SCLogDebug("NOT modifier is set");
                 break;
             case '+':
                 if (de->modifier != 0) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only one modifier at a time");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
+                            " one modifier at a time");
                     goto error;
                 }
                 de->modifier = MODIFIER_PLUS;
+                SCLogDebug("PLUS modifier is set");
                 break;
             case '*':
                 if (de->modifier != 0) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only one modifier at a time");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
+                            " one modifier at a time");
                     goto error;
                 }
                 de->modifier = MODIFIER_ANY;
+                SCLogDebug("ANY modifier is set");
                 break;
             default:
                 break;
@@ -418,9 +427,11 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     }
 
     for (i = 0; i < (ret - 1); i++){
+        SCLogDebug("args[%"PRId32"] = %s",i, args[i]);
         if (args[i] != NULL) SCFree(args[i]);
     }
 
+    SCLogDebug("found %"PRId32" ignore %"PRId32"", found, ignore);
     SCReturnPtr(de, "DetectFlagsData");
 
 error:
@@ -542,7 +553,7 @@ static int FlagsTestParse03 (void) {
     p.tcph = &tcph;
     p.tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
 
-    de = DetectFlagsParse("AP");
+    de = DetectFlagsParse("AP+");
 
     if (de == NULL || (de->flags != (TH_ACK|TH_PUSH)) )
         goto error;
