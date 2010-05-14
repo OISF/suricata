@@ -1021,10 +1021,13 @@ static int ICMPV6PayloadTest01(void)
     DecodeIPV6(&tv, &dtv, &p, raw_ipv6, sizeof(raw_ipv6), NULL);
     FlowShutdown();
 
-    if (p.payload == NULL || p.payload_len != 37) {
-        printf("payload has not been set, but it should be %p. p->payload_len "
-                "should be 37, but it is %"PRIu16"\n", p.payload,p.payload_len);
-        retval = 0;
+    if (p.payload == NULL) {
+        printf("payload == NULL, expected non-NULL: ");
+        goto end;
+    }
+
+    if (p.payload_len != 37) {
+        printf("payload_len %"PRIu16", expected 37: ", p.payload_len);
         goto end;
     }
 
