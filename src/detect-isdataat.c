@@ -254,7 +254,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                return -1;
+                goto error;
             }
 
             cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
@@ -262,14 +262,14 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_PCRE);
             if (pm == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                return -1;
+                goto error;
             }
 
             DetectPcreData *pe = NULL;
             pe = (DetectPcreData *) pm->ctx;
             if (pe == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                return -1;
+                goto error;
             }
             pe->flags |= DETECT_PCRE_RELATIVE;
         }
@@ -393,6 +393,37 @@ int DetectIsdataatTestPacket01 (void) {
 end:
     return result;
 }
+
+/**
+ * \test DetectIsdataatTestPacket01 is a test to check matches of
+ * isdataat, and isdataat relative works if the previous keyword is pcre
+ * (bug 144)
+ */
+int DetectIsdataatTestPacket02 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
+                    "User-Agent: Wget/1.11.4"
+                    "Accept: */*"
+                    "Host: www.google.com"
+                    "Connection: Keep-Alive"
+                    "Date: Mon, 04 Jan 2010 17:29:39 GMT";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"pcre with"
+            " isdataat + relative\"; pcre:\"/A(ll|pp)WorkAndNoPlayMakesWillA"
+            "DullBoy/\"; isdataat:96,relative; sid:1;)";
+
+    result = UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+end:
+    return result;
+}
 #endif
 
 /**
@@ -404,5 +435,6 @@ void DetectIsdataatRegisterTests(void) {
     UtRegisterTest("DetectIsdataatTestParse02", DetectIsdataatTestParse02, 1);
     UtRegisterTest("DetectIsdataatTestParse03", DetectIsdataatTestParse03, 1);
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01, 1);
+    UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02, 1);
     #endif
 }
