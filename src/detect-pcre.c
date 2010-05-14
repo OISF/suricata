@@ -600,6 +600,7 @@ error:
 
 static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexstr)
 {
+    SCEnter();
     DetectPcreData *pd = NULL;
     SigMatch *sm = NULL;
 
@@ -629,12 +630,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     }
 
 
-    return 0;
+    SCReturnInt(0);
 
 error:
     if (pd != NULL) DetectPcreFree(pd);
     if (sm != NULL) SCFree(sm);
-    return -1;
+    SCReturnInt(-1);
 }
 
 void DetectPcreFree(void *ptr) {

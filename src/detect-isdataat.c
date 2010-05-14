@@ -40,6 +40,7 @@
 
 #include "util-debug.h"
 #include "util-byte.h"
+#include "detect-pcre.h"
 
 /**
  * \brief Regex for parsing our isdataat options
@@ -248,19 +249,30 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         SigMatch *pm = NULL;
         /** Search for the first previous DetectContent
          * SigMatch (it can be the same as this one) */
-        pm = DetectContentGetLastPattern(s->pmatch_tail);
-        if (pm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-            return -1;
-        }
+        pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_CONTENT);
+        if (pm != NULL) {
+            cd = (DetectContentData *)pm->ctx;
+            if (cd == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+                return -1;
+            }
 
-        cd = (DetectContentData *)pm->ctx;
-        if (cd == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-            return -1;
-        }
+            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+        } else {
+            pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_PCRE);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+                return -1;
+            }
 
-        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            DetectPcreData *pe = NULL;
+            pe = (DetectPcreData *) pm->ctx;
+            if (pe == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+                return -1;
+            }
+            pe->flags |= DETECT_PCRE_RELATIVE;
+        }
     }
 
     sm = SigMatchAlloc();
