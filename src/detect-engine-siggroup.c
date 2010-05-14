@@ -1060,12 +1060,18 @@ void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     SCEnter();
 
-    uint32_t i;
+    if (sgh == NULL) {
+        SCReturn;
+    }
+
+    uint32_t u;
 
     SCLogDebug("The Signatures present in this SigGroupHead are: ");
-    for (i = 0; i < sgh->sig_size; i++) {
-        if (sgh->sig_array[i / 8] & (1 << (i % 8)))
-            SCLogDebug("%" PRIu32, i);
+    for (u = 0; u < (sgh->sig_size * 8); u++) {
+        if (sgh->sig_array[u / 8] & (1 << (u % 8))) {
+            SCLogDebug("%" PRIu32, u);
+            printf("s->num %"PRIu16" ", u);
+        }
     }
 
     SCReturn;
@@ -1850,6 +1856,56 @@ static int SigGroupHeadTest09(void)
     return result;
 }
 
+/**
+ * \test ICMP(?) sig grouping bug.
+ */
+static int SigGroupHeadTest10(void)
+{
+    int result = 0;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    Signature *s = NULL;
+    Packet p;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    ThreadVars th_v;
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    p.proto = IPPROTO_ICMP;
+    p.type = 5;
+    p.code = 1;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.src.addr_data32[0] = 0xe08102d3;
+    p.dst.addr_data32[0] = 0x3001a8c0;
+
+    if (de_ctx == NULL)
+        return 0;
+
+    s = DetectEngineAppendSig(de_ctx, "alert icmp 192.168.0.0/16 any -> any any (icode:>1; itype:11; sid:1; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> 192.168.0.0/16 any (icode:1; itype:5; sid:2; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    AddressDebugPrint(&p.dst);
+
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    if (sgh == NULL) {
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
 #endif
 
 void SigGroupHeadRegisterTests(void)
@@ -1866,6 +1922,7 @@ void SigGroupHeadRegisterTests(void)
     UtRegisterTest("SigGroupHeadTest07", SigGroupHeadTest07, 1);
     UtRegisterTest("SigGroupHeadTest08", SigGroupHeadTest08, 1);
     UtRegisterTest("SigGroupHeadTest09", SigGroupHeadTest09, 1);
+    UtRegisterTest("SigGroupHeadTest10", SigGroupHeadTest10, 1);
 
 #endif
 

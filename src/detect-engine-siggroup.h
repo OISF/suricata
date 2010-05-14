@@ -76,5 +76,6 @@ int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh,
                                uint32_t sid);
 
 void SigGroupHeadRegisterTests(void);
+void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 #endif /* __DETECT_ENGINE_SIGGROUP_H__ */

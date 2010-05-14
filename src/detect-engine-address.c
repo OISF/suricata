@@ -1435,27 +1435,35 @@ int DetectAddressCmp(DetectAddress *a, DetectAddress *b)
  */
 int DetectAddressMatch(DetectAddress *dd, Address *a)
 {
-    if (dd->family != a->family)
-        return 0;
+    SCEnter();
+
+    if (dd->family != a->family) {
+        SCReturnInt(0);
+    }
+
+    //DetectAddressPrint(dd);
+    //AddressDebugPrint(a);
 
     switch (a->family) {
         case AF_INET:
+
             /* XXX figure out a way to not need to do this ntohl if we switch to
              * Address inside DetectAddressData we can do uint8_t checks */
             if (ntohl(a->addr_data32[0]) >= ntohl(dd->ip[0]) &&
-                ntohl(a->addr_data32[0]) <= ntohl(dd->ip2[0])) {
-                return 1;
+                ntohl(a->addr_data32[0]) <= ntohl(dd->ip2[0]))
+            {
+                SCReturnInt(1);
             } else {
-                return 0;
+                SCReturnInt(0);
             }
 
             break;
         case AF_INET6:
             if (AddressIPv6Ge(a->addr_data32, dd->ip) == 1 &&
-                AddressIPv6Le(a->addr_data32, dd->ip2) == 1) {
-                return 1;
+                    AddressIPv6Le(a->addr_data32, dd->ip2) == 1) {
+                SCReturnInt(1);
             } else {
-                return 0;
+                SCReturnInt(0);
             }
 
             break;
@@ -1464,7 +1472,7 @@ int DetectAddressMatch(DetectAddress *dd, Address *a)
             break;
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 /**
@@ -1520,25 +1528,33 @@ void DetectAddressPrint(DetectAddress *gr)
  */
 DetectAddress *DetectAddressLookupInHead(DetectAddressHead *gh, Address *a)
 {
+    SCEnter();
+
     DetectAddress *g;
 
-    if (gh == NULL)
-        return NULL;
-
-    /* XXX should we really do this check every time we run this function? */
-    if (a->family == AF_INET)
-        g = gh->ipv4_head;
-    else if (a->family == AF_INET6)
-        g = gh->ipv6_head;
-    else
-        g = gh->any_head;
-
-    for ( ; g != NULL; g = g->next) {
-        if (DetectAddressMatch(g,a) == 1)
-            return g;
+    if (gh == NULL) {
+        SCReturnPtr(NULL, "DetectAddress");
     }
 
-    return NULL;
+    /* XXX should we really do this check every time we run this function? */
+    if (a->family == AF_INET) {
+        SCLogDebug("IPv4");
+        g = gh->ipv4_head;
+    } else if (a->family == AF_INET6) {
+        SCLogDebug("IPv6");
+        g = gh->ipv6_head;
+    } else {
+        SCLogDebug("ANY");
+        g = gh->any_head;
+    }
+
+    for ( ; g != NULL; g = g->next) {
+        if (DetectAddressMatch(g,a) == 1) {
+            SCReturnPtr(g, "DetectAddress");
+        }
+    }
+
+    SCReturnPtr(NULL, "DetectAddress");
 }
 
 /********************************Unittests*************************************/
