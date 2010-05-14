@@ -40,7 +40,7 @@
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \
-                                       (c)->flags & DETECT_CONTENT_RELATIVE || \
+                                       (c)->flags & DETECT_CONTENT_RELATIVE_NEXT || \
                                        (c)->depth > 0 || \
                                        (c)->within > 0))
 
