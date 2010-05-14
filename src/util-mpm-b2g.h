@@ -58,7 +58,7 @@ typedef struct B2gPattern_ {
     uint8_t *cs; /* case sensitive */
     uint8_t *ci; /* case INsensitive */
     struct B2gPattern_ *next;
-    MpmEndMatch *em;
+    uint32_t id;
 } B2gPattern;
 
 typedef struct B2gHashItem_ {

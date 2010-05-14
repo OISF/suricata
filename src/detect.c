@@ -198,8 +198,6 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
     SCLogInfo("(%s) URI (+byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
         tv->name, det_ctx->uris, det_ctx->pkts_uri_searched,
         (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->uris)*100));
-
-    SCLogInfo("%"PRIu64" sigs per mpm match on avg needed inspection, total mpm searches %"PRIu64", less than 25 sigs need inspect %"PRIu64", more than 100 sigs need inspect %"PRIu64", more than 1000 %"PRIu64" max %"PRIu64"", det_ctx->mpm_match ? det_ctx->mpm_sigs / det_ctx->mpm_match : 0, det_ctx->mpm_match, det_ctx->mpm_sigsmin25, det_ctx->mpm_sigsplus100, det_ctx->mpm_sigsplus1000, det_ctx->mpm_sigsmax);
 }
 
 int SghHasSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid) {
@@ -578,21 +576,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             cnt = PacketPatternSearch(th_v, det_ctx, p);
             if (cnt > 0) {
                 det_ctx->mpm_match++;
-                det_ctx->mpm_sigs += det_ctx->pmq.sig_id_array_cnt;
-                if (det_ctx->pmq.sig_id_array_cnt < 25) {
-                    det_ctx->mpm_sigsmin25++;
-                } else if (det_ctx->pmq.sig_id_array_cnt > 1000) {
-                    det_ctx->mpm_sigsplus1000++;
-                } else if (det_ctx->pmq.sig_id_array_cnt > 100) {
-                    det_ctx->mpm_sigsplus100++;
-                }
-
-                if (det_ctx->pmq.sig_id_array_cnt > det_ctx->mpm_sigsmax)
-                    det_ctx->mpm_sigsmax = det_ctx->pmq.sig_id_array_cnt;
             }
 
-            SCLogDebug("post search: cnt %" PRIu32 ", searchable %" PRIu32 ", sigs %"PRIu32" (out of %"PRIu32")", cnt, det_ctx->pmq.searchable, det_ctx->pmq.sig_id_array_cnt, det_ctx->sgh->sig_cnt);
-            det_ctx->pmq.searchable = 0;
+            SCLogDebug("post search: cnt %" PRIu32, cnt);
         }
     }
 
@@ -652,22 +638,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                  * have no matches */
                 if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] & (1<<(s->mpm_uripattern_id % 8))) &&
                         (s->flags & SIG_FLAG_MPM_URI) && !(s->flags & SIG_FLAG_MPM_URI_NEG)) {
-                    SCLogDebug("mpm sig without matches (pat id check in uri).");
+                    SCLogDebug("mpm sig without matches (pat id %"PRIu32
+                            " check in uri).", s->mpm_uripattern_id);
                     continue;
                 }
             }
         }
-#if 0
-        } else {
-            /* filter out sigs that want pattern matches, but
-             * have no matches */
-            if (!(det_ctx->pmq.sig_bitarray[(sig / 8)] & (1<<(sig % 8))) &&
-                    (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
-                SCLogDebug("mpm sig without matches (sig id check).");
-                continue;
-            }
-        }
-#endif
 
         /* if the sig has alproto and the session as well they should match */
         if (s->alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_UNKNOWN) {

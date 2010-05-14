@@ -513,11 +513,6 @@ typedef struct DetectionEngineThreadCtx_ {
 #endif
 
     uint64_t mpm_match;
-    uint64_t mpm_sigs;
-    uint64_t mpm_sigsmin25;
-    uint64_t mpm_sigsplus100;
-    uint64_t mpm_sigsplus1000;
-    uint64_t mpm_sigsmax;
 } DetectEngineThreadCtx;
 
 /** \brief a single match condition for a signature */

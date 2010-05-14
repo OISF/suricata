@@ -37,7 +37,7 @@ typedef struct WmPattern_ {
     uint16_t prefix_ci;
     uint16_t prefix_cs;
     uint8_t flags;
-    MpmEndMatch *em;
+    uint32_t id; /* global pattern id */
 } WmPattern;
 
 typedef struct WmHashItem_ {

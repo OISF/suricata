@@ -381,9 +381,7 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
 
         ret += UriPatternSearch(tv, det_ctx, uri, uri_len);
 
-        SCLogDebug("post search: cnt %" PRIu32 ", searchable %" PRIu32 "",
-                    ret, det_ctx->pmq.searchable);
-        det_ctx->pmq.searchable = 0;
+        SCLogDebug("post search: cnt %" PRIu32, ret);
     }
     return ret;
 }

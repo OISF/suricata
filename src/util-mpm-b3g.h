@@ -54,7 +54,7 @@ typedef struct B3gPattern_ {
     uint16_t len;
     struct B3gPattern_ *next;
     uint8_t flags;
-    MpmEndMatch *em;
+    uint32_t id;
 } B3gPattern;
 
 typedef struct B3gHashItem_ {

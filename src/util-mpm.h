@@ -64,16 +64,6 @@ enum {
     MPM_TABLE_SIZE,
 };
 
-/* Data structures */
-typedef struct MpmEndMatch_ {
-    uint32_t id;        /**< pattern id storage */
-    uint16_t depth;
-    uint16_t offset;
-    struct MpmEndMatch_ *next;
-    SigIntId sig_id;    /**< sig callback stuff -- internal id */
-    uint8_t flags;
-} MpmEndMatch;
-
 typedef struct MpmMatchBucket_ {
     uint32_t len;
 } MpmMatchBucket;
@@ -89,14 +79,6 @@ typedef struct MpmThreadCtx_ {
  *         thread has this and passes a pointer to it to the pattern matcher.
  *         The actual pattern matcher will fill the structure. */
 typedef struct PatternMatcherQueue_ {
-    uint32_t *sig_id_array;         /** array with internal sig id's that had a
-                                        pattern match. These will be inspected
-                                        futher by the detection engine. */
-    uint32_t sig_id_array_cnt;
-    uint8_t *sig_bitarray;
-    uint32_t searchable;            /** counter of the number of matches that
-                                        require a search-followup */
-
     uint32_t *pattern_id_array;     /** array with internal sig id's that had a
                                         pattern match. These will be inspected
                                         futher by the detection engine. */
@@ -110,8 +92,6 @@ typedef struct MpmCtx_ {
 
     uint32_t memory_cnt;
     uint32_t memory_size;
-
-    uint32_t endmatches;
 
     uint32_t pattern_cnt;       /* unique patterns */
     uint32_t total_pattern_cnt; /* total patterns added */
@@ -166,16 +146,13 @@ void PmqReset(PatternMatcherQueue *);
 void PmqCleanup(PatternMatcherQueue *);
 void PmqFree(PatternMatcherQueue *);
 
-MpmEndMatch *MpmAllocEndMatch (MpmCtx *);
-void MpmEndMatchFreeAll(MpmCtx *mpm_ctx, MpmEndMatch *em);
-
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
 
 /** Return the max pattern length of a Matcher type given as arg */
 int32_t MpmMatcherGetMaxPatternLength(uint16_t);
 
-int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, MpmEndMatch *, uint16_t, uint16_t);
+int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, uint32_t);
 void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher, int module_handle);
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
 uint32_t MpmGetHashSize(const char *);
