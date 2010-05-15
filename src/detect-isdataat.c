@@ -41,6 +41,7 @@
 #include "util-debug.h"
 #include "util-byte.h"
 #include "detect-pcre.h"
+#include "detect-bytejump.h"
 
 /**
  * \brief Regex for parsing our isdataat options
@@ -258,12 +259,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             }
 
             cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-        } else {
-            pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_PCRE);
-            if (pm == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                goto error;
-            }
+        } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_PCRE)) != NULL) {
 
             DetectPcreData *pe = NULL;
             pe = (DetectPcreData *) pm->ctx;
@@ -272,6 +268,19 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                 goto error;
             }
             pe->flags |= DETECT_PCRE_RELATIVE;
+        } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_BYTEJUMP)) !=
+                NULL)
+        {
+            DetectBytejumpData *data = NULL;
+            data = (DetectBytejumpData *)pm->ctx;
+            if (data == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+                goto error;
+            }
+            data->flags |= DETECT_BYTEJUMP_RELATIVE;
+        } else {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+                goto error;
         }
     }
 
@@ -395,7 +404,7 @@ end:
 }
 
 /**
- * \test DetectIsdataatTestPacket01 is a test to check matches of
+ * \test DetectIsdataatTestPacket02 is a test to check matches of
  * isdataat, and isdataat relative works if the previous keyword is pcre
  * (bug 144)
  */
@@ -424,6 +433,37 @@ int DetectIsdataatTestPacket02 (void) {
 end:
     return result;
 }
+
+/**
+ * \test DetectIsdataatTestPacket03 is a test to check matches of
+ * isdataat, and isdataat relative works if the previous keyword is byte_jump
+ * (bug 146)
+ */
+int DetectIsdataatTestPacket03 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
+                    "User-Agent: Wget/1.11.4"
+                    "Accept: */*"
+                    "Host: www.google.com"
+                    "Connection: Keep-Alive"
+                    "Date: Mon, 04 Jan 2010 17:29:39 GMT";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"byte_jump match = 0 "
+    "with distance content HTTP/1. relative against HTTP/1.0\"; byte_jump:1,"
+    "46,string,dec; isdataat:87,relative; sid:109; rev:1;)";
+
+    result = UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+end:
+    return result;
+}
 #endif
 
 /**
@@ -436,5 +476,6 @@ void DetectIsdataatRegisterTests(void) {
     UtRegisterTest("DetectIsdataatTestParse03", DetectIsdataatTestParse03, 1);
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01, 1);
     UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02, 1);
+    UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03, 1);
     #endif
 }
