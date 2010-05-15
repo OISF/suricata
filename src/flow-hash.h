@@ -38,5 +38,9 @@ typedef struct FlowBucket_ {
 
 Flow *FlowGetFlowFromHash(Packet *);
 
+void FlowHashDebugInit(void);
+void FlowHashDebugDeinit(void);
+void FlowHashDebugPrint(void);
+
 #endif /* __FLOW_HASH_H__ */
 

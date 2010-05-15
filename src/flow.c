@@ -670,6 +670,8 @@ void *FlowManagerThread(void *td)
     th_v->cap_flags = 0;
     SCDropCaps(th_v);
 
+    FlowHashDebugInit();
+
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1)
     {
@@ -677,6 +679,8 @@ void *FlowManagerThread(void *td)
 
         if (sleeping >= 100 || flow_flags & FLOW_EMERGENCY)
         {
+            FlowHashDebugPrint();
+
             /*uint32_t timeout_new = flow_config.timeout_new;
             uint32_t timeout_est = flow_config.timeout_est;
             printf("The Timeout values are %" PRIu32" and %"
@@ -761,6 +765,8 @@ void *FlowManagerThread(void *td)
             }
         }
     }
+
+    FlowHashDebugDeinit();
 
     SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were "
               "timed out, %"PRIu32" flows in closed state", new_cnt,

@@ -25,13 +25,85 @@
 
 #include "suricata-common.h"
 #include "threads.h"
+
 #include "decode.h"
 #include "debug.h"
+
 #include "flow.h"
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "flow-private.h"
+
 #include "util-debug.h"
+
+//#define FLOW_DEBUG_STATS
+
+#ifdef FLOW_DEBUG_STATS
+#define FLOW_DEBUG_STATS_PROTO_ALL      0
+#define FLOW_DEBUG_STATS_PROTO_TCP      1
+#define FLOW_DEBUG_STATS_PROTO_UDP      2
+#define FLOW_DEBUG_STATS_PROTO_ICMP     3
+#define FLOW_DEBUG_STATS_PROTO_OTHER    4
+
+static uint64_t flow_hash_count[5] = { 0, 0, 0, 0, 0 };        /* how often are we looking for a hash */
+static uint64_t flow_hash_loop_count[5] = { 0, 0, 0, 0, 0 };   /* how often do we loop through a hash bucket */
+static SCSpinlock flow_hash_count_lock;
+
+#define FlowHashCountUpdate do { \
+    SCSpinLock(&flow_hash_count_lock); \
+    flow_hash_count[FLOW_DEBUG_STATS_PROTO_ALL]++; \
+    flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ALL] += _flow_hash_counter; \
+    if (f != NULL) { \
+        if (f->proto == IPPROTO_TCP) { \
+            flow_hash_count[FLOW_DEBUG_STATS_PROTO_TCP]++; \
+            flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_TCP] += _flow_hash_counter; \
+        } else if (f->proto == IPPROTO_UDP) {\
+            flow_hash_count[FLOW_DEBUG_STATS_PROTO_UDP]++; \
+            flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_UDP] += _flow_hash_counter; \
+        } else if (f->proto == IPPROTO_ICMP) {\
+            flow_hash_count[FLOW_DEBUG_STATS_PROTO_ICMP]++; \
+            flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ICMP] += _flow_hash_counter; \
+        } \
+    } \
+    SCSpinUnlock(&flow_hash_count_lock); \
+} while(0);
+
+#define FlowHashCountInit uint64_t _flow_hash_counter = 0
+#define FlowHashCountIncr _flow_hash_counter++;
+
+#else
+
+#define FlowHashCountUpdate
+#define FlowHashCountInit
+#define FlowHashCountIncr
+
+#endif /* FLOW_DEBUG_STATS */
+
+void FlowHashDebugInit(void) {
+#ifdef FLOW_DEBUG_STATS
+    SCSpinInit(&flow_hash_count_lock, 0);
+#endif
+}
+
+void FlowHashDebugDeinit(void) {
+#ifdef FLOW_DEBUG_STATS
+    SCSpinDestroy(&flow_hash_count_lock);
+    SCLogInfo("TCP %"PRIu64" %"PRIu64, flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_TCP], flow_hash_count[FLOW_DEBUG_STATS_PROTO_TCP]);
+#endif
+}
+
+void FlowHashDebugPrint(void) {
+#ifdef FLOW_DEBUG_STATS
+    float avg_all, avg_tcp, avg_udp, avg_icmp;
+    SCSpinLock(&flow_hash_count_lock);
+    avg_all = (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ALL]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_ALL]));
+    avg_tcp = (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_TCP]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_TCP]));
+    avg_udp = (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_UDP]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_UDP]));
+    avg_icmp= (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ICMP]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_ICMP]));
+    SCSpinUnlock(&flow_hash_count_lock);
+    SCLogInfo("Avg flowbucket walk: all %02.3f, tcp %02.3f, udp %02.3f, icmp %02.3f", avg_all, avg_tcp, avg_udp, avg_icmp);
+#endif
+}
 
 /* calculate the hash key for this packet
  *
@@ -92,6 +164,7 @@ uint32_t FlowGetKey(Packet *p) {
 Flow *FlowGetFlowFromHash (Packet *p)
 {
     Flow *f = NULL;
+    FlowHashCountInit;
 
     /* get the key to our bucket */
     uint32_t key = FlowGetKey(p);
@@ -100,6 +173,8 @@ Flow *FlowGetFlowFromHash (Packet *p)
     SCSpinLock(&fb->s);
 
     SCLogDebug("fb %p fb->f %p", fb, fb->f);
+
+    FlowHashCountIncr;
 
     /* see if the bucket already has a flow */
     if (fb->f == NULL) {
@@ -111,6 +186,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
             f = fb->f = FlowAlloc();
             if (f == NULL) {
                 SCSpinUnlock(&fb->s);
+                FlowHashCountUpdate;
                 return NULL;
             }
         }
@@ -126,6 +202,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
         f->fb = fb;
 
         SCSpinUnlock(&fb->s);
+        FlowHashCountUpdate;
         return f;
     }
 
@@ -140,6 +217,8 @@ Flow *FlowGetFlowFromHash (Packet *p)
         SCMutexUnlock(&f->m);
 
         while (f) {
+            FlowHashCountIncr;
+
             pf = f; /* pf is not locked at this point */
             f = f->hnext;
 
@@ -152,6 +231,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
                     f = fb->f = FlowAlloc();
                     if (f == NULL) {
                         SCSpinUnlock(&fb->s);
+                        FlowHashCountUpdate;
                         return NULL;
                     }
                 }
@@ -168,6 +248,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 f->fb = fb;
 
                 SCSpinUnlock(&fb->s);
+                FlowHashCountUpdate;
                 return f;
             }
 
@@ -186,6 +267,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
                 /* found our flow */
                 SCSpinUnlock(&fb->s);
+                FlowHashCountUpdate;
                 return f;
             }
 
@@ -197,6 +279,8 @@ Flow *FlowGetFlowFromHash (Packet *p)
     /* The 'root' flow was our flow, return it.
      * It's already locked. */
     SCSpinUnlock(&fb->s);
+
+    FlowHashCountUpdate;
     return f;
 }
 

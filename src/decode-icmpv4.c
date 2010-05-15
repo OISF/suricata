@@ -167,6 +167,10 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
             }
+
+            /* ICMP ICMP_DEST_UNREACH influence TCP/UDP flows */
+            FlowHandlePacket(tv, p);
+
             break;
 
         case ICMP_SOURCE_QUENCH:
@@ -269,9 +273,6 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_TYPE);
 
     }
-
-    /* Flow is an integral part of us */
-    FlowHandlePacket(tv, p);
 
     return;
 }
