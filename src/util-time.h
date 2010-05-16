@@ -34,6 +34,9 @@ typedef struct SCTimeval32_ {
     uint32_t tv_usec;
 } SCTimeval32;
 
+void TimeInit(void);
+void TimeDeinit(void);
+
 void TimeSet(struct timeval *);
 void TimeGet(struct timeval *);
 

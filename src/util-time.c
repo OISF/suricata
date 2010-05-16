@@ -29,8 +29,17 @@
 #include "util-debug.h"
 
 static struct timeval current_time = { 0, 0 };
-static SCMutex current_time_mutex = PTHREAD_MUTEX_INITIALIZER;
+//static SCMutex current_time_mutex = PTHREAD_MUTEX_INITIALIZER;
+static SCSpinlock current_time_spinlock;
 static char live = TRUE;
+
+void TimeInit(void) {
+    SCSpinInit(&current_time_spinlock, 0);
+}
+
+void TimeDeinit(void) {
+    SCSpinDestroy(&current_time_spinlock);
+}
 
 void TimeModeSetLive(void)
 {
@@ -52,14 +61,14 @@ void TimeSet(struct timeval *tv)
     if (tv == NULL)
         return;
 
-    SCMutexLock(&current_time_mutex);
+    SCSpinLock(&current_time_spinlock);
     current_time.tv_sec = tv->tv_sec;
     current_time.tv_usec = tv->tv_usec;
 
     SCLogDebug("time set to %" PRIuMAX " sec, %" PRIuMAX " usec",
                (uintmax_t)current_time.tv_sec, (uintmax_t)current_time.tv_usec);
 
-    SCMutexUnlock(&current_time_mutex);
+    SCSpinUnlock(&current_time_spinlock);
 }
 
 /** \brief set the time to "gettimeofday" meant for testing */
@@ -80,10 +89,10 @@ void TimeGet(struct timeval *tv)
     if (live == TRUE) {
         gettimeofday(tv, NULL);
     } else {
-        SCMutexLock(&current_time_mutex);
+        SCSpinLock(&current_time_spinlock);
         tv->tv_sec = current_time.tv_sec;
         tv->tv_usec = current_time.tv_usec;
-        SCMutexUnlock(&current_time_mutex);
+        SCSpinUnlock(&current_time_spinlock);
     }
 
     SCLogDebug("time we got is %" PRIuMAX " sec, %" PRIuMAX " usec",

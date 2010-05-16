@@ -673,6 +673,7 @@ int main(int argc, char **argv)
 
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
     GlobalInits();
+    TimeInit();
 
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
@@ -1132,6 +1133,7 @@ int main(int argc, char **argv)
 
     RunModeShutDown();
     OutputDeregisterAll();
+    TimeDeinit();
 
 #ifdef __SC_CUDA_SUPPORT__
     /* all cuda contexts attached to any threads should be free by now.
