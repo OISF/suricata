@@ -71,8 +71,9 @@ void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
         case IPPROTO_TCP:
             if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN ) {
                 p->icmpv4vars.emb_tcph = (TCPHdr*)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = p->icmpv4vars.emb_tcph->th_sport;
-                p->icmpv4vars.emb_dport = p->icmpv4vars.emb_tcph->th_dport;
+                p->icmpv4vars.emb_sport = ntohs(p->icmpv4vars.emb_tcph->th_sport);
+                p->icmpv4vars.emb_dport = ntohs(p->icmpv4vars.emb_tcph->th_dport);
+                p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP header sport: "
                            "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
@@ -88,8 +89,9 @@ void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
         case IPPROTO_UDP:
             if (len >= IPV4_HEADER_LEN + UDP_HEADER_LEN ) {
                 p->icmpv4vars.emb_udph = (UDPHdr*)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = p->icmpv4vars.emb_udph->uh_sport;
-                p->icmpv4vars.emb_dport = p->icmpv4vars.emb_udph->uh_dport;
+                p->icmpv4vars.emb_sport = ntohs(p->icmpv4vars.emb_udph->uh_sport);
+                p->icmpv4vars.emb_dport = ntohs(p->icmpv4vars.emb_udph->uh_dport);
+                p->icmpv4vars.emb_ip4_proto = IPPROTO_UDP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->UDP header sport: "
                            "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
@@ -106,6 +108,7 @@ void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
             p->icmpv4vars.emb_icmpv4h = (ICMPV4Hdr*)(partial_packet + IPV4_HEADER_LEN);
             p->icmpv4vars.emb_sport = 0;
             p->icmpv4vars.emb_dport = 0;
+            p->icmpv4vars.emb_ip4_proto = IPPROTO_ICMP;
 
             SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->ICMP header");
 
@@ -160,16 +163,20 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             break;
 
         case ICMP_DEST_UNREACH:
-            if (p->icmpv4h->code>NR_ICMP_UNREACH) {
+            if (p->icmpv4h->code > NR_ICMP_UNREACH) {
                 DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
-                // parse IP header plus 64 bytes
-                if (len >= ICMPV4_HEADER_PKT_OFFSET)
-                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                /* parse IP header plus 64 bytes */
+                if (len >= ICMPV4_HEADER_PKT_OFFSET) {
+                    DecodePartialIPV4( p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+
+                    /* ICMP ICMP_DEST_UNREACH influence TCP/UDP flows */
+                    if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
+                        FlowHandlePacket(tv, p);
+                    }
+                }
             }
 
-            /* ICMP ICMP_DEST_UNREACH influence TCP/UDP flows */
-            FlowHandlePacket(tv, p);
 
             break;
 

@@ -92,6 +92,11 @@ typedef struct IPV4Hdr_
 #define IPV4_GET_RAW_IPSRC(ip4h)          ((ip4h)->ip_src)
 #define IPV4_GET_RAW_IPDST(ip4h)          ((ip4h)->ip_dst)
 
+/** return the raw (directly from the header) src ip as uint32_t */
+#define IPV4_GET_RAW_IPSRC_U32(ip4h)      (uint32_t)((ip4h)->ip_src.s_addr)
+/** return the raw (directly from the header) dst ip as uint32_t */
+#define IPV4_GET_RAW_IPDST_U32(ip4h)      (uint32_t)((ip4h)->ip_dst.s_addr)
+
 /* we need to change them as well as get them */
 #define IPV4_SET_RAW_VER(ip4h, value)     ((ip4h)->ip_verhl = (((ip4h)->ip_verhl & 0x0f) | (value << 4)))
 #define IPV4_SET_RAW_HLEN(ip4h, value)    ((ip4h)->ip_verhl = (((ip4h)->ip_verhl & 0xf0) | (value & 0x0f)))

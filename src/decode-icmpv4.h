@@ -196,6 +196,7 @@ typedef struct ICMPV4Vars_
     struct in_addr emb_ip4_src;
     struct in_addr emb_ip4_dst;
     uint8_t emb_ip4_hlen;
+    uint8_t emb_ip4_proto;
 
     /** TCP/UDP ports */
     uint16_t emb_sport;
@@ -207,7 +208,7 @@ typedef struct ICMPV4Vars_
 /** macro for icmpv4 "type" access */
 #define ICMPV4_GET_TYPE(p)      (p)->icmpv4h->type
 /** macro for icmpv4 "code" access */
- #define ICMPV4_GET_CODE(p)      (p)->icmpv4h->code
+#define ICMPV4_GET_CODE(p)      (p)->icmpv4h->code
 /** macro for icmpv4 "csum" access */
 #define ICMPV4_GET_CSUM(p)      (p)->icmpv4h->csum
 
@@ -228,7 +229,7 @@ typedef struct ICMPV4Vars_
 #define ICMPV4_GET_MTU(p)          (p)->icmpv4h->icmpv4b.icmpv4e.mtu
 
 /** macro for icmpv4 embedded "protocol" access */
-#define ICMPV4_GET_EMB_PROTO(p)    (p)->icmpv4vars.emb_ip6_proto_next
+#define ICMPV4_GET_EMB_PROTO(p)    (p)->icmpv4vars.emb_ip4_proto
 /** macro for icmpv4 embedded "ipv4h" header access */
 #define ICMPV4_GET_EMB_IPV4(p)     (p)->icmpv4vars.emb_ipv4h
 /** macro for icmpv4 embedded "tcph" header access */
@@ -237,6 +238,32 @@ typedef struct ICMPV4Vars_
 #define ICMPV4_GET_EMB_UDP(p)      (p)->icmpv4vars.emb_udph
 /** macro for icmpv4 embedded "icmpv4h" header access */
 #define ICMPV4_GET_EMB_ICMPV4H(p)  (p)->icmpv4vars.emb_icmpv4h
+
+/** macro for checking if a ICMP DEST UNREACH packet is valid for use
+ *  in other parts of the engine, such as the flow engine. 
+ *
+ *  \warning use only _after_ the decoder has processed the packet
+ */
+#define ICMPV4_DEST_UNREACH_IS_VALID(p) (((p)->icmpv4h != NULL) && \
+    (ICMPV4_GET_TYPE((p)) == ICMP_DEST_UNREACH) && \
+    (ICMPV4_GET_EMB_IPV4((p)) != NULL) && \
+    ((ICMPV4_GET_EMB_TCP((p)) != NULL) || \
+     (ICMPV4_GET_EMB_UDP((p)) != NULL)))
+
+/**
+ *  marco for checking if a ICMP packet is an error message or an
+ *  query message.
+ *
+ *  \todo This check is used in the flow engine and needs to be as
+ *        cheap as possible. Consider setting a bitflag at the decoder
+ *        stage so we can to a bit check instead of the more expensive
+ *        check below.
+ */
+#define ICMPV4_IS_ERROR_MSG(p) (ICMPV4_GET_TYPE((p)) == ICMP_DEST_UNREACH || \
+        ICMPV4_GET_TYPE((p)) == ICMP_SOURCE_QUENCH || \
+        ICMPV4_GET_TYPE((p)) == ICMP_REDIRECT || \
+        ICMPV4_GET_TYPE((p)) == ICMP_TIME_EXCEEDED || \
+        ICMPV4_GET_TYPE((p)) == ICMP_PARAMETERPROB)
 
 typedef struct ICMPV4Cache_ {
     /* checksum computed over the icmpv4 packet */

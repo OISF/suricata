@@ -382,6 +382,24 @@ static inline int FlowGetPacketDirection(Flow *f, Packet *p) {
     return TOSERVER;
 }
 
+/**
+ *  \brief Check to update "seen" flags
+ *
+ *  \param p packet
+ *
+ *  \retval 1 true
+ *  \retval 0 false
+ */
+static inline int FlowUpdateSeenFlag(Packet *p) {
+    if (PKT_IS_ICMPV4(p)) {
+        if (ICMPV4_IS_ERROR_MSG(p)) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 /** \brief Entry point for packet flow handling
  *
  * This is called for every packet.
@@ -405,11 +423,15 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
 
     /* update flags and counters */
     if (FlowGetPacketDirection(f,p) == TOSERVER) {
-        f->flags |= FLOW_TO_DST_SEEN;
+        if (FlowUpdateSeenFlag(p)) {
+            f->flags |= FLOW_TO_DST_SEEN;
+        }
         f->todstpktcnt++;
         p->flowflags |= FLOW_PKT_TOSERVER;
     } else {
-        f->flags |= FLOW_TO_SRC_SEEN;
+        if (FlowUpdateSeenFlag(p)) {
+            f->flags |= FLOW_TO_SRC_SEEN;
+        }
         f->tosrcpktcnt++;
         p->flowflags |= FLOW_PKT_TOCLIENT;
     }
@@ -659,6 +681,7 @@ void *FlowManagerThread(void *td)
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0, nowcnt;
     uint32_t sleeping = 0;
     uint8_t emerg = FALSE;
+    uint32_t last_sec = 0;
 
     memset(&ts, 0, sizeof(ts));
 
@@ -679,21 +702,20 @@ void *FlowManagerThread(void *td)
 
         if (sleeping >= 100 || flow_flags & FLOW_EMERGENCY)
         {
-            FlowHashDebugPrint();
-
-            /*uint32_t timeout_new = flow_config.timeout_new;
-            uint32_t timeout_est = flow_config.timeout_est;
-            printf("The Timeout values are %" PRIu32" and %"
-            PRIu32"\n", timeout_est, timeout_new);*/
             if (flow_flags & FLOW_EMERGENCY) {
                 emerg = TRUE;
                 SCLogDebug("Flow emergency mode entered...");
             }
 
             /* Get the time */
+            last_sec = (uint32_t)ts.tv_sec;
             memset(&ts, 0, sizeof(ts));
             TimeGet(&ts);
             SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
+
+            if (((uint32_t)ts.tv_sec - last_sec) > 60) {
+                FlowHashDebugPrint((uint32_t)ts.tv_sec);
+            }
 
             /* see if we still have enough spare flows */
             FlowUpdateSpareFlows();
