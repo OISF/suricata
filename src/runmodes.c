@@ -2092,7 +2092,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
+    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream","pickup-queue","simple","stream-queue1","simple","varslot");
     if (tv_decode1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
         exit(EXIT_FAILURE);
@@ -2102,7 +2102,15 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         printf("ERROR: TmModuleGetByName DecodePcap failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_decode1,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+
     TmThreadSetCPUAffinity(tv_decode1, 0);
     if (ncpus > 1)
         TmThreadSetThreadPriority(tv_decode1, PRIO_MEDIUM);
@@ -2111,7 +2119,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
-
+/*
     ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
     if (tv_stream1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Stream1\n");
@@ -2132,7 +2140,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
-
+*/
     for (cpu = 0; cpu < ncpus; cpu++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, cpu+1);
         if (tname == NULL)
