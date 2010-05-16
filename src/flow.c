@@ -708,13 +708,13 @@ void *FlowManagerThread(void *td)
             }
 
             /* Get the time */
-            last_sec = (uint32_t)ts.tv_sec;
             memset(&ts, 0, sizeof(ts));
             TimeGet(&ts);
             SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
 
-            if (((uint32_t)ts.tv_sec - last_sec) > 60) {
+            if (((uint32_t)ts.tv_sec - last_sec) > 600) {
                 FlowHashDebugPrint((uint32_t)ts.tv_sec);
+                last_sec = (uint32_t)ts.tv_sec;
             }
 
             /* see if we still have enough spare flows */

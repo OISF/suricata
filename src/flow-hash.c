@@ -79,6 +79,9 @@ void FlowHashDebugInit(void) {
     SCSpinInit(&flow_hash_count_lock, 0);
 #endif
     flow_hash_count_fp = fopen("flow-debug.log", "w+");
+    if (flow_hash_count_fp != NULL) {
+        fprintf(flow_hash_count_fp, "ts,all,tcp,udp,icmp,other\n");
+    }
 }
 
 void FlowHashDebugPrint(uint32_t ts) {
@@ -98,7 +101,7 @@ void FlowHashDebugPrint(uint32_t ts) {
         avg_icmp= (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ICMP]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_ICMP]));
     if (flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_OTHER] != 0)
         avg_other= (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_OTHER]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_OTHER]));
-    fprintf(flow_hash_count_fp, "%"PRIu32": all %02.3f, tcp %02.3f, udp %02.3f, icmp %02.3f, other %02.3f\n", ts, avg_all, avg_tcp, avg_udp, avg_icmp, avg_other);
+    fprintf(flow_hash_count_fp, "%"PRIu32",%02.3f,%02.3f,%02.3f,%02.3f,%02.3f\n", ts, avg_all, avg_tcp, avg_udp, avg_icmp, avg_other);
     fflush(flow_hash_count_fp);
     memset(&flow_hash_count, 0, sizeof(flow_hash_count));
     memset(&flow_hash_loop_count, 0, sizeof(flow_hash_loop_count));
