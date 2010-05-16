@@ -147,6 +147,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
         SCMutexLock(&q->mutex_q);
         PacketEnqueue(q, p->root);
+        SCCondSignal(&q->cond_q);
         SCMutexUnlock(&q->mutex_q);
     }
 
@@ -154,25 +155,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
     SCMutexLock(&q->mutex_q);
     PacketEnqueue(q, p);
+    SCCondSignal(&q->cond_q);
     SCMutexUnlock(&q->mutex_q);
-
-    SCMutexLock(&mutex_pending);
-    //printf("TmqhOutputPacketpool: pending %" PRIu32 "\n", pending);
-    if (pending > 0) {
-        pending--;
-        if (proot) {
-            if (pending > 0) {
-                pending--;
-            } else {
-                printf("TmqhOutputPacketpool: warning, trying to subtract from 0 pending counter (tunnel root).\n");
-            }
-        }
-    } else {
-        printf("TmqhOutputPacketpool: warning, trying to subtract from 0 pending counter.\n");
-    }
-    if (pending <= max_pending_packets)
-        SCCondSignal(&cond_pending);
-    SCMutexUnlock(&mutex_pending);
 }
 
 /**

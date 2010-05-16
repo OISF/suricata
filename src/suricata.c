@@ -219,12 +219,13 @@ Packet *SetupPktWait (void)
 Packet *SetupPkt (void)
 {
     Packet *p = NULL;
-    int r = 0;
 
-    r = SCMutexLock(&packet_q.mutex_q);
-    p = PacketDequeue(&packet_q);
-    r = SCMutexUnlock(&packet_q.mutex_q);
-
+    SCMutexLock(&packet_q.mutex_q);
+    while ((p = PacketDequeue(&packet_q)) == NULL) {
+        SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+    }
+    SCMutexUnlock(&packet_q.mutex_q);
+/*
     if (p == NULL) {
         TmqDebugList();
 
@@ -240,7 +241,7 @@ Packet *SetupPkt (void)
 
         SCLogDebug("allocated a new packet...");
     }
-
+*/
     /* reset the packet csum fields */
     RESET_PACKET_CSUMS(p);
 
@@ -280,29 +281,6 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
 
     /* get us a packet */
     Packet *p = SetupPkt();
-    int r = 0;
-#if 0
-    do {
-        r = SCMutexLock(&packet_q.mutex_q);
-        p = PacketDequeue(&packet_q);
-        SCMutexUnlock(&packet_q.mutex_q);
-
-        if (p == NULL) {
-            //TmqDebugList();
-            usleep(1000); /* sleep 1ms */
-
-            /* XXX check for recv'd signals, so
-             * we can exit on signals received */
-        }
-    } while (p == NULL);
-#endif
-    r = SCMutexLock(&mutex_pending);
-    pending++;
-#ifdef DBG_PERF
-    if (pending > dbg_maxpending)
-        dbg_maxpending = pending;
-#endif /* DBG_PERF */
-    SCMutexUnlock(&mutex_pending);
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)
@@ -1043,10 +1021,10 @@ int main(int argc, char **argv)
                     if (sigflags & SURICATA_SIGTERM || sigflags & SURICATA_KILL)
                         break;
 
-                    SCMutexLock(&mutex_pending);
-                    if (pending == 0)
+                    SCMutexLock(&packet_q.mutex_q);
+                    if (packet_q.len == max_pending_packets)
                         done = 1;
-                    SCMutexUnlock(&mutex_pending);
+                    SCMutexUnlock(&packet_q.mutex_q);
 
                     if (done == 0) {
                         usleep(100);
