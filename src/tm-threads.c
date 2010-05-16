@@ -1036,7 +1036,7 @@ void TmThreadKillThreads(void) {
                 //printf("TmThreadKillThreads: (t->inq->reader_cnt + t->inq->writer_cnt) %" PRIu32 "\n", (t->inq->reader_cnt + t->inq->writer_cnt));
 
                 /* make sure our packet pending counter doesn't block */
-                SCCondSignal(&cond_pending);
+                //SCCondSignal(&cond_pending);
 
                 /* signal the queue for the number of users */
 

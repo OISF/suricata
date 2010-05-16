@@ -47,13 +47,8 @@ void PacketEnqueue (PacketQueue *q, Packet *p) {
 }
 
 Packet *PacketDequeue (PacketQueue *q) {
-    /* if the queue is empty there are no packets left.
-     * In that case we sleep and try again. */
+    /* if the queue is empty there are no packets left. */
     if (q->len == 0) {
-//        printf("PacketDequeue: queue is empty, waiting...\n");
-//        TmqDebugList();
-//        usleep(100000); /* sleep 100ms */
-//        return PacketDequeue(q);
         return NULL;
     }
 
@@ -64,17 +59,12 @@ Packet *PacketDequeue (PacketQueue *q) {
 
     /* pull the bottom packet from the queue */
     Packet *p = q->bot;
-
-#ifdef OS_DARWIN
-    /* Weird issue in OS_DARWIN
-     * Sometimes it looks that two thread arrive here at the same time
-     * so the bot ptr is NULL
+    /* Weird issue: sometimes it looks that two thread arrive
+     * here at the same time so the bot ptr is NULL
      */
     if (p == NULL) {
-        printf("No packet to dequeue!\n");
         return NULL;
     }
-#endif
 
     /* more packets in queue */
     if (q->bot->prev != NULL) {

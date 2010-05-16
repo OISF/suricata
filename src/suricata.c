@@ -216,6 +216,36 @@ Packet *SetupPktWait (void)
     return p;
 }
 
+Packet *SetupTunnelPkt (void)
+{
+    Packet *p = NULL;
+
+    SCMutexLock(&packet_q.mutex_q);
+    p = PacketDequeue(&packet_q);
+    SCMutexUnlock(&packet_q.mutex_q);
+
+    if (p == NULL) {
+        p = SCMalloc(sizeof(Packet));
+        if (p == NULL) {
+            printf("ERROR: SCMalloc failed: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        memset(p, 0, sizeof(Packet));
+
+        SCMutexInit(&p->mutex_rtv_cnt, NULL);
+
+        p->flags |= PKT_ALLOC;
+
+        SCLogDebug("allocated a new packet...");
+    }
+
+    /* reset the packet csum fields */
+    RESET_PACKET_CSUMS(p);
+
+    return p;
+}
+
 Packet *SetupPkt (void)
 {
     Packet *p = NULL;
@@ -265,8 +295,8 @@ void GlobalInits()
         exit(EXIT_FAILURE);
     }
 
-    SCMutexInit(&mutex_pending, NULL);
-    SCCondInit(&cond_pending, NULL);
+    //SCMutexInit(&mutex_pending, NULL);
+    //SCCondInit(&cond_pending, NULL);
 
     /* initialize packet queues Here! */
     memset(&packet_q,0,sizeof(packet_q));
@@ -280,7 +310,7 @@ Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uin
     //printf("TunnelPktSetup: pkt %p, len %" PRIu32 ", proto %" PRIu32 "\n", pkt, len, proto);
 
     /* get us a packet */
-    Packet *p = SetupPkt();
+    Packet *p = SetupTunnelPkt();
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)

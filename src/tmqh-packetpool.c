@@ -50,7 +50,7 @@ Packet *TmqhInputPacketpool(ThreadVars *t)
 {
     /* XXX */
     Packet *p = SetupPkt();
-
+#if 0
     SCMutexLock(&mutex_pending);
     pending++;
     //printf("PcapFileCallback: pending %" PRIu32 "\n", pending);
@@ -59,7 +59,7 @@ Packet *TmqhInputPacketpool(ThreadVars *t)
         dbg_maxpending = pending;
 #endif /* DBG_PERF */
     SCMutexUnlock(&mutex_pending);
-
+#endif
 /*
  * Disabled because it can enter a 'wait' state, while
  * keeping the nfq queue locked thus making it impossble
@@ -143,20 +143,29 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     FlowDecrUsecnt(t,p);
 
     if (proot && p->root != NULL) {
-        CLEAR_PACKET(p->root);
+        if (p->root->flags & PKT_ALLOC) {
+            SCMutexDestroy(&p->root->mutex_rtv_cnt);
+            CLEAR_PACKET(p->root);
+            SCFree(p->root);
+        } else {
+            SCMutexLock(&q->mutex_q);
+            PacketEnqueue(q, p->root);
+            SCCondSignal(&q->cond_q);
+            SCMutexUnlock(&q->mutex_q);
+        }
+    }
 
+    if (p->flags & PKT_ALLOC) {
+        SCMutexDestroy(&p->mutex_rtv_cnt);
+        CLEAR_PACKET(p);
+        SCFree(p);
+    } else {
+        CLEAR_PACKET(p);
         SCMutexLock(&q->mutex_q);
-        PacketEnqueue(q, p->root);
+        PacketEnqueue(q, p);
         SCCondSignal(&q->cond_q);
         SCMutexUnlock(&q->mutex_q);
     }
-
-    CLEAR_PACKET(p);
-
-    SCMutexLock(&q->mutex_q);
-    PacketEnqueue(q, p);
-    SCCondSignal(&q->cond_q);
-    SCMutexUnlock(&q->mutex_q);
 }
 
 /**

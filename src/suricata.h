@@ -37,12 +37,12 @@
  * XXX this should be turned into an api located
  * in the packetpool code
  */
-intmax_t pending;
+//intmax_t pending;
 #ifdef DBG_PERF
-uint32_t dbg_maxpending;
+//uint32_t dbg_maxpending;
 #endif /* DBG_PERF */
-SCMutex mutex_pending;
-SCCondT cond_pending;
+//SCMutex mutex_pending;
+//SCCondT cond_pending;
 
 
 /* Run mode */
