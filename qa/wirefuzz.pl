@@ -73,9 +73,12 @@ my $shuffle;
 my $useltsuri;
 my $ltsuribin;
 my $core_dump;
+my $excluderegex;
+my $timestamp;
+my $keeplogs;
 
 Getopt::Long::Configure("prefix_pattern=(-|--)");
-GetOptions( \%config, qw(n=s r=s c=s e=s v=s p=s l=s s=s y z h help) );
+GetOptions( \%config, qw(n=s r=s c=s e=s v=s p=s l=s s=s x=s k y z h help) );
 
 &parseopts();
 
@@ -93,6 +96,13 @@ sub parseopts {
         if(@tmpfiles eq 0){
             print "parseopts: Pcap filemask was invalid we couldn't find any matching files\n";
             exit;
+        } else {
+            #escapes for filenames
+            foreach my $file (@tmpfiles) {
+                $file =~ s/\(/\\(/g;
+                $file =~ s/\)/\\)/g;
+                $file =~ s/\&/\\&/g;
+            }
         }
     }
     else {
@@ -210,6 +220,34 @@ sub parseopts {
         print "parseopts: going to shuffle the array\n";
         $shuffle = "yes";
     }
+
+    #keep logs instead of removing them after each run
+    if ( $config{k} ) {
+        print "parseopts: going to keep logs instead of removing them\n";
+        $keeplogs = "yes";
+    }
+    else {
+        $keeplogs = "no";
+    }
+
+    #maybe we want to exclude a file based on some regex so we can restart the fuzzer after an error
+    #and not have to worry about hitting the same file.
+    if ( $config{x} ) {
+        print "excluding files that match regex of " . $config{x} . "\n";
+        $excluderegex = $config{x};
+
+        my $tmpfilepos = 0;
+        while ($tmpfilepos <= $#tmpfiles) {
+            if ($tmpfiles[$tmpfilepos] =~ m/$excluderegex/) {
+                print "removing " . $tmpfiles[$tmpfilepos] . " because it matches our exclude regex\n";
+                splice(@tmpfiles, $tmpfilepos, 1);
+            }
+            else {
+                $tmpfilepos++
+            }
+        }
+    }
+
     print "******************Initialization Complete**********************\n";
     return;
 
@@ -225,8 +263,9 @@ sub printhelp {
         -p=<path to the suricata bin>
         -l=<(optional) log dir for output if not specified will use current directory.>
         -v=<(optional) (memcheck|drd|helgrind|callgrind) will run the command through one of the specified valgrind tools.>
+        -x=<(optional) regex for excluding certian files incase something blows up but we want to continue fuzzing .>
         -y <shuffle the array, this is useful if running multiple instances of this script.>
-
+        -k <will keep alert-debug.log fast.log http.log and stats.log instead of removing them at the end of each run. Note unified logs are still removed>
         Example usage:
         First thing to do is download and build suricata from git with -O0 so vars don't get optimized out. See the example below:
         git clone git://phalanx.openinfosecfoundation.org/oisf.git suricatafuzz1 && cd suricatafuzz1 && ./autogen.sh && CFLAGS=\"-g -O0\" ./configure && make
@@ -251,13 +290,6 @@ sub printhelp {
         exit;
 }
 
-#escapes for filenames
-foreach my $file (@tmpfiles) {
-    $file =~ s/\(/\\(/g;
-    $file =~ s/\)/\\)/g;
-    $file =~ s/\&/\\&/g;
-}
-
 my $logfile = $logdir . "wirefuzzlog.txt";
 open( LOGFILE, ">>$logfile" )
 || die( print "error: Could not open logfile! $logfile\n" );
@@ -279,11 +311,11 @@ while ( $successcnt < $loopnum ) {
         my ( $fuzzedfile, $editcapcmd, $editcapout, $editcaperr, $editcapexit,
                 $editcap_sys_signal, $editcap_sys_coredump );
         my ( $fuzzedfiledir, $fuzzedfilename, $fullcmd, $out, $err, $exit,
-                $suricata_sys_signal, $suricata_sys_coredump );
+                $suricata_sys_signal, $suricata_sys_coredump, $report);
         print "Going to work with file: $file\n";
         my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
             localtime(time);
-        my $timestamp = sprintf "%4d-%02d-%02d-%02d-%02d-%02d", $year + 1900,
+        $timestamp = sprintf "%4d-%02d-%02d-%02d-%02d-%02d", $year + 1900,
            $mon + 1, $mday, $hour, $min, $sec;
 
         if ( defined $editeratio ) {
@@ -409,20 +441,18 @@ while ( $successcnt < $loopnum ) {
             if ( $knownerr eq 1 ) {
                 $successcnt++;
                 print "suricata: we have run with success " . $successcnt . " times\n";
+                if( $keeplogs eq "yes" ) {
+                    &keep_logs($fuzzedfilename);
+                    $report = $logdir . $fuzzedfilename . "-OUT.txt";
+                    &generate_report($report, $fullcmd, $out, $err, $exit, "none");
+                }
                 &clean_logs($fuzzedfilename);
             }
             else {
-                my $report = $logdir . $fuzzedfilename . "ERR.txt";
-                open( REPORT, ">$report" )
-                    || ( print "Could not open report file! $report\n" );
-                print REPORT "COMMAND:$fullcmd\n";
-                print REPORT "STDERR:$err\n";
-                print REPORT "EXITVAL:$exit\n";
-                print REPORT "STDOUT:$out\n";
+                my $report = $logdir . $fuzzedfilename . "-ERR.txt";
 
                 &process_core_dump();
                 if ($core_dump) {
-                    print REPORT $core_dump;
                     print "core dump \n $core_dump";
                     system( "mv "
                             . $ENV{'PWD'}
@@ -430,19 +460,41 @@ while ( $successcnt < $loopnum ) {
                             . $logdir
                             . $fuzzedfilename
                             . ".core" );
+                    &generate_report($report, $fullcmd, $out, $err, $exit, $core_dump);
+                }else{
+                    &generate_report($report, $fullcmd, $out, $err, $exit, "none");
                 }
-                close(REPORT);
                 exit;
             }
         }
         elsif ( $suricata_sys_signal eq 2 ) {
             print "suricata: system() got a ctl+c we are bailing as well\n";
+            if( $keeplogs eq "yes" ) {
+                &keep_logs($fuzzedfilename);
+            }
+            &clean_logs($fuzzedfilename);
             exit;
         }
         else {
+            if ( $out =~ /Max memuse of stream engine \d+ \(in use (\d+)\)/ ) {
+                if ($1 != 0) {
+                    $report = $logdir . $fuzzedfilename . "-OUT.txt";
+                    &generate_report($report, $fullcmd, $out, $err, $exit, "none");
+                    print "Stream leak detected " . $1 . " was still in use at exit see " . $report . " for more details\n";
+                    exit;
+                }
+            } else {
+                print "Stream mem counter could not be found in output\n";
+            }
+
             $successcnt++;
             print "suricata: we have run with success " . $successcnt . " times\n";
             print "******************Suricata Complete**********************\n";
+            if( $keeplogs eq "yes" ) {
+                &keep_logs($fuzzedfilename);
+                $report = $logdir . $fuzzedfilename . "-OUT.txt";
+                &generate_report($report, $fullcmd, $out, $err, $exit, "none");
+            }
             &clean_logs($fuzzedfilename);
             print "******************Next Packet or Exit *******************\n";
         }
@@ -505,9 +557,8 @@ sub clean_logs {
         #system("$rmcmd");
     }
 
-    #remove unified logs for next run
     if ( unlink(<$logdir . unified*>) > 0 ) {
-        print "clean_logs: deleted unifed logs for next run \n";
+        print "clean_logs: removed unified logs for next run \n";
     }
     else {
         print "clean_logs: failed to delete unified logs\n:";
@@ -515,4 +566,61 @@ sub clean_logs {
     print "******************Log Cleanup Complete**********************\n";
     return;
 
+}
+
+sub keep_logs {
+    my $saveme = shift;
+    unless(defined($editeratio) || $loopnum eq '1'){
+        my $saveme = $saveme . "-" . $timestamp;
+    }
+    my $savecmd;
+
+    if (-e $logdir . "alert-debug.log"){
+        $savecmd = "mv -f " . $logdir
+        . "alert-debug.log "
+        . $logdir
+        . $saveme
+        . "-alert-debug.log";
+        system($savecmd);
+    }
+    if (-e $logdir . "fast.log"){
+        $savecmd = "mv -f " . $logdir
+        . "fast.log "
+        . $logdir
+        . $saveme
+        . "-fast.log";
+        system($savecmd);
+    }
+    if (-e $logdir . "http.log"){
+        $savecmd = "mv -f " . $logdir
+        . "http.log "
+        . $logdir
+        . $saveme
+        . "-http.log";
+        system($savecmd);
+    }
+    if (-e $logdir . "stats.log"){
+        $savecmd = "mv -f " . $logdir
+        . "stats.log "
+        . $logdir
+        . $saveme
+        . "-stats.log";
+        system($savecmd);
+    }
+    print "******************Log Move Complete**********************\n";
+    return;
+}
+
+sub generate_report {
+    my ($report, $fullcmd, $stdout, $stderr, $exit, $coredump) = ($_[0], $_[1], $_[2], $_[3], $_[4], $_[5]);
+
+    open( REPORT, ">$report" ) || ( print "Could not open report file! $report\n" );
+    print REPORT "COMMAND:$fullcmd\n";
+    print REPORT "EXITVAL:$exit\n";
+    print REPORT "STDERR:$stderr\n";
+    print REPORT "STDOUT:$stdout\n";
+    if($coredump ne "none"){
+        print REPORT "COREDUMP:$coredump\n";
+    }
+    close(REPORT);
 }
