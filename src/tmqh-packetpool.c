@@ -20,7 +20,9 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Packetpool queue handlers
+ * Packetpool queue handlers. Packet pool is a simple locking FIFO queue.
+ *
+ * \todo see if we can replace this by a lockless queue
  */
 
 #include "suricata.h"
@@ -38,8 +40,6 @@
 
 #include "tmqh-packetpool.h"
 
-extern int max_pending_packets;
-
 void TmqhPacketpoolRegister (void) {
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
@@ -48,68 +48,59 @@ void TmqhPacketpoolRegister (void) {
 
 Packet *TmqhInputPacketpool(ThreadVars *t)
 {
-    /* XXX */
-    Packet *p = SetupPkt();
-#if 0
-    SCMutexLock(&mutex_pending);
-    pending++;
-    //printf("PcapFileCallback: pending %" PRIu32 "\n", pending);
-#ifdef DBG_PERF
-    if (pending > dbg_maxpending)
-        dbg_maxpending = pending;
-#endif /* DBG_PERF */
-    SCMutexUnlock(&mutex_pending);
-#endif
-/*
- * Disabled because it can enter a 'wait' state, while
- * keeping the nfq queue locked thus making it impossble
- * to free packets, the exact condition we are waiting
- * for. VJ 09-01-16
- *
-    SCMutexLock(&mutex_pending);
-    if (pending > MAX_PENDING) {
-        SCondWait(&cond_pending, &mutex_pending);
+    Packet *p = NULL;
+
+    SCMutexLock(&packet_q.mutex_q);
+    while (p == NULL) {
+        p = PacketDequeue(&packet_q);
+        if (p == NULL) {
+            SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+        }
     }
-    SCMutexUnlock(&mutex_pending);
-*/
+    SCMutexUnlock(&packet_q.mutex_q);
+
+    /* packet is clean */
+
     return p;
 }
 
 void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 {
+    SCEnter();
+
+    SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
+
     PacketQueue *q = &packet_q;
     char proot = 0;
 
-    if (p == NULL)
-        return;
-
     if (IS_TUNNEL_PKT(p)) {
-        //printf("TmqhOutputPacketpool: tunnel packet: %p %s\n", p,p->root ? "upper layer":"root");
+        SCLogDebug("Packet %p is a tunnel packet: %s",
+            p,p->root ? "upper layer" : "tunnel root");
 
         /* get a lock */
         SCMutex *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
         SCMutexLock(m);
 
         if (IS_TUNNEL_ROOT_PKT(p)) {
-            //printf("TmqhOutputPacketpool: IS_TUNNEL_ROOT_PKT\n");
+            SCLogDebug("IS_TUNNEL_ROOT_PKT == TRUE");
             if (TUNNEL_PKT_TPR(p) == 0) {
-                //printf("TmqhOutputPacketpool: TUNNEL_PKT_TPR(p) == 0\n");
+                SCLogDebug("TUNNEL_PKT_TPR(p) == 0, no more tunnel packet depending on this root");
                 /* if this packet is the root and there are no
                  * more tunnel packets, enqueue it */
 
                 /* fall through */
             } else {
-                //printf("TmqhOutputPacketpool: TUNNEL_PKT_TPR(p) > 0\n");
+                SCLogDebug("tunnel root Packet %p: TUNNEL_PKT_TPR(p) > 0, packets are still depending on this root, setting p->tunnel_verdicted == 1", p);
                 /* if this is the root and there are more tunnel
                  * packets, don't add this. It's still referenced
                  * by the tunnel packets, and we will enqueue it
                  * when we handle them */
                 p->tunnel_verdicted = 1;
                 SCMutexUnlock(m);
-                return;
+                SCReturn;
             }
         } else {
-            //printf("TmqhOutputPacketpool: NOT IS_TUNNEL_ROOT_PKT\n");
+            SCLogDebug("NOT IS_TUNNEL_ROOT_PKT, so tunnel pkt");
 
             /* the p->root != NULL here seems unnecessary: IS_TUNNEL_PKT checks
              * that p->tunnel_pkt == 1, IS_TUNNEL_ROOT_PKT checks that +
@@ -119,35 +110,41 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             if (p->root != NULL && p->root->tunnel_verdicted == 1 &&
                     TUNNEL_PKT_TPR(p) == 1)
             {
-                //printf("TmqhOutputPacketpool: p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1\n");
+                SCLogDebug("p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1");
                 /* the root is ready and we are the last tunnel packet,
                  * lets enqueue them both. */
                 TUNNEL_DECR_PKT_TPR_NOLOCK(p);
 
                 /* handle the root */
-                //printf("TmqhOutputPacketpool: calling PacketEnqueue for root pkt, p->root %p (%p)\n", p->root, p);
+                SCLogDebug("calling PacketEnqueue for root pkt, p->root %p (tunnel packet %p)", p->root, p);
                 proot = 1;
 
                 /* fall through */
             } else {
-                //printf("TmqhOutputPacketpool: NOT p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1 (%" PRIu32 ")\n", TUNNEL_PKT_TPR(p));
+                /* root not ready yet, so get rid of the tunnel pkt only */
+
+                SCLogDebug("NOT p->root->tunnel_verdicted == 1 (%d) && TUNNEL_PKT_TPR(p) == 1 (%" PRIu32 ")", p->root->tunnel_verdicted, TUNNEL_PKT_TPR(p));
                 TUNNEL_DECR_PKT_TPR_NOLOCK(p);
 
                  /* fall through */
             }
         }
         SCMutexUnlock(m);
-        //printf("TmqhOutputPacketpool: tunnel stuff done, move on\n");
+        SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }
 
     FlowDecrUsecnt(t,p);
 
-    if (proot && p->root != NULL) {
+    /* we're done with the tunnel root now as well */
+    if (proot == 1) {
+        SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
         if (p->root->flags & PKT_ALLOC) {
-            SCMutexDestroy(&p->root->mutex_rtv_cnt);
-            CLEAR_PACKET(p->root);
+            PACKET_CLEANUP(p->root);
             SCFree(p->root);
+            p->root = NULL;
         } else {
+            PACKET_RECYCLE(p->root);
+
             SCMutexLock(&q->mutex_q);
             PacketEnqueue(q, p->root);
             SCCondSignal(&q->cond_q);
@@ -155,17 +152,20 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         }
     }
 
+    SCLogDebug("getting rid of tunnel pkt... alloc'd %s (root %p)", p->flags & PKT_ALLOC ? "true" : "false", p->root);
     if (p->flags & PKT_ALLOC) {
-        SCMutexDestroy(&p->mutex_rtv_cnt);
-        CLEAR_PACKET(p);
+        PACKET_CLEANUP(p);
         SCFree(p);
     } else {
-        CLEAR_PACKET(p);
+        PACKET_RECYCLE(p);
+
         SCMutexLock(&q->mutex_q);
         PacketEnqueue(q, p);
         SCCondSignal(&q->cond_q);
         SCMutexUnlock(&q->mutex_q);
     }
+
+    SCReturn;
 }
 
 /**

@@ -27,15 +27,122 @@
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"
+#include "suricata.h"
+#include "util-var.h"
+#include "pkt-var.h"
+
+#ifdef DEBUG
+void PacketQueueValidateDebug(PacketQueue *q) {
+    SCLogDebug("q->len %u, q->top %p, q->bot %p", q->len, q->top, q->bot);
+
+    if (q->len == 0) {
+        BUG_ON(q->top != NULL);
+        BUG_ON(q->bot != NULL);
+    } else if(q->len == 1) {
+        SCLogDebug("q->top->next %p, q->top->prev %p", q->top->next, q->top->prev);
+        SCLogDebug("q->bot->next %p, q->bot->prev %p", q->bot->next, q->bot->prev);
+
+        BUG_ON(q->top != q->bot);
+        BUG_ON(q->top->next != NULL);
+        BUG_ON(q->bot->next != NULL);
+        BUG_ON(q->top->prev != NULL);
+        BUG_ON(q->bot->prev != NULL);
+    } else if (q->len == 2) {
+        SCLogDebug("q->top->next %p, q->top->prev %p", q->top->next, q->top->prev);
+        SCLogDebug("q->bot->next %p, q->bot->prev %p", q->bot->next, q->bot->prev);
+
+        BUG_ON(q->top == NULL);
+        BUG_ON(q->bot == NULL);
+
+        BUG_ON(q->top == q->bot);
+
+        BUG_ON(q->top->prev != NULL);
+        BUG_ON(q->top->next != q->bot);
+
+        BUG_ON(q->bot->prev != q->top);
+        BUG_ON(q->bot->next != NULL);
+    } else {
+        BUG_ON(q->top == NULL);
+        BUG_ON(q->bot == NULL);
+
+        SCLogDebug("q->top->next %p, q->top->prev %p", q->top->next, q->top->prev);
+        SCLogDebug("q->bot->next %p, q->bot->prev %p", q->bot->next, q->bot->prev);
+
+        BUG_ON(q->top == q->bot);
+        BUG_ON(q->top->prev != NULL);
+        BUG_ON(q->bot->next != NULL);
+
+        BUG_ON(q->top->next == q->bot);
+        BUG_ON(q->bot->prev == q->top);
+
+        Packet *p, *pp;
+        for (p = q->top, pp = p->prev; p != NULL; pp = p, p = p->next) {
+            SCLogDebug("p %p, pp %p, p->next %p, p->prev %p", p, pp, p->next, p->prev);
+            BUG_ON(pp != p->prev);
+        }
+
+    }
+}
+
+#define BUGGER_ON(cond) { \
+    if ((cond)) { \
+        PacketQueueValidateDebug(q); \
+    } \
+}
+
+void PacketQueueValidate(PacketQueue *q) {
+    if (q->len == 0) {
+        BUGGER_ON(q->top != NULL);
+        BUGGER_ON(q->bot != NULL);
+    } else if(q->len == 1) {
+        BUGGER_ON(q->top != q->bot);
+        BUGGER_ON(q->top->next != NULL);
+        BUGGER_ON(q->bot->next != NULL);
+        BUGGER_ON(q->top->prev != NULL);
+        BUGGER_ON(q->bot->prev != NULL);
+    } else if (q->len == 2) {
+        BUGGER_ON(q->top == NULL);
+        BUGGER_ON(q->bot == NULL);
+
+        BUGGER_ON(q->top == q->bot);
+
+        BUGGER_ON(q->top->prev != NULL);
+        BUGGER_ON(q->top->next != q->bot);
+
+        BUGGER_ON(q->bot->prev != q->top);
+        BUGGER_ON(q->bot->next != NULL);
+    } else {
+        BUGGER_ON(q->top == NULL);
+        BUGGER_ON(q->bot == NULL);
+
+        BUGGER_ON(q->top == q->bot);
+        BUGGER_ON(q->top->prev != NULL);
+        BUGGER_ON(q->bot->next != NULL);
+
+        BUGGER_ON(q->top->next == q->bot);
+        BUGGER_ON(q->bot->prev == q->top);
+
+        Packet *p, *pp;
+        for (p = q->top, pp = p->prev; p != NULL; pp = p, p = p->next) {
+            BUGGER_ON(pp != p->prev);
+        }
+
+    }
+}
 
 void PacketEnqueue (PacketQueue *q, Packet *p) {
+    //PacketQueueValidateDebug(q);
+
     /* more packets in queue */
     if (q->top != NULL) {
+        p->prev = NULL;
         p->next = q->top;
         q->top->prev = p;
         q->top = p;
     /* only packet */
     } else {
+        p->prev = NULL;
+        p->next = NULL;
         q->top = p;
         q->bot = p;
     }
@@ -44,23 +151,23 @@ void PacketEnqueue (PacketQueue *q, Packet *p) {
     if (q->len > q->dbg_maxlen)
         q->dbg_maxlen = q->len;
 #endif /* DBG_PERF */
+    //PacketQueueValidateDebug(q);
 }
+#endif /* DEBUG */
 
 Packet *PacketDequeue (PacketQueue *q) {
+    Packet *p = NULL;
+
+    //PacketQueueValidateDebug(q);
     /* if the queue is empty there are no packets left. */
     if (q->len == 0) {
         return NULL;
     }
 
-    /* If we are going to get the last packet, set len to 0
-     * before doing anything else (to make the threads to follow
-     * the SCondWait as soon as possible) */
-    q->len--;
-
     /* pull the bottom packet from the queue */
-    Packet *p = q->bot;
+    p = q->bot;
     /* Weird issue: sometimes it looks that two thread arrive
-     * here at the same time so the bot ptr is NULL
+     * here at the same time so the bot ptr is NULL (only on OS X?)
      */
     if (p == NULL) {
         return NULL;
@@ -76,8 +183,9 @@ Packet *PacketDequeue (PacketQueue *q) {
         q->bot = NULL;
     }
 
-    p->next = NULL;
-    p->prev = NULL;
+    q->len--;
+
+    //PacketQueueValidateDebug(q);
     return p;
 }
 

@@ -193,91 +193,6 @@ SignalHandlerSetup(int sig, void (*handler)())
 }
 #endif /* OS_WIN32 */
 
-Packet *SetupPktWait (void)
-{
-    Packet *p = NULL;
-    int r = 0;
-    do {
-        r = SCMutexLock(&packet_q.mutex_q);
-        p = PacketDequeue(&packet_q);
-        SCMutexUnlock(&packet_q.mutex_q);
-
-        if (p == NULL) {
-            //TmqDebugList();
-            usleep(1000); /* sleep 1ms */
-
-            /* XXX check for recv'd signals, so
-             * we can exit on signals received */
-        }
-    } while (p == NULL);
-
-    memset(p, 0, sizeof(Packet));
-
-    return p;
-}
-
-Packet *SetupTunnelPkt (void)
-{
-    Packet *p = NULL;
-
-    SCMutexLock(&packet_q.mutex_q);
-    p = PacketDequeue(&packet_q);
-    SCMutexUnlock(&packet_q.mutex_q);
-
-    if (p == NULL) {
-        p = SCMalloc(sizeof(Packet));
-        if (p == NULL) {
-            printf("ERROR: SCMalloc failed: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-
-        memset(p, 0, sizeof(Packet));
-
-        SCMutexInit(&p->mutex_rtv_cnt, NULL);
-
-        p->flags |= PKT_ALLOC;
-
-        SCLogDebug("allocated a new packet...");
-    }
-
-    /* reset the packet csum fields */
-    RESET_PACKET_CSUMS(p);
-
-    return p;
-}
-
-Packet *SetupPkt (void)
-{
-    Packet *p = NULL;
-
-    SCMutexLock(&packet_q.mutex_q);
-    while ((p = PacketDequeue(&packet_q)) == NULL) {
-        SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
-    }
-    SCMutexUnlock(&packet_q.mutex_q);
-/*
-    if (p == NULL) {
-        TmqDebugList();
-
-        p = SCMalloc(sizeof(Packet));
-        if (p == NULL) {
-            printf("ERROR: SCMalloc failed: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-
-        memset(p, 0, sizeof(Packet));
-
-        r = SCMutexInit(&p->mutex_rtv_cnt, NULL);
-
-        SCLogDebug("allocated a new packet...");
-    }
-*/
-    /* reset the packet csum fields */
-    RESET_PACKET_CSUMS(p);
-
-    return p;
-}
-
 void GlobalInits()
 {
     memset(trans_q, 0, sizeof(trans_q));
@@ -295,47 +210,10 @@ void GlobalInits()
         exit(EXIT_FAILURE);
     }
 
-    //SCMutexInit(&mutex_pending, NULL);
-    //SCCondInit(&cond_pending, NULL);
-
     /* initialize packet queues Here! */
     memset(&packet_q,0,sizeof(packet_q));
     SCMutexInit(&packet_q.mutex_q, NULL);
     SCCondInit(&packet_q.cond_q, NULL);
-}
-
-/* \todo dtv not used. */
-Packet *TunnelPktSetup(ThreadVars *t, DecodeThreadVars *dtv, Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
-{
-    //printf("TunnelPktSetup: pkt %p, len %" PRIu32 ", proto %" PRIu32 "\n", pkt, len, proto);
-
-    /* get us a packet */
-    Packet *p = SetupTunnelPkt();
-
-    /* set the root ptr to the lowest layer */
-    if (parent->root != NULL)
-        p->root = parent->root;
-    else
-        p->root = parent;
-
-    /* copy packet and set lenght, proto */
-    p->tunnel_proto = proto;
-    p->pktlen = len;
-    memcpy(&p->pkt, pkt, len);
-    p->recursion_level = parent->recursion_level + 1;
-
-    p->ts.tv_sec = parent->ts.tv_sec;
-    p->ts.tv_usec = parent->ts.tv_usec;
-
-    /* set tunnel flags */
-    SET_TUNNEL_PKT(p);
-    TUNNEL_INCR_PKT_TPR(p);
-
-    /* disable payload (not packet) inspection on the parent, as the payload
-     * is the packet we will now run through the system separately. We do
-     * check it against the ip/port/other header checks though */
-    DecodeSetNoPayloadInspectionFlag(parent);
-    return p;
 }
 
 /* XXX hack: make sure threads can stop the engine by calling this
@@ -928,8 +806,7 @@ int main(int argc, char **argv)
             printf("ERROR: SCMalloc failed: %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         }
-        memset(p, 0, sizeof(Packet));
-        SCMutexInit(&p->mutex_rtv_cnt, NULL);
+        PACKET_INITIALIZE(p);
 
         PacketEnqueue(&packet_q,p);
     }

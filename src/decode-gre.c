@@ -193,12 +193,10 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         case ETHERNET_TYPE_IP:
             {
                 if (pq != NULL) {
-
-                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, IPPROTO_IP);
+                    Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
+                            len - header_len, IPPROTO_IP);
                     DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
                     PacketEnqueue(pq,tp);
-
-                    SET_TUNNEL_PKT(p);
                 }
                 break;
             }
@@ -206,12 +204,10 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         case GRE_PROTO_PPP:
             {
                 if (pq != NULL) {
-
-                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, PPP_OVER_GRE);
+                    Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
+                            len - header_len, PPP_OVER_GRE);
                     DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
                     PacketEnqueue(pq,tp);
-
-                    SET_TUNNEL_PKT(p);
                 }
                 break;
             }
@@ -219,12 +215,10 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         case ETHERNET_TYPE_IPV6:
             {
                 if (pq != NULL) {
-
-                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, IPPROTO_IPV6);
+                    Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
+                            len - header_len, IPPROTO_IPV6);
                     DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
                     PacketEnqueue(pq,tp);
-
-                    SET_TUNNEL_PKT(p);
                 }
                 break;
             }
@@ -232,12 +226,10 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         case ETHERNET_TYPE_VLAN:
             {
                 if (pq != NULL) {
-
-                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, VLAN_OVER_GRE);
+                    Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
+                            len - header_len, VLAN_OVER_GRE);
                     DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
                     PacketEnqueue(pq,tp);
-
-                    SET_TUNNEL_PKT(p);
                 }
                 break;
             }

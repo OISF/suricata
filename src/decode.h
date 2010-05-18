@@ -400,23 +400,48 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_ipv6_timeouts;
 } DecodeThreadVars;
 
-/* clear key vars so we don't need to call the expensive
- * memset or bzero
+/**
+ *  \brief reset these to -1(indicates that the packet is fresh from the queue)
  */
-#define CLEAR_PACKET(p) { \
-    if ((p)->pktvar != NULL) { \
-        PktVarFree((p)->pktvar); \
-    } \
-    memset((p), 0x00, sizeof(Packet)); \
-}
-
-/* reset these to -1(indicates that the packet is fresh from the queue) */
-#define RESET_PACKET_CSUMS(p) { \
+#define PACKET_RESET_CHECKSUMS(p) { \
     (p)->ip4c.comp_csum = -1; \
     (p)->tcpc.comp_csum = -1; \
     (p)->udpc.comp_csum = -1;  \
     (p)->icmpv4c.comp_csum = -1; \
     (p)->icmpv6c.comp_csum = -1; \
+}
+
+/**
+ *  \brief Initialize a packet structure for use.
+ */
+#define PACKET_INITIALIZE(p) { \
+    memset((p), 0x00, sizeof(Packet)); \
+    SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
+    PACKET_RESET_CHECKSUMS((p)); \
+}
+
+/**
+ *  \brief Recycle a packet structure for reuse.
+ *  \todo the mutex destroy & init is necessary because of the memset, reconsider
+ */
+#define PACKET_RECYCLE(p) { \
+    if ((p)->pktvar != NULL) { \
+        PktVarFree((p)->pktvar); \
+    } \
+    SCMutexDestroy(&(p)->mutex_rtv_cnt); \
+    memset((p), 0x00, sizeof(Packet)); \
+    SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
+    PACKET_RESET_CHECKSUMS((p)); \
+}
+
+/**
+ *  \brief Cleanup a packet so that we can free it. No memset needed..
+ */
+#define PACKET_CLEANUP(p) { \
+    if ((p)->pktvar != NULL) { \
+        PktVarFree((p)->pktvar); \
+    } \
+    SCMutexDestroy(&(p)->mutex_rtv_cnt); \
 }
 
 
@@ -462,6 +487,7 @@ typedef struct DecodeThreadVars_
 
 
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
+Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
 
 /* decoder functions */
 void DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
@@ -479,9 +505,6 @@ void DecodeTCP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, 
 void DecodeUDP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
-
-Packet *SetupPkt (void);
-Packet *TunnelPktSetup(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, uint8_t);
 
 void AddressDebugPrint(Address *);
 

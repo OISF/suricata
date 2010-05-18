@@ -45,6 +45,7 @@ Packet *TmqhInputSimple(ThreadVars *t)
     PacketQueue *q = &trans_q[t->inq->id];
 
     SCMutexLock(&q->mutex_q);
+
     if (q->len == 0) {
         /* if we have no packets in queue, wait... */
         SCondWait(&q->cond_q, &q->mutex_q);
@@ -66,6 +67,8 @@ Packet *TmqhInputSimple(ThreadVars *t)
 
 void TmqhOutputSimple(ThreadVars *t, Packet *p)
 {
+    SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true":"false");
+
     PacketQueue *q = &trans_q[t->outq->id];
 
     SCMutexLock(&q->mutex_q);

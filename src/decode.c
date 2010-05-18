@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "decode.h"
 #include "util-debug.h"
 
@@ -42,6 +43,87 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", p->tunnel_proto);
             break;
     }
+}
+
+/**
+ *  \brief Get a pseudo packet for tunnels and defrag reassembly. We try to
+ *         get a packet from the packet_q first, but if that is empty we alloc
+ *         a packet that is free'd again after processing.
+ *
+ *  \retval p packet, NULL on error
+ */
+static Packet *PacketGetPseudoPkt (void)
+{
+    Packet *p = NULL;
+
+    SCMutexLock(&packet_q.mutex_q);
+    p = PacketDequeue(&packet_q);
+    SCMutexUnlock(&packet_q.mutex_q);
+
+    if (p == NULL) {
+        /* non fatal, we're just not processing a packet then */
+        p = SCMalloc(sizeof(Packet));
+        if (p == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s", strerror(errno));
+            return NULL;
+        }
+
+        PACKET_INITIALIZE(p);
+        p->flags |= PKT_ALLOC;
+
+        SCLogDebug("allocated a new packet...");
+    }
+
+    return p;
+}
+
+/**
+ *  \brief Setup a pseudo packet (tunnel or reassembled frags)
+ *
+ *  \param parent parent packet for this pseudo pkt
+ *  \param pkt raw packet data
+ *  \param len packet data length
+ *  \param proto protocol of the tunneled packet
+ *
+ *  \retval p the pseudo packet or NULL if out of memory
+ */
+Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
+{
+    /* get us a packet */
+    Packet *p = PacketGetPseudoPkt();
+    if (p == NULL) {
+        return NULL;
+    }
+
+    /* set the root ptr to the lowest layer */
+    if (parent->root != NULL)
+        p->root = parent->root;
+    else
+        p->root = parent;
+
+    /* copy packet and set lenght, proto */
+    p->tunnel_proto = proto;
+    p->pktlen = len;
+    memcpy(&p->pkt, pkt, len);
+    p->recursion_level = parent->recursion_level + 1;
+    p->ts.tv_sec = parent->ts.tv_sec;
+    p->ts.tv_usec = parent->ts.tv_usec;
+
+    /* set tunnel flags */
+
+    /* tell new packet it's part of a tunnel */
+    SET_TUNNEL_PKT(p);
+    /* tell parent packet it's part of a tunnel */
+    SET_TUNNEL_PKT(parent);
+
+    /* increment tunnel packet refcnt in the root packet */
+    TUNNEL_INCR_PKT_TPR(p);
+
+    /* disable payload (not packet) inspection on the parent, as the payload
+     * is the packet we will now run through the system separately. We do
+     * check it against the ip/port/other header checks though */
+    DecodeSetNoPayloadInspectionFlag(parent);
+    return p;
 }
 
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)

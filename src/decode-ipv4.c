@@ -557,20 +557,16 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         case IPPROTO_IPV6:
             {
                 if (pq != NULL) {
-                    //printf("DecodeIPV4: next layer is IPV6\n");
-                    //printf("DecodeIPV4: we are p %p\n", p);
-
                     /* spawn off tunnel packet */
-                    Packet *tp = TunnelPktSetup(tv, dtv, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), IPV4_GET_IPPROTO(p));
-                    //printf("DecodeIPV4: tunnel is tp %p\n", tp);
+                    Packet *tp = PacketPseudoPktSetup(p, pkt + IPV4_GET_HLEN(p),
+                            IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p),
+                            IPV4_GET_IPPROTO(p));
 
                     /* send that to the Tunnel decoder */
                     DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
+
                     /* add the tp to the packet queue. */
                     PacketEnqueue(pq,tp);
-
-                    /* the current packet is now a tunnel packet */
-                    SET_TUNNEL_PKT(p);
                 }
                 break;
             }
@@ -587,10 +583,6 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             /* Got re-assembled packet, re-run through decoder. */
             DecodeIPV4(tv, dtv, rp, rp->pkt, rp->pktlen, pq);
             PacketEnqueue(pq, rp);
-
-            /* Not really a tunnel packet, but we're piggybacking that
-             * functionality for now. */
-            SET_TUNNEL_PKT(p);
         }
     }
 

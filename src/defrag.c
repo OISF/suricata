@@ -534,20 +534,14 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
     /* Allocate a Packet for the reassembled packet.  On failure we
      * SCFree all the resources held by this tracker. */
-    if (tv == NULL) {
-        /* Unit test. */
-        rp = SetupPkt();
-    }
-    else {
-        /* Not really a tunnel packet, but more of a pseudo packet.
-         * But for the most part we should get the same result. */
-        rp = TunnelPktSetup(tv, NULL, p, (uint8_t *)p->ip4h, IPV4_GET_IPLEN(p),
+    rp = PacketPseudoPktSetup(p, (uint8_t *)p->ip4h, IPV4_GET_IPLEN(p),
             IPV4_GET_IPPROTO(p));
-    }
     if (rp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
+                "fragmentation re-assembly, dumping fragments.");
         goto remove_tracker;
     }
+    SCLogDebug("Packet rp %p, p %p, rp->root %p", rp, p, rp->root);
 
     int fragmentable_offset = 0;
     int fragmentable_len = 0;
@@ -652,18 +646,11 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
     /* Allocate a Packet for the reassembled packet.  On failure we
      * SCFree all the resources held by this tracker. */
-    if (tv == NULL) {
-        /* Unit test. */
-        rp = SetupPkt();
-    }
-    else {
-        /* Not really a tunnel packet, but more of a pseudo packet.
-         * But for the most part we should get the same result. */
-        rp = TunnelPktSetup(tv, NULL, p, (uint8_t *)p->ip6h,
+    rp = PacketPseudoPktSetup(p, (uint8_t *)p->ip6h,
             IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
-    }
     if (rp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for fragmentation re-assembly, dumping fragments.");
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
+                "fragmentation re-assembly, dumping fragments.");
         goto remove_tracker;
     }
 
