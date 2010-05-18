@@ -32,7 +32,8 @@
 #define STREAM_TOCLIENT     0x08
 #define STREAM_GAP          0x10
 
-#define MSG_DATA_SIZE       512
+/** size of the data chunks sent to the app layer parser. */
+#define MSG_DATA_SIZE       2048
 
 #define STREAMQUEUE_FLAG_INIT    0x01
 
