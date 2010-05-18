@@ -129,6 +129,7 @@ void PacketQueueValidate(PacketQueue *q) {
 
     }
 }
+#endif /* DEBUG */
 
 void PacketEnqueue (PacketQueue *q, Packet *p) {
     //PacketQueueValidateDebug(q);
@@ -153,7 +154,6 @@ void PacketEnqueue (PacketQueue *q, Packet *p) {
 #endif /* DBG_PERF */
     //PacketQueueValidateDebug(q);
 }
-#endif /* DEBUG */
 
 Packet *PacketDequeue (PacketQueue *q) {
     Packet *p = NULL;
