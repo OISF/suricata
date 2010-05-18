@@ -1312,6 +1312,11 @@ static int StreamTcpReassembleCheckLimit(TcpSession *ssn, TcpStream *stream,
 
     /* check if we have enough data to send to L7 */
     if (p->flowflags & FLOW_PKT_TOCLIENT) {
+        SCLogDebug("StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER) %"PRIu32,
+                StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER));
+        SCLogDebug("StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER) %"PRIu32,
+                StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER));
+
         if (stream->ra_base_seq == stream->isn) {
             if (StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER) >
                     (stream->last_ack - stream->ra_base_seq)) {
@@ -1332,6 +1337,11 @@ static int StreamTcpReassembleCheckLimit(TcpSession *ssn, TcpStream *stream,
             }
         }
     } else {
+        SCLogDebug("StreamMsgQueueGetMinInitChunkLen(STREAM_TOCLIENT) %"PRIu32,
+                StreamMsgQueueGetMinInitChunkLen(STREAM_TOCLIENT));
+        SCLogDebug("StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT) %"PRIu32,
+                StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT));
+
         if (stream->ra_base_seq == stream->isn) {
             if (StreamMsgQueueGetMinInitChunkLen(STREAM_TOCLIENT) >
                     (stream->last_ack - stream->ra_base_seq)) {
@@ -4911,6 +4921,11 @@ static int StreamTcpReassembleTest41 (void) {
     uint8_t httpbuf2[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 0);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 0);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 0);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 0);
+
     ssn.server.ra_base_seq = 9;
     ssn.server.isn = 9;
     ssn.server.last_ack = 600;
@@ -4950,13 +4965,13 @@ static int StreamTcpReassembleTest41 (void) {
     s = &ssn.server;
 
     if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet\n");
+        printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
 
     /* Check if we have stream smsgs in queue */
     if (ra_ctx->stream_q->len > 0) {
-        printf("there shouldn't be any stream smsgs in the queue\n");
+        printf("there shouldn't be any stream smsgs in the queue: ");
         goto end;
     }
 
@@ -4968,7 +4983,7 @@ static int StreamTcpReassembleTest41 (void) {
     s = &ssn.client;
 
     if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet\n");
+        printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
 
@@ -4980,14 +4995,14 @@ static int StreamTcpReassembleTest41 (void) {
     s = &ssn.client;
 
     if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet\n");
+        printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
 
     /* Check if we have stream smsgs in queue */
     if (ra_ctx->stream_q->len > 0) {
         printf("there shouldn't be any stream smsgs in the queue, as we didn't"
-                " processed any smsg from toserver side till yet\n");
+                " processed any smsg from toserver side till yet: ");
         goto end;
     }
 
@@ -4999,20 +5014,20 @@ static int StreamTcpReassembleTest41 (void) {
     s = &ssn.server;
 
     if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet\n");
+        printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
 
     /* Check if we have stream smsgs in queue */
     if (ra_ctx->stream_q->len == 0) {
-        printf("there should be a stream smsgs in the queue\n");
+        printf("there should be a stream smsgs in the queue: ");
         goto end;
     /* Process stream smsgs we may have in queue */
     } else if (ra_ctx->stream_q->len > 1) {
-        printf("there should be only one stream smsgs in the queue\n");
+        printf("there should be only one stream smsgs in the queue: ");
         goto end;
     } else if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
-        printf("failed in processing stream smsgs\n");
+        printf("failed in processing stream smsgs: ");
         goto end;
     }
 
@@ -5024,12 +5039,12 @@ static int StreamTcpReassembleTest41 (void) {
     s = &ssn.server;
 
     if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet\n");
+        printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
 
     if (ssn.client.seg_list != NULL) {
-        printf("seg_list should be null\n");
+        printf("seg_list should be null: ");
         goto end;
     }
 
