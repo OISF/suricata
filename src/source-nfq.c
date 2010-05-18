@@ -497,18 +497,9 @@ process_rv:
 TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
-    //printf("%p receiving on queue %" PRIu32 "\n", ntv, ntv->queue_num);
-
     /* do our nfq magic */
     NFQRecvPkt(ntv);
 
-    /* check if we have too many packets in the system
-     * so we will wait for some to free up */
-    SCMutexLock(&mutex_pending);
-    if (pending > max_pending_packets) {
-        SCondWait(&cond_pending, &mutex_pending);
-    }
-    SCMutexUnlock(&mutex_pending);
     return TM_ECODE_OK;
 }
 
