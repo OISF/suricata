@@ -420,23 +420,24 @@ static int DecodeICMPV4test03(void) {
         goto end;
     }
 
-    // check it's type 11 code 0
-    if (p.icmpv4h->type!=11 || p.icmpv4h->code!=0) {
+    /* check it's type 11 code 0 */
+    if (p.icmpv4h->type != 11 || p.icmpv4h->code != 0) {
         goto end;
     }
 
-    // check it's source port 4747 to port 43650
-    if (p.icmpv4vars.emb_sport != 4747 || p.icmpv4vars.emb_dport != 43650) {
+    /* check it's source port 4747 to port 43650 */
+    if (p.icmpv4vars.emb_sport != htons(4747) ||
+            p.icmpv4vars.emb_dport != htons(43650)) {
         goto end;
     }
 
-    // check the src,dst IPs contained inside
+    /* check the src,dst IPs contained inside */
     char s[16], d[16];
 
     inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_src), s, sizeof(s));
     inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_dst), d, sizeof(d));
 
-    // ICMPv4 embedding IPV4 192.168.1.13->209.85.227.147 pass
+    /* ICMPv4 embedding IPV4 192.168.1.13->209.85.227.147 pass */
     if (strcmp(s, "192.168.1.13") == 0 && strcmp(d, "209.85.227.147") == 0) {
         ret = 1;
     }
@@ -487,13 +488,14 @@ static int DecodeICMPV4test04(void) {
         goto end;
     }
 
-    // check the type,code pair is correct - type 3, code 10
+    /* check the type,code pair is correct - type 3, code 10 */
     if (p.icmpv4h->type != 3 || p.icmpv4h->code != 10) {
         goto end;
     }
 
-    // check it's src port 2737 to dst port 12800
-    if (p.icmpv4vars.emb_sport != 2737 || p.icmpv4vars.emb_dport != 12800) {
+    /* check it's src port 2737 to dst port 12800 */
+    if (p.icmpv4vars.emb_sport != htons(2737) ||
+            p.icmpv4vars.emb_dport != htons(12800)) {
         goto end;
     }
 
