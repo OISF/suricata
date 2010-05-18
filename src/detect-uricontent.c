@@ -1016,7 +1016,7 @@ static int DetectUriSigTest04(void) {
         s->match != NULL)
     {
         printf("sig 3 failed to parse: ");
-        DetectContentPrint((DetectContentData *) s->pmatch_tail->ctx);
+        //DetectContentPrint((DetectContentData *) s->pmatch_tail->ctx);
         goto end;
     }
 

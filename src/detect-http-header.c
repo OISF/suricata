@@ -267,10 +267,12 @@ static int DetectHttpHeaderTest01(void)
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_header\"; "
                                "content:one; http_header; sid:1;)");
-    if (de_ctx->sig_list != NULL)
+    if (de_ctx->sig_list != NULL) {
         result = 1;
-    else
+    } else {
         printf("Error parsing signature: ");
+        goto end;
+    }
 
     sm = de_ctx->sig_list->match;
     if (sm != NULL) {

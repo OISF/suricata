@@ -2648,7 +2648,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                         if (global_src_gr->sh != NULL) {
                             printf(" - ");
                             for (u = 0; u < global_src_gr->sh->sig_cnt; u++) {
-                                Signature *s = de_ctx->sig_array[global_dst_gr->sh->match_array[u]];
+                                Signature *s = de_ctx->sig_array[global_src_gr->sh->match_array[u]];
                                 printf("%" PRIu32 " ", s->id);
                             }
                             printf("\n");

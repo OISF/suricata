@@ -196,6 +196,7 @@ static int DetectDistanceTest01(void)
     DetectContentData *co = (DetectContentData *)sm->ctx;
     if (co == NULL) {
         printf("co == NULL: ");
+        goto end;
     }
 
     if (co->distance != 4) {
