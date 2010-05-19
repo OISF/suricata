@@ -107,6 +107,7 @@
 #include "util-rule-vars.h"
 #include "util-classification-config.h"
 #include "util-threshold-config.h"
+#include "util-profiling.h"
 
 #include "defrag.h"
 
@@ -649,6 +650,9 @@ int main(int argc, char **argv)
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     SCPerfInitCounterApi();
+#ifdef PROFILING
+    SCProfilingInit();
+#endif /* PROFILING */
     SCReputationInitCtx();
 
     TmModuleReceiveNFQRegister();
@@ -759,6 +763,9 @@ int main(int argc, char **argv)
         SCCudaRegisterTests();
 #endif
         PayloadRegisterTests();
+#ifdef PROFILING
+        SCProfilingRegisterTests();
+#endif
         if (list_unittests) {
             UtListTests(regex_arg);
         }
@@ -863,6 +870,10 @@ int main(int argc, char **argv)
         if (de_ctx->failure_fatal)
             exit(EXIT_FAILURE);
     }
+
+#ifdef PROFILING
+    SCProfilingInitRuleCounters(de_ctx);
+#endif /* PROFILING */
 
     AppLayerHtpRegisterExtraCallbacks();
     SCThresholdConfInitContext(de_ctx,NULL);
@@ -1044,6 +1055,12 @@ int main(int argc, char **argv)
     RunModeShutDown();
     OutputDeregisterAll();
     TimeDeinit();
+
+#ifdef PROFILING
+    if (profiling_rules_enabled)
+        SCProfilingDump(stdout);
+    SCProfilingDestroy();
+#endif
 
 #ifdef __SC_CUDA_SUPPORT__
     /* all cuda contexts attached to any threads should be free by now.

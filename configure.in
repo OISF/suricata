@@ -750,6 +750,14 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     echo
     fi
 
+    AC_ARG_ENABLE(profiling,
+            [  --enable-profiling  Enable performance profiling],
+            [ enable_profiling=yes
+            ])
+    if test "$enable_profiling" = "yes"; then
+    CFLAGS="${CFLAGS} -DPROFILING"
+    fi
+
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)

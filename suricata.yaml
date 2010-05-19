@@ -444,3 +444,16 @@ libhtp:
            - 192.168.10.0/24
          personality: IIS_7_0
 
+profiling:
+
+  rules:
+
+    # Profiling can be disabled here, but it will still have a
+    # performance impact if compiled in.
+    enabled: yes
+
+    # Sort options: ticks, avgticks, checks, matches
+    sort: avgticks
+
+    # Limit the number of items printed at exit.
+    limit: 100

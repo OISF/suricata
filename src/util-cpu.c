@@ -174,3 +174,21 @@ void UtilCpuPrintSummary() {
                   "system info and check util-cpu.{c,h}");
 }
 
+/**
+ * Get the current number of ticks from the CPU.
+ */
+uint64_t UtilCpuGetTicks(void)
+{
+    uint64_t val;
+#if defined(__GNUC__) && (defined(__x86_64) || defined(__i386))
+    uint32_t a, d;
+    __asm__ __volatile__ ("rdtsc" : "=a" (a), "=d" (d));
+    val = ((uint64_t)a) | (((uint64_t)d) << 32);
+#else
+#warning Using inferior version of UtilCpuGetTicks
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    val = (now.tv_sec * 1000000) + now.tv_usec;
+#endif
+    return val;
+}

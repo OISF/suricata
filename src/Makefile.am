@@ -194,7 +194,8 @@ defrag.c defrag.h \
 output.c output.h \
 win32-misc.c win32-misc.h \
 util-action.c util-action.h \
-win32-syslog.h
+win32-syslog.h \
+util-profiling.c util-profiling.h
 
 # set the include path found by configure
 INCLUDES= $(all_includes)

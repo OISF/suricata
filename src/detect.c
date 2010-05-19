@@ -139,7 +139,7 @@
 #include "util-mpm-b2g-cuda.h"
 #include "util-cuda.h"
 #include "util-privs.h"
-
+#include "util-profiling.h"
 
 SigMatch *SigMatchAlloc(void);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
@@ -608,6 +608,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->sgh->sig_cnt; idx++) {
     //for (idx = 0; idx < det_ctx->pmq.sig_id_array_cnt; idx++) {
+        PROFILING_START;
         sig = det_ctx->sgh->match_array[idx];
         //sig = det_ctx->pmq.sig_id_array[idx];
         s = de_ctx->sig_array[sig];
@@ -618,7 +619,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
            no payload inspection flag is set*/
         if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD)) {
             SCLogDebug("no payload inspection enabled and sig has payload portion.");
-            continue;
+            goto next;
         }
 
         if (s->flags & SIG_FLAG_MPM) {
@@ -628,7 +629,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
                         (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
                     SCLogDebug("mpm sig without matches (pat id check in content).");
-                    continue;
+                    goto next;
                 }
 
             }
@@ -641,7 +642,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         (s->flags & SIG_FLAG_MPM_URI) && !(s->flags & SIG_FLAG_MPM_URI_NEG)) {
                     SCLogDebug("mpm sig without matches (pat id %"PRIu32
                             " check in uri).", s->mpm_uripattern_id);
-                    continue;
+                    goto next;
                 }
             }
         }
@@ -649,7 +650,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         /* if the sig has alproto and the session as well they should match */
         if (s->alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_UNKNOWN) {
             if (s->alproto != alproto) {
-                continue;
+                goto next;
             }
         }
 
@@ -659,14 +660,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
                 if (dport == NULL) {
                     SCLogDebug("dport didn't match.");
-                    continue;
+                    goto next;
                 }
             }
             if (!(s->flags & SIG_FLAG_SP_ANY)) {
                 DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
                 if (sport == NULL) {
                     SCLogDebug("sport didn't match.");
-                    continue;
+                    goto next;
                 }
             }
         }
@@ -676,7 +677,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
             if (saddr == NULL) {
                 SCLogDebug("src addr didn't match.");
-                continue;
+                goto next;
             }
         }
         /* check the destination address */
@@ -684,7 +685,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
             if (daddr == NULL) {
                 SCLogDebug("dst addr didn't match.");
-                continue;
+                goto next;
             }
         }
 
@@ -692,13 +693,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
          * to here, we've had at least one of the patterns match */
         if (s->pmatch != NULL) {
             if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
-                continue;
+                goto next;
         }
 
         /* Check the uricontent keywords here. */
         if (s->umatch != NULL) {
             if (DetectEngineInspectPacketUris(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
-                continue;
+                goto next;
         }
 
         /* if we get here but have no sigmatches to match against,
@@ -800,6 +801,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 SCLogDebug("match functions done, sm %p", sm);
             }
         }
+    next:
+        RULE_PROFILING_END(s, match);
     }
 
 end:

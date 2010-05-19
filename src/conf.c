@@ -479,6 +479,28 @@ ConfNodeLookupChildValue(ConfNode *node, const char *name)
     return NULL;
 }
 
+/**
+ * \brief Test if a configuration node has a true value.
+ *
+ * \param node The parent configuration node.
+ * \param name The name of the child node to test.
+ *
+ * \retval 1 if the child node has a true value, otherwise 0 is
+ *     returned, even if the child node does not exist.
+ */
+int
+ConfNodeChildValueIsTrue(ConfNode *node, const char *key)
+{
+    const char *val;
+
+    val = ConfNodeLookupChildValue(node, key);
+    if (val != NULL) {
+        if ((strcasecmp(val, "yes") == 0) || (strcasecmp(val, "true") == 0))
+            return 1;
+    }
+    return 0;
+}
+
 #ifdef UNITTESTS
 
 /**

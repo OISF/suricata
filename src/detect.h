@@ -275,6 +275,9 @@ typedef struct Signature_ {
     uint32_t mpm_pattern_id;
     uint32_t mpm_uripattern_id;
 
+#ifdef PROFILING
+    uint16_t profiling_id;
+#endif
 } Signature;
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {

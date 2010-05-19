@@ -34,4 +34,6 @@ uint16_t UtilCpuGetNumProcessorsMax();
 
 void UtilCpuPrintSummary();
 
+uint64_t UtilCpuGetTicks(void);
+
 #endif /* __UTIL_CPU_H__ */
