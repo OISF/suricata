@@ -123,7 +123,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             } else {
                 /* root not ready yet, so get rid of the tunnel pkt only */
 
-                SCLogDebug("NOT p->root->tunnel_verdicted == 1 (%d) && TUNNEL_PKT_TPR(p) == 1 (%" PRIu32 ")", p->root->tunnel_verdicted, TUNNEL_PKT_TPR(p));
+                SCLogDebug("NOT p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1 (%" PRIu32 ")", TUNNEL_PKT_TPR(p));
                 TUNNEL_DECR_PKT_TPR_NOLOCK(p);
 
                  /* fall through */
