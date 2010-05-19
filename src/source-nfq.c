@@ -204,7 +204,11 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     ThreadVars *tv = ntv->tv;
 
     /* grab a packet */
-    Packet *p = tv->tmqh_in(tv);
+    Packet *p = PacketGetFromQueueOrAlloc();
+    if (p == NULL) {
+        return -1;
+    }
+
     NFQSetupPkt(p, (void *)nfa);
 
 #ifdef COUNTERS
@@ -399,8 +403,7 @@ void NFQRecvPkt(NFQThreadVars *t) {
     rv = recv(t->fd, buf, sizeof(buf), 0);
 
     if (rv < 0) {
-        if (errno == EINTR || errno == EWOULDBLOCK
-           ) {
+        if (errno == EINTR || errno == EWOULDBLOCK) {
             /* no error on timeout */
         } else {
 #ifdef COUNTERS
@@ -496,6 +499,15 @@ process_rv:
  */
 TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
+
+    /* make sure we have at least one packet in the packet pool, to prevent
+     * us from 1) alloc'ing packets at line rate, 2) have a race condition
+     * for the nfq mutex lock with the verdict thread. */
+    SCMutexLock(&packet_q.mutex_q);
+    if (packet_q.len == 0) {
+        SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+    }
+    SCMutexUnlock(&packet_q.mutex_q);
 
     /* do our nfq magic */
     NFQRecvPkt(ntv);

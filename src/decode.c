@@ -46,16 +46,16 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 }
 
 /**
- *  \brief Get a pseudo packet for tunnels and defrag reassembly. We try to
- *         get a packet from the packet_q first, but if that is empty we alloc
- *         a packet that is free'd again after processing.
+ *  \brief Get a packet. We try to get a packet from the packet_q first, but
+ *         if that is empty we alloc a packet that is free'd again after
+ *         processing.
  *
  *  \retval p packet, NULL on error
  */
-static Packet *PacketGetPseudoPkt (void)
-{
+Packet *PacketGetFromQueueOrAlloc(void) {
     Packet *p = NULL;
 
+    /* try the queue first */
     SCMutexLock(&packet_q.mutex_q);
     p = PacketDequeue(&packet_q);
     SCMutexUnlock(&packet_q.mutex_q);
@@ -90,7 +90,7 @@ static Packet *PacketGetPseudoPkt (void)
 Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
 {
     /* get us a packet */
-    Packet *p = PacketGetPseudoPkt();
+    Packet *p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {
         return NULL;
     }
