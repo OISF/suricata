@@ -15,12 +15,17 @@
  * 02110-1301, USA.
  */
 
-#include "detect-engine-alert.h"
 #include "suricata-common.h"
+
 #include "detect.h"
+#include "detect-engine-alert.h"
+#include "detect-engine-threshold.h"
+
 #include "decode.h"
+
 #include "flow.h"
 #include "flow-private.h"
+
 
 /**
  * \brief Check if a certain sid alerted, this is used in the test functions
@@ -135,11 +140,13 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
  * \param de_ctx detection engine context
  * \param det_ctx detection engine thread context
  * \param p pointer to the packet
- * \retval 1 if at least one signature match on this packet, 0 if not
  */
-int PacketAlertReal(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
+void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
+    SCEnter();
+
     int i = 0;
     Signature *s = NULL;
+
     for (i = 0; i < p->alerts.cnt; i++) {
         SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
         s = de_ctx->sig_array[p->alerts.alerts[i].num];
@@ -156,12 +163,13 @@ int PacketAlertReal(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Pac
 
                     /* save in the flow that we scanned this direction... locking is
                      * done in the FlowSetIPOnlyFlag function. */
+
+                    /** \todo locking overhead: locked/unlocked twice */
                     if (p->flow != NULL) {
                         FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
-                    }
 
-                    /* Update flow flags for iponly */
-                    if (p->flow != NULL) {
+                        /* Update flow flags for iponly */
+                        SCMutexLock(&p->flow->m);
                         if (s->action & ACTION_DROP)
                             p->flow->flags |= FLOW_ACTION_DROP;
                         if (s->action & ACTION_REJECT)
@@ -172,6 +180,7 @@ int PacketAlertReal(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Pac
                             p->flow->flags |= FLOW_ACTION_DROP;
                         if (s->action & ACTION_PASS)
                             p->flow->flags |= FLOW_ACTION_PASS;
+                        SCMutexUnlock(&p->flow->m);
                     }
                 }
             }
@@ -189,6 +198,5 @@ int PacketAlertReal(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Pac
          * have compacted the array and decreased cnt by one, so
          * process again the same position (with different alert now) */
     }
-
 }
 

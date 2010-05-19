@@ -804,8 +804,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
 end:
     /* so now let's iterate the alerts and remove the ones after a pass rule
-     * matched (if any). This is done inside PacketAlertReal() */
-    PacketAlertReal(de_ctx, det_ctx, p);
+     * matched (if any). This is done inside PacketAlertFinalize() */
+    PacketAlertFinalize(de_ctx, det_ctx, p);
 
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
