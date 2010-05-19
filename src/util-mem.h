@@ -27,73 +27,94 @@
  * but there are more.
  */
 
-//#ifndef __UTIL_MEM_H__
-//#define __UTIL_MEM_H__
+#ifndef __UTIL_MEM_H__
+#define __UTIL_MEM_H__
 
 /* Use this only if you want to debug memory allocation and free()
  * It will log a lot of lines more, so think that is a performance killer */
 
 /* Uncomment this if you want to print memory allocations and free's() */
-#define DBG_MEM_ALLOC
+//#define DBG_MEM_ALLOC
+
+#ifdef DBG_MEM_ALLOC
 
 /* Uncomment this if you want to print mallocs at the startup (recommended) */
 #define DBG_MEM_ALLOC_SKIP_STARTUP
 
 #define SCMalloc(a) ({ \
     void *ptrmem = NULL; \
-    extern uint64_t global_mem; \
+    extern size_t global_mem; \
     extern uint8_t print_mem_flag; \
+    \
     ptrmem = malloc(a); \
     if (ptrmem == NULL && a > 0) { \
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying to allocate %"PRIu64" bytes", strerror(errno), (uint64_t)a); \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying " \
+            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
     } \
+    \
     global_mem += a; \
     if (print_mem_flag == 1) \
-        SCLogInfo("SCMalloc return at %p of size %"PRIu64, ptrmem, (uint64_t)a); \
+        SCLogInfo("SCMalloc return at %p of size %"PRIdMAX, \
+            ptrmem, (intmax_t)a); \
+    \
     (void*)ptrmem; \
 })
 
 #define SCRealloc(x, a) ({ \
     void *ptrmem = NULL; \
-    extern uint64_t global_mem; \
+    extern size_t global_mem; \
     extern uint8_t print_mem_flag; \
+    \
     ptrmem = realloc(x, a); \
     if (ptrmem == NULL && a > 0) { \
-        SCLogError(SC_ERR_MEM_ALLOC, "SCRealloc failed: %s, while trying to allocate %"PRIu64" bytes", strerror(errno), (uint64_t)a); \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCRealloc failed: %s, while trying " \
+            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
     } \
+    \
     global_mem += a; \
     if (print_mem_flag == 1) \
-        SCLogInfo("SCRealloc return at %p (old:%p) of size %"PRIu64, ptrmem, x, (uint64_t)a); \
+        SCLogInfo("SCRealloc return at %p (old:%p) of size %"PRIdMAX, \
+            ptrmem, x, (intmax_t)a); \
+    \
     (void*)ptrmem; \
 })
 
 #define SCCalloc(nm, a) ({ \
     void *ptrmem = NULL; \
-    extern uint64_t global_mem; \
+    extern size_t global_mem; \
     extern uint8_t print_mem_flag; \
+    \
     ptrmem = calloc(nm, a); \
     if (ptrmem == NULL && a > 0) { \
-        SCLogError(SC_ERR_MEM_ALLOC, "SCCalloc failed: %s, while trying to allocate %"PRIu64" bytes", strerror(errno), (uint64_t)a); \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCCalloc failed: %s, while trying " \
+            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
     } \
+    \
     global_mem += a*nm; \
     if (print_mem_flag == 1) \
-        SCLogInfo("SCCalloc return at %p of size %"PRIu64" nm %"PRIu64, ptrmem, (uint64_t)a, (uint64_t)nm); \
+        SCLogInfo("SCCalloc return at %p of size %"PRIdMAX" nm %"PRIdMAX, \
+            ptrmem, (intmax_t)a, (intmax_t)nm); \
+    \
     (void*)ptrmem; \
 })
 
 #define SCStrdup(a) ({ \
     char *ptrmem = NULL; \
-    extern uint64_t global_mem; \
+    extern size_t global_mem; \
     extern uint8_t print_mem_flag; \
     size_t len = strlen(a); \
+    \
     ptrmem = strdup(a); \
     if (ptrmem == NULL && len > 0) { \
-        SCLogError(SC_ERR_MEM_ALLOC, "Strdup of size %"PRIu64" failed! exiting.", (uint64_t)len); \
-        exit(EXIT_FAILURE); \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCStrdup failed: %s, while trying " \
+            "to allocate %"PRIu64" bytes", strerror(errno), (intmax_t)len); \
     } \
+    \
     global_mem += len; \
     if (print_mem_flag == 1) \
-        SCLogInfo("SCStrdup return at %p of size %"PRIu64, ptrmem, (uint64_t)len); \
+        SCLogInfo("SCStrdup return at %p of size %"PRIdMAX, \
+            ptrmem, (intmax_t)len); \
+    \
     (void*)ptrmem; \
 })
 
@@ -104,6 +125,47 @@
     free(a); \
 })
 
+#else /* DBG_MEM_ALLOC */
 
-//#endif /* __UTIL_MEM_H__ */
+#define SCMalloc(a) ({ \
+    void *ptrmem = malloc(a); \
+    if (ptrmem == NULL) { \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying " \
+            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+    } \
+    (void*)ptrmem; \
+})
+
+#define SCRealloc(x, a) ({ \
+    void *ptrmem = realloc(x, a); \
+    if (ptrmem == NULL) { \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCRealloc failed: %s, while trying " \
+            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+    } \
+    (void*)ptrmem; \
+})
+
+#define SCCalloc(nm, a) ({ \
+    void *ptrmem = calloc(nm, a); \
+    if (ptrmem == NULL) { \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCCalloc failed: %s, while trying " \
+            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+    } \
+    (void*)ptrmem; \
+})
+
+#define SCStrdup(a) ({ \
+    char *ptrmem = strdup(a); \
+    if (ptrmem == NULL) { \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCStrdup failed: %s, while trying " \
+            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)strlen(a)); \
+    } \
+    (void*)ptrmem; \
+})
+
+#define SCFree(a) free((a))
+
+#endif /* DBG_MEM_ALLOC */
+
+#endif /* __UTIL_MEM_H__ */
 

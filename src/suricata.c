@@ -170,7 +170,7 @@ static void SignalHandlerSighup(/*@unused@*/ int sig) { sighup_count = 1; sigfla
 #define _GLOBAL_MEM_
 /* This counter doesn't complain realloc's(), it's gives
  * an aproximation for the startup */
-uint64_t global_mem = 0;
+size_t global_mem = 0;
 #ifdef DBG_MEM_ALLOC_SKIP_STARTUP
 uint8_t print_mem_flag = 0;
 #else
@@ -661,7 +661,7 @@ int main(int argc, char **argv)
 
     if (run_mode == MODE_UNITTEST) {
 #ifdef DBG_MEM_ALLOC
-    SCLogInfo("Memory used at startup: %"PRIu64, global_mem);
+    SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
 #endif
         /* test and initialize the unittesting subsystem */
         if(regex_arg == NULL){
@@ -745,7 +745,7 @@ int main(int argc, char **argv)
         }
 
 #ifdef DBG_MEM_ALLOC
-        SCLogInfo("Total memory used (without SCFree()): %"PRIu64, global_mem);
+        SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
 #endif
 
         exit(EXIT_SUCCESS);
@@ -906,7 +906,7 @@ int main(int argc, char **argv)
     TmThreadContinueThreads();
 
 #ifdef DBG_MEM_ALLOC
-    SCLogInfo("Memory used at startup: %"PRIu64, global_mem);
+    SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
 #ifdef DBG_MEM_ALLOC_SKIP_STARTUP
     print_mem_flag = 1;
 #endif
@@ -970,7 +970,7 @@ int main(int argc, char **argv)
     HTPAtExitPrintStats();
 
 #ifdef DBG_MEM_ALLOC
-    SCLogInfo("Total memory used (without SCFree()): %"PRIu64, global_mem);
+    SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
 #ifdef DBG_MEM_ALLOC_SKIP_STARTUP
     print_mem_flag = 0;
 #endif
