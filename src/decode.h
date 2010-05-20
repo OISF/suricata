@@ -54,6 +54,7 @@
 #include "decode-udp.h"
 #include "decode-raw.h"
 #include "decode-vlan.h"
+#include "decode-asn1.h"
 
 #include "detect-reference.h"
 

@@ -27,6 +27,7 @@ decode-icmpv4.c decode-icmpv4.h \
 decode-icmpv6.c decode-icmpv6.h \
 decode-tcp.c decode-tcp.h \
 decode-udp.c decode-udp.h \
+decode-asn1.c decode-asn1.h \
 flow.c flow.h \
 flow-queue.c flow-queue.h \
 flow-hash.c flow-hash.h \
@@ -116,6 +117,7 @@ detect-dce-stub-data.c detect-dce-stub-data.h \
 detect-urilen.c detect-urilen.h \
 detect-detection-filter.c detect-detection-filter.h \
 detect-http-client-body.c detect-http-client-body.h \
+detect-asn1.c detect-asn1.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \
 util-cpu.c util-cpu.h \

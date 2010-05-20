@@ -87,6 +87,7 @@
 #include "detect-isdataat.h"
 #include "detect-id.h"
 #include "detect-rpc.h"
+#include "detect-asn1.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -3070,6 +3071,7 @@ void SigTableSetup(void) {
     DetectDetectionFilterRegister();
     DetectHttpHeaderRegister();
     DetectHttpClientBodyRegister();
+    DetectAsn1Register();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

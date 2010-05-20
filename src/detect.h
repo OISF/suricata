@@ -689,6 +689,8 @@ enum {
     DETECT_DCE_OPNUM,
     DETECT_DCE_STUB_DATA,
 
+    DETECT_ASN1,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };

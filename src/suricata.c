@@ -742,6 +742,7 @@ int main(int argc, char **argv)
         DecodeTCPRegisterTests();
         DecodeUDPV4RegisterTests();
         DecodeGRERegisterTests();
+        DecodeAsn1RegisterTests();
         AlpDetectRegisterTests();
         ConfRegisterTests();
         ConfYamlRegisterTests();
