@@ -3171,6 +3171,11 @@ int SCRadixTestIPV4NetBlocksAndBestSearch15(void)
 
     for (; i <= 32; i++) {
         user = SCMalloc(sizeof(uint32_t));
+        if (user == NULL) {
+            result = 0;
+            goto end;
+        }
+
         *user = i;
 
         SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, i);
@@ -3225,6 +3230,11 @@ int SCRadixTestIPV4NetBlocksAndBestSearch16(void)
 
     for (; i <= 32; i++) {
         user = SCMalloc(sizeof(uint32_t));
+        if (user == NULL) {
+            result = 0;
+            goto end;
+        }
+
         *user = i;
 
         SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, i);
@@ -3279,6 +3289,11 @@ int SCRadixTestIPV4NetBlocksAndBestSearch17(void)
 
     for (; i <= 32; i++) {
         user = SCMalloc(sizeof(uint32_t));
+        if (user == NULL) {
+            result = 0;
+            goto end;
+        }
+
         *user = i;
 
         SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, i);
@@ -3333,6 +3348,11 @@ int SCRadixTestIPV4NetBlocksAndBestSearch18(void)
 
     for (; i <= 32; i++) {
         user = SCMalloc(sizeof(uint32_t));
+        if (user == NULL) {
+            result = 0;
+            goto end;
+        }
+
         *user = i;
 
         SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, i);
@@ -3384,6 +3404,11 @@ int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
+    if (user == NULL) {
+        result = 0;
+        goto end;
+    }
+
     *user = 100;
 
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, 0);
@@ -3419,6 +3444,11 @@ int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
+    if (user == NULL) {
+        result = 0;
+        goto end;
+    }
+
     *user = 200;
 
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, 8);
@@ -3478,6 +3508,11 @@ int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
+    if (user == NULL) {
+        result = 0;
+        goto end;
+    }
+
     *user = 300;
 
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, 12);
@@ -3609,6 +3644,11 @@ int SCRadixTestIPV6NetBlocksAndBestSearch20(void)
 
     for (; i <= 128; i++) {
         user = SCMalloc(sizeof(uint32_t));
+        if (user == NULL) {
+            result = 0;
+            goto end;
+        }
+
         *user = i;
 
         SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, i);
@@ -3663,6 +3703,11 @@ int SCRadixTestIPV6NetBlocksAndBestSearch21(void)
 
     for (; i <= 128; i++) {
         user = SCMalloc(sizeof(uint32_t));
+        if (user == NULL) {
+            result = 0;
+            goto end;
+        }
+
         *user = i;
 
         SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, i);
@@ -3717,6 +3762,11 @@ int SCRadixTestIPV6NetBlocksAndBestSearch22(void)
 
     for (; i <= 128; i++) {
         user = SCMalloc(sizeof(uint32_t));
+        if (user == NULL) {
+            result = 0;
+            goto end;
+        }
+
         *user = i;
 
         SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, i);
@@ -3771,6 +3821,11 @@ int SCRadixTestIPV6NetBlocksAndBestSearch23(void)
 
     for (; i <= 128; i++) {
         user = SCMalloc(sizeof(uint32_t));
+        if (user == NULL) {
+            result = 0;
+            goto end;
+        }
+
         *user = i;
 
         SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, i);
@@ -3857,6 +3912,11 @@ int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
+    if (user == NULL) {
+        result = 0;
+        goto end;
+    }
+
     *user = 200;
 
     SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, 8);
