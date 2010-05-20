@@ -272,7 +272,7 @@ void usage(const char *progname)
     printf("%s %s\n", PROG_NAME, PROG_VER);
     printf("USAGE: %s\n\n", progname);
     printf("\t-c <path>                    : path to configuration file\n");
-    printf("\t-i <dev>                     : run in pcap live mode\n");
+    printf("\t-i <dev or ip>               : run in pcap live mode\n");
     printf("\t-r <path>                    : run in pcap file/offline mode\n");
 #ifdef NFQ
     printf("\t-q <qid>                     : run in inline nfqueue mode\n");
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
 {
     int opt;
     char *pcap_file = NULL;
-    char *pcap_dev = NULL;
+    char pcap_dev[128];
     char *pfring_dev = NULL;
     char *sig_file = NULL;
     char *nfq_id = NULL;
@@ -478,7 +478,8 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
-            pcap_dev = optarg;
+			memset(pcap_dev, 0, sizeof(pcap_dev));
+			      strncpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)) : (sizeof(pcap_dev)-1)));
             break;
         case 'l':
             if (ConfSet("default-log-dir", optarg, 0) != 1) {
@@ -897,6 +898,7 @@ int main(int argc, char **argv)
         //RunModeIdsPcap3(de_ctx, pcap_dev);
         //RunModeIdsPcap2(de_ctx, pcap_dev);
         //RunModeIdsPcap(de_ctx, pcap_dev);
+        TranslateIPToPcapDev(pcap_dev, sizeof(pcap_dev));
         RunModeIdsPcapAuto(de_ctx, pcap_dev);
     }
     else if (run_mode == MODE_PCAP_FILE) {

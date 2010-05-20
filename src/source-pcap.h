@@ -26,6 +26,7 @@
 
 void TmModuleReceivePcapRegister (void);
 void TmModuleDecodePcapRegister (void);
+void TranslateIPToPcapDev(char *pcap_dev, int len);
 
 /* XXX replace with user configurable options */
 #define LIBPCAP_SNAPLEN     1518
