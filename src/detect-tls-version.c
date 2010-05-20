@@ -177,6 +177,10 @@ DetectTlsVersionData *DetectTlsVersionParse (char *str)
 
         orig = SCStrdup((char*)str_ptr);
         tmp_str=orig;
+        if (tmp_str == NULL) {
+            goto error;
+        }
+
         /* Let's see if we need to scape "'s */
         if (tmp_str[0] == '"')
         {
