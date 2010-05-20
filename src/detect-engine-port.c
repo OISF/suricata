@@ -1330,6 +1330,9 @@ DetectPort *PortParse(char *str) {
 
     /* we dup so we can put a nul-termination in it later */
     char *port = portdup;
+    if (port == NULL) {
+        goto error;
+    }
 
     /* handle the negation case */
     if (port[0] == '!') {
