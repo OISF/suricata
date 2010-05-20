@@ -637,6 +637,9 @@ static int DetectAddressParseString(DetectAddress *dd, char *str)
 
     /* we dup so we can put a nul-termination in it later */
     ip = ipdup;
+    if (ip == NULL) {
+        goto error;
+    }
 
     /* handle the negation case */
     if (ip[0] == '!') {
