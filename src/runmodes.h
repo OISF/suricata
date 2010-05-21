@@ -46,6 +46,8 @@ int RunModeIdsPfringAuto(DetectEngineCtx *, char *);
 int RunModeIpsIPFW(DetectEngineCtx *);
 int RunModeIpsIPFWAuto(DetectEngineCtx *);
 
+int RunModeErfFileAuto(DetectEngineCtx *, char *);
+
 void RunModeShutDown(void);
 
 #endif /* __RUNMODES_H__ */

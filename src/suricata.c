@@ -83,6 +83,8 @@
 
 #include "source-pfring.h"
 
+#include "source-erf-file.h"
+
 #include "respond-reject.h"
 
 #include "flow.h"
@@ -301,6 +303,7 @@ void usage(const char *progname)
     printf("\t--user <user>                : run suricata as this user after init\n");
     printf("\t--group <group>              : run suricata as this group after init\n");
 #endif /* HAVE_LIBCAP_NG */
+    printf("\t--erf-in <path>              : process an ERF file\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -330,6 +333,7 @@ int main(int argc, char **argv)
     uint8_t do_setgid = FALSE;
     uint32_t userid = 0;
     uint32_t groupid = 0;
+    char *erf_file = NULL;
 
     char *log_dir;
     struct stat buf;
@@ -364,6 +368,7 @@ int main(int argc, char **argv)
         {"fatal-unittests", 0, 0, 0},
         {"user", required_argument, 0, 0},
         {"group", required_argument, 0, 0},
+        {"erf-in", required_argument, 0, 0},
         {NULL, 0, NULL, 0}
     };
 
@@ -457,6 +462,10 @@ int main(int argc, char **argv)
                 group_name = optarg;
                 do_setgid = TRUE;
 #endif /* HAVE_LIBCAP_NG */
+            }
+            else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
+                run_mode = MODE_ERF_FILE;
+                erf_file = optarg;
             }
             break;
         case 'c':
@@ -687,6 +696,8 @@ int main(int argc, char **argv)
 #ifdef __SC_CUDA_SUPPORT__
     TmModuleCudaMpmB2gRegister();
 #endif
+    TmModuleReceiveErfFileRegister();
+    TmModuleDecodeErfFileRegister();
     TmModuleDebugList();
 
     /** \todo we need an api for these */
@@ -920,6 +931,9 @@ int main(int argc, char **argv)
     else if (run_mode == MODE_IPFW) {
         //RunModeIpsIPFW(de_ctx);
         RunModeIpsIPFWAuto(de_ctx);
+    }
+    else if (run_mode == MODE_ERF_FILE) {
+        RunModeErfFileAuto(de_ctx, erf_file);
     }
     else {
         SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");

@@ -79,6 +79,8 @@ enum {
 #ifdef __SC_CUDA_SUPPORT__
     TMM_CUDA_MPM_B2G,
 #endif
+    TMM_RECEIVEERFFILE,
+    TMM_DECODEERFFILE,
     TMM_SIZE,
 };
 

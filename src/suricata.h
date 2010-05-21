@@ -53,7 +53,8 @@ enum {
     MODE_PFRING,
     MODE_NFQ,
     MODE_IPFW,
-    MODE_UNITTEST
+    MODE_UNITTEST,
+    MODE_ERF_FILE,
 };
 
 /* preallocated packet structures here
