@@ -146,7 +146,7 @@ int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
  */
 DetectTlsVersionData *DetectTlsVersionParse (char *str)
 {
-    uint8_t temp;
+    uint16_t temp;
     DetectTlsVersionData *tls = NULL;
 	#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;

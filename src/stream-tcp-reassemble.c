@@ -1490,6 +1490,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
     uint16_t payload_len = 0;
     TcpSegment *seg = stream->seg_list;
     uint32_t next_seq = ra_base_seq + 1;
+    if (SEQ_GEQ(seg->seq, stream->last_ack))
+        SCLogDebug("seg is %"PRIu32" and st %"PRIu32"",seg->seq, stream->last_ack);
 
     /* loop through the segments and fill one or more msgs */
     for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);) {
@@ -1940,7 +1942,12 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
         SCReturnInt(-1);
     }
 
-    if (p->payload_len > 0) {
+    /* If no stream reassembly/application layer protocol inspection, then
+       simple return */
+    if (p->payload_len > 0 &&
+        (((stream == &ssn->client) && !(ssn->flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY)) ||
+        ((stream == &ssn->server) && !(ssn->flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY))))
+    {
         if (StreamTcpReassembleHandleSegmentHandleData(ssn, stream, p) != 0) {
             SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
             SCReturnInt(-1);

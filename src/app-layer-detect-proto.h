@@ -44,6 +44,7 @@ typedef struct AlpProtoSignature_ {
     uint16_t proto;                     /**< protocol */
     DetectContentData *co;              /**< content match that needs to match */
     struct AlpProtoSignature_ *next;    /**< next signature */
+    struct AlpProtoSignature_ *map_next;    /**< next signature with same id */
 } AlpProtoSignature;
 
 #define ALP_DETECT_MAX 256

@@ -98,6 +98,7 @@
 #include "app-layer-dcerpc.h"
 #include "app-layer-htp.h"
 #include "app-layer-ftp.h"
+#include "app-layer-ssl.h"
 
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
@@ -695,6 +696,7 @@ int main(int argc, char **argv)
     RegisterSMBParsers();
     RegisterDCERPCParsers();
     RegisterFTPParsers();
+    RegisterSSLParsers();
     AppLayerParsersInitPostProcess();
 
 #ifdef UNITTESTS
@@ -761,6 +763,7 @@ int main(int argc, char **argv)
         UtilActionRegisterTests();
         SCClassConfRegisterTests();
         SCThresholdConfRegisterTests();
+        SSLParserRegisterTests();
 #ifdef __SC_CUDA_SUPPORT__
         SCCudaRegisterTests();
 #endif

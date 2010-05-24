@@ -147,17 +147,28 @@ static void AlpProtoFreeSignature(AlpProtoSignature *s) {
  *
  *  \retval proto the detected proto or ALPROTO_UNKNOWN if no match
  */
-static uint16_t AlpProtoMatchSignature(AlpProtoSignature *s, uint8_t *buf, uint16_t buflen) {
+static uint16_t AlpProtoMatchSignature(AlpProtoSignature *s, uint8_t *buf,
+        uint16_t buflen)
+{
+    SCEnter();
     uint16_t proto = ALPROTO_UNKNOWN;
 
-    if (s->co->offset > buflen)
+    if (s->co->offset > buflen) {
+        SCLogDebug("s->co->offset (%"PRIu16") > buflen (%"PRIu16")",
+                s->co->offset, buflen);
         goto end;
+    }
 
-    if (s->co->depth > buflen)
+    if (s->co->depth > buflen) {
+        SCLogDebug("s->co->depth (%"PRIu16") > buflen (%"PRIu16")",
+                s->co->depth, buflen);
         goto end;
+    }
 
     uint8_t *sbuf = buf + s->co->offset;
     uint16_t sbuflen = s->co->depth - s->co->offset;
+    SCLogDebug("s->co->offset (%"PRIu16") s->co->depth (%"PRIu16")",
+                s->co->offset, s->co->depth);
 
     uint8_t *found = SpmSearch(sbuf, sbuflen, s->co->content, s->co->content_len);
     if (found != NULL) {
@@ -165,7 +176,7 @@ static uint16_t AlpProtoMatchSignature(AlpProtoSignature *s, uint8_t *buf, uint1
     }
 
 end:
-    return proto;
+    SCReturnInt(proto);
 }
 
 /**
@@ -190,6 +201,8 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
     cd->id = DetectContentGetId(ctx->mpm_pattern_id_store, cd);
 
     //PrintRawDataFp(stdout,cd->content,cd->content_len);
+    SCLogDebug("cd->depth %"PRIu16" and cd->offset %"PRIu16" cd->id  %"PRIu32"",
+            cd->depth, cd->offset, cd->id);
 
     AlpProtoDetectDirection *dir;
     if (flags & STREAM_TOCLIENT) {
@@ -199,7 +212,7 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
     }
 
     mpm_table[dir->mpm_ctx.mpm_type].AddPattern(&dir->mpm_ctx, cd->content, cd->content_len,
-                                cd->offset, cd->depth, dir->id, dir->id, 0);
+                                cd->offset, cd->depth, cd->id, cd->id, 0);
     dir->map[dir->id] = al_proto;
     dir->id++;
 
@@ -298,10 +311,18 @@ void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
     memset(ctx->map, 0x00, ctx->sigs * sizeof(AlpProtoSignature *));
 
     AlpProtoSignature *s = ctx->head;
+    AlpProtoSignature *temp = NULL;
     for ( ; s != NULL; s = s->next) {
         BUG_ON(s->co == NULL);
 
-        ctx->map[s->co->id] = s;
+        if (ctx->map[s->co->id] == NULL) {
+            ctx->map[s->co->id] = s;
+        } else {
+            temp = ctx->map[s->co->id];
+            while (temp->map_next != NULL)
+                temp = temp->map_next;
+            temp->map_next = s;
+        }
     }
 }
 
@@ -332,8 +353,8 @@ void AppLayerDetectProtoThreadInit(void) {
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER);
 
     /** SSLv2 */
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SSL, "|01 03 00|", 5, 2, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SSL, "|16 03 00|", 5, 2, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SSL, "|01 00 02|", 5, 2, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SSL, "|00 02|", 7, 5, STREAM_TOCLIENT);
 
     /** SSLv3 */
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 3, 0, STREAM_TOSERVER);
@@ -467,13 +488,24 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
 
     /* We just work with the first match */
     uint16_t patid = tdir->pmq.pattern_id_array[0];
+    SCLogDebug("array count is %"PRIu32" patid %"PRIu16"",
+            tdir->pmq.pattern_id_array_cnt, patid);
 
     AlpProtoSignature *s = ctx->map[patid];
     if (s == NULL) {
         goto end;
     }
+    uint8_t s_cnt = 1;
 
-    proto = AlpProtoMatchSignature(s, buf, buflen);
+    while (proto == ALPROTO_UNKNOWN && s != NULL) {
+        proto = AlpProtoMatchSignature(s, buf, buflen);
+        s = s->map_next;
+        if (s == NULL && s_cnt < tdir->pmq.pattern_id_array_cnt) {
+            patid = tdir->pmq.pattern_id_array[s_cnt];
+            s = ctx->map[patid];
+            s_cnt++;
+        }
+    }
 
 end:
     PmqReset(&tdir->pmq);

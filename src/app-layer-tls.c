@@ -45,8 +45,6 @@
 
 #include "conf.h"
 
-#include "app-layer-tls.h"
-
 #include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -145,6 +143,9 @@ static int TLSParseClientVersion(Flow *f, void *tls_state, AppLayerParserState *
     u16conv = (struct u16conv_ *)input;
 
     switch (ntohs(u16conv->u)) {
+        case 0x0300:
+            state->client_version = SSL_VERSION_3;
+            break;
         case 0x0301:
             state->client_version = TLS_VERSION_10;
             break;
@@ -434,7 +435,20 @@ static int TLSParseServerVersion(Flow *f, void *tls_state, AppLayerParserState *
     } *u16conv;
     u16conv = (struct u16conv_ *)input;
 
-    state->server_version = ntohs(u16conv->u);
+    switch (ntohs(u16conv->u)) {
+        case 0x0300:
+            state->server_version = SSL_VERSION_3;
+            break;
+        case 0x0301:
+            state->server_version = TLS_VERSION_10;
+            break;
+        case 0x0302:
+            state->server_version = TLS_VERSION_11;
+            break;
+        case 0x0303:
+            state->server_version = TLS_VERSION_12;
+            break;
+    }
 
     SCLogDebug("version %04"PRIx16"", state->server_version);
     SCReturnInt(0);
@@ -1174,6 +1188,174 @@ end:
     return result;
 }
 
+/**
+ *  \test   Test the detection of SSLv3 protocol from the given packet
+ */
+static int TLSParserTest07(void) {
+    int result = 1;
+    Flow f;
+    uint8_t tlsbuf[] = { 0x16, 0x03, 0x00, 0x00, 0x6f, 0x01,
+            0x00, 0x00, 0x6b, 0x03, 0x00, 0x4b, 0x2f, 0xdc,
+            0x4e, 0xe6, 0x95, 0xf1, 0xa0, 0xc7, 0xcf, 0x8e,
+            0xf6, 0xeb, 0x22, 0x6d, 0xce, 0x9c, 0x44, 0xfb,
+            0xc8, 0xa0, 0x44, 0x31, 0x15, 0x4c, 0xe9, 0x97,
+            0xa7, 0xa1, 0xfe, 0xea, 0xcc, 0x20, 0x4b, 0x5d,
+            0xfb, 0xa5, 0x63, 0x7a, 0x73, 0x95, 0xf7, 0xff,
+            0x42, 0xac, 0x8f, 0x46, 0xed, 0xe4, 0xb1, 0x35,
+            0x35, 0x78, 0x1a, 0x9d, 0xaf, 0x10, 0xc5, 0x52,
+            0xf3, 0x7b, 0xfb, 0xb5, 0xe9, 0xa8, 0x00, 0x24,
+            0x00, 0x88, 0x00, 0x87, 0x00, 0x39, 0x00, 0x38,
+            0x00, 0x84, 0x00, 0x35, 0x00, 0x45, 0x00, 0x44,
+            0x00, 0x33, 0x00, 0x32, 0x00, 0x96, 0x00, 0x41,
+            0x00, 0x2f, 0x00, 0x16, 0x00, 0x13, 0xfe, 0xff,
+            0x00, 0x0a, 0x00, 0x02, 0x01, 0x00 };
+    uint32_t tlslen = sizeof(tlsbuf);
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
+
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (tls_state == NULL) {
+        printf("no tls state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (tls_state->client_content_type != 0x16) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
+                tls_state->client_content_type);
+        result = 0;
+        goto end;
+    }
+
+    if (tls_state->client_version != SSL_VERSION_3) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                SSL_VERSION_3, tls_state->client_version);
+        result = 0;
+        goto end;
+    }
+
+end:
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
+/** \test   Test the setting up of no reassembly and no payload inspection flag
+ *          after detection of the SSLv3 handshake completion */
+static int TLSParserTest08(void) {
+    int result = 1;
+    Flow f;
+    uint8_t tlsbuf[] = { 0x16, 0x03, 0x00, 0x00, 0x01 };
+    uint32_t tlslen = sizeof(tlsbuf);
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    StreamL7DataPtrInit(&ssn);
+
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x14;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x14;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x17;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (tls_state == NULL) {
+        printf("no tls state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (tls_state->client_content_type != 0x17) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
+                tls_state->client_content_type);
+        result = 0;
+        goto end;
+    }
+
+    if (tls_state->client_version != SSL_VERSION_3) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                SSL_VERSION_3, tls_state->client_version);
+        result = 0;
+        goto end;
+    }
+
+    uint16_t app_layer_sid = AppLayerParserGetStorageId();
+    AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
+                                                    ssn.aldata[app_layer_sid];
+    AppLayerParserState *parser_state = &parser_state_store->to_server;
+
+    if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
+            !(ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) &&
+            !(ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+        printf("The flags should be set\n");
+        result = 0;
+        goto end;
+    }
+
+    if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION)) {
+        printf("The flags should be set\n");
+        result = 0;
+        goto end;
+    }
+
+end:
+    StreamL7DataPtrFree(&ssn);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void TLSParserRegisterTests(void) {
@@ -1184,6 +1366,8 @@ void TLSParserRegisterTests(void) {
     UtRegisterTest("TLSParserTest04", TLSParserTest04, 1);
     UtRegisterTest("TLSParserTest05", TLSParserTest05, 1);
     UtRegisterTest("TLSParserTest06", TLSParserTest06, 1);
+    UtRegisterTest("TLSParserTest07", TLSParserTest07, 1);
+    UtRegisterTest("TLSParserTest08", TLSParserTest08, 1);
 
     UtRegisterTest("TLSParserMultimsgTest01", TLSParserMultimsgTest01, 1);
     UtRegisterTest("TLSParserMultimsgTest02", TLSParserMultimsgTest02, 1);

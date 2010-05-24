@@ -58,11 +58,12 @@ typedef struct TlsState_ {
 } TlsState;
 
 enum {
-    TLS_VERSION_INVALID = 0,
-    TLS_VERSION_VALID,
-    TLS_VERSION_10,
-    TLS_VERSION_11,
-    TLS_VERSION_12,
+    TLS_VERSION_INVALID = 0x0000,
+    TLS_VERSION_VALID = 0x0001,
+    SSL_VERSION_3 = 0x0300,
+    TLS_VERSION_10 = 0x0301,
+    TLS_VERSION_11 = 0x0302,
+    TLS_VERSION_12 = 0x0303,
 };
 
 void RegisterTLSParsers(void);

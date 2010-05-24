@@ -287,7 +287,7 @@ uint32_t ContentHashFunc(HashTable *ht, void *data, uint16_t datalen) {
          hash += co->content[i];
      }
      hash = hash % ht->array_size;
-//printf("hash %" PRIu32 "\n", hash);
+     SCLogDebug("hash %" PRIu32 "", hash);
      return hash;
 }
 
