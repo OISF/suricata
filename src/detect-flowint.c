@@ -1371,7 +1371,6 @@ int DetectFlowintTestPacket01Real()
 
     Packet p;
     DecodeThreadVars dtv;
-
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
@@ -1403,7 +1402,6 @@ int DetectFlowintTestPacket01Real()
     de_ctx->sig_list->next->next->next->next->next = NULL;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v,(void *) de_ctx,(void *) &det_ctx);
 
     /* Get the idx of the vars we are going to track */
@@ -1453,7 +1451,6 @@ int DetectFlowintTestPacket01Real()
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v,(void *) det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
 
@@ -1466,7 +1463,6 @@ end:
     }
     if (det_ctx)
         DetectEngineThreadCtxDeinit(&th_v,(void *) det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     if (de_ctx)
         DetectEngineCtxFree(de_ctx);
 

@@ -49,15 +49,14 @@ SigMatch *SigMatchGetLastSM(SigMatch *, uint8_t);
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);
-void SigMatchAppendUricontent(Signature *, SigMatch *);
 
 void SigMatchReplace(Signature *, SigMatch *, SigMatch *);
 void SigMatchReplaceContent(Signature *, SigMatch *, SigMatch *);
 
 void SigMatchAppendPayload(Signature *, SigMatch *);
 void SigMatchAppendPacket(Signature *, SigMatch *);
-/** for now we have one list for app layer and packet matches */
-#define SigMatchAppendAppLayer SigMatchAppendPacket
+void SigMatchAppendUricontent(Signature *, SigMatch *);
+void SigMatchAppendAppLayer(Signature *, SigMatch *);
 
 #endif /* __DETECT_PARSE_H__ */
 

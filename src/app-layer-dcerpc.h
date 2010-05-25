@@ -32,7 +32,7 @@
 #include "util-byte.h"
 
 typedef struct DCERPCState_ {
-     DCERPC dcerpc;
+    DCERPC dcerpc;
 } DCERPCState;
 
 void RegisterDCERPCParsers(void);

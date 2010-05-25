@@ -44,6 +44,7 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-uri.h"
+#include "detect-engine-state.h"
 
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"
@@ -605,6 +606,19 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SCLogDebug("no uri inspection: have uri %s", det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT ? "true":"false");
     }
 
+    /* stateful app layer detection */
+    char de_state_start = FALSE;
+    memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
+    if (p->flow != NULL) {
+        if (DeStateFlowHasState(p->flow)) {
+            DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow, flags, alstate, alproto);
+        } else {
+            de_state_start = TRUE;
+        }
+    } else {
+        de_state_start = TRUE;
+    }
+
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->sgh->sig_cnt; idx++) {
     //for (idx = 0; idx < det_ctx->pmq.sig_id_array_cnt; idx++) {
@@ -700,6 +714,21 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (s->umatch != NULL) {
             if (DetectEngineInspectPacketUris(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
                 goto next;
+        }
+
+        SCLogDebug("s->amatch %p", s->amatch);
+        if (s->amatch != NULL && p->flow != NULL) {
+            if (de_state_start == TRUE) {
+                SCLogDebug("stateful app layer match inspection starting");
+                if (DeStateDetectStartDetection(th_v, det_ctx, s, p->flow, flags, alstate, alproto) != 1)
+                    continue;
+            } else {
+                SCLogDebug("signature %"PRIu32" (%"PRIuMAX"): %s",
+                        s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
+                if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
+                    continue;
+                }
+            }
         }
 
         /* if we get here but have no sigmatches to match against,
@@ -803,6 +832,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
     next:
         RULE_PROFILING_END(s, match);
+    }
+
+    if (p->flow != NULL) {
+        SCLogDebug("getting de_state_status");
+        int de_state_status = DeStateUpdateInspectTransactionId(p->flow);
+        SCLogDebug("de_state_status %d", de_state_status);
+        if (de_state_status == 2) {
+            DetectEngineStateReset(p->flow->de_state);
+        }
     }
 
 end:
@@ -948,6 +986,9 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
         return 0;
 
     if (s->umatch != NULL)
+        return 0;
+
+    if (s->amatch != NULL)
         return 0;
 
     SigMatch *sm = s->match;
@@ -2289,7 +2330,6 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                                         de_ctx->mpm_uri_reuse++;
                                     }
                                 }
-
                                 /* init the pattern matcher, this will respect the copy
                                  * setting */
                                 if (PatternMatchPrepareGroup(de_ctx, dp->sh) < 0) {
@@ -2952,6 +2992,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
 //    DetectAddressPrintMemory();
 //    DetectSigGroupPrintMemory();
 //    DetectPortPrintMemory();
+
     return 0;
 }
 

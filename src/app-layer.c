@@ -116,6 +116,8 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
     uint16_t alproto = ALPROTO_UNKNOWN;
     int r = 0;
 
+    SCLogDebug("smsg %p", smsg);
+
     TcpSession *ssn = smsg->flow->protoctx;
     if (ssn != NULL) {
         alproto = ssn->alproto;

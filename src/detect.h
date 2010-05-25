@@ -253,6 +253,8 @@ typedef struct Signature_ {
     struct SigMatch_ *pmatch_tail; /* payload matches, tail of the list */
     struct SigMatch_ *umatch; /* uricontent payload matches */
     struct SigMatch_ *umatch_tail; /* uricontent payload matches, tail of the list */
+    struct SigMatch_ *amatch; /* general app layer matches */
+    struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */
     /** ptr to the next sig in the list */
     struct Signature_ *next;
 
@@ -477,6 +479,11 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /* http_uri stuff for uricontent */
     char de_have_httpuri;
+
+
+    /** Array of sigs that had a state change */
+    uint8_t *de_state_sig_array;
+    SigIntId de_state_sig_array_len;
 
     /** pointer to the current mpm ctx that is stored
      *  in a rule group head -- can be either a content

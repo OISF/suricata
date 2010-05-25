@@ -120,6 +120,7 @@ static void AlpProtoAddSignature(AlpProtoDetectCtx *ctx, DetectContentData *co, 
     ctx->sigs++;
 }
 
+#ifdef UNITTESTS
 /** \brief free a AlpProtoSignature, recursively free any next sig */
 static void AlpProtoFreeSignature(AlpProtoSignature *s) {
     if (s == NULL)
@@ -135,6 +136,7 @@ static void AlpProtoFreeSignature(AlpProtoSignature *s) {
 
     AlpProtoFreeSignature(next_s);
 }
+#endif
 
 /**
  *  \brief Match a AlpProtoSignature against a buffer
@@ -213,11 +215,13 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
     AlpProtoAddSignature(ctx, cd, al_proto);
 }
 
+#ifdef UNITTESTS
 static void AlpProtoTestDestroy(AlpProtoDetectCtx *ctx) {
     mpm_table[ctx->toserver.mpm_ctx.mpm_type].DestroyCtx(&ctx->toserver.mpm_ctx);
     mpm_table[ctx->toclient.mpm_ctx.mpm_type].DestroyCtx(&ctx->toclient.mpm_ctx);
     AlpProtoFreeSignature(ctx->head);
 }
+#endif
 
 void AlpProtoDestroy() {
     SCEnter();

@@ -121,7 +121,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     htp_tx_t *tx = NULL;
 
-    for (idx = htp_state->new_in_tx_index;
+    for (idx = 0;//htp_state->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);
@@ -346,7 +346,7 @@ int DetectHttpCookieTest03(void)
     }
 
     result = 0;
-    sm = de_ctx->sig_list->match;
+    sm = de_ctx->sig_list->amatch;
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;
@@ -439,9 +439,9 @@ int DetectHttpCookieTest06(void)
 
     Signature *s = de_ctx->sig_list;
 
-    BUG_ON(s->match == NULL);
+    BUG_ON(s->amatch == NULL);
 
-    if (s->match->type != DETECT_AL_HTTP_COOKIE)
+    if (s->amatch->type != DETECT_AL_HTTP_COOKIE)
         goto end;
 
     if (s->umatch == NULL) {
@@ -976,9 +976,10 @@ static int DetectHttpCookieSigTest06(void) {
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:dummy; "
+                                   "\"HTTP cookie\"; content:\"dummy\"; "
                                    "http_cookie; nocase; sid:1;)");
     if (s == NULL) {
+        printf("sig parse failed: ");
         goto end;
     }
 
@@ -988,14 +989,12 @@ static int DetectHttpCookieSigTest06(void) {
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         goto end;
     }
 
     http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -1003,6 +1002,7 @@ static int DetectHttpCookieSigTest06(void) {
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 failed to match: ");
         goto end;
     }
 

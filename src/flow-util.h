@@ -41,6 +41,8 @@
     (f)->flowvar = NULL; \
     (f)->protoctx = NULL; \
     (f)->use_cnt = 0; \
+    DetectEngineStateFree((f)->de_state); \
+    (f)->de_state = NULL; \
 }
 
 Flow *FlowAlloc(void);

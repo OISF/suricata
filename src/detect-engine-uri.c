@@ -293,7 +293,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     size_t idx = 0;
     htp_tx_t *tx = NULL;
 
-    for (idx = htp_state->new_in_tx_index;
+    for (idx = 0;//htp_state->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);

@@ -50,6 +50,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine-payload.h"
+#include "detect-engine-state.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
@@ -766,6 +767,7 @@ int main(int argc, char **argv)
 #ifdef PROFILING
         SCProfilingRegisterTests();
 #endif
+        DeStateRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

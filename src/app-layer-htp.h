@@ -47,7 +47,6 @@
                                                  a new HTTP requesta and we
                                                  need to log it */
 
-
 enum {
     HTP_BODY_NONE,                      /**< Flag to indicate the current
                                              operation */
@@ -88,9 +87,11 @@ typedef struct HtpState_ {
     htp_connp_t *connp;     /**< Connection parser structure for
                                  each connection */
     HtpBody body;           /**< Body of the request (if any) */
-    size_t new_in_tx_index; /**< Index to indicate that after this we have
-                                 new requests to log */
+//    size_t new_in_tx_index; /**< Index to indicate that after this we have
+//                                 new requests to log */
     uint8_t flags;
+    uint16_t transaction_cnt;
+    uint16_t transaction_done;
 } HtpState;
 
 void RegisterHTPParsers(void);

@@ -577,6 +577,21 @@ void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
     al_proto_table[proto].StateFree = StateFree;
 }
 
+void AppLayerRegisterTransactionIdFuncs(uint16_t proto,
+        void (*StateUpdateTransactionId)(void *state, uint16_t *), void (*StateTransactionFree)(void *, uint16_t))
+{
+    al_proto_table[proto].StateUpdateTransactionId = StateUpdateTransactionId;
+    al_proto_table[proto].StateTransactionFree = StateTransactionFree;
+}
+
+/** \brief Indicate to the app layer parser that a logger is active
+ *         for this protocol.
+ */
+void AppLayerRegisterLogger(uint16_t proto) {
+    al_proto_table[proto].logger = TRUE;
+}
+
+
 uint16_t AlpGetStateIdx(uint16_t proto)
 {
     return al_proto_table[proto].storage_id;
@@ -590,6 +605,10 @@ AppLayerParserStateStore *AppLayerParserStateStoreAlloc(void)
         return NULL;
 
     memset(s, 0, sizeof(AppLayerParserStateStore));
+
+    /* when we start, we're working with transaction id 1 */
+    s->avail_id = 1;
+
     return s;
 }
 
@@ -687,6 +706,43 @@ static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *
 
     AppLayerParserResultCleanup(&result);
     SCReturnInt(retval);
+}
+
+/** \brief remove obsolete (inspected and logged) transactions */
+static int AppLayerTransactionsCleanup(AppLayerProto *p, AppLayerParserStateStore *parser_state_store, void *app_layer_state) {
+    SCEnter();
+
+    uint16_t obsolete = 0;
+
+    if (p->StateTransactionFree == NULL) {
+        SCLogDebug("no StateTransactionFree function");
+        goto end;
+    }
+
+    if (p->logger == TRUE) {
+        uint16_t low = (parser_state_store->logged_id < parser_state_store->inspect_id) ?
+            parser_state_store->logged_id : parser_state_store->inspect_id;
+
+        obsolete = low - parser_state_store->base_id;
+
+        SCLogDebug("low %"PRIu16" (logged %"PRIu16", inspect %"PRIu16"), base_id %"PRIu16", obsolete %"PRIu16", avail_id %"PRIu16,
+                low, parser_state_store->logged_id, parser_state_store->inspect_id, parser_state_store->base_id, obsolete, parser_state_store->avail_id);
+    } else {
+        obsolete = parser_state_store->inspect_id - parser_state_store->base_id;
+    }
+
+    SCLogDebug("obsolete transactions: %"PRIu16, obsolete);
+
+    /* call the callback on the obsolete transactions */
+    while ((obsolete--)) {
+        p->StateTransactionFree(app_layer_state, parser_state_store->base_id);
+        parser_state_store->base_id++;
+    }
+
+    SCLogDebug("base_id %"PRIu16, parser_state_store->base_id);
+
+end:
+    SCReturnInt(0);
 }
 
 /**
@@ -793,16 +849,20 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         }
 
         ssn->aldata[p->storage_id] = app_layer_state;
-        SCLogDebug("alloced new app layer state %p (p->storage_id %u, name %s)", app_layer_state, p->storage_id, al_proto_table[ssn->alproto].name);
+        SCLogDebug("alloced new app layer state %p (p->storage_id %u, name %s)",
+                app_layer_state, p->storage_id, al_proto_table[ssn->alproto].name);
     } else {
-        SCLogDebug("using existing app layer state %p (p->storage_id %u, name %s))", app_layer_state, p->storage_id, al_proto_table[ssn->alproto].name);
+        SCLogDebug("using existing app layer state %p (p->storage_id %u, name %s))",
+                app_layer_state, p->storage_id, al_proto_table[ssn->alproto].name);
     }
 
-    /* invoke the recursive parser */
-    int r = AppLayerDoParse(f, app_layer_state, parser_state, input, input_len,
-                            parser_idx, proto);
-    if (r < 0)
-        goto error;
+    /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
+    if (input_len > 0) {
+        int r = AppLayerDoParse(f, app_layer_state, parser_state, input, input_len,
+                parser_idx, proto);
+        if (r < 0)
+            goto error;
+    }
 
     /* set the packets to no inspection and reassembly for the TLS sessions */
     if (parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) {
@@ -815,6 +875,18 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
             StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                flags & STREAM_TOSERVER ? 1 : 0);
         }
+    }
+
+    /* update the transaction id */
+    if (p->StateUpdateTransactionId != NULL) {
+        p->StateUpdateTransactionId(app_layer_state, &parser_state_store->avail_id);
+
+        /* next, see if we can get rid of transactions now */
+        AppLayerTransactionsCleanup(p, parser_state_store, app_layer_state);
+    }
+    if (parser_state->flags & APP_LAYER_PARSER_EOF) {
+        SCLogDebug("eof, flag Transaction id's");
+        parser_state_store->id_flags |= APP_LAYER_TRANSACTION_EOF;
     }
 
     SCReturnInt(0);
@@ -855,6 +927,207 @@ error:
     }
 
     SCReturnInt(-1);
+}
+
+/** \brief get the base transaction id */
+int AppLayerTransactionGetBaseId(Flow *f) {
+    SCEnter();
+
+    if (f->proto != IPPROTO_TCP) {
+        SCLogDebug("no TCP");
+        goto error;
+    }
+
+    TcpSession *ssn = f->protoctx;
+    if (ssn == NULL) {
+        SCLogDebug("no TCP session");
+        goto error;
+    }
+
+    /* Get the parser state (if any) */
+    if (ssn->aldata == NULL) {
+        SCLogDebug("no aldata");
+        goto error;
+    }
+
+    AppLayerParserStateStore *parser_state_store = parser_state_store = (AppLayerParserStateStore *)ssn->aldata[app_layer_sid];
+    if (parser_state_store == NULL) {
+        SCLogDebug("no state store");
+        goto error;
+    }
+
+    SCReturnInt((int)parser_state_store->base_id);
+
+error:
+    SCReturnInt(-1);
+}
+
+/** \brief get the highest loggable transaction id */
+int AppLayerTransactionGetLoggableId(Flow *f) {
+    SCEnter();
+
+    if (f->proto != IPPROTO_TCP) {
+        SCLogDebug("no TCP");
+        goto error;
+    }
+
+    TcpSession *ssn = f->protoctx;
+    if (ssn == NULL) {
+        SCLogDebug("no TCP session");
+        goto error;
+    }
+
+    /* Get the parser state (if any) */
+    if (ssn->aldata == NULL) {
+        SCLogDebug("no aldata");
+        goto error;
+    }
+
+    AppLayerParserStateStore *parser_state_store = parser_state_store = (AppLayerParserStateStore *)ssn->aldata[app_layer_sid];
+    if (parser_state_store == NULL) {
+        SCLogDebug("no state store");
+        goto error;
+    }
+
+    int id = 0;
+
+    if (parser_state_store->id_flags & APP_LAYER_TRANSACTION_EOF) {
+        SCLogDebug("eof, return current transaction as well");
+        id = (int)(parser_state_store->avail_id);
+    } else {
+        id = (int)(parser_state_store->avail_id - 1);
+    }
+
+    SCReturnInt(id);
+
+error:
+    SCReturnInt(-1);
+}
+
+/** \brief get the highest loggable transaction id */
+void AppLayerTransactionUpdateLoggedId(Flow *f) {
+    SCEnter();
+
+    if (f->proto != IPPROTO_TCP) {
+        SCLogDebug("no TCP");
+        goto error;
+    }
+
+    TcpSession *ssn = f->protoctx;
+    if (ssn == NULL) {
+        SCLogDebug("no TCP session");
+        goto error;
+    }
+
+    /* Get the parser state (if any) */
+    if (ssn->aldata == NULL) {
+        SCLogDebug("no aldata");
+        goto error;
+    }
+
+    AppLayerParserStateStore *parser_state_store = parser_state_store = (AppLayerParserStateStore *)ssn->aldata[app_layer_sid];
+    if (parser_state_store == NULL) {
+        SCLogDebug("no state store");
+        goto error;
+    }
+
+    parser_state_store->logged_id++;
+    SCReturn;
+
+error:
+    SCReturn;
+}
+/** \brief get the highest loggable transaction id */
+int AppLayerTransactionGetLoggedId(Flow *f) {
+    SCEnter();
+
+    if (f->proto != IPPROTO_TCP) {
+        SCLogDebug("no TCP");
+        goto error;
+    }
+
+    TcpSession *ssn = f->protoctx;
+    if (ssn == NULL) {
+        SCLogDebug("no TCP session");
+        goto error;
+    }
+
+    /* Get the parser state (if any) */
+    if (ssn->aldata == NULL) {
+        SCLogDebug("no aldata");
+        goto error;
+    }
+
+    AppLayerParserStateStore *parser_state_store = parser_state_store = (AppLayerParserStateStore *)ssn->aldata[app_layer_sid];
+    if (parser_state_store == NULL) {
+        SCLogDebug("no state store");
+        goto error;
+    }
+
+    SCReturnInt((int)parser_state_store->logged_id);
+
+error:
+    SCReturnInt(-1);
+}
+
+/**
+ *  \param f LOCKED flow
+ *  \retval 2 current transaction done, new available
+ *  \retval 1 current transaction done, no new (yet)
+ *  \retval 0 current transaction is not done yet
+ */
+int AppLayerTransactionUpdateInspectId(Flow *f)
+{
+    SCEnter();
+
+    int r = 0;
+
+    if (f->proto != IPPROTO_TCP) {
+        SCLogDebug("no TCP flow");
+        goto end;
+    }
+
+    TcpSession *ssn = f->protoctx;
+    if (ssn == NULL) {
+        SCLogDebug("no TCP session");
+        goto end;
+    }
+
+    /* Get the parser state (if any) */
+    AppLayerParserStateStore *parser_state_store = NULL;
+
+    if (ssn->aldata != NULL) {
+        parser_state_store = (AppLayerParserStateStore *)
+                                                    ssn->aldata[app_layer_sid];
+        if (parser_state_store != NULL) {
+            /* update inspect_id and see if it there are other transactions
+             * as well */
+
+            SCLogDebug("avail_id %"PRIu16", inspect_id %"PRIu16,
+                    parser_state_store->avail_id, parser_state_store->inspect_id);
+
+            if ((parser_state_store->inspect_id+1) < parser_state_store->avail_id) {
+                parser_state_store->inspect_id++;
+                if (parser_state_store->inspect_id < parser_state_store->avail_id) {
+                    /* done and more transactions available */
+                    r = 2;
+
+                    SCLogDebug("inspect_id %"PRIu16", avail_id %"PRIu16,
+                            parser_state_store->inspect_id,
+                            parser_state_store->avail_id);
+                } else {
+                    /* done but no more transactions available */
+                    r = 1;
+
+                    SCLogDebug("inspect_id %"PRIu16", avail_id %"PRIu16,
+                            parser_state_store->inspect_id,
+                            parser_state_store->avail_id);
+                }
+            }
+        }
+    }
+end:
+    SCReturnInt(r);
 }
 
 void RegisterAppLayerParsers(void)

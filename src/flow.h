@@ -133,6 +133,9 @@ typedef struct Flow_
     /** how many pkts and stream msgs are using the flow *right now* */
     uint16_t use_cnt;
 
+    /** detection engine state */
+    struct DetectEngineState_ *de_state;
+
     SCMutex m;
 
     /* list flow ptrs

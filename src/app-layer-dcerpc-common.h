@@ -35,25 +35,25 @@ void DCERPCParserTests(void);
 void DCERPCParserRegisterTests(void);
 
 // http://www.opengroup.org/onlinepubs/9629399/chap12.htm#tagcjh_17_06
-#define REQUEST 0
-#define PING    1
-#define RESPONSE 2
-#define FAULT   3
-#define WORKING 4
-#define NOCALL  5
-#define REJECT  6
-#define ACK     7
-#define CL_CANCEL   8
-#define FACK 9
-#define CANCEL_ACK 10
-#define BIND 11
-#define BIND_ACK 12
-#define BIND_NAK 13
-#define ALTER_CONTEXT 14
-#define ALTER_CONTEXT_RESP 15
-#define SHUTDOWN 17
-#define CO_CANCEL 18
-#define ORPHANED 19
+#define REQUEST             0
+#define PING                1
+#define RESPONSE            2
+#define FAULT               3
+#define WORKING             4
+#define NOCALL              5
+#define REJECT              6
+#define ACK                 7
+#define CL_CANCEL           8
+#define FACK                9
+#define CANCEL_ACK          10
+#define BIND                11
+#define BIND_ACK            12
+#define BIND_NAK            13
+#define ALTER_CONTEXT       14
+#define ALTER_CONTEXT_RESP  15
+#define SHUTDOWN            17
+#define CO_CANCEL           18
+#define ORPHANED            19
 #if 0
 typedef struct {
     uint8_t rpc_vers; /* 4 RPC protocol major version (4 LSB only)*/
@@ -78,21 +78,21 @@ typedef struct {
 } dc_rpc_cl_pkt_hdr_t;
 #endif
 
-#define RESERVED_01 0x01
-#define LASTFRAG 0x02
-#define FRAG 0x04
-#define NOFACK 0x08
-#define MAYBE 0x10
-#define IDEMPOTENT 0x20
-#define BROADCAST 0x40
-#define RESERVED_80 0x80
+#define RESERVED_01     0x01
+#define LASTFRAG        0x02
+#define FRAG            0x04
+#define NOFACK          0x08
+#define MAYBE           0x10
+#define IDEMPOTENT      0x20
+#define BROADCAST       0x40
+#define RESERVED_80     0x80
 
-#define CANCEL_PENDING 0x02
-#define RESERVED_04 0x04
-#define RESERVED_10 0x10
-#define RESERVED_20 0x20
-#define RESERVED_40 0x40
-#define RESERVED_80 0x80
+#define CANCEL_PENDING  0x02
+#define RESERVED_04     0x04
+#define RESERVED_10     0x10
+#define RESERVED_20     0x20
+#define RESERVED_40     0x40
+#define RESERVED_80     0x80
 
 typedef struct DCERPCHdr_ {
     uint8_t rpc_vers;       /**< 00:01 RPC version should be 5 */
@@ -136,14 +136,14 @@ typedef struct DCERPCRequest_ {
     uint8_t *stub_data;
 } DCERPCRequest;
 
-
 typedef struct DCERPC_ {
-	DCERPCHdr dcerpchdr;
-	DCERPCBindBindAck dcerpcbindbindack;
-	DCERPCRequest dcerpcrequest;
-	uint16_t bytesprocessed;
-	uint8_t pad;
-	uint8_t padleft;
+    DCERPCHdr dcerpchdr;
+    DCERPCBindBindAck dcerpcbindbindack;
+    DCERPCRequest dcerpcrequest;
+    uint16_t bytesprocessed;
+    uint8_t pad;
+    uint8_t padleft;
+    uint16_t transaction_id;
 } DCERPC;
 
 
@@ -175,7 +175,7 @@ typedef struct DCERPC_ {
 #define USER_DATA_NOT_READABLE          6 /* not used */
 #define NO_PSAP_AVAILABLE               7 /* not used */
 
-int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len);
+int32_t DCERPCParser(DCERPC *, uint8_t *, uint32_t);
 void hexdump(Flow *f, const void *buf, size_t len);
 void printUUID(char *type, DCERPCUuidEntry *uuid);
 

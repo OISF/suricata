@@ -34,6 +34,9 @@
 #include "util-var.h"
 #include "util-debug.h"
 
+#include "detect.h"
+#include "detect-engine-state.h"
+
 /* Allocate a flow */
 Flow *FlowAlloc(void)
 {
@@ -59,6 +62,7 @@ Flow *FlowAlloc(void)
     f->hprev = NULL;
 
     f->flowvar = NULL;
+    f->de_state = NULL;
 
     return f;
 }

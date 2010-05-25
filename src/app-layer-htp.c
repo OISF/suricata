@@ -156,6 +156,7 @@ static void *HTPStateAlloc(void)
     htp_state_memuse += sizeof(HtpState);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
+
     SCReturnPtr((void *)s, "void");
 
 error:
@@ -199,14 +200,56 @@ void HTPStateFree(void *state)
 }
 
 /**
+ *  \brief Update the transaction id based on the http state
+ */
+void HTPStateUpdateTransactionId(void *state, uint16_t *id) {
+    SCEnter();
+
+    HtpState *s = (HtpState *)state;
+
+    SCLogDebug("original id %"PRIu16", s->transaction_cnt+1 %"PRIu16,
+            *id, (s->transaction_cnt+1));
+
+    if ((s->transaction_cnt+1) > (*id)) {
+        SCLogDebug("original id %"PRIu16", updating with s->transaction_cnt+1 %"PRIu16,
+                *id, (s->transaction_cnt+1));
+
+        (*id) = (s->transaction_cnt+1);
+
+        SCLogDebug("updated id %"PRIu16, *id);
+    }
+
+    SCReturn;
+}
+
+/**
+ *  \brief HTP transaction cleanup callback
+ *
+ *  \warning We cannot actually free the transactions here. It seems that
+ *           HTP only accepts freeing of transactions in the response callback.
+ */
+void HTPStateTransactionFree(void *state, uint16_t id) {
+    SCEnter();
+
+    HtpState *s = (HtpState *)state;
+
+    s->transaction_done = id;
+    SCLogDebug("state %p, id %"PRIu16, s, id);
+
+    /* we can't remove the actual transactions here */
+
+    SCReturn;
+}
+
+/**
  * \brief Sets a flag that informs the HTP app layer that some module in the
  *        engine needs the http request body data.
  */
 void AppLayerHtpEnableRequestBodyCallback(void)
 {
+    SCEnter();
     need_htp_request_body = 1;
-
-    return;
+    SCReturn;
 }
 
 
@@ -247,7 +290,20 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     SCEnter();
     int r = -1;
     int ret = 1;
+
     HtpState *hstate = (HtpState *)htp_state;
+
+    /* if the previous run set the new request flag, we unset it here. As
+     * we're here after a new request completed, we know it's a new
+     * transaction. So we set the new transaction flag. */
+    if (hstate->flags & HTP_FLAG_NEW_REQUEST) {
+        hstate->flags &=~ HTP_FLAG_NEW_REQUEST;
+
+        /* new transaction */
+        hstate->transaction_cnt++;
+        SCLogDebug("transaction_cnt %"PRIu16", list_size %"PRIuMAX, hstate->transaction_cnt,
+                (uintmax_t)list_size(hstate->connp->conn->transactions));
+    }
 
     /* On the first invocation, create the connection parser structure to
      * be used by HTP library.  This is looked up via IP in the radix
@@ -307,7 +363,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
-    hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
+    hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
     /* Open the HTTP connection on receiving the first request */
     if (!(hstate->flags & HTP_FLAG_STATE_OPEN)) {
@@ -319,6 +375,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         SCLogDebug("using existing htp handle at %p", hstate->connp);
     }
 
+    /* pass the new data to the htp parser */
     r = htp_connp_req_data(hstate->connp, 0, input, input_len);
 
     switch(r) {
@@ -352,7 +409,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         default:
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
-     }
+    }
 
     /* if the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
@@ -406,7 +463,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
-    hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
+    hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
     r = htp_connp_res_data(hstate->connp, 0, input, input_len);
     switch(r) {
@@ -683,10 +740,11 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
     if (hstate == NULL) {
         SCReturnInt(HOOK_ERROR);
     }
-    if (! (hstate->flags & HTP_FLAG_NEW_REQUEST)) {
-        hstate->flags |= HTP_FLAG_NEW_REQUEST;
-        hstate->new_in_tx_index = list_size(hstate->connp->conn->transactions) - 1;
-    }
+
+    hstate->flags |= HTP_FLAG_NEW_REQUEST;
+
+    SCLogDebug("HTTP request completed");
+
     SCReturnInt(HOOK_OK);
 }
 
@@ -698,8 +756,6 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
  */
 static int HTPCallbackResponse(htp_connp_t *connp) {
     SCEnter();
-
-    size_t idx;
 
     HtpState *hstate = (HtpState *)connp->user_data;
     if (hstate == NULL) {
@@ -713,12 +769,14 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     hstate->body.operation = HTP_BODY_RESPONSE;
     hstate->body.pcre_flags = HTP_PCRE_NONE;
 
-    /* Clear the transactions which are processed by the engine from libhtp.
-       This helps in reducing the memory consumptions of libhtp */
-    for (idx = 0; idx < hstate->new_in_tx_index; idx++) {
+    /* remove obsolete transactions */
+    size_t idx;
+    for (idx = 0; idx < hstate->transaction_done; idx++) {
         htp_tx_t *tx = list_get(hstate->connp->conn->transactions, idx);
-        if (tx != NULL)
-            htp_tx_destroy(tx);
+        if (tx == NULL)
+            continue;
+
+        htp_tx_destroy(tx);
     }
 
     SCReturnInt(HOOK_OK);
@@ -731,6 +789,7 @@ static void HTPConfigure(void)
     ConfNode *server_config;
 
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
+    AppLayerRegisterTransactionIdFuncs(ALPROTO_HTTP, HTPStateUpdateTransactionId, HTPStateTransactionFree);
 
     cfglist.next = NULL;
 

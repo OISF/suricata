@@ -455,6 +455,17 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     /* IP-ONLY */
     DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
 
+    /* DeState */
+    if (de_ctx->sig_array_len > 0) {
+        det_ctx->de_state_sig_array_len = de_ctx->sig_array_len;
+        det_ctx->de_state_sig_array = SCMalloc(det_ctx->de_state_sig_array_len * sizeof(uint8_t));
+        if (det_ctx->de_state_sig_array == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "malloc of %"PRIuMAX" failed: %s",
+                    (uintmax_t)(det_ctx->de_state_sig_array_len * sizeof(uint8_t)), strerror(errno));
+            return TM_ECODE_FAILED;
+        }
+    }
+
     /** alert counter setup */
     det_ctx->counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
                                                       SC_PERF_TYPE_UINT64, "NULL");

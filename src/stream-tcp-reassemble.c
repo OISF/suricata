@@ -1263,12 +1263,16 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
                               StreamMsg *smsg)
 {
     SCEnter();
+
+    smsg->flags = 0;
+
     if (stream->ra_base_seq == stream->isn) {
+        SCLogDebug("setting STREAM_START");
         smsg->flags = STREAM_START;
-    } else if (ssn->state > TCP_ESTABLISHED) {
+    }
+    if (ssn->state > TCP_ESTABLISHED) {
+        SCLogDebug("setting STREAM_EOF");
         smsg->flags = STREAM_EOF;
-    } else {
-        smsg->flags = 0;
     }
 
     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -1294,6 +1298,8 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
     if (smsg->flow != NULL) {
         smsg->flow->use_cnt++;
     }
+
+    SCLogDebug("smsg %p", smsg);
     SCReturn;
 }
 
@@ -1402,7 +1408,20 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
     SCEnter();
 
     if (stream->seg_list == NULL) {
-        SCLogDebug("no segments in the list to reassemble !!");
+        /* send an empty EOF msg if we have no segments but TCP state
+         * is beyond ESTABLISHED */
+        if (ssn->state > TCP_ESTABLISHED) {
+            StreamMsg *smsg = StreamMsgGetFromPool();
+            if (smsg == NULL) {
+                SCLogDebug("stream_msg_pool is empty");
+                SCReturnInt(-1);
+            }
+            StreamTcpSetupMsg(ssn, stream, p, smsg);
+            StreamMsgPutInQueue(ra_ctx->stream_q,smsg);
+        } else {
+            SCLogDebug("no segments in the list to reassemble !!");
+        }
+
         SCReturnInt(0);
     }
 

@@ -132,8 +132,30 @@ SigTableElmt *SigTableGet(char *name) {
 }
 
 /**
- * \brief SigMatchAppendUricontent, append a SigMatch of type uricontent
- *        to the Signature structure
+ * \brief append a app layer SigMatch to the Signature structure
+ * \param s pointer to the Signature
+ * \param new pointer to the SigMatch of type uricontent to be appended
+ */
+void SigMatchAppendAppLayer(Signature *s, SigMatch *new) {
+    if (s->amatch == NULL) {
+        s->amatch = new;
+        s->amatch_tail = new;
+        new->next = NULL;
+        new->prev = NULL;
+    } else {
+        SigMatch *cur = s->amatch_tail;
+        cur->next = new;
+        new->prev = cur;
+        new->next = NULL;
+        s->amatch_tail = new;
+    }
+
+    new->idx = s->sm_cnt;
+    s->sm_cnt++;
+}
+
+/**
+ * \brief append a SigMatch of type uricontent to the Signature structure
  * \param s pointer to the Signature
  * \param new pointer to the SigMatch of type uricontent to be appended
  */
@@ -199,7 +221,7 @@ void SigMatchAppendPacket(Signature *s, SigMatch *new) {
     s->sm_cnt++;
 }
 
-/** \brief Pull a content 'old' from the pmatch list, append 'new' to match list.
+/** \brief Pull a content 'old' from the pmatch list, append 'new' to amatch list.
   * Used for replacing contents that have http_cookie, etc modifiers.
   */
 void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
@@ -239,20 +261,20 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
 
     /* finally append the "new" sig match to the app layer list */
     /** \todo if the app layer gets it's own list, adapt this code */
-    if (s->match == NULL) {
-        s->match = new;
-        s->match_tail = new;
+    if (s->amatch == NULL) {
+        s->amatch = new;
+        s->amatch_tail = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->match;
+        SigMatch *cur = s->amatch;
 
         for ( ; cur->next != NULL; cur = cur->next);
 
         cur->next = new;
         new->next = NULL;
         new->prev = cur;
-        s->match_tail = new;
+        s->amatch_tail = new;
     }
 
     /* move over the idx */

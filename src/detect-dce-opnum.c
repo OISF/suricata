@@ -1170,7 +1170,6 @@ static int DetectDceOpnumTestParse08(void)
         goto end;
     }
 
-    /* do detect */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
                       dcerpc_bindack, dcerpc_bindack_len);
     if (r != 0) {
@@ -1856,6 +1855,7 @@ static int DetectDceOpnumTestParse10(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
@@ -1870,17 +1870,16 @@ static int DetectDceOpnumTestParse10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_opnum:2,15,22; "
-                                   "sid:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(msg:\"DCERPC\"; dce_opnum:2,15,22; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SCLogDebug("sending bind");
 
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
                       dcerpc_bind, dcerpc_bind_len);
@@ -1894,6 +1893,9 @@ static int DetectDceOpnumTestParse10(void)
         SCLogDebug("no dcerpc state: ");
         goto end;
     }
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    SCLogDebug("sending bind_ack");
 
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
                       dcerpc_bindack, dcerpc_bindack_len);
@@ -1901,6 +1903,9 @@ static int DetectDceOpnumTestParse10(void)
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+
+    SCLogDebug("sending request1");
 
     /* request1 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
@@ -1914,9 +1919,11 @@ static int DetectDceOpnumTestParse10(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if (!PacketAlertCheck(&p, 1)) {
-        printf("PacketAlertCheck 3\n");
+        printf("sig 1 didn't match, but should have: ");
         goto end;
     }
+
+    SCLogDebug("sending response1");
 
     /* response1 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
@@ -1929,7 +1936,8 @@ static int DetectDceOpnumTestParse10(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (PacketAlertCheck(&p, 1)) {
+        printf("sig 1 did match, shouldn't have on response1: ");
         goto end;
     }
 
@@ -1945,6 +1953,7 @@ static int DetectDceOpnumTestParse10(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 didn't match, but should have on request2: ");
         goto end;
     }
 
@@ -1959,7 +1968,8 @@ static int DetectDceOpnumTestParse10(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (PacketAlertCheck(&p, 1)) {
+        printf("sig 1 did match, shouldn't have on response2: ");
         goto end;
     }
 
@@ -1975,6 +1985,7 @@ static int DetectDceOpnumTestParse10(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 didn't match, but should have on request3: ");
         goto end;
     }
 
@@ -1989,7 +2000,8 @@ static int DetectDceOpnumTestParse10(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (PacketAlertCheck(&p, 1)) {
+        printf("sig 1 did match, shouldn't have on response2: ");
         goto end;
     }
 
@@ -2119,6 +2131,7 @@ static int DetectDceOpnumTestParse11(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
@@ -2177,7 +2190,7 @@ static int DetectDceOpnumTestParse11(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     /* request2 */
@@ -2207,7 +2220,7 @@ static int DetectDceOpnumTestParse11(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     /* request3 */
@@ -2237,7 +2250,7 @@ static int DetectDceOpnumTestParse11(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     result = 1;
@@ -2381,6 +2394,7 @@ static int DetectDceOpnumTestParse12(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
@@ -2394,11 +2408,8 @@ static int DetectDceOpnumTestParse12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_opnum:30, 40; "
-                                   "sid:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(msg:\"DCERPC\"; dce_opnum:30, 40; sid:1;)");
     if (s == NULL)
         goto end;
 
@@ -2411,6 +2422,7 @@ static int DetectDceOpnumTestParse12(void)
         printf("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
@@ -2424,16 +2436,18 @@ static int DetectDceOpnumTestParse12(void)
         printf("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     /* request1 */
-    printf("Sending request1\n");
+    SCLogDebug("Sending request1");
+
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request1,
                       dcerpc_request1_len);
     if (r != 0) {
         printf("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
-    printf("back from request1 parsing\n");
+
     dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
@@ -2442,15 +2456,17 @@ static int DetectDceOpnumTestParse12(void)
 
     if (dcerpc_state->dcerpc.dcerpcrequest.opnum != 40) {
         printf("dcerpc state holding invalid opnum.  Holding %d, while we are "
-               "expecting 40\n", dcerpc_state->dcerpc.dcerpcrequest.opnum);
+               "expecting 40: ", dcerpc_state->dcerpc.dcerpcrequest.opnum);
         goto end;
     }
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(&p, 1)) {
+        printf("signature 1 didn't match, should have: ");
         goto end;
+    }
 
     /* response1 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response1,
@@ -2475,8 +2491,10 @@ static int DetectDceOpnumTestParse12(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1)) {
+        printf("sig 1 matched on response 1, but shouldn't: ");
         goto end;
+    }
 
     /* request2 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request2,
@@ -2501,8 +2519,10 @@ static int DetectDceOpnumTestParse12(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 didn't match on request 2: ");
         goto end;
+    }
 
     /* response2 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT | STREAM_EOF, dcerpc_response2,
@@ -2527,12 +2547,14 @@ static int DetectDceOpnumTestParse12(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1)) {
+        printf("sig 1 matched on response2, but shouldn't: ");
         goto end;
+    }
 
     result = 1;
 
- end:
+end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -2644,6 +2666,7 @@ static int DetectDceOpnumTestParse13(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
@@ -2717,7 +2740,7 @@ static int DetectDceOpnumTestParse13(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     /* request2 */
@@ -2770,7 +2793,7 @@ static int DetectDceOpnumTestParse13(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     result = 1;

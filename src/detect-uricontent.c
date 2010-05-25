@@ -408,7 +408,7 @@ uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_c
         SCReturnUInt(0U);
     }
 
-    for (idx = htp_state->new_in_tx_index;
+    for (idx = 0;//htp_state->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);

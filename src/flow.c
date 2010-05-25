@@ -43,11 +43,15 @@
 #include "flow-util.h"
 #include "flow-var.h"
 #include "flow-private.h"
+
 #include "util-unittest.h"
 #include "util-byte.h"
 
 #include "util-debug.h"
 #include "util-privs.h"
+
+#include "detect.h"
+#include "detect-engine-state.h"
 
 //#define FLOW_DEFAULT_HASHSIZE    262144
 #define FLOW_DEFAULT_HASHSIZE    65536

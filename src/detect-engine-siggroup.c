@@ -981,6 +981,7 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
 {
     uint32_t sig;
 
+    sgh->sig_cnt = 0;
     for (sig = 0; sig < max_idx + 1; sig++) {
         if (sgh->sig_array[sig / 8] & (1 << (sig % 8)))
             sgh->sig_cnt++;

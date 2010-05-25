@@ -70,9 +70,9 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     SigMatch *co_sm = DetectContentGetLastPattern(s->pmatch_tail);
     SigMatch *ur_sm = SigMatchGetLastSM(s->umatch_tail, DETECT_URICONTENT);
     /* http client body SigMatch */
-    SigMatch *hcbd_sm = SigMatchGetLastSM(s->match_tail, DETECT_AL_HTTP_CLIENT_BODY);
+    SigMatch *hcbd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_CLIENT_BODY);
     /* http cookie SigMatch */
-    SigMatch *hcd_sm = SigMatchGetLastSM(s->match_tail, DETECT_AL_HTTP_COOKIE);
+    SigMatch *hcd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_COOKIE);
     SigMatch *temp_sm = NULL;
 
     SigMatch **sm_list = NULL;

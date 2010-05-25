@@ -1360,6 +1360,7 @@ static int DetectDceStubDataTestParse04(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
@@ -1373,11 +1374,8 @@ static int DetectDceStubDataTestParse04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_stub_data; "
-                                   "sid:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(msg:\"DCERPC\"; dce_stub_data; sid:1;)");
     if (s == NULL)
         goto end;
 
@@ -1390,6 +1388,7 @@ static int DetectDceStubDataTestParse04(void)
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
@@ -1403,6 +1402,7 @@ static int DetectDceStubDataTestParse04(void)
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     /* request1 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request1,
@@ -1429,7 +1429,7 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     /* request2 */
@@ -1457,7 +1457,7 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     /* request3 */
@@ -1485,7 +1485,7 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     result = 1;
@@ -1610,6 +1610,7 @@ static int DetectDceStubDataTestParse05(void)
     p.proto = IPPROTO_TCP;
 
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_DCERPC;
@@ -1665,7 +1666,7 @@ static int DetectDceStubDataTestParse05(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     /* request2 */
@@ -1693,7 +1694,7 @@ static int DetectDceStubDataTestParse05(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     /* request3 */
@@ -1721,7 +1722,7 @@ static int DetectDceStubDataTestParse05(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(&p, 1))
         goto end;
 
     result = 1;
