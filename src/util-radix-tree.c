@@ -3877,6 +3877,11 @@ int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
+    if (user == NULL) {
+        result = 0;
+        goto end;
+    }
+
     *user = 100;
 
     SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, 0);
@@ -3978,6 +3983,11 @@ int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
+    if (user == NULL) {
+        result = 0;
+        goto end;
+    }
+
     *user = 300;
 
     SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, 12);
