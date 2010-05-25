@@ -70,12 +70,10 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         return -1;
     }
 
-    DetectUricontentData *ud = NULL;
-    DetectContentData *cd = NULL;
-
     switch (pm->type) {
         case DETECT_URICONTENT:
-            ud = (DetectUricontentData *)pm->ctx;
+        {
+            DetectUricontentData *ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
                 if (dubbed) SCFree(str);
@@ -85,15 +83,17 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             if (ud->uricontent_len + ud->offset > ud->depth) {
                 uint32_t depth = (ud->depth > ud->uricontent_len) ?
                     ud->depth : ud->uricontent_len;
-                cd->depth = cd->offset + depth;
+                ud->depth = ud->offset + depth;
 
                 SCLogDebug("depth increased to %"PRIu32" to match pattern len "
                         "and offset", ud->depth);
             }
+        }
         break;
 
         case DETECT_CONTENT:
-            cd = (DetectContentData *)pm->ctx;
+        {
+            DetectContentData *cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
                 if (dubbed) SCFree(str);
@@ -108,6 +108,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 SCLogDebug("depth increased to %"PRIu32" to match pattern len "
                         "and offset", cd->depth);
             }
+        }
         break;
 
         default:
