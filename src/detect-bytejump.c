@@ -524,13 +524,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                 goto error;
             }
             cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-        } else {
-            pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_PCRE);
-            if (pm == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "relative bytejump match "
-                        "needs a previous content option");
-                goto error;
-            }
+        } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_PCRE)) != NULL) {
             DetectPcreData *pe = NULL;
             pe = (DetectPcreData *) pm->ctx;
             if (pe == NULL) {
@@ -538,6 +532,20 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                 goto error;
             }
             pe->flags |= DETECT_PCRE_RELATIVE;
+        } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_BYTEJUMP)) !=
+                    NULL)
+        {
+            DetectBytejumpData *data = NULL;
+            data = (DetectBytejumpData *)pm->ctx;
+            if (data == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+                goto error;
+            }
+            data->flags |= DETECT_BYTEJUMP_RELATIVE;
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "relative bytejump match "
+                        "needs a previous content option");
+            goto error;
         }
     }
 
@@ -759,6 +767,38 @@ int DetectByteJumpTestPacket01 (void) {
 end:
     return result;
 }
+
+/**
+ * \test DetectByteJumpTestPacket02 is a test to check matches of
+ * byte_jump and byte_jump relative works if the previous keyword is byte_jump
+ * (bug 165)
+ */
+int DetectByteJumpTestPacket02 (void) {
+    int result = 0;
+    uint8_t buf[] = { 0x00, 0x00, 0x00, 0x77, 0xff, 0x53,
+                    0x4d, 0x42, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x18,
+                    0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08,
+                    0x92, 0xa4, 0x01, 0x08, 0x17, 0x5c, 0x0e, 0xff,
+                    0x00, 0x00, 0x00, 0x01, 0x40, 0x48, 0x00, 0x00,
+                    0x00, 0xff };
+    uint16_t buflen = sizeof(buf);
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"byte_test with byte_test"
+                 " + relative\"; byte_jump:1,13; byte_jump:4,0,relative; "
+                 "content:\"|48 00 00|\"; within:3; sid:144; rev:1;)";
+
+    result = UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+end:
+    return result;
+}
 #endif /* UNITTESTS */
 
 
@@ -776,6 +816,7 @@ void DetectBytejumpRegisterTests(void) {
     UtRegisterTest("DetectBytejumpTestParse07", DetectBytejumpTestParse07, 1);
     UtRegisterTest("DetectBytejumpTestParse08", DetectBytejumpTestParse08, 1);
     UtRegisterTest("DetectByteJumpTestPacket01", DetectByteJumpTestPacket01, 1);
+    UtRegisterTest("DetectByteJumpTestPacket02", DetectByteJumpTestPacket02, 1);
 #endif /* UNITTESTS */
 }
 

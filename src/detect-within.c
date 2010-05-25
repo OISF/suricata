@@ -31,6 +31,7 @@
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-bytejump.h"
 
 #include "flow-var.h"
 
@@ -161,22 +162,28 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                     goto error;
                 }
                 cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                pm = SigMatchGetLastSM(s->pmatch_tail->prev, DETECT_PCRE);
-                if (pm != NULL) {
-                    DetectPcreData *pe = NULL;
-                    pe = (DetectPcreData *)pm->ctx;
-                    if (pe == NULL) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                                "previous keyword!");
-                        goto error;
-                    }
-                    pe->flags |= DETECT_PCRE_RELATIVE;
-                } else {
-                    SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two"
-                           " preceeding content or uricontent options");
+            } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_PCRE)) != NULL) {
+                DetectPcreData *pe = NULL;
+                pe = (DetectPcreData *) pm->ctx;
+                if (pe == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
                     goto error;
                 }
+                pe->flags |= DETECT_PCRE_RELATIVE;
+            } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_BYTEJUMP))
+                                != NULL)
+            {
+                DetectBytejumpData *data = NULL;
+                data = (DetectBytejumpData *) pm->ctx;
+                if (data == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+                    goto error;
+                }
+                data->flags |= DETECT_BYTEJUMP_RELATIVE;
+            } else {
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two"
+                        " preceeding content or uricontent options");
+                goto error;
             }
 
         break;
