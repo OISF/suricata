@@ -249,19 +249,27 @@ void ThresholdHashAdd(DetectEngineCtx *de_ctx, DetectThresholdEntry *tsh_ptr, Pa
  * \param p Packet structure
  * \param s Signature structure
  *
+ * \retval 1 alert on this event
+ * \retval 0 do not alert on this event
+ *
+ * \todo we currently malloc a DetectThresholdEntry for lookups. This is
+ *       causing unnecessary overhead. We do need to alloc a DetectThresholdEntry
+ *       when we it add it to the hash though, so the change is slightly less
+ *       trivial.
  */
 int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                          DetectThresholdData *td, Packet *p, Signature *s)
+        DetectThresholdData *td, Packet *p, Signature *s)
 {
     SCEnter();
-    int ret = 0;
 
+    int ret = 0;
     struct timeval ts;
     DetectThresholdEntry *lookup_tsh = NULL;
     DetectThresholdEntry *ste = NULL;
 
-    if (td == NULL)
-        SCReturnInt(ret);
+    if (td == NULL) {
+        SCReturnInt(0);
+    }
 
     /* setup the Entry we use to search our hash with */
     ste = SCMalloc(sizeof(DetectThresholdEntry));
@@ -358,11 +366,11 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         {
             SCLogDebug("both");
 
-            lookup_tsh = ThresholdHashSearch(de_ctx,ste,p);
+            lookup_tsh = ThresholdHashSearch(de_ctx, ste, p);
             if (lookup_tsh != NULL) {
                 if ((ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                     lookup_tsh->current_count++;
-                    if (lookup_tsh->current_count == td->count)    {
+                    if (lookup_tsh->current_count == td->count) {
                         ret = 1;
                     }
                 } else    {
@@ -373,12 +381,13 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 ste->current_count = 1;
                 ste->tv_sec1 = ts.tv_sec;
 
+                ThresholdHashAdd(de_ctx,ste,p);
+                ste = NULL;
+
+                /* for the first match we return 1 to
+                 * indicate we should alert */
                 if (td->count == 1)  {
                     ret = 1;
-                    ste->current_count = 0;
-                } else {
-                    ThresholdHashAdd(de_ctx,ste,p);
-                    ste = NULL;
                 }
             }
             break;
