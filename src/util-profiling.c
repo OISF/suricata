@@ -194,6 +194,7 @@ SCProfilingDump(FILE *output)
     uint32_t i;
     SCProfileSummary summary[rules_pca->size];
     uint32_t count = rules_pca->size;
+    uint64_t total_ticks = 0;
 
     SCLogInfo("Dumping profiling data.");
 
@@ -206,6 +207,7 @@ SCProfilingDump(FILE *output)
                 (long double)rules_pca->head[i].syncs;
         summary[i - 1].checks = rules_pca->head[i].syncs;
         summary[i - 1].matches = rules_profile_data[i].matches;
+        total_ticks += summary[i - 1].ticks;
     }
 
     switch (profiling_rules_sort_order) {
@@ -227,17 +229,22 @@ SCProfilingDump(FILE *output)
         break;
     }
 
-    fprintf(output, "  %-12s %-12s %-8s %-8s %-11s\n", "Rule", "Ticks", "Checks", "Matches", "Avg Ticks");
+    fprintf(output, "  %-12s %-12s %-6s %-8s %-8s %-11s\n", "Rule", "Ticks", "%", "Checks", "Matches", "Avg Ticks");
     fprintf(output, "  ------------ "
         "------------ "
+        "------ "
         "-------- "
         "-------- "
         "----------- "
         "\n");
     for (i = 0; i < MIN(count, profiling_rules_limit); i++) {
-        fprintf(output, "  %-12s %-12"PRIu64" %-8"PRIu64" %-8"PRIu64" %-8.2f\n",
+        double percent = (long double)summary[i].ticks /
+            (long double)total_ticks * 100;
+        fprintf(output,
+            "  %-12s %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-8.2f\n",
             summary[i].name,
             summary[i].ticks,
+            percent,
             summary[i].checks,
             summary[i].matches,
             summary[i].avgticks);
