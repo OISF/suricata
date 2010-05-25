@@ -65,16 +65,17 @@ static int SSLParseClientRecord(Flow *f, void *ssl_state, AppLayerParserState *p
                                 AppLayerParserResult *output)
 {
     SCEnter();
-    SslClient *client = (SslClient *)input;
-    SslState *ssl_st = (SslState *)ssl_state;
 
-    /* SSL client message should be larger than 5 bytes as we need to know, to
+    /* SSL client message should be larger than 9 bytes as we need to know, to
        what is the SSL version and message type */
-    if (input_len < 5) {
-        SCLogDebug("Input message lentgh (%"PRIu32") is not equal to minimum "
-                "valid ssl record message length, thus returning!!", input_len);
+    if (input_len < 9) {
+        SCLogDebug("Input message length (%"PRIu32") is not equal to minimum "
+                "valid ssl record message length, thus returning", input_len);
         SCReturnInt(1);
     }
+
+    SslClient *client = (SslClient *)input;
+    SslState *ssl_st = (SslState *)ssl_state;
 
     switch (client->msg_type) {
         case SSL_CLIENT_HELLO:
@@ -248,7 +249,7 @@ void RegisterSSLParsers(void)
 
 }
 
-//#ifdef UNITTESTS
+#ifdef UNITTESTS
 #include "util-unittest-helper.h"
 #include "stream-tcp-reassemble.h"
 #include "decode-tcp.h"
@@ -256,9 +257,9 @@ void RegisterSSLParsers(void)
 extern uint16_t AppLayerParserGetStorageId (void);
 
 static int SSLParserTest01(void) {
-    int result = 1;
+    int result = 0;
     Flow f;
-    uint8_t sslbuf[] = {0x80, 0x31, 0x01, 0x00, 0x02 };
+    uint8_t sslbuf[] = {0x80, 0x31, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01 };
     uint32_t ssllen = sizeof(sslbuf);
     TcpSession ssn;
 
@@ -272,30 +273,28 @@ static int SSLParserTest01(void) {
     int r = AppLayerParse(&f, ALPROTO_SSL, STREAM_TOSERVER|STREAM_EOF, sslbuf, ssllen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         goto end;
     }
 
     SslState *ssl_state = ssn.aldata[AlpGetStateIdx(ALPROTO_SSL)];
     if (ssl_state == NULL) {
         printf("no ssl state: ");
-        result = 0;
         goto end;
     }
 
     if (ssl_state->client_content_type != 0x1) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x1,
                 ssl_state->client_content_type);
-        result = 0;
         goto end;
     }
 
     if (ssl_state->client_version != SSL_CLIENT_VERSION) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
                 SSL_CLIENT_VERSION, ssl_state->client_version);
-        result = 0;
         goto end;
     }
+
+    result = 1;
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);
@@ -689,7 +688,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     return result;
 }
-//#endif /* UNITTESTS */
+#endif /* UNITTESTS */
 
 void SSLParserRegisterTests(void) {
 #ifdef UNITTESTS
