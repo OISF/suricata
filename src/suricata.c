@@ -898,7 +898,7 @@ int main(int argc, char **argv)
         //RunModeIdsPcap3(de_ctx, pcap_dev);
         //RunModeIdsPcap2(de_ctx, pcap_dev);
         //RunModeIdsPcap(de_ctx, pcap_dev);
-        TranslateIPToPcapDev(pcap_dev, sizeof(pcap_dev));
+        PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
         RunModeIdsPcapAuto(de_ctx, pcap_dev);
     }
     else if (run_mode == MODE_PCAP_FILE) {

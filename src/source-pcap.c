@@ -431,7 +431,7 @@ TmEcode DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-void TranslateIPToPcapDev(char *pcap_dev, int len)
+void PcapTranslateIPToDevice(char *pcap_dev, size_t len)
 {
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_if_t *alldevsp = NULL;
@@ -479,7 +479,7 @@ void TranslateIPToPcapDev(char *pcap_dev, int len)
 			freeaddrinfo(aiList);
 
 			memset(pcap_dev, 0, len);
-			strncpy(pcap_dev, devsp->name, ((strlen(devsp->name) < len) ? (strlen(devsp->name)) : (len-1)));
+			strlcpy(pcap_dev, devsp->name, ((strlen(devsp->name) < len) ? (strlen(devsp->name)) : (len-1)));
 
 			pcap_freealldevs(alldevsp);
 			return;
