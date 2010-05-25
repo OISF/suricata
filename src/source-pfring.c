@@ -161,13 +161,6 @@ void PfringProcessPacket(void *user, struct pfring_pkthdr *h, u_char *pkt, Packe
     //TmqDebugList();
     //printf("PfringProcessPacket: pending %" PRIu32 "\n", pending);
 
-    /* We need this otherwise the other queues can't seem to keep up on busy networks */
-    SCMutexLock(&mutex_pending);
-    if (pending > max_pending_packets) {
-        SCondWait(&cond_pending, &mutex_pending);
-    }
-    SCMutexUnlock(&mutex_pending);
-
     p->ts.tv_sec = h->ts.tv_sec;
     p->ts.tv_usec = h->ts.tv_usec;
 

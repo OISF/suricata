@@ -244,13 +244,6 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 
     SCLogDebug("Received Packet Len: %d",pktlen);
 
-    /* Is the packet queue full, wait if so */
-    SCMutexLock(&mutex_pending);
-    if (pending > max_pending_packets) {
-        pthread_cond_wait(&cond_pending, &mutex_pending);
-    }
-    SCMutexUnlock(&mutex_pending);
-
     /* Setup packet */
     p = tv->tmqh_in(tv);
 
