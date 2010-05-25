@@ -72,6 +72,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
 
     DetectUricontentData *ud = NULL;
     DetectContentData *cd = NULL;
+
     switch (pm->type) {
         case DETECT_URICONTENT:
             ud = (DetectUricontentData *)pm->ctx;
@@ -82,9 +83,12 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             }
             ud->depth = (uint32_t)atoi(str);
             if (ud->uricontent_len + ud->offset > ud->depth) {
+                uint32_t depth = (ud->depth > ud->uricontent_len) ?
+                    ud->depth : ud->uricontent_len;
+                cd->depth = cd->offset + depth;
+
                 SCLogDebug("depth increased to %"PRIu32" to match pattern len "
-                        "and offset", ud->uricontent_len + ud->offset);
-                ud->depth = ud->uricontent_len + ud->offset;
+                        "and offset", ud->depth);
             }
         break;
 
@@ -97,9 +101,12 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             }
             cd->depth = (uint32_t)atoi(str);
             if (cd->content_len + cd->offset > cd->depth) {
+                uint32_t depth = (cd->depth > cd->content_len) ?
+                    cd->depth : cd->content_len;
+                cd->depth = cd->offset + depth;
+
                 SCLogDebug("depth increased to %"PRIu32" to match pattern len "
-                        "and offset", cd->content_len + cd->offset);
-                cd->depth = cd->content_len + cd->offset;
+                        "and offset", cd->depth);
             }
         break;
 
