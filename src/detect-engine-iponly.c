@@ -601,7 +601,7 @@ int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
 
         dd->next = IPOnlyCIDRItemNew();
         if (dd->next == NULL)
-            return -1;
+            goto error;
 
         IPOnlyCIDRItemParseSingle(dd->next, "::/0");
         BUG_ON(dd->family == 0);
@@ -609,7 +609,6 @@ int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
         SCFree(ipdup);
 
         SCLogDebug("address is \'any\'");
-
         return 0;
     }
 
@@ -722,6 +721,7 @@ int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
             r = inet_pton(AF_INET, ip, &in);
             if (r <= 0)
                 goto error;
+
             /* single host */
             dd->ip[0] = in.s_addr;
             dd->netmask = 32;
@@ -759,7 +759,6 @@ int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
     SCFree(ipdup);
 
     BUG_ON(dd->family == 0);
-
     return 0;
 
 error:
