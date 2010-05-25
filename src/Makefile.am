@@ -27,7 +27,6 @@ decode-icmpv4.c decode-icmpv4.h \
 decode-icmpv6.c decode-icmpv6.h \
 decode-tcp.c decode-tcp.h \
 decode-udp.c decode-udp.h \
-decode-asn1.c decode-asn1.h \
 flow.c flow.h \
 flow-queue.c flow-queue.h \
 flow-hash.c flow-hash.h \
@@ -160,6 +159,7 @@ util-strlcpyu.c \
 util-cuda.c util-cuda.h \
 util-cuda-handlers.c util-cuda-handlers.h \
 util-privs.c util-privs.h \
+util-decode-asn1.c util-decode-asn1.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

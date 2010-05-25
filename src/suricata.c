@@ -115,7 +115,7 @@
 #include "runmodes.h"
 
 #include "util-cuda.h"
-
+#include "util-decode-asn1.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "detect-engine-siggroup.h"

@@ -37,7 +37,7 @@
 #include "util-unittest-helper.h"
 #include "util-byte.h"
 #include "util-debug.h"
-#include "decode-asn1.h"
+#include "util-decode-asn1.h"
 
 /* delimiters for functions/arguments */
 const char *ASN_DELIM = " \t,\n";
@@ -75,7 +75,7 @@ void DetectAsn1Register(void) {
  *           checks that we want to perform, and the lenght of oversize check
  * \retval 1 if any of the options match, 0 if not
  */
-uint8_t DetectAsn1Checks(Asn1Node *node, DetectAsn1Data *ad) {
+static uint8_t DetectAsn1Checks(Asn1Node *node, DetectAsn1Data *ad) {
 
     /* oversize_length will check if a node has a length greater than
      * the user supplied length */
@@ -258,11 +258,12 @@ DetectAsn1Data *DetectAsn1Parse(char *asn1str) {
         tok = strtok(NULL, ASN_DELIM);
     }
 
-    fd = SCMalloc(sizeof(fd));
+    fd = SCMalloc(sizeof(DetectAsn1Data));
     if (fd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating DetectAsn1Data");
         exit(EXIT_FAILURE);
     }
+    memset(fd, 0x00, sizeof(DetectAsn1Data));
 
     fd->flags = flags;
     fd->oversize_length = ov_len;    /* Length argument if needed */
@@ -333,10 +334,11 @@ int DetectAsn1TestParse01(void) {
     DetectAsn1Data *ad = NULL;
 
     ad = DetectAsn1Parse(str);
-    if (ad != NULL && ad->oversize_length == 1024
-        && (ad->flags & ASN1_OVERSIZE_LEN)) {
+    if (ad != NULL) {
+        if (ad->oversize_length == 1024 && (ad->flags & ASN1_OVERSIZE_LEN)) {
+            result = 1;
+        }
         DetectAsn1Free(ad);
-        result = 1;
     }
 
     return result;
@@ -1162,7 +1164,7 @@ end:
  */
 int DetectAsn1TestReal03(void) {
     int result = 0;
-    uint8_t buf[261];
+    uint8_t buf[261] = "";
     /* universal class, primitive type, tag_num = 9 (Data type Real) */
     buf[0] = '\x09';
     /* length, definite form, 2 octets */
@@ -1183,7 +1185,7 @@ int DetectAsn1TestReal03(void) {
 
     uint16_t buflen2 = 5;
 
-    Packet *p[2];
+    Packet *p[2] = { NULL, NULL };
 
     p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p[1] = UTHBuildPacket((uint8_t *)buf2, buflen2, IPPROTO_TCP);
@@ -1205,8 +1207,7 @@ int DetectAsn1TestReal03(void) {
 
     uint32_t sid[3] = {1, 2, 3};
 
-    uint32_t results[2][3] = {
-                              {1, 0, 0},
+    uint32_t results[2][3] = {{1, 0, 0},
                               {0, 1, 0}};
 
     result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *) results, 3);

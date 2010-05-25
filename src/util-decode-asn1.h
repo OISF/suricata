@@ -16,7 +16,7 @@
  */
 
 /**
- * \file decode-asn1.h
+ * \file
  *
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  *

@@ -16,7 +16,7 @@
  */
 
 /**
- * \file decode-asn1.c
+ * \file
  *
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  *
@@ -30,7 +30,7 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
-#include "decode-asn1.h"
+#include "util-decode-asn1.h"
 
 
 /**
