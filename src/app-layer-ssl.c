@@ -24,8 +24,6 @@
  *
  */
 
-#include <netinet/in.h>
-
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
