@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Information about hosts for ip repuation.
+ * Information about hosts for ip reputation.
  */
 
 #include "suricata-common.h"
