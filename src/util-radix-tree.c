@@ -248,12 +248,19 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
 
     memcpy(prefix->stream, key_stream, key_bitlen / 8);
     prefix->bitlen = key_bitlen;
+
     prefix->user_data = SCRadixAllocSCRadixUserData(netmask, user);
+    if (prefix->user_data == NULL) {
+        goto error;
+    }
 
     return prefix;
 
 error:
     if (prefix != NULL) {
+        if (prefix->stream != NULL) {
+            SCFree(prefix->stream);
+        }
         SCFree(prefix);
     }
 
@@ -1451,16 +1458,13 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(SCRadixPrefix *prefix,
 static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
                                    SCRadixTree *tree, int exact_match)
 {
-    if (tree == NULL)
+    if (tree == NULL || tree->head == NULL)
         return NULL;
 
     SCRadixNode *node = tree->head;
     SCRadixPrefix *prefix = NULL;
     int mask = 0;
     int bytes = 0;
-
-    if (tree->head == NULL)
-        return NULL;
 
     if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL, 255)) == NULL)
         return NULL;
