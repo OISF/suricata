@@ -38,6 +38,8 @@
 
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "detect-bytejump.h"
+#include "util-unittest-helper.h"
 
 static int DetectDistanceSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDistanceRegisterTests(void);
@@ -128,22 +130,33 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
             }
 
-            pm = DetectContentGetLastPattern(s->pmatch_tail->prev);
-            if (pm == NULL) {
+            pm = SigMatchGetLastSM(s->pmatch_tail->prev, DETECT_CONTENT);
+            if (pm != NULL) {
+                /* Set the relative next flag on the prev sigmatch */
+                cd = (DetectContentData *)pm->ctx;
+                if (cd == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                            "previous keyword!");
+                    goto error;
+                }
+                cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_BYTEJUMP))
+                                != NULL)
+            {
+                DetectBytejumpData *data = NULL;
+                data = (DetectBytejumpData *) pm->ctx;
+                if (data == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
+                    goto error;
+                }
+                data->flags |= DETECT_BYTEJUMP_RELATIVE;
+            } else {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two"
                         " preceeding content or uricontent options");
                 goto error;
             }
 
-            if (pm->type == DETECT_CONTENT) {
-                cd = (DetectContentData *)pm->ctx;
-                cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous "
-                        "keyword!");
-                goto error;
-            }
-        break;
+            break;
 
         default:
             SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
@@ -216,11 +229,38 @@ end:
     return result;
 }
 
+/**
+ * \test DetectDistanceTestPacket01 is a test to check matches of
+ * distance works, if the previous keyword is byte_jump and content
+ * (bug 163)
+ */
+int DetectDistanceTestPacket01 (void) {
+    int result = 0;
+    uint8_t buf[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    uint16_t buflen = sizeof(buf);
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"suricata test\"; flow:"
+                 "from_server,established; byte_jump:1,2; content:\"|00|\"; "
+                    "within:1; distance:2; sid:98711212; rev:1;)";
+
+    p->flowflags = FLOW_PKT_ESTABLISHED | FLOW_PKT_TOCLIENT;
+    result = UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+end:
+    return result;
+}
 #endif /* UNITTESTS */
 
 void DetectDistanceRegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("DetectDistanceTest01 -- distance / within mix", DetectDistanceTest01, 1);
+    UtRegisterTest("DetectDistanceTestPacket01", DetectDistanceTestPacket01, 1);
 #endif /* UNITTESTS */
 }
 
