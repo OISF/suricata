@@ -114,7 +114,7 @@ void DetectEngineStateFree(DetectEngineState *state) {
     if (state == NULL)
         return;
 
-    if (state->head == NULL) {
+    if (state->head != NULL) {
         DeStateStoreFree(state->head);
     }
 
@@ -134,7 +134,7 @@ void DetectEngineStateReset(DetectEngineState *state) {
         SCReturn;
     }
 
-    if (state->head == NULL) {
+    if (state->head != NULL) {
         DeStateStoreFree(state->head);
     }
     state->head = NULL;
@@ -453,6 +453,8 @@ continue_where_we_left_off() {
 
 
 #ifdef UNITTESTS
+#include "flow-util.h"
+
 static int DeStateTest01(void) {
     SCLogDebug("sizeof(DetectEngineState)\t\t%"PRIuMAX,
             (uintmax_t)sizeof(DetectEngineState));
@@ -700,7 +702,6 @@ static int DeStateTest04(void) {
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
     uint32_t httplen7 = sizeof(httpbuf7) - 1; /* minus the \0 */
-    HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -842,9 +843,8 @@ static int DeStateTest04(void) {
 
     result = 1;
 end:
-    if (http_state != NULL) {
-        HTPStateFree(http_state);
-    }
+    CLEAR_FLOW(&f);
+
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }

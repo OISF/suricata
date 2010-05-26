@@ -148,5 +148,4 @@ void SCRadixPrintNodeInfo(SCRadixNode *, int,  void (*PrintData)(void*));
 
 void SCRadixRegisterTests(void);
 
-
 #endif /* __UTIL_RADIX_TREE_H__ */

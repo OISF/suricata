@@ -141,8 +141,7 @@ static SCRadixUserData *SCRadixAllocSCRadixUserData(uint8_t netmask, void *user)
 {
     SCRadixUserData *user_data = SCMalloc(sizeof(SCRadixUserData));
     if (user_data == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAllocSCRadixUserData. Exiting...");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     memset(user_data, 0, sizeof(SCRadixUserData));
@@ -238,11 +237,13 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
     }
 
     if ( (prefix = SCMalloc(sizeof(SCRadixPrefix))) == NULL)
-        return NULL;
+        goto error;
+
     memset(prefix, 0, sizeof(SCRadixPrefix));
 
     if ( (prefix->stream = SCMalloc(key_bitlen / 8)) == NULL)
-        return NULL;
+        goto error;
+
     memset(prefix->stream, 0, key_bitlen / 8);
 
     memcpy(prefix->stream, key_stream, key_bitlen / 8);
@@ -250,6 +251,13 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
     prefix->user_data = SCRadixAllocSCRadixUserData(netmask, user);
 
     return prefix;
+
+error:
+    if (prefix != NULL) {
+        SCFree(prefix);
+    }
+
+    return NULL;
 }
 
 /**
@@ -477,6 +485,10 @@ static void SCRadixReleaseNode(SCRadixNode *node, SCRadixTree *tree)
 {
     if (node != NULL) {
         SCRadixReleasePrefix(node->prefix, tree);
+
+        if (node->netmasks != NULL)
+            SCFree(node->netmasks);
+
         SCFree(node);
     }
 
@@ -577,17 +589,17 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     int j = 0;
     int temp = 0;
 
+    if (tree == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Argument \"tree\" NULL");
+        return NULL;
+    }
+
     /* chop the ip address against a netmask */
     SCRadixChopIPAddressAgainstNetmask(key_stream, netmask, key_bitlen);
 
     if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
                                        netmask)) == NULL) {
         SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
-        return NULL;
-    }
-
-    if (tree == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Argument \"tree\" NULL");
         return NULL;
     }
 
@@ -599,6 +611,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
         tree->head = node;
         if (netmask == 255 || (netmask == 32 && key_bitlen == 32) || (netmask == 128 && key_bitlen == 128))
             return node;
+
         /* if we have reached here, we are actually having a proper netblock in
          * our hand(i.e. < 32 for ipv4 and < 128 for ipv6).  Add the netmask for
          * this node.  The reason we add netmasks other than 32 and 128, is
