@@ -161,6 +161,7 @@ util-cuda.c util-cuda.h \
 util-cuda-handlers.c util-cuda-handlers.h \
 util-privs.c util-privs.h \
 util-decode-asn1.c util-decode-asn1.h \
+util-ringbuffer.c util-ringbuffer.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
@@ -169,6 +170,7 @@ tmqh-simple.c tmqh-simple.h \
 tmqh-nfq.c tmqh-nfq.h \
 tmqh-packetpool.c tmqh-packetpool.h \
 tmqh-flow.c tmqh-flow.h \
+tmqh-ringbuffer.c tmqh-ringbuffer.h \
 alert-fastlog.c alert-fastlog.h \
 alert-debuglog.c alert-debuglog.h \
 alert-prelude.c alert-prelude.h \

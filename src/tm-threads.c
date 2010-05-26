@@ -782,33 +782,41 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
 
     /* set the incoming queue */
     if (inq_name != NULL && strcmp(inq_name,"packetpool") != 0) {
+        SCLogDebug("inq_name \"%s\"", inq_name);
+
         tmq = TmqGetQueueByName(inq_name);
         if (tmq == NULL) {
             tmq = TmqCreateQueue(inq_name);
             if (tmq == NULL) goto error;
         }
+        SCLogDebug("tmq %p", tmq);
 
         tv->inq = tmq;
         tv->inq->reader_cnt++;
-        //printf("TmThreadCreate: tv->inq->id %" PRIu32 "\n", tv->inq->id);
+        SCLogDebug("tv->inq %p", tv->inq);
     }
     if (inqh_name != NULL) {
+        SCLogDebug("inqh_name \"%s\"", inqh_name);
+
         tmqh = TmqhGetQueueHandlerByName(inqh_name);
         if (tmqh == NULL) goto error;
 
         tv->tmqh_in = tmqh->InHandler;
-        //printf("TmThreadCreate: tv->tmqh_in %p\n", tv->tmqh_in);
+        SCLogDebug("tv->tmqh_in %p", tv->tmqh_in);
     }
 
     /* set the outgoing queue */
     if (outqh_name != NULL) {
+        SCLogDebug("outqh_name \"%s\"", outqh_name);
+
         tmqh = TmqhGetQueueHandlerByName(outqh_name);
         if (tmqh == NULL) goto error;
 
         tv->tmqh_out = tmqh->OutHandler;
-        //printf("TmThreadCreate: tv->tmqh_out %p\n", tv->tmqh_out);
 
         if (outq_name != NULL && strcmp(outq_name,"packetpool") != 0) {
+            SCLogDebug("outq_name \"%s\"", outq_name);
+
             if (tmqh->OutHandlerCtxSetup != NULL) {
                 tv->outctx = tmqh->OutHandlerCtxSetup(outq_name);
                 tv->outq = NULL;
@@ -818,12 +826,12 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
                     tmq = TmqCreateQueue(outq_name);
                     if (tmq == NULL) goto error;
                 }
+                SCLogDebug("tmq %p", tmq);
 
                 tv->outq = tmq;
                 tv->outctx = NULL;
                 tv->outq->writer_cnt++;
             }
-            //printf("TmThreadCreate: tv->outq->id %" PRIu32 "\n", tv->outq->id);
         }
     }
 

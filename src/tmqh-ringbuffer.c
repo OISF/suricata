@@ -20,40 +20,46 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Master Queue Handler
+ * RingBuffer queue handler
  */
 
-#include "suricata-common.h"
+#include "suricata.h"
 #include "packet-queue.h"
 #include "decode.h"
 #include "threads.h"
 #include "threadvars.h"
 
 #include "tm-queuehandlers.h"
-#include "tmqh-simple.h"
-#include "tmqh-nfq.h"
-#include "tmqh-packetpool.h"
-#include "tmqh-flow.h"
-#include "tmqh-ringbuffer.h"
 
-void TmqhSetup (void) {
-    memset(&tmqh_table, 0, sizeof(tmqh_table));
+#include "util-ringbuffer.h"
 
-    TmqhSimpleRegister();
-    TmqhNfqRegister();
-    TmqhPacketpoolRegister();
-    TmqhFlowRegister();
-    TmqhRingBufferRegister();
+static RingBufferMrSw *ringbuffers[256];
+
+Packet *TmqhInputRingBuffer(ThreadVars *t);
+void TmqhOutputRingBuffer(ThreadVars *t, Packet *p);
+
+void TmqhRingBufferRegister (void) {
+    tmqh_table[TMQH_RINGBUFFER].name = "ringbuffer";
+    tmqh_table[TMQH_RINGBUFFER].InHandler = TmqhInputRingBuffer;
+    tmqh_table[TMQH_RINGBUFFER].OutHandler = TmqhOutputRingBuffer;
+
+    int i = 0;
+    for (i = 0; i < 256; i++) {
+        ringbuffers[i] = RingBufferMrSwInit();
+    }
 }
 
-Tmqh* TmqhGetQueueHandlerByName(char *name) {
-    int i;
+Packet *TmqhInputRingBuffer(ThreadVars *t)
+{
+    RingBufferMrSw *rb = ringbuffers[t->inq->id];
 
-    for (i = 0; i < TMQH_SIZE; i++) {
-        if (strcmp(name, tmqh_table[i].name) == 0)
-            return &tmqh_table[i];
-    }
+    Packet *p = (Packet *)RingBufferMrSwGet(rb);
+    return p;
+}
 
-    return NULL;
+void TmqhOutputRingBuffer(ThreadVars *t, Packet *p)
+{
+    RingBufferMrSw *rb = ringbuffers[t->outq->id];
+    RingBufferMrSwPut(rb, (void *)p);
 }
 
