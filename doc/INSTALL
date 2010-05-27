@@ -30,7 +30,8 @@ libpcap
 libnetfilter-queue and libfnetlink (optional for use with 
   ./configure --enable-nfq)
 libpthread  (should be part of most glibc's)
-libpfring >= 4.0   (optional for use with ./configure --enable-pfring)
+libpfring >= 4.0   (optional for use with ./configure --enable-pfring see INSTALL.PF_RING for install instructions)
+libcap-ng (used for dropping privileges *linux only)
 libz
 htp
 
@@ -41,15 +42,6 @@ For Debian/Ubuntu Users
     sudo apt-get -y install libpcre3 libpcre3-dbg libpcre3-dev \
     build-essential autoconf automake libtool libpcap-dev libnet1-dev \
     libyaml-0-1 libyaml-dev zlib1g zlib1g-dev
-
-    ### HTP
-    wget http://www.openinfosecfoundation.org/download/htp-current.tar.gz
-    tar -xzvf htp-current.tar.gz
-    cd htp-<version>
-    ./configure
-    make
-    make install
-    ldconfig
 
     #if using ubuntu-8.04 to use prebuilt yaml packages you need to
     uncomment the following two lines in your /etc/apt/sources.list to
@@ -62,6 +54,12 @@ For Debian/Ubuntu Users
     #if building with IPS capabilities via ./configure --enable-nfq
     sudo apt-get -y install libnetfilter-queue-dev libnetfilter-queue1
     libnfnetlink-dev libnfnetlink0
+
+    ### Libcap-ng Installation (needed for dropping privs)
+    wget http://people.redhat.com/sgrubb/libcap-ng/libcap-ng-0.6.4.tar.gz
+    tar -xzvf libcap-ng-0.6.4.tar.gz
+    cd libcap-ng-0.6.4
+    ./configure && make && sudo make install
 
     ### Suricata:
     wget http://www.openinfosecfoundation.org/download/suricata-current.tar.gz
@@ -86,18 +84,15 @@ For Fedora Core Users
     pcre-devel gcc gcc-c++ automake autoconf libtool make libyaml \
     libyaml-devel zlib zlib-devel 
 
-    ### HTP
-    wget http://www.openinfosecfoundation.org/download/htp-current.tar.gz
-    tar -xzvf htp-current.tar.gz
-    cd htp-<version>
-    ./configure
-    make
-    make install
-    ldconfig
-
     #if building with IPS capabilities via ./configure --enable-nfq
     sudo yum -y install libnfnetlink libnfnetlink-devel \
     libnetfilter_queue libnetfilter_queue-devel
+
+    ### Libcap-ng Installation (needed for dropping privs)
+    wget http://people.redhat.com/sgrubb/libcap-ng/libcap-ng-0.6.4.tar.gz
+    tar -xzvf libcap-ng-0.6.4.tar.gz
+    cd libcap-ng-0.6.4
+    ./configure && make && sudo make install
 
     ### Suricata:
     #Retrieve and install Suricata
@@ -127,15 +122,6 @@ For CentOS5 Users
     pcre-devel gcc automake autoconf libtool make gcc-c++ libyaml \
     libyaml-devel zlib zlib-devel
 
-    ### HTP
-    wget http://www.openinfosecfoundation.org/download/htp-current.tar.gz
-    tar -xzvf htp-current.tar.gz
-    cd htp-<version>
-    ./configure
-    make
-    make install
-    ldconfig
-
     #if building with IPS capabilities via ./configure --enable-nfq there
     are no pre-built packages in CentOS base or EPEL for libnfnetlink and
     libnetfilter_queue.
@@ -154,6 +140,12 @@ For CentOS5 Users
     http://www.emergingthreats.net/emergingrepo/x86_64/libnetfilter_queue-devel-0.0.15-1.x86_64.rpm \
     http://www.emergingthreats.net/emergingrepo/x86_64/libnfnetlink-0.0.30-1.x86_64.rpm \
     http://www.emergingthreats.net/emergingrepo/x86_64/libnfnetlink-devel-0.0.30-1.x86_64.rpm
+
+    ### Libcap-ng Installation (needed for dropping privs)
+    wget http://people.redhat.com/sgrubb/libcap-ng/libcap-ng-0.6.4.tar.gz
+    tar -xzvf libcap-ng-0.6.4.tar.gz
+    cd libcap-ng-0.6.4
+    ./configure && make && sudo make install
 
 
     ### Suricata:
@@ -189,15 +181,6 @@ For Mac OS X Users
     libyaml libtool
     export AC_PROG_LIBTOOL=$( which libtool )
 
-    ### HTP
-    wget http://www.openinfosecfoundation.org/download/htp-current.tar.gz
-    tar -xzvf htp-current.tar.gz
-    cd htp-<version>
-    ./configure
-    make
-    make install
-    ldconfig
-
     ### Suricata:
     #Retrieve and install Suricata
     wget http://www.openinfosecfoundation.org/download/suricata-current.tar.gz
@@ -224,15 +207,6 @@ For FreeBSD 8 Users
 
     pkg_add -r autoconf262 automake19 gcc45 libyaml pcre libtool \
     libnet11 libpcap gmake
-
-    ### HTP
-    wget http://www.openinfosecfoundation.org/download/htp-current.tar.gz
-    tar -xzvf htp-current.tar.gz
-    cd htp-<version>
-    ./configure
-    make
-    make install
-    ldconfig
 
     ### Suricata:
     #Retrieve and install Suricata
