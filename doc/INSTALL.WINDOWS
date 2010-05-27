@@ -46,7 +46,18 @@ the following packages to c:\mingw (use newer versions if you like):
     MinGW Installed? :   [y]
     path to MinGW:       [c:/MinGW]
 
-3. Get git
+3. Install pkg-config taken from http://wiki.videolan.org/Win32CompileMSYSNew#PKG-CONFIG
+   Download and extract the following into c:\Msys\1.0
+   http://ftp.gnome.org/pub/GNOME/binaries/win32/glib/2.18/glib_2.18.2-1_win32.zip
+   ftp://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/pkg-config_0.23-3_win32.zip
+   ftp://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/pkg-config-dev_0.23-3_win32.zip
+
+   Set PKG_CONFIG_PATH=/win32/lib/pkgconfig
+
+   (e.g. by adding the Windows enviroment variable PKG_CONFIG_PATH in "Control Panel"->"System"->"Advanced System Settings"->"Environment Variables" and setting the value to /win32/lib/pkgconfig)
+
+
+4. Get git
 
     Download portable GIT from this URL:
     http://code.google.com/p/msysgit/
@@ -54,7 +65,7 @@ the following packages to c:\mingw (use newer versions if you like):
     - unpack to /msys/1.0
     - don't forget to edit your ~/.gitconfig to at least give youreself a name :-)
 
-4. Get libpcre
+5. Get libpcre
 
     http://www.pcre.org/
 
@@ -62,7 +73,7 @@ the following packages to c:\mingw (use newer versions if you like):
     make
     make install
 
-5. Get libyaml
+6. Get libyaml
 
     http://pyyaml.org/wiki/LibYAML
 
@@ -72,7 +83,7 @@ the following packages to c:\mingw (use newer versions if you like):
     make
     make install
 
-6. Get libpcap
+7. Get libpcap
 
     Guide can be found here:
     - Download Devlopers pack http://www.winpcap.org/devel.htm
@@ -80,7 +91,7 @@ the following packages to c:\mingw (use newer versions if you like):
     - Copy includes to c:/mingw/include and libs (.a) to c:/mingw/lib
     - Rename libwpcap to libpcap
 
-7. Get and compile Suricata
+8. Get and compile Suricata
 
     git clone git://phalanx.openinfosecfoundation.org/oisf.git
     cd oisf
