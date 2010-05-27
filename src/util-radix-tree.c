@@ -456,6 +456,8 @@ static void SCRadixReleasePrefix(SCRadixPrefix *prefix, SCRadixTree *tree)
                 tree->Free(user_data_temp2->user);
                 SCRadixDeAllocSCRadixUserData(user_data_temp2);
             }
+        } else if (user_data_temp1 != NULL) {
+            SCFree(user_data_temp1);
         }
 
         SCFree(prefix);

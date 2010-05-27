@@ -644,6 +644,8 @@ void HtpBodyFree(HtpBody *body)
     prev = body->first;
     while (prev != NULL) {
         cur = prev->next;
+        if (prev->data != NULL)
+            SCFree(prev->data);
         SCFree(prev);
         prev = cur;
     }
@@ -716,12 +718,12 @@ void HTPFreeConfig(void)
 
     HTPCfgRec *nextrec = cfglist.next;
     SCRadixReleaseRadixTree(cfgtree);
-    SCFree(cfglist.cfg);
+    htp_config_destroy(cfglist.cfg);
     while (nextrec != NULL) {
         HTPCfgRec *htprec = nextrec;
         nextrec = nextrec->next;
 
-        SCFree(htprec->cfg);
+        htp_config_destroy(htprec->cfg);
         SCFree(htprec);
     }
     SCReturn;
