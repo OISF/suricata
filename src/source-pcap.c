@@ -71,6 +71,9 @@ typedef struct PcapThreadVars_
     uint64_t bytes;
     uint32_t errs;
 
+    /* pcap buffer size */
+    int pcap_buffer_size;
+
     ThreadVars *tv;
 
     Packet *in_p;
@@ -297,6 +300,25 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
+#ifdef HAVE_PCAP_SET_BUFF
+    char *tmppcapbuffsize;
+    /* set pcap buffer size if specified and supported. Must be done prior to activating the handle */
+    if (ConfGet("pcap.buffer-size", &tmppcapbuffsize) == 1){
+        if (atoi(tmppcapbuffsize) >= 0 && atoi(tmppcapbuffsize) <= INT_MAX) {
+            ptv->pcap_buffer_size = (int)atoi(tmppcapbuffsize);
+            SCLogInfo("Going to use pcap buffer size of %" PRId32 "", ptv->pcap_buffer_size);
+
+            int pcap_set_buffer_size_r = pcap_set_buffer_size(ptv->pcap_handle,ptv->pcap_buffer_size);
+            //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_buffer_size_r);
+            if (pcap_set_buffer_size_r != 0) {
+                SCLogError(SC_ERR_PCAP_SET_BUFF_SIZE, "Problems setting pcap buffer size, error %s", pcap_geterr(ptv->pcap_handle));
+                SCFree(ptv);
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+
+        }
+    }
+#endif /* HAVE_PCAP_SET_BUFF */
 
     /* activate the handle */
     int pcap_activate_r = pcap_activate(ptv->pcap_handle);

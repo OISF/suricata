@@ -612,6 +612,17 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     fi
     LIBS="${TMPLIBS}"
 
+#Appears as if pcap_set_buffer_size is linux only?
+    LIBPCAPSBUFF=""
+#To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+#see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+    TMPLIBS="${LIBS}"
+    AC_CHECK_LIB(pcap, pcap_set_buffer_size,, LPCAPSBUFF="no")
+    if test "$LPCAPSBUFF" != "no"; then
+    CFLAGS="${CFLAGS} -DHAVE_PCAP_SET_BUFF"
+    fi
+    LIBS="${TMPLIBS}"
+
 # enable the running of unit tests
     AC_ARG_ENABLE(unittests,
             [  --enable-unittests  Enable compilation of the unit tests],

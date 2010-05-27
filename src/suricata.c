@@ -300,6 +300,9 @@ void usage(const char *progname)
     printf("\t--pidfile <file>             : write pid to this file (only for daemon mode)\n");
     printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\t--dump-config                : show the running configuration\n");
+#ifdef HAVE_PCAP_SET_BUFF
+    printf("\t--pcap-buffer-size           : size of the pcap buffer value from 0 - %i\n",INT_MAX);
+#endif /* HAVE_SET_PCAP_BUFF */
 #ifdef HAVE_PFRING
     printf("\t--pfring-int <dev>           : run in pfring mode\n");
     printf("\t--pfring-cluster-id <id>     : pfring cluster id \n");
@@ -367,6 +370,7 @@ int main(int argc, char **argv)
         {"pfring-int",  required_argument, 0, 0},
         {"pfring-cluster-id",  required_argument, 0, 0},
         {"pfring-cluster-type",  required_argument, 0, 0},
+        {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
         {"pidfile", required_argument, 0, 0},
@@ -472,6 +476,17 @@ int main(int argc, char **argv)
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 run_mode = MODE_ERF_FILE;
                 erf_file = optarg;
+            }
+            else if(strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
+#ifdef HAVE_PCAP_SET_BUFF
+                if (ConfSet("pcap.buffer-size", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set pcap-buffer-size.\n");
+                    exit(EXIT_FAILURE);
+                }
+#else
+                SCLogError(SC_ERR_NO_PCAP_SET_BUFFER_SIZE, "The version of libpcap you have"
+                        " doesn't support setting buffer size.");
+#endif /* HAVE_PCAP_SET_BUFF */
             }
             break;
         case 'c':
