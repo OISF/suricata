@@ -18,7 +18,7 @@ typedef struct RingBufferMrSw_ {
 } RingBufferMrSw;
 
 void *RingBufferMrSwGet(RingBufferMrSw *);
-void RingBufferMrSwPut(RingBufferMrSw *, void *);
+int RingBufferMrSwPut(RingBufferMrSw *, void *);
 RingBufferMrSw *RingBufferMrSwInit(void);
 void RingBufferMrSwDestroy(RingBufferMrSw *);
 
@@ -34,7 +34,7 @@ typedef struct RingBufferSrSw_ {
 } RingBufferSrSw;
 
 void *RingBufferSrSwGet(RingBufferSrSw *);
-void RingBufferSrSwPut(RingBufferSrSw *, void *);
+int RingBufferSrSwPut(RingBufferSrSw *, void *);
 RingBufferSrSw *RingBufferSrSwInit(void);
 void RingBufferSrSwDestroy(RingBufferSrSw *);
 

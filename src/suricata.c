@@ -142,13 +142,8 @@ volatile sig_atomic_t sigterm_count = 0;
 /* Max packets processed simultaniously. */
 #define DEFAULT_MAX_PENDING_PACKETS 50
 
-#define SURICATA_SIGINT  0x01
-#define SURICATA_SIGHUP  0x02
-#define SURICATA_SIGTERM 0x04
-#define SURICATA_STOP    0x08
-#define SURICATA_KILL    0x10
-
-static uint8_t sigflags = 0;
+/** suricata engine control flags */
+uint8_t suricata_ctl_flags = 0;
 
 /** Run mode selected */
 int run_mode = MODE_UNKNOWN;
@@ -166,9 +161,20 @@ int RunmodeIsUnittests(void) {
     return 0;
 }
 
-static void SignalHandlerSigint(/*@unused@*/ int sig) { sigint_count = 1; sigflags |= SURICATA_SIGINT; }
-static void SignalHandlerSigterm(/*@unused@*/ int sig) { sigterm_count = 1; sigflags |= SURICATA_SIGTERM; }
-static void SignalHandlerSighup(/*@unused@*/ int sig) { sighup_count = 1; sigflags |= SURICATA_SIGHUP; }
+static void SignalHandlerSigint(/*@unused@*/ int sig) {
+    sigint_count = 1;
+    suricata_ctl_flags |= SURICATA_STOP;
+}
+static void SignalHandlerSigterm(/*@unused@*/ int sig) {
+    sigterm_count = 1;
+    suricata_ctl_flags |= SURICATA_KILL;
+}
+#if 0
+static void SignalHandlerSighup(/*@unused@*/ int sig) {
+    sighup_count = 1;
+    suricata_ctl_flags |= SURICATA_SIGHUP;
+}
+#endif
 
 #ifdef DBG_MEM_ALLOC
 #ifndef _GLOBAL_MEM_
@@ -225,11 +231,11 @@ void GlobalInits()
    function. Purpose: pcap file mode needs to be able to tell the
    engine the file eof is reached. */
 void EngineStop(void) {
-    sigflags |= SURICATA_STOP;
+    suricata_ctl_flags |= SURICATA_STOP;
 }
 
 void EngineKill(void) {
-    sigflags |= SURICATA_KILL;
+    suricata_ctl_flags |= SURICATA_KILL;
 }
 
 static void SetBpfString(int optind, char *argv[]) {
@@ -833,7 +839,7 @@ int main(int argc, char **argv)
     /* registering signals we use */
     SignalHandlerSetup(SIGINT, SignalHandlerSigint);
     SignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
-    SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
+    //SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
 
     /* Get the suricata user ID to given user ID */
     if (do_setuid == TRUE) {
@@ -981,18 +987,18 @@ int main(int argc, char **argv)
 #endif
 
     while(1) {
-        if (sigflags) {
+        if (suricata_ctl_flags != 0) {
             SCLogInfo("signal received");
 
-            if (sigflags & SURICATA_STOP)  {
-                SCLogInfo("SIGINT or EngineStop received");
+            if (suricata_ctl_flags & SURICATA_STOP)  {
+                SCLogInfo("EngineStop received");
 
                 /* Stop the engine so it quits after processing the pcap file
                  * but first make sure all packets are processed by all other
                  * threads. */
                 char done = 0;
                 do {
-                    if (sigflags & SURICATA_SIGTERM || sigflags & SURICATA_KILL)
+                    if (suricata_ctl_flags & SURICATA_KILL)
                         break;
 
                     SCMutexLock(&packet_q.mutex_q);
@@ -1006,12 +1012,6 @@ int main(int argc, char **argv)
                 } while (done == 0);
 
                 SCLogInfo("all packets processed by threads, stopping engine");
-            }
-            if (sigflags & SURICATA_SIGHUP) {
-                SCLogInfo("SIGHUP received");
-            }
-            if (sigflags & SURICATA_SIGTERM) {
-                SCLogInfo("SIGTERM received");
             }
 
             struct timeval end_time;
