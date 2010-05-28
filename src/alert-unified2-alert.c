@@ -60,7 +60,7 @@
 #define MIN_LIMIT 1
 
 /*prototypes*/
-TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode Unified2AlertThreadInit(ThreadVars *, void *, void **);
 TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
 int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
@@ -203,7 +203,7 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
     return 0;
 }
 
-TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
+TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     int ret = 0;
 
@@ -763,7 +763,7 @@ static int Unified2Test01 (void)   {
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == TM_ECODE_FAILED)
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq);
+    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
@@ -832,7 +832,7 @@ static int Unified2Test02 (void)   {
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == -1)
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq);
+    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
@@ -907,7 +907,7 @@ static int Unified2Test03 (void) {
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == -1)
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq);
+    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
@@ -976,7 +976,7 @@ static int Unified2Test04 (void)   {
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == -1)
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq);
+    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);
@@ -1045,7 +1045,7 @@ static int Unified2Test05 (void)   {
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == -1)
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq);
+    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED)
         return 0;
     ret = Unified2AlertThreadDeinit(&tv, data);

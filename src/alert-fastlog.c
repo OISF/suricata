@@ -60,9 +60,9 @@
 
 #define MODULE_NAME "AlertFastLog"
 
-TmEcode AlertFastLog (ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertFastLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertFastLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertFastLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode AlertFastLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode AlertFastLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertFastLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertFastLogThreadDeinit(ThreadVars *, void *);
 void AlertFastLogExitPrintStats(ThreadVars *, void *);
@@ -117,7 +117,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
             (uint32_t) ts->tv_usec);
 }
 
-TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
@@ -160,7 +160,7 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
@@ -202,12 +202,12 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertFastLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertFastLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     if (PKT_IS_IPV4(p)) {
-        return AlertFastLogIPv4(tv, p, data, pq);
+        return AlertFastLogIPv4(tv, p, data, pq, postpq);
     } else if (PKT_IS_IPV6(p)) {
-        return AlertFastLogIPv6(tv, p, data, pq);
+        return AlertFastLogIPv6(tv, p, data, pq, postpq);
     }
 
     return TM_ECODE_OK;

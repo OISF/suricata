@@ -51,9 +51,9 @@
 
 #define MODULE_NAME "AlertDebugLog"
 
-TmEcode AlertDebugLog (ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertDebugLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode AlertDebugLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertDebugLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode AlertDebugLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode AlertDebugLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertDebugLogThreadInit(ThreadVars *, void*, void **);
 TmEcode AlertDebugLogThreadDeinit(ThreadVars *, void *);
 void AlertDebugLogExitPrintStats(ThreadVars *, void *);
@@ -88,7 +88,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (uint32_t) ts->tv_usec);
 }
 
-TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
@@ -169,7 +169,7 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
@@ -199,12 +199,12 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     if (PKT_IS_IPV4(p)) {
-        return AlertDebugLogIPv4(tv, p, data, pq);
+        return AlertDebugLogIPv4(tv, p, data, pq, postpq);
     } else if (PKT_IS_IPV6(p)) {
-        return AlertDebugLogIPv6(tv, p, data, pq);
+        return AlertDebugLogIPv6(tv, p, data, pq, postpq);
     }
 
     return TM_ECODE_OK;

@@ -105,16 +105,16 @@ static uint16_t receive_queue_num = 0;
 static uint16_t verdict_queue_num = 0;
 static SCMutex nfq_init_lock;
 
-TmEcode ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode ReceiveNFQThreadInit(ThreadVars *, void *, void **);
 void ReceiveNFQThreadExitStats(ThreadVars *, void *);
 
-TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode VerdictNFQThreadInit(ThreadVars *, void *, void **);
 void VerdictNFQThreadExitStats(ThreadVars *, void *);
 TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 
-TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DecodeNFQThreadInit(ThreadVars *, void *, void **);
 
 void TmModuleReceiveNFQRegister (void) {
@@ -497,7 +497,7 @@ process_rv:
 /**
  * \brief NFQ receive module main entry function: receive a packet from NFQ
  */
-TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
 
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
@@ -572,7 +572,7 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
 /**
  * \brief NFQ verdict module packet entry function
  */
-TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
 
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
@@ -609,7 +609,7 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
 /**
  * \brief Decode a packet coming from NFQ
  */
-TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
 
     IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;

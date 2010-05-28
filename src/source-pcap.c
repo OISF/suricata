@@ -68,13 +68,13 @@ typedef struct PcapThreadVars_
     ThreadVars *tv;
 } PcapThreadVars;
 
-TmEcode ReceivePcap(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode ReceivePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode ReceivePcapThreadInit(ThreadVars *, void *, void **);
 void ReceivePcapThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodePcapThreadInit(ThreadVars *, void *, void **);
-TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 /**
  * \brief Registration Function for RecievePcap.
@@ -146,7 +146,7 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
  * \param pq pointer to the PacketQueue (not used here but part of the api)
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
-TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     SCEnter();
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
@@ -376,7 +376,7 @@ TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
  * \param data pointer that gets cast into PcapThreadVars for ptv
  * \param pq pointer to the current PacketQueue
  */
-TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;

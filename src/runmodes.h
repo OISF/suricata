@@ -36,6 +36,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *, char *);
 int RunModeFilePcap(DetectEngineCtx *, char *);
 int RunModeFilePcap2(DetectEngineCtx *, char *);
 int RunModeFilePcapAuto(DetectEngineCtx *, char *);
+int RunModeFilePcapAuto2(DetectEngineCtx *, char *);
 
 int RunModeIdsPfring(DetectEngineCtx *, char *);
 int RunModeIdsPfring2(DetectEngineCtx *, char *);

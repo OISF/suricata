@@ -59,7 +59,7 @@
  *
  */
 
-TmEcode AlertPrelude (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertPrelude (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertPreludeThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertPreludeThreadDeinit(ThreadVars *, void *);
 int AlertPreludeOpenFileCtx(LogFileCtx *, char *);
@@ -85,7 +85,7 @@ TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_FAILED;
 }
 
-TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     return TM_ECODE_OK;
 }
@@ -119,7 +119,7 @@ static unsigned int mid_priority  = 2;
 
 
 OutputCtx *AlertPreludeInitCtx(ConfNode *conf);
-TmEcode AlertPrelude (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertPrelude (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertPreludeThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertPreludeThreadDeinit(ThreadVars *, void *);
 int AlertPreludeOpenFileCtx(LogFileCtx *, char *);
@@ -621,7 +621,7 @@ static int EventToReference(PacketAlert *pa, Packet *p, idmef_classification_t *
  *
  * \return TM_ECODE_OK if ok, else TM_ECODE_FAILED
  */
-TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertPreludeThread *apn = (AlertPreludeThread *)data;
     uint8_t ethh_offset = 0;

@@ -50,9 +50,9 @@
 
 #define MODULE_NAME "LogHttpLog"
 
-TmEcode LogHttpLog (ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode LogHttpLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode LogHttpLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode LogHttpLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode LogHttpLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode LogHttpLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode LogHttpLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogHttpLogThreadDeinit(ThreadVars *, void *);
 void LogHttpLogExitPrintStats(ThreadVars *, void *);
@@ -107,7 +107,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         (uint32_t) ts->tv_usec);
 }
 
-TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
@@ -224,7 +224,7 @@ end:
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
@@ -341,7 +341,7 @@ end:
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
 
@@ -355,9 +355,9 @@ TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     }
 
     if (PKT_IS_IPV4(p)) {
-        SCReturnInt(LogHttpLogIPv4(tv, p, data, pq));
+        SCReturnInt(LogHttpLogIPv4(tv, p, data, pq, postpq));
     } else if (PKT_IS_IPV6(p)) {
-        SCReturnInt(LogHttpLogIPv6(tv, p, data, pq));
+        SCReturnInt(LogHttpLogIPv6(tv, p, data, pq, postpq));
     }
 
     SCReturnInt(TM_ECODE_OK);

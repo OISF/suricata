@@ -58,7 +58,7 @@
 
 #define MODULE_NAME "AlertUnifiedAlert"
 
-TmEcode AlertUnifiedAlert (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode AlertUnifiedAlert (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertUnifiedAlertThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertUnifiedAlertThreadDeinit(ThreadVars *, void *);
 int AlertUnifiedAlertOpenFileCtx(LogFileCtx *, const char *);
@@ -179,7 +179,7 @@ int AlertUnifiedAlertRotateFile(ThreadVars *t, AlertUnifiedAlertThread *aun) {
     return 0;
 }
 
-TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertUnifiedAlertThread *aun = (AlertUnifiedAlertThread *)data;
     AlertUnifiedAlertPacketHeader hdr;

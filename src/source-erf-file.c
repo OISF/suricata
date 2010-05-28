@@ -59,13 +59,13 @@ typedef struct ErfFileThreadVars_ {
     uint64_t bytes;
 } ErfFileThreadVars;
 
-TmEcode ReceiveErfFile(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode ReceiveErfFile(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode ReceiveErfFileThreadInit(ThreadVars *, void *, void **);
 void ReceiveErfFileThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveErfFileThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodeErfFileThreadInit(ThreadVars *, void *, void **);
-TmEcode DecodeErfFile(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodeErfFile(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 /**
  * \brief Register the ERF file receiver (reader) module.
@@ -105,7 +105,7 @@ TmModuleDecodeErfFileRegister(void)
  * decoding.
  */
 TmEcode
-ReceiveErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+ReceiveErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
 
@@ -218,7 +218,7 @@ DecodeErfFileThreadInit(ThreadVars *tv, void *initdata, void **data)
  * off to the ethernet decoder.
  */
 TmEcode
-DecodeErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+DecodeErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;

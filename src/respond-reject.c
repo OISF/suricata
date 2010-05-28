@@ -56,7 +56,7 @@ void TmModuleRespondRejectRegister (void) {
     tmm_modules[TMM_RESPONDREJECT].cap_flags = 0; /* libnet is not compat with caps */
 }
 
-TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     int ret = 0;
 
     /* ACTION_REJECT defaults to rejecting the SRC */

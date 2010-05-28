@@ -150,7 +150,7 @@ void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
 
 /* tm module api functions */
-TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DetectThreadInit(ThreadVars *, void *, void **);
 TmEcode DetectThreadDeinit(ThreadVars *, void *);
 
@@ -871,7 +871,7 @@ end:
  *  \retval TM_ECODE_FAILED error
  *  \retval TM_ECODE_OK ok
  */
-TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION)
@@ -6974,7 +6974,7 @@ int SigTest40NoPacketInspection01(void) {
     //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
     det_ctx->de_ctx = de_ctx;
 
-    Detect(&th_v, &p, det_ctx, &pq);
+    Detect(&th_v, &p, det_ctx, &pq, NULL);
     if (PacketAlertCheck(&p, 2))
         result = 0;
     else
@@ -8622,20 +8622,20 @@ static int SigTestDetectAlertCounter(void)
     p.payload = (uint8_t *)"boo";
     p.payload_len = strlen((char *)p.payload);
     p.proto = IPPROTO_TCP;
-    Detect(&tv, &p, det_ctx, NULL);
+    Detect(&tv, &p, det_ctx, NULL, NULL);
     result = (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.sc_perf_pca) == 1);
 
-    Detect(&tv, &p, det_ctx, NULL);
+    Detect(&tv, &p, det_ctx, NULL, NULL);
     result &= (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.sc_perf_pca) == 2);
 
     p.payload = (uint8_t *)"roo";
     p.payload_len = strlen((char *)p.payload);
-    Detect(&tv, &p, det_ctx, NULL);
+    Detect(&tv, &p, det_ctx, NULL, NULL);
     result &= (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.sc_perf_pca) == 2);
 
     p.payload = (uint8_t *)"laboosa";
     p.payload_len = strlen((char *)p.payload);
-    Detect(&tv, &p, det_ctx, NULL);
+    Detect(&tv, &p, det_ctx, NULL, NULL);
     result &= (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.sc_perf_pca) == 3);
 
 end:
