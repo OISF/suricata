@@ -27,50 +27,59 @@
  */
 
 #define B2G_CUDA_Q 2
-#define CUDA_THREADS 16
+#define CUDA_THREADS 4000
 #define B2G_CUDA_HASHSHIFT 4
 #define B2G_CUDA_TYPE unsigned int
 #define B2G_CUDA_HASH16(a, b) (((a) << B2G_CUDA_HASHSHIFT) | (b))
 #define u8_tolower(c) g_u8_lowercasetable[(c)]
 
+typedef struct SCCudaPBPacketDataForGPU_ {
+    /* holds the value B2gCtx->m */
+    unsigned int m;
+    /* holds B2gCtx->B2g */
+    unsigned int table;
+    /* holds the length of the payload */
+    unsigned int payload_len;
+    /* holds the payload */
+    unsigned char payload;
+} SCCudaPBPacketDataForGPU;
+
 extern "C"
-__global__ void B2gCudaSearchBNDMq(unsigned int *offsets,
-                                   unsigned int *B2G,
-                                   unsigned char *g_u8_lowercasetable,
-                                   unsigned char *buf,
-                                   unsigned short arg_buflen,
-                                   unsigned int m)
-{
+__global__ void B2gCudaSearchBNDMq(unsigned short *results_buffer,
+                                   unsigned char *packets_buffer,
+                                   unsigned int *packets_offset_buffer,
+                                   unsigned int *packets_payload_offset_buffer,
+                                   unsigned int nop,
+                                   unsigned char *g_u8_lowercasetable)
+ {
+    unsigned int tid = blockIdx.x * 32 + threadIdx.x;
+    /* if the thread id is greater than the no of packets sent in the packets
+     * buffer, terminate the thread */
+    //if (tid <= nop)
+    if (tid >= nop)
+        return;
+
+    SCCudaPBPacketDataForGPU *packet = (SCCudaPBPacketDataForGPU *)(packets_buffer + packets_offset_buffer[tid]);
+    unsigned int m = packet->m;
+    unsigned char *buf = &packet->payload;
+    unsigned int buflen = packet->payload_len;
+    unsigned int *B2G = (unsigned int *)packet->table;
     unsigned int pos = m - B2G_CUDA_Q + 1;
     B2G_CUDA_TYPE d;
     unsigned short h;
-    unsigned int j;
     unsigned int first;
-    unsigned int tid = threadIdx.x;
-    unsigned short tid_chunk = arg_buflen / CUDA_THREADS;
-    unsigned short jump;
-    unsigned short buflen;
+    unsigned int j = 0;
 
-    if (tid_chunk < m)
-        tid_chunk = m;
-
-    jump = tid_chunk * tid;
-    if ((jump + tid_chunk) > arg_buflen)
-        return;
-
-    buflen = tid_chunk * 2 - 1;
-    if ((tid == CUDA_THREADS - 1) || ((jump + buflen) > arg_buflen)) {
-        buflen = arg_buflen - jump;
-    }
-
-    j = 0;
-    while (j < buflen) {
-        offsets[jump + j] = 0;
-        j++;
-    }
+    unsigned short *matches_count = results_buffer + packets_payload_offset_buffer[tid] + tid;
+    //unsigned short *matches_count = results_buffer + packets_payload_offset_buffer[1] + 1;
+    //unsigned short *offsets = results_buffer + packets_payload_offset_buffer[1] + 1 + 1;
+    unsigned short *offsets = matches_count + 1;
+    // temporarily hold the results here, before we shift it to matches_count
+    // before returning
+    unsigned short matches = 0;
 
     while (pos <= (buflen - B2G_CUDA_Q + 1)) {
-        h = B2G_CUDA_HASH16(u8_tolower(buf[jump + pos - 1]), u8_tolower(buf[jump + pos]));
+        h = B2G_CUDA_HASH16(u8_tolower(buf[pos - 1]), u8_tolower(buf[pos]));
         d = B2G[h];
 
         if (d != 0) {
@@ -83,19 +92,21 @@ __global__ void B2gCudaSearchBNDMq(unsigned int *offsets,
                     if (j > first) {
                         pos = j;
                     } else {
-                        offsets[j + jump] = 1;
+                        offsets[matches++] = j;
                     }
                 }
 
                 if (j == 0)
                     break;
 
-                h = B2G_CUDA_HASH16(u8_tolower(buf[jump + j - 1]), u8_tolower(buf[jump + j]));
+                h = B2G_CUDA_HASH16(u8_tolower(buf[j - 1]), u8_tolower(buf[j]));
                 d = (d << 1) & B2G[h];
             } while (d != 0);
         }
         pos = pos + m - B2G_CUDA_Q + 1;
     }
+
+    matches_count[0] = matches;
 
     return;
 }

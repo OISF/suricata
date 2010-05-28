@@ -51,7 +51,7 @@ typedef struct B2gCudaPattern_ {
     /* case INsensitive */
     uint8_t *ci;
     struct B2gCudaPattern_ *next;
-    MpmEndMatch *em;
+    uint32_t id;
 } B2gCudaPattern;
 
 typedef struct B2gCudaHashItem_ {
@@ -65,23 +65,6 @@ typedef struct B2gCudaCtx_ {
      * in the engine that is holding this B2g_Cuda_Ctx */
     int module_handle;
 
-    CUcontext cuda_context;
-    CUmodule cuda_module;
-
-    /* the search kernel */
-    CUfunction cuda_search_kernel;
-
-    /* the cuda_search_kernel argument offsets */
-    uint8_t cuda_search_kernel_arg0_offset;
-    uint8_t cuda_search_kernel_arg1_offset;
-    uint8_t cuda_search_kernel_arg2_offset;
-    uint8_t cuda_search_kernel_arg3_offset;
-    uint8_t cuda_search_kernel_arg4_offset;
-    uint8_t cuda_search_kernel_arg5_offset;
-    uint8_t cuda_search_kernel_arg_total;
-
-    /* cuda device pointer to thelower case table g_u8_lowercasetable */
-    CUdeviceptr cuda_g_u8_lowercasetable;
     /* cuda device pointer to B2gCudaCtx->B2G */
     CUdeviceptr cuda_B2G;
 
@@ -141,17 +124,18 @@ typedef struct B2gCudaThreadCtx_ {
 } B2gCudaThreadCtx;
 
 void MpmB2gCudaRegister(void);
-
 void TmModuleCudaMpmB2gRegister(void);
 
 int B2gCudaStartDispatcherThreadRC(const char *);
-int B2gCudaStartDispatcherThreadAPC(const char *);
-
 void B2gCudaKillDispatcherThreadRC(void);
-void B2gCudaKillDispatcherThreadAPC(void);
-
-void B2gCudaPushPacketTo_tv_CMB2_RC(Packet *);
-void B2gCudaPushPacketTo_tv_CMB2_APC(Packet *);
+int B2gCudaResultsPostProcessing(Packet *, MpmCtx *, MpmThreadCtx *,
+                                 PatternMatcherQueue *);
+uint32_t B2gCudaSearch1(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *,
+                        uint8_t *, uint16_t);
+#ifdef B2G_CUDA_SEARCH2
+uint32_t B2gCudaSearch2(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *,
+                        uint8_t *, uint16_t);
+#endif
 
 #endif /* __SC_CUDA_SUPPORT__ */
 

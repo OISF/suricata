@@ -3140,6 +3140,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
             SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context for the "
                        "module SC_RULES_CONTENT_B2G_CUDA");
         }
+        SCCudaCtxPushCurrent(dummy_context);
         if (SCCudaMemGetInfo(&cuda_free_before_alloc, &cuda_total) == 0) {
             SCLogInfo("Total Memory available in the CUDA context used for mpm "
                       "with b2g: %.2f MB", cuda_total/(1024.0 * 1024.0));

@@ -101,6 +101,72 @@ SCCudaHlModuleData *SCCudaHlGetModuleData(uint8_t handle)
 }
 
 /**
+ * \brief Returns a cuda_module against the handle in the argument.
+ *
+ *        If a cuda_module is not present for a handle, it is created
+ *        and associated with this handle and the cuda_module is returned
+ *        in the argument.  If a cuda_module is already present for
+ *        a handle, it is returned.
+ *
+ * \param p_context Pointer to a cuda context instance that should be updated
+ *                  with a cuda context.
+ * \param handle    A unique handle which identifies a module.  Obtained from
+ *                  a call to SCCudaHlGetUniqueHandle().
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaHlGetCudaModuleFromFile(CUmodule *p_module, const char *filename, int handle)
+{
+    SCCudaHlModuleData *data = NULL;
+
+    if (p_module == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Error invalid arguments"
+                   "p_module NULL");
+        return -1;
+    }
+
+    /* check if the particular module that wants a CUDA module is already
+     * registered or not.  If it is registered, check if a context has
+     * been associated with the module.  If yes, then we can go ahead and
+     * create a cuda module or return the reference to the cuda module if
+     * we already have a cuda module associated with the module.  If no, "
+     * log warning and get out of here */
+    if ( ((data = SCCudaHlGetModuleData(handle)) == NULL) ||
+         (data->cuda_context == 0)) {
+        SCLogDebug("Module not registered or no cuda context associated with "
+                   "this module.  You can't create a CUDA module without"
+                   "associatin a context with a module first. To use this "
+                   "registration facility, first register a module using "
+                   "context using SCCudaHlRegisterModule(), and then register "
+                   "a cuda context with that module using "
+                   "SCCudaHlGetCudaContext(), after which you can call this "
+                   "function ");
+        return -1;
+    }
+
+    /* we already have a cuda module associated with this module.  Return the
+     * cuda module */
+    if (data->cuda_module != 0) {
+        p_module[0] = data->cuda_module;
+        return 0;
+    }
+
+    /* we don't have a cuda module associated with this module.  Create a
+     * cuda module, update the module with this cuda module reference and
+     * then return the module refernce back to the calling function using
+     * the argument */
+    if (SCCudaModuleLoad(p_module, filename) == -1)
+        goto error;
+    data->cuda_module = p_module[0];
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
  * \internal
  * \brief Get a unique handle for a new module registration.  This new handle
  *        returned uniquely represents a module.  All future calls to functions
@@ -347,10 +413,12 @@ int SCCudaHlGetCudaDevicePtr(CUdeviceptr *device_ptr, const char *name,
         }
     }
 
+    /* send the newly assigned device pointer back to the caller */
+    device_ptr[0] = new_module_device_ptr->d_ptr;
+
     /* insert it into the device_ptr list for the module instance */
     if (data->device_ptrs == NULL) {
         data->device_ptrs = new_module_device_ptr;
-        device_ptr[0] = new_module_device_ptr->d_ptr;
         return 0;
     }
 
@@ -364,6 +432,76 @@ int SCCudaHlGetCudaDevicePtr(CUdeviceptr *device_ptr, const char *name,
  error:
     if (new_module_device_ptr != NULL)
         SCFree(new_module_device_ptr);
+    return -1;
+}
+
+/**
+ * \brief Frees a Cuda Device Pointer.
+ *
+ *        If a device pointer by the name \"name\"  is registered for this
+ *        handle, it is freed.
+ *
+ * \param name       Name of the device pointer by which we have to search
+ *                   module for its existance.
+ * \param handle     A unique handle which identifies a module.  Obtained from
+ *                   a call to SCCudaHlGetUniqueHandle().
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaHlFreeCudaDevicePtr(const char *name, int handle)
+{
+    SCCudaHlModuleData *data = NULL;
+    SCCudaHlModuleDevicePointer *module_device_ptr = NULL;
+    SCCudaHlModuleDevicePointer *temp_module_device_ptr = NULL;
+
+    if (name == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Error invalid arguments"
+                   "device_ptr is NULL or name is NULL");
+        goto error;
+    }
+
+    /* check if the particular module that wants to free device memory is
+     * already registered or not.  If it is registered, check if a context has
+     * been associated with the module.  If yes, then we can go ahead and
+     * free the device memory.
+     */
+    if ( ((data = SCCudaHlGetModuleData(handle)) == NULL) ||
+         (data->cuda_context == 0)) {
+        SCLogDebug("Module not registered or no cuda context associated with "
+                   "this module.  You can't create a CUDA module without"
+                   "associatin a context with a module first. To use this "
+                   "registration facility, first register a module using "
+                   "context using SCCudaHlRegisterModule(), and then register "
+                   "a cuda context with that module using "
+                   "SCCudaHlGetCudaContext(), after which you can call this "
+                   "function ");
+        goto error;
+    }
+
+    /* if we already have a device pointer registered by this name return the
+     * cuda device pointer instance */
+    if ( (module_device_ptr = SCCudaHlCudaDevicePtrAvailable(data, name)) == NULL) {
+        goto error;
+    }
+
+    SCCudaMemFree(module_device_ptr->d_ptr);
+    module_device_ptr->d_ptr = 0;
+    if (module_device_ptr == data->device_ptrs) {
+        data->device_ptrs = data->device_ptrs->next;
+    } else {
+        temp_module_device_ptr = data->device_ptrs;
+        while (strcmp(temp_module_device_ptr->next->name, name) != 0) {
+            temp_module_device_ptr = temp_module_device_ptr->next;
+        }
+        temp_module_device_ptr->next = temp_module_device_ptr->next->next;
+    }
+    free(module_device_ptr->name);
+    free(module_device_ptr);
+
+    return 0;
+
+ error:
     return -1;
 }
 
@@ -441,8 +579,11 @@ int SCCudaHlGetModuleHandle(const char *name)
         data = data->next;
     }
 
-    if (data == NULL)
+    if (data == NULL) {
+        SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "A cuda module by the name \"%s\" "
+                   "hasn't been registered", name);
         return -1;
+    }
 
     return data->handle;
 }
@@ -673,74 +814,6 @@ int SCCudaHlTestEnvCudaContextDeInit(void)
     }
 
     return 1;
-}
-
-void SCCudaHlProcessPacketWithDispatcher(Packet *p, DetectEngineThreadCtx *det_ctx,
-                                         void *result)
-{
-    Packet *out_p = NULL;
-
-    p->cuda_mpm_ctx = det_ctx->sgh->mpm_ctx;
-    p->cuda_mtc = &det_ctx->mtc;
-    p->cuda_pmq = &det_ctx->pmq;
-    /* this outq is unique to this detection thread instance.  The dispatcher thread
-     * would use this queue to pump the packets back to this detection thread once
-     * it has processed the packet */
-    p->cuda_outq = &trans_q[det_ctx->cuda_mpm_rc_disp_outq->id];
-    /* for now it is hardcoded.  \todo Make the access to the right queue or the
-     * ThreadVars generic */
-
-    /* Push the packet into the dispatcher's input queue */
-    B2gCudaPushPacketTo_tv_CMB2_RC(p);
-
-    /* wait for the dispatcher to process and return the packet we pushed */
-    out_p = TmqhInputSimpleOnQ(&trans_q[det_ctx->cuda_mpm_rc_disp_outq->id]);
-
-    /* todo make this generic, so that if we have more than 2 modules using the
-     * cuda interface, we can call update function for the module that has
-     * queued the packet and retrieve the results */
-    *((uint32_t *)result) = p->cuda_matches;
-
-    return;
-}
-
-void SCCudaHlProcessUriWithDispatcher(uint8_t *uri, uint16_t uri_len,
-                                      DetectEngineThreadCtx *det_ctx,
-                                      void *result)
-{
-    Packet *out_p = NULL;
-
-    Packet *p = SCMalloc(sizeof(Packet));
-    if (p == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCCudaHlProcessUriWithDispatcher. Exiting...");
-        exit(EXIT_FAILURE);
-    }
-    memset(p, 0, sizeof(Packet));
-
-    p->cuda_mpm_ctx = det_ctx->sgh->mpm_uri_ctx;
-    p->cuda_mtc = &det_ctx->mtcu;
-    p->cuda_pmq = &det_ctx->pmq;
-    p->payload = uri;
-    p->payload_len = uri_len;
-    /* this outq is unique to this detection thread instance.  The dispatcher thread
-     * would use this queue to pump the packets back to this detection thread once
-     * it has processed the packet */
-    p->cuda_outq = &trans_q[det_ctx->cuda_mpm_rc_disp_outq->id];
-
-    /* Push the packet into the dispatcher's input queue */
-    B2gCudaPushPacketTo_tv_CMB2_RC(p);
-
-    /* wait for the dispatcher to process and return the packet we pushed */
-    out_p = TmqhInputSimpleOnQ(&trans_q[det_ctx->cuda_mpm_rc_disp_outq->id]);
-
-    /* todo make this generic, so that if we have more than 2 modules using the
-     * cuda interface, we can call update function for the module that has
-     * queued the packet and retrieve the results */
-    *((uint32_t *)result) = p->cuda_matches;
-
-    SCFree(p);
-
-    return;
 }
 
 #endif /* __SC_CUDA_SUPPORT */

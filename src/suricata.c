@@ -133,6 +133,7 @@
 /* holds the cuda b2g module */
 #include "util-mpm-b2g-cuda.h"
 #include "util-cuda-handlers.h"
+#include "cuda-packet-batcher.h"
 
 #include "output.h"
 #include "util-privs.h"
@@ -218,6 +219,7 @@ SignalHandlerSetup(int sig, void (*handler)())
 void GlobalInits()
 {
     memset(trans_q, 0, sizeof(trans_q));
+    memset(data_queues, 0, sizeof(data_queues));
 
     /* Initialize the trans_q mutex */
     int blah;
@@ -225,6 +227,9 @@ void GlobalInits()
     for(blah=0;blah<256;blah++) {
         r |= SCMutexInit(&trans_q[blah].mutex_q, NULL);
         r |= SCCondInit(&trans_q[blah].cond_q, NULL);
+
+        r |= SCMutexInit(&data_queues[blah].mutex_q, NULL);
+        r |= SCCondInit(&data_queues[blah].cond_q, NULL);
    }
 
     if (r != 0) {
@@ -793,6 +798,7 @@ int main(int argc, char **argv)
     TmModuleLogHttpLogIPv6Register();
 #ifdef __SC_CUDA_SUPPORT__
     TmModuleCudaMpmB2gRegister();
+    TmModuleCudaPacketBatcherRegister();
 #endif
     TmModuleReceiveErfFileRegister();
     TmModuleDecodeErfFileRegister();
@@ -996,9 +1002,14 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
     }
 
+
 #ifdef PROFILING
     SCProfilingInitRuleCounters(de_ctx);
 #endif /* PROFILING */
+
+#ifdef __SC_CUDA_SUPPORT__
+    SCCudaPBSetUpQueuesAndBuffers();
+#endif /* __SC_CUDA_SUPPORT__ */
 
     AppLayerHtpRegisterExtraCallbacks();
     SCThresholdConfInitContext(de_ctx,NULL);
@@ -1125,6 +1136,10 @@ int main(int argc, char **argv)
             gettimeofday(&end_time, NULL);
 
             SCLogInfo("time elapsed %" PRIuMAX "s", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
+
+#ifdef __SC_CUDA_SUPPORT__
+            SCCudaPBKillBatchingPackets();
+#endif
 
             TmThreadKillThreads();
             SCPerfReleaseResources();

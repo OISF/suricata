@@ -247,6 +247,10 @@ struct PacketQueue_;
  */
 typedef struct Packet_
 {
+    /* double linked list ptrs */
+    struct Packet_ *next;
+    struct Packet_ *prev;
+
     /* Addresses, Ports and protocol
      * these are on top so we can use
      * the Packet as a hash key */
@@ -342,10 +346,6 @@ typedef struct Packet_
     /** packet number in the pcap file, matches wireshark */
     uint64_t pcap_cnt;
 
-    /* double linked list ptrs */
-    struct Packet_ *next;
-    struct Packet_ *prev;
-
     /* ready to set verdict counter, only set in root */
     uint8_t rtv_cnt;
     /* tunnel packet ref count */
@@ -369,20 +369,22 @@ typedef struct Packet_
 
     /* required for cuda support */
 #ifdef __SC_CUDA_SUPPORT__
-    PatternMatcherQueue *cuda_pmq;
-    MpmCtx *cuda_mpm_ctx;
-    MpmThreadCtx *cuda_mtc;
-
-    /* used to hold the match results.  We can instead use a void *result
-     * instead here.  That way we can make them hold any result. *todo* */
-    uint16_t cuda_matches;
-    /* indicates if the dispatcher should call the search or the scan phase
-     * of the pattern matcher.  We can instead use a void *cuda_data instead.
-     * This way we can send any data across to the dispatcher */
-    uint8_t cuda_search;
-    /* the dispatcher thread would pump the packet into this queue once it has
-     * processed the packet */
-    struct PacketQueue_ *cuda_outq;
+    /* indicates if the cuda mpm would be conducted or a normal cpu mpm would
+     * be conduced on this packet.  If it is set to 0, the cpu mpm; else cuda mpm */
+    uint8_t cuda_mpm_enabled;
+    /* indicates if the cuda mpm has finished running the mpm and processed the
+     * results for this packet, assuming if cuda_mpm_enabled has been set for this
+     * packet */
+    uint16_t cuda_done;
+    /* used by the detect thread and the cuda mpm dispatcher thread.  The detect
+     * thread would wait on this cond var, if the cuda mpm dispatcher thread
+     * still hasn't processed the packet.  The dispatcher would use this cond
+     * to inform the detect thread(in case it is waiting on this packet), once
+     * the dispatcher is done processing the packet results */
+    SCMutex cuda_mutex;
+    SCCondT cuda_cond;
+    /* the extra 1 in the 1481, is to hold the no_of_matches from the mpm run */
+    uint16_t mpm_offsets[1481];
 #endif
 } Packet;
 
@@ -460,23 +462,29 @@ typedef struct DecodeThreadVars_
 /**
  *  \brief Initialize a packet structure for use.
  */
-#define PACKET_INITIALIZE(p) do {               \
-        memset((p), 0x00, sizeof(Packet));      \
-        SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
-        PACKET_RESET_CHECKSUMS((p));            \
-    } while (0)
+#ifndef __SC_CUDA_SUPPORT__
+#define PACKET_INITIALIZE(p) { \
+    memset((p), 0x00, sizeof(Packet)); \
+    SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
+    PACKET_RESET_CHECKSUMS((p)); \
+}
+#else
+#define PACKET_INITIALIZE(p) { \
+    memset((p), 0x00, sizeof(Packet)); \
+    SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
+    PACKET_RESET_CHECKSUMS((p)); \
+    SCMutexInit(&(p)->cuda_mutex, NULL); \
+    SCCondInit(&(p)->cuda_cond, NULL); \
+}
+#endif
+
 
 /**
  *  \brief Recycle a packet structure for reuse.
  *  \todo the mutex destroy & init is necessary because of the memset, reconsider
  */
-#define PACKET_RECYCLE(p) do {                  \
-        CLEAR_ADDR(&(p)->src);                   \
-        CLEAR_ADDR(&(p)->dst);                   \
-        (p)->sp = 0;                            \
-        (p)->dp = 0;                            \
-        (p)->proto = 0;                         \
-        (p)->recursion_level = 0;               \
+#define PACKET_DO_RECYCLE(p) do {                  \
+        (p)->recursion_level = 0; \
         (p)->flags = 0; \
         (p)->flowflags = 0; \
         (p)->flow = NULL; \
@@ -530,15 +538,39 @@ typedef struct DecodeThreadVars_
         PACKET_RESET_CHECKSUMS((p));            \
     } while (0)
 
+#ifndef __SC_CUDA_SUPPORT__
+#define PACKET_RECYCLE(p) PACKET_DO_RECYCLE((p))
+#else
+#define PACKET_RECYCLE(p) do { \
+    PACKET_DO_RECYCLE((p)); \
+    SCMutexDestroy(&(p)->cuda_mutex); \
+    SCCondDestroy(&(p)->cuda_cond); \
+    SCMutexInit(&(p)->cuda_mutex, NULL); \
+    SCCondInit(&(p)->cuda_cond, NULL); \
+    PACKET_RESET_CHECKSUMS((p)); \
+} while(0)
+#endif
+
 /**
  *  \brief Cleanup a packet so that we can free it. No memset needed..
  */
+#ifndef __SC_CUDA_SUPPORT__
 #define PACKET_CLEANUP(p) do {                  \
         if ((p)->pktvar != NULL) {              \
             PktVarFree((p)->pktvar);            \
         }                                       \
         SCMutexDestroy(&(p)->mutex_rtv_cnt);    \
     } while (0)
+#else
+#define PACKET_CLEANUP(p) do { \
+    if ((p)->pktvar != NULL) { \
+        PktVarFree((p)->pktvar); \
+    } \
+    SCMutexDestroy(&(p)->mutex_rtv_cnt); \
+    SCMutexDestroy(&(p)->cuda_mutex); \
+    SCCondDestroy(&(p)->cuda_cond); \
+} while(0)
+#endif
 
 
 /* macro's for setting the action

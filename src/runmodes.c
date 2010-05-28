@@ -24,6 +24,7 @@
 
 #include "suricata-common.h"
 #include "detect-engine.h"
+#include "detect-engine-mpm.h"
 #include "tm-threads.h"
 #include "util-debug.h"
 #include "util-time.h"
@@ -42,6 +43,8 @@
 #include "log-httplog.h"
 
 #include "output.h"
+
+#include "cuda-packet-batcher.h"
 
 /**
  * A list of output modules that will be active for the run mode.
@@ -2305,6 +2308,115 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
+
+#if defined(__SC_CUDA_SUPPORT__)
+    if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
+        ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode",
+                                                             "pickup-queue", "simple",
+                                                             "decode-queue1", "simple",
+                                                             "1slot");
+        if (tv_decode1 == NULL) {
+            printf("ERROR: TmThreadsCreate failed for Decode1\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("DecodePcapFile");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName DecodePcap failed\n");
+            exit(EXIT_FAILURE);
+        }
+        Tm1SlotSetFunc(tv_decode1, tm_module, NULL);
+
+        TmThreadSetCPUAffinity(tv_decode1, 0);
+        if (ncpus > 1)
+            TmThreadSetThreadPriority(tv_decode1, PRIO_MEDIUM);
+
+        if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+
+        ThreadVars *tv_cuda_PB = TmThreadCreate("CUDA_PB",
+                                                "decode-queue1", "simple",
+                                                "cuda-pb-queue1", "simple",
+                                                "custom", SCCudaPBTmThreadsSlot1, 0);
+        if (tv_cuda_PB == NULL) {
+            printf("ERROR: TmThreadsCreate failed for CUDA_PB\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_cuda_PB->type = TVT_PPT;
+
+        tm_module = TmModuleGetByName("CudaPacketBatcher");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName CudaPacketBatcher failed\n");
+            exit(EXIT_FAILURE);
+        }
+        Tm1SlotSetFunc(tv_cuda_PB, tm_module, (void *)de_ctx);
+
+        TmThreadSetCPUAffinity(tv_cuda_PB, 0);
+        if (ncpus > 1)
+            TmThreadSetThreadPriority(tv_cuda_PB, PRIO_MEDIUM);
+
+        if (TmThreadSpawn(tv_cuda_PB) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+
+        ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1",
+                                                             "cuda-pb-queue1", "simple",
+                                                             "stream-queue1", "simple",
+                                                             "1slot");
+        if (tv_stream1 == NULL) {
+            printf("ERROR: TmThreadsCreate failed for Stream1\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("StreamTcp");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            exit(EXIT_FAILURE);
+        }
+        Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
+
+        TmThreadSetCPUAffinity(tv_stream1, 0);
+        if (ncpus > 1)
+            TmThreadSetThreadPriority(tv_stream1, PRIO_MEDIUM);
+
+        if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream",
+                                                             "pickup-queue", "simple",
+                                                             "stream-queue1", "simple",
+                                                             "varslot");
+        if (tv_decode1 == NULL) {
+            printf("ERROR: TmThreadsCreate failed for Decode1\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("DecodePcapFile");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName DecodePcap failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+
+        tm_module = TmModuleGetByName("StreamTcp");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+
+        TmThreadSetCPUAffinity(tv_decode1, 0);
+        if (ncpus > 1)
+            TmThreadSetThreadPriority(tv_decode1, PRIO_MEDIUM);
+
+        if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+#else
 //#if 0
     //ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream","pickup-queue","simple","packetpool","packetpool","varslot");
     ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream","pickup-queue","simple","stream-queue1","simple","varslot");
@@ -2336,7 +2448,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
-
+#endif
 //#if 0
     /* start with cpu 1 so that if we're creating an odd number of detect
      * threads we're not creating the most on CPU0. */

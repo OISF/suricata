@@ -90,19 +90,26 @@ void TmqhOutputSimple(ThreadVars *t, Packet *p)
     SCMutexUnlock(&q->mutex_q);
 }
 
+/*******************************Generic-Q-Handlers*****************************/
+
 /**
  * \brief Public version of TmqhInputSimple from the tmqh-simple queue
  *        handler, except that it is a generic version that is directly
- *        tied to a PacketQueue instance.
+ *        tied to a "SCDQDataQueue" instance(sent as an arg).
  *
- *        Retrieves a packet from the queue.  If the queue is empty, it waits
- *        on the queue, till a packet is enqueued into the queue.
+ *        Retrieves a data_instance from the queue.  If the queue is empty, it
+ *        waits on the queue, till a data_instance is enqueued into the queue
+ *        by some other module.
  *
- * \param q The PacketQueue instance to wait on.
+ *        All references to "data_instance" means a reference to a data structure
+ *        instance that implements the template "struct SCDQGenericQData_".
+ *
+ * \param q The SCDQDataQueue instance to wait on.
  *
  * \retval p The returned packet from the queue.
+ * \retval data The returned data_instance from the queue.
  */
-Packet *TmqhInputSimpleOnQ(PacketQueue *q)
+SCDQGenericQData *TmqhInputSimpleOnQ(SCDQDataQueue *q)
 {
     SCMutexLock(&q->mutex_q);
     if (q->len == 0) {
@@ -111,11 +118,12 @@ Packet *TmqhInputSimpleOnQ(PacketQueue *q)
     }
 
     if (q->len > 0) {
-        Packet *p = PacketDequeue(q);
+        SCDQGenericQData *data = SCDQDataDequeue(q);
         SCMutexUnlock(&q->mutex_q);
-        return p;
+        return data;
     } else {
-        /* return NULL if we have no pkt. Should only happen on signals. */
+        /* return NULL if we have no data in the queue. Should only happen
+         * on signals. */
         SCMutexUnlock(&q->mutex_q);
         return NULL;
     }
@@ -124,17 +132,23 @@ Packet *TmqhInputSimpleOnQ(PacketQueue *q)
 /**
  * \brief Public version of TmqhOutputSimple from the tmqh-simple queue
  *        handler, except that it is a generic version that is directly
- *        tied to a PacketQueue instance.
+ *        tied to a SCDQDataQueue instance(sent as an arg).
  *
- *        Enqueues a packet into the packet queue.
+ *        Pumps out a data_instance into the queue.  If the queue is empty, it
+ *        waits on the queue, till a data_instance is enqueued into the queue.
  *
- * \param q The PacketQueue instance to enqueue the packet into.
- * \param p The packet to be enqueued into the above queue.
+ *        All references to "data_instance" means a reference to a data structure
+ *        instance that implements the template "struct SCDQGenericQData_".
+ *
+ * \param q    The SCDQDataQueue instance to pump the data into.
+ * \param data The data instance to be enqueued.
  */
-void TmqhOutputSimpleOnQ(PacketQueue *q, Packet *p)
+void TmqhOutputSimpleOnQ(SCDQDataQueue *q, SCDQGenericQData *data)
 {
     SCMutexLock(&q->mutex_q);
-    PacketEnqueue(q, p);
+    SCDQDataEnqueue(q, data);
     SCCondSignal(&q->cond_q);
     SCMutexUnlock(&q->mutex_q);
+
+    return;
 }

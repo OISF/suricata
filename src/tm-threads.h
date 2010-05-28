@@ -34,6 +34,34 @@ enum {
     TVT_MAX,
 };
 
+
+typedef struct TmSlot_ {
+    /* function pointers */
+    TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
+
+    TmEcode (*SlotThreadInit)(ThreadVars *, void *, void **);
+    void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
+    TmEcode (*SlotThreadDeinit)(ThreadVars *, void *);
+
+    /* data storage */
+    void *slot_initdata;
+    void *slot_data;
+    PacketQueue slot_pq;
+
+    /* linked list, only used by TmVarSlot */
+    struct TmSlot_ *slot_next;
+} TmSlot;
+
+/* 1 function slot */
+typedef struct Tm1Slot_ {
+    TmSlot s;
+} Tm1Slot;
+
+/* Variable number of function slots */
+typedef struct TmVarSlot_ {
+    TmSlot *s;
+} TmVarSlot;
+
 extern ThreadVars *tv_root[TVT_MAX];
 
 extern SCMutex tv_root_lock;

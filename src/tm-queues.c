@@ -52,6 +52,8 @@ Tmq* TmqCreateQueue(char *name) {
     Tmq *q = &tmqs[tmq_id];
     q->name = name;
     q->id = tmq_id++;
+    /* for cuda purposes */
+    q->q_type = 0;
 
     SCLogDebug("created queue \'%s\', %p", name, q);
     return q;

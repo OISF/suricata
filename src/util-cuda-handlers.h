@@ -63,7 +63,9 @@ typedef struct SCCudaHlModuleData_ {
 
 int SCCudaHlGetCudaContext(CUcontext *, int);
 int SCCudaHlGetCudaModule(CUmodule *, const char *, int);
+int SCCudaHlGetCudaModuleFromFile(CUmodule *, const char *, int);
 int SCCudaHlGetCudaDevicePtr(CUdeviceptr *, const char *, size_t, void *, int);
+int SCCudaHlFreeCudaDevicePtr(const char *, int);
 int SCCudaHlRegisterDispatcherFunc(void *(*SCCudaHlDispFunc)(void *), int);
 
 SCCudaHlModuleData *SCCudaHlGetModuleData(uint8_t);

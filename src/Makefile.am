@@ -8,6 +8,7 @@ bin_PROGRAMS = suricata
 suricata_SOURCES = suricata.c suricata.h \
 runmodes.c runmodes.h \
 packet-queue.c packet-queue.h \
+data-queue.c data-queue.h \
 threads.c threads.h \
 source-nfq.c source-nfq.h \
 source-pcap.c source-pcap.h \
@@ -211,7 +212,8 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 util-action.c util-action.h \
 win32-syslog.h \
-util-profiling.c util-profiling.h
+util-profiling.c util-profiling.h \
+cuda-packet-batcher.c cuda-packet-batcher.h
 
 # set the include path found by configure
 INCLUDES= $(all_includes)

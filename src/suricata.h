@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 #include "packet-queue.h"
+#include "data-queue.h"
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
@@ -54,6 +55,8 @@ enum {
  * XXX move to the TmQueue structure later
  */
 PacketQueue trans_q[256];
+
+SCDQDataQueue data_queues[256];
 /* memset to zeros, and mutex init! */
 void GlobalInits();
 

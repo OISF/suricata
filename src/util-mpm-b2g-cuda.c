@@ -45,6 +45,13 @@
 #include "threads.h"
 #include "tmqh-simple.h"
 
+#include "detect-engine-address.h"
+#include "detect-engine-port.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
+
+#include "cuda-packet-batcher.h"
+
 /* macros decides if cuda is enabled for the platform or not */
 #ifdef __SC_CUDA_SUPPORT__
 
@@ -62,17 +69,6 @@ static void *b2g_func;
 
 /* threadvars Cuda(C) Mpm(M) B2G(B) Rules(R) Content(C) */
 ThreadVars *tv_CMB2_RC = NULL;
-
-/**
- * \todo Would break on x86_64 I believe.  We will fix this in a later version.
- */
-#define B2G_CUDA_KERNEL_ARG0_OFFSET     0
-#define B2G_CUDA_KERNEL_ARG1_OFFSET     4
-#define B2G_CUDA_KERNEL_ARG2_OFFSET     8
-#define B2G_CUDA_KERNEL_ARG3_OFFSET    12
-#define B2G_CUDA_KERNEL_ARG4_OFFSET    16
-#define B2G_CUDA_KERNEL_ARG5_OFFSET    20
-#define B2G_CUDA_KERNEL_TOTAL_ARG_SIZE 24
 
 void B2gCudaInitCtx(MpmCtx *, int);
 void B2gCudaThreadInitCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
@@ -100,201 +96,171 @@ void B2gCudaPrintInfo(MpmCtx *);
 void B2gCudaPrintSearchStats(MpmThreadCtx *);
 void B2gCudaRegisterTests(void);
 
-/* for debugging purposes.  keep it for now */
-int arg0 = 0;
-int arg1 = 0;
-int arg2 = 0;
-int arg3 = 0;
-int arg4 = 0;
-int arg5 = 0;
-int arg_total = 0;
-
 #if defined(__x86_64__) || defined(__ia64__)
 const char *b2g_cuda_ptx_image_64_bit =
-    "        .version 1.4\n"
-    "        .target sm_10, map_f64_to_f32\n"
-    "        .entry B2gCudaSearchBNDMq (\n"
-    "               .param .u64 __cudaparm_B2gCudaSearchBNDMq_offsets,\n"
-    "               .param .u64 __cudaparm_B2gCudaSearchBNDMq_B2G,\n"
-    "               .param .u64 __cudaparm_B2gCudaSearchBNDMq_g_u8_lowercasetable,\n"
-    "               .param .u64 __cudaparm_B2gCudaSearchBNDMq_buf,\n"
-    "               .param .u16 __cudaparm_B2gCudaSearchBNDMq_arg_buflen,\n"
-    "               .param .u32 __cudaparm_B2gCudaSearchBNDMq_m)\n"
-    "       {\n"
-    "       .reg .u16 %rh<6>;\n"
-    "       .reg .u32 %r<58>;\n"
-    "       .reg .u64 %rd<31>;\n"
-    "       .reg .pred %p<14>;\n"
-    "       .loc    15      25      0\n"
+    "	.version 1.4\n"
+    "	.target sm_10, map_f64_to_f32\n"
+    "	.entry B2gCudaSearchBNDMq (\n"
+    "		.param .u64 __cudaparm_B2gCudaSearchBNDMq_results_buffer,\n"
+    "		.param .u64 __cudaparm_B2gCudaSearchBNDMq_packets_buffer,\n"
+    "		.param .u64 __cudaparm_B2gCudaSearchBNDMq_packets_offset_buffer,\n"
+    "		.param .u64 __cudaparm_B2gCudaSearchBNDMq_packets_payload_offset_buffer,\n"
+    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_nop,\n"
+    "		.param .u64 __cudaparm_B2gCudaSearchBNDMq_g_u8_lowercasetable)\n"
+    "	{\n"
+    "	.reg .u16 %rh<7>;\n"
+    "	.reg .u32 %r<38>;\n"
+    "	.reg .u64 %rd<41>;\n"
+    "	.reg .pred %p<10>;\n"
+    "	.loc	3	36	0\n"
     "$LBB1_B2gCudaSearchBNDMq:\n"
-    "       .loc    15      27      0\n"
-    "       ld.param.u32    %r1, [__cudaparm_B2gCudaSearchBNDMq_m];\n"
-    "       sub.u32         %r2, %r1, 1;\n"
-    "       mov.s32         %r3, %r2;\n"
-    "       .loc    15      33      0\n"
-    "       ld.param.u16    %r4, [__cudaparm_B2gCudaSearchBNDMq_arg_buflen];\n"
-    "       shr.u32         %r5, %r4, 4;\n"
-    "       cvt.u16.u32     %r6, %r5;\n"
-    "       mov.s32         %r7, %r6;\n"
-    "       setp.ge.u32     %p1, %r6, %r1;\n"
-    "       @%p1 bra        $Lt_0_8450;\n"
-    "       .loc    15      38      0\n"
-    "       cvt.u16.u32     %r7, %r1;\n"
+    "	mov.u16 	%rh1, %ctaid.x;\n"
+    "	mul.wide.u16 	%r1, %rh1, 32;\n"
+    "	cvt.u32.u16 	%r2, %tid.x;\n"
+    "	add.u32 	%r3, %r2, %r1;\n"
+    "	ld.param.u32 	%r4, [__cudaparm_B2gCudaSearchBNDMq_nop];\n"
+    "	setp.gt.u32 	%p1, %r4, %r3;\n"
+    "	@%p1 bra 	$Lt_0_5634;\n"
+    "	bra.uni 	$LBB17_B2gCudaSearchBNDMq;\n"
+    "$Lt_0_5634:\n"
+    "	.loc	3	45	0\n"
+    "	cvt.u64.u32 	%rd1, %r3;\n"
+    "	mul.lo.u64 	%rd2, %rd1, 4;\n"
+    "	ld.param.u64 	%rd3, [__cudaparm_B2gCudaSearchBNDMq_packets_offset_buffer];\n"
+    "	add.u64 	%rd4, %rd3, %rd2;\n"
+    "	ld.global.u32 	%r5, [%rd4+0];\n"
+    "	cvt.u64.u32 	%rd5, %r5;\n"
+    "	ld.param.u64 	%rd6, [__cudaparm_B2gCudaSearchBNDMq_packets_buffer];\n"
+    "	add.u64 	%rd7, %rd5, %rd6;\n"
+    "	.loc	3	46	0\n"
+    "	ld.global.u32 	%r6, [%rd7+0];\n"
+    "	.loc	3	48	0\n"
+    "	ld.global.u32 	%r7, [%rd7+8];\n"
+    "	.loc	3	49	0\n"
+    "	ld.global.u32 	%r8, [%rd7+4];\n"
+    "	cvt.u64.u32 	%rd8, %r8;\n"
+    "	.loc	3	50	0\n"
+    "	sub.u32 	%r9, %r6, 1;\n"
+    "	mov.s32 	%r10, %r9;\n"
+    "	.loc	3	56	0\n"
+    "	ld.param.u64 	%rd9, [__cudaparm_B2gCudaSearchBNDMq_results_buffer];\n"
+    "	ld.param.u64 	%rd10, [__cudaparm_B2gCudaSearchBNDMq_packets_payload_offset_buffer];\n"
+    "	add.u64 	%rd11, %rd10, %rd2;\n"
+    "	ld.global.u32 	%r11, [%rd11+0];\n"
+    "	cvt.u64.u32 	%rd12, %r11;\n"
+    "	add.u64 	%rd13, %rd12, %rd1;\n"
+    "	mul.lo.u64 	%rd14, %rd13, 2;\n"
+    "	add.u64 	%rd15, %rd9, %rd14;\n"
+    "	sub.u32 	%r12, %r7, 1;\n"
+    "	setp.gt.u32 	%p2, %r9, %r12;\n"
+    "	mov.u32 	%r13, 0;\n"
+    "	@%p2 bra 	$Lt_0_9474;\n"
+    "	add.u64 	%rd16, %rd7, 12;\n"
+    "	add.u64 	%rd17, %rd15, 2;\n"
+    "	ld.param.u64 	%rd18, [__cudaparm_B2gCudaSearchBNDMq_g_u8_lowercasetable];\n"
+    "$Lt_0_6658:\n"
+    " //<loop> Loop body line 66\n"
+    "	.loc	3	66	0\n"
+    "	cvt.u64.u32 	%rd19, %r10;\n"
+    "	add.u64 	%rd20, %rd19, %rd7;\n"
+    "	ld.global.u8 	%rh2, [%rd20+12];\n"
+    "	cvt.u64.u8 	%rd21, %rh2;\n"
+    "	add.u64 	%rd22, %rd21, %rd18;\n"
+    "	ld.global.u8 	%r14, [%rd22+0];\n"
+    "	ld.global.u8 	%rh3, [%rd20+11];\n"
+    "	cvt.u64.u8 	%rd23, %rh3;\n"
+    "	add.u64 	%rd24, %rd23, %rd18;\n"
+    "	ld.global.u8 	%r15, [%rd24+0];\n"
+    "	shl.b32 	%r16, %r15, 4;\n"
+    "	or.b32 	%r17, %r14, %r16;\n"
+    "	cvt.u64.u32 	%rd25, %r17;\n"
+    "	mul.lo.u64 	%rd26, %rd25, 4;\n"
+    "	add.u64 	%rd27, %rd8, %rd26;\n"
+    "	ld.global.u32 	%r18, [%rd27+0];\n"
+    "	mov.u32 	%r19, 0;\n"
+    "	setp.eq.u32 	%p3, %r18, %r19;\n"
+    "	@%p3 bra 	$Lt_0_258;\n"
+    " //<loop> Part of loop body line 66, head labeled $Lt_0_6658\n"
+    "	.loc	3	69	0\n"
+    "	mov.s32 	%r20, %r10;\n"
+    "	.loc	3	70	0\n"
+    "	sub.u32 	%r21, %r10, %r6;\n"
+    "	add.u32 	%r22, %r21, 1;\n"
+    "	sub.s32 	%r23, %r6, 1;\n"
+    "$Lt_0_7682:\n"
+    " //<loop> Loop body line 73\n"
+    "	.loc	3	73	0\n"
+    "	sub.u32 	%r20, %r20, 1;\n"
+    "	shr.u32 	%r24, %r18, %r23;\n"
+    "	mov.u32 	%r25, 0;\n"
+    "	setp.eq.u32 	%p4, %r24, %r25;\n"
+    "	@%p4 bra 	$Lt_0_8450;\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	setp.le.u32 	%p5, %r20, %r22;\n"
+    "	@%p5 bra 	$Lt_0_8706;\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	.loc	3	76	0\n"
+    "	mov.s32 	%r10, %r20;\n"
+    "	bra.uni 	$Lt_0_8450;\n"
+    "$Lt_0_8706:\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	.loc	3	78	0\n"
+    "	mov.s32 	%r26, %r13;\n"
+    "	add.u32 	%r27, %r26, 1;\n"
+    "	cvt.u16.u32 	%r13, %r27;\n"
+    "	cvt.u64.u32 	%rd28, %r26;\n"
+    "	mul.lo.u64 	%rd29, %rd28, 2;\n"
+    "	add.u64 	%rd30, %rd15, %rd29;\n"
+    "	st.global.u16 	[%rd30+2], %r20;\n"
     "$Lt_0_8450:\n"
-    "       cvt.u32.u16     %r8, %tid.x;\n"
-    "       mul.lo.u32      %r9, %r7, %r8;\n"
-    "       cvt.u16.u32     %r10, %r9;\n"
-    "       add.s32         %r11, %r7, %r10;\n"
-    "       setp.ge.s32     %p2, %r4, %r11;\n"
-    "       @%p2 bra        $Lt_0_8962;\n"
-    "       bra.uni         $LBB23_B2gCudaSearchBNDMq;\n"
-    "$Lt_0_8962:\n"
-    "       .loc    15      44      0\n"
-    "       mul24.lo.s32    %r12, %r7, 2;\n"
-    "       sub.s32         %r13, %r12, 1;\n"
-    "       mov.s32         %r14, %r13;\n"
-    "       cvt.u16.u32     %r15, %r14;\n"
-    "       mov.s32         %r16, %r15;\n"
-    "       add.s32         %r17, %r10, %r15;\n"
-    "       set.lt.u32.s32  %r18, %r4, %r17;\n"
-    "       neg.s32         %r19, %r18;\n"
-    "       mov.u32         %r20, 15;\n"
-    "       set.eq.u32.u32  %r21, %r8, %r20;\n"
-    "       neg.s32         %r22, %r21;\n"
-    "       or.b32  %r23, %r19, %r22;\n"
-    "       mov.u32         %r24, 0;\n"
-    "       setp.eq.s32     %p3, %r23, %r24;\n"
-    "       @%p3 bra        $Lt_0_9474;\n"
-    "       .loc    15      46      0\n"
-    "       sub.u32         %r25, %r4, %r9;\n"
-    "       cvt.u16.u32     %r16, %r25;\n"
-    "$Lt_0_9474:\n"
-    "       mov.u32         %r26, 0;\n"
-    "       setp.eq.u32     %p4, %r16, %r26;\n"
-    "       @%p4 bra        $Lt_0_9986;\n"
-    "       mov.s32         %r27, %r16;\n"
-    "       ld.param.u64    %rd1, [__cudaparm_B2gCudaSearchBNDMq_offsets];\n"
-    "       mov.u32         %r28, 0;\n"
-    "       mov.s32         %r29, %r27;\n"
-    "$Lt_0_10498:\n"
-    " //<loop> Loop body line 46, nesting depth: 1, estimated iterations: unknown\n"
-    "       .loc    15      51      0\n"
-    "       mov.u32         %r30, 0;\n"
-    "       add.u32         %r31, %r10, %r28;\n"
-    "       cvt.u64.u32     %rd2, %r31;\n"
-    "       mul.lo.u64      %rd3, %rd2, 4;\n"
-    "       add.u64         %rd4, %rd1, %rd3;\n"
-    "       st.global.u32   [%rd4+0], %r30;\n"
-    "       add.u32         %r28, %r28, 1;\n"
-    "       setp.ne.u32     %p5, %r16, %r28;\n"
-    "       @%p5 bra        $Lt_0_10498;\n"
-    "$Lt_0_9986:\n"
-    "       sub.u32         %r32, %r16, 1;\n"
-    "       setp.gt.u32     %p6, %r2, %r32;\n"
-    "       @%p6 bra        $LBB23_B2gCudaSearchBNDMq;\n"
-    "       ld.param.u64    %rd5, [__cudaparm_B2gCudaSearchBNDMq_g_u8_lowercasetable];\n"
-    "       ld.param.u64    %rd6, [__cudaparm_B2gCudaSearchBNDMq_B2G];\n"
-    "       ld.param.u64    %rd7, [__cudaparm_B2gCudaSearchBNDMq_buf];\n"
-    "$Lt_0_11522:\n"
-    " //<loop> Loop body line 57\n"
-    "       .loc    15      57      0\n"
-    "       add.u32         %r33, %r10, %r3;\n"
-    "       cvt.u64.u32     %rd8, %r33;\n"
-    "       add.u64         %rd9, %rd8, %rd7;\n"
-    "       ld.global.u8    %rh1, [%rd9+0];\n"
-    "       cvt.u64.u8      %rd10, %rh1;\n"
-    "       add.u64         %rd11, %rd10, %rd5;\n"
-    "       ld.global.u8    %r34, [%rd11+0];\n"
-    "       ld.global.u8    %rh2, [%rd9+-1];\n"
-    "       cvt.u64.u8      %rd12, %rh2;\n"
-    "       add.u64         %rd13, %rd12, %rd5;\n"
-    "       ld.global.u8    %r35, [%rd13+0];\n"
-    "       shl.b32         %r36, %r35, 4;\n"
-    "       or.b32  %r37, %r34, %r36;\n"
-    "       cvt.u64.u32     %rd14, %r37;\n"
-    "       mul.lo.u64      %rd15, %rd14, 4;\n"
-    "       add.u64         %rd16, %rd6, %rd15;\n"
-    "       ld.global.u32   %r38, [%rd16+0];\n"
-    "       mov.u32         %r39, 0;\n"
-    "       setp.eq.u32     %p7, %r38, %r39;\n"
-    "       @%p7 bra        $Lt_0_258;\n"
-    " //<loop> Part of loop body line 57, head labeled $Lt_0_11522\n"
-    "       .loc    15      60      0\n"
-    "       mov.s32         %r28, %r3;\n"
-    "       .loc    15      61      0\n"
-    "       sub.u32         %r40, %r3, %r1;\n"
-    "       add.u32         %r41, %r40, 1;\n"
-    "       sub.s32         %r42, %r1, 1;\n"
-    "$Lt_0_12546:\n"
-    " //<loop> Loop body line 64\n"
-    "       .loc    15      64      0\n"
-    "       sub.u32         %r28, %r28, 1;\n"
-    "       shr.u32         %r43, %r38, %r42;\n"
-    "       mov.u32         %r44, 0;\n"
-    "       setp.eq.u32     %p8, %r43, %r44;\n"
-    "       @%p8 bra        $Lt_0_13314;\n"
-    " //<loop> Part of loop body line 64, head labeled $Lt_0_12546\n"
-    "       setp.ge.u32     %p9, %r41, %r28;\n"
-    "       @%p9 bra        $Lt_0_13570;\n"
-    " //<loop> Part of loop body line 64, head labeled $Lt_0_12546\n"
-    "       .loc    15      67      0\n"
-    "       mov.s32         %r3, %r28;\n"
-    "       bra.uni         $Lt_0_13314;\n"
-    "$Lt_0_13570:\n"
-    " //<loop> Part of loop body line 64, head labeled $Lt_0_12546\n"
-    "       .loc    15      69      0\n"
-    "       mov.u32         %r45, 1;\n"
-    "       ld.param.u64    %rd17, [__cudaparm_B2gCudaSearchBNDMq_offsets];\n"
-    "       add.u32         %r46, %r10, %r28;\n"
-    "       cvt.u64.u32     %rd18, %r46;\n"
-    "       mul.lo.u64      %rd19, %rd18, 4;\n"
-    "       add.u64         %rd20, %rd17, %rd19;\n"
-    "       st.global.u32   [%rd20+0], %r45;\n"
-    "$Lt_0_13314:\n"
-    "$Lt_0_12802:\n"
-    " //<loop> Part of loop body line 64, head labeled $Lt_0_12546\n"
-    "       .loc    15      74      0\n"
-    "       mov.u32         %r47, 0;\n"
-    "       setp.eq.u32     %p10, %r28, %r47;\n"
-    "       @%p10 bra       $Lt_0_258;\n"
-    "//<loop> Part of loop body line 64, head labeled $Lt_0_12546\n"
-    "       .loc    15      77      0\n"
-    "       add.u32         %r48, %r10, %r28;\n"
-    "       cvt.u64.u32     %rd21, %r48;\n"
-    "       add.u64         %rd22, %rd21, %rd7;\n"
-    "       ld.global.u8    %rh3, [%rd22+0];\n"
-    "       cvt.u64.u8      %rd23, %rh3;\n"
-    "       add.u64         %rd24, %rd23, %rd5;\n"
-    "       ld.global.u8    %r49, [%rd24+0];\n"
-    "       ld.global.u8    %rh4, [%rd22+-1];\n"
-    "       cvt.u64.u8      %rd25, %rh4;\n"
-    "       add.u64         %rd26, %rd25, %rd5;\n"
-    "       ld.global.u8    %r50, [%rd26+0];\n"
-    "       shl.b32         %r51, %r50, 4;\n"
-    "       or.b32  %r52, %r49, %r51;\n"
-    "       cvt.u64.u32     %rd27, %r52;\n"
-    "       mul.lo.u64      %rd28, %rd27, 4;\n"
-    "       add.u64         %rd29, %rd6, %rd28;\n"
-    "       ld.global.u32   %r53, [%rd29+0];\n"
-    "       shl.b32         %r54, %r38, 1;\n"
-    "       and.b32         %r38, %r53, %r54;\n"
-    "       mov.u32         %r55, 0;\n"
-    "       setp.ne.u32     %p11, %r38, %r55;\n"
-    "       @%p11 bra       $Lt_0_12546;\n"
+    "$Lt_0_7938:\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	.loc	3	83	0\n"
+    "	mov.u32 	%r28, 0;\n"
+    "	setp.eq.u32 	%p6, %r20, %r28;\n"
+    "	@%p6 bra 	$Lt_0_258;\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	.loc	3	86	0\n"
+    "	cvt.u64.u32 	%rd31, %r20;\n"
+    "	add.u64 	%rd32, %rd31, %rd7;\n"
+    "	ld.global.u8 	%rh4, [%rd32+12];\n"
+    "	cvt.u64.u8 	%rd33, %rh4;\n"
+    "	add.u64 	%rd34, %rd33, %rd18;\n"
+    "	ld.global.u8 	%r29, [%rd34+0];\n"
+    "	ld.global.u8 	%rh5, [%rd32+11];\n"
+    "	cvt.u64.u8 	%rd35, %rh5;\n"
+    "	add.u64 	%rd36, %rd35, %rd18;\n"
+    "	ld.global.u8 	%r30, [%rd36+0];\n"
+    "	shl.b32 	%r31, %r30, 4;\n"
+    "	or.b32 	%r32, %r29, %r31;\n"
+    "	cvt.u64.u32 	%rd37, %r32;\n"
+    "	mul.lo.u64 	%rd38, %rd37, 4;\n"
+    "	add.u64 	%rd39, %rd8, %rd38;\n"
+    "	ld.global.u32 	%r33, [%rd39+0];\n"
+    "	shl.b32 	%r34, %r18, 1;\n"
+    "	and.b32 	%r18, %r33, %r34;\n"
+    "	mov.u32 	%r35, 0;\n"
+    "	setp.ne.u32 	%p7, %r18, %r35;\n"
+    "	@%p7 bra 	$Lt_0_7682;\n"
     "$Lt_0_258:\n"
-    "$Lt_0_11778:\n"
-    " //<loop> Part of loop body line 57, head labeled $Lt_0_11522\n"
-    "       .loc    15      80      0\n"
-    "       add.u32         %r56, %r3, %r1;\n"
-    "       sub.u32         %r3, %r56, 1;\n"
-    "       setp.ge.u32     %p12, %r32, %r3;\n"
-    "       @%p12 bra       $Lt_0_11522;\n"
-    "$LBB23_B2gCudaSearchBNDMq:\n"
-    "       .loc    15      83      0\n"
-    "       exit;\n"
+    "$Lt_0_6914:\n"
+    " //<loop> Part of loop body line 66, head labeled $Lt_0_6658\n"
+    "	.loc	3	89	0\n"
+    "	add.u32 	%r36, %r6, %r10;\n"
+    "	sub.u32 	%r10, %r36, 1;\n"
+    "	setp.ge.u32 	%p8, %r12, %r10;\n"
+    "	@%p8 bra 	$Lt_0_6658;\n"
+    "	bra.uni 	$Lt_0_6146;\n"
+    "$Lt_0_9474:\n"
+    "$Lt_0_6146:\n"
+    "	.loc	3	92	0\n"
+    "	st.global.u16 	[%rd15+0], %r13;\n"
+    "$LBB17_B2gCudaSearchBNDMq:\n"
+    "	.loc	3	94	0\n"
+    "	exit;\n"
     "$LDWend_B2gCudaSearchBNDMq:\n"
-    "       } // B2gCudaSearchBNDMq\n"
-    "\n";
+    "	} // B2gCudaSearchBNDMq\n"
+    "";
 #else
 /**
  * \todo Optimize the kernel.  Also explore the options for compiling the
@@ -304,175 +270,152 @@ const char *b2g_cuda_ptx_image_32_bit =
     "	.version 1.4\n"
     "	.target sm_10, map_f64_to_f32\n"
     "	.entry B2gCudaSearchBNDMq (\n"
-    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_offsets,\n"
-    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_B2G,\n"
-    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_g_u8_lowercasetable,\n"
-    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_buf,\n"
-    "		.param .u16 __cudaparm_B2gCudaSearchBNDMq_arg_buflen,\n"
-    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_m)\n"
+    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_results_buffer,\n"
+    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_packets_buffer,\n"
+    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_packets_offset_buffer,\n"
+    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_packets_payload_offset_buffer,\n"
+    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_nop,\n"
+    "		.param .u32 __cudaparm_B2gCudaSearchBNDMq_g_u8_lowercasetable)\n"
     "	{\n"
-    "	.reg .u32 %r<81>;\n"
-    "	.reg .pred %p<14>;\n"
-    "	.loc	15	14	0\n"
+    "	.reg .u16 %rh<6>;\n"
+    "	.reg .u32 %r<65>;\n"
+    "	.reg .pred %p<10>;\n"
+    "	.loc	3	36	0\n"
     "$LBB1_B2gCudaSearchBNDMq:\n"
-    "	.loc	15	16	0\n"
-    "	ld.param.u32 	%r1, [__cudaparm_B2gCudaSearchBNDMq_m];\n"
-    "	sub.u32 	%r2, %r1, 1;\n"
-    "	mov.s32 	%r3, %r2;\n"
-    "	.loc	15	22	0\n"
-    "	ld.param.u16 	%r4, [__cudaparm_B2gCudaSearchBNDMq_arg_buflen];\n"
-    "	shr.u32 	%r5, %r4, 4;\n"
-    "	cvt.u16.u32 	%r6, %r5;\n"
-    "	mov.s32 	%r7, %r6;\n"
-    "	setp.ge.u32 	%p1, %r6, %r1;\n"
-    "	@%p1 bra 	$Lt_0_8450;\n"
-    "	.loc	15	27	0\n"
-    "	cvt.u16.u32 	%r7, %r1;\n"
+    "	mov.u16 	%rh1, %ctaid.x;\n"
+    "	mul.wide.u16 	%r1, %rh1, 32;\n"
+    "	cvt.u32.u16 	%r2, %tid.x;\n"
+    "	add.u32 	%r3, %r2, %r1;\n"
+    "	ld.param.u32 	%r4, [__cudaparm_B2gCudaSearchBNDMq_nop];\n"
+    "	setp.gt.u32 	%p1, %r4, %r3;\n"
+    "	@%p1 bra 	$Lt_0_5634;\n"
+    "	bra.uni 	$LBB17_B2gCudaSearchBNDMq;\n"
+    "$Lt_0_5634:\n"
+    "	.loc	3	45	0\n"
+    "	mul.lo.u32 	%r5, %r3, 4;\n"
+    "	ld.param.u32 	%r6, [__cudaparm_B2gCudaSearchBNDMq_packets_offset_buffer];\n"
+    "	add.u32 	%r7, %r6, %r5;\n"
+    "	ld.global.u32 	%r8, [%r7+0];\n"
+    "	ld.param.u32 	%r9, [__cudaparm_B2gCudaSearchBNDMq_packets_buffer];\n"
+    "	add.u32 	%r10, %r8, %r9;\n"
+    "	.loc	3	46	0\n"
+    "	ld.global.u32 	%r11, [%r10+0];\n"
+    "	.loc	3	48	0\n"
+    "	ld.global.u32 	%r12, [%r10+8];\n"
+    "	.loc	3	49	0\n"
+    "	ld.global.u32 	%r13, [%r10+4];\n"
+    "	.loc	3	50	0\n"
+    "	sub.u32 	%r14, %r11, 1;\n"
+    "	mov.s32 	%r15, %r14;\n"
+    "	.loc	3	56	0\n"
+    "	ld.param.u32 	%r16, [__cudaparm_B2gCudaSearchBNDMq_results_buffer];\n"
+    "	ld.param.u32 	%r17, [__cudaparm_B2gCudaSearchBNDMq_packets_payload_offset_buffer];\n"
+    "	add.u32 	%r18, %r17, %r5;\n"
+    "	ld.global.u32 	%r19, [%r18+0];\n"
+    "	add.u32 	%r20, %r19, %r3;\n"
+    "	mul.lo.u32 	%r21, %r20, 2;\n"
+    "	add.u32 	%r22, %r16, %r21;\n"
+    "	sub.u32 	%r23, %r12, 1;\n"
+    "	setp.gt.u32 	%p2, %r14, %r23;\n"
+    "	mov.u16 	%rh2, 0;\n"
+    "	@%p2 bra 	$Lt_0_9474;\n"
+    "	add.u32 	%r24, %r10, 12;\n"
+    "	add.u32 	%r25, %r22, 2;\n"
+    "	ld.param.u32 	%r26, [__cudaparm_B2gCudaSearchBNDMq_g_u8_lowercasetable];\n"
+    "$Lt_0_6658:\n"
+    " //<loop> Loop body line 66\n"
+    "	.loc	3	66	0\n"
+    "	add.u32 	%r27, %r10, %r15;\n"
+    "	ld.global.u8 	%r28, [%r27+12];\n"
+    "	add.u32 	%r29, %r28, %r26;\n"
+    "	ld.global.u8 	%r30, [%r29+0];\n"
+    "	ld.global.u8 	%r31, [%r27+11];\n"
+    "	add.u32 	%r32, %r31, %r26;\n"
+    "	ld.global.u8 	%r33, [%r32+0];\n"
+    "	shl.b32 	%r34, %r33, 4;\n"
+    "	or.b32 	%r35, %r30, %r34;\n"
+    "	mul.lo.u32 	%r36, %r35, 4;\n"
+    "	add.u32 	%r37, %r13, %r36;\n"
+    "	ld.global.u32 	%r38, [%r37+0];\n"
+    "	mov.u32 	%r39, 0;\n"
+    "	setp.eq.u32 	%p3, %r38, %r39;\n"
+    "	@%p3 bra 	$Lt_0_258;\n"
+    " //<loop> Part of loop body line 66, head labeled $Lt_0_6658\n"
+    "	.loc	3	69	0\n"
+    "	mov.s32 	%r40, %r15;\n"
+    "	.loc	3	70	0\n"
+    "	sub.u32 	%r41, %r15, %r11;\n"
+    "	add.u32 	%r42, %r41, 1;\n"
+    "	sub.s32 	%r43, %r11, 1;\n"
+    "$Lt_0_7682:\n"
+    " //<loop> Loop body line 73\n"
+    "	.loc	3	73	0\n"
+    "	sub.u32 	%r40, %r40, 1;\n"
+    "	shr.u32 	%r44, %r38, %r43;\n"
+    "	mov.u32 	%r45, 0;\n"
+    "	setp.eq.u32 	%p4, %r44, %r45;\n"
+    "	@%p4 bra 	$Lt_0_8450;\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	setp.le.u32 	%p5, %r40, %r42;\n"
+    "	@%p5 bra 	$Lt_0_8706;\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	.loc	3	76	0\n"
+    "	mov.s32 	%r15, %r40;\n"
+    "	bra.uni 	$Lt_0_8450;\n"
+    "$Lt_0_8706:\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	.loc	3	78	0\n"
+    "	mov.s16 	%rh3, %rh2;\n"
+    "	add.u16 	%rh4, %rh3, 1;\n"
+    "	mov.u16 	%rh2, %rh4;\n"
+    "	mul.wide.u16 	%r46, %rh3, 2;\n"
+    "	add.u32 	%r47, %r22, %r46;\n"
+    "	st.global.u16 	[%r47+2], %r40;\n"
     "$Lt_0_8450:\n"
-    "	cvt.u32.u16 	%r8, %tid.x;\n"
-    "	mul.lo.u32 	%r9, %r7, %r8;\n"
-    "	cvt.u16.u32 	%r10, %r9;\n"
-    "	add.s32 	%r11, %r7, %r10;\n"
-    "	setp.ge.s32 	%p2, %r4, %r11;\n"
-    "	@%p2 bra 	$Lt_0_8962;\n"
-    "	bra.uni 	$LBB23_B2gCudaSearchBNDMq;\n"
-    "$Lt_0_8962:\n"
-    "	.loc	15	33	0\n"
-    "	mul24.lo.s32 	%r12, %r7, 2;\n"
-    "	sub.s32 	%r13, %r12, 1;\n"
-    "	mov.s32 	%r14, %r13;\n"
-    "	cvt.u16.u32 	%r15, %r14;\n"
-    "	mov.s32 	%r16, %r15;\n"
-    "	add.s32 	%r17, %r10, %r15;\n"
-    "	set.lt.u32.s32 	%r18, %r4, %r17;\n"
-    "	neg.s32 	%r19, %r18;\n"
-    "	mov.u32 	%r20, 15;\n"
-    "	set.eq.u32.u32 	%r21, %r8, %r20;\n"
-    "	neg.s32 	%r22, %r21;\n"
-    "	or.b32 	%r23, %r19, %r22;\n"
-    "	mov.u32 	%r24, 0;\n"
-    "	setp.eq.s32 	%p3, %r23, %r24;\n"
-    "	@%p3 bra 	$Lt_0_9474;\n"
-    "	.loc	15	35	0\n"
-    "	sub.u32 	%r25, %r4, %r9;\n"
-    "	cvt.u16.u32 	%r16, %r25;\n"
-    "$Lt_0_9474:\n"
-    "	mov.u32 	%r26, 0;\n"
-    "	setp.eq.u32 	%p4, %r16, %r26;\n"
-    "	@%p4 bra 	$Lt_0_9986;\n"
-    "	mov.s32 	%r27, %r16;\n"
-    "	ld.param.u32 	%r28, [__cudaparm_B2gCudaSearchBNDMq_offsets];\n"
-    "	mov.u32 	%r29, 0;\n"
-    "	mov.s32 	%r30, %r27;\n"
-    "$Lt_0_10498:\n"
-    " //<loop> Loop body line 35, nesting depth: 1, estimated iterations: unknown\n"
-    "	.loc	15	40	0\n"
-    "	mov.u32 	%r31, 0;\n"
-    "	add.u32 	%r32, %r10, %r29;\n"
-    "	mul.lo.u32 	%r33, %r32, 4;\n"
-    "	add.u32 	%r34, %r28, %r33;\n"
-    "	st.global.u32 	[%r34+0], %r31;\n"
-    "	add.u32 	%r29, %r29, 1;\n"
-    "	setp.ne.u32 	%p5, %r16, %r29;\n"
-    "	@%p5 bra 	$Lt_0_10498;\n"
-    "$Lt_0_9986:\n"
-    "	sub.u32 	%r35, %r16, 1;\n"
-    "	setp.gt.u32 	%p6, %r2, %r35;\n"
-    "	@%p6 bra 	$LBB23_B2gCudaSearchBNDMq;\n"
-    "	ld.param.u32 	%r36, [__cudaparm_B2gCudaSearchBNDMq_g_u8_lowercasetable];\n"
-    "	ld.param.u32 	%r37, [__cudaparm_B2gCudaSearchBNDMq_B2G];\n"
-    "	ld.param.u32 	%r38, [__cudaparm_B2gCudaSearchBNDMq_buf];\n"
-    "$Lt_0_11522:\n"
-    " //<loop> Loop body line 46\n"
-    "	.loc	15	46	0\n"
-    "	add.u32 	%r39, %r10, %r3;\n"
-    "	add.u32 	%r40, %r39, %r38;\n"
-    "	ld.global.u8 	%r41, [%r40+0];\n"
-    "	add.u32 	%r42, %r41, %r36;\n"
-    "	ld.global.u8 	%r43, [%r42+0];\n"
-    "	ld.global.u8 	%r44, [%r40+-1];\n"
-    "	add.u32 	%r45, %r44, %r36;\n"
-    "	ld.global.u8 	%r46, [%r45+0];\n"
-    "	shl.b32 	%r47, %r46, 4;\n"
-    "	or.b32 	%r48, %r43, %r47;\n"
-    "	mul.lo.u32 	%r49, %r48, 4;\n"
-    "	add.u32 	%r50, %r37, %r49;\n"
-    "	ld.global.u32 	%r51, [%r50+0];\n"
-    "	mov.u32 	%r52, 0;\n"
-    "	setp.eq.u32 	%p7, %r51, %r52;\n"
-    "	@%p7 bra 	$Lt_0_258;\n"
-    " //<loop> Part of loop body line 46, head labeled $Lt_0_11522\n"
-    "	.loc	15	49	0\n"
-    "	mov.s32 	%r29, %r3;\n"
-    "	.loc	15	50	0\n"
-    "	sub.u32 	%r53, %r3, %r1;\n"
-    "	add.u32 	%r54, %r53, 1;\n"
-    "	sub.s32 	%r55, %r1, 1;\n"
-    "$Lt_0_12546:\n"
-    " //<loop> Loop body line 53\n"
-    "	.loc	15	53	0\n"
-    "	sub.u32 	%r29, %r29, 1;\n"
-    "	shr.u32 	%r56, %r51, %r55;\n"
-    "	mov.u32 	%r57, 0;\n"
-    "	setp.eq.u32 	%p8, %r56, %r57;\n"
-    "	@%p8 bra 	$Lt_0_13314;\n"
-    " //<loop> Part of loop body line 53, head labeled $Lt_0_12546\n"
-    "	setp.ge.u32 	%p9, %r54, %r29;\n"
-    "	@%p9 bra 	$Lt_0_13570;\n"
-    " //<loop> Part of loop body line 53, head labeled $Lt_0_12546\n"
-    "	.loc	15	56	0\n"
-    "	mov.s32 	%r3, %r29;\n"
-    "	bra.uni 	$Lt_0_13314;\n"
-    "$Lt_0_13570:\n"
-    " //<loop> Part of loop body line 53, head labeled $Lt_0_12546\n"
-    "	.loc	15	58	0\n"
-    "	mov.u32 	%r58, 1;\n"
-    "	ld.param.u32 	%r59, [__cudaparm_B2gCudaSearchBNDMq_offsets];\n"
-    "	add.u32 	%r60, %r10, %r29;\n"
-    "	mul.lo.u32 	%r61, %r60, 4;\n"
-    "	add.u32 	%r62, %r59, %r61;\n"
-    "	st.global.u32 	[%r62+0], %r58;\n"
-    "$Lt_0_13314:\n"
-    "$Lt_0_12802:\n"
-    " //<loop> Part of loop body line 53, head labeled $Lt_0_12546\n"
-    "	.loc	15	63	0\n"
-    "	mov.u32 	%r63, 0;\n"
-    "	setp.eq.u32 	%p10, %r29, %r63;\n"
-    "	@%p10 bra 	$Lt_0_258;\n"
-    " //<loop> Part of loop body line 53, head labeled $Lt_0_12546\n"
-    "	.loc	15	66	0\n"
-    "	add.u32 	%r64, %r10, %r29;\n"
-    "	add.u32 	%r65, %r64, %r38;\n"
-    "	ld.global.u8 	%r66, [%r65+0];\n"
-    "	add.u32 	%r67, %r66, %r36;\n"
-    "	ld.global.u8 	%r68, [%r67+0];\n"
-    "	ld.global.u8 	%r69, [%r65+-1];\n"
-    "	add.u32 	%r70, %r69, %r36;\n"
-    "	ld.global.u8 	%r71, [%r70+0];\n"
-    "	shl.b32 	%r72, %r71, 4;\n"
-    "	or.b32 	%r73, %r68, %r72;\n"
-    "	mul.lo.u32 	%r74, %r73, 4;\n"
-    "	add.u32 	%r75, %r37, %r74;\n"
-    "	ld.global.u32 	%r76, [%r75+0];\n"
-    "	shl.b32 	%r77, %r51, 1;\n"
-    "	and.b32 	%r51, %r76, %r77;\n"
-    "	mov.u32 	%r78, 0;\n"
-    "	setp.ne.u32 	%p11, %r51, %r78;\n"
-    "	@%p11 bra 	$Lt_0_12546;\n"
+    "$Lt_0_7938:\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	.loc	3	83	0\n"
+    "	mov.u32 	%r48, 0;\n"
+    "	setp.eq.u32 	%p6, %r40, %r48;\n"
+    "	@%p6 bra 	$Lt_0_258;\n"
+    " //<loop> Part of loop body line 73, head labeled $Lt_0_7682\n"
+    "	.loc	3	86	0\n"
+    "	add.u32 	%r49, %r10, %r40;\n"
+    "	ld.global.u8 	%r50, [%r49+12];\n"
+    "	add.u32 	%r51, %r50, %r26;\n"
+    "	ld.global.u8 	%r52, [%r51+0];\n"
+    "	ld.global.u8 	%r53, [%r49+11];\n"
+    "	add.u32 	%r54, %r53, %r26;\n"
+    "	ld.global.u8 	%r55, [%r54+0];\n"
+    "	shl.b32 	%r56, %r55, 4;\n"
+    "	or.b32 	%r57, %r52, %r56;\n"
+    "	mul.lo.u32 	%r58, %r57, 4;\n"
+    "	add.u32 	%r59, %r13, %r58;\n"
+    "	ld.global.u32 	%r60, [%r59+0];\n"
+    "	shl.b32 	%r61, %r38, 1;\n"
+    "	and.b32 	%r38, %r60, %r61;\n"
+    "	mov.u32 	%r62, 0;\n"
+    "	setp.ne.u32 	%p7, %r38, %r62;\n"
+    "	@%p7 bra 	$Lt_0_7682;\n"
     "$Lt_0_258:\n"
-    "$Lt_0_11778:\n"
-    " //<loop> Part of loop body line 46, head labeled $Lt_0_11522\n"
-    "	.loc	15	69	0\n"
-    "	add.u32 	%r79, %r3, %r1;\n"
-    "	sub.u32 	%r3, %r79, 1;\n"
-    "	setp.ge.u32 	%p12, %r35, %r3;\n"
-    "	@%p12 bra 	$Lt_0_11522;\n"
-    "$LBB23_B2gCudaSearchBNDMq:\n"
-    "	.loc	15	72	0\n"
+    "$Lt_0_6914:\n"
+    " //<loop> Part of loop body line 66, head labeled $Lt_0_6658\n"
+    "	.loc	3	89	0\n"
+    "	add.u32 	%r63, %r11, %r15;\n"
+    "	sub.u32 	%r15, %r63, 1;\n"
+    "	setp.ge.u32 	%p8, %r23, %r15;\n"
+    "	@%p8 bra 	$Lt_0_6658;\n"
+    "	bra.uni 	$Lt_0_6146;\n"
+    "$Lt_0_9474:\n"
+    "$Lt_0_6146:\n"
+    "	.loc	3	92	0\n"
+    "	st.global.u16 	[%r22+0], %rh2;\n"
+    "$LBB17_B2gCudaSearchBNDMq:\n"
+    "	.loc	3	94	0\n"
     "	exit;\n"
     "$LDWend_B2gCudaSearchBNDMq:\n"
     "	} // B2gCudaSearchBNDMq\n"
-    "\n";
+    "";
 #endif
 
 /**
@@ -482,7 +425,6 @@ void MpmB2gCudaRegister(void)
 {
     mpm_table[MPM_B2G_CUDA].name = "b2g_cuda";
     mpm_table[MPM_B2G_CUDA].max_pattern_length = B2G_CUDA_WORD_SIZE;
-
     mpm_table[MPM_B2G_CUDA].InitCtx = B2gCudaInitCtx;
     mpm_table[MPM_B2G_CUDA].InitThreadCtx = B2gCudaThreadInitCtx;
     mpm_table[MPM_B2G_CUDA].DestroyCtx = B2gCudaDestroyCtx;
@@ -495,37 +437,6 @@ void MpmB2gCudaRegister(void)
     mpm_table[MPM_B2G_CUDA].PrintCtx = B2gCudaPrintInfo;
     mpm_table[MPM_B2G_CUDA].PrintThreadCtx = B2gCudaPrintSearchStats;
     mpm_table[MPM_B2G_CUDA].RegisterUnittests = B2gCudaRegisterTests;
-}
-
-static inline void B2gCudaEndMatchAppend(MpmCtx *mpm_ctx, B2gCudaPattern *p,
-                                         uint16_t offset, uint16_t depth,
-                                         uint32_t pid, uint32_t sid)
-{
-    MpmEndMatch *em = MpmAllocEndMatch(mpm_ctx);
-    if (em == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        return;
-    }
-
-    SCLogDebug("em alloced at %p", em);
-
-    em->id = pid;
-    em->sig_id = sid;
-    em->depth = depth;
-    em->offset = offset;
-
-    if (p->em == NULL) {
-        p->em = em;
-        return;
-    }
-
-    MpmEndMatch *m = p->em;
-    while (m->next != NULL) {
-        m = m->next;
-    }
-    m->next = em;
-
-    return;
 }
 
 void B2gCudaPrintInfo(MpmCtx *mpm_ctx)
@@ -674,9 +585,6 @@ static inline B2gCudaPattern *B2gCudaInitHashLookup(B2gCudaCtx *ctx, uint8_t *pa
 
 void B2gCudaFreePattern(MpmCtx *mpm_ctx, B2gCudaPattern *p)
 {
-    if (p != NULL && p->em != NULL)
-        MpmEndMatchFreeAll(mpm_ctx, p->em);
-
     if (p != NULL && p->cs != NULL && p->cs != p->ci) {
         SCFree(p->cs);
         mpm_ctx->memory_cnt--;
@@ -705,7 +613,7 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
 {
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
 
-    SCLogDebug("ctx %p len %" PRIu16 " pid %" PRIu32, ctx, patlen, pid);
+    SCLogDebug("ctx %p len %"PRIu16" pid %" PRIu32, ctx, patlen, pid);
 
     if (patlen == 0)
         return 0;
@@ -721,11 +629,13 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
 
         p->len = patlen;
         p->flags = flags;
+        p->id = pid;
 
         /* setup the case insensitive part of the pattern */
         p->ci = SCMalloc(patlen);
         if (p->ci == NULL)
             goto error;
+
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += patlen;
         memcpy_tolower(p->ci, pat, patlen);
@@ -735,7 +645,7 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
             /* nocase means no difference between cs and ci */
             p->cs = p->ci;
         } else {
-            if (memcmp(p->ci, pat, p->len) == 0) {
+            if (memcmp(p->ci,pat,p->len) == 0) {
                 /* no diff between cs and ci: pat is lowercase */
                 p->cs = p->ci;
             } else {
@@ -745,34 +655,29 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
 
                 mpm_ctx->memory_cnt++;
                 mpm_ctx->memory_size += patlen;
-
                 memcpy(p->cs, pat, patlen);
             }
         }
+
+        //printf("B2gAddPattern: ci \""); prt(p->ci,p->len);
+        //printf("\" cs \""); prt(p->cs,p->len);
+        //printf("\"\n");
 
         /* put in the pattern hash */
         B2gCudaInitHashAdd(ctx, p);
 
         if (mpm_ctx->pattern_cnt == 65535) {
             printf("Max search words reached\n");
-            exit(EXIT_FAILURE);
+            exit(1);
         }
         mpm_ctx->pattern_cnt++;
 
-        if (mpm_ctx->maxlen < patlen)
-            mpm_ctx->maxlen = patlen;
-
-        if (mpm_ctx->minlen == 0)
-            mpm_ctx->minlen = patlen;
-        else if (mpm_ctx->minlen > patlen)
-            mpm_ctx->minlen = patlen;
+        if (mpm_ctx->maxlen < patlen) mpm_ctx->maxlen = patlen;
+        if (mpm_ctx->minlen == 0) mpm_ctx->minlen = patlen;
+        else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
     }
 
-    /* we need a match */
-    B2gCudaEndMatchAppend(mpm_ctx, p, offset, depth, pid, sid);
-
     mpm_ctx->total_pattern_cnt++;
-
     return 0;
 
 error:
@@ -1011,12 +916,6 @@ int B2gCudaSetDeviceBuffers(MpmCtx *mpm_ctx)
 {
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
 
-    if (SCCudaHlGetCudaDevicePtr(&ctx->cuda_g_u8_lowercasetable,
-                                 "G_U8_LOWERCASETABLE", 256 * sizeof(char),
-                                 g_u8_lowercasetable, ctx->module_handle) == -1) {
-        goto error;
-    }
-
     /* search kernel */
     if (SCCudaMemAlloc(&ctx->cuda_B2G,
                        sizeof(B2G_CUDA_TYPE) * ctx->hash_size) == -1) {
@@ -1035,19 +934,7 @@ int B2gCudaSetDeviceBuffers(MpmCtx *mpm_ctx)
 
 int B2gCudaSetKernelArgs(MpmCtx *mpm_ctx)
 {
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
-
-    /* search kernel */
-    if (SCCudaParamSetv(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg2_offset,
-                        (void *)&ctx->cuda_g_u8_lowercasetable,
-                        sizeof(void *)) == -1) {
-        goto error;
-    }
-
     return 0;
-
- error:
-    return -1;
 }
 
 int B2gCudaPreparePatterns(MpmCtx *mpm_ctx)
@@ -1244,6 +1131,9 @@ void B2gCudaInitCtx(MpmCtx *mpm_ctx, int module_handle)
 
     /* initialize the hash we use to speed up pattern insertions */
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
+
+    /* hold the cuda module handle against which we are registered.  This is our
+     * only reference to know our place of birth */
     ctx->module_handle = module_handle;
 
     ctx->init_hash = SCMalloc(sizeof(B2gCudaPattern *) * INIT_HASH_SIZE);
@@ -1259,67 +1149,6 @@ void B2gCudaInitCtx(MpmCtx *mpm_ctx, int module_handle)
 
     /* init defaults search functions */
     ctx->Search = b2g_func;
-
-    if (SCCudaHlGetCudaContext(&ctx->cuda_context, module_handle) == -1) {
-        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context");
-    }
-
-#if defined(__x86_64__) || defined(__ia64__)
-    if (SCCudaHlGetCudaModule(&ctx->cuda_module, b2g_cuda_ptx_image_64_bit,
-                              module_handle) == -1) {
-        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda module");
-    }
-#else
-    if (SCCudaHlGetCudaModule(&ctx->cuda_module, b2g_cuda_ptx_image_32_bit,
-                              module_handle) == -1) {
-        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda module");
-    }
-#endif
-
-
-    if (SCCudaModuleGetFunction(&ctx->cuda_search_kernel, ctx->cuda_module,
-                                B2G_CUDA_SEARCHFUNC_NAME) == -1) {
-        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda function");
-    }
-
-#define ALIGN_UP(offset, alignment) (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
-
-    int offset = 0;
-
-    ALIGN_UP(offset, __alignof(void *));
-    ctx->cuda_search_kernel_arg0_offset = offset;
-    offset += sizeof(void *);
-
-    ALIGN_UP(offset, __alignof(void *));
-    ctx->cuda_search_kernel_arg1_offset = offset;
-    offset += sizeof(void *);
-
-    ALIGN_UP(offset, __alignof(void *));
-    ctx->cuda_search_kernel_arg2_offset = offset;
-    offset += sizeof(void *);
-
-    ALIGN_UP(offset, __alignof(void *));
-    ctx->cuda_search_kernel_arg3_offset = offset;
-    offset += sizeof(void *);
-
-    ALIGN_UP(offset, __alignof(unsigned short));
-    ctx->cuda_search_kernel_arg4_offset = offset;
-    offset += sizeof(unsigned short);
-
-    ALIGN_UP(offset, __alignof(unsigned int));
-    ctx->cuda_search_kernel_arg5_offset = offset;
-    offset += sizeof(unsigned int);
-
-    ctx->cuda_search_kernel_arg_total = offset;
-
-    //printf("arg0: %d\n", arg0);
-    //printf("arg1: %d\n", arg1);
-    //printf("arg2: %d\n", arg2);
-    //printf("arg3: %d\n", arg3);
-    //printf("arg4: %d\n", arg4);
-    //printf("arg5: %d\n", arg5);
-
-    //printf("arg_total: %d\n", arg_total);
 
     return;
 }
@@ -1395,16 +1224,35 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
         mpm_ctx->memory_size -= (sizeof(uint8_t) * ctx->hash_size);
     }
 
+    CUcontext dummy_context;
+    SCCudaHlModuleData *module_data = SCCudaHlGetModuleData(ctx->module_handle);
+    if (module_data == NULL) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "How did we even fail to get a "
+                   "module_data if we are having a module_handle");
+        goto error;
+    }
+    if (SCCudaHlGetCudaContext(&dummy_context, ctx->module_handle) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context for the "
+                   "module %s", module_data->name);
+        goto error;
+    }
+    SCCudaCtxPushCurrent(dummy_context);
+
     if (ctx->cuda_B2G != 0) {
-        if (SCCudaMemFree(ctx->cuda_B2G) == -1)
-            SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error freeing ctx->cuda_search_B2G ");
+        if (SCCudaMemFree(ctx->cuda_B2G) == -1) {
+            SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error freeing ctx->cuda_B2G ");
+            goto error;
+        }
         ctx->cuda_B2G = 0;
     }
+    SCCudaCtxPopCurrent(&dummy_context);
 
     SCFree(mpm_ctx->ctx);
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(B2gCudaCtx);
 
+
+ error:
     return;
 }
 
@@ -1456,143 +1304,122 @@ uint32_t B2gCudaSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                             PatternMatcherQueue *pmq, uint8_t *buf,
                             uint16_t buflen)
 {
-#define CUDA_THREADS 16
-    CUdeviceptr cuda_buf = 0;
-    CUdeviceptr cuda_offsets = 0;
-    uint32_t matches = 0;
-    B2gCudaCtx *ctx = mpm_ctx->ctx;
-    uint16_t h = 0;
-    int i = 0;
-    int host_offsets[UINT16_MAX];
+    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
+#ifdef B2G_COUNTERS
+    B2gCudaThreadCtx *tctx = (B2gCudaThreadCtx *)mpm_thread_ctx->ctx;
+#endif
+    uint32_t pos = ctx->m - B2G_CUDA_Q + 1, matches = 0;
+    B2G_CUDA_TYPE d;
+
+    //printf("\n");
+    //PrintRawDataFp(stdout, buf, buflen);
+
+    SCLogDebug("buflen %"PRIu16", ctx->m %"PRIu32", pos %"PRIu32"", buflen,
+            ctx->m, pos);
+
+    COUNT(tctx->stat_calls++);
+    COUNT(tctx->stat_m_total+=ctx->m);
 
     if (buflen < ctx->m)
         return 0;
 
-    if (SCCudaMemAlloc(&cuda_buf, buflen * sizeof(char)) == -1) {
-        goto error;
-    }
-    if (SCCudaMemcpyHtoD(cuda_buf, buf,
-                         buflen * sizeof(char)) == -1) {
-        goto error;
-    }
+    while (pos <= (uint32_t)(buflen - B2G_CUDA_Q + 1)) {
+        uint16_t h = B2G_CUDA_HASH16(u8_tolower(buf[pos - 1]),u8_tolower(buf[pos]));
+        d = ctx->B2G[h];
 
-    if (SCCudaMemAlloc(&cuda_offsets, buflen * sizeof(int)) == -1) {
-        goto error;
-    }
+        if (d != 0) {
+            COUNT(tctx->stat_d0++);
+            uint32_t j = pos;
+            uint32_t first = pos - (ctx->m - B2G_CUDA_Q + 1);
 
-    if (SCCudaParamSetv(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg0_offset,
-                        (void *)&cuda_offsets, sizeof(void *)) == -1) {
-        goto error;
-    }
+            do {
+                j = j - 1;
 
-    if (SCCudaParamSetv(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg1_offset,
-                        (void *)&ctx->cuda_B2G, sizeof(void *)) == -1) {
-        goto error;
-    }
+                if (d >= (uint32_t)(1 << (ctx->m - 1))) {
+                    if (j > first) pos = j;
+                    else {
+                        /* get our patterns from the hash */
+                        h = B2G_CUDA_HASH16(u8_tolower(buf[j + ctx->m - 2]),u8_tolower(buf[j + ctx->m - 1]));
 
-    if (SCCudaParamSetv(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg3_offset,
-                        (void *)&cuda_buf, sizeof(void *)) == -1) {
-        goto error;
-    }
+                        if (ctx->bloom[h] != NULL) {
+                            COUNT(tctx->stat_pminlen_calls++);
+                            COUNT(tctx->stat_pminlen_total+=ctx->pminlen[h]);
 
-    if (SCCudaParamSeti(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg4_offset,
-                        buflen) == -1) {
-        goto error;
-    }
+                            if ((buflen - j) < ctx->pminlen[h]) {
+                                goto skip_loop;
+                            } else {
+                                COUNT(tctx->stat_bloom_calls++);
 
-    if (SCCudaParamSeti(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg5_offset,
-                        ctx->m) == -1) {
-        goto error;
-    }
+                                if (BloomFilterTest(ctx->bloom[h], buf+j, ctx->pminlen[h]) == 0) {
+                                    COUNT(tctx->stat_bloom_hits++);
 
-    if (SCCudaParamSetSize(ctx->cuda_search_kernel, ctx->cuda_search_kernel_arg_total) == -1)
-        goto error;
+                                    SCLogDebug("Bloom: %p, buflen %" PRIu32 ", pos %" PRIu32 ", p_min_len %" PRIu32 "",
+                                        ctx->bloom[h], buflen, pos, ctx->pminlen[h]);
+                                    goto skip_loop;
+                                }
+                            }
+                        }
 
-    if (SCCudaFuncSetBlockShape(ctx->cuda_search_kernel, CUDA_THREADS, 1, 1) == -1)
-        goto error;
+                        B2gCudaHashItem *hi = ctx->hash[h], *thi;
+                        for (thi = hi; thi != NULL; thi = thi->nxt) {
+                            COUNT(tctx->stat_d0_hashloop++);
+                            B2gCudaPattern *p = ctx->parray[thi->idx];
 
-    if (SCCudaLaunchGrid(ctx->cuda_search_kernel, 1, 1) == -1)
-        goto error;
+                            if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
+                                if ((buflen - j) < p->len) {
+                                    continue;
+                                }
 
-    if (SCCudaMemcpyDtoH(host_offsets, cuda_offsets, buflen * sizeof(int)) == -1)
-        goto error;
+                                if (memcmp_lowercase(p->ci, buf+j, p->len) == 0) {
+#ifdef PRINTMATCH
+                                    printf("CI Exact match: "); prt(p->ci, p->len); printf("\n");
+#endif
+                                    COUNT(tctx->stat_loop_match++);
 
-    //printf("Raw matches: ");
-    //for (i = 0; i < buflen; i++) {
-    //    printf("%d",offsets_buffer[i]);
-    //}
-    //printf("\n");
+                                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
+                                } else {
+                                    COUNT(tctx->stat_loop_no_match++);
+                                }
+                            } else {
+                                if (buflen - j < p->len)
+                                    continue;
 
-    //printf("Matches: ");
-    for (i = 0; i < buflen; i++) {
-        if (host_offsets[i] == 0)
-            continue;
+                                if (memcmp(p->cs, buf+j, p->len) == 0) {
+#ifdef PRINTMATCH
+                                    printf("CS Exact match: "); prt(p->cs, p->len); printf("\n");
+#endif
+                                    COUNT(tctx->stat_loop_match++);
 
-
-        /* get our patterns from the hash */
-        h = B2G_CUDA_HASH16(u8_tolower(buf[i + ctx->m - 2]),
-                            u8_tolower(buf[i + ctx->m - 1]));
-
-        if (ctx->bloom[h] != NULL) {
-            COUNT(tctx->stat_pminlen_calls++);
-            COUNT(tctx->stat_pminlen_total+=ctx->pminlen[h]);
-
-            if ((buflen - i) < ctx->pminlen[h]) {
-                continue;
-            } else {
-                COUNT(tctx->stat_bloom_calls++);
-
-                if (BloomFilterTest(ctx->bloom[h], buf + i, ctx->pminlen[h]) == 0) {
-                    COUNT(tctx->stat_bloom_hits++);
-
-                    continue;
+                                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
+                                } else {
+                                    COUNT(tctx->stat_loop_no_match++);
+                                }
+                            }
+                        }
+skip_loop:
+                        SCLogDebug("skipped");
+                        //SCLogDebug("output at pos %" PRIu32 ": ", j); prt(buf + (j), ctx->m); printf("\n");
+                        ;
+                    }
                 }
-            }
+
+                if (j == 0) {
+                    break;
+                }
+
+                h = B2G_CUDA_HASH16(u8_tolower(buf[j - 1]),u8_tolower(buf[j]));
+                d = (d << 1) & ctx->B2G[h];
+            } while (d != 0);
         }
+        COUNT(tctx->stat_num_shift++);
+        COUNT(tctx->stat_total_shift += (ctx->m - B2G_Q + 1));
+        pos = pos + ctx->m - B2G_CUDA_Q + 1;
 
-        B2gCudaHashItem *hi = ctx->hash[h], *thi;
-        for (thi = hi; thi != NULL; thi = thi->nxt) {
-            COUNT(tctx->stat_d0_hashloop++);
-            B2gCudaPattern *p = ctx->parray[thi->idx];
+        SCLogDebug("pos %"PRIu32"", pos);
+    }
 
-            if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
-                if ((buflen - i) < p->len) {
-                    continue;
-                }
-
-                if (memcmp_lowercase(p->ci, buf + i, p->len) == 0) {
-                    COUNT(tctx->stat_loop_match++);
-
-                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, i, p->len);
-                } else {
-                    COUNT(tctx->stat_loop_no_match++);
-                }
-            } else {
-                if (buflen - i < p->len)
-                    continue;
-
-                if (memcmp(p->cs, buf + i, p->len) == 0) {
-                    COUNT(tctx->stat_loop_match++);
-
-                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, i, p->len);
-                } else {
-                    COUNT(tctx->stat_loop_no_match++);
-                }
-            }
-        }
-    } /* for(i = 0; i < buflen; i++) */
-
-    SCCudaMemFree(cuda_buf);
-    SCCudaMemFree(cuda_offsets);
-
+    SCLogDebug("matches %"PRIu32"", matches);
     return matches;
-
- error:
-    if (cuda_buf != 0)
-        SCCudaMemFree(cuda_buf);
-    if (cuda_offsets != 0)
-        SCCudaMemFree(cuda_offsets);
-    return 0;
 }
 
 uint32_t B2gCudaSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
@@ -1604,7 +1431,7 @@ uint32_t B2gCudaSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 #endif
     uint32_t pos = 0, matches = 0;
     B2G_CUDA_TYPE d;
-    uint32_t j = 0;
+    uint32_t j;
 
     COUNT(tctx->stat_calls++);
     COUNT(tctx->stat_m_total+=ctx->m);
@@ -1617,8 +1444,7 @@ uint32_t B2gCudaSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         d = ~0;
 
         do {
-            uint16_t h = B2G_CUDA_HASH16(u8_tolower(buf[pos + j - 1]),
-                                         u8_tolower(buf[pos + j]));
+            uint16_t h = B2G_CUDA_HASH16(u8_tolower(buf[pos + j - 1]),u8_tolower(buf[pos + j]));
             d = ((d << 1) & ctx->B2G[h]);
             j = j - 1;
         } while (d != 0 && j != 0);
@@ -1626,10 +1452,10 @@ uint32_t B2gCudaSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         /* (partial) match, move on to verification */
         if (d != 0) {
             COUNT(tctx->stat_d0++);
+            //printf("output at pos %" PRIu32 ": ", pos); prt(buf + pos, ctx->m); printf("\n");
 
             /* get our patterns from the hash */
-            uint16_t h = B2G_CUDA_HASH16(u8_tolower(buf[pos + ctx->m - 2]),
-                                         u8_tolower(buf[pos + ctx->m - 1]));
+            uint16_t h = B2G_CUDA_HASH16(u8_tolower(buf[pos + ctx->m - 2]),u8_tolower(buf[pos + ctx->m - 1]));
 
             if (ctx->bloom[h] != NULL) {
                 COUNT(tctx->stat_pminlen_calls++);
@@ -1643,13 +1469,13 @@ uint32_t B2gCudaSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     if (BloomFilterTest(ctx->bloom[h], buf+pos, ctx->pminlen[h]) == 0) {
                         COUNT(tctx->stat_bloom_hits++);
 
+                        //printf("Bloom: %p, buflen %" PRIu32 ", pos %" PRIu32 ", p_min_len %" PRIu32 "\n", ctx->bloom[h], buflen, pos, ctx->pminlen[h]);
                         goto skip_loop;
                     }
                 }
             }
 
-            B2gCudaHashItem *hi = ctx->hash[h];
-            B2gCudaHashItem *thi = NULL;
+            B2gCudaHashItem *hi = ctx->hash[h], *thi;
             for (thi = hi; thi != NULL; thi = thi->nxt) {
                 COUNT(tctx->stat_d0_hashloop++);
                 B2gCudaPattern *p = ctx->parray[thi->idx];
@@ -1661,7 +1487,7 @@ uint32_t B2gCudaSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     if (memcmp_lowercase(p->ci, buf+pos, p->len) == 0) {
                         COUNT(tctx->stat_loop_match++);
 
-                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, pos, p->len);
+                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
                     } else {
                         COUNT(tctx->stat_loop_no_match++);
                     }
@@ -1672,13 +1498,14 @@ uint32_t B2gCudaSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     if (memcmp(p->cs, buf+pos, p->len) == 0) {
                         COUNT(tctx->stat_loop_match++);
 
-                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, pos, p->len);
+                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
                     } else {
                         COUNT(tctx->stat_loop_no_match++);
                     }
                 }
             }
 skip_loop:
+            //pos = pos + ctx->s0;
             pos = pos + 1;
         } else {
             COUNT(tctx->stat_num_shift++);
@@ -1688,6 +1515,7 @@ skip_loop:
         }
     }
 
+    //printf("Total matches %" PRIu32 "\n", matches);
     return matches;
 }
 
@@ -1700,11 +1528,12 @@ uint32_t B2gCudaSearch2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     uint8_t *bufend = buf + buflen - 1;
     uint32_t cnt = 0;
     B2gCudaPattern *p;
-    MpmEndMatch *em;
     B2gCudaHashItem *thi, *hi;
 
     if (buflen < 2)
         return 0;
+
+    //printf("BUF "); prt(buf,buflen); printf("\n");
 
     while (buf <= bufend) {
         uint8_t h8 = u8_tolower(*buf);
@@ -1716,11 +1545,11 @@ uint32_t B2gCudaSearch2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
                 if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
                     if (h8 == p->ci[0]) {
-                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, (buf+1 - bufmin), p->len);
+                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
                     }
                 } else {
                     if (*buf == p->cs[0]) {
-                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, (buf+1 - bufmin), p->len);
+                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
                     }
                 }
             }
@@ -1735,29 +1564,32 @@ uint32_t B2gCudaSearch2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
             if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
                 if (h8 == p->ci[0] && u8_tolower(*(buf+1)) == p->ci[1]) {
-                    for (em = p->em; em; em = em->next) {
-                        if (MpmVerifyMatch(mpm_thread_ctx, pmq, em, (buf+1 - bufmin), p->len))
+                    //printf("CI Exact match: "); prt(p->ci, p->len); printf(" in buf "); prt(buf, p->len);printf(" (B2gSearch1)\n");
+//                    for (em = p->em; em; em = em->next) {
+                        if (MpmVerifyMatch(mpm_thread_ctx, pmq, p->id))
                             cnt++;
-                    }
+//                    }
                 }
             } else {
                 if (*buf == p->cs[0] && *(buf+1) == p->cs[1]) {
-                    for (em = p->em; em; em = em->next) {
-                        if (MpmVerifyMatch(mpm_thread_ctx, pmq, em, (buf+1 - bufmin), p->len))
+                    //printf("CS Exact match: "); prt(p->cs, p->len); printf(" in buf "); prt(buf, p->len);printf(" (B2gSearch1)\n");
+//                    for (em = p->em; em; em = em->next) {
+                        if (MpmVerifyMatch(mpm_thread_ctx, pmq, p->id))
                             cnt++;
-                    }
+//                    }
                 }
             }
         }
         buf += 1;
     }
 
+    //printf("B2gSearch2: after 2byte cnt %" PRIu32 "\n", cnt);
     if (ctx->pat_x_cnt > 0) {
         /* Pass bufmin on because buf no longer points to the
          * start of the buffer. */
         cnt += ctx->MBSearch(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
+        //printf("B2gSearch1: after 2+byte cnt %" PRIu32 "\n", cnt);
     }
-
     return cnt;
 }
 #endif
@@ -1777,6 +1609,8 @@ uint32_t B2gCudaSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     if (buflen == 0)
         SCReturnUInt(0);
 
+    //printf("BUF "); prt(buf,buflen); printf("\n");
+
     while (buf <= bufend) {
         uint8_t h = u8_tolower(*buf);
         hi = &ctx->hash1[h];
@@ -1790,11 +1624,11 @@ uint32_t B2gCudaSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
                 if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
                     if (u8_tolower(*buf) == p->ci[0]) {
-                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, (buf+1 - bufmin), p->len);
+                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
                     }
                 } else {
                     if (*buf == p->cs[0]) {
-                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->em, (buf+1 - bufmin), p->len);
+                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
                     }
                 }
             }
@@ -1802,21 +1636,56 @@ uint32_t B2gCudaSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         buf += 1;
     }
 
+    //printf("B2gSearch1: after 1byte cnt %" PRIu32 "\n", cnt);
 #ifdef B2G_CUDA_SEARCH2
     if (ctx->pat_2_cnt) {
         /* Pass bufmin on because buf no longer points to the
          * start of the buffer. */
         cnt += ctx->MBSearch2(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
+        //printf("B2gSearch1: after 2+byte cnt %" PRIu32 "\n", cnt);
     } else
 #endif
     if (ctx->pat_x_cnt) {
         cnt += ctx->MBSearch(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
     }
-
     SCReturnUInt(cnt);
 }
 
 /*********************Cuda_Specific_Mgmt_Code_Starts_Here**********************/
+
+typedef struct B2gCudaMpmThreadCtxData_ {
+    int b2g_cuda_module_handle;
+
+    CUcontext b2g_cuda_context;
+    CUmodule b2g_cuda_module;
+
+    /* the search kernel */
+    CUfunction b2g_cuda_search_kernel;
+
+    /* the cuda_search_kernel argument offsets */
+    uint8_t b2g_cuda_search_kernel_arg0_offset;
+    uint8_t b2g_cuda_search_kernel_arg1_offset;
+    uint8_t b2g_cuda_search_kernel_arg2_offset;
+    uint8_t b2g_cuda_search_kernel_arg3_offset;
+    uint8_t b2g_cuda_search_kernel_arg4_offset;
+    uint8_t b2g_cuda_search_kernel_arg5_offset;
+    uint8_t b2g_cuda_search_kernel_arg_total;
+
+    /* the results buffer to hold the match offsets for the packets */
+    uint16_t *results_buffer;
+    /* gpu buffer corresponding to the above buffer */
+    CUdeviceptr cuda_results_buffer;
+
+    /* gpu buffer corresponding to SCCudaPBPacketsBuffer->packets_buffer */
+    CUdeviceptr cuda_packets_buffer;
+    /* gpu buffer corresponding to SCCudaPBPacketsBuffer->packets_offset_buffer */
+    CUdeviceptr cuda_packets_offset_buffer;
+    /* gpu buffer corresponding to SCCudaPBPacketsBuffer->packets_payload_offset_buffer */
+    CUdeviceptr cuda_packets_payload_offset_buffer;
+    /* gpu buffer corresponding to the global symbol g_u8_lowercasetable
+     * XXX Remove this.  Store it as a constant buffer inside the kernel*/
+    CUdeviceptr cuda_g_u8_lowercasetable;
+} B2gCudaMpmThreadCtxData;
 
 /**
  * \brief The Cuda MPM B2G module's thread init function.
@@ -1839,7 +1708,165 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error pushing cuda context");
     }
 
-    return TM_ECODE_OK;
+    B2gCudaMpmThreadCtxData *tctx = malloc(sizeof(B2gCudaMpmThreadCtxData));
+    if (tctx == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(tctx, 0, sizeof(B2gCudaMpmThreadCtxData));
+
+    tctx->b2g_cuda_module_handle = module_data->handle;
+
+    if (SCCudaHlGetCudaContext(&tctx->b2g_cuda_context, module_data->handle) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context");
+        goto error;
+    }
+
+#if defined(__x86_64__) || defined(__ia64__)
+    if (SCCudaHlGetCudaModule(&tctx->b2g_cuda_module, b2g_cuda_ptx_image_64_bit,
+                              module_data->handle) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda module");
+    }
+#else
+    if (SCCudaHlGetCudaModule(&tctx->b2g_cuda_module, b2g_cuda_ptx_image_32_bit,
+                              module_data->handle) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda module");
+    }
+#endif
+
+    if (SCCudaModuleGetFunction(&tctx->b2g_cuda_search_kernel,
+                                tctx->b2g_cuda_module,
+                                B2G_CUDA_SEARCHFUNC_NAME) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda function");
+        goto error;
+    }
+
+    if (SCCudaFuncSetBlockShape(tctx->b2g_cuda_search_kernel, 32, 1, 1) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error setting function block shape");
+        goto error;
+    }
+
+#define ALIGN_UP(offset, alignment) (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
+
+    int offset = 0;
+
+    ALIGN_UP(offset, __alignof(void *));
+    tctx->b2g_cuda_search_kernel_arg0_offset = offset;
+    offset += sizeof(void *);
+
+    ALIGN_UP(offset, __alignof(void *));
+    tctx->b2g_cuda_search_kernel_arg1_offset = offset;
+    offset += sizeof(void *);
+
+    ALIGN_UP(offset, __alignof(void *));
+    tctx->b2g_cuda_search_kernel_arg2_offset = offset;
+    offset += sizeof(void *);
+
+    ALIGN_UP(offset, __alignof(void *));
+    tctx->b2g_cuda_search_kernel_arg3_offset = offset;
+    offset += sizeof(void *);
+
+    ALIGN_UP(offset, __alignof(uint16_t));
+    tctx->b2g_cuda_search_kernel_arg4_offset = offset;
+    offset += sizeof(void *);
+
+    ALIGN_UP(offset, __alignof(void *));
+    tctx->b2g_cuda_search_kernel_arg5_offset = offset;
+    offset += sizeof(void *);
+
+    tctx->b2g_cuda_search_kernel_arg_total = offset;
+
+    /* buffer to hold the b2g cuda mpm match results for 4000 packets.  The
+     * extra 2 bytes(the 1 in 1481 instead of 1480) is to hold the no of
+     * matches for the payload.  The remaining 1480 positions in the buffer
+     * is to hold the match offsets */
+    tctx->results_buffer = malloc(sizeof(uint16_t) * 1481 * SC_CUDA_PB_MIN_NO_OF_PACKETS);
+    if (tctx->results_buffer == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_results_buffer,
+                                 "MPM_B2G_RESULTS",
+                                 sizeof(uint16_t) * 1481 * SC_CUDA_PB_MIN_NO_OF_PACKETS,
+                                 NULL, module_data->handle) == -1) {
+        goto error;
+    }
+
+    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_g_u8_lowercasetable,
+                                 "G_U8_LOWERCASETABLE", 256 * sizeof(char),
+                                 g_u8_lowercasetable, module_data->handle) == -1) {
+        goto error;
+    }
+
+    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_buffer,
+                                 "MPM_B2G_PACKETS_BUFFER",
+                                 (sizeof(SCCudaPBPacketDataForGPU) *
+                                  SC_CUDA_PB_MIN_NO_OF_PACKETS),
+                                 NULL, module_data->handle) == -1) {
+        goto error;
+    }
+
+    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_offset_buffer,
+                                 "MPM_B2G_PACKETS_BUFFER_OFFSETS",
+                                 sizeof(uint32_t) * SC_CUDA_PB_MIN_NO_OF_PACKETS,
+                                 NULL, module_data->handle) == -1) {
+        goto error;
+    }
+
+    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_payload_offset_buffer,
+                                 "MPM_B2G_PACKETS_PAYLOAD_BUFFER_OFFSETS",
+                                 sizeof(uint32_t) * SC_CUDA_PB_MIN_NO_OF_PACKETS,
+                                 NULL, module_data->handle) == -1) {
+        goto error;
+    }
+
+    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
+                        tctx->b2g_cuda_search_kernel_arg0_offset,
+                        (void *)&tctx->cuda_results_buffer,
+                        sizeof(void *)) == -1) {
+        goto error;
+    }
+
+    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
+                        tctx->b2g_cuda_search_kernel_arg1_offset,
+                        (void *)&tctx->cuda_packets_buffer,
+                        sizeof(void *)) == -1) {
+        goto error;
+    }
+
+    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
+                        tctx->b2g_cuda_search_kernel_arg2_offset,
+                        (void *)&tctx->cuda_packets_offset_buffer,
+                        sizeof(void *)) == -1) {
+        goto error;
+    }
+
+    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
+                        tctx->b2g_cuda_search_kernel_arg3_offset,
+                        (void *)&tctx->cuda_packets_payload_offset_buffer,
+                        sizeof(void *)) == -1) {
+        goto error;
+    }
+
+    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
+                        tctx->b2g_cuda_search_kernel_arg5_offset,
+                        (void *)&tctx->cuda_g_u8_lowercasetable,
+                        sizeof(void *)) == -1) {
+        goto error;
+    }
+
+    if (SCCudaParamSetSize(tctx->b2g_cuda_search_kernel,
+                           tctx->b2g_cuda_search_kernel_arg_total) == -1) {
+        goto error;
+    }
+
+    *data = tctx;
+
+     return TM_ECODE_OK;
+
+ error:
+    return TM_ECODE_FAILED;
 }
 
 /**
@@ -1853,14 +1880,49 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
  */
 TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
 {
+    B2gCudaMpmThreadCtxData *tctx = data;
+
+    if (tctx == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments.  data NULL\n");
+        return TM_ECODE_OK;
+    }
+
     if (PatternMatchDefaultMatcher() != MPM_B2G_CUDA)
         return TM_ECODE_OK;
+
+    CUcontext dummy_context;
+    SCCudaHlModuleData *module_data = SCCudaHlGetModuleData(tctx->b2g_cuda_module_handle);
+    if (module_data == NULL) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "How did we even fail to get a "
+                   "module_data if we are having a module_handle");
+        goto error;
+    }
+    if (SCCudaHlGetCudaContext(&dummy_context, tctx->b2g_cuda_module_handle) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context for the "
+                   "module %s", module_data->name);
+        goto error;
+    }
+    SCCudaCtxPushCurrent(dummy_context);
+
+    free(tctx->results_buffer);
+    SCCudaHlFreeCudaDevicePtr("MPM_B2G_RESULTS", tctx->b2g_cuda_module_handle);
+    SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER", tctx->b2g_cuda_module_handle);
+    SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER_OFFSETS",
+                              tctx->b2g_cuda_module_handle);
+    SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_PAYLOAD_BUFFER_OFFSETS",
+                              tctx->b2g_cuda_module_handle);
+    SCCudaHlFreeCudaDevicePtr("G_U8_LOWERCASETABLE", tctx->b2g_cuda_module_handle);
+
+    free(tctx);
 
     if (SCCudaCtxPopCurrent(NULL) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error popping cuda context");
     }
 
     return TM_ECODE_OK;
+
+ error:
+    return TM_ECODE_FAILED;
 }
 
 /**
@@ -1877,20 +1939,179 @@ TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
  *
  * \retval TM_ECODE_OK Always.
  */
-TmEcode B2gCudaMpmDispatcher(ThreadVars *tv, Packet *p, void *data,
-                             PacketQueue *pq)
+TmEcode B2gCudaMpmDispatcher(ThreadVars *tv, Packet *incoming_buffer,
+                             void *data, PacketQueue *pq)
 {
-    if (p == NULL)
+    SCCudaPBPacketsBuffer *pb = (SCCudaPBPacketsBuffer *)incoming_buffer;
+    B2gCudaMpmThreadCtxData *tctx = data;
+    uint32_t i = 0;
+
+    SCLogDebug("Running the B2g CUDA mpm dispatcher");
+
+    if (pb == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument.  pb is NULL!!");
         return TM_ECODE_OK;
+    }
 
-    p->cuda_matches = mpm_table[p->cuda_mpm_ctx->mpm_type].Search(p->cuda_mpm_ctx,
-                                                                  p->cuda_mtc,
-                                                                  p->cuda_pmq,
-                                                                  p->payload,
-                                                                  p->payload_len);
-    TmqhOutputSimpleOnQ(p->cuda_outq, p);
+    if (SCCudaMemcpyHtoD(tctx->cuda_packets_buffer, pb->packets_buffer,
+                         pb->packets_buffer_len) == -1) {
+        goto error;
+    }
 
+    if (SCCudaMemcpyHtoD(tctx->cuda_packets_offset_buffer,
+                         pb->packets_offset_buffer,
+                         sizeof(uint32_t) * pb->nop_in_buffer) == -1) {
+        goto error;
+    }
+
+    if (SCCudaMemcpyHtoD(tctx->cuda_packets_payload_offset_buffer,
+                         pb->packets_payload_offset_buffer,
+                         sizeof(uint32_t) * pb->nop_in_buffer) == -1) {
+        goto error;
+    }
+
+    if (SCCudaParamSeti(tctx->b2g_cuda_search_kernel, tctx->b2g_cuda_search_kernel_arg4_offset,
+                        pb->nop_in_buffer) == -1) {
+        goto error;
+    }
+
+    /* the no of threads per block has already been set to 32
+     * \todo if we are very sure we are allocating a multiple of block_size
+     * buffer_threshold, then we can remove this + 1 here below */
+    int no_of_cuda_blocks = (pb->nop_in_buffer / 32) + 1;
+    if (SCCudaLaunchGrid(tctx->b2g_cuda_search_kernel, no_of_cuda_blocks, 1) == -1) {
+        goto error;
+    }
+
+    if (SCCudaMemcpyDtoH(tctx->results_buffer,
+                         tctx->cuda_results_buffer,
+                         sizeof(uint16_t) * (pb->nop_in_buffer + pb->packets_total_payload_len)) == -1) {
+        goto error;
+    }
+
+    i = 0;
+    for (i = 0; i < pb->nop_in_buffer; i++) {
+        memcpy(pb->packets_address_buffer[i]->mpm_offsets,
+               (tctx->results_buffer + i +
+                pb->packets_payload_offset_buffer[i]),
+               (pb->packets_address_buffer[i]->payload_len + 1) * sizeof(uint16_t));
+        SCMutexLock(&pb->packets_address_buffer[i]->cuda_mutex);
+        pb->packets_address_buffer[i]->cuda_done = 1;
+        SCMutexUnlock(&pb->packets_address_buffer[i]->cuda_mutex);
+        SCCondSignal(&pb->packets_address_buffer[i]->cuda_cond);
+    }
+
+    SCLogDebug("B2g Cuda mpm dispatcher returning");
     return TM_ECODE_OK;
+
+ error:
+    for (i = 0; i < pb->nop_in_buffer; i++) {
+        SCMutexLock(&pb->packets_address_buffer[i]->cuda_mutex);
+        pb->packets_address_buffer[i]->cuda_done = 1;
+        SCMutexUnlock(&pb->packets_address_buffer[i]->cuda_mutex);
+        SCCondSignal(&pb->packets_address_buffer[i]->cuda_cond);
+    }
+    SCLogError(SC_ERR_B2G_CUDA_ERROR, "B2g Cuda mpm dispatcher returning with error");
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief The post processing of cuda mpm b2g results for a packet
+ *        is done here.  Will be used by the detection thread.  We basically
+ *        obtain the match offsets from the cuda mpm search and carry out
+ *        further matches on those offsets.  Also if the results are not
+ *        read for a packet, we wait on the conditional, which will then
+ *        be signalled by the cuda mpm dispatcher thread, once the results
+ *        for the packet are ready.
+ *
+ * \param p              Pointer to the packet whose mpm cuda results are
+ *                       to be further processed.
+ * \param mpm_ctx        Pointer to the mpm context for this packet.
+ * \param mpm_thread_ctx Pointer to the mpm thread context.
+ * \param pmq            Pointer to the patter matcher queue.
+ *
+ * \retval matches Holds the no of matches.
+ */
+int B2gCudaResultsPostProcessing(Packet *p, MpmCtx *mpm_ctx,
+                                 MpmThreadCtx *mpm_thread_ctx,
+                                 PatternMatcherQueue *pmq)
+{
+    B2gCudaCtx *ctx = mpm_ctx->ctx;
+
+    while (p->cuda_done == 0) {
+        SCMutexLock(&p->cuda_mutex);
+        if (p->cuda_done == 1) {
+            SCMutexUnlock(&p->cuda_mutex);
+            break;
+        } else {
+            SCondWait(&p->cuda_cond, &p->cuda_mutex);
+            SCMutexUnlock(&p->cuda_mutex);
+        }
+    }
+
+    /* reset this flag for the packet */
+    p->cuda_done = 0;
+
+    uint16_t *no_of_matches = p->mpm_offsets;
+    uint16_t *host_offsets = p->mpm_offsets + 1;
+    int i = 0, h = 0;
+    uint8_t *buf = p->payload;
+    uint16_t buflen = p->payload_len;
+    int matches = 0;
+    for (i = 0; i < no_of_matches[0]; i++) {
+        h = B2G_CUDA_HASH16(u8_tolower(buf[host_offsets[i] + ctx->m - 2]),
+                            u8_tolower(buf[host_offsets[i] + ctx->m - 1]));
+
+        if (ctx->bloom[h] != NULL) {
+            COUNT(tctx->stat_pminlen_calls++);
+            COUNT(tctx->stat_pminlen_total+=ctx->pminlen[h]);
+
+            if ((buflen - host_offsets[i]) < ctx->pminlen[h]) {
+                continue;
+            } else {
+                COUNT(tctx->stat_bloom_calls++);
+
+                if (BloomFilterTest(ctx->bloom[h], buf + host_offsets[i], ctx->pminlen[h]) == 0) {
+                    COUNT(tctx->stat_bloom_hits++);
+
+                    continue;
+                }
+            }
+        }
+
+        B2gCudaHashItem *hi = ctx->hash[h], *thi;
+        for (thi = hi; thi != NULL; thi = thi->nxt) {
+            COUNT(tctx->stat_d0_hashloop++);
+            B2gCudaPattern *p = ctx->parray[thi->idx];
+
+            if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
+                if ((buflen - host_offsets[i]) < p->len) {
+                    continue;
+                }
+
+                if (memcmp_lowercase(p->ci, buf + host_offsets[i], p->len) == 0) {
+                    COUNT(tctx->stat_loop_match++);
+
+                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
+                } else {
+                    COUNT(tctx->stat_loop_no_match++);
+                }
+            } else {
+                if (buflen - host_offsets[i] < p->len)
+                    continue;
+
+                if (memcmp(p->cs, buf +  host_offsets[i], p->len) == 0) {
+                    COUNT(tctx->stat_loop_match++);
+
+                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, p->id);
+                } else {
+                    COUNT(tctx->stat_loop_no_match++);
+                }
+            }
+        }
+    }
+
+    return matches;
 }
 
 /**
@@ -1907,6 +2128,72 @@ void TmModuleCudaMpmB2gRegister(void)
 }
 
 /***************************Code_Specific_To_Mpm_B2g***************************/
+
+void *CudaMpmB2gThreadsSlot1(void *td)
+{
+    ThreadVars *tv = (ThreadVars *)td;
+    Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
+    SCCudaPBPacketsBuffer *data = NULL;
+    char run = 1;
+    TmEcode r = TM_ECODE_OK;
+
+    /* Set the thread name */
+    SCSetThreadName(tv->name);
+
+    if (tv->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv);
+
+    SCLogDebug("%s starting", tv->name);
+
+    if (s->s.SlotThreadInit != NULL) {
+        r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
+        if (r != TM_ECODE_OK) {
+            EngineKill();
+
+            TmThreadsSetFlag(tv, THV_CLOSED);
+            pthread_exit((void *) -1);
+        }
+    }
+    memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
+
+    TmThreadsSetFlag(tv, THV_INIT_DONE);
+    while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
+        /* input data */
+        data = (SCCudaPBPacketsBuffer *)TmqhInputSimpleOnQ(&data_queues[tv->inq->id]);
+
+        if (data == NULL) {
+            //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
+        } else {
+            r = s->s.SlotFunc(tv, (Packet *)data, s->s.slot_data, &s->s.slot_pq);
+            /* handle error */
+
+            /* output the packet */
+            TmqhOutputSimpleOnQ(&data_queues[tv->outq->id], (SCDQGenericQData *)data);
+        }
+
+        if (TmThreadsCheckFlag(tv, THV_KILL)) {
+            run = 0;
+        }
+    }
+
+    if (s->s.SlotThreadExitPrintStats != NULL) {
+        s->s.SlotThreadExitPrintStats(tv, s->s.slot_data);
+    }
+
+    if (s->s.SlotThreadDeinit != NULL) {
+        r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
+        if (r != TM_ECODE_OK) {
+            TmThreadsSetFlag(tv, THV_CLOSED);
+            pthread_exit((void *) -1);
+        }
+    }
+
+    SCLogDebug("%s ending", tv->name);
+    TmThreadsSetFlag(tv, THV_CLOSED);
+    pthread_exit((void *) 0);
+}
 
 int B2gCudaStartDispatcherThreadRC(const char *name)
 {
@@ -1935,15 +2222,17 @@ int B2gCudaStartDispatcherThreadRC(const char *name)
     }
 
     /* create the threads */
-    tv_CMB2_RC = TmThreadCreatePacketHandler("Cuda_Mpm_B2g_RC",
-                                             "rules_content_mpm_inqueue", "simple",
-                                             NULL, NULL,
-                                             "1slot_noout");
+    tv_CMB2_RC = TmThreadCreate("Cuda_Mpm_B2g_RC",
+                                "cuda_batcher_mpm_outqueue", "simple",
+                                "cuda_batcher_mpm_inqueue", "simple",
+                                "custom", CudaMpmB2gThreadsSlot1, 0);
     if (tv_CMB2_RC == NULL) {
         SCLogError(SC_ERR_TM_THREADS_ERROR, "ERROR: TmThreadsCreate failed");
         exit(EXIT_FAILURE);
     }
-    tv_CMB2_RC->inq->writer_cnt++;
+    tv_CMB2_RC->type = TVT_PPT;
+    tv_CMB2_RC->inq->q_type = 1;
+    tv_CMB2_RC->outq->q_type = 1;
 
     tm_module = TmModuleGetByName("Cuda_Mpm_B2g");
     if (tm_module == NULL) {
@@ -1981,28 +2270,10 @@ void B2gCudaKillDispatcherThreadRC(void)
     return;
 }
 
-void B2gCudaPushPacketTo_tv_CMB2_RC(Packet *p)
-{
-    PacketQueue *q = &trans_q[tv_CMB2_RC->inq->id];
-
-    SCMutexLock(&q->mutex_q);
-    PacketEnqueue(q, p);
-    SCCondSignal(&q->cond_q);
-    SCMutexUnlock(&q->mutex_q);
-
-    return;
-}
-
 /*********************************Unittests************************************/
 
 #ifdef UNITTESTS
 
-static int B2gCudaTestInitTestEnv(void)
-{
-    SCCudaHlRegisterModule("B2G_CUDA_TEST");
-
-    return 1;
-}
 
 static int B2gCudaTest01(void)
 {
@@ -2010,1205 +2281,619 @@ static int B2gCudaTest01(void)
     MpmThreadCtx mpm_thread_ctx;
     B2gCudaCtx *ctx = NULL;
     int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
+    int module_handle = SCCudaHlRegisterModule("B2G_CUDA_TEST");
+    SCCudaHlModuleData *module_data = SCCudaHlGetModuleData(module_handle);
+    SCCudaPBPacketsBuffer *pb = NULL;
+
+    /* get the cuda context and push it */
+    CUcontext dummy_context;
+    if (SCCudaHlGetCudaContext(&dummy_context, module_handle) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context for the "
+                   "module SC_RULES_CONTENT_B2G_CUDA");
+    }
+    SCCudaCtxPushCurrent(dummy_context);
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     B2gCudaInitCtx(&mpm_ctx, module_handle);
+    /* pop the context before we make further calls to the mpm cuda dispatcher */
+    SCCudaCtxPopCurrent(NULL);
+
+    B2gCudaMpmThreadCtxData *tctx = NULL;
+    B2gCudaMpmDispThreadInit(NULL, module_data, (void *)&tctx);
 
     ctx = mpm_ctx.ctx;
 
-    if (ctx->cuda_context == 0)
+    if (tctx->b2g_cuda_context == 0)
         goto end;
-    if (ctx->cuda_module == 0)
+    if (tctx->b2g_cuda_module == 0)
         goto end;
-    if (ctx->cuda_search_kernel == 0)
+    if (tctx->b2g_cuda_search_kernel == 0)
         goto end;
 
     if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"one", 3, 0, 0, 1, 1, 0) == -1)
         goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"two", 3, 0, 0, 2, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"three", 5, 0, 0, 3, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"four", 4, 0, 0, 4, 1, 0) == -1)
-        goto end;
 
     if (B2gCudaPreparePatterns(&mpm_ctx) == -1)
         goto end;
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 4 /* 4 patterns */);
+    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
 
-    char *string = "onetwothreeaaaaoneaatwobbbthrbsonwehowvonwoonsldffoursadnothreewtowoneowtwo";
-    result = (B2gCudaSearchBNDMq(&mpm_ctx, &mpm_thread_ctx, NULL,
-                                 (uint8_t *)string, strlen(string)) == 9);
+    result = 1;
+
+    pb = SCCudaPBAllocSCCudaPBPacketsBuffer();
+    SCCudaPBPacketDataForGPU *curr_packet = (SCCudaPBPacketDataForGPU *)pb->packets_buffer;
+
+    char *string = "tone_one_one_one";
+    curr_packet->m = ctx->m;
+    curr_packet->table = ctx->cuda_B2G;
+    curr_packet->payload_len = strlen(string);
+    memcpy(curr_packet->payload, string, strlen(string));
+
+    pb->nop_in_buffer = 1;
+    pb->packets_buffer_len = sizeof(SCCudaPBPacketDataForGPUNonPayload) + strlen(string);
+    pb->packets_total_payload_len = strlen(string);
+    pb->packets_offset_buffer[0] = 0;
+    pb->packets_payload_offset_buffer[0] = 0;
+
+    Packet p;
+    memset(&p, 0, sizeof(Packet));
+    pb->packets_address_buffer[0] = &p;
+    p.payload_len = strlen(string);
+
+    B2gCudaMpmDispatcher(NULL, (Packet *)pb, tctx, NULL);
+
+    result &= (p.mpm_offsets[0] == 4);
+    result &= (p.mpm_offsets[1] == 1);
+    result &= (p.mpm_offsets[2] == 5);
+    result &= (p.mpm_offsets[3] == 9);
+    result &= (p.mpm_offsets[4] == 13);
 
  end:
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
+    SCCudaPBDeAllocSCCudaPBPacketsBuffer(pb);
+    B2gCudaMpmDispThreadDeInit(NULL, (void *)tctx);
     B2gCudaDestroyCtx(&mpm_ctx);
+    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     return result;
 }
 
 static int B2gCudaTest02(void)
 {
-    MpmCtx mpm_ctx;
-    MpmThreadCtx mpm_thread_ctx;
-    B2gCudaCtx *ctx = NULL;
+    uint8_t raw_eth[] = {
+        0x00, 0x25, 0x00, 0x9e, 0xfa, 0xfe, 0x00, 0x02,
+        0xcf, 0x74, 0xfe, 0xe1, 0x08, 0x00, 0x45, 0x00,
+        0x01, 0xcc, 0xcb, 0x91, 0x00, 0x00, 0x34, 0x06,
+        0xdf, 0xa8, 0xd1, 0x55, 0xe3, 0x67, 0xc0, 0xa8,
+        0x64, 0x8c, 0x00, 0x50, 0xc0, 0xb7, 0xd1, 0x11,
+        0xed, 0x63, 0x81, 0xa9, 0x9a, 0x05, 0x80, 0x18,
+        0x00, 0x75, 0x0a, 0xdd, 0x00, 0x00, 0x01, 0x01,
+        0x08, 0x0a, 0x09, 0x8a, 0x06, 0xd0, 0x12, 0x21,
+        0x2a, 0x3b, 0x48, 0x54, 0x54, 0x50, 0x2f, 0x31,
+        0x2e, 0x31, 0x20, 0x33, 0x30, 0x32, 0x20, 0x46,
+        0x6f, 0x75, 0x6e, 0x64, 0x0d, 0x0a, 0x4c, 0x6f,
+        0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20,
+        0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x2e, 0x65, 0x73, 0x2f, 0x0d, 0x0a, 0x43,
+        0x61, 0x63, 0x68, 0x65, 0x2d, 0x43, 0x6f, 0x6e,
+        0x74, 0x72, 0x6f, 0x6c, 0x3a, 0x20, 0x70, 0x72,
+        0x69, 0x76, 0x61, 0x74, 0x65, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54,
+        0x79, 0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x20,
+        0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d,
+        0x55, 0x54, 0x46, 0x2d, 0x38, 0x0d, 0x0a, 0x44,
+        0x61, 0x74, 0x65, 0x3a, 0x20, 0x4d, 0x6f, 0x6e,
+        0x2c, 0x20, 0x31, 0x34, 0x20, 0x53, 0x65, 0x70,
+        0x20, 0x32, 0x30, 0x30, 0x39, 0x20, 0x30, 0x38,
+        0x3a, 0x34, 0x38, 0x3a, 0x33, 0x31, 0x20, 0x47,
+        0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65, 0x72, 0x76,
+        0x65, 0x72, 0x3a, 0x20, 0x67, 0x77, 0x73, 0x0d,
+        0x0a, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
+        0x2d, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a,
+        0x20, 0x32, 0x31, 0x38, 0x0d, 0x0a, 0x0d, 0x0a,
+        0x3c, 0x48, 0x54, 0x4d, 0x4c, 0x3e, 0x3c, 0x48,
+        0x45, 0x41, 0x44, 0x3e, 0x3c, 0x6d, 0x65, 0x74,
+        0x61, 0x20, 0x68, 0x74, 0x74, 0x70, 0x2d, 0x65,
+        0x71, 0x75, 0x69, 0x76, 0x3d, 0x22, 0x63, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x74, 0x79,
+        0x70, 0x65, 0x22, 0x20, 0x63, 0x6f, 0x6e, 0x74,
+        0x65, 0x6e, 0x74, 0x3d, 0x22, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x63,
+        0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d, 0x75,
+        0x74, 0x66, 0x2d, 0x38, 0x22, 0x3e, 0x0a, 0x3c,
+        0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e, 0x33, 0x30,
+        0x32, 0x20, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x3c,
+        0x2f, 0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e, 0x3c,
+        0x2f, 0x48, 0x45, 0x41, 0x44, 0x3e, 0x3c, 0x42,
+        0x4f, 0x44, 0x59, 0x3e, 0x0a, 0x3c, 0x48, 0x31,
+        0x3e, 0x33, 0x30, 0x32, 0x20, 0x4d, 0x6f, 0x76,
+        0x65, 0x64, 0x3c, 0x2f, 0x48, 0x31, 0x3e, 0x0a,
+        0x54, 0x68, 0x65, 0x20, 0x64, 0x6f, 0x63, 0x75,
+        0x6d, 0x65, 0x6e, 0x74, 0x20, 0x68, 0x61, 0x73,
+        0x20, 0x6d, 0x6f, 0x76, 0x65, 0x64, 0x0a, 0x3c,
+        0x41, 0x20, 0x48, 0x52, 0x45, 0x46, 0x3d, 0x22,
+        0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x2e, 0x65, 0x73, 0x2f, 0x22, 0x3e, 0x68,
+        0x65, 0x72, 0x65, 0x3c, 0x2f, 0x41, 0x3e, 0x2e,
+        0x0d, 0x0a, 0x3c, 0x2f, 0x42, 0x4f, 0x44, 0x59,
+        0x3e, 0x3c, 0x2f, 0x48, 0x54, 0x4d, 0x4c, 0x3e,
+        0x0d, 0x0a };
+
     int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
+    const char *strings[10] = {
+        "test_test_one",
+        "test_two_test",
+        "test_three_test",
+        "test_four_test",
+        "test_five_test",
+        "test_six_test",
+        "test_seven_test",
+        "test_eight_test",
+        "test_nine_test",
+        "test_ten_test"};
+    /* don't shoot me for hardcoding the results.  We will change this in
+     * sometime, by running a separate mpm on the cpu, and then hold
+     * the results in this temp buffer */
+    int results[10][2] = { {0, 5},
+                           {0, 9},
+                           {0, 11},
+                           {0, 10},
+                           {0, 10},
+                           {0, 9},
+                           {0, 11},
+                           {0, 11},
+                           {0, 10},
+                           {0, 9} };
+    Packet *p[10];
+    SCCudaPBThreadCtx *pb_tctx = NULL;
 
-    memset(&mpm_ctx, 0, sizeof(MpmCtx));
-    B2gCudaInitCtx(&mpm_ctx, module_handle);
+    DecodeThreadVars dtv;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
 
-    ctx = mpm_ctx.ctx;
+    SCCudaPBPacketsBuffer *pb = NULL;
+    SCDQDataQueue *dq = NULL;
 
-    if (ctx->cuda_context == 0)
-        goto end;
-    if (ctx->cuda_module == 0)
-        goto end;
-    if (ctx->cuda_search_kernel == 0)
-        goto end;
+    char *inq_name = "cuda_batcher_mpm_inqueue";
+    char *outq_name = "cuda_batcher_mpm_outqueue";
 
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"one", 3, 0, 0, 1, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"two", 3, 0, 0, 2, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"three", 5, 0, 0, 3, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"four", 4, 0, 0, 4, 1, 0) == -1)
-        goto end;
+    Tmq *tmq_outq = NULL;
+    Tmq *tmq_inq = NULL;
 
-    if (B2gCudaPreparePatterns(&mpm_ctx) == -1)
-        goto end;
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 4 /* 4 patterns */);
+    uint32_t i = 0, j = 0;
 
-    char *string = "onetwothreeaaaaoneaatwobbbthrbsonwehowvonwoonsldffoursadnothreewtowoneowtwo";
-    result = (B2gCudaSearchBNDMq(&mpm_ctx, &mpm_thread_ctx, NULL,
-                                 (uint8_t *)string, strlen(string)) == 9);
+    uint8_t no_of_pkts = 10;
 
- end:
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
-/**
- * \test Test that the *AddPattern* functions work as expected.
- */
-static int B2gCudaTest03(void)
-{
-    MpmCtx mpm_ctx;
-    B2gCudaCtx *ctx = NULL;
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
+    FlowInitConfig(FLOW_QUIET);
 
-    memset(&mpm_ctx, 0, sizeof(MpmCtx));
-    B2gCudaInitCtx(&mpm_ctx, module_handle);
+    memset(p, 0, sizeof(p));
+    for (i = 0; i < no_of_pkts; i++) {
+        p[i] = malloc(sizeof(Packet));
+        if (p[i] == NULL) {
+            printf("error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        memset(p[i], 0, sizeof(Packet));
+        DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
+    }
 
-    ctx = mpm_ctx.ctx;
-    if (ctx->cuda_context == 0)
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         goto end;
-    if (ctx->cuda_module == 0)
-        goto end;
-    if (ctx->cuda_search_kernel == 0)
-        goto end;
+    }
 
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"onee", 4, 0, 0, 1, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"twoo", 4, 0, 0, 2, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"three", 5, 0, 0, 3, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"four", 4, 0, 0, 4, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"onee", 4, 0, 0, 1, 2, 0) == -1)
-        goto end;
+    de_ctx->mpm_matcher = MPM_B2G_CUDA;
+    de_ctx->flags |= DE_QUIET;
 
-    if (B2gCudaPreparePatterns(&mpm_ctx) == -1)
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                               "content:test; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("signature parsing failed\n");
         goto end;
+    }
+    SigGroupBuild(de_ctx);
 
-    char *string = "one";
-    result = (B2gCudaSearchBNDMq(&mpm_ctx, NULL, NULL, (uint8_t *)string, strlen(string)) == 0);
+    SCCudaPBSetUpQueuesAndBuffers();
 
- end:
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-/**
- * \test Test that the *AddPattern* functions work as expected.
- */
-static int B2gCudaTest04(void)
-{
-    MpmCtx mpm_ctx;
-    MpmThreadCtx mpm_thread_ctx;
-    B2gCudaCtx *ctx = NULL;
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-
-    memset(&mpm_ctx, 0, sizeof(MpmCtx));
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-
-    ctx = mpm_ctx.ctx;
-    if (ctx->cuda_context == 0)
+    /* get the queues used by the batcher thread */
+    tmq_inq = TmqGetQueueByName(inq_name);
+    if (tmq_inq == NULL) {
+        printf("tmq_inq NULL\n");
         goto end;
-    if (ctx->cuda_module == 0)
+    }
+    tmq_outq = TmqGetQueueByName(outq_name);
+    if (tmq_outq == NULL) {
+        printf("tmq_outq NULL\n");
         goto end;
-    if (ctx->cuda_search_kernel == 0)
-        goto end;
-
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"one", 3, 0, 0, 1, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"two", 3, 0, 0, 2, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"three", 5, 0, 0, 3, 1, 0) == -1)
-        goto end;
-    if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"four", 4, 0, 0, 4, 1, 0) == -1)
-        goto end;
-
-    if (B2gCudaPreparePatterns(&mpm_ctx) == -1)
-        goto end;
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 4 /* 4 patterns */);
-
-    char *string = "onetwothreeaaaaoneaatwobbbthrbsonwehowvonwfouoonsldffoursadnothreewtowoneowtwo";
-    result = (B2gCudaSearchBNDMq(&mpm_ctx, &mpm_thread_ctx,
-                                 NULL, (uint8_t *)string, strlen(string)) == 9);
+    }
 
     result = 1;
 
+    /* queue state before calling the thread init function */
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 0);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 10);
+
+    /* init the TM thread */
+    SCCudaPBThreadInit(&tv, de_ctx, (void *)&pb_tctx);
+    SCCudaPBSetBufferPacketThreshhold(no_of_pkts);
+
+    /* queue state after calling the thread init function */
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 0);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 9);
+
+    pb = pb_tctx->curr_pb;
+
+    for (i = 0; i < no_of_pkts; i++) {
+        p[i]->payload = (uint8_t *)strings[i];
+        p[i]->payload_len = strlen(strings[i]);
+        SCCudaPBBatchPackets(NULL, p[i], pb_tctx, NULL);
+    }
+
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 1);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 8);
+
+    result &= (pb->nop_in_buffer == no_of_pkts);
+
+    int module_handle = SCCudaHlRegisterModule("SC_RULES_CONTENT_B2G_CUDA");
+    SCCudaHlModuleData *module_data = SCCudaHlGetModuleData(module_handle);
+
+    B2gCudaMpmThreadCtxData *b2g_tctx = NULL;
+    B2gCudaMpmDispThreadInit(NULL, module_data, (void *)&b2g_tctx);
+
+    if (b2g_tctx->b2g_cuda_context == 0)
+        goto end;
+    if (b2g_tctx->b2g_cuda_module == 0)
+        goto end;
+    if (b2g_tctx->b2g_cuda_search_kernel == 0)
+        goto end;
+
+    B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, NULL);
+
+    for (i = 0; i < no_of_pkts; i++) {
+        for (j = 0; j < p[i]->mpm_offsets[0]; j++)
+            result &= (results[i][j] == p[i]->mpm_offsets[j + 1]);
+    }
+
  end:
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
+    for (i = 0; i < no_of_pkts; i++) {
+        free(p[i]);
+    }
+    SCCudaPBCleanUpQueuesAndBuffers();
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+    SCCudaPBThreadDeInit(NULL, (void *)pb_tctx);
+    B2gCudaMpmDispThreadDeInit(NULL, (void *)b2g_tctx);
+
     return result;
 }
 
-static int B2gCudaTestSearch01(void)
+static int B2gCudaTest03(void)
 {
+    uint8_t raw_eth[] = {
+        0x00, 0x25, 0x00, 0x9e, 0xfa, 0xfe, 0x00, 0x02,
+        0xcf, 0x74, 0xfe, 0xe1, 0x08, 0x00, 0x45, 0x00,
+        0x01, 0xcc, 0xcb, 0x91, 0x00, 0x00, 0x34, 0x06,
+        0xdf, 0xa8, 0xd1, 0x55, 0xe3, 0x67, 0xc0, 0xa8,
+        0x64, 0x8c, 0x00, 0x50, 0xc0, 0xb7, 0xd1, 0x11,
+        0xed, 0x63, 0x81, 0xa9, 0x9a, 0x05, 0x80, 0x18,
+        0x00, 0x75, 0x0a, 0xdd, 0x00, 0x00, 0x01, 0x01,
+        0x08, 0x0a, 0x09, 0x8a, 0x06, 0xd0, 0x12, 0x21,
+        0x2a, 0x3b, 0x48, 0x54, 0x54, 0x50, 0x2f, 0x31,
+        0x2e, 0x31, 0x20, 0x33, 0x30, 0x32, 0x20, 0x46,
+        0x6f, 0x75, 0x6e, 0x64, 0x0d, 0x0a, 0x4c, 0x6f,
+        0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20,
+        0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x2e, 0x65, 0x73, 0x2f, 0x0d, 0x0a, 0x43,
+        0x61, 0x63, 0x68, 0x65, 0x2d, 0x43, 0x6f, 0x6e,
+        0x74, 0x72, 0x6f, 0x6c, 0x3a, 0x20, 0x70, 0x72,
+        0x69, 0x76, 0x61, 0x74, 0x65, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54,
+        0x79, 0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x20,
+        0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d,
+        0x55, 0x54, 0x46, 0x2d, 0x38, 0x0d, 0x0a, 0x44,
+        0x61, 0x74, 0x65, 0x3a, 0x20, 0x4d, 0x6f, 0x6e,
+        0x2c, 0x20, 0x31, 0x34, 0x20, 0x53, 0x65, 0x70,
+        0x20, 0x32, 0x30, 0x30, 0x39, 0x20, 0x30, 0x38,
+        0x3a, 0x34, 0x38, 0x3a, 0x33, 0x31, 0x20, 0x47,
+        0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65, 0x72, 0x76,
+        0x65, 0x72, 0x3a, 0x20, 0x67, 0x77, 0x73, 0x0d,
+        0x0a, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
+        0x2d, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a,
+        0x20, 0x32, 0x31, 0x38, 0x0d, 0x0a, 0x0d, 0x0a,
+        0x3c, 0x48, 0x54, 0x4d, 0x4c, 0x3e, 0x3c, 0x48,
+        0x45, 0x41, 0x44, 0x3e, 0x3c, 0x6d, 0x65, 0x74,
+        0x61, 0x20, 0x68, 0x74, 0x74, 0x70, 0x2d, 0x65,
+        0x71, 0x75, 0x69, 0x76, 0x3d, 0x22, 0x63, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x74, 0x79,
+        0x70, 0x65, 0x22, 0x20, 0x63, 0x6f, 0x6e, 0x74,
+        0x65, 0x6e, 0x74, 0x3d, 0x22, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x63,
+        0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d, 0x75,
+        0x74, 0x66, 0x2d, 0x38, 0x22, 0x3e, 0x0a, 0x3c,
+        0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e, 0x33, 0x30,
+        0x32, 0x20, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x3c,
+        0x2f, 0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e, 0x3c,
+        0x2f, 0x48, 0x45, 0x41, 0x44, 0x3e, 0x3c, 0x42,
+        0x4f, 0x44, 0x59, 0x3e, 0x0a, 0x3c, 0x48, 0x31,
+        0x3e, 0x33, 0x30, 0x32, 0x20, 0x4d, 0x6f, 0x76,
+        0x65, 0x64, 0x3c, 0x2f, 0x48, 0x31, 0x3e, 0x0a,
+        0x54, 0x68, 0x65, 0x20, 0x64, 0x6f, 0x63, 0x75,
+        0x6d, 0x65, 0x6e, 0x74, 0x20, 0x68, 0x61, 0x73,
+        0x20, 0x6d, 0x6f, 0x76, 0x65, 0x64, 0x0a, 0x3c,
+        0x41, 0x20, 0x48, 0x52, 0x45, 0x46, 0x3d, 0x22,
+        0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x2e, 0x65, 0x73, 0x2f, 0x22, 0x3e, 0x68,
+        0x65, 0x72, 0x65, 0x3c, 0x2f, 0x41, 0x3e, 0x2e,
+        0x0d, 0x0a, 0x3c, 0x2f, 0x42, 0x4f, 0x44, 0x59,
+        0x3e, 0x3c, 0x2f, 0x48, 0x54, 0x4d, 0x4c, 0x3e,
+        0x0d, 0x0a };
+
     int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    const char *strings[10] = {
+        "test_test_one",
+        "test_two_test",
+        "test_three_test",
+        "test_four_test",
+        "test_five_test",
+        "test_six_test",
+        "test_seven_test",
+        "test_eight_test",
+        "test_nine_test",
+        "test_ten_test"};
+    /* don't shoot me for hardcoding the results.  We will change this in
+     * sometime, by having run a separate mpm on the cpu and then hold
+     * the results in a temp buffer */
+    Packet *p[10];
+    SCCudaPBThreadCtx *pb_tctx = NULL;
 
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
+    DecodeThreadVars dtv;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx;
+    ThreadVars de_tv;
 
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
+    SCCudaPBPacketsBuffer *pb = NULL;
+    SCDQDataQueue *dq = NULL;
 
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf, strlen(buf));
+    char *inq_name = "cuda_batcher_mpm_inqueue";
+    char *outq_name = "cuda_batcher_mpm_outqueue";
 
-    if (cnt == 1)
-        result = 1;
+    Tmq *tmq_outq = NULL;
+    Tmq *tmq_inq = NULL;
 
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
+    uint32_t i = 0, j = 0;
+
+    uint8_t no_of_pkts = 10;
+
+    Signature *sig = NULL;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&de_tv, 0, sizeof(ThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    for (i = 0; i < no_of_pkts; i++) {
+        p[i] = malloc(sizeof(Packet));
+        if (p[i] == NULL) {
+            printf("error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        memset(p[i], 0, sizeof(Packet));
+        DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
+    }
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G_CUDA;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                               "content:test; sid:0;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = de_ctx->sig_list;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:one; sid:1;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:two; sid:2;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:three; sid:3;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:four; sid:4;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:five; sid:5;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:six; sid:6;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:seven; sid:7;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:eight; sid:8;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:nine; sid:9;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:ten; sid:10;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+
+    /* build the signatures */
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&de_tv, (void *)de_ctx, (void *)&det_ctx);
+
+    SCCudaPBSetUpQueuesAndBuffers();
+
+    /* get the queues used by the batcher thread */
+    tmq_inq = TmqGetQueueByName(inq_name);
+    if (tmq_inq == NULL) {
+        printf("tmq_inq NULL\n");
+        goto end;
+    }
+    tmq_outq = TmqGetQueueByName(outq_name);
+    if (tmq_outq == NULL) {
+        printf("tmq_outq NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+    /* queue state before calling the thread init function */
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 0);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 10);
+
+    /* init the TM thread */
+    SCCudaPBThreadInit(&tv, de_ctx, (void *)&pb_tctx);
+    SCCudaPBSetBufferPacketThreshhold(no_of_pkts);
+
+    /* queue state after calling the thread init function */
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 0);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 9);
+
+    pb = pb_tctx->curr_pb;
+
+    for (i = 0; i < no_of_pkts; i++) {
+        p[i]->payload = (uint8_t *)strings[i];
+        p[i]->payload_len = strlen(strings[i]);
+        SCCudaPBBatchPackets(NULL, p[i], pb_tctx, NULL);
+    }
+
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 1);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 8);
+
+    result &= (pb->nop_in_buffer == no_of_pkts);
+
+    int module_handle = SCCudaHlRegisterModule("SC_RULES_CONTENT_B2G_CUDA");
+    SCCudaHlModuleData *module_data = SCCudaHlGetModuleData(module_handle);
+
+    B2gCudaMpmThreadCtxData *b2g_tctx = NULL;
+    B2gCudaMpmDispThreadInit(NULL, module_data, (void *)&b2g_tctx);
+
+    if (b2g_tctx->b2g_cuda_context == 0)
+        goto end;
+    if (b2g_tctx->b2g_cuda_module == 0)
+        goto end;
+    if (b2g_tctx->b2g_cuda_search_kernel == 0)
+        goto end;
+
+    B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, NULL);
+
+    for (i = 0; i < 10; i++)
+        SigMatchSignatures(&de_tv, de_ctx, det_ctx, p[i]);
+
+    for (i = 0; i < 10; i++) {
+        if (!PacketAlertCheck(p[i], 0)) {
+            result = 0;
+            goto end;
+        }
+        for (j = 1; j <= 10; j++) {
+            if (j == i + 1) {
+                if (!PacketAlertCheck(p[i], j)) {
+                    result = 0;
+                    goto end;
+                }
+            } else {
+                if (PacketAlertCheck(p[i], j)) {
+                    result = 0;
+                    goto end;
+                }
+            }
+        }
+    }
+
+ end:
+    for (i = 0; i < no_of_pkts; i++) {
+        free(p[i]);
+    }
+    SCCudaPBCleanUpQueuesAndBuffers();
+    if (de_ctx) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+    SCCudaPBThreadDeInit(NULL, (void *)pb_tctx);
+    B2gCudaMpmDispThreadDeInit(NULL, (void *)b2g_tctx);
 
     return result;
-}
-
-static int B2gCudaTestSearch02(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
-
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abce", 4, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf, strlen(buf));
-
-    if (cnt == 0)
-        result = 1;
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-
-    return result;
-}
-
-static int B2gCudaTestSearch03(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
-
-    /* a match each for these strings */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0, 0);
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"fghj", 4, 0, 0, 2, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3 /* 3 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf, strlen(buf));
-
-    if (cnt == 3)
-        result = 1;
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-
-    return result;
-}
-
-/**
- * \test Test patterns longer than 'm'. M is 4 here.
- */
-static int B2gCudaTestSearch04(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
-
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"bcdegh", 6, 0, 0, 1, 0, 0);
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"fghjxyz", 7, 0, 0, 2, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3 /* 3 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf, strlen(buf));
-
-    if (cnt == 1)
-        result = 1;
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-/**
- * \test Case insensitive test patterns longer than 'm'. M is 4 here.
- */
-static int B2gCudaTestSearch05(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
-
-    B2gCudaAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
-    B2gCudaAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
-    B2gCudaAddPatternCI(&mpm_ctx, (uint8_t *)"fghJikl", 7, 0, 0, 2, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3 /* 3 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf, strlen(buf));
-
-    if (cnt == 3)
-        result = 1;
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-
-    return result;
-}
-
-static int B2gCudaTestSearch06(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-    char *buf = "abcd";
-
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf, strlen(buf));
-
-    if (cnt == 1)
-        result = 1;
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-
-    return result;
-}
-
-static int B2gCudaTestSearch07(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-    char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-
-    /* total matches: 135 */
-    /* should match 30 times */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0);
-    /* should match 29 times */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0, 0);
-    /* should match 28 times */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0, 0);
-    /* should match 26 times */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0, 0);
-    /* should match 21 times */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0, 0);
-    /* should match 1 time */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 6 /* 6 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf, strlen(buf));
-
-
-    if (cnt == 135)
-        result = 1;
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-
-    return result;
-}
-
-static int B2gCudaTestSearch08(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0); /* 1 match */
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"a", 1);
-
-    if (cnt == 0)
-        result = 1;
-    else
-        printf("0 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-/* we segfault with this test */
-static int B2gCudaTestSearch09(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"ab", 2);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch10(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefgh", 8, 0, 0, 0, 0, 0); /* 1 match */
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    char *buf = "01234567890123456789012345678901234567890123456789"
-                "01234567890123456789012345678901234567890123456789"
-                "abcdefgh"
-                "01234567890123456789012345678901234567890123456789"
-                "01234567890123456789012345678901234567890123456789";
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf, strlen(buf));
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch11(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2 /* 2 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"abcdefghijklmnopqrstuvwxyz", 26);
-
-    if (cnt == 2)
-        result = 1;
-    else
-        printf("2 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch12(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"wxyz", 4, 0, 0, 0, 0, 0); /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"vwxyz", 5, 0, 0, 0, 0, 0); /* 1 match */
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2 /* 2 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"abcdefghijklmnopqrstuvwxyz", 26);
-
-    if (cnt == 2)
-        result = 1;
-    else
-        printf("2 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch13(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefghijklmnopqrstuvwxyzABCD",
-                            30, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"abcdefghijklmnopqrstuvwxyzABCD", 30);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch14(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefghijklmnopqrstuvwxyzABCDE",
-                            31, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"abcdefghijklmnopqrstuvwxyzABCDE", 31);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch15(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefghijklmnopqrstuvwxyzABCDEF",
-                            32, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"abcdefghijklmnopqrstuvwxyzABCDEF", 32);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch16(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefghijklmnopqrstuvwxyzABC",
-                            29, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"abcdefghijklmnopqrstuvwxyzABC", 29);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch17(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefghijklmnopqrstuvwxyzAB",
-                            28, 0, 0, 0, 0, 0); /* 1 match */
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"abcdefghijklmnopqrstuvwxyzAB", 28);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch18(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx,
-                            (uint8_t *)"abcde""fghij""klmno""pqrst""uvwxy""z",
-                            26, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"abcde""fghij""klmno""pqrst""uvwxy""z",
-                             26);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch19(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                            30, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch20(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 */
-    B2gCudaAddPatternCS(&mpm_ctx,
-                            (uint8_t *)"AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA",
-                            32, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                             (uint8_t *)"AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA",
-                             32);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch21(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"AA", 2);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-
-
-static int B2gCudaTestSearch22(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                               (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch23(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abce", 4, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                               (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
-
-    if (cnt == 0)
-        result = 1;
-    else
-        printf("0 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch24(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0, 0);
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"fghj", 4, 0, 0, 2, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3 /* 3 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                               (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
-
-    if (cnt == 3)
-        result = 1;
-    else
-        printf("3 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-/**
- * \test test patterns longer than 'm'. M is 4 here.
- */
-static int B2gCudaTestSearch25(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"bcdegh", 6, 0, 0, 1, 0, 0);
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"fghjxyz", 7, 0, 0, 2, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3 /* 3 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                               (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-/**
- * \test case insensitive test patterns longer than 'm'. M is 4 here.
- */
-static int B2gCudaTestSearch26(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
-    /* 1 match */
-    B2gCudaAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
-    /* 1 match */
-    B2gCudaAddPatternCI(&mpm_ctx, (uint8_t *)"fghJikl", 7, 0, 0, 2, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 3 /* 3 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                               (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
-
-    if (cnt == 3)
-        result = 1;
-    else
-        printf("3 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch27(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"abcd", 4);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch28(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* should match 30 times */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0);
-    /* should match 29 times */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0, 0);
-    /* should match 28 times */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0, 0);
-    /* 26 */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0, 0);
-    /* 21 */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0, 0);
-    /* 1 */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                        30, 0, 0, 5, 0, 0);
-    /* total matches: 135 */
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 6 /* 6 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                               (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
-
-    if (cnt == 135)
-        result = 1;
-    else
-        printf("135 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch29(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"a", 1);
-
-    if (cnt == 0)
-        result = 1;
-    else
-        printf("0 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch30(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)"ab", 2);
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-/* 1 match */
-static int B2gCudaTestSearch31(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefgh", 8, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1 /* 1 pattern */);
-
-    char *buf = "01234567890123456789012345678901234567890123456789"
-                "01234567890123456789012345678901234567890123456789"
-                "abcdefgh"
-                "01234567890123456789012345678901234567890123456789"
-                "01234567890123456789012345678901234567890123456789";
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf,
-                               strlen(buf));
-
-    if (cnt == 1)
-        result = 1;
-    else
-        printf("1 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch32(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2 /* 2 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                               (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
-
-    if (cnt == 2)
-        result = 1;
-    else
-        printf("2 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestSearch33(void)
-{
-    int result = 0;
-    int module_handle = SCCudaHlGetModuleHandle("B2G_CUDA_TEST");
-    MpmCtx mpm_ctx;
-    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_B2G_CUDA, module_handle);
-    B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx.ctx;
-
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"wxyz", 4, 0, 0, 0, 0, 0);
-    /* 1 match */
-    B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"vwxyz", 5, 0, 0, 0, 0, 0);
-
-    B2gCudaPreparePatterns(&mpm_ctx);
-    B2gCudaThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 2 /* 2 patterns */);
-
-    uint32_t cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL,
-                               (uint8_t *)"abcdefghjiklmnopqrstuvwxyz", 26);
-
-    if (cnt == 2)
-        result = 1;
-    else
-        printf("2 != %" PRIu32 " ",cnt);
-
-    B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
-    B2gCudaDestroyCtx(&mpm_ctx);
-    return result;
-}
-
-static int B2gCudaTestDeInitTestEnv(void)
-{
-    CUcontext context;
-    if (SCCudaCtxPopCurrent(&context) == -1)
-        exit(EXIT_FAILURE);
-    SCCudaHlDeRegisterModule("B2G_CUDA_TEST");
-
-    return 1;
 }
 
 #endif /* UNITTESTS */
@@ -3218,49 +2903,9 @@ static int B2gCudaTestDeInitTestEnv(void)
 void B2gCudaRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("B2gCudaTestInitTestEnv", B2gCudaTestInitTestEnv, 1);
     UtRegisterTest("B2gCudaTest01", B2gCudaTest01, 1);
     UtRegisterTest("B2gCudaTest02", B2gCudaTest02, 1);
     UtRegisterTest("B2gCudaTest03", B2gCudaTest03, 1);
-    UtRegisterTest("B2gCudaTest04", B2gCudaTest04, 1);
-    UtRegisterTest("B2gCudaTestSearch01", B2gCudaTestSearch01, 1);
-    UtRegisterTest("B2gCudaTestSearch02", B2gCudaTestSearch02, 1);
-    UtRegisterTest("B2gCudaTestSearch03", B2gCudaTestSearch03, 1);
-    UtRegisterTest("B2gCudaTestSearch04", B2gCudaTestSearch04, 1);
-    UtRegisterTest("B2gCudaTestSearch05", B2gCudaTestSearch05, 1);
-    UtRegisterTest("B2gCudaTestSearch06", B2gCudaTestSearch06, 1);
-    UtRegisterTest("B2gCudaTestSearch07", B2gCudaTestSearch07, 1);
-    UtRegisterTest("B2gCudaTestSearch08", B2gCudaTestSearch08, 1);
-    UtRegisterTest("B2gCudaTestSearch09", B2gCudaTestSearch09, 1);
-    UtRegisterTest("B2gCudaTestSearch10", B2gCudaTestSearch10, 1);
-    UtRegisterTest("B2gCudaTestSearch11", B2gCudaTestSearch11, 1);
-    UtRegisterTest("B2gCudaTestSearch12", B2gCudaTestSearch12, 1);
-    UtRegisterTest("B2gCudaTestSearch13", B2gCudaTestSearch13, 1);
-
-    UtRegisterTest("B2gCudaTestSearch14", B2gCudaTestSearch14, 1);
-    UtRegisterTest("B2gCudaTestSearch15", B2gCudaTestSearch15, 1);
-    UtRegisterTest("B2gCudaTestSearch16", B2gCudaTestSearch16, 1);
-    UtRegisterTest("B2gCudaTestSearch17", B2gCudaTestSearch17, 1);
-    UtRegisterTest("B2gCudaTestSearch18", B2gCudaTestSearch18, 1);
-    UtRegisterTest("B2gCudaTestSearch19", B2gCudaTestSearch19, 1);
-    UtRegisterTest("B2gCudaTestSearch20", B2gCudaTestSearch20, 1);
-    UtRegisterTest("B2gCudaTestSearch21", B2gCudaTestSearch21, 1);
-
-    UtRegisterTest("B2gCudaTestSearch22", B2gCudaTestSearch22, 1);
-    UtRegisterTest("B2gCudaTestSearch23", B2gCudaTestSearch23, 1);
-    UtRegisterTest("B2gCudaTestSearch24", B2gCudaTestSearch24, 1);
-    UtRegisterTest("B2gCudaTestSearch25", B2gCudaTestSearch25, 1);
-    UtRegisterTest("B2gCudaTestSearch26", B2gCudaTestSearch26, 1);
-    UtRegisterTest("B2gCudaTestSearch27", B2gCudaTestSearch27, 1);
-    UtRegisterTest("B2gCudaTestSearch28", B2gCudaTestSearch28, 1);
-    UtRegisterTest("B2gCudaTestSearch29", B2gCudaTestSearch29, 1);
-    UtRegisterTest("B2gCudaTestSearch30", B2gCudaTestSearch30, 1);
-    UtRegisterTest("B2gCudaTestSearch31", B2gCudaTestSearch31, 1);
-    UtRegisterTest("B2gCudaTestSearch32", B2gCudaTestSearch32, 1);
-    UtRegisterTest("B2gCudaTestSearch33", B2gCudaTestSearch33, 1);
-    /* we actually need to call this.  right now we don't need this.  we will
-     * change this in the next patch for cuda batching */
-    UtRegisterTest("B2gCudaTestDeInitTestEnv", B2gCudaTestDeInitTestEnv, 1);
 #endif /* UNITTESTS */
 }
 

@@ -68,45 +68,6 @@ SCMutex tv_root_lock = PTHREAD_MUTEX_INITIALIZER;
    thread encounters a failure.  Defaults to restart the failed thread */
 uint8_t tv_aof = THV_RESTART_THREAD;
 
-typedef struct TmSlot_ {
-    /* function pointers */
-    TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-
-    TmEcode (*SlotThreadInit)(ThreadVars *, void *, void **);
-    void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
-    TmEcode (*SlotThreadDeinit)(ThreadVars *, void *);
-
-    /* data storage */
-    void *slot_initdata;
-    void *slot_data;
-
-    /**< queue filled by the SlotFunc with packets that will
-     *   be processed futher _before_ the current packet.
-     *   The locks in the queue are NOT used */
-    PacketQueue slot_pre_pq;
-
-    /**< queue filled by the SlotFunc with packets that will
-     *   be processed futher _after_ the current packet. The
-     *   locks in the queue are NOT used */
-    PacketQueue slot_post_pq;
-
-    /* linked list, only used by TmVarSlot */
-    struct TmSlot_ *slot_next;
-
-    int id; /**< slot id, only used my TmVarSlot to know what the first
-             *   slot is. */
-} TmSlot;
-
-/* 1 function slot */
-typedef struct Tm1Slot_ {
-    TmSlot s;
-} Tm1Slot;
-
-/* Variable number of function slots */
-typedef struct TmVarSlot_ {
-    TmSlot *s;
-} TmVarSlot;
-
 /**
  *  \brief Check if a thread flag is set
  *
@@ -649,11 +610,12 @@ TmEcode TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *)) {
         size = sizeof(TmVarSlot);
         tv->tm_func = TmThreadsSlotVar;
     } else if (strcmp(name, "custom") == 0) {
+        /* \todo this needs to be changed to support slots of any size */
+        size = sizeof(Tm1Slot);
         if (fn_p == NULL)
             goto error;
 
         tv->tm_func = fn_p;
-        return TM_ECODE_OK;
     } else {
         printf("Error: Slot \"%s\" not supported\n", name);
         goto error;
@@ -1134,8 +1096,12 @@ void TmThreadKillThreads(void) {
                 if (tv->InShutdownHandler != NULL) {
                     tv->InShutdownHandler(tv);
                 }
-                for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
-                    SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+                    if (tv->inq->q_type == 0)
+                        SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                    else
+                        SCCondSignal(&data_queues[tv->inq->id].cond_q);
+                }
 
                 /* to be sure, signal more */
                 int cnt = 0;
@@ -1151,9 +1117,12 @@ void TmThreadKillThreads(void) {
                         tv->InShutdownHandler(tv);
                     }
 
-                    for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
-                        SCCondSignal(&trans_q[tv->inq->id].cond_q);
-
+                    for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+                        if (tv->inq->q_type == 0)
+                            SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                        else
+                            SCCondSignal(&data_queues[tv->inq->id].cond_q);
+                    }
                     usleep(100);
                 }
 
