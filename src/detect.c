@@ -649,6 +649,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             }
         }
+
         if (s->flags & SIG_FLAG_MPM_URI) {
             if (det_ctx->pmq.pattern_id_bitarray != NULL) {
                 /* filter out sigs that want pattern matches, but
@@ -722,12 +723,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (de_state_start == TRUE) {
                 SCLogDebug("stateful app layer match inspection starting");
                 if (DeStateDetectStartDetection(th_v, det_ctx, s, p->flow, flags, alstate, alproto) != 1)
-                    continue;
+                    goto next;
             } else {
                 SCLogDebug("signature %"PRIu32" (%"PRIuMAX"): %s",
                         s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
                 if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
-                    continue;
+                    goto next;
                 }
             }
         }
@@ -791,7 +792,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     /* Limit the number of times we do this recursive thing.
                      * XXX is this a sane limit? Should it be configurable? */
                     if (det_ctx->pkt_cnt == 10)
-                        break;
+                        goto done;
                 } while (rmatch);
 
             } else {
@@ -833,6 +834,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
     next:
         RULE_PROFILING_END(s, match);
+        continue;
+    done:
+        RULE_PROFILING_END(s, match);
+        break;
     }
 
     if (p->flow != NULL) {

@@ -29,11 +29,17 @@
 #include "util-cpu.h"
 
 extern int profiling_rules_enabled;
+extern __thread int profiling_entered;
 
 #define PROFILING_START \
     uint64_t profile_start_ = 0; \
     uint64_t profile_end_ = 0; \
     if (profiling_rules_enabled) { \
+        if (profiling_entered > 0) { \
+            SCLogError(SC_ERR_FATAL, "Re-entered profiling, exiting."); \
+            exit(1); \
+        } \
+        profiling_entered++; \
         profile_start_ = UtilCpuGetTicks(); \
     }
 
@@ -42,6 +48,7 @@ extern int profiling_rules_enabled;
         profile_end_ = UtilCpuGetTicks(); \
         SCProfilingUpdateRuleCounter(r->profiling_id, \
             profile_end_ - profile_start_, m); \
+        profiling_entered--; \
     }
 
 void SCProfilingInit(void);

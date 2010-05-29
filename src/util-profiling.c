@@ -78,6 +78,11 @@ typedef struct SCProfileSummary_ {
 int profiling_rules_enabled = 0;
 
 /**
+ * Used as a check so we don't double enter a profiling run.
+ */
+__thread int profiling_entered = 0;
+
+/**
  * \brief Initialize profiling.
  */
 void

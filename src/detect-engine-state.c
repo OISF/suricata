@@ -39,6 +39,7 @@
 #include "app-layer-htp.h"
 
 #include "util-unittest.h"
+#include "util-profiling.h"
 
 #define CASE_CODE(E)  case E: return #E
 const char *DeStateMatchResultToString(DeStateMatchResult res)
@@ -332,10 +333,13 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                 continue;
             }
 
+            PROFILING_START;
+
             /* let's continue detection */
             SigMatch *sm;
+            int match = 0;
             for (sm = item->nm; sm != NULL; sm = sm->next) {
-                int match = sigmatch_table[sm->type].AppLayerMatch(tv,
+                match = sigmatch_table[sm->type].AppLayerMatch(tv,
                         det_ctx, f, flags, alstate, s, sm);
                 if (match == 0) {
                     item->nm = sm;
@@ -349,6 +353,9 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
             SCLogDebug("signature %"PRIu32" match state %s",
                     s->id, DeStateMatchResultToString(det_ctx->de_state_sig_array[item->sid]));
+
+            RULE_PROFILING_END(s, match);
+
         }
     }
 
