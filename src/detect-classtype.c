@@ -180,9 +180,11 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *raw
     if (s->prio == -1)
         s->prio = ct->priority;
 
+    pcre_free_substring(parsed_ct_name);
     return 0;
 
  error:
+    if (parsed_ct_name != NULL) pcre_free_substring(parsed_ct_name);
     return -1;
 }
 

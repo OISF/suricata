@@ -52,6 +52,7 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                               SigMatch *m);
 int DetectHttpClientBodySetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpClientBodyRegisterTests(void);
+void DetectHttpClientBodyFree(void *);
 
 /**
  * \brief Registers the keyword handlers for the "http_client_body" keyword.
@@ -63,7 +64,7 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].AppLayerMatch = DetectHttpClientBodyMatch;
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].Setup = DetectHttpClientBodySetup;
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].Free  = NULL;
+    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].Free  = DetectHttpClientBodyFree;
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].RegisterTests = DetectHttpClientBodyRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_PAYLOAD ;
@@ -248,15 +249,34 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return 0;
 
 error:
-    if (hcbd != NULL) {
-        if (hcbd->content != NULL)
-            SCFree(hcbd->content);
-        SCFree(hcbd);
-    }
-    if(nm != NULL)
-        SCFree(sm);
+    if (hcbd != NULL)
+        DetectHttpClientBodyFree(hcbd);
+
+        if(nm != NULL)
+        SCFree(nm);
 
     return -1;
+}
+
+/**
+ * \brief The function to free the http_client_body data.
+ *
+ * \param ptr Pointer to the http_client_body.
+ */
+void DetectHttpClientBodyFree(void *ptr)
+{
+    SCEnter();
+    DetectHttpClientBodyData *hcbd = (DetectHttpClientBodyData *)ptr;
+    if (hcbd == NULL)
+        SCReturn;
+
+    if (hcbd->content != NULL)
+        SCFree(hcbd->content);
+
+    BoyerMooreCtxDeInit(hcbd->bm_ctx);
+    SCFree(hcbd);
+
+    SCReturn;
 }
 
 /************************************Unittests*********************************/

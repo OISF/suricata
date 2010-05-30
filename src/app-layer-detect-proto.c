@@ -240,6 +240,7 @@ void AlpProtoDestroy() {
     SCEnter();
     mpm_table[alp_proto_ctx.toserver.mpm_ctx.mpm_type].DestroyCtx(&alp_proto_ctx.toserver.mpm_ctx);
     mpm_table[alp_proto_ctx.toclient.mpm_ctx.mpm_type].DestroyCtx(&alp_proto_ctx.toclient.mpm_ctx);
+    MpmPatternIdTableFreeHash(alp_proto_ctx.mpm_pattern_id_store);
     SCReturn;
 }
 
@@ -266,13 +267,12 @@ void AlpProtoDeFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {
     if (alp_proto_ctx.toclient.id > 0) {
         mpm_table[alp_proto_ctx.toclient.mpm_ctx.mpm_type].DestroyThreadCtx
                     (&alp_proto_ctx.toclient.mpm_ctx, &tctx->toclient.mpm_ctx);
-        /* XXX GS any idea why it is invalid free ?*/
-        //PmqFree(&tctx->toclient.pmq);
+        PmqFree(&tctx->toclient.pmq);
     }
     if (alp_proto_ctx.toserver.id > 0) {
         mpm_table[alp_proto_ctx.toserver.mpm_ctx.mpm_type].DestroyThreadCtx
                     (&alp_proto_ctx.toserver.mpm_ctx, &tctx->toserver.mpm_ctx);
-        //PmqFree(&tctx->toserver.pmq);
+        PmqFree(&tctx->toserver.pmq);
     }
 
 }

@@ -1460,7 +1460,7 @@ void DetectPortFreeFunc(void *p) {
  */
 int DetectPortDpHashInit(DetectEngineCtx *de_ctx) {
     de_ctx->dport_hash_table = HashListTableInit(PORT_HASH_SIZE,
-                               DetectPortHashFunc, DetectPortCompareFunc, NULL);
+                               DetectPortHashFunc, DetectPortCompareFunc, DetectPortFreeFunc);
     if (de_ctx->dport_hash_table == NULL)
         goto error;
 
@@ -1525,7 +1525,7 @@ DetectPort *DetectPortDpHashLookup(DetectEngineCtx *de_ctx, DetectPort *p) {
  */
 int DetectPortSpHashInit(DetectEngineCtx *de_ctx) {
     de_ctx->sport_hash_table = HashListTableInit(PORT_HASH_SIZE,
-                               DetectPortHashFunc, DetectPortCompareFunc, NULL);
+                               DetectPortHashFunc, DetectPortCompareFunc, DetectPortFreeFunc);
     if (de_ctx->sport_hash_table == NULL)
         goto error;
 

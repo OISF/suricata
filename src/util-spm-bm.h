@@ -48,6 +48,6 @@ void PreBmBcNocase(const uint8_t *x, int32_t m, int32_t *bmBc);
 void BoyerMooreSuffixesNocase(const uint8_t *x, int32_t m, int32_t *suff);
 void PreBmGsNocase(const uint8_t *x, int32_t m, int32_t *bmGs);
 uint8_t *BoyerMooreNocase(uint8_t *x, int32_t m, uint8_t *y, int32_t n, int32_t *bmGs, int32_t *bmBc);
-
+void BoyerMooreCtxDeInit(BmCtx *);
 #endif /* __UTIL_SPM_BM__ */
 

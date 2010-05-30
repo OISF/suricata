@@ -538,6 +538,11 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
+    if (iface_ctx == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitFileOPIface. Exiting...");
+        exit(EXIT_FAILURE);
+    }
+
     iface_ctx->iface = SC_LOG_OP_IFACE_FILE;
 
     if (file != NULL &&
@@ -577,11 +582,10 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
-    if ( (iface_ctx = SCMalloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
+    if (iface_ctx == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitConsoleOPIface. Exiting...");
         exit(EXIT_FAILURE);
     }
-    memset(iface_ctx, 0, sizeof(SCLogOPIfaceCtx));
 
     iface_ctx->iface = SC_LOG_OP_IFACE_CONSOLE;
 
@@ -632,11 +636,10 @@ static inline SCLogOPIfaceCtx *SCLogInitSyslogOPIface(int facility,
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
-    if ( (iface_ctx = SCMalloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
+    if ( iface_ctx == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitSyslogOPIface. Exiting...");
         exit(EXIT_FAILURE);
     }
-    memset(iface_ctx, 0, sizeof(SCLogOPIfaceCtx));
 
     iface_ctx->iface = SC_LOG_OP_IFACE_SYSLOG;
 
@@ -1171,6 +1174,7 @@ void SCLogLoadConfig(void)
     SCLogInitLogModule(sc_lid);
     //exit(1);
     /* \todo Can we free sc_lid now? */
+    if (sc_lid != NULL) SCFree(sc_lid);
 }
 
 /**

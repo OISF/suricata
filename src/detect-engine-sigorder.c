@@ -904,7 +904,9 @@ void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
 {
     SCSigOrderFunc *funcs = NULL;
     SCSigSignatureWrapper *sigw = NULL;
+    SCSigSignatureWrapper *prev = NULL;
     void *temp = NULL;
+    uint8_t i;
 
     /* clean the memory alloted to the signature ordering funcs */
     funcs = de_ctx->sc_sig_order_funcs;
@@ -918,9 +920,15 @@ void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
     /* clean the memory alloted to the signature wrappers */
     sigw = de_ctx->sc_sig_sig_wrapper;
     while (sigw != NULL) {
-        temp = sigw;
+        prev = sigw;
         sigw = sigw->next;
-        SCFree(temp);
+        for (i = 0; i < SC_RADIX_USER_DATA_MAX; i++) {
+            if (prev->user[i] != NULL) {
+                SCFree(prev->user[i]);
+            }
+        }
+        SCFree(prev->user);
+        SCFree(prev);
     }
     de_ctx->sc_sig_sig_wrapper = NULL;
 

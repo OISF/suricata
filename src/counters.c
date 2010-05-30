@@ -337,6 +337,10 @@ static void SCPerfInitOPCtx(void)
  */
 static void SCPerfReleaseOPCtx()
 {
+    SCPerfClubTMInst *pctmi = NULL;
+    SCPerfClubTMInst *temp = NULL;
+    pctmi = sc_perf_op_ctx->pctmi;
+
     if (sc_perf_op_ctx != NULL) {
         if (sc_perf_op_ctx->fp != NULL)
             fclose(sc_perf_op_ctx->fp);
@@ -344,14 +348,16 @@ static void SCPerfReleaseOPCtx()
         if (sc_perf_op_ctx->file != NULL)
             SCFree(sc_perf_op_ctx->file);
 
-        if (sc_perf_op_ctx->pctmi != NULL) {
-            if (sc_perf_op_ctx->pctmi->tm_name != NULL)
-                SCFree(sc_perf_op_ctx->pctmi->tm_name);
+        while (pctmi != NULL) {
+            if (pctmi->tm_name != NULL)
+                SCFree(pctmi->tm_name);
 
-            if (sc_perf_op_ctx->pctmi->head != NULL)
-                SCFree(sc_perf_op_ctx->pctmi->head);
+            if (pctmi->head != NULL)
+                SCFree(pctmi->head);
 
-            SCFree(sc_perf_op_ctx->pctmi);
+            temp = pctmi->next;
+            SCFree(pctmi);
+            pctmi = temp;
         }
 
         SCFree(sc_perf_op_ctx);
@@ -494,7 +500,8 @@ static int SCPerfParseTBCounterInterval(SCPerfCounter *pc, char *interval)
     pcre_extra *regex_study = NULL;
     int opts = 0;
     const char *ep = NULL;
-    const char *str_ptr = NULL;
+    const char *str_ptr1 = NULL;
+    const char *str_ptr2 = NULL;
     int eo = 0;
     int ret = 0;
     int res = 0;
@@ -522,20 +529,20 @@ static int SCPerfParseTBCounterInterval(SCPerfCounter *pc, char *interval)
     }
 
     for (i = 1; i < ret; i += 2) {
-        res = pcre_get_substring((char *)interval, ov, 30, i, &str_ptr);
+        res = pcre_get_substring((char *)interval, ov, 30, i, &str_ptr1);
         if (res < 0) {
             SCLogInfo("SCPerfParseTBCounterInterval:pcre_get_substring failed");
             goto error;
         }
-        temp_value = atoi(str_ptr);
+        temp_value = atoi(str_ptr1);
 
-        res = pcre_get_substring((char *)interval, ov, 30, i + 1, &str_ptr);
+        res = pcre_get_substring((char *)interval, ov, 30, i + 1, &str_ptr2);
         if (res < 0) {
             SCLogInfo("SCPerfParseTBCounterInterval:pcre_get_substring failed");
             goto error;
         }
 
-        switch (*str_ptr) {
+        switch (*str_ptr2) {
             case 'h':
                 if (temp_value < 0 || temp_value > 24) {
                     SCLogInfo("Invalid timebased counter interval");
@@ -571,10 +578,14 @@ static int SCPerfParseTBCounterInterval(SCPerfCounter *pc, char *interval)
     pc->type_q->total_secs = ((pc->type_q->hours * 60 * 60) +
                               (pc->type_q->minutes * 60) + pc->type_q->seconds);
 
+    if (str_ptr1 != NULL) SCFree((char *)str_ptr1);
+    if (str_ptr2 != NULL) SCFree((char *)str_ptr2);
     SCFree(regex);
     return 0;
 
  error:
+    if (str_ptr1 != NULL) SCFree((char *)str_ptr1);
+    if (str_ptr2 != NULL) SCFree((char *)str_ptr2);
     return -1;
 }
 

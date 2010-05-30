@@ -54,6 +54,7 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                            SigMatch *m);
 static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, char *);
 void DetectHttpCookieRegisterTests(void);
+void DetectHttpCookieFree(void *);
 
 /**
  * \brief Registration function for keyword: http_cookie
@@ -64,7 +65,7 @@ void DetectHttpCookieRegister (void) {
     sigmatch_table[DETECT_AL_HTTP_COOKIE].AppLayerMatch = DetectHttpCookieMatch;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Setup = DetectHttpCookieSetup;
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].Free  = NULL;
+    sigmatch_table[DETECT_AL_HTTP_COOKIE].Free  = DetectHttpCookieFree;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].RegisterTests = DetectHttpCookieRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_PAYLOAD;
@@ -165,6 +166,21 @@ end:
 }
 
 /**
+ * \brief this function clears the memory of http_cookie modifier keyword
+ *
+ * \param ptr   Pointer to the Detection Cookie data
+ */
+void DetectHttpCookieFree(void *ptr)
+{
+    DetectHttpCookieData *hcd = (DetectHttpCookieData *)ptr;
+    if (hcd == NULL)
+        return;
+    if (hcd->data != NULL)
+        SCFree(hcd->data);
+    SCFree(hcd);
+}
+
+/**
  * \brief this function setups the http_cookie modifier keyword used in the rule
  *
  * \param de_ctx   Pointer to the Detection Engine Context
@@ -244,6 +260,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
 
     /* free the old content sigmatch, the content pattern memory
      * is taken over by the new sigmatch */
+    BoyerMooreCtxDeInit(((DetectContentData *)pm->ctx)->bm_ctx);
     SCFree(pm->ctx);
     SCFree(pm);
 
@@ -258,11 +275,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     s->alproto = ALPROTO_HTTP;
     return 0;
 error:
-    if (hd != NULL) {
-        if (hd->data != NULL)
-            SCFree(hd->data);
-        SCFree(hd);
-    }
+    if (hd != NULL) DetectHttpCookieFree(hd);
     if(sm !=NULL) SCFree(sm);
     return -1;
 }

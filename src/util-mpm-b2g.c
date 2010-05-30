@@ -150,12 +150,12 @@ static void B2gHashFree(MpmCtx *mpm_ctx, B2gHashItem *hi) {
     if (hi == NULL)
         return;
 
-    B2gHashItem *t = hi->nxt;
-    B2gHashFree(mpm_ctx, t);
-
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(B2gHashItem);
+    B2gHashItem *t = hi->nxt;
     SCFree(hi);
+
+    B2gHashFree(mpm_ctx, t);
 }
 
 static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len) {

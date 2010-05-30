@@ -64,14 +64,15 @@
  * \retval IPOnlyCIDRItem address of the new instance
  */
 IPOnlyCIDRItem *IPOnlyCIDRItemNew() {
+    SCEnter();
     IPOnlyCIDRItem *item = NULL;
 
     item = SCMalloc(sizeof(IPOnlyCIDRItem));
     if (item == NULL)
-        return NULL;
+        SCReturnPtr(NULL, "NULL");
     memset(item, 0, sizeof(IPOnlyCIDRItem));
 
-    return item;
+    SCReturnPtr(item, "IPOnlyCIDRItem");
 }
 
 /**
@@ -128,7 +129,7 @@ IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
 
     /* The first element */
     if (head == NULL) {
-        SCLogDebug("Head is NULL");
+        SCLogDebug("Head is NULL to insert item (%p)",item);
         return item;
     }
 
@@ -137,7 +138,7 @@ IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
         return head;
     }
 
-    SCLogDebug("Inserting %u ", item->netmask);
+    SCLogDebug("Inserting item(%p)->netmast %u head %p", item, item->netmask, head);
 
     prev = item;
     while (prev != NULL) {
@@ -158,12 +159,15 @@ IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
  * \param tmphead Pointer to the list
  */
 void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead) {
+    SCEnter();
     uint32_t i = 0;
 
     IPOnlyCIDRItem *it, *next = NULL;
 
-    if (tmphead == NULL)
+    if (tmphead == NULL) {
+        SCLogDebug("temphead is NULL");
         return;
+    }
 
     it = tmphead;
     next = it->next;
@@ -171,12 +175,13 @@ void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead) {
     while (it != NULL) {
         i++;
         SCFree(it);
-        SCLogDebug("Item %"PRIu32" removed", i);
+        SCLogDebug("Item(%p) %"PRIu32" removed\n", it, i);
         it = next;
 
         if (next != NULL)
             next = next->next;
     }
+    SCReturn;
 }
 
 /**
@@ -860,6 +865,9 @@ void IPOnlyPrint(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
  */
 void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
 
+    if (io_ctx == NULL)
+        return;
+
     if (io_ctx->tree_ipv4src != NULL)
         SCRadixReleaseRadixTree(io_ctx->tree_ipv4src);
 
@@ -874,6 +882,7 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
 
     if (io_ctx->sig_init_array)
         SCFree(io_ctx->sig_init_array);
+
     io_ctx->sig_init_array = NULL;
 }
 

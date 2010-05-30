@@ -59,6 +59,7 @@ void HttpUriRegisterTests(void);
 int DetectAppLayerUricontentMatch (ThreadVars *, DetectEngineThreadCtx *,
                                    Flow *, uint8_t , void *,
                                    Signature *, SigMatch *);
+void DetectUricontentFree(void *);
 
 /**
  * \brief Registration function for uricontent: keyword
@@ -69,7 +70,7 @@ void DetectUricontentRegister (void)
     sigmatch_table[DETECT_URICONTENT].AppLayerMatch = NULL;
     sigmatch_table[DETECT_URICONTENT].Match = NULL;
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
-    sigmatch_table[DETECT_URICONTENT].Free  = NULL;
+    sigmatch_table[DETECT_URICONTENT].Free  = DetectUricontentFree;
     sigmatch_table[DETECT_URICONTENT].RegisterTests = HttpUriRegisterTests;
     sigmatch_table[DETECT_URICONTENT].alproto = ALPROTO_HTTP;
 
@@ -83,6 +84,27 @@ void DetectUricontentRegister (void)
 uint32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx)
 {
     return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
+}
+
+/**
+ * \brief this function will Free memory associated with DetectUricontentData
+ *
+ * \param cd pointer to DetectUricotentData
+ */
+void DetectUricontentFree(void *ptr) {
+    SCEnter();
+    DetectUricontentData *cd = (DetectUricontentData *)ptr;
+
+    if (cd == NULL)
+        SCReturn;
+
+    if (cd->uricontent != NULL)
+        SCFree(cd->uricontent);
+
+    BoyerMooreCtxDeInit(cd->bm_ctx);
+
+    SCFree(cd);
+    SCReturn;
 }
 
 /**
@@ -342,6 +364,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
 
 error:
     if (cd) SCFree(cd);
+    if (sm != NULL) SCFree(sm);
     SCReturnInt(-1);
 }
 

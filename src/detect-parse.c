@@ -436,7 +436,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr) 
         if (optvalue) pcre_free_substring(optvalue);
         if (optstr) SCFree(optstr);
         //if (optmore) pcre_free_substring(optmore);
-        if (arr != NULL) SCFree(arr);
+        if (arr != NULL) pcre_free_substring_list(arr);
         return SigParseOptions(de_ctx, s, optmore);
     }
 
@@ -444,7 +444,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr) 
     if (optvalue) pcre_free_substring(optvalue);
     if (optmore) pcre_free_substring(optmore);
     if (optstr) SCFree(optstr);
-    if (arr != NULL) SCFree(arr);
+    if (arr != NULL) pcre_free_substring_list(arr);
     return 0;
 
 error:
@@ -452,7 +452,7 @@ error:
     if (optvalue) pcre_free_substring(optvalue);
     if (optmore) pcre_free_substring(optmore);
     if (optstr) SCFree(optstr);
-    if (arr != NULL) SCFree(arr);
+    if (arr != NULL) pcre_free_substring_list(arr);
     return -1;
 }
 
@@ -783,6 +783,14 @@ void SigFree(Signature *s) {
     if (s == NULL)
         return;
 
+    /* XXX GS there seems to be a bug in the IPOnlyCIDR list, which causes
+      system abort. */
+    /*if (s->CidrDst != NULL)
+        IPOnlyCIDRListFree(s->CidrDst);
+
+    if (s->CidrSrc != NULL)
+        IPOnlyCIDRListFree(s->CidrSrc);*/
+
     SigMatch *sm = s->match, *nsm;
     while (sm != NULL) {
         nsm = sm->next;
@@ -796,6 +804,21 @@ void SigFree(Signature *s) {
         SigMatchFree(sm);
         sm = nsm;
     }
+
+    sm = s->umatch;
+    while (sm != NULL) {
+        nsm = sm->next;
+        SigMatchFree(sm);
+        sm = nsm;
+    }
+
+    sm = s->amatch;
+    while (sm != NULL) {
+        nsm = sm->next;
+        SigMatchFree(sm);
+        sm = nsm;
+    }
+
     DetectAddressHeadCleanup(&s->src);
     DetectAddressHeadCleanup(&s->dst);
 

@@ -149,7 +149,6 @@ void PmqFree(PatternMatcherQueue *pmq) {
         return;
 
     PmqCleanup(pmq);
-    SCFree(pmq);
 }
 
 /**

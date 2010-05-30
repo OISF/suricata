@@ -449,15 +449,19 @@ error:
  * \param cd pointer to DetectCotentData
  */
 void DetectContentFree(void *ptr) {
+    SCEnter();
     DetectContentData *cd = (DetectContentData *)ptr;
 
     if (cd == NULL)
-        return;
+        SCReturn;
 
     if (cd->content != NULL)
         SCFree(cd->content);
 
+    BoyerMooreCtxDeInit(cd->bm_ctx);
+
     SCFree(cd);
+    SCReturn;
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

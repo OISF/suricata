@@ -86,6 +86,24 @@ BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len) {
 }
 
 /**
+ * \brief Free the memory allocated to Booyer More context.
+ *
+ * \param bmCtx pointer to the Context for the pattern
+ */
+void BoyerMooreCtxDeInit(BmCtx *bmctx)
+{
+    SCEnter();
+    if (bmctx == NULL)
+        SCReturn;
+
+    if (bmctx->bmGs != NULL)
+        SCFree(bmctx->bmGs);
+
+    SCFree(bmctx);
+
+    SCReturn;
+}
+/**
  * \brief Array setup function for bad characters that split the pattern
  *        Remember that the result array should be the length of ALPHABET_SIZE
  *

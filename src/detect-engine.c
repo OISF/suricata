@@ -535,6 +535,11 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
     PatternMatchThreadDestroy(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
     PatternMatchThreadDestroy(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
 
+    PmqFree(&det_ctx->pmq);
+
+    if (det_ctx->de_state_sig_array != NULL)
+        SCFree(det_ctx->de_state_sig_array);
+
     SCFree(det_ctx);
 
     return TM_ECODE_OK;

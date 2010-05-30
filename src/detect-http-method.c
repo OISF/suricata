@@ -149,7 +149,6 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 {
     SCEnter();
     DetectHttpMethodData *data = NULL;
-    SigMatch *sm = NULL;
     bstr *method;
     /** new sig match to replace previous content */
     SigMatch *nm = NULL;
@@ -216,6 +215,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 
     /* free the old content sigmatch, the memory for the pattern
      * is taken over by our new sigmatch */
+    BoyerMooreCtxDeInit(((DetectContentData *)pm->ctx)->bm_ctx);
     SCFree(pm->ctx);
     SCFree(pm);
 
@@ -232,7 +232,8 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 
 error:
     if (data != NULL) DetectHttpMethodFree(data);
-    if (sm != NULL) SCFree(sm);
+    if (nm->ctx != NULL) DetectHttpMethodFree(nm);
+    if (nm != NULL) SCFree(nm);
     SCReturnInt(-1);
 }
 

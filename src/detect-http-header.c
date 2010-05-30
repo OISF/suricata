@@ -53,6 +53,7 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                               SigMatch *m);
 int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpHeaderRegisterTests(void);
+void DetectHttpHeaderFree(void *);
 
 /**
  * \brief Registers the keyword handlers for the "http_header" keyword.
@@ -64,7 +65,7 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HEADER].AppLayerMatch = DetectHttpHeaderMatch;
     sigmatch_table[DETECT_AL_HTTP_HEADER].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_HEADER].Setup = DetectHttpHeaderSetup;
-    sigmatch_table[DETECT_AL_HTTP_HEADER].Free  = NULL;
+    sigmatch_table[DETECT_AL_HTTP_HEADER].Free  = DetectHttpHeaderFree;
     sigmatch_table[DETECT_AL_HTTP_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_PAYLOAD ;
@@ -139,6 +140,21 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  end:
     SCMutexUnlock(&f->m);
     SCReturnInt(result);
+}
+
+/**
+ * \brief this function clears the memory of http_header modifier keyword
+ *
+ * \param ptr   Pointer to the Detection Header Data
+ */
+void DetectHttpHeaderFree(void *ptr)
+{
+    DetectHttpHeaderData *hd = (DetectHttpHeaderData *)ptr;
+    if (hd == NULL)
+        return;
+    if (hd->content != NULL)
+        SCFree(hd->content);
+    SCFree(hd);
 }
 
 /**
@@ -226,6 +242,7 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
     /* free the old content sigmatch, the content pattern memory
      * is taken over by the new sigmatch */
+    BoyerMooreCtxDeInit(((DetectContentData *)sm->ctx)->bm_ctx);
     SCFree(sm->ctx);
     SCFree(sm);
 
@@ -238,11 +255,8 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return 0;
 
 error:
-    if (hcbd != NULL) {
-        if (hcbd->content != NULL)
-            SCFree(hcbd->content);
-        SCFree(hcbd);
-    }
+    if (hcbd != NULL)
+        DetectHttpHeaderFree(hcbd);
     if(nm != NULL)
         SCFree(sm);
 

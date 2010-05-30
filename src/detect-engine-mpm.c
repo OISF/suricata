@@ -962,9 +962,11 @@ static uint32_t MpmPatternIdHashFunc(HashTable *ht, void *p, uint16_t len) {
 
 /** \brief free a MpmPatternIdTableElmt */
 static void MpmPatternIdTableElmtFree(void *e) {
+    SCEnter();
     MpmPatternIdTableElmt *c = (MpmPatternIdTableElmt *)e;
-    free(c->pattern);
-    free(e);
+    SCFree(c->pattern);
+    SCFree(c);
+    SCReturn;
 }
 
 /** \brief alloc initialize the MpmPatternIdHash */
@@ -1048,7 +1050,7 @@ uint32_t DetectContentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
     }
 
     if (e != NULL)
-        free(e);
+        MpmPatternIdTableElmtFree(e);
 
     SCReturnUInt(id);
 }
@@ -1097,7 +1099,7 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectUricontentData *co) 
     }
 
     if (e != NULL)
-        free(e);
+        MpmPatternIdTableElmtFree(e);
 
     SCReturnUInt(id);
 }
