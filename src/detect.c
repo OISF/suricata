@@ -110,6 +110,7 @@
 #include "detect-detection-filter.h"
 #include "detect-http-client-body.h"
 #include "detect-http-header.h"
+#include "detect-http-uri.h"
 
 #include "util-rule-vars.h"
 
@@ -3076,6 +3077,7 @@ void SigTableSetup(void) {
     DetectDetectionFilterRegister();
     DetectHttpHeaderRegister();
     DetectHttpClientBodyRegister();
+    DetectHttpUriRegister();
     DetectAsn1Register();
 
     uint8_t i = 0;
