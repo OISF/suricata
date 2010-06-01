@@ -232,6 +232,9 @@ typedef struct Signature_ {
     uint8_t nchunk_groups; /**< Internal chunk grp id (for splitted patterns) */
     char *msg;
 
+    /** classification id **/
+    uint8_t class;
+
     /** classification message */
     char *class_msg;
 

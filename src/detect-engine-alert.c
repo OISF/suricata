@@ -97,6 +97,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
         p->alerts.alerts[p->alerts.cnt].rev = s->rev;
         p->alerts.alerts[p->alerts.cnt].prio = s->prio;
         p->alerts.alerts[p->alerts.cnt].msg = s->msg;
+        p->alerts.alerts[p->alerts.cnt].class = s->class;
         p->alerts.alerts[p->alerts.cnt].class_msg = s->class_msg;
         p->alerts.alerts[p->alerts.cnt].references = s->references;
     } else {
@@ -120,6 +121,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
         p->alerts.alerts[i].rev = s->rev;
         p->alerts.alerts[i].prio = s->prio;
         p->alerts.alerts[i].msg = s->msg;
+        p->alerts.alerts[i].class = s->class;
         p->alerts.alerts[i].class_msg = s->class_msg;
         p->alerts.alerts[i].references = s->references;
     }

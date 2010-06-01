@@ -28,6 +28,9 @@
  * \brief Container for a Classtype from the Classification.config file.
  */
 typedef struct SCClassConfClasstype_ {
+    /* The index of the classification within classification.confg */
+    uint8_t classtype_id;
+
     /* The classtype name.  This is the primary key for a Classification. */
     char *classtype;
 
@@ -39,8 +42,8 @@ typedef struct SCClassConfClasstype_ {
     int priority;
 } SCClassConfClasstype;
 
-SCClassConfClasstype *SCClassConfAllocClasstype(const char *, const char *,
-                                                    int);
+SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t, const char *,
+                                                    const char *, int);
 void SCClassConfDeAllocClasstype(SCClassConfClasstype *);
 void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *);
 void SCClassConfRegisterTests(void);

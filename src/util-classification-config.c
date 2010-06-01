@@ -188,17 +188,19 @@ static char *SCClassConfStringToLowercase(const char *str)
  *        hash table in DetectEngineCtx, i.e. DetectEngineCtx->class_conf_ht.
  *
  * \param rawstr Pointer to the string to be parsed.
+ * \param index  Relative index of the string to be parsed.
  * \param de_ctx Pointer to the Detection Engine Context.
  *
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCClassConfAddClasstype(char *rawstr, DetectEngineCtx *de_ctx)
+int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx *de_ctx)
 {
     const char *ct_name = NULL;
     const char *ct_desc = NULL;
     const char *ct_priority_str = NULL;
     int ct_priority = 0;
+    uint8_t ct_id = index;
 
     SCClassConfClasstype *ct_new = NULL;
     SCClassConfClasstype *ct_lookup = NULL;
@@ -238,7 +240,7 @@ int SCClassConfAddClasstype(char *rawstr, DetectEngineCtx *de_ctx)
     ct_priority = atoi(ct_priority_str);
 
     /* Create a new instance of the parsed Classtype string */
-    ct_new = SCClassConfAllocClasstype(ct_name, ct_desc, ct_priority);
+    ct_new = SCClassConfAllocClasstype(ct_id, ct_name, ct_desc, ct_priority);
     if (ct_new == NULL)
         goto error;
 
@@ -307,12 +309,14 @@ static int SCClassConfIsLineBlankOrComment(char *line)
 void SCClassConfParseFile(DetectEngineCtx *de_ctx)
 {
     char line[1024];
+    uint8_t i = 1;
 
     while (fgets(line, sizeof(line), fd) != NULL) {
         if (SCClassConfIsLineBlankOrComment(line))
             continue;
 
-        SCClassConfAddClasstype(line, de_ctx);
+        SCClassConfAddClasstype(line, i, de_ctx);
+        i++;
     }
 
 #ifdef UNITTESTS
@@ -334,7 +338,8 @@ void SCClassConfParseFile(DetectEngineCtx *de_ctx)
  * \retval ct Pointer to the new instance of SCClassConfClasstype on success;
  *            NULL on failure.
  */
-SCClassConfClasstype *SCClassConfAllocClasstype(const char *classtype,
+SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t classtype_id,
+                                                const char *classtype,
                                                 const char *classtype_desc,
                                                 int priority)
 {
@@ -358,6 +363,7 @@ SCClassConfClasstype *SCClassConfAllocClasstype(const char *classtype,
         exit(EXIT_FAILURE);
     }
 
+    ct->classtype_id = classtype_id;
     ct->priority = priority;
 
     return ct;
@@ -672,27 +678,27 @@ int SCClassConfTest04(void)
 
     result = (de_ctx->class_conf_ht->count == 3);
 
-    ct = SCClassConfAllocClasstype("unknown", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "unknown", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("unKnoWn", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "unKnoWn", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("bamboo", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "bamboo", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("bad-unknown", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "bad-unknown", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("BAD-UNKnOWN", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "BAD-UNKnOWN", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("bed-unknown", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "bed-unknown", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
@@ -724,30 +730,29 @@ int SCClassConfTest05(void)
 
     result = (de_ctx->class_conf_ht->count == 0);
 
-    ct = SCClassConfAllocClasstype("unknown", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "unknown", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("unKnoWn", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "unKnoWn", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("bamboo", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "bamboo", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("bad-unknown", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "bad-unknown", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("BAD-UNKnOWN", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "BAD-UNKnOWN", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("bed-unknown", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "bed-unknown", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
-
 
     DetectEngineCtxFree(de_ctx);
 
@@ -776,27 +781,27 @@ int SCClassConfTest06(void)
 
     result = (de_ctx->class_conf_ht->count == 3);
 
-    ct = SCClassConfAllocClasstype("unknown", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "unknown", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("not-suspicious", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "not-suspicious", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("bamboola1", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "bamboola1", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("bamboola1", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "bamboola1", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("BAMBOolA1", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "BAMBOolA1", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
     SCClassConfDeAllocClasstype(ct);
 
-    ct = SCClassConfAllocClasstype("unkNOwn", NULL, 0);
+    ct = SCClassConfAllocClasstype(0, "unkNOwn", NULL, 0);
     result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
     SCClassConfDeAllocClasstype(ct);
 
