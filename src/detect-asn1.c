@@ -200,7 +200,7 @@ DetectAsn1Data *DetectAsn1Parse(char *asn1str) {
     char *tok = NULL;
     uint32_t ov_len = 0;
     uint32_t abs_off = 0;
-    uint32_t rel_off = 0;
+    int32_t rel_off = 0;
     uint8_t flags = 0;
 
     tok = strtok(asn1str, ASN_DELIM);
@@ -244,7 +244,7 @@ DetectAsn1Data *DetectAsn1Parse(char *asn1str) {
             /* get the param */
             tok = strtok(NULL, ASN_DELIM);
             if (tok == NULL ||
-                ByteExtractStringUint32(&rel_off, 10, 0, tok) <= 0)
+                ByteExtractStringInt32(&rel_off, 10, 0, tok) <= 0)
             {
                 SCLogError(SC_ERR_INVALID_VALUE, "Malformed value for "
                            "relative_offset: %s", tok);
@@ -1217,6 +1217,84 @@ end:
     return result;
 }
 
+/**
+ * \test DetectAsn1TestReal04 like the real test 02, but modified the
+ *       relative offset to check negative offset values, in this case
+ *       start decoding from -7 bytes respect the content match "John"
+ */
+int DetectAsn1TestReal04(void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
+                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
+                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
+                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
+                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
+                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
+                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
+                   "Jones""\xA0\x0A\x43\x08""19590717"
+                   "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01""P"
+                   "\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
+                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
+                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
+                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
+                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111""\x31\x1F"
+                   "\x61\x11\x1A\x05""Pablo""\x1A\x01""B""\x1A\x05""Jones"
+                   "\xA0\x0A\x43\x08""19590717";
+
+    uint16_t buflen = strlen((char *)buf) - 1;
+
+    /* Check the start with AA (this is to test the relative_offset keyword) */
+    uint8_t *buf2 = (uint8_t *) "AA\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
+                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
+                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
+                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
+                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
+                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
+                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
+                   "Jones""\xA0\x0A\x43\x08""19590717"
+                   "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01""P"
+                   "\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
+                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
+                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
+                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
+                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111""\x31\x1F"
+                   "\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05""Jones"
+                   "\xA0\x0A\x43\x08""19590717";
+
+    uint16_t buflen2 = strlen((char *)buf2) - 1;
+
+    Packet *p[2];
+
+    p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    p[1] = UTHBuildPacket((uint8_t *)buf2, buflen2, IPPROTO_TCP);
+
+    if (p[0] == NULL || p[1] == NULL)
+        goto end;
+
+    char *sigs[3];
+    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
+             "content:\"Pablo\"; asn1:absolute_offset 0, "
+             "oversize_length 140; sid:1;)";
+    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
+             "content:\"John\"; asn1:relative_offset -7, "
+             "oversize_length 140; sid:2;)";
+    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
+             "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    uint32_t results[2][3] = {
+                              {0, 0, 0},
+                              {0, 0, 0}};
+    /* None of the packets should match */
+
+    result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *) results, 3);
+
+    UTHFreePackets(p, 2);
+end:
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -1251,6 +1329,7 @@ void DetectAsn1RegisterTests(void) {
     UtRegisterTest("DetectAsn1TestReal01", DetectAsn1TestReal01, 1);
     UtRegisterTest("DetectAsn1TestReal02", DetectAsn1TestReal02, 1);
     UtRegisterTest("DetectAsn1TestReal03", DetectAsn1TestReal03, 1);
+    UtRegisterTest("DetectAsn1TestReal04", DetectAsn1TestReal04, 1);
 
 #endif /* UNITTESTS */
 }
