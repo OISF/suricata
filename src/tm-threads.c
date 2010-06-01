@@ -859,6 +859,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
         if (tmqh == NULL) goto error;
 
         tv->tmqh_in = tmqh->InHandler;
+        tv->InShutdownHandler = tmqh->InShutdownHandler;
         SCLogDebug("tv->tmqh_in %p", tv->tmqh_in);
     }
 
@@ -1051,6 +1052,9 @@ void TmThreadKillThread(ThreadVars *tv)
 
     if (tv->inq != NULL) {
         /* signal the queue for the number of users */
+                if (tv->InShutdownHandler != NULL) {
+                    tv->InShutdownHandler(tv);
+                }
         for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
             SCCondSignal(&trans_q[tv->inq->id].cond_q);
 
@@ -1060,6 +1064,9 @@ void TmThreadKillThread(ThreadVars *tv)
                 break;
             }
 
+                if (tv->InShutdownHandler != NULL) {
+                    tv->InShutdownHandler(tv);
+                }
             for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
                 SCCondSignal(&trans_q[tv->inq->id].cond_q);
 
@@ -1107,6 +1114,9 @@ void TmThreadKillThreads(void) {
 
                 /* signal the queue for the number of users */
 
+                if (tv->InShutdownHandler != NULL) {
+                    tv->InShutdownHandler(tv);
+                }
                 for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
                     SCCondSignal(&trans_q[tv->inq->id].cond_q);
 
@@ -1119,6 +1129,10 @@ void TmThreadKillThreads(void) {
                     }
 
                     cnt++;
+
+                    if (tv->InShutdownHandler != NULL) {
+                        tv->InShutdownHandler(tv);
+                    }
 
                     for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
                         SCCondSignal(&trans_q[tv->inq->id].cond_q);

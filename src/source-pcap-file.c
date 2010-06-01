@@ -45,6 +45,7 @@
 #include "util-privs.h"
 
 extern int max_pending_packets;
+
 static int pcap_max_read_packets = 0;
 
 typedef struct PcapFileGlobalVars_ {
@@ -148,6 +149,7 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
  */
 TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     SCEnter();
+    uint16_t packet_q_len = 0;
 
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
@@ -155,11 +157,24 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, 
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    /* make sure we have at least one packet in the packet pool, to prevent
+     * us from alloc'ing packets at line rate */
+    SCMutexLock(&packet_q.mutex_q);
+    packet_q_len = packet_q.len;
+    if (packet_q.len == 0) {
+        SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+    }
+    packet_q_len = packet_q.len;
+    SCMutexUnlock(&packet_q.mutex_q);
+
+    if (postpq == NULL)
+        pcap_max_read_packets = 1;
+
     ptv->array_idx = 0;
     ptv->in_p = p;
 
     /* Right now we just support reading packets one at a time. */
-    int r = pcap_dispatch(pcap_g.pcap_handle, pcap_max_read_packets,
+    int r = pcap_dispatch(pcap_g.pcap_handle, (pcap_max_read_packets < packet_q_len) ? pcap_max_read_packets : packet_q_len,
             (pcap_handler)PcapFileCallback, (u_char *)ptv);
 
     uint16_t cnt = 0;
@@ -172,7 +187,7 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, 
             pp->pcap_cnt = pcap_g.cnt;
             PacketEnqueue(postpq, pp);
         } else {
-            p->pcap_cnt = pcap_g.cnt;
+            pp->pcap_cnt = pcap_g.cnt;
         }
     }
 

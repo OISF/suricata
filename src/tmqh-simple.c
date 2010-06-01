@@ -33,10 +33,12 @@
 
 Packet *TmqhInputSimple(ThreadVars *t);
 void TmqhOutputSimple(ThreadVars *t, Packet *p);
+void TmqhInputSimpleShutdownHandler(ThreadVars *);
 
 void TmqhSimpleRegister (void) {
     tmqh_table[TMQH_SIMPLE].name = "simple";
     tmqh_table[TMQH_SIMPLE].InHandler = TmqhInputSimple;
+    tmqh_table[TMQH_SIMPLE].InShutdownHandler = TmqhInputSimpleShutdownHandler;
     tmqh_table[TMQH_SIMPLE].OutHandler = TmqhOutputSimple;
 }
 
@@ -63,6 +65,17 @@ Packet *TmqhInputSimple(ThreadVars *t)
         SCMutexUnlock(&q->mutex_q);
         return NULL;
     }
+}
+
+void TmqhInputSimpleShutdownHandler(ThreadVars *tv) {
+    int i;
+
+    if (tv == NULL || tv->inq == NULL) {
+        return;
+    }
+
+    for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
+        SCCondSignal(&trans_q[tv->inq->id].cond_q);
 }
 
 void TmqhOutputSimple(ThreadVars *t, Packet *p)

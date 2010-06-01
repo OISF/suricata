@@ -33,33 +33,50 @@
 
 #include "util-ringbuffer.h"
 
-static RingBufferMrSw *ringbuffers[256];
+static RingBufferMrMw8 *ringbuffers[256];
 
 Packet *TmqhInputRingBuffer(ThreadVars *t);
 void TmqhOutputRingBuffer(ThreadVars *t, Packet *p);
+void TmqhInputRingBufferShutdownHandler(ThreadVars *);
 
 void TmqhRingBufferRegister (void) {
     tmqh_table[TMQH_RINGBUFFER].name = "ringbuffer";
     tmqh_table[TMQH_RINGBUFFER].InHandler = TmqhInputRingBuffer;
+    tmqh_table[TMQH_RINGBUFFER].InShutdownHandler = TmqhInputRingBufferShutdownHandler;
     tmqh_table[TMQH_RINGBUFFER].OutHandler = TmqhOutputRingBuffer;
+
+    memset(ringbuffers, 0, sizeof(ringbuffers));
 
     int i = 0;
     for (i = 0; i < 256; i++) {
-        ringbuffers[i] = RingBufferMrSwInit();
+        ringbuffers[i] = RingBufferMrMw8Init();
     }
 }
 
 Packet *TmqhInputRingBuffer(ThreadVars *t)
 {
-    RingBufferMrSw *rb = ringbuffers[t->inq->id];
+    RingBufferMrMw8 *rb = ringbuffers[t->inq->id];
 
-    Packet *p = (Packet *)RingBufferMrSwGet(rb);
+    Packet *p = (Packet *)RingBufferMrMw8Get(rb);
     return p;
+}
+
+void TmqhInputRingBufferShutdownHandler(ThreadVars *tv) {
+    if (tv == NULL || tv->inq == NULL) {
+        return;
+    }
+
+    RingBufferMrMw8 *rb = ringbuffers[tv->inq->id];
+    if (rb == NULL) {
+        return;
+    }
+
+    rb->shutdown = 1;
 }
 
 void TmqhOutputRingBuffer(ThreadVars *t, Packet *p)
 {
-    RingBufferMrSw *rb = ringbuffers[t->outq->id];
-    RingBufferMrSwPut(rb, (void *)p);
+    RingBufferMrMw8 *rb = ringbuffers[t->outq->id];
+    RingBufferMrMw8Put(rb, (void *)p);
 }
 

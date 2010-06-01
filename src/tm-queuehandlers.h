@@ -37,6 +37,7 @@ enum {
 typedef struct Tmqh_ {
     char *name;
     Packet *(*InHandler)(ThreadVars *);
+    void (*InShutdownHandler)(ThreadVars *);
     void (*OutHandler)(ThreadVars *, Packet *);
     void *(*OutHandlerCtxSetup)(char *);
     void (*OutHandlerCtxFree)(void *);

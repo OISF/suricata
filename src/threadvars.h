@@ -70,6 +70,7 @@ typedef struct ThreadVars_ {
 
     /** queue handlers */
     struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);
+    void (*InShutdownHandler)(struct ThreadVars_ *);
     void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
 
     /** slot functions */
