@@ -131,7 +131,6 @@ void TmModuleDecodePcapRegister (void) {
 void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     SCLogDebug("user %p, h %p, pkt %p", user, h, pkt);
     PcapThreadVars *ptv = (PcapThreadVars *)user;
-    //ThreadVars *tv = ptv->tv;
 
     Packet *p = NULL;
     if (ptv->array_idx == 0) {
@@ -141,7 +140,7 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     }
 
     if (p == NULL) {
-        return;
+        SCReturn;
     }
 
     p->ts.tv_sec = h->ts.tv_sec;
@@ -179,13 +178,15 @@ TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 
     /* make sure we have at least one packet in the packet pool, to prevent
      * us from alloc'ing packets at line rate */
-    SCMutexLock(&packet_q.mutex_q);
-    packet_q_len = packet_q.len;
-    if (packet_q.len == 0) {
-        SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+    while (packet_q_len == 0) {
+        SCMutexLock(&packet_q.mutex_q);
+        packet_q_len = packet_q.len;
+        if (packet_q.len == 0) {
+            SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+        }
+        packet_q_len = packet_q.len;
+        SCMutexUnlock(&packet_q.mutex_q);
     }
-    packet_q_len = packet_q.len;
-    SCMutexUnlock(&packet_q.mutex_q);
 
     if (postpq == NULL)
         pcap_max_read_packets = 1;
