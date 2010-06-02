@@ -135,6 +135,8 @@ void DetectEngineStateReset(DetectEngineState *state) {
         SCReturn;
     }
 
+    SCMutexLock(&state->m);
+
     if (state->head != NULL) {
         DeStateStoreFree(state->head);
     }
@@ -142,6 +144,7 @@ void DetectEngineStateReset(DetectEngineState *state) {
     state->tail = NULL;
 
     state->cnt = 0;
+    SCMutexUnlock(&state->m);
 
     SCReturn;
 }
