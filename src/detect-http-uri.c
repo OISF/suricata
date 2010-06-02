@@ -159,8 +159,6 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 
     s->alproto = ALPROTO_HTTP;
 
-    SigMatchAppendUricontent(s,nm);
-
     return 0;
 error:
     if (duc != NULL) {
