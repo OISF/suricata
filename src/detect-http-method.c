@@ -232,8 +232,10 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 
 error:
     if (data != NULL) DetectHttpMethodFree(data);
-    if (nm->ctx != NULL) DetectHttpMethodFree(nm);
-    if (nm != NULL) SCFree(nm);
+    if (nm != NULL) {
+        if (nm->ctx != NULL) DetectHttpMethodFree(nm);
+        SCFree(nm);
+    }
     SCReturnInt(-1);
 }
 
