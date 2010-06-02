@@ -83,6 +83,8 @@ typedef struct FlowCnf_
 
     uint32_t emerg_timeout_new;
     uint32_t emerg_timeout_est;
+    uint32_t flow_try_release;
+    uint32_t emergency_recovery;
 
 } FlowConfig;
 
@@ -172,6 +174,8 @@ void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, char);
 void FlowDecrUsecnt(ThreadVars *, Packet *);
+uint32_t FlowPruneFlowsCnt(struct timeval *, int);
+uint32_t FlowKillFlowsCnt(int);
 
 void *FlowManagerThread(void *td);
 

@@ -46,6 +46,7 @@
 }
 
 Flow *FlowAlloc(void);
+Flow *FlowAllocDirect(void);
 void FlowFree(Flow *);
 uint8_t FlowGetProtoMapping(uint8_t);
 void FlowInit(Flow *, Packet *);

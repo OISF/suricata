@@ -108,12 +108,13 @@ Flow *FlowDequeue (FlowQueue *q) {
     return f;
 }
 
-void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq)
+void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq, uint8_t need_srclock)
 {
     if (srcq != NULL)
     {
-        SCMutexLock(&srcq->mutex_q);
-
+        if (need_srclock == 1) {
+            SCMutexLock(&srcq->mutex_q);
+        }
         /* remove from old queue */
         if (srcq->top == f)
             srcq->top = f->lnext;       /* remove from queue top */
@@ -130,7 +131,7 @@ void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq)
         f->lprev = NULL;
 
         /* don't unlock if src and dst are the same */
-        if (srcq != dstq) SCMutexUnlock(&srcq->mutex_q);
+        if (srcq != dstq && need_srclock == 1) SCMutexUnlock(&srcq->mutex_q);
     }
 
     /* now put it in dst */
@@ -153,4 +154,5 @@ void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq)
 
     SCMutexUnlock(&dstq->mutex_q);
 }
+
 
