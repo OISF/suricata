@@ -2,6 +2,8 @@
 #include "suricata.h"
 #include "util-ringbuffer.h"
 
+#define USLEEP_TIME 5
+
 /* Multi Reader, Single Writer, 8 bits */
 
 RingBufferMrSw8 *RingBufferMrSw8Init(void) {
@@ -42,7 +44,7 @@ retry:
         if (rb->shutdown != 0)
             return NULL;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     /* atomically update rb->read */
@@ -73,7 +75,7 @@ int RingBufferMrSw8Put(RingBufferMrSw8 *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     rb->array[rb->write] = ptr;
@@ -121,7 +123,7 @@ retry:
         if (rb->shutdown != 0)
             return NULL;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     /* atomically update rb->read */
@@ -152,7 +154,7 @@ int RingBufferMrSwPut(RingBufferMrSw *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     rb->array[rb->write] = ptr;
@@ -188,7 +190,7 @@ void *RingBufferSrSwGet(RingBufferSrSw *rb) {
         if (rb->shutdown != 0)
             return NULL;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     ptr = rb->array[rb->read];
@@ -204,7 +206,7 @@ int RingBufferSrSwPut(RingBufferSrSw *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     rb->array[rb->write] = ptr;
@@ -255,7 +257,7 @@ retry:
         if (rb->shutdown != 0)
             return NULL;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     /* atomically update rb->read */
@@ -302,7 +304,7 @@ retry:
         if (rb->shutdown != 0)
             return -1;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     /* get our lock */
@@ -366,7 +368,7 @@ retry:
         if (rb->shutdown != 0)
             return NULL;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     /* atomically update rb->read */
@@ -413,7 +415,7 @@ retry:
         if (rb->shutdown != 0)
             return -1;
 
-        usleep(1);
+        usleep(USLEEP_TIME);
     }
 
     /* get our lock */
