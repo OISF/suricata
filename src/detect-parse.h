@@ -52,6 +52,7 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);
 
 void SigMatchReplace(Signature *, SigMatch *, SigMatch *);
 void SigMatchReplaceContent(Signature *, SigMatch *, SigMatch *);
+void SigMatchReplaceContentToUricontent(Signature *, SigMatch *, SigMatch *);
 
 void SigMatchAppendPayload(Signature *, SigMatch *);
 void SigMatchAppendPacket(Signature *, SigMatch *);

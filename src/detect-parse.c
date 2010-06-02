@@ -283,6 +283,70 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
 }
 
 /**
+ *  \brief Pull a content 'old' from the pmatch list, append 'new' to umatch list.
+ *
+ *  Used for replacing contents that have the http_uri modifier that need to be
+ *  moved to the uri inspection list.
+ */
+void SigMatchReplaceContentToUricontent(Signature *s, SigMatch *old, SigMatch *new) {
+    BUG_ON(old == NULL);
+
+    SigMatch *m = s->pmatch;
+    SigMatch *pm = m;
+
+    for ( ; m != NULL; m = m->next) {
+        if (m == old) {
+            if (m == s->pmatch) {
+                s->pmatch = m->next;
+                if (m->next != NULL) {
+                    m->next->prev = NULL;
+                }
+            } else {
+                pm->next = m->next;
+                if (m->next != NULL) {
+                    m->next->prev = pm;
+                }
+            }
+
+            if (m == s->pmatch_tail) {
+                if (pm == m) {
+                    s->pmatch_tail = NULL;
+                } else {
+                    s->pmatch_tail = pm;
+                }
+            }
+
+            //printf("m %p  s->pmatch %p s->pmatch_tail %p\n", m, s->pmatch, s->pmatch_tail);
+            break;
+        }
+
+        pm = m;
+    }
+
+    /* finally append the "new" sig match to the app layer list */
+    /** \todo if the app layer gets it's own list, adapt this code */
+    if (s->umatch == NULL) {
+        s->umatch = new;
+        s->umatch_tail = new;
+        new->next = NULL;
+        new->prev = NULL;
+    } else {
+        SigMatch *cur = s->umatch;
+
+        for ( ; cur->next != NULL; cur = cur->next);
+
+        cur->next = new;
+        new->next = NULL;
+        new->prev = cur;
+        s->umatch_tail = new;
+    }
+
+    /* move over the idx */
+    if (pm != NULL)
+        new->idx = pm->idx;
+}
+
+/**
  * \brief Replaces the old sigmatch with the new sigmatch in the current
  *        signature.
  *

@@ -60,7 +60,6 @@ void DetectHttpUriRegisterTests(void);
 void DetectHttpUriRegister (void) {
     sigmatch_table[DETECT_AL_HTTP_URI].name = "http_uri";
     sigmatch_table[DETECT_AL_HTTP_URI].Match = NULL;
-    //sigmatch_table[DETECT_AL_HTTP_URI].AppLayerMatch = DetectHttpUriMatch;
     sigmatch_table[DETECT_AL_HTTP_URI].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_URI].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_URI].Setup = DetectHttpUriSetup;
@@ -143,7 +142,7 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 
     /* pull the previous content from the pmatch list, append
      * the new match to the match list */
-    SigMatchReplaceContent(s, pm, nm);
+    SigMatchReplaceContentToUricontent(s, pm, nm);
 
     /* free the old content sigmatch, the content pattern memory
      * is taken over by the new sigmatch */
@@ -253,7 +252,7 @@ int DetectHttpUriTest03(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->amatch;
+    sm = de_ctx->sig_list->umatch;
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;
@@ -328,7 +327,8 @@ int DetectHttpUriTest05(void)
         goto end;
     }
 
-    int uricomp = strcmp((const char *)((DetectUricontentData*) s->umatch->ctx)->uricontent, "we are testing http_uri keyword");
+    char *str = "we are testing http_uri keyword";
+    int uricomp = memcmp((const char *)((DetectUricontentData*) s->umatch->ctx)->uricontent, str, strlen(str)-1);
     int urilen = ((DetectUricontentData*) s->umatch_tail->ctx)->uricontent_len;
     if (uricomp != 0 ||
         urilen != strlen("we are testing http_uri keyword")) {
