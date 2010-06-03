@@ -568,7 +568,7 @@ void PcapTranslateIPToDevice(char *pcap_dev, size_t len)
 			freeaddrinfo(aiList);
 
 			memset(pcap_dev, 0, len);
-			strlcpy(pcap_dev, devsp->name, ((strlen(devsp->name) < len) ? (strlen(devsp->name)) : (len-1)));
+			strlcpy(pcap_dev, devsp->name, len);
 
 			pcap_freealldevs(alldevsp);
 			return;
