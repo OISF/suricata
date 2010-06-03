@@ -135,11 +135,22 @@ pattern-matcher:
 # the engine, and by default the value is 65536.
 # At the startup, the engine can preallocate a number of flows, to get a better
 # performance. The number of flows preallocated is 10000 by default.
+# emergency_recovery is the percentage of flows that the engine need to
+# prune before unsetting the emergency state. The emergency state is activated
+# when the memcap limit is reached, allowing to create new flows, but
+# prunning them with the emergency timeouts (they are defined below).
+# If the memcap is reached, the engine will try to prune prune_flows
+# with the default timeouts. If it doens't find a flow to prune, it will set
+# the emergency bit and it will try again with more agressive timeouts.
+# If that doesn't work, then it will try to kill the last time seen flows
+# not in use.
 
 flow:
   memcap: 33554432
   hash_size: 65536
   prealloc: 10000
+  emergency_recovery: 30
+  prune_flows: 5
 
 # Specific timeouts for flows. Here you can specify the timeouts that the
 # active flows will wait to transit from the current state to another, on each
