@@ -1,4 +1,31 @@
+/* Copyright (C) 2007-2010 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * See the .c file for a full explanation.
+ */
+
 #ifndef __UTIL_RINGBUFFER_H__
+
+#include "util-atomic.h"
 
 /** \brief ring buffer api
  *
@@ -12,8 +39,8 @@
  *  256 items so we can use unsigned char's that just
  *  wrap around */
 typedef struct RingBufferMrSw8_ {
-    unsigned char write;  /**< idx where we put data */
-    unsigned char read;   /**< idx where we read data */
+    SC_ATOMIC_DECLARE(unsigned char, write);  /**< idx where we put data */
+    SC_ATOMIC_DECLARE(unsigned char, read);   /**< idx where we read data */
     uint8_t shutdown;
     void *array[RING_BUFFER_MRSW_8_SIZE];
 } RingBufferMrSw8;
@@ -29,8 +56,8 @@ void RingBufferMrSw8Destroy(RingBufferMrSw8 *);
  *  65536 items so we can use unsigned shorts that just
  *  wrap around */
 typedef struct RingBufferMrSw_ {
-    unsigned short write;  /**< idx where we put data */
-    unsigned short read;   /**< idx where we read data */
+    SC_ATOMIC_DECLARE(unsigned short, write);  /**< idx where we put data */
+    SC_ATOMIC_DECLARE(unsigned short, read);   /**< idx where we read data */
     uint8_t shutdown;
     void *array[RING_BUFFER_MRSW_SIZE];
 } RingBufferMrSw;
@@ -46,8 +73,8 @@ void RingBufferMrSwDestroy(RingBufferMrSw *);
  *  65536 items so we can use unsigned shorts that just
  *  wrap around */
 typedef struct RingBufferSrSw_ {
-    unsigned short write;  /**< idx where we put data */
-    unsigned short read;   /**< idx where we read data */
+    SC_ATOMIC_DECLARE(unsigned short, write);  /**< idx where we put data */
+    SC_ATOMIC_DECLARE(unsigned short, read);   /**< idx where we read data */
     uint8_t shutdown;
     void *array[RING_BUFFER_SRSW_SIZE];
 } RingBufferSrSw;
@@ -63,8 +90,8 @@ void RingBufferSrSwDestroy(RingBufferSrSw *);
  *  256 items so we can use unsigned char's that just
  *  wrap around */
 typedef struct RingBufferMrMw8_ {
-    unsigned char write;  /**< idx where we put data */
-    unsigned char read;   /**< idx where we read data */
+    SC_ATOMIC_DECLARE(unsigned char, write);  /**< idx where we put data */
+    SC_ATOMIC_DECLARE(unsigned char, read);   /**< idx where we read data */
     uint8_t shutdown;
     SCSpinlock spin;      /**< lock protecting writes */
     void *array[RING_BUFFER_MRMW_8_SIZE];
@@ -81,8 +108,8 @@ void RingBufferMrMw8Destroy(RingBufferMrMw8 *);
  *  65536 items so we can use unsigned char's that just
  *  wrap around */
 typedef struct RingBufferMrMw_ {
-    unsigned short write;  /**< idx where we put data */
-    unsigned short read;   /**< idx where we read data */
+    SC_ATOMIC_DECLARE(unsigned short, write);  /**< idx where we put data */
+    SC_ATOMIC_DECLARE(unsigned short, read);   /**< idx where we read data */
     uint8_t shutdown;
     SCSpinlock spin;      /**< lock protecting writes */
     void *array[RING_BUFFER_MRMW_SIZE];

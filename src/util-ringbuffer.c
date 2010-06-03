@@ -1,6 +1,42 @@
+/* Copyright (C) 2007-2010 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Ringbuffer implementation that is lockless for the most part IF atomic
+ * operations are available.
+ *
+ * Two sizes are implemented currently: 256 and 65536. Those sizes are chosen
+ * for simplicity when working with the read and write indexes. Both can just
+ * wrap around.
+ *
+ * Implemented are:
+ * Single reader, single writer (lockless)
+ * Multi reader, single writer (lockless)
+ * Multi reader, multi writer (partly locked)
+ */
 #include "suricata-common.h"
 #include "suricata.h"
 #include "util-ringbuffer.h"
+#include "util-atomic.h"
+
 
 #define USLEEP_TIME 5
 
@@ -13,11 +49,18 @@ RingBufferMrSw8 *RingBufferMrSw8Init(void) {
     }
 
     memset(rb, 0x00, sizeof(RingBufferMrSw8));
+
+    SC_ATOMIC_INIT(rb->write);
+    SC_ATOMIC_INIT(rb->read);
+
     return rb;
 }
 
 void RingBufferMrSw8Destroy(RingBufferMrSw8 *rb) {
     if (rb != NULL) {
+        SC_ATOMIC_DESTROY(rb->write);
+        SC_ATOMIC_DESTROY(rb->read);
+
         SCFree(rb);
     }
 }
@@ -31,7 +74,7 @@ void RingBufferMrSw8Destroy(RingBufferMrSw8 *rb) {
  */
 void *RingBufferMrSw8Get(RingBufferMrSw8 *rb) {
     void *ptr;
-    /** local pointer for data races. If __sync_bool_compare_and_swap (CAS)
+    /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
      *  until we succeed. Or when the buffer is empty again we jump back
      *  to the waiting loop. */
@@ -39,7 +82,7 @@ void *RingBufferMrSw8Get(RingBufferMrSw8 *rb) {
 
     /* buffer is empty, wait... */
 retry:
-    while (rb->read == rb->write) {
+    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
@@ -48,16 +91,16 @@ retry:
     }
 
     /* atomically update rb->read */
-    readp = rb->read - 1;
+    readp = SC_ATOMIC_GET(rb->read) - 1;
     do {
         /* with multiple readers we can get in the situation that we exitted
          * from the wait loop but the rb is empty again once we get here. */
-        if (rb->read == rb->write)
+        if (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write))
             goto retry;
 
         readp++;
         ptr = rb->array[readp];
-    } while (!(__sync_bool_compare_and_swap(&rb->read, readp, (readp + 1))));
+    } while (!(SC_ATOMIC_CAS(&rb->read, readp, (readp + 1))));
 
     SCLogDebug("ptr %p", ptr);
     return ptr;
@@ -70,7 +113,7 @@ int RingBufferMrSw8Put(RingBufferMrSw8 *rb, void *ptr) {
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
-    while ((rb->write + 1) == rb->read) {
+    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -78,10 +121,11 @@ int RingBufferMrSw8Put(RingBufferMrSw8 *rb, void *ptr) {
         usleep(USLEEP_TIME);
     }
 
-    rb->array[rb->write] = ptr;
-    __sync_fetch_and_add(&rb->write, 1);
+    rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
+    SC_ATOMIC_ADD(rb->write, 1);
     return 0;
 }
+
 
 /* Multi Reader, Single Writer */
 
@@ -92,11 +136,18 @@ RingBufferMrSw *RingBufferMrSwInit(void) {
     }
 
     memset(rb, 0x00, sizeof(RingBufferMrSw));
+
+    SC_ATOMIC_INIT(rb->write);
+    SC_ATOMIC_INIT(rb->read);
+
     return rb;
 }
 
 void RingBufferMrSwDestroy(RingBufferMrSw *rb) {
     if (rb != NULL) {
+        SC_ATOMIC_DESTROY(rb->write);
+        SC_ATOMIC_DESTROY(rb->read);
+
         SCFree(rb);
     }
 }
@@ -110,7 +161,7 @@ void RingBufferMrSwDestroy(RingBufferMrSw *rb) {
  */
 void *RingBufferMrSwGet(RingBufferMrSw *rb) {
     void *ptr;
-    /** local pointer for data races. If __sync_bool_compare_and_swap (CAS)
+    /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
      *  until we succeed. Or when the buffer is empty again we jump back
      *  to the waiting loop. */
@@ -118,7 +169,7 @@ void *RingBufferMrSwGet(RingBufferMrSw *rb) {
 
     /* buffer is empty, wait... */
 retry:
-    while (rb->read == rb->write) {
+    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
@@ -127,16 +178,16 @@ retry:
     }
 
     /* atomically update rb->read */
-    readp = rb->read - 1;
+    readp = SC_ATOMIC_GET(rb->read) - 1;
     do {
         /* with multiple readers we can get in the situation that we exitted
          * from the wait loop but the rb is empty again once we get here. */
-        if (rb->read == rb->write)
+        if (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write))
             goto retry;
 
         readp++;
         ptr = rb->array[readp];
-    } while (!(__sync_bool_compare_and_swap(&rb->read, readp, (readp + 1))));
+    } while (!(SC_ATOMIC_CAS(&rb->read, readp, (readp + 1))));
 
     SCLogDebug("ptr %p", ptr);
     return ptr;
@@ -149,7 +200,7 @@ int RingBufferMrSwPut(RingBufferMrSw *rb, void *ptr) {
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
-    while ((rb->write + 1) == rb->read) {
+    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -157,8 +208,8 @@ int RingBufferMrSwPut(RingBufferMrSw *rb, void *ptr) {
         usleep(USLEEP_TIME);
     }
 
-    rb->array[rb->write] = ptr;
-    __sync_fetch_and_add(&rb->write, 1);
+    rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
+    SC_ATOMIC_ADD(rb->write, 1);
     return 0;
 }
 
@@ -172,11 +223,18 @@ RingBufferSrSw *RingBufferSrSwInit(void) {
     }
 
     memset(rb, 0x00, sizeof(RingBufferSrSw));
+
+    SC_ATOMIC_INIT(rb->write);
+    SC_ATOMIC_INIT(rb->read);
+
     return rb;
 }
 
 void RingBufferSrSwDestroy(RingBufferSrSw *rb) {
     if (rb != NULL) {
+        SC_ATOMIC_DESTROY(rb->write);
+        SC_ATOMIC_DESTROY(rb->read);
+
         SCFree(rb);
     }
 }
@@ -185,7 +243,7 @@ void *RingBufferSrSwGet(RingBufferSrSw *rb) {
     void *ptr = NULL;
 
     /* buffer is empty, wait... */
-    while (rb->read == rb->write) {
+    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
@@ -193,15 +251,15 @@ void *RingBufferSrSwGet(RingBufferSrSw *rb) {
         usleep(USLEEP_TIME);
     }
 
-    ptr = rb->array[rb->read];
-    __sync_fetch_and_add(&rb->read, 1);
+    ptr = rb->array[SC_ATOMIC_GET(rb->read)];
+    SC_ATOMIC_ADD(rb->read, 1);
 
     return ptr;
 }
 
 int RingBufferSrSwPut(RingBufferSrSw *rb, void *ptr) {
     /* buffer is full, wait... */
-    while ((rb->write + 1) == rb->read) {
+    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -209,8 +267,8 @@ int RingBufferSrSwPut(RingBufferSrSw *rb, void *ptr) {
         usleep(USLEEP_TIME);
     }
 
-    rb->array[rb->write] = ptr;
-    __sync_fetch_and_add(&rb->write, 1);
+    rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
+    SC_ATOMIC_ADD(rb->write, 1);
     return 0;
 }
 
@@ -224,12 +282,18 @@ RingBufferMrMw8 *RingBufferMrMw8Init(void) {
 
     memset(rb, 0x00, sizeof(RingBufferMrMw8));
 
+    SC_ATOMIC_INIT(rb->write);
+    SC_ATOMIC_INIT(rb->read);
+
     SCSpinInit(&rb->spin, 0);
     return rb;
 }
 
 void RingBufferMrMw8Destroy(RingBufferMrMw8 *rb) {
     if (rb != NULL) {
+        SC_ATOMIC_DESTROY(rb->write);
+        SC_ATOMIC_DESTROY(rb->read);
+
         SCSpinDestroy(&rb->spin);
         SCFree(rb);
     }
@@ -244,7 +308,7 @@ void RingBufferMrMw8Destroy(RingBufferMrMw8 *rb) {
  */
 void *RingBufferMrMw8Get(RingBufferMrMw8 *rb) {
     void *ptr;
-    /** local pointer for data races. If __sync_bool_compare_and_swap (CAS)
+    /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
      *  until we succeed. Or when the buffer is empty again we jump back
      *  to the waiting loop. */
@@ -252,7 +316,7 @@ void *RingBufferMrMw8Get(RingBufferMrMw8 *rb) {
 
     /* buffer is empty, wait... */
 retry:
-    while (rb->read == rb->write) {
+    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
@@ -261,16 +325,16 @@ retry:
     }
 
     /* atomically update rb->read */
-    readp = rb->read - 1;
+    readp = SC_ATOMIC_GET(rb->read) - 1;
     do {
         /* with multiple readers we can get in the situation that we exitted
          * from the wait loop but the rb is empty again once we get here. */
-        if (rb->read == rb->write)
+        if (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write))
             goto retry;
 
         readp++;
         ptr = rb->array[readp];
-    } while (!(__sync_bool_compare_and_swap(&rb->read, readp, (readp + 1))));
+    } while (!(SC_ATOMIC_CAS(&rb->read, readp, (readp + 1))));
 
     SCLogDebug("ptr %p", ptr);
     return ptr;
@@ -299,7 +363,7 @@ int RingBufferMrMw8Put(RingBufferMrMw8 *rb, void *ptr) {
 
     /* buffer is full, wait... */
 retry:
-    while ((rb->write + 1) == rb->read) {
+    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -310,16 +374,16 @@ retry:
     /* get our lock */
     SCSpinLock(&rb->spin);
     /* if while we got our lock the buffer changed, we need to retry */
-    if ((rb->write + 1) == rb->read) {
+    if ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         SCSpinUnlock(&rb->spin);
         goto retry;
     }
 
-    SCLogDebug("rb->write %u, ptr %p", rb->write, ptr);
+    SCLogDebug("rb->write %u, ptr %p", SC_ATOMIC_GET(rb->write), ptr);
 
     /* update the ring buffer */
-    rb->array[rb->write] = ptr;
-    __sync_fetch_and_add(&rb->write, 1);
+    rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
+    SC_ATOMIC_ADD(rb->write, 1);
     SCSpinUnlock(&rb->spin);
     SCLogDebug("ptr %p, done", ptr);
     return 0;
@@ -335,12 +399,18 @@ RingBufferMrMw *RingBufferMrMwInit(void) {
 
     memset(rb, 0x00, sizeof(RingBufferMrMw));
 
+    SC_ATOMIC_INIT(rb->write);
+    SC_ATOMIC_INIT(rb->read);
+
     SCSpinInit(&rb->spin, 0);
     return rb;
 }
 
 void RingBufferMrMwDestroy(RingBufferMrMw *rb) {
     if (rb != NULL) {
+        SC_ATOMIC_DESTROY(rb->write);
+        SC_ATOMIC_DESTROY(rb->read);
+
         SCSpinDestroy(&rb->spin);
         SCFree(rb);
     }
@@ -355,7 +425,7 @@ void RingBufferMrMwDestroy(RingBufferMrMw *rb) {
  */
 void *RingBufferMrMwGet(RingBufferMrMw *rb) {
     void *ptr;
-    /** local pointer for data races. If __sync_bool_compare_and_swap (CAS)
+    /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
      *  until we succeed. Or when the buffer is empty again we jump back
      *  to the waiting loop. */
@@ -363,7 +433,7 @@ void *RingBufferMrMwGet(RingBufferMrMw *rb) {
 
     /* buffer is empty, wait... */
 retry:
-    while (rb->read == rb->write) {
+    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
@@ -372,16 +442,16 @@ retry:
     }
 
     /* atomically update rb->read */
-    readp = rb->read - 1;
+    readp = SC_ATOMIC_GET(rb->read) - 1;
     do {
         /* with multiple readers we can get in the situation that we exitted
          * from the wait loop but the rb is empty again once we get here. */
-        if (rb->read == rb->write)
+        if (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write))
             goto retry;
 
         readp++;
         ptr = rb->array[readp];
-    } while (!(__sync_bool_compare_and_swap(&rb->read, readp, (readp + 1))));
+    } while (!(SC_ATOMIC_CAS(&rb->read, readp, (readp + 1))));
 
     SCLogDebug("ptr %p", ptr);
     return ptr;
@@ -410,7 +480,7 @@ int RingBufferMrMwPut(RingBufferMrMw *rb, void *ptr) {
 
     /* buffer is full, wait... */
 retry:
-    while ((rb->write + 1) == rb->read) {
+    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -421,16 +491,16 @@ retry:
     /* get our lock */
     SCSpinLock(&rb->spin);
     /* if while we got our lock the buffer changed, we need to retry */
-    if ((rb->write + 1) == rb->read) {
+    if ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         SCSpinUnlock(&rb->spin);
         goto retry;
     }
 
-    SCLogDebug("rb->write %u, ptr %p", rb->write, ptr);
+    SCLogDebug("rb->write %u, ptr %p", SC_ATOMIC_GET(rb->write), ptr);
 
     /* update the ring buffer */
-    rb->array[rb->write] = ptr;
-    __sync_fetch_and_add(&rb->write, 1);
+    rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
+    SC_ATOMIC_ADD(rb->write, 1);
     SCSpinUnlock(&rb->spin);
     SCLogDebug("ptr %p, done", ptr);
     return 0;

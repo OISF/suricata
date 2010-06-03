@@ -119,6 +119,7 @@ detect-urilen.c detect-urilen.h \
 detect-detection-filter.c detect-detection-filter.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-asn1.c detect-asn1.h \
+util-atomic.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \
 util-cpu.c util-cpu.h \
