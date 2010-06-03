@@ -58,6 +58,10 @@ Packet *TmqhInputRingBuffer(ThreadVars *t)
     RingBufferMrMw8 *rb = ringbuffers[t->inq->id];
 
     Packet *p = (Packet *)RingBufferMrMw8Get(rb);
+
+    if (t->sc_perf_pctx.perf_flag == 1)
+        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
+
     return p;
 }
 
