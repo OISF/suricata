@@ -93,6 +93,13 @@ SCEnumCharMap sc_syslog_facility_map[] = {
     { NULL,             -1         }
 };
 
+#if defined (OS_WIN32)
+/**
+ * \brief Used for synchronous output on WIN32
+ */
+static SCMutex sc_log_stream_lock = NULL;
+#endif /* OS_WIN32 */
+
 /**
  * \brief Holds the config state for the logging module
  */
@@ -162,10 +169,19 @@ static inline int SCLogMapLogLevelToSyslogLevel(int log_level)
  */
 static inline void SCLogPrintToStream(FILE *fd, char *msg)
 {
+#if defined (OS_WIN32)
+	SCMutexLock(&sc_log_stream_lock);
+#endif /* OS_WIN32 */
+
     if (fprintf(fd, "%s", msg) < 0)
         printf("Error writing to stream using fprintf\n");
 
     fflush(fd);
+
+#if defined (OS_WIN32)
+	SCMutexUnlock(&sc_log_stream_lock);
+#endif /* OS_WIN32 */
+
     return;
 }
 
@@ -1050,6 +1066,13 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
      * environment variables at the start of the engine */
     SCLogDeInitLogModule();
 
+#if defined (OS_WIN32)
+    if (SCMutexInit(&sc_log_stream_lock, NULL) != 0) {
+        SCLogError(SC_ERR_MUTEX, "Failed to initialize log mutex.");
+        exit(EXIT_FAILURE);
+    }
+#endif /* OS_WIN32 */
+
     /* sc_log_config is a global variable */
     if ( (sc_log_config = SCMalloc(sizeof(SCLogConfig))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitLogModule. Exiting...");
@@ -1347,6 +1370,13 @@ void SCLogDeInitLogModule(void)
     SCLogReleaseFDFilters();
     /* de-init the FG filters */
     SCLogReleaseFGFilters();
+
+#if defined (OS_WIN32)
+	if (sc_log_stream_lock != NULL) {
+		SCMutexDestroy(&sc_log_stream_lock);
+		sc_log_stream_lock = NULL;
+	}
+#endif /* OS_WIN32 */
 
     return;
 }
