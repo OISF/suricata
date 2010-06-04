@@ -111,12 +111,12 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
 {
     SCEnter();
 
-    int ret = 0;
     uint8_t flags = 0;
     DetectFlagsData *de = (DetectFlagsData *)m->ctx;
 
-    if(!de || !PKT_IS_IPV4(p) || !p || !p->tcph)
-        return ret;
+    if(!(PKT_IS_TCP(p))) {
+        SCReturnInt(0);
+    }
 
     flags = p->tcph->th_flags;
 
@@ -125,38 +125,38 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
             SCReturnInt(1);
         }
 
-        SCReturnInt(ret);
+        SCReturnInt(0);
     }
 
     flags &= de->ignored_flags;
 
-    switch(de->modifier)    {
+    switch (de->modifier) {
         case MODIFIER_ANY:
-            if((flags & de->flags) > 0) {
+            if ((flags & de->flags) > 0) {
                 SCReturnInt(1);
             }
-            SCReturnInt(ret);
+            SCReturnInt(0);
 
         case MODIFIER_PLUS:
-            if(((flags & de->flags) == de->flags)) {
+            if (((flags & de->flags) == de->flags)) {
                 SCReturnInt(1);
             }
-            SCReturnInt(ret);
+            SCReturnInt(0);
 
         case MODIFIER_NOT:
-            if((flags & de->flags) != de->flags) {
+            if ((flags & de->flags) != de->flags) {
                 SCReturnInt(1);
             }
-            SCReturnInt(ret);
+            SCReturnInt(0);
 
         default:
             SCLogDebug("flags %"PRIu8" and de->flags %"PRIu8"",flags,de->flags);
-            if(flags == de->flags) {
+            if (flags == de->flags) {
                 SCReturnInt(1);
             }
     }
 
-    SCReturnInt(ret);
+    SCReturnInt(0);
 }
 
 /**
