@@ -169,12 +169,14 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 }
 
 /**
- * \brief Release all the packets in the queue back to the packetpool.  Mainly
- *        used by threads that have failed, and wants to return the packets back
- *        to the packetpool.
+ *  \brief Release all the packets in the queue back to the packetpool.  Mainly
+ *         used by threads that have failed, and wants to return the packets back
+ *         to the packetpool.
  *
- * \param pq Pointer to the packetqueue from which the packets have to be
- *           returned back to the packetpool
+ *  \param pq Pointer to the packetqueue from which the packets have to be
+ *            returned back to the packetpool
+ *
+ *  \warning this function assumes that the pq does not use locking
  */
 void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
 {
@@ -183,12 +185,8 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
     if (pq == NULL)
         return;
 
-    SCMutexLock(&pq->mutex_q);
-
     while ( (p = PacketDequeue(pq)) != NULL)
         TmqhOutputPacketpool(NULL, p);
-
-    SCMutexUnlock(&pq->mutex_q);
 
     return;
 }

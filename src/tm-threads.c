@@ -81,11 +81,13 @@ typedef struct TmSlot_ {
     void *slot_data;
 
     /**< queue filled by the SlotFunc with packets that will
-     *   be processed futher _before_ the current packet. */
+     *   be processed futher _before_ the current packet.
+     *   The locks in the queue are NOT used */
     PacketQueue slot_pre_pq;
 
     /**< queue filled by the SlotFunc with packets that will
-     *   be processed futher _after_ the current packet. */
+     *   be processed futher _after_ the current packet. The
+     *   locks in the queue are NOT used */
     PacketQueue slot_post_pq;
 
     /* linked list, only used by TmVarSlot */
