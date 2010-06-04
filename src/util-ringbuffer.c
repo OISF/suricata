@@ -113,7 +113,7 @@ int RingBufferMrSw8Put(RingBufferMrSw8 *rb, void *ptr) {
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
-    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
+    while ((unsigned char)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -200,7 +200,7 @@ int RingBufferMrSwPut(RingBufferMrSw *rb, void *ptr) {
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
-    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
+    while ((unsigned short)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -259,7 +259,7 @@ void *RingBufferSrSwGet(RingBufferSrSw *rb) {
 
 int RingBufferSrSwPut(RingBufferSrSw *rb, void *ptr) {
     /* buffer is full, wait... */
-    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
+    while ((unsigned short)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -363,7 +363,7 @@ int RingBufferMrMw8Put(RingBufferMrMw8 *rb, void *ptr) {
 
     /* buffer is full, wait... */
 retry:
-    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
+    while ((unsigned char)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -374,7 +374,7 @@ retry:
     /* get our lock */
     SCSpinLock(&rb->spin);
     /* if while we got our lock the buffer changed, we need to retry */
-    if ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
+    if ((unsigned char)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         SCSpinUnlock(&rb->spin);
         goto retry;
     }
@@ -480,7 +480,7 @@ int RingBufferMrMwPut(RingBufferMrMw *rb, void *ptr) {
 
     /* buffer is full, wait... */
 retry:
-    while ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
+    while ((unsigned short)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return -1;
@@ -491,7 +491,7 @@ retry:
     /* get our lock */
     SCSpinLock(&rb->spin);
     /* if while we got our lock the buffer changed, we need to retry */
-    if ((SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
+    if ((unsigned short)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         SCSpinUnlock(&rb->spin);
         goto retry;
     }
