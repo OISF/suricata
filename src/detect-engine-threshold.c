@@ -165,9 +165,10 @@ DetectThresholdEntry *ThresholdHashSearch(DetectEngineCtx *de_ctx, DetectThresho
 static inline void ThresholdTimeoutRemove(DetectEngineCtx *de_ctx, struct timeval *tv)
 {
     HashListTableBucket *next = HashListTableGetListHead(de_ctx->ths_ctx.threshold_hash_table_src);
-    while (next != NULL) {
+    for ( ; next != NULL; next = HashListTableGetListNext(next)) {
         DetectThresholdEntry *tsh = HashListTableGetListData(next);
-        BUG_ON(tsh == NULL);
+        if (tsh == NULL)
+            continue;
 
         if ((tv->tv_sec - tsh->tv_sec1) <= tsh->seconds)
             continue;
@@ -192,8 +193,6 @@ static inline void ThresholdTimeoutRemove(DetectEngineCtx *de_ctx, struct timeva
                 }
                 break;
         }
-
-        next = HashListTableGetListNext(next);
     }
 
     return;
