@@ -99,7 +99,7 @@ uint8_t flow_flags;
 uint32_t flow_memuse;
 SCMutex flow_memuse_mutex;
 
-#define FLOWBITS_STATS
+//#define FLOWBITS_STATS
 #ifdef FLOWBITS_STATS
 uint32_t flowbits_memuse;
 uint32_t flowbits_memuse_max;
