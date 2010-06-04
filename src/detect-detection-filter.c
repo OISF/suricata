@@ -499,6 +499,8 @@ static int DetectDetectionFilterTestSig2(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    TimeGet(&p.ts);
+
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     alerts = PacketAlertCheck(&p, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -507,6 +509,7 @@ static int DetectDetectionFilterTestSig2(void) {
     alerts += PacketAlertCheck(&p, 10);
 
     TimeSetIncrementTime(200);
+    TimeGet(&p.ts);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     alerts += PacketAlertCheck(&p, 10);

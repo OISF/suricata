@@ -41,6 +41,10 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
+#ifdef UNITTESTS
+#include "util-cpu.h"
+#endif
+
 #define PARSE_REGEX "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*"
 
 static pcre *parse_regex;
@@ -604,6 +608,8 @@ static int DetectThresholdTestSig3(void) {
 
     ste->track = td->track;
 
+    TimeGet(&p.ts);
+
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -615,6 +621,7 @@ static int DetectThresholdTestSig3(void) {
     }
 
     TimeSetIncrementTime(200);
+    TimeGet(&p.ts);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -691,6 +698,7 @@ static int DetectThresholdTestSig4(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    TimeGet(&p.ts);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     alerts = PacketAlertCheck(&p, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -699,6 +707,7 @@ static int DetectThresholdTestSig4(void) {
     alerts += PacketAlertCheck(&p, 10);
 
     TimeSetIncrementTime(200);
+    TimeGet(&p.ts);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     alerts += PacketAlertCheck(&p, 10);
@@ -814,6 +823,96 @@ cleanup:
 end:
     return result;
 }
+
+static int DetectThresholdTestSig6Ticks(void) {
+
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int alerts = 0;
+    IPV4Hdr ip4h;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&ip4h, 0, sizeof(ip4h));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.proto = IPPROTO_TCP;
+    p.ip4h = &ip4h;
+    p.ip4h->ip_src.s_addr = 0x01010101;
+    p.ip4h->ip_dst.s_addr = 0x02020202;
+    p.sp = 1024;
+    p.dp = 80;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    s = s->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    uint64_t ticks_start = 0;
+    uint64_t ticks_end = 0;
+
+    ticks_start = UtilCpuGetTicks();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts = PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    alerts += PacketAlertCheck(&p, 1);
+    alerts += PacketAlertCheck(&p, 1000);
+    ticks_end = UtilCpuGetTicks();
+    printf("test run %"PRIu64"\n", (ticks_end - ticks_start));
+
+    if(alerts == 10)
+        result = 1;
+    else
+        goto cleanup;
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    return result;
+}
 #endif /* UNITTESTS */
 
 void ThresholdRegisterTests(void) {
@@ -828,5 +927,6 @@ void ThresholdRegisterTests(void) {
     UtRegisterTest("DetectThresholdTestSig3", DetectThresholdTestSig3, 1);
     UtRegisterTest("DetectThresholdTestSig4", DetectThresholdTestSig4, 1);
     UtRegisterTest("DetectThresholdTestSig5", DetectThresholdTestSig5, 1);
+    UtRegisterTest("DetectThresholdTestSig6Ticks", DetectThresholdTestSig6Ticks, 1);
 #endif /* UNITTESTS */
 }

@@ -38,7 +38,6 @@ void ThresholdFreeFunc(void *data);
 char ThresholdCompareFunc(void *data1, uint16_t len1, void *data2,uint16_t len2);
 uint32_t ThresholdHashFunc(HashListTable *ht, void *data, uint16_t datalen);
 void ThresholdHashInit(DetectEngineCtx *de_ctx);
-void ThresholdTimeoutRemove(DetectEngineCtx *de_ctx);
 void ThresholdContextDestroy(DetectEngineCtx *de_ctx);
 
 #endif /* __DETECT_ENGINE_THRESHOLD_H__ */

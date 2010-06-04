@@ -432,6 +432,7 @@ end:
     GenericVarFree(f.flowvar);
     return ret;
 }
+
 #endif /* UNITTESTS */
 
 void FlowBitRegisterTests(void) {
