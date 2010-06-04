@@ -39,46 +39,12 @@
 /* Counter of flows that reached memcap capability */
 uint32_t directflows = 0;
 
-/* Allocate a flow without checking memcap */
-Flow *FlowAllocDirect(void)
-{
-    Flow *f;
-
-    SCMutexLock(&flow_memuse_mutex);
-    /* We allow to alloc even if memcap is reached (but later we
-     * will clean up some flows */
-    f = SCMalloc(sizeof(Flow));
-    if (f == NULL) {
-        SCMutexUnlock(&flow_memuse_mutex);
-        return NULL;
-    }
-    directflows++;
-
-    flow_memuse += sizeof(Flow);
-    SCMutexUnlock(&flow_memuse_mutex);
-    //FlowPrintQueueInfo();
-
-    SCMutexInit(&f->m, NULL);
-    f->lnext = NULL;
-    f->lprev = NULL;
-    f->hnext = NULL;
-    f->hprev = NULL;
-
-    f->flowvar = NULL;
-
-    return f;
-}
-
 /* Allocate a flow */
 Flow *FlowAlloc(void)
 {
     Flow *f;
 
     SCMutexLock(&flow_memuse_mutex);
-    if (flow_memuse + sizeof(Flow) > flow_config.memcap) {
-        SCMutexUnlock(&flow_memuse_mutex);
-        return NULL;
-    }
     f = SCMalloc(sizeof(Flow));
     if (f == NULL) {
         SCMutexUnlock(&flow_memuse_mutex);

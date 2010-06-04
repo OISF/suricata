@@ -340,7 +340,7 @@ static Flow *FlowGetNew(Packet *p) {
         }
 
         /* now see if we can alloc a new flow */
-        f = FlowAllocDirect();
+        f = FlowAlloc();
         if (f == NULL) {
             return NULL;
         }

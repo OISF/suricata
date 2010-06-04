@@ -792,8 +792,15 @@ void FlowInitConfig (char quiet)
 
     /* pre allocate flows */
     for (i = 0; i < flow_config.prealloc; i++) {
+        if (flow_memuse + sizeof(Flow) > flow_config.memcap) {
+            SCMutexUnlock(&flow_memuse_mutex);
+            printf("ERROR: FlowAlloc failed (max flow memcap reached): %s\n", strerror(errno));
+            exit(1);
+        }
+
         Flow *f = FlowAlloc();
         if (f == NULL) {
+            SCMutexUnlock(&flow_memuse_mutex);
             printf("ERROR: FlowAlloc failed: %s\n", strerror(errno));
             exit(1);
         }
