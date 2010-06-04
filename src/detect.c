@@ -549,9 +549,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
     }
 
-    /* we assume we have an uri when we start inspection */
-    det_ctx->de_have_httpuri = TRUE;
-
     det_ctx->sgh = SigMatchSignaturesGetSgh(th_v, de_ctx, det_ctx, p);
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
@@ -623,10 +620,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->sgh->sig_cnt; idx++) {
-    //for (idx = 0; idx < det_ctx->pmq.sig_id_array_cnt; idx++) {
         PROFILING_START;
         sig = det_ctx->sgh->match_array[idx];
-        //sig = det_ctx->pmq.sig_id_array[idx];
         s = de_ctx->sig_array[sig];
 
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
@@ -636,19 +631,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD)) {
             SCLogDebug("no payload inspection enabled and sig has payload portion.");
             goto next;
-        }
-
-        if (s->flags & SIG_FLAG_MPM) {
-            if (det_ctx->pmq.pattern_id_bitarray != NULL) {
-                /* filter out sigs that want pattern matches, but
-                 * have no matches */
-                if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
-                        (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
-                    SCLogDebug("mpm sig without matches (pat id check in content).");
-                    goto next;
-                }
-
-            }
         }
 
         if (s->flags & SIG_FLAG_MPM_URI) {
@@ -661,6 +643,19 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             " check in uri).", s->mpm_uripattern_id);
                     goto next;
                 }
+            }
+        }
+
+        if (s->flags & SIG_FLAG_MPM) {
+            if (det_ctx->pmq.pattern_id_bitarray != NULL) {
+                /* filter out sigs that want pattern matches, but
+                 * have no matches */
+                if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
+                        (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                    SCLogDebug("mpm sig without matches (pat id check in content).");
+                    goto next;
+                }
+
             }
         }
 
@@ -689,14 +684,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        /* check the source address */
-        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
-            if (saddr == NULL) {
-                SCLogDebug("src addr didn't match.");
-                goto next;
-            }
-        }
         /* check the destination address */
         if (!(s->flags & SIG_FLAG_DST_ANY)) {
             DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
@@ -705,12 +692,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 goto next;
             }
         }
-
-        /* Check the payload keywords. If we are a MPM sig and we've made
-         * to here, we've had at least one of the patterns match */
-        if (s->pmatch != NULL) {
-            if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+        /* check the source address */
+        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
+            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
+            if (saddr == NULL) {
+                SCLogDebug("src addr didn't match.");
                 goto next;
+            }
         }
 
         /* Check the uricontent keywords here. */
@@ -734,6 +722,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
+        /* Check the payload keywords. If we are a MPM sig and we've made
+         * to here, we've had at least one of the patterns match */
+        if (s->pmatch != NULL) {
+            if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                goto next;
+        }
+
         /* if we get here but have no sigmatches to match against,
          * we consider the sig matched. */
         if (s->match == NULL) {
@@ -744,12 +739,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 PacketAlertAppend(det_ctx, s, p);
             }
         } else {
-            /* reset offset */
-            det_ctx->payload_offset = 0;
-
-            /* new signature, so reset indicator of checking distance and within */
-            det_ctx->de_checking_distancewithin = 0;
-
             if (s->flags & SIG_FLAG_RECURSIVE) {
                 uint8_t rmatch = 0;
                 det_ctx->pkt_cnt = 0;
@@ -757,17 +746,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 do {
                     sm = s->match;
                     while (sm) {
-                        match = 0;
-
-                        /* app layer match has preference */
-                        if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-                                alproto == sigmatch_table[sm->type].alproto &&
-                                alstate != NULL) {
-                            match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
-                        } else if (sigmatch_table[sm->type].Match != NULL) {
-                            match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
-                        }
-
+                        match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                         if (match > 0) {
                             /* okay, try the next match */
                             sm = sm->next;
@@ -801,18 +780,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                 SCLogDebug("running match functions, sm %p", sm);
                 while (sm) {
-                    match = 0;
-
-                    /* app layer match has preference */
-                    if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-                        alproto == sigmatch_table[sm->type].alproto &&
-                        alstate != NULL) {
-                        SCLogDebug("App layer match function has been invoked");
-                        match = sigmatch_table[sm->type].AppLayerMatch(th_v, det_ctx, p->flow, flags, alstate, s, sm);
-                    } else if (sigmatch_table[sm->type].Match != NULL) {
-                        match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
-                    }
-
+                    match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                     if (match > 0) {
                         /* okay, try the next match */
                         sm = sm->next;

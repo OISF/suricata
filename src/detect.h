@@ -477,9 +477,6 @@ typedef struct DetectionEngineThreadCtx_ {
     /** recursive counter */
     uint8_t pkt_cnt;
 
-    char de_checking_distancewithin;
-    char de_checking_uricontent_distancewithin;
-
     /* http_uri stuff for uricontent */
     char de_have_httpuri;
 
