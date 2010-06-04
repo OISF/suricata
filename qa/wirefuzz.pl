@@ -332,7 +332,7 @@ while ( $successcnt < $loopnum ) {
             if ( $editcapexit ne 0 ) {
 
                 #this could still cause us to loop forever if all pcaps are bad but it's better than nothing.
-                if ( @files lt 2 ) {
+                if ( @files < 2 ) {
                     print "editcap: had an error and this was our only pcap:" . $editcaperr . "\n";
                     exit;
                 }
@@ -522,7 +522,7 @@ sub process_core_dump {
         print "gdb: core dump \n $core_dump";
 
     }
-    elsif ( @coredumps gt 1 ) {
+    elsif ( @coredumps > 1 ) {
         print "gdb: multiple core dumps, please clear all core dumps and try the test again. We found:\n";
         foreach my $corefile (@coredumps) {
             print $corefile . "\n";
