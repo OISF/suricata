@@ -190,10 +190,12 @@ uint8_t print_mem_flag = 1;
 #endif
 #endif
 
-#ifndef OS_WIN32
 static void
 SignalHandlerSetup(int sig, void (*handler)())
 {
+#if defined (OS_WIN32)
+	signal(sig, handler);
+#else
     struct sigaction action;
 
     action.sa_handler = handler;
@@ -201,8 +203,8 @@ SignalHandlerSetup(int sig, void (*handler)())
     sigaddset(&(action.sa_mask),sig);
     action.sa_flags = 0;
     sigaction(sig, &action, 0);
-}
 #endif /* OS_WIN32 */
+}
 
 void GlobalInits()
 {
@@ -850,10 +852,12 @@ int main(int argc, char **argv)
         }
     }
 
-#ifndef OS_WIN32
     /* registering signals we use */
     SignalHandlerSetup(SIGINT, SignalHandlerSigint);
     SignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+
+#ifndef OS_WIN32
+	/* SIGHUP is not implemnetd on WIN32 */
     //SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
 
     /* Get the suricata user ID to given user ID */
