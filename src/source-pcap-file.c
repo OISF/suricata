@@ -44,6 +44,7 @@
 #include "util-error.h"
 #include "util-privs.h"
 
+extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
 
 static int pcap_max_read_packets = 0;
@@ -153,7 +154,8 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, 
 
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
-    if (ptv->done == 1) {
+    if (ptv->done == 1 || suricata_ctl_flags & SURICATA_STOP ||
+            suricata_ctl_flags & SURICATA_KILL) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
