@@ -98,8 +98,28 @@ typedef struct FlowKey_
 
 } FlowKey;
 
+/**
+ *  \brief Flow data structure.
+ *
+ *  The flow is a global data structure that is created for new packets of a
+ *  flow and then looked up for the following packets of a flow.
+ *
+ *  Locking
+ *
+ *  The flow is updated/used by multiple packets at the same time. This is why
+ *  there is a flow-mutex. It's a mutex and not a spinlock because some
+ *  operations on the flow can be quite expensive, thus spinning would be
+ *  too expensive.
+ *
+ *  The flow "header" (addresses, ports, proto, recursion level) are static
+ *  after the initialization and remain read-only throughout the entire live
+ *  of a flow. This is why we can access those without protection of the lock.
+ */
+
 typedef struct Flow_
 {
+    /* flow "header", used for hashing and flow lookup. Static after init,
+     * so safe to look at without lock */
     Address src, dst;
     union {
         Port sp;        /**< tcp/udp source port */
@@ -111,6 +131,8 @@ typedef struct Flow_
     };
     uint8_t proto;
     uint8_t recursion_level;
+
+    /* end of flow "header" */
 
     uint16_t flags;
 

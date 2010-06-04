@@ -56,7 +56,7 @@ Flow *FlowAllocDirect(void)
 
     flow_memuse += sizeof(Flow);
     SCMutexUnlock(&flow_memuse_mutex);
-    FlowPrintQueueInfo();
+    //FlowPrintQueueInfo();
 
     SCMutexInit(&f->m, NULL);
     f->lnext = NULL;
@@ -138,6 +138,7 @@ void FlowInit(Flow *f, Packet *p)
     SCEnter();
     SCLogDebug("flow %p", f);
 
+    f->de_state = NULL;
     CLEAR_FLOW(f);
 
     f->proto = p->proto;
