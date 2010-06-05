@@ -476,16 +476,16 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
  * \retval 1 if debug messages are enabled to be logged
  * \retval 0 if debug messages are not enabled to be logged
  */
-int SCLogDebugEnabled()
+int SCLogDebugEnabled(void)
 {
-#ifndef DEBUG
-    return 0;
-#endif
-
+#ifdef DEBUG
     if (sc_log_global_log_level == SC_LOG_DEBUG)
         return 1;
     else
         return 0;
+#else
+    return 0;
+#endif
 }
 
 /**

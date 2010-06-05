@@ -37,6 +37,9 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
+#define TRACK_DST      1
+#define TRACK_SRC      2
+
 /**
  *\brief Regex for parsing our detection_filter options
  */
@@ -135,11 +138,11 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
         goto error;
     }
 
-    df = SCMalloc(sizeof(DetectDetectionFilterData));
+    df = SCMalloc(sizeof(DetectThresholdData));
     if (df == NULL)
         goto error;
 
-    memset(df,0,sizeof(DetectDetectionFilterData));
+    memset(df,0,sizeof(DetectThresholdData));
 
     df->type = TYPE_DETECTION;
 
