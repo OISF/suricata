@@ -522,13 +522,15 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     /* do hdr test, process hdr rules */
 
 #ifdef DEBUG
-    /* debug print */
-    char s[16], d[16];
-    inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), s, sizeof(s));
-    inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), d, sizeof(d));
-    SCLogDebug("IPV4 %s->%s PROTO: %" PRIu32 " OFFSET: %" PRIu32 " RF: %" PRIu32 " DF: %" PRIu32 " MF: %" PRIu32 " ID: %" PRIu32 "", s,d,
-            IPV4_GET_IPPROTO(p), IPV4_GET_IPOFFSET(p), IPV4_GET_RF(p),
-            IPV4_GET_DF(p), IPV4_GET_MF(p), IPV4_GET_IPID(p));
+    if (SCLogDebugEnabled()) { /* only convert the addresses if debug is really enabled */
+        /* debug print */
+        char s[16], d[16];
+        inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), s, sizeof(s));
+        inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), d, sizeof(d));
+        SCLogDebug("IPV4 %s->%s PROTO: %" PRIu32 " OFFSET: %" PRIu32 " RF: %" PRIu32 " DF: %" PRIu32 " MF: %" PRIu32 " ID: %" PRIu32 "", s,d,
+                IPV4_GET_IPPROTO(p), IPV4_GET_IPOFFSET(p), IPV4_GET_RF(p),
+                IPV4_GET_DF(p), IPV4_GET_MF(p), IPV4_GET_IPID(p));
+    }
 #endif /* DEBUG */
 
     /* check what next decoder to invoke */

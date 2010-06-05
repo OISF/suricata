@@ -164,35 +164,41 @@ DetectThresholdEntry *ThresholdHashSearch(DetectEngineCtx *de_ctx, DetectThresho
 
 static inline void ThresholdTimeoutRemove(DetectEngineCtx *de_ctx, struct timeval *tv)
 {
-    HashListTableBucket *next = HashListTableGetListHead(de_ctx->ths_ctx.threshold_hash_table_src);
-    for ( ; next != NULL; next = HashListTableGetListNext(next)) {
-        DetectThresholdEntry *tsh = HashListTableGetListData(next);
+    HashListTableBucket *next = NULL;
+    HashListTableBucket *buck = HashListTableGetListHead(de_ctx->ths_ctx.threshold_hash_table_src);
+    while (buck != NULL) {
+        /* get the next before we free "buck" */
+        next = HashListTableGetListNext(buck);
+
+        DetectThresholdEntry *tsh = HashListTableGetListData(buck);
         if (tsh == NULL)
-            continue;
+            goto next;
 
         if ((tv->tv_sec - tsh->tv_sec1) <= tsh->seconds)
-            continue;
+            goto next;
 
         switch(tsh->ipv) {
             case 4:
-                if (tsh->type == TRACK_SRC) {
+                if (tsh->track == TRACK_SRC) {
                     HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_src,
                             tsh, sizeof(DetectThresholdEntry));
-                } else if (tsh->type == TRACK_DST) {
+                } else if (tsh->track == TRACK_DST) {
                     HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_dst,
                             tsh, sizeof(DetectThresholdEntry));
                 }
                 break;
             case 6:
-                if (tsh->type == TRACK_SRC) {
+                if (tsh->track == TRACK_SRC) {
                     HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_src_ipv6,
                             tsh, sizeof(DetectThresholdEntry));
-                } else if (tsh->type == TRACK_DST) {
+                } else if (tsh->track == TRACK_DST) {
                     HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_dst_ipv6,
                             tsh, sizeof(DetectThresholdEntry));
                 }
                 break;
         }
+    next:
+        buck = next;
     }
 
     return;
