@@ -573,6 +573,29 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
 }
 
 /**
+ *  \brief  Function to test the received ACK values against the stream window
+ *          and previous ack value. ACK values should be higher than previous
+ *          ACK value and less than the next_win value.
+ *
+ *  \param  stream  TcpStream of which last_ack needs to be tested
+ *  \param  p       Packet which is used to test the last_ack
+ *
+ *  \retval on valid ACK it return TRUE and on invalid ACK, it returns FALSE
+ */
+static inline uint8_t StreamTcpValidateAck(TcpStream *stream, Packet *p)
+{
+    uint8_t ret = FALSE;
+
+    if (SEQ_GT(TCP_GET_ACK(p), stream->last_ack) &&
+          (SEQ_LEQ(TCP_GET_ACK(p) + p->payload_len, stream->next_win)))
+    {
+        ret = TRUE;
+   }
+
+    return ret;
+}
+
+/**
  *  \brief  Function to handle the TCP_CLOSED or NONE state. The function handles
  *          packets while the session state is None which means a newly
  *          initialized structure, or a fully closed session.
@@ -1228,7 +1251,10 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                 if ((SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))) {
                     SCLogDebug("4WHS normal pkt");
 
-                    ssn->client.last_ack = TCP_GET_ACK(p);
+                    /* we need to make sure that both sequence and the ack are
+                       of sane values */
+                    if ((StreamTcpValidateAck(&ssn->client, p) == TRUE))
+                        ssn->client.last_ack = TCP_GET_ACK(p);
                     ssn->server.next_seq += p->payload_len;
                     ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
@@ -1282,7 +1308,11 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
                 /* process the packet normal, No Async streams :) */
 
-                ssn->server.last_ack = TCP_GET_ACK(p);
+                /* we need to make sure that both sequence and the ack are of
+                   sane values */
+                if ((StreamTcpValidateAck(&ssn->server, p) == TRUE))
+                        ssn->server.last_ack = TCP_GET_ACK(p);
+
                 ssn->client.next_seq += p->payload_len;
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -1526,8 +1556,14 @@ static int HandleEstablishedPacketToServer(TcpSession *ssn, Packet *p,
         SCLogDebug("ssn %p: ssn->server.window %"PRIu32"", ssn,
                     ssn->server.window);
 
-        if (SEQ_GT(TCP_GET_ACK(p), ssn->server.last_ack))
+        /* Check if the ACK value is sane and inside the window limit */
+        if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
             ssn->server.last_ack = TCP_GET_ACK(p);
+            /* Update the next_seq, in case if we have missed the server packet
+               and client has already received and acked it */
+            if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                ssn->server.next_seq = TCP_GET_ACK(p);
+        }
 
         if (SEQ_GT((ssn->server.last_ack + ssn->server.window),
                 ssn->server.next_win))
@@ -1615,8 +1651,14 @@ static int HandleEstablishedPacketToClient(TcpSession *ssn, Packet *p,
         SCLogDebug("ssn %p: ssn->client.window %"PRIu32"", ssn,
                     ssn->client.window);
 
-        if (SEQ_GT(TCP_GET_ACK(p), ssn->client.last_ack))
+        /* Check if the ACK value is sane and inside the window limit */
+        if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
             ssn->client.last_ack = TCP_GET_ACK(p);
+            /* Update the next_seq, in case if we have missed the client packet
+               and server has already received and acked it */
+            if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                ssn->client.next_seq = TCP_GET_ACK(p);
+        }
 
         if (SEQ_GT((ssn->client.last_ack + ssn->client.window),
                 ssn->client.next_win))
@@ -1755,8 +1797,10 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                                 ssn->server.next_seq);
                     ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                    if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                    /* Check if the ACK value is sane and inside the window limit */
+                    if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                         ssn->server.last_ack = TCP_GET_ACK(p);
+                    }
 
                     StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                          &ssn->client, p);
@@ -1776,8 +1820,10 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                                 ssn->server.next_seq);
                     ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                    if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+                    /* Check if the ACK value is sane and inside the window limit */
+                    if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
                         ssn->client.last_ack = TCP_GET_ACK(p);
+                    }
 
                     StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                          &ssn->server, p);
@@ -1827,14 +1873,20 @@ static int StreamTcpHandleFin(StreamTcpThread *stt, TcpSession *ssn, Packet *p)
         SCLogDebug("ssn %p: state changed to TCP_CLOSE_WAIT", ssn);
 
         if (SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq))
-            ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len + 1;
-        ssn->server.next_seq = TCP_GET_ACK(p);
-        SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "", ssn,
-                    ssn->server.next_seq);
+            ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+
+        SCLogDebug("ssn %p: ssn->client.next_seq %" PRIu32 "", ssn,
+                    ssn->client.next_seq);
         ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-        if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+        /* Check if the ACK value is sane and inside the window limit */
+        if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
             ssn->server.last_ack = TCP_GET_ACK(p);
+            /* Update the next_seq, in case if we have missed the client packet
+               and server has already received and acked it */
+            if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                ssn->server.next_seq = TCP_GET_ACK(p);
+        }
 
         StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn, &ssn->client, p);
 
@@ -1858,14 +1910,20 @@ static int StreamTcpHandleFin(StreamTcpThread *stt, TcpSession *ssn, Packet *p)
         SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT1", ssn);
 
         if (SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))
-            ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len + 1;
-        ssn->client.next_seq = TCP_GET_ACK(p);
+            ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+
         SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "", ssn,
                     ssn->server.next_seq);
         ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-        if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+        /* Check if the ACK value is sane and inside the window limit */
+        if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
             ssn->client.last_ack = TCP_GET_ACK(p);
+            /* Update the next_seq, in case if we have missed the client packet
+               and server has already received and acked it */
+            if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                ssn->client.next_seq = TCP_GET_ACK(p);
+        }
 
         StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn, &ssn->server, p);
 
@@ -1918,8 +1976,14 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                     ssn->server.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                        ssn->server.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                      &ssn->client, p);
@@ -1948,8 +2012,14 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT2", ssn);
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
                     ssn->client.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                        ssn->client.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                      &ssn->server, p);
@@ -1998,8 +2068,14 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                     ssn->server.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                        ssn->server.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                      &ssn->client, p);
@@ -2033,8 +2109,14 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
                     ssn->client.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                        ssn->client.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                         &ssn->server, p);
@@ -2116,8 +2198,14 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                     ssn->server.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                        ssn->server.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                         &ssn->client, p);
@@ -2147,8 +2235,14 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
                     ssn->client.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                        ssn->client.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->server, p);
@@ -2205,8 +2299,14 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                     ssn->server.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                        ssn->server.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->client, p);
@@ -2233,8 +2333,14 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
                     ssn->client.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                        ssn->client.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->server, p);
@@ -2294,8 +2400,14 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                     ssn->server.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                        ssn->server.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->client, p);
@@ -2318,8 +2430,14 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
                     ssn->client.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                        ssn->client.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->server, p);
@@ -2391,8 +2509,14 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: state changed to TCP_LAST_ACK", ssn);
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
                     ssn->client.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                        ssn->client.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->server, p);
@@ -2418,8 +2542,14 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: state changed to TCP_LAST_ACK", ssn);
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                     ssn->server.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                        ssn->server.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->client, p);
@@ -2453,8 +2583,14 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 }
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
                     ssn->client.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                      packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                        ssn->client.next_seq = TCP_GET_ACK(p);
+                }
 
                 if (SEQ_EQ(TCP_GET_SEQ(p),ssn->server.next_seq))
                     ssn->server.next_seq += p->payload_len;
@@ -2480,8 +2616,14 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 }
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                     ssn->server.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                        ssn->server.next_seq = TCP_GET_ACK(p);
+                }
 
                 if (SEQ_EQ(TCP_GET_SEQ(p),ssn->client.next_seq))
                     ssn->client.next_seq += p->payload_len;
@@ -2543,8 +2685,14 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p,
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                     ssn->server.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                        ssn->server.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->client, p);
@@ -2605,8 +2753,14 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->server.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->server, p) == TRUE) {
                     ssn->server.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
+                        ssn->server.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->client, p);
@@ -2631,8 +2785,14 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: state changed to TCP_CLOSED", ssn);
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
-                if (SEQ_GT(TCP_GET_ACK(p),ssn->client.last_ack))
+                /* Check if the ACK value is sane and inside the window limit */
+                if (StreamTcpValidateAck(&ssn->client, p) == TRUE) {
                     ssn->client.last_ack = TCP_GET_ACK(p);
+                    /* Update the next_seq, in case if we have missed the client
+                       packet and server has already received and acked it */
+                    if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
+                        ssn->client.next_seq = TCP_GET_ACK(p);
+                }
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                           &ssn->server, p);
@@ -6898,6 +7058,226 @@ end:
     StreamTcpFreeConfig(TRUE);
     return ret;
 }
+
+/**
+ *  \test   Test the validation of the ACK number before setting up the
+ *          stream.last_ack.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+*/
+
+static int StreamTcpTest38 (void) {
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    uint8_t payload[4];
+    TCPHdr tcph;
+    TcpReassemblyThreadCtx ra_ctx;
+    StreamMsgQueue stream_q;
+    memset(&stream_q, 0, sizeof(StreamMsgQueue));
+    memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    p.flow = &f;
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    int ret = 0;
+    ra_ctx.stream_q = &stream_q;
+    stt.ra_ctx = &ra_ctx;
+
+    StreamTcpInitConfig(TRUE);
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_flags = TH_SYN | TH_ACK;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(1);
+    p.tcph->th_flags = TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    p.tcph->th_ack = htonl(29847);
+    p.tcph->th_seq = htonl(2);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    /* last_ack value should be 1 as the previous sent ACK value is out of
+       window */
+    if (((TcpSession *)(p.flow->protoctx))->server.last_ack != 1) {
+        printf("the server.last_ack should be 1, but it is %"PRIu32"\n",
+                ((TcpSession *)(p.flow->protoctx))->server.last_ack);
+        goto end;
+    }
+
+    p.tcph->th_ack = htonl(2984);
+    p.tcph->th_seq = htonl(5);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    /* last_ack value should be 2984 as the previous sent ACK value is inside
+       window */
+    if (((TcpSession *)(p.flow->protoctx))->server.last_ack != 2984) {
+        printf("the server.last_ack should be 2984, but it is %"PRIu32"\n",
+                ((TcpSession *)(p.flow->protoctx))->server.last_ack);
+        goto end;
+    }
+
+    ret = 1;
+
+end:
+    StreamTcpSessionClear(p.flow->protoctx);
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
+/**
+ *  \test   Test the validation of the ACK number before setting up the
+ *          stream.last_ack and update the next_seq after loosing the .
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpTest39 (void) {
+    Packet p;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    uint8_t payload[4];
+    TCPHdr tcph;
+    TcpReassemblyThreadCtx ra_ctx;
+    StreamMsgQueue stream_q;
+    memset(&stream_q, 0, sizeof(StreamMsgQueue));
+    memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
+    memset (&p, 0, sizeof(Packet));
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    memset(&stt, 0, sizeof (StreamTcpThread));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    p.flow = &f;
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOSERVER;
+    int ret = 0;
+    ra_ctx.stream_q = &stream_q;
+    stt.ra_ctx = &ra_ctx;
+
+    StreamTcpInitConfig(TRUE);
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_flags = TH_SYN | TH_ACK;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    p.tcph->th_ack = htonl(1);
+    p.tcph->th_seq = htonl(1);
+    p.tcph->th_flags = TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    p.tcph->th_ack = htonl(2984);
+    p.tcph->th_seq = htonl(2);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    /* last_ack value should be 2984 as the previous sent ACK value is inside
+       window */
+    if (((TcpSession *)(p.flow->protoctx))->server.last_ack != 2984) {
+        printf("the server.last_ack should be 2984, but it is %"PRIu32"\n",
+                ((TcpSession *)(p.flow->protoctx))->server.last_ack);
+        goto end;
+    }
+
+    p.tcph->th_seq = htonl(2984);
+    p.tcph->th_ack = htonl(5);
+    p.tcph->th_flags = TH_PUSH | TH_ACK;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
+    p.payload = payload;
+    p.payload_len = 3;
+
+    if (StreamTcpPacket(&tv, &p, &stt) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    /* next_seq value should be 2987 as the previous sent ACK value is inside
+       window */
+    if (((TcpSession *)(p.flow->protoctx))->server.next_seq != 2987) {
+        printf("the server.next_seq should be 2987, but it is %"PRIu32"\n",
+                ((TcpSession *)(p.flow->protoctx))->server.next_seq);
+        goto end;
+    }
+
+    ret = 1;
+
+end:
+    StreamTcpSessionClear(p.flow->protoctx);
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 void StreamTcpRegisterTests (void) {
@@ -6963,6 +7343,8 @@ void StreamTcpRegisterTests (void) {
 #endif
     UtRegisterTest("StreamTcpTest37 -- Out of order FIN Test", StreamTcpTest37, 1);
 
+    UtRegisterTest("StreamTcpTest38 -- validate ACK", StreamTcpTest38, 1);
+    UtRegisterTest("StreamTcpTest39 -- update next_seq", StreamTcpTest39, 1);
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
 #endif /* UNITTESTS */
