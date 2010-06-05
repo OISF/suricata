@@ -96,11 +96,6 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *n
 
 #ifdef UNITTESTS
 
-SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *,
-                                              DetectEngineCtx *,
-                                              DetectEngineThreadCtx *,
-                                              Packet *);
-
 /**
  * \test Checks if a fast_pattern is registered in a Signature
  */
@@ -291,7 +286,7 @@ int DetectFastPatternTest05(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (PacketPatternSearch(&th_v, det_ctx, &p) != 0)
         result = 1;
 
@@ -345,7 +340,7 @@ int DetectFastPatternTest06(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (PacketPatternSearch(&th_v, det_ctx, &p) != 0)
         result = 1;
 
@@ -400,7 +395,7 @@ int DetectFastPatternTest07(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
         result = 1;
 
@@ -459,7 +454,7 @@ int DetectFastPatternTest08(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     uint32_t r = PacketPatternSearch(&th_v, det_ctx, &p);
     if (r != 1) {
         printf("expected 1, got %"PRIu32": ", r);
@@ -515,7 +510,7 @@ int DetectFastPatternTest09(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
         result = 1;
 
@@ -575,7 +570,7 @@ int DetectFastPatternTest10(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     uint32_t r = PacketPatternSearch(&th_v, det_ctx, &p);
     if (r != 1) {
         printf("expected 1, got %"PRIu32": ", r);
@@ -633,7 +628,7 @@ int DetectFastPatternTest11(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
         result = 1;
 
@@ -689,7 +684,7 @@ int DetectFastPatternTest12(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
         result = 1;
 
@@ -750,7 +745,7 @@ int DetectFastPatternTest13(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     uint32_t r = PacketPatternSearch(&th_v, det_ctx, &p);
     if (r != 1) {
         printf("expected 1 result, got %"PRIu32": ", r);

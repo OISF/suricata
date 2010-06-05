@@ -1892,7 +1892,7 @@ static int SigGroupHeadTest10(void)
 
     AddressDebugPrint(&p.dst);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         goto end;
     }

@@ -430,17 +430,20 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     SCReturnInt(0);
 }
 
-SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
+/**
+ *  \brief Get the SigGroupHead for a packet.
+ *
+ *  \param de_ctx detection engine context
+ *  \param det_ctx thread detection engine content
+ *  \param p packet
+ *
+ *  \retval sgh the SigGroupHead or NULL if non applies to the packet
+ */
+SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
     SCEnter();
 
-    int ds,f;
+    int f;
     SigGroupHead *sgh = NULL;
-
-    /* select the dsize_gh */
-    if (p->payload_len <= 100)
-        ds = 0;
-    else
-        ds = 1;
 
     /* select the flow_gh */
     if (p->flowflags & FLOW_PKT_TOCLIENT)
@@ -448,13 +451,13 @@ SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx
     else
         f = 1;
 
-    SCLogDebug("ds %d, f %d", ds, f);
+    SCLogDebug("f %d", f);
 
     /* find the right mpm instance */
-    DetectAddress *ag = DetectAddressLookupInHead(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[p->proto],&p->src);
+    DetectAddress *ag = DetectAddressLookupInHead(de_ctx->flow_gh[f].src_gh[p->proto], &p->src);
     if (ag != NULL) {
         /* source group found, lets try a dst group */
-        ag = DetectAddressLookupInHead(ag->dst_gh,&p->dst);
+        ag = DetectAddressLookupInHead(ag->dst_gh, &p->dst);
         if (ag != NULL) {
             if (ag->port == NULL) {
                 SCLogDebug("we don't have ports");
@@ -499,6 +502,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     void *alstate = NULL;
     uint8_t flags = 0;
     uint32_t cnt = 0;
+    SigGroupHead *sgh = NULL;
+    char use_flow_sgh = FALSE;
 
     SCEnter();
 
@@ -513,6 +518,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         p->flow->use_cnt++;
         alstate = AppLayerGetProtoStateFromPacket(p);
         alproto = AppLayerGetProtoFromPacket(p);
+        if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
+            sgh = p->flow->sgh_toserver;
+            use_flow_sgh = TRUE;
+        } else if (p->flowflags & FLOW_PKT_TOCLIENT && p->flow->flags & FLOW_SGH_TOCLIENT) {
+            sgh = p->flow->sgh_toclient;
+            use_flow_sgh = TRUE;
+        }
         SCMutexUnlock(&p->flow->m);
 
         if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -549,7 +561,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
     }
 
-    det_ctx->sgh = SigMatchSignaturesGetSgh(th_v, de_ctx, det_ctx, p);
+    /* use the sgh from the flow unless we have no flow or the flow
+     * sgh wasn't initialized yet */
+    if (sgh == NULL && !use_flow_sgh) {
+        det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    } else {
+        det_ctx->sgh = sgh;
+    }
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
     if (det_ctx->sgh == NULL) {
@@ -707,6 +725,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 goto next;
         }
 
+        /* Check the payload keywords. If we are a MPM sig and we've made
+         * to here, we've had at least one of the patterns match */
+        if (s->pmatch != NULL) {
+            if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                goto next;
+        }
+
         SCLogDebug("s->amatch %p", s->amatch);
         if (s->amatch != NULL && p->flow != NULL) {
             if (de_state_start == TRUE) {
@@ -720,13 +745,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     goto next;
                 }
             }
-        }
-
-        /* Check the payload keywords. If we are a MPM sig and we've made
-         * to here, we've had at least one of the patterns match */
-        if (s->pmatch != NULL) {
-            if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
-                goto next;
         }
 
         /* if we get here but have no sigmatches to match against,
@@ -828,6 +846,13 @@ end:
 
     if (p->flow != NULL) {
         SCMutexLock(&p->flow->m);
+        if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
+            p->flow->sgh_toserver = det_ctx->sgh;
+            p->flow->flags |= FLOW_SGH_TOSERVER;
+        } else if (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
+            p->flow->sgh_toclient = det_ctx->sgh;
+            p->flow->flags |= FLOW_SGH_TOCLIENT;
+        }
         p->flow->use_cnt--;
         SCMutexUnlock(&p->flow->m);
     }
@@ -1047,8 +1072,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 
     /* now for every rule add the source group */
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
-
         de_ctx->sig_array[tmp_s->num] = tmp_s;
+
         SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
 
         /* see if the sig is ip only */
@@ -1198,30 +1223,9 @@ error:
     return -1;
 }
 
-static uint32_t g_detectengine_ip4_small = 0;
-static uint32_t g_detectengine_ip4_big = 0;
-static uint32_t g_detectengine_ip4_small_toclient = 0;
-static uint32_t g_detectengine_ip4_small_toserver = 0;
-static uint32_t g_detectengine_ip4_big_toclient = 0;
-static uint32_t g_detectengine_ip4_big_toserver = 0;
-
-static uint32_t g_detectengine_ip6_small = 0;
-static uint32_t g_detectengine_ip6_big = 0;
-static uint32_t g_detectengine_ip6_small_toclient = 0;
-static uint32_t g_detectengine_ip6_small_toserver = 0;
-static uint32_t g_detectengine_ip6_big_toclient = 0;
-static uint32_t g_detectengine_ip6_big_toserver = 0;
-
-static uint32_t g_detectengine_any_small = 0;
-static uint32_t g_detectengine_any_big = 0;
-static uint32_t g_detectengine_any_small_toclient = 0;
-static uint32_t g_detectengine_any_small_toserver = 0;
-static uint32_t g_detectengine_any_big_toclient = 0;
-static uint32_t g_detectengine_any_big_toserver = 0;
-
 /* add signature to the right flow groups
  */
-static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, DetectEngineLookupDsize *ds, Signature *s, int family, int dsize) {
+static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, Signature *s, int family) {
     uint8_t flags = 0;
 
     if (s->flags & SIG_FLAG_FLOW) {
@@ -1240,106 +1244,22 @@ static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, DetectEngineLoo
 
     if (flags & FLOW_PKT_TOCLIENT) {
         /* only toclient */
-        DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[0], s, family);
+        DetectEngineLookupBuildSourceAddressList(de_ctx, &de_ctx->flow_gh[0], s, family);
 
-        if (family == AF_INET)
-            dsize ? g_detectengine_ip4_big_toclient++ : g_detectengine_ip4_small_toclient++;
-        else if (family == AF_INET6)
-            dsize ? g_detectengine_ip6_big_toclient++ : g_detectengine_ip6_small_toclient++;
-        else
-            dsize ? g_detectengine_any_big_toclient++ : g_detectengine_any_small_toclient++;
     } else if (flags & FLOW_PKT_TOSERVER) {
         /* only toserver */
-        DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[1], s, family);
+        DetectEngineLookupBuildSourceAddressList(de_ctx, &de_ctx->flow_gh[1], s, family);
 
-        if (family == AF_INET)
-            dsize ? g_detectengine_ip4_big_toserver++ : g_detectengine_ip4_small_toserver++;
-        else if (family == AF_INET6)
-            dsize ? g_detectengine_ip6_big_toserver++ : g_detectengine_ip6_small_toserver++;
-        else
-            dsize ? g_detectengine_any_big_toserver++ : g_detectengine_any_small_toserver++;
     } else {
         //printf("DetectEngineLookupFlowAddSig: s->id %"PRIu32"\n", s->id);
 
         /* both */
-        DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[0], s, family);
-        DetectEngineLookupBuildSourceAddressList(de_ctx, &ds->flow_gh[1], s, family);
+        DetectEngineLookupBuildSourceAddressList(de_ctx, &de_ctx->flow_gh[0], s, family);
+        DetectEngineLookupBuildSourceAddressList(de_ctx, &de_ctx->flow_gh[1], s, family);
 
-        if (family == AF_INET) {
-            dsize ? g_detectengine_ip4_big_toclient++ : g_detectengine_ip4_small_toclient++;
-            dsize ? g_detectengine_ip4_big_toserver++ : g_detectengine_ip4_small_toserver++;
-        } else if (family == AF_INET6) {
-            dsize ? g_detectengine_ip6_big_toserver++ : g_detectengine_ip6_small_toserver++;
-            dsize ? g_detectengine_ip6_big_toclient++ : g_detectengine_ip6_small_toclient++;
-        } else {
-            dsize ? g_detectengine_any_big_toclient++ : g_detectengine_any_small_toclient++;
-            dsize ? g_detectengine_any_big_toserver++ : g_detectengine_any_small_toserver++;
-        }
     }
 
     return 0;
-}
-
-/* Add a sig to the dsize groupheads it belongs in. Meant to keep
- * sigs for small packets out of the 'normal' detection so the small
- * patterns won't influence as much traffic.
- *
- */
-static int DetectEngineLookupDsizeAddSig(DetectEngineCtx *de_ctx, Signature *s, int family) {
-    SCEnter();
-
-    uint16_t low = 0, high = 65535;
-
-    if (s->flags & SIG_FLAG_DSIZE) {
-        SigMatch *sm = s->match;
-        for ( ; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_DSIZE)
-                continue;
-
-            DetectDsizeData *dd = (DetectDsizeData *)sm->ctx;
-            if (dd == NULL)
-                continue;
-
-            if (dd->mode == DETECTDSIZE_LT) {
-                low = 0;
-                high = dd->dsize - 1;
-            } else if (dd->mode == DETECTDSIZE_GT) {
-                low = dd->dsize + 1;
-                high = 65535;
-            } else if (dd->mode == DETECTDSIZE_EQ) {
-                low = dd->dsize;
-                high = dd->dsize;
-            } else if (dd->mode == DETECTDSIZE_RA) {
-                low = dd->dsize;
-                high = dd->dsize2;
-            }
-
-            break;
-        }
-    }
-
-    if (low <= 100) {
-        /* add to 'low' group */
-        DetectEngineLookupFlowAddSig(de_ctx, &de_ctx->dsize_gh[0], s, family, 0);
-        if (family == AF_INET)
-            g_detectengine_ip4_small++;
-        else if (family == AF_INET6)
-            g_detectengine_ip6_small++;
-        else
-            g_detectengine_any_small++;
-    }
-    if (high > 100) {
-        /* add to 'high' group */
-        DetectEngineLookupFlowAddSig(de_ctx, &de_ctx->dsize_gh[1], s, family, 1);
-        if (family == AF_INET)
-            g_detectengine_ip4_big++;
-        else if (family == AF_INET6)
-            g_detectengine_ip6_big++;
-        else
-            g_detectengine_any_big++;
-    }
-
-    SCReturnInt(0);
 }
 
 static DetectAddress *GetHeadPtr(DetectAddressHead *head, int family) {
@@ -1716,18 +1636,16 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
 
     IPOnlyInit(de_ctx, &de_ctx->io_ctx);
 
-    int ds, f, proto;
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (proto = 0; proto < 256; proto++) {
-                de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] = DetectAddressHeadInit();
-                if (de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] == NULL) {
-                    goto error;
-                }
-                de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] = DetectAddressHeadInit();
-                if (de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] == NULL) {
-                    goto error;
-                }
+    int f, proto;
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (proto = 0; proto < 256; proto++) {
+            de_ctx->flow_gh[f].src_gh[proto] = DetectAddressHeadInit();
+            if (de_ctx->flow_gh[f].src_gh[proto] == NULL) {
+                goto error;
+            }
+            de_ctx->flow_gh[f].tmp_gh[proto] = DetectAddressHeadInit();
+            if (de_ctx->flow_gh[f].tmp_gh[proto] == NULL) {
+                goto error;
             }
         }
     }
@@ -1736,9 +1654,9 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
         //printf("SigAddressPrepareStage2 tmp_s->id %u\n", tmp_s->id);
         if (!(tmp_s->flags & SIG_FLAG_IPONLY)) {
-            DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_INET);
-            DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_INET6);
-            DetectEngineLookupDsizeAddSig(de_ctx, tmp_s, AF_UNSPEC);
+            DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_INET);
+            DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_INET6);
+            DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_UNSPEC);
         } else {
             IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
         }
@@ -1747,29 +1665,26 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     }
 
     /* create the final src addr list based on the tmplist. */
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (proto = 0; proto < 256; proto++) {
-                int groups = ds ? (f ? de_ctx->max_uniq_toserver_src_groups : de_ctx->max_uniq_toclient_src_groups) :
-                                  (f ? de_ctx->max_uniq_small_toserver_src_groups : de_ctx->max_uniq_small_toclient_src_groups);
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (proto = 0; proto < 256; proto++) {
+            int groups = (f ? de_ctx->max_uniq_toserver_src_groups : de_ctx->max_uniq_toclient_src_groups);
 
-                CreateGroupedAddrList(de_ctx,
-                    de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]->ipv4_head, AF_INET,
-                    de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], groups,
+            CreateGroupedAddrList(de_ctx,
+                    de_ctx->flow_gh[f].tmp_gh[proto]->ipv4_head, AF_INET,
+                    de_ctx->flow_gh[f].src_gh[proto], groups,
                     CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
 
-                CreateGroupedAddrList(de_ctx,
-                    de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]->ipv6_head, AF_INET6,
-                    de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], groups,
+            CreateGroupedAddrList(de_ctx,
+                    de_ctx->flow_gh[f].tmp_gh[proto]->ipv6_head, AF_INET6,
+                    de_ctx->flow_gh[f].src_gh[proto], groups,
                     CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
-                CreateGroupedAddrList(de_ctx,
-                    de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]->any_head, AF_UNSPEC,
-                    de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto], groups,
+            CreateGroupedAddrList(de_ctx,
+                    de_ctx->flow_gh[f].tmp_gh[proto]->any_head, AF_UNSPEC,
+                    de_ctx->flow_gh[f].src_gh[proto], groups,
                     CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
 
-                DetectAddressHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto]);
-                de_ctx->dsize_gh[ds].flow_gh[f].tmp_gh[proto] = NULL;
-            }
+            DetectAddressHeadFree(de_ctx->flow_gh[f].tmp_gh[proto]);
+            de_ctx->flow_gh[f].tmp_gh[proto] = NULL;
         }
     }
     //DetectAddressPrintMemory();
@@ -1784,44 +1699,23 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogInfo("%" PRIu32 " total signatures:", sigs);
-        SCLogInfo("%"PRIu32" in ipv4 small group, %" PRIu32 " in rest", g_detectengine_ip4_small,g_detectengine_ip4_big);
-        SCLogInfo("%"PRIu32" in ipv6 small group, %" PRIu32 " in rest", g_detectengine_ip6_small,g_detectengine_ip6_big);
-        SCLogInfo("%"PRIu32" in any small group,  %" PRIu32 " in rest", g_detectengine_any_small,g_detectengine_any_big);
-        SCLogInfo("small: %"PRIu32" in ipv4 toserver group, %" PRIu32 " in toclient",
-            g_detectengine_ip4_small_toserver,g_detectengine_ip4_small_toclient);
-        SCLogInfo("small: %"PRIu32" in ipv6 toserver group, %" PRIu32 " in toclient",
-            g_detectengine_ip6_small_toserver,g_detectengine_ip6_small_toclient);
-        SCLogInfo("small: %"PRIu32" in any toserver group,  %" PRIu32 " in toclient",
-            g_detectengine_any_small_toserver,g_detectengine_any_small_toclient);
-        SCLogInfo("big: %"PRIu32" in ipv4 toserver group, %" PRIu32 " in toclient",
-            g_detectengine_ip4_big_toserver,g_detectengine_ip4_big_toclient);
-        SCLogInfo("big: %"PRIu32" in ipv6 toserver group, %" PRIu32 " in toclient",
-            g_detectengine_ip6_big_toserver,g_detectengine_ip6_big_toclient);
-        SCLogInfo("big: %"PRIu32" in any toserver group,  %" PRIu32 " in toclient",
-            g_detectengine_any_big_toserver,g_detectengine_any_big_toclient);
     }
 
     /* TCP */
     uint32_t cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6]->any_head; gr != NULL; gr = gr->next) {
-                cnt_any++;
-            }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[6]->any_head; gr != NULL; gr = gr->next) {
+            cnt_any++;
         }
     }
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6]->ipv4_head; gr != NULL; gr = gr->next) {
-                cnt_ipv4++;
-            }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[6]->ipv4_head; gr != NULL; gr = gr->next) {
+            cnt_ipv4++;
         }
     }
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6]->ipv6_head; gr != NULL; gr = gr->next) {
-                cnt_ipv6++;
-            }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[6]->ipv6_head; gr != NULL; gr = gr->next) {
+            cnt_ipv6++;
         }
     }
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -1829,25 +1723,19 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     }
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17]->any_head; gr != NULL; gr = gr->next) {
-                cnt_any++;
-            }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[17]->any_head; gr != NULL; gr = gr->next) {
+            cnt_any++;
         }
     }
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17]->ipv4_head; gr != NULL; gr = gr->next) {
-                cnt_ipv4++;
-            }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[17]->ipv4_head; gr != NULL; gr = gr->next) {
+            cnt_ipv4++;
         }
     }
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17]->ipv6_head; gr != NULL; gr = gr->next) {
-                cnt_ipv6++;
-            }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[17]->ipv6_head; gr != NULL; gr = gr->next) {
+            cnt_ipv6++;
         }
     }
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -1855,25 +1743,19 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     }
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[1]->any_head; gr != NULL; gr = gr->next) {
-                cnt_any++;
-            }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[1]->any_head; gr != NULL; gr = gr->next) {
+            cnt_any++;
         }
     }
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[1]->ipv4_head; gr != NULL; gr = gr->next) {
-                cnt_ipv4++;
-            }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[1]->ipv4_head; gr != NULL; gr = gr->next) {
+            cnt_ipv4++;
         }
     }
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[1]->ipv6_head; gr != NULL; gr = gr->next) {
-                cnt_ipv6++;
-            }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[1]->ipv6_head; gr != NULL; gr = gr->next) {
+            cnt_ipv6++;
         }
     }
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -1893,7 +1775,7 @@ error:
 /**
  *  \brief Build the destination address portion of the match tree
  */
-int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int dsize, int flow) {
+int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int flow) {
     Signature *tmp_s = NULL;
     DetectAddress *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
     uint32_t max_idx = 0;
@@ -1955,8 +1837,8 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
 
         /* Create the destination address list, keeping in
          * mind the limits we use. */
-        int groups = dsize ? (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups) :
-                             (flow ? de_ctx->max_uniq_small_toserver_dst_groups : de_ctx->max_uniq_small_toclient_dst_groups);
+        int groups = (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups);
+
         CreateGroupedAddrList(de_ctx, tmp_gr_list, family, gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
 
         /* see if the sig group head of each address group is the
@@ -2068,7 +1950,7 @@ error:
 }
 
 //static
-int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int dsize, int flow) {
+int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int flow) {
     Signature *tmp_s = NULL;
     DetectAddress *src_gr = NULL, *dst_gr = NULL, *sig_gr = NULL, *lookup_gr = NULL;
     DetectAddress *src_gr_head = NULL, *dst_gr_head = NULL, *sig_gr_head = NULL;
@@ -2130,8 +2012,8 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
 
         /* Create the destination address list, keeping in
          * mind the limits we use. */
-        int groups = dsize ? (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups) :
-                             (flow ? de_ctx->max_uniq_small_toserver_dst_groups : de_ctx->max_uniq_small_toclient_dst_groups);
+        int groups = (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups);
+
         CreateGroupedAddrList(de_ctx, tmp_gr_list, family, src_gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
 
         /* add the ports to the dst address groups and the sigs
@@ -2181,8 +2063,8 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                     }
                 }
 
-                int spgroups = dsize ? (flow ? de_ctx->max_uniq_toserver_sp_groups : de_ctx->max_uniq_toclient_sp_groups) :
-                                       (flow ? de_ctx->max_uniq_small_toserver_sp_groups : de_ctx->max_uniq_small_toclient_sp_groups);
+                int spgroups = (flow ? de_ctx->max_uniq_toserver_sp_groups : de_ctx->max_uniq_toclient_sp_groups);
+
                 CreateGroupedPortList(de_ctx, de_ctx->sport_hash_table, &dst_gr->port, spgroups, CreateGroupedPortListCmpMpmMaxlen, max_idx);
 
                 SCLogDebug("adding sgh %p to the hash", dst_gr->sh);
@@ -2235,8 +2117,8 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                             }
                         }
 
-                        int dpgroups = dsize ? (flow ? de_ctx->max_uniq_toserver_dp_groups : de_ctx->max_uniq_toclient_dp_groups) :
-                                               (flow ? de_ctx->max_uniq_small_toserver_dp_groups : de_ctx->max_uniq_small_toclient_dp_groups);
+                        int dpgroups = (flow ? de_ctx->max_uniq_toserver_dp_groups : de_ctx->max_uniq_toclient_dp_groups);
+
                         CreateGroupedPortList(de_ctx, de_ctx->dport_hash_table,
                             &sp->dst_ph, dpgroups,
                             CreateGroupedPortListCmpMpmMaxlen, max_idx);
@@ -2414,59 +2296,57 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
 
-    int ds = 0, f = 0;
+    int f = 0;
     int proto;
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6],AF_INET,ds,f);
-            if (r < 0) {
-                printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
-                goto error;
-            }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17],AF_INET,ds,f);
-            if (r < 0) {
-                printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
-                goto error;
-            }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6],AF_INET6,ds,f);
-            if (r < 0) {
-                printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
-                goto error;
-            }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17],AF_INET6,ds,f);
-            if (r < 0) {
-                printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
-                goto error;
-            }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[6],AF_UNSPEC,ds,f);
-            if (r < 0) {
-                printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
-                goto error;
-            }
-            r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[17],AF_UNSPEC,ds,f);
-            if (r < 0) {
-                printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
-                goto error;
-            }
-            for (proto = 0; proto < 256; proto++) {
-                if (proto == IPPROTO_TCP || proto == IPPROTO_UDP)
-                    continue;
+    for (f = 0; f < FLOW_STATES; f++) {
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[6],AF_INET,f);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
+            goto error;
+        }
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[17],AF_INET,f);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
+            goto error;
+        }
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[6],AF_INET6,f);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
+            goto error;
+        }
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[17],AF_INET6,f);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
+            goto error;
+        }
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[6],AF_UNSPEC,f);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
+            goto error;
+        }
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[17],AF_UNSPEC,f);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
+            goto error;
+        }
+        for (proto = 0; proto < 256; proto++) {
+            if (proto == IPPROTO_TCP || proto == IPPROTO_UDP)
+                continue;
 
-                r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_INET,ds,f);
-                if (r < 0) {
-                    printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_INET) failed\n", proto);
-                    goto error;
-                }
-                r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_INET6,ds,f);
-                if (r < 0) {
-                    printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_INET6) failed\n", proto);
-                    goto error;
-                }
-                r = BuildDestinationAddressHeads(de_ctx, de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto],AF_UNSPEC,ds,f); /* for any */
-                if (r < 0) {
-                    printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_UNSPEC) failed\n", proto);
-                    goto error;
-                }
+            r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_INET,f);
+            if (r < 0) {
+                printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_INET) failed\n", proto);
+                goto error;
+            }
+            r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_INET6,f);
+            if (r < 0) {
+                printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_INET6) failed\n", proto);
+                goto error;
+            }
+            r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_UNSPEC,f); /* for any */
+            if (r < 0) {
+                printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_UNSPEC) failed\n", proto);
+                goto error;
             }
         }
     }
@@ -2517,14 +2397,12 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
         SCLogInfo("cleaning up signature grouping structure...");
     }
 
-    int ds, f, proto;
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
-        for (f = 0; f < FLOW_STATES; f++) {
-            for (proto = 0; proto < 256; proto++) {
-                /* XXX fix this */
-                DetectAddressHeadFree(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]);
-                de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto] = NULL;
-            }
+    int f, proto;
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (proto = 0; proto < 256; proto++) {
+            /* XXX fix this */
+            DetectAddressHeadFree(de_ctx->flow_gh[f].src_gh[proto]);
+            de_ctx->flow_gh[f].src_gh[proto] = NULL;
         }
     }
 
@@ -2598,302 +2476,301 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
 
     printf("* Building signature grouping structure, stage 5: print...\n");
 
-    int ds, f, proto;
-    for (ds = 0; ds < DSIZE_STATES; ds++) {
+    int f, proto;
+    printf("\n");
+    for (f = 0; f < FLOW_STATES; f++) {
         printf("\n");
-        for (f = 0; f < FLOW_STATES; f++) {
-            printf("\n");
-            for (proto = 0; proto < 256; proto++) {
-                if (proto != 1)
+        for (proto = 0; proto < 256; proto++) {
+            if (proto != 1)
+                continue;
+
+            for (global_src_gr = de_ctx->flow_gh[f].src_gh[proto]->ipv4_head; global_src_gr != NULL;
+                    global_src_gr = global_src_gr->next)
+            {
+                printf("1 Src Addr: "); DetectAddressPrint(global_src_gr);
+                printf(" (sh %p)\n", global_src_gr->sh);
+                //printf("\n");
+
+#ifdef PRINTSIGS
+                SigGroupHeadPrintSigs(de_ctx, global_src_gr->sh);
+                if (global_src_gr->sh != NULL) {
+                    printf(" - ");
+                    for (u = 0; u < global_src_gr->sh->sig_cnt; u++) {
+                        Signature *s = de_ctx->sig_array[global_src_gr->sh->match_array[u]];
+                        printf("%" PRIu32 " ", s->id);
+                    }
+                    printf("\n");
+                }
+#endif
+
+                global_dst_gh = global_src_gr->dst_gh;
+                if (global_dst_gh == NULL)
                     continue;
 
-                for (global_src_gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]->ipv4_head; global_src_gr != NULL;
-                        global_src_gr = global_src_gr->next)
+                for (global_dst_gr = global_dst_gh->ipv4_head;
+                        global_dst_gr != NULL;
+                        global_dst_gr = global_dst_gr->next)
                 {
-                    printf("1 Src Addr: "); DetectAddressPrint(global_src_gr);
-                    printf(" (sh %p)\n", global_src_gr->sh);
-                    //printf("\n");
+                    printf(" 2 Dst Addr: "); DetectAddressPrint(global_dst_gr);
 
-#ifdef PRINTSIGS
-                    SigGroupHeadPrintSigs(de_ctx, global_src_gr->sh);
-                        if (global_src_gr->sh != NULL) {
-                            printf(" - ");
-                            for (u = 0; u < global_src_gr->sh->sig_cnt; u++) {
-                                Signature *s = de_ctx->sig_array[global_src_gr->sh->match_array[u]];
-                                printf("%" PRIu32 " ", s->id);
-                            }
-                            printf("\n");
-                        }
-#endif
-
-                    global_dst_gh = global_src_gr->dst_gh;
-                    if (global_dst_gh == NULL)
-                        continue;
-
-                    for (global_dst_gr = global_dst_gh->ipv4_head;
-                            global_dst_gr != NULL;
-                            global_dst_gr = global_dst_gr->next)
-                    {
-                        printf(" 2 Dst Addr: "); DetectAddressPrint(global_dst_gr);
-
-                        //printf(" (sh %p) ", global_dst_gr->sh);
-                        if (global_dst_gr->sh) {
-                            if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
-                                printf(" (COPY): ");
-                            } else {
-                                printf(" (ORIGINAL): ");
-                            }
+                    //printf(" (sh %p) ", global_dst_gr->sh);
+                    if (global_dst_gr->sh) {
+                        if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
+                            printf(" (COPY): ");
                         } else {
-                            printf(" ");
+                            printf(" (ORIGINAL): ");
                         }
+                    } else {
+                        printf(" ");
+                    }
 
 #ifdef PRINTSIGS
-                        if (global_dst_gr->sh != NULL) {
+                    if (global_dst_gr->sh != NULL) {
+                        printf(" - ");
+                        for (u = 0; u < global_dst_gr->sh->sig_cnt; u++) {
+                            Signature *s = de_ctx->sig_array[global_dst_gr->sh->match_array[u]];
+                            printf("%" PRIu32 " ", s->id);
+                        }
+                        printf("\n");
+                    }
+#endif
+
+
+                    DetectPort *sp = global_dst_gr->port;
+                    for ( ; sp != NULL; sp = sp->next) {
+                        printf("  3 Src port(range): "); DetectPortPrint(sp);
+                        //printf(" (sh %p)", sp->sh);
+                        printf("\n");
+                        DetectPort *dp = sp->dst_ph;
+                        for ( ; dp != NULL; dp = dp->next) {
+                            printf("   4 Dst port(range): "); DetectPortPrint(dp);
+                            printf(" (sigs %" PRIu32 ", sgh %p, maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh, dp->sh->mpm_content_maxlen);
+#ifdef PRINTSIGS
                             printf(" - ");
-                            for (u = 0; u < global_dst_gr->sh->sig_cnt; u++) {
-                                Signature *s = de_ctx->sig_array[global_dst_gr->sh->match_array[u]];
+                            for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
                                 printf("%" PRIu32 " ", s->id);
                             }
+#endif
                             printf("\n");
                         }
-#endif
-
-
-                        DetectPort *sp = global_dst_gr->port;
-                        for ( ; sp != NULL; sp = sp->next) {
-                            printf("  3 Src port(range): "); DetectPortPrint(sp);
-                            //printf(" (sh %p)", sp->sh);
+                    }
+                }
+                for (global_dst_gr = global_dst_gh->any_head;
+                        global_dst_gr != NULL;
+                        global_dst_gr = global_dst_gr->next)
+                {
+                    printf(" - "); DetectAddressPrint(global_dst_gr);
+                    //printf(" (sh %p) ", global_dst_gr->sh);
+                    if (global_dst_gr->sh) {
+                        if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
+                            printf("(COPY)\n");
+                        } else {
                             printf("\n");
-                            DetectPort *dp = sp->dst_ph;
-                            for ( ; dp != NULL; dp = dp->next) {
-                                printf("   4 Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %" PRIu32 ", sgh %p, maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh, dp->sh->mpm_content_maxlen);
-#ifdef PRINTSIGS
-                                printf(" - ");
-                                for (u = 0; u < dp->sh->sig_cnt; u++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
-                                    printf("%" PRIu32 " ", s->id);
-                                }
-#endif
-                                printf("\n");
-                            }
                         }
                     }
-                    for (global_dst_gr = global_dst_gh->any_head;
-                            global_dst_gr != NULL;
-                            global_dst_gr = global_dst_gr->next)
-                    {
-                        printf(" - "); DetectAddressPrint(global_dst_gr);
-                        //printf(" (sh %p) ", global_dst_gr->sh);
-                        if (global_dst_gr->sh) {
-                            if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
-                                printf("(COPY)\n");
-                            } else {
-                                printf("\n");
-                            }
-                        }
-                        DetectPort *sp = global_dst_gr->port;
-                        for ( ; sp != NULL; sp = sp->next) {
-                            printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
-                            DetectPort *dp = sp->dst_ph;
-                            for ( ; dp != NULL; dp = dp->next) {
-                                printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
+                    DetectPort *sp = global_dst_gr->port;
+                    for ( ; sp != NULL; sp = sp->next) {
+                        printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
+                        DetectPort *dp = sp->dst_ph;
+                        for ( ; dp != NULL; dp = dp->next) {
+                            printf("   * Dst port(range): "); DetectPortPrint(dp);
+                            printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
 #ifdef PRINTSIGS
-                                printf(" - ");
-                                for (u = 0; u < dp->sh->sig_cnt; u++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
-                                    printf("%" PRIu32 " ", s->id);
-                                }
-#endif
-                                printf("\n");
+                            printf(" - ");
+                            for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
+                                printf("%" PRIu32 " ", s->id);
                             }
+#endif
+                            printf("\n");
                         }
                     }
                 }
-#if 0
-                for (global_src_gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]->ipv6_head; global_src_gr != NULL;
-                        global_src_gr = global_src_gr->next)
-                {
-                    printf("- "); DetectAddressPrint(global_src_gr);
-                    //printf(" (sh %p)\n", global_src_gr->sh);
-
-                    global_dst_gh = global_src_gr->dst_gh;
-                    if (global_dst_gh == NULL)
-                        continue;
-
-                    for (global_dst_gr = global_dst_gh->ipv6_head;
-                            global_dst_gr != NULL;
-                            global_dst_gr = global_dst_gr->next)
-                    {
-                        printf(" - "); DetectAddressPrint(global_dst_gr);
-                        //printf(" (sh %p) ", global_dst_gr->sh);
-                        if (global_dst_gr->sh) {
-                            if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
-                                printf("(COPY)\n");
-                            } else {
-                                printf("\n");
-                            }
-                        }
-                        DetectPort *sp = global_dst_gr->port;
-                        for ( ; sp != NULL; sp = sp->next) {
-                            printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
-                            DetectPort *dp = sp->dst_ph;
-                            for ( ; dp != NULL; dp = dp->next) {
-                                printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
-#ifdef PRINTSIGS
-                                printf(" - ");
-                                for (u = 0; u < dp->sh->sig_cnt; u++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
-                                    printf("%" PRIu32 " ", s->id);
-                                }
-#endif
-                                printf("\n");
-                            }
-                        }
-                    }
-                    for (global_dst_gr = global_dst_gh->any_head;
-                            global_dst_gr != NULL;
-                            global_dst_gr = global_dst_gr->next)
-                    {
-                        printf(" - "); DetectAddressPrint(global_dst_gr);
-                        //printf(" (sh %p) ", global_dst_gr->sh);
-                        if (global_dst_gr->sh) {
-                            if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
-                                printf("(COPY)\n");
-                            } else {
-                                printf("\n");
-                            }
-                        }
-                        DetectPort *sp = global_dst_gr->port;
-                        for ( ; sp != NULL; sp = sp->next) {
-                            printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
-                            DetectPort *dp = sp->dst_ph;
-                            for ( ; dp != NULL; dp = dp->next) {
-                                printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
-#ifdef PRINTSIGS
-                                printf(" - ");
-                                for (u = 0; u < dp->sh->sig_cnt; u++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
-                                    printf("%" PRIu32 " ", s->id);
-                                }
-#endif
-                                printf("\n");
-                            }
-                        }
-                    }
-                }
-
-                for (global_src_gr = de_ctx->dsize_gh[ds].flow_gh[f].src_gh[proto]->any_head; global_src_gr != NULL;
-                        global_src_gr = global_src_gr->next)
-                {
-                    printf("- "); DetectAddressPrint(global_src_gr);
-                    //printf(" (sh %p)\n", global_src_gr->sh);
-
-                    global_dst_gh = global_src_gr->dst_gh;
-                    if (global_dst_gh == NULL)
-                        continue;
-
-                    for (global_dst_gr = global_dst_gh->any_head;
-                            global_dst_gr != NULL;
-                            global_dst_gr = global_dst_gr->next)
-                    {
-                        printf(" - "); DetectAddressPrint(global_dst_gr);
-                        //printf(" (sh %p) ", global_dst_gr->sh);
-                        if (global_dst_gr->sh) {
-                            if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
-                                printf("(COPY)\n");
-                            } else {
-                                printf("\n");
-                            }
-                        }
-                        DetectPort *sp = global_dst_gr->port;
-                        for ( ; sp != NULL; sp = sp->next) {
-                            printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
-                            DetectPort *dp = sp->dst_ph;
-                            for ( ; dp != NULL; dp = dp->next) {
-                                printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
-#ifdef PRINTSIGS
-                                printf(" - ");
-                                for (u = 0; u < dp->sh->sig_cnt; u++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
-                                    printf("%" PRIu32 " ", s->id);
-                                }
-#endif
-                                printf("\n");
-                            }
-                        }
-                    }
-                    for (global_dst_gr = global_dst_gh->ipv4_head;
-                            global_dst_gr != NULL;
-                            global_dst_gr = global_dst_gr->next)
-                    {
-                        printf(" - "); DetectAddressPrint(global_dst_gr);
-                        //printf(" (sh %p) ", global_dst_gr->sh);
-                        if (global_dst_gr->sh) {
-                            if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
-                                printf("(COPY)\n");
-                            } else {
-                                printf("\n");
-                            }
-                        }
-                        DetectPort *sp = global_dst_gr->port;
-                        for ( ; sp != NULL; sp = sp->next) {
-                            printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
-                            DetectPort *dp = sp->dst_ph;
-                            for ( ; dp != NULL; dp = dp->next) {
-                                printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
-#ifdef PRINTSIGS
-                                printf(" - ");
-                                for (u = 0; u < dp->sh->sig_cnt; u++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
-                                    printf("%" PRIu32 " ", s->id);
-                                }
-#endif
-                                printf("\n");
-                            }
-                        }
-                    }
-                    for (global_dst_gr = global_dst_gh->ipv6_head;
-                            global_dst_gr != NULL;
-                            global_dst_gr = global_dst_gr->next)
-                    {
-                        printf(" - "); DetectAddressPrint(global_dst_gr);
-                        //printf(" (sh %p) ", global_dst_gr->sh);
-                        if (global_dst_gr->sh) {
-                            if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
-                                printf("(COPY)\n");
-                            } else {
-                                printf("\n");
-                            }
-                        }
-                        DetectPort *sp = global_dst_gr->port;
-                        for ( ; sp != NULL; sp = sp->next) {
-                            printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
-                            DetectPort *dp = sp->dst_ph;
-                            for ( ; dp != NULL; dp = dp->next) {
-                                printf("   * Dst port(range): "); DetectPortPrint(dp);
-                                printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
-#ifdef PRINTSIGS
-                                printf(" - ");
-                                for (u = 0; u < dp->sh->sig_cnt; u++) {
-                                    Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
-                                    printf("%" PRIu32 " ", s->id);
-                                }
-#endif
-                                printf("\n");
-                            }
-                        }
-                    }
-                }
-#endif
             }
+#if 0
+            for (global_src_gr = de_ctx->flow_gh[f].src_gh[proto]->ipv6_head; global_src_gr != NULL;
+                    global_src_gr = global_src_gr->next)
+            {
+                printf("- "); DetectAddressPrint(global_src_gr);
+                //printf(" (sh %p)\n", global_src_gr->sh);
+
+                global_dst_gh = global_src_gr->dst_gh;
+                if (global_dst_gh == NULL)
+                    continue;
+
+                for (global_dst_gr = global_dst_gh->ipv6_head;
+                        global_dst_gr != NULL;
+                        global_dst_gr = global_dst_gr->next)
+                {
+                    printf(" - "); DetectAddressPrint(global_dst_gr);
+                    //printf(" (sh %p) ", global_dst_gr->sh);
+                    if (global_dst_gr->sh) {
+                        if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
+                            printf("(COPY)\n");
+                        } else {
+                            printf("\n");
+                        }
+                    }
+                    DetectPort *sp = global_dst_gr->port;
+                    for ( ; sp != NULL; sp = sp->next) {
+                        printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
+                        DetectPort *dp = sp->dst_ph;
+                        for ( ; dp != NULL; dp = dp->next) {
+                            printf("   * Dst port(range): "); DetectPortPrint(dp);
+                            printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
+#ifdef PRINTSIGS
+                            printf(" - ");
+                            for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
+                                printf("%" PRIu32 " ", s->id);
+                            }
+#endif
+                            printf("\n");
+                        }
+                    }
+                }
+                for (global_dst_gr = global_dst_gh->any_head;
+                        global_dst_gr != NULL;
+                        global_dst_gr = global_dst_gr->next)
+                {
+                    printf(" - "); DetectAddressPrint(global_dst_gr);
+                    //printf(" (sh %p) ", global_dst_gr->sh);
+                    if (global_dst_gr->sh) {
+                        if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
+                            printf("(COPY)\n");
+                        } else {
+                            printf("\n");
+                        }
+                    }
+                    DetectPort *sp = global_dst_gr->port;
+                    for ( ; sp != NULL; sp = sp->next) {
+                        printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
+                        DetectPort *dp = sp->dst_ph;
+                        for ( ; dp != NULL; dp = dp->next) {
+                            printf("   * Dst port(range): "); DetectPortPrint(dp);
+                            printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
+#ifdef PRINTSIGS
+                            printf(" - ");
+                            for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
+                                printf("%" PRIu32 " ", s->id);
+                            }
+#endif
+                            printf("\n");
+                        }
+                    }
+                }
+            }
+
+            for (global_src_gr = de_ctx->flow_gh[f].src_gh[proto]->any_head; global_src_gr != NULL;
+                    global_src_gr = global_src_gr->next)
+            {
+                printf("- "); DetectAddressPrint(global_src_gr);
+                //printf(" (sh %p)\n", global_src_gr->sh);
+
+                global_dst_gh = global_src_gr->dst_gh;
+                if (global_dst_gh == NULL)
+                    continue;
+
+                for (global_dst_gr = global_dst_gh->any_head;
+                        global_dst_gr != NULL;
+                        global_dst_gr = global_dst_gr->next)
+                {
+                    printf(" - "); DetectAddressPrint(global_dst_gr);
+                    //printf(" (sh %p) ", global_dst_gr->sh);
+                    if (global_dst_gr->sh) {
+                        if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
+                            printf("(COPY)\n");
+                        } else {
+                            printf("\n");
+                        }
+                    }
+                    DetectPort *sp = global_dst_gr->port;
+                    for ( ; sp != NULL; sp = sp->next) {
+                        printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
+                        DetectPort *dp = sp->dst_ph;
+                        for ( ; dp != NULL; dp = dp->next) {
+                            printf("   * Dst port(range): "); DetectPortPrint(dp);
+                            printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
+#ifdef PRINTSIGS
+                            printf(" - ");
+                            for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
+                                printf("%" PRIu32 " ", s->id);
+                            }
+#endif
+                            printf("\n");
+                        }
+                    }
+                }
+                for (global_dst_gr = global_dst_gh->ipv4_head;
+                        global_dst_gr != NULL;
+                        global_dst_gr = global_dst_gr->next)
+                {
+                    printf(" - "); DetectAddressPrint(global_dst_gr);
+                    //printf(" (sh %p) ", global_dst_gr->sh);
+                    if (global_dst_gr->sh) {
+                        if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
+                            printf("(COPY)\n");
+                        } else {
+                            printf("\n");
+                        }
+                    }
+                    DetectPort *sp = global_dst_gr->port;
+                    for ( ; sp != NULL; sp = sp->next) {
+                        printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
+                        DetectPort *dp = sp->dst_ph;
+                        for ( ; dp != NULL; dp = dp->next) {
+                            printf("   * Dst port(range): "); DetectPortPrint(dp);
+                            printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
+#ifdef PRINTSIGS
+                            printf(" - ");
+                            for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
+                                printf("%" PRIu32 " ", s->id);
+                            }
+#endif
+                            printf("\n");
+                        }
+                    }
+                }
+                for (global_dst_gr = global_dst_gh->ipv6_head;
+                        global_dst_gr != NULL;
+                        global_dst_gr = global_dst_gr->next)
+                {
+                    printf(" - "); DetectAddressPrint(global_dst_gr);
+                    //printf(" (sh %p) ", global_dst_gr->sh);
+                    if (global_dst_gr->sh) {
+                        if (global_dst_gr->sh->flags & ADDRESS_SIGGROUPHEAD_COPY) {
+                            printf("(COPY)\n");
+                        } else {
+                            printf("\n");
+                        }
+                    }
+                    DetectPort *sp = global_dst_gr->port;
+                    for ( ; sp != NULL; sp = sp->next) {
+                        printf("  * Src port(range): "); DetectPortPrint(sp); printf("\n");
+                        DetectPort *dp = sp->dst_ph;
+                        for ( ; dp != NULL; dp = dp->next) {
+                            printf("   * Dst port(range): "); DetectPortPrint(dp);
+                            printf(" (sigs %" PRIu32 ")", dp->sh->sig_cnt);
+#ifdef PRINTSIGS
+                            printf(" - ");
+                            for (u = 0; u < dp->sh->sig_cnt; u++) {
+                                Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
+                                printf("%" PRIu32 " ", s->id);
+                            }
+#endif
+                            printf("\n");
+                        }
+                    }
+                }
+            }
+#endif
         }
     }
+
     printf("* Building signature grouping structure, stage 5: print... done\n");
     return 0;
 }
@@ -7240,7 +7117,7 @@ static int SigTestSgh01 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7273,7 +7150,7 @@ static int SigTestSgh01 (void) {
 
     p.dp = 81;
 
-    SigGroupHead *sgh2 = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    SigGroupHead *sgh2 = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh2 == NULL) {
         printf("no sgh2: ");
         goto end;
@@ -7372,7 +7249,7 @@ static int SigTestSgh02 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7410,7 +7287,7 @@ static int SigTestSgh02 (void) {
 #endif
     p.dp = 81;
 
-    sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7446,7 +7323,7 @@ static int SigTestSgh02 (void) {
 #endif
     p.dp = 82;
 
-    sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7476,7 +7353,7 @@ static int SigTestSgh02 (void) {
     p.src.family = AF_INET6;
     p.dst.family = AF_INET6;
 
-    sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7565,7 +7442,7 @@ static int SigTestSgh03 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7604,7 +7481,7 @@ static int SigTestSgh03 (void) {
 
     p.dst.addr_data32[0] = 0x05030201;
 
-    sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7643,7 +7520,7 @@ static int SigTestSgh03 (void) {
 
     p.dst.addr_data32[0] = 0x06030201;
 
-    sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7733,7 +7610,7 @@ static int SigTestSgh04 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7771,7 +7648,7 @@ static int SigTestSgh04 (void) {
 #endif
     p.dst.addr_data32[0] = 0x05030201;
 
-    sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7807,7 +7684,7 @@ static int SigTestSgh04 (void) {
 #endif
     p.dst.addr_data32[0] = 0x06030201;
 
-    sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7836,7 +7713,7 @@ static int SigTestSgh04 (void) {
 #endif
     p.proto = IPPROTO_GRE;
 
-    sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -7900,7 +7777,7 @@ static int SigTestSgh05 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(&th_v, de_ctx, det_ctx, &p);
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;

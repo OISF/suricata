@@ -141,17 +141,6 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
     const char *max_uniq_toserver_sp_groups_str = NULL;
     const char *max_uniq_toserver_dp_groups_str = NULL;
 
-    const char *max_uniq_small_toclient_src_groups_str = NULL;
-    const char *max_uniq_small_toclient_dst_groups_str = NULL;
-    const char *max_uniq_small_toclient_sp_groups_str = NULL;
-    const char *max_uniq_small_toclient_dp_groups_str = NULL;
-
-    const char *max_uniq_small_toserver_src_groups_str = NULL;
-    const char *max_uniq_small_toserver_dst_groups_str = NULL;
-    const char *max_uniq_small_toserver_sp_groups_str = NULL;
-    const char *max_uniq_small_toserver_dp_groups_str = NULL;
-
-
     ConfNode *de_ctx_custom = ConfGetNode("detect-engine");
     ConfNode *opt = NULL;
 
@@ -191,33 +180,19 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
             de_ctx->max_uniq_toserver_dst_groups = 2;
             de_ctx->max_uniq_toserver_sp_groups = 2;
             de_ctx->max_uniq_toserver_dp_groups = 3;
-            de_ctx->max_uniq_small_toclient_src_groups = 2;
-            de_ctx->max_uniq_small_toclient_dst_groups = 2;
-            de_ctx->max_uniq_small_toclient_sp_groups = 2;
-            de_ctx->max_uniq_small_toclient_dp_groups = 3;
-            de_ctx->max_uniq_small_toserver_src_groups = 2;
-            de_ctx->max_uniq_small_toserver_dst_groups = 2;
-            de_ctx->max_uniq_small_toserver_sp_groups = 2;
-            de_ctx->max_uniq_small_toserver_dp_groups = 3;
-        break;
+            break;
+
         case ENGINE_PROFILE_HIGH:
-            de_ctx->max_uniq_toclient_src_groups = 5;
-            de_ctx->max_uniq_toclient_dst_groups = 5;
-            de_ctx->max_uniq_toclient_sp_groups = 5;
-            de_ctx->max_uniq_toclient_dp_groups = 10;
-            de_ctx->max_uniq_toserver_src_groups = 5;
-            de_ctx->max_uniq_toserver_dst_groups = 5;
-            de_ctx->max_uniq_toserver_sp_groups = 5;
-            de_ctx->max_uniq_toserver_dp_groups = 30;
-            de_ctx->max_uniq_small_toclient_src_groups = 5;
-            de_ctx->max_uniq_small_toclient_dst_groups = 5;
-            de_ctx->max_uniq_small_toclient_sp_groups = 5;
-            de_ctx->max_uniq_small_toclient_dp_groups = 10;
-            de_ctx->max_uniq_small_toserver_src_groups = 5;
-            de_ctx->max_uniq_small_toserver_dst_groups = 5;
-            de_ctx->max_uniq_small_toserver_sp_groups = 5;
-            de_ctx->max_uniq_small_toserver_dp_groups = 10;
-        break;
+            de_ctx->max_uniq_toclient_src_groups = 15;
+            de_ctx->max_uniq_toclient_dst_groups = 15;
+            de_ctx->max_uniq_toclient_sp_groups = 15;
+            de_ctx->max_uniq_toclient_dp_groups = 20;
+            de_ctx->max_uniq_toserver_src_groups = 15;
+            de_ctx->max_uniq_toserver_dst_groups = 15;
+            de_ctx->max_uniq_toserver_sp_groups = 15;
+            de_ctx->max_uniq_toserver_dp_groups = 40;
+            break;
+
         case ENGINE_PROFILE_CUSTOM:
             TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
                 if (strncmp(opt->val, "custom-values", 3) == 0) {
@@ -237,22 +212,6 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
                             (opt->head.tqh_first, "toserver_sp_groups");
                     max_uniq_toserver_dp_groups_str = ConfNodeLookupChildValue
                             (opt->head.tqh_first, "toserver_dp_groups");
-                    max_uniq_small_toclient_src_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "small_toclient_src_groups");
-                    max_uniq_small_toclient_dst_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "small_toclient_dst_groups");
-                    max_uniq_small_toclient_sp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "small_toclient_sp_groups");
-                    max_uniq_small_toclient_dp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "small_toclient_dp_groups");
-                    max_uniq_small_toserver_src_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "small_toserver_src_groups");
-                    max_uniq_small_toserver_dst_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "small_toserver_dst_groups");
-                    max_uniq_small_toserver_sp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "small_toserver_sp_groups");
-                    max_uniq_small_toserver_dp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "small_toserver_dp_groups");
                 }
             }
             if (max_uniq_toclient_src_groups_str != NULL) {
@@ -319,96 +278,22 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
             } else {
                 de_ctx->max_uniq_toserver_dp_groups = 2;
             }
-            if (max_uniq_small_toclient_src_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_small_toclient_src_groups, 10,
-                    strlen(max_uniq_small_toclient_src_groups_str),
-                    (const char *)max_uniq_small_toclient_src_groups_str) <= 0)
-                        de_ctx->max_uniq_small_toclient_src_groups = 2;
-            } else {
-                de_ctx->max_uniq_small_toclient_src_groups = 2;
-            }
-            if (max_uniq_small_toclient_dst_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_small_toclient_dst_groups, 10,
-                    strlen(max_uniq_small_toclient_dst_groups_str),
-                    (const char *)max_uniq_small_toclient_dst_groups_str) <= 0)
-                        de_ctx->max_uniq_small_toclient_dst_groups = 2;
-            } else {
-                de_ctx->max_uniq_small_toclient_dst_groups = 2;
-            }
-            if (max_uniq_small_toclient_sp_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_small_toclient_sp_groups, 10,
-                    strlen(max_uniq_small_toclient_sp_groups_str),
-                    (const char *)max_uniq_small_toclient_sp_groups_str) <= 0)
-                        de_ctx->max_uniq_small_toclient_sp_groups = 2;
-            } else {
-                de_ctx->max_uniq_small_toclient_sp_groups = 2;
-            }
-            if (max_uniq_small_toclient_dp_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_small_toclient_dp_groups, 10,
-                    strlen(max_uniq_small_toclient_dp_groups_str),
-                    (const char *)max_uniq_small_toclient_dp_groups_str) <= 0)
-                        de_ctx->max_uniq_small_toclient_dp_groups = 2;
-            } else {
-                de_ctx->max_uniq_small_toclient_dp_groups = 2;
-            }
-            if (max_uniq_small_toserver_src_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_small_toserver_src_groups, 10,
-                    strlen(max_uniq_small_toserver_src_groups_str),
-                    (const char *)max_uniq_small_toserver_src_groups_str) <= 0)
-                        de_ctx->max_uniq_small_toserver_src_groups = 2;
-            } else {
-                de_ctx->max_uniq_small_toserver_src_groups = 2;
-            }
-            if (max_uniq_small_toserver_dst_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_small_toserver_dst_groups, 10,
-                    strlen(max_uniq_small_toserver_dst_groups_str),
-                    (const char *)max_uniq_small_toserver_dst_groups_str) <= 0)
-                        de_ctx->max_uniq_small_toserver_dst_groups = 2;
-            } else {
-                de_ctx->max_uniq_small_toserver_dst_groups = 2;
-            }
-            if (max_uniq_small_toserver_sp_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_small_toserver_sp_groups, 10,
-                    strlen(max_uniq_small_toserver_sp_groups_str),
-                    (const char *)max_uniq_small_toserver_sp_groups_str) <= 0)
-                        de_ctx->max_uniq_small_toserver_sp_groups = 2;
-            } else {
-                de_ctx->max_uniq_small_toserver_sp_groups = 2;
-            }
-            if (max_uniq_small_toserver_dp_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_small_toserver_dp_groups, 10,
-                    strlen(max_uniq_small_toserver_dp_groups_str),
-                    (const char *)max_uniq_small_toserver_dp_groups_str) <= 0)
-                        de_ctx->max_uniq_small_toserver_dp_groups = 2;
-            } else {
-                de_ctx->max_uniq_small_toserver_dp_groups = 2;
-            }
+            break;
 
-        break;
         /* Default (or no config provided) is profile medium */
         case ENGINE_PROFILE_MEDIUM:
         case ENGINE_PROFILE_UNKNOWN:
         default:
-            de_ctx->max_uniq_toclient_src_groups = 2;
-            de_ctx->max_uniq_toclient_dst_groups = 2;
-            de_ctx->max_uniq_toclient_sp_groups = 2;
-            de_ctx->max_uniq_toclient_dp_groups = 3;
+            de_ctx->max_uniq_toclient_src_groups = 4;
+            de_ctx->max_uniq_toclient_dst_groups = 4;
+            de_ctx->max_uniq_toclient_sp_groups = 4;
+            de_ctx->max_uniq_toclient_dp_groups = 6;
 
-            de_ctx->max_uniq_toserver_src_groups = 2;
-            de_ctx->max_uniq_toserver_dst_groups = 4;
-            de_ctx->max_uniq_toserver_sp_groups = 2;
-            de_ctx->max_uniq_toserver_dp_groups = 25;
-
-            de_ctx->max_uniq_small_toclient_src_groups = 2;
-            de_ctx->max_uniq_small_toclient_dst_groups = 2;
-            de_ctx->max_uniq_small_toclient_sp_groups = 2;
-            de_ctx->max_uniq_small_toclient_dp_groups = 2;
-
-            de_ctx->max_uniq_small_toserver_src_groups = 2;
-            de_ctx->max_uniq_small_toserver_dst_groups = 2;
-            de_ctx->max_uniq_small_toserver_sp_groups = 2;
-            de_ctx->max_uniq_small_toserver_dp_groups = 8;
-        break;
+            de_ctx->max_uniq_toserver_src_groups = 4;
+            de_ctx->max_uniq_toserver_dst_groups = 8;
+            de_ctx->max_uniq_toserver_sp_groups = 4;
+            de_ctx->max_uniq_toserver_dp_groups = 30;
+            break;
     }
 
     if (profile == ENGINE_PROFILE_UNKNOWN)

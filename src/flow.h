@@ -59,6 +59,11 @@
 /** All packets in this flow should be accepted */
 #define FLOW_ACTION_PASS            0x0400
 
+/** Sgh for toserver direction set (even if it's NULL) */
+#define FLOW_SGH_TOSERVER           0x0800
+/** Sgh for toclient direction set (even if it's NULL) */
+#define FLOW_SGH_TOCLIENT           0x1000
+
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER               0x01
 #define FLOW_PKT_TOCLIENT               0x02
@@ -160,6 +165,13 @@ typedef struct Flow_
     /** detection engine state */
     struct DetectEngineState_ *de_state;
 
+    /** toclient sgh for this flow. Only use when FLOW_SGH_TOCLIENT flow flag
+     *  has been set. */
+    struct SigGroupHead_ *sgh_toclient;
+    /** toserver sgh for this flow. Only use when FLOW_SGH_TOSERVER flow flag
+     *  has been set. */
+    struct SigGroupHead_ *sgh_toserver;
+
     SCMutex m;
 
     /* list flow ptrs
@@ -195,6 +207,7 @@ void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, char);
+void FlowSetIPOnlyFlagNoLock(Flow *, char);
 void FlowDecrUsecnt(ThreadVars *, Packet *);
 uint32_t FlowPruneFlowsCnt(struct timeval *, int);
 uint32_t FlowKillFlowsCnt(int);

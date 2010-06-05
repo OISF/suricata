@@ -64,7 +64,7 @@ defrag:
   prealloc: yes
   timeout: 60
 
-# The detection engine build internal groups of signatures. The engine
+# The detection engine builds internal groups of signatures. The engine
 # allow us to specify the profile to use for them, to manage memory on an
 # efficient way keeping a good performance. For the profile keyword you
 # can use the words "low", "medium", "high" or "custom". If you use custom
@@ -81,14 +81,6 @@ detect-engine:
       toserver_dst_groups: 4
       toserver_sp_groups: 2
       toserver_dp_groups: 25
-      small_toclient_src_groups: 2
-      small_toclient_dst_groups: 2
-      small_toclient_sp_groups: 2
-      small_toclient_dp_groups: 2
-      small_toserver_src_groups: 2
-      small_toserver_dst_groups: 2
-      small_toserver_sp_groups: 2
-      small_toserver_dp_groups: 8
 
 
 # Select the multi pattern algorithm you want to run for scan/search the
@@ -455,6 +447,9 @@ libhtp:
            - 192.168.10.0/24
          personality: IIS_7_0
 
+# rule profiling settings. Only effective if Suricata has been built with the
+# the --enable-profiling configure flag.
+#
 profiling:
 
   rules:
@@ -468,3 +463,4 @@ profiling:
 
     # Limit the number of items printed at exit.
     limit: 100
+

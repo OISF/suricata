@@ -163,15 +163,11 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                     (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
                     SCLogDebug("testing against \"ip-only\" signatures");
 
-                    /* save in the flow that we scanned this direction... locking is
-                     * done in the FlowSetIPOnlyFlag function. */
-
-                    /** \todo locking overhead: locked/unlocked twice */
                     if (p->flow != NULL) {
-                        FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
-
                         /* Update flow flags for iponly */
                         SCMutexLock(&p->flow->m);
+                        FlowSetIPOnlyFlagNoLock(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
+
                         if (s->action & ACTION_DROP)
                             p->flow->flags |= FLOW_ACTION_DROP;
                         if (s->action & ACTION_REJECT)

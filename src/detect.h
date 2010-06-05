@@ -331,15 +331,6 @@ typedef struct DetectEngineLookupFlow_ {
  * to client
  */
 #define FLOW_STATES 2
-typedef struct DetectEngineLookupDsize_ {
-    DetectEngineLookupFlow flow_gh[FLOW_STATES];
-} DetectEngineLookupDsize;
-
-/* Dsize states
- * <= 100
- * >100
- */
-#define DSIZE_STATES 2
 
 /* mpm pattern id api */
 typedef struct MpmPatternIdStore_ {
@@ -381,7 +372,7 @@ typedef struct DetectEngineCtx_ {
     HashTable *class_conf_ht;
 
     /* main sigs */
-    DetectEngineLookupDsize dsize_gh[DSIZE_STATES];
+    DetectEngineLookupFlow flow_gh[FLOW_STATES];
 
     uint32_t mpm_unique, mpm_reuse, mpm_none,
         mpm_uri_unique, mpm_uri_reuse, mpm_uri_none;
@@ -431,7 +422,7 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_toserver_dst_groups;
     uint16_t max_uniq_toserver_sp_groups;
     uint16_t max_uniq_toserver_dp_groups;
-
+/*
     uint16_t max_uniq_small_toclient_src_groups;
     uint16_t max_uniq_small_toclient_dst_groups;
     uint16_t max_uniq_small_toclient_sp_groups;
@@ -441,7 +432,7 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_small_toserver_dst_groups;
     uint16_t max_uniq_small_toserver_sp_groups;
     uint16_t max_uniq_small_toserver_dp_groups;
-
+*/
     /** hash table for looking up patterns for
      *  id sharing and id tracking. */
     MpmPatternIdStore *mpm_pattern_id_store;
@@ -719,6 +710,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
 
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s);
-SigGroupHead *SigMatchSignaturesGetSgh(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
+SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
 #endif /* __DETECT_H__ */
 

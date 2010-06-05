@@ -43,6 +43,8 @@
     (f)->use_cnt = 0; \
     DetectEngineStateFree((f)->de_state); \
     (f)->de_state = NULL; \
+    (f)->sgh_toserver = NULL; \
+    (f)->sgh_toclient = NULL; \
 }
 
 Flow *FlowAlloc(void);

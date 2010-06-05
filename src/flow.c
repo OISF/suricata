@@ -540,6 +540,15 @@ void FlowSetIPOnlyFlag(Flow *f, char direction) {
     SCMutexUnlock(&f->m);
 }
 
+/** \brief Set the IPOnly scanned flag for 'direction'.
+  *
+  * \param f Flow to set the flag in
+  * \param direction direction to set the flag in
+  */
+void FlowSetIPOnlyFlagNoLock(Flow *f, char direction) {
+    direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) : (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
+}
+
 /** \brief increase the use cnt of a flow
  *  \param tv thread vars (\todo unused?)
  *  \param p packet with flow to decrease use cnt for
