@@ -514,8 +514,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* grab the protocol state we will detect on */
     if (p->flow != NULL) {
+        FlowIncrUsecnt(p->flow);
+
         SCMutexLock(&p->flow->m);
-        p->flow->use_cnt++;
         alstate = AppLayerGetProtoStateFromPacket(p);
         alproto = AppLayerGetProtoFromPacket(p);
         if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
@@ -853,8 +854,9 @@ end:
             p->flow->sgh_toclient = det_ctx->sgh;
             p->flow->flags |= FLOW_SGH_TOCLIENT;
         }
-        p->flow->use_cnt--;
         SCMutexUnlock(&p->flow->m);
+
+        FlowDecrUsecnt(p->flow);
     }
 
     SCReturnInt(fmatch);

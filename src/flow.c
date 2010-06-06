@@ -228,13 +228,16 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
 
     /** never prune a flow that is used by a packet or stream msg
      *  we are currently processing in one of the threads */
-    if (f->use_cnt > 0) {
-        SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", f->use_cnt, f, f->proto);
+    if (SC_ATOMIC_GET(f->use_cnt) > 0) {
+        SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", SC_ATOMIC_GET(f->use_cnt), f, f->proto);
         SCSpinUnlock(&f->fb->s);
         SCMutexUnlock(&f->m);
         SCLogDebug("it is in one of the threads");
         return 0;
     }
+
+    /* this should not be possible */
+    BUG_ON(SC_ATOMIC_GET(f->use_cnt) > 0);
 
     /* remove from the hash */
     if (f->hprev)
@@ -378,7 +381,7 @@ int FlowKill (FlowQueue *q)
 
         /** never prune a flow that is used by a packet or stream msg
          *  we are currently processing in one of the threads */
-        if (f->use_cnt > 0) {
+        if (SC_ATOMIC_GET(f->use_cnt) > 0) {
             SCSpinUnlock(&f->fb->s);
             SCMutexUnlock(&f->m);
             f = f->lnext;
@@ -549,30 +552,27 @@ void FlowSetIPOnlyFlagNoLock(Flow *f, char direction) {
     direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) : (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
 }
 
-/** \brief increase the use cnt of a flow
- *  \param tv thread vars (\todo unused?)
- *  \param p packet with flow to decrease use cnt for
+/**
+ *  \brief increase the use cnt of a flow
+ *
+ *  \param f flow to decrease use cnt for
  */
-void FlowIncrUsecnt(ThreadVars *tv, Packet *p) {
-    if (p == NULL || p->flow == NULL)
+void FlowIncrUsecnt(Flow *f) {
+    if (f == NULL)
         return;
 
-    SCMutexLock(&p->flow->m);
-    p->flow->use_cnt++;
-    SCMutexUnlock(&p->flow->m);
+    SC_ATOMIC_ADD(f->use_cnt, 1);
 }
-/** \brief decrease the use cnt of a flow
- *  \param tv thread vars (\todo unused?)
- *  \param p packet with flow to decrease use cnt for
+/**
+ *  \brief decrease the use cnt of a flow
+ *
+ *  \param f flow to decrease use cnt for
  */
-void FlowDecrUsecnt(ThreadVars *tv, Packet *p) {
-    if (p == NULL || p->flow == NULL)
+void FlowDecrUsecnt(Flow *f) {
+    if (f == NULL)
         return;
 
-    SCMutexLock(&p->flow->m);
-    if (p->flow->use_cnt > 0)
-        p->flow->use_cnt--;
-    SCMutexUnlock(&p->flow->m);
+    SC_ATOMIC_SUB(f->use_cnt, 1);
 }
 
 #define TOSERVER 0
@@ -644,8 +644,6 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
     Flow *f = FlowGetFlowFromHash(p);
     if (f == NULL)
         return;
-
-    f->use_cnt++;
 
     /* update the last seen timestamp of this flow */
     COPY_TIMESTAMP(&p->ts, &f->lastts);
@@ -1308,7 +1306,7 @@ static int FlowClearMemory(Flow* f, uint8_t proto_map) {
         flow_proto[proto_map].Freefunc(f->protoctx);
     }
 
-    CLEAR_FLOW(f);
+    FLOW_DESTROY(f);
 
     SCReturnInt(1);
 }
@@ -1553,6 +1551,7 @@ static int FlowTestPrune(Flow *f, struct timeval *ts) {
         goto error;
     }
 
+    SCLogDebug("calling FlowPrune");
     FlowPrune(q, ts);
     if (q->len != 0) {
         printf("Failed in prunning the flow: ");
@@ -1593,7 +1592,8 @@ static int FlowTest03 (void) {
     memset(&fb, 0, sizeof(FlowBucket));
 
     SCSpinInit(&fb.s, 0);
-    SCMutexInit(&f.m, NULL);
+
+    FLOW_INITIALIZE(&f);
 
     TimeGet(&ts);
     f.lastts.tv_sec = ts.tv_sec - 5000;

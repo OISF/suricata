@@ -26,26 +26,60 @@
 
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
 
-/* only clear the parts that won't be overwritten
- * in FlowInit anyway */
-#define CLEAR_FLOW(f) { \
-    (f)->sp = 0; \
-    (f)->dp = 0; \
-    (f)->flags = 0; \
-    (f)->todstpktcnt = 0; \
-    (f)->tosrcpktcnt = 0; \
-    (f)->bytecnt = 0; \
-    (f)->lastts.tv_sec = 0; \
-    (f)->lastts.tv_usec = 0; \
-    GenericVarFree((f)->flowvar); \
-    (f)->flowvar = NULL; \
-    (f)->protoctx = NULL; \
-    (f)->use_cnt = 0; \
-    DetectEngineStateFree((f)->de_state); \
-    (f)->de_state = NULL; \
-    (f)->sgh_toserver = NULL; \
-    (f)->sgh_toclient = NULL; \
-}
+#define FLOW_INITIALIZE(f) do { \
+        SCMutexInit(&(f)->m, NULL); \
+        (f)->lnext = NULL; \
+        (f)->lprev = NULL; \
+        (f)->hnext = NULL; \
+        (f)->hprev = NULL; \
+        (f)->sp = 0; \
+        (f)->dp = 0; \
+        (f)->flags = 0; \
+        (f)->todstpktcnt = 0; \
+        (f)->tosrcpktcnt = 0; \
+        (f)->bytecnt = 0; \
+        (f)->lastts.tv_sec = 0; \
+        (f)->lastts.tv_usec = 0; \
+        (f)->flowvar = NULL; \
+        (f)->protoctx = NULL; \
+        SC_ATOMIC_INIT((f)->use_cnt); \
+        (f)->de_state = NULL; \
+        (f)->sgh_toserver = NULL; \
+        (f)->sgh_toclient = NULL; \
+    } while (0)
+
+#define FLOW_RECYCLE(f) do { \
+        (f)->lnext = NULL; \
+        (f)->lprev = NULL; \
+        (f)->hnext = NULL; \
+        (f)->hprev = NULL; \
+        (f)->sp = 0; \
+        (f)->dp = 0; \
+        (f)->flags = 0; \
+        (f)->todstpktcnt = 0; \
+        (f)->tosrcpktcnt = 0; \
+        (f)->bytecnt = 0; \
+        (f)->lastts.tv_sec = 0; \
+        (f)->lastts.tv_usec = 0; \
+        GenericVarFree((f)->flowvar); \
+        (f)->flowvar = NULL; \
+        (f)->protoctx = NULL; \
+        SC_ATOMIC_RESET((f)->use_cnt); \
+        DetectEngineStateFree((f)->de_state); \
+        (f)->de_state = NULL; \
+        (f)->sgh_toserver = NULL; \
+        (f)->sgh_toclient = NULL; \
+    } while(0)
+
+#define FLOW_DESTROY(f) do { \
+        SCMutexDestroy(&(f)->m); \
+        GenericVarFree((f)->flowvar); \
+        (f)->flowvar = NULL; \
+        (f)->protoctx = NULL; \
+        SC_ATOMIC_DESTROY((f)->use_cnt); \
+        DetectEngineStateFree((f)->de_state); \
+        (f)->de_state = NULL; \
+    } while(0)
 
 Flow *FlowAlloc(void);
 Flow *FlowAllocDirect(void);

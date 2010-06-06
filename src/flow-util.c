@@ -37,7 +37,13 @@
 #include "detect.h"
 #include "detect-engine-state.h"
 
-/* Allocate a flow */
+/** \brief allocate a flow
+ *
+ *  We check against the memuse counter. If it passes that check we increment
+ *  the counter first, then we try to alloc.
+ *
+ *  \retval f the flow or NULL on out of memory
+ */
 Flow *FlowAlloc(void)
 {
     Flow *f;
@@ -46,27 +52,29 @@ Flow *FlowAlloc(void)
         return NULL;
     }
 
+    SC_ATOMIC_ADD(flow_memuse, sizeof(Flow));
+
     f = SCMalloc(sizeof(Flow));
     if (f == NULL) {
+        SC_ATOMIC_SUB(flow_memuse, sizeof(Flow));
         return NULL;
     }
 
-    SC_ATOMIC_ADD(flow_memuse, sizeof(Flow));
 
-    SCMutexInit(&f->m, NULL);
-    f->lnext = NULL;
-    f->lprev = NULL;
-    f->hnext = NULL;
-    f->hprev = NULL;
+    FLOW_INITIALIZE(f);
 
     return f;
 }
 
 
-/** free the memory of a flow */
+/**
+ *  \brief cleanup & free the memory of a flow
+ *
+ *  \param f flow to clear & destroy
+ */
 void FlowFree(Flow *f)
 {
-    SCMutexDestroy(&f->m);
+    FLOW_DESTROY(f);
     SCFree(f);
 
     SC_ATOMIC_SUB(flow_memuse, sizeof(Flow));
@@ -98,10 +106,6 @@ void FlowInit(Flow *f, Packet *p)
 {
     SCEnter();
     SCLogDebug("flow %p", f);
-
-    f->flowvar = NULL;
-    f->de_state = NULL;
-    CLEAR_FLOW(f);
 
     f->proto = p->proto;
     f->recursion_level = p->recursion_level;

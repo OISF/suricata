@@ -26,6 +26,7 @@
 
 #include "decode.h"
 #include "util-var.h"
+#include "util-atomic.h"
 
 #define FLOW_QUIET      TRUE
 #define FLOW_VERBOSE    FALSE
@@ -159,8 +160,13 @@ typedef struct Flow_
     /** protocol specific data pointer, e.g. for TcpSession */
     void *protoctx;
 
-    /** how many pkts and stream msgs are using the flow *right now* */
-    uint16_t use_cnt;
+    /** how many pkts and stream msgs are using the flow *right now*. This
+     *  variable is atomic so not protected by the Flow mutex "m".
+     *
+     *  On receiving a packet the counter is incremented while the flow
+     *  bucked is locked, which is also the case on timeout pruning.
+     */
+    SC_ATOMIC_DECLARE(unsigned short, use_cnt);
 
     /** detection engine state */
     struct DetectEngineState_ *de_state;
@@ -208,7 +214,10 @@ void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, char);
 void FlowSetIPOnlyFlagNoLock(Flow *, char);
-void FlowDecrUsecnt(ThreadVars *, Packet *);
+
+void FlowIncrUsecnt(Flow *);
+void FlowDecrUsecnt(Flow *);
+
 uint32_t FlowPruneFlowsCnt(struct timeval *, int);
 uint32_t FlowKillFlowsCnt(int);
 

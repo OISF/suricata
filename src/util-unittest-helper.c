@@ -702,7 +702,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir) {
         }
         FlowHandlePacket(NULL, p);
         if (p->flow != NULL)
-            p->flow->use_cnt = 0;
+            SC_ATOMIC_RESET(p->flow->use_cnt);
 
         /* Now the queues shoul be updated */
         UTHFreePacket(p);

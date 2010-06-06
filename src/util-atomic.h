@@ -67,14 +67,25 @@
  *  \brief Initialize the previously declared atomic variable and it's
  *         lock.
  */
-#define SC_ATOMIC_INIT(name) \
-    SCSpinInit(&(name ## _sc_lock__), 0)
+#define SC_ATOMIC_INIT(name) do { \
+        SCSpinInit(&(name ## _sc_lock__), 0); \
+        (name ## _sc_atomic__) = 0; \
+    } while(0)
+
+/**
+ *  \brief Initialize the previously declared atomic variable and it's
+ *         lock.
+ */
+#define SC_ATOMIC_RESET(name) do { \
+        (name ## _sc_atomic__) = 0; \
+    } while(0)
 
 /**
  *  \brief Destroy the lock used to protect this variable
  */
-#define SC_ATOMIC_DESTROY(name) \
-    SCSpinDestroy(&(name ## _sc_lock__))
+#define SC_ATOMIC_DESTROY(name) do { \
+        SCSpinDestroy(&(name ## _sc_lock__)); \
+    } while (0)
 
 /**
  *  \brief add a value to our atomic variable
@@ -198,6 +209,12 @@
  *  \brief wrapper for initializing an atomic variable.
  **/
 #define SC_ATOMIC_INIT(name) \
+    (name ## _sc_atomic__) = 0
+
+/**
+ *  \brief wrapper for reinitializing an atomic variable.
+ **/
+#define SC_ATOMIC_RESET(name) \
     (name ## _sc_atomic__) = 0
 
 /**

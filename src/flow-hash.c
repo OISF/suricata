@@ -28,7 +28,7 @@
 #include "threads.h"
 
 #include "decode.h"
-#include "debug.h"
+#include "detect-engine-state.h"
 
 #include "flow.h"
 #include "flow-hash.h"
@@ -345,11 +345,16 @@ static Flow *FlowGetNew(Packet *p) {
             return NULL;
         }
 
-        /* f is locked */
+        /* flow is initialized but *unlocked* */
     } else {
-        SCMutexLock(&f->m);
+        FLOW_RECYCLE(f);
+
+        /* flow is initialized (recylced) but *unlocked* */
     }
 
+    FlowIncrUsecnt(f);
+
+    SCMutexLock(&f->m);
     return f;
 }
 
@@ -391,15 +396,12 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
         /* flow is locked */
 
-        /* these are protected by the bucket lock */
-        f->hnext = NULL;
-        f->hprev = NULL;
-
         /* got one, now lock, initialize and return */
         FlowInit(f,p);
-        FlowRequeue(f, NULL, &flow_new_q[f->protomap], 1);
         f->flags |= FLOW_NEW_LIST;
         f->fb = fb;
+
+        FlowRequeue(f, NULL, &flow_new_q[f->protomap], 1);
 
         SCSpinUnlock(&fb->s);
         FlowHashCountUpdate;
@@ -429,15 +431,15 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
                 /* flow is locked */
 
-                f->hnext = NULL;
                 f->hprev = pf;
 
                 /* initialize and return */
                 FlowInit(f,p);
-                FlowRequeue(f, NULL, &flow_new_q[f->protomap], 1);
 
                 f->flags |= FLOW_NEW_LIST;
                 f->fb = fb;
+
+                FlowRequeue(f, NULL, &flow_new_q[f->protomap], 1);
 
                 SCSpinUnlock(&fb->s);
                 FlowHashCountUpdate;
@@ -455,7 +457,8 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 fb->f->hprev = f;
                 fb->f = f;
 
-                /* found our flow */
+                /* found our flow, lock & return */
+                FlowIncrUsecnt(f);
                 SCMutexLock(&f->m);
                 SCSpinUnlock(&fb->s);
                 FlowHashCountUpdate;
@@ -464,10 +467,9 @@ Flow *FlowGetFlowFromHash (Packet *p)
         }
     }
 
-    if (f != NULL) {
-        SCMutexLock(&f->m);
-    }
-
+    /* lock & return */
+    FlowIncrUsecnt(f);
+    SCMutexLock(&f->m);
     SCSpinUnlock(&fb->s);
     FlowHashCountUpdate;
     return f;

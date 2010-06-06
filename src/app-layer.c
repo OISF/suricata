@@ -180,7 +180,7 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
     }
 
     /* flow is free again */
-    smsg->flow->use_cnt--;
+    FlowDecrUsecnt(smsg->flow);
 
     /* return the used message to the queue */
     StreamMsgReturnToPool(smsg);

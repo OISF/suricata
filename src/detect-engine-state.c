@@ -853,7 +853,7 @@ static int DeStateTest04(void) {
 
     result = 1;
 end:
-    CLEAR_FLOW(&f);
+    FLOW_DESTROY(&f);
 
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);

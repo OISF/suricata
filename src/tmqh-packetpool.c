@@ -133,7 +133,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }
 
-    FlowDecrUsecnt(t,p);
+    FlowDecrUsecnt(p->flow);
 
     /* we're done with the tunnel root now as well */
     if (proot == 1) {
