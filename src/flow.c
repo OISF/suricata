@@ -703,7 +703,7 @@ void FlowInitConfig (char quiet)
         SCLogInfo("initializing flow engine...");
 
     memset(&flow_config,  0, sizeof(flow_config));
-    flow_memuse = 0;
+    SC_ATOMIC_INIT(flow_memuse);
 
     int ifq = 0;
     FlowQueueInit(&flow_spare_q);
@@ -712,7 +712,6 @@ void FlowInitConfig (char quiet)
         FlowQueueInit(&flow_est_q[ifq]);
         FlowQueueInit(&flow_close_q[ifq]);
     }
-    SCMutexInit(&flow_memuse_mutex, NULL);
 
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
@@ -782,25 +781,23 @@ void FlowInitConfig (char quiet)
     memset(flow_hash, 0, flow_config.hash_size * sizeof(FlowBucket));
     for (i = 0; i < flow_config.hash_size; i++)
         SCSpinInit(&flow_hash[i].s, 0);
-    flow_memuse += (flow_config.hash_size * sizeof(FlowBucket));
+    SC_ATOMIC_ADD(flow_memuse, (flow_config.hash_size * sizeof(FlowBucket)));
 
     if (quiet == FALSE)
         SCLogInfo("allocated %" PRIu32 " bytes of memory for the flow hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
-                  flow_memuse, flow_config.hash_size,
+                  SC_ATOMIC_GET(flow_memuse), flow_config.hash_size,
                   (uintmax_t)sizeof(FlowBucket));
 
     /* pre allocate flows */
     for (i = 0; i < flow_config.prealloc; i++) {
-        if (flow_memuse + sizeof(Flow) > flow_config.memcap) {
-            SCMutexUnlock(&flow_memuse_mutex);
+        if (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) > flow_config.memcap) {
             printf("ERROR: FlowAlloc failed (max flow memcap reached): %s\n", strerror(errno));
             exit(1);
         }
 
         Flow *f = FlowAlloc();
         if (f == NULL) {
-            SCMutexUnlock(&flow_memuse_mutex);
             printf("ERROR: FlowAlloc failed: %s\n", strerror(errno));
             exit(1);
         }
@@ -811,7 +808,7 @@ void FlowInitConfig (char quiet)
         SCLogInfo("preallocated %" PRIu32 " flows of size %" PRIuMAX "",
                 flow_spare_q.len, (uintmax_t)sizeof(Flow));
         SCLogInfo("flow memory usage: %" PRIu32 " bytes, maximum: %" PRIu32 "",
-                flow_memuse, flow_config.memcap);
+                SC_ATOMIC_GET(flow_memuse), flow_config.memcap);
     }
 
     FlowInitFlowProto();
@@ -902,7 +899,7 @@ void FlowShutdown(void) {
         SCFree(flow_hash);
         flow_hash = NULL;
     }
-    flow_memuse -= flow_config.hash_size * sizeof(FlowBucket);
+    SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
 
     int ifq = 0;
     FlowQueueDestroy(&flow_spare_q);
@@ -911,8 +908,6 @@ void FlowShutdown(void) {
         FlowQueueDestroy(&flow_est_q[ifq]);
         FlowQueueDestroy(&flow_close_q[ifq]);
     }
-
-    SCMutexDestroy(&flow_memuse_mutex);
 }
 
 /** \brief Thread that manages the various queue's and removes timed out flows.
@@ -1790,7 +1785,7 @@ static int FlowTest07 (void) {
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
-    while (flow_memuse + sizeof(Flow) < flow_config.memcap) {
+    while (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) < flow_config.memcap) {
         ini = end + 1;
         end = end + 2;
         UTHBuildPacketOfFlows(ini, end, 0);
@@ -1836,7 +1831,7 @@ static int FlowTest08 (void) {
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
-    while (flow_memuse + sizeof(Flow) < flow_config.memcap) {
+    while (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) < flow_config.memcap) {
         ini = end + 1;
         end = end + 2;
         UTHBuildPacketOfFlows(ini, end, 0);
@@ -1883,7 +1878,7 @@ static int FlowTest09 (void) {
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
-    while (flow_memuse + sizeof(Flow) < flow_config.memcap) {
+    while (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) < flow_config.memcap) {
         ini = end + 1;
         end = end + 2;
         UTHBuildPacketOfFlows(ini, end, 0);

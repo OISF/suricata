@@ -27,6 +27,7 @@
 #include "flow-hash.h"
 #include "flow-queue.h"
 
+#include "util-atomic.h"
 
 /* global flow flags */
 
@@ -96,8 +97,8 @@ FlowConfig flow_config;
 
 uint8_t flow_flags;
 
-uint32_t flow_memuse;
-SCMutex flow_memuse_mutex;
+/** flow memuse counter (atomic), for enforcing memcap limit */
+SC_ATOMIC_DECLARE(unsigned int, flow_memuse);
 
 //#define FLOWBITS_STATS
 #ifdef FLOWBITS_STATS

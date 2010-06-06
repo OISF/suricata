@@ -42,21 +42,16 @@ Flow *FlowAlloc(void)
 {
     Flow *f;
 
-    SCMutexLock(&flow_memuse_mutex);
-    if (flow_memuse + sizeof(Flow) > flow_config.memcap) {
-        SCMutexUnlock(&flow_memuse_mutex);
+    if (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) > flow_config.memcap) {
         return NULL;
     }
-    SCMutexUnlock(&flow_memuse_mutex);
 
     f = SCMalloc(sizeof(Flow));
     if (f == NULL) {
         return NULL;
     }
 
-    SCMutexLock(&flow_memuse_mutex);
-    flow_memuse += sizeof(Flow);
-    SCMutexUnlock(&flow_memuse_mutex);
+    SC_ATOMIC_ADD(flow_memuse, sizeof(Flow));
 
     SCMutexInit(&f->m, NULL);
     f->lnext = NULL;
@@ -71,12 +66,10 @@ Flow *FlowAlloc(void)
 /** free the memory of a flow */
 void FlowFree(Flow *f)
 {
-    SCMutexLock(&flow_memuse_mutex);
-    flow_memuse -= sizeof(Flow);
-    SCMutexUnlock(&flow_memuse_mutex);
-
     SCMutexDestroy(&f->m);
     SCFree(f);
+
+    SC_ATOMIC_SUB(flow_memuse, sizeof(Flow));
 }
 
 /**
