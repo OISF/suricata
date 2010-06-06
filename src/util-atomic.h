@@ -90,6 +90,19 @@
     } while(0)
 
 /**
+ *  \brief sub a value from our atomic variable
+ *
+ *  \param name the atomic variable
+ *  \param val the value to sub from the variable
+ */
+#define SC_ATOMIC_SUB(name, val) \
+    do { \
+        SCSpinLock(&(name ## _sc_lock__)); \
+        (name ## _sc_atomic__) -= (val); \
+        SCSpinUnlock(&(name ## _sc_lock__)); \
+    } while(0)
+
+/**
  *  \brief Get the value from the atomic variable.
  *
  *  \retval var value
@@ -149,6 +162,16 @@
     __sync_fetch_and_add((addr), (value))
 
 /**
+ *  \brief wrapper for OS/compiler specific atomic fetch and sub
+ *         function.
+ *
+ *  \param addr Address of the variable to add to
+ *  \param value Value to sub from the variable at addr
+ */
+#define SCAtomicFetchAndSub(addr, value) \
+    __sync_fetch_and_sub((addr), (value))
+
+/**
  *  \brief wrapper for declaring atomic variables.
  *
  *  \warning Only char, short, int, long, long long and their unsigned
@@ -190,6 +213,15 @@
  */
 #define SC_ATOMIC_ADD(name, val) \
     SCAtomicFetchAndAdd(&(name ## _sc_atomic__), (val));
+
+/**
+ *  \brief sub a value from our atomic variable
+ *
+ *  \param name the atomic variable
+ *  \param val the value to sub from the variable
+ */
+#define SC_ATOMIC_SUB(name, val) \
+    SCAtomicFetchAndSub(&(name ## _sc_atomic__), (val));
 
 /**
  *  \brief atomic Compare and Switch
