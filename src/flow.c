@@ -269,7 +269,7 @@ static uint32_t FlowPruneFlowQueue(FlowQueue *q, struct timeval *ts)
 {
     SCEnter();
     uint32_t cnt = 0;
-    //while(FlowPrune(q, ts)) { cnt++; }
+    while(FlowPrune(q, ts)) { cnt++; }
     return cnt;
 }
 
@@ -1312,9 +1312,9 @@ static int FlowClearMemory(Flow* f, uint8_t proto_map) {
     if (flow_proto[proto_map].Freefunc != NULL) {
         flow_proto[proto_map].Freefunc(f->protoctx);
     }
-    f->protoctx = NULL;
 
     CLEAR_FLOW(f);
+
     SCReturnInt(1);
 }
 

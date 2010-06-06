@@ -701,7 +701,8 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir) {
             p->dst.addr_data32[0] = i;
         }
         FlowHandlePacket(NULL, p);
-        p->flow->use_cnt = 0;
+        if (p->flow != NULL)
+            p->flow->use_cnt = 0;
 
         /* Now the queues shoul be updated */
         UTHFreePacket(p);

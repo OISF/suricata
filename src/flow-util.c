@@ -36,8 +36,6 @@
 
 #include "detect.h"
 #include "detect-engine-state.h"
-/* Counter of flows that reached memcap capability */
-uint32_t directflows = 0;
 
 /* Allocate a flow */
 Flow *FlowAlloc(void)
@@ -45,11 +43,18 @@ Flow *FlowAlloc(void)
     Flow *f;
 
     SCMutexLock(&flow_memuse_mutex);
-    f = SCMalloc(sizeof(Flow));
-    if (f == NULL) {
+    if (flow_memuse + sizeof(Flow) > flow_config.memcap) {
         SCMutexUnlock(&flow_memuse_mutex);
         return NULL;
     }
+    SCMutexUnlock(&flow_memuse_mutex);
+
+    f = SCMalloc(sizeof(Flow));
+    if (f == NULL) {
+        return NULL;
+    }
+
+    SCMutexLock(&flow_memuse_mutex);
     flow_memuse += sizeof(Flow);
     SCMutexUnlock(&flow_memuse_mutex);
 
@@ -58,9 +63,6 @@ Flow *FlowAlloc(void)
     f->lprev = NULL;
     f->hnext = NULL;
     f->hprev = NULL;
-
-    f->flowvar = NULL;
-    f->de_state = NULL;
 
     return f;
 }
@@ -104,6 +106,7 @@ void FlowInit(Flow *f, Packet *p)
     SCEnter();
     SCLogDebug("flow %p", f);
 
+    f->flowvar = NULL;
     f->de_state = NULL;
     CLEAR_FLOW(f);
 
