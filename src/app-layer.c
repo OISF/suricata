@@ -118,6 +118,8 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
 
     SCLogDebug("smsg %p", smsg);
 
+    BUG_ON(smsg->flow == NULL);
+
     TcpSession *ssn = smsg->flow->protoctx;
     if (ssn != NULL) {
         alproto = ssn->alproto;
@@ -177,13 +179,38 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                 SCLogDebug(" smsg not start, but no l7 data? Weird");
             }
         }
+
+        /* put the smsg in the stream list */
+        if (ssn->smsg_head == NULL) {
+            ssn->smsg_head = smsg;
+            ssn->smsg_tail = smsg;
+            smsg->next = NULL;
+            smsg->prev = NULL;
+        } else {
+            StreamMsg *cur = ssn->smsg_tail;
+            cur->next = smsg;
+            smsg->prev = cur;
+            smsg->next = NULL;
+            ssn->smsg_tail = smsg;
+        }
+        /* flow is free again */
+        FlowDecrUsecnt(smsg->flow);
+        /* dereference the flow */
+        SCLogDebug("deref smsg->flow, smsg %p, smsg->flow %p", smsg, smsg->flow);
+        smsg->flow = NULL;
+
+    } else { /* no ssn ptr */
+
+        /* if there is no ssn ptr we won't
+         * be inspecting this msg in detect
+         * so return it to the pool. */
+
+        /* flow is free again */
+        FlowDecrUsecnt(smsg->flow);
+
+        /* return the used message to the queue */
+        StreamMsgReturnToPool(smsg);
     }
-
-    /* flow is free again */
-    FlowDecrUsecnt(smsg->flow);
-
-    /* return the used message to the queue */
-    StreamMsgReturnToPool(smsg);
 
     SCReturnInt(r);
 }

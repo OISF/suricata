@@ -504,6 +504,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     uint32_t cnt = 0;
     SigGroupHead *sgh = NULL;
     char use_flow_sgh = FALSE;
+    StreamMsg *smsg = NULL;
 
     SCEnter();
 
@@ -525,6 +526,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         } else if (p->flowflags & FLOW_PKT_TOCLIENT && p->flow->flags & FLOW_SGH_TOCLIENT) {
             sgh = p->flow->sgh_toclient;
             use_flow_sgh = TRUE;
+        }
+        if (p->proto == IPPROTO_TCP) {
+            TcpSession *ssn = (TcpSession *)p->flow->protoctx;
+            if (ssn != NULL) {
+                smsg = ssn->smsg_head;
+                /* deref from the ssn */
+                ssn->smsg_head = NULL;
+                ssn->smsg_tail = NULL;
+
+                SCLogDebug("smsg %p", smsg);
+            }
         }
         SCMutexUnlock(&p->flow->m);
 
@@ -853,6 +865,16 @@ end:
         } else if (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
             p->flow->sgh_toclient = det_ctx->sgh;
             p->flow->flags |= FLOW_SGH_TOCLIENT;
+        }
+        /* if we have (a) smsg(s), return to the pool */
+        while(smsg != NULL) {
+            StreamMsg *smsg_next = smsg->next;
+            SCLogDebug("returning smsg %p to pool", smsg);
+            smsg->next = NULL;
+            smsg->prev = NULL;
+            smsg->flow = NULL;
+            StreamMsgReturnToPool(smsg);
+            smsg = smsg_next;
         }
         SCMutexUnlock(&p->flow->m);
 

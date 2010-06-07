@@ -28,11 +28,11 @@
 typedef struct TcpSegment_ {
     uint8_t *payload;
     uint16_t payload_len; /* actual size of the payload */
-    uint32_t seq;
     uint16_t pool_size; /* size of the memory */
-    uint8_t flags;
+    uint32_t seq;
     struct TcpSegment_ *next;
     struct TcpSegment_ *prev;
+    uint8_t flags;
 } TcpSegment;
 
 typedef struct TcpStream_ {
@@ -41,7 +41,6 @@ typedef struct TcpStream_ {
     uint32_t last_ack;  /**< last ack'd sequence number in this stream */
     uint32_t next_win;  /**< next max seq within window */
     uint32_t window;    /**< current window setting */
-    uint8_t wscale;     /**< wscale setting in this direction */
 
     uint32_t last_ts; /**< Time stamp (TSVAL) of the last seen packet for this stream*/
     uint32_t last_pkt_ts; /**< Time of last seen packet for this stream (needed for PAWS update)
@@ -51,6 +50,7 @@ typedef struct TcpStream_ {
     /* reassembly */
     uint32_t ra_base_seq; /**< reassembled seq. We've reassembled up to this point. */
     TcpSegment *seg_list; /**< list of TCP segments that are not yet (fully) used in reassembly */
+    uint8_t wscale;     /**< wscale setting in this direction */
     uint8_t os_policy; /**< target based OS policy used for reassembly and handling packets*/
     uint16_t flags;      /**< Flag specific to the stream e.g. Timestamp */
     TcpSegment *seg_list_tail;  /**< Last segment in the reassembled stream seg list*/
@@ -158,6 +158,8 @@ typedef struct TcpSession_ {
     TcpStream server;
     TcpStream client;
     void **aldata; /**< application level storage ptrs */
+    struct StreamMsg_ *smsg_head; /**< list of stream msgs (for detection inspection) */
+    struct StreamMsg_ *smsg_tail; /**< list of stream msgs (for detection inspection) */
 } TcpSession;
 
 #endif /* __STREAM_TCP_PRIVATE_H__ */

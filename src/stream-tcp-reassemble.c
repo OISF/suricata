@@ -1904,6 +1904,10 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
         do {
             smsg = StreamMsgGetFromQueue(ra_ctx->stream_q);
             if (smsg != NULL) {
+                SCLogDebug("smsg %p, next %p, prev %p, flow %p", smsg, smsg->next, smsg->prev, smsg->flow);
+
+                BUG_ON(smsg->flow == NULL);
+
                 /* Handle the stream msg. No need to use locking, flow is
                  * already locked at this point. Don't break out of the
                  * loop if we encounter an error. */
