@@ -93,8 +93,20 @@ int DetectDceStubDataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
         return 0;
     }
 
-    if (dcerpc_state->dcerpc.dcerpcrequest.stub_data == NULL)
-        return 0;
+    if (flags & STREAM_TOSERVER) {
+        if (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer == NULL ||
+            dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 1) {
+            return 0;
+        }
+        dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed = 1;
+    } else {
+        if (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL ||
+            dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 1) {
+            return 0;
+        }
+        dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed = 1;
+    }
+
 
     return 1;
 }
