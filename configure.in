@@ -430,10 +430,8 @@ esac
 #prelude
 
     AC_ARG_ENABLE(prelude,
-            [  --enable-prelude  Enable Prelude support for alerts],
-            [ enable_prelude=yes ],
-            [ enable_prelude=no ])
-    if test "$enable_prelude" = "yes"; then
+            AS_HELP_STRING([--enable-prelude], [Enable Prelude support for alerts]))
+    AS_IF([test "x$enable_prelude" = "xyes"], [
         CFLAGS="$CFLAGS -DPRELUDE"
         AM_PATH_LIBPRELUDE(0.9.9, , AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?), no)
         if test "x${LIBPRELUDE_CFLAGS}" != "x"; then
@@ -447,8 +445,7 @@ esac
         if test "x${LIBPRELUDE_LIBS}" != "x"; then
             LDFLAGS="${LDFLAGS} ${LIBPRELUDE_LIBS}"
         fi
-
-    fi
+    ])
 
 
 #libnet
