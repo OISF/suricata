@@ -523,6 +523,14 @@ void *TmThreadsSlotVar(void *td) {
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
+    /* check if we are setup properly */
+    if (s == NULL || s->s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
+        EngineKill();
+
+        TmThreadsSetFlag(tv, THV_CLOSED);
+        pthread_exit((void *) -1);
+    }
+
     for (slot = s->s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadInit != NULL) {
             r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot->slot_data);
@@ -545,10 +553,8 @@ void *TmThreadsSlotVar(void *td) {
         /* input a packet */
         p = tv->tmqh_in(tv);
 
-        if (p == NULL) {
-            //printf("%s: TmThreadsSlotVar: p == NULL\n", tv->name);
-        } else {
-
+        if (p != NULL) {
+            /* run the thread module(s) */
             r = TmThreadsSlotVarRun(tv, p, s->s);
             if (r == TM_ECODE_FAILED) {
                 TmqhOutputPacketpool(tv, p);
