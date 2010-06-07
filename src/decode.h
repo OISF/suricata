@@ -319,7 +319,7 @@ typedef struct Packet_
     uint16_t payload_len;
 
     /* decoder events: review how many events we have */
-    uint8_t events[65535 / 8];
+    uint8_t events[(DECODE_EVENT_MAX / 8) + 1];
 
     PacketAlerts alerts;
 

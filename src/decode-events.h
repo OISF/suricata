@@ -124,6 +124,9 @@ enum {
 
     /* RAW EVENTS */
     IPRAW_INVALID_IPV,              /**< invalid ip version in ip raw */
+
+    /* should always be last! */
+    DECODE_EVENT_MAX,
 };
 
 #endif /* __DECODE_EVENTS_H__ */
