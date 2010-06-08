@@ -794,8 +794,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         SCLogDebug("No App Layer Data");
         /* Nothing is there to clean up, so just return from here after setting
          * up the no reassembly flags */
-        StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOCLIENT ? 1 : 0);
-        StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOSERVER ? 1 : 0);
+        StreamTcpSetSessionNoApplayerInspectionFlag(ssn);
         SCReturnInt(-1);
     }
 
@@ -870,10 +869,9 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
         if (parser_state->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
-            StreamTcpSetSessionNoReassemblyFlag(ssn,
-                                               flags & STREAM_TOCLIENT ? 1 : 0);
-            StreamTcpSetSessionNoReassemblyFlag(ssn,
-                                               flags & STREAM_TOSERVER ? 1 : 0);
+            StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOCLIENT ? 1 : 0);
+            StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOSERVER ? 1 : 0);
+            StreamTcpSetSessionNoApplayerInspectionFlag(ssn);
         }
     }
 
@@ -893,8 +891,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 error:
     if (ssn != NULL) {
         /* Set the no reassembly flag for both the stream in this TcpSession */
-        StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOCLIENT ? 1 : 0);
-        StreamTcpSetSessionNoReassemblyFlag(ssn, flags & STREAM_TOSERVER ? 1 : 0);
+        StreamTcpSetSessionNoApplayerInspectionFlag(ssn);
 
         if (f->src.family == AF_INET) {
             char src[16];
@@ -1302,7 +1299,7 @@ static void TestProtocolStateFree(void *s)
  */
 static int AppLayerParserTest01 (void)
 {
-    int result = 1;
+    int result = 0;
     Flow f;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
@@ -1344,19 +1341,17 @@ static int AppLayerParserTest01 (void)
     int r = AppLayerParse(&f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
-        printf("returned %" PRId32 ", expected -1: \n", r);
-        result = 0;
+        printf("returned %" PRId32 ", expected -1: ", r);
         goto end;
     }
 
-    if (!(ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY) ||
-            !(ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY))
+    if (!(ssn.flags & STREAMTCP_FLAG_NO_APPLAYER_INSPECTION))
     {
-        printf("flags should be set, but they are not !\n");
-        result = 0;
+        printf("flag should have been set, but is not: ");
         goto end;
     }
 
+    result = 1;
 end:
     StreamL7DataPtrFree(&ssn);
     StreamTcpFreeConfig(TRUE);

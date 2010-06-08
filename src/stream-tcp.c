@@ -2926,11 +2926,19 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p)
  * \param ssn TCP Session to set the flag in
  * \param direction direction to set the flag in: 0 toserver, 1 toclient
  */
-
 void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
 {
     direction ? (ssn->flags |= STREAMTCP_FLAG_NOSERVER_REASSEMBLY) :
                 (ssn->flags |= STREAMTCP_FLAG_NOCLIENT_REASSEMBLY);
+}
+
+/** \brief  Set the No applayer inspection flag for the TCP session.
+ *
+ * \param ssn TCP Session to set the flag in
+ */
+void StreamTcpSetSessionNoApplayerInspectionFlag (TcpSession *ssn)
+{
+    ssn->flags |= STREAMTCP_FLAG_NO_APPLAYER_INSPECTION;
 }
 
 #ifdef UNITTESTS

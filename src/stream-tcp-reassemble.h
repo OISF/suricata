@@ -69,7 +69,9 @@ void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 void StreamL7DataPtrInit(TcpSession *);
 void StreamL7DataPtrFree(TcpSession *);
 
+void StreamTcpSetSessionNoApplayerInspectionFlag(TcpSession *);
 void StreamTcpSetSessionNoReassemblyFlag (TcpSession *, char );
+
 void StreamTcpSetOSPolicy(TcpStream *, Packet *);
 void StreamTcpReassemblePause (TcpSession *, char );
 void StreamTcpReassembleUnPause (TcpSession *, char );

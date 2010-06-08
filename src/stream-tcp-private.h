@@ -125,6 +125,12 @@ enum
                                                              reassembly / app layer
                                                              inspection for the
                                                              client stream.*/
+#define STREAMTCP_FLAG_NO_APPLAYER_INSPECTION   0x2000  /**< don't send any more
+                                                             data to the app layer
+                                                             parser, but still
+                                                             reassemble for raw
+                                                             reassembled data
+                                                             inspection */
 
 #define SEGMENTTCP_FLAG_PROCESSED               0x01    /**< Flag to indicate
                                                              that the current
