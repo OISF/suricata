@@ -581,7 +581,7 @@ static int TLSParserTest01(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER|STREAM_EOF, tlsbuf, tlslen);
     if (r != 0) {
@@ -590,7 +590,7 @@ static int TLSParserTest01(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -611,7 +611,7 @@ static int TLSParserTest01(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -631,7 +631,7 @@ static int TLSParserTest02(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1);
     if (r != 0) {
@@ -647,7 +647,7 @@ static int TLSParserTest02(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -668,7 +668,7 @@ static int TLSParserTest02(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -690,7 +690,7 @@ static int TLSParserTest03(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1);
     if (r != 0) {
@@ -713,7 +713,7 @@ static int TLSParserTest03(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -734,7 +734,7 @@ static int TLSParserTest03(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -758,7 +758,7 @@ static int TLSParserTest04(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1);
     if (r != 0) {
@@ -788,7 +788,7 @@ static int TLSParserTest04(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -809,7 +809,7 @@ static int TLSParserTest04(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -828,7 +828,7 @@ static int TLSParserTest05(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
     if (r != 0) {
@@ -871,7 +871,7 @@ static int TLSParserTest05(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -894,7 +894,7 @@ static int TLSParserTest05(void) {
 
     uint16_t app_layer_sid = AppLayerParserGetStorageId();
     AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
-                                                    ssn.aldata[app_layer_sid];
+                                                    f.aldata[app_layer_sid];
     AppLayerParserState *parser_state = &parser_state_store->to_server;
 
     if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
@@ -912,7 +912,7 @@ static int TLSParserTest05(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -932,7 +932,7 @@ static int TLSParserTest06(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
     if (r != 0) {
@@ -966,7 +966,7 @@ static int TLSParserTest06(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -989,7 +989,7 @@ static int TLSParserTest06(void) {
 
     uint16_t app_layer_sid = AppLayerParserGetStorageId();
     AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
-                                                    ssn.aldata[app_layer_sid];
+                                                    f.aldata[app_layer_sid];
     AppLayerParserState *parser_state = &parser_state_store->to_server;
 
     if ((parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) ||
@@ -1033,7 +1033,7 @@ static int TLSParserTest06(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1078,7 +1078,7 @@ static int TLSParserMultimsgTest01(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf1, tlslen1);
     if (r != 0) {
@@ -1087,7 +1087,7 @@ static int TLSParserMultimsgTest01(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -1108,7 +1108,7 @@ static int TLSParserMultimsgTest01(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1153,7 +1153,7 @@ static int TLSParserMultimsgTest02(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf1, tlslen1);
     if (r != 0) {
@@ -1162,7 +1162,7 @@ static int TLSParserMultimsgTest02(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -1183,7 +1183,7 @@ static int TLSParserMultimsgTest02(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1217,7 +1217,7 @@ static int TLSParserTest07(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
     if (r != 0) {
@@ -1226,7 +1226,7 @@ static int TLSParserTest07(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -1248,7 +1248,7 @@ static int TLSParserTest07(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1267,7 +1267,7 @@ static int TLSParserTest08(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
     if (r != 0) {
@@ -1310,7 +1310,7 @@ static int TLSParserTest08(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -1333,7 +1333,7 @@ static int TLSParserTest08(void) {
 
     uint16_t app_layer_sid = AppLayerParserGetStorageId();
     AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
-                                                    ssn.aldata[app_layer_sid];
+                                                    f.aldata[app_layer_sid];
     AppLayerParserState *parser_state = &parser_state_store->to_server;
 
     if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
@@ -1351,7 +1351,7 @@ static int TLSParserTest08(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

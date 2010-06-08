@@ -160,10 +160,8 @@ enum
 typedef struct TcpSession_ {
     uint8_t state;
     uint16_t flags;
-    uint16_t alproto; /**< application level protocol */
     TcpStream server;
     TcpStream client;
-    void **aldata; /**< application level storage ptrs */
     struct StreamMsg_ *toserver_smsg_head; /**< list of stream msgs (for detection inspection) */
     struct StreamMsg_ *toserver_smsg_tail; /**< list of stream msgs (for detection inspection) */
     struct StreamMsg_ *toclient_smsg_head; /**< list of stream msgs (for detection inspection) */

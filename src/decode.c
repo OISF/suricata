@@ -27,6 +27,9 @@
 #include "suricata.h"
 #include "decode.h"
 #include "util-debug.h"
+#include "app-layer-detect-proto.h"
+#include "tm-modules.h"
+#include "util-error.h"
 
 void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -220,3 +223,15 @@ void AddressDebugPrint(Address *a) {
     }
 }
 
+DecodeThreadVars *DecodeThreadVarsAlloc() {
+
+    DecodeThreadVars *dtv = NULL;
+
+    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
+        return NULL;
+
+    memset(dtv, 0, sizeof(DecodeThreadVars));
+    AlpProtoFinalize2Thread(&dtv->udp_dp_ctx);
+
+    return dtv;
+}

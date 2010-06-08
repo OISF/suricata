@@ -35,7 +35,8 @@
 uint16_t AppLayerGetProtoFromPacket(Packet *);
 void *AppLayerGetProtoStateFromPacket(Packet *);
 void *AppLayerGetProtoStateFromFlow(Flow *);
-int AppLayerHandleMsg(AlpProtoDetectThreadCtx *, StreamMsg *smsg);
+int AppLayerHandleMsg(AlpProtoDetectThreadCtx *, StreamMsg *);
+int AppLayerHandleUdp(AlpProtoDetectThreadCtx *, Flow *, Packet *p);
 
 #endif /* __APP_LAYER_H__ */
 

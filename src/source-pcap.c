@@ -509,9 +509,10 @@ TmEcode DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCEnter();
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
+    dtv = DecodeThreadVarsAlloc();
+
+    if (dtv == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    memset(dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeRegisterPerfCounters(dtv, tv);
 

@@ -24,10 +24,13 @@
  */
 
 #include "suricata-common.h"
+
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
+#include "flow.h"
+
 #include "util-debug.h"
 
 /** \brief Get the active app layer proto from the packet
@@ -42,13 +45,13 @@ uint16_t AppLayerGetProtoFromPacket(Packet *p) {
     }
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-    if (ssn == NULL) {
+    if (ssn == NULL && p->flow->aldata == NULL) {
         SCReturnUInt(ALPROTO_UNKNOWN);
     }
 
-    SCLogDebug("ssn->alproto %"PRIu16"", ssn->alproto);
+    SCLogDebug("p->flow->alproto %"PRIu16"", p->flow->alproto);
 
-    SCReturnUInt(ssn->alproto);
+    SCReturnUInt(p->flow->alproto);
 }
 
 /** \brief Get the active app layer state from the packet
@@ -63,13 +66,13 @@ void *AppLayerGetProtoStateFromPacket(Packet *p) {
     }
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-    if (ssn == NULL || ssn->aldata == NULL) {
+    if (ssn == NULL && p->flow->aldata == NULL) {
         SCReturnPtr(NULL, "void");
     }
 
-    SCLogDebug("ssn->alproto %"PRIu16"", ssn->alproto);
+    SCLogDebug("p->flow->alproto %"PRIu16"", p->flow->alproto);
 
-    void *alstate = ssn->aldata[AlpGetStateIdx(ssn->alproto)];
+    void *alstate = p->flow->aldata[AlpGetStateIdx(p->flow->alproto)];
 
     SCLogDebug("p->flow %p", p->flow);
     SCReturnPtr(alstate, "void");
@@ -86,12 +89,12 @@ void *AppLayerGetProtoStateFromFlow(Flow *f) {
         SCReturnPtr(NULL, "void");
 
     TcpSession *ssn = (TcpSession *)f->protoctx;
-    if (ssn == NULL || ssn->aldata == NULL)
+    if (ssn == NULL || f->aldata == NULL)
         SCReturnPtr(NULL, "void");
 
-    SCLogDebug("ssn->alproto %"PRIu16"", ssn->alproto);
+    SCLogDebug("f->alproto %"PRIu16"", f->alproto);
 
-    void *alstate = ssn->aldata[AlpGetStateIdx(ssn->alproto)];
+    void *alstate = f->aldata[AlpGetStateIdx(f->alproto)];
     SCReturnPtr(alstate, "void");
 }
 
@@ -99,7 +102,7 @@ void *AppLayerGetProtoStateFromFlow(Flow *f) {
 extern AlpProtoDetectCtx alp_proto_ctx;
 
 /**
- *  \brief Handle a app layer message
+ *  \brief Handle a app layer TCP message
  *
  *  If the protocol is yet unknown, the proto detection code is run first.
  *
@@ -122,9 +125,19 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
 
     TcpSession *ssn = smsg->flow->protoctx;
     if (ssn != NULL) {
-        alproto = ssn->alproto;
+        alproto = smsg->flow->alproto;
 
-        if (!(ssn->flags & STREAMTCP_FLAG_NO_APPLAYER_INSPECTION)) {
+        /* Copy some needed flags */
+        if (smsg->flags & STREAM_TOSERVER)
+            smsg->flow->alflags |= FLOW_AL_STREAM_TOSERVER;
+        if (smsg->flags & STREAM_TOCLIENT)
+            smsg->flow->alflags |= FLOW_AL_STREAM_TOCLIENT;
+        if (smsg->flags & STREAM_GAP)
+            smsg->flow->alflags |= FLOW_AL_STREAM_GAP;
+        if (smsg->flags & STREAM_EOF)
+            smsg->flow->alflags |= FLOW_AL_STREAM_EOF;
+
+        if (!(smsg->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION)) {
             /* if we don't know the proto yet and we have received a stream
              * initializer message, we run proto detection.
              * We receive 2 stream init msgs (one for each direction) but we
@@ -138,14 +151,14 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                 //printf("=> Init Stream Data -- end\n");
 
                 alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
-                        smsg->data.data, smsg->data.data_len, smsg->flags);
+                        smsg->data.data, smsg->data.data_len, smsg->flow->alflags, IPPROTO_TCP);
                 if (alproto != ALPROTO_UNKNOWN) {
                     /* store the proto and setup the L7 data array */
-                    StreamL7DataPtrInit(ssn);
-                    ssn->alproto = alproto;
+                    FlowL7DataPtrInit(smsg->flow);
+                    smsg->flow->alproto = alproto;
                     ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
 
-                    r = AppLayerParse(smsg->flow, alproto, smsg->flags,
+                    r = AppLayerParse(smsg->flow, alproto, smsg->flow->alflags,
                             smsg->data.data, smsg->data.data_len);
                 } else {
                     if (smsg->flags & STREAM_TOSERVER) {
@@ -235,6 +248,83 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
 
         /* return the used message to the queue */
         StreamMsgReturnToPool(smsg);
+    }
+
+    SCReturnInt(r);
+}
+
+/**
+ *  \brief Handle a app layer UDP message
+ *
+ *  If the protocol is yet unknown, the proto detection code is run first.
+ *
+ *  \param dp_ctx Thread app layer detect context
+ *  \param smsg Stream message
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
+{
+    SCEnter();
+
+    uint16_t alproto = ALPROTO_UNKNOWN;
+    int r = 0;
+
+    if (f == NULL)
+        return r;
+
+    alproto = f->alproto;
+
+    if (FlowGetPacketDirection(f,p) == TOSERVER) {
+        f->alflags |= FLOW_AL_STREAM_TOSERVER;
+    } else {
+        f->alflags |= FLOW_AL_STREAM_TOCLIENT;
+    }
+
+    /* if we don't know the proto yet and we have received a stream
+     * initializer message, we run proto detection.
+     * We receive 2 stream init msgs (one for each direction) but we
+     * only run the proto detection once. */
+    if (alproto == ALPROTO_UNKNOWN && !(f->alflags & FLOW_AL_PROTO_DETECT_DONE)) {
+        SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
+                    p->payload_len);
+
+        //printf("=> Init Stream Data -- start\n");
+        //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
+        //printf("=> Init Stream Data -- end\n");
+
+        alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
+                        p->payload, p->payload_len, f->alflags, IPPROTO_UDP);
+        if (alproto != ALPROTO_UNKNOWN) {
+            /* store the proto and setup the L7 data array */
+            FlowL7DataPtrInit(f);
+            f->alproto = alproto;
+            f->alflags &= ~FLOW_AL_PROTO_UNKNOWN;
+            f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+
+            r = AppLayerParse(f, alproto, f->alflags,
+                           p->payload, p->payload_len);
+        } else {
+            f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+            SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
+        }
+    } else {
+        SCLogDebug("stream data (len %" PRIu32 " ), alproto "
+                  "%"PRIu16" (flow %p)", p->payload_len, alproto, f);
+
+        //printf("=> Stream Data -- start\n");
+        //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        //printf("=> Stream Data -- end\n");
+
+        /* if we don't have a data object here we are not getting it
+         * a start msg should have gotten us one */
+        if (alproto != ALPROTO_UNKNOWN) {
+            r = AppLayerParse(f, alproto, f->alflags,
+                        p->payload, p->payload_len);
+        } else {
+            SCLogDebug(" udp session not start, but no l7 data? Weird");
+        }
     }
 
     SCReturnInt(r);

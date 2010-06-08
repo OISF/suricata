@@ -463,7 +463,7 @@ int SMB2ParserTest01(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len);
     if (r != 0) {
@@ -472,7 +472,7 @@ int SMB2ParserTest01(void) {
         goto end;
     }
 
-    SMB2State *smb2_state = ssn.aldata[AlpGetStateIdx(ALPROTO_SMB2)];
+    SMB2State *smb2_state = f.aldata[AlpGetStateIdx(ALPROTO_SMB2)];
     if (smb2_state == NULL) {
         printf("no smb2 state: ");
         result = 0;
@@ -498,7 +498,7 @@ int SMB2ParserTest01(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

@@ -1964,48 +1964,6 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
     SCReturnInt(0);
 }
 
-/** \brief Initialize the l7data ptr in the TCP session used by the L7 Modules
- *         for data storage.
- *
- *  \param ssn TcpSesssion to init the ptrs for
- *  \param cnt number of items in the array
- *
- *  \todo VJ use a pool?
- */
-void StreamL7DataPtrInit(TcpSession *ssn) {
-    if (ssn->aldata != NULL)
-        return;
-
-    uint32_t size = (uint32_t)(sizeof (void *) * StreamL7GetStorageSize());
-
-    if (StreamTcpCheckMemcap(size) == 0)
-        return;
-
-    ssn->aldata = (void **) SCMalloc(size);
-    if (ssn->aldata != NULL) {
-        StreamTcpIncrMemuse(size);
-
-        uint8_t u;
-        for (u = 0; u < StreamL7GetStorageSize(); u++) {
-            ssn->aldata[u] = NULL;
-        }
-    }
-}
-
-void StreamL7DataPtrFree(TcpSession *ssn) {
-    if (ssn == NULL)
-        return;
-
-    if (ssn->aldata == NULL)
-        return;
-
-    SCFree(ssn->aldata);
-    ssn->aldata = NULL;
-
-    uint32_t size = (uint32_t)(sizeof (void *) * StreamL7GetStorageSize());
-    StreamTcpDecrMemuse(size);
-}
-
 /**
  *  \brief  Function to replace the data from a specific point up to given length.
  *
@@ -4376,7 +4334,7 @@ static int StreamTcpReassembleTest38 (void) {
     ssn.client.ra_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
-    ssn.alproto = ALPROTO_UNKNOWN;
+    f.alproto = ALPROTO_UNKNOWN;
 
     f.src = src;
     f.dst = dst;
@@ -4526,7 +4484,7 @@ static int StreamTcpReassembleTest39 (void) {
     ssn.client.ra_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
-    ssn.alproto = ALPROTO_UNKNOWN;
+    f.alproto = ALPROTO_UNKNOWN;
 
     inet_pton(AF_INET, "1.2.3.4", &in);
     src.family = AF_INET;
@@ -4716,7 +4674,7 @@ static int StreamTcpReassembleTest40 (void) {
     ssn.client.ra_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 10;
-    ssn.alproto = ALPROTO_UNKNOWN;
+    f.alproto = ALPROTO_UNKNOWN;
 
     inet_pton(AF_INET, "1.2.3.4", &in);
     src.family = AF_INET;
@@ -4901,7 +4859,7 @@ static int StreamTcpReassembleTest40 (void) {
         goto end;
     }
 
-    if (ssn.alproto != ALPROTO_HTTP) {
+    if (f.alproto != ALPROTO_HTTP) {
         printf("app layer proto has not been detected\n");
         goto end;
     }
@@ -4980,7 +4938,7 @@ static int StreamTcpReassembleTest41 (void) {
     ssn.client.ra_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 600;
-    ssn.alproto = ALPROTO_UNKNOWN;
+    f.alproto = ALPROTO_UNKNOWN;
 
     inet_pton(AF_INET, "1.2.3.4", &in);
     src.family = AF_INET;
@@ -5145,7 +5103,7 @@ static int StreamTcpReassembleTest42 (void) {
     ssn.client.ra_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
-    ssn.alproto = ALPROTO_UNKNOWN;
+    f.alproto = ALPROTO_UNKNOWN;
 
     inet_pton(AF_INET, "1.2.3.4", &in);
     src.family = AF_INET;
@@ -5317,7 +5275,7 @@ static int StreamTcpReassembleTest43 (void) {
     ssn.client.ra_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 600;
-    ssn.alproto = ALPROTO_UNKNOWN;
+    f.alproto = ALPROTO_UNKNOWN;
 
     /* Check the minimum init smsg length. It should be equal to the min length
        of given signature in toserver direction. */

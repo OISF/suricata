@@ -100,13 +100,14 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
  *  \param co the content match
  *  \param proto the proto id
  */
-static void AlpProtoAddSignature(AlpProtoDetectCtx *ctx, DetectContentData *co, uint16_t proto) {
+static void AlpProtoAddSignature(AlpProtoDetectCtx *ctx, DetectContentData *co, uint16_t ip_proto, uint16_t proto) {
     AlpProtoSignature *s = SCMalloc(sizeof(AlpProtoSignature));
     if (s == NULL) {
         return;
     }
     memset(s, 0x00, sizeof(AlpProtoSignature));
 
+    s->ip_proto = ip_proto;
     s->proto = proto;
     s->co = co;
 
@@ -225,7 +226,7 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
         dir->min_len = depth;
 
     /* finally turn into a signature and add to the ctx */
-    AlpProtoAddSignature(ctx, cd, al_proto);
+    AlpProtoAddSignature(ctx, cd, ip_proto, al_proto);
 }
 
 #ifdef UNITTESTS
@@ -427,13 +428,13 @@ void AppLayerDetectProtoThreadInit(void) {
  *
  *  \retval proto App Layer proto, or ALPROTO_UNKNOWN if unknown
  */
-uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tctx, uint8_t *buf, uint16_t buflen, uint8_t flags) {
+uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tctx, uint8_t *buf, uint16_t buflen, uint8_t flags, uint8_t ipproto) {
     SCEnter();
 
     AlpProtoDetectDirection *dir;
     AlpProtoDetectDirectionThread *tdir;
 
-    if (flags & STREAM_TOSERVER) {
+    if (flags & FLOW_AL_STREAM_TOSERVER) {
         dir = &ctx->toserver;
         tdir = &tctx->toserver;
     } else {
@@ -498,7 +499,9 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     uint8_t s_cnt = 1;
 
     while (proto == ALPROTO_UNKNOWN && s != NULL) {
-        proto = AlpProtoMatchSignature(s, buf, buflen);
+        /* TCP or UPD? */
+        if (s->ip_proto == ipproto)
+            proto = AlpProtoMatchSignature(s, buf, buflen);
         s = s->map_next;
         if (s == NULL && s_cnt < tdir->pmq.pattern_id_array_cnt) {
             patid = tdir->pmq.pattern_id_array[s_cnt];
@@ -890,7 +893,7 @@ int AlpDetectTest05(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
     if (proto != ALPROTO_HTTP) {
         printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_HTTP);
         r = 0;
@@ -959,7 +962,7 @@ int AlpDetectTest06(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
     if (proto != ALPROTO_FTP) {
         printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_FTP);
         r = 0;
@@ -1016,7 +1019,7 @@ int AlpDetectTest07(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
     if (proto != ALPROTO_UNKNOWN) {
         printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_UNKNOWN);
         r = 0;
@@ -1084,7 +1087,7 @@ int AlpDetectTest08(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
     if (proto != ALPROTO_SMB) {
         printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_SMB);
         r = 0;
@@ -1149,7 +1152,7 @@ int AlpDetectTest09(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
     if (proto != ALPROTO_SMB2) {
         printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_SMB2);
         r = 0;
@@ -1209,7 +1212,7 @@ int AlpDetectTest10(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT);
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
     if (proto != ALPROTO_DCERPC) {
         printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_DCERPC);
         r = 0;
@@ -1266,13 +1269,13 @@ int AlpDetectTest11(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data, sizeof(l7data), STREAM_TOCLIENT);
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data, sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
     if (proto == ALPROTO_HTTP) {
         printf("proto %" PRIu8 " == %" PRIu8 ": ", proto, ALPROTO_HTTP);
         r = 0;
     }
 
-    proto = AppLayerDetectGetProto(&ctx, &tctx, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER);
+    proto = AppLayerDetectGetProto(&ctx, &tctx, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER, IPPROTO_TCP);
     if (proto != ALPROTO_HTTP) {
         printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_HTTP);
         r = 0;
@@ -1321,6 +1324,107 @@ end:
     return r;
 }
 
+/**
+ * \test What about if we add some sigs only for udp but call for tcp?
+ *       It should not detect any proto
+ */
+int AlpDetectTest13(void) {
+    uint8_t l7data[] = "CONNECT www.ssllabs.com:443 HTTP/1.0\r\n";
+    uint8_t l7data_resp[] = "HTTP/1.1 405 Method Not Allowed\r\n";
+    int r = 1;
+    AlpProtoDetectCtx ctx;
+    AlpProtoDetectThreadCtx tctx;
+
+    AlpProtoInit(&ctx);
+
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
+
+    if (ctx.toserver.id != 6) {
+        printf("ctx.toserver.id %u != 6: ", ctx.toserver.id);
+        r = 0;
+    }
+
+    if (ctx.toserver.map[ctx.toserver.id - 1] != ALPROTO_HTTP) {
+        printf("ctx.toserver.id %u != %u: ", ctx.toserver.map[ctx.toserver.id - 1],ALPROTO_HTTP);
+        r = 0;
+    }
+
+    AlpProtoFinalizeGlobal(&ctx);
+    AlpProtoFinalizeThread(&ctx, &tctx);
+
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data, sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
+    if (proto == ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " == %" PRIu8 ": ", proto, ALPROTO_HTTP);
+        r = 0;
+    }
+
+    proto = AppLayerDetectGetProto(&ctx, &tctx, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER, IPPROTO_TCP);
+    if (proto == ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_HTTP);
+        r = 0;
+    }
+
+    AlpProtoTestDestroy(&ctx);
+    return r;
+}
+
+/**
+ * \test What about if we add some sigs only for udp calling it for UDP?
+ *       It should detect ALPROTO_HTTP (over udp). This is just a check
+ *       to ensure that TCP/UDP differences work correctly.
+ */
+int AlpDetectTest14(void) {
+    uint8_t l7data[] = "CONNECT www.ssllabs.com:443 HTTP/1.0\r\n";
+    uint8_t l7data_resp[] = "HTTP/1.1 405 Method Not Allowed\r\n";
+    int r = 1;
+    AlpProtoDetectCtx ctx;
+    AlpProtoDetectThreadCtx tctx;
+
+    AlpProtoInit(&ctx);
+
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
+
+    if (ctx.toserver.id != 6) {
+        printf("ctx.toserver.id %u != 6: ", ctx.toserver.id);
+        r = 0;
+    }
+
+    if (ctx.toserver.map[ctx.toserver.id - 1] != ALPROTO_HTTP) {
+        printf("ctx.toserver.id %u != %u: ", ctx.toserver.map[ctx.toserver.id - 1],ALPROTO_HTTP);
+        r = 0;
+    }
+
+    AlpProtoFinalizeGlobal(&ctx);
+    AlpProtoFinalizeThread(&ctx, &tctx);
+
+    uint8_t proto = AppLayerDetectGetProto(&ctx, &tctx, l7data, sizeof(l7data), STREAM_TOCLIENT, IPPROTO_UDP);
+    if (proto == ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " == %" PRIu8 ": ", proto, ALPROTO_HTTP);
+        r = 0;
+    }
+
+    proto = AppLayerDetectGetProto(&ctx, &tctx, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER, IPPROTO_UDP);
+    if (proto != ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_HTTP);
+        r = 0;
+    }
+
+    AlpProtoTestDestroy(&ctx);
+    return r;
+}
+
 #endif /* UNITTESTS */
 
 void AlpDetectRegisterTests(void) {
@@ -1337,5 +1441,7 @@ void AlpDetectRegisterTests(void) {
     UtRegisterTest("AlpDetectTest10", AlpDetectTest10, 1);
     UtRegisterTest("AlpDetectTest11", AlpDetectTest11, 1);
     UtRegisterTest("AlpDetectTest12", AlpDetectTest12, 1);
+    UtRegisterTest("AlpDetectTest13", AlpDetectTest13, 1);
+    UtRegisterTest("AlpDetectTest14", AlpDetectTest14, 1);
 #endif /* UNITTESTS */
 }

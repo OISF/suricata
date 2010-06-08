@@ -339,10 +339,10 @@ static int DetectTlsVersionTestDetect01(void) {
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_TLS;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -383,7 +383,7 @@ static int DetectTlsVersionTestDetect01(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         goto end;
@@ -417,7 +417,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -454,10 +454,10 @@ static int DetectTlsVersionTestDetect02(void) {
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_TLS;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -498,7 +498,7 @@ static int DetectTlsVersionTestDetect02(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         goto end;
@@ -530,7 +530,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -567,10 +567,10 @@ static int DetectTlsVersionTestDetect03(void) {
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_TLS;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     StreamMsg *stream_msg = StreamMsgGetFromPool();
     if (stream_msg == NULL) {
@@ -627,7 +627,7 @@ static int DetectTlsVersionTestDetect03(void) {
         goto end;
     }
 
-    TlsState *tls_state = ssn.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    TlsState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (tls_state == NULL) {
         printf("no tls state: ");
         goto end;
@@ -659,7 +659,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

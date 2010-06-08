@@ -853,10 +853,10 @@ static int DetectDceIfaceTestParse12(void)
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_DCERPC;
+    f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -883,7 +883,7 @@ static int DetectDceIfaceTestParse12(void)
         goto end;
     }
 
-    dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -923,7 +923,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1070,10 +1070,10 @@ static int DetectDceIfaceTestParse13(void)
     f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_DCERPC;
+    f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1098,7 +1098,7 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
-    dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1240,7 +1240,7 @@ static int DetectDceIfaceTestParse13(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1303,10 +1303,10 @@ static int DetectDceIfaceTestParse14(void)
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_DCERPC;
+    f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1331,7 +1331,7 @@ static int DetectDceIfaceTestParse14(void)
         goto end;
     }
 
-    dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1367,7 +1367,7 @@ static int DetectDceIfaceTestParse14(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

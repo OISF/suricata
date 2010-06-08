@@ -507,10 +507,10 @@ static int DetectHttpCookieSigTest01(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -543,7 +543,7 @@ static int DetectHttpCookieSigTest01(void) {
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -564,9 +564,6 @@ static int DetectHttpCookieSigTest01(void) {
 
     result = 1;
 end:
-    if (http_state != NULL) {
-        HTPStateFree(http_state);
-    }
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -575,7 +572,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -611,10 +608,10 @@ static int DetectHttpCookieSigTest02(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -640,7 +637,7 @@ static int DetectHttpCookieSigTest02(void) {
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -657,9 +654,6 @@ static int DetectHttpCookieSigTest02(void) {
     result = 1;
 
 end:
-    if (http_state != NULL) {
-        HTPStateFree(http_state);
-    }
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -667,7 +661,7 @@ end:
         SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -704,10 +698,10 @@ static int DetectHttpCookieSigTest03(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -733,7 +727,7 @@ static int DetectHttpCookieSigTest03(void) {
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -749,9 +743,6 @@ static int DetectHttpCookieSigTest03(void) {
 
     result = 1;
 end:
-    if (http_state != NULL) {
-        HTPStateFree(http_state);
-    }
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -760,7 +751,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -797,10 +788,10 @@ static int DetectHttpCookieSigTest04(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -826,7 +817,7 @@ static int DetectHttpCookieSigTest04(void) {
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -842,9 +833,6 @@ static int DetectHttpCookieSigTest04(void) {
 
     result = 1;
 end:
-    if (http_state != NULL) {
-        HTPStateFree(http_state);
-    }
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -853,7 +841,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -890,10 +878,10 @@ static int DetectHttpCookieSigTest05(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -919,7 +907,7 @@ static int DetectHttpCookieSigTest05(void) {
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -935,9 +923,6 @@ static int DetectHttpCookieSigTest05(void) {
 
     result = 1;
 end:
-    if (http_state != NULL) {
-        HTPStateFree(http_state);
-    }
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -946,7 +931,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -983,10 +968,10 @@ static int DetectHttpCookieSigTest06(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1012,7 +997,7 @@ static int DetectHttpCookieSigTest06(void) {
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -1028,9 +1013,6 @@ static int DetectHttpCookieSigTest06(void) {
 
     result = 1;
 end:
-    if (http_state != NULL) {
-        HTPStateFree(http_state);
-    }
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -1039,7 +1021,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1076,10 +1058,10 @@ static int DetectHttpCookieSigTest07(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1105,7 +1087,7 @@ static int DetectHttpCookieSigTest07(void) {
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1121,9 +1103,6 @@ static int DetectHttpCookieSigTest07(void) {
 
     result = 1;
 end:
-    if (http_state != NULL) {
-        HTPStateFree(http_state);
-    }
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -1132,7 +1111,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

@@ -3422,10 +3422,10 @@ static int SigTest06Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3472,7 +3472,7 @@ static int SigTest06Real (int mpm_type) {
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -3519,10 +3519,10 @@ static int SigTest07Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3561,9 +3561,9 @@ static int SigTest07Real (int mpm_type) {
         result = 1;
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
-    AppLayerParserCleanupState(&ssn);
+    AppLayerParserCleanupState(&f);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -3616,10 +3616,10 @@ static int SigTest08Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3659,7 +3659,7 @@ static int SigTest08Real (int mpm_type) {
             PacketAlertCheck(&p, 1) ? "OK" : "FAIL",
             PacketAlertCheck(&p, 2) ? "OK" : "FAIL");
 
-    AppLayerParserCleanupState(&ssn);
+    AppLayerParserCleanupState(&f);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -3667,7 +3667,7 @@ static int SigTest08Real (int mpm_type) {
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -3714,10 +3714,10 @@ static int SigTest09Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3755,14 +3755,14 @@ static int SigTest09Real (int mpm_type) {
     else
         result = 0;
 
-    AppLayerParserCleanupState(&ssn);
+    AppLayerParserCleanupState(&f);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -3804,10 +3804,10 @@ static int SigTest10Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3845,14 +3845,14 @@ static int SigTest10Real (int mpm_type) {
     else
         result = 1;
 
-    AppLayerParserCleanupState(&ssn);
+    AppLayerParserCleanupState(&f);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -3895,10 +3895,10 @@ static int SigTest11Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3924,12 +3924,12 @@ static int SigTest11Real (int mpm_type) {
     if (PacketAlertCheck(&p, 1) && PacketAlertCheck(&p, 2))
         result = 1;
 
-    AppLayerParserCleanupState(&ssn);
+    AppLayerParserCleanupState(&f);
     SigGroupCleanup(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

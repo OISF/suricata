@@ -378,9 +378,10 @@ TmEcode DecodePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
-        return TM_ECODE_FAILED;
-    memset(dtv, 0, sizeof(DecodeThreadVars));
+    dtv = DecodeThreadVarsAlloc();
+
+    if (dtv == NULL)
+        SCReturnInt(TM_ECODE_FAILED);
 
     DecodeRegisterPerfCounters(dtv, tv);
 

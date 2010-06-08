@@ -1250,7 +1250,7 @@ int SMBParserTest01(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
     if (r != 0) {
@@ -1258,7 +1258,7 @@ int SMBParserTest01(void) {
         goto end;
     }
 
-    SMBState *smb_state = ssn.aldata[AlpGetStateIdx(ALPROTO_SMB)];
+    SMBState *smb_state = f.aldata[AlpGetStateIdx(ALPROTO_SMB)];
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -1281,7 +1281,7 @@ int SMBParserTest01(void) {
 
     result = 1;
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1321,7 +1321,7 @@ int SMBParserTest02(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
     if (r != 0) {
@@ -1329,7 +1329,7 @@ int SMBParserTest02(void) {
         goto end;
     }
 
-    SMBState *smb_state = ssn.aldata[AlpGetStateIdx(ALPROTO_SMB)];
+    SMBState *smb_state = f.aldata[AlpGetStateIdx(ALPROTO_SMB)];
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -1353,7 +1353,7 @@ int SMBParserTest02(void) {
     printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1611,7 +1611,7 @@ int SMBParserTest03(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
@@ -1619,7 +1619,7 @@ int SMBParserTest03(void) {
         goto end;
     }
 
-    SMBState *smb_state = ssn.aldata[AlpGetStateIdx(ALPROTO_SMB)];
+    SMBState *smb_state = f.aldata[AlpGetStateIdx(ALPROTO_SMB)];
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -1643,7 +1643,7 @@ int SMBParserTest03(void) {
     printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1716,7 +1716,7 @@ int SMBParserTest04(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
@@ -1724,7 +1724,7 @@ int SMBParserTest04(void) {
         goto end;
     }
 
-    SMBState *smb_state = ssn.aldata[AlpGetStateIdx(ALPROTO_SMB)];
+    SMBState *smb_state = f.aldata[AlpGetStateIdx(ALPROTO_SMB)];
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -1753,7 +1753,7 @@ int SMBParserTest04(void) {
 
     result = 1;
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

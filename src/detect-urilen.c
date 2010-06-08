@@ -511,10 +511,10 @@ static int DetectUrilenSigTest01(void)
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -548,7 +548,7 @@ static int DetectUrilenSigTest01(void)
         goto end;
     }
 
-    HtpState *htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    HtpState *htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         SCLogDebug("no http state: ");
         goto end;
@@ -572,7 +572,7 @@ end:
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

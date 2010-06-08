@@ -146,6 +146,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
 
     p->ip4h->ip_src.s_addr = p->src.addr_data32[0];
     p->ip4h->ip_dst.s_addr = p->dst.addr_data32[0];
+    p->proto = ipproto;
 
     switch (ipproto) {
         case IPPROTO_UDP:

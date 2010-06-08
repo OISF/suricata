@@ -27,20 +27,12 @@
 #include "stream.h"
 #include "detect-content.h"
 
-typedef struct AlpProtoDetectDirectionThread_ {
-    MpmThreadCtx mpm_ctx;
-    PatternMatcherQueue pmq;
-} AlpProtoDetectDirectionThread;
-
-typedef struct AlpProtoDetectThreadCtx_ {
-    AlpProtoDetectDirectionThread toserver;
-    AlpProtoDetectDirectionThread toclient;
-} AlpProtoDetectThreadCtx;
 
 /** \brief Signature for proto detection
  *  \todo we might just use SigMatch here
  */
 typedef struct AlpProtoSignature_ {
+    uint16_t ip_proto;                     /**< protocol (TCP/UDP) */
     uint16_t proto;                     /**< protocol */
     DetectContentData *co;              /**< content match that needs to match */
     struct AlpProtoSignature_ *next;    /**< next signature */
@@ -88,7 +80,7 @@ void *AppLayerDetectProtoThread(void *td);
 
 void AppLayerDetectProtoThreadInit(void);
 
-uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *, AlpProtoDetectThreadCtx *, uint8_t *, uint16_t, uint8_t);
+uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *, AlpProtoDetectThreadCtx *, uint8_t *, uint16_t, uint8_t, uint8_t);
 
 void AppLayerDetectProtoThreadSpawn(void);
 void AlpDetectRegisterTests(void);

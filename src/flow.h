@@ -31,6 +31,9 @@
 #define FLOW_QUIET      TRUE
 #define FLOW_VERBOSE    FALSE
 
+#define TOSERVER 0
+#define TOCLIENT 1
+
 /* per flow flags */
 
 /** At least on packet from the source address was seen */
@@ -189,7 +192,21 @@ typedef struct Flow_
     struct Flow_ *lprev;
 
     struct FlowBucket_ *fb;
+
+    uint16_t alproto; /**< application level protocol */
+    void **aldata; /**< application level storage ptrs */
+    uint8_t alflags; /**< application level specific flags */
+
 } Flow;
+
+/** Flow Application Level flags */
+#define FLOW_AL_PROTO_UNKNOWN           0x01
+#define FLOW_AL_PROTO_DETECT_DONE       0x02
+#define FLOW_AL_STREAM_TOSERVER         0x04
+#define FLOW_AL_STREAM_TOCLIENT         0x08
+#define FLOW_AL_STREAM_GAP              0x10
+#define FLOW_AL_STREAM_EOF              0x20
+#define FLOW_AL_NO_APPLAYER_INSPECTION  0x40 /** \todo move to flow flags later */
 
 enum {
     FLOW_STATE_NEW = 0,
@@ -230,10 +247,17 @@ int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
 int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
 void FlowUpdateQueue(Flow *);
+
 void FlowLockSetNoPacketInspectionFlag(Flow *);
 void FlowSetNoPacketInspectionFlag(Flow *);
 void FlowLockSetNoPayloadInspectionFlag(Flow *);
 void FlowSetNoPayloadInspectionFlag(Flow *);
+void FlowSetSessionNoApplayerInspectionFlag(Flow *);
+
+int FlowGetPacketDirection(Flow *, Packet *);
+
+void FlowL7DataPtrInit(Flow *);
+void FlowL7DataPtrFree(Flow *);
 
 #endif /* __FLOW_H__ */
 

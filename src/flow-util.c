@@ -30,6 +30,7 @@
 #include "flow-private.h"
 #include "flow-util.h"
 #include "flow-var.h"
+#include "app-layer.h"
 
 #include "util-var.h"
 #include "util-debug.h"
@@ -62,6 +63,10 @@ Flow *FlowAlloc(void)
 
 
     FLOW_INITIALIZE(f);
+
+    f->alproto = 0;
+    f->aldata = NULL;
+    f->alflags = FLOW_AL_PROTO_UNKNOWN;
 
     return f;
 }
@@ -142,6 +147,8 @@ void FlowInit(Flow *f, Packet *p)
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
     }
 
+    f->alflags = FLOW_AL_PROTO_UNKNOWN;
+    FlowL7DataPtrInit(f);
     COPY_TIMESTAMP(&p->ts, &f->startts);
 
     f->protomap = FlowGetProtoMapping(f->proto);

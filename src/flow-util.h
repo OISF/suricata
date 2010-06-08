@@ -46,6 +46,9 @@
         (f)->de_state = NULL; \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
+        (f)->aldata = NULL; \
+        (f)->alflags = FLOW_AL_PROTO_UNKNOWN; \
+        (f)->alproto = 0; \
     } while (0)
 
 #define FLOW_RECYCLE(f) do { \
@@ -69,6 +72,12 @@
         (f)->de_state = NULL; \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
+        AppLayerParserCleanupState(f); \
+        FlowL7DataPtrFree(f); \
+        SCFree((f)->aldata); \
+        (f)->aldata = NULL; \
+        (f)->alflags = FLOW_AL_PROTO_UNKNOWN; \
+        (f)->alproto = 0; \
     } while(0)
 
 #define FLOW_DESTROY(f) do { \
@@ -79,6 +88,12 @@
         SC_ATOMIC_DESTROY((f)->use_cnt); \
         DetectEngineStateFree((f)->de_state); \
         (f)->de_state = NULL; \
+        AppLayerParserCleanupState(f); \
+        FlowL7DataPtrFree(f); \
+        SCFree((f)->aldata); \
+        (f)->aldata = NULL; \
+        (f)->alflags = FLOW_AL_PROTO_UNKNOWN; \
+        (f)->alproto = 0; \
     } while(0)
 
 Flow *FlowAlloc(void);

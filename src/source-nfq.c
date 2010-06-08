@@ -644,10 +644,10 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
 TmEcode DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
+    dtv = DecodeThreadVarsAlloc();
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
-        return TM_ECODE_FAILED;
-    memset(dtv, 0, sizeof(DecodeThreadVars));
+    if (dtv == NULL)
+        SCReturnInt(TM_ECODE_FAILED);
 
     DecodeRegisterPerfCounters(dtv, tv);
 

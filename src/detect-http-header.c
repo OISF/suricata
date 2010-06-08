@@ -474,10 +474,10 @@ static int DetectHttpHeaderTest06(void)
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -502,7 +502,7 @@ static int DetectHttpHeaderTest06(void)
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -526,7 +526,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -585,10 +585,10 @@ static int DetectHttpHeaderTest07(void)
     p1.flowflags |= FLOW_PKT_TOSERVER;
     p2.flow = &f;
     p2.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -613,7 +613,7 @@ static int DetectHttpHeaderTest07(void)
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -652,7 +652,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -710,10 +710,10 @@ static int DetectHttpHeaderTest08(void)
     p1.flowflags |= FLOW_PKT_TOSERVER;
     p2.flow = &f;
     p2.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -738,7 +738,7 @@ static int DetectHttpHeaderTest08(void)
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -777,7 +777,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -836,10 +836,10 @@ static int DetectHttpHeaderTest09(void)
     p1.flowflags |= FLOW_PKT_TOSERVER;
     p2.flow = &f;
     p2.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -864,7 +864,7 @@ static int DetectHttpHeaderTest09(void)
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -903,7 +903,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -962,10 +962,10 @@ static int DetectHttpHeaderTest10(void)
     p1.flowflags |= FLOW_PKT_TOSERVER;
     p2.flow = &f;
     p2.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -990,7 +990,7 @@ static int DetectHttpHeaderTest10(void)
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1029,7 +1029,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1076,10 +1076,10 @@ static int DetectHttpHeaderTest11(void)
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1104,7 +1104,7 @@ static int DetectHttpHeaderTest11(void)
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1128,7 +1128,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1175,10 +1175,10 @@ static int DetectHttpHeaderTest12(void)
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1203,7 +1203,7 @@ static int DetectHttpHeaderTest12(void)
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1227,7 +1227,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1275,10 +1275,10 @@ static int DetectHttpHeaderTest13(void)
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1303,7 +1303,7 @@ static int DetectHttpHeaderTest13(void)
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1327,7 +1327,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

@@ -53,6 +53,9 @@
 
 #include "detect.h"
 #include "detect-engine-state.h"
+#include "stream.h"
+#include "app-layer-parser.h"
+
 #define FLOW_DEFAULT_EMERGENCY_RECOVERY 30
 #define FLOW_DEFAULT_FLOW_PRUNE 5
 
@@ -76,6 +79,49 @@ int FlowKill (FlowQueue *);
 
 /* Run mode selected at suricata.c */
 extern int run_mode;
+
+/** \brief Initialize the l7data ptr in the Flow session used by the L7 Modules
+ *         for data storage.
+ *
+ *  \param f Flow to init the ptrs for
+ *  \param cnt number of items in the array
+ *
+ *  \todo VJ use a pool?
+ */
+void FlowL7DataPtrInit(Flow *f) {
+    if (f->aldata != NULL)
+        return;
+
+    uint32_t size = (uint32_t)(sizeof (void *) * StreamL7GetStorageSize());
+
+/////////XXXPR pass to flow memcap   if (StreamTcpCheckMemcap(size) == 0)
+/////////XXXPR pass to flow memcap        return;
+
+    f->aldata = (void **) SCMalloc(size);
+    if (f->aldata != NULL) {
+      //  StreamTcpIncrMemuse(size);
+
+        uint8_t u;
+        for (u = 0; u < StreamL7GetStorageSize(); u++) {
+            f->aldata[u] = NULL;
+        }
+    }
+}
+
+void FlowL7DataPtrFree(Flow *f) {
+    if (f == NULL)
+        return;
+
+    if (f->aldata == NULL)
+        return;
+
+    AppLayerParserCleanupState(f);
+    SCFree(f->aldata);
+    f->aldata = NULL;
+
+   //// uint32_t size = (uint32_t)(sizeof (void *) * StreamL7GetStorageSize());
+////    StreamTcpDecrMemuse(size);
+}
 
 /** \brief Update the flows position in the queue's
  *  \param f Flow to requeue.
@@ -575,15 +621,12 @@ void FlowDecrUsecnt(Flow *f) {
     SC_ATOMIC_SUB(f->use_cnt, 1);
 }
 
-#define TOSERVER 0
-#define TOCLIENT 1
-
 /**
  *  \brief determine the direction of the packet compared to the flow
  *  \retval 0 to_server
  *  \retval 1 to_client
  */
-static inline int FlowGetPacketDirection(Flow *f, Packet *p) {
+int FlowGetPacketDirection(Flow *f, Packet *p) {
     if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
         if (!(CMP_PORT(p->sp,p->dp))) {
             /* update flags and counters */
@@ -1441,6 +1484,14 @@ void FlowSetNoPayloadInspectionFlag(Flow *f) {
     f->flags |= FLOW_NOPAYLOAD_INSPECTION;
 
     SCReturn;
+}
+
+/** \brief set flow flag to disable app layer inspection
+ *
+ *  \param f *LOCKED* flow
+ */
+void FlowSetSessionNoApplayerInspectionFlag(Flow *f) {
+    f->alflags |= FLOW_AL_NO_APPLAYER_INSPECTION;
 }
 
 #ifdef UNITTESTS

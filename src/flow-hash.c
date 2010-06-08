@@ -34,6 +34,7 @@
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "flow-private.h"
+#include "app-layer-parser.h"
 
 #include "util-time.h"
 #include "util-debug.h"

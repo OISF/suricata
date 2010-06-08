@@ -1759,7 +1759,7 @@ int DCERPCParserTest01(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcbind, bindlen);
     if (r != 0) {
@@ -1768,7 +1768,7 @@ int DCERPCParserTest01(void) {
         goto end;
     }
 
-    DCERPCState *dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -1827,7 +1827,7 @@ int DCERPCParserTest01(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1978,7 +1978,7 @@ int DCERPCParserTest02(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
     if (r != 0) {
@@ -1987,7 +1987,7 @@ int DCERPCParserTest02(void) {
         goto end;
     }
 
-    DCERPCState *dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -2020,7 +2020,7 @@ int DCERPCParserTest02(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -2171,7 +2171,7 @@ int DCERPCParserTest03(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
     if (r != 0) {
@@ -2180,7 +2180,7 @@ int DCERPCParserTest03(void) {
         goto end;
     }
 
-    DCERPCState *dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -2206,7 +2206,7 @@ int DCERPCParserTest03(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

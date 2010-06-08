@@ -442,10 +442,10 @@ TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 TmEcode DecodeIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
+    dtv = DecodeThreadVarsAlloc();
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
+    if (dtv == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    memset(dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeRegisterPerfCounters(dtv, tv);
 

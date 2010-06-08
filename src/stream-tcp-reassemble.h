@@ -66,10 +66,6 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *);
 
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 
-void StreamL7DataPtrInit(TcpSession *);
-void StreamL7DataPtrFree(TcpSession *);
-
-void StreamTcpSetSessionNoApplayerInspectionFlag(TcpSession *);
 void StreamTcpSetSessionNoReassemblyFlag (TcpSession *, char );
 
 void StreamTcpSetOSPolicy(TcpStream *, Packet *);

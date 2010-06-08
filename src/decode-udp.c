@@ -30,6 +30,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "flow.h"
+#include "app-layer.h"
 
 static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
@@ -76,6 +77,7 @@ void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     /* Flow is an integral part of us */
     FlowHandlePacket(tv, p);
+    AppLayerHandleUdp(&dtv->udp_dp_ctx, p->flow, p);
 
     return;
 }

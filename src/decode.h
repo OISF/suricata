@@ -370,9 +370,24 @@ typedef struct PacketQueue_ {
 #endif /* DBG_PERF */
 } PacketQueue;
 
+/** \brief Specific ctx for AL proto detection */
+typedef struct AlpProtoDetectDirectionThread_ {
+    MpmThreadCtx mpm_ctx;
+    PatternMatcherQueue pmq;
+} AlpProtoDetectDirectionThread;
+
+/** \brief Specific ctx for AL proto detection */
+typedef struct AlpProtoDetectThreadCtx_ {
+    AlpProtoDetectDirectionThread toserver;
+    AlpProtoDetectDirectionThread toclient;
+} AlpProtoDetectThreadCtx;
+
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {
+    /** Specific context for udp protocol detection (here atm) */
+    AlpProtoDetectThreadCtx udp_dp_ctx;
+
     /** stats/counters */
     uint16_t counter_pkts;
     uint16_t counter_pkts_per_sec;
@@ -491,6 +506,8 @@ typedef struct DecodeThreadVars_
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
 Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
 Packet *PacketGetFromQueueOrAlloc(void);
+
+DecodeThreadVars *DecodeThreadVarsAlloc();
 
 /* decoder functions */
 void DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);

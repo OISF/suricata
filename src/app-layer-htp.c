@@ -1058,7 +1058,7 @@ int HTPParserTest01(void) {
     f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     uint32_t u;
     for (u = 0; u < httplen1; u++) {
@@ -1077,7 +1077,7 @@ int HTPParserTest01(void) {
         }
     }
 
-    htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1105,7 +1105,7 @@ int HTPParserTest01(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
@@ -1128,7 +1128,7 @@ int HTPParserTest02(void) {
     f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
@@ -1138,7 +1138,7 @@ int HTPParserTest02(void) {
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1160,7 +1160,7 @@ int HTPParserTest02(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1185,7 +1185,7 @@ int HTPParserTest03(void) {
     f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     uint32_t u;
     for (u = 0; u < httplen1; u++) {
@@ -1203,7 +1203,7 @@ int HTPParserTest03(void) {
             goto end;
         }
     }
-    htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1228,7 +1228,7 @@ int HTPParserTest03(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
@@ -1252,12 +1252,12 @@ int HTPParserTest04(void) {
     f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
 
-    htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1282,7 +1282,7 @@ int HTPParserTest04(void) {
     }
 
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
@@ -1317,7 +1317,7 @@ int HTPParserTest05(void) {
     f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
                           httpbuf1, httplen1);
@@ -1365,7 +1365,7 @@ int HTPParserTest05(void) {
         goto end;
     }
 
-    http_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1398,7 +1398,7 @@ int HTPParserTest05(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1463,7 +1463,7 @@ int HTPParserTest06(void) {
     f.dst.family = AF_INET;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
                           httpbuf1, httplen1);
@@ -1481,7 +1481,7 @@ int HTPParserTest06(void) {
         goto end;
     }
 
-    http_state =  ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state =  f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1516,7 +1516,7 @@ int HTPParserTest06(void) {
         goto end;
     }
 end:
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1864,7 +1864,7 @@ libhtp:\n\
     }
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     uint32_t u;
     for (u = 0; u < httplen1; u++) {
@@ -1883,7 +1883,7 @@ libhtp:\n\
         }
     }
 
-    htp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1902,7 +1902,7 @@ end:
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);

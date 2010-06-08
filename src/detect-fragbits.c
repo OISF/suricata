@@ -32,6 +32,7 @@
 
 #include "flow-var.h"
 #include "decode-events.h"
+#include "app-layer-detect-proto.h"
 
 #include "detect-fragbits.h"
 #include "util-unittest.h"
@@ -404,14 +405,13 @@ static int FragBitsTestParse03 (void) {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
+    AlpProtoFinalize2Thread(&dtv.udp_dp_ctx);
 
     p.ip4h = &ipv4h;
 
     FlowInitConfig(FLOW_QUIET);
 
     DecodeEthernet(&tv, &dtv, &p, raw_eth, sizeof(raw_eth), NULL);
-
-    FlowShutdown();
 
     de = DetectFragBitsParse("D");
 
@@ -434,6 +434,7 @@ static int FragBitsTestParse03 (void) {
     }
 
 error:
+    FlowShutdown();
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     return 0;
@@ -496,6 +497,7 @@ static int FragBitsTestParse04 (void) {
     memset(&p, 0, sizeof(Packet));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
+    AlpProtoFinalize2Thread(&dtv.udp_dp_ctx);
 
     p.ip4h = &ipv4h;
 

@@ -183,7 +183,7 @@ void StreamTcpSessionClear(void *ssnptr)
     StreamTcpReturnStreamSegments(&ssn->client);
     StreamTcpReturnStreamSegments(&ssn->server);
 
-    AppLayerParserCleanupState(ssn);
+    //AppLayerParserCleanupState(ssn);
 
     /* if we have (a) smsg(s), return to the pool */
     smsg = ssn->toserver_smsg_head;
@@ -331,7 +331,6 @@ void StreamTcpSessionPoolFree(void *s)
     }
     ssn->toclient_smsg_head = NULL;
 
-    StreamL7DataPtrFree(ssn);
     SCFree(ssn);
 
     StreamTcpDecrMemuse((uint32_t)sizeof(TcpSession));
@@ -476,7 +475,6 @@ TcpSession *StreamTcpNewSession (Packet *p)
         }
 
         ssn->state = TCP_NONE;
-        ssn->aldata = NULL;
     }
 
     return ssn;
@@ -2532,7 +2530,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt)
             SCReturnInt(-1);
 
         if (ssn != NULL)
-            SCLogDebug("ssn->alproto %"PRIu16"", ssn->alproto);
+            SCLogDebug("ssn->alproto %"PRIu16"", p->flow->alproto);
     } else {
         /* check if the packet is in right direction, when we missed the
            SYN packet and picked up midstream session. */
@@ -3047,7 +3045,7 @@ static int StreamTcpTest01 (void) {
     }
     f.protoctx = ssn;
 
-    if (ssn->aldata != NULL) {
+    if (f.aldata != NULL) {
         printf("AppLayer field not set to NULL: ");
         goto end;
     }

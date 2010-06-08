@@ -346,10 +346,10 @@ static int DetectFtpbounceTestALMatch02(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_FTP;
+    f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -367,7 +367,7 @@ static int DetectFtpbounceTestALMatch02(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v,(void *)de_ctx,(void *)&det_ctx);
 
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
     int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
@@ -396,7 +396,7 @@ static int DetectFtpbounceTestALMatch02(void) {
         goto end;
     }
 
-    FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
+    FtpState *ftp_state = f.aldata[AlpGetStateIdx(ALPROTO_FTP)];
     if (ftp_state == NULL) {
         SCLogDebug("no ftp state: ");
         result = 0;
@@ -424,7 +424,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v,(void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -471,10 +471,10 @@ static int DetectFtpbounceTestALMatch03(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    ssn.alproto = ALPROTO_FTP;
+    f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
-    StreamL7DataPtrInit(&ssn);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -520,7 +520,7 @@ static int DetectFtpbounceTestALMatch03(void) {
         goto end;
     }
 
-    FtpState *ftp_state = ssn.aldata[AlpGetStateIdx(ALPROTO_FTP)];
+    FtpState *ftp_state = f.aldata[AlpGetStateIdx(ALPROTO_FTP)];
     if (ftp_state == NULL) {
         SCLogDebug("no ftp state: ");
         result = 0;
@@ -550,7 +550,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v,(void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamL7DataPtrFree(&ssn);
+    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

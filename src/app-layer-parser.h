@@ -172,7 +172,7 @@ int AppLayerTransactionGetBaseId(Flow *f);
 void AppLayerParserRegisterTests(void);
 
 #include "stream-tcp-private.h"
-void AppLayerParserCleanupState(TcpSession *);
+void AppLayerParserCleanupState(Flow *);
 
 #endif /* __APP_LAYER_PARSER_H__ */
 
