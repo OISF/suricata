@@ -79,11 +79,14 @@ typedef struct MpmThreadCtx_ {
  *         thread has this and passes a pointer to it to the pattern matcher.
  *         The actual pattern matcher will fill the structure. */
 typedef struct PatternMatcherQueue_ {
-    uint32_t *pattern_id_array;     /** array with internal sig id's that had a
+    uint32_t *pattern_id_array;     /** array with pattern id's that had a
                                         pattern match. These will be inspected
                                         futher by the detection engine. */
     uint32_t pattern_id_array_cnt;
+    uint32_t pattern_id_array_size; /**< size in bytes */
+
     uint8_t *pattern_id_bitarray;   /** bitarray with pattern id matches */
+    uint32_t pattern_id_bitarray_size; /**< size in bytes */
 } PatternMatcherQueue;
 
 typedef struct MpmCtx_ {
@@ -142,6 +145,7 @@ typedef struct MpmTableElmt_ {
 MpmTableElmt mpm_table[MPM_TABLE_SIZE];
 
 int PmqSetup(PatternMatcherQueue *, uint32_t, uint32_t);
+void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst);
 void PmqReset(PatternMatcherQueue *);
 void PmqCleanup(PatternMatcherQueue *);
 void PmqFree(PatternMatcherQueue *);

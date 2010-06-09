@@ -29,10 +29,13 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
+#include "stream.h"
+
 uint16_t PatternMatchDefaultMatcher(void);
 
 uint32_t PacketPatternSearch(ThreadVars *, DetectEngineThreadCtx *, Packet *);
 uint32_t UriPatternSearch(ThreadVars *, DetectEngineThreadCtx *, uint8_t *, uint16_t);
+uint32_t StreamPatternSearch(ThreadVars *, DetectEngineThreadCtx *, StreamMsg *);
 
 void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
 

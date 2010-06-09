@@ -61,7 +61,7 @@
  *  \param det_ctx Detection engine thread context
  *  \param s Signature to inspect
  *  \param sm SigMatch to inspect
- *  \param p Packet
+ *  \param f flow (for pcre flowvar storage)
  *  \param payload ptr to the payload to inspect
  *  \param payload_len length of the payload
  *
@@ -70,7 +70,7 @@
  */
 static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
-        Packet *p, uint8_t *payload, uint32_t payload_len)
+        Packet *p, Flow *f, uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
 
@@ -211,7 +211,7 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                     /* see if the next payload keywords match. If not, we will
                      * search for another occurence of this content and see
                      * if the others match then until we run out of matches */
-                    int r = DoInspectPacketPayload(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
+                    int r = DoInspectPacketPayload(de_ctx,det_ctx,s,sm->next, p, f, payload, payload_len);
                     if (r == 1) {
                         SCReturnInt(1);
                     }
@@ -250,7 +250,7 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
         {
             SCLogDebug("inspecting pcre");
 
-            int r = DetectPcrePayloadMatch(det_ctx, p, s, sm);
+            int r = DetectPcrePayloadMatch(det_ctx, s, sm, p, f, payload, payload_len);
             if (r == 1) {
                 goto match;
             }
@@ -286,20 +286,20 @@ match:
     /* this sigmatch matched, inspect the next one. If it was the last,
      * the payload portion of the signature matched. */
     if (sm->next != NULL) {
-        int r = DoInspectPacketPayload(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
+        int r = DoInspectPacketPayload(de_ctx,det_ctx,s,sm->next, p, f, payload, payload_len);
         SCReturnInt(r);
     } else {
         SCReturnInt(1);
     }
 }
 
-/** \brief Do the content inspection & validation for a signature
+/**
+ *  \brief Do the content inspection & validation for a signature
  *
  *  \param de_ctx Detection engine context
  *  \param det_ctx Detection engine thread context
  *  \param s Signature to inspect
- *  \param sm SigMatch to inspect
- *  \param f Flow
+ *  \param f flow (for pcre flowvar storage)
  *  \param flags app layer flags
  *  \param state App layer state
  *  \param p Packet
@@ -320,7 +320,45 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
 
     det_ctx->payload_offset = 0;
 
-    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, p, p->payload, p->payload_len);
+    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, p, f, p->payload, p->payload_len);
+    if (r == 1) {
+        SCReturnInt(1);
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Do the content inspection & validation for a signature for a stream chunk
+ *
+ *  \param de_ctx Detection engine context
+ *  \param det_ctx Detection engine thread context
+ *  \param s Signature to inspect
+ *  \param f flow (for pcre flowvar storage)
+ *  \param payload ptr to the payload to inspect
+ *  \param payload_len length of the payload
+ *
+ *  \retval 0 no match
+ *  \retval 1 match
+ *
+ *  \todo we might also pass the packet to this function for the pktvar
+ *        storage. Only, would that be right? We're not inspecting data
+ *        from the current packet here.
+ */
+int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f,
+        uint8_t *payload, uint32_t payload_len)
+{
+    SCEnter();
+    int r = 0;
+
+    if (s->pmatch == NULL) {
+        SCReturnInt(0);
+    }
+
+    det_ctx->payload_offset = 0;
+
+    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, NULL, f, payload, payload_len);
     if (r == 1) {
         SCReturnInt(1);
     }

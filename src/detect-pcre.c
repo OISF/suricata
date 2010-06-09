@@ -265,14 +265,113 @@ int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
  * \brief match a regex on a single payload'
  *
  * \param det_ctx thread detection ctx
+ * \param s signature
+ * \param sm sig match to match against
+ * \param p packet to set PktVars if any
+ * \param f flow to set FlowVars if any
+ * \param payload payload to inspect
+ * \param payload_len lenght of the payload
+ *
+ * \retval 1 match
+ * \retval 0 no match
+ */
+int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
+        SigMatch *sm, Packet *p, Flow *f, uint8_t *payload,
+        uint32_t payload_len)
+{
+    SCEnter();
+#define MAX_SUBSTRINGS 30
+    int ret = 0;
+    int ov[MAX_SUBSTRINGS];
+    uint8_t *ptr = NULL;
+    uint16_t len = 0;
+
+    if (payload_len == 0)
+        SCReturnInt(0);
+
+    DetectPcreData *pe = (DetectPcreData *)sm->ctx;
+
+    /* If we want to inspect the http body, we will use HTP L7 parser */
+    if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
+        SCReturnInt(0);
+
+    if (s->flags & SIG_FLAG_RECURSIVE) {
+        ptr = payload + det_ctx->payload_offset;
+        len = payload_len - det_ctx->payload_offset;
+    } else if (pe->flags & DETECT_PCRE_RELATIVE) {
+        ptr = payload + det_ctx->payload_offset;
+        len = payload_len - det_ctx->payload_offset;
+        if (ptr == NULL || len == 0)
+            SCReturnInt(0);
+    } else {
+        ptr = payload;
+        len = payload_len;
+    }
+
+    /* run the actual pcre detection */
+    ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
+    SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+
+    if (ret == PCRE_ERROR_NOMATCH) {
+        if (pe->negate == 1) {
+            /* regex didn't match with negate option means we
+             * consider it a match */
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+    } else if (ret >= 0) {
+        if (pe->negate == 1) {
+            /* regex matched but we're negated, so not
+             * considering it a match */
+            ret = 0;
+        } else {
+            /* regex matched and we're not negated,
+             * considering it a match */
+
+            /* see if we need to do substring capturing. */
+            if (ret > 1 && pe->capidx != 0) {
+                const char *str_ptr;
+                ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+                if (ret) {
+                    if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
+                        if (p != NULL) {
+                            PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
+                        }
+                    } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
+                        if (f != NULL) {
+                            /* flow will be locked be FlowVarAddStr */
+                            FlowVarAddStr(f, pe->capidx, (uint8_t *)str_ptr, ret);
+                        }
+                    }
+                }
+            }
+
+            /* update offset for pcre RELATIVE */
+            det_ctx->payload_offset = (ptr+ov[1]) - payload;
+
+            ret = 1;
+        }
+
+    } else {
+        SCLogDebug("pcre had matching error");
+        ret = 0;
+    }
+    SCReturnInt(ret);
+}
+
+/**
+ * \brief match a regex on a single payload'
+ *
+ * \param det_ctx thread detection ctx
  * \param p packet
  * \param s signature
  * \param sm sig match to match against
  *
- * \retval 1: match
- * \retval 0: no match
+ * \retval 1 match
+ * \retval 0 no match
  */
-int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm) {
+int DetectPcrePacketPayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm) {
     SCEnter();
 #define MAX_SUBSTRINGS 30
     int ret = 0;
@@ -366,7 +465,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
                      Signature *s, SigMatch *sm)
 {
     SCEnter();
-    int r = DetectPcrePayloadMatch(det_ctx, p, s, sm);
+    int r = DetectPcrePacketPayloadMatch(det_ctx, p, s, sm);
     SCReturnInt(r);
 }
 

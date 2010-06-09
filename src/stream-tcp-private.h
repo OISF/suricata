@@ -164,8 +164,10 @@ typedef struct TcpSession_ {
     TcpStream server;
     TcpStream client;
     void **aldata; /**< application level storage ptrs */
-    struct StreamMsg_ *smsg_head; /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *smsg_tail; /**< list of stream msgs (for detection inspection) */
+    struct StreamMsg_ *toserver_smsg_head; /**< list of stream msgs (for detection inspection) */
+    struct StreamMsg_ *toserver_smsg_tail; /**< list of stream msgs (for detection inspection) */
+    struct StreamMsg_ *toclient_smsg_head; /**< list of stream msgs (for detection inspection) */
+    struct StreamMsg_ *toclient_smsg_tail; /**< list of stream msgs (for detection inspection) */
 } TcpSession;
 
 #endif /* __STREAM_TCP_PRIVATE_H__ */

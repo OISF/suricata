@@ -41,6 +41,9 @@
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
+
+#include "stream.h"
+
 #include "util-cuda-handlers.h"
 #include "util-mpm-b2g-cuda.h"
 
@@ -166,6 +169,38 @@ uint32_t UriPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 #endif
 
     SCReturnUInt(ret);
+}
+
+/** \brief Pattern match -- searches for only one pattern per signature.
+ *
+ *  \param tv threadvars
+ *  \param det_ctx detection engine thread ctx
+ *  \param smsg stream msg (reassembled stream data)
+ *
+ *  \retval ret number of matches
+ */
+uint32_t StreamPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+                           StreamMsg *smsg)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+    uint8_t cnt = 0;
+
+    for ( ; smsg != NULL; smsg = smsg->next) {
+        uint32_t r = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
+                &det_ctx->mtc, &det_ctx->smsg_pmq[cnt], smsg->data.data, smsg->data.data_len);
+        if (r > 0) {
+            ret += r;
+
+            /* merge results with overall pmq */
+            PmqMerge(&det_ctx->smsg_pmq[cnt], &det_ctx->pmq);
+        }
+
+        cnt++;
+    }
+
+    SCReturnInt(ret);
 }
 
 

@@ -336,6 +336,10 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
 
     //PmqSetup(&det_ctx->pmq, DetectEngineGetMaxSigId(de_ctx), DetectContentMaxId(de_ctx));
     PmqSetup(&det_ctx->pmq, 0, DetectContentMaxId(de_ctx));
+    int i;
+    for (i = 0; i < 256; i++) {
+        PmqSetup(&det_ctx->smsg_pmq[i], 0, DetectContentMaxId(de_ctx));
+    }
 
     /* IP-ONLY */
     DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);

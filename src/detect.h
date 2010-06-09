@@ -483,6 +483,7 @@ typedef struct DetectionEngineThreadCtx_ {
     MpmThreadCtx mtcu;
     struct SigGroupHead_ *sgh;
     PatternMatcherQueue pmq;
+    PatternMatcherQueue smsg_pmq[256];
 
     /* counters */
     uint32_t pkts;

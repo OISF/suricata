@@ -487,7 +487,8 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
-/** \brief Signature match function
+/**
+ *  \brief Signature match function
  *
  *  \retval 1 one or more signatures matched
  *  \retval 0 no matches were found
@@ -530,10 +531,21 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (p->proto == IPPROTO_TCP) {
             TcpSession *ssn = (TcpSession *)p->flow->protoctx;
             if (ssn != NULL) {
-                smsg = ssn->smsg_head;
-                /* deref from the ssn */
-                ssn->smsg_head = NULL;
-                ssn->smsg_tail = NULL;
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    smsg = ssn->toserver_smsg_head;
+                    /* deref from the ssn */
+                    ssn->toserver_smsg_head = NULL;
+                    ssn->toserver_smsg_tail = NULL;
+
+                    //BUG_ON(ssn->toclient_smsg_head != NULL);
+                } else {
+                    smsg = ssn->toclient_smsg_head;
+                    /* deref from the ssn */
+                    ssn->toclient_smsg_head = NULL;
+                    ssn->toclient_smsg_tail = NULL;
+
+                    //BUG_ON(ssn->toserver_smsg_head != NULL);
+                }
 
                 SCLogDebug("smsg %p", smsg);
             }
@@ -586,6 +598,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     if (det_ctx->sgh == NULL) {
         SCLogDebug("no sgh for this packet, nothing to match against");
         goto end;
+    }
+
+    /* have a look at the reassembled stream (if any) */
+    if (smsg != NULL) {
+        cnt = StreamPatternSearch(th_v, det_ctx, smsg);
+        SCLogDebug("cnt %u", cnt);
     }
 
     if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL &&
@@ -686,7 +704,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     SCLogDebug("mpm sig without matches (pat id check in content).");
                     goto next;
                 }
-
             }
         }
 
@@ -741,8 +758,40 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
         if (s->pmatch != NULL) {
-            if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
-                goto next;
+            if (smsg != NULL) {
+                char pmatch = 0;
+                int i = 0;
+                StreamMsg *smsg_inspect = smsg;
+                for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, i++) {
+                    if (det_ctx->smsg_pmq[i].pattern_id_array_size != 0)
+                        continue;
+
+                    if (det_ctx->smsg_pmq[i].pattern_id_bitarray != NULL) {
+                        /* filter out sigs that want pattern matches, but
+                         * have no matches */
+                        if (!(det_ctx->smsg_pmq[i].pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
+                                (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                            SCLogDebug("no match in this smsg");
+                            continue;
+                        }
+
+                        if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, smsg_inspect->data.data, smsg_inspect->data.data_len) == 1) {
+                            SCLogDebug("match in smsg %p", smsg);
+                            pmatch = 1;
+                            break;
+                        }
+                    }
+                }
+
+                /* no match? then inspect packet payload */
+                if (pmatch == 0) {
+                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                        goto next;
+                }
+            } else {
+                if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                    goto next;
+            }
         }
 
         SCLogDebug("s->amatch %p", s->amatch);

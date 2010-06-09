@@ -174,6 +174,7 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
 void StreamTcpSessionClear(void *ssnptr)
 {
     SCEnter();
+    StreamMsg *smsg = NULL;
 
     TcpSession *ssn = (TcpSession *)ssnptr;
     if (ssn == NULL)
@@ -183,6 +184,31 @@ void StreamTcpSessionClear(void *ssnptr)
     StreamTcpReturnStreamSegments(&ssn->server);
 
     AppLayerParserCleanupState(ssn);
+
+    /* if we have (a) smsg(s), return to the pool */
+    smsg = ssn->toserver_smsg_head;
+    while(smsg != NULL) {
+        StreamMsg *smsg_next = smsg->next;
+        SCLogDebug("returning smsg %p to pool", smsg);
+        smsg->next = NULL;
+        smsg->prev = NULL;
+        smsg->flow = NULL;
+        StreamMsgReturnToPool(smsg);
+        smsg = smsg_next;
+    }
+    ssn->toserver_smsg_head = NULL;
+
+    smsg = ssn->toclient_smsg_head;
+    while(smsg != NULL) {
+        StreamMsg *smsg_next = smsg->next;
+        SCLogDebug("returning smsg %p to pool", smsg);
+        smsg->next = NULL;
+        smsg->prev = NULL;
+        smsg->flow = NULL;
+        StreamMsgReturnToPool(smsg);
+        smsg = smsg_next;
+    }
+    ssn->toclient_smsg_head = NULL;
 
     memset(ssn, 0, sizeof(TcpSession));
     SCMutexLock(&ssn_pool_mutex);
@@ -209,12 +235,39 @@ static void StreamTcpSessionPktFree (Packet *p)
 {
     SCEnter();
 
+    StreamMsg *smsg = NULL;
+
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     if (ssn == NULL)
         SCReturn;
 
     StreamTcpReturnStreamSegments(&ssn->client);
     StreamTcpReturnStreamSegments(&ssn->server);
+
+    /* if we have (a) smsg(s), return to the pool */
+    smsg = ssn->toserver_smsg_head;
+    while(smsg != NULL) {
+        StreamMsg *smsg_next = smsg->next;
+        SCLogDebug("returning smsg %p to pool", smsg);
+        smsg->next = NULL;
+        smsg->prev = NULL;
+        smsg->flow = NULL;
+        StreamMsgReturnToPool(smsg);
+        smsg = smsg_next;
+    }
+    ssn->toserver_smsg_head = NULL;
+
+    smsg = ssn->toclient_smsg_head;
+    while(smsg != NULL) {
+        StreamMsg *smsg_next = smsg->next;
+        SCLogDebug("returning smsg %p to pool", smsg);
+        smsg->next = NULL;
+        smsg->prev = NULL;
+        smsg->flow = NULL;
+        StreamMsgReturnToPool(smsg);
+        smsg = smsg_next;
+    }
+    ssn->toclient_smsg_head = NULL;
 
     SCReturn;
 }
@@ -243,6 +296,8 @@ void *StreamTcpSessionPoolAlloc(void *null)
  *  \param s Void ptr to TcpSession memory */
 void StreamTcpSessionPoolFree(void *s)
 {
+    StreamMsg *smsg = NULL;
+
     if (s == NULL)
         return;
 
@@ -250,6 +305,31 @@ void StreamTcpSessionPoolFree(void *s)
 
     StreamTcpReturnStreamSegments(&ssn->client);
     StreamTcpReturnStreamSegments(&ssn->server);
+
+    /* if we have (a) smsg(s), return to the pool */
+    smsg = ssn->toserver_smsg_head;
+    while(smsg != NULL) {
+        StreamMsg *smsg_next = smsg->next;
+        SCLogDebug("returning smsg %p to pool", smsg);
+        smsg->next = NULL;
+        smsg->prev = NULL;
+        smsg->flow = NULL;
+        StreamMsgReturnToPool(smsg);
+        smsg = smsg_next;
+    }
+    ssn->toserver_smsg_head = NULL;
+
+    smsg = ssn->toclient_smsg_head;
+    while(smsg != NULL) {
+        StreamMsg *smsg_next = smsg->next;
+        SCLogDebug("returning smsg %p to pool", smsg);
+        smsg->next = NULL;
+        smsg->prev = NULL;
+        smsg->flow = NULL;
+        StreamMsgReturnToPool(smsg);
+        smsg = smsg_next;
+    }
+    ssn->toclient_smsg_head = NULL;
 
     StreamL7DataPtrFree(ssn);
     SCFree(ssn);

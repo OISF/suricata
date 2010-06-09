@@ -52,7 +52,7 @@ uint16_t AppLayerGetProtoFromPacket(Packet *p) {
 }
 
 /** \brief Get the active app layer state from the packet
- *  \param p packet pointer
+ *  \param p packet pointer with a LOCKED flow
  *  \retval alstate void pointer to the state
  *  \retval NULL in case we have no state */
 void *AppLayerGetProtoStateFromPacket(Packet *p) {
@@ -76,7 +76,7 @@ void *AppLayerGetProtoStateFromPacket(Packet *p) {
 }
 
 /** \brief Get the active app layer state from the flow
- *  \param f flow pointer
+ *  \param f flow pointer to a LOCKED flow
  *  \retval alstate void pointer to the state
  *  \retval NULL in case we have no state */
 void *AppLayerGetProtoStateFromFlow(Flow *f) {
@@ -182,23 +182,40 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
             }
         }
 
-        /* put the smsg in the stream list */
-        if (ssn->smsg_head == NULL) {
-            ssn->smsg_head = smsg;
-            ssn->smsg_tail = smsg;
-            smsg->next = NULL;
-            smsg->prev = NULL;
+        /* store the smsg in the tcp stream */
+        if (smsg->flags & STREAM_TOSERVER) {
+            /* put the smsg in the stream list */
+            if (ssn->toserver_smsg_head == NULL) {
+                ssn->toserver_smsg_head = smsg;
+                ssn->toserver_smsg_tail = smsg;
+                smsg->next = NULL;
+                smsg->prev = NULL;
+            } else {
+                StreamMsg *cur = ssn->toserver_smsg_tail;
+                cur->next = smsg;
+                smsg->prev = cur;
+                smsg->next = NULL;
+                ssn->toserver_smsg_tail = smsg;
+            }
         } else {
-            StreamMsg *cur = ssn->smsg_tail;
-            cur->next = smsg;
-            smsg->prev = cur;
-            smsg->next = NULL;
-            ssn->smsg_tail = smsg;
+            /* put the smsg in the stream list */
+            if (ssn->toclient_smsg_head == NULL) {
+                ssn->toclient_smsg_head = smsg;
+                ssn->toclient_smsg_tail = smsg;
+                smsg->next = NULL;
+                smsg->prev = NULL;
+            } else {
+                StreamMsg *cur = ssn->toclient_smsg_tail;
+                cur->next = smsg;
+                smsg->prev = cur;
+                smsg->next = NULL;
+                ssn->toclient_smsg_tail = smsg;
+            }
         }
+
         /* flow is free again */
         FlowDecrUsecnt(smsg->flow);
         /* dereference the flow */
-        SCLogDebug("deref smsg->flow, smsg %p, smsg->flow %p", smsg, smsg->flow);
         smsg->flow = NULL;
 
     } else { /* no ssn ptr */

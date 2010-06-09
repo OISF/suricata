@@ -34,8 +34,6 @@ static SCMutex stream_pool_memuse_mutex;
 static uint64_t stream_pool_memuse = 0;
 static uint64_t stream_pool_memcnt = 0;
 
-//static StreamMsgQueue stream_q;
-
 /* per queue setting */
 static uint16_t toserver_min_init_chunk_len = 0;
 static uint16_t toserver_min_chunk_len = 0;
@@ -131,22 +129,11 @@ void StreamMsgReturnToPool(StreamMsg *s) {
 /* Used by l7inspection to get msgs with data */
 StreamMsg *StreamMsgGetFromQueue(StreamMsgQueue *q)
 {
-//    SCMutexLock(&q->mutex_q);
-    if (q->len == 0) {
-        struct timespec cond_time;
-        cond_time.tv_sec = time(NULL) + 5;
-        cond_time.tv_nsec = 0;
-
-        /* if we have no stream msgs in queue, wait... for 5 seconds */
-//        SCCondTimedwait(&q->cond_q, &q->mutex_q, &cond_time);
-    }
     if (q->len > 0) {
         StreamMsg *s = StreamMsgDequeue(q);
-//        SCMutexUnlock(&q->mutex_q);
         return s;
     } else {
         /* return NULL if we have no stream msg. Should only happen on signals. */
-//        SCMutexUnlock(&q->mutex_q);
         return NULL;
     }
 }
@@ -154,16 +141,12 @@ StreamMsg *StreamMsgGetFromQueue(StreamMsgQueue *q)
 /* Used by stream reassembler to fill the queue for l7inspect reading */
 void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
 {
-//    SCMutexLock(&q->mutex_q);
     StreamMsgEnqueue(q, s);
     SCLogDebug("q->len %" PRIu32 "", q->len);
-//    SCCondSignal(&q->cond_q);
-//    SCMutexUnlock(&q->mutex_q);
 }
 
 void StreamMsgQueuesInit(void) {
     SCMutexInit(&stream_pool_memuse_mutex, NULL);
-    //memset(&stream_q, 0, sizeof(stream_q));
 
     stream_msg_pool = PoolInit(5000,250,StreamMsgAlloc,NULL,StreamMsgFree);
     if (stream_msg_pool == NULL)
@@ -186,8 +169,6 @@ StreamMsgQueue *StreamMsgQueueGetNew(void) {
         return NULL;
 
     memset(smq, 0x00, sizeof(StreamMsgQueue));
-//    SCMutexInit(&smq->mutex_q, NULL);
-//    SCCondInit(&smq->cond_q, NULL);
     return smq;
 }
 

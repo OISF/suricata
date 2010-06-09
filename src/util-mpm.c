@@ -55,19 +55,23 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t sig_maxid, uint32_t patmaxid) {
     memset(pmq, 0, sizeof(PatternMatcherQueue));
 
     if (patmaxid > 0) {
-        pmq->pattern_id_array = SCMalloc(patmaxid * sizeof(uint32_t));
+        pmq->pattern_id_array_size = patmaxid * sizeof(uint32_t);
+
+        pmq->pattern_id_array = SCMalloc(pmq->pattern_id_array_size);
         if (pmq->pattern_id_array == NULL) {
             SCReturnInt(-1);
         }
-        memset(pmq->pattern_id_array, 0, patmaxid * sizeof(uint32_t));
+        memset(pmq->pattern_id_array, 0, pmq->pattern_id_array_size);
         pmq->pattern_id_array_cnt = 0;
 
         /* lookup bitarray */
-        pmq->pattern_id_bitarray = SCMalloc((patmaxid / 8) + 1);
+        pmq->pattern_id_bitarray_size = (patmaxid / 8) + 1;
+
+        pmq->pattern_id_bitarray = SCMalloc(pmq->pattern_id_bitarray_size);
         if (pmq->pattern_id_bitarray == NULL) {
             SCReturnInt(-1);
         }
-        memset(pmq->pattern_id_bitarray, 0, (patmaxid / 8) + 1);
+        memset(pmq->pattern_id_bitarray, 0, pmq->pattern_id_bitarray_size);
 
         SCLogDebug("pmq->pattern_id_array %p, pmq->pattern_id_bitarray %p",
                 pmq->pattern_id_array, pmq->pattern_id_bitarray);
@@ -110,15 +114,44 @@ MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t pati
     SCReturnInt(1);
 }
 
+/**
+ *  \brief Merge two pmq's bitarrays
+ *
+ *  \param src source pmq
+ *  \param dst destination pmq to merge into
+ */
+void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst) {
+    uint32_t u;
+
+    if (src->pattern_id_array_cnt == 0)
+        return;
+
+    for (u = 0; u < src->pattern_id_bitarray_size && u < dst->pattern_id_bitarray_size; u++) {
+        dst->pattern_id_bitarray[u] |= src->pattern_id_bitarray[u];
+    }
+
+    /** \todo now set merged flag? */
+}
+
 /** \brief Reset a Pmq for reusage. Meant to be called after a single search.
  *  \param pmq Pattern matcher to be reset.
+ *  \todo memset is expensive, but we need it as we merge pmq's. We might use
+ *        a flag so we can clear pmq's the old way if we can.
  */
 void PmqReset(PatternMatcherQueue *pmq) {
+    if (pmq == NULL)
+        return;
+
+    memset(pmq->pattern_id_bitarray, 0, pmq->pattern_id_bitarray_size);
+    //memset(pmq->pattern_id_array, 0, pmq->pattern_id_array_size);
+    pmq->pattern_id_array_cnt = 0;
+/*
     uint32_t u;
     for (u = 0; u < pmq->pattern_id_array_cnt; u++) {
         pmq->pattern_id_bitarray[(pmq->pattern_id_array[u] / 8)] &= ~(1<<(pmq->pattern_id_array[u] % 8));
     }
     pmq->pattern_id_array_cnt = 0;
+*/
 }
 
 /** \brief Cleanup a Pmq
