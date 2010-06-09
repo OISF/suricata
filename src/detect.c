@@ -538,6 +538,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     ssn->toserver_smsg_tail = NULL;
 
                     //BUG_ON(ssn->toclient_smsg_head != NULL);
+                    SCLogDebug("to_server smsg %p", smsg);
                 } else {
                     smsg = ssn->toclient_smsg_head;
                     /* deref from the ssn */
@@ -545,9 +546,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     ssn->toclient_smsg_tail = NULL;
 
                     //BUG_ON(ssn->toserver_smsg_head != NULL);
+
+                    SCLogDebug("to_client smsg %p", smsg);
                 }
 
-                SCLogDebug("smsg %p", smsg);
             }
         }
         SCMutexUnlock(&p->flow->m);
@@ -763,8 +765,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 int i = 0;
                 StreamMsg *smsg_inspect = smsg;
                 for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, i++) {
-                    if (det_ctx->smsg_pmq[i].pattern_id_array_size != 0)
+                    if (det_ctx->smsg_pmq[i].pattern_id_array_cnt == 0) {
+                        SCLogDebug("no match in smsg_inspect %p (%u), idx %d", smsg_inspect, smsg_inspect->data.data_len, i);
                         continue;
+                    }
 
                     if (det_ctx->smsg_pmq[i].pattern_id_bitarray != NULL) {
                         /* filter out sigs that want pattern matches, but
@@ -785,6 +789,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                 /* no match? then inspect packet payload */
                 if (pmatch == 0) {
+                    SCLogDebug("no match in smsg, fall back to packet payload");
+
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
                         goto next;
                 }

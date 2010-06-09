@@ -49,6 +49,7 @@
 
 #include "util-enum.h"
 #include "util-debug.h"
+#include "util-print.h"
 
 /** \todo make it possible to use multiple pattern matcher algorithms next to
           eachother. */
@@ -188,10 +189,14 @@ uint32_t StreamPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     uint8_t cnt = 0;
 
     for ( ; smsg != NULL; smsg = smsg->next) {
+        //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+
         uint32_t r = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
                 &det_ctx->mtc, &det_ctx->smsg_pmq[cnt], smsg->data.data, smsg->data.data_len);
         if (r > 0) {
             ret += r;
+
+            SCLogDebug("smsg match stored in det_ctx->smsg_pmq[%u]", cnt);
 
             /* merge results with overall pmq */
             PmqMerge(&det_ctx->smsg_pmq[cnt], &det_ctx->pmq);

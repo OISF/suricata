@@ -1949,8 +1949,10 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
        simple return */
     if (p->payload_len > 0 &&
         (((stream == &ssn->client) && !(ssn->flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY)) ||
-        ((stream == &ssn->server) && !(ssn->flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY))))
+         ((stream == &ssn->server) && !(ssn->flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY))))
     {
+        SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
+
         if (StreamTcpReassembleHandleSegmentHandleData(ssn, stream, p) != 0) {
             SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
             SCReturnInt(-1);

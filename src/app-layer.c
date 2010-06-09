@@ -182,8 +182,12 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
             }
         }
 
+        SCLogDebug("storing smsg in the tcp session");
+
         /* store the smsg in the tcp stream */
         if (smsg->flags & STREAM_TOSERVER) {
+            SCLogDebug("storing smsg in the to_server");
+
             /* put the smsg in the stream list */
             if (ssn->toserver_smsg_head == NULL) {
                 ssn->toserver_smsg_head = smsg;
@@ -198,6 +202,8 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                 ssn->toserver_smsg_tail = smsg;
             }
         } else {
+            SCLogDebug("storing smsg in the to_client");
+
             /* put the smsg in the stream list */
             if (ssn->toclient_smsg_head == NULL) {
                 ssn->toclient_smsg_head = smsg;

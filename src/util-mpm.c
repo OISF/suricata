@@ -108,6 +108,7 @@ MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t pati
             /* append the pattern_id to the array with matches */
             pmq->pattern_id_array[pmq->pattern_id_array_cnt] = patid;
             pmq->pattern_id_array_cnt++;
+            SCLogDebug("pattern_id_array_cnt %u", pmq->pattern_id_array_cnt);
         }
     }
 
