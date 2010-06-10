@@ -270,6 +270,7 @@ static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdDat
 
     ste->track = td->track;
     ste->seconds = td->seconds;
+    ste->tv_timeout = 0;
 
     SCReturnPtr(ste, "DetectThresholdEntry");
 }
@@ -450,6 +451,99 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 e->tv_sec1 = p->ts.tv_sec;
 
                 ThresholdHashAdd(de_ctx, e, p);
+            }
+            break;
+        }
+        /* rate_filter */
+        case TYPE_RATE:
+        {
+            SCLogDebug("rate_filter");
+
+            /* tracking by src/dst or by rule? */
+            if (td->track != TRACK_RULE)
+                lookup_tsh = ThresholdHashSearch(de_ctx, &ste, p);
+            else
+                lookup_tsh = s->th_entry;
+
+            if (lookup_tsh != NULL) {
+                /* Check if we have a timeout enabled, if so,
+                 * we still matching (and enabling the new_action) */
+                if ( (p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
+                    /* Ok, we are done, timeout reached */
+                    td->timeout = 0;
+                } else {
+                    /* Already matching */
+                    /* Take the action to perform */
+                    switch (td->new_action) {
+                        case TH_ACTION_ALERT:
+                            p->action |= ACTION_ALERT;
+                        break;
+                        case TH_ACTION_DROP:
+                            p->action |= ACTION_DROP;
+                        break;
+                        case TH_ACTION_REJECT:
+                            p->action |= ACTION_REJECT;
+                        break;
+                        case TH_ACTION_PASS:
+                            p->action |= ACTION_PASS;
+                        break;
+                        default:
+                            /* Weird, leave the default action */
+                        break;
+                    }
+                    ret = 1;
+                }
+
+                /* Update the matching state with the timeout interval */
+                if ( (p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                    lookup_tsh->current_count++;
+                    if (lookup_tsh->current_count >= td->count) {
+                        /* Then we must enable the new action by setting a
+                         * timeout */
+                        lookup_tsh->tv_timeout = p->ts.tv_sec;
+                    /* Take the action to perform */
+                    switch (td->new_action) {
+                        case TH_ACTION_ALERT:
+                            p->action |= ACTION_ALERT;
+                        break;
+                        case TH_ACTION_DROP:
+                            p->action |= ACTION_DROP;
+                        break;
+                        case TH_ACTION_REJECT:
+                            p->action |= ACTION_REJECT;
+                        break;
+                        case TH_ACTION_PASS:
+                            p->action |= ACTION_PASS;
+                        break;
+                        default:
+                            /* Weird, leave the default action */
+                        break;
+                    }
+                        ret = 1;
+                    }
+                } else {
+                    lookup_tsh->tv_sec1 = p->ts.tv_sec;
+                    lookup_tsh->current_count = 1;
+                }
+            } else {
+                if (td->count == 1) {
+                    ret = 1;
+                }
+
+                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s);
+                if (e == NULL) {
+                    break;
+                }
+
+                e->current_count = 1;
+                e->tv_sec1 = p->ts.tv_sec;
+                e->tv_timeout = 0;
+
+                /** The track is by src/dst or by rule? */
+                if (td->track != TRACK_RULE)
+                    ThresholdHashAdd(de_ctx, e, p);
+                else
+                    s->th_entry = e;
             }
             break;
         }

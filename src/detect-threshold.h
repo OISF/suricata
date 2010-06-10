@@ -32,9 +32,19 @@
 #define TYPE_BOTH      2
 #define TYPE_THRESHOLD 3
 #define TYPE_DETECTION 4
+#define TYPE_RATE      5
 
 #define TRACK_DST      1
 #define TRACK_SRC      2
+#define TRACK_RULE     3
+
+/* Get the new action to take */
+#define TH_ACTION_ALERT     0x01
+#define TH_ACTION_DROP      0x02
+#define TH_ACTION_PASS      0x04
+#define TH_ACTION_LOG       0x08
+#define TH_ACTION_SDROP     0x10
+#define TH_ACTION_REJECT    0x20
 
 /**
  * \typedef DetectThresholdData
@@ -48,17 +58,21 @@ typedef struct DetectThresholdData_ {
     uint8_t gid;        /**< Signature group id */
     uint8_t type;       /**< Threshold type : limit , threshold, both, detection_filter */
     uint8_t track;      /**< Track type: by_src, by_dst */
+    uint8_t new_action; /**< new_action alert|drop|pass|log|sdrop|reject */
+    uint32_t timeout;   /**< timeout */
 } DetectThresholdData;
 
 typedef struct DetectThresholdEntry_ {
-    uint32_t seconds;   /**< Event seconds */
-    uint32_t sid;       /**< Signature id */
-    uint32_t tv_sec1;   /**< Var for time control */
+    uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
+                                 its not "seconds", that define the time interval */
+    uint32_t seconds;       /**< Event seconds */
+    uint32_t sid;           /**< Signature id */
+    uint32_t tv_sec1;       /**< Var for time control */
     uint32_t current_count; /**< Var for count control */
-    Address addr;       /**< Var used to store dst or src addr */
-    uint8_t gid;        /**< Signature group id */
-    uint8_t ipv;        /**< Packet ip version */
-    uint8_t track;      /**< Track type: by_src, by_src */
+    Address addr;           /**< Var used to store dst or src addr */
+    uint8_t gid;            /**< Signature group id */
+    uint8_t ipv;            /**< Packet ip version */
+    uint8_t track;          /**< Track type: by_src, by_src */
 } DetectThresholdEntry;
 
 

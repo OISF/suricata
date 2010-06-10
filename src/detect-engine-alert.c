@@ -59,7 +59,7 @@ int PacketAlertRemove(Packet *p, uint16_t pos)
 {
     uint16_t i = 0;
     int match = 0;
-    if (pos >= p->alerts.cnt)
+    if (pos > p->alerts.cnt)
         return 0;
 
     for (i = pos; i <= p->alerts.cnt - 1; i++) {
