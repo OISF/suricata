@@ -292,7 +292,13 @@ void usage(const char *progname)
 #endif /* IPFW */
     printf("\t-s <path>                    : path to signature file (optional)\n");
     printf("\t-l <dir>                     : default log directory\n");
+#ifndef OS_WIN32
     printf("\t-D                           : run as daemon\n");
+#else
+	printf("\t--service-install            : install as service\n");
+	printf("\t--service-remove             : remove service\n");
+	printf("\t--service-change-params      : change service startup parameters\n");
+#endif /* OS_WIN32 */
 #ifdef UNITTESTS
     printf("\t-u                           : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
@@ -351,16 +357,34 @@ int main(int argc, char **argv)
 
     sc_set_caps = FALSE;
 
-#ifdef OS_WIN32
-	WSADATA wsaData;
-	if (0 != WSAStartup(MAKEWORD(2, 2), &wsaData)) {
-		fprintf(stderr, "ERROR: Failed to initialize Windows sockets.\n");
-		exit(EXIT_FAILURE);
-	}
-#endif
-
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
+
+#ifdef OS_WIN32
+	/* service initialization */
+	if (SCRunningAsService()) {
+		char path[MAX_PATH];
+		char *p = NULL;
+		strlcpy(path, argv[0], MAX_PATH);
+		if ((p = strrchr(path, '\\'))) {
+			*p = '\0';
+		}
+		if (!SetCurrentDirectory(path)) {
+			SCLogError(SC_ERR_FATAL, "Can't set current directory to: %s", path);
+			return -1;
+		}
+		SCLogInfo("Current directory is set to: %s", path);
+		daemon = 1;
+		SCServiceInit(argc, argv);
+	}
+
+	/* Windows socket subsystem initialization */
+	WSADATA wsaData;
+	if (0 != WSAStartup(MAKEWORD(2, 2), &wsaData)) {
+		SCLogError(SC_ERR_FATAL, "Can't initialize Windows sockets: %d", WSAGetLastError());
+		exit(EXIT_FAILURE);
+	}
+#endif /* OS_WIN32 */
 
     SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
 
@@ -375,6 +399,11 @@ int main(int argc, char **argv)
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
+#ifdef OS_WIN32
+		{"service-install", 0, 0, 0},
+		{"service-remove", 0, 0, 0},
+		{"service-change-params", 0, 0, 0},
+#endif /* OS_WIN32 */
         {"pidfile", required_argument, 0, 0},
         {"init-errors-fatal", 0, 0, 0},
         {"fatal-unittests", 0, 0, 0},
@@ -441,6 +470,29 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
             }
+#ifdef OS_WIN32
+            else if(strcmp((long_opts[option_index]).name, "service-install") == 0) {
+				if (SCServiceInstall(argc, argv)) {
+					exit(EXIT_FAILURE);
+				}
+				SCLogInfo("Suricata service has been successfuly installed.");
+				exit(EXIT_SUCCESS);
+            }
+            else if(strcmp((long_opts[option_index]).name, "service-remove") == 0) {
+				if (SCServiceRemove(argc, argv)) {
+					exit(EXIT_FAILURE);
+				}
+				SCLogInfo("Suricata service has been successfuly removed.");
+				exit(EXIT_SUCCESS);
+            }
+            else if(strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
+				if (SCServiceChangeParams(argc, argv)) {
+					exit(EXIT_FAILURE);
+				}
+				SCLogInfo("Suricata service startup parameters has been successfuly changed.");
+				exit(EXIT_SUCCESS);
+            }
+#endif /* OS_WIN32 */
             else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
                 pid_filename = optarg;
             }
@@ -494,9 +546,11 @@ int main(int argc, char **argv)
         case 'c':
             conf_filename = optarg;
             break;
+#ifndef OS_WIN32
         case 'D':
             daemon = 1;
             break;
+#endif /* OS_WIN32 */
         case 'h':
             usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -1111,6 +1165,10 @@ int main(int argc, char **argv)
      * cuda contexts in any way */
     SCCudaHlDeRegisterAllRegisteredModules();
 #endif
-
+#ifdef OS_WIN32
+	if (daemon) {
+		return 0;
+	}
+#endif /* OS_WIN32 */
     exit(EXIT_SUCCESS);
 }

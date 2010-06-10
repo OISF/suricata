@@ -202,6 +202,7 @@ app-layer-ssl.c app-layer-ssl.h \
 defrag.c defrag.h \
 output.c output.h \
 win32-misc.c win32-misc.h \
+win32-service.c win32-service.h \
 util-action.c util-action.h \
 win32-syslog.h \
 util-profiling.c util-profiling.h

@@ -180,6 +180,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_LIBCAP_NG_REQUIRED);
         CASE_CODE (SC_ERR_LIBNET11_INCOMPATIBLE_WITH_LIBCAP_NG);
         CASE_CODE (SC_WARN_FLOW_EMERGENCY);
+		CASE_CODE (SC_ERR_SVC);
 
         default:
             return "UNKNOWN_ERROR";
