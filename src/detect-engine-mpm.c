@@ -26,6 +26,8 @@
 #include "suricata.h"
 #include "suricata-common.h"
 
+#include "app-layer-protos.h"
+
 #include "decode.h"
 #include "detect.h"
 #include "detect-engine.h"
@@ -191,8 +193,8 @@ uint32_t StreamPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     for ( ; smsg != NULL; smsg = smsg->next) {
         //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
 
-        uint32_t r = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
-                &det_ctx->mtc, &det_ctx->smsg_pmq[cnt], smsg->data.data, smsg->data.data_len);
+        uint32_t r = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Search(det_ctx->sgh->mpm_stream_ctx,
+                &det_ctx->mtcs, &det_ctx->smsg_pmq[cnt], smsg->data.data, smsg->data.data_len);
         if (r > 0) {
             ret += r;
 
@@ -208,7 +210,6 @@ uint32_t StreamPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     SCReturnInt(ret);
 }
 
-
 /** \brief cleans up the mpm instance after a match */
 void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
     PmqReset(&det_ctx->pmq);
@@ -223,6 +224,21 @@ void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
     /* uricontent */
     if (det_ctx->sgh->mpm_uri_ctx != NULL && mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Cleanup != NULL) {
         mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Cleanup(&det_ctx->mtcu);
+    }
+    /* stream content */
+    if (det_ctx->sgh->mpm_stream_ctx != NULL && mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Cleanup != NULL) {
+        mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Cleanup(&det_ctx->mtcs);
+    }
+}
+
+void StreamPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx, StreamMsg *smsg) {
+    uint8_t cnt = 0;
+
+    while (smsg != NULL) {
+        PmqReset(&det_ctx->smsg_pmq[cnt]);
+
+        smsg = smsg->next;
+        cnt++;
     }
 }
 
@@ -274,6 +290,18 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
         /* ready for reuse */
         sh->mpm_uri_ctx = NULL;
         sh->flags &= ~SIG_GROUP_HAVEURICONTENT;
+    }
+
+    /* stream content */
+    if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && sh->mpm_stream_ctx != NULL &&
+        !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
+        SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx, sh);
+        mpm_table[sh->mpm_stream_ctx->mpm_type].DestroyCtx(sh->mpm_stream_ctx);
+        SCFree(sh->mpm_stream_ctx);
+
+        /* ready for reuse */
+        sh->mpm_stream_ctx = NULL;
+        sh->flags &= ~SIG_GROUP_HAVESTREAMCONTENT;
     }
 }
 
@@ -583,10 +611,39 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             depth = mpm_ch->cnt ? 0 : depth;
             uint8_t flags = 0;
 
-            if (co->flags & DETECT_CONTENT_NOCASE) {
-                mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, flags);
+            char scan_packet = 0;
+            char scan_stream = 0;
+
+            if (s->flags & SIG_FLAG_DSIZE) {
+                scan_packet = 1;
+            } else if (s->alproto == ALPROTO_UNKNOWN) {
+                scan_packet = 1;
+                scan_stream = 1;
             } else {
-                mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx, co->content, co->content_len, offset, depth, co->id, s->num, flags);
+                scan_stream = 1;
+            }
+
+            if (scan_packet) {
+                /* add the content to the "packet" mpm */
+                if (co->flags & DETECT_CONTENT_NOCASE) {
+                    mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx,
+                            co->content, co->content_len, offset, depth, co->id,
+                            s->num, flags);
+                } else {
+                    mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx,
+                            co->content, co->content_len, offset, depth, co->id,
+                            s->num, flags);
+                }
+            }
+            if (scan_stream) {
+                /* add the content to the "stream" mpm */
+                if (co->flags & DETECT_CONTENT_NOCASE) {
+                    mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPatternNocase(sgh->mpm_stream_ctx,
+                            co->content, co->content_len, offset, depth, co->id, s->num, flags);
+                } else {
+                    mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPattern(sgh->mpm_stream_ctx,
+                            co->content, co->content_len, offset, depth, co->id, s->num, flags);
+                }
             }
 
             s->mpm_pattern_id = co->id;
@@ -631,6 +688,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     if (!(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))
         sh->mpm_uricontent_maxlen = 0;
+
+    if (!(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))
+        sh->mpm_streamcontent_maxlen = 0;
 
     /** see if this head has content and/or uricontent
      *  \todo we can move this to the signature init phase */
@@ -677,6 +737,19 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 #else
         MpmInitCtx(sh->mpm_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
 #endif
+        //if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
+            sh->mpm_stream_ctx = SCMalloc(sizeof(MpmCtx));
+            if (sh->mpm_stream_ctx == NULL)
+                goto error;
+
+            memset(sh->mpm_stream_ctx, 0x00, sizeof(MpmCtx));
+#ifndef __SC_CUDA_SUPPORT__
+            MpmInitCtx(sh->mpm_stream_ctx, de_ctx->mpm_matcher, -1);
+#else
+            MpmInitCtx(sh->mpm_stream_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+#endif
+        //}
+
     }
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         sh->mpm_uri_ctx = SCMalloc(sizeof(MpmCtx));
@@ -913,6 +986,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
         if (mpm_table[sh->mpm_ctx->mpm_type].Prepare != NULL) {
             mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
+        }
+        if (mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare != NULL) {
+            mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare(sh->mpm_stream_ctx);
         }
 
         if (mpm_content_maxdepth) {

@@ -32,8 +32,10 @@ int SigGroupHeadCopySigs(DetectEngineCtx *, SigGroupHead *, SigGroupHead **);
 
 int SigGroupHeadLoadContent(DetectEngineCtx *, SigGroupHead *);
 int SigGroupHeadLoadUricontent(DetectEngineCtx *, SigGroupHead *);
+int SigGroupHeadLoadStreamContent(DetectEngineCtx *, SigGroupHead *);
 int SigGroupHeadClearContent(SigGroupHead *);
 int SigGroupHeadClearUricontent(SigGroupHead *);
+int SigGroupHeadClearStreamContent(SigGroupHead *);
 
 void SigGroupHeadFree(SigGroupHead *);
 
@@ -42,11 +44,13 @@ void SigGroupHeadFreeMpmArrays(DetectEngineCtx *);
 SigGroupHead *SigGroupHeadHashLookup(DetectEngineCtx *, SigGroupHead *);
 SigGroupHead *SigGroupHeadMpmHashLookup(DetectEngineCtx *, SigGroupHead *);
 SigGroupHead *SigGroupHeadMpmUriHashLookup(DetectEngineCtx *, SigGroupHead *);
+SigGroupHead *SigGroupHeadMpmStreamHashLookup(DetectEngineCtx *, SigGroupHead *);
 SigGroupHead *SigGroupHeadDPortHashLookup(DetectEngineCtx *, SigGroupHead *);
 SigGroupHead *SigGroupHeadSPortHashLookup(DetectEngineCtx *, SigGroupHead *);
 
 int SigGroupHeadMpmHashAdd(DetectEngineCtx *, SigGroupHead *);
 int SigGroupHeadMpmUriHashAdd(DetectEngineCtx *, SigGroupHead *);
+int SigGroupHeadMpmStreamHashAdd(DetectEngineCtx *, SigGroupHead *);
 int SigGroupHeadHashAdd(DetectEngineCtx *, SigGroupHead *);
 int SigGroupHeadDPortHashAdd(DetectEngineCtx *, SigGroupHead *);
 int SigGroupHeadSPortHashAdd(DetectEngineCtx *, SigGroupHead *);
@@ -54,6 +58,7 @@ int SigGroupHeadSPortHashAdd(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadHashFree(DetectEngineCtx *);
 void SigGroupHeadMpmHashFree(DetectEngineCtx *);
 void SigGroupHeadMpmUriHashFree(DetectEngineCtx *);
+void SigGroupHeadMpmStreamHashFree(DetectEngineCtx *);
 void SigGroupHeadDPortHashFree(DetectEngineCtx *);
 void SigGroupHeadSPortHashFree(DetectEngineCtx *);
 

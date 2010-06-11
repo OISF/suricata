@@ -38,6 +38,7 @@ uint32_t UriPatternSearch(ThreadVars *, DetectEngineThreadCtx *, uint8_t *, uint
 uint32_t StreamPatternSearch(ThreadVars *, DetectEngineThreadCtx *, StreamMsg *);
 
 void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
+void StreamPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx, StreamMsg *smsg);
 
 void PatternMatchPrepare(MpmCtx *, uint16_t);
 void PatternMatchThreadPrepare(MpmThreadCtx *, uint16_t type, uint32_t max_id);

@@ -568,6 +568,18 @@ static int DetectTlsVersionTestDetect03(void) {
     StreamTcpInitConfig(TRUE);
     StreamL7DataPtrInit(&ssn);
 
+    StreamMsg *stream_msg = StreamMsgGetFromPool();
+    if (stream_msg == NULL) {
+        printf("no stream_msg: ");
+        goto end;
+    }
+
+    memcpy(stream_msg->data.data, tlsbuf4, tlslen4);
+    stream_msg->data.data_len = tlslen4;
+
+    ssn.toserver_smsg_head = stream_msg;
+    ssn.toserver_smsg_tail = stream_msg;
+
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;

@@ -25,11 +25,10 @@
 
 #include "suricata-common.h"
 #include "decode.h"
-#include "detect.h"
+
 #include "flow-var.h"
 
-#include "util-cidr.h"
-#include "util-unittest.h"
+#include "app-layer-protos.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -46,6 +45,9 @@
 
 #include "util-error.h"
 #include "util-debug.h"
+#include "util-cidr.h"
+#include "util-unittest.h"
+
 
 /* prototypes */
 int SigGroupHeadClearSigs(SigGroupHead *);
@@ -425,6 +427,131 @@ void SigGroupHeadMpmUriHashFree(DetectEngineCtx *de_ctx)
 
     HashListTableFree(de_ctx->sgh_mpm_uri_hash_table);
     de_ctx->sgh_mpm_uri_hash_table = NULL;
+
+    return;
+}
+
+/**
+ * \brief The hash function to be the used by the mpm uri SigGroupHead hash
+ *        table - DetectEngineCtx->sgh_mpm_uri_hash_table.
+ *
+ * \param ht      Pointer to the hash table.
+ * \param data    Pointer to the SigGroupHead.
+ * \param datalen Not used in our case.
+ *
+ * \retval hash The generated hash value.
+ */
+uint32_t SigGroupHeadMpmStreamHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    SigGroupHead *sgh = (SigGroupHead *)data;
+    uint32_t hash = 0;
+    uint32_t b = 0;
+
+    for (b = 0; b < sgh->init->stream_content_size; b++)
+        hash += sgh->init->stream_content_array[b];
+
+    return hash % ht->array_size;
+}
+
+/**
+ * \brief The Compare function to be used by the mpm uri SigGroupHead hash
+ *        table - DetectEngineCtx->sgh_mpm_uri_hash_table.
+ *
+ * \param data1 Pointer to the first SigGroupHead.
+ * \param len1  Not used.
+ * \param data2 Pointer to the second SigGroupHead.
+ * \param len2  Not used.
+ *
+ * \retval 1 If the 2 SigGroupHeads sent as args match.
+ * \retval 0 If the 2 SigGroupHeads sent as args do not match.
+ */
+char SigGroupHeadMpmStreamCompareFunc(void *data1, uint16_t len1, void *data2,
+                                   uint16_t len2)
+{
+    SigGroupHead *sgh1 = (SigGroupHead *)data1;
+    SigGroupHead *sgh2 = (SigGroupHead *)data2;
+
+    if (sgh1->init->stream_content_size != sgh2->init->stream_content_size)
+        return 0;
+
+    if (memcmp(sgh1->init->stream_content_array, sgh2->init->stream_content_array,
+               sgh1->init->stream_content_size) != 0) {
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * \brief Initializes the mpm uri hash table to be used by the detection engine
+ *        context.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SigGroupHeadMpmStreamHashInit(DetectEngineCtx *de_ctx)
+{
+    de_ctx->sgh_mpm_stream_hash_table = HashListTableInit(4096,
+            SigGroupHeadMpmStreamHashFunc, SigGroupHeadMpmStreamCompareFunc, NULL);
+    if (de_ctx->sgh_mpm_stream_hash_table == NULL)
+        goto error;
+
+    return 0;
+
+error:
+    return -1;
+}
+
+/**
+ * \brief Adds a SigGroupHead to the detection engine context SigGroupHead
+ *        mpm uri hash table.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ * \param sgh    Pointer to the SigGroupHead.
+ *
+ * \retval ret 0 on Successfully adding the argument sgh and -1 on failure.
+ */
+int SigGroupHeadMpmStreamHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    int ret = HashListTableAdd(de_ctx->sgh_mpm_stream_hash_table, (void *)sgh, 0);
+
+    return ret;
+}
+
+/**
+ * \brief Used to lookup a SigGroupHead from the detection engine context
+ *        SigGroupHead mpm uri hash table.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ * \param sgh    Pointer to the SigGroupHead.
+ *
+ * \retval rsgh On success a pointer to the SigGroupHead if the SigGroupHead is
+ *              found in the hash table; NULL on failure.
+ */
+SigGroupHead *SigGroupHeadMpmStreamHashLookup(DetectEngineCtx *de_ctx,
+                                           SigGroupHead *sgh)
+{
+    SigGroupHead *rsgh = HashListTableLookup(de_ctx->sgh_mpm_stream_hash_table,
+                                             (void *)sgh, 0);
+
+    return rsgh;
+}
+
+/**
+ * \brief Frees the hash table - DetectEngineCtx->sgh_mpm_uri_hash_table,
+ *        allocated by SigGroupHeadMpmUriHashInit() function.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ */
+void SigGroupHeadMpmStreamHashFree(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->sgh_mpm_stream_hash_table == NULL)
+        return;
+
+    HashListTableFree(de_ctx->sgh_mpm_stream_hash_table);
+    de_ctx->sgh_mpm_stream_hash_table = NULL;
 
     return;
 }
@@ -880,7 +1007,7 @@ int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh,
             SCLogDebug("(%p)->mpm_content_maxlen %u", *sgh, (*sgh)->mpm_content_maxlen);
         }
     }
-    if (s->flags & SIG_FLAG_MPM) {
+    if (s->flags & SIG_FLAG_MPM_URI) {
         if (s->mpm_uricontent_maxlen > 0) {
             if ((*sgh)->mpm_uricontent_maxlen == 0)
                 (*sgh)->mpm_uricontent_maxlen = s->mpm_uricontent_maxlen;
@@ -1168,6 +1295,9 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (!(s->flags & SIG_FLAG_MPM))
             continue;
 
+        if (s->alproto != ALPROTO_UNKNOWN)
+            continue;
+
         sm = s->pmatch;
         if (sm == NULL)
             continue;
@@ -1287,6 +1417,92 @@ int SigGroupHeadClearUricontent(SigGroupHead *sh)
         sh->init->uri_content_size = 0;
     }
 
+    return 0;
+}
+
+/**
+ * \brief Loads all the content ids from all the contents belonging to all the
+ *        Signatures in this SigGroupHead, into a bitarray.  A fast and an
+ *        efficient way of comparing pattern sets.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ * \param sgh    Pointer to the SigGroupHead.
+ *
+ * \retval  0 On success, i.e. on either the detection engine context being NULL
+ *            or on succesfully allocating memory and updating it with relevant
+ *            data.
+ * \retval -1 On failure.
+ */
+int SigGroupHeadLoadStreamContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    uint32_t sig = 0;
+    SigIntId num = 0;
+    DetectContentData *co = NULL;
+
+    if (sgh == NULL)
+        return 0;
+
+    if (DetectContentMaxId(de_ctx) == 0)
+        return 0;
+
+    BUG_ON(sgh->init == NULL);
+
+    sgh->init->stream_content_size = (DetectContentMaxId(de_ctx) / 8) + 1;
+    sgh->init->stream_content_array = SCMalloc(sgh->init->stream_content_size);
+    if (sgh->init->stream_content_array == NULL)
+        return -1;
+
+    memset(sgh->init->stream_content_array,0, sgh->init->stream_content_size);
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        num = sgh->match_array[sig];
+
+        s = de_ctx->sig_array[num];
+        if (s == NULL)
+            continue;
+
+        if (!(s->flags & SIG_FLAG_MPM))
+            continue;
+
+        if (s->flags & SIG_FLAG_DSIZE)
+            continue;
+
+        sm = s->pmatch;
+        if (sm == NULL)
+            continue;
+
+        for ( ;sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_CONTENT) {
+                co = (DetectContentData *)sm->ctx;
+
+                sgh->init->stream_content_array[co->id / 8] |= 1 << (co->id % 8);
+            }
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Clears the memory allocated by SigGroupHeadLoadContent() for the
+ *        bitarray to hold the content ids for a SigGroupHead.
+ *
+ * \param Pointer to the SigGroupHead whose content_array would to be cleared.
+ *
+ * \ret 0 Always.
+ */
+int SigGroupHeadClearStreamContent(SigGroupHead *sh)
+{
+    if (sh == NULL)
+        return 0;
+
+    if (sh->init->stream_content_array != NULL) {
+        SCFree(sh->init->stream_content_array);
+        sh->init->stream_content_array = NULL;
+        sh->init->stream_content_size = 0;
+    }
     return 0;
 }
 

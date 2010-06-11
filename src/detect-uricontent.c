@@ -1227,6 +1227,18 @@ static int DetectUriSigTest05(void) {
     StreamTcpInitConfig(TRUE);
     StreamL7DataPtrInit(&ssn);
 
+    StreamMsg *stream_msg = StreamMsgGetFromPool();
+    if (stream_msg == NULL) {
+        printf("no stream_msg: ");
+        goto end;
+    }
+
+    memcpy(stream_msg->data.data, httpbuf1, httplen1);
+    stream_msg->data.data_len = httplen1;
+
+    ssn.toserver_smsg_head = stream_msg;
+    ssn.toserver_smsg_tail = stream_msg;
+
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
@@ -1278,13 +1290,13 @@ static int DetectUriSigTest05(void) {
     }
 
     if ((PacketAlertCheck(&p, 1))) {
-        printf("sig: 1 alerted, but it should not:");
+        printf("sig: 1 alerted, but it should not: ");
         goto end;
     } else if (! PacketAlertCheck(&p, 2)) {
-        printf("sig: 2 did not alerted, but it should:");
+        printf("sig: 2 did not alert, but it should: ");
         goto end;
     } else if (! (PacketAlertCheck(&p, 3))) {
-        printf("sig: 3 did not alerted, but it should:");
+        printf("sig: 3 did not alert, but it should: ");
         goto end;
     }
 
@@ -1336,6 +1348,18 @@ static int DetectUriSigTest06(void) {
 
     StreamTcpInitConfig(TRUE);
     StreamL7DataPtrInit(&ssn);
+
+    StreamMsg *stream_msg = StreamMsgGetFromPool();
+    if (stream_msg == NULL) {
+        printf("no stream_msg: ");
+        goto end;
+    }
+
+    memcpy(stream_msg->data.data, httpbuf1, httplen1);
+    stream_msg->data.data_len = httplen1;
+
+    ssn.toserver_smsg_head = stream_msg;
+    ssn.toserver_smsg_tail = stream_msg;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

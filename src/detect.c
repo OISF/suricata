@@ -603,7 +603,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 
     /* have a look at the reassembled stream (if any) */
-    if (smsg != NULL) {
+    if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
         cnt = StreamPatternSearch(th_v, det_ctx, smsg);
         SCLogDebug("cnt %u", cnt);
     }
@@ -911,6 +911,9 @@ end:
 
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
+    if (smsg != NULL) {
+        StreamPatternCleanup(th_v, det_ctx, smsg);
+    }
 
     if (p->flow != NULL) {
         SCMutexLock(&p->flow->m);
@@ -921,6 +924,7 @@ end:
             p->flow->sgh_toclient = det_ctx->sgh;
             p->flow->flags |= FLOW_SGH_TOCLIENT;
         }
+
         /* if we have (a) smsg(s), return to the pool */
         while(smsg != NULL) {
             StreamMsg *smsg_next = smsg->next;
@@ -1952,6 +1956,26 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
                         sgr->sh->mpm_ctx = mpmsh->mpm_ctx;
                         sgr->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
                         SigGroupHeadClearContent(sgr->sh);
+
+                        de_ctx->mpm_reuse++;
+                    }
+                }
+
+                /* content */
+                SigGroupHeadLoadStreamContent(de_ctx, sgr->sh);
+                if (sgr->sh->init->stream_content_size == 0) {
+                    de_ctx->mpm_none++;
+                } else {
+                    /* now have a look if we can reuse a mpm ctx */
+                    SigGroupHead *mpmsh = SigGroupHeadMpmStreamHashLookup(de_ctx, sgr->sh);
+                    if (mpmsh == NULL) {
+                        SigGroupHeadMpmStreamHashAdd(de_ctx, sgr->sh);
+
+                        de_ctx->mpm_unique++;
+                    } else {
+                        sgr->sh->mpm_stream_ctx = mpmsh->mpm_stream_ctx;
+                        sgr->sh->flags |= SIG_GROUP_HEAD_MPM_STREAM_COPY;
+                        SigGroupHeadClearStreamContent(sgr->sh);
 
                         de_ctx->mpm_reuse++;
                     }

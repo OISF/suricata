@@ -386,6 +386,7 @@ typedef struct DetectEngineCtx_ {
 
     HashListTable *sgh_mpm_hash_table;
     HashListTable *sgh_mpm_uri_hash_table;
+    HashListTable *sgh_mpm_stream_hash_table;
 
     HashListTable *sgh_sport_hash_table;
     HashListTable *sgh_dport_hash_table;
@@ -479,8 +480,9 @@ typedef struct DetectionEngineThreadCtx_ {
     /** pointer to the current mpm ctx that is stored
      *  in a rule group head -- can be either a content
      *  or uricontent ctx. */
-    MpmThreadCtx mtc; /**< thread ctx for the mpm */
-    MpmThreadCtx mtcu;
+    MpmThreadCtx mtc;   /**< thread ctx for the mpm */
+    MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
+    MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
     struct SigGroupHead_ *sgh;
     PatternMatcherQueue pmq;
     PatternMatcherQueue smsg_pmq[256];
@@ -546,12 +548,14 @@ typedef struct SigTableElmt_ {
     char *name;
 } SigTableElmt;
 
-#define SIG_GROUP_HAVECONTENT       0x01
-#define SIG_GROUP_HAVEURICONTENT    0x02
-#define SIG_GROUP_HEAD_MPM_COPY     0x04
-#define SIG_GROUP_HEAD_MPM_URI_COPY 0x08
-#define SIG_GROUP_HEAD_FREE         0x10
-#define SIG_GROUP_HEAD_REFERENCED   0x20 /**< sgh is being referenced by others, don't clear */
+#define SIG_GROUP_HAVECONTENT           0x01
+#define SIG_GROUP_HAVEURICONTENT        0x02
+#define SIG_GROUP_HAVESTREAMCONTENT     0x04
+#define SIG_GROUP_HEAD_MPM_COPY         0x08
+#define SIG_GROUP_HEAD_MPM_URI_COPY     0x10
+#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x20
+#define SIG_GROUP_HEAD_FREE             0x40
+#define SIG_GROUP_HEAD_REFERENCED       0x80 /**< sgh is being referenced by others, don't clear */
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -563,6 +567,8 @@ typedef struct SigGroupHeadInitData_ {
     uint32_t content_size;
     uint8_t *uri_content_array;
     uint32_t uri_content_size;
+    uint8_t *stream_content_array;
+    uint32_t stream_content_size;
 
     /* port ptr */
     struct DetectPort_ *port;
@@ -577,6 +583,8 @@ typedef struct SigGroupHead_ {
     uint16_t mpm_content_maxlen;
     MpmCtx *mpm_uri_ctx;
     uint16_t mpm_uricontent_maxlen;
+    MpmCtx *mpm_stream_ctx;
+    uint16_t mpm_streamcontent_maxlen;
 
     /* number of sigs in this head */
     uint32_t sig_cnt;
