@@ -44,8 +44,7 @@ uint16_t AppLayerGetProtoFromPacket(Packet *p) {
         SCReturnUInt(ALPROTO_UNKNOWN);
     }
 
-    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-    if (ssn == NULL && p->flow->aldata == NULL) {
+    if (p->flow->aldata == NULL) {
         SCReturnUInt(ALPROTO_UNKNOWN);
     }
 
@@ -65,8 +64,7 @@ void *AppLayerGetProtoStateFromPacket(Packet *p) {
         SCReturnPtr(NULL, "void");
     }
 
-    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-    if (ssn == NULL && p->flow->aldata == NULL) {
+    if (p->flow->aldata == NULL) {
         SCReturnPtr(NULL, "void");
     }
 
@@ -85,12 +83,13 @@ void *AppLayerGetProtoStateFromPacket(Packet *p) {
 void *AppLayerGetProtoStateFromFlow(Flow *f) {
     SCEnter();
 
-    if (f == NULL)
+    if (f == NULL) {
         SCReturnPtr(NULL, "void");
+    }
 
-    TcpSession *ssn = (TcpSession *)f->protoctx;
-    if (ssn == NULL || f->aldata == NULL)
+    if (f->aldata == NULL) {
         SCReturnPtr(NULL, "void");
+    }
 
     SCLogDebug("f->alproto %"PRIu16"", f->alproto);
 
@@ -259,7 +258,8 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
  *  If the protocol is yet unknown, the proto detection code is run first.
  *
  *  \param dp_ctx Thread app layer detect context
- *  \param smsg Stream message
+ *  \param f unlocked flow
+ *  \param p UDP packet
  *
  *  \retval 0 ok
  *  \retval -1 error
@@ -271,12 +271,15 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
     uint16_t alproto = ALPROTO_UNKNOWN;
     int r = 0;
 
-    if (f == NULL)
-        return r;
+    if (f == NULL) {
+        SCReturnInt(r);
+    }
+
+    SCMutexLock(&f->m);
 
     alproto = f->alproto;
 
-    if (FlowGetPacketDirection(f,p) == TOSERVER) {
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
         f->alflags |= FLOW_AL_STREAM_TOSERVER;
     } else {
         f->alflags |= FLOW_AL_STREAM_TOCLIENT;
@@ -327,6 +330,7 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         }
     }
 
+    SCMutexUnlock(&f->m);
     SCReturnInt(r);
 }
 

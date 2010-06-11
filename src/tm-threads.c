@@ -1109,9 +1109,6 @@ void TmThreadKillThreads(void) {
             TmThreadsSetFlag(tv, THV_KILL);
             SCLogDebug("told thread %s to stop", tv->name);
 
-            /* XXX hack */
-            StreamMsgSignalQueueHack();
-
             if (tv->inq != NULL) {
                 int i;
 

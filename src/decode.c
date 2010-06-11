@@ -223,6 +223,7 @@ void AddressDebugPrint(Address *a) {
     }
 }
 
+/** \brief Alloc and setup DecodeThreadVars */
 DecodeThreadVars *DecodeThreadVarsAlloc() {
 
     DecodeThreadVars *dtv = NULL;
@@ -231,6 +232,8 @@ DecodeThreadVars *DecodeThreadVarsAlloc() {
         return NULL;
 
     memset(dtv, 0, sizeof(DecodeThreadVars));
+
+    /* initialize UDP app layer code */
     AlpProtoFinalize2Thread(&dtv->udp_dp_ctx);
 
     return dtv;

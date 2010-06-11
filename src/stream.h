@@ -90,10 +90,5 @@ void StreamMsgQueueSetMinChunkLen(uint8_t dir, uint16_t len);
 uint16_t StreamMsgQueueGetMinInitChunkLen(uint8_t);
 uint16_t StreamMsgQueueGetMinChunkLen(uint8_t);
 
-void StreamMsgSignalQueueHack(void);
-
-uint8_t StreamL7RegisterModule(void);
-uint8_t StreamL7GetStorageSize(void);
-
 #endif /* __STREAM_H__ */
 

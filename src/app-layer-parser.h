@@ -171,8 +171,12 @@ int AppLayerTransactionGetBaseId(Flow *f);
 
 void AppLayerParserRegisterTests(void);
 
-#include "stream-tcp-private.h"
 void AppLayerParserCleanupState(Flow *);
+
+
+uint8_t AppLayerRegisterModule(void);
+uint8_t AppLayerGetStorageSize(void);
+
 
 #endif /* __APP_LAYER_PARSER_H__ */
 

@@ -460,6 +460,21 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
     SCReturnInt(0);
 }
 
+/** app layer id counter */
+static uint8_t al_module_id = 0;
+
+/** \brief Get a unique app layer id
+ */
+uint8_t AppLayerRegisterModule(void) {
+    uint8_t id = al_module_id;
+    al_module_id++;
+    return id;
+}
+
+uint8_t AppLayerGetStorageSize(void) {
+    return al_module_id;
+}
+
 /** \brief Get the Parsers id for storing the parser state.
  *
  * \retval Parser subsys id
@@ -563,7 +578,7 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
     }
 
     if (al_proto_table[proto].storage_id == 0) {
-        al_proto_table[proto].storage_id = StreamL7RegisterModule();
+        al_proto_table[proto].storage_id = AppLayerRegisterModule();
     }
 
     SCLogDebug("registered %p at proto %" PRIu32 " flags %02X, al_proto_table "
@@ -864,7 +879,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
             goto error;
     }
 
-    /* set the packets to no inspection and reassembly for the TLS sessions */
+    /* set the packets to no inspection and reassembly if required */
     if (parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) {
         FlowSetNoPayloadInspectionFlag(f);
         FlowSetSessionNoApplayerInspectionFlag(f);
@@ -1109,7 +1124,7 @@ void RegisterAppLayerParsers(void)
     memset(&al_proto_table, 0, sizeof(al_proto_table));
     memset(&al_parser_table, 0, sizeof(al_parser_table));
 
-    app_layer_sid = StreamL7RegisterModule();
+    app_layer_sid = AppLayerRegisterModule();
 
     /** setup result pool
      * \todo Per thread pool */

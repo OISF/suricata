@@ -54,6 +54,7 @@
 #include "detect.h"
 #include "detect-engine-state.h"
 #include "stream.h"
+
 #include "app-layer-parser.h"
 
 #define FLOW_DEFAULT_EMERGENCY_RECOVERY 30
@@ -92,7 +93,7 @@ void FlowL7DataPtrInit(Flow *f) {
     if (f->aldata != NULL)
         return;
 
-    uint32_t size = (uint32_t)(sizeof (void *) * StreamL7GetStorageSize());
+    uint32_t size = (uint32_t)(sizeof (void *) * AppLayerGetStorageSize());
 
 /////////XXXPR pass to flow memcap   if (StreamTcpCheckMemcap(size) == 0)
 /////////XXXPR pass to flow memcap        return;
@@ -102,7 +103,7 @@ void FlowL7DataPtrInit(Flow *f) {
       //  StreamTcpIncrMemuse(size);
 
         uint8_t u;
-        for (u = 0; u < StreamL7GetStorageSize(); u++) {
+        for (u = 0; u < AppLayerGetStorageSize(); u++) {
             f->aldata[u] = NULL;
         }
     }

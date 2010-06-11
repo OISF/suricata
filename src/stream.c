@@ -185,11 +185,6 @@ StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {
     return NULL;//&stream_q;
 }
 
-/* XXX hack */
-void StreamMsgSignalQueueHack(void) {
-    //SCCondSignal(&stream_q.cond_q);
-}
-
 void StreamMsgQueueSetMinInitChunkLen(uint8_t dir, uint16_t len) {
     if (dir == FLOW_PKT_TOSERVER) {
         toserver_min_init_chunk_len = len;
@@ -220,18 +215,5 @@ uint16_t StreamMsgQueueGetMinChunkLen(uint8_t dir) {
     } else {
         return toclient_min_chunk_len;
     }
-}
-
-/* StreamL7RegisterModule
- */
-static uint8_t l7_module_id = 0;
-uint8_t StreamL7RegisterModule(void) {
-    uint8_t id = l7_module_id;
-    l7_module_id++;
-    return id;
-}
-
-uint8_t StreamL7GetStorageSize(void) {
-    return l7_module_id;
 }
 

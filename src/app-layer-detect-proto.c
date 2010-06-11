@@ -145,14 +145,19 @@ static void AlpProtoFreeSignature(AlpProtoSignature *s) {
  *  \param s signature
  *  \param buf pointer to buffer
  *  \param buflen length of the buffer
+ *  \param ip_proto packet's ip_proto
  *
  *  \retval proto the detected proto or ALPROTO_UNKNOWN if no match
  */
 static uint16_t AlpProtoMatchSignature(AlpProtoSignature *s, uint8_t *buf,
-        uint16_t buflen)
+        uint16_t buflen, uint16_t ip_proto)
 {
     SCEnter();
     uint16_t proto = ALPROTO_UNKNOWN;
+
+    if (s->ip_proto != ip_proto) {
+        goto end;
+    }
 
     if (s->co->offset > buflen) {
         SCLogDebug("s->co->offset (%"PRIu16") > buflen (%"PRIu16")",
@@ -499,9 +504,8 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     uint8_t s_cnt = 1;
 
     while (proto == ALPROTO_UNKNOWN && s != NULL) {
-        /* TCP or UPD? */
-        if (s->ip_proto == ipproto)
-            proto = AlpProtoMatchSignature(s, buf, buflen);
+        proto = AlpProtoMatchSignature(s, buf, buflen, ipproto);
+
         s = s->map_next;
         if (s == NULL && s_cnt < tdir->pmq.pattern_id_array_cnt) {
             patid = tdir->pmq.pattern_id_array[s_cnt];

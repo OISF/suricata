@@ -47,7 +47,7 @@
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
         (f)->aldata = NULL; \
-        (f)->alflags = FLOW_AL_PROTO_UNKNOWN; \
+        (f)->alflags = 0; \
         (f)->alproto = 0; \
     } while (0)
 
@@ -76,7 +76,7 @@
         FlowL7DataPtrFree(f); \
         SCFree((f)->aldata); \
         (f)->aldata = NULL; \
-        (f)->alflags = FLOW_AL_PROTO_UNKNOWN; \
+        (f)->alflags = 0; \
         (f)->alproto = 0; \
     } while(0)
 
@@ -92,7 +92,7 @@
         FlowL7DataPtrFree(f); \
         SCFree((f)->aldata); \
         (f)->aldata = NULL; \
-        (f)->alflags = FLOW_AL_PROTO_UNKNOWN; \
+        (f)->alflags = 0; \
         (f)->alproto = 0; \
     } while(0)
 

@@ -250,22 +250,24 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     int match = 0;
     int r = 0;
 
-    if (alstate != NULL) {
-        for ( ; sm != NULL; sm = sm->next) {
-            SCLogDebug("sm %p, sm->next %p", sm, sm->next);
+    if (alstate == NULL) {
+        SCReturnInt(0);
+    }
 
-            if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-                    alproto == sigmatch_table[sm->type].alproto &&
-                    alstate != NULL)
-            {
-                match = sigmatch_table[sm->type].AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
-                if (match == 0) {
-                    break;
-                } else if (sm->next == NULL) {
-                    r = 1;
-                    sm = NULL; /* set to NULL as we have a match */
-                    break;
-                }
+    for ( ; sm != NULL; sm = sm->next) {
+        SCLogDebug("sm %p, sm->next %p", sm, sm->next);
+
+        if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
+                alproto == sigmatch_table[sm->type].alproto)
+        {
+            match = sigmatch_table[sm->type].AppLayerMatch(tv, det_ctx, f,
+                    flags, alstate, s, sm);
+            if (match == 0) {
+                break;
+            } else if (sm->next == NULL) {
+                r = 1;
+                sm = NULL; /* set to NULL as we have a match */
+                break;
             }
         }
     }

@@ -25,6 +25,7 @@
 #ifndef __STREAM_TCP_REASSEMBLE_H__
 #define __STREAM_TCP_REASSEMBLE_H__
 
+#include "stream-tcp-private.h"
 #include "stream.h"
 #include "app-layer-detect-proto.h"
 

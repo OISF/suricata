@@ -25,6 +25,8 @@
 #ifndef __STREAM_TCP_H__
 #define __STREAM_TCP_H__
 
+#include "stream-tcp-private.h"
+
 #define COUNTER_STREAMTCP_STREAMS 1
 
 #define STREAM_VERBOSE    FALSE
