@@ -46,7 +46,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "flow-private.h"
-
+#include "flow-util.h"
 #include "util-byte.h"
 
 /**
@@ -263,6 +263,8 @@ static int SSLParserTest01(void) {
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
@@ -314,6 +316,8 @@ static int SSLParserTest02(void) {
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
@@ -542,6 +546,7 @@ static int SSLParserTest03(void) {
     ssn.client.last_ack = 390133221UL;
     ssn.alproto = ALPROTO_UNKNOWN;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     tcph.th_win = htons(5480);

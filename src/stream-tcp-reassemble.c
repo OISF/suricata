@@ -34,6 +34,8 @@
 #include "flow.h"
 #include "threads.h"
 
+#include "flow-util.h"
+
 #include "threadvars.h"
 #include "tm-modules.h"
 
@@ -2177,6 +2179,7 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -2469,6 +2472,8 @@ static int StreamTcpTestStartsBeforeListSegment(TcpStream *stream) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -2557,6 +2562,7 @@ static int StreamTcpTestStartsAtSameListSegment(TcpStream *stream) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -2646,6 +2652,7 @@ static int StreamTcpTestStartsAfterListSegment(TcpStream *stream) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -3352,6 +3359,7 @@ static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx,
     sp = 200;
     dp = 220;
 
+    FLOW_INITIALIZE(&f);
     f.src = src;
     f.dst = dst;
     f.sp = sp;
@@ -3943,6 +3951,7 @@ static int StreamTcpReassembleTest32(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -4020,6 +4029,7 @@ static int StreamTcpReassembleTest33(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -4086,6 +4096,7 @@ static int StreamTcpReassembleTest34(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -4153,6 +4164,7 @@ static int StreamTcpReassembleTest35(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -4210,6 +4222,7 @@ static int StreamTcpReassembleTest36(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -4267,6 +4280,7 @@ static int StreamTcpReassembleTest37(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -4336,6 +4350,7 @@ static int StreamTcpReassembleTest38 (void) {
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
 
+    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
     AppLayerDetectProtoThreadInit();
@@ -4492,6 +4507,7 @@ static int StreamTcpReassembleTest39 (void) {
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
 
+    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
     AppLayerDetectProtoThreadInit();
@@ -4677,6 +4693,7 @@ static int StreamTcpReassembleTest40 (void) {
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
 
+    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
     AppLayerDetectProtoThreadInit();
@@ -4924,6 +4941,7 @@ static int StreamTcpReassembleTest41 (void) {
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
 
+    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
     AppLayerDetectProtoThreadInit();
@@ -5110,6 +5128,7 @@ static int StreamTcpReassembleTest42 (void) {
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
 
+    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
     AppLayerDetectProtoThreadInit();
@@ -5268,6 +5287,7 @@ static int StreamTcpReassembleTest43 (void) {
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
 
+    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
     AppLayerDetectProtoThreadInit();

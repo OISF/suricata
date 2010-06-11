@@ -1638,7 +1638,7 @@ static int FlowTest04 (void) {
     memset(&client, 0, sizeof(TcpSegment));
 
     SCSpinInit(&fb.s, 0);
-    SCMutexInit(&f.m, NULL);
+    FLOW_INITIALIZE(&f);
 
     TimeGet(&ts);
     seg.payload = payload;
@@ -1660,8 +1660,8 @@ static int FlowTest04 (void) {
         return 0;
     }
 
-    SCSpinDestroy(&fb.s);
     SCMutexDestroy(&f.m);
+    SCSpinDestroy(&fb.s);
     return 1;
 
 }
@@ -1686,7 +1686,7 @@ static int FlowTest05 (void) {
     memset(&fb, 0, sizeof(FlowBucket));
 
     SCSpinInit(&fb.s, 0);
-    SCMutexInit(&f.m, NULL);
+    FLOW_INITIALIZE(&f);
 
     TimeGet(&ts);
     ssn.state = TCP_SYN_SENT;
@@ -1732,7 +1732,7 @@ static int FlowTest06 (void) {
     memset(&client, 0, sizeof(TcpSegment));
 
     SCSpinInit(&fb.s, 0);
-    SCMutexInit(&f.m, NULL);
+    FLOW_INITIALIZE(&f);
 
     TimeGet(&ts);
     seg.payload = payload;

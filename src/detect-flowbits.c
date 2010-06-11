@@ -30,6 +30,7 @@
 #include "threads.h"
 #include "flow.h"
 #include "flow-bit.h"
+#include "flow-util.h"
 #include "detect-flowbits.h"
 #include "util-spm.h"
 
@@ -714,6 +715,7 @@ static int FlowBitsTestSig06(void) {
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
 
+    FLOW_INITIALIZE(&f);
     p.flow = &f;
     p.flow->flowvar = &flowvar;
 
@@ -809,6 +811,7 @@ static int FlowBitsTestSig07(void) {
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
 
+    FLOW_INITIALIZE(&f);
     p.flow = &f;
     p.flow->flowvar = &flowvar;
 
@@ -908,6 +911,7 @@ static int FlowBitsTestSig08(void) {
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
 
+    FLOW_INITIALIZE(&f);
     p.flow = &f;
     p.flow->flowvar = &flowvar;
 

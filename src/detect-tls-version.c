@@ -36,6 +36,7 @@
 
 #include "flow.h"
 #include "flow-var.h"
+#include "flow-util.h"
 
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -334,6 +335,7 @@ static int DetectTlsVersionTestDetect01(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
@@ -448,6 +450,7 @@ static int DetectTlsVersionTestDetect02(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
@@ -560,6 +563,7 @@ static int DetectTlsVersionTestDetect03(void) {
     p.payload_len = tlslen4;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;

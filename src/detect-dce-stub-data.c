@@ -33,6 +33,7 @@
 
 #include "flow.h"
 #include "flow-var.h"
+#include "flow-util.h"
 
 #include "app-layer.h"
 #include "app-layer-dcerpc.h"
@@ -631,6 +632,7 @@ static int DetectDceStubDataTestParse02(void)
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
@@ -1167,6 +1169,7 @@ static int DetectDceStubDataTestParse03(void)
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
@@ -1359,6 +1362,7 @@ static int DetectDceStubDataTestParse04(void)
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     p.flow = &f;
@@ -1609,6 +1613,7 @@ static int DetectDceStubDataTestParse05(void)
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     p.flow = &f;

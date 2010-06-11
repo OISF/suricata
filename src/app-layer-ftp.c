@@ -31,6 +31,8 @@
 #include "util-print.h"
 #include "util-pool.h"
 
+#include "flow-util.h"
+
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
@@ -294,6 +296,8 @@ int FTPParserTest01(void) {
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
@@ -394,6 +398,8 @@ int FTPParserTest06(void) {
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
@@ -437,6 +443,8 @@ int FTPParserTest07(void) {
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
@@ -486,6 +494,8 @@ int FTPParserTest10(void) {
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);

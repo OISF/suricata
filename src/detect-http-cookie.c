@@ -36,6 +36,7 @@
 
 #include "flow.h"
 #include "flow-var.h"
+#include "flow-util.h"
 
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -499,6 +500,7 @@ static int DetectHttpCookieSigTest01(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -602,6 +604,7 @@ static int DetectHttpCookieSigTest02(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -694,6 +697,7 @@ static int DetectHttpCookieSigTest03(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -786,6 +790,7 @@ static int DetectHttpCookieSigTest04(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -878,6 +883,7 @@ static int DetectHttpCookieSigTest05(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -970,6 +976,7 @@ static int DetectHttpCookieSigTest06(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -1062,6 +1069,7 @@ static int DetectHttpCookieSigTest07(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;

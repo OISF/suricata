@@ -35,6 +35,7 @@
 #include "flow.h"
 #include "detect-flow.h"
 #include "flow-var.h"
+#include "flow-util.h"
 #include "threads.h"
 #include "flow-alert-sid.h"
 
@@ -466,6 +467,8 @@ static int HTTPUriTest01(void) {
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -531,6 +534,8 @@ static int HTTPUriTest02(void) {
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -599,6 +604,8 @@ static int HTTPUriTest03(void) {
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -667,6 +674,8 @@ static int HTTPUriTest04(void) {
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -794,6 +803,7 @@ static int DetectUriSigTest02(void) {
     p.payload_len = httplen1;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -904,9 +914,12 @@ static int DetectUriSigTest03(void) {
     p.payload = httpbuf1;
     p.payload_len = httplen1;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -1217,9 +1230,12 @@ static int DetectUriSigTest05(void) {
     p.payload = httpbuf1;
     p.payload_len = httplen1;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -1339,9 +1355,12 @@ static int DetectUriSigTest06(void) {
     p.payload = httpbuf1;
     p.payload_len = httplen1;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;
@@ -1468,9 +1487,12 @@ static int DetectUriSigTest07(void) {
     p.payload = httpbuf1;
     p.payload_len = httplen1;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_HTTP;

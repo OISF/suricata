@@ -38,6 +38,7 @@
 #include "util-debug.h"
 #include "flow.h"
 #include "flow-var.h"
+#include "flow-util.h"
 #include "threads.h"
 #include "detect-ftpbounce.h"
 #include "stream-tcp.h"
@@ -335,11 +336,14 @@ static int DetectFtpbounceTestALMatch02(void) {
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.src.addr_data32[0] = 0x01020304;
-    f.src.address.address_un_data32[0]=0x01020304;
     p.payload = NULL;
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
+    f.src.address.address_un_data32[0]=0x01020304;
     f.protoctx =(void *)&ssn;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_FTP;
@@ -457,12 +461,14 @@ static int DetectFtpbounceTestALMatch03(void) {
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.src.addr_data32[0] = 0x04030201;
-    f.src.address.address_un_data32[0]=0x04030201;
     p.payload = NULL;
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
+    f.src.address.address_un_data32[0]=0x04030201;
     f.protoctx =(void *)&ssn;
+
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
     ssn.alproto = ALPROTO_FTP;

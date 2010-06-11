@@ -32,6 +32,8 @@
 #include "util-print.h"
 #include "util-pool.h"
 
+#include "flow-util.h"
+
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "stream.h"
@@ -1321,6 +1323,8 @@ static int AppLayerParserTest01 (void)
                                 TestProtocolStateFree);
 
     ssn.alproto = ALPROTO_TEST;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     inet_pton(AF_INET, "1.2.3.4", &addr.s_addr);

@@ -31,6 +31,7 @@
 #include "pkt-var.h"
 #include "flow-var.h"
 #include "flow-alert-sid.h"
+#include "flow-util.h"
 
 #include "detect-pcre.h"
 
@@ -928,6 +929,8 @@ static int DetectPcreTestSig01Real(int mpm_type) {
     memset(&f, 0, sizeof(f));
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+
+    FLOW_INITIALIZE(&f);
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
@@ -984,6 +987,8 @@ static int DetectPcreTestSig02Real(int mpm_type) {
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
+
+    FLOW_INITIALIZE(&f);
     p.flow = &f;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -1163,6 +1168,7 @@ static int DetectPcreModifPTest04(void) {
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -1297,6 +1303,7 @@ static int DetectPcreModifPTest05(void) {
     p2.payload_len = 0;
     p2.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;

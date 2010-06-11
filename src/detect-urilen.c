@@ -34,6 +34,7 @@
 #include "detect-urilen.h"
 #include "util-debug.h"
 #include "util-byte.h"
+#include "flow-util.h"
 #include "stream-tcp.h"
 
 /**
@@ -503,6 +504,7 @@ static int DetectUrilenSigTest01(void)
     p.payload_len = 0;
     p.proto = IPPROTO_TCP;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;

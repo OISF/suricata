@@ -3415,6 +3415,8 @@ static int SigTest06Real (int mpm_type) {
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -3510,6 +3512,8 @@ static int SigTest07Real (int mpm_type) {
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -3605,12 +3609,13 @@ static int SigTest08Real (int mpm_type) {
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
-    //FlowInit(&f, &p);
     ssn.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3702,6 +3707,8 @@ static int SigTest09Real (int mpm_type) {
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -3790,6 +3797,8 @@ static int SigTest10Real (int mpm_type) {
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -3873,13 +3882,14 @@ static int SigTest11Real (int mpm_type) {
     memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    p.flow = &f;
 
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -3947,6 +3957,8 @@ static int SigTest12Real (int mpm_type) {
     memset(&p, 0, sizeof(p));
     Flow f;
     memset(&f, 0, sizeof(Flow));
+
+    FLOW_INITIALIZE(&f);
     p.flow = &f;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -4012,6 +4024,8 @@ static int SigTest13Real (int mpm_type) {
     memset(&p, 0, sizeof(p));
     Flow f;
     memset(&f, 0, sizeof(Flow));
+
+    FLOW_INITIALIZE(&f);
     p.flow = &f;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
@@ -4542,6 +4556,7 @@ static int SigTest21Real (int mpm_type) {
 
     Flow f;
     memset(&f, 0, sizeof(f));
+    FLOW_INITIALIZE(&f);
 
     /* packet 1 */
     uint8_t *buf1 = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
@@ -4631,6 +4646,7 @@ static int SigTest22Real (int mpm_type) {
 
     Flow f;
     memset(&f, 0, sizeof(f));
+    FLOW_INITIALIZE(&f);
 
     /* packet 1 */
     uint8_t *buf1 = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
@@ -4721,6 +4737,7 @@ static int SigTest23Real (int mpm_type) {
 
     Flow f;
     memset(&f, 0, sizeof(f));
+    FLOW_INITIALIZE(&f);
 
     /* packet 1 */
     uint8_t *buf1 = (uint8_t *)"GET /one/ HTTP/1.0\r\n"

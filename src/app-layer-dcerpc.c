@@ -34,6 +34,8 @@
 #include "util-pool.h"
 #include "util-debug.h"
 
+#include "flow-util.h"
+
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
@@ -1752,6 +1754,8 @@ int DCERPCParserTest01(void) {
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
@@ -1969,6 +1973,8 @@ int DCERPCParserTest02(void) {
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
@@ -2160,6 +2166,8 @@ int DCERPCParserTest03(void) {
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
