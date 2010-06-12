@@ -26,11 +26,11 @@
 
 #include "flow.h"
 
-#define STREAM_START        0x01
-#define STREAM_EOF          0x02
-#define STREAM_TOSERVER     0x04
-#define STREAM_TOCLIENT     0x08
-#define STREAM_GAP          0x10
+#define STREAM_START        FLOW_AL_STREAM_START
+#define STREAM_EOF          FLOW_AL_STREAM_EOF
+#define STREAM_TOSERVER     FLOW_AL_STREAM_TOSERVER
+#define STREAM_TOCLIENT     FLOW_AL_STREAM_TOCLIENT
+#define STREAM_GAP          FLOW_AL_STREAM_GAP
 
 /** size of the data chunks sent to the app layer parser. */
 #define MSG_DATA_SIZE       2048
