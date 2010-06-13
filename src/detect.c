@@ -684,19 +684,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             goto next;
         }
 
-        if (s->flags & SIG_FLAG_MPM_URI) {
-            if (det_ctx->pmq.pattern_id_bitarray != NULL) {
-                /* filter out sigs that want pattern matches, but
-                 * have no matches */
-                if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] & (1<<(s->mpm_uripattern_id % 8))) &&
-                        (s->flags & SIG_FLAG_MPM_URI) && !(s->flags & SIG_FLAG_MPM_URI_NEG)) {
-                    SCLogDebug("mpm sig without matches (pat id %"PRIu32
-                            " check in uri).", s->mpm_uripattern_id);
-                    goto next;
-                }
-            }
-        }
-
         if (s->flags & SIG_FLAG_MPM) {
             if (det_ctx->pmq.pattern_id_bitarray != NULL) {
                 /* filter out sigs that want pattern matches, but
@@ -751,12 +738,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        /* Check the uricontent keywords here. */
-        if (s->umatch != NULL) {
-            if (DetectEngineInspectPacketUris(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
-                goto next;
-        }
-
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
         if (s->pmatch != NULL) {
@@ -801,10 +782,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
 
         SCLogDebug("s->amatch %p", s->amatch);
-        if (s->amatch != NULL && p->flow != NULL) {
+        if ((s->amatch != NULL || s->umatch != NULL) && p->flow != NULL) {
             if (de_state_start == TRUE) {
                 SCLogDebug("stateful app layer match inspection starting");
-                if (DeStateDetectStartDetection(th_v, det_ctx, s, p->flow, flags, alstate, alproto) != 1)
+                if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
+                            p->flow, flags, alstate, alproto) != 1)
                     goto next;
             } else {
                 SCLogDebug("signature %"PRIu32" (%"PRIuMAX"): %s",

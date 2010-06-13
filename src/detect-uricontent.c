@@ -965,11 +965,23 @@ static int DetectUriSigTest03(void) {
         goto end;
     }
 
-   /* do detect */
+    /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
+    if ((PacketAlertCheck(&p, 1))) {
+        printf("sig 1 alerted, but it should not: ");
+        goto end;
+    } else if (!PacketAlertCheck(&p, 2)) {
+        printf("sig 2 did not alert, but it should: ");
+        goto end;
+    } else if ((PacketAlertCheck(&p, 3))) {
+        printf("sig 3 alerted, but it should not: ");
+        goto end;
+    }
+
+
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
-   if (r != 0) {
+    if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
@@ -984,19 +996,19 @@ static int DetectUriSigTest03(void) {
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     if ((PacketAlertCheck(&p, 1))) {
-        printf("sig: 1 alerted, but it should not\n");
+        printf("sig 1 alerted, but it should not (chunk 2): ");
         goto end;
-    } else if (! PacketAlertCheck(&p, 2)) {
-        printf("sig: 2 did not alerted, but it should\n");
+    } else if (PacketAlertCheck(&p, 2)) {
+        printf("sig 2 alerted, but it should not (chunk 2): ");
         goto end;
-    } else if (! (PacketAlertCheck(&p, 3))) {
-        printf("sig: 3 did not alerted, but it should\n");
+    } else if (!(PacketAlertCheck(&p, 3))) {
+        printf("sig 3 did not alert, but it should (chunk 2): ");
         goto end;
     }
 
     result = 1;
-end:
 
+end:
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);

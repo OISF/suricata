@@ -62,7 +62,6 @@
  *  \param det_ctx Detection engine thread context
  *  \param s Signature to inspect
  *  \param sm SigMatch to inspect
- *  \param p Packet
  *  \param payload ptr to the uricontent payload to inspect
  *  \param payload_len length of the uricontent payload
  *
@@ -71,7 +70,7 @@
  */
 static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
-        Packet *p, uint8_t *payload, uint32_t payload_len)
+        uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
 
@@ -210,7 +209,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
                 /* see if the next payload keywords match. If not, we will
                  * search for another occurence of this uricontent and see
                  * if the others match then until we run out of matches */
-                int r = DoInspectPacketUri(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
+                int r = DoInspectPacketUri(de_ctx,det_ctx,s,sm->next, payload, payload_len);
                 if (r == 1) {
                     SCReturnInt(1);
                 }
@@ -231,7 +230,7 @@ match:
     /* this sigmatch matched, inspect the next one. If it was the last,
      * the payload portion of the signature matched. */
     if (sm->next != NULL) {
-        int r = DoInspectPacketUri(de_ctx,det_ctx,s,sm->next, p, payload, payload_len);
+        int r = DoInspectPacketUri(de_ctx,det_ctx,s,sm->next, payload, payload_len);
         SCReturnInt(r);
     } else {
         SCReturnInt(1);
@@ -247,14 +246,13 @@ match:
  *  \param f Flow
  *  \param flags app layer flags
  *  \param state App layer state
- *  \param p Packet
  *
  *  \retval 0 no match
  *  \retval 1 match
  */
 int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
-        void *alstate, Packet *p)
+        void *alstate)
 {
     SCEnter();
     SigMatch *sm = NULL;
@@ -302,7 +300,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
 
         /* Inspect all the uricontents fetched on each
          * transaction at the app layer */
-        r = DoInspectPacketUri(de_ctx, det_ctx, s, s->umatch, p,
+        r = DoInspectPacketUri(de_ctx, det_ctx, s, s->umatch,
                 (uint8_t *) bstr_ptr(tx->request_uri_normalized),
                 bstr_len(tx->request_uri_normalized));
 

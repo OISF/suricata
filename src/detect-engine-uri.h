@@ -26,7 +26,7 @@
 
 int DetectEngineInspectPacketUris(DetectEngineCtx *,
         DetectEngineThreadCtx *, Signature *, Flow *, uint8_t,
-        void *, Packet *);
+        void *);
 
 #endif /* __DETECT_ENGINE_URICONTENT_H__ */
 

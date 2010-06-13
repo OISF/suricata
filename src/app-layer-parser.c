@@ -951,11 +951,6 @@ error:
 int AppLayerTransactionGetBaseId(Flow *f) {
     SCEnter();
 
-    if (f->proto != IPPROTO_TCP && f->proto != IPPROTO_UDP) {
-        SCLogDebug("no TCP or UDP");
-        goto error;
-    }
-
     /* Get the parser state (if any) */
     if (f->aldata == NULL) {
         SCLogDebug("no aldata");
@@ -977,11 +972,6 @@ error:
 /** \brief get the highest loggable transaction id */
 int AppLayerTransactionGetLoggableId(Flow *f) {
     SCEnter();
-
-    if (f->proto != IPPROTO_TCP && f->proto != IPPROTO_UDP) {
-        SCLogDebug("no TCP or UDP");
-        goto error;
-    }
 
     /* Get the parser state (if any) */
     if (f->aldata == NULL) {
@@ -1014,11 +1004,6 @@ error:
 void AppLayerTransactionUpdateLoggedId(Flow *f) {
     SCEnter();
 
-    if (f->proto != IPPROTO_TCP && f->proto != IPPROTO_UDP) {
-        SCLogDebug("no TCP or UDP");
-        goto error;
-    }
-
     /* Get the parser state (if any) */
     if (f->aldata == NULL) {
         SCLogDebug("no aldata");
@@ -1040,11 +1025,6 @@ error:
 /** \brief get the highest loggable transaction id */
 int AppLayerTransactionGetLoggedId(Flow *f) {
     SCEnter();
-
-    if (f->proto != IPPROTO_TCP && f->proto != IPPROTO_UDP) {
-        SCLogDebug("no TCP or UDP");
-        goto error;
-    }
 
     /* Get the parser state (if any) */
     if (f->aldata == NULL) {
@@ -1075,11 +1055,6 @@ int AppLayerTransactionUpdateInspectId(Flow *f)
     SCEnter();
 
     int r = 0;
-
-    if (f->proto != IPPROTO_TCP && f->proto != IPPROTO_UDP) {
-        SCLogDebug("no TCP or UDP flow");
-        goto end;
-    }
 
     /* Get the parser state (if any) */
     AppLayerParserStateStore *parser_state_store = NULL;
@@ -1114,7 +1089,7 @@ int AppLayerTransactionUpdateInspectId(Flow *f)
             }
         }
     }
-end:
+
     SCReturnInt(r);
 }
 
