@@ -375,14 +375,13 @@ error:
  *          normalized http uri against the given rule using multi pattern
  *          search algorithms.
  *
- * \param t             Pointer to the tv for this detection module instance
  * \param det_ctx       Pointer to the detection engine thread context
  * \param content       Pointer to the uri content currently being matched
  * \param content_len   Content_len of the received uri content
  *
  * \retval 1 if the uri contents match; 0 no match
  */
-int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ctx,
                                      uint8_t *uri, uint16_t uri_len)
 {
     int ret = 0;
@@ -403,7 +402,7 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
         else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
         else det_ctx->pkts_uri_searched++;
 
-        ret += UriPatternSearch(tv, det_ctx, uri, uri_len);
+        ret += UriPatternSearch(det_ctx, uri, uri_len);
 
         SCLogDebug("post search: cnt %" PRIu32, ret);
     }
@@ -419,7 +418,7 @@ int DoDetectAppLayerUricontentMatch (ThreadVars *tv, DetectEngineThreadCtx *det_
  *  \warning Make sure the flow/state is locked
  *  \todo what should we return? Just the fact that we matched?
  */
-uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, void *alstate) {
+uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, void *alstate) {
     SCEnter();
 
     uint32_t cnt = 0;
@@ -439,7 +438,7 @@ uint32_t DetectUricontentInspectMpm(ThreadVars *tv, DetectEngineThreadCtx *det_c
         if (tx == NULL || tx->request_uri_normalized == NULL)
             continue;
 
-        cnt += DoDetectAppLayerUricontentMatch(tv, det_ctx, (uint8_t *)
+        cnt += DoDetectAppLayerUricontentMatch(det_ctx, (uint8_t *)
                 bstr_ptr(tx->request_uri_normalized),
                 bstr_len(tx->request_uri_normalized));
     }

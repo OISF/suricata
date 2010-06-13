@@ -259,6 +259,11 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     int r = 0;
     HtpState *htp_state = NULL;
 
+    if (!(det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT)) {
+        SCLogDebug("no uricontent in sgh");
+        SCReturnInt(0);
+    }
+
     htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
         SCLogDebug("no HTTP state");
@@ -268,15 +273,50 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     /* locking the flow, we will inspect the htp state */
     SCMutexLock(&f->m);
 
+    if (htp_state->connp == NULL) {
+        SCLogDebug("HTP state has no connp");
+        goto end;
+    }
+
+    /* If we have the uricontent multi pattern matcher signatures in
+       signature list, then search the received HTTP uri(s) in the htp
+       state against those patterns */
+    if (s->flags & SIG_FLAG_MPM_URI) {
+        if (det_ctx->de_mpm_scanned_uri == FALSE) {
+            uint32_t cnt = DetectUricontentInspectMpm(det_ctx, alstate);
+
+            /* only consider uri sigs if we've seen at least one match */
+            /** \warning when we start supporting negated uri content matches
+             * we need to update this check as well */
+            if (cnt > 0) {
+                det_ctx->de_have_httpuri = TRUE;
+            }
+
+            SCLogDebug("uricontent cnt %"PRIu32"", cnt);
+
+            /* make sure we don't inspect this mpm again */
+            det_ctx->de_mpm_scanned_uri = TRUE;
+
+        }
+    }
+
     /* if we don't have a uri, don't bother inspecting */
     if (det_ctx->de_have_httpuri == FALSE) {
         SCLogDebug("We don't have uri");
         goto end;
     }
 
-    if (htp_state->connp == NULL) {
-        SCLogDebug("HTP state has no connp");
-        goto end;
+    if (det_ctx->de_mpm_scanned_uri == TRUE) {
+        if (det_ctx->pmq.pattern_id_bitarray != NULL) {
+            /* filter out sigs that want pattern matches, but
+             * have no matches */
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] & (1<<(s->mpm_uripattern_id % 8))) &&
+                    (s->flags & SIG_FLAG_MPM_URI) && !(s->flags & SIG_FLAG_MPM_URI_NEG)) {
+                SCLogDebug("mpm sig without matches (pat id %"PRIu32
+                        " check in uri).", s->mpm_uripattern_id);
+                goto end;
+            }
+        }
     }
 
     sm = s->umatch;

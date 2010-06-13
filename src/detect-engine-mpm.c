@@ -138,13 +138,12 @@ uint32_t PacketPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
 /** \brief Uri Pattern match -- searches for one pattern per signature.
  *
- *  \param tv threadvars
  *  \param det_ctx detection engine thread ctx
  *  \param p packet to inspect
  *
  *  \retval ret number of matches
  */
-uint32_t UriPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
                         uint8_t *uri, uint16_t uri_len)
 {
     SCEnter();

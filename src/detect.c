@@ -509,7 +509,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     SCEnter();
 
-    /* when we start there are no alerts yet. Only this function may set them */
     p->alerts.cnt = 0;
 
     det_ctx->pkts++;
@@ -634,27 +633,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
     }
 
-    /* If we have the uricontent multi pattern matcher signatures in
-       signature list, then search the received HTTP uri(s) in the htp
-       state against those patterns */
-    if (det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT && p->flow != NULL &&
-        alproto == ALPROTO_HTTP)
-    {
-        SCMutexLock(&p->flow->m);
-        cnt = DetectUricontentInspectMpm(th_v, det_ctx, alstate);
-        SCMutexUnlock(&p->flow->m);
-
-        /* only consider uri sigs if we've seen at least one match */
-        /** \warning when we start supporting negated uri content matches
-          * we need to update this check as well */
-        if (cnt > 0) {
-            det_ctx->de_have_httpuri = TRUE;
-        }
-
-        SCLogDebug("uricontent cnt %"PRIu32"", cnt);
-    } else {
-        SCLogDebug("no uri inspection: have uri %s", det_ctx->sgh->flags & SIG_GROUP_HAVEURICONTENT ? "true":"false");
-    }
+    det_ctx->de_mpm_scanned_uri = FALSE;
 
     /* stateful app layer detection */
     char de_state_start = FALSE;
@@ -672,10 +651,19 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->sgh->sig_cnt; idx++) {
         PROFILING_START;
+
         sig = det_ctx->sgh->match_array[idx];
         s = de_ctx->sig_array[sig];
 
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
+
+        if ((s->amatch != NULL || s->umatch != NULL) && p->flow != NULL) {
+            if (de_state_start == FALSE) {
+                if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
+                    goto next;
+                }
+            }
+        }
 
         /* filter out the sigs that inspects the payload, if packet
            no payload inspection flag is set*/

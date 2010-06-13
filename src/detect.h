@@ -471,7 +471,7 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /* http_uri stuff for uricontent */
     char de_have_httpuri;
-
+    char de_mpm_scanned_uri;
 
     /** Array of sigs that had a state change */
     uint8_t *de_state_sig_array;

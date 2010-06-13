@@ -278,19 +278,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             SCLogDebug("inspecting uri");
 
-            if (s->flags & SIG_FLAG_MPM_URI) {
-                if (det_ctx->pmq.pattern_id_bitarray != NULL) {
-                    /* filter out sigs that want pattern matches, but
-                     * have no matches */
-                    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] & (1<<(s->mpm_uripattern_id % 8))) &&
-                            (s->flags & SIG_FLAG_MPM_URI) && !(s->flags & SIG_FLAG_MPM_URI_NEG)) {
-                        SCLogDebug("mpm sig without matches (pat id %"PRIu32
-                                " check in uri).", s->mpm_uripattern_id);
-                        goto next;
-                    }
-                }
-            }
-
             if (DetectEngineInspectPacketUris(de_ctx, det_ctx, s, f,
                         flags, alstate) == 1)
             {
@@ -299,7 +286,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             } else {
                 SCLogDebug("uri inspected but no match");
             }
-next:;
         }
     }
 
@@ -390,17 +376,6 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             SCLogDebug("id of signature to inspect: %"PRIuMAX,
                     (uintmax_t)s->id);
 
-            /* if the sm is NULL, the sig matched already */
-#if 0
-            if (item->nm == NULL) {
-                SCLogDebug("state detection already matched in a previous run");
-                det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_STORED;
-
-                SCLogDebug("signature %"PRIu32" match state %s",
-                        s->id, DeStateMatchResultToString(det_ctx->de_state_sig_array[item->sid]));
-                continue;
-            }
-#endif
             PROFILING_START;
 
             /* let's continue detection */
@@ -412,19 +387,6 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                         SCLogDebug("inspecting uri");
                         uinspect = 1;
 
-                        if (s->flags & SIG_FLAG_MPM_URI) {
-                            if (det_ctx->pmq.pattern_id_bitarray != NULL) {
-                                /* filter out sigs that want pattern matches, but
-                                 * have no matches */
-                                if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] & (1<<(s->mpm_uripattern_id % 8))) &&
-                                        (s->flags & SIG_FLAG_MPM_URI) && !(s->flags & SIG_FLAG_MPM_URI_NEG)) {
-                                    SCLogDebug("mpm sig without matches (pat id %"PRIu32
-                                            " check in uri).", s->mpm_uripattern_id);
-                                    goto next;
-                                }
-                            }
-                        }
-
                         if (DetectEngineInspectPacketUris(de_ctx, det_ctx, s,
                                     f, flags, alstate) == 1)
                         {
@@ -434,7 +396,6 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                         } else {
                             SCLogDebug("uri inspected but no match");
                         }
-next:;
                     } else {
                         SCLogDebug("uri already inspected");
                     }
