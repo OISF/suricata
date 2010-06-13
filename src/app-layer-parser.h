@@ -168,6 +168,7 @@ void AppLayerTransactionUpdateLoggedId(Flow *);
 int AppLayerTransactionGetLoggableId(Flow *f);
 int AppLayerTransactionGetLoggedId(Flow *f);
 int AppLayerTransactionGetBaseId(Flow *f);
+int AppLayerTransactionGetInspectId(Flow *f);
 
 void AppLayerParserRegisterTests(void);
 

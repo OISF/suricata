@@ -409,29 +409,32 @@ static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ct
     return ret;
 }
 
-/** \brief Run the pattern matcher against the uri(s)
+/**
+ *  \brief Run the pattern matcher against the uri(s)
  *
  *  We run against _all_ uri(s) we have as the pattern matcher will
  *  flag each sig that has a match. We need to do this for all uri(s)
  *  to not miss possible events.
  *
+ *  \param f locked flow
+ *  \param htp_state initialized htp state
+ *
  *  \warning Make sure the flow/state is locked
  *  \todo what should we return? Just the fact that we matched?
  */
-uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, void *alstate) {
+uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state) {
     SCEnter();
 
     uint32_t cnt = 0;
     size_t idx = 0;
     htp_tx_t *tx = NULL;
 
-    HtpState *htp_state = (HtpState *)alstate;
     if (htp_state == NULL || htp_state->connp == NULL) {
         SCLogDebug("no HTTP state / no connp");
         SCReturnUInt(0U);
     }
 
-    for (idx = 0;//htp_state->new_in_tx_index;
+    for (idx = AppLayerTransactionGetInspectId(f);
          idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);

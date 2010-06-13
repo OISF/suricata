@@ -473,6 +473,14 @@ typedef struct DetectionEngineThreadCtx_ {
     char de_have_httpuri;
     char de_mpm_scanned_uri;
 
+    /** array of signature pointers we're going to inspect in the detection
+     *  loop. */
+    Signature **match_array;
+    /** size of the array in items (mem size if * sizeof(Signature *) */
+    uint32_t match_array_len;
+    /** size in use */
+    uint32_t match_array_cnt;
+
     /** Array of sigs that had a state change */
     uint8_t *de_state_sig_array;
     SigIntId de_state_sig_array_len;
@@ -594,8 +602,8 @@ typedef struct SigGroupHead_ {
     uint8_t *sig_array; /**< bit array of sig nums (internal id's) */
     uint32_t sig_size; /**< size in bytes */
 
-    /* Array with sig nums... size is sig_cnt * sizeof(SigIntId) */
-    SigIntId *match_array;
+    /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
+    Signature **match_array;
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;

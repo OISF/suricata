@@ -957,13 +957,39 @@ int AppLayerTransactionGetBaseId(Flow *f) {
         goto error;
     }
 
-    AppLayerParserStateStore *parser_state_store = parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+    AppLayerParserStateStore *parser_state_store =
+        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
         goto error;
     }
 
     SCReturnInt((int)parser_state_store->base_id);
+
+error:
+    SCReturnInt(-1);
+}
+
+/** \brief get the base transaction id */
+int AppLayerTransactionGetInspectId(Flow *f) {
+    SCEnter();
+
+    /* Get the parser state (if any) */
+    if (f->aldata == NULL) {
+        SCLogDebug("no aldata");
+        goto error;
+    }
+
+    AppLayerParserStateStore *parser_state_store =
+        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+
+    if (parser_state_store == NULL) {
+        SCLogDebug("no state store");
+        goto error;
+    }
+
+    SCReturnInt((int)parser_state_store->inspect_id);
 
 error:
     SCReturnInt(-1);
@@ -979,7 +1005,9 @@ int AppLayerTransactionGetLoggableId(Flow *f) {
         goto error;
     }
 
-    AppLayerParserStateStore *parser_state_store = parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+    AppLayerParserStateStore *parser_state_store =
+        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
         goto error;
@@ -1010,7 +1038,9 @@ void AppLayerTransactionUpdateLoggedId(Flow *f) {
         goto error;
     }
 
-    AppLayerParserStateStore *parser_state_store = parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+    AppLayerParserStateStore *parser_state_store =
+        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
         goto error;
@@ -1032,7 +1062,9 @@ int AppLayerTransactionGetLoggedId(Flow *f) {
         goto error;
     }
 
-    AppLayerParserStateStore *parser_state_store = parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+    AppLayerParserStateStore *parser_state_store =
+        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
         goto error;
@@ -1060,8 +1092,7 @@ int AppLayerTransactionUpdateInspectId(Flow *f)
     AppLayerParserStateStore *parser_state_store = NULL;
 
     if (f->aldata != NULL) {
-        parser_state_store = (AppLayerParserStateStore *)
-                                                    f->aldata[app_layer_sid];
+        parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
         if (parser_state_store != NULL) {
             /* update inspect_id and see if it there are other transactions
              * as well */

@@ -431,6 +431,104 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 }
 
 /**
+ *  \brief build an array of signatures that will be inspected
+ *
+ *  All signatures that can be filtered out on forehand are not added to it.
+ *
+ *  \param de_ctx detection engine ctx
+ *  \param det_ctx detection engine thread ctx -- array is stored here
+ *  \param de_state_start flag to indicate if we're at the start of a stateful run
+ *  \param p packet
+ *  \param alproto application layer protocol
+ */
+static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, char de_state_start, Packet *p,
+        uint16_t alproto)
+{
+    uint32_t i;
+
+    /* reset previous run */
+    det_ctx->match_array_cnt = 0;
+
+    for (i = 0; i < det_ctx->sgh->sig_cnt; i++) {
+        Signature *s = det_ctx->sgh->match_array[i];
+
+        if (s->flags & SIG_FLAG_MPM) {
+            /* filter out sigs that want pattern matches, but
+             * have no matches */
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
+                    (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                SCLogDebug("mpm sig without matches (pat id check in content).");
+                continue;
+            }
+        }
+
+        /* de_state check, filter out all signatures that already had a match before
+         * or just partially match */
+        if (de_state_start == FALSE) {
+            if (s->amatch != NULL || s->umatch != NULL) {
+                if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
+                    continue;
+                }
+            }
+        }
+
+        /* filter out the sigs that inspect the payload, if packet
+           no payload inspection flag is set*/
+        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD)) {
+            SCLogDebug("no payload inspection enabled and sig has payload portion.");
+            continue;
+        }
+
+        /* if the sig has alproto and the session as well they should match */
+        if (s->alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_UNKNOWN) {
+            if (s->alproto != alproto) {
+                continue;
+            }
+        }
+
+        /* check the source & dst port in the sig */
+        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
+            if (!(s->flags & SIG_FLAG_DP_ANY)) {
+                DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
+                if (dport == NULL) {
+                    SCLogDebug("dport didn't match.");
+                    continue;
+                }
+            }
+            if (!(s->flags & SIG_FLAG_SP_ANY)) {
+                DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
+                if (sport == NULL) {
+                    SCLogDebug("sport didn't match.");
+                    continue;
+                }
+            }
+        }
+
+        /* check the destination address */
+        if (!(s->flags & SIG_FLAG_DST_ANY)) {
+            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
+            if (daddr == NULL) {
+                SCLogDebug("dst addr didn't match.");
+                    continue;
+            }
+        }
+        /* check the source address */
+        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
+            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
+            if (saddr == NULL) {
+                SCLogDebug("src addr didn't match.");
+                    continue;
+            }
+        }
+
+        /* okay, store it */
+        det_ctx->match_array[det_ctx->match_array_cnt] = s;
+        det_ctx->match_array_cnt++;
+    }
+}
+
+/**
  *  \brief Get the SigGroupHead for a packet.
  *
  *  \param de_ctx detection engine context
@@ -498,7 +596,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     int match = 0, fmatch = 0;
     Signature *s = NULL;
     SigMatch *sm = NULL;
-    uint32_t idx,sig;
+    uint32_t idx;
     uint16_t alproto = ALPROTO_UNKNOWN;
     void *alstate = NULL;
     uint8_t flags = 0;
@@ -637,10 +735,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* stateful app layer detection */
     char de_state_start = FALSE;
+    /* initialize to 0 (DE_STATE_MATCH_FULL) */
     memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-    if (p->flow != NULL) {
+    if (alstate != NULL) {
         if (DeStateFlowHasState(p->flow)) {
-            DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow, flags, alstate, alproto);
+            DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow,
+                    flags, alstate, alproto);
         } else {
             de_state_start = TRUE;
         }
@@ -648,87 +748,36 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         de_state_start = TRUE;
     }
 
+    /* build the match array */
+    SigMatchSignaturesBuildMatchArray(de_ctx, det_ctx, de_state_start, p, alproto);
+
     /* inspect the sigs against the packet */
-    for (idx = 0; idx < det_ctx->sgh->sig_cnt; idx++) {
+    for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
         PROFILING_START;
 
-        sig = det_ctx->sgh->match_array[idx];
-        s = de_ctx->sig_array[sig];
-
+        s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
+        SCLogDebug("s->amatch %p, s->umatch %p", s->amatch, s->umatch);
         if ((s->amatch != NULL || s->umatch != NULL) && p->flow != NULL) {
-            if (de_state_start == FALSE) {
+            if (de_state_start == TRUE) {
+                SCLogDebug("stateful app layer match inspection starting");
+                if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
+                            p->flow, flags, alstate, alproto) != 1)
+                    goto next;
+            } else {
+                SCLogDebug("signature %"PRIu32" (%"PRIuMAX"): %s",
+                        s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
                 if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
                     goto next;
                 }
             }
         }
 
-        /* filter out the sigs that inspects the payload, if packet
-           no payload inspection flag is set*/
-        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD)) {
-            SCLogDebug("no payload inspection enabled and sig has payload portion.");
-            goto next;
-        }
-
-        if (s->flags & SIG_FLAG_MPM) {
-            if (det_ctx->pmq.pattern_id_bitarray != NULL) {
-                /* filter out sigs that want pattern matches, but
-                 * have no matches */
-                if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
-                        (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
-                    SCLogDebug("mpm sig without matches (pat id check in content).");
-                    goto next;
-                }
-            }
-        }
-
-        /* if the sig has alproto and the session as well they should match */
-        if (s->alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_UNKNOWN) {
-            if (s->alproto != alproto) {
-                goto next;
-            }
-        }
-
-        /* check the source & dst port in the sig */
-        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
-            if (!(s->flags & SIG_FLAG_DP_ANY)) {
-                DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
-                if (dport == NULL) {
-                    SCLogDebug("dport didn't match.");
-                    goto next;
-                }
-            }
-            if (!(s->flags & SIG_FLAG_SP_ANY)) {
-                DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
-                if (sport == NULL) {
-                    SCLogDebug("sport didn't match.");
-                    goto next;
-                }
-            }
-        }
-
-        /* check the destination address */
-        if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
-            if (daddr == NULL) {
-                SCLogDebug("dst addr didn't match.");
-                goto next;
-            }
-        }
-        /* check the source address */
-        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
-            if (saddr == NULL) {
-                SCLogDebug("src addr didn't match.");
-                goto next;
-            }
-        }
-
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
         if (s->pmatch != NULL) {
+            /* if we have stream msgs, inspect against those first */
             if (smsg != NULL) {
                 char pmatch = 0;
                 int i = 0;
@@ -766,22 +815,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             } else {
                 if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
                     goto next;
-            }
-        }
-
-        SCLogDebug("s->amatch %p", s->amatch);
-        if ((s->amatch != NULL || s->umatch != NULL) && p->flow != NULL) {
-            if (de_state_start == TRUE) {
-                SCLogDebug("stateful app layer match inspection starting");
-                if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                            p->flow, flags, alstate, alproto) != 1)
-                    goto next;
-            } else {
-                SCLogDebug("signature %"PRIu32" (%"PRIuMAX"): %s",
-                        s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
-                if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
-                    goto next;
-                }
             }
         }
 
@@ -865,7 +898,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         break;
     }
 
-    if (p->flow != NULL) {
+    if (alstate != NULL) {
         SCLogDebug("getting de_state_status");
         int de_state_status = DeStateUpdateInspectTransactionId(p->flow);
         SCLogDebug("de_state_status %d", de_state_status);
@@ -923,8 +956,8 @@ end:
  *  \retval TM_ECODE_FAILED error
  *  \retval TM_ECODE_OK ok
  */
-TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-
+TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+{
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION)
         return 0;
@@ -2495,7 +2528,7 @@ void DbgPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 
     uint32_t sig;
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        printf("%" PRIu32 " ", de_ctx->sig_array[sgh->match_array[sig]]->id);
+        printf("%" PRIu32 " ", sgh->match_array[sig]->id);
     }
     printf("\n");
 }
@@ -2569,7 +2602,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                 if (global_src_gr->sh != NULL) {
                     printf(" - ");
                     for (u = 0; u < global_src_gr->sh->sig_cnt; u++) {
-                        Signature *s = de_ctx->sig_array[global_src_gr->sh->match_array[u]];
+                        Signature *s = global_src_gr->sh->match_array[u];
                         printf("%" PRIu32 " ", s->id);
                     }
                     printf("\n");
@@ -2601,7 +2634,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                     if (global_dst_gr->sh != NULL) {
                         printf(" - ");
                         for (u = 0; u < global_dst_gr->sh->sig_cnt; u++) {
-                            Signature *s = de_ctx->sig_array[global_dst_gr->sh->match_array[u]];
+                            Signature *s = global_dst_gr->sh->match_array[u];
                             printf("%" PRIu32 " ", s->id);
                         }
                         printf("\n");
@@ -2621,7 +2654,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
 #ifdef PRINTSIGS
                             printf(" - ");
                             for (u = 0; u < dp->sh->sig_cnt; u++) {
-                                Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
+                                Signature *s = dp->sh->match_array[u];
                                 printf("%" PRIu32 " ", s->id);
                             }
 #endif
@@ -2652,7 +2685,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
 #ifdef PRINTSIGS
                             printf(" - ");
                             for (u = 0; u < dp->sh->sig_cnt; u++) {
-                                Signature *s = de_ctx->sig_array[dp->sh->match_array[u]];
+                                Signature *s = dp->sh->match_array[u];
                                 printf("%" PRIu32 " ", s->id);
                             }
 #endif
@@ -7229,11 +7262,11 @@ static int SigTestSgh01 (void) {
         goto end;
     }
 
-    if (sgh->match_array[0] != 0) {
-        printf("sgh doesn't contain sid 1, should have (sgh->match_array[0] %u, expected 0): ", sgh->match_array[0]);
+    if (sgh->match_array[0] != de_ctx->sig_list) {
+        printf("sgh doesn't contain sid 1, should have (sgh->match_array[0] %p, expected %p): ", sgh->match_array[0], de_ctx->sig_list);
         goto end;
     }
-    if (sgh->match_array[1] != 2) {
+    if (sgh->match_array[1] != de_ctx->sig_list->next->next) {
         printf("sgh doesn't contain sid 3, should have: ");
         goto end;
     }
@@ -7256,8 +7289,9 @@ static int SigTestSgh01 (void) {
         goto end;
     }
 
-    if (sgh2->match_array[0] != 1) {
-        printf("sgh doesn't contain sid 2, should have (sgh2->match_array[0] %u, expected 0): ", sgh2->match_array[0]);
+    if (sgh2->match_array[0] != de_ctx->sig_list->next) {
+        printf("sgh doesn't contain sid 2, should have (sgh2->match_array[0] %p, expected %p): ",
+                sgh2->match_array[0], de_ctx->sig_list->next);
         goto end;
     }
 
@@ -7273,7 +7307,7 @@ static int SigTestSgh01 (void) {
         goto end;
     }
 
-    if (sgh2->match_array[0] != 1) {
+    if (sgh2->match_array[0] != de_ctx->sig_list->next) {
         printf("sgh2 doesn't contain sid 2, should have: ");
         goto end;
     }
@@ -7360,11 +7394,11 @@ static int SigTestSgh02 (void) {
         goto end;
     }
 
-    if (sgh->match_array[0] != 0) {
-        printf("sgh doesn't contain sid 1, should have (sgh->match_array[0] %u, expected 0): ", sgh->match_array[0]);
+    if (sgh->match_array[0] != de_ctx->sig_list) {
+        printf("sgh doesn't contain sid 1, should have (sgh->match_array[0] %p, expected %p): ", sgh->match_array[0], de_ctx->sig_list);
         goto end;
     }
-    if (sgh->match_array[1] != 2) {
+    if (sgh->match_array[1] != de_ctx->sig_list->next->next) {
         printf("sgh doesn't contain sid 3, should have: ");
         goto end;
     }
@@ -7392,16 +7426,16 @@ static int SigTestSgh02 (void) {
         printf("sgh sig cnt %u, expected 3: ", sgh->sig_cnt);
         goto end;
     }
-    if (sgh->match_array[0] != 0) {
+    if (sgh->match_array[0] != de_ctx->sig_list) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
-    if (sgh->match_array[1] != 1) {
-        printf("sgh doesn't contain sid 1, should have: ");
+    if (sgh->match_array[1] != de_ctx->sig_list->next) {
+        printf("sgh doesn't contain sid 2, should have: ");
         goto end;
     }
-    if (sgh->match_array[2] != 2) {
-        printf("sgh doesn't contain sid 1, should have: ");
+    if (sgh->match_array[2] != de_ctx->sig_list->next->next) {
+        printf("sgh doesn't contain sid 3, should have: ");
         goto end;
     }
 #if 0
@@ -7429,7 +7463,7 @@ static int SigTestSgh02 (void) {
         goto end;
     }
 
-    if (sgh->match_array[0] != 0) {
+    if (sgh->match_array[0] != de_ctx->sig_list) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
@@ -7459,7 +7493,7 @@ static int SigTestSgh02 (void) {
         goto end;
     }
 
-    if (sgh->match_array[0] != 0) {
+    if (sgh->match_array[0] != de_ctx->sig_list) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
@@ -7560,11 +7594,11 @@ static int SigTestSgh03 (void) {
         goto end;
     }
 
-    if (sgh->match_array[0] != 0) {
-        printf("sgh doesn't contain sid 1, should have (sgh->match_array[0] %u, expected 0): ", sgh->match_array[0]);
+    if (sgh->match_array[0] != de_ctx->sig_list) {
+        printf("sgh doesn't contain sid 1, should have (sgh->match_array[0] %p, expected %p): ", sgh->match_array[0], de_ctx->sig_list);
         goto end;
     }
-    if (sgh->match_array[1] != 2) {
+    if (sgh->match_array[1] != de_ctx->sig_list->next->next) {
         printf("sgh doesn't contain sid 3, should have: ");
         goto end;
     }
@@ -7589,15 +7623,15 @@ static int SigTestSgh03 (void) {
         printf("sgh sig cnt %u, expected 3: ", sgh->sig_cnt);
         goto end;
     }
-    if (sgh->match_array[0] != 0) {
+    if (sgh->match_array[0] != de_ctx->sig_list) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
-    if (sgh->match_array[1] != 1) {
+    if (sgh->match_array[1] != de_ctx->sig_list->next) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
-    if (sgh->match_array[2] != 2) {
+    if (sgh->match_array[2] != de_ctx->sig_list->next->next) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
@@ -7633,7 +7667,7 @@ static int SigTestSgh03 (void) {
         goto end;
     }
 
-    if (sgh->match_array[0] != 0) {
+    if (sgh->match_array[0] != de_ctx->sig_list) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
@@ -7721,11 +7755,11 @@ static int SigTestSgh04 (void) {
         goto end;
     }
 
-    if (sgh->match_array[0] != 0) {
-        printf("sgh doesn't contain sid 1, should have (sgh->match_array[0] %u, expected 0): ", sgh->match_array[0]);
+    if (sgh->match_array[0] != de_ctx->sig_list) {
+        printf("sgh doesn't contain sid 1, should have (sgh->match_array[0] %p, expected %p): ", sgh->match_array[0], de_ctx->sig_list);
         goto end;
     }
-    if (sgh->match_array[1] != 2) {
+    if (sgh->match_array[1] != de_ctx->sig_list->next->next) {
         printf("sgh doesn't contain sid 3, should have: ");
         goto end;
     }
@@ -7753,16 +7787,16 @@ static int SigTestSgh04 (void) {
         printf("sgh sig cnt %u, expected 3: ", sgh->sig_cnt);
         goto end;
     }
-    if (sgh->match_array[0] != 0) {
+    if (sgh->match_array[0] != de_ctx->sig_list) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
-    if (sgh->match_array[1] != 1) {
-        printf("sgh doesn't contain sid 1, should have: ");
+    if (sgh->match_array[1] != de_ctx->sig_list->next) {
+        printf("sgh doesn't contain sid 2, should have: ");
         goto end;
     }
-    if (sgh->match_array[2] != 2) {
-        printf("sgh doesn't contain sid 1, should have: ");
+    if (sgh->match_array[2] != de_ctx->sig_list->next->next) {
+        printf("sgh doesn't contain sid 3, should have: ");
         goto end;
     }
 #if 0
@@ -7790,7 +7824,7 @@ static int SigTestSgh04 (void) {
         goto end;
     }
 
-    if (sgh->match_array[0] != 0) {
+    if (sgh->match_array[0] != de_ctx->sig_list) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
@@ -7821,7 +7855,7 @@ static int SigTestSgh04 (void) {
         goto end;
     }
 
-    if (sgh->match_array[0] != 0) {
+    if (sgh->match_array[0] != de_ctx->sig_list) {
         printf("sgh doesn't contain sid 1, should have: ");
         goto end;
     }
@@ -7891,6 +7925,7 @@ static int SigTestSgh05 (void) {
 end:
     return result;
 }
+
 static int SigTestContent01Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
     uint16_t buflen = strlen((char *)buf);

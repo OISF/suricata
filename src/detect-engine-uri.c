@@ -283,7 +283,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
        state against those patterns */
     if (s->flags & SIG_FLAG_MPM_URI) {
         if (det_ctx->de_mpm_scanned_uri == FALSE) {
-            uint32_t cnt = DetectUricontentInspectMpm(det_ctx, alstate);
+            uint32_t cnt = DetectUricontentInspectMpm(det_ctx, f, htp_state);
 
             /* only consider uri sigs if we've seen at least one match */
             /** \warning when we start supporting negated uri content matches
@@ -328,11 +328,10 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     SCLogDebug("co->id %"PRIu32, co->id);
 #endif
 
-    size_t idx = 0;
+    size_t idx = AppLayerTransactionGetInspectId(f);
     htp_tx_t *tx = NULL;
 
-    for (idx = 0;//htp_state->new_in_tx_index;
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    for ( ; idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL || tx->request_uri_normalized == NULL)

@@ -106,6 +106,8 @@ error:
  */
 int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
+    SCEnter();
+
     uint8_t cnt = 0;
     DetectFlowData *fd = (DetectFlowData *)m->ctx;
 
@@ -122,9 +124,9 @@ int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
     }
 
     int ret = (fd->match_cnt == cnt) ? 1 : 0;
-    //printf("DetectFlowMatch: returning %" PRId32 " cnt %" PRId32 " fd->match_cnt %" PRId32 " fd->flags 0x%02X p->flowflags 0x%02X \n", ret, cnt,
-              //fd->match_cnt, fd->flags, p->flowflags);
-    return ret;
+    SCLogDebug("returning %" PRId32 " cnt %" PRIu8 " fd->match_cnt %" PRId32 " fd->flags 0x%02X p->flowflags 0x%02X",
+        ret, cnt, fd->match_cnt, fd->flags, p->flowflags);
+    SCReturnInt(ret);
 }
 
 /**

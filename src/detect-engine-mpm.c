@@ -443,9 +443,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
 
     /* add all the contents to a counting hash */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        uint32_t num = sgh->match_array[sig];
-
-        Signature *s = de_ctx->sig_array[num];
+        Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -543,8 +541,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
 
     /* now determine which one to add to the mpm phase */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        uint32_t num = sgh->match_array[sig];
-        Signature *s = de_ctx->sig_array[num];
+        Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -694,9 +691,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     /** see if this head has content and/or uricontent
      *  \todo we can move this to the signature init phase */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
-        uint32_t num = sh->match_array[sig];
-
-        s = de_ctx->sig_array[num];
+        s = sh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -771,9 +766,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     /* for each signature in this group do */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
-        uint32_t num = sh->match_array[sig];
-
-        s = de_ctx->sig_array[num];
+        s = sh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -922,9 +915,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     /* add the patterns for uricontent signatures */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
-        uint32_t num = sh->match_array[sig];
-
-        s = de_ctx->sig_array[num];
+        s = sh->match_array[sig];
         if (s == NULL)
             continue;
 

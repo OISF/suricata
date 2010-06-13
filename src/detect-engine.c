@@ -353,6 +353,14 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
                     (uintmax_t)(det_ctx->de_state_sig_array_len * sizeof(uint8_t)), strerror(errno));
             return TM_ECODE_FAILED;
         }
+
+        det_ctx->match_array_len = de_ctx->sig_array_len;
+        det_ctx->match_array = SCMalloc(det_ctx->match_array_len * sizeof(Signature *));
+        if (det_ctx->match_array == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "malloc of %"PRIuMAX" failed: %s",
+                    (uintmax_t)(det_ctx->match_array_len * sizeof(Signature *)), strerror(errno));
+            return TM_ECODE_FAILED;
+        }
     }
 
     /** alert counter setup */

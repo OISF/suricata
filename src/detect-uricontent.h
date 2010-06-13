@@ -43,6 +43,7 @@
                                        (c)->within > 0))
 
 #include "util-spm-bm.h"
+#include "app-layer-htp.h"
 
 typedef struct DetectUricontentData_ {
     uint8_t *uricontent;
@@ -62,9 +63,11 @@ typedef struct DetectUricontentData_ {
 /* prototypes */
 void DetectUricontentRegister (void);
 uint32_t DetectUricontentMaxId(DetectEngineCtx *);
-uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, void *alstate);
+//uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, void *alstate);
 SigMatch *DetectUricontentGetLastPattern(SigMatch *);
 void DetectUricontentPrint(DetectUricontentData *);
+
+uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *, Flow *, HtpState *);
 
 #endif /* __DETECT_URICONTENT_H__ */
 

@@ -158,11 +158,12 @@ void SigGroupHeadFree(SigGroupHead *sgh)
 
     if (sgh->match_array != NULL) {
         detect_siggroup_matcharray_free_cnt++;
-        detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(SigIntId));
+        detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(Signature *));
         SCFree(sgh->match_array);
         sgh->match_array = NULL;
-        sgh->sig_cnt = 0;
     }
+
+    sgh->sig_cnt = 0;
 
     if (sgh->init != NULL) {
         SigGroupHeadInitDataFree(sgh->init);
@@ -1267,7 +1268,6 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint32_t sig = 0;
-    SigIntId num = 0;
     DetectContentData *co = NULL;
 
     if (sgh == NULL)
@@ -1286,9 +1286,7 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     memset(sgh->init->content_array,0, sgh->init->content_size);
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        num = sgh->match_array[sig];
-
-        s = de_ctx->sig_array[num];
+        s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -1353,7 +1351,6 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint32_t sig = 0;
-    SigIntId num = 0;
     DetectUricontentData *co = NULL;
 
     if (sgh == NULL)
@@ -1372,9 +1369,8 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     memset(sgh->init->uri_content_array, 0, sgh->init->uri_content_size);
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        num = sgh->match_array[sig];
+        s = sgh->match_array[sig];
 
-        s = de_ctx->sig_array[num];
         if (s == NULL)
             continue;
 
@@ -1438,7 +1434,6 @@ int SigGroupHeadLoadStreamContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint32_t sig = 0;
-    SigIntId num = 0;
     DetectContentData *co = NULL;
 
     if (sgh == NULL)
@@ -1457,9 +1452,7 @@ int SigGroupHeadLoadStreamContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     memset(sgh->init->stream_content_array,0, sgh->init->stream_content_size);
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        num = sgh->match_array[sig];
-
-        s = de_ctx->sig_array[num];
+        s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -1529,24 +1522,24 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
     BUG_ON(sgh->match_array != NULL);
 
-    sgh->match_array = SCMalloc(sgh->sig_cnt * sizeof(SigIntId));
+    sgh->match_array = SCMalloc(sgh->sig_cnt * sizeof(Signature *));
     if (sgh->match_array == NULL)
         return -1;
 
-    memset(sgh->match_array,0, sgh->sig_cnt * sizeof(SigIntId));
+    memset(sgh->match_array,0, sgh->sig_cnt * sizeof(Signature *));
 
     detect_siggroup_matcharray_init_cnt++;
-    detect_siggroup_matcharray_memory += (sgh->sig_cnt * sizeof(SigIntId));
+    detect_siggroup_matcharray_memory += (sgh->sig_cnt * sizeof(Signature *));
 
     for (sig = 0; sig < max_idx + 1; sig++) {
-        if ( !(sgh->sig_array[(sig / 8)] & (1 << (sig % 8))) )
+        if (!(sgh->sig_array[(sig / 8)] & (1 << (sig % 8))) )
             continue;
 
         s = de_ctx->sig_array[sig];
         if (s == NULL)
             continue;
 
-        sgh->match_array[idx] = s->num;
+        sgh->match_array[idx] = s;
         idx++;
     }
 
@@ -2057,9 +2050,9 @@ static int SigGroupHeadTest09(void)
     SigGroupHeadSetSigCnt(sh, 4);
     SigGroupHeadBuildMatchArray(de_ctx, sh, 4);
 
-    result &= (sh->match_array[0] == 0);
-    result &= (sh->match_array[1] == 2);
-    result &= (sh->match_array[2] == 4);
+    result &= (sh->match_array[0] == de_ctx->sig_list);
+    result &= (sh->match_array[1] == de_ctx->sig_list->next->next);
+    result &= (sh->match_array[2] == de_ctx->sig_list->next->next->next->next);
 
     SigGroupHeadFree(sh);
 
