@@ -609,23 +609,11 @@ static int DeStateTest02(void) {
         goto end;
     }
 
-    if (state->head->next->next == NULL) {
+    if (state->head->store[15].sid != 155) {
         goto end;
     }
 
-    if (state->head->next->next->next == NULL) {
-        goto end;
-    }
-
-    if (state->head->next->next->next->next == NULL) {
-        goto end;
-    }
-
-    if (state->head->next->next->next->store[3].sid != 155) {
-        goto end;
-    }
-
-    if (state->head->next->next->next->next->store[0].sid != 166) {
+    if (state->head->next->store[0].sid != 166) {
         goto end;
     }
 
@@ -638,6 +626,51 @@ end:
 }
 
 static int DeStateTest03(void) {
+    int result = 0;
+
+    DetectEngineState *state = DetectEngineStateAlloc();
+    if (state == NULL) {
+        printf("d == NULL: ");
+        goto end;
+    }
+
+    Signature s;
+    memset(&s, 0x00, sizeof(s));
+
+    s.num = 11;
+    DeStateSignatureAppend(state, &s, NULL, 0);
+    s.num = 22;
+    DeStateSignatureAppend(state, &s, NULL, 1);
+
+    if (state->head == NULL) {
+        goto end;
+    }
+
+    if (state->head->store[0].sid != 11) {
+        goto end;
+    }
+
+    if (state->head->store[0].flags & DE_STATE_FLAG_URI_MATCH) {
+        goto end;
+    }
+
+    if (state->head->store[1].sid != 22) {
+        goto end;
+    }
+
+    if (!(state->head->store[1].flags & DE_STATE_FLAG_URI_MATCH)) {
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (state != NULL) {
+        DetectEngineStateFree(state);
+    }
+    return result;
+}
+
+static int DeStateSigTest01(void) {
     int result = 0;
     Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -766,7 +799,7 @@ end:
 }
 
 /** \test multiple pipelined http transactions */
-static int DeStateTest04(void) {
+static int DeStateSigTest02(void) {
     int result = 0;
     Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -951,7 +984,8 @@ void DeStateRegisterTests(void) {
     UtRegisterTest("DeStateTest01", DeStateTest01, 1);
     UtRegisterTest("DeStateTest02", DeStateTest02, 1);
     UtRegisterTest("DeStateTest03", DeStateTest03, 1);
-    UtRegisterTest("DeStateTest04", DeStateTest04, 1);
+    UtRegisterTest("DeStateSigTest01", DeStateSigTest01, 1);
+    UtRegisterTest("DeStateSigTest02", DeStateSigTest02, 1);
 #endif
 }
 
