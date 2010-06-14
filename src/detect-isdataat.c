@@ -390,6 +390,9 @@ int DetectIsdataatTestParse03 (void) {
     return result;
 }
 
+/**
+ * \test Test isdataat option for dce sig.
+ */
 int DetectIsdataatTestParse04(void)
 {
     Signature *s = SigAlloc();
@@ -407,6 +410,9 @@ int DetectIsdataatTestParse04(void)
     return result;
 }
 
+/**
+ * \test Test isdataat option for dce sig.
+ */
 int DetectIsdataatTestParse05(void)
 {
     DetectEngineCtx *de_ctx = NULL;

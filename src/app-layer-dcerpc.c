@@ -897,20 +897,20 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
     SCEnter();
     uint8_t **stub_data_buffer = NULL;
     uint32_t *stub_data_buffer_len = NULL;
-    uint8_t *stub_data_processed = NULL;
+    uint8_t *stub_data_fresh = NULL;
     uint16_t stub_len = 0;
 
     /* request PDU.  Retrieve the request stub buffer */
     if (dcerpc->dcerpchdr.type == REQUEST) {
         stub_data_buffer = &dcerpc->dcerpcrequest.stub_data_buffer;
         stub_data_buffer_len = &dcerpc->dcerpcrequest.stub_data_buffer_len;
-        stub_data_processed = &dcerpc->dcerpcrequest.stub_data_processed;
+        stub_data_fresh = &dcerpc->dcerpcrequest.stub_data_fresh;
 
     /* response PDU.  Retrieve the response stub buffer */
     } else {
         stub_data_buffer = &dcerpc->dcerpcresponse.stub_data_buffer;
         stub_data_buffer_len = &dcerpc->dcerpcresponse.stub_data_buffer_len;
-        stub_data_processed = &dcerpc->dcerpcresponse.stub_data_processed;
+        stub_data_fresh = &dcerpc->dcerpcresponse.stub_data_fresh;
     }
 
     stub_len = (dcerpc->padleft < input_len) ? dcerpc->padleft : input_len;
@@ -929,7 +929,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
     }
     memcpy(*stub_data_buffer + *stub_data_buffer_len, input, stub_len);
 
-    *stub_data_processed = 0;
+    *stub_data_fresh = 1;
     /* length of the buffered stub */
     *stub_data_buffer_len += stub_len;
 
@@ -1096,6 +1096,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     uint32_t retval = 0;
     uint32_t parsed = 0;
     int hdrretval = 0;
+
+    dcerpc->dcerpcrequest.stub_data_fresh = 0;
+    dcerpc->dcerpcresponse.stub_data_fresh = 0;
 
     while (dcerpc->bytesprocessed < DCERPC_HDR_LEN && input_len) {
         hdrretval = DCERPCParseHeader(dcerpc, input, input_len);
@@ -3409,9 +3412,9 @@ int DCERPCParserTest04(void) {
     }
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 0) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
 
@@ -3425,9 +3428,9 @@ int DCERPCParserTest04(void) {
     }
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 0) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
 
@@ -3442,11 +3445,12 @@ int DCERPCParserTest04(void) {
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
                  dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 1024 &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 1) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
+    dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh = 0;
 
     /* request2 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
@@ -3459,11 +3463,12 @@ int DCERPCParserTest04(void) {
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
                  dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 2048 &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 1) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
+    dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh = 0;
 
     /* request3 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
@@ -3476,11 +3481,12 @@ int DCERPCParserTest04(void) {
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL  &&
                  dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 3072 &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 1) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
+    dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh = 0;
 
     /* request4 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
@@ -3493,11 +3499,12 @@ int DCERPCParserTest04(void) {
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
                  dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 4096 &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 1) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
+    dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh = 0;
 
     /* request5 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
@@ -3525,11 +3532,12 @@ int DCERPCParserTest04(void) {
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
                  dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 6144 &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 1) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
+    dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh = 0;
 
     /* request7 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
@@ -3542,11 +3550,12 @@ int DCERPCParserTest04(void) {
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
                  dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 7168 &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 1) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
+    dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh = 0;
 
     /* request8 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
@@ -3559,11 +3568,12 @@ int DCERPCParserTest04(void) {
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
                  dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 8192 &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 1) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
+    dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh = 0;
 
     /* request9 */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
@@ -3576,11 +3586,12 @@ int DCERPCParserTest04(void) {
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
                  dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 8204 &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 1) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
+    dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh = 0;
 
     /* request1 again */
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
@@ -3593,9 +3604,9 @@ int DCERPCParserTest04(void) {
 
     result &= ( (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
                  dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 1024 &&
-                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 0) &&
+                 dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 1) &&
                 (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL &&
-                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 0) );
+                 dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) );
     if (result == 0)
         goto end;
 

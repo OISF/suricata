@@ -44,6 +44,7 @@
 #include "app-layer.h"
 #include "app-layer-dcerpc.h"
 #include "decode-tcp.h"
+#include "flow-util.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -357,14 +358,14 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
      * match function.  Instead we will retrieve it directly from the app layer. */
     if (flags & STREAM_TOSERVER) {
         if (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer == NULL ||
-            dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 1) {
+            dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 0) {
             SCReturnInt(0);
         }
         dce_stub_data = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
         dce_stub_data_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
     } else {
         if (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL ||
-            dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 1) {
+            dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) {
             SCReturnInt(0);
         }
         dce_stub_data = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
@@ -1551,6 +1552,7 @@ int DcePayloadTest01(void)
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -2401,6 +2403,7 @@ int DcePayloadTest02(void)
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -2837,6 +2840,7 @@ int DcePayloadTest03(void)
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -3273,6 +3277,7 @@ int DcePayloadTest04(void)
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -3708,6 +3713,7 @@ int DcePayloadTest05(void)
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -4144,6 +4150,7 @@ int DcePayloadTest06(void)
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -4579,6 +4586,7 @@ int DcePayloadTest07(void)
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -4851,6 +4859,7 @@ int DcePayloadTest08(void)
         p[i].flowflags |= FLOW_PKT_TOSERVER;
     }
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -5063,6 +5072,7 @@ int DcePayloadTest09(void)
         p[i].flowflags |= FLOW_PKT_TOSERVER;
     }
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -5275,6 +5285,7 @@ int DcePayloadTest10(void)
         p[i].flowflags |= FLOW_PKT_TOSERVER;
     }
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -5622,6 +5633,7 @@ int DcePayloadTest11(void)
         p[i].flowflags |= FLOW_PKT_TOSERVER;
     }
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
@@ -5983,6 +5995,7 @@ int DcePayloadTest12(void)
         p[i].flowflags |= FLOW_PKT_TOSERVER;
     }
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;

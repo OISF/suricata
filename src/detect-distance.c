@@ -175,7 +175,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
                 cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
-            } else if ( (pm = SigMatchGetLastSM(match_tail->prev, DETECT_BYTEJUMP)) != NULL) {
+            } else if ( (pm = SigMatchGetLastSM(match_tail, DETECT_BYTEJUMP)) != NULL) {
                 DetectBytejumpData *data = NULL;
                 data = (DetectBytejumpData *) pm->ctx;
                 if (data == NULL) {

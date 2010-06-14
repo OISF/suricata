@@ -819,6 +819,9 @@ int DetectBytejumpTestParse09(void) {
     return result;
 }
 
+/**
+ * \test Test dce option.
+ */
 int DetectBytejumpTestParse10(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -914,6 +917,9 @@ int DetectBytejumpTestParse10(void)
     return result;
 }
 
+/**
+ * \test Test dce option.
+ */
 int DetectBytejumpTestParse11(void)
 {
     DetectEngineCtx *de_ctx = NULL;

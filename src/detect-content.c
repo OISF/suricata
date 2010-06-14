@@ -1073,6 +1073,9 @@ end:
     return result;
 }
 
+/**
+ * \test Test content for dce sig.
+ */
 int DetectContentParseTest18(void)
 {
     Signature *s = SigAlloc();
@@ -1103,6 +1106,9 @@ int DetectContentParseTest18(void)
     return result;
 }
 
+/**
+ * \test Test content for dce sig.
+ */
 int DetectContentParseTest19(void)
 {
     DetectEngineCtx *de_ctx = NULL;

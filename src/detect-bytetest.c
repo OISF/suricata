@@ -1046,6 +1046,9 @@ int DetectBytetestTestParse19(void) {
     return result;
 }
 
+/**
+ * \test Test dce option.
+ */
 int DetectBytetestTestParse20(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -1141,6 +1144,9 @@ int DetectBytetestTestParse20(void)
     return result;
 }
 
+/**
+ * \test Test dce option.
+ */
 int DetectBytetestTestParse21(void)
 {
     DetectEngineCtx *de_ctx = NULL;

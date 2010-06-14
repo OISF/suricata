@@ -1035,6 +1035,9 @@ static int DetectPcreParseTest09 (void) {
     return result;
 }
 
+/**
+ * \test Test pcre option for dce sig(yeah I'm bored of writing test titles).
+ */
 int DetectPcreParseTest10(void)
 {
     Signature *s = SigAlloc();
@@ -1065,6 +1068,9 @@ int DetectPcreParseTest10(void)
     return result;
 }
 
+/**
+ * \test Test pcre option for dce sig.
+ */
 int DetectPcreParseTest11(void)
 {
     DetectEngineCtx *de_ctx = NULL;

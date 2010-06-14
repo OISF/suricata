@@ -332,6 +332,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
 {
     SCEnter();
 
+    DetectUricontentData *cd = NULL;
     SigMatch *sm = NULL;
 
     if (s->alproto == ALPROTO_DCERPC) {
@@ -339,7 +340,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
         goto error;
     }
 
-    DetectUricontentData *cd = DoDetectUricontentSetup(contentstr);
+    cd = DoDetectUricontentSetup(contentstr);
     if (cd == NULL)
         goto error;
 

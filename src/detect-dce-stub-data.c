@@ -95,18 +95,16 @@ int DetectDceStubDataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
 
     if (flags & STREAM_TOSERVER) {
         if (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer == NULL ||
-            dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed == 1) {
+            dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 0) {
             return 0;
         }
-        //dcerpc_state->dcerpc.dcerpcrequest.stub_data_processed = 1;
         det_ctx->dce_stub_data = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
         det_ctx->dce_stub_data_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
     } else {
         if (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL ||
-            dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed == 1) {
+            dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) {
             return 0;
         }
-        //dcerpc_state->dcerpc.dcerpcresponse.stub_data_processed = 1;
         det_ctx->dce_stub_data = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
         det_ctx->dce_stub_data_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
     }

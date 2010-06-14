@@ -197,7 +197,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
                 cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
-            } else if ( (pm = SigMatchGetLastSM(match_tail->prev, DETECT_PCRE)) != NULL) {
+            } else if ( (pm = SigMatchGetLastSM(match_tail, DETECT_PCRE)) != NULL) {
                 DetectPcreData *pe = NULL;
                 pe = (DetectPcreData *) pm->ctx;
                 if (pe == NULL) {
@@ -206,7 +206,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
                 pe->flags |= DETECT_PCRE_RELATIVE;
 
-            } else if ( (pm = SigMatchGetLastSM(match_tail->prev, DETECT_BYTEJUMP)) != NULL) {
+            } else if ( (pm = SigMatchGetLastSM(match_tail, DETECT_BYTEJUMP)) != NULL) {
                 DetectBytejumpData *data = NULL;
                 data = (DetectBytejumpData *) pm->ctx;
                 if (data == NULL) {
