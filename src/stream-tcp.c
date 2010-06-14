@@ -55,16 +55,6 @@
 
 //#define DEBUG
 
-typedef struct StreamTcpThread_ {
-    uint64_t pkts;
-
-    uint16_t counter_tcp_sessions;
-    /** sessions not picked up because memcap was reached */
-    uint16_t counter_tcp_ssn_memcap;
-
-    TcpReassemblyThreadCtx *ra_ctx;         /**< tcp reassembly thread data */
-} StreamTcpThread;
-
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *, void *);
@@ -2520,7 +2510,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
 }
 
 /* flow is and stays locked */
-static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt)
+int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt)
 {
     SCEnter();
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;

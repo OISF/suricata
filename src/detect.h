@@ -258,6 +258,8 @@ typedef struct Signature_ {
     struct SigMatch_ *umatch_tail; /* uricontent payload matches, tail of the list */
     struct SigMatch_ *amatch; /* general app layer matches */
     struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */
+    struct SigMatch_ *dmatch; /* dce app layer matches */
+    struct SigMatch_ *dmatch_tail; /* dce app layer matches, tail of the list */
     /** ptr to the next sig in the list */
     struct Signature_ *next;
 
@@ -465,6 +467,14 @@ typedef struct DetectionEngineThreadCtx_ {
     /** offset into the uri payload of the last match by
      *  uricontent */
     uint32_t uricontent_payload_offset;
+
+    /* dce stub data */
+    uint8_t *dce_stub_data;
+    /* dce stub data len */
+    uint32_t dce_stub_data_len;
+    /* offset into the payload of the last match for dce related sigmatches,
+     * stored in Signature->dmatch, by content, pcre, etc */
+    uint32_t dce_payload_offset;
 
     /** recursive counter */
     uint8_t pkt_cnt;

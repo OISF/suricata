@@ -39,9 +39,11 @@
 
 /** Bytetest Flags */
 #define DETECT_BYTETEST_NEGOP    0x01 /**< "!" negated operator */
-#define DETECT_BYTETEST_LITTLE   0x02 /**< "little" endian value (default "big") */
-#define DETECT_BYTETEST_STRING   0x04 /**< "string" value */
-#define DETECT_BYTETEST_RELATIVE 0x08 /**< "relative" offset */
+#define DETECT_BYTETEST_LITTLE   0x02 /**< "little" endian value */
+#define DETECT_BYTETEST_BIG      0x04 /**< "bi" endian value */
+#define DETECT_BYTETEST_STRING   0x08 /**< "string" value */
+#define DETECT_BYTETEST_RELATIVE 0x10 /**< "relative" offset */
+#define DETECT_BYTETEST_DCE      0x20 /**< dce enabled */
 
 typedef struct DetectBytetestData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */

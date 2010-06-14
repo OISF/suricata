@@ -45,6 +45,7 @@ Signature *SigAlloc(void);
 void SigFree(Signature *s);
 Signature *SigInit(DetectEngineCtx *,char *sigstr);
 SigMatch *SigMatchGetLastSM(SigMatch *, uint8_t);
+SigMatch *SigMatchGetLastSMFromLists(Signature *, int, ...);
 
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
@@ -55,6 +56,7 @@ void SigMatchReplaceContent(Signature *, SigMatch *, SigMatch *);
 void SigMatchReplaceContentToUricontent(Signature *, SigMatch *, SigMatch *);
 
 void SigMatchAppendPayload(Signature *, SigMatch *);
+void SigMatchAppendDcePayload(Signature *, SigMatch *);
 void SigMatchAppendPacket(Signature *, SigMatch *);
 void SigMatchAppendUricontent(Signature *, SigMatch *);
 void SigMatchAppendAppLayer(Signature *, SigMatch *);

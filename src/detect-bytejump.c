@@ -28,6 +28,8 @@
 #include "decode.h"
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine.h"
+#include "app-layer.h"
 
 #include "detect-bytejump.h"
 #include "detect-content.h"
@@ -42,6 +44,7 @@
  */
 #define PARSE_REGEX  "^\\s*" \
                      "([^\\s,]+\\s*,\\s*[^\\s,]+)" \
+                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
                      "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
                      "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
                      "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
@@ -431,6 +434,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
             if (data->flags & DETECT_BYTEJUMP_LITTLE) {
                 data->flags ^= DETECT_BYTEJUMP_LITTLE;
             }
+            data->flags |= DETECT_BYTEJUMP_BIG;
         } else if (strcasecmp("little", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_LITTLE;
         } else if (strcasecmp("from_beginning", args[i]) == 0) {
@@ -453,6 +457,8 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
                 SCLogError(SC_ERR_INVALID_VALUE, "Malformed post_offset: %s", optstr);
                 goto error;
             }
+        } else if (strcasecmp("dce", args[i]) == 0) {
+            data->flags |= DETECT_BYTEJUMP_DCE;
         } else {
             SCLogError(SC_ERR_INVALID_VALUE, "Unknown option: \"%s\"", args[i]);
             goto error;
@@ -507,16 +513,52 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     DetectBytejumpData *data = NULL;
     SigMatch *sm = NULL;
+    SigMatch *match = NULL;
+    SigMatch *match_tail = NULL;
 
     data = DetectBytejumpParse(optstr);
-    if (data == NULL) goto error;
+    if (data == NULL)
+        goto error;
+
+    /* check bytejump modifiers against the signature alproto.  In case they conflict
+     * chuck out invalid signature */
+    if (data->flags & DETECT_BYTEJUMP_DCE) {
+        if (s->alproto != ALPROTO_DCERPC) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Non dce alproto sig has "
+                       "bytetest with dce enabled");
+            goto error;
+        }
+        if ( (data->flags & DETECT_BYTEJUMP_STRING) ||
+             (data->flags & DETECT_BYTEJUMP_LITTLE) ||
+             (data->flags & DETECT_BYTEJUMP_BIG) ||
+             (data->flags & DETECT_BYTEJUMP_BEGIN) ||
+             (data->base == DETECT_BYTEJUMP_BASE_DEC) ||
+             (data->base == DETECT_BYTEJUMP_BASE_HEX) ||
+             (data->base == DETECT_BYTEJUMP_BASE_OCT) ) {
+            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
+                       "DCERPC rule holds an invalid modifier for bytejump.");
+            goto error;
+        }
+    }
 
     if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-        /** Search for the first previous DetectContent
-         * SigMatch (it can be the same as this one) */
+
+        switch (s->alproto) {
+            case ALPROTO_DCERPC:
+                match = s->dmatch;
+                match_tail = s->dmatch_tail;
+                break;
+
+            default:
+                match = s->pmatch;
+                match_tail = s->pmatch_tail;
+                break;
+        }
+
+        /* Search for the first previous DetectContent SigMatch (it can be the
+         * same as this one) */
         SigMatch *pm = NULL;
-        pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_CONTENT);
-        if (pm != NULL) {
+        if ( (pm = SigMatchGetLastSM(match_tail, DETECT_CONTENT)) != NULL) {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "relative bytejump match "
@@ -524,7 +566,8 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                 goto error;
             }
             cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-        } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_PCRE)) != NULL) {
+
+        } else if ( (pm = SigMatchGetLastSM(match_tail, DETECT_PCRE)) != NULL) {
             DetectPcreData *pe = NULL;
             pe = (DetectPcreData *) pm->ctx;
             if (pe == NULL) {
@@ -532,9 +575,8 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                 goto error;
             }
             pe->flags |= DETECT_PCRE_RELATIVE;
-        } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_BYTEJUMP)) !=
-                    NULL)
-        {
+
+        } else if ( (pm = SigMatchGetLastSM(match_tail, DETECT_BYTEJUMP)) != NULL) {
             DetectBytejumpData *data = NULL;
             data = (DetectBytejumpData *)pm->ctx;
             if (data == NULL) {
@@ -542,6 +584,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                 goto error;
             }
             data->flags |= DETECT_BYTEJUMP_RELATIVE;
+
         } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "relative bytejump match "
                         "needs a previous content option");
@@ -556,7 +599,18 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
     sm->type = DETECT_BYTEJUMP;
     sm->ctx = (void *)data;
 
-    SigMatchAppendPayload(s,sm);
+    switch (s->alproto) {
+        case ALPROTO_DCERPC:
+            /* If we have a signature that is related to dcerpc, then we add the
+             * sm to Signature->dmatch.  All content inspections for a dce rpc
+             * alproto is done inside detect-engine-dcepayload.c */
+            SigMatchAppendDcePayload(s, sm);
+            break;
+
+        default:
+            SigMatchAppendPayload(s, sm);
+            break;
+    }
 
     return 0;
 
@@ -738,6 +792,218 @@ int DetectBytejumpTestParse08(void) {
 }
 
 /**
+ * \test Test dce option.
+ */
+int DetectBytejumpTestParse09(void) {
+    Signature *s = SigAlloc();
+    int result = 1;
+
+    s->alproto = ALPROTO_DCERPC;
+
+    result &= (DetectBytejumpSetup(NULL, s, "4,0, align, multiplier 2, "
+                                   "post_offset -16,dce") == 0);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0, multiplier 2, "
+                                   "post_offset -16,dce") == 0);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0,post_offset -16,dce") == 0);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0,dce") == 0);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0,dce") == 0);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0, string, dce") == -1);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0, big, dce") == -1);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0, little, dce") == -1);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0, string, dec, dce") == -1);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0, string, oct, dce") == -1);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0, string, hex, dce") == -1);
+    result &= (DetectBytejumpSetup(NULL, s, "4,0, from_beginning, dce") == -1);
+
+    SigFree(s);
+    return result;
+}
+
+int DetectBytejumpTestParse10(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+    Signature *s = NULL;
+    DetectBytejumpData *bd = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                               "content:one; byte_jump:4,0,align,multiplier 2, "
+                               "post_offset -16,dce; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+    s = de_ctx->sig_list;
+    if (s->dmatch_tail == NULL) {
+        result = 0;
+        goto end;
+    }
+    result &= (s->dmatch_tail->type == DETECT_BYTEJUMP);
+    bd = (DetectBytejumpData *)s->dmatch_tail->ctx;
+    if (!(bd->flags & DETECT_BYTEJUMP_DCE) &&
+        (bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
+        (bd->flags & DETECT_BYTEJUMP_STRING) &&
+        (bd->flags & DETECT_BYTEJUMP_BIG) &&
+        (bd->flags & DETECT_BYTEJUMP_LITTLE) ) {
+        result = 0;
+        goto end;
+    }
+
+    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                      "(msg:\"Testing bytejump_body\"; "
+                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                      "content:one; byte_jump:4,0,align,multiplier 2, "
+                      "post_offset -16,relative,dce; sid:1;)");
+    if (s->next == NULL) {
+        result = 0;
+        goto end;
+    }
+    s = s->next;
+    if (s->dmatch_tail == NULL) {
+        result = 0;
+        goto end;
+    }
+    result &= (s->dmatch_tail->type == DETECT_BYTEJUMP);
+    bd = (DetectBytejumpData *)s->dmatch_tail->ctx;
+    if (!(bd->flags & DETECT_BYTEJUMP_DCE) &&
+        !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
+        (bd->flags & DETECT_BYTEJUMP_STRING) &&
+        (bd->flags & DETECT_BYTEJUMP_BIG) &&
+        (bd->flags & DETECT_BYTEJUMP_LITTLE) ) {
+        result = 0;
+        goto end;
+    }
+
+    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                      "(msg:\"Testing bytejump_body\"; "
+                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                      "content:one; byte_jump:4,0,align,multiplier 2, "
+                      "post_offset -16; sid:1;)");
+    if (s->next == NULL) {
+        result = 0;
+        goto end;
+    }
+    s = s->next;
+    if (s->dmatch_tail == NULL) {
+        result = 0;
+        goto end;
+    }
+    result &= (s->dmatch_tail->type == DETECT_BYTEJUMP);
+    bd = (DetectBytejumpData *)s->dmatch_tail->ctx;
+    if ((bd->flags & DETECT_BYTEJUMP_DCE) &&
+        (bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
+        (bd->flags & DETECT_BYTEJUMP_STRING) &&
+        (bd->flags & DETECT_BYTEJUMP_BIG) &&
+        (bd->flags & DETECT_BYTEJUMP_LITTLE) ) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectBytejumpTestParse11(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+    Signature *s = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = SigInit(de_ctx, "alert tcp any any -> any any "
+                "(msg:\"Testing bytejump_body\"; "
+                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "post_offset -16,string,dce; sid:1;)");
+    if (s != NULL) {
+        result = 0;
+        goto end;
+    }
+
+    s = SigInit(de_ctx, "alert tcp any any -> any any "
+                "(msg:\"Testing bytejump_body\"; "
+                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "post_offset -16,big,dce; sid:1;)");
+    if (s != NULL) {
+        result = 0;
+        goto end;
+    }
+
+    s = SigInit(de_ctx, "alert tcp any any -> any any "
+                "(msg:\"Testing bytejump_body\"; "
+                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "post_offset -16,little,dce; sid:1;)");
+    if (s != NULL) {
+        result = 0;
+        goto end;
+    }
+
+    s = SigInit(de_ctx, "alert tcp any any -> any any "
+                "(msg:\"Testing bytejump_body\"; "
+                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "post_offset -16,string,hex,dce; sid:1;)");
+    if (s != NULL) {
+        result = 0;
+        goto end;
+    }
+
+    s = SigInit(de_ctx, "alert tcp any any -> any any "
+                "(msg:\"Testing bytejump_body\"; "
+                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "post_offset -16,string,dec,dce; sid:1;)");
+    if (s != NULL) {
+        result = 0;
+        goto end;
+    }
+
+    s = SigInit(de_ctx, "alert tcp any any -> any any "
+                "(msg:\"Testing bytejump_body\"; "
+                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "post_offset -16,string,oct,dce; sid:1;)");
+    if (s != NULL) {
+        result = 0;
+        goto end;
+    }
+
+    s = SigInit(de_ctx, "alert tcp any any -> any any "
+                "(msg:\"Testing bytejump_body\"; "
+                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "post_offset -16,from_beginning,dce; sid:1;)");
+    if (s != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
  * \test DetectByteJumpTestPacket01 is a test to check matches of
  * byte_jump and byte_jump relative works if the previous keyword is pcre
  * (bug 142)
@@ -815,6 +1081,9 @@ void DetectBytejumpRegisterTests(void) {
     UtRegisterTest("DetectBytejumpTestParse06", DetectBytejumpTestParse06, 1);
     UtRegisterTest("DetectBytejumpTestParse07", DetectBytejumpTestParse07, 1);
     UtRegisterTest("DetectBytejumpTestParse08", DetectBytejumpTestParse08, 1);
+    UtRegisterTest("DetectBytejumpTestParse09", DetectBytejumpTestParse09, 1);
+    UtRegisterTest("DetectBytejumpTestParse10", DetectBytejumpTestParse10, 1);
+    UtRegisterTest("DetectBytejumpTestParse11", DetectBytejumpTestParse11, 1);
     UtRegisterTest("DetectByteJumpTestPacket01", DetectByteJumpTestPacket01, 1);
     UtRegisterTest("DetectByteJumpTestPacket02", DetectByteJumpTestPacket02, 1);
 #endif /* UNITTESTS */

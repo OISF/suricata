@@ -43,6 +43,7 @@
 #include "detect-engine-threshold.h"
 
 #include "detect-engine-payload.h"
+#include "detect-engine-dcepayload.h"
 #include "detect-engine-uri.h"
 #include "detect-engine-state.h"
 
@@ -817,6 +818,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     goto next;
             }
         }
+        /* Check the dce keywords here */
+        if (s->dmatch != NULL) {
+            if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                goto next;
+        }
+
 
         /* if we get here but have no sigmatches to match against,
          * we consider the sig matched. */

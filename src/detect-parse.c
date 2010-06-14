@@ -195,6 +195,27 @@ void SigMatchAppendPayload(Signature *s, SigMatch *new) {
     s->sm_cnt++;
 }
 
+void SigMatchAppendDcePayload(Signature *s, SigMatch *new) {
+    SCLogDebug("Append SigMatch against Sigature->dmatch(dce) list");
+    if (s->dmatch == NULL) {
+        s->dmatch = new;
+        s->dmatch_tail = new;
+        new->next = NULL;
+        new->prev = NULL;
+    } else {
+        SigMatch *cur = s->dmatch_tail;
+        cur->next = new;
+        new->prev = cur;
+        new->next = NULL;
+        s->dmatch_tail = new;
+    }
+
+    new->idx = s->sm_cnt;
+    s->sm_cnt++;
+
+    return;
+}
+
 /** \brief Append a sig match to the signatures non-payload match list
  *
  *  \param s signature
@@ -397,6 +418,63 @@ SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
     }
 
     return NULL;
+}
+
+SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
+{
+    if (args % 2 != 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "You need to send an even no of args "
+                   "to this function, since we need a SigMatch list for every "
+                   "SigMatch type(send a map of sm_type and sm_list) sent");
+        return NULL;
+    }
+
+    SigMatch *sm_list[args / 2];
+    int sm_type[args / 2];
+    int list_index = 0;
+
+    va_list ap;
+    int i = 0, j = 0;
+
+    va_start(ap, args);
+
+    for (i = 0; i < args; i += 2) {
+        sm_type[list_index] = va_arg(ap, int);
+
+        sm_list[list_index] = va_arg(ap, SigMatch *);
+
+        if (sm_list[list_index] != NULL)
+            list_index++;
+
+    }
+
+    va_end(ap);
+
+    SigMatch *sm[list_index];
+    int sm_entries = 0;
+    for (i = 0; sm_entries < list_index; i++) {
+        sm[sm_entries] = SigMatchGetLastSM(sm_list[i], sm_type[i]);
+        if (sm[sm_entries] != NULL)
+            sm_entries++;
+    }
+
+    if (sm_entries == 0)
+        return NULL;
+
+    SigMatch *temp_sm = NULL;
+    for (i = 1; i < sm_entries; i++) {
+        for (j = i - 1; j >= 0; j--) {
+            if (sm[j + 1]->idx > sm[j]->idx) {
+                temp_sm = sm[j + 1];
+                sm[j + 1] = sm[j];
+                sm[j] = temp_sm;
+                continue;
+            }
+            break;
+        }
+    }
+
+    return sm[0];
 }
 
 void SigParsePrepare(void) {

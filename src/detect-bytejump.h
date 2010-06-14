@@ -32,10 +32,12 @@
 
 /** Bytejump Flags */
 #define DETECT_BYTEJUMP_BEGIN    0x01 /**< "from_beginning" jump */
-#define DETECT_BYTEJUMP_LITTLE   0x02 /**< "little" endian value (default "big") */
-#define DETECT_BYTEJUMP_STRING   0x04 /**< "string" value */
-#define DETECT_BYTEJUMP_RELATIVE 0x08 /**< "relative" offset */
-#define DETECT_BYTEJUMP_ALIGN    0x10 /**< "align" offset */
+#define DETECT_BYTEJUMP_LITTLE   0x02 /**< "little" endian value */
+#define DETECT_BYTEJUMP_BIG      0x04 /**< "big" endian value */
+#define DETECT_BYTEJUMP_STRING   0x08 /**< "string" value */
+#define DETECT_BYTEJUMP_RELATIVE 0x10 /**< "relative" offset */
+#define DETECT_BYTEJUMP_ALIGN    0x20 /**< "align" offset */
+#define DETECT_BYTEJUMP_DCE      0x40 /**< "dce" enabled */
 
 typedef struct DetectBytejumpData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */

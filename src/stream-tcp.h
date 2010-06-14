@@ -29,6 +29,11 @@
 
 #define COUNTER_STREAMTCP_STREAMS 1
 
+#include "app-layer-detect-proto.h"
+#include "util-mpm.h"
+#include "stream.h"
+#include "stream-tcp-reassemble.h"
+
 #define STREAM_VERBOSE    FALSE
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
@@ -39,6 +44,16 @@ typedef struct TcpStreamCnf_ {
     int async_oneside;
 } TcpStreamCnf;
 
+typedef struct StreamTcpThread_ {
+    uint64_t pkts;
+
+    uint16_t counter_tcp_sessions;
+    /** sessions not picked up because memcap was reached */
+    uint16_t counter_tcp_ssn_memcap;
+
+    TcpReassemblyThreadCtx *ra_ctx;         /**< tcp reassembly thread data */
+} StreamTcpThread;
+
 TcpStreamCnf stream_config;
 void TmModuleStreamTcpRegister (void);
 void StreamTcpInitConfig (char);
@@ -48,6 +63,8 @@ void StreamTcpRegisterTests (void);
 void StreamTcpIncrMemuse(uint32_t);
 void StreamTcpDecrMemuse(uint32_t);
 int StreamTcpCheckMemcap(uint32_t);
+
+int StreamTcpPacket (ThreadVars *, Packet *, StreamTcpThread *);
 
 #endif /* __STREAM_TCP_H__ */
 

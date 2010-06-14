@@ -450,6 +450,99 @@ int DetectPcrePacketPayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Sign
 }
 
 /**
+ * \brief Match a regex on data sent as arg.
+ *
+ * \param det_ctx  Thread detection ctx.
+ * \param s        Signature.
+ * \param sm       SigMatch to match against.
+ * \param data     Data to match against.
+ * \param data_len Data length.
+ *
+ * \retval 1: match
+ * \retval 0: no match
+ */
+int DetectPcrePayloadDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
+                             SigMatch *sm, Packet *p, uint8_t *data,
+                             uint16_t data_len)
+{
+    SCEnter();
+
+#define MAX_SUBSTRINGS 30
+    int ret = 0;
+    int ov[MAX_SUBSTRINGS];
+    uint8_t *ptr = NULL;
+    uint16_t len = 0;
+
+    if (data_len == 0)
+        SCReturnInt(0);
+
+    DetectPcreData *pe = (DetectPcreData *)sm->ctx;
+
+    /* If we want to inspect the http body, we will use HTP L7 parser */
+    if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
+        SCReturnInt(0);
+
+    if (s->flags & SIG_FLAG_RECURSIVE) {
+        ptr = data + det_ctx->payload_offset;
+        len = data_len - det_ctx->payload_offset;
+    } else if (pe->flags & DETECT_PCRE_RELATIVE) {
+        ptr = data + det_ctx->payload_offset;
+        len = data_len - det_ctx->payload_offset;
+        if (ptr == NULL || len == 0)
+            SCReturnInt(0);
+    } else {
+        ptr = data;
+        len = data_len;
+    }
+
+    /* run the actual pcre detection */
+    ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
+    SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+
+    if (ret == PCRE_ERROR_NOMATCH) {
+        if (pe->negate == 1) {
+            /* regex didn't match with negate option means we
+             * consider it a match */
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+    } else if (ret >= 0) {
+        if (pe->negate == 1) {
+            /* regex matched but we're negated, so not
+             * considering it a match */
+            ret = 0;
+        } else {
+            /* regex matched and we're not negated,
+             * considering it a match */
+
+            /* see if we need to do substring capturing. */
+            if (ret > 1 && pe->capidx != 0) {
+                const char *str_ptr;
+                ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+                if (ret) {
+                    if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
+                        PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
+                    } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
+                        FlowVarAddStr(p->flow, pe->capidx, (uint8_t *)str_ptr, ret);
+                    }
+                }
+            }
+
+            /* update offset for pcre RELATIVE */
+            det_ctx->payload_offset = (ptr + ov[1]) - data;
+
+            ret = 1;
+        }
+
+    } else {
+        SCLogDebug("pcre had matching error");
+        ret = 0;
+    }
+    SCReturnInt(ret);
+}
+
+/**
  * \brief DetectPcreMatch will try to match a regex on a single packet;
  *        DetectPcreALMatch is used if we parse the option 'P'
  *
@@ -494,7 +587,8 @@ DetectPcreData *DetectPcreParse (char *regexstr)
         pos++;
     }
 
-    ret = pcre_exec(parse_regex, parse_regex_study, regexstr+pos, slen-pos, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(parse_regex, parse_regex_study, regexstr + pos, slen-pos,
+                    0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error");
         goto error;
@@ -502,7 +596,8 @@ DetectPcreData *DetectPcreParse (char *regexstr)
 
     if (ret > 1) {
         const char *str_ptr;
-        res = pcre_get_substring((char *)regexstr+pos, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        res = pcre_get_substring((char *)regexstr + pos, ov, MAX_SUBSTRINGS,
+                                 1, &str_ptr);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             return NULL;
@@ -510,7 +605,8 @@ DetectPcreData *DetectPcreParse (char *regexstr)
         re = (char *)str_ptr;
 
         if (ret > 2) {
-            res = pcre_get_substring((char *)regexstr+pos, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+            res = pcre_get_substring((char *)regexstr + pos, ov, MAX_SUBSTRINGS,
+                                     2, &str_ptr);
             if (res < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 return NULL;
@@ -705,10 +801,28 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     SigMatch *sm = NULL;
 
     pd = DetectPcreParse(regexstr);
-    if (pd == NULL) goto error;
+    if (pd == NULL)
+        goto error;
+
+    /* check pcre modifiers against the signature alproto.  In case they conflict
+     * chuck out invalid signature */
+    switch (s->alproto) {
+        case ALPROTO_DCERPC:
+            if ( (pd->flags & DETECT_PCRE_URI) ||
+                 (pd->flags & DETECT_PCRE_HTTP_BODY_AL) ) {
+                SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
+                           "DCERPC rule has pcre keyword with http related modifier.");
+                goto error;
+            }
+            break;
+
+        default:
+            break;
+    }
 
     pd = DetectPcreParseCapture(regexstr, de_ctx, pd);
-    if (pd == NULL) goto error;
+    if (pd == NULL)
+        goto error;
 
     sm = SigMatchAlloc();
     if (sm == NULL)
@@ -726,9 +840,19 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         SigMatchAppendAppLayer(s, sm);
     } else {
-        SigMatchAppendPayload(s, sm);
-    }
+        switch (s->alproto) {
+            case ALPROTO_DCERPC:
+                /* If we have a signature that is related to dcerpc, then we add the
+                 * sm to Signature->dmatch.  All content inspections for a dce rpc
+                 * alproto is done inside detect-engine-dcepayload.c */
+                SigMatchAppendDcePayload(s, sm);
+                break;
 
+            default:
+                SigMatchAppendPayload(s, sm);
+                break;
+        }
+    }
 
     SCReturnInt(0);
 
@@ -908,6 +1032,135 @@ static int DetectPcreParseTest09 (void) {
     }
 
     DetectPcreFree(pd);
+    return result;
+}
+
+int DetectPcreParseTest10(void)
+{
+    Signature *s = SigAlloc();
+    int result = 1;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    s->alproto = ALPROTO_DCERPC;
+
+    result &= (DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
+    result &= (s->dmatch != NULL);
+
+    SigFree(s);
+
+    s = SigAlloc();
+    /* failure since we have no preceding content/pcre/bytejump */
+    result &= (DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
+    result &= (s->dmatch == NULL);
+    result &= (s->pmatch != NULL);
+
+ end:
+    SigFree(s);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectPcreParseTest11(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+    Signature *s = NULL;
+    DetectPcreData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                               "pcre:/bamboo/; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+    s = de_ctx->sig_list;
+    if (s->dmatch_tail == NULL) {
+        result = 0;
+        goto end;
+    }
+    result &= (s->dmatch_tail->type == DETECT_PCRE);
+    data = (DetectPcreData *)s->dmatch_tail->ctx;
+    if (data->flags & DETECT_PCRE_RAWBYTES ||
+        data->flags & DETECT_PCRE_RELATIVE ||
+        data->flags & DETECT_PCRE_URI) {
+        result = 0;
+        goto end;
+    }
+
+    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                      "(msg:\"Testing bytejump_body\"; "
+                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                      "pcre:/bamboo/R; sid:1;)");
+    if (s->next == NULL) {
+        result = 0;
+        goto end;
+    }
+    s = s->next;
+    if (s->dmatch_tail == NULL) {
+        result = 0;
+        goto end;
+    }
+    result &= (s->dmatch_tail->type == DETECT_PCRE);
+    data = (DetectPcreData *)s->dmatch_tail->ctx;
+    if (data->flags & DETECT_PCRE_RAWBYTES ||
+        !(data->flags & DETECT_PCRE_RELATIVE) ||
+        data->flags & DETECT_PCRE_URI) {
+        result = 0;
+        goto end;
+    }
+
+    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                      "(msg:\"Testing bytejump_body\"; "
+                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                      "pcre:/bamboo/RB; sid:1;)");
+    if (s->next == NULL) {
+        result = 0;
+        goto end;
+    }
+    s = s->next;
+    if (s->dmatch_tail == NULL) {
+        result = 0;
+        goto end;
+    }
+    result &= (s->dmatch_tail->type == DETECT_PCRE);
+    data = (DetectPcreData *)s->dmatch_tail->ctx;
+    if (!(data->flags & DETECT_PCRE_RAWBYTES) ||
+        !(data->flags & DETECT_PCRE_RELATIVE) ||
+        data->flags & DETECT_PCRE_URI) {
+        result = 0;
+        goto end;
+    }
+
+    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                      "(msg:\"Testing bytejump_body\"; "
+                      "content:one; pcre:/bamboo/; sid:1;)");
+    if (s->next == NULL) {
+        result = 0;
+        goto end;
+    }
+    s = s->next;
+    if (s->dmatch_tail != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
     return result;
 }
 
@@ -1435,6 +1688,8 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreParseTest07", DetectPcreParseTest07, 1);
     UtRegisterTest("DetectPcreParseTest08", DetectPcreParseTest08, 1);
     UtRegisterTest("DetectPcreParseTest09", DetectPcreParseTest09, 1);
+    UtRegisterTest("DetectPcreParseTest10", DetectPcreParseTest10, 1);
+    UtRegisterTest("DetectPcreParseTest11", DetectPcreParseTest11, 1);
     UtRegisterTest("DetectPcreTestSig01B2g -- pcre test", DetectPcreTestSig01B2g, 1);
     UtRegisterTest("DetectPcreTestSig01B3g -- pcre test", DetectPcreTestSig01B3g, 1);
     UtRegisterTest("DetectPcreTestSig01Wm -- pcre test", DetectPcreTestSig01Wm, 1);

@@ -32,6 +32,8 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-bytejump.h"
+#include "app-layer.h"
+#include "detect-parse.h"
 
 #include "flow-var.h"
 
@@ -63,6 +65,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 {
     char *str = withinstr;
     char dubbed = 0;
+    SigMatch *match_tail = NULL;
+    SigMatch *pm = NULL;
 
     /* strip "'s */
     if (withinstr[0] == '\"' && withinstr[strlen(withinstr)-1] == '\"') {
@@ -71,14 +75,35 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         dubbed = 1;
     }
 
-    /** Search for the first previous DetectContent
-     * SigMatch (it can be the same as this one) */
-    SigMatch *pm = SigMatchGetLastPattern(s);
-    if (pm == NULL) {
-        SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "depth needs"
-                   "two preceeding content or uricontent options");
-        if (dubbed) SCFree(str);
-        return -1;
+    switch (s->alproto) {
+        case ALPROTO_DCERPC:
+            /* If we have a signature that is related to dcerpc, then we add the
+             * sm to Signature->dmatch.  All content inspections for a dce rpc
+             * alproto is done inside detect-engine-dcepayload.c */
+            pm =  SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->dmatch_tail);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
+                           "preceeding content options for this dcerpc sig");
+                if (dubbed)
+                    SCFree(str);
+                return -1;
+            }
+
+            break;
+
+        default:
+            pm =  SigMatchGetLastSMFromLists(s, 4,
+                                             DETECT_CONTENT, s->pmatch_tail,
+                                             DETECT_URICONTENT, s->umatch_tail);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
+                           "preceeding content or uricontent option");
+                if (dubbed)
+                    SCFree(str);
+                return -1;
+            }
+
+            break;
     }
 
     DetectUricontentData *ud = NULL;
@@ -152,17 +177,27 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            pm = SigMatchGetLastSM(s->pmatch_tail->prev, DETECT_CONTENT);
-            if (pm != NULL) {
+            switch (s->alproto) {
+                case ALPROTO_DCERPC:
+                    match_tail = s->dmatch_tail;
+                    break;
+
+                default:
+                    match_tail = s->pmatch_tail;
+                    break;
+            }
+
+            if ( (pm = SigMatchGetLastSM(match_tail->prev, DETECT_CONTENT)) != NULL) {
                 /* Set the relative next flag on the prev sigmatch */
                 cd = (DetectContentData *)pm->ctx;
                 if (cd == NULL) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                            "previous keyword!");
+                               "previous keyword!");
                     goto error;
                 }
                 cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-            } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_PCRE)) != NULL) {
+
+            } else if ( (pm = SigMatchGetLastSM(match_tail->prev, DETECT_PCRE)) != NULL) {
                 DetectPcreData *pe = NULL;
                 pe = (DetectPcreData *) pm->ctx;
                 if (pe == NULL) {
@@ -170,9 +205,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                     goto error;
                 }
                 pe->flags |= DETECT_PCRE_RELATIVE;
-            } else if ((pm = SigMatchGetLastSM(s->pmatch_tail, DETECT_BYTEJUMP))
-                                != NULL)
-            {
+
+            } else if ( (pm = SigMatchGetLastSM(match_tail->prev, DETECT_BYTEJUMP)) != NULL) {
                 DetectBytejumpData *data = NULL;
                 data = (DetectBytejumpData *) pm->ctx;
                 if (data == NULL) {
@@ -180,25 +214,31 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                     goto error;
                 }
                 data->flags |= DETECT_BYTEJUMP_RELATIVE;
+
             } else {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two"
-                        " preceeding content or uricontent options");
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two "
+                           "preceeding content or uricontent options");
                 goto error;
             }
 
         break;
 
         default:
-            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two preceeding content or uricontent options");
-            if (dubbed) SCFree(str);
+            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two "
+                       "preceeding content or uricontent options");
+            if (dubbed)
+                SCFree(str);
                 return -1;
         break;
     }
 
-    if (dubbed) SCFree(str);
+    if (dubbed)
+        SCFree(str);
     return 0;
+
 error:
-    if (dubbed) SCFree(str);
+    if (dubbed)
+        SCFree(str);
     return -1;
 }
 
@@ -234,10 +274,33 @@ end:
     return result;
 }
 
+
+int DetectWithinTestPacket02 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Zero Five Ten Fourteen";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"pcre with within "
+                 "modifier\"; content:Five; content:Ten; within:3; distance:1; sid:1;)";
+
+    result = UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+end:
+    return result;
+}
+
+
 #endif /* UNITTESTS */
 
 void DetectWithinRegisterTests(void) {
     #ifdef UNITTESTS
     UtRegisterTest("DetectWithinTestPacket01", DetectWithinTestPacket01, 1);
+    UtRegisterTest("DetectWithinTestPacket02", DetectWithinTestPacket02, 1);
     #endif /* UNITTESTS */
 }

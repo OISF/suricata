@@ -31,6 +31,7 @@
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "app-layer.h"
 
 #include "flow-var.h"
 
@@ -52,6 +53,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
 {
     char *str = offsetstr;
     char dubbed = 0;
+    SigMatch *pm = NULL;
 
     /* strip "'s */
     if (offsetstr[0] == '\"' && offsetstr[strlen(offsetstr)-1] == '\"') {
@@ -60,14 +62,35 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
         dubbed = 1;
     }
 
-    /* Search for the first previous DetectContent or uricontent
-     * SigMatch (it can be the same as this one) */
-    SigMatch *pm = SigMatchGetLastPattern(s);
-    if (pm == NULL) {
-        SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding "
-                "content or uricontent option");
-        if (dubbed) SCFree(str);
-        return -1;
+    switch (s->alproto) {
+        case ALPROTO_DCERPC:
+            /* If we have a signature that is related to dcerpc, then we add the
+             * sm to Signature->dmatch.  All content inspections for a dce rpc
+             * alproto is done inside detect-engine-dcepayload.c */
+            pm =  SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->dmatch_tail);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "offset needs"
+                           "preceeding content option for dcerpc sig");
+                if (dubbed)
+                    SCFree(str);
+                return -1;
+            }
+
+            break;
+
+        default:
+            pm =  SigMatchGetLastSMFromLists(s, 4,
+                                             DETECT_CONTENT, s->pmatch_tail,
+                                             DETECT_URICONTENT, s->umatch_tail);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "distance needs"
+                           "preceeding content or uricontent option");
+                if (dubbed)
+                    SCFree(str);
+                return -1;
+            }
+
+            break;
     }
 
     DetectUricontentData *ud = NULL;

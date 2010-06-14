@@ -333,6 +333,12 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     SCEnter();
 
     SigMatch *sm = NULL;
+
+    if (s->alproto == ALPROTO_DCERPC) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "uri content specified in a dcerpc sig");
+        goto error;
+    }
+
     DetectUricontentData *cd = DoDetectUricontentSetup(contentstr);
     if (cd == NULL)
         goto error;
@@ -1132,7 +1138,7 @@ static int DetectUriSigTest04(void) {
             s->pmatch == NULL ||
             ((DetectContentData*) s->pmatch->ctx)->depth != 10 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
-            ((DetectContentData*) s->umatch_tail->ctx)->within != 30 ||
+            ((DetectUricontentData*) s->umatch_tail->ctx)->within != 30 ||
             s->match != NULL)
     {
         printf("sig 8 failed to parse: ");
