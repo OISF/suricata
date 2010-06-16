@@ -52,6 +52,7 @@ AC_INIT(configure.in)
 
     CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
     CFLAGS="$CFLAGS -Wno-unused-parameter"
+    CFLAGS="$CFLAGS -std=gnu99"
 
 # Checks for programs.
     AC_PROG_AWK
@@ -181,17 +182,11 @@ AC_INIT(configure.in)
 
 #enable gcc march=native gcc 4.2 or later
     AC_ARG_ENABLE(gccmarch_native,
-           AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),,[enable_gccmarch_native=no])
+           AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),,[enable_gccmarch_native=yes])
     AS_IF([test "x$enable_gccmarch_native" = "xyes"], [
         if test "$gccvernum" -ge "402"; then
                 dnl gcc 4.2 or later
                 CFLAGS="$CFLAGS -march=native"
-        else
-                echo
-                echo "   You specified --enable-gccmarch-native but looks like you are running gcc < 4.2"
-                echo "   Please update your version of gcc or remove this option from configure."
-                echo
-                exit 1
         fi
     ])
 
