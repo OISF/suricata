@@ -746,6 +746,47 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         CFLAGS="${CFLAGS} -DPROFILING"
     ])
 
+# Check for DAG support.
+
+    AC_ARG_ENABLE(dag,
+	        [  --enable-dag  Enable DAG capture],
+	        [ enable_dag=yes ],
+	        [ enable_dag=no])
+    AC_ARG_WITH(dag_includes,
+            [  --with-dag-includes=DIR  dagapi include directory],
+            [with_dag_includes="$withval"],[with_dag_includes="no"])
+    AC_ARG_WITH(dag_libraries,
+            [  --with-dag-libraries=DIR  dagapi library directory],
+            [with_dag_libraries="$withval"],[with_dag_libraries="no"])
+
+    if test "$enable_dag" = "yes"; then
+
+	    if test "$with_dag_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_dag_includes}"
+        fi
+
+        if test "$with_dag_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS} -I${with_dag_libraries}"
+        fi
+
+        AC_CHECK_HEADER(dagapi.h,DAG="yes",DAG="no")
+        if test "$DAG" != "no"; then
+            DAG=""
+	        AC_CHECK_LIB(dag,dag_open,DAG="yes",DAG="no")
+        fi
+
+        if test "$DAG" != "no"; then
+            CFLAGS="${CFLAGS} -DHAVE_DAG"
+        fi
+
+        if test "$DAG" = "no"; then
+            echo
+            echo "  ERROR! libdag library not found"
+            echo
+            exit 1
+        fi
+    fi
+
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
@@ -761,6 +802,7 @@ Suricata Configuration:
   Unit tests enabled:       ${enable_unittests}
   Debug output enabled:     ${enable_debug}
   CUDA enabled:             ${enable_cuda}
+  DAG enabled:              ${enable_dag}
   Profiling enabled:        ${enable_profiling}
   GCC Protect enabled:      ${enable_gccprotect}
   GCC march native enabled: ${enable_gccmarch_native}

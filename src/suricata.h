@@ -60,6 +60,7 @@ enum {
     MODE_IPFW,
     MODE_UNITTEST,
     MODE_ERF_FILE,
+    MODE_DAG,
 };
 
 /* preallocated packet structures here

@@ -84,6 +84,7 @@
 #include "source-pfring.h"
 
 #include "source-erf-file.h"
+#include "source-erf-dag.h"
 
 #include "respond-reject.h"
 
@@ -321,6 +322,9 @@ void usage(const char *progname)
     printf("\t--group <group>              : run suricata as this group after init\n");
 #endif /* HAVE_LIBCAP_NG */
     printf("\t--erf-in <path>              : process an ERF file\n");
+#ifdef HAVE_DAG
+    printf("\t--dag <dag0,dag1,...>        : process ERF records from 0,1,...,n DAG input streams\n");
+#endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -351,6 +355,7 @@ int main(int argc, char **argv)
     uint32_t userid = 0;
     uint32_t groupid = 0;
     char *erf_file = NULL;
+    char *dag_input = NULL;
 
     char *log_dir;
     struct stat buf;
@@ -410,6 +415,7 @@ int main(int argc, char **argv)
         {"user", required_argument, 0, 0},
         {"group", required_argument, 0, 0},
         {"erf-in", required_argument, 0, 0},
+        {"dag", required_argument, 0, 0},
         {NULL, 0, NULL, 0}
     };
 
@@ -531,6 +537,16 @@ int main(int argc, char **argv)
                 run_mode = MODE_ERF_FILE;
                 erf_file = optarg;
             }
+			else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
+#ifdef HAVE_DAG
+				run_mode = MODE_DAG;
+				dag_input = optarg;
+#else
+				SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
+						" to receieve packets using --dag.");
+				exit(EXIT_FAILURE);
+#endif /* HAVE_DAG */
+			}
             else if(strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
                 if (ConfSet("pcap.buffer-size", optarg, 0) != 1) {
@@ -775,6 +791,8 @@ int main(int argc, char **argv)
 #endif
     TmModuleReceiveErfFileRegister();
     TmModuleDecodeErfFileRegister();
+    TmModuleReceiveErfDagRegister();
+    TmModuleDecodeErfDagRegister();
     TmModuleDebugList();
 
     /** \todo we need an api for these */
@@ -1014,6 +1032,9 @@ int main(int argc, char **argv)
     }
     else if (run_mode == MODE_ERF_FILE) {
         RunModeErfFileAuto(de_ctx, erf_file);
+    }
+    else if (run_mode == MODE_DAG) {
+        RunModeErfDagAuto(de_ctx, dag_input);
     }
     else {
         SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");

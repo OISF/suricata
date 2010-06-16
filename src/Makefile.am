@@ -14,6 +14,7 @@ source-pcap-file.c source-pcap-file.h \
 source-pfring.c source-pfring.h \
 source-ipfw.c source-ipfw.h \
 source-erf-file.c source-erf-file.h \
+source-erf-dag.c source-erf-dag.h \
 decode.c decode.h \
 decode-ethernet.c decode-ethernet.h \
 decode-vlan.c decode-vlan.h \

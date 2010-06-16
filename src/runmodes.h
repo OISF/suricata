@@ -48,6 +48,7 @@ int RunModeIpsIPFW(DetectEngineCtx *);
 int RunModeIpsIPFWAuto(DetectEngineCtx *);
 
 int RunModeErfFileAuto(DetectEngineCtx *, char *);
+int RunModeErfDagAuto(DetectEngineCtx *, char *);
 
 void RunModeShutDown(void);
 
