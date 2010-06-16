@@ -51,7 +51,7 @@
 
 //#define B2G_SEARCH2
 //#define B2G_COUNTERS
-
+#if 0
 typedef struct B2gPattern_ {
     uint8_t flags; /**< MPM_PATTERN_FLAG_* flags */
     uint16_t len; /**< \todo we're limited to 32/64 byte lengths, uint8_t would be fine here */
@@ -60,12 +60,16 @@ typedef struct B2gPattern_ {
     struct B2gPattern_ *next;
     uint32_t id;
 } B2gPattern;
-
-typedef struct B2gHashItem_ {
-    uint16_t idx;
+#endif
+typedef struct B2gPattern_ { //HashItem_ {
+    uint16_t len; /**< \todo we're limited to 32/64 byte lengths, uint8_t would be fine here */
     uint8_t flags;
-    struct B2gHashItem_ *nxt;
-} B2gHashItem;
+    uint8_t pad0;
+    struct B2gPattern_ *next;
+    uint8_t *cs; /* case sensitive */
+    uint8_t *ci; /* case INsensitive */
+    uint32_t id;
+} B2gPattern;//HashItem;
 
 typedef struct B2gCtx_ {
     B2G_TYPE *B2G;
@@ -84,8 +88,8 @@ typedef struct B2gCtx_ {
     uint16_t pat_x_cnt;
 
     uint32_t hash_size;
-    B2gHashItem **hash;
-    B2gHashItem hash1[256];
+    B2gPattern **hash;
+    B2gPattern hash1[256];
 #ifdef B2G_SEARCH2
     B2gHashItem **hash2;
 #endif

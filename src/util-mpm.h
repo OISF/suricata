@@ -111,6 +111,8 @@ typedef struct MpmCtx_ {
 #define MPM_PATTERN_FLAG_DEPTH      0x04
 /** pattern has an offset setting */
 #define MPM_PATTERN_FLAG_OFFSET     0x08
+/** one byte pattern (used in b2g) */
+#define MPM_PATTERN_ONE_BYTE        0x10
 
 typedef struct MpmTableElmt_ {
     char *name;
