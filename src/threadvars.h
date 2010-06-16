@@ -49,6 +49,7 @@
 typedef struct ThreadVars_ {
     pthread_t t;
     char *name;
+    char *thread_group_name;
 
     uint8_t flags;
     SCSpinlock flags_spinlock;

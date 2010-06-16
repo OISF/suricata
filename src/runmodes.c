@@ -166,6 +166,8 @@ static void RunModeInitialize(void)
 int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface) {
     TimeModeSetLive();
 
+    char *thread_group_name = NULL;
+
     /* create the threads */
     ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
     if (tv_receivepcap == NULL) {
@@ -230,6 +232,13 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface) {
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect1->thread_group_name = thread_group_name;
+
     if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -246,6 +255,13 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
+
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect2->thread_group_name = thread_group_name;
 
     if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -283,6 +299,8 @@ int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface) {
 /** \brief Live pcap mode with 4 stream tracking and reassembly threads, testing the flow queuehandler */
 int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface) {
     TimeModeSetLive();
+
+    char *thread_group_name = NULL;
 
     /* create the threads */
     ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
@@ -399,6 +417,13 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface) {
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect1->thread_group_name = thread_group_name;
+
     if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -415,6 +440,13 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
+
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect2->thread_group_name = thread_group_name;
 
     if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -653,6 +685,8 @@ int RunModeIdsPcap3(DetectEngineCtx *de_ctx, char *iface) {
 int RunModeIpsNFQ(DetectEngineCtx *de_ctx, char *nfq_id) {
     TimeModeSetLive();
 
+    char *thread_group_name = NULL;
+
     /* create the threads */
     ThreadVars *tv_receivenfq = TmThreadCreatePacketHandler("ReceiveNFQ","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
     if (tv_receivenfq == NULL) {
@@ -717,6 +751,13 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, char *nfq_id) {
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect1->thread_group_name = thread_group_name;
+
     if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -733,6 +774,13 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, char *nfq_id) {
         exit(EXIT_FAILURE);
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
+
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect2->thread_group_name = thread_group_name;
 
     if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -787,6 +835,8 @@ int RunModeIpsNFQ(DetectEngineCtx *de_ctx, char *nfq_id) {
 int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file) {
     SCLogDebug("file %s", file);
     TimeModeSetOffline();
+
+    char *thread_group_name = NULL;
 
     /* create the threads */
     ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcapFile","packetpool","packetpool","pickup-queue","simple","1slot");
@@ -854,6 +904,13 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file) {
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect1->thread_group_name = thread_group_name;
+
     if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -870,6 +927,13 @@ int RunModeFilePcap(DetectEngineCtx *de_ctx, char *file) {
         exit(EXIT_FAILURE);
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
+
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect2->thread_group_name = thread_group_name;
 
     if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -941,6 +1005,8 @@ int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file) {
 
 int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface) {
     TimeModeSetLive();
+
+    char *thread_group_name = NULL;
 
     /* create the threads */
     ThreadVars *tv_receivepfring = TmThreadCreatePacketHandler("ReceivePfring","packetpool","packetpool","pickup-queue1","simple","1slot");
@@ -1057,6 +1123,13 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface) {
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect1->thread_group_name = thread_group_name;
+
     if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -1073,6 +1146,13 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
+
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect2->thread_group_name = thread_group_name;
 
     if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1110,6 +1190,8 @@ int RunModeIdsPfring(DetectEngineCtx *de_ctx, char *iface) {
 /** \brief Live pfring mode with 4 stream tracking and reassembly threads, testing the flow queuehandler */
 int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface) {
     TimeModeSetLive();
+
+    char *thread_group_name = NULL;
 
     /* create the threads */
     ThreadVars *tv_receivepfring = TmThreadCreatePacketHandler("ReceivePfring","packetpool","packetpool","pickup-queue","simple","1slot");
@@ -1226,6 +1308,13 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface) {
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect1->thread_group_name = thread_group_name;
+
     if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -1242,6 +1331,13 @@ int RunModeIdsPfring2(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
+
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect2->thread_group_name = thread_group_name;
 
     if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1469,6 +1565,8 @@ int RunModeIpsIPFW(DetectEngineCtx *de_ctx) {
 
     TimeModeSetLive();
 
+    char *thread_group_name = NULL;
+
     /* create the threads */
     ThreadVars *tv_receiveipfw = TmThreadCreatePacketHandler("ReceiveIPFW","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
 
@@ -1534,6 +1632,13 @@ int RunModeIpsIPFW(DetectEngineCtx *de_ctx) {
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect1->thread_group_name = thread_group_name;
+
     if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -1550,6 +1655,13 @@ int RunModeIpsIPFW(DetectEngineCtx *de_ctx) {
         exit(EXIT_FAILURE);
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
+
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect2->thread_group_name = thread_group_name;
 
     if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1604,6 +1716,8 @@ int RunModeIpsIPFW(DetectEngineCtx *de_ctx) {
 /** RunmodeIdsPfring4 simple 4 pfring, decode, stream, and detect threads */
 int RunModeIdsPfring4(DetectEngineCtx *de_ctx, char *iface) {
     TimeModeSetLive();
+
+    char *thread_group_name = NULL;
 
     /* create the threads */
     ThreadVars *tv_receivepfring = TmThreadCreatePacketHandler("ReceivePfring","packetpool","packetpool","pickup-queue1","simple","1slot");
@@ -1821,6 +1935,13 @@ int RunModeIdsPfring4(DetectEngineCtx *de_ctx, char *iface) {
     }
     Tm1SlotSetFunc(tv_detect1,tm_module,(void *)de_ctx);
 
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect1->thread_group_name = thread_group_name;
+
     if (TmThreadSpawn(tv_detect1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -1836,6 +1957,13 @@ int RunModeIdsPfring4(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
     Tm1SlotSetFunc(tv_detect2,tm_module,(void *)de_ctx);
+
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect2->thread_group_name = thread_group_name;
 
     if (TmThreadSpawn(tv_detect2) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -1854,6 +1982,13 @@ int RunModeIdsPfring4(DetectEngineCtx *de_ctx, char *iface) {
     }
     Tm1SlotSetFunc(tv_detect3,tm_module,(void *)de_ctx);
 
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect3->thread_group_name = thread_group_name;
+
     if (TmThreadSpawn(tv_detect3) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
@@ -1870,6 +2005,13 @@ int RunModeIdsPfring4(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
     Tm1SlotSetFunc(tv_detect4,tm_module,(void *)de_ctx);
+
+    thread_group_name = SCStrdup("Detect");
+    if (thread_group_name == NULL) {
+        printf("Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+    tv_detect4->thread_group_name = thread_group_name;
 
     if (TmThreadSpawn(tv_detect4) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -2048,6 +2190,13 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
                 TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
             }
         }
+
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            printf("Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -2230,6 +2379,13 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
             }
         }
 
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            printf("Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
+
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
             exit(EXIT_FAILURE);
@@ -2353,6 +2509,14 @@ int RunModeFilePcapAuto2(DetectEngineCtx *de_ctx, char *file) {
                 TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
             }
         }
+
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            printf("Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
+
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -2522,6 +2686,13 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
                 TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
             }
         }
+
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            printf("Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -2742,6 +2913,13 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
             }
         }
 
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            printf("Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
+
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
             exit(EXIT_FAILURE);
@@ -2958,8 +3136,14 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
             } else if (ncpus > 1) {
                 TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
             }
-        }
+       }
 
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            printf("Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -3126,6 +3310,13 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx, char *file)
                 TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
             }
         }
+
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            printf("Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");

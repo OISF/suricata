@@ -1142,7 +1142,9 @@ void SCPerfSpawnThreads(void)
 uint16_t SCPerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type,
                                  char *desc)
 {
-    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tv->name, type, desc,
+    uint16_t id = SCPerfRegisterQualifiedCounter(cname,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 type, desc,
                                                  &tv->sc_perf_pctx,
                                                  SC_PERF_TYPE_Q_NORMAL, NULL);
 
@@ -1165,7 +1167,9 @@ uint16_t SCPerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type,
 uint16_t SCPerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
                                     int type, char *desc)
 {
-    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tv->name, type, desc,
+    uint16_t id = SCPerfRegisterQualifiedCounter(cname,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 type, desc,
                                                  &tv->sc_perf_pctx,
                                                  SC_PERF_TYPE_Q_AVERAGE, NULL);
 
@@ -1188,7 +1192,9 @@ uint16_t SCPerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
 uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
                                     int type, char *desc)
 {
-    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tv->name, type, desc,
+    uint16_t id = SCPerfRegisterQualifiedCounter(cname,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 type, desc,
                                                  &tv->sc_perf_pctx,
                                                  SC_PERF_TYPE_Q_MAXIMUM, NULL);
 
@@ -1216,7 +1222,9 @@ uint16_t SCPerfTVRegisterIntervalCounter(char *cname, struct ThreadVars_ *tv,
                                          int type, char *desc,
                                          char *time_interval)
 {
-    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tv->name, type, desc,
+    uint16_t id = SCPerfRegisterQualifiedCounter(cname,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 type, desc,
                                                  &tv->sc_perf_pctx,
                                                  SC_PERF_TYPE_Q_TIMEBASED |
                                                  SC_PERF_TYPE_Q_NORMAL,
