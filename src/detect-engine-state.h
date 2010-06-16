@@ -46,6 +46,7 @@
 
 #define DE_STATE_FLAG_PAYLOAD_MATCH 0x01 /**< payload part of the sig matched */
 #define DE_STATE_FLAG_URI_MATCH     0x02 /**< uri part of the sig matched */
+#define DE_STATE_FLAG_DCE_MATCH     0x04 /**< dce payload inspection part matched */
 
 typedef enum {
     DE_STATE_MATCH_FULL = 0,    /**< sig already fully matched, no state */
@@ -85,7 +86,7 @@ void DetectEngineStateReset(DetectEngineState *state);
 DetectEngineState *DetectEngineStateAlloc(void);
 void DetectEngineStateFree(DetectEngineState *);
 
-void DeStateSignatureAppend(DetectEngineState *, Signature *, SigMatch *, char);
+//void DeStateSignatureAppend(DetectEngineState *, Signature *, SigMatch *, char);
 
 int DeStateFlowHasState(Flow *);
 

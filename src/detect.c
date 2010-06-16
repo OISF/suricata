@@ -467,7 +467,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         /* de_state check, filter out all signatures that already had a match before
          * or just partially match */
         if (de_state_start == FALSE) {
-            if (s->amatch != NULL || s->umatch != NULL) {
+            if (s->amatch != NULL || s->umatch != NULL || s->dmatch != NULL) {
                 if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
                     continue;
                 }
@@ -760,7 +760,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
         SCLogDebug("s->amatch %p, s->umatch %p", s->amatch, s->umatch);
-        if ((s->amatch != NULL || s->umatch != NULL) && p->flow != NULL) {
+        if ((s->amatch != NULL || s->umatch != NULL || s->dmatch != NULL) && p->flow != NULL) {
             if (de_state_start == TRUE) {
                 SCLogDebug("stateful app layer match inspection starting");
                 if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
@@ -770,7 +770,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 SCLogDebug("signature %"PRIu32" (%"PRIuMAX"): %s",
                         s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
                 if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
-                    goto next;
+                    if (s->pmatch == NULL && s->dmatch == NULL) {
+                        goto next;
+                    }
                 }
             }
         }
@@ -818,12 +820,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     goto next;
             }
         }
-        /* Check the dce keywords here */
-        if (s->dmatch != NULL) {
-            if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
-                goto next;
-        }
-
 
         /* if we get here but have no sigmatches to match against,
          * we consider the sig matched. */
