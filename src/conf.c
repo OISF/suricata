@@ -310,6 +310,68 @@ ConfGetBool(char *name, int *val)
 }
 
 /**
+ * \brief Retrieve a configuration value as a double
+ *
+ * \param name Name of configuration parameter to get.
+ * \param val Pointer to an double that will be set the
+ * configuration value.
+ *
+ * \retval 1 will be returned if the name is found and was properly
+ * converted to a double, otherwise 0 will be returned.
+ */
+int
+ConfGetDouble(char *name, double *val)
+{
+    char *strval;
+    double tmpdo;
+    char *endptr;
+
+    if (ConfGet(name, &strval) == 0)
+        return 0;
+
+    errno = 0;
+    tmpdo = strtod(strval, &endptr);
+    if (strval[0] == '\0' || *endptr != '\0')
+        return 0;
+    if (errno == ERANGE)
+        return 0;
+
+    *val = tmpdo;
+    return 1;
+}
+
+/**
+ * \brief Retrieve a configuration value as a float
+ *
+ * \param name Name of configuration parameter to get.
+ * \param val Pointer to an float that will be set the
+ * configuration value.
+ *
+ * \retval 1 will be returned if the name is found and was properly
+ * converted to a double, otherwise 0 will be returned.
+ */
+int
+ConfGetFloat(char *name, float *val)
+{
+    char *strval;
+    double tmpfl;
+    char *endptr;
+
+    if (ConfGet(name, &strval) == 0)
+        return 0;
+
+    errno = 0;
+    tmpfl = strtof(strval, &endptr);
+    if (strval[0] == '\0' || *endptr != '\0')
+        return 0;
+    if (errno == ERANGE)
+        return 0;
+
+    *val = tmpfl;
+    return 1;
+}
+
+/**
  * \brief Remove (and SCFree) the provided configuration node.
  */
 void

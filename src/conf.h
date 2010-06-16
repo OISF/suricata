@@ -53,6 +53,8 @@ ConfNode *ConfGetRootNode(void);
 int ConfGet(char *name, char **vptr);
 int ConfGetInt(char *name, intmax_t *val);
 int ConfGetBool(char *name, int *val);
+int ConfGetDouble(char *name, double *val);
+int ConfGetFloat(char *name, float *val);
 int ConfSet(char *name, char *val, int allow_override);
 void ConfDump(void);
 void ConfNodeDump(ConfNode *node, const char *prefix);
